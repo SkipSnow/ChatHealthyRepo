@@ -252,23 +252,16 @@ def main() -> int:
     import logging  # noqa: PLC0415 (see Rule-005; bootstrap exemption)
     blob_logger.install(pipeline_name, level=logging.DEBUG)
 
-    # Observability gate: prove we can reach the front-cluster Mongo AND
-    # emit through ChatHealthyLoggingService BEFORE any pipeline work.
-    # Operating a data pipeline without observability is fatal (operator
-    # directive 2026-07-18). The lib RAISES on failure; bootstrap ALSO
-    # writes as robust an error message as possible (redundant with the
-    # lib's dump, tolerated on purpose) and returns non-zero so AA/ACA
-    # marks the container Failed.
+    # Observability gate call is DEFERRED to after KV secret load below
+    # (Control path only). MONGO_FRONTEND_connectionString + CH_SPACE_NAME
+    # + ENV_PREFIX are only in os.environ AFTER _load_all_secrets_into_env
+    # populates them. Running the gate here would abend on
+    # mode='mongo_env_unset' with no useful signal about actual Mongo
+    # reachability.
     import socket  # noqa: PLC0415
     import traceback  # noqa: PLC0415
-    try:
-        ObservabilityGate(
-            component=pipeline_name,
-            server=os.environ.get(
-                "CONTAINER_APP_JOB_EXECUTION_NAME", socket.gethostname()
-            ),
-        ).check()
-    except ChatHealthyException as _obs_exc:
+
+    def _dump_obs_abend(_obs_exc: ChatHealthyException) -> None:
         print("=" * 78, file=sys.stderr, flush=True)
         print("bootstrap: pipeline observability gate FAILED -- abending",
               file=sys.stderr, flush=True)
@@ -318,7 +311,6 @@ def main() -> int:
         print("  live traceback:", file=sys.stderr, flush=True)
         traceback.print_exc(file=sys.stderr)
         print("=" * 78, file=sys.stderr, flush=True)
-        return 1
 
     if len(sys.argv) < 2:
         _emit("usage: bootstrap.py <entry_point.py> [args...]")
@@ -357,6 +349,22 @@ def main() -> int:
         f"materialized: cert={cert_path.name} key={key_path.name} "
         f"ca_chain={ca_path.name}"
     )
+
+    # Observability gate NOW: KV secrets have populated os.environ so
+    # MONGO_FRONTEND_connectionString (and CH_SPACE_NAME if declared)
+    # are present and the gate can prove Mongo + Storage connectivity.
+    # Any failure -> dump detail to stderr and abend with exit 1 so
+    # AA/ACA marks the container Failed.
+    try:
+        ObservabilityGate(
+            component=pipeline_name,
+            server=os.environ.get(
+                "CONTAINER_APP_JOB_EXECUTION_NAME", socket.gethostname()
+            ),
+        ).check()
+    except ChatHealthyException as _obs_exc:
+        _dump_obs_abend(_obs_exc)
+        return 1
 
     entry_point = sys.argv[1]
     forward_args = sys.argv[2:]
