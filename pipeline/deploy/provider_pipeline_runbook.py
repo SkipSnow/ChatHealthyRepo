@@ -346,7 +346,7 @@ def _write_run_manifest(mongo, run_id: str, load_mode: str,
 # ARM -- start the prov-control ACA Job with env-var overrides
 # ============================================================================
 def _start_control_job(run_id: str, load_mode: str, state_scope,
-                       invocation_mode: str) -> dict:
+                       invocation_mode: str, resume_from_step: str = "") -> dict:
     """LLD §2.6 step 4: POST to ACA job start endpoint with env overrides.
 
     The Microsoft.App/jobs/{name}/start action requires each container in
@@ -382,6 +382,7 @@ def _start_control_job(run_id: str, load_mode: str, state_scope,
         {"name": "LOAD_MODE", "value": load_mode},
         {"name": "STATE_SCOPE", "value": json.dumps(state_scope)},
         {"name": "PIPELINE_NAME", "value": PIPELINE_NAME},
+        {"name": "RESUME_FROM_STEP", "value": resume_from_step or ""},
     ]
     override_names = {e["name"] for e in override_env}
     merged_env = [e for e in (tpl.get("env") or []) if e.get("name") not in override_names]
@@ -510,13 +511,18 @@ def main() -> int:
     state_scope = _resolve_state_scope(
         webhook_body.get("state_scope") if webhook_body else STATE_SCOPE_DEFAULT
     )
+    resume_from_step = (
+        (webhook_body.get("resume_from_step") or "").strip()
+        if webhook_body else ""
+    )
 
     log("runbook_start",
         pipeline=PIPELINE_NAME,
         env=ENV_PREFIX,
         invocation_mode=invocation_mode,
         load_mode=load_mode,
-        state_scope=state_scope)
+        state_scope=state_scope,
+        resume_from_step=resume_from_step or None)
 
     # Fresh run_id
     now = datetime.datetime.utcnow()
@@ -588,7 +594,7 @@ def main() -> int:
 
         # Start Control
         try:
-            result = _start_control_job(run_id, load_mode, state_scope, invocation_mode)
+            result = _start_control_job(run_id, load_mode, state_scope, invocation_mode, resume_from_step)
             log("control_job_started",
                 run_id=run_id,
                 name=result.get("name"),

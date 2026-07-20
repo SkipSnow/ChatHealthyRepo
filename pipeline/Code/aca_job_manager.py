@@ -26,13 +26,24 @@ ACA_IMAGE = os.environ.get(
 
 
 def _local_mode() -> bool:
+    """True iff we should run worker steps in-process instead of fanning out
+    to real ACA job executions. Order of precedence:
+      1. Explicit opt-out ACA_JOB_DEPLOY=1 => real ACA fan-out even in dev.
+      2. Explicit opt-in PIPELINE_LOCAL_MODE / PIPELINE_TEST_MODE => local.
+      3. Running INSIDE an ACA execution (CONTAINER_APP_JOB_EXECUTION_NAME is
+         set by the ACA runtime) => real ACA fan-out. Control-in-ACA must
+         spawn workers-in-ACA.
+      4. Default => local (safe on a workstation with no ACA runtime).
+    """
     if os.environ.get("ACA_JOB_DEPLOY", "").lower() in ("1", "true", "yes"):
         return False
     if os.environ.get("PIPELINE_LOCAL_MODE", "").lower() in ("1", "true", "yes"):
         return True
     if os.environ.get("PIPELINE_TEST_MODE", "").lower() in ("1", "true", "yes"):
         return True
-    return os.environ.get("PIPELINE_WORKER_MODE", "control") == "control"
+    if os.environ.get("CONTAINER_APP_JOB_EXECUTION_NAME", "").strip():
+        return False
+    return True
 
 
 def _az(args: list[str]) -> dict[str, Any]:
