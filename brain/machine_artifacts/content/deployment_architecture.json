@@ -7360,67 +7360,9 @@
                 ]
               },
               {
-                "name": "snet-hybrid-worker",
-                "address_prefix": "10.0.2.0/24",
-                "purpose": "automation_hybrid_worker_legacy"
-              },
-              {
-                "name": "snet-worker-pool",
-                "address_prefix": "10.0.4.0/24",
-                "purpose": "pipeline_worker_pool",
-                "reserved_nic_pools": [
-                  {
-                    "action": "delete",
-                    "count": 125,
-                    "name_prefix": "pipe-worker-",
-                    "allocation": "static",
-                    "ip_offset_start": 4
-                  },
-                  {
-                    "action": "delete",
-                    "count": 10,
-                    "name_prefix": "pipe-node-",
-                    "allocation": "static",
-                    "ip_offset_start": 4
-                  },
-                  {
-                    "action": "create",
-                    "count": 10,
-                    "name_prefix": "PipelineWorker_vnetNode",
-                    "allocation": "static",
-                    "ip_offset_start": 4,
-                    "runtime_consumers": [
-                      {
-                        "identity_target_id": "target_identity_mi_worker",
-                        "operation": "claim_and_bind_vm",
-                        "authority": "one_nic_per_work_item"
-                      }
-                    ]
-                  },
-                  {
-                    "action": "create",
-                    "count": 1,
-                    "name_prefix": "PipelineController_vnetNode",
-                    "allocation": "static",
-                    "ip_offset_start": 14,
-                    "runtime_consumers": [
-                      {
-                        "identity_target_id": "target_identity_mi_control",
-                        "operation": "claim_and_bind_vm"
-                      }
-                    ]
-                  }
-                ]
-              },
-              {
                 "name": "snet-private-endpoints",
                 "address_prefix": "10.0.6.0/24",
                 "purpose": "atlas_private_endpoint_landing"
-              },
-              {
-                "name": "snet-trigger-control",
-                "address_prefix": "10.0.8.0/24",
-                "purpose": "pipeline_trigger_and_control"
               }
             ],
             "private_endpoints": [
