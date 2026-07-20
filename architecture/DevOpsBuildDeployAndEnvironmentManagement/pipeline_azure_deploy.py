@@ -18,10 +18,12 @@ import json
 import os
 import subprocess
 import sys
+import tempfile
 import time
 import urllib.error
 import urllib.parse
 import urllib.request
+from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
 
@@ -38,6 +40,9 @@ def step(msg: str) -> None:
     print(f"[pipeline_azure] {msg}", flush=True)
 
 
+_AZ_ERROR_DIR = Path(tempfile.gettempdir()) / "pipeline_azure_deploy_errors"
+
+
 def _az(args: list[str], *, check: bool = True) -> subprocess.CompletedProcess:
     cmd = ["az", *args]
     r = subprocess.run(
@@ -47,11 +52,33 @@ def _az(args: list[str], *, check: bool = True) -> subprocess.CompletedProcess:
         creationflags=_cflags(),
         shell=(sys.platform == "win32"),
     )
-    if check and r.returncode != 0:
-        sys.exit(
+    if r.returncode != 0:
+        # Persist the FULL command + full stderr + full stdout to a tmp file so
+        # nothing is lost to truncation. Deploy chain summaries then point at
+        # the file path for follow-up diagnosis.
+        _AZ_ERROR_DIR.mkdir(parents=True, exist_ok=True)
+        ts = datetime.now(timezone.utc).strftime("%Y%m%dT%H%M%SZ")
+        err_path = _AZ_ERROR_DIR / f"az_err_{ts}_{r.returncode}_{os.getpid()}.txt"
+        try:
+            err_path.write_text(
+                f"# az call failed rc={r.returncode} at {ts}\n"
+                f"# argv (full):\n{json.dumps(cmd, indent=2)}\n\n"
+                f"# stdout:\n{r.stdout or '(empty)'}\n\n"
+                f"# stderr:\n{r.stderr or '(empty)'}\n",
+                encoding="utf-8",
+            )
+        except OSError:
+            err_path = None
+        summary = (
             f"ERROR: az {' '.join(args[:6])}... failed ({r.returncode})\n"
-            f"  stderr: {(r.stderr or '')[:2000]}"
+            f"  stderr (first 2000B): {(r.stderr or '')[:2000]}\n"
+            f"  full stderr + argv:   {err_path}"
         )
+        if check:
+            sys.exit(summary)
+        # Attach the summary + err_path so callers can surface both.
+        r.summary = summary  # type: ignore[attr-defined]
+        r.err_path = err_path  # type: ignore[attr-defined]
     return r
 
 

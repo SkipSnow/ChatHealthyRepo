@@ -2642,13 +2642,13 @@ def run_cloud_deploy(env: str, target_arg: str,
             succeeded.append(result)
         except SystemExit as exc:
             msg = str(exc.code) if exc.code else "sys.exit() with no message"
-            step(f"  FAILED {target_id}: {msg[:500]}")
+            step(f"  FAILED {target_id}: {msg}")
             failed.append((target_id, msg))
             if target_kind == "hf_space":
                 any_hf_failed = True
         except Exception as exc:
             msg = f"{type(exc).__name__}: {exc!s}"
-            step(f"  FAILED {target_id}: {msg[:500]}")
+            step(f"  FAILED {target_id}: {msg}")
             failed.append((target_id, msg))
             if target_kind == "hf_space":
                 any_hf_failed = True
