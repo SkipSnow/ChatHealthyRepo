@@ -2,7 +2,7 @@
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "https://dev.chathealthy.ai/schemas/ChatHealthyLogsSchema.json",
   "title": "ChatHealthy Logs Record",
-  "description": "One log document in admin.ChatHealthyLogs_{env}. Schema is closed (no extra fields). The canonical operational finds: db.find({fatal_error: true}) returns every 503; db.find({session_guid: <guid>}) returns every log of one user's session. user_action=true logs MUST carry session_guid. The full message bytes - including ChatHealthyException rendering, thrower traceback, and catcher stack - live in the `formatted` field; engineers grep there.",
+  "description": "One log document in Pipelines.Log_{env}. Schema is closed (no extra fields). The canonical operational finds: db.find({fatal_error: true}) returns every 503; db.find({session_guid: <guid>}) returns every log of one user's session; db.find({job_id: <run_id>}) returns every log of one pipeline execution across Control + all Workers. user_action=true logs MUST carry session_guid. The full message bytes - including ChatHealthyException rendering, thrower traceback, and catcher stack - live in the `formatted` field; engineers grep there.",
   "type": "object",
   "additionalProperties": false,
   "required": [
@@ -54,6 +54,18 @@
       "type": ["string", "null"],
       "pattern": "^[0-9a-f]{32}$",
       "description": "Browser session GUID, 32 lowercase hex characters, or null when no user session is in flight (system / startup / background). Always present on every doc — never omitted. Canonical session-trace query: db.find({session_guid: <guid>}).sort({timeStamp: 1}). Indexed."
+    },
+    "job_id": {
+      "type": ["string", "null"],
+      "description": "Pipeline RUN_ID (uuid). Same value on every log record produced by Control + every Worker of a single pipeline execution. null on non-pipeline services. Canonical job-trace query: db.find({job_id: <run_id>}).sort({timeStamp: 1})."
+    },
+    "pipeline_name": {
+      "type": ["string", "null"],
+      "description": "Pipeline name (e.g. 'provider'). Static per pipeline; propagated to every Worker by aca_job_manager.start_job. null on non-pipeline services."
+    },
+    "vnet_name": {
+      "type": ["string", "null"],
+      "description": "VNet the node runs inside (e.g. 'vnet-chathealthy-pipeline-dev'). Static per env; propagated via manifest default_apps_environment. null on non-VNet-attached services."
     },
     "exc_type": {
       "type": "string",

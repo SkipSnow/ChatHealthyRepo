@@ -8491,7 +8491,9 @@
               "config": {
                 "env_vars": {
                   "CH_SPACE_NAME": "pipeline-{role}-{env}",
-                  "PIPELINE_LOG_ACCOUNT_URL": "https://stchpipelinedev.blob.core.windows.net"
+                  "PIPELINE_LOG_ACCOUNT_URL": "https://stchpipelinedev.blob.core.windows.net",
+                  "PIPELINE_NAME": "provider",
+                  "CHATHEALTHY_VNET_NAME": "vnet-chathealthy-pipeline-dev"
                 }
               }
             }

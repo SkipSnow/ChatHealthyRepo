@@ -1,30 +1,45 @@
 # Copyright (c) 2026 ChatHealthy.ai LLC. All rights reserved.
 # Licensed under the FindCare Evaluation License (FEL-1.0).
-"""Rule-006 enforcement worker — LLM-based classification of shell tool calls.
+"""Rule-006 v2 — funnel classifier for PreToolUse Bash/PowerShell calls.
 
-Wired to Claude Code's PreToolUse hook (Bash or PowerShell tool). On every
-invocation:
+Five-stage funnel:
 
-  1. Extract the tool_input.command.
-  2. Regex-scan the command text for referenced script file paths
-     (Python .py, PowerShell .ps1, shell .sh). Read those files; fail-closed
-     if referenced but missing/unreadable/too large.
-  3. Compute a cache key from (command text + resolved file contents).
-     If the cache holds a verdict, use it — no LLM call.
-  4. Otherwise submit the payload to Gemini 2.0 Flash for classification with
-     exponential backoff on 429/5xx.
-  5. Act:
-        allow       → exit 0 silently, tool call proceeds; cache the verdict.
-        gate_approve → prompt operator APPROVE (inline TTY or browser); on
-                      approve pass through, on reject/timeout deny + browser
-                      notification. Cache the verdict either way.
-        block_hard  → deny + browser notification, no override. Cache the
-                      verdict.
+  1. Local allowlist. Regex allowlist of shell verbs that structurally cannot
+     reach remote state (ls, cat, grep, git status/log/diff, rm/mv/cp on
+     local paths, shell redirection, etc.). Match => allow, no LLM.
 
-  6. Fail-closed on any of: LLM error/timeout after retries, referenced code
-     file missing/unreadable/too large, or the LLM itself returns block_hard
-     (which per its prompt covers dynamic-code patterns and compiled binaries
-     without inspectable source).
+  2. Code-path walk. For anything else, follow every project script the
+     command references (Python .py, PowerShell .ps1, shell .sh), recursively
+     following imports of project modules, subprocess.run/call/Popen args,
+     os.system/os.popen, source/dot-source of nested scripts. Bounded by
+     max-nodes and visited-set. Unresolvable dynamic references (exec/eval of
+     a runtime string, importlib on a computed name) => escalate.
+
+  3. LLM classification. Assemble (command + wrapper info + all reachable
+     files) into a payload. Ask Gemini 2.5 Flash Lite for one of three
+     verdicts: allow / gate_approve / reject, plus a <=70-word explanation
+     of what remote state is (or would be) mutated and by which line.
+
+  4. Outcome dispatch:
+        allow        -> exit 0 silently, tool call proceeds.
+        gate_approve -> browser popup with command + wrapper explanation +
+                        classifier explanation; operator types APPROVE or
+                        REJECT. Approve => allow. Reject/timeout => deny.
+        reject       -> deny IMMEDIATELY, no operator prompt; fire-and-forget
+                        browser notification so the operator is still
+                        informed about the attempt.
+
+  5. Oneoff wrapper. Claude's only legal path to a non-chain remote mutation
+     is `python architecture/EngineeringRuleEnforcement/code/oneoff.py
+     --explanation "<why in <=70 words>" -- <actual command>`. The classifier
+     recognises the wrapper, reads Claude's explanation, and verifies the
+     wrapped command actually does what the explanation claims. Unwrapped
+     remote-mutating commands that aren't one of the four legal chain
+     surfaces (git commit, promote_chathealthy.py, build_chathealthy.py,
+     deploy_chathealthy.py) => reject.
+
+Fail-closed on: LLM error/timeout after retries, GEMINI_API_KEY missing,
+unresolvable dynamic-code pattern, walker exceeds max-nodes budget.
 
 Wiring: direct entry in .claude/settings.json under PreToolUse (Rule-064
 pattern). Not routed through chathealthy_enforcement_manager because
@@ -34,11 +49,13 @@ preserve.
 
 from __future__ import annotations
 
+import ast
 import hashlib
 import json
 import os
 import re
 import secrets
+import shlex
 import socket
 import socketserver
 import sys
@@ -68,6 +85,8 @@ _LLM_BACKOFF_INITIAL_S = 1.5
 _APPROVE_TIMEOUT_S = 600
 _MAX_FILE_BYTES = 400_000
 _MAX_TOTAL_BYTES = 1_500_000
+_WALK_MAX_NODES = 60
+_WALK_MAX_DEPTH = 6
 
 _PROJECT_ROOT = Path(__file__).resolve().parents[3]
 _ENV_FILE = _PROJECT_ROOT / "Code" / ".env"
@@ -79,6 +98,10 @@ _AUDIT_DIR = (
 )
 _AUDIT_LOG_PATH = _AUDIT_DIR / "llm_classify_shell_invocation.log"
 _CACHE_PATH = _AUDIT_DIR / "llm_classify_shell_invocation.cache.json"
+
+_ONEOFF_SCRIPT_REL = (
+    "architecture/EngineeringRuleEnforcement/code/oneoff.py"
+)
 
 _SHELL_TOOLS = {"Bash", "PowerShell"}
 
@@ -108,219 +131,603 @@ def _load_env_var(name: str) -> str | None:
 
 
 # ─────────────────────────────────────────────────────────────────────────────
-# Referenced-file resolution — regex-only, no shell parsing
+# Stage 1 — local allowlist (fast, no LLM)
 # ─────────────────────────────────────────────────────────────────────────────
-_SCRIPT_PATH_RE = re.compile(
-    r"\b(?:python[3]?|bash|sh|pwsh|powershell)\b"   # interpreter token
-    r"(?:\s+-\S+(?:\s+\S+)?)*"                       # optional -flag or -flag value pairs
-    r"\s+"                                            # then whitespace
-    r"([A-Za-z]:[/\\][A-Za-z0-9_./\\-]+\.(?:py|sh|ps1|bash)|"  # abs windows path
-    r"[A-Za-z0-9_./\\-]+\.(?:py|sh|ps1|bash))",       # relative/bare path
+# Shell verbs whose observable effect is CONFINED to the local filesystem
+# (this workstation, this git tree, this process). These skip the LLM.
+#
+# Rule: only pure verbs that cannot spawn a remote request under any argument
+# shape. Anything that could exec a script (`python foo.py`, `pytest`,
+# `npm run`) or reach a network endpoint (`curl`, `wget`, `az`, `docker`)
+# must NOT be here — those go through Stages 2+3.
+_LOCAL_ALLOWLIST = [
+    # File / directory read
+    r"^\s*ls(\s|$)",
+    r"^\s*ll(\s|$)",
+    r"^\s*cat\s",
+    r"^\s*bat\s",
+    r"^\s*head\s",
+    r"^\s*tail\s",
+    r"^\s*wc\s",
+    r"^\s*file\s",
+    r"^\s*stat\s",
+    r"^\s*du(\s|$)",
+    r"^\s*df(\s|$)",
+    r"^\s*tree(\s|$)",
+    r"^\s*find\s(?!.*-(delete|exec|execdir|ok|okdir)\b)",
+    r"^\s*grep\s",
+    r"^\s*egrep\s",
+    r"^\s*fgrep\s",
+    r"^\s*rg\s",
+    r"^\s*ack\s",
+    r"^\s*awk\s",
+    r"^\s*sed\s(?!.*-i\b)",  # sed without -i is read-only
+    r"^\s*sort\s",
+    r"^\s*uniq\s",
+    r"^\s*cut\s",
+    r"^\s*tr\s",
+    r"^\s*jq\s",
+    r"^\s*yq\s",
+    r"^\s*xmllint\s",
+    r"^\s*diff\s",
+    r"^\s*cmp\s",
+    r"^\s*hexdump\s",
+    r"^\s*xxd\s",
+    r"^\s*od\s",
+    r"^\s*strings\s",
+    r"^\s*less\s",
+    r"^\s*more\s",
+    # Local filesystem writes / edits
+    r"^\s*rm\s(?!.*\s(/|~|-r?f?\s+/))",  # rm on local; don't allow rm on root paths
+    r"^\s*mv\s",
+    r"^\s*cp\s",
+    r"^\s*ln\s",
+    r"^\s*mkdir\s",
+    r"^\s*rmdir\s",
+    r"^\s*touch\s",
+    r"^\s*chmod\s",
+    r"^\s*chown\s",
+    r"^\s*tar\s",
+    r"^\s*gzip\s",
+    r"^\s*gunzip\s",
+    r"^\s*zip\s(?!.*http)",
+    r"^\s*unzip\s",
+    # Info / metadata
+    r"^\s*pwd(\s|$)",
+    r"^\s*whoami(\s|$)",
+    r"^\s*hostname(\s|$)",
+    r"^\s*id(\s|$)",
+    r"^\s*date(\s|$)",
+    r"^\s*uptime(\s|$)",
+    r"^\s*uname(\s|$)",
+    r"^\s*which\s",
+    r"^\s*whereis\s",
+    r"^\s*type\s",
+    r"^\s*env(\s|$)",
+    r"^\s*printenv(\s|$)",
+    r"^\s*history(\s|$)",
+    # Shell echo / print
+    r"^\s*echo(\s|$)",
+    r"^\s*printf\s",
+    r"^\s*true(\s|$)",
+    r"^\s*false(\s|$)",
+    r"^\s*yes(\s|$)",
+    # Git READ-only verbs (write verbs like commit/push/fetch/pull are NOT here)
+    r"^\s*git\s+status(\s|$)",
+    r"^\s*git\s+log(\s|$)",
+    r"^\s*git\s+diff(\s|$)",
+    r"^\s*git\s+show(\s|$)",
+    r"^\s*git\s+branch(\s|$|\s+--?list)",
+    r"^\s*git\s+rev-parse(\s|$)",
+    r"^\s*git\s+rev-list(\s|$)",
+    r"^\s*git\s+blame(\s|$)",
+    r"^\s*git\s+describe(\s|$)",
+    r"^\s*git\s+ls-files(\s|$)",
+    r"^\s*git\s+ls-tree(\s|$)",
+    r"^\s*git\s+config\s+--get(\s|$)",
+    r"^\s*git\s+config\s+--list(\s|$)",
+    r"^\s*git\s+remote\s+(-v|show)(\s|$)",
+    r"^\s*git\s+stash\s+(list|show)(\s|$)",
+    r"^\s*git\s+worktree\s+list(\s|$)",
+    r"^\s*git\s+shortlog(\s|$)",
+    # Windows / PowerShell read-only equivalents
+    r"^\s*Get-ChildItem(\s|$)",
+    r"^\s*Get-Content(\s|$)",
+    r"^\s*Get-Item(\s|$)",
+    r"^\s*Get-Location(\s|$)",
+    r"^\s*Test-Path(\s|$)",
+    r"^\s*Select-String(\s|$)",
+    r"^\s*Measure-Object(\s|$)",
+    r"^\s*Where-Object(\s|$)",
+    r"^\s*ForEach-Object(\s|$)",
+    r"^\s*Get-Date(\s|$)",
+    r"^\s*Get-Command(\s|$)",
+    r"^\s*Get-Process(\s|$)",
+]
+
+_LOCAL_ALLOWLIST_RE = [re.compile(p, re.IGNORECASE) for p in _LOCAL_ALLOWLIST]
+
+
+def _is_local_allowlisted(command: str) -> bool:
+    """True iff every effect of `command` is confined to the local filesystem.
+    Splits on shell separators; every segment must match the allowlist."""
+    # Split on shell separators, keep only non-empty segments.
+    segments = re.split(r"(?:&&|\|\||;|\||\n)", command)
+    segments = [s.strip() for s in segments if s.strip()]
+    if not segments:
+        return False
+    for seg in segments:
+        if not any(rgx.search(seg) for rgx in _LOCAL_ALLOWLIST_RE):
+            return False
+    return True
+
+
+# ─────────────────────────────────────────────────────────────────────────────
+# Stage 2 — recursive code-path walker
+# ─────────────────────────────────────────────────────────────────────────────
+_SCRIPT_HEAD_RE = re.compile(
+    r"\b(?:python[3]?|py|bash|sh|pwsh|powershell|node|ruby|perl|npx)\b"
+    r"(?:\s+-\S+(?:\s+[^\s|;&<>]+)?)*"
+    r"\s+"
+    r"([A-Za-z]:[/\\][^\s|;&<>]+\.(?:py|sh|ps1|bash|js|ts|rb|pl)|"
+    r"[A-Za-z0-9_./\\-]+\.(?:py|sh|ps1|bash|js|ts|rb|pl))",
     re.IGNORECASE,
 )
 
 
-def _resolve_referenced_files(command: str) -> tuple[list[dict], list[str]]:
-    """Return (resolved_files, resolution_errors).
+def _read_file_bounded(p: Path) -> tuple[str | None, str | None]:
+    """Return (content, error). Content is capped at _MAX_FILE_BYTES."""
+    try:
+        size = p.stat().st_size
+    except OSError as exc:
+        return None, f"stat failed: {exc}"
+    if size > _MAX_FILE_BYTES:
+        return None, f"file exceeds {_MAX_FILE_BYTES} bytes ({size})"
+    try:
+        return p.read_text(encoding="utf-8", errors="replace"), None
+    except OSError as exc:
+        return None, f"read failed: {exc}"
 
-    Scans the command text with a plain regex for script-file references and
-    tries to read each. Fail-closed reasons: file present in the command but
-    missing on disk, unreadable, or larger than the payload cap.
 
-    NOTE: This does NOT try to parse the shell command structure at all —
-    the LLM sees the full command text and can judge intent from the surface.
+def _resolve_project_path(candidate: str) -> Path | None:
+    """Return an absolute Path inside _PROJECT_ROOT, or None."""
+    if not candidate:
+        return None
+    p = Path(candidate)
+    if not p.is_absolute():
+        p = (_PROJECT_ROOT / candidate).resolve()
+    else:
+        try:
+            p = p.resolve()
+        except OSError:
+            return None
+    try:
+        p.relative_to(_PROJECT_ROOT)
+    except ValueError:
+        return None
+    if not p.is_file():
+        return None
+    return p
+
+
+def _module_to_path(module_dotted: str, from_dir: Path | None) -> Path | None:
+    """Resolve a Python dotted module name to a project file. Only follows
+    project-local modules; std-lib and third-party wheels are skipped by
+    returning None."""
+    if not module_dotted:
+        return None
+    parts = module_dotted.split(".")
+    # First try relative to the importing file's directory (Python's normal
+    # sys.path[0] semantic for scripts).
+    search_roots: list[Path] = []
+    if from_dir is not None:
+        search_roots.append(from_dir)
+    # Then all top-level project directories that could be added to sys.path
+    # by our runners (pipeline/Code, FrontEndApplicationLib/src, etc.).
+    search_roots.extend([
+        _PROJECT_ROOT,
+        _PROJECT_ROOT / "pipeline" / "Code",
+        _PROJECT_ROOT / "FrontEndApplicationLib" / "src",
+        _PROJECT_ROOT / "sharedServices" / "Code",
+        _PROJECT_ROOT / "FindCare",
+        _PROJECT_ROOT / "evaluateCare" / "Code",
+        _PROJECT_ROOT / "architecture" / "DevOpsBuildDeployAndEnvironmentManagement",
+        _PROJECT_ROOT / "architecture" / "EngineeringRuleEnforcement" / "code",
+    ])
+    for root in search_roots:
+        # a.b.c -> a/b/c.py
+        cand = root.joinpath(*parts).with_suffix(".py")
+        p = _resolve_project_path(str(cand))
+        if p is not None:
+            return p
+        # a.b.c -> a/b/c/__init__.py
+        cand2 = root.joinpath(*parts, "__init__.py")
+        p = _resolve_project_path(str(cand2))
+        if p is not None:
+            return p
+    return None
+
+
+def _extract_python_refs(source: str, from_file: Path) -> tuple[list[str], list[str]]:
+    """Return (referenced_paths, dynamic_evidence). Referenced paths are
+    project-relative file paths. Dynamic_evidence names call-sites that
+    prevent static resolution (exec/eval/compile/getattr-based dispatch)."""
+    refs: list[str] = []
+    dynamic: list[str] = []
+    try:
+        tree = ast.parse(source)
+    except SyntaxError as exc:
+        return refs, [f"ast.parse failed at line {exc.lineno}: {exc.msg}"]
+
+    from_dir = from_file.parent
+
+    for node in ast.walk(tree):
+        # imports
+        if isinstance(node, ast.Import):
+            for alias in node.names:
+                p = _module_to_path(alias.name, from_dir)
+                if p is not None:
+                    refs.append(str(p))
+        elif isinstance(node, ast.ImportFrom):
+            module = node.module or ""
+            if node.level and node.level > 0:
+                # relative import: assemble against from_dir
+                base = from_dir
+                for _ in range(node.level - 1):
+                    base = base.parent
+                dotted = ".".join(base.relative_to(_PROJECT_ROOT).parts + ((module,) if module else ()))
+                p = _module_to_path(dotted, None)
+                if p is not None:
+                    refs.append(str(p))
+                for name in node.names:
+                    dotted_sub = f"{dotted}.{name.name}" if dotted else name.name
+                    p = _module_to_path(dotted_sub, None)
+                    if p is not None:
+                        refs.append(str(p))
+            else:
+                p = _module_to_path(module, from_dir)
+                if p is not None:
+                    refs.append(str(p))
+                for name in node.names:
+                    dotted_sub = f"{module}.{name.name}" if module else name.name
+                    p = _module_to_path(dotted_sub, from_dir)
+                    if p is not None:
+                        refs.append(str(p))
+        # subprocess.run/call/Popen/check_output/check_call
+        elif isinstance(node, ast.Call):
+            fname = _call_qualified_name(node.func)
+            if fname in {
+                "subprocess.run", "subprocess.call", "subprocess.Popen",
+                "subprocess.check_output", "subprocess.check_call",
+                "os.system", "os.popen", "runpy.run_path", "runpy.run_module",
+                "importlib.import_module", "__import__",
+            }:
+                arg_paths = _extract_call_string_args(node)
+                for a in arg_paths:
+                    # If the arg looks like a script path, resolve it.
+                    if any(a.endswith(ext) for ext in (".py", ".sh", ".ps1", ".bash", ".js", ".ts")):
+                        p = _resolve_project_path(a)
+                        if p is not None:
+                            refs.append(str(p))
+                        else:
+                            dynamic.append(f"{fname}(...) references {a!r} — not in project tree")
+                    elif "." in a and "/" not in a and "\\" not in a:
+                        # Looks like a dotted module name
+                        p = _module_to_path(a, from_dir)
+                        if p is not None:
+                            refs.append(str(p))
+                if not arg_paths:
+                    dynamic.append(f"{fname}(...) — dynamic args, cannot resolve statically")
+            elif fname in {"exec", "eval", "compile"}:
+                dynamic.append(f"{fname}(...) — dynamic code execution")
+
+    return sorted(set(refs)), dynamic
+
+
+def _call_qualified_name(node: ast.AST) -> str:
+    """Return 'module.attr' or 'name' for a call target; empty on unknown."""
+    if isinstance(node, ast.Name):
+        return node.id
+    if isinstance(node, ast.Attribute):
+        parts: list[str] = []
+        cur: ast.AST = node
+        while isinstance(cur, ast.Attribute):
+            parts.append(cur.attr)
+            cur = cur.value
+        if isinstance(cur, ast.Name):
+            parts.append(cur.id)
+            return ".".join(reversed(parts))
+    return ""
+
+
+def _extract_call_string_args(call: ast.Call) -> list[str]:
+    """Collect any string literals that appear directly as args (positional
+    or in a list literal). Returns the raw string values."""
+    out: list[str] = []
+    for a in call.args:
+        if isinstance(a, ast.Constant) and isinstance(a.value, str):
+            out.append(a.value)
+        elif isinstance(a, ast.List):
+            for elt in a.elts:
+                if isinstance(elt, ast.Constant) and isinstance(elt.value, str):
+                    out.append(elt.value)
+        elif isinstance(a, ast.Tuple):
+            for elt in a.elts:
+                if isinstance(elt, ast.Constant) and isinstance(elt.value, str):
+                    out.append(elt.value)
+    return out
+
+
+_SHELL_SOURCE_RE = re.compile(
+    r"(?:^|\s|;|&|\|)(?:source|\.)\s+([^\s;&|<>]+)",
+    re.MULTILINE,
+)
+_SHELL_INVOKE_RE = re.compile(
+    r"(?:^|\s|;|&|\||`|\$\()"
+    r"(?:python[3]?|py|bash|sh|pwsh|powershell|node|ruby|perl)\s+"
+    r"([^\s|;&<>`)]+\.(?:py|sh|ps1|bash|js|ts|rb|pl))",
+    re.IGNORECASE,
+)
+_PWSH_DOTSOURCE_RE = re.compile(
+    r"(?:^|\s|;|&|\|)\.\s+([^\s;&|]+\.ps1)",
+    re.MULTILINE | re.IGNORECASE,
+)
+
+
+def _extract_shell_refs(source: str) -> list[str]:
+    refs: set[str] = set()
+    for m in _SHELL_SOURCE_RE.finditer(source):
+        refs.add(m.group(1))
+    for m in _SHELL_INVOKE_RE.finditer(source):
+        refs.add(m.group(1))
+    for m in _PWSH_DOTSOURCE_RE.finditer(source):
+        refs.add(m.group(1))
+    return sorted(refs)
+
+
+def _walk_command_closure(command: str) -> tuple[list[dict], list[str], list[str]]:
+    """Return (files, errors, dynamic_evidence).
+
+    files: list of {path, content, sha256} for every project-local file
+    reachable from the command (transitive imports, subprocess targets,
+    shell source, etc.).
+
+    errors: fail-closed conditions — file unreadable, size cap exceeded,
+    walker budget exhausted.
+
+    dynamic_evidence: static-analysis limitations (exec/eval, dynamic
+    subprocess args). The LLM sees these and factors them in; they do NOT
+    auto-fail-closed, but they raise the classifier's suspicion.
     """
-    resolved: list[dict] = []
-    seen: set[str] = set()
+    files: list[dict] = []
     errors: list[str] = []
+    dynamic: list[str] = []
+    visited: set[str] = set()
+
+    # Seed: everything the top-level command directly references.
+    seeds: list[tuple[str, int]] = []
+    for m in _SCRIPT_HEAD_RE.finditer(command):
+        seeds.append((m.group(1), 0))
+
     total_bytes = 0
+    while seeds:
+        if len(visited) >= _WALK_MAX_NODES:
+            errors.append(f"walker exceeded max-nodes budget ({_WALK_MAX_NODES})")
+            break
+        raw_path, depth = seeds.pop(0)
+        if depth > _WALK_MAX_DEPTH:
+            errors.append(f"walker exceeded max-depth ({_WALK_MAX_DEPTH}) at {raw_path}")
+            continue
+        p = _resolve_project_path(raw_path)
+        if p is None:
+            errors.append(f"referenced file not in project tree: {raw_path!r}")
+            continue
+        key = str(p)
+        if key in visited:
+            continue
+        visited.add(key)
+        content, err = _read_file_bounded(p)
+        if err:
+            errors.append(f"{p}: {err}")
+            continue
+        total_bytes += len(content or "")
+        if total_bytes > _MAX_TOTAL_BYTES:
+            errors.append(
+                f"walker exceeded total-bytes budget ({_MAX_TOTAL_BYTES})"
+            )
+            break
+        digest = hashlib.sha256((content or "").encode("utf-8")).hexdigest()[:16]
+        files.append({
+            "path": str(p.relative_to(_PROJECT_ROOT)).replace("\\", "/"),
+            "content": content or "",
+            "sha256": digest,
+        })
+        # Extract refs based on file type
+        suffix = p.suffix.lower()
+        if suffix == ".py":
+            refs, dyn = _extract_python_refs(content or "", p)
+            dynamic.extend(dyn)
+            for r in refs:
+                seeds.append((r, depth + 1))
+        elif suffix in (".sh", ".bash", ".ps1"):
+            for r in _extract_shell_refs(content or ""):
+                seeds.append((r, depth + 1))
 
-    for m in _SCRIPT_PATH_RE.finditer(command):
-        rel = m.group(1)
-        if not rel:
-            continue
-        if rel.startswith("-"):
-            continue
-        norm = rel.replace("\\", "/")
-        if norm in seen:
-            continue
-        seen.add(norm)
+    return files, errors, dynamic
 
-        abs_path = Path(rel)
-        if not abs_path.is_absolute():
-            abs_path = (_PROJECT_ROOT / rel).resolve()
 
-        if not abs_path.exists():
-            # Only fail-closed when it looks like a real invocation path.
-            # `python -m foo.bar` embedded in a heredoc string would not
-            # match our regex, so most noise is already filtered.
-            errors.append(f"referenced script missing on disk: {rel}")
-            continue
-        try:
-            size = abs_path.stat().st_size
-        except OSError as exc:
-            errors.append(f"referenced script unreadable: {rel} ({exc})")
-            continue
-        if size > _MAX_FILE_BYTES:
-            errors.append(f"referenced script too large ({size} bytes): {rel}")
-            continue
-        if total_bytes + size > _MAX_TOTAL_BYTES:
-            errors.append(f"total payload cap exceeded at {rel}")
-            continue
-        try:
-            content = abs_path.read_text(encoding="utf-8", errors="replace")
-        except OSError as exc:
-            errors.append(f"referenced script unreadable: {rel} ({exc})")
-            continue
-        sha = hashlib.sha256(content.encode("utf-8", errors="replace")).hexdigest()[:16]
-        resolved.append({"path": str(abs_path), "content": content, "sha256": sha})
-        total_bytes += size
+# ─────────────────────────────────────────────────────────────────────────────
+# Oneoff wrapper detection
+# ─────────────────────────────────────────────────────────────────────────────
+_ONEOFF_INVOKE_RE = re.compile(
+    r"\b(?:python[3]?|py|\.venv[/\\]Scripts[/\\]python(?:\.exe)?)\b"
+    r"\s+[^\s|;&]*oneoff\.py"
+    r"(?P<tail>[^\r\n]*)",
+    re.IGNORECASE,
+)
 
-    return resolved, errors
+
+def _extract_oneoff(command: str) -> dict | None:
+    """If the command surface invokes oneoff.py, return {explanation, inner}.
+    Otherwise None."""
+    m = _ONEOFF_INVOKE_RE.search(command)
+    if not m:
+        return None
+    tail = m.group("tail")
+    # Parse tail with shlex to pull --explanation and everything after `--`.
+    try:
+        tokens = shlex.split(tail, posix=(os.name != "nt"))
+    except ValueError:
+        return {"explanation": "", "inner": "", "parse_error": True}
+    explanation = ""
+    inner_tokens: list[str] = []
+    i = 0
+    while i < len(tokens):
+        t = tokens[i]
+        if t == "--":
+            inner_tokens = tokens[i + 1:]
+            break
+        if t == "--explanation" and i + 1 < len(tokens):
+            explanation = tokens[i + 1]
+            i += 2
+            continue
+        if t.startswith("--explanation="):
+            explanation = t.split("=", 1)[1]
+            i += 1
+            continue
+        i += 1
+    inner_cmd = " ".join(shlex.quote(x) for x in inner_tokens) if inner_tokens else ""
+    return {"explanation": explanation.strip(), "inner": inner_cmd, "parse_error": False}
 
 
 # ─────────────────────────────────────────────────────────────────────────────
 # Cache
 # ─────────────────────────────────────────────────────────────────────────────
-def _payload_hash(command: str, resolved: list[dict]) -> str:
+def _payload_hash(command: str, files: list[dict], wrapper: dict | None) -> str:
     h = hashlib.sha256()
     h.update(command.encode("utf-8", errors="replace"))
-    for f in resolved:
-        h.update(b"\x1e")
-        h.update(f["path"].encode("utf-8", errors="replace"))
-        h.update(b"\x1f")
+    for f in files:
+        h.update(f["path"].encode("utf-8"))
         h.update(f["sha256"].encode("utf-8"))
+    if wrapper:
+        h.update(b"|wrapper|")
+        h.update((wrapper.get("explanation") or "").encode("utf-8"))
+        h.update((wrapper.get("inner") or "").encode("utf-8"))
     return h.hexdigest()
 
 
 def _cache_load() -> dict:
     try:
-        return json.loads(_CACHE_PATH.read_text(encoding="utf-8"))
-    except (OSError, ValueError):
+        with _CACHE_PATH.open("r", encoding="utf-8") as f:
+            return json.load(f)
+    except Exception:  # noqa: BLE001
         return {}
 
 
 def _cache_get(key: str) -> tuple[str, str] | None:
-    d = _cache_load()
-    hit = d.get(key)
-    if not hit:
+    data = _cache_load()
+    entry = data.get(key)
+    if not entry:
         return None
-    return hit.get("classification"), hit.get("reason")
+    return entry.get("classification", ""), entry.get("reason", "")
 
 
 def _cache_put(key: str, classification: str, reason: str) -> None:
     try:
-        d = _cache_load()
-        d[key] = {
-            "classification": classification,
-            "reason": reason,
-            "ts": datetime.now(timezone.utc).isoformat(),
-        }
-        _CACHE_PATH.parent.mkdir(parents=True, exist_ok=True)
-        _CACHE_PATH.write_text(json.dumps(d, indent=2), encoding="utf-8")
-    except OSError:
+        _AUDIT_DIR.mkdir(parents=True, exist_ok=True)
+        data = _cache_load()
+        data[key] = {"classification": classification, "reason": reason,
+                     "ts": datetime.now(timezone.utc).isoformat()}
+        with _CACHE_PATH.open("w", encoding="utf-8") as f:
+            json.dump(data, f, indent=2, sort_keys=True)
+    except Exception:  # noqa: BLE001
         pass
 
 
 # ─────────────────────────────────────────────────────────────────────────────
-# LLM call — Gemini 2.0 Flash via generativelanguage.googleapis.com
+# LLM prompt + call
 # ─────────────────────────────────────────────────────────────────────────────
-_SYSTEM_PROMPT = """You are a security classifier for shell tool invocations.
-The ONLY things you protect are: Azure, Cloudflare, MongoDB Atlas, HuggingFace,
-Azure Container Registry, and GitHub REMOTE state mutations that bypass the
-project's deploy chain (build_chathealthy.py / deploy_chathealthy.py /
-promote_chathealthy.py). Everything else is `allow`.
+_SYSTEM_PROMPT = """You are Rule-006, a pre-tool-use classifier for a
+development harness. On every Bash or PowerShell tool call, you receive
+the command text plus every project script the walker could reach
+transitively (imports, subprocess targets, shell source). You return one
+of three verdicts.
 
-Classify into exactly one of:
+Return STRICT JSON only:
+  {"classification": "allow|gate_approve|reject", "reason": "<=70 words>"}
 
-  allow       — anything that does NOT mutate remote state on the protected
-                targets. This includes:
-                  * read-only inspection (list/show/get/describe/query/view/
-                    status/info/login/logout/version/help/cat/head/tail/less)
-                  * ALL local-filesystem operations (rm, mv, cp, mkdir, rmdir,
-                    touch, chmod, ln, echo>file, redirection to local paths)
-                  * ALL `git` verbs on the local clone including add, commit,
-                    push, checkout, diff, log, status, branch, merge, rebase,
-                    stash, reset, tag (git is gated separately at commit time
-                    by Rule-065; this classifier MUST NOT second-guess git)
-                  * builds, tests, package installs, dependency management
-                    (pip install, npm install, docker build, docker tag)
-                  * running `build_chathealthy.py` (build produces only local
-                    artifacts)
-                  * running Python/PowerShell/bash scripts that only touch the
-                    local machine, do local file processing, run tests, or
-                    talk to already-authenticated dev/local services on
-                    127.0.0.1 or localhost
-  gate_approve — an invocation of `deploy_chathealthy.py` or
-                `promote_chathealthy.py` (deploys/promotes remote state; needs
-                operator approval).
-  block_hard  — a direct state mutation on Azure/Cloudflare/MongoDB Atlas/HF/
-                ACR/GitHub-remote that bypasses the deploy chain, specifically:
-                  * `az <group> <write-verb>` where write-verb is create,
-                    delete, update, set, deploy, restart, stop, start, scale,
-                    assign, revoke, config-zip, purge, etc.
-                  * `wrangler deploy`, `wrangler <write-verb>`
-                  * `atlas cluster <write-verb>`, `atlas <write-verb>` in general
-                  * `docker push` (any registry)
-                  * `gh pr <create|merge|edit|close|reopen|comment|review>`,
-                    `gh issue <create|close|edit|comment>`, `gh workflow run`,
-                    `gh secret <set|delete>`, `gh release <create|edit|delete>`,
-                    `gh repo <create|delete|edit>`, `gh api ... -X
-                    POST|PUT|DELETE|PATCH`
-                  * dynamic-code pattern (exec, eval, compile, downloading and
-                    running remote code, writing a file then invoking it)
-                  * invocation of a compiled binary whose source is not readable
-                    AND that appears to touch remote infra
+VERDICTS
 
-CATEGORICAL RULE — DO NOT VIOLATE:
-Any command whose observable effect is to read or write files on the LOCAL
-filesystem (including localhost/127.0.0.1 processes) is `allow`, no matter
-what the file is called, what data it contains, or what its intended
-downstream use is. That covers `rm`, `mv`, `cp`, `chmod`, shell redirection,
-`git` (any verb), Python scripts that edit JSON/YAML/Python/docs, editing
-`deployment_architecture.json` or `engineering_rules.json` or any other
-manifest or config or catalog file. Editing a manifest is NOT the same as
-deploying it. A local file edit does NOT touch Azure/Cloudflare/Atlas/HF/
-ACR/GitHub-remote — only invoking `deploy_chathealthy.py` /
-`promote_chathealthy.py` or invoking `az`/`wrangler`/`atlas`/`gh` /
-`docker push` with a write verb does. If the command's only effect is
-local, the answer is `allow`, full stop — do not reason about intent,
-downstream use, or manifest semantics; just classify.
+  allow        The observable effect is confined to the local filesystem
+               (this workstation, git tree, tmp dirs), OR the command
+               invokes one of the four governed chain surfaces:
+                 - `git commit`  (Rule-065 gates it separately)
+                 - `python .../promote_chathealthy.py`
+                 - `python .../build_chathealthy.py`
+                 - `python .../deploy_chathealthy.py`
+               If EVERY code path in the walker's closure terminates in
+               local-only effects, or if the command is one of the four
+               chain surfaces, return allow.
 
-EXPLICIT AGENT USE CASE: when the tool-calling agent (Claude Code) reads
-or writes files under the OS temp directory (paths like `/tmp/`,
-`C:\Users\<name>\AppData\Local\Temp\`, or any path under the tool
-harness's session output area), those files belong to the harness and
-managing them is the harness's job. Reading them (`tail`, `cat`, `head`,
-`grep`, `wc`) or writing/deleting them (`>`, `>>`, `rm`, `echo > file`)
-never touches remote infra and is ALWAYS `allow`, even if the file
-name contains the string 'output', 'log', or 'task'. The agent is
-allowed to assume the surrounding software will manage cleanup.
+  gate_approve The command reaches remote state AND is wrapped by
+               `oneoff.py --explanation "..." -- <inner>`. You will see a
+               WRAPPER block with the operator-facing explanation Claude
+               wrote. Verify: does the explanation truthfully describe
+               what the inner command does? If honest, gate_approve. The
+               operator will get a browser popup with the explanation and
+               will type APPROVE or REJECT.
 
-Only remote-infra writes bypassing the deploy chain are `block_hard`.
+  reject       The command reaches remote state, is NOT one of the four
+               chain surfaces, and is NOT wrapped via oneoff.py. This is
+               Claude attempting a non-chain remote mutation without
+               operator authorization. Deny it. The operator will still
+               get a fire-and-forget notification of the attempt.
 
-DEPLOY-FROM-GIT RULE (worker enforces before you see the command; do not
-override it):
-`deploy_chathealthy.py` and `promote_chathealthy.py` invocations with
-`--env dev|qa|prod` (anything except `--env local`) MUST come 100% from
-git — the working tree must be clean AND HEAD must be at the same commit
-as `origin/<branch>`. If either is false, the worker denies BEFORE
-consulting you. You should not see such a command; if you do, still
-classify as `block_hard`.
+CATEGORICAL RULES (do not violate)
 
-If you are UNCERTAIN in any way, return `block_hard`. Fail closed.
+  - Local filesystem work is ALWAYS `allow`, no matter what the file is
+    called or what its data contains. Editing a manifest is NOT deploying
+    it. Editing engineering_rules.json is NOT enforcing it. Editing
+    Code/.env is NOT publishing secrets.
 
-Return strict JSON only, no prose:
-  {"classification": "allow|gate_approve|block_hard", "reason": "<one sentence>"}
+  - The four chain surfaces (git commit, promote/build/deploy_chathealthy)
+    are ALWAYS `allow`. They have their own gates.
+
+  - "Reaches remote" means: any of Azure, Cloudflare, MongoDB Atlas,
+    Hugging Face, Azure Container Registry, GitHub-remote (push, fetch,
+    pull, gh CLI writes), pypi.org / npm.js write-mode, any HTTP POST/PUT/
+    DELETE/PATCH to an external host, any `az`/`aws`/`gcloud`/`atlas`/`gh`/
+    `wrangler`/`docker push` invocation that mutates or contacts remote
+    APIs.
+
+  - Reading a local temp file the harness writes (paths under /tmp,
+    C:\\Users\\*\\AppData\\Local\\Temp\\, or the task-output area) is
+    ALWAYS allow.
+
+  - `curl`/`wget` GET requests to public docs / status endpoints for
+    read-only observation are `allow`. POST/PUT/DELETE or auth-carrying
+    calls to remote APIs are `gate_approve` (if wrapped) or `reject`.
+
+  - Dynamic-code patterns in the walker's dynamic_evidence (exec/eval/
+    compile, subprocess.run with a runtime-constructed arg,
+    importlib.import_module with a computed name) — you cannot verify the
+    call graph. If the payload's context suggests remote reach and there
+    is no wrapper, prefer `reject`. If wrapped, `gate_approve`.
+
+  - Walker errors (unresolvable references, size cap hit) are surfaced
+    to you in the payload. Treat them as unknowns and lean toward the
+    more restrictive verdict (`reject` if unwrapped, `gate_approve` if
+    wrapped).
+
+WRITE THE REASON IN <=70 PLAIN-ENGLISH WORDS. Name the remote resource,
+name the line that touches it (file:line if possible), and name why the
+verdict is what it is. This text is shown to a human operator on both
+gate_approve popups and reject notifications.
 """
 
 
 def _classify_via_llm(api_key: str, payload_text: str) -> tuple[str, str, str | None]:
-    """Return (classification, reason, error) — error is None on success.
-
-    Retries on transient 429/5xx with exponential backoff up to _LLM_RETRIES.
-    """
-    # Flat prompt shape — matches find_care_smoke_test.py's proven Gemini call.
+    """Return (classification, reason, error). Error is None on success."""
     combined = _SYSTEM_PROMPT + "\n\n---\n\n" + payload_text
     body = {
         "contents": [{"parts": [{"text": combined}]}],
@@ -348,17 +755,16 @@ def _classify_via_llm(api_key: str, payload_text: str) -> tuple[str, str, str | 
                 time.sleep(delay)
                 delay *= 2
                 continue
-            return "block_hard", "LLM HTTP error", last_err
+            return "reject", "LLM HTTP error — fail-closed to reject", last_err
         except (urllib.error.URLError, socket.timeout, TimeoutError) as exc:
             last_err = f"network: {exc}"
             if attempt < _LLM_RETRIES:
                 time.sleep(delay)
                 delay *= 2
                 continue
-            return "block_hard", "LLM network error", last_err
+            return "reject", "LLM network error — fail-closed to reject", last_err
         except Exception as exc:  # noqa: BLE001
-            return "block_hard", "LLM unexpected error", str(exc)
-
+            return "reject", "LLM unexpected error — fail-closed to reject", str(exc)
         try:
             wrapper = json.loads(raw)
             text = wrapper["candidates"][0]["content"]["parts"][0]["text"]
@@ -366,19 +772,18 @@ def _classify_via_llm(api_key: str, payload_text: str) -> tuple[str, str, str | 
             cls = parsed.get("classification", "")
             rsn = parsed.get("reason", "")
         except (KeyError, IndexError, ValueError, TypeError) as exc:
-            return "block_hard", "LLM response unparsable", f"{exc} :: {raw[:400]}"
-
-        if cls not in ("allow", "gate_approve", "block_hard"):
-            return "block_hard", "LLM returned unknown classification", str(cls)
+            return "reject", "LLM response unparsable — fail-closed to reject", f"{exc} :: {raw[:400]}"
+        if cls not in ("allow", "gate_approve", "reject"):
+            return "reject", f"LLM returned unknown classification {cls!r}", None
         return cls, rsn or "no reason given", None
-
-    return "block_hard", "LLM retries exhausted", last_err
+    return "reject", "LLM retries exhausted — fail-closed to reject", last_err
 
 
 # ─────────────────────────────────────────────────────────────────────────────
-# Browser notification (fire-and-forget)
+# Browser notification (fire-and-forget on reject)
 # ─────────────────────────────────────────────────────────────────────────────
-def _notify_browser(tool_name: str, command: str, code_fingerprints: list[str], reason: str, verdict: str) -> None:
+def _notify_browser(tool_name: str, command: str, code_fingerprints: list[str],
+                    reason: str, verdict: str, extra: str = "") -> None:
     html = (
         "<!doctype html><html><head><meta charset=utf-8>"
         f"<title>Rule-006 {verdict.upper()}</title>"
@@ -391,11 +796,12 @@ def _notify_browser(tool_name: str, command: str, code_fingerprints: list[str], 
         f"<h1>Rule-006 {verdict.upper()}</h1>"
         f"<p><b>Tool:</b> {tool_name}</p>"
         f"<p><b>Timestamp:</b> {datetime.now(timezone.utc).isoformat()}</p>"
-        f"<p><b>Reason:</b> {reason}</p>"
-        f"<p><b>Code fingerprints:</b> "
+        f"<p><b>Reason (classifier, &lt;=70 words):</b> {reason}</p>"
+        + (f"<p>{extra}</p>" if extra else "")
+        + f"<p><b>Code fingerprints:</b> "
         + (", ".join(f'<span class="hash">{h}</span>' for h in code_fingerprints) or "none")
         + "</p>"
-        "<h2>Blocked command</h2>"
+        "<h2>Command</h2>"
         f"<pre>{command.replace('<', '&lt;').replace('>', '&gt;')}</pre>"
         "</body></html>"
     )
@@ -421,8 +827,12 @@ def _is_real_interactive_shell() -> bool:
     return sys.stdin.isatty() and sys.stdout.isatty() and sys.stderr.isatty()
 
 
-def _prompt_approve_inline(command: str, reason: str) -> bool:
-    sys.stderr.write(f"\nRule-006 gate_approve: {reason}\nCommand: {command}\nApprove? (type APPROVE) ")
+def _prompt_approve_inline(command: str, reason: str, wrapper: dict | None) -> bool:
+    sys.stderr.write("\nRule-006 gate_approve\n")
+    if wrapper:
+        sys.stderr.write(f"Claude's explanation: {wrapper.get('explanation') or '(empty)'}\n")
+    sys.stderr.write(f"Classifier reason: {reason}\n")
+    sys.stderr.write(f"Command: {command}\nApprove? (type APPROVE) ")
     sys.stderr.flush()
     try:
         reply = sys.stdin.readline()
@@ -431,17 +841,24 @@ def _prompt_approve_inline(command: str, reason: str) -> bool:
     return reply.strip() == "APPROVE"
 
 
-def _prompt_approve_browser(tool_name: str, command: str, reason: str, code_fingerprints: list[str]) -> bool:
+def _prompt_approve_browser(tool_name: str, command: str, reason: str,
+                            code_fingerprints: list[str], wrapper: dict | None) -> bool:
     try:
         with socket.socket() as sock:
             sock.bind(("127.0.0.1", 0))
             port = sock.getsockname()[1]
     except Exception:  # noqa: BLE001
         return False
-
     verdict: dict[str, str | None] = {"value": None}
     token = secrets.token_urlsafe(8)
     esc_cmd = command.replace("<", "&lt;").replace(">", "&gt;")
+    wrapper_block = ""
+    if wrapper:
+        exp = (wrapper.get("explanation") or "(empty)").replace("<", "&lt;").replace(">", "&gt;")
+        wrapper_block = (
+            "<h2>Claude's explanation (oneoff wrapper)</h2>"
+            f"<pre>{exp}</pre>"
+        )
     page = (
         "<!doctype html><html><head><meta charset=utf-8>"
         "<title>Rule-006 gate_approve</title>"
@@ -455,11 +872,12 @@ def _prompt_approve_browser(tool_name: str, command: str, reason: str, code_fing
         ".reject{background:#dc2626;color:#fff}</style></head>"
         "<body>"
         f"<h1>Approve {tool_name} invocation?</h1>"
-        f"<p><b>Reason (from classifier):</b> {reason}</p>"
-        f"<p><b>Code fingerprints:</b> "
+        f"<p><b>Classifier reason:</b> {reason}</p>"
+        + wrapper_block
+        + f"<p><b>Code fingerprints:</b> "
         + (", ".join(f"<code>{h}</code>" for h in code_fingerprints) or "none")
         + "</p>"
-        f"<pre>{esc_cmd}</pre>"
+        f"<h2>Command</h2><pre>{esc_cmd}</pre>"
         f"<form id=f method=POST action=/decide>"
         f"<button class=approve name=verdict value=approve type=submit>APPROVE</button>"
         f"<button class=reject name=verdict value=reject type=submit>REJECT</button>"
@@ -538,7 +956,7 @@ def _prompt_approve_browser(tool_name: str, command: str, reason: str, code_fing
 
 
 # ─────────────────────────────────────────────────────────────────────────────
-# Audit log
+# Audit log + deny emitter
 # ─────────────────────────────────────────────────────────────────────────────
 def _audit(entry: dict) -> None:
     try:
@@ -549,9 +967,6 @@ def _audit(entry: dict) -> None:
         pass
 
 
-# ─────────────────────────────────────────────────────────────────────────────
-# Emit PreToolUse deny JSON
-# ─────────────────────────────────────────────────────────────────────────────
 def _emit_deny(reason: str) -> None:
     response = {
         "hookSpecificOutput": {
@@ -565,13 +980,9 @@ def _emit_deny(reason: str) -> None:
 
 
 # ─────────────────────────────────────────────────────────────────────────────
-# main
+# Deploy-from-git preflight (governance orthogonal to classification)
 # ─────────────────────────────────────────────────────────────────────────────
 _DEPLOY_ENV_NONLOCAL_RE = re.compile(
-    # Must be an actual invocation: python(3) at the head, then a path to
-    # deploy_chathealthy.py or promote_chathealthy.py, then --env in a
-    # short window (no shell separators, no newlines). Won't match strings
-    # embedded inside heredocs or quoted commit messages.
     r"(?:^|[\r\n]|(?<=[|;&])\s*)"
     r"python[3]?\s+"
     r"[^\s\n|;&]*(?:deploy|promote)_chathealthy\.py\b"
@@ -581,8 +992,6 @@ _DEPLOY_ENV_NONLOCAL_RE = re.compile(
 
 
 def _git_state_ok_for_deploy() -> tuple[bool, str]:
-    """Return (ok, reason). ok=True means working tree is clean AND HEAD is at
-    origin/<branch>. Anything else fails closed with a human-readable reason."""
     import subprocess as _sp
     try:
         r = _sp.run(["git", "status", "--porcelain"], cwd=str(_PROJECT_ROOT),
@@ -623,33 +1032,9 @@ def _git_state_ok_for_deploy() -> tuple[bool, str]:
         return False, f"git check errored: {exc}"
 
 
-def _load_allowed_patterns() -> list[str]:
-    """Read Rule-006's scope entry ["_llm_classify", "allowed_pattern", [...]]
-    from brain/machine_artifacts/content/engineering_rules.json. Regexes;
-    any command that regex-matches skips LLM classification and is allowed.
-    Silent fall-through to empty list on read error."""
-    try:
-        p = _PROJECT_ROOT / "brain" / "machine_artifacts" / "content" / "engineering_rules.json"
-        with p.open("r", encoding="utf-8") as f:
-            data = json.load(f)
-        for rule in (data.get("rules") or {}).get("rule", []):
-            if rule.get("id") != "Rule-006":
-                continue
-            for enf in (rule.get("enforcements") or {}).get("enforcement", []):
-                for scope in enf.get("scopes") or []:
-                    if (
-                        isinstance(scope, list)
-                        and len(scope) == 3
-                        and scope[0] == "_llm_classify"
-                        and scope[1] == "allowed_pattern"
-                        and isinstance(scope[2], list)
-                    ):
-                        return [str(s) for s in scope[2]]
-    except Exception:  # noqa: BLE001
-        pass
-    return []
-
-
+# ─────────────────────────────────────────────────────────────────────────────
+# main
+# ─────────────────────────────────────────────────────────────────────────────
 def main() -> int:
     try:
         payload = json.load(sys.stdin)
@@ -665,10 +1050,10 @@ def main() -> int:
     if not command.strip():
         return 0
 
-    # Deploy-from-git rule: any deploy_chathealthy.py or promote_chathealthy.py
-    # invocation targeting dev/qa/prod MUST be from a clean working tree AT
-    # origin/<branch>. This runs BEFORE the LLM classifier because the LLM
-    # cannot see git state. Local-env deploys (--env local) are exempt.
+    ts = datetime.now(timezone.utc).isoformat()
+
+    # Deploy-from-git preflight (runs before classification; the LLM cannot
+    # see git state). Only non-local deploys are subject to this check.
     if _DEPLOY_ENV_NONLOCAL_RE.search(command):
         ok, reason = _git_state_ok_for_deploy()
         if not ok:
@@ -676,115 +1061,119 @@ def main() -> int:
                 f"Rule-006 deploy-from-git: {reason}. Non-local deploys MUST "
                 f"come 100% from git. Commit + push before invoking deploy."
             )
-            _audit({"ts": datetime.now(timezone.utc).isoformat(), "tool": tool_name,
-                    "command": command, "verdict": "block_hard", "reason": deny_reason})
-            _notify_browser(tool_name, command, [], deny_reason, "block_hard")
+            _audit({"ts": ts, "tool": tool_name, "command": command,
+                    "verdict": "reject", "reason": deny_reason,
+                    "stage": "deploy_from_git_preflight"})
+            _notify_browser(tool_name, command, [], deny_reason, "reject")
             _emit_deny(deny_reason)
             return 0
 
-    # Operator-declared allow list. Rule-006's scope in engineering_rules.json
-    # may carry ["_llm_classify", "allowed_pattern", ["<regex>", ...]] — any
-    # command whose text is a regex-search match for one of the listed
-    # patterns skips LLM classification and is allowed. Patterns must be
-    # operator-approved (their addition to the rules JSON is subject to
-    # Rule-007's identity approval flow for governance-substrate edits).
-    # Used for tightly-scoped operator-owned scripts that need to mutate
-    # remote state as part of the normal deploy/ops workflow but do not fit
-    # the deploy chain proper.
-    for pattern in _load_allowed_patterns():
-        if pattern and re.search(pattern, command):
-            _audit({"ts": datetime.now(timezone.utc).isoformat(), "tool": tool_name,
-                    "command": command, "verdict": "allow",
-                    "reason": f"matched allowed pattern {pattern!r}"})
-            return 0
+    # STAGE 1 — local allowlist (no LLM)
+    if _is_local_allowlisted(command):
+        _audit({"ts": ts, "tool": tool_name, "command": command,
+                "verdict": "allow", "reason": "local allowlist",
+                "stage": "1_local_allowlist"})
+        return 0
+
+    # STAGE 2 — recursive code-path walk
+    files, walk_errors, dynamic = _walk_command_closure(command)
+    code_hashes = [f["sha256"] for f in files]
+
+    # STAGE 5 — oneoff wrapper detection (recognized here so its payload is
+    # part of the LLM's context)
+    wrapper = _extract_oneoff(command)
 
     api_key = _load_env_var("GEMINI_API_KEY") or _load_env_var("GOOGLE_API_KEY")
     if not api_key:
         reason = "Rule-006 misconfigured: GEMINI_API_KEY not found in Code/.env"
-        _audit({"ts": datetime.now(timezone.utc).isoformat(), "tool": tool_name,
-                "command": command, "verdict": "block_hard", "reason": reason})
-        _notify_browser(tool_name, command, [], reason, "block_hard")
+        _audit({"ts": ts, "tool": tool_name, "command": command,
+                "verdict": "reject", "reason": reason, "stage": "config"})
+        _notify_browser(tool_name, command, code_hashes, reason, "reject")
         _emit_deny(reason)
         return 0
 
-    resolved, errors = _resolve_referenced_files(command)
-    if errors:
-        reason = "fail-closed on resolution: " + "; ".join(errors[:3])
-        _audit({"ts": datetime.now(timezone.utc).isoformat(), "tool": tool_name,
-                "command": command, "verdict": "block_hard", "reason": reason,
-                "resolution_errors": errors})
-        _notify_browser(tool_name, command, [f["sha256"] for f in resolved], reason, "block_hard")
-        _emit_deny(reason)
-        return 0
-
-    code_hashes = [f["sha256"] for f in resolved]
-    cache_key = _payload_hash(command, resolved)
+    # Cache
+    cache_key = _payload_hash(command, files, wrapper)
     cached = _cache_get(cache_key)
     if cached:
         classification, reason = cached
         audit_entry = {
-            "ts": datetime.now(timezone.utc).isoformat(),
-            "tool": tool_name, "command": command,
+            "ts": ts, "tool": tool_name, "command": command,
             "verdict": classification, "reason": reason,
             "cache": "hit", "code_fingerprints": code_hashes,
+            "walk_errors": walk_errors, "dynamic_evidence": dynamic,
+            "wrapped": bool(wrapper),
         }
-        if classification == "allow":
-            _audit(audit_entry)
-            return 0
-        if classification == "gate_approve":
-            approved = (
-                _prompt_approve_inline(command, reason)
-                if _is_real_interactive_shell()
-                else _prompt_approve_browser(tool_name, command, reason, code_hashes)
-            )
-            audit_entry["approve_verdict"] = "approve" if approved else "reject"
-            _audit(audit_entry)
-            if approved:
-                return 0
-            deny_reason = f"gate_approve denied: {reason}"
-            _notify_browser(tool_name, command, code_hashes, deny_reason, "gate_approve REJECTED")
-            _emit_deny(deny_reason)
-            return 0
-        _audit(audit_entry)
-        _notify_browser(tool_name, command, code_hashes, reason, "block_hard")
-        _emit_deny(reason)
-        return 0
+        return _dispatch_outcome(classification, reason, tool_name, command,
+                                 code_hashes, wrapper, audit_entry)
 
-    parts: list[str] = [f"TOOL: {tool_name}", f"COMMAND:\n{command}"]
-    for f in resolved:
-        parts.append(f"\n--- FILE {f['path']} (sha256:{f['sha256']}) ---\n{f['content']}")
+    # STAGE 3 — LLM classifier
+    parts: list[str] = [
+        f"TOOL: {tool_name}",
+        f"COMMAND:\n{command}",
+    ]
+    if wrapper:
+        parts.append(
+            "\nWRAPPER: oneoff.py detected.\n"
+            f"  explanation: {wrapper.get('explanation') or '(empty)'}\n"
+            f"  parse_error: {wrapper.get('parse_error')}\n"
+            f"  inner_command: {wrapper.get('inner') or '(empty)'}\n"
+        )
+    else:
+        parts.append("\nWRAPPER: (none — command was NOT wrapped by oneoff.py)")
+    if walk_errors:
+        parts.append("\nWALK_ERRORS:\n" + "\n".join(f"  - {e}" for e in walk_errors))
+    if dynamic:
+        parts.append("\nDYNAMIC_EVIDENCE:\n" + "\n".join(f"  - {e}" for e in dynamic))
+    if files:
+        parts.append(f"\nWALKED {len(files)} FILE(S):")
+        for f in files:
+            parts.append(f"\n--- FILE {f['path']} (sha256:{f['sha256']}) ---\n{f['content']}")
+    else:
+        parts.append("\nWALKED 0 FILES (no project scripts referenced).")
     payload_text = "\n".join(parts)
 
     classification, reason, err = _classify_via_llm(api_key, payload_text)
     audit_entry = {
-        "ts": datetime.now(timezone.utc).isoformat(),
-        "tool": tool_name, "command": command,
+        "ts": ts, "tool": tool_name, "command": command,
         "verdict": classification, "reason": reason, "llm_error": err,
         "cache": "miss", "code_fingerprints": code_hashes,
+        "walk_errors": walk_errors, "dynamic_evidence": dynamic,
+        "wrapped": bool(wrapper),
     }
     _cache_put(cache_key, classification, reason)
+    return _dispatch_outcome(classification, reason, tool_name, command,
+                             code_hashes, wrapper, audit_entry)
 
+
+def _dispatch_outcome(classification: str, reason: str, tool_name: str,
+                      command: str, code_hashes: list[str],
+                      wrapper: dict | None, audit_entry: dict) -> int:
     if classification == "allow":
         _audit(audit_entry)
         return 0
-
     if classification == "gate_approve":
         approved = (
-            _prompt_approve_inline(command, reason)
+            _prompt_approve_inline(command, reason, wrapper)
             if _is_real_interactive_shell()
-            else _prompt_approve_browser(tool_name, command, reason, code_hashes)
+            else _prompt_approve_browser(tool_name, command, reason, code_hashes, wrapper)
         )
         audit_entry["approve_verdict"] = "approve" if approved else "reject"
         _audit(audit_entry)
         if approved:
             return 0
-        deny_reason = f"gate_approve denied: {reason}"
-        _notify_browser(tool_name, command, code_hashes, deny_reason, "gate_approve REJECTED")
+        deny_reason = f"gate_approve rejected by operator: {reason}"
+        _notify_browser(tool_name, command, code_hashes, deny_reason,
+                        "gate_approve REJECTED")
         _emit_deny(deny_reason)
         return 0
-
+    # reject — deny immediately, fire-and-forget notify, no operator prompt
     _audit(audit_entry)
-    _notify_browser(tool_name, command, code_hashes, reason, "block_hard")
+    extra = ("<b>Claude did not use the oneoff.py wrapper</b> — this attempt "
+             "was auto-denied without an approval prompt. If the intent was "
+             "legitimate, Claude must invoke via oneoff.py with a &lt;=70-word "
+             "explanation.") if not wrapper else ""
+    _notify_browser(tool_name, command, code_hashes, reason, "reject", extra=extra)
     _emit_deny(reason)
     return 0
 

@@ -288,38 +288,48 @@
       },
       {
         "id": "Rule-006",
-        "name": "Block ad-hoc state-mutating actions from Claude Bash or PowerShell via LLM code inspection",
-        "description": "PreToolUse gate covering every path a Claude Bash or PowerShell tool call could mutate an environment. On every Bash or PowerShell invocation, the worker resolves the shell command AND every referenced script file it can find (Python scripts, PowerShell scripts, shell scripts) via regex over the command text, and submits the combined artifact to Gemini 2.5 Flash Lite for classification. Classifications: block_hard (direct state mutation on Azure/Cloudflare/Atlas/GitHub -- dispatch OUTSIDE the deploy chain, or dynamic-code pattern, or compiled-binary invocation without readable source), gate_approve (deploy_chathealthy.py or promote_chathealthy.py invocation -- requires operator APPROVE echo), or allow (read-only, or build_chathealthy.py, or unrelated). Any LLM error/timeout after retries, or a referenced script file missing/unreadable/too large, results in block_hard (fail-closed). Verdicts are cached by payload-hash so identical commands do not re-hit the LLM. Every deny opens a passive browser notification on the operator's workstation naming the tool, the command, the code fingerprint, and the classification reason so the block cannot be silently absorbed.",
+        "name": "Five-stage funnel classifier for Claude Bash/PowerShell tool calls",
+        "description": "PreToolUse funnel for every Bash or PowerShell tool call. Stage 1 - local allowlist: shell verbs that structurally cannot reach remote state (ls/cat/grep/find/rm/mv/cp on local paths, git read-only verbs, PowerShell Get-*/Test-Path/Where-Object, etc.) match => allow, no LLM. Stage 2 - recursive code-path walk: for anything else, parse referenced Python scripts with AST and shell/ps1 with regex, follow imports of project modules, subprocess.run/call/Popen/check_output arguments, os.system/os.popen, source/dot-source of nested scripts; bounded by max-nodes and visited-set; unresolvable dynamic references (exec/eval of runtime string, importlib on computed name) escalate. Stage 3 - LLM classification via Gemini 2.5 Flash Lite with three verdicts: allow, gate_approve, reject; classifier must return a <=70-word plain-English explanation of what remote state is (or would be) mutated. Stage 4 - outcome dispatch: allow silently, gate_approve triggers a browser popup for operator APPROVE/REJECT, reject denies immediately with a fire-and-forget browser notification (no operator prompt). Stage 5 - oneoff wrapper: Claude's only legal path to a non-chain remote mutation is `python architecture/EngineeringRuleEnforcement/code/oneoff.py --explanation \"<why in <=70 words>\" -- <command>`; the classifier verifies the explanation truthfully describes the wrapped command's remote-state effect. Unwrapped remote-mutating commands that are not one of the four legal chain surfaces (git commit, promote_chathealthy.py, build_chathealthy.py, deploy_chathealthy.py) are rejected. Verdicts are cached by payload-hash so identical commands do not re-hit the LLM. Every remote-mutation attempt fires a browser notification to the operator (interactive on gate_approve, passive on reject).",
         "rule_statements": {
           "rule_statement": [
             {
               "statement_number": 1,
-              "statement_body": "PreToolUse MUST classify every Bash or PowerShell tool_input.command by submitting the command AND every script file it references (Python .py, PowerShell .ps1, shell .sh) resolved via regex over the command text, to Gemini 2.5 Flash Lite. Classifier output MUST be one of block_hard, gate_approve, or allow. Verdicts MUST be cached by payload-hash so identical commands do not re-hit the LLM.",
+              "statement_body": "Stage 1 - local allowlist. PreToolUse MUST match the tool_input.command text against a hardcoded allowlist of shell verbs whose effect is structurally confined to the local filesystem (this workstation, git tree, tmp dirs). If every shell-separator-delimited segment of the command matches the allowlist, classify as allow and exit 0 silently WITHOUT invoking the LLM. Script invocations (python foo.py, pytest, bash foo.sh, powershell foo.ps1, npm run, poetry run) are NEVER allowlisted regardless of the script's contents - those always proceed to Stage 2. Network verbs (curl, wget, ftp, ssh) are NEVER allowlisted.",
               "req_id": "Orphan"
             },
             {
               "statement_number": 2,
-              "statement_body": "On block_hard classification, PreToolUse MUST deny the tool call with a Rule-064-style deny JSON. On gate_approve classification, PreToolUse MUST prompt operator APPROVE echo (inline in a real TTY, otherwise via a local browser page opened by the worker); on approve, pass through; on reject/timeout, deny. On allow classification, exit 0 silently.",
+              "statement_body": "Stage 2 - recursive code-path walk. For any command not matched by Stage 1, PreToolUse MUST perform a bounded transitive walk of every project script the command references: Python files parsed with ast.parse and followed via import/subprocess.run/call/Popen/check_output/os.system/os.popen/runpy/importlib.import_module; shell/ps1 files scanned for source/dot-source/backtick/$(...) invocations. Only project-local files (under the git repo root, not stdlib or third-party wheels) are followed. Walker MUST cap at 60 nodes and 6 levels of depth; cycles broken via visited-set. Any file referenced but not resolvable inside the project tree, or any dynamic-code pattern (exec/eval/compile of a runtime string, subprocess.run with a runtime-constructed arg, importlib on a computed name) MUST be surfaced to the LLM as a walk_error or dynamic_evidence entry so the classifier can factor the uncertainty.",
               "req_id": "Orphan"
             },
             {
               "statement_number": 3,
-              "statement_body": "PreToolUse MUST classify as block_hard (fail-closed) any case where classification would be uncertain: LLM API error or timeout after retries (429/5xx retried with exponential backoff), or a referenced script file missing/unreadable/too large. Dynamic-code-generation patterns (exec, eval, compile, downloading and running remote code, writing a file then invoking it) and compiled-binary invocations without readable source MUST be identified by the classifier itself under the block_hard verdict.",
+              "statement_body": "Stage 3 - LLM classification. PreToolUse MUST submit the payload (tool_name + command + wrapper info + all walked files with sha256 fingerprints + walk_errors + dynamic_evidence) to Google model gemini-2.5-flash-lite via the generativelanguage.googleapis.com endpoint. Per-attempt timeout MUST be 75 seconds wall clock; up to 3 attempts on 429/5xx with exponential backoff (initial 1.5s, doubling). API key MUST be loaded from Code/.env (GEMINI_API_KEY, falling back to GOOGLE_API_KEY). Classifier output MUST be strict JSON with exactly two fields: classification (allow | gate_approve | reject) and reason (<=70-word plain-English explanation naming the remote resource, the offending line if applicable, and the rationale). On any LLM error/timeout after retries, on missing API key, or on unparsable response, classification MUST default to reject (fail-closed).",
               "req_id": "Orphan"
             },
             {
               "statement_number": 4,
-              "statement_body": "build_chathealthy.py invocations MUST NOT be gated; when the classifier sees a Bash or PowerShell command whose surface invokes build_chathealthy.py and no other executed code files, classification MUST be allow.",
+              "statement_body": "Stage 4 - outcome dispatch. On allow, exit 0 silently and the tool call proceeds. On gate_approve, prompt the operator via inline APPROVE echo in a real interactive TTY, or via a local browser page opened by the worker in agent contexts (the popup displays the exact command, the classifier's <=70-word reason, and Claude's wrapper explanation if present); on operator APPROVE the tool call proceeds; on REJECT or timeout, deny with a fire-and-forget browser notification. On reject, deny IMMEDIATELY with a fire-and-forget browser notification - no operator prompt. Verdicts MUST be cached by payload-hash (SHA256 of command + walked file hashes + wrapper explanation) so identical commands do not re-hit the LLM; cached verdicts still trigger the same operator prompt (gate_approve) or notification (reject).",
               "req_id": "Orphan"
             },
             {
               "statement_number": 5,
-              "statement_body": "On every deny (block_hard outcome or rejected gate_approve), the worker MUST open a passive browser notification on the operator's workstation showing tool_name, exact command, code fingerprint of referenced files, and the classification reason. The browser popup is fire-and-forget -- the worker MUST NOT wait for operator acknowledgment before returning the deny response.",
+              "statement_body": "Stage 5 - oneoff wrapper. Claude's ONLY legal path to run a command that mutates remote state outside the four governed chain surfaces (git commit, promote_chathealthy.py, build_chathealthy.py, deploy_chathealthy.py) is by wrapping it: `python architecture/EngineeringRuleEnforcement/code/oneoff.py --explanation \"<claude's plain-English description in 4-70 words>\" -- <inner command...>`. The classifier detects the wrapper at the top-level command surface, extracts Claude's explanation, reads the inner command AND every script the walker reaches transitively, and MUST verify the explanation truthfully describes what the inner command actually does. Honest match => classification gate_approve. Explanation missing, dishonest, evasive, or omitting a remote-state effect => classification reject. Unwrapped remote-mutating commands that are not one of the four chain surfaces => classification reject with a notification that Claude did not use the wrapper.",
               "req_id": "Orphan"
             },
             {
               "statement_number": 6,
-              "statement_body": "The classifier MUST use Google model gemini-2.5-flash-lite via the generativelanguage.googleapis.com endpoint; per-attempt timeout MUST be 75 seconds wall clock; up to 3 attempts on 429/5xx with exponential backoff (initial 1.5s, doubling); API key MUST be loaded from Code/.env (GEMINI_API_KEY, falling back to GOOGLE_API_KEY); on any key-load failure or full retry exhaustion, statement 3 applies (fail-closed).",
+              "statement_body": "Categorical rules baked into the classifier's system prompt: (a) Local filesystem work is ALWAYS allow regardless of file name or contents - editing a manifest is NOT deploying it, editing engineering_rules.json is NOT enforcing it, editing Code/.env is NOT publishing secrets. (b) The four chain surfaces (git commit, promote_chathealthy.py, build_chathealthy.py, deploy_chathealthy.py) are ALWAYS allow - they have their own governance. (c) Reaches remote means: Azure/Cloudflare/MongoDB Atlas/Hugging Face/Azure Container Registry/GitHub-remote/pypi.org write-mode/npm.js write-mode; any HTTP POST/PUT/DELETE/PATCH to an external host; any az/aws/gcloud/atlas/gh/wrangler/docker push invocation contacting remote APIs. (d) curl/wget GET requests to public read-only endpoints are allow; POST/PUT/DELETE or auth-carrying calls are gate_approve (if wrapped) or reject. (e) Reading harness temp files (paths under /tmp, C:/Users/*/AppData/Local/Temp/, task-output area) is ALWAYS allow.",
+              "req_id": "Orphan"
+            },
+            {
+              "statement_number": 7,
+              "statement_body": "Every remote-mutation attempt MUST fire a browser notification to the operator: interactive popup on gate_approve (operator acts before the command runs), passive fire-and-forget popup on reject (operator is informed after the deny). Notifications MUST include the tool name, the exact command, the code fingerprints (sha256[:16]) of every walked file, the classifier's <=70-word reason, and - on reject when the command was unwrapped - a note explaining that Claude did not use the oneoff.py wrapper and must do so if the intent is legitimate. Every classification (allow, gate_approve with approve/reject outcome, reject) MUST be recorded to the audit log at architecture/EngineeringRuleEnforcement/ArchitectureDesignAndAuditDocs/llm_classify_shell_invocation.log.",
+              "req_id": "Orphan"
+            },
+            {
+              "statement_number": 8,
+              "statement_body": "Deploy-from-git preflight (runs before Stage 1). Any invocation of deploy_chathealthy.py or promote_chathealthy.py with --env dev|qa|prod MUST be denied unless the working tree is clean AND HEAD is at origin/<current-branch>. Local-env deploys (--env local) are exempt. This check runs before classification because the LLM cannot see git state. Denial fires the same reject notification as classification reject.",
               "req_id": "Orphan"
             }
           ]
@@ -331,22 +341,7 @@
               "hook": "PreToolUse",
               "executable_path": "architecture/EngineeringRuleEnforcement/code/llm_classify_shell_invocation_worker.py",
               "requires_lock": false,
-              "scopes": [
-                [
-                  "_git_state_ok_for_deploy",
-                  "excluded_exact",
-                  [
-                    "Code/.env"
-                  ]
-                ],
-                [
-                  "_llm_classify",
-                  "allowed_pattern",
-                  [
-                    "_oneshots/reserve_pipeline_cluster\\.py"
-                  ]
-                ]
-              ],
+              "scopes": [],
               "timeout": 90
             }
           ]
