@@ -92,10 +92,20 @@ def main(argv: list[str]) -> int:
         return 2
 
     # If we reach here, Rule-006 v2's PreToolUse hook already approved the
-    # invocation (either allow OR gate_approve+APPROVE). Just exec the inner
-    # command with the current environment.
+    # invocation (either allow OR gate_approve+APPROVE). Resolve the inner
+    # executable via shutil.which so Windows finds .cmd/.bat/.exe by name
+    # (e.g. `az` is `az.cmd`), then exec with shell=False so args are passed
+    # verbatim (no cross-platform quoting hazards on URLs, JSON, spaces).
+    import shutil
     try:
-        result = subprocess.run(inner_argv)
+        exe = shutil.which(inner_argv[0])
+        if exe is None:
+            sys.stderr.write(
+                f"oneoff.py: cannot resolve inner executable "
+                f"{inner_argv[0]!r} on PATH\n"
+            )
+            return 127
+        result = subprocess.run([exe, *inner_argv[1:]], shell=False)
         return result.returncode
     except FileNotFoundError as exc:
         sys.stderr.write(f"oneoff.py: inner command not found: {exc}\n")
