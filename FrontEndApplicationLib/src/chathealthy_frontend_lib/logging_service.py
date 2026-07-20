@@ -126,10 +126,10 @@ class _Formatter(logging.Formatter):
 
 
 class _MongoLogHandler(logging.Handler):
-    """Synchronous writer to admin.ChatHealthyLogs_{env}. Each emit
-    produces one document conforming to ChatHealthyLogsSchema.json. Any
-    insert failure crashes the process via os._exit(1) per operator
-    directive (no silent loss)."""
+    """Synchronous writer to Pipelines.Log_{env}. Each emit produces one
+    document conforming to ChatHealthyLogsSchema.json. Any insert failure
+    crashes the process via os._exit(1) per operator directive (no
+    silent loss)."""
 
     def __init__(self, env: str, target: str) -> None:
         super().__init__()
@@ -156,7 +156,7 @@ class _MongoLogHandler(logging.Handler):
                     # logs every op, which would recurse here.
                     from .mongo_utilities import ChatHealthyMongoUtilities
                     client = ChatHealthyMongoUtilities().getRawClient()
-                    self._coll = client["admin"][f"ChatHealthyLogs_{self._env}"]
+                    self._coll = client["Pipelines"][f"Log_{self._env}"]
         return self._coll
 
     def emit(self, record: logging.LogRecord) -> None:
@@ -171,6 +171,9 @@ class _MongoLogHandler(logging.Handler):
                 "level": record.levelname,
                 "env": self._env,
                 "target": self._target,
+                "pipeline_name": os.environ.get("PIPELINE_NAME", "").strip() or None,
+                "job_id": os.environ.get("RUN_ID", "").strip() or None,
+                "vnet_name": os.environ.get("CHATHEALTHY_VNET_NAME", "").strip() or None,
                 "formatted": self.format(record),
                 "pathname": record.pathname,
                 "fatal_error": False,

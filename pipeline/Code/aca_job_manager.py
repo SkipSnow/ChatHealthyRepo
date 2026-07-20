@@ -104,6 +104,10 @@ def start_job(
         f"ENV_PREFIX={env_prefix}",
         f"PIPELINE_STEP={step}",
     ]
+    for pass_through in ("PIPELINE_NAME", "CHATHEALTHY_VNET_NAME"):
+        v = os.environ.get(pass_through, "").strip()
+        if v:
+            env_vars.append(f"{pass_through}={v}")
     for k, v in (extra_env or {}).items():
         env_vars.append(f"{k}={v}")
     result = _az([

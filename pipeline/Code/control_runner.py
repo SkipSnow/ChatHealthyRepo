@@ -80,9 +80,13 @@ def main(argv: list[str] | None = None) -> int:
         mongo_client=get_mongo(),
         blob_client=get_blob_service(),
     )
+    if ns.run_id:
+        os.environ["RUN_ID"] = ns.run_id
     _log.info("control_runner: starting run env=%s states=%s",
               ns.env_prefix, ns.states)
     manifest = orchestrator.run(args)
+    if manifest.run_id:
+        os.environ["RUN_ID"] = manifest.run_id
     _log.info("control_runner: run %s finished status=%s",
               manifest.run_id, manifest.status)
     return 0 if manifest.status == "succeeded" else 1
