@@ -7272,7 +7272,8 @@
         "ATLAS_PROJECT_ID": "local_env",
         "AZURE_STORAGE_CONNECTION_STRING": "local_env",
         "KEY_VAULT_URI": "local_env",
-        "Anthropic_API_KEY": "local_env"
+        "Anthropic_API_KEY": "local_env",
+        "GEMINI_API_KEY": "local_env"
       },
       "allowed_roles": [
         "Key Vault Secrets Officer",
