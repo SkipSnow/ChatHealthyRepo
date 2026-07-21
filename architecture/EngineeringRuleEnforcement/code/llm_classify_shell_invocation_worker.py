@@ -702,7 +702,15 @@ CATEGORICAL RULES (do not violate)
   - Local filesystem work is ALWAYS `allow`, no matter what the file is
     called or what its data contains. Editing a manifest is NOT deploying
     it. Editing engineering_rules.json is NOT enforcing it. Editing
-    Code/.env is NOT publishing secrets.
+    Code/.env is NOT publishing secrets. Reading a .docx / .xlsx / .zip
+    file, parsing JSON/YAML/XML, running unit tests, running
+    matplotlib/PIL to render a PNG on disk — all of these are LOCAL and
+    ALWAYS classify as `allow`. `python -c "..."` one-liners that only
+    call stdlib file I/O, `zipfile`, `re`, `json`, `PIL`, `matplotlib`
+    or similar in-process libraries are LOCAL and ALWAYS `allow`. You
+    MUST NOT reject a local command on the grounds that it is "not a
+    chain surface" or "not wrapped" — the wrapper is a REMOTE-mutation
+    gate, not a local-work gate. Local work does not need the wrapper.
 
   - The four chain surfaces (git commit, promote/build/deploy_chathealthy)
     are ALWAYS `allow`. They have their own gates.
