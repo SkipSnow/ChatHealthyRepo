@@ -612,16 +612,20 @@ def ensure_acr(target, env: str) -> str:
         step(f"docker build+push {name}.azurecr.io/{repo}:latest from {dockerfile}")
         _az(["acr", "login", "--name", name])
         # Build args required by Dockerfile.control: CHATHEALTHY_CA_ROOT_B64,
-        # CHATHEALTHY_CA_INTERMEDIATE_B64 (F-003 CA baked into image). Pull
-        # from the same KV that holds the F-003 CA content.
+        # CHATHEALTHY_CA_INTERMEDIATE_B64 (F-003 CA baked into image).
+        # KV holds the raw PEM under `ca-root-cert` and `ca-intermediate-cert`;
+        # base64-encode here for the docker build-arg.
+        import base64 as _b64
         kv_name = "kv-chpipeline-dev"
-        ca_root_b64 = _az_secret(kv_name, "chathealthy-ca-root-b64", default="")
-        ca_int_b64 = _az_secret(kv_name, "chathealthy-ca-intermediate-b64", default="")
-        if not ca_root_b64 or not ca_int_b64:
+        ca_root_pem = _az_secret(kv_name, "ca-root-cert", default="")
+        ca_int_pem = _az_secret(kv_name, "ca-intermediate-cert", default="")
+        if not ca_root_pem or not ca_int_pem:
             sys.exit(
-                f"ERROR: KV {kv_name!r} missing chathealthy-ca-root-b64 or "
-                f"chathealthy-ca-intermediate-b64 secrets (F-003 prerequisite)"
+                f"ERROR: KV {kv_name!r} missing ca-root-cert or "
+                f"ca-intermediate-cert secrets (F-003 prerequisite)"
             )
+        ca_root_b64 = _b64.b64encode(ca_root_pem.encode("utf-8")).decode("ascii")
+        ca_int_b64 = _b64.b64encode(ca_int_pem.encode("utf-8")).decode("ascii")
         # `az acr build` performs both build and push server-side.
         _az(
             [
@@ -1482,7 +1486,12 @@ def ensure_vnet_private_endpoints(target, env: str, coll) -> None:
                     "--private-connection-resource-id", pls_id,
                     "--connection-name", f"{pe_name}-conn",
                     "--group-id", group_id,
-                    "--manual-request", "false",
+                    # v32 §3.18: Atlas-side PE peer object is hand-created; the
+                    # deploy chain uses --manual-request true so the Azure side
+                    # sits pending until atlas_approve_private_endpoint()
+                    # approves it via the Atlas Admin API (no cross-tenant
+                    # Azure auto-approval permission required).
+                    "--manual-request", "true",
                 ]
             )
         pe_resource_id = _az_json(

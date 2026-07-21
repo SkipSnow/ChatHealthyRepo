@@ -72,7 +72,7 @@ VM_IMAGE_TAG = os.environ.get(
     "latest",
 )
 
-# Atlas Admin API — for wake-Mongo-in-parallel-with-vm-create.
+# Atlas Admin API -- for wake-Mongo-in-parallel-with-vm-create.
 ATLAS_ADMIN_BASE = os.environ.get(
     "AUTOMATION_ATLAS_ADMIN_BASE",
     "https://cloud.mongodb.com/api/atlas/v2",
@@ -449,7 +449,7 @@ def _provision_vm(run_id: str, load_mode: str, state_scope,
         f"/resourceGroups/{RESOURCE_GROUP}"
         f"/providers/Microsoft.ManagedIdentity/userAssignedIdentities/{VM_MI_NAME}"
     )
-    # NIC creation is inline via ARM template style — for a minimum viable
+    # NIC creation is inline via ARM template style -- for a minimum viable
     # implementation, create the NIC in the same PUT chain.
     nic_name = f"{vm_name}-nic"
     # 1) Create NIC (dynamic private IP from subnet)
@@ -597,7 +597,7 @@ def _provision_vm_and_wake_mongo_in_parallel(
     """v32 §5.2.2 par-block: fire VM create AND Atlas resume in parallel.
 
     Runbook returns as soon as both API calls have been dispatched (not
-    when the VM boots or the cluster is IDLE — those are Controller's
+    when the VM boots or the cluster is IDLE -- those are Controller's
     responsibility to poll).
     """
     import threading
