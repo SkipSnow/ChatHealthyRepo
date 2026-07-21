@@ -219,7 +219,14 @@ _LOCAL_ALLOWLIST = [
     r"^\s*true(\s|$)",
     r"^\s*false(\s|$)",
     r"^\s*yes(\s|$)",
-    # Git READ-only verbs (write verbs like commit/push/fetch/pull are NOT here)
+    # Git push — Rule-065 makes push-after-authorized-commit implicit in the
+    # commit authorization; the commit has already cleared the pre-commit gate,
+    # so push carries no additional governance need. Force-push forms
+    # (--force, -f, --force-with-lease, --force-if-includes) and delete-remote
+    # ref syntax (`origin :branch`) are excluded — those are destructive and
+    # require explicit operator approval via oneoff.py.
+    r"^\s*git\s+push\b(?!.*(?:--force\b|--force-with-lease\b|--force-if-includes\b|(?:^|\s)-f\b|\s:\s|\s:$))",
+    # Git READ-only verbs (other write verbs like commit/fetch/pull are NOT here)
     r"^\s*git\s+status(\s|$)",
     r"^\s*git\s+log(\s|$)",
     r"^\s*git\s+diff(\s|$)",
