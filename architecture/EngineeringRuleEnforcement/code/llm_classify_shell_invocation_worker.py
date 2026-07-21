@@ -56,6 +56,7 @@ import os
 import re
 import secrets
 import shlex
+import random
 import socket
 import socketserver
 import sys
@@ -80,8 +81,14 @@ _GEMINI_ENDPOINT = (
     f"{_MODEL}:generateContent"
 )
 _LLM_TIMEOUT_S = 75
-_LLM_RETRIES = 3
-_LLM_BACKOFF_INITIAL_S = 1.5
+_LLM_RETRIES = 6
+_LLM_BACKOFF_INITIAL_S = 2.0
+_LLM_BACKOFF_JITTER_S = 0.6
+# When retries exhaust or the LLM is genuinely unreachable, escalate to human
+# via gate_approve rather than fail-closed reject. This preserves the "Python
+# programs always go through the LLM" rule while ensuring a transient Gemini
+# outage never silently blocks legitimate work.
+_LLM_UNAVAILABLE_VERDICT = "gate_approve"
 _APPROVE_TIMEOUT_S = 600
 _MAX_FILE_BYTES = 400_000
 _MAX_TOTAL_BYTES = 1_500_000
@@ -727,7 +734,20 @@ gate_approve popups and reject notifications.
 
 
 def _classify_via_llm(api_key: str, payload_text: str) -> tuple[str, str, str | None]:
-    """Return (classification, reason, error). Error is None on success."""
+    """Return (classification, reason, error). Error is None on success.
+
+    Reliability policy:
+      * Retry _LLM_RETRIES times on any 429 / 5xx OR any network/timeout error.
+      * Exponential backoff starting at _LLM_BACKOFF_INITIAL_S, plus random
+        jitter to avoid thundering-herd retries.
+      * On 4xx errors other than 429 (misconfig, invalid API key, quota),
+        surface a specific reason immediately — no retries, those are
+        deterministic API rejections that won't succeed on retry.
+      * When retries exhaust OR a genuine LLM outage is detected, return
+        `_LLM_UNAVAILABLE_VERDICT` (gate_approve) with the actual last error
+        embedded in the reason — this asks the operator to approve instead
+        of silently blocking work.
+    """
     combined = _SYSTEM_PROMPT + "\n\n---\n\n" + payload_text
     body = {
         "contents": [{"parts": [{"text": combined}]}],
@@ -739,6 +759,7 @@ def _classify_via_llm(api_key: str, payload_text: str) -> tuple[str, str, str | 
     url = f"{_GEMINI_ENDPOINT}?key={api_key}"
     delay = _LLM_BACKOFF_INITIAL_S
     last_err: str | None = None
+
     for attempt in range(1, _LLM_RETRIES + 1):
         req = urllib.request.Request(
             url,
@@ -746,25 +767,48 @@ def _classify_via_llm(api_key: str, payload_text: str) -> tuple[str, str, str | 
             headers={"Content-Type": "application/json"},
             method="POST",
         )
+        raw: str | None = None
         try:
             with urllib.request.urlopen(req, timeout=_LLM_TIMEOUT_S) as resp:
                 raw = resp.read().decode("utf-8", errors="replace")
         except urllib.error.HTTPError as exc:
-            last_err = f"HTTP {exc.code} {exc.reason}"
-            if exc.code in (429, 500, 502, 503, 504) and attempt < _LLM_RETRIES:
-                time.sleep(delay)
-                delay *= 2
-                continue
-            return "reject", "LLM HTTP error — fail-closed to reject", last_err
-        except (urllib.error.URLError, socket.timeout, TimeoutError) as exc:
-            last_err = f"network: {exc}"
+            last_err = f"HTTP {exc.code} {exc.reason} (attempt {attempt}/{_LLM_RETRIES})"
+            # 4xx non-429 = deterministic rejection, don't retry
+            if exc.code != 429 and 400 <= exc.code < 500:
+                reason = (
+                    f"LLM classifier returned HTTP {exc.code} {exc.reason}. "
+                    f"This is a deterministic API rejection (likely misconfig, "
+                    f"invalid API key, or quota exhausted). Requires operator "
+                    f"approval to proceed."
+                )
+                return _LLM_UNAVAILABLE_VERDICT, reason, last_err
+            # 429 or 5xx — transient, retry with backoff + jitter
             if attempt < _LLM_RETRIES:
-                time.sleep(delay)
+                jitter = random.uniform(0, _LLM_BACKOFF_JITTER_S)
+                time.sleep(delay + jitter)
                 delay *= 2
                 continue
-            return "reject", "LLM network error — fail-closed to reject", last_err
+        except (urllib.error.URLError, socket.timeout, TimeoutError,
+                ConnectionError, OSError) as exc:
+            last_err = f"network: {type(exc).__name__}: {exc} (attempt {attempt}/{_LLM_RETRIES})"
+            if attempt < _LLM_RETRIES:
+                jitter = random.uniform(0, _LLM_BACKOFF_JITTER_S)
+                time.sleep(delay + jitter)
+                delay *= 2
+                continue
         except Exception as exc:  # noqa: BLE001
-            return "reject", "LLM unexpected error — fail-closed to reject", str(exc)
+            last_err = f"unexpected: {type(exc).__name__}: {exc}"
+            if attempt < _LLM_RETRIES:
+                jitter = random.uniform(0, _LLM_BACKOFF_JITTER_S)
+                time.sleep(delay + jitter)
+                delay *= 2
+                continue
+
+        if raw is None:
+            # Retry loop exhausted for this attempt slot; go to next iteration
+            continue
+
+        # Parse the LLM response
         try:
             wrapper = json.loads(raw)
             text = wrapper["candidates"][0]["content"]["parts"][0]["text"]
@@ -772,11 +816,30 @@ def _classify_via_llm(api_key: str, payload_text: str) -> tuple[str, str, str | 
             cls = parsed.get("classification", "")
             rsn = parsed.get("reason", "")
         except (KeyError, IndexError, ValueError, TypeError) as exc:
-            return "reject", "LLM response unparsable — fail-closed to reject", f"{exc} :: {raw[:400]}"
+            last_err = f"unparsable response: {exc} :: {raw[:400]}"
+            if attempt < _LLM_RETRIES:
+                jitter = random.uniform(0, _LLM_BACKOFF_JITTER_S)
+                time.sleep(delay + jitter)
+                delay *= 2
+                continue
+            reason = (
+                f"LLM classifier returned an unparsable response after "
+                f"{_LLM_RETRIES} attempts. Requires operator approval to proceed. "
+                f"Last error: {last_err}"
+            )
+            return _LLM_UNAVAILABLE_VERDICT, reason, last_err
+
         if cls not in ("allow", "gate_approve", "reject"):
             return "reject", f"LLM returned unknown classification {cls!r}", None
         return cls, rsn or "no reason given", None
-    return "reject", "LLM retries exhausted — fail-closed to reject", last_err
+
+    # Retries exhausted — fall back to gate_approve so operator can decide
+    reason = (
+        f"LLM classifier unreachable after {_LLM_RETRIES} attempts "
+        f"({int(_LLM_BACKOFF_INITIAL_S * (2 ** _LLM_RETRIES))}s total budget). "
+        f"Requires operator approval to proceed. Last error: {last_err or 'unknown'}"
+    )
+    return _LLM_UNAVAILABLE_VERDICT, reason, last_err
 
 
 # ─────────────────────────────────────────────────────────────────────────────
@@ -1141,7 +1204,11 @@ def main() -> int:
         "walk_errors": walk_errors, "dynamic_evidence": dynamic,
         "wrapped": bool(wrapper),
     }
-    _cache_put(cache_key, classification, reason)
+    # Never cache verdicts produced from an LLM error path — a transient outage
+    # would otherwise pin the operator to gate_approve for every future call
+    # against the same payload hash. Only cache verdicts the LLM actually returned.
+    if err is None:
+        _cache_put(cache_key, classification, reason)
     return _dispatch_outcome(classification, reason, tool_name, command,
                              code_hashes, wrapper, audit_entry)
 
