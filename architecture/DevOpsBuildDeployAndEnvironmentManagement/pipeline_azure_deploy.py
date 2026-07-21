@@ -202,13 +202,25 @@ def ensure_storage_containers(target, env: str) -> str:
     block = _env_block(target, env, "azure_storage_account")
     account = block["account_name"]
     rg = block["resource_group"]
-    step(f"verify storage account {account}")
+    location = block.get("location", "eastus2")
+    step(f"ensure storage account {account}")
     r = _az(
         ["storage", "account", "show", "--name", account, "--resource-group", rg],
         check=False,
     )
     if r.returncode != 0:
-        sys.exit(f"ERROR: pre_existing storage {account!r} not found (F-012 §4.2)")
+        # Storage account doesn't exist — create it (v32 deploy_provisioned).
+        _az([
+            "storage", "account", "create",
+            "--name", account,
+            "--resource-group", rg,
+            "--location", location,
+            "--sku", "Standard_LRS",
+            "--kind", "StorageV2",
+            "--min-tls-version", "TLS1_2",
+            "--allow-blob-public-access", "false",
+            "--default-action", "Allow",
+        ])
     for c in block.get("blob_containers") or []:
         cname = c["name"]
         step(f"ensure blob container {cname} ({c.get('purpose')})")
@@ -240,11 +252,21 @@ def ensure_vnet_subnets(target, env: str) -> str:
     block = _env_block(target, env, "azure_vnet")
     vnet = block["vnet_name"]
     rg = block["resource_group"]
-    step(f"verify vnet {vnet}")
+    address_space = block.get("address_space", "10.0.0.0/16")
+    location = block.get("location", "eastus2")
+    step(f"ensure vnet {vnet}")
     r = _az(["network", "vnet", "show", "-g", rg, "-n", vnet], check=False)
     if r.returncode != 0:
-        sys.exit(f"ERROR: pre_existing VNet {vnet!r} not found (F-012 §4.2)")
-    location = json.loads(r.stdout).get("location") or "eastus2"
+        # VNet doesn't exist — create it (v32 deploy_provisioned).
+        _az([
+            "network", "vnet", "create",
+            "-g", rg,
+            "-n", vnet,
+            "--location", location,
+            "--address-prefixes", address_space,
+        ])
+        r = _az(["network", "vnet", "show", "-g", rg, "-n", vnet], check=False)
+    location = json.loads(r.stdout).get("location") or location
     for subnet in block.get("subnets") or []:
         name = subnet["name"]
         prefix = subnet["address_prefix"]
@@ -453,6 +475,19 @@ def ensure_pipeline_automation_identity(
     sandbox obtains tokens via the user-assigned identity attached here.
     """
     step(f"ensure AA {aa_name} uses user-assigned identity {mi_name}")
+    # v32 deploy_provisioned: create the AA if it doesn't exist.
+    aa_check = _az(
+        ["automation", "account", "show", "--name", aa_name, "--resource-group", rg],
+        check=False,
+    )
+    if aa_check.returncode != 0:
+        _az([
+            "automation", "account", "create",
+            "--name", aa_name,
+            "--resource-group", rg,
+            "--location", "eastus2",
+            "--sku", "Basic",
+        ])
     mi = _az_json(
         ["identity", "show", "--name", mi_name, "--resource-group", rg]
     )
@@ -576,6 +611,17 @@ def ensure_acr(target, env: str) -> str:
             sys.exit(f"ERROR: ACR docker_image package {pkg.get('package_id')!r} missing dockerfile")
         step(f"docker build+push {name}.azurecr.io/{repo}:latest from {dockerfile}")
         _az(["acr", "login", "--name", name])
+        # Build args required by Dockerfile.control: CHATHEALTHY_CA_ROOT_B64,
+        # CHATHEALTHY_CA_INTERMEDIATE_B64 (F-003 CA baked into image). Pull
+        # from the same KV that holds the F-003 CA content.
+        kv_name = "kv-chpipeline-dev"
+        ca_root_b64 = _az_secret(kv_name, "chathealthy-ca-root-b64", default="")
+        ca_int_b64 = _az_secret(kv_name, "chathealthy-ca-intermediate-b64", default="")
+        if not ca_root_b64 or not ca_int_b64:
+            sys.exit(
+                f"ERROR: KV {kv_name!r} missing chathealthy-ca-root-b64 or "
+                f"chathealthy-ca-intermediate-b64 secrets (F-003 prerequisite)"
+            )
         # `az acr build` performs both build and push server-side.
         _az(
             [
@@ -584,10 +630,26 @@ def ensure_acr(target, env: str) -> str:
                 "--resource-group", rg,
                 "--image", f"{repo}:latest",
                 "--file", dockerfile,
+                "--build-arg", f"CHATHEALTHY_CA_ROOT_B64={ca_root_b64}",
+                "--build-arg", f"CHATHEALTHY_CA_INTERMEDIATE_B64={ca_int_b64}",
                 build_context,
             ]
         )
     return name
+
+
+def _az_secret(vault_name: str, secret_name: str, default: str = "") -> str:
+    """Fetch a KV secret's value via az CLI; return default on any error."""
+    r = _az(
+        ["keyvault", "secret", "show",
+         "--vault-name", vault_name,
+         "--name", secret_name,
+         "--query", "value", "-o", "tsv"],
+        check=False,
+    )
+    if r.returncode != 0:
+        return default
+    return (r.stdout or "").strip()
 
 
 def _env_packages(target, env: str, block_key: str) -> list:
