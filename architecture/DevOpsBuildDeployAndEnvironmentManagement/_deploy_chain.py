@@ -1529,6 +1529,11 @@ def _resolve_target_azure_scope(target: TargetRecord, env: str) -> str:
         return ""
     k = target.target_kind
     sub = az_subscription_id()
+    if k == "azure_resource_group":
+        b = eb.azure_resource_group or {}
+        rg = b.get("name", "") or eb.node_address or ""
+        if rg:
+            return f"/subscriptions/{sub}/resourceGroups/{rg}"
     if k == "azure_key_vault":
         b = eb.azure_key_vault or {}
         rg = b.get("resource_group", "")

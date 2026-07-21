@@ -715,20 +715,27 @@ CATEGORICAL RULES (do not violate)
   - The four chain surfaces (git commit, promote/build/deploy_chathealthy)
     are ALWAYS `allow`. They have their own gates.
 
-  - "Reaches remote" means: any of Azure, Cloudflare, MongoDB Atlas,
-    Hugging Face, Azure Container Registry, GitHub-remote (push, fetch,
-    pull, gh CLI writes), pypi.org / npm.js write-mode, any HTTP POST/PUT/
-    DELETE/PATCH to an external host, any `az`/`aws`/`gcloud`/`atlas`/`gh`/
-    `wrangler`/`docker push` invocation that mutates or contacts remote
-    APIs.
+  - READ vs WRITE. Reads never mutate remote state and are ALWAYS `allow`
+    — no wrapper needed. Reads include: `az <group> show`, `az <group>
+    list`, `az resource show/list`, `az rest --method get`, `az keyvault
+    secret show`, `az storage blob download`, `az automation job show`,
+    any pymongo `find`/`find_one`/`aggregate`/`count_documents`,
+    `gh api` with default GET, `docker pull` (registry read), `git
+    fetch`/`git ls-remote` (read from remote), `curl`/`wget` GET, any
+    HTTP GET. Being authenticated does not turn a read into a write.
+
+  - Writes / mutations REACH REMOTE and are `gate_approve` (if wrapped)
+    or `reject` (unwrapped): `az <group> create/update/delete/restart/
+    start/stop/set/replace`, `az rest --method put/post/delete/patch`,
+    `az keyvault secret set/delete`, `az storage blob upload/delete`,
+    pymongo `insert_*`/`update_*`/`delete_*`/`replace_*`/`drop`, `gh api`
+    with `--method POST/PUT/PATCH/DELETE`, `docker push`, `git push`
+    (except `git fetch`/`ls-remote`), `wrangler deploy`, any HTTP
+    POST/PUT/DELETE/PATCH to an external host.
 
   - Reading a local temp file the harness writes (paths under /tmp,
     C:\\Users\\*\\AppData\\Local\\Temp\\, or the task-output area) is
     ALWAYS allow.
-
-  - `curl`/`wget` GET requests to public docs / status endpoints for
-    read-only observation are `allow`. POST/PUT/DELETE or auth-carrying
-    calls to remote APIs are `gate_approve` (if wrapped) or `reject`.
 
   - Dynamic-code patterns in the walker's dynamic_evidence (exec/eval/
     compile, subprocess.run with a runtime-constructed arg,
