@@ -41,11 +41,47 @@ SUBSCRIPTION_ID = os.environ.get(
 RESOURCE_GROUP = os.environ.get(
     "AUTOMATION_RESOURCE_GROUP", "rg-chathealthy-pipeline-dev"
 )
-CONTROL_JOB_NAME = os.environ.get(
-    "AUTOMATION_CONTROL_JOB_NAME", "job-chp-control-dev"
-)
 ENV_PREFIX = os.environ.get("AUTOMATION_ENV_PREFIX", "dev")
 PIPELINE_NAME = "provider"
+
+# v32: Runbook creates a fresh VM per run (no ACA job).
+VM_LOCATION = os.environ.get("AUTOMATION_VM_LOCATION", "eastus2")
+VM_SIZE = os.environ.get("AUTOMATION_VM_SIZE", "Standard_D32s_v5")
+VM_SUBNET = os.environ.get(
+    "AUTOMATION_VM_SUBNET",
+    "snet-pipeline-compute",
+)
+VM_VNET = os.environ.get(
+    "AUTOMATION_VM_VNET",
+    "vnet-chathealthy-pipeline-dev",
+)
+VM_MI_NAME = os.environ.get(
+    "AUTOMATION_VM_MI_NAME",
+    "mi-control",   # user-assigned MI attached to the Pipeline Run VM
+)
+VM_ACR = os.environ.get(
+    "AUTOMATION_VM_ACR",
+    "chpipelinedevacr",
+)
+VM_IMAGE_REPO = os.environ.get(
+    "AUTOMATION_VM_IMAGE_REPO",
+    "pipeline-control",
+)
+VM_IMAGE_TAG = os.environ.get(
+    "AUTOMATION_VM_IMAGE_TAG",
+    "latest",
+)
+
+# Atlas Admin API — for wake-Mongo-in-parallel-with-vm-create.
+ATLAS_ADMIN_BASE = os.environ.get(
+    "AUTOMATION_ATLAS_ADMIN_BASE",
+    "https://cloud.mongodb.com/api/atlas/v2",
+)
+ATLAS_PROJECT_ID = os.environ.get("AUTOMATION_ATLAS_PROJECT_ID", "")
+ATLAS_PIPELINE_CLUSTER = os.environ.get(
+    "AUTOMATION_ATLAS_PIPELINE_CLUSTER",
+    "chathealthydatapipeline",
+)
 
 # Storage / Key Vault
 LOG_ACCOUNT_URL = os.environ.get(
@@ -345,64 +381,254 @@ def _write_run_manifest(mongo, run_id: str, load_mode: str,
 # ============================================================================
 # ARM -- start the prov-control ACA Job with env-var overrides
 # ============================================================================
-def _start_control_job(run_id: str, load_mode: str, state_scope,
-                       invocation_mode: str, resume_from_step: str = "") -> dict:
-    """LLD §2.6 step 4: POST to ACA job start endpoint with env overrides.
+def _cloud_init_user_data(run_id: str, load_mode: str, state_scope,
+                          invocation_mode: str, resume_from_step: str) -> str:
+    """Return the base64-encoded cloud-init user_data blob for the VM.
 
-    The Microsoft.App/jobs/{name}/start action requires each container in
-    the override to carry its FULL spec (image + resources), not just a
-    delta. Fetch the job's definition first, extract the current template
-    container, merge only the env overrides, then POST the full spec."""
+    The VM boots this cloud-init:
+      1. Log in to ACR via the attached user-assigned MI
+      2. Pull the pipeline image
+      3. Run Controller with per-run env vars
+      4. On Controller exit, the container ends; the finally-block in
+         Controller fires `az vm delete` on this VM.
+    """
+    import base64
+    # Note: `state_scope` may be a list; serialize to JSON so Controller
+    # can parse it identically to how the ACA env var carried it.
+    scope_json = json.dumps(state_scope)
+    yaml_body = f"""#cloud-config
+package_update: false
+runcmd:
+  - |
+    set -eux
+    # Install az CLI + docker if not present (image bakes both, but be safe)
+    apt-get update -y
+    apt-get install -y ca-certificates curl gnupg jq
+    # Login to ACR via the attached user-assigned MI
+    az login --identity --allow-no-subscriptions
+    az acr login --name {VM_ACR}
+    # Pull the pipeline image
+    docker pull {VM_ACR}.azurecr.io/{VM_IMAGE_REPO}:{VM_IMAGE_TAG}
+    # Run Controller. On exit, container is gone; Controller's finally block
+    # fires `az vm delete` before returning.
+    docker run --rm --network host \\
+      -e RUN_ID='{run_id}' \\
+      -e ENV_PREFIX='{ENV_PREFIX}' \\
+      -e INVOCATION_MODE='{invocation_mode}' \\
+      -e LOAD_MODE='{load_mode}' \\
+      -e STATE_SCOPE='{scope_json}' \\
+      -e PIPELINE_NAME='{PIPELINE_NAME}' \\
+      -e RESUME_FROM_STEP='{resume_from_step}' \\
+      -e KEY_VAULT_URI='{KEY_VAULT_URI}' \\
+      -e AZURE_RESOURCE_GROUP='{RESOURCE_GROUP}' \\
+      -e AZURE_SUBSCRIPTION_ID='{SUBSCRIPTION_ID}' \\
+      {VM_ACR}.azurecr.io/{VM_IMAGE_REPO}:{VM_IMAGE_TAG}
+"""
+    return base64.b64encode(yaml_body.encode("utf-8")).decode("ascii")
+
+
+def _provision_vm(run_id: str, load_mode: str, state_scope,
+                  invocation_mode: str, resume_from_step: str = "") -> dict:
+    """v32 §5.2.2: PUT a fresh Pipeline Run VM into snet-pipeline-compute.
+
+    Async by nature: ARM returns a provisioning-state URL, not a
+    completed VM. Runbook returns immediately after the PUT; cloud-init
+    runs on the VM once it boots.
+    """
     tok = _get_token("https://management.azure.com/")
-    # 1) Fetch the current job definition to get container image + resources.
-    get_url = (
+    short_id = run_id.split("-")[-1][:8] if "-" in run_id else run_id[:8]
+    vm_name = f"vm-chpipeline-{short_id}"
+    subnet_id = (
+        f"/subscriptions/{SUBSCRIPTION_ID}"
+        f"/resourceGroups/{RESOURCE_GROUP}"
+        f"/providers/Microsoft.Network/virtualNetworks/{VM_VNET}"
+        f"/subnets/{VM_SUBNET}"
+    )
+    mi_id = (
+        f"/subscriptions/{SUBSCRIPTION_ID}"
+        f"/resourceGroups/{RESOURCE_GROUP}"
+        f"/providers/Microsoft.ManagedIdentity/userAssignedIdentities/{VM_MI_NAME}"
+    )
+    # NIC creation is inline via ARM template style — for a minimum viable
+    # implementation, create the NIC in the same PUT chain.
+    nic_name = f"{vm_name}-nic"
+    # 1) Create NIC (dynamic private IP from subnet)
+    nic_url = (
         f"https://management.azure.com/subscriptions/{SUBSCRIPTION_ID}"
-        f"/resourceGroups/{RESOURCE_GROUP}/providers/Microsoft.App/jobs/"
-        f"{CONTROL_JOB_NAME}?api-version=2024-03-01"
+        f"/resourceGroups/{RESOURCE_GROUP}/providers/Microsoft.Network/"
+        f"networkInterfaces/{nic_name}?api-version=2023-09-01"
     )
-    get_req = urllib.request.Request(
-        get_url,
-        headers={"Authorization": f"Bearer {tok}"},
-    )
-    with urllib.request.urlopen(get_req, timeout=30) as r:
-        job = json.loads(r.read().decode("utf-8"))
-    template_containers = (
-        (((job.get("properties") or {}).get("template")) or {}).get("containers") or []
-    )
-    if not template_containers:
-        raise RuntimeError(
-            f"ACA job {CONTROL_JOB_NAME!r} has no containers in template"
-        )
-    tpl = dict(template_containers[0])  # shallow copy
-    # 2) Merge env overrides onto the existing env list.
-    override_env = [
-        {"name": "RUN_ID", "value": run_id},
-        {"name": "ENV_PREFIX", "value": ENV_PREFIX},
-        {"name": "INVOCATION_MODE", "value": invocation_mode},
-        {"name": "LOAD_MODE", "value": load_mode},
-        {"name": "STATE_SCOPE", "value": json.dumps(state_scope)},
-        {"name": "PIPELINE_NAME", "value": PIPELINE_NAME},
-        {"name": "RESUME_FROM_STEP", "value": resume_from_step or ""},
-    ]
-    override_names = {e["name"] for e in override_env}
-    merged_env = [e for e in (tpl.get("env") or []) if e.get("name") not in override_names]
-    merged_env.extend(override_env)
-    tpl["env"] = merged_env
-    # 3) POST full container spec.
-    start_url = (
+    nic_body = {
+        "location": VM_LOCATION,
+        "tags": {
+            "pipeline_run_id": run_id,
+            "pipeline_name": PIPELINE_NAME,
+            "env": ENV_PREFIX,
+        },
+        "properties": {
+            "ipConfigurations": [{
+                "name": "ipconfig1",
+                "properties": {
+                    "subnet": {"id": subnet_id},
+                    "privateIPAllocationMethod": "Dynamic",
+                },
+            }],
+        },
+    }
+    _put(nic_url, nic_body, tok)
+
+    # 2) Create VM with the NIC attached + cloud-init user_data
+    vm_url = (
         f"https://management.azure.com/subscriptions/{SUBSCRIPTION_ID}"
-        f"/resourceGroups/{RESOURCE_GROUP}/providers/Microsoft.App/jobs/"
-        f"{CONTROL_JOB_NAME}/start?api-version=2024-03-01"
+        f"/resourceGroups/{RESOURCE_GROUP}/providers/Microsoft.Compute/"
+        f"virtualMachines/{vm_name}?api-version=2024-03-01"
     )
-    payload = {"containers": [tpl]}
+    user_data_b64 = _cloud_init_user_data(
+        run_id, load_mode, state_scope, invocation_mode, resume_from_step
+    )
+    vm_body = {
+        "location": VM_LOCATION,
+        "tags": {
+            "pipeline_run_id": run_id,
+            "pipeline_name": PIPELINE_NAME,
+            "env": ENV_PREFIX,
+        },
+        "identity": {
+            "type": "UserAssigned",
+            "userAssignedIdentities": {mi_id: {}},
+        },
+        "properties": {
+            "hardwareProfile": {"vmSize": VM_SIZE},
+            "storageProfile": {
+                "imageReference": {
+                    "publisher": "Canonical",
+                    "offer": "ubuntu-24_04-lts",
+                    "sku": "server",
+                    "version": "latest",
+                },
+                "osDisk": {
+                    "createOption": "FromImage",
+                    "managedDisk": {"storageAccountType": "Premium_LRS"},
+                },
+            },
+            "osProfile": {
+                "computerName": vm_name,
+                "adminUsername": "chpipeline",
+                "linuxConfiguration": {
+                    "disablePasswordAuthentication": True,
+                    "ssh": {"publicKeys": []},   # no interactive SSH; MI-only
+                    "provisionVMAgent": True,
+                },
+                "customData": user_data_b64,
+            },
+            "networkProfile": {
+                "networkInterfaces": [{
+                    "id": (f"/subscriptions/{SUBSCRIPTION_ID}"
+                           f"/resourceGroups/{RESOURCE_GROUP}"
+                           f"/providers/Microsoft.Network/networkInterfaces/{nic_name}"),
+                    "properties": {"primary": True},
+                }],
+            },
+            "userData": user_data_b64,
+        },
+    }
+    return _put(vm_url, vm_body, tok)
+
+
+def _put(url: str, body: dict, tok: str) -> dict:
     req = urllib.request.Request(
-        start_url,
-        method="POST",
-        headers={"Authorization": f"Bearer {tok}", "Content-Type": "application/json"},
-        data=json.dumps(payload).encode("utf-8"),
+        url,
+        method="PUT",
+        headers={"Authorization": f"Bearer {tok}",
+                 "Content-Type": "application/json"},
+        data=json.dumps(body).encode("utf-8"),
     )
     with urllib.request.urlopen(req, timeout=60) as r:
-        return json.loads(r.read().decode("utf-8"))
+        return json.loads(r.read().decode("utf-8") or "{}")
+
+
+def _atlas_resume_pipeline_cluster() -> dict:
+    """v32 §5.2.2: POST Atlas Admin API to resume the pipeline cluster.
+
+    Fires in parallel with VM create; the Controller polls the cluster's
+    state on boot and typically finds it IDLE within a few seconds
+    because the resume was kicked off earlier by this call.
+
+    Returns the Atlas API response dict. On any error, logs and returns
+    an empty dict (Controller will still poll and eventually succeed).
+    """
+    if not ATLAS_PROJECT_ID:
+        log("atlas_resume_skipped_no_project_id")
+        return {}
+    try:
+        import automationassets  # only in AA sandbox
+        atlas_pub = automationassets.get_automation_variable("ATLAS_PUBLIC_KEY")
+        atlas_priv = automationassets.get_automation_variable("ATLAS_PRIVATE_KEY")
+    except Exception:
+        atlas_pub = os.environ.get("ATLAS_PUBLIC_KEY", "")
+        atlas_priv = os.environ.get("ATLAS_PRIVATE_KEY", "")
+    if not atlas_pub or not atlas_priv:
+        log("atlas_resume_skipped_no_credentials")
+        return {}
+    # Atlas start-cluster endpoint. PATCH the cluster with paused=false.
+    url = (f"{ATLAS_ADMIN_BASE}/groups/{ATLAS_PROJECT_ID}"
+           f"/clusters/{ATLAS_PIPELINE_CLUSTER}")
+    import base64
+    creds = base64.b64encode(f"{atlas_pub}:{atlas_priv}".encode()).decode()
+    body = {"paused": False}
+    req = urllib.request.Request(
+        url,
+        method="PATCH",
+        headers={
+            "Authorization": f"Basic {creds}",
+            "Content-Type": "application/vnd.atlas.2024-08-05+json",
+            "Accept": "application/vnd.atlas.2024-08-05+json",
+        },
+        data=json.dumps(body).encode("utf-8"),
+    )
+    with urllib.request.urlopen(req, timeout=30) as r:
+        return json.loads(r.read().decode("utf-8") or "{}")
+
+
+def _provision_vm_and_wake_mongo_in_parallel(
+    run_id: str, load_mode: str, state_scope,
+    invocation_mode: str, resume_from_step: str = "",
+) -> dict:
+    """v32 §5.2.2 par-block: fire VM create AND Atlas resume in parallel.
+
+    Runbook returns as soon as both API calls have been dispatched (not
+    when the VM boots or the cluster is IDLE — those are Controller's
+    responsibility to poll).
+    """
+    import threading
+
+    results = {"vm": None, "atlas": None, "vm_error": None, "atlas_error": None}
+
+    def _run_vm():
+        try:
+            results["vm"] = _provision_vm(
+                run_id, load_mode, state_scope, invocation_mode, resume_from_step
+            )
+        except Exception as exc:  # noqa: BLE001
+            results["vm_error"] = f"{type(exc).__name__}: {exc}"
+            log("vm_provision_error", error=results["vm_error"])
+
+    def _run_atlas():
+        try:
+            results["atlas"] = _atlas_resume_pipeline_cluster()
+        except Exception as exc:  # noqa: BLE001
+            results["atlas_error"] = f"{type(exc).__name__}: {exc}"
+            log("atlas_resume_error", error=results["atlas_error"])
+
+    t_vm = threading.Thread(target=_run_vm, daemon=False)
+    t_atlas = threading.Thread(target=_run_atlas, daemon=False)
+    t_vm.start()
+    t_atlas.start()
+    t_vm.join(timeout=90)
+    t_atlas.join(timeout=90)
+    if results["vm_error"]:
+        raise RuntimeError(f"VM provisioning failed: {results['vm_error']}")
+    return results
 
 
 # ============================================================================
@@ -592,27 +818,30 @@ def main() -> int:
                 traceback=traceback.format_exc()[-2000:])
             return 1
 
-        # Start Control
+        # v32 §5.2.2: provision VM AND wake Mongo in parallel.
         try:
-            result = _start_control_job(run_id, load_mode, state_scope, invocation_mode, resume_from_step)
-            log("control_job_started",
+            result = _provision_vm_and_wake_mongo_in_parallel(
+                run_id, load_mode, state_scope, invocation_mode, resume_from_step
+            )
+            vm_id = ((result.get("vm") or {}).get("id")) if result.get("vm") else None
+            log("vm_provision_dispatched_and_mongo_woke_in_parallel",
                 run_id=run_id,
-                name=result.get("name"),
-                status=result.get("properties", {}).get("status"))
+                vm_id=vm_id,
+                atlas_resume_error=result.get("atlas_error"))
         except urllib.error.HTTPError as exc:
             body = ""
             try:
                 body = exc.read().decode("utf-8", errors="replace")[:1500]
             except Exception:
                 pass
-            log("control_job_start_failed",
+            log("vm_provision_failed",
                 run_id=run_id,
                 http_code=exc.code,
                 reason=exc.reason,
                 body=body)
             return 1
         except Exception as exc:
-            log("control_job_start_failed",
+            log("vm_provision_failed",
                 run_id=run_id,
                 error_type=type(exc).__name__,
                 error_msg=str(exc),

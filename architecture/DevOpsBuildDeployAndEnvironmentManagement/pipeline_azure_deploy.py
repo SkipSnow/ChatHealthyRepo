@@ -561,7 +561,51 @@ def ensure_acr(target, env: str) -> str:
                 "--location", "eastus2",
             ]
         )
+    # v32 §3.1.9: the ACR target may carry docker_image packages (the
+    # pipeline VM image). Build + push each one so the Pipeline Run VM
+    # can pull it at cloud-init time.
+    packages = _env_packages(target, env, "azure_container_registry")
+    for pkg in packages:
+        if pkg.get("kind") != "docker_image":
+            continue
+        config = pkg.get("config", {}) or {}
+        repo = config.get("image_repository") or pkg.get("package_id")
+        dockerfile = config.get("dockerfile")
+        build_context = config.get("build_context", ".")
+        if not dockerfile:
+            sys.exit(f"ERROR: ACR docker_image package {pkg.get('package_id')!r} missing dockerfile")
+        step(f"docker build+push {name}.azurecr.io/{repo}:latest from {dockerfile}")
+        _az(["acr", "login", "--name", name])
+        # `az acr build` performs both build and push server-side.
+        _az(
+            [
+                "acr", "build",
+                "--registry", name,
+                "--resource-group", rg,
+                "--image", f"{repo}:latest",
+                "--file", dockerfile,
+                build_context,
+            ]
+        )
     return name
+
+
+def _env_packages(target, env: str, block_key: str) -> list:
+    """Return the packages[] list for the given env binding, or []."""
+    for eb in target.environments:
+        if eb.env_binding != env:
+            continue
+        # environments block may hold packages either at env-level or
+        # inside the typed block (depending on schema evolution).
+        pkgs = getattr(eb, "packages", None)
+        if pkgs:
+            return list(pkgs)
+        block = getattr(eb, block_key, None) or {}
+        if isinstance(block, dict):
+            pkgs = block.get("packages")
+            if pkgs:
+                return list(pkgs)
+    return []
 
 
 def ensure_aca_environment(target, env: str) -> str:

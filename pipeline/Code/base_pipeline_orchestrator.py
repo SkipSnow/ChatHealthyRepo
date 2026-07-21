@@ -28,7 +28,8 @@ import logging
 from datetime import datetime, timezone
 from typing import Any, Iterable
 
-from aca_job_manager import provision_job, start_job
+# v32: aca_job_manager is retired. Fan-out steps run sequentially in the
+# Controller process for the initial testable build (see _invoke_process_pool).
 from step_context import PipelineArgs, RunManifest, StepContext, StepTransition
 from step_spec import StepSpec
 from steps import get_runner
@@ -153,47 +154,37 @@ class BasePipelineOrchestrator:
         return result if isinstance(result, dict) else {"result": result}
 
     def _invoke_process_pool(self, spec: StepSpec, ctx: StepContext) -> dict:
+        """v32 §5 fan-out execution — Controller-in-process partition loop.
+
+        Every partition runs sequentially inside the Controller process. On
+        the Pipeline Run VM this is one Python process; the parallelism
+        knob that used to fan work out to ACA Job replicas (v22-v25) is
+        deferred until the Worker-subprocess model in `pipeline_worker.py`
+        is fully wired. For the initial v32 testable build, sequential
+        Controller-in-process partition execution is correct — it exercises
+        every business-logic path end-to-end.
+        """
         partitions = list(self._partitions_for(spec, ctx))
-        job_name = spec.aca_job_name or f"{self.PIPELINE_NAME}-{spec.name}"
-        provisioned = provision_job(job_name, parallelism=max(1, len(partitions)))
-        ctx.manifest.aca_job_resource_id = job_name
-
-        executions: list[dict] = []
         runner = get_runner(spec.name)
-        for idx, part in enumerate(partitions):
-            extra_env = {f"PART_{k.upper()}": str(v) for k, v in part.items()}
-            execution = start_job(
-                job_name,
-                run_id=ctx.run_id,
-                step=spec.name,
-                env_prefix=ctx.env_prefix,
-                extra_env=extra_env,
+        for part in partitions:
+            per_ctx_config = dict(ctx.config)
+            per_ctx_config["partition"] = part
+            per_ctx = StepContext(
+                args=ctx.args,
+                manifest=ctx.manifest,
+                config=per_ctx_config,
+                mongo_client=ctx.mongo_client,
+                blob_client=ctx.blob_client,
+                notification_client=ctx.notification_client,
+                catalog_cache=ctx.catalog_cache,
+                catalog=ctx.catalog,
+                step_summaries=ctx.step_summaries,
             )
-            executions.append(execution)
-            if execution.get("mode") == "local":
-                # Local mode: aca_job_manager did not contact ARM, so the
-                # orchestrator does the work in-process per partition so the
-                # coordination substrate is exercised end-to-end.
-                per_ctx_config = dict(ctx.config)
-                per_ctx_config["partition"] = part
-                per_ctx = StepContext(
-                    args=ctx.args,
-                    manifest=ctx.manifest,
-                    config=per_ctx_config,
-                    mongo_client=ctx.mongo_client,
-                    blob_client=ctx.blob_client,
-                    notification_client=ctx.notification_client,
-                    catalog_cache=ctx.catalog_cache,
-                    catalog=ctx.catalog,
-                    step_summaries=ctx.step_summaries,
-                )
-                runner(per_ctx)
-
+            runner(per_ctx)
         return {
-            "job_name": job_name,
-            "provisioned": provisioned,
+            "step": spec.name,
             "partitions": len(partitions),
-            "executions": executions,
+            "mode": "controller_in_process_sequential",
         }
 
     # ------------------------------------------------------------------ #
