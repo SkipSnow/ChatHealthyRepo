@@ -6171,7 +6171,7 @@
           "source_location": "pipeline/Code/aca_job_manager.py",
           "handler_type": "python_source",
           "disposition": "referenced",
-          "content_hash": "041305680dbf6870effe2683bd6aa9b4327153ce7241c3de27380e21e61e4cb4",
+          "content_hash": "731c3755bdaaa45beab5001a494295115207d518351bea209799247fee617b20",
           "package": "default"
         },
         {
@@ -7063,7 +7063,7 @@
                   "source_location": "pipeline/deploy/provider_pipeline_runbook.py",
                   "handler_type": "python_source",
                   "disposition": "referenced",
-                  "content_hash": "1c89430548be069c1c188b860d9f869c9e799dc6f5242660cdc9364203d9d293",
+                  "content_hash": "2befe81a83da532d619147af1130ac07d0c1113d8aa2700a5e944ea7b64a4d92",
                   "package": "provider_pipeline"
                 }
               ],
@@ -7184,6 +7184,51 @@
                 ],
                 "automation_variables": [],
                 "node_address": "https://management.azure.com/.../automationAccounts/ChatHealthyJobManager/runbooks/CaEndpointRunbook"
+              }
+            },
+            {
+              "package_id": "watchdog_runbook",
+              "kind": "runbook",
+              "files": [
+                {
+                  "source_location": "pipeline/deploy/watchdog_runbook.py",
+                  "feature_id": "EPIC-008-F-012",
+                  "handler_type": "python_source",
+                  "disposition": "referenced",
+                  "content_hash": "08f07918bc52b5307dac6f991f8711632fe297cb10b1c7e8d07ec6e2eb2861b3",
+                  "package": "watchdog_runbook"
+                }
+              ],
+              "secrets": {
+                "MONGO_FRONTEND_connectionString": "local_env",
+                "IDENTITY_ENDPOINT": "local_env",
+                "IDENTITY_HEADER": "local_env"
+              },
+              "config": {
+                "runbook_name": "WatchdogRunbook",
+                "schedule_names": [
+                  "SCH-Watchdog-30min"
+                ],
+                "python_packages": [
+                  {
+                    "name": "requests",
+                    "content_url": "https://files.pythonhosted.org/packages/f9/9b/335f9764261e915ed497fcdeb11df5dfd6f7bf257d4a6a2a686d80da4d54/requests-2.32.3-py3-none-any.whl"
+                  },
+                  {
+                    "name": "pymongo",
+                    "content_url": "https://files.pythonhosted.org/packages/38/52/a58196a45232e9046c8b13f4fa3d89cca0e462b5c6d28969759226f781ee/pymongo-4.10.1-cp38-cp38-win_amd64.whl"
+                  },
+                  {
+                    "name": "dnspython",
+                    "content_url": "https://files.pythonhosted.org/packages/87/a1/8c5287991ddb8d3e4662f71356d9656d91ab3a36618c3dd11b280df0d255/dnspython-2.6.1-py3-none-any.whl"
+                  },
+                  {
+                    "name": "certifi",
+                    "content_url": "https://files.pythonhosted.org/packages/59/8c/57e832b7af6d7c5abe66eb3fbe3a3a32f4d11ea23a1aa7131371035be991/certifi-2026.5.20-py3-none-any.whl"
+                  }
+                ],
+                "automation_variables": [],
+                "node_address": "https://management.azure.com/subscriptions/7a17eec1-c477-4c7c-b1c1-d0662ce7a1ee/resourceGroups/rg-chathealthy-pipeline-dev/providers/Microsoft.Automation/automationAccounts/ChatHealthyJobManager/runbooks/WatchdogRunbook"
               }
             }
           ]
@@ -7352,15 +7397,12 @@
             "resource_group": "rg-chathealthy-pipeline-dev",
             "subnets": [
               {
-                "name": "snet-aca",
+                "name": "snet-pipeline-compute",
                 "address_prefix": "10.0.0.0/23",
-                "purpose": "aca_env_infrastructure",
-                "delegations": [
-                  "Microsoft.App/environments"
-                ]
+                "purpose": "pipeline_run_vm_landing"
               },
               {
-                "name": "snet-private-endpoints",
+                "name": "snet-pipeline-atlas",
                 "address_prefix": "10.0.6.0/24",
                 "purpose": "atlas_private_endpoint_landing"
               }
@@ -7368,16 +7410,12 @@
             "private_endpoints": [
               {
                 "private_endpoint_name": "pe-atlas-pipeline-dev",
-                "subnet_name": "snet-private-endpoints",
+                "subnet_name": "snet-pipeline-atlas",
                 "peer_target_id": "target_atlas_pipeline",
                 "group_id": "mongodb",
                 "runtime_consumers": [
                   {
                     "identity_target_id": "target_identity_mi_control",
-                    "operation": "mongo_readwrite"
-                  },
-                  {
-                    "identity_target_id": "target_identity_mi_worker",
                     "operation": "mongo_readwrite"
                   },
                   {
@@ -7437,25 +7475,6 @@
       "secrets": {}
     },
     {
-      "target_id": "target_identity_mi_worker",
-      "target_kind": "identity",
-      "provisioning": "deploy_provisioned",
-      "promote_chain_bound": false,
-      "environments": [
-        {
-          "env_binding": "dev",
-          "node_address": "mi-worker",
-          "identity": {
-            "identity_class": "managed_identity",
-            "name": "mi-worker",
-            "resource_group": "rg-chathealthy-pipeline-dev"
-          }
-        }
-      ],
-      "files": [],
-      "secrets": {}
-    },
-    {
       "target_id": "target_azure_container_registry_pipeline",
       "target_kind": "azure_container_registry",
       "provisioning": "deploy_provisioned",
@@ -7468,975 +7487,30 @@
             "registry_name": "chpipelinedevacr",
             "resource_group": "rg-chathealthy-pipeline-dev",
             "image_tag_convention": "git_head_sha"
-          }
-        }
-      ],
-      "files": [],
-      "secrets": {},
-      "allowed_roles": [
-        "AcrPush",
-        "AcrPull"
-      ]
-    },
-    {
-      "target_id": "target_azure_container_apps_environment_pipeline",
-      "target_kind": "azure_container_apps_environment",
-      "provisioning": "deploy_provisioned",
-      "promote_chain_bound": false,
-      "environments": [
-        {
-          "env_binding": "dev",
-          "node_address": "cae-chathealthy-pipeline-dev",
-          "azure_container_apps_environment": {
-            "resource_group": "rg-chathealthy-pipeline-dev",
-            "environment_name": "cae-chathealthy-pipeline-dev",
-            "location": "eastus2",
-            "vnet_name": "vnet-chathealthy-pipeline-dev",
-            "subnet_name": "snet-aca",
-            "logs_destination": "log-analytics",
-            "log_analytics_workspace": "law-chathealthy-pipeline-dev"
           },
           "packages": [
             {
-              "package_id": "control",
-              "kind": "job",
+              "package_id": "pipeline_vm_image",
+              "kind": "docker_image",
               "files": [
                 {
-                  "feature_id": "EPIC-008-F-012",
                   "source_location": "pipeline/deploy/Dockerfile.control",
+                  "feature_id": "EPIC-008-F-012",
                   "handler_type": "dockerfile",
                   "disposition": "referenced",
                   "content_hash": "d27b98923c5158d0f99db01df023d67c1acdab80171e40451f46c7b742c5e195",
-                  "package": "control"
-                },
-                {
-                  "feature_id": "EPIC-008-F-012",
-                  "source_location": "pipeline/Code/bootstrap.py",
-                  "handler_type": "python_source",
-                  "disposition": "referenced",
-                  "content_hash": "e958f827032f9c85a95e1bcf8e1b737f7c63a9318e8995882b372db1d46413e6",
-                  "package": "control"
-                },
-                {
-                  "feature_id": "EPIC-008-F-012",
-                  "source_location": "pipeline/Code/control_runner.py",
-                  "handler_type": "python_source",
-                  "disposition": "referenced",
-                  "content_hash": "244199d98d0d621e677a052a04b9af0d898e70ee58b3b9a20dd769e9a9ac8553",
-                  "package": "control"
+                  "package": "pipeline_vm_image"
                 }
               ],
-              "secrets": {
-                "MONGO_connectionString": "local_env",
-                "MONGO_FRONTEND_connectionString": "local_env",
-                "ATLAS_PUBLIC_KEY": "local_env",
-                "ATLAS_PRIVATE_KEY": "local_env",
-                "ATLAS_PROJECT_ID": "local_env",
-                "AZURE_STORAGE_CONNECTION_STRING": "local_env",
-                "KEY_VAULT_URI": "local_env",
-                "Anthropic_API_KEY": "local_env"
-              },
-              "config": {
-                "job_name": "job-chp-control-dev",
-                "image_repository": "prov-control",
-                "dockerfile": "pipeline/deploy/Dockerfile.control",
-                "role": "control",
-                "trigger_type": "Manual",
-                "cpu": 2.0,
-                "memory": "4Gi",
-                "parallelism": 1,
-                "replica_timeout": 7200,
-                "node_identity": "pipeline-control",
-                "managed_identity_name": "mi-control",
-                "key_vault_uri": "https://kv-chpipeline-dev.vault.azure.net/",
-                "node_address": "job-chp-control-dev",
-                "container_libraries": [
-                  "FrontEndApplicationLib"
-                ]
-              }
-            },
-            {
-              "package_id": "prov_prepare_infrastructure",
-              "kind": "job",
-              "files": [
-                {
-                  "feature_id": "EPIC-008-F-012",
-                  "source_location": "pipeline/deploy/Dockerfile.worker",
-                  "handler_type": "dockerfile",
-                  "disposition": "referenced",
-                  "content_hash": "8da26311a874df8f5c6645fd309e1a84bcae155cb92d81808e8a323601aab144",
-                  "package": "prov_prepare_infrastructure"
-                },
-                {
-                  "feature_id": "EPIC-008-F-012",
-                  "source_location": "pipeline/Code/bootstrap.py",
-                  "handler_type": "python_source",
-                  "disposition": "referenced",
-                  "content_hash": "e958f827032f9c85a95e1bcf8e1b737f7c63a9318e8995882b372db1d46413e6",
-                  "package": "prov_prepare_infrastructure"
-                },
-                {
-                  "feature_id": "EPIC-008-F-012",
-                  "source_location": "pipeline/Code/worker_runner.py",
-                  "handler_type": "python_source",
-                  "disposition": "referenced",
-                  "content_hash": "a961bd96624800ac69d1b4ee1a5b4b5d95baa66be2a4a5e936670fdd9a932331",
-                  "package": "prov_prepare_infrastructure"
-                }
-              ],
-              "secrets": {
-                "MONGO_connectionString": "local_env",
-                "MONGO_FRONTEND_connectionString": "local_env",
-                "ATLAS_PUBLIC_KEY": "local_env",
-                "ATLAS_PRIVATE_KEY": "local_env",
-                "ATLAS_PROJECT_ID": "local_env",
-                "AZURE_STORAGE_CONNECTION_STRING": "local_env",
-                "KEY_VAULT_URI": "local_env",
-                "Anthropic_API_KEY": "local_env"
-              },
-              "config": {
-                "job_name": "prov-prepare-infrastructure",
-                "image_repository": "prov-worker",
-                "dockerfile": "pipeline/deploy/Dockerfile.worker",
-                "role": "worker",
-                "trigger_type": "Manual",
-                "cpu": 2.0,
-                "memory": "4Gi",
-                "parallelism": 1,
-                "replica_timeout": 7200,
-                "node_identity": "pipeline-worker",
-                "managed_identity_name": "mi-worker",
-                "key_vault_uri": "https://kv-chpipeline-dev.vault.azure.net/",
-                "node_address": "prov-prepare-infrastructure",
-                "container_libraries": [
-                  "FrontEndApplicationLib"
-                ]
-              }
-            },
-            {
-              "package_id": "prov_fetch_sources",
-              "kind": "job",
-              "files": [
-                {
-                  "feature_id": "EPIC-008-F-012",
-                  "source_location": "pipeline/deploy/Dockerfile.worker",
-                  "handler_type": "dockerfile",
-                  "disposition": "referenced",
-                  "content_hash": "8da26311a874df8f5c6645fd309e1a84bcae155cb92d81808e8a323601aab144",
-                  "package": "prov_fetch_sources"
-                },
-                {
-                  "feature_id": "EPIC-008-F-012",
-                  "source_location": "pipeline/Code/bootstrap.py",
-                  "handler_type": "python_source",
-                  "disposition": "referenced",
-                  "content_hash": "e958f827032f9c85a95e1bcf8e1b737f7c63a9318e8995882b372db1d46413e6",
-                  "package": "prov_fetch_sources"
-                },
-                {
-                  "feature_id": "EPIC-008-F-012",
-                  "source_location": "pipeline/Code/worker_runner.py",
-                  "handler_type": "python_source",
-                  "disposition": "referenced",
-                  "content_hash": "a961bd96624800ac69d1b4ee1a5b4b5d95baa66be2a4a5e936670fdd9a932331",
-                  "package": "prov_fetch_sources"
-                }
-              ],
-              "secrets": {
-                "MONGO_connectionString": "local_env",
-                "MONGO_FRONTEND_connectionString": "local_env",
-                "ATLAS_PUBLIC_KEY": "local_env",
-                "ATLAS_PRIVATE_KEY": "local_env",
-                "ATLAS_PROJECT_ID": "local_env",
-                "AZURE_STORAGE_CONNECTION_STRING": "local_env",
-                "KEY_VAULT_URI": "local_env",
-                "Anthropic_API_KEY": "local_env"
-              },
-              "config": {
-                "job_name": "prov-fetch-sources",
-                "image_repository": "prov-worker",
-                "dockerfile": "pipeline/deploy/Dockerfile.worker",
-                "role": "worker",
-                "trigger_type": "Manual",
-                "cpu": 2.0,
-                "memory": "4Gi",
-                "parallelism": 1,
-                "replica_timeout": 7200,
-                "node_identity": "pipeline-worker",
-                "managed_identity_name": "mi-worker",
-                "key_vault_uri": "https://kv-chpipeline-dev.vault.azure.net/",
-                "node_address": "prov-fetch-sources",
-                "container_libraries": [
-                  "FrontEndApplicationLib"
-                ]
-              }
-            },
-            {
-              "package_id": "prov_load_staging",
-              "kind": "job",
-              "files": [
-                {
-                  "feature_id": "EPIC-008-F-012",
-                  "source_location": "pipeline/deploy/Dockerfile.worker",
-                  "handler_type": "dockerfile",
-                  "disposition": "referenced",
-                  "content_hash": "8da26311a874df8f5c6645fd309e1a84bcae155cb92d81808e8a323601aab144",
-                  "package": "prov_load_staging"
-                },
-                {
-                  "feature_id": "EPIC-008-F-012",
-                  "source_location": "pipeline/Code/bootstrap.py",
-                  "handler_type": "python_source",
-                  "disposition": "referenced",
-                  "content_hash": "e958f827032f9c85a95e1bcf8e1b737f7c63a9318e8995882b372db1d46413e6",
-                  "package": "prov_load_staging"
-                },
-                {
-                  "feature_id": "EPIC-008-F-012",
-                  "source_location": "pipeline/Code/worker_runner.py",
-                  "handler_type": "python_source",
-                  "disposition": "referenced",
-                  "content_hash": "a961bd96624800ac69d1b4ee1a5b4b5d95baa66be2a4a5e936670fdd9a932331",
-                  "package": "prov_load_staging"
-                }
-              ],
-              "secrets": {
-                "MONGO_connectionString": "local_env",
-                "MONGO_FRONTEND_connectionString": "local_env",
-                "ATLAS_PUBLIC_KEY": "local_env",
-                "ATLAS_PRIVATE_KEY": "local_env",
-                "ATLAS_PROJECT_ID": "local_env",
-                "AZURE_STORAGE_CONNECTION_STRING": "local_env",
-                "KEY_VAULT_URI": "local_env",
-                "Anthropic_API_KEY": "local_env"
-              },
-              "config": {
-                "job_name": "prov-load-staging",
-                "image_repository": "prov-worker",
-                "dockerfile": "pipeline/deploy/Dockerfile.worker",
-                "role": "worker",
-                "trigger_type": "Manual",
-                "cpu": 2.0,
-                "memory": "4Gi",
-                "parallelism": 1,
-                "replica_timeout": 7200,
-                "node_identity": "pipeline-worker",
-                "managed_identity_name": "mi-worker",
-                "key_vault_uri": "https://kv-chpipeline-dev.vault.azure.net/",
-                "node_address": "prov-load-staging",
-                "container_libraries": [
-                  "FrontEndApplicationLib"
-                ]
-              }
-            },
-            {
-              "package_id": "prov_normalize",
-              "kind": "job",
-              "files": [
-                {
-                  "feature_id": "EPIC-008-F-012",
-                  "source_location": "pipeline/deploy/Dockerfile.worker",
-                  "handler_type": "dockerfile",
-                  "disposition": "referenced",
-                  "content_hash": "8da26311a874df8f5c6645fd309e1a84bcae155cb92d81808e8a323601aab144",
-                  "package": "prov_normalize"
-                },
-                {
-                  "feature_id": "EPIC-008-F-012",
-                  "source_location": "pipeline/Code/bootstrap.py",
-                  "handler_type": "python_source",
-                  "disposition": "referenced",
-                  "content_hash": "e958f827032f9c85a95e1bcf8e1b737f7c63a9318e8995882b372db1d46413e6",
-                  "package": "prov_normalize"
-                },
-                {
-                  "feature_id": "EPIC-008-F-012",
-                  "source_location": "pipeline/Code/worker_runner.py",
-                  "handler_type": "python_source",
-                  "disposition": "referenced",
-                  "content_hash": "a961bd96624800ac69d1b4ee1a5b4b5d95baa66be2a4a5e936670fdd9a932331",
-                  "package": "prov_normalize"
-                }
-              ],
-              "secrets": {
-                "MONGO_connectionString": "local_env",
-                "MONGO_FRONTEND_connectionString": "local_env",
-                "ATLAS_PUBLIC_KEY": "local_env",
-                "ATLAS_PRIVATE_KEY": "local_env",
-                "ATLAS_PROJECT_ID": "local_env",
-                "AZURE_STORAGE_CONNECTION_STRING": "local_env",
-                "KEY_VAULT_URI": "local_env",
-                "Anthropic_API_KEY": "local_env"
-              },
-              "config": {
-                "job_name": "prov-normalize",
-                "image_repository": "prov-worker",
-                "dockerfile": "pipeline/deploy/Dockerfile.worker",
-                "role": "worker",
-                "trigger_type": "Manual",
-                "cpu": 2.0,
-                "memory": "4Gi",
-                "parallelism": 1,
-                "replica_timeout": 7200,
-                "node_identity": "pipeline-worker",
-                "managed_identity_name": "mi-worker",
-                "key_vault_uri": "https://kv-chpipeline-dev.vault.azure.net/",
-                "node_address": "prov-normalize",
-                "container_libraries": [
-                  "FrontEndApplicationLib"
-                ]
-              }
-            },
-            {
-              "package_id": "prov_normalize_state_fanout",
-              "kind": "job",
-              "files": [
-                {
-                  "feature_id": "EPIC-008-F-012",
-                  "source_location": "pipeline/deploy/Dockerfile.worker",
-                  "handler_type": "dockerfile",
-                  "disposition": "referenced",
-                  "content_hash": "8da26311a874df8f5c6645fd309e1a84bcae155cb92d81808e8a323601aab144",
-                  "package": "prov_normalize_state_fanout"
-                },
-                {
-                  "feature_id": "EPIC-008-F-012",
-                  "source_location": "pipeline/Code/bootstrap.py",
-                  "handler_type": "python_source",
-                  "disposition": "referenced",
-                  "content_hash": "e958f827032f9c85a95e1bcf8e1b737f7c63a9318e8995882b372db1d46413e6",
-                  "package": "prov_normalize_state_fanout"
-                },
-                {
-                  "feature_id": "EPIC-008-F-012",
-                  "source_location": "pipeline/Code/worker_runner.py",
-                  "handler_type": "python_source",
-                  "disposition": "referenced",
-                  "content_hash": "a961bd96624800ac69d1b4ee1a5b4b5d95baa66be2a4a5e936670fdd9a932331",
-                  "package": "prov_normalize_state_fanout"
-                }
-              ],
-              "secrets": {
-                "MONGO_connectionString": "local_env",
-                "MONGO_FRONTEND_connectionString": "local_env",
-                "ATLAS_PUBLIC_KEY": "local_env",
-                "ATLAS_PRIVATE_KEY": "local_env",
-                "ATLAS_PROJECT_ID": "local_env",
-                "AZURE_STORAGE_CONNECTION_STRING": "local_env",
-                "KEY_VAULT_URI": "local_env",
-                "Anthropic_API_KEY": "local_env"
-              },
-              "config": {
-                "job_name": "prov-normalize-state-fanout",
-                "image_repository": "prov-worker",
-                "dockerfile": "pipeline/deploy/Dockerfile.worker",
-                "role": "worker",
-                "trigger_type": "Manual",
-                "cpu": 2.0,
-                "memory": "4Gi",
-                "parallelism": 1,
-                "replica_timeout": 7200,
-                "node_identity": "pipeline-worker",
-                "managed_identity_name": "mi-worker",
-                "key_vault_uri": "https://kv-chpipeline-dev.vault.azure.net/",
-                "node_address": "prov-normalize-state-fanout",
-                "container_libraries": [
-                  "FrontEndApplicationLib"
-                ]
-              }
-            },
-            {
-              "package_id": "prov_add_secondary_practices",
-              "kind": "job",
-              "files": [
-                {
-                  "feature_id": "EPIC-008-F-012",
-                  "source_location": "pipeline/deploy/Dockerfile.worker",
-                  "handler_type": "dockerfile",
-                  "disposition": "referenced",
-                  "content_hash": "8da26311a874df8f5c6645fd309e1a84bcae155cb92d81808e8a323601aab144",
-                  "package": "prov_add_secondary_practices"
-                },
-                {
-                  "feature_id": "EPIC-008-F-012",
-                  "source_location": "pipeline/Code/bootstrap.py",
-                  "handler_type": "python_source",
-                  "disposition": "referenced",
-                  "content_hash": "e958f827032f9c85a95e1bcf8e1b737f7c63a9318e8995882b372db1d46413e6",
-                  "package": "prov_add_secondary_practices"
-                },
-                {
-                  "feature_id": "EPIC-008-F-012",
-                  "source_location": "pipeline/Code/worker_runner.py",
-                  "handler_type": "python_source",
-                  "disposition": "referenced",
-                  "content_hash": "a961bd96624800ac69d1b4ee1a5b4b5d95baa66be2a4a5e936670fdd9a932331",
-                  "package": "prov_add_secondary_practices"
-                }
-              ],
-              "secrets": {
-                "MONGO_connectionString": "local_env",
-                "MONGO_FRONTEND_connectionString": "local_env",
-                "ATLAS_PUBLIC_KEY": "local_env",
-                "ATLAS_PRIVATE_KEY": "local_env",
-                "ATLAS_PROJECT_ID": "local_env",
-                "AZURE_STORAGE_CONNECTION_STRING": "local_env",
-                "KEY_VAULT_URI": "local_env",
-                "Anthropic_API_KEY": "local_env"
-              },
-              "config": {
-                "job_name": "prov-add-secondary-practices",
-                "image_repository": "prov-worker",
-                "dockerfile": "pipeline/deploy/Dockerfile.worker",
-                "role": "worker",
-                "trigger_type": "Manual",
-                "cpu": 2.0,
-                "memory": "4Gi",
-                "parallelism": 1,
-                "replica_timeout": 7200,
-                "node_identity": "pipeline-worker",
-                "managed_identity_name": "mi-worker",
-                "key_vault_uri": "https://kv-chpipeline-dev.vault.azure.net/",
-                "node_address": "prov-add-secondary-practices",
-                "container_libraries": [
-                  "FrontEndApplicationLib"
-                ]
-              }
-            },
-            {
-              "package_id": "prov_type1_first_branch",
-              "kind": "job",
-              "files": [
-                {
-                  "feature_id": "EPIC-008-F-012",
-                  "source_location": "pipeline/deploy/Dockerfile.worker",
-                  "handler_type": "dockerfile",
-                  "disposition": "referenced",
-                  "content_hash": "8da26311a874df8f5c6645fd309e1a84bcae155cb92d81808e8a323601aab144",
-                  "package": "prov_type1_first_branch"
-                },
-                {
-                  "feature_id": "EPIC-008-F-012",
-                  "source_location": "pipeline/Code/bootstrap.py",
-                  "handler_type": "python_source",
-                  "disposition": "referenced",
-                  "content_hash": "e958f827032f9c85a95e1bcf8e1b737f7c63a9318e8995882b372db1d46413e6",
-                  "package": "prov_type1_first_branch"
-                },
-                {
-                  "feature_id": "EPIC-008-F-012",
-                  "source_location": "pipeline/Code/worker_runner.py",
-                  "handler_type": "python_source",
-                  "disposition": "referenced",
-                  "content_hash": "a961bd96624800ac69d1b4ee1a5b4b5d95baa66be2a4a5e936670fdd9a932331",
-                  "package": "prov_type1_first_branch"
-                }
-              ],
-              "secrets": {
-                "MONGO_connectionString": "local_env",
-                "MONGO_FRONTEND_connectionString": "local_env",
-                "ATLAS_PUBLIC_KEY": "local_env",
-                "ATLAS_PRIVATE_KEY": "local_env",
-                "ATLAS_PROJECT_ID": "local_env",
-                "AZURE_STORAGE_CONNECTION_STRING": "local_env",
-                "KEY_VAULT_URI": "local_env",
-                "Anthropic_API_KEY": "local_env"
-              },
-              "config": {
-                "job_name": "prov-type1-first-branch",
-                "image_repository": "prov-worker",
-                "dockerfile": "pipeline/deploy/Dockerfile.worker",
-                "role": "worker",
-                "trigger_type": "Manual",
-                "cpu": 2.0,
-                "memory": "4Gi",
-                "parallelism": 1,
-                "replica_timeout": 7200,
-                "node_identity": "pipeline-worker",
-                "managed_identity_name": "mi-worker",
-                "key_vault_uri": "https://kv-chpipeline-dev.vault.azure.net/",
-                "node_address": "prov-type1-first-branch",
-                "container_libraries": [
-                  "FrontEndApplicationLib"
-                ]
-              }
-            },
-            {
-              "package_id": "prov_type2_first_branch",
-              "kind": "job",
-              "files": [
-                {
-                  "feature_id": "EPIC-008-F-012",
-                  "source_location": "pipeline/deploy/Dockerfile.worker",
-                  "handler_type": "dockerfile",
-                  "disposition": "referenced",
-                  "content_hash": "8da26311a874df8f5c6645fd309e1a84bcae155cb92d81808e8a323601aab144",
-                  "package": "prov_type2_first_branch"
-                },
-                {
-                  "feature_id": "EPIC-008-F-012",
-                  "source_location": "pipeline/Code/bootstrap.py",
-                  "handler_type": "python_source",
-                  "disposition": "referenced",
-                  "content_hash": "e958f827032f9c85a95e1bcf8e1b737f7c63a9318e8995882b372db1d46413e6",
-                  "package": "prov_type2_first_branch"
-                },
-                {
-                  "feature_id": "EPIC-008-F-012",
-                  "source_location": "pipeline/Code/worker_runner.py",
-                  "handler_type": "python_source",
-                  "disposition": "referenced",
-                  "content_hash": "a961bd96624800ac69d1b4ee1a5b4b5d95baa66be2a4a5e936670fdd9a932331",
-                  "package": "prov_type2_first_branch"
-                }
-              ],
-              "secrets": {
-                "MONGO_connectionString": "local_env",
-                "MONGO_FRONTEND_connectionString": "local_env",
-                "ATLAS_PUBLIC_KEY": "local_env",
-                "ATLAS_PRIVATE_KEY": "local_env",
-                "ATLAS_PROJECT_ID": "local_env",
-                "AZURE_STORAGE_CONNECTION_STRING": "local_env",
-                "KEY_VAULT_URI": "local_env",
-                "Anthropic_API_KEY": "local_env"
-              },
-              "config": {
-                "job_name": "prov-type2-first-branch",
-                "image_repository": "prov-worker",
-                "dockerfile": "pipeline/deploy/Dockerfile.worker",
-                "role": "worker",
-                "trigger_type": "Manual",
-                "cpu": 2.0,
-                "memory": "4Gi",
-                "parallelism": 1,
-                "replica_timeout": 7200,
-                "node_identity": "pipeline-worker",
-                "managed_identity_name": "mi-worker",
-                "key_vault_uri": "https://kv-chpipeline-dev.vault.azure.net/",
-                "node_address": "prov-type2-first-branch",
-                "container_libraries": [
-                  "FrontEndApplicationLib"
-                ]
-              }
-            },
-            {
-              "package_id": "prov_license_address_repair",
-              "kind": "job",
-              "files": [
-                {
-                  "feature_id": "EPIC-008-F-012",
-                  "source_location": "pipeline/deploy/Dockerfile.worker",
-                  "handler_type": "dockerfile",
-                  "disposition": "referenced",
-                  "content_hash": "8da26311a874df8f5c6645fd309e1a84bcae155cb92d81808e8a323601aab144",
-                  "package": "prov_license_address_repair"
-                },
-                {
-                  "feature_id": "EPIC-008-F-012",
-                  "source_location": "pipeline/Code/bootstrap.py",
-                  "handler_type": "python_source",
-                  "disposition": "referenced",
-                  "content_hash": "e958f827032f9c85a95e1bcf8e1b737f7c63a9318e8995882b372db1d46413e6",
-                  "package": "prov_license_address_repair"
-                },
-                {
-                  "feature_id": "EPIC-008-F-012",
-                  "source_location": "pipeline/Code/worker_runner.py",
-                  "handler_type": "python_source",
-                  "disposition": "referenced",
-                  "content_hash": "a961bd96624800ac69d1b4ee1a5b4b5d95baa66be2a4a5e936670fdd9a932331",
-                  "package": "prov_license_address_repair"
-                }
-              ],
-              "secrets": {
-                "MONGO_connectionString": "local_env",
-                "MONGO_FRONTEND_connectionString": "local_env",
-                "ATLAS_PUBLIC_KEY": "local_env",
-                "ATLAS_PRIVATE_KEY": "local_env",
-                "ATLAS_PROJECT_ID": "local_env",
-                "AZURE_STORAGE_CONNECTION_STRING": "local_env",
-                "KEY_VAULT_URI": "local_env",
-                "Anthropic_API_KEY": "local_env"
-              },
-              "config": {
-                "job_name": "prov-license-address-repair",
-                "image_repository": "prov-worker",
-                "dockerfile": "pipeline/deploy/Dockerfile.worker",
-                "role": "worker",
-                "trigger_type": "Manual",
-                "cpu": 2.0,
-                "memory": "4Gi",
-                "parallelism": 1,
-                "replica_timeout": 7200,
-                "node_identity": "pipeline-worker",
-                "managed_identity_name": "mi-worker",
-                "key_vault_uri": "https://kv-chpipeline-dev.vault.azure.net/",
-                "node_address": "prov-license-address-repair",
-                "container_libraries": [
-                  "FrontEndApplicationLib"
-                ]
-              }
-            },
-            {
-              "package_id": "prov_county_enrichment",
-              "kind": "job",
-              "files": [
-                {
-                  "feature_id": "EPIC-008-F-012",
-                  "source_location": "pipeline/deploy/Dockerfile.worker",
-                  "handler_type": "dockerfile",
-                  "disposition": "referenced",
-                  "content_hash": "8da26311a874df8f5c6645fd309e1a84bcae155cb92d81808e8a323601aab144",
-                  "package": "prov_county_enrichment"
-                },
-                {
-                  "feature_id": "EPIC-008-F-012",
-                  "source_location": "pipeline/Code/bootstrap.py",
-                  "handler_type": "python_source",
-                  "disposition": "referenced",
-                  "content_hash": "e958f827032f9c85a95e1bcf8e1b737f7c63a9318e8995882b372db1d46413e6",
-                  "package": "prov_county_enrichment"
-                },
-                {
-                  "feature_id": "EPIC-008-F-012",
-                  "source_location": "pipeline/Code/worker_runner.py",
-                  "handler_type": "python_source",
-                  "disposition": "referenced",
-                  "content_hash": "a961bd96624800ac69d1b4ee1a5b4b5d95baa66be2a4a5e936670fdd9a932331",
-                  "package": "prov_county_enrichment"
-                }
-              ],
-              "secrets": {
-                "MONGO_connectionString": "local_env",
-                "MONGO_FRONTEND_connectionString": "local_env",
-                "ATLAS_PUBLIC_KEY": "local_env",
-                "ATLAS_PRIVATE_KEY": "local_env",
-                "ATLAS_PROJECT_ID": "local_env",
-                "AZURE_STORAGE_CONNECTION_STRING": "local_env",
-                "KEY_VAULT_URI": "local_env",
-                "Anthropic_API_KEY": "local_env"
-              },
-              "config": {
-                "job_name": "prov-county-enrichment",
-                "image_repository": "prov-worker",
-                "dockerfile": "pipeline/deploy/Dockerfile.worker",
-                "role": "worker",
-                "trigger_type": "Manual",
-                "cpu": 2.0,
-                "memory": "4Gi",
-                "parallelism": 1,
-                "replica_timeout": 7200,
-                "node_identity": "pipeline-worker",
-                "managed_identity_name": "mi-worker",
-                "key_vault_uri": "https://kv-chpipeline-dev.vault.azure.net/",
-                "node_address": "prov-county-enrichment",
-                "container_libraries": [
-                  "FrontEndApplicationLib"
-                ]
-              }
-            },
-            {
-              "package_id": "prov_urban_flag",
-              "kind": "job",
-              "files": [
-                {
-                  "feature_id": "EPIC-008-F-012",
-                  "source_location": "pipeline/deploy/Dockerfile.worker",
-                  "handler_type": "dockerfile",
-                  "disposition": "referenced",
-                  "content_hash": "8da26311a874df8f5c6645fd309e1a84bcae155cb92d81808e8a323601aab144",
-                  "package": "prov_urban_flag"
-                },
-                {
-                  "feature_id": "EPIC-008-F-012",
-                  "source_location": "pipeline/Code/bootstrap.py",
-                  "handler_type": "python_source",
-                  "disposition": "referenced",
-                  "content_hash": "e958f827032f9c85a95e1bcf8e1b737f7c63a9318e8995882b372db1d46413e6",
-                  "package": "prov_urban_flag"
-                },
-                {
-                  "feature_id": "EPIC-008-F-012",
-                  "source_location": "pipeline/Code/worker_runner.py",
-                  "handler_type": "python_source",
-                  "disposition": "referenced",
-                  "content_hash": "a961bd96624800ac69d1b4ee1a5b4b5d95baa66be2a4a5e936670fdd9a932331",
-                  "package": "prov_urban_flag"
-                }
-              ],
-              "secrets": {
-                "MONGO_connectionString": "local_env",
-                "MONGO_FRONTEND_connectionString": "local_env",
-                "ATLAS_PUBLIC_KEY": "local_env",
-                "ATLAS_PRIVATE_KEY": "local_env",
-                "ATLAS_PROJECT_ID": "local_env",
-                "AZURE_STORAGE_CONNECTION_STRING": "local_env",
-                "KEY_VAULT_URI": "local_env",
-                "Anthropic_API_KEY": "local_env"
-              },
-              "config": {
-                "job_name": "prov-urban-flag",
-                "image_repository": "prov-worker",
-                "dockerfile": "pipeline/deploy/Dockerfile.worker",
-                "role": "worker",
-                "trigger_type": "Manual",
-                "cpu": 2.0,
-                "memory": "4Gi",
-                "parallelism": 1,
-                "replica_timeout": 7200,
-                "node_identity": "pipeline-worker",
-                "managed_identity_name": "mi-worker",
-                "key_vault_uri": "https://kv-chpipeline-dev.vault.azure.net/",
-                "node_address": "prov-urban-flag",
-                "container_libraries": [
-                  "FrontEndApplicationLib"
-                ]
-              }
-            },
-            {
-              "package_id": "prov_type1_second_branch",
-              "kind": "job",
-              "files": [
-                {
-                  "feature_id": "EPIC-008-F-012",
-                  "source_location": "pipeline/deploy/Dockerfile.worker",
-                  "handler_type": "dockerfile",
-                  "disposition": "referenced",
-                  "content_hash": "8da26311a874df8f5c6645fd309e1a84bcae155cb92d81808e8a323601aab144",
-                  "package": "prov_type1_second_branch"
-                },
-                {
-                  "feature_id": "EPIC-008-F-012",
-                  "source_location": "pipeline/Code/bootstrap.py",
-                  "handler_type": "python_source",
-                  "disposition": "referenced",
-                  "content_hash": "e958f827032f9c85a95e1bcf8e1b737f7c63a9318e8995882b372db1d46413e6",
-                  "package": "prov_type1_second_branch"
-                },
-                {
-                  "feature_id": "EPIC-008-F-012",
-                  "source_location": "pipeline/Code/worker_runner.py",
-                  "handler_type": "python_source",
-                  "disposition": "referenced",
-                  "content_hash": "a961bd96624800ac69d1b4ee1a5b4b5d95baa66be2a4a5e936670fdd9a932331",
-                  "package": "prov_type1_second_branch"
-                }
-              ],
-              "secrets": {
-                "MONGO_connectionString": "local_env",
-                "MONGO_FRONTEND_connectionString": "local_env",
-                "ATLAS_PUBLIC_KEY": "local_env",
-                "ATLAS_PRIVATE_KEY": "local_env",
-                "ATLAS_PROJECT_ID": "local_env",
-                "AZURE_STORAGE_CONNECTION_STRING": "local_env",
-                "KEY_VAULT_URI": "local_env",
-                "Anthropic_API_KEY": "local_env"
-              },
-              "config": {
-                "job_name": "prov-type1-second-branch",
-                "image_repository": "prov-worker",
-                "dockerfile": "pipeline/deploy/Dockerfile.worker",
-                "role": "worker",
-                "trigger_type": "Manual",
-                "cpu": 2.0,
-                "memory": "4Gi",
-                "parallelism": 1,
-                "replica_timeout": 7200,
-                "node_identity": "pipeline-worker",
-                "managed_identity_name": "mi-worker",
-                "key_vault_uri": "https://kv-chpipeline-dev.vault.azure.net/",
-                "node_address": "prov-type1-second-branch",
-                "container_libraries": [
-                  "FrontEndApplicationLib"
-                ]
-              }
-            },
-            {
-              "package_id": "prov_type2_second_branch",
-              "kind": "job",
-              "files": [
-                {
-                  "feature_id": "EPIC-008-F-012",
-                  "source_location": "pipeline/deploy/Dockerfile.worker",
-                  "handler_type": "dockerfile",
-                  "disposition": "referenced",
-                  "content_hash": "8da26311a874df8f5c6645fd309e1a84bcae155cb92d81808e8a323601aab144",
-                  "package": "prov_type2_second_branch"
-                },
-                {
-                  "feature_id": "EPIC-008-F-012",
-                  "source_location": "pipeline/Code/bootstrap.py",
-                  "handler_type": "python_source",
-                  "disposition": "referenced",
-                  "content_hash": "e958f827032f9c85a95e1bcf8e1b737f7c63a9318e8995882b372db1d46413e6",
-                  "package": "prov_type2_second_branch"
-                },
-                {
-                  "feature_id": "EPIC-008-F-012",
-                  "source_location": "pipeline/Code/worker_runner.py",
-                  "handler_type": "python_source",
-                  "disposition": "referenced",
-                  "content_hash": "a961bd96624800ac69d1b4ee1a5b4b5d95baa66be2a4a5e936670fdd9a932331",
-                  "package": "prov_type2_second_branch"
-                }
-              ],
-              "secrets": {
-                "MONGO_connectionString": "local_env",
-                "MONGO_FRONTEND_connectionString": "local_env",
-                "ATLAS_PUBLIC_KEY": "local_env",
-                "ATLAS_PRIVATE_KEY": "local_env",
-                "ATLAS_PROJECT_ID": "local_env",
-                "AZURE_STORAGE_CONNECTION_STRING": "local_env",
-                "KEY_VAULT_URI": "local_env",
-                "Anthropic_API_KEY": "local_env"
-              },
-              "config": {
-                "job_name": "prov-type2-second-branch",
-                "image_repository": "prov-worker",
-                "dockerfile": "pipeline/deploy/Dockerfile.worker",
-                "role": "worker",
-                "trigger_type": "Manual",
-                "cpu": 2.0,
-                "memory": "4Gi",
-                "parallelism": 1,
-                "replica_timeout": 7200,
-                "node_identity": "pipeline-worker",
-                "managed_identity_name": "mi-worker",
-                "key_vault_uri": "https://kv-chpipeline-dev.vault.azure.net/",
-                "node_address": "prov-type2-second-branch",
-                "container_libraries": [
-                  "FrontEndApplicationLib"
-                ]
-              }
-            },
-            {
-              "package_id": "prov_post_load_reconciliation",
-              "kind": "job",
-              "files": [
-                {
-                  "feature_id": "EPIC-008-F-012",
-                  "source_location": "pipeline/deploy/Dockerfile.worker",
-                  "handler_type": "dockerfile",
-                  "disposition": "referenced",
-                  "content_hash": "8da26311a874df8f5c6645fd309e1a84bcae155cb92d81808e8a323601aab144",
-                  "package": "prov_post_load_reconciliation"
-                },
-                {
-                  "feature_id": "EPIC-008-F-012",
-                  "source_location": "pipeline/Code/bootstrap.py",
-                  "handler_type": "python_source",
-                  "disposition": "referenced",
-                  "content_hash": "e958f827032f9c85a95e1bcf8e1b737f7c63a9318e8995882b372db1d46413e6",
-                  "package": "prov_post_load_reconciliation"
-                },
-                {
-                  "feature_id": "EPIC-008-F-012",
-                  "source_location": "pipeline/Code/worker_runner.py",
-                  "handler_type": "python_source",
-                  "disposition": "referenced",
-                  "content_hash": "a961bd96624800ac69d1b4ee1a5b4b5d95baa66be2a4a5e936670fdd9a932331",
-                  "package": "prov_post_load_reconciliation"
-                }
-              ],
-              "secrets": {
-                "MONGO_connectionString": "local_env",
-                "MONGO_FRONTEND_connectionString": "local_env",
-                "ATLAS_PUBLIC_KEY": "local_env",
-                "ATLAS_PRIVATE_KEY": "local_env",
-                "ATLAS_PROJECT_ID": "local_env",
-                "AZURE_STORAGE_CONNECTION_STRING": "local_env",
-                "KEY_VAULT_URI": "local_env",
-                "Anthropic_API_KEY": "local_env"
-              },
-              "config": {
-                "job_name": "prov-post-load-reconciliation",
-                "image_repository": "prov-worker",
-                "dockerfile": "pipeline/deploy/Dockerfile.worker",
-                "role": "worker",
-                "trigger_type": "Manual",
-                "cpu": 2.0,
-                "memory": "4Gi",
-                "parallelism": 1,
-                "replica_timeout": 7200,
-                "node_identity": "pipeline-worker",
-                "managed_identity_name": "mi-worker",
-                "key_vault_uri": "https://kv-chpipeline-dev.vault.azure.net/",
-                "node_address": "prov-post-load-reconciliation",
-                "container_libraries": [
-                  "FrontEndApplicationLib"
-                ]
-              }
-            },
-            {
-              "package_id": "prov_discrepancy_and_notifications",
-              "kind": "job",
-              "files": [
-                {
-                  "feature_id": "EPIC-008-F-012",
-                  "source_location": "pipeline/deploy/Dockerfile.worker",
-                  "handler_type": "dockerfile",
-                  "disposition": "referenced",
-                  "content_hash": "8da26311a874df8f5c6645fd309e1a84bcae155cb92d81808e8a323601aab144",
-                  "package": "prov_discrepancy_and_notifications"
-                },
-                {
-                  "feature_id": "EPIC-008-F-012",
-                  "source_location": "pipeline/Code/bootstrap.py",
-                  "handler_type": "python_source",
-                  "disposition": "referenced",
-                  "content_hash": "e958f827032f9c85a95e1bcf8e1b737f7c63a9318e8995882b372db1d46413e6",
-                  "package": "prov_discrepancy_and_notifications"
-                },
-                {
-                  "feature_id": "EPIC-008-F-012",
-                  "source_location": "pipeline/Code/worker_runner.py",
-                  "handler_type": "python_source",
-                  "disposition": "referenced",
-                  "content_hash": "a961bd96624800ac69d1b4ee1a5b4b5d95baa66be2a4a5e936670fdd9a932331",
-                  "package": "prov_discrepancy_and_notifications"
-                }
-              ],
-              "secrets": {
-                "MONGO_connectionString": "local_env",
-                "MONGO_FRONTEND_connectionString": "local_env",
-                "ATLAS_PUBLIC_KEY": "local_env",
-                "ATLAS_PRIVATE_KEY": "local_env",
-                "ATLAS_PROJECT_ID": "local_env",
-                "AZURE_STORAGE_CONNECTION_STRING": "local_env",
-                "KEY_VAULT_URI": "local_env",
-                "Anthropic_API_KEY": "local_env"
-              },
-              "config": {
-                "job_name": "prov-discrepancy-notify",
-                "image_repository": "prov-worker",
-                "dockerfile": "pipeline/deploy/Dockerfile.worker",
-                "role": "worker",
-                "trigger_type": "Manual",
-                "cpu": 2.0,
-                "memory": "4Gi",
-                "parallelism": 1,
-                "replica_timeout": 7200,
-                "node_identity": "pipeline-worker",
-                "managed_identity_name": "mi-worker",
-                "key_vault_uri": "https://kv-chpipeline-dev.vault.azure.net/",
-                "node_address": "prov-discrepancy-notify",
-                "container_libraries": [
-                  "FrontEndApplicationLib"
-                ]
-              }
-            },
-            {
-              "package_id": "default_apps_environment",
-              "kind": "apps_environment",
-              "files": [],
               "secrets": {},
               "config": {
-                "env_vars": {
-                  "CH_SPACE_NAME": "pipeline-{role}-{env}",
-                  "PIPELINE_LOG_ACCOUNT_URL": "https://stchpipelinedev.blob.core.windows.net",
-                  "PIPELINE_NAME": "provider",
-                  "CHATHEALTHY_VNET_NAME": "vnet-chathealthy-pipeline-dev"
-                }
+                "image_repository": "pipeline-control",
+                "dockerfile": "pipeline/deploy/Dockerfile.control",
+                "build_context": ".",
+                "role": "pipeline_vm_image",
+                "container_libraries": [
+                  "FrontEndApplicationLib"
+                ]
               }
             }
           ]
@@ -8445,7 +7519,8 @@
       "files": [],
       "secrets": {},
       "allowed_roles": [
-        "Container Apps Jobs Operator"
+        "AcrPush",
+        "AcrPull"
       ]
     },
     {
@@ -8463,10 +7538,6 @@
               "runtime_consumers": [
                 {
                   "identity_target_id": "target_identity_mi_control",
-                  "operation": "mongo_readwrite"
-                },
-                {
-                  "identity_target_id": "target_identity_mi_worker",
                   "operation": "mongo_readwrite"
                 },
                 {
