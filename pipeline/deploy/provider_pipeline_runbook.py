@@ -557,21 +557,23 @@ def _atlas_resume_pipeline_cluster() -> dict:
     Returns the Atlas API response dict. On any error, logs and returns
     an empty dict (Controller will still poll and eventually succeed).
     """
-    if not ATLAS_PROJECT_ID:
-        log("atlas_resume_skipped_no_project_id")
-        return {}
     try:
         import automationassets  # only in AA sandbox
+        atlas_project_id = automationassets.get_automation_variable("ATLAS_PROJECT_ID")
         atlas_pub = automationassets.get_automation_variable("ATLAS_PUBLIC_KEY")
         atlas_priv = automationassets.get_automation_variable("ATLAS_PRIVATE_KEY")
     except Exception:
+        atlas_project_id = ATLAS_PROJECT_ID or os.environ.get("ATLAS_PROJECT_ID", "")
         atlas_pub = os.environ.get("ATLAS_PUBLIC_KEY", "")
         atlas_priv = os.environ.get("ATLAS_PRIVATE_KEY", "")
+    if not atlas_project_id:
+        log("atlas_resume_skipped_no_project_id")
+        return {}
     if not atlas_pub or not atlas_priv:
         log("atlas_resume_skipped_no_credentials")
         return {}
     # Atlas start-cluster endpoint. PATCH the cluster with paused=false.
-    url = (f"{ATLAS_ADMIN_BASE}/groups/{ATLAS_PROJECT_ID}"
+    url = (f"{ATLAS_ADMIN_BASE}/groups/{atlas_project_id}"
            f"/clusters/{ATLAS_PIPELINE_CLUSTER}")
     import base64
     creds = base64.b64encode(f"{atlas_pub}:{atlas_priv}".encode()).decode()

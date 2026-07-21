@@ -7269,6 +7269,10 @@
       "target_kind": "azure_resource_group",
       "provisioning": "pre_existing",
       "promote_chain_bound": false,
+      "allowed_roles": [
+        "Virtual Machine Contributor",
+        "Network Contributor"
+      ],
       "environments": [
         {
           "env_binding": "dev",
@@ -7597,7 +7601,8 @@
         "Key Vault Secrets User",
         "Automation Contributor",
         "Storage Blob Data Contributor",
-        "Container Apps Jobs Operator"
+        "Virtual Machine Contributor",
+        "Network Contributor"
       ]
     },
     {
@@ -7609,7 +7614,7 @@
         "AcrPull",
         "Contributor",
         "Storage Blob Data Contributor",
-        "Container Apps Jobs Operator"
+        "Virtual Machine Contributor"
       ]
     },
     {
