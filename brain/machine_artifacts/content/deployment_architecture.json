@@ -7262,7 +7262,7 @@
           "scope": "/subscriptions/7a17eec1-c477-4c7c-b1c1-d0662ce7a1ee/resourceGroups/rg-chathealthy-pipeline-dev/providers/Microsoft.Automation/automationAccounts/ChatHealthyJobManager"
         }
       ],
-      "provisioning": "pre_existing"
+      "provisioning": "deploy_provisioned"
     },
     {
       "target_id": "target_azure_resource_group_pipeline",
@@ -7328,7 +7328,7 @@
     {
       "target_id": "target_azure_storage_account_pipeline",
       "target_kind": "azure_storage_account",
-      "provisioning": "pre_existing",
+      "provisioning": "deploy_provisioned",
       "promote_chain_bound": false,
       "environments": [
         {
@@ -7386,7 +7386,7 @@
     {
       "target_id": "target_azure_vnet_pipeline",
       "target_kind": "azure_vnet",
-      "provisioning": "pre_existing",
+      "provisioning": "deploy_provisioned",
       "promote_chain_bound": false,
       "environments": [
         {
