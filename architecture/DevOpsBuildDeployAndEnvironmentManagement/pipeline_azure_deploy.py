@@ -627,6 +627,10 @@ def ensure_acr(target, env: str) -> str:
         ca_root_b64 = _b64.b64encode(ca_root_pem.encode("utf-8")).decode("ascii")
         ca_int_b64 = _b64.b64encode(ca_int_pem.encode("utf-8")).decode("ascii")
         # `az acr build` performs both build and push server-side.
+        # --no-logs avoids az CLI's log streamer choking on non-cp1252
+        # characters in the remote build output (Windows charmap encoding
+        # UnicodeEncodeError). Build succeeds or fails independently of
+        # log streaming; failure surfaces via the ARM operation status.
         _az(
             [
                 "acr", "build",
@@ -636,6 +640,7 @@ def ensure_acr(target, env: str) -> str:
                 "--file", dockerfile,
                 "--build-arg", f"CHATHEALTHY_CA_ROOT_B64={ca_root_b64}",
                 "--build-arg", f"CHATHEALTHY_CA_INTERMEDIATE_B64={ca_int_b64}",
+                "--no-logs",
                 build_context,
             ]
         )
@@ -1485,7 +1490,11 @@ def ensure_vnet_private_endpoints(target, env: str, coll) -> None:
                     "--subnet", subnet_name,
                     "--private-connection-resource-id", pls_id,
                     "--connection-name", f"{pe_name}-conn",
-                    "--group-id", group_id,
+                    # NB: no --group-id here. Atlas PLS is a THIRD-PARTY
+                    # private link service; Azure rejects --group-id for
+                    # those (GroupIdNotPermittedWhenConnectingToThirdPartyService).
+                    # --group-id is only for Microsoft first-party services
+                    # (keyvault/storage/etc.).
                     # v32 §3.18: Atlas-side PE peer object is hand-created; the
                     # deploy chain uses --manual-request true so the Azure side
                     # sits pending until atlas_approve_private_endpoint()

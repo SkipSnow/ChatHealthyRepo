@@ -18,11 +18,11 @@ a VM is deleted ONLY when the checks confirm it is safe to reap:
 
   2. Run manifest terminal-status check.
      Read `chathealthyfrontend.pipeline.runs` for the same `run_id`. If
-     status ∈ {success, failed, aborted}, the run is done -> DELETE the
+     status  in  {success, failed, aborted}, the run is done -> DELETE the
      VM (cleanup, not a kill).
 
   3. Controller heartbeat + Azure PowerState check.
-     If the manifest is `status ∈ {pending_vm_provision, running}` and
+     If the manifest is `status  in  {pending_vm_provision, running}` and
      `controller_heartbeat_at` is older than 15 minutes, additionally
      query `az vm get-instance-view` for the VM. If PowerState is
      `deallocated` or `stopped` -> mark manifest `status=failed,
@@ -117,9 +117,9 @@ def _get_token(resource: str, client_id: str | None = None) -> str:
         return json.loads(r.read().decode("utf-8"))["access_token"]
 
 
-# ─────────────────────────────────────────────────────────────────────────────
+# -----------------------------------------------------------------------------
 # Logging (append-blob, one blob per pipeline per day)
-# ─────────────────────────────────────────────────────────────────────────────
+# -----------------------------------------------------------------------------
 def log(event: str, **fields):
     """Append a one-line JSON event to the daily log blob. Never raises."""
     try:
@@ -178,9 +178,9 @@ def log(event: str, **fields):
         pass
 
 
-# ─────────────────────────────────────────────────────────────────────────────
+# -----------------------------------------------------------------------------
 # Mongo helpers (front-end cluster only -- always-up)
-# ─────────────────────────────────────────────────────────────────────────────
+# -----------------------------------------------------------------------------
 def _get_mongo_conn_string() -> str:
     """Fetch MONGO_FRONTEND_connectionString from Key Vault via MI."""
     tok = _get_token("https://vault.azure.net")
@@ -206,9 +206,9 @@ def _mongo_client():
     return pymongo.MongoClient(conn, **kwargs)
 
 
-# ─────────────────────────────────────────────────────────────────────────────
+# -----------------------------------------------------------------------------
 # Azure ARM helpers -- VM enumeration, get-instance-view, delete
-# ─────────────────────────────────────────────────────────────────────────────
+# -----------------------------------------------------------------------------
 def _arm_get(url: str, tok: str) -> dict:
     req = urllib.request.Request(
         url, headers={"Authorization": f"Bearer {tok}"}
@@ -276,9 +276,9 @@ def _delete_vm_and_nic(vm: dict, tok: str) -> None:
     )
 
 
-# ─────────────────────────────────────────────────────────────────────────────
+# -----------------------------------------------------------------------------
 # The 4-check state machine per v32 §3.1.2
-# ─────────────────────────────────────────────────────────────────────────────
+# -----------------------------------------------------------------------------
 TERMINAL_STATUSES = {"success", "failed", "aborted"}
 
 
@@ -410,9 +410,9 @@ def _process_vm(vm: dict, mongo, tok: str) -> None:
                 error=f"{type(exc).__name__}: {exc}")
 
 
-# ─────────────────────────────────────────────────────────────────────────────
+# -----------------------------------------------------------------------------
 # Main
-# ─────────────────────────────────────────────────────────────────────────────
+# -----------------------------------------------------------------------------
 def main() -> int:
     log("watchdog_start", host=_HOSTNAME)
     try:
