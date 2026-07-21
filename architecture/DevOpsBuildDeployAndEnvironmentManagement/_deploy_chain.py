@@ -1718,20 +1718,28 @@ def ensure_runbook_webhook_stored_in_kv(
         f"(URL will land in {kv_vault}/{kv_secret_name})"
     )
     existing_url = kv_secret_get(kv_vault, kv_secret_name)
-    if existing_url:
+    live_names = {
+        w.get("name")
+        for w in az_automation_runbook_webhook_list(rg, aa, runbook)
+    }
+    webhook_alive_on_aa = webhook_name in live_names
+    if existing_url and webhook_alive_on_aa:
         step(
-            f"    KV secret {kv_secret_name} already populated on "
-            f"{kv_vault} — idempotent no-op"
+            f"    KV secret {kv_secret_name} populated AND webhook "
+            f"{webhook_name} live on {aa} — idempotent no-op"
         )
         return
-    for w in az_automation_runbook_webhook_list(rg, aa, runbook):
-        if w.get("name") == webhook_name:
-            step(
-                f"    deleting stale webhook {webhook_name} (URL was not "
-                f"captured in KV; cannot reuse)"
-            )
-            az_automation_runbook_webhook_delete(rg, aa, webhook_name)
-            break
+    if webhook_alive_on_aa:
+        step(
+            f"    deleting AA-side webhook {webhook_name} (KV drifted; "
+            f"cannot recover URL from Azure)"
+        )
+        az_automation_runbook_webhook_delete(rg, aa, webhook_name)
+    elif existing_url:
+        step(
+            f"    KV holds URL for a webhook that no longer exists on {aa} "
+            f"(AA/runbook rebuilt) — minting fresh and overwriting KV"
+        )
     url = az_automation_runbook_webhook_create(rg, aa, runbook, webhook_name)
     kv_secret_set(kv_vault, kv_secret_name, url)
     step(f"    minted webhook and wrote URL to {kv_vault}/{kv_secret_name}")
@@ -1809,22 +1817,28 @@ def ensure_runbook_webhook_and_push_to_consumer(
     existing_value = functionapp_get_appsetting(
         consumer_rg, consumer_app, app_setting_name,
     )
-    if existing_value:
+    live_names = {
+        w.get("name")
+        for w in az_automation_runbook_webhook_list(rg, aa, runbook)
+    }
+    webhook_alive_on_aa = webhook_name in live_names
+    if existing_value and webhook_alive_on_aa:
         step(
-            f"  webhook URL already present on {consumer_app}/"
-            f"{app_setting_name} — idempotent no-op"
+            f"  webhook URL present on {consumer_app}/{app_setting_name} "
+            f"AND webhook {webhook_name} live on {aa} — idempotent no-op"
         )
         return
-
-    existing_webhooks = az_automation_runbook_webhook_list(rg, aa, runbook)
-    for w in existing_webhooks:
-        if w.get("name") == webhook_name:
-            step(
-                f"  deleting stale webhook {webhook_name} (URL was not "
-                f"captured on the consumer; cannot reuse)"
-            )
-            az_automation_runbook_webhook_delete(rg, aa, webhook_name)
-            break
+    if webhook_alive_on_aa:
+        step(
+            f"  deleting AA-side webhook {webhook_name} (consumer setting "
+            f"drifted; cannot recover URL from Azure)"
+        )
+        az_automation_runbook_webhook_delete(rg, aa, webhook_name)
+    elif existing_value:
+        step(
+            f"  consumer holds URL for a webhook that no longer exists on "
+            f"{aa} (AA/runbook rebuilt) — minting fresh and overwriting"
+        )
 
     step(f"  minting webhook {webhook_name} for runbook {runbook}")
     url = az_automation_runbook_webhook_create(rg, aa, runbook, webhook_name)
