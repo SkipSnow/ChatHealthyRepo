@@ -1,4 +1,4 @@
-"""watchdog_runbook.py — v32 §3.1.2.
+"""watchdog_runbook.py -- v32 §3.1.2.
 
 Runs in Azure Automation as a Python 3 runbook on a 30-minute cron. Its
 job is to reap orphaned Pipeline Run VMs that survived a Controller-death
@@ -6,33 +6,33 @@ event and would otherwise accrue idle cost, WITHOUT killing runs that
 are legitimately in-flight.
 
 Detection state machine (per LLD v32 §3.1.2). For each VM tagged
-`pipeline_run_id`, the Watchdog performs the following ordered checks —
+`pipeline_run_id`, the Watchdog performs the following ordered checks --
 a VM is deleted ONLY when the checks confirm it is safe to reap:
 
   1. Reservation check.
      Read `chathealthyfrontend.pipeline.cluster_reservations` for the
      matching `run_id`. If a reservation exists AND has not expired
      (created_at + expected_duration_minutes + 30-min grace < now), the
-     run is still legitimately live → SKIP this VM entirely. This is the
+     run is still legitimately live -> SKIP this VM entirely. This is the
      primary safeguard against killing our own jobs.
 
   2. Run manifest terminal-status check.
      Read `chathealthyfrontend.pipeline.runs` for the same `run_id`. If
-     status ∈ {success, failed, aborted}, the run is done → DELETE the
+     status ∈ {success, failed, aborted}, the run is done -> DELETE the
      VM (cleanup, not a kill).
 
   3. Controller heartbeat + Azure PowerState check.
      If the manifest is `status ∈ {pending_vm_provision, running}` and
      `controller_heartbeat_at` is older than 15 minutes, additionally
      query `az vm get-instance-view` for the VM. If PowerState is
-     `deallocated` or `stopped` → mark manifest `status=failed,
+     `deallocated` or `stopped` -> mark manifest `status=failed,
      abort_reason=controller_heartbeat_lost` and DELETE. If PowerState
-     is `running` → mark manifest `status=failed,
+     is `running` -> mark manifest `status=failed,
      abort_reason=controller_process_dead` and DELETE.
 
   4. Missing manifest.
      If no run manifest exists for the VM's `pipeline_run_id` tag, the
-     VM was orphaned before manifest write completed → DELETE after a
+     VM was orphaned before manifest write completed -> DELETE after a
      30-minute grace to allow slow manifest writes.
 
 Every event is logged to the pipeline-logs blob container in our
@@ -156,7 +156,7 @@ def log(event: str, **fields):
                 urllib.request.urlopen(r, timeout=5).read()
                 return
             except urllib.error.HTTPError:
-                # Blob may not exist yet — create it, then retry append.
+                # Blob may not exist yet -- create it, then retry append.
                 try:
                     create = urllib.request.Request(
                         url,
@@ -179,7 +179,7 @@ def log(event: str, **fields):
 
 
 # ─────────────────────────────────────────────────────────────────────────────
-# Mongo helpers (front-end cluster only — always-up)
+# Mongo helpers (front-end cluster only -- always-up)
 # ─────────────────────────────────────────────────────────────────────────────
 def _get_mongo_conn_string() -> str:
     """Fetch MONGO_FRONTEND_connectionString from Key Vault via MI."""
@@ -207,7 +207,7 @@ def _mongo_client():
 
 
 # ─────────────────────────────────────────────────────────────────────────────
-# Azure ARM helpers — VM enumeration, get-instance-view, delete
+# Azure ARM helpers -- VM enumeration, get-instance-view, delete
 # ─────────────────────────────────────────────────────────────────────────────
 def _arm_get(url: str, tok: str) -> dict:
     req = urllib.request.Request(
@@ -296,7 +296,7 @@ def _reservation_still_live(mongo, run_id: str) -> bool:
                 created_at.replace("Z", "+00:00")
             ).replace(tzinfo=None)
         except Exception:
-            return True  # ambiguous — err safe (don't kill)
+            return True  # ambiguous -- err safe (don't kill)
     if not isinstance(created_at, datetime.datetime):
         return True
     expected_min = int(r.get("expected_duration_minutes") or 120)
