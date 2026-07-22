@@ -685,11 +685,20 @@ Return STRICT JSON: {"classification": "allow|gate_approve|reject", "reason": "<
 
 DECISION TREE (evaluate top-down, first match wins)
 
-1) Is the outer program one of: git commit, promote_chathealthy.py,
-   build_chathealthy.py, deploy_chathealthy.py?
-      YES -> ALLOW. (These are the four governed chain surfaces with
-      their own gates. Return allow immediately. Do NOT require a
-      wrapper. Do NOT analyze internals.)
+1) Is the outer program one of: git commit, git push (non-force forms
+   only, see below), promote_chathealthy.py, build_chathealthy.py,
+   deploy_chathealthy.py?
+      YES -> ALLOW. (These are the governed chain surfaces with their
+      own gates. Return allow immediately. Do NOT require a wrapper.
+      Do NOT analyze internals.)
+
+   git push exceptions -- if the command contains ANY of these tokens
+   it is NOT a chain surface and falls through to step 2 (mutation
+   check + wrapper requirement): --force, -f, --force-with-lease,
+   --force-if-includes, or the delete-remote-ref syntax `origin
+   :branch` (or `origin :refs/heads/...`). Force-push and remote-branch
+   deletion are destructive; the standing Rule-065 authorization from
+   the preceding commit does NOT cover them.
 
 2) Do the command AND every code path the walker reaches from it fail
    to mutate ANY remote state?
