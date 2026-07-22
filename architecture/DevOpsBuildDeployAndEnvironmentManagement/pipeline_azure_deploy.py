@@ -176,6 +176,22 @@ def _ensure_kv_secrets_from_file_packages(target, env: str, vault_name: str) -> 
                 tmp.write(encoded)
                 tmp_path = tmp.name
             try:
+                # Operator directive: KV holds exactly ONE version of this
+                # secret at any time. Delete + purge before set so the new
+                # value is version #1, not version #N. Delete errors are
+                # tolerated (first-ever upload) but purge is best-effort
+                # against soft-delete state.
+                exists = _az(
+                    ["keyvault", "secret", "show", "--vault-name", vault_name,
+                     "--name", secret_name, "--query", "id", "-o", "tsv"],
+                    check=False,
+                )
+                if exists.returncode == 0 and exists.stdout.strip():
+                    step(f"  deleting existing {secret_name} (single-version policy)")
+                    _az(["keyvault", "secret", "delete", "--vault-name", vault_name,
+                         "--name", secret_name], check=False)
+                    _az(["keyvault", "secret", "purge", "--vault-name", vault_name,
+                         "--name", secret_name], check=False)
                 r = _az(
                     [
                         "keyvault", "secret", "set",
