@@ -26,10 +26,11 @@ Operator post-run duties (out of this script):
     publicly readable so images can bake them at build time.
 """
 from __future__ import annotations
+from chathealthy_frontend_lib.logging_service import ChatHealthyLoggingService
 
 import datetime
 import json
-import logging
+
 import os
 import socket
 import sys
@@ -42,12 +43,7 @@ sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 import ca_helpers as ch
 
 
-LOG = logging.getLogger(__name__)
-logging.basicConfig(  # runbook sandbox: root logger config is legitimate here
-    level=logging.INFO,
-    format="%(asctime)s %(levelname)s %(name)s %(message)s",
-    stream=sys.stdout,
-)
+LOG = ChatHealthyLoggingService()
 
 
 KEY_VAULT_URI = os.environ.get(

@@ -1,3 +1,4 @@
+from chathealthy_frontend_lib.logging_service import ChatHealthyLoggingService
 # Produced by Gemini.
 # Preserved as the reference parsing logic that the production script
 # build_provider_v03_from_v02.py was rewritten from.
@@ -203,4 +204,4 @@ if __name__ == "__main__":
         parsed_rows = parse_chat_healthy_provider_v2(doc)
         flat_spreadsheet_rows.extend(parsed_rows)
 
-    print(json.dumps(flat_spreadsheet_rows, indent=2))
+    ChatHealthyLoggingService().info(json.dumps(flat_spreadsheet_rows, indent=2))

@@ -30,9 +30,12 @@ Backward compatibility:
     first op handled after this code lands. The migration is idempotent.
 """
 from __future__ import annotations
+from chathealthy_frontend_lib.logging_service import ChatHealthyLoggingService
+from chathealthy_frontend_lib.mongo_utilities import ChatHealthyMongoUtilities
+from chathealthy_frontend_lib.exceptions import ChatHealthyException
 
 import json
-import logging
+
 import os
 import time
 from datetime import datetime, timezone
@@ -49,7 +52,7 @@ _VALID_WORK_KINDS = (_DEFAULT_WORK_KIND, _REPAIR_WORK_KIND)
 
 def _get_mongo_client():
     from pymongo import MongoClient
-    return MongoClient(os.environ["MONGO_connectionString"])
+    return ChatHealthyMongoUtilities("MONGO_connectionString").getConnection()
 
 
 def _migrate_state_to_queues(state: dict) -> None:
@@ -75,10 +78,8 @@ def _migrate_state_to_queues(state: dict) -> None:
 def _queue(state: dict, work_kind: str) -> dict:
     """Return the queue dict for `work_kind`, creating an empty one on demand."""
     if work_kind not in _VALID_WORK_KINDS:
-        raise ValueError(
-            f"work_manager: unknown work_kind {work_kind!r}; "
-            f"valid: {_VALID_WORK_KINDS}"
-        )
+        raise ChatHealthyException(mode="value_error", message=f"work_manager: unknown work_kind {work_kind!r}; "
+            f"valid: {_VALID_WORK_KINDS}")
     _migrate_state_to_queues(state)
     queues = state["queues"]
     if work_kind not in queues:
@@ -122,8 +123,7 @@ def work_manager_entity_fn(context) -> None:
             # source the load supports. No coarse byte-range fallback.
             chunk_index = inp.get("chunk_index")
             if not chunk_index:
-                raise ValueError(
-                    "work_manager.seed (cms_chunks): chunk_index is required"
+                raise ChatHealthyException(mode="value_error", message="work_manager.seed (cms_chunks): chunk_index is required"
                 )
             cfg = {
                 "file_size": int(inp["file_size"]),
@@ -453,7 +453,7 @@ def work_manager_entity_fn(context) -> None:
         try:
             _get_mongo_client()[_REPORT_DB_NAME][_METRICS_COLLECTION].insert_one(doc)
         except Exception as exc:
-            logging.warning("work_manager: metrics emit failed: %s", exc)
+            pass
         context.set_state(state)
         return
 
@@ -468,7 +468,7 @@ def work_manager_entity_fn(context) -> None:
         context.set_state(state)
         return
 
-    raise ValueError(f"work_manager: unknown operation {op!r}")
+    raise ChatHealthyException(mode="value_error", message=f"work_manager: unknown operation {op!r}")
 
 
 def _persist_discrepancy(inp: dict) -> None:
@@ -485,4 +485,4 @@ def _persist_discrepancy(inp: dict) -> None:
     try:
         _get_mongo_client()[_REPORT_DB_NAME][_REPORT_COLLECTION].insert_one(doc)
     except Exception as exc:
-        logging.warning("work_manager: discrepancy persist failed: %s", exc)
+        ChatHealthyLoggingService().warning("work_manager: discrepancy persist failed: %s", exc)

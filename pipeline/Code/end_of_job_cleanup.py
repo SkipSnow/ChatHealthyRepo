@@ -22,9 +22,10 @@ already decided; cleanup is opportunistic. Every failure is logged with
 enough detail (instance id, path, exception) for post-mortem.
 """
 from __future__ import annotations
+from chathealthy_frontend_lib.logging_service import ChatHealthyLoggingService
 
 import json
-import logging
+
 import os
 import time
 
@@ -56,7 +57,7 @@ def end_of_job_cleanup_fn(config: dict) -> dict:
     _sweep_sub_orchestrations(load_id, counters)
     _purge_per_job_entities(load_id, throttle_names, counters)
 
-    logging.info("end_of_job_cleanup: %s", counters)
+    ChatHealthyLoggingService().info("end_of_job_cleanup: %s", counters)
     return counters
 
 
@@ -69,7 +70,7 @@ def _delete_staging_blobs(load_id: str, container_name: str, counters: dict) -> 
         client = get_blob_service().get_container_client(container_name)
     except Exception as exc:
         counters["staging_errors"] += 1
-        logging.warning(
+        ChatHealthyLoggingService().warning(
             "end_of_job_cleanup: container client failed: %s", exc,
         )
         return
@@ -86,7 +87,7 @@ def _delete_staging_blobs(load_id: str, container_name: str, counters: dict) -> 
             counters["staging_blobs_deleted"] += _flush_blob_batch(client, batch, counters)
     except Exception as exc:
         counters["staging_errors"] += 1
-        logging.warning(
+        ChatHealthyLoggingService().warning(
             "end_of_job_cleanup: list_blobs(%s) raised: %s", prefix, exc,
         )
 
@@ -97,7 +98,7 @@ def _flush_blob_batch(client, batch: list[str], counters: dict) -> int:
         return len(batch)
     except Exception as exc:
         counters["staging_errors"] += 1
-        logging.warning(
+        ChatHealthyLoggingService().warning(
             "end_of_job_cleanup: delete_blobs batch of %d failed: %s",
             len(batch), exc,
         )
@@ -109,7 +110,7 @@ def _flush_blob_batch(client, batch: list[str], counters: dict) -> int:
 def _sweep_sub_orchestrations(load_id: str, counters: dict) -> None:
     code, site = os.environ.get("DURABLE_MGMT_CODE"), os.environ.get("WEBSITE_HOSTNAME")
     if not (code and site):
-        logging.warning(
+        ChatHealthyLoggingService().warning(
             "end_of_job_cleanup: DURABLE_MGMT_CODE/WEBSITE_HOSTNAME unset; "
             "skipping sub-orch sweep for %s", load_id,
         )
@@ -166,7 +167,7 @@ def _input_load_id(inst: dict) -> str | None:
 def _purge_per_job_entities(load_id: str, throttle_names: list[str], counters: dict) -> None:
     code, site = os.environ.get("DURABLE_MGMT_CODE"), os.environ.get("WEBSITE_HOSTNAME")
     if not (code and site):
-        logging.warning(
+        ChatHealthyLoggingService().warning(
             "end_of_job_cleanup: DURABLE_MGMT_CODE/WEBSITE_HOSTNAME unset; "
             "skipping entity sweep for %s", load_id,
         )
@@ -193,9 +194,9 @@ def _mgmt_get_json(url: str):
             r = requests.get(url, timeout=_MGMT_TIMEOUT_S)
             if r.status_code == 200:
                 return r.json() or []
-            logging.warning("end_of_job_cleanup: GET %s -> %d", _redact(url), r.status_code)
+            ChatHealthyLoggingService().warning("end_of_job_cleanup: GET %s -> %d", _redact(url), r.status_code)
         except Exception as exc:
-            logging.warning("end_of_job_cleanup: GET %s -> %s", _redact(url), exc)
+            ChatHealthyLoggingService().warning("end_of_job_cleanup: GET %s -> %s", _redact(url), exc)
         time.sleep(_MGMT_RETRY_BACKOFF_S)
     return None
 
@@ -207,11 +208,11 @@ def _mgmt_terminate(base: str, code: str, iid: str, reason: str) -> bool:
             r = requests.post(url, timeout=_MGMT_TIMEOUT_S)
             if r.status_code in (200, 202, 204, 410):
                 return True
-            logging.warning(
+            ChatHealthyLoggingService().warning(
                 "end_of_job_cleanup: terminate %s -> %d (try %d)", iid, r.status_code, i + 1,
             )
         except Exception as exc:
-            logging.warning(
+            ChatHealthyLoggingService().warning(
                 "end_of_job_cleanup: terminate %s -> %s (try %d)", iid, exc, i + 1,
             )
         time.sleep(_MGMT_RETRY_BACKOFF_S)
@@ -225,11 +226,11 @@ def _mgmt_purge(base: str, code: str, iid: str) -> bool:
             r = requests.delete(url, timeout=_MGMT_TIMEOUT_S)
             if r.status_code in (200, 202, 204, 404):
                 return True
-            logging.warning(
+            ChatHealthyLoggingService().warning(
                 "end_of_job_cleanup: purge %s -> %d (try %d)", iid, r.status_code, i + 1,
             )
         except Exception as exc:
-            logging.warning(
+            ChatHealthyLoggingService().warning(
                 "end_of_job_cleanup: purge %s -> %s (try %d)", iid, exc, i + 1,
             )
         time.sleep(_MGMT_RETRY_BACKOFF_S)

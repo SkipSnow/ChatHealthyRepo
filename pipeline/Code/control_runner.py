@@ -26,6 +26,7 @@ detect PIPELINE_LOCAL_MODE=1 in env).
 """
 
 from __future__ import annotations
+from chathealthy_frontend_lib.logging_service import ChatHealthyLoggingService
 
 import argparse
 import json
@@ -40,7 +41,7 @@ from pipeline_env import load_pipeline_env
 from provider_pipeline_orchestrator import ProviderPipelineOrchestrator
 from step_context import PipelineArgs
 
-_log = logging.getLogger("control_runner")
+_log = ChatHealthyLoggingService()
 
 
 def _fire_farewell_vm_delete() -> None:
@@ -140,7 +141,7 @@ def _states_list(raw: str) -> list[str]:
 def main(argv: list[str] | None = None) -> int:
     ns = _parse_args(argv if argv is not None else sys.argv[1:])
 
-    root = logging.getLogger()
+    root = ChatHealthyLoggingService()
     if not root.handlers:
         handler = logging.StreamHandler(sys.stderr)
         handler.setFormatter(logging.Formatter(

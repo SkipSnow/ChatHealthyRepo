@@ -37,8 +37,10 @@ Public entry point: `generate_provider_embeddings(config, mongo, blob)`.
 """
 
 from __future__ import annotations
+from chathealthy_frontend_lib.logging_service import ChatHealthyLoggingService
+from chathealthy_frontend_lib.exceptions import ChatHealthyException
 
-import logging
+
 import os
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from datetime import datetime, timezone
@@ -46,7 +48,7 @@ from typing import Any
 
 from pymongo import UpdateOne
 
-_log = logging.getLogger(__name__)
+_log = ChatHealthyLoggingService()
 
 CANONICAL_MODEL = "text-embedding-3-large"
 CANONICAL_DIM = 3072
@@ -92,13 +94,11 @@ def _compose_provider_text(doc: dict) -> str:
 def _build_openai_client(api_key: str | None):
     key = api_key or os.environ.get("OPENAI_API_KEY", "")
     if not key:
-        raise RuntimeError("embedding_engine: OPENAI_API_KEY is not set")
+        raise ChatHealthyException(mode="runtime_error", message="embedding_engine: OPENAI_API_KEY is not set")
     try:
         from openai import OpenAI
     except ImportError as exc:
-        raise RuntimeError(
-            "embedding_engine: openai package not installed; add to requirements"
-        ) from exc
+        raise ChatHealthyException(mode="runtime_error", message="embedding_engine: openai package not installed; add to requirements") from exc
     return OpenAI(api_key=key)
 
 

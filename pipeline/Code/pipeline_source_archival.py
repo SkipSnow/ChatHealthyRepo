@@ -4,13 +4,14 @@
 """Pure helpers for source fetch archival naming — LLD §4.4 / §4.5."""
 
 from __future__ import annotations
+from chathealthy_frontend_lib.logging_service import ChatHealthyLoggingService
 
 import hashlib
-import logging
+
 import re
 from typing import Any
 
-_log = logging.getLogger("pipeline_source_archival")
+_log = ChatHealthyLoggingService()
 
 ARCHIVE_CONTAINER_SUFFIX = "-pipeline-sources"
 MAX_RETAINED_VERSIONS = 2

@@ -491,6 +491,87 @@ _ACA_REQUIREMENTS_SRC = "pipeline/Code/requirements-pipeline.txt"
 _ACA_STAGE_REQUIREMENTS_NAME = "requirements.txt"
 
 
+# Modules of chathealthy_frontend_lib we inline into AA runbook files so
+# the sandbox can `from chathealthy_frontend_lib.X import Y` without a
+# separately-installed package. Every byte in the assembled preamble is
+# derived from the corresponding source file committed to git; the
+# assembly happens deterministically at build time.
+_INLINE_LIB_MODULES = (
+    "exceptions",       # no in-package deps
+    "mongo_utilities",  # imports .exceptions
+    "logging_service",  # imports .exceptions, lazy .mongo_utilities
+)
+
+
+def _inline_chathealthy_lib_if_used(repo_root: Path, runbook_path: Path) -> None:
+    """If the staged runbook has any `from chathealthy_frontend_lib...`
+    import, prepend a self-contained bootstrap block that installs the
+    library's modules into sys.modules at runtime. Source bytes for each
+    inlined module are read at build time from
+    FrontEndApplicationLib/src/chathealthy_frontend_lib/<mod>.py — the
+    same git-committed source the Docker image installs at pip time.
+    No external hosting, no wheel; the runbook file shipped to Azure
+    Automation contains every byte required for the imports to resolve."""
+    body = runbook_path.read_text(encoding="utf-8")
+    if "chathealthy_frontend_lib" not in body:
+        return
+
+    import base64 as _b64_mod
+    lib_src_root = repo_root / "FrontEndApplicationLib" / "src" / "chathealthy_frontend_lib"
+    installs: list[str] = []
+    for mod in _INLINE_LIB_MODULES:
+        mod_path = lib_src_root / f"{mod}.py"
+        if not mod_path.is_file():
+            sys.exit(
+                f"ERROR: cannot inline chathealthy_frontend_lib for runbook "
+                f"{runbook_path.name}: source file {mod_path} is missing."
+            )
+        src_bytes = mod_path.read_bytes()
+        encoded = _b64_mod.b64encode(src_bytes).decode("ascii")
+        installs.append(f'_install("{mod}", "{encoded}")')
+
+    preamble_lines = [
+        "# --- BEGIN inlined chathealthy_frontend_lib (built from git commit at build time) ---",
+        "# Bytes below are base64-encoded copies of",
+        "# FrontEndApplicationLib/src/chathealthy_frontend_lib/{exceptions,mongo_utilities,logging_service}.py",
+        "# assembled by _build_chain.py:_inline_chathealthy_lib_if_used.",
+        "import base64 as _b64, sys as _sys, types as _types",
+        "_pkg = _types.ModuleType('chathealthy_frontend_lib')",
+        "_pkg.__path__ = []",
+        "_sys.modules['chathealthy_frontend_lib'] = _pkg",
+        "",
+        "def _install(_name, _src_b64):",
+        "    _mod = _types.ModuleType('chathealthy_frontend_lib.' + _name)",
+        "    _mod.__package__ = 'chathealthy_frontend_lib'",
+        "    _sys.modules['chathealthy_frontend_lib.' + _name] = _mod",
+        "    _src = _b64.b64decode(_src_b64).decode('utf-8')",
+        "    exec(compile(_src, '<inlined:chathealthy_frontend_lib.' + _name + '>', 'exec'), _mod.__dict__)",
+        "    setattr(_pkg, _name, _mod)",
+        "",
+        *installs,
+        "",
+        "del _install, _pkg, _b64, _sys, _types",
+        "# --- END inlined chathealthy_frontend_lib ---",
+        "",
+    ]
+    preamble = "\n".join(preamble_lines)
+
+    # Preamble must come AFTER any `from __future__` line (Python
+    # requires __future__ imports first) and AFTER the module docstring
+    # if present.
+    import re as _re_mod
+    fut_m = _re_mod.search(r"^from __future__ import [^\n]+\n", body, _re_mod.MULTILINE)
+    if fut_m:
+        pos = fut_m.end()
+    else:
+        doc_m = _re_mod.match(r'\s*("""(?:[^"\\]|\\.|"(?!""))*""")\s*\n', body)
+        pos = doc_m.end() if doc_m else 0
+    new_body = body[:pos] + preamble + body[pos:]
+    runbook_path.write_text(new_body, encoding="utf-8")
+    new_kb = runbook_path.stat().st_size / 1024.0
+    _step(f"  inlined chathealthy_frontend_lib -> {runbook_path.name} ({new_kb:.1f} KB)")
+
+
 def _build_azure_automation_runbook(repo_root: Path, target: TargetRecord, build_dir: Path) -> None:
     """Stage the runbook source for `az automation runbook replace-content`.
 
@@ -528,6 +609,8 @@ def _build_azure_automation_runbook(repo_root: Path, target: TargetRecord, build
     shutil.copyfile(src_path, dst)
     size_kb = dst.stat().st_size / 1024.0
     _step(f"  staged runbook -> {dst.name} ({size_kb:.1f} KB)")
+
+    _inline_chathealthy_lib_if_used(repo_root, dst)
 
     if target.target_id == "target_azure_automation_runbook_change_db_version":
         _emit_change_db_version_target_url_registry(repo_root, build_dir)

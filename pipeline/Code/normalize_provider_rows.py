@@ -18,8 +18,9 @@ no skip/limit cost, no need to recompute byte boundaries.
 """
 
 from __future__ import annotations
+from chathealthy_frontend_lib.logging_service import ChatHealthyLoggingService
 
-import logging
+
 import os
 import time
 from datetime import datetime, timezone
@@ -33,14 +34,8 @@ _mongo: MongoClient | None = None
 
 
 def _get_mongo_client() -> MongoClient:
-    global _mongo
-    if _mongo is None:
-        _mongo = MongoClient(
-            os.environ["MONGO_connectionString"],
-            serverSelectionTimeoutMS=120_000,
-            maxPoolSize=64,
-        )
-    return _mongo
+    from chathealthy_frontend_lib.mongo_utilities import ChatHealthyMongoUtilities
+    return ChatHealthyMongoUtilities("MONGO_connectionString").getConnection()
 
 
 # ── NPPES field-prefix constants ─────────────────────────────────────────────
@@ -315,7 +310,7 @@ def normalize_provider_rows_worker_fn(config: dict) -> dict:
         "rows_per_second":   rows_per_second,
         "success":           len(failed) == 0,
     }
-    logging.info(
+    ChatHealthyLoggingService().info(
         "normalize_provider_rows_worker: worker=%d normalized=%d "
         "modified=%d failed=%d %.1fs (%.1f rows/s)",
         worker_id, normalized, written, len(failed), duration, rows_per_second,
@@ -359,5 +354,5 @@ def normalize_provider_rows_orchestrator_fn(context):
         "failed_count":   sum(r.get("failed_count",   0) for r in worker_results),
         "worker_count":   len(worker_results),
     }
-    logging.info("normalize_provider_rows_orchestrator: %s", totals)
+    ChatHealthyLoggingService().info("normalize_provider_rows_orchestrator: %s", totals)
     return {**result, "totals": totals}

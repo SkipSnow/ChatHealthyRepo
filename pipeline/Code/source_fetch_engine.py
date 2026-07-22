@@ -56,10 +56,12 @@ Public entry point: `fetch_all_sources(config, mongo, blob)`.
 """
 
 from __future__ import annotations
+from chathealthy_frontend_lib.logging_service import ChatHealthyLoggingService
+from chathealthy_frontend_lib.exceptions import ChatHealthyException
 
 import fnmatch
 import hashlib
-import logging
+
 import os
 import tempfile
 import time
@@ -74,7 +76,7 @@ import requests
 from source_url_discovery import find_latest_data_url
 from throttle_semaphore import RateLimitedGate
 
-_log = logging.getLogger(__name__)
+_log = ChatHealthyLoggingService()
 
 DEFAULT_FETCH_CONCURRENCY = 6
 DEFAULT_HTTP_TIMEOUT_SEC = 600
@@ -100,9 +102,7 @@ def _discover_url(source_name: str, discovery: dict) -> str:
     page_url = discovery.get("page_url")
     instructions = discovery.get("instructions", "")
     if not page_url:
-        raise RuntimeError(
-            f"source_fetch_engine[{source_name}]: url_discovery.page_url is required"
-        )
+        raise ChatHealthyException(mode="runtime_error", message=f"source_fetch_engine[{source_name}]: url_discovery.page_url is required")
     return find_latest_data_url(
         source_name=source_name,
         page_url=page_url,
@@ -116,9 +116,7 @@ def _resolve_source_url(source_name: str, spec: dict) -> str:
         return _discover_url(source_name, spec["url_discovery"])
     url = spec.get("source_url")
     if not url:
-        raise RuntimeError(
-            f"source_fetch_engine[{source_name}]: no source_url or url_discovery configured"
-        )
+        raise ChatHealthyException(mode="runtime_error", message=f"source_fetch_engine[{source_name}]: no source_url or url_discovery configured")
     return url
 
 
@@ -141,7 +139,7 @@ def _upload_bytes_to_transient(
 ) -> None:
     """Upload local_path bytes to {container_name}/{blob_name}."""
     if blob is None:
-        raise RuntimeError("source_fetch_engine: blob client is required")
+        raise ChatHealthyException(mode="runtime_error", message="source_fetch_engine: blob client is required")
     container = blob.get_container_client(container_name)
     try:
         container.create_container()
@@ -198,18 +196,10 @@ def _extract_derived_source(
     parent_blob_name = parent_result.get("blob_path")
     zip_glob = spec.get("zip_entry_glob")
     if not (parent_container and parent_blob_name and zip_glob):
-        raise RuntimeError(
-            f"source_fetch_engine[{source_name}]: derived_from requires parent "
-            "blob + zip_entry_glob"
-        )
+        raise ChatHealthyException(mode="runtime_error", message=f"source_fetch_engine[{source_name}]: derived_from requires parent "
+            "blob + zip_entry_glob")
     if blob is None:
-        raise RuntimeError(
-            f"source_fetch_engine[{source_name}]: blob client is required for derived_from"
-        )
-    _log.info(
-        "source_fetch_engine[%s]: extracting %s from %s/%s",
-        source_name, zip_glob, parent_container, parent_blob_name,
-    )
+        raise ChatHealthyException(mode="runtime_error", message=f"source_fetch_engine[{source_name}]: blob client is required for derived_from")
     container_client = blob.get_container_client(parent_container)
     parent_client = container_client.get_blob_client(parent_blob_name)
     fd, parent_tmp = tempfile.mkstemp(suffix=".zip", prefix=f"{source_name}_parent_")
@@ -227,10 +217,8 @@ def _extract_derived_source(
                     entry_name = n
                     break
             if entry_name is None:
-                raise RuntimeError(
-                    f"source_fetch_engine[{source_name}]: no entry matching "
-                    f"{zip_glob!r} in {parent_blob_name}"
-                )
+                raise ChatHealthyException(mode="runtime_error", message=f"source_fetch_engine[{source_name}]: no entry matching "
+                    f"{zip_glob!r} in {parent_blob_name}")
             out = tempfile.NamedTemporaryFile(
                 delete=False, prefix=f"{source_name}_", suffix=".bin",
             )
@@ -433,11 +421,11 @@ def fetch_all_sources(
     """
     sources = config.get("sources") or {}
     if not sources:
-        raise RuntimeError("source_fetch_engine: config['sources'] is empty")
+        raise ChatHealthyException(mode="runtime_error", message="source_fetch_engine: config['sources'] is empty")
 
     run_id = config.get("run_id")
     if not run_id:
-        raise RuntimeError("source_fetch_engine: config['run_id'] is required")
+        raise ChatHealthyException(mode="runtime_error", message="source_fetch_engine: config['run_id'] is required")
 
     env_prefix = config.get("env") or "dev"
     transient_container = config.get(
@@ -484,7 +472,6 @@ def fetch_all_sources(
                 results_by_name[name] = r
             except Exception as exc:
                 errors.append({"source_name": name, "error": f"{type(exc).__name__}: {exc}"})
-                _log.exception("source_fetch_engine[%s]: fetch failed", name)
 
     for name, spec in derived_sources.items():
         parent = spec.get("derived_from")
@@ -494,10 +481,6 @@ def fetch_all_sources(
                 "source_name": name,
                 "error": f"derived_from parent {parent!r} unavailable",
             })
-            _log.error(
-                "source_fetch_engine[%s]: derived_from parent %s unavailable",
-                name, parent,
-            )
             continue
         try:
             r = _derive_one_source(
@@ -513,7 +496,6 @@ def fetch_all_sources(
             results_by_name[name] = r
         except Exception as exc:
             errors.append({"source_name": name, "error": f"{type(exc).__name__}: {exc}"})
-            _log.exception("source_fetch_engine[%s]: derive failed", name)
 
     source_versions = {
         r["source_name"]: r["version"] for r in results if not r.get("skipped") and r.get("version")

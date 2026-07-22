@@ -4,6 +4,7 @@
 """Load Code/.env for local pipeline runs."""
 
 from __future__ import annotations
+from chathealthy_frontend_lib.exceptions import ChatHealthyException
 
 import os
 from pathlib import Path
@@ -32,5 +33,5 @@ def load_pipeline_env() -> Path | None:
 def require_env(name: str) -> str:
     val = os.environ.get(name, "").strip()
     if not val:
-        raise RuntimeError(f"Required environment variable {name!r} is not set")
+        raise ChatHealthyException(mode="runtime_error", message=f"Required environment variable {name!r} is not set")
     return val

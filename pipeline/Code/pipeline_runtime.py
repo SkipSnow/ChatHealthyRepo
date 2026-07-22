@@ -4,8 +4,9 @@
 """Shared runtime helpers — collections, discrepancies, provider write target."""
 
 from __future__ import annotations
+from chathealthy_frontend_lib.logging_service import ChatHealthyLoggingService
 
-import logging
+
 import os
 from datetime import datetime, timezone
 from typing import Any
@@ -13,7 +14,7 @@ from typing import Any
 from pipeline_config import load_pipeline_config
 from pipeline_db import get_frontend_mongo, get_mongo
 
-_log = logging.getLogger("pipeline_runtime")
+_log = ChatHealthyLoggingService()
 
 STAGING = {
     "nppes_npi": "pipeline_sources_nppes_npi",

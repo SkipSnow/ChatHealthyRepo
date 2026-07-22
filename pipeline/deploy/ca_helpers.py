@@ -24,10 +24,11 @@ Design constraints realized here:
     1 day for short-lived (Worker self-mint).
 """
 from __future__ import annotations
+from chathealthy_frontend_lib.logging_service import ChatHealthyLoggingService
 
 import datetime
 import json
-import logging
+
 import os
 import urllib.error
 import urllib.request
@@ -40,7 +41,7 @@ from cryptography.hazmat.primitives.asymmetric import rsa
 from cryptography.x509.oid import NameOID
 
 
-LOG = logging.getLogger(__name__)
+LOG = ChatHealthyLoggingService()
 _BACKEND = default_backend()
 
 

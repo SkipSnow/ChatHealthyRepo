@@ -3,11 +3,11 @@
 """LLD v22 Provider Pipeline — see pipeline/ArchitectureDesignAndAudit/ProviderPipeline_LowLevelDesign_v22.docx."""
 
 from __future__ import annotations
+from chathealthy_frontend_lib.logging_service import ChatHealthyLoggingService
 
 import io
-import logging
 
-_log = logging.getLogger("discrepancy_pdf")
+_log = ChatHealthyLoggingService()
 
 
 def build_discrepancy_pdf(manifest: dict, discrepancies: list[dict]) -> bytes:

@@ -9,12 +9,12 @@ is_disqualified, is_npi_registered) to every provider record in the run.
 """
 
 from __future__ import annotations
+from chathealthy_frontend_lib.logging_service import ChatHealthyLoggingService
 
-import logging
 
 from provider_flags_engine import apply_provider_flags
 
-_log = logging.getLogger(__name__)
+_log = ChatHealthyLoggingService()
 
 
 def run_step(ctx) -> dict:

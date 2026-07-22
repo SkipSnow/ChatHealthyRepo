@@ -37,6 +37,8 @@ Environment (Automation Variables):
     AZ_AUTOMATION_ACCOUNT
 """
 from __future__ import annotations
+from chathealthy_frontend_lib.logging_service import ChatHealthyLoggingService
+from chathealthy_frontend_lib.exceptions import ChatHealthyException
 
 import base64
 import json
@@ -71,11 +73,7 @@ class _RGFilter(logging.Filter):
         return True
 
 
-logging.basicConfig(
-    level=logging.INFO,
-    format="%(asctime)s %(levelname)s [rg=%(request_guid)s] %(message)s",
-)
-log = logging.getLogger("provisioner")
+log = ChatHealthyLoggingService()
 log.addFilter(_RGFilter())
 
 _COMPUTE_API = "2024-07-01"
@@ -139,7 +137,7 @@ def _read_payload() -> dict:
     so it survives legacy AA's quote-stripping parameter handling.
     sys.argv[1] is a base64 string; decode + json.loads."""
     if len(sys.argv) < 2:
-        raise RuntimeError("no payload: sys.argv[1] missing")
+        raise ChatHealthyException(mode="runtime_error", message="no payload: sys.argv[1] missing")
     return json.loads(base64.b64decode(sys.argv[1]).decode("utf-8"))
 
 
@@ -164,7 +162,7 @@ def _arm_put(url: str, body: dict) -> dict:
         json=body, timeout=120,
     )
     if r.status_code not in (200, 201, 202):
-        raise RuntimeError(f"ARM PUT failed {r.status_code}: {r.text[:600]}\nurl={url}")
+        raise ChatHealthyException(mode="runtime_error", message=f"ARM PUT failed {r.status_code}: {r.text[:600]}\nurl={url}")
     return r.json() if r.text else {}
 
 
@@ -180,13 +178,12 @@ def _wait_provisioning(url: str, deadline_sec: float, what: str) -> None:
     while time.time() < deadline:
         body = _arm_get(url)
         state = body.get("properties", {}).get("provisioningState", "")
-        log.info("%s provisioningState=%s", what, state)
         if state == "Succeeded":
             return
         if state in ("Failed", "Canceled"):
-            raise RuntimeError(f"{what} provisioningState={state}: {body}")
+            raise ChatHealthyException(mode="runtime_error", message=f"{what} provisioningState={state}: {body}")
         time.sleep(_WAIT_POLL_SEC)
-    raise RuntimeError(f"{what} did not reach Succeeded within {deadline_sec}s")
+    raise ChatHealthyException(mode="runtime_error", message=f"{what} did not reach Succeeded within {deadline_sec}s")
 
 
 def _create_nic(sub: str, rg: str, location: str, vm_name: str, subnet_id: str) -> str:
@@ -261,16 +258,13 @@ def _create_vm(sub: str, rg: str, location: str, vm_name: str, vm_size: str,
             },
         },
     }
-    log.info("Creating VM %s size=%s", vm_name, vm_size)
     _arm_put(url, body)
     _wait_provisioning(url, _VM_WAIT_TIMEOUT_SEC, what=f"VM {vm_name}")
     vm_body = _arm_get(url)
     principal_id = vm_body.get("identity", {}).get("principalId")
     if not principal_id:
-        raise RuntimeError(
-            f"VM {vm_name!r} has no identity.principalId after provisioning; "
-            f"the system-assigned MI did not materialize."
-        )
+        raise ChatHealthyException(mode="runtime_error", message=f"VM {vm_name!r} has no identity.principalId after provisioning; "
+            f"the system-assigned MI did not materialize.")
     return principal_id
 
 
@@ -365,10 +359,8 @@ def _get_automation_hybrid_service_url(sub: str, aa_rg: str, aa: str) -> str:
     body = _arm_get(url)
     svc_url = body.get("properties", {}).get("automationHybridServiceUrl")
     if not svc_url:
-        raise RuntimeError(
-            f"AA {aa!r} has no properties.automationHybridServiceUrl in its GET response; "
-            f"cannot wire the Hybrid Worker extension."
-        )
+        raise ChatHealthyException(mode="runtime_error", message=f"AA {aa!r} has no properties.automationHybridServiceUrl in its GET response; "
+            f"cannot wire the Hybrid Worker extension.")
     return svc_url
 
 
@@ -427,9 +419,7 @@ def _fire_migrator(sub: str, aa_rg: str, aa: str, payload: dict) -> str:
         json=body, timeout=60,
     )
     if r.status_code not in (200, 201):
-        raise RuntimeError(
-            f"Start migrator failed: HTTP {r.status_code} {r.text[:500]}"
-        )
+        raise ChatHealthyException(mode="runtime_error", message=f"Start migrator failed: HTTP {r.status_code} {r.text[:500]}")
     return aa_job_id
 
 
@@ -472,9 +462,7 @@ def _fire_deprovisioner_on_failure(sub: str, aa_rg: str, aa: str,
         json=body, timeout=60,
     )
     if r.status_code not in (200, 201):
-        raise RuntimeError(
-            f"Start deprovisioner-on-failure failed: HTTP {r.status_code} {r.text[:500]}"
-        )
+        raise ChatHealthyException(mode="runtime_error", message=f"Start deprovisioner-on-failure failed: HTTP {r.status_code} {r.text[:500]}")
     return aa_job_id
 
 
@@ -483,12 +471,11 @@ def _main():
     payload = _read_payload()
     _request_guid = payload.get("request_guid", "?")
     if payload.get("health_check") is True:
-        log.info("health_check fired on provisioner runbook")
         return
     job_id = payload.get("job_id")
     vm_name = payload.get("vm_name")
     if not job_id or not vm_name:
-        raise RuntimeError("provisioner: job_id and vm_name are required in the payload")
+        raise ChatHealthyException(mode="runtime_error", message="provisioner: job_id and vm_name are required in the payload")
 
     sub = os.environ["AZ_SUBSCRIPTION_ID"]
     vm_rg = os.environ["AZ_VM_RESOURCE_GROUP"]
@@ -507,7 +494,6 @@ def _main():
     aa_rg = os.environ["AZ_AUTOMATION_RESOURCE_GROUP"]
     aa = os.environ["AZ_AUTOMATION_ACCOUNT"]
 
-    log.info("Provision begin: job_id=%s vm_name=%s size=%s", job_id, vm_name, vm_size)
 
     # AB-end safety per slide 4: from the first resource creation onward,
     # any exception triggers the deprovisioner to clean up partial state.
@@ -534,22 +520,15 @@ def _main():
         _install_hybrid_worker_extension(sub, vm_rg, vm_name,
                                          automation_hybrid_service_url, location)
 
-        log.info("Provision complete: vm_name=%s worker_guid=%s; firing migrator on %s",
-                 vm_name, worker_guid, _HYBRID_WORKER_GROUP)
         migrator_aa_job_id = _fire_migrator(sub, aa_rg, aa, payload)
     except Exception as exc:
-        log.error("Provisioner FAILED mid-flow; firing deprovisioner to clean partial state: %r", exc)
         try:
             cleanup_aa_job_id = _fire_deprovisioner_on_failure(
                 sub, aa_rg, aa, job_id, vm_name,
             )
-            log.info("Provisioner fired cleanup deprovisioner: job_id=%s deprovisioner_aa_job_id=%s",
-                     job_id, cleanup_aa_job_id)
         except Exception as cleanup_exc:
-            log.error("CLEANUP DEPROVISIONER FIRE FAILED; partial state will leak: %r", cleanup_exc)
+            pass
         raise
-    log.info("Provisioner fired migrator: job_id=%s migrator_aa_job_id=%s",
-             job_id, migrator_aa_job_id)
     print(json.dumps({
         "provisioner_status": "ok",
         "job_id": job_id,
@@ -569,5 +548,5 @@ try:
 except Exception:
     tb = traceback.format_exc()
     log.error("Provisioner failed: %s", tb)
-    print(json.dumps({"provisioner_status": "error", "error": tb[-1500:]}), flush=True)
+    ChatHealthyLoggingService().info(json.dumps({"provisioner_status": "error", "error": tb[-1500:]}))
     sys.exit(1)

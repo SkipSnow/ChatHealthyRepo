@@ -4,13 +4,13 @@
 """Attach pl_pfile secondary practice addresses — LLD §4.9."""
 
 from __future__ import annotations
+from chathealthy_frontend_lib.logging_service import ChatHealthyLoggingService
 
-import logging
 
 from address_dedup import address_location_key, dedupe_addresses, merge_address
 from pipeline_runtime import PipelineRuntime
 
-_log = logging.getLogger("attach_practice_addresses")
+_log = ChatHealthyLoggingService()
 
 
 def attach_practice_addresses(ctx) -> dict:

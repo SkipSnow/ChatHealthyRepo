@@ -136,7 +136,8 @@
                     "^evaluateCare/.+\\.py$",
                     "^FrontEndApplicationLib/src/.+\\.py$",
                     "^architecture/EngineeringRuleEnforcement/code/.+\\.py$",
-                    "^Code/Shared/ops/.+\\.py$"
+                    "^Code/Shared/ops/.+\\.py$",
+                    "^pipeline/.+\\.py$"
                   ]
                 ],
                 [
@@ -186,7 +187,8 @@
                     "^FindCare/.+\\.py$",
                     "^Code/ConversationalUX/FindCareChat/backend/.+\\.py$",
                     "^evaluateCare/.+\\.py$",
-                    "^FrontEndApplicationLib/src/.+\\.py$"
+                    "^FrontEndApplicationLib/src/.+\\.py$",
+                    "^pipeline/.+\\.py$"
                   ]
                 ],
                 [
@@ -258,7 +260,8 @@
                     "^FindCare/.+\\.py$",
                     "^Code/ConversationalUX/FindCareChat/backend/.+\\.py$",
                     "^evaluateCare/.+\\.py$",
-                    "^FrontEndApplicationLib/src/.+\\.py$"
+                    "^FrontEndApplicationLib/src/.+\\.py$",
+                    "^pipeline/.+\\.py$"
                   ]
                 ],
                 [

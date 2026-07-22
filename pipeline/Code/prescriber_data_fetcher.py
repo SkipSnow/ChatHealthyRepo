@@ -1,17 +1,18 @@
+from chathealthy_frontend_lib.logging_service import ChatHealthyLoggingService
 # Copyright (c) 2026 ChatHealthy.ai LLC. All rights reserved.
 # Licensed under the FindCare Evaluation License (FEL-1.0).
 #
 # Prescriber Data Fetcher — downloads CMS Part D, OIG LEIE, and SAM.gov files.
 # Uses DataFetcherBase ETag guard — skips download if file unchanged.
 
-import logging
+
 import os
 
 import requests as _requests
 
 from data_fetcher_base import DataFetcherBase
 
-_log = logging.getLogger("prescriber_fetcher")
+_log = ChatHealthyLoggingService()
 
 # ── CMS Part D Prescriber by Provider and Drug ─────────────────────────────
 

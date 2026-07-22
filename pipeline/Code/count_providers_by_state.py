@@ -1,3 +1,4 @@
+from chathealthy_frontend_lib.logging_service import ChatHealthyLoggingService
 # Copyright (c) 2026 ChatHealthy.ai LLC. All rights reserved.
 # Licensed under the FindCare Evaluation License (FEL-1.0).
 #
@@ -8,11 +9,11 @@
 
 import csv
 import io
-import logging
+
 import os
 from collections import Counter
 
-_log = logging.getLogger("pipeline.count_providers")
+_log = ChatHealthyLoggingService()
 
 
 def count_providers_by_state(payload: dict = None) -> dict:

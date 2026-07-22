@@ -12,9 +12,11 @@ unusable response, the fetcher raises and the pipeline fails loudly.
 """
 
 from __future__ import annotations
+from chathealthy_frontend_lib.logging_service import ChatHealthyLoggingService
+from chathealthy_frontend_lib.exceptions import ChatHealthyException
 
 import json
-import logging
+
 import os
 import re
 import urllib.error
@@ -23,7 +25,7 @@ from urllib.parse import urljoin
 
 import requests
 
-_log = logging.getLogger("source_url_discovery")
+_log = ChatHealthyLoggingService()
 
 _AGENT_MODEL = "gemini-2.5-flash-lite"
 _GEMINI_ENDPOINT = (
@@ -42,27 +44,21 @@ def find_latest_data_url(
     instructions: str,
     timeout_sec: int = 60,
 ) -> str:
-    _log.info("source_url_discovery[%s]: fetching index %s", source_name, page_url)
     try:
         resp = requests.get(page_url, timeout=timeout_sec)
         resp.raise_for_status()
     except Exception as exc:
-        raise RuntimeError(
-            f"source_url_discovery[{source_name}]: cannot fetch index page "
-            f"{page_url}: {exc}"
-        ) from exc
+        raise ChatHealthyException(mode="runtime_error", message=f"source_url_discovery[{source_name}]: cannot fetch index page "
+            f"{page_url}: {exc}") from exc
 
     page_html = resp.text[:_PAGE_HTML_CHARS]
     if not page_html.strip():
-        raise RuntimeError(
-            f"source_url_discovery[{source_name}]: index page {page_url} returned "
-            f"empty body"
-        )
+        raise ChatHealthyException(mode="runtime_error", message=f"source_url_discovery[{source_name}]: index page {page_url} returned "
+            f"empty body")
 
     api_key = os.getenv("GEMINI_API_KEY") or os.getenv("GOOGLE_API_KEY")
     if not api_key:
-        raise RuntimeError(
-            f"source_url_discovery[{source_name}]: Gemini API key not in "
+        raise ChatHealthyException(mode="runtime_error", message=f"source_url_discovery[{source_name}]: Gemini API key not in "
             f"env (GEMINI_API_KEY or GOOGLE_API_KEY)"
         )
 
@@ -88,40 +84,29 @@ def find_latest_data_url(
         with urllib.request.urlopen(req, timeout=_LLM_TIMEOUT_S) as gresp:
             raw = gresp.read().decode("utf-8", errors="replace")
     except urllib.error.HTTPError as exc:
-        raise RuntimeError(
-            f"source_url_discovery[{source_name}]: Gemini HTTP {exc.code} {exc.reason}"
-        ) from exc
+        raise ChatHealthyException(mode="runtime_error", message=f"source_url_discovery[{source_name}]: Gemini HTTP {exc.code} {exc.reason}") from exc
     except Exception as exc:
-        raise RuntimeError(
-            f"source_url_discovery[{source_name}]: Gemini call failed: {exc}"
-        ) from exc
+        raise ChatHealthyException(mode="runtime_error", message=f"source_url_discovery[{source_name}]: Gemini call failed: {exc}") from exc
 
     try:
         wrapper = json.loads(raw)
         text = wrapper["candidates"][0]["content"]["parts"][0]["text"]
     except (KeyError, IndexError, ValueError, TypeError) as exc:
-        raise RuntimeError(
-            f"source_url_discovery[{source_name}]: Gemini response unparsable: "
-            f"{exc} :: {raw[:400]}"
-        ) from exc
+        raise ChatHealthyException(mode="runtime_error", message=f"source_url_discovery[{source_name}]: Gemini response unparsable: "
+            f"{exc} :: {raw[:400]}") from exc
 
     raw_text = (text or "").strip()
 
     if raw_text == "NONE":
-        raise RuntimeError(
-            f"source_url_discovery[{source_name}]: agent reported NO matching "
-            f"file on {page_url}"
-        )
+        raise ChatHealthyException(mode="runtime_error", message=f"source_url_discovery[{source_name}]: agent reported NO matching "
+            f"file on {page_url}")
 
     raw_text = raw_text.strip("`<>\"' \t\n")
     if not raw_text.startswith("http"):
         raw_text = urljoin(page_url, raw_text)
 
     if not _VALID_URL_RE.match(raw_text):
-        raise RuntimeError(
-            f"source_url_discovery[{source_name}]: agent returned unusable URL: "
-            f"{raw_text!r}"
-        )
+        raise ChatHealthyException(mode="runtime_error", message=f"source_url_discovery[{source_name}]: agent returned unusable URL: "
+            f"{raw_text!r}")
 
-    _log.info("source_url_discovery[%s]: agent selected %s", source_name, raw_text)
     return raw_text

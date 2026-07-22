@@ -20,6 +20,7 @@ Operations:
   reset                               - clean-environment hygiene
 """
 from __future__ import annotations
+from chathealthy_frontend_lib.exceptions import ChatHealthyException
 
 import json
 import time
@@ -46,11 +47,11 @@ def throttle_entity_fn(context) -> None:
 
     if op == "configure":
         if not isinstance(inp, dict):
-            raise ValueError(f"throttle.configure requires dict, got {inp!r}")
+            raise ChatHealthyException(mode="value_error", message=f"throttle.configure requires dict, got {inp!r}")
         rate = inp.get("refill_rate")
         cap = inp.get("capacity")
         if rate is None or cap is None:
-            raise ValueError(f"throttle.configure requires refill_rate AND capacity, got {inp!r}")
+            raise ChatHealthyException(mode="value_error", message=f"throttle.configure requires refill_rate AND capacity, got {inp!r}")
         state["refill_rate"] = float(rate)
         state["capacity"] = int(cap)
         state["tokens"] = float(cap)
@@ -82,7 +83,7 @@ def throttle_entity_fn(context) -> None:
         if op == "peek":
             context.set_result({"configured": False})
             return
-        raise ValueError(f"throttle: entity not configured, cannot {op}")
+        raise ChatHealthyException(mode="value_error", message=f"throttle: entity not configured, cannot {op}")
 
     # Refill on demand using wall-clock epoch seconds. time.monotonic() is
     # process-local and unsafe across entity activations on different hosts.
@@ -97,12 +98,10 @@ def throttle_entity_fn(context) -> None:
     if op == "request_permission":
         n = int(inp.get("n", 1))
         if n < 1:
-            raise ValueError(f"throttle.request_permission: n must be >=1, got {n}")
+            raise ChatHealthyException(mode="value_error", message=f"throttle.request_permission: n must be >=1, got {n}")
         if n > int(state["capacity"]):
-            raise ValueError(
-                f"throttle.request_permission: n={n} exceeds capacity={state['capacity']}; "
-                f"caller must split the request"
-            )
+            raise ChatHealthyException(mode="value_error", message=f"throttle.request_permission: n={n} exceeds capacity={state['capacity']}; "
+                f"caller must split the request")
         state["requests_received"] = int(state.get("requests_received", 0)) + 1
         if state["tokens"] >= n:
             state["tokens"] -= n
@@ -135,4 +134,4 @@ def throttle_entity_fn(context) -> None:
         })
         return
 
-    raise ValueError(f"throttle: unknown operation {op!r}")
+    raise ChatHealthyException(mode="value_error", message=f"throttle: unknown operation {op!r}")

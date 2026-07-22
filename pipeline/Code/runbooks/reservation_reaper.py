@@ -28,10 +28,12 @@ Environment (Automation Variables, exposed via os.environ at runtime):
   NOTIFICATION_FROM_EMAIL         - sender address (R3)
   NOTIFICATION_TO_EMAIL           - recipient address (R3)
 """
+from chathealthy_frontend_lib.logging_service import ChatHealthyLoggingService
+from chathealthy_frontend_lib.mongo_utilities import ChatHealthyMongoUtilities
 import os
 import sys
 import json
-import logging
+
 import traceback
 from datetime import datetime, timezone, timedelta
 
@@ -80,8 +82,7 @@ REAPER_APPNAME   = "reservation_reaper"
 FAILURE_BLOB     = "reservation_reaper_failure.json"
 FAILURE_CONTAINER = "$root"
 
-logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(message)s")
-log = logging.getLogger("reaper")
+log = ChatHealthyLoggingService()
 
 
 def _pst_now_iso():
@@ -318,11 +319,12 @@ def _main():
         msg = ("Reaper tick: reaped=0, live_remaining=0, client_active=False, "
                "cluster_state=PAUSED, paused=True, reason=already_paused")
         log.info(msg)
-        print(msg, flush=True)
+        ChatHealthyLoggingService().info(msg)
         return
 
-    client = MongoClient(MONGO_URI, appname=REAPER_APPNAME,
-                        serverSelectionTimeoutMS=15000)
+    # MONGO_URI came from MONGO_FRONTEND_connectionString env; the utility
+    # will read the same env directly.
+    client = ChatHealthyMongoUtilities("MONGO_FRONTEND_connectionString").getConnection()
     coll = client[DB_NAME][COLLECTION]
     reservations = list(coll.find({}))
     log.info("Loaded %d reservations from %s.%s", len(reservations), DB_NAME, COLLECTION)
@@ -398,7 +400,7 @@ def _main():
            f"client_active={client_active}, cluster_state={cluster_state}, "
            f"paused={paused}, reason={pause_reason or 'none'}")
     log.info(msg)
-    print(msg, flush=True)
+    ChatHealthyLoggingService().info(msg)
 
 
 try:

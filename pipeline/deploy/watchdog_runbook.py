@@ -39,6 +39,7 @@ Every event is logged to the pipeline-logs blob container in our
 datalake. Instrumentation is the Watchdog's sole visibility surface.
 """
 from __future__ import annotations
+from chathealthy_frontend_lib.mongo_utilities import ChatHealthyMongoUtilities
 
 import datetime
 import json
@@ -199,11 +200,9 @@ def _mongo_client():
         ca = certifi.where()
     except ImportError:
         ca = None
-    kwargs = {"serverSelectionTimeoutMS": 15000}
-    if ca:
-        kwargs["tlsCAFile"] = ca
     conn = _get_mongo_conn_string()
-    return pymongo.MongoClient(conn, **kwargs)
+    os.environ["MONGO_FRONTEND_connectionString"] = conn
+    return ChatHealthyMongoUtilities("MONGO_FRONTEND_connectionString").getConnection()
 
 
 # -----------------------------------------------------------------------------

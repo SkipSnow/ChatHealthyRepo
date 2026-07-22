@@ -1,3 +1,4 @@
+from chathealthy_frontend_lib.logging_service import ChatHealthyLoggingService
 # Copyright © 2026 ChatHealthy.ai LLC. All rights reserved.
 # Licensed under the FindCare Evaluation License (FEL-1.0).
 #
@@ -37,7 +38,7 @@ fail_on_row_error (bool, default False)
   True  → the first row error abends the job (re-raises after logging).
 """
 
-import logging
+
 import os
 from abc import ABC, abstractmethod
 from datetime import datetime, timezone
@@ -46,14 +47,10 @@ _base_mongo = None  # lazy singleton — avoids import at module load when Mongo
 
 
 def _get_base_mongo_client():
-    global _base_mongo
-    if _base_mongo is None:
-        conn_str = os.environ.get("MONGO_connectionString")
-        if not conn_str:
-            return None
-        from pymongo import MongoClient
-        _base_mongo = MongoClient(conn_str)
-    return _base_mongo
+    if not os.environ.get("MONGO_connectionString"):
+        return None
+    from chathealthy_frontend_lib.mongo_utilities import ChatHealthyMongoUtilities
+    return ChatHealthyMongoUtilities("MONGO_connectionString").getConnection()
 
 
 class PipelineWorkerBase(ABC):
@@ -98,7 +95,7 @@ class PipelineWorkerBase(ABC):
         try:
             client = _get_base_mongo_client()
             if client is None:
-                logging.warning(
+                ChatHealthyLoggingService().warning(
                     "PipelineWorkerBase: MONGO_connectionString not set — "
                     "%d row errors not persisted", len(self.row_errors)
                 )
@@ -111,12 +108,12 @@ class PipelineWorkerBase(ABC):
                 "row_errors": self.row_errors,
                 "datetime": datetime.now(timezone.utc).isoformat(),
             })
-            logging.info(
+            ChatHealthyLoggingService().info(
                 "PipelineWorkerBase: wrote %d row errors to %s (load_id=%s)",
                 len(self.row_errors), self._report_collection, self._load_id,
             )
         except Exception as exc:
-            logging.warning("PipelineWorkerBase: failed to persist row errors: %s", exc)
+            ChatHealthyLoggingService().warning("PipelineWorkerBase: failed to persist row errors: %s", exc)
 
     # ── Template method (private) ─────────────────────────────────────────────
 
@@ -128,7 +125,7 @@ class PipelineWorkerBase(ABC):
         except Exception as exc:
             key = self._pipeline_row_key()
             reason = str(exc)
-            logging.error("Row error [%s]: %s", key, reason)
+            ChatHealthyLoggingService().error("Row error [%s]: %s", key, reason)
             self.row_errors.append({"row_key": key, "reason": reason})
             if self.fail_on_row_error:
                 raise
@@ -161,13 +158,13 @@ class PipelineWorkerBase(ABC):
             count = collection.count_documents({})
             ok = count >= min_count
             if ok:
-                logging.info(
+                ChatHealthyLoggingService().info(
                     "output_exists_and_valid: %s has %d docs (>= %d) — skip",
                     getattr(collection, "full_name", "?"), count, min_count,
                 )
             return ok
         except Exception as exc:
-            logging.warning("output_exists_and_valid: check failed (%s)", exc)
+            ChatHealthyLoggingService().warning("output_exists_and_valid: check failed (%s)", exc)
             return False
 
     # ── Abstract — subclasses must implement ──────────────────────────────────

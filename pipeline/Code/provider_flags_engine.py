@@ -36,13 +36,14 @@ Public entry point: `apply_provider_flags(config, mongo, blob)`.
 """
 
 from __future__ import annotations
+from chathealthy_frontend_lib.logging_service import ChatHealthyLoggingService
 
-import logging
+
 from typing import Any
 
 from pymongo import UpdateOne
 
-_log = logging.getLogger(__name__)
+_log = ChatHealthyLoggingService()
 
 CATALOG_COLLECTION = "pipeline_sources_specialty_catalog"
 NPPES_STAGING_COLLECTION = "pipeline_sources_nppes_npi"

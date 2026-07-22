@@ -22,6 +22,9 @@ work happens inside Control + Workers. This dodges the 3-hour Azure
 Automation fair-share cap.
 """
 from __future__ import annotations
+from chathealthy_frontend_lib.logging_service import ChatHealthyLoggingService
+from chathealthy_frontend_lib.mongo_utilities import ChatHealthyMongoUtilities
+from chathealthy_frontend_lib.exceptions import ChatHealthyException
 
 import datetime
 import json
@@ -185,7 +188,7 @@ def log(event: str, **fields):
         "event": event,
     }
     record.update(fields)
-    print(json.dumps(record, default=str), flush=True)
+    ChatHealthyLoggingService().info(json.dumps(record, default=str))
     if _LOG_MONGO_HANDLE is None:
         _LOG_BUFFER.append(record)
         return
@@ -261,7 +264,7 @@ def _srv_to_direct_mongo_uri(srv_uri: str) -> str:
             target = parts[3].rstrip(".")
             hosts.append(f"{target}:{port}")
     if not hosts:
-        raise RuntimeError(f"DoH SRV lookup returned no hosts for {host_only}")
+        raise ChatHealthyException(mode="runtime_error", message=f"DoH SRV lookup returned no hosts for {host_only}")
     # TXT lookup for connection options (Atlas ships tls/replicaSet/authSource)
     txt_answers = _doh_query(host_only, "TXT")
     txt_opts = ""
@@ -538,8 +541,7 @@ def _put(url: str, body: dict, tok: str) -> dict:
             body_txt = e.read().decode("utf-8", errors="replace")[:2000]
         except Exception:
             body_txt = ""
-        raise RuntimeError(
-            f"ARM PUT {url.rsplit('?', 1)[0]} -> HTTP {e.code}: {body_txt}"
+        raise ChatHealthyException(mode="runtime_error", message=f"ARM PUT {url.rsplit('?', 1)[0]} -> HTTP {e.code}: {body_txt}"
         ) from e
 
 
@@ -629,7 +631,7 @@ def _provision_vm_and_wake_mongo_in_parallel(
     t_vm.join(timeout=90)
     t_atlas.join(timeout=90)
     if results["vm_error"]:
-        raise RuntimeError(f"VM provisioning failed: {results['vm_error']}")
+        raise ChatHealthyException(mode="runtime_error", message=f"VM provisioning failed: {results['vm_error']}")
     return results
 
 
@@ -781,14 +783,29 @@ def main() -> int:
             # resolver cannot answer _mongodb._tcp.<domain> SRV queries. Try
             # a direct connect first; on SRV failure, translate the URI to
             # its non-SRV equivalent via DNS-over-HTTPS and retry.
+            # Route through ChatHealthyMongoUtilities. It reads the URI
+            # from an env var; publish the KV-fetched conn string under a
+            # stable name before instantiating. The SRV-bypass retry path
+            # publishes the direct-mode URI under the same name.
             try:
-                mongo = pymongo.MongoClient(conn, **_mongo_kwargs)
+                os.environ["MONGO_FRONTEND_connectionString"] = conn
+                mongo = ChatHealthyMongoUtilities(
+                    "MONGO_FRONTEND_connectionString"
+                ).getConnection()
                 mongo.admin.command("ping")
             except Exception:
                 direct = _srv_to_direct_mongo_uri(conn)
-                log("mongo_srv_bypass_active", direct_hostcount=direct.count(",") + 1
-                    if direct.startswith("mongodb://") else 0)
-                mongo = pymongo.MongoClient(direct, **_mongo_kwargs)
+                log("mongo_srv_bypass_active",
+                    direct_hostcount=direct.count(",") + 1 if direct.startswith("mongodb://") else 0)
+                os.environ["MONGO_FRONTEND_connectionString"] = direct
+                # Clear the utility's cache entry so the next call re-reads
+                # the new URI (utility singleton would otherwise reuse the
+                # first failed client).
+                from chathealthy_frontend_lib import mongo_utilities as _mu_mod
+                _mu_mod._client_cache.pop("MONGO_FRONTEND_connectionString", None)
+                mongo = ChatHealthyMongoUtilities(
+                    "MONGO_FRONTEND_connectionString"
+                ).getConnection()
                 mongo.admin.command("ping")
             _activate_mongo_logging(mongo)
             log("mongo_log_activated",

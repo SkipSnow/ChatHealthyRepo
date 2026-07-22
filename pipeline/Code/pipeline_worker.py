@@ -19,6 +19,7 @@ Local runs invoke this same module (Controller may spawn Workers locally
 for smoke testing).
 """
 from __future__ import annotations
+from chathealthy_frontend_lib.logging_service import ChatHealthyLoggingService
 
 import argparse
 import datetime
@@ -33,7 +34,7 @@ import traceback
 
 from pipeline_db import get_mongo
 
-_log = logging.getLogger("pipeline_worker")
+_log = ChatHealthyLoggingService()
 
 HEARTBEAT_INTERVAL_S = 120     # v32 §4.3.4
 WORK_ITEMS_COLLECTION = "pipeline.work_items"
@@ -165,7 +166,7 @@ def _parse_args(argv: list[str]) -> argparse.Namespace:
 
 def main(argv: list[str] | None = None) -> int:
     ns = _parse_args(argv if argv is not None else sys.argv[1:])
-    root = logging.getLogger()
+    root = ChatHealthyLoggingService()
     if not root.handlers:
         handler = logging.StreamHandler(sys.stderr)
         handler.setFormatter(logging.Formatter(

@@ -1,3 +1,4 @@
+from chathealthy_frontend_lib.logging_service import ChatHealthyLoggingService
 # Copyright (c) 2026 ChatHealthy.ai LLC. All rights reserved.
 # Licensed under the FindCare Evaluation License (FEL-1.0).
 #
@@ -11,7 +12,7 @@
 #   python crosswalk_builder.py --env dev --states DE
 
 import argparse
-import logging
+
 import os
 import sys
 import time
@@ -23,7 +24,7 @@ from pymongo import UpdateOne
 
 from pipeline_db import get_db
 
-_log = logging.getLogger("crosswalk_builder")
+_log = ChatHealthyLoggingService()
 
 CROSSWALK_VERSION = "0.1"
 
@@ -856,17 +857,13 @@ def main():
     parser.add_argument("--batch-size", type=int, default=100, help="Batch size for bulk writes")
     args = parser.parse_args()
 
-    logging.basicConfig(
-        level=logging.INFO,
-        format="%(asctime)s %(name)s %(levelname)s %(message)s",
-    )
 
     if args.molecule:
         # Single-molecule diagnostic mode
         _log.info("Building crosswalk for: %s", args.molecule)
         result = build_crosswalk(args.molecule, args.env)
         import json
-        print(json.dumps(result, indent=2))
+        ChatHealthyLoggingService().info(json.dumps(result, indent=2))
         return
 
     # Full batch enrichment

@@ -20,6 +20,8 @@ pipeline writes the flags onto each SpecialtyMetaData record.
 No fallbacks. Mongo read failure raises.
 """
 from __future__ import annotations
+from chathealthy_frontend_lib.exceptions import ChatHealthyException
+from chathealthy_frontend_lib.mongo_utilities import ChatHealthyMongoUtilities
 
 import os
 import threading
@@ -46,7 +48,7 @@ def load_catalog() -> Dict[str, Dict[str, bool]]:
         if _cache is not None:
             return _cache
         conn = os.environ["MONGO_connectionString"]
-        client = MongoClient(conn, serverSelectionTimeoutMS=15000)
+        client = ChatHealthyMongoUtilities("MONGO_connectionString").getConnection()
         try:
             cursor = client[_DB_NAME][_COLL_NAME].find(
                 {}, {"_id": 0, "Code": 1, "can_prescribe": 1,
@@ -67,10 +69,8 @@ def load_catalog() -> Dict[str, Dict[str, bool]]:
         finally:
             client.close()
         if not out:
-            raise RuntimeError(
-                f"specialty_classification_catalog: collection "
-                f"{_DB_NAME}.{_COLL_NAME} returned 0 documents"
-            )
+            raise ChatHealthyException(mode="runtime_error", message=f"specialty_classification_catalog: collection "
+                f"{_DB_NAME}.{_COLL_NAME} returned 0 documents")
         _cache = out
         return _cache
 

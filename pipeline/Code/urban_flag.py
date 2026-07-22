@@ -17,16 +17,17 @@ per worker process via _load_rucc.
 """
 
 from __future__ import annotations
+from chathealthy_frontend_lib.logging_service import ChatHealthyLoggingService
 
 import io
 import json
-import logging
+
 import os
 
 import requests
 
 
-_log = logging.getLogger("urban_flag")
+_log = ChatHealthyLoggingService()
 
 _USDA_RUCC_INDEX_URL = "https://www.ers.usda.gov/data-products/rural-urban-continuum-codes/"
 

@@ -25,6 +25,8 @@ Environment (Automation Variables):
                                       it as the Bearer credential for /admin/swap.
 """
 from __future__ import annotations
+from chathealthy_frontend_lib.logging_service import ChatHealthyLoggingService
+from chathealthy_frontend_lib.exceptions import ChatHealthyException
 
 import json
 import os
@@ -103,7 +105,7 @@ _BAKED_REGISTRY: dict = {}
 
 
 def _log(msg: str) -> None:
-    print(f"[ChangeDBVersion] {msg}", flush=True)
+    ChatHealthyLoggingService().info(f"[ChangeDBVersion] {msg}")
 
 
 def _read_registry() -> dict[str, str]:
@@ -166,26 +168,22 @@ def _read_webhook_payload() -> dict:
     spaces, locate 'RequestBody:', raw_decode the embedded JSON object.
     Same approach as runbooks/data_migrator/orchestrator.py::_read_payload."""
     if len(sys.argv) < 2:
-        raise RuntimeError("no payload: sys.argv[1] missing")
+        raise ChatHealthyException(mode="runtime_error", message="no payload: sys.argv[1] missing")
     s = " ".join(sys.argv[1:])
     marker = "RequestBody:"
     idx = s.find(marker)
     if idx == -1:
-        raise RuntimeError(
-            f"ChangeDBVersion: sys.argv missing 'RequestBody:' marker; "
+        raise ChatHealthyException(mode="runtime_error", message=f"ChangeDBVersion: sys.argv missing 'RequestBody:' marker; "
             f"argv_count={len(sys.argv)}; joined first 500 chars={s[:500]!r}"
         )
     rest = s[idx + len(marker):].lstrip()
     try:
         body, _consumed = json.JSONDecoder().raw_decode(rest)
     except json.JSONDecodeError as e:
-        raise RuntimeError(
-            f"ChangeDBVersion: RequestBody not parseable JSON; "
-            f"rest first 500 chars={rest[:500]!r}; error={e}"
-        )
+        raise ChatHealthyException(mode="runtime_error", message=f"ChangeDBVersion: RequestBody not parseable JSON; "
+            f"rest first 500 chars={rest[:500]!r}; error={e}")
     if not isinstance(body, dict):
-        raise RuntimeError(
-            f"ChangeDBVersion: RequestBody is not a dict; got {type(body).__name__}"
+        raise ChatHealthyException(mode="runtime_error", message=f"ChangeDBVersion: RequestBody is not a dict; got {type(body).__name__}"
         )
     return body
 
@@ -205,7 +203,8 @@ def main() -> int:
     uri = os.environ.get("MONGO_FRONTEND_connectionString")
     if not uri:
         sys.exit("ERROR: MONGO_FRONTEND_connectionString not set.")
-    client = MongoClient(uri, serverSelectionTimeoutMS=10000, tlsCAFile=_MONGO_TLS_CA_FILE)
+    from chathealthy_frontend_lib.mongo_utilities import ChatHealthyMongoUtilities
+    client = ChatHealthyMongoUtilities("MONGO_FRONTEND_connectionString").getConnection()
     doc = client[_CONFIG_DB][_CONFIG_COLL].find_one({"env": env})
     client.close()
     if doc is None:

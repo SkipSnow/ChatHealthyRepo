@@ -4,11 +4,12 @@
 """source_freshness_gate — per-source reuse vs fetch decisions."""
 
 from __future__ import annotations
+from chathealthy_frontend_lib.logging_service import ChatHealthyLoggingService
 
-import logging
+
 from datetime import datetime, timedelta, timezone
 
-_log = logging.getLogger(__name__)
+_log = ChatHealthyLoggingService()
 
 
 def execute(ctx) -> dict:

@@ -1,3 +1,4 @@
+from chathealthy_frontend_lib.logging_service import ChatHealthyLoggingService
 # Copyright © 2026 ChatHealthy.ai LLC. All rights reserved.
 # Licensed under the FindCare Evaluation License (FEL-1.0).
 #
@@ -18,7 +19,7 @@ scale-down: Pause the cluster completely (zero compute cost, data retained).
 Used by migrate_to_new_cluster.py and can be called from any pipeline script.
 """
 
-import logging
+
 import os
 import time
 from pathlib import Path
@@ -29,8 +30,7 @@ from dotenv import load_dotenv
 
 load_dotenv(Path(__file__).parent.parent / ".env")
 
-logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(message)s")
-log = logging.getLogger(__name__)
+log = ChatHealthyLoggingService()
 
 ATLAS_BASE    = "https://cloud.mongodb.com/api/atlas/v2"
 PUBLIC_KEY    = os.environ["ATLAS_PUBLIC_KEY"]
@@ -207,7 +207,7 @@ if __name__ == "__main__":
     import sys
     actions = ("scale-up", "scale-down", "pause", "resume")
     if len(sys.argv) != 3 or sys.argv[1] not in actions:
-        print(f"Usage: python atlas_cluster_manager.py <{'|'.join(actions)}> <cluster-name>")
+        ChatHealthyLoggingService().info(f"Usage: python atlas_cluster_manager.py <{'|'.join(actions)}> <cluster-name>")
         sys.exit(1)
     action, name = sys.argv[1], sys.argv[2]
     if action == "scale-up":

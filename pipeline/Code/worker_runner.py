@@ -14,6 +14,8 @@ StepContext whose config["partition"] carries the PART_* values.
 """
 
 from __future__ import annotations
+from chathealthy_frontend_lib.logging_service import ChatHealthyLoggingService
+from chathealthy_frontend_lib.exceptions import ChatHealthyException
 
 import argparse
 import logging
@@ -26,7 +28,7 @@ from pipeline_env import load_pipeline_env
 from step_context import PipelineArgs, RunManifest, StepContext
 from steps import get_runner
 
-_log = logging.getLogger("worker_runner")
+_log = ChatHealthyLoggingService()
 
 _PARTITION_ENV_PREFIX = "PART_"
 
@@ -64,7 +66,7 @@ def _states_list(raw: str) -> list[str]:
 def main(argv: list[str] | None = None) -> int:
     ns = _parse_args(argv if argv is not None else sys.argv[1:])
 
-    root = logging.getLogger()
+    root = ChatHealthyLoggingService()
     if not root.handlers:
         handler = logging.StreamHandler(sys.stderr)
         handler.setFormatter(logging.Formatter(
@@ -73,7 +75,7 @@ def main(argv: list[str] | None = None) -> int:
     root.setLevel(getattr(logging, ns.log_level.upper(), logging.INFO))
 
     if not ns.step:
-        raise ValueError("worker_runner: --step or PIPELINE_STEP env var required")
+        raise ChatHealthyException(mode="value_error", message="worker_runner: --step or PIPELINE_STEP env var required")
 
     load_pipeline_env()
 
@@ -93,12 +95,7 @@ def main(argv: list[str] | None = None) -> int:
         blob_client=get_blob_service(),
     )
     runner = get_runner(ns.step)
-    _log.info("worker_runner: step=%s run=%s partition=%s",
-              ns.step, args.run_id, partition)
     result = runner(ctx)
-    _log.info("worker_runner: step=%s complete keys=%s",
-              ns.step,
-              list(result.keys()) if isinstance(result, dict) else type(result).__name__)
     return 0
 
 

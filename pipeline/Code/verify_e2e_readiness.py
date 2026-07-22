@@ -3,12 +3,13 @@
 """LLD v22 Provider Pipeline — see pipeline/ArchitectureDesignAndAudit/ProviderPipeline_LowLevelDesign_v22.docx."""
 
 from __future__ import annotations
+from chathealthy_frontend_lib.logging_service import ChatHealthyLoggingService
 
 import os
 import sys
 REQUIRED = ["ENV_PREFIX", "MONGO_connectionString"]
 missing = [k for k in REQUIRED if not os.environ.get(k)]
 if missing:
-    print("missing env:", missing)
+    ChatHealthyLoggingService().info("missing env:", missing)
     sys.exit(1)
-print("e2e readiness ok")
+ChatHealthyLoggingService().info("e2e readiness ok")

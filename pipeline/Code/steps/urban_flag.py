@@ -3,12 +3,12 @@
 """LLD v23 §4.14 Urban flag per address."""
 
 from __future__ import annotations
+from chathealthy_frontend_lib.logging_service import ChatHealthyLoggingService
 
-import logging
 
 from urban_flag_engine import stamp_urban_flags
 
-_log = logging.getLogger(__name__)
+_log = ChatHealthyLoggingService()
 
 
 def run_step(ctx) -> dict:

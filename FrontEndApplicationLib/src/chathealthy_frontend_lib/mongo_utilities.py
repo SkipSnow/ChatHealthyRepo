@@ -36,6 +36,13 @@ log = ChatHealthyLoggingService()
 TIMEOUT_MS = 120000
 
 cached_client: Optional[MongoClient] = None
+# Per-env-var cache. Pipeline code connects to multiple clusters
+# (MONGO_FRONTEND_connectionString for the always-up front cluster,
+# MONGO_connectionString for the pipeline cluster, MONGO_CLUSTER_<x>_
+# connectionString for migration source/dest). One MongoClient
+# singleton per distinct env-var name keeps the shared-pool invariant
+# while serving multi-cluster callers.
+_client_cache: dict[str, MongoClient] = {}
 
 
 def q(value: Any) -> str:
@@ -290,18 +297,29 @@ class ChatHealthyMongoUtilities:
     REQ-B-008: logging governed by EPIC-008-F-011-S-005.
     """
 
-    def __init__(self) -> None:
+    def __init__(self, env_var_name: str = "MONGO_FRONTEND_connectionString") -> None:
+        """env_var_name selects which cluster's connection string is read
+        from the runtime environment. Default preserves REQ-B-002 single-
+        URI behavior for existing front-end callers. Pipeline code passes
+        'MONGO_connectionString' for the pipeline cluster or a per-cluster
+        name like 'MONGO_CLUSTER_<x>_connectionString' for migration
+        workloads. One MongoClient singleton cached per distinct env-var
+        (REQ-B-003 refined for multi-cluster)."""
         global cached_client
-        if cached_client is not None:
+        self._env_var_name = env_var_name
+
+        if env_var_name in _client_cache:
+            if env_var_name == "MONGO_FRONTEND_connectionString":
+                cached_client = _client_cache[env_var_name]
             return
 
-        uri = os.environ.get("MONGO_FRONTEND_connectionString")
+        uri = os.environ.get(env_var_name)
         if not uri:
             raise ChatHealthyException(
                 mode="mongo_env_unset",
                 message=(
-                    "MONGO_FRONTEND_connectionString not set in the runtime "
-                    "environment; ChatHealthyMongoUtilities cannot connect."
+                    f"{env_var_name} not set in the runtime environment; "
+                    "ChatHealthyMongoUtilities cannot connect."
                 ),
                 component="ChatHealthyMongoUtilities",
             )
@@ -311,14 +329,17 @@ class ChatHealthyMongoUtilities:
         if appname:
             kwargs["appname"] = appname
 
-        cached_client = MongoClient(uri, **kwargs)
+        client = MongoClient(uri, **kwargs)
+        _client_cache[env_var_name] = client
+        if env_var_name == "MONGO_FRONTEND_connectionString":
+            cached_client = client
         log.info(
-            "MongoClient established (appname=%s timeoutMS=%d)",
-            appname or "<unset>", TIMEOUT_MS,
+            "MongoClient established for %s (appname=%s timeoutMS=%d)",
+            env_var_name, appname or "<unset>", TIMEOUT_MS,
         )
 
     def getConnection(self) -> TimedClient:
-        return TimedClient(cached_client)
+        return TimedClient(_client_cache[self._env_var_name])
 
     def getRawClient(self) -> MongoClient:
         """Return the raw MongoClient singleton, bypassing the TimedClient

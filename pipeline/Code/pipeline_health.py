@@ -1,3 +1,5 @@
+from chathealthy_frontend_lib.logging_service import ChatHealthyLoggingService
+from chathealthy_frontend_lib.exceptions import ChatHealthyException
 # Copyright © 2026 ChatHealthy.ai LLC. All rights reserved.
 # Licensed under the FindCare Evaluation License (FEL-1.0).
 #
@@ -16,7 +18,7 @@ Environment variables:
     MONGO_connectionString     MongoDB Atlas connection string
 """
 
-import logging
+
 import os
 
 import requests
@@ -35,7 +37,7 @@ def send_admin_notification(subject: str, text: str) -> None:
     to_email   = os.environ.get("NOTIFICATION_TO_EMAIL")
 
     if not (api_key and from_email and to_email):
-        logging.warning("Admin notification skipped — SparkPost credentials not configured.")
+        ChatHealthyLoggingService().warning("Admin notification skipped — SparkPost credentials not configured.")
         return
 
     try:
@@ -46,9 +48,9 @@ def send_admin_notification(subject: str, text: str) -> None:
             subject=subject,
             text=text,
         )
-        logging.info("Admin notification sent to %s: %s", to_email, subject)
+        ChatHealthyLoggingService().info("Admin notification sent to %s: %s", to_email, subject)
     except Exception as exc:
-        logging.error("SparkPost send failed: %s", exc)
+        ChatHealthyLoggingService().error("SparkPost send failed: %s", exc)
 
 
 def send_pushover(title: str, message: str) -> None:
@@ -64,7 +66,7 @@ def send_pushover(title: str, message: str) -> None:
     user_key = os.environ.get("PUSHOVER_USER_KEY")
 
     if not (token and user_key):
-        logging.warning("Pushover notification skipped — credentials not configured.")
+        ChatHealthyLoggingService().warning("Pushover notification skipped — credentials not configured.")
         return
 
     try:
@@ -74,11 +76,11 @@ def send_pushover(title: str, message: str) -> None:
             timeout=10,
         )
         if resp.status_code == 200:
-            logging.info("Pushover sent: %s", title)
+            ChatHealthyLoggingService().info("Pushover sent: %s", title)
         else:
-            logging.error("Pushover failed (%d): %s", resp.status_code, resp.text)
+            ChatHealthyLoggingService().error("Pushover failed (%d): %s", resp.status_code, resp.text)
     except Exception as exc:
-        logging.error("Pushover send failed: %s", exc)
+        ChatHealthyLoggingService().error("Pushover send failed: %s", exc)
 
 
 def check_mongo_health(config: dict = None) -> dict:
@@ -90,20 +92,14 @@ def check_mongo_health(config: dict = None) -> dict:
 
     Returns {"status": "ok"} if the cluster is reachable and has a primary.
     """
-    conn_str = os.environ["MONGO_connectionString"]
     try:
-        client = MongoClient(
-            conn_str,
-            serverSelectionTimeoutMS=15_000,
-            connectTimeoutMS=15_000,
-        )
+        from chathealthy_frontend_lib.mongo_utilities import ChatHealthyMongoUtilities
+        client = ChatHealthyMongoUtilities("MONGO_connectionString").getConnection()
         client.admin.command("ping")
         client.close()
-        logging.info("MongoDB health check passed.")
         return {"status": "ok"}
     except Exception as exc:
         msg = str(exc)
-        logging.error("MongoDB health check failed: %s", msg)
         send_admin_notification(
             subject="Pipeline BLOCKED — MongoDB unreachable",
             text=(
@@ -114,4 +110,4 @@ def check_mongo_health(config: dict = None) -> dict:
                 "once MongoDB is available."
             ),
         )
-        raise RuntimeError(f"MongoDB health check failed: {msg}") from exc
+        raise ChatHealthyException(mode="runtime_error", message=f"MongoDB health check failed: {msg}") from exc

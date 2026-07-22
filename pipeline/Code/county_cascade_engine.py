@@ -41,8 +41,9 @@ Public entry point: `run_county_cascade(config, mongo, blob)`.
 """
 
 from __future__ import annotations
+from chathealthy_frontend_lib.logging_service import ChatHealthyLoggingService
 
-import logging
+
 import os
 import time
 from typing import Any, Iterable
@@ -51,7 +52,7 @@ import requests
 
 from throttle_semaphore import RateLimitedConcurrencyGate, RateLimitedGate
 
-_log = logging.getLogger(__name__)
+_log = ChatHealthyLoggingService()
 
 PRACTICE_ADDRESS_TYPES = frozenset({"primary_practice", "secondary_practice"})
 DEFAULT_SLA = 0.98
