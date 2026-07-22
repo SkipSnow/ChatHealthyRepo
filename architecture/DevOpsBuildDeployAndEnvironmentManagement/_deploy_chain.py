@@ -969,6 +969,135 @@ def az_automation_runbook_replace_content(rg: str, aa: str, runbook: str, conten
         )
 
 
+_SCHEDULE_NAME_RE = re.compile(r"^SCH-[A-Za-z]+-(\d+)(min|hour)$", re.IGNORECASE)
+
+
+def _parse_schedule_from_name(name: str) -> dict | None:
+    """Parse a schedule name of the form 'SCH-<Runbook>-<N>(min|hour)' into
+    the ARM Schedule properties body. Returns None if the name does not
+    match the recurring-interval convention (e.g., 'SCH-ProviderPipeline-
+    0200UTC' is a daily-at-time schedule, not covered here yet)."""
+    m = _SCHEDULE_NAME_RE.match(name.strip())
+    if not m:
+        return None
+    n = int(m.group(1))
+    unit = m.group(2).lower()
+    from datetime import datetime, timedelta, timezone
+    start = (datetime.now(timezone.utc) + timedelta(minutes=5)).strftime(
+        "%Y-%m-%dT%H:%M:%S+00:00"
+    )
+    frequency = "Minute" if unit == "min" else "Hour"
+    return {
+        "properties": {
+            "description": (
+                f"Auto-created from runbook.schedule_names entry {name!r} "
+                f"(interval={n} {unit})"
+            ),
+            "startTime": start,
+            "frequency": frequency,
+            "interval": n,
+            "timeZone": "UTC",
+        }
+    }
+
+
+def az_automation_schedule_ensure(rg: str, aa: str, name: str) -> bool:
+    """Create the schedule if it does not already exist. Returns True if
+    the schedule is usable (exists or newly created). Idempotent."""
+    sub = az_subscription_id()
+    body = _parse_schedule_from_name(name)
+    if body is None:
+        step(f"  schedule {name} — name does not match SCH-<x>-<N>(min|hour); skipping")
+        return False
+    url = (
+        f"https://management.azure.com/subscriptions/{sub}/resourceGroups/{rg}"
+        f"/providers/Microsoft.Automation/automationAccounts/{aa}"
+        f"/schedules/{name}?api-version=2023-11-01"
+    )
+    # Check first — Azure Automation forbids updating an existing schedule's
+    # startTime, so idempotency requires "create if missing, otherwise no-op".
+    r = subprocess.run(
+        ["az", "rest", "--method", "get", "--url", url, "-o", "none"],
+        capture_output=True, text=True,
+        creationflags=creation_flags(), shell=(sys.platform == "win32"),
+    )
+    if r.returncode == 0:
+        step(f"  schedule {name} exists — no-op")
+        return True
+    tmp = tempfile.NamedTemporaryFile("w", encoding="utf-8", suffix=".json", delete=False)
+    try:
+        json.dump(body, tmp)
+        tmp.close()
+        r = subprocess.run(
+            ["az", "rest", "--method", "put", "--url", url,
+             "--headers", "Content-Type=application/json",
+             "--body", f"@{tmp.name}", "-o", "none"],
+            capture_output=True, text=True,
+            creationflags=creation_flags(), shell=(sys.platform == "win32"),
+        )
+    finally:
+        try:
+            os.unlink(tmp.name)
+        except OSError:
+            pass
+    if r.returncode != 0:
+        sys.exit(
+            f"ERROR: schedule create {name} failed on {aa}: "
+            f"{(r.stderr or '').strip()[:1500]}"
+        )
+    step(f"  schedule {name} created ({body['properties']['frequency']} {body['properties']['interval']})")
+    return True
+
+
+def az_automation_runbook_link_schedule(
+    rg: str, aa: str, runbook: str, schedule: str,
+) -> None:
+    """Create a job-schedule (schedule -> runbook link). Idempotent by
+    deterministic GUID derived from (aa, runbook, schedule)."""
+    sub = az_subscription_id()
+    import uuid as _uuid
+    js_id = _uuid.uuid5(_uuid.NAMESPACE_URL, f"{aa}/{runbook}/{schedule}")
+    url = (
+        f"https://management.azure.com/subscriptions/{sub}/resourceGroups/{rg}"
+        f"/providers/Microsoft.Automation/automationAccounts/{aa}"
+        f"/jobSchedules/{js_id}?api-version=2023-11-01"
+    )
+    body = {
+        "properties": {
+            "schedule": {"name": schedule},
+            "runbook": {"name": runbook},
+        }
+    }
+    tmp = tempfile.NamedTemporaryFile("w", encoding="utf-8", suffix=".json", delete=False)
+    try:
+        json.dump(body, tmp)
+        tmp.close()
+        r = subprocess.run(
+            ["az", "rest", "--method", "put", "--url", url,
+             "--headers", "Content-Type=application/json",
+             "--body", f"@{tmp.name}", "-o", "none"],
+            capture_output=True, text=True,
+            creationflags=creation_flags(), shell=(sys.platform == "win32"),
+        )
+    finally:
+        try:
+            os.unlink(tmp.name)
+        except OSError:
+            pass
+    if r.returncode != 0:
+        stderr_txt = (r.stderr or "")[:1500]
+        # ARM returns 409 when the job-schedule already exists for the same
+        # deterministic id — that's the idempotent success path.
+        if "409" in stderr_txt or "already exists" in stderr_txt.lower():
+            step(f"  job-schedule {schedule}->{runbook} already linked (no-op)")
+            return
+        sys.exit(
+            f"ERROR: link schedule {schedule} to runbook {runbook} failed: "
+            f"{stderr_txt}"
+        )
+    step(f"  job-schedule {schedule} linked to runbook {runbook}")
+
+
 def az_automation_runbook_publish(rg: str, aa: str, runbook: str) -> None:
     step(f"az automation runbook publish --name {runbook}")
     args = [
@@ -1966,6 +2095,14 @@ def deploy_azure_automation_runbook(
     az_automation_runbook_replace_content(rg, aa, runbook, content_path)
     az_automation_runbook_publish(rg, aa, runbook)
     step(f"  runbook {runbook} published")
+    # Ensure declared schedules exist on the AA and are linked to this
+    # runbook. Names that do not match the SCH-<x>-<N>(min|hour) convention
+    # are logged and skipped (e.g. daily-at-time schedules like
+    # SCH-ProviderPipeline-0200UTC need separate handling; the on-demand
+    # webhook path covers manual triggers).
+    for sched_name in (aa_block.get("schedule_names") or []):
+        if az_automation_schedule_ensure(rg, aa, sched_name):
+            az_automation_runbook_link_schedule(rg, aa, runbook, sched_name)
     # Post-deploy verification. Shipping source bytes is necessary but not
     # sufficient: if the AA's Python3 package state is broken (wrong-
     # platform wheel, install failure), every Python3 job startup aborts
