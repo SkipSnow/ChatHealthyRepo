@@ -698,12 +698,14 @@ def _atlas_resume_pipeline_cluster() -> dict:
     r.raise_for_status()
     log("atlas_resume_patch_dispatched", cluster=ATLAS_PIPELINE_CLUSTER)
     # 2. Poll GET until stateName=IDLE (cluster is up and accepting writes).
-    #    Typical wake takes 1-4 minutes. Cap at 8 minutes so a genuinely
-    #    stuck Atlas surfaces as a visible failure rather than a hang.
+    #    No timeout cap: Atlas cluster wake is Atlas's promise, not ours;
+    #    the AA sandbox's 3-hour runbook fair-share limit is the outer
+    #    envelope. If Atlas is genuinely stuck the runbook surfaces that
+    #    to the operator by hitting the AA limit rather than by faking
+    #    an operator-authored cap.
     import time as _time
     poll_start = _time.time()
-    poll_timeout_s = 480
-    while _time.time() - poll_start < poll_timeout_s:
+    while True:
         g = requests.get(base, auth=auth, headers=headers, timeout=30)
         g.raise_for_status()
         state = (g.json() or {}).get("stateName", "")
@@ -713,16 +715,6 @@ def _atlas_resume_pipeline_cluster() -> dict:
                 waited_s=round(_time.time() - poll_start, 1))
             return g.json()
         _time.sleep(15)
-    raise ChatHealthyException(
-        mode="atlas_resume_timeout",
-        message=(
-            f"Atlas cluster {ATLAS_PIPELINE_CLUSTER} did not reach "
-            f"stateName=IDLE within {poll_timeout_s}s after resume PATCH."
-        ),
-        component="ProviderPipelineRunbook",
-        cluster=ATLAS_PIPELINE_CLUSTER,
-        waited_s=poll_timeout_s,
-    )
 
 
 def _provision_vm_and_wake_mongo_in_parallel(
