@@ -446,7 +446,7 @@ def _process_vm(vm: dict, mongo, tok: str) -> None:
 # Main
 # -----------------------------------------------------------------------------
 def main() -> int:
-    # Wire Mongo logging FIRST — before any log() call. This fetches
+    # Wire Mongo logging FIRST - before any log() call. This fetches
     # MONGO_FRONTEND from KV, applies SRV->direct URI conversion (AA
     # sandbox cannot resolve _mongodb._tcp SRVs), and sets CHLS env so
     # every subsequent log() call also writes to Log_{env}.
