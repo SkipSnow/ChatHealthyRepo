@@ -32,6 +32,9 @@ import time
 import traceback
 
 from pipeline_db import get_mongo
+from blob_client import get_blob_service
+from step_context import PipelineArgs, RunManifest, StepContext, StepTransition
+from steps import get_runner
 
 _log = ChatHealthyLoggingService()
 
@@ -41,39 +44,85 @@ FRONTEND_DB = "chathealthyfrontend"
 
 
 # ─────────────────────────────────────────────────────────────────────────────
-# Step handler registry — one function per step name in v32 §5.2.
-# Handlers receive (payload: dict) and return an `output` dict written back
-# to the work-item on success.
-#
-# Handlers live in their own modules; this registry is imported lazily to
-# avoid pulling every step's dependencies into every Worker process.
+# Step dispatch — via steps.get_runner(step_name).
+# No per-step handler table: every step registered in steps/__init__.py's
+# STEP_RUNNERS resolves via get_runner(step_name) and receives a
+# reconstructed StepContext.
 # ─────────────────────────────────────────────────────────────────────────────
+def _reconstruct_step_context(payload: dict, mongo, blob) -> StepContext:
+    """Rebuild a StepContext from the work_item payload the Controller
+    enqueued. Payload shape (see BasePipelineOrchestrator._invoke_process_pool):
+      {run_id, step, partition, config, args, pipeline_name}
+    """
+    args_snap = payload.get("args") or {}
+    args = PipelineArgs(
+        states=list(args_snap.get("state_scope") or []),
+        env_prefix=args_snap.get("env_prefix", "dev"),
+        state_scope=list(args_snap.get("state_scope") or []) or None,
+        run_id=payload.get("run_id"),
+        resume_from_step=args_snap.get("resume_from_step") or None,
+        incremental=(args_snap.get("load_mode") == "incremental"),
+    )
+    pipeline_name = payload.get("pipeline_name", "provider")
+    manifest = RunManifest(
+        run_id=payload["run_id"],
+        pipeline_name=pipeline_name,
+        env_prefix=args.env_prefix,
+    )
+    # Rehydrate manifest fields the Worker's step reads (source_versions,
+    # metrics, completed_steps) from the live pipeline.runs doc so per-step
+    # decisions that depend on earlier steps' state (freshness map, prior
+    # source versions) work identically to inline execution.
+    live = mongo[FRONTEND_DB]["pipeline.runs"].find_one({"run_id": payload["run_id"]})
+    if live:
+        manifest.source_versions = live.get("source_versions") or {}
+        manifest.metrics = live.get("metrics") or {}
+        manifest.completed_steps = set(live.get("completed_steps") or [])
+        manifest.status = live.get("status") or "running"
+    config = dict(payload.get("config") or {})
+    config["partition"] = payload.get("partition") or {}
+    return StepContext(
+        args=args,
+        manifest=manifest,
+        config=config,
+        mongo_client=mongo,
+        blob_client=blob,
+    )
+
+
 def _dispatch(step: str, payload: dict) -> dict:
-    """Route the step to its handler. Returns handler output dict."""
-    handlers = {
-        # These will be populated as each step's handler module is authored.
-        # For the initial v32 hello-world: only "connectivity_probe" exists.
-        "connectivity_probe":       _handle_connectivity_probe,
-    }
-    fn = handlers.get(step)
-    if fn is None:
-        raise NotImplementedError(
-            f"pipeline_worker: no handler registered for step {step!r}. "
-            f"Register in pipeline_worker._dispatch()."
-        )
-    return fn(payload)
-
-
-def _handle_connectivity_probe(payload: dict) -> dict:
-    """Smoke-test handler: prove the Worker can talk to Mongo. Writes a
-    small heartbeat doc and returns."""
+    """Route the step to its handler. Every process_pool step in
+    provider_pipeline_orchestrator.STEPS resolves through steps.get_runner
+    to the module's run_step(ctx) callable."""
     mongo = get_mongo()
-    mongo.admin.command("ping")
-    return {
-        "probed_at": datetime.datetime.utcnow().isoformat() + "Z",
-        "host": socket.gethostname(),
-        "payload_echo": payload,
-    }
+    blob = get_blob_service()
+    ctx = _reconstruct_step_context(payload, mongo, blob)
+    runner = get_runner(step)
+    _log.info(
+        "pipeline_worker dispatch step=%s run_id=%s partition=%s",
+        step, payload.get("run_id"), payload.get("partition"),
+    )
+    result = runner(ctx)
+    output: dict = result if isinstance(result, dict) else {"result": result}
+    # Persist per-Worker manifest deltas so serial follow-on steps in the
+    # Controller can read them (Worker's manifest object is process-local).
+    deltas: dict = {}
+    if ctx.manifest.source_versions:
+        deltas["source_versions"] = ctx.manifest.source_versions
+    if ctx.manifest.metrics:
+        deltas["metrics"] = ctx.manifest.metrics
+    if deltas:
+        set_ops = {}
+        for k, v in (deltas.get("source_versions") or {}).items():
+            set_ops[f"source_versions.{k}"] = v
+        for k, v in (deltas.get("metrics") or {}).items():
+            set_ops[f"metrics.{k}"] = v
+        if set_ops:
+            mongo[FRONTEND_DB]["pipeline.runs"].update_one(
+                {"run_id": payload["run_id"]},
+                {"$set": set_ops},
+            )
+    return output
 
 
 # ─────────────────────────────────────────────────────────────────────────────

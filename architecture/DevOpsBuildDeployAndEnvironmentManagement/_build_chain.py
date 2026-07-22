@@ -500,6 +500,7 @@ _INLINE_LIB_MODULES = (
     "exceptions",       # no in-package deps
     "logging_service",  # imports .exceptions eagerly; imports .mongo_utilities lazily inside _MongoLogHandler.emit
     "mongo_utilities",  # imports .exceptions AND .logging_service eagerly at module load; logging_service MUST be installed first
+    "pipeline_boot",    # AA runbook Mongo-logging bootstrap: KV Mongo secret fetch + SRV->direct URI + CHLS env setup. Stdlib-only + optional certifi. Peer module; installed after logging_service/mongo_utilities so callers can compose.
 )
 
 
@@ -533,7 +534,7 @@ def _inline_chathealthy_lib_if_used(repo_root: Path, runbook_path: Path) -> None
     preamble_lines = [
         "# --- BEGIN inlined chathealthy_frontend_lib (built from git commit at build time) ---",
         "# Bytes below are base64-encoded copies of",
-        "# FrontEndApplicationLib/src/chathealthy_frontend_lib/{exceptions,mongo_utilities,logging_service}.py",
+        "# FrontEndApplicationLib/src/chathealthy_frontend_lib/{exceptions,mongo_utilities,logging_service,pipeline_boot}.py",
         "# assembled by _build_chain.py:_inline_chathealthy_lib_if_used.",
         "import base64 as _b64, sys as _sys, types as _types",
         "_pkg = _types.ModuleType('chathealthy_frontend_lib')",

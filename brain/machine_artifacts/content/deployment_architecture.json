@@ -7119,7 +7119,8 @@
                 }
               ],
               "secrets": {
-                "KEY_VAULT_URI": "local_env"
+                "KEY_VAULT_URI": "local_env",
+                "AUTOMATION_ENV_PREFIX": "local_env"
               },
               "config": {
                 "runbook_name": "CaBootstrapRunbook",
@@ -7160,7 +7161,8 @@
                 }
               ],
               "secrets": {
-                "KEY_VAULT_URI": "local_env"
+                "KEY_VAULT_URI": "local_env",
+                "AUTOMATION_ENV_PREFIX": "local_env"
               },
               "config": {
                 "runbook_name": "CaEndpointRunbook",
@@ -7203,12 +7205,16 @@
               "secrets": {
                 "MONGO_FRONTEND_connectionString": "local_env",
                 "IDENTITY_ENDPOINT": "local_env",
-                "IDENTITY_HEADER": "local_env"
+                "IDENTITY_HEADER": "local_env",
+                "KEY_VAULT_URI": "local_env",
+                "AUTOMATION_ENV_PREFIX": "local_env",
+                "AUTOMATION_SUBSCRIPTION_ID": "local_env",
+                "AUTOMATION_RESOURCE_GROUP": "local_env"
               },
               "config": {
                 "runbook_name": "WatchdogRunbook",
                 "schedule_names": [
-                  "SCH-Watchdog-30min"
+                  "SCH-Watchdog-15min"
                 ],
                 "python_packages": [
                   {
@@ -7323,7 +7329,10 @@
         "AZURE_STORAGE_CONNECTION_STRING": "local_env",
         "KEY_VAULT_URI": "local_env",
         "Anthropic_API_KEY": "local_env",
-        "GEMINI_API_KEY": "local_env"
+        "GEMINI_API_KEY": "local_env",
+        "SPARKMAIL_API_KEY": "local_env",
+        "NOTIFICATION_FROM_EMAIL": "local_env",
+        "NOTIFICATION_TO_EMAIL": "local_env"
       },
       "allowed_roles": [
         "Key Vault Secrets Officer",

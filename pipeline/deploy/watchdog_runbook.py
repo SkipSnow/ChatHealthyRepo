@@ -52,13 +52,13 @@ import urllib.request
 
 
 # CHLS env prerequisites for AA sandbox visibility. Set before any log()
-# call so log output flows to stderr (captured by AA) and the Mongo handler
-# wires as soon as MONGO_FRONTEND_connectionString is published.
-os.environ.setdefault("CH_LOG_DESTINATION", "stderr")
+# call so log output flows to stderr (captured by AA). Mongo destination
+# is wired via bootstrap_aa_mongo_logging inside main() BEFORE the first
+# log() call, so runbook events land in {env}_Pipelines.Log_{env}.
 os.environ.setdefault("CH_SPACE_NAME", "watchdog")
 os.environ.setdefault("ENV_PREFIX",
                       os.environ.get("AUTOMATION_ENV_PREFIX", "dev"))
-os.environ.setdefault("CH_COMPONENT", "watchdog_runbook")
+os.environ.setdefault("CH_COMPONENT", "watchdog")
 
 
 SUBSCRIPTION_ID = os.environ.get(
@@ -67,6 +67,27 @@ SUBSCRIPTION_ID = os.environ.get(
 RESOURCE_GROUP = os.environ.get(
     "AUTOMATION_RESOURCE_GROUP", "rg-chathealthy-pipeline-dev"
 )
+# Hydrate deploy-pushed Automation Variables into os.environ so this
+# runbook picks up the per-env value for KEY_VAULT_URI etc. instead of
+# falling back to a dev-hardcoded default. deploy_chain pushes these
+# from the secrets block on the DeploymentTargetRecord.
+try:
+    import automationassets as _aa
+    for _k in (
+        "KEY_VAULT_URI",
+        "AUTOMATION_ENV_PREFIX",
+        "PIPELINE_LOG_ACCOUNT_URL",
+        "PIPELINE_LOG_CONTAINER",
+        "AUTOMATION_SUBSCRIPTION_ID",
+        "AUTOMATION_RESOURCE_GROUP",
+    ):
+        try:
+            os.environ[_k] = str(_aa.get_automation_variable(_k))
+        except Exception:
+            pass
+except ImportError:
+    pass
+
 ENV_PREFIX = os.environ.get("AUTOMATION_ENV_PREFIX", "dev")
 PIPELINE_NAME = "provider"
 LOG_ACCOUNT_URL = os.environ.get(
@@ -425,6 +446,25 @@ def _process_vm(vm: dict, mongo, tok: str) -> None:
 # Main
 # -----------------------------------------------------------------------------
 def main() -> int:
+    # Wire Mongo logging FIRST — before any log() call. This fetches
+    # MONGO_FRONTEND from KV, applies SRV->direct URI conversion (AA
+    # sandbox cannot resolve _mongodb._tcp SRVs), and sets CHLS env so
+    # every subsequent log() call also writes to Log_{env}.
+    from chathealthy_frontend_lib.pipeline_boot import bootstrap_aa_mongo_logging  # noqa: PLC0415
+    try:
+        bootstrap_aa_mongo_logging(
+            kv_uri=KEY_VAULT_URI,
+            secret_name="MONGO-FRONTEND-connectionString",
+            component_name="watchdog",
+            env_prefix=ENV_PREFIX,
+        )
+    except Exception as exc:  # noqa: BLE001
+        sys.stderr.write(
+            f"watchdog: bootstrap_aa_mongo_logging failed "
+            f"({type(exc).__name__}: {exc}); continuing with stderr-only "
+            "logging.\n"
+        )
+        os.environ.setdefault("CH_LOG_DESTINATION", "stderr")
     log("watchdog_start", host=_HOSTNAME)
     try:
         tok = _get_token("https://management.azure.com/")

@@ -39,13 +39,40 @@ import requests
 try:
     import automationassets
     for k in ("AZ_SUBSCRIPTION_ID", "AZ_VM_RESOURCE_GROUP",
-              "AZ_AUTOMATION_RESOURCE_GROUP", "AZ_AUTOMATION_ACCOUNT"):
+              "AZ_AUTOMATION_RESOURCE_GROUP", "AZ_AUTOMATION_ACCOUNT",
+              "KEY_VAULT_URI", "AUTOMATION_ENV_PREFIX"):
         try:
             os.environ[k] = str(automationassets.get_automation_variable(k))
         except Exception:
             pass
 except ImportError:
     pass
+
+# Wire Mongo logging BEFORE ChatHealthyLoggingService() below fires
+# CHLS's _ensure_configured. Fetches MONGO_FRONTEND from KV via MI +
+# SRV-bypasses the URI. Falls back to stderr-only on any failure so a
+# deprovisioner run never blocks on logging plumbing.
+os.environ.setdefault("CH_SPACE_NAME", "data-migrator-deprovisioner")
+os.environ.setdefault("CH_COMPONENT", "data-migrator-deprovisioner")
+os.environ.setdefault("ENV_PREFIX",
+                      os.environ.get("AUTOMATION_ENV_PREFIX", "dev"))
+try:
+    from chathealthy_frontend_lib.pipeline_boot import bootstrap_aa_mongo_logging as _boot
+    _boot(
+        kv_uri=os.environ.get(
+            "KEY_VAULT_URI", "https://kv-chpipeline-dev.vault.azure.net/",
+        ),
+        secret_name="MONGO-FRONTEND-connectionString",
+        component_name="data-migrator-deprovisioner",
+        env_prefix=os.environ.get("AUTOMATION_ENV_PREFIX", "dev"),
+    )
+except Exception as _bootstrap_exc:  # noqa: BLE001
+    sys.stderr.write(
+        f"deprovisioner: bootstrap_aa_mongo_logging failed "
+        f"({type(_bootstrap_exc).__name__}: {_bootstrap_exc}); "
+        "continuing with stderr-only logging.\n"
+    )
+    os.environ["CH_LOG_DESTINATION"] = "stderr"
 
 log = ChatHealthyLoggingService()
 _COMPUTE_API = "2024-07-01"

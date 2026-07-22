@@ -183,6 +183,42 @@ def main(argv: list[str] | None = None) -> int:
     manifest = None
     exit_code = 1
     final_status = "failed"
+
+    # Controller heartbeat: writes chathealthyfrontend.pipeline.runs
+    # controller_heartbeat_at every 60s in a daemon thread. Watchdog
+    # reads this to detect Controller-dead-without-quiesce (see LLD
+    # §3.1.2 step 3). Thread dies with the process; the daemon flag
+    # ensures it does not keep Controller alive past its own exit.
+    import threading  # noqa: PLC0415
+    _hb_stop = threading.Event()
+    _RENEWAL_HOURS = 2  # each heartbeat pushes expiry_at 2h into the future
+    def _heartbeat() -> None:
+        rid = ns.run_id or os.environ.get("RUN_ID", "")
+        if not rid:
+            return
+        while not _hb_stop.wait(60):
+            try:
+                m = ChatHealthyMongoUtilities(
+                    "MONGO_FRONTEND_connectionString"
+                ).getConnection()
+                now = datetime.datetime.utcnow()
+                m["chathealthyfrontend"]["pipeline.runs"].update_one(
+                    {"run_id": rid},
+                    {"$set": {"controller_heartbeat_at": now}},
+                )
+                # Extend reservation expiry_at so a long-running step past
+                # the initial 10h TTL is not reaped by reservation_reaper.
+                # Reaper reads expiry_at (post-fix); Watchdog reads
+                # controller_heartbeat_at on the manifest.
+                m["admin"]["cluster_lifecycle"].update_one(
+                    {"_id": rid},
+                    {"$set": {"expiry_at": now + datetime.timedelta(hours=_RENEWAL_HOURS)}},
+                )
+            except Exception as exc:
+                _log.warning("controller heartbeat write failed run_id=%s err=%s",
+                             rid, str(exc)[:200])
+    threading.Thread(target=_heartbeat, daemon=True, name="controller-heartbeat").start()
+
     try:
         manifest = orchestrator.run(args)
         if manifest and manifest.run_id:
