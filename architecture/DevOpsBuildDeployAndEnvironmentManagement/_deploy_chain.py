@@ -1534,6 +1534,15 @@ def _resolve_target_azure_scope(target: TargetRecord, env: str) -> str:
         rg = b.get("name", "") or eb.node_address or ""
         if rg:
             return f"/subscriptions/{sub}/resourceGroups/{rg}"
+    if k == "identity":
+        b = eb.identity or {}
+        rg = b.get("resource_group", "")
+        name = b.get("name", "")
+        if rg and name:
+            return (
+                f"/subscriptions/{sub}/resourceGroups/{rg}"
+                f"/providers/Microsoft.ManagedIdentity/userAssignedIdentities/{name}"
+            )
     if k == "azure_key_vault":
         b = eb.azure_key_vault or {}
         rg = b.get("resource_group", "")
