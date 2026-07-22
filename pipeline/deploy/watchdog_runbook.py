@@ -55,7 +55,7 @@ import urllib.request
 # call so log output flows to stderr (captured by AA) and the Mongo handler
 # wires as soon as MONGO_FRONTEND_connectionString is published.
 os.environ.setdefault("CH_LOG_DESTINATION", "stderr")
-os.environ.setdefault("CH_SPACE_NAME", "watchdog-runbook")
+os.environ.setdefault("CH_SPACE_NAME", "watchdog")
 os.environ.setdefault("ENV_PREFIX",
                       os.environ.get("AUTOMATION_ENV_PREFIX", "dev"))
 os.environ.setdefault("CH_COMPONENT", "watchdog_runbook")

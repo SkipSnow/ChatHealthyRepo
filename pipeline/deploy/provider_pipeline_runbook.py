@@ -44,7 +44,7 @@ import uuid
 # handler prerequisite so it wires as soon as MONGO_FRONTEND_connectionString
 # gets published from the KV fetch further down.
 os.environ.setdefault("CH_LOG_DESTINATION", "stderr,mongo")
-os.environ.setdefault("CH_SPACE_NAME", "pipeline-runbook")
+os.environ.setdefault("CH_SPACE_NAME", "runbook")
 os.environ.setdefault("ENV_PREFIX",
                       os.environ.get("AUTOMATION_ENV_PREFIX", "dev"))
 os.environ.setdefault("CH_COMPONENT", "provider_pipeline_runbook")
@@ -470,7 +470,7 @@ runcmd:
     set +e
     docker run --rm --network host \\
       -e CHATHEALTHY_NODE_IDENTITY='pipeline-control' \\
-      -e CH_SPACE_NAME='pipeline-control' \\
+      -e CH_SPACE_NAME='control' \\
       -e CH_LOG_DESTINATION='stderr,mongo' \\
       -e CH_LOG_LEVEL='INFO' \\
       -e CH_COMPONENT='provider_pipeline_control' \\
