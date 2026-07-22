@@ -341,6 +341,19 @@ class ChatHealthyMongoUtilities:
     def getConnection(self) -> TimedClient:
         return TimedClient(_client_cache[self._env_var_name])
 
+    @staticmethod
+    def invalidate(env_var_name: str) -> None:
+        """Drop the cached client for env_var_name so the next construction
+        re-reads the env var and opens a fresh MongoClient. Callers use this
+        when they need to rotate the URI mid-process (e.g. the pipeline
+        runbook falls back from Atlas SRV to a DNS-over-HTTPS direct URI
+        when SRV lookup fails). Silent no-op when nothing is cached under
+        that name."""
+        global cached_client
+        _client_cache.pop(env_var_name, None)
+        if env_var_name == "MONGO_FRONTEND_connectionString":
+            cached_client = None
+
     def getRawClient(self) -> MongoClient:
         """Return the raw MongoClient singleton, bypassing the TimedClient
         instrumentation wrapper. ONLY for callers that must avoid the

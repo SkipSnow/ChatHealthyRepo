@@ -152,34 +152,17 @@ def _get_token(resource: str, client_id: str | None = None) -> str:
 
 
 # ============================================================================
-# Canonical Mongo logger -- writes every structured event as one document to
-# chathealthyfrontend.logFileCollection per ReadMePipelineLogs.txt. Blob is
-# NOT the runtime observability surface. On write failure the stage abends
-# (silent operation with a broken observability surface is a fatal error).
+# Structured event logging.
+# Every event goes through ChatHealthyLoggingService — the canonical logger
+# per Rule-005 — whose MongoLogHandler writes each record to Pipelines.Log_
+# {env}. No parallel log path; no direct collection write from this module.
 # ============================================================================
-_LOG_MONGO_HANDLE = None
-_LOG_BUFFER = []
-
-
-def _activate_mongo_logging(mongo):
-    """Called by main() as soon as the front-cluster MongoClient is ready.
-    Sets the module-level handle and drains any buffered events into
-    logFileCollection. Abends on write failure per policy."""
-    global _LOG_MONGO_HANDLE
-    _LOG_MONGO_HANDLE = mongo["chathealthyfrontend"]["logFileCollection"]
-    if _LOG_BUFFER:
-        _LOG_MONGO_HANDLE.insert_many(_LOG_BUFFER)
-        _LOG_BUFFER.clear()
-
-
 def log(event: str, **fields):
-    """One structured event -> chathealthyfrontend.logFileCollection.
-    Also printed to stdout so it surfaces in the AA job streams for
-    real-time debugging visibility (stdout mirror, not a destination).
-    Events fired before the Mongo client opens buffer in memory; the
-    buffer flushes when _activate_mongo_logging() runs. If the Mongo
-    write fails the exception propagates -- per ReadMePipelineLogs.txt
-    the stage MUST abend if the log surface is broken."""
+    """Emit one structured event via ChatHealthyLoggingService.info(). The
+    service's MongoLogHandler persists the record to Pipelines.Log_{env};
+    the file/stderr handler mirrors it for job-stream visibility. On
+    Mongo-write failure the service raises and this stage abends per the
+    'if you can't log to Mongo you die' policy."""
     now = datetime.datetime.utcnow().isoformat(timespec="seconds") + "Z"
     record = {
         "ts": now,
@@ -189,10 +172,6 @@ def log(event: str, **fields):
     }
     record.update(fields)
     ChatHealthyLoggingService().info(json.dumps(record, default=str))
-    if _LOG_MONGO_HANDLE is None:
-        _LOG_BUFFER.append(record)
-        return
-    _LOG_MONGO_HANDLE.insert_one(record)
 
 
 # ============================================================================
@@ -314,6 +293,94 @@ def _find_live_pipeline_run(mongo) -> dict | None:
     })
 
 
+RESERVATION_TTL_HOURS = 10
+
+
+def _reservation_short_id(run_id: str) -> str:
+    """Same VM-name suffix _provision_vm computes; used to correlate the
+    reservation record with the eventual VM."""
+    return run_id.split("-")[-1][:8] if "-" in run_id else run_id[:8]
+
+
+def _create_reservation(mongo, run_id: str, vm_name: str) -> None:
+    """Write the pipeline-run reservation on the front cluster's
+    admin.cluster_lifecycle collection. The reservation is the primary
+    contract: Controller inherits it and cancels in its main.finally;
+    reservation_reaper reaps expiry_at < now if Controller never gets
+    that far. TTL is 10 hours (outer safety envelope, not a startup
+    timeout)."""
+    coll = mongo["admin"]["cluster_lifecycle"]
+    now = datetime.datetime.utcnow()
+    expiry = now + datetime.timedelta(hours=RESERVATION_TTL_HOURS)
+    coll.replace_one(
+        {"_id": run_id},
+        {
+            "_id": run_id,
+            "run_id": run_id,
+            "vm_name": vm_name,
+            "cluster_name": ATLAS_PIPELINE_CLUSTER,
+            "requester": "provider_pipeline_runbook",
+            "start_time": now,
+            "expiry_at": expiry,
+            "reservation_class": "pipeline_run",
+            "pipeline_name": PIPELINE_NAME,
+            "status": "active",
+        },
+        upsert=True,
+    )
+
+
+def _cancel_reservation(mongo, run_id: str) -> None:
+    """Delete the reservation for a specific run_id. Idempotent."""
+    coll = mongo["admin"]["cluster_lifecycle"]
+    coll.delete_one({"_id": run_id})
+
+
+def _delete_vm_via_arm(vm_name: str) -> None:
+    """Fire-and-forget az vm delete via ARM REST. Silent on already-gone
+    (404); raises only on other HTTP errors so caller can log + swallow."""
+    url = (
+        f"https://management.azure.com/subscriptions/{SUBSCRIPTION_ID}"
+        f"/resourceGroups/{RESOURCE_GROUP}/providers/Microsoft.Compute/"
+        f"virtualMachines/{vm_name}?api-version=2024-03-01"
+    )
+    tok = _get_token("https://management.azure.com/")
+    req = urllib.request.Request(url, method="DELETE",
+                                 headers={"Authorization": f"Bearer {tok}"})
+    try:
+        with urllib.request.urlopen(req, timeout=30):
+            pass
+    except urllib.error.HTTPError as e:
+        if e.code == 404:
+            return
+        raise
+
+
+def _runbook_error_teardown(mongo, run_id: str, vm_name: str,
+                            reservation_created: bool,
+                            vm_provisioned: bool) -> None:
+    """Called by the runbook on any error path after either the VM PUT
+    landed or the reservation was written. Cancels the reservation and
+    deletes the VM so nothing leaks. Idempotent + best-effort — each
+    step is wrapped and its failure is logged but does not block the
+    others."""
+    if reservation_created:
+        try:
+            _cancel_reservation(mongo, run_id)
+            log("runbook_teardown_reservation_cancelled", run_id=run_id)
+        except Exception as exc:
+            log("runbook_teardown_reservation_cancel_failed",
+                run_id=run_id, error=str(exc)[:500])
+    if vm_provisioned:
+        try:
+            _delete_vm_via_arm(vm_name)
+            log("runbook_teardown_vm_delete_dispatched",
+                run_id=run_id, vm_name=vm_name)
+        except Exception as exc:
+            log("runbook_teardown_vm_delete_failed",
+                run_id=run_id, vm_name=vm_name, error=str(exc)[:500])
+
+
 def _write_run_manifest(mongo, run_id: str, load_mode: str,
                         state_scope, invocation_mode: str,
                         config: dict) -> None:
@@ -383,6 +450,9 @@ runcmd:
     # fires `az vm delete` on AZURE_VM_NAME before returning.
     docker run --rm --network host \\
       -e CHATHEALTHY_NODE_IDENTITY='pipeline-control' \\
+      -e CH_SPACE_NAME='pipeline-control' \\
+      -e CH_LOG_LEVEL='DEBUG' \\
+      -e CH_COMPONENT='provider_pipeline_control' \\
       -e RUN_ID='{run_id}' \\
       -e ENV_PREFIX='{ENV_PREFIX}' \\
       -e INVOCATION_MODE='{invocation_mode}' \\
@@ -798,18 +868,13 @@ def main() -> int:
                 log("mongo_srv_bypass_active",
                     direct_hostcount=direct.count(",") + 1 if direct.startswith("mongodb://") else 0)
                 os.environ["MONGO_FRONTEND_connectionString"] = direct
-                # Clear the utility's cache entry so the next call re-reads
-                # the new URI (utility singleton would otherwise reuse the
-                # first failed client).
-                from chathealthy_frontend_lib import mongo_utilities as _mu_mod
-                _mu_mod._client_cache.pop("MONGO_FRONTEND_connectionString", None)
+                ChatHealthyMongoUtilities.invalidate(
+                    "MONGO_FRONTEND_connectionString")
                 mongo = ChatHealthyMongoUtilities(
                     "MONGO_FRONTEND_connectionString"
                 ).getConnection()
                 mongo.admin.command("ping")
-            _activate_mongo_logging(mongo)
-            log("mongo_log_activated",
-                collection="chathealthyfrontend.logFileCollection")
+            log("mongo_connected", cluster="chathealthyfrontend")
             live = _find_live_pipeline_run(mongo)
             if live is not None:
                 is_duplicate_abend = True
@@ -841,15 +906,29 @@ def main() -> int:
             return 1
 
         # v32 §5.2.2: provision VM AND wake Mongo in parallel.
+        reservation_created = False
+        vm_provisioned = False
+        vm_name_for_teardown = f"vm-chpipeline-{_reservation_short_id(run_id)}"
         try:
             result = _provision_vm_and_wake_mongo_in_parallel(
                 run_id, load_mode, state_scope, invocation_mode, resume_from_step
             )
             vm_id = ((result.get("vm") or {}).get("id")) if result.get("vm") else None
+            vm_provisioned = True
             log("vm_provision_dispatched_and_mongo_woke_in_parallel",
                 run_id=run_id,
                 vm_id=vm_id,
                 atlas_resume_error=result.get("atlas_error"))
+            # Reservation on the front cluster's admin.cluster_lifecycle.
+            # Written AFTER VM PUT succeeds so the reservation always
+            # references a real VM. Controller inherits and cancels in
+            # its finally; ReservationReaper cleans up if expiry_at hits.
+            _create_reservation(mongo, run_id, vm_name_for_teardown)
+            reservation_created = True
+            log("reservation_created",
+                run_id=run_id,
+                vm_name=vm_name_for_teardown,
+                ttl_hours=RESERVATION_TTL_HOURS)
         except urllib.error.HTTPError as exc:
             body = ""
             try:
@@ -861,6 +940,8 @@ def main() -> int:
                 http_code=exc.code,
                 reason=exc.reason,
                 body=body)
+            _runbook_error_teardown(mongo, run_id, vm_name_for_teardown,
+                                    reservation_created, vm_provisioned)
             return 1
         except Exception as exc:
             log("vm_provision_failed",
@@ -868,16 +949,15 @@ def main() -> int:
                 error_type=type(exc).__name__,
                 error_msg=str(exc),
                 traceback=traceback.format_exc()[-2000:])
+            _runbook_error_teardown(mongo, run_id, vm_name_for_teardown,
+                                    reservation_created, vm_provisioned)
             return 1
 
         log("runbook_exit", run_id=run_id)
         return 0
     finally:
         # Teardown clause. When is_duplicate_abend is True the live run
-        # owns every shared resource (source blob lease, run manifest,
-        # cluster reservation, Control ACA execution); the duplicate MUST
-        # leave them alone. Any release code added here later MUST gate
-        # on `not is_duplicate_abend`.
+        # owns every shared resource; the duplicate MUST leave them alone.
         if is_duplicate_abend:
             log("duplicate_abend_teardown_skipped", run_id=run_id)
 

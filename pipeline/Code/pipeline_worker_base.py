@@ -158,7 +158,7 @@ class PipelineWorkerBase(ABC):
             count = collection.count_documents({})
             ok = count >= min_count
             if ok:
-                ChatHealthyLoggingService().info(
+                ChatHealthyLoggingService().warning(
                     "output_exists_and_valid: %s has %d docs (>= %d) — skip",
                     getattr(collection, "full_name", "?"), count, min_count,
                 )

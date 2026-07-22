@@ -178,19 +178,66 @@ def main(argv: list[str] | None = None) -> int:
         ns.expected_duration_minutes, ns.run_id or "(mint)",
         os.environ.get("STATE_SCOPE", ""), os.environ.get("LOAD_MODE", ""),
     )
-    # v32 §5.2.20 finally-block: quiesce fires on both success and failure
-    # paths. The farewell VM-delete is at the tail of quiesce so this
-    # wrapper guarantees teardown even if the orchestrator raises.
+    # v32 §5.2.20 quiesce order: cancel reservation -> mark manifest
+    # terminal -> az vm delete. Mongo cleanup MUST complete before VM
+    # delete; the VM going away is the last step so any earlier failure
+    # surfaces in Mongo before the machine that could have retried it
+    # is gone.
+    manifest = None
+    exit_code = 1
+    final_status = "failed"
     try:
         manifest = orchestrator.run(args)
-        if manifest.run_id:
+        if manifest and manifest.run_id:
             os.environ["RUN_ID"] = manifest.run_id
+        final_status = manifest.status if manifest else "failed"
         _log.info("control_runner: run %s finished status=%s",
-                  manifest.run_id, manifest.status)
-        exit_code = 0 if manifest.status == "succeeded" else 1
+                  manifest.run_id if manifest else "(none)", final_status)
+        exit_code = 0 if final_status == "succeeded" else 1
     finally:
+        run_id_for_quiesce = (
+            (manifest.run_id if manifest and manifest.run_id else None)
+            or os.environ.get("RUN_ID", "")
+        )
+        _quiesce_mongo_state(run_id_for_quiesce, final_status)
         _fire_farewell_vm_delete()
     return exit_code
+
+
+def _quiesce_mongo_state(run_id: str, final_status: str) -> None:
+    """v32 §5.2.20 quiesce steps 1-2: cancel the pipeline-run reservation
+    on the front cluster and mark the run manifest terminal. Best-effort
+    per step; a failure in one MUST NOT block the other, and neither
+    blocks the subsequent VM delete."""
+    if not run_id:
+        _log.warning("quiesce_mongo_state: no run_id available; skipping")
+        return
+    try:
+        import pymongo
+        from chathealthy_frontend_lib.mongo_utilities import ChatHealthyMongoUtilities
+        mongo = ChatHealthyMongoUtilities("MONGO_FRONTEND_connectionString").getConnection()
+        try:
+            mongo["admin"]["cluster_lifecycle"].delete_one({"_id": run_id})
+            _log.info("quiesce: reservation cancelled run_id=%s", run_id)
+        except Exception as exc:
+            _log.error("quiesce: reservation cancel FAILED run_id=%s err=%s",
+                       run_id, str(exc)[:500])
+        try:
+            mongo["chathealthyfrontend"]["pipeline.runs"].update_one(
+                {"run_id": run_id},
+                {"$set": {
+                    "status": final_status,
+                    "ended_at": __import__("datetime").datetime.utcnow(),
+                }},
+            )
+            _log.info("quiesce: manifest marked terminal run_id=%s status=%s",
+                      run_id, final_status)
+        except Exception as exc:
+            _log.error("quiesce: manifest update FAILED run_id=%s err=%s",
+                       run_id, str(exc)[:500])
+    except Exception as exc:
+        _log.error("quiesce: unable to open front-cluster Mongo run_id=%s err=%s",
+                   run_id, str(exc)[:500])
 
 
 if __name__ == "__main__":
