@@ -984,7 +984,9 @@ def _parse_schedule_from_name(name: str) -> dict | None:
     n = int(m.group(1))
     unit = m.group(2).lower()
     from datetime import datetime, timedelta, timezone
-    start = (datetime.now(timezone.utc) + timedelta(minutes=5)).strftime(
+    # Azure Automation requires startTime > NOW + 5min (strict inequality).
+    # 10-min offset gives safe margin for clock skew.
+    start = (datetime.now(timezone.utc) + timedelta(minutes=10)).strftime(
         "%Y-%m-%dT%H:%M:%S+00:00"
     )
     frequency = "Minute" if unit == "min" else "Hour"
