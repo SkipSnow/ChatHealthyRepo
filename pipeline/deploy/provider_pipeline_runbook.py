@@ -348,21 +348,35 @@ def _cloud_init_user_data(run_id: str, load_mode: str, state_scope,
     # Note: `state_scope` may be a list; serialize to JSON so Controller
     # can parse it identically to how the ACA env var carried it.
     scope_json = json.dumps(state_scope)
+    image_ref = f"{VM_ACR}.azurecr.io/{VM_IMAGE_REPO}:{VM_IMAGE_TAG}"
+    short_id = run_id.split("-")[-1][:8] if "-" in run_id else run_id[:8]
+    vm_name_for_farewell = f"vm-chpipeline-{short_id}"
     yaml_body = f"""#cloud-config
-package_update: false
+package_update: true
+package_upgrade: false
+packages:
+  - ca-certificates
+  - curl
+  - gnupg
+  - jq
+  - docker.io
 runcmd:
   - |
     set -eux
-    # Install az CLI + docker if not present (image bakes both, but be safe)
-    apt-get update -y
-    apt-get install -y ca-certificates curl gnupg jq
-    # Login to ACR via the attached user-assigned MI
+    exec > >(tee -a /var/log/chpipeline-cloud-init.log) 2>&1
+    echo "chpipeline: cloud-init runcmd start $(date -u +%FT%TZ)"
+    # docker.io installed via packages: above; enable + start.
+    systemctl enable --now docker
+    # Install Azure CLI via the Microsoft install script (Ubuntu 24.04 stock
+    # has no az CLI; MI-based ACR login below needs it).
+    curl -sL https://aka.ms/InstallAzureCLIDeb | bash
+    # Login to ACR via the attached user-assigned MI (mi-control).
     az login --identity --allow-no-subscriptions
     az acr login --name {VM_ACR}
-    # Pull the pipeline image
-    docker pull {VM_ACR}.azurecr.io/{VM_IMAGE_REPO}:{VM_IMAGE_TAG}
+    # Pull the pipeline image.
+    docker pull {image_ref}
     # Run Controller. On exit, container is gone; Controller's finally block
-    # fires `az vm delete` before returning.
+    # fires `az vm delete` on AZURE_VM_NAME before returning.
     docker run --rm --network host \\
       -e RUN_ID='{run_id}' \\
       -e ENV_PREFIX='{ENV_PREFIX}' \\
@@ -374,7 +388,8 @@ runcmd:
       -e KEY_VAULT_URI='{KEY_VAULT_URI}' \\
       -e AZURE_RESOURCE_GROUP='{RESOURCE_GROUP}' \\
       -e AZURE_SUBSCRIPTION_ID='{SUBSCRIPTION_ID}' \\
-      {VM_ACR}.azurecr.io/{VM_IMAGE_REPO}:{VM_IMAGE_TAG}
+      -e AZURE_VM_NAME='{vm_name_for_farewell}' \\
+      {image_ref}
 """
     return base64.b64encode(yaml_body.encode("utf-8")).decode("ascii")
 
@@ -551,32 +566,28 @@ def _atlas_resume_pipeline_cluster() -> dict:
     if not atlas_pub or not atlas_priv:
         log("atlas_resume_skipped_no_credentials")
         return {}
-    # Atlas start-cluster endpoint. PATCH the cluster with paused=false.
+    # Atlas Admin API keys authenticate with HTTP Digest, NOT Basic. The
+    # `requests` library's HTTPDigestAuth handles the challenge/response
+    # dance correctly out-of-the-box; urllib's handler does not (it silently
+    # fails to retry if the server's challenge shape does not match its
+    # exact expectations). Legacy atlas_cluster_manager.py uses this same
+    # pattern and works from Function Apps.
+    import requests
+    from requests.auth import HTTPDigestAuth
     url = (f"{ATLAS_ADMIN_BASE}/groups/{atlas_project_id}"
            f"/clusters/{ATLAS_PIPELINE_CLUSTER}")
-    import base64
-    creds = base64.b64encode(f"{atlas_pub}:{atlas_priv}".encode()).decode()
-    body = {"paused": False}
-    req = urllib.request.Request(
+    r = requests.patch(
         url,
-        method="PATCH",
+        auth=HTTPDigestAuth(atlas_pub, atlas_priv),
         headers={
-            "Authorization": f"Basic {creds}",
             "Content-Type": "application/vnd.atlas.2024-08-05+json",
             "Accept": "application/vnd.atlas.2024-08-05+json",
         },
-        data=json.dumps(body).encode("utf-8"),
+        json={"paused": False},
+        timeout=30,
     )
-    # AA sandbox lacks the CA chain for cloud.mongodb.com. Pin to certifi's
-    # bundle (same pattern used for pymongo TLS earlier in this file).
-    import ssl
-    try:
-        import certifi
-        ctx = ssl.create_default_context(cafile=certifi.where())
-    except ImportError:
-        ctx = ssl.create_default_context()
-    with urllib.request.urlopen(req, timeout=30, context=ctx) as r:
-        return json.loads(r.read().decode("utf-8") or "{}")
+    r.raise_for_status()
+    return r.json() if r.content else {}
 
 
 def _provision_vm_and_wake_mongo_in_parallel(
