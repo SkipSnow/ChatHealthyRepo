@@ -19,18 +19,15 @@ _LIB_SRC = _REPO_ROOT / "FrontEndApplicationLib" / "src"
 if _LIB_SRC.is_dir() and str(_LIB_SRC) not in sys.path:
     sys.path.insert(0, str(_LIB_SRC))
 
-# ChatHealthyLoggingService raises at first log emit if any of
-# CH_SPACE_NAME / ENV_PREFIX / MONGO_FRONTEND_connectionString is missing
-# ("if you can't log to Mongo you die"). Tests do not touch Mongo; stub
-# values so the logger builds a handler without hitting the abort path.
-# The MongoLogHandler's emit is lazy so no real connection attempt is
-# made until a test actually logs.
+# ChatHealthyLoggingService gracefully skips the Mongo handler when any
+# of CH_SPACE_NAME / ENV_PREFIX / MONGO_FRONTEND_connectionString is
+# missing (one-shot stderr warning, then stderr/file only). Tests do NOT
+# set MONGO_FRONTEND_connectionString: a stub URI would make every log
+# call block on serverSelectionTimeoutMS during collection, since
+# `.info()` calls are no longer silently dropped in non-debug mode.
 os.environ.setdefault("CH_SPACE_NAME", "test-pipeline")
 os.environ.setdefault("ENV_PREFIX", "test")
-os.environ.setdefault(
-    "MONGO_FRONTEND_connectionString",
-    "mongodb://test-stub:27017/?appName=test-pipeline",
-)
+os.environ.setdefault("CH_LOG_DESTINATION", "stderr")
 
 import pytest
 
