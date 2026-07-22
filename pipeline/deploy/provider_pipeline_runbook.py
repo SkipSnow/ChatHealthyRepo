@@ -80,7 +80,7 @@ ATLAS_ADMIN_BASE = os.environ.get(
 ATLAS_PROJECT_ID = os.environ.get("AUTOMATION_ATLAS_PROJECT_ID", "")
 ATLAS_PIPELINE_CLUSTER = os.environ.get(
     "AUTOMATION_ATLAS_PIPELINE_CLUSTER",
-    "chathealthydatapipeline",
+    "ChatHealthyDataPipelines",
 )
 
 # Key Vault
