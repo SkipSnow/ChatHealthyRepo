@@ -25,7 +25,7 @@ class ConsentService:
     """
 
     def __init__(self, anthropic_api_key: str = ""):
-        self._anthropic_key = anthropic_api_key or os.getenv("Anthropic_API_KEY", "")
+        self._anthropic_key = anthropic_api_key or os.getenv("ANTHROPIC_API_KEY", "")
 
     def summarize_conversation(self, chat_history: list) -> str:
         """Summarize a conversation for Tier 2 consent."""
