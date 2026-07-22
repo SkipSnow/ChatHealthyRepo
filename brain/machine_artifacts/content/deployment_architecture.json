@@ -7063,7 +7063,7 @@
                   "source_location": "pipeline/deploy/provider_pipeline_runbook.py",
                   "handler_type": "python_source",
                   "disposition": "referenced",
-                  "content_hash": "53800990c9a7df0f769ca0cb70159c33bc2a7016e44bf20510a92d28a3e7da05",
+                  "content_hash": "db6501b289fa566e21ed5042d3699971411bc358d80c0ee2b9d293e08ce794c7",
                   "package": "provider_pipeline"
                 }
               ],
@@ -7464,6 +7464,9 @@
       "target_kind": "identity",
       "provisioning": "deploy_provisioned",
       "promote_chain_bound": false,
+      "allowed_roles": [
+        "Managed Identity Operator"
+      ],
       "environments": [
         {
           "env_binding": "dev",
@@ -7602,7 +7605,8 @@
         "Automation Contributor",
         "Storage Blob Data Contributor",
         "Virtual Machine Contributor",
-        "Network Contributor"
+        "Network Contributor",
+        "Managed Identity Operator"
       ]
     },
     {

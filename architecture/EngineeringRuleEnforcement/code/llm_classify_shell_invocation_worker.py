@@ -244,6 +244,23 @@ _LOCAL_ALLOWLIST = [
     r"^\s*git\s+stash\s+(list|show)(\s|$)",
     r"^\s*git\s+worktree\s+list(\s|$)",
     r"^\s*git\s+shortlog(\s|$)",
+    # Remote READS are ALWAYS permitted. Reads never mutate; the operator
+    # never wants to gate them. Patterns match verbs that only fetch state.
+    r"^\s*az\s+\S+\s+(show|list|list-.+|get|get-.+|export|search|query)(\s|$)",
+    r"^\s*az\s+\S+\s+\S+\s+(show|list|list-.+|get|get-.+|export|search|query)(\s|$)",
+    r"^\s*az\s+account\s+(show|list|get-access-token|list-locations)(\s|$)",
+    r"^\s*az\s+version(\s|$)",
+    r"^\s*az\s+rest\s+--method\s+get\b",
+    r"^\s*gh\s+(api\s+(?!(-X|--method)\s*(POST|PUT|PATCH|DELETE))|(pr|issue|run|release|repo|workflow)\s+(list|view|status)|auth\s+status)",
+    r"^\s*docker\s+(ps|images|image\s+ls|inspect|logs|pull\s+)",
+    r"^\s*git\s+fetch\b",
+    r"^\s*git\s+ls-remote\b",
+    r"^\s*nslookup\s",
+    r"^\s*dig\s",
+    r"^\s*host\s",
+    r"^\s*ping\s",
+    r"^\s*curl\s+(-[a-zA-Z]*[LsSk]+[a-zA-Z]*\s+)*(https?://)",  # curl GET (default method)
+    r"^\s*wget\s+(-[a-zA-Z]+\s+)*(https?://)",  # wget GET (default)
     # Windows / PowerShell read-only equivalents
     r"^\s*Get-ChildItem(\s|$)",
     r"^\s*Get-Content(\s|$)",

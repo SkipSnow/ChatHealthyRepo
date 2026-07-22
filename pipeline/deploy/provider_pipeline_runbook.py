@@ -495,8 +495,19 @@ def _put(url: str, body: dict, tok: str) -> dict:
                  "Content-Type": "application/json"},
         data=json.dumps(body).encode("utf-8"),
     )
-    with urllib.request.urlopen(req, timeout=60) as r:
-        return json.loads(r.read().decode("utf-8") or "{}")
+    try:
+        with urllib.request.urlopen(req, timeout=60) as r:
+            return json.loads(r.read().decode("utf-8") or "{}")
+    except urllib.error.HTTPError as e:
+        # Read the ARM error body so the caller (and the log) sees which
+        # resource + which permission failed, not just a bare HTTP code.
+        try:
+            body_txt = e.read().decode("utf-8", errors="replace")[:2000]
+        except Exception:
+            body_txt = ""
+        raise RuntimeError(
+            f"ARM PUT {url.rsplit('?', 1)[0]} -> HTTP {e.code}: {body_txt}"
+        ) from e
 
 
 def _atlas_resume_pipeline_cluster() -> dict:
@@ -540,7 +551,15 @@ def _atlas_resume_pipeline_cluster() -> dict:
         },
         data=json.dumps(body).encode("utf-8"),
     )
-    with urllib.request.urlopen(req, timeout=30) as r:
+    # AA sandbox lacks the CA chain for cloud.mongodb.com. Pin to certifi's
+    # bundle (same pattern used for pymongo TLS earlier in this file).
+    import ssl
+    try:
+        import certifi
+        ctx = ssl.create_default_context(cafile=certifi.where())
+    except ImportError:
+        ctx = ssl.create_default_context()
+    with urllib.request.urlopen(req, timeout=30, context=ctx) as r:
         return json.loads(r.read().decode("utf-8") or "{}")
 
 
