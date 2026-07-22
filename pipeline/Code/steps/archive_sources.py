@@ -53,11 +53,33 @@ def _resolve_source_blob(source_key: str, fetch_result: dict, registry_doc: dict
     raise ChatHealthyException(mode="value_error", message=f"cannot resolve blob for source {source_key}")
 
 
+def _source_container_or_raise(source_key: str, fetch_result: dict) -> str:
+    """Return blob_container written by fetch_all_sources; raise if absent.
+
+    Kept separate from execute() so Rule-005 statement 3 (log calls and
+    raise ChatHealthyException in the same function body are forbidden)
+    stays clean: the raise-bearing helper does not log, and execute()
+    logs but does not raise ChatHealthyException.
+    """
+    source_container = fetch_result.get("blob_container")
+    if source_container:
+        return source_container
+    raise ChatHealthyException(
+        mode="fetch_result_missing_container",
+        message=(
+            f"fetch_result for source {source_key!r} lacks "
+            "'blob_container'; archive cannot locate the uploaded blob. "
+            "fetch_all_sources must always set blob_container."
+        ),
+        component="steps.archive_sources",
+        source_key=source_key,
+    )
+
+
 def execute(ctx) -> dict:
     registry = get_mongo()["admin"]["DataSourceRegistry"]
     now = datetime.now(timezone.utc)
     blob_service = ctx.blob_client or get_blob_service()
-    container = ctx.args.blob_container
     fetch_results = ctx.manifest.metrics.get("fetch_results") or {}
     versions = ctx.manifest.source_versions or {}
     archived: list[dict] = []
@@ -71,8 +93,15 @@ def execute(ctx) -> dict:
             continue
 
         fetch_result = fetch_results.get(source_key, {})
+        # The source blob's container is written by fetch_all_sources into
+        # fetch_result['blob_container'] (transient container per env, e.g.
+        # 'dev-pipeline-transients'). Prior archive code hard-coded
+        # ctx.args.blob_container ('provider-data') which never matched
+        # what the fetcher uploaded to, so archive raised FileNotFoundError
+        # on the first source.
+        source_container = _source_container_or_raise(source_key, fetch_result)
         try:
-            blob_name, filename = _resolve_source_blob(source_key, fetch_result, reg_doc, container)
+            blob_name, filename = _resolve_source_blob(source_key, fetch_result, reg_doc, source_container)
         except ValueError as exc:
             _log.warning("archive skip %s: %s", source_key, exc)
             continue
@@ -83,7 +112,7 @@ def execute(ctx) -> dict:
                 env_prefix=ctx.env_prefix,
                 source_name=registry_name,
                 version=version,
-                source_container=container,
+                source_container=source_container,
                 source_blob_name=blob_name,
                 filename=filename,
             )
