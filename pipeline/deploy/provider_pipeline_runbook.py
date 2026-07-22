@@ -43,7 +43,7 @@ import uuid
 # read on a failed run) and CH_SPACE_NAME + ENV_PREFIX satisfy the Mongo
 # handler prerequisite so it wires as soon as MONGO_FRONTEND_connectionString
 # gets published from the KV fetch further down.
-os.environ.setdefault("CH_LOG_DESTINATION", "stderr")
+os.environ.setdefault("CH_LOG_DESTINATION", "stderr,mongo")
 os.environ.setdefault("CH_SPACE_NAME", "pipeline-runbook")
 os.environ.setdefault("ENV_PREFIX",
                       os.environ.get("AUTOMATION_ENV_PREFIX", "dev"))
@@ -856,6 +856,13 @@ def _resolve_state_scope(raw):
 # Main
 # ============================================================================
 def main() -> int:
+    # Hoist Mongo secret fetch to the very top so CHLS's Mongo handler
+    # can wire on the first log() call below. Without this, log() -> CHLS
+    # -> _build_mongo_handler raises on missing MONGO_FRONTEND_connectionString
+    # and the runbook crashes silently before any structured event lands
+    # in Pipelines.Log_dev.
+    os.environ["MONGO_FRONTEND_connectionString"] = _get_mongo_conn_string()
+
     invocation_mode = INVOCATION_MODE
     webhook_body = _parse_webhook_input()
     if webhook_body:
