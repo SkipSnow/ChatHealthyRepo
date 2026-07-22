@@ -362,8 +362,9 @@ packages:
   - docker.io
 runcmd:
   - |
+    #!/bin/bash
     set -eux
-    exec > >(tee -a /var/log/chpipeline-cloud-init.log) 2>&1
+    exec >> /var/log/chpipeline-cloud-init.log 2>&1
     echo "chpipeline: cloud-init runcmd start $(date -u +%FT%TZ)"
     # docker.io installed via packages: above; enable + start.
     systemctl enable --now docker
