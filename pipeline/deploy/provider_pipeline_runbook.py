@@ -379,6 +379,7 @@ runcmd:
     # Run Controller. On exit, container is gone; Controller's finally block
     # fires `az vm delete` on AZURE_VM_NAME before returning.
     docker run --rm --network host \\
+      -e CHATHEALTHY_NODE_IDENTITY='pipeline-control' \\
       -e RUN_ID='{run_id}' \\
       -e ENV_PREFIX='{ENV_PREFIX}' \\
       -e INVOCATION_MODE='{invocation_mode}' \\
