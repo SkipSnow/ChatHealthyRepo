@@ -1,0 +1,473 @@
+{
+  "$schema": "https://dev.chathealthy.ai/schemas/ChatHealthyRelaxedSchema.json",
+  "features": [
+    {
+      "feature_id": "EPIC-010-F-101",
+      "stories": [
+        {
+          "story_id": "EPIC-010-F-101-S-001",
+          "requirements": [
+            {
+              "req_id": "EPIC-010-F-101-S-001-REQ-B-001",
+              "story_id": "EPIC-010-F-101-S-001",
+              "name": "Reservation-owned pipeline cluster uptime",
+              "description": "The pipeline cluster is unpaused only while a live reservation exists on chathealthyfrontend.pipeline.cluster_reservations. Prepare Infrastructure (section 5.2.2) inserts the reservation on VM PUT success; Quiesce (section 5.2.20) deletes it; when no live or operator-class reservation remains the cluster pause is requested. Runtime compute (section 4.3.4) attaches to the reserved cluster only.",
+              "approval": "",
+              "status": "not_started",
+              "test_ids": []
+            },
+            {
+              "req_id": "EPIC-010-F-101-S-001-REQ-B-004",
+              "story_id": "EPIC-010-F-101-S-001",
+              "name": "Reservation drives cluster usage lifecycle",
+              "description": "Every use of the pipeline cluster by the pipeline is bracketed by a reservation record: created at run start (section 5.2.2 and section 4.3.4), honored by the Watchdog Runbook throughout the run so live reservations are never reaped, and released at Quiesce (section 5.2.20). Absent a live reservation the pipeline MUST NOT touch the cluster.",
+              "approval": "",
+              "status": "not_started",
+              "test_ids": []
+            }
+          ]
+        },
+        {
+          "story_id": "EPIC-010-F-101-S-004",
+          "requirements": [
+            {
+              "req_id": "EPIC-010-F-101-S-004-REQ-T-003",
+              "story_id": "EPIC-010-F-101-S-004",
+              "name": "Per-step cost tracking on run manifest",
+              "description": "BasePipelineOrchestrator captures per-step wall-clock and peak memory on step_transitions and computes per-run compute cost (VM SKU hourly rate x wall-clock), Atlas cost (tier-hours), and vendor cost (Google Maps calls) at Quiesce, storing totals on the run manifest metrics per section 6.7.",
+              "approval": "",
+              "status": "not_started",
+              "test_ids": []
+            }
+          ]
+        },
+        {
+          "story_id": "EPIC-010-F-101-S-005",
+          "requirements": [
+            {
+              "req_id": "EPIC-010-F-101-S-005-REQ-B-001",
+              "story_id": "EPIC-010-F-101-S-005",
+              "name": "Versioned provider collections with active-version pointer",
+              "description": "The provider dataset supports multiple versions coexisting as distinct collections providers_v1, providers_v2, ... on the pipeline cluster. A Full load writes into the declared target version collection per section 6.8. Delete-target-scope (section 5.2.6) and Normalize (section 5.2.9) read and write only the version named on pipeline.config.",
+              "approval": "",
+              "status": "not_started",
+              "test_ids": []
+            },
+            {
+              "req_id": "EPIC-010-F-101-S-005-REQ-B-003",
+              "story_id": "EPIC-010-F-101-S-005",
+              "name": "Hand-maintained pipeline configuration store",
+              "description": "Every tunable knob lives on chathealthyfrontend.pipeline.config per section 6.3 as documents identified by _id: source_freshness, batch_limits, failure_thresholds, cost_bands, dataset_versions, throttle_rates, notification_receivers, step_parallelism_caps, tier_by_load_mode, vm_sizing. The Controller reads once at boot.",
+              "approval": "",
+              "status": "not_started",
+              "test_ids": []
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "feature_id": "EPIC-010-F-102",
+      "stories": [
+        {
+          "story_id": "EPIC-010-F-102-S-001",
+          "requirements": [
+            {
+              "req_id": "EPIC-010-F-102-S-001-REQ-B-001",
+              "story_id": "EPIC-010-F-102-S-001",
+              "name": "Durable orchestration framework and step activity contract",
+              "description": "Per section 5.1, the pipeline runs on the shared BasePipelineOrchestrator with a concrete ProviderPipelineOrchestrator subclass declaring PIPELINE_NAME and an ordered STEPS list of StepSpec records (name, prerequisites, invocation_phase, timeout_seconds, parallelism_spec, completion_marker_key). The framework guarantees prerequisite gating, finally-block execution, failure-threshold abort, and skip-if-done.",
+              "approval": "",
+              "status": "not_started",
+              "test_ids": []
+            },
+            {
+              "req_id": "EPIC-010-F-102-S-001-REQ-T-008",
+              "story_id": "EPIC-010-F-102-S-001",
+              "name": "Run manifest is the persistent monitoring surface",
+              "description": "Per section 6.2, chathealthyfrontend.pipeline.runs is the durable state-of-record. Fields include run_id, pipeline_name, env, invocation_mode, load_mode, state_scope, started_at, finished_at, status, abort_reason, source_versions, source_freshness_decisions, step_transitions, incremental_diff, and controller_heartbeat_at. Indexes support last-runs trend, admin dashboard, and Watchdog scans.",
+              "approval": "",
+              "status": "not_started",
+              "test_ids": []
+            }
+          ]
+        },
+        {
+          "story_id": "EPIC-010-F-102-S-002",
+          "requirements": [
+            {
+              "req_id": "EPIC-010-F-102-S-002-REQ-B-001",
+              "story_id": "EPIC-010-F-102-S-002",
+              "name": "Shared base Worker classes for pipeline steps",
+              "description": "Per section 5.1, Workers are spawned by the Controller via subprocess.Popen invoking a shared entrypoint (python -m chathealthy.pipeline.worker) with step_name, replica index, and run_id. Workers inherit environment and credentials from Controller, claim work via Mongo findOneAndUpdate, execute, and exit; the framework owns reaping, heartbeat, and lease reclaim (section 4.3.4).",
+              "approval": "",
+              "status": "not_started",
+              "test_ids": []
+            }
+          ]
+        },
+        {
+          "story_id": "EPIC-010-F-102-S-003",
+          "requirements": [
+            {
+              "req_id": "EPIC-010-F-102-S-003-REQ-B-001",
+              "story_id": "EPIC-010-F-102-S-003",
+              "name": "Data-source fetching with content-hash verification",
+              "description": "Per section 5.2.4, for each source declared in pipeline.config.sources the Worker HTTPS GETs the vendor canonical URL, streams bytes into run-scoped Blob transients while computing SHA-256 incrementally, and records content_hash, bytes, and fetched_at on the work-item. Fetch respects vendor rate-limit headers and configured throttle. Retries 3x on timeout; hash mismatch on re-download fails the step.",
+              "approval": "",
+              "status": "not_started",
+              "test_ids": []
+            },
+            {
+              "req_id": "EPIC-010-F-102-S-003-REQ-B-002",
+              "story_id": "EPIC-010-F-102-S-003",
+              "name": "Source freshness gate never trusts age",
+              "description": "Per section 5.2.3, before Fetch the Worker asks each source whether a newer version exists via HTTP HEAD, landing-page fetch, or LLM-assisted publication-date extraction against the canonical freshness_url. The gate compares published_at / version_tag against the archive top; strictly newer yields action=fetch, otherwise action=reuse. The gate always runs and never uses age as a freshness proxy.",
+              "approval": "",
+              "status": "not_started",
+              "test_ids": []
+            },
+            {
+              "req_id": "EPIC-010-F-102-S-003-REQ-T-002",
+              "story_id": "EPIC-010-F-102-S-003",
+              "name": "Gather activity inventory across declared sources",
+              "description": "Per section 5.2.4, Fetch enumerates every source declared in pipeline.config.sources and produces one work-item per source recording either fetch metrics (content_hash, bytes, fetched_at) or a reused=true pointer to the prior archive entry, forming the run's gather-activity inventory.",
+              "approval": "",
+              "status": "not_started",
+              "test_ids": []
+            },
+            {
+              "req_id": "EPIC-010-F-102-S-003-REQ-T-003",
+              "story_id": "EPIC-010-F-102-S-003",
+              "name": "Source-gather concurrency bounded by throttle",
+              "description": "Per section 5.2.4, per-source fetch concurrency is bounded by the vendor rate-limit headers and the configured pipeline.config.sources.<name>.throttle. Workers respect 429 back-offs on paid and throttled endpoints.",
+              "approval": "",
+              "status": "not_started",
+              "test_ids": []
+            },
+            {
+              "req_id": "EPIC-010-F-102-S-003-REQ-T-004",
+              "story_id": "EPIC-010-F-102-S-003",
+              "name": "LLM-assisted URL discovery for moving sources",
+              "description": "Per section 5.2.3, sources that publish only a human-readable landing page (NPPES monthly page, USDA RUCC page, NUCC taxonomy page) get publication-date and version-tag extracted by calling the LLM at the Google generativelanguage endpoint. If the classifier is unreachable the gate falls back to URL/HEAD comparison; with no signal at all the gate errs on freshness (action=fetch).",
+              "approval": "",
+              "status": "not_started",
+              "test_ids": []
+            }
+          ]
+        },
+        {
+          "story_id": "EPIC-010-F-102-S-004",
+          "requirements": [
+            {
+              "req_id": "EPIC-010-F-102-S-004-REQ-B-001",
+              "story_id": "EPIC-010-F-102-S-004",
+              "name": "Version-addressed source archive",
+              "description": "Per sections 4.2 and 5.2.5, fetched sources are copied from run-scoped transients into the permanent archive at {env}-pipeline-sources/{source_name}/{content_hash}/{filename}. The storage account chathealthypipedev holds two containers per env: {env}-pipeline-sources (source archive) and {env}-pipeline-transients (per-run scratch).",
+              "approval": "",
+              "status": "not_started",
+              "test_ids": []
+            },
+            {
+              "req_id": "EPIC-010-F-102-S-004-REQ-T-001",
+              "story_id": "EPIC-010-F-102-S-004",
+              "name": "Two-places persistence with prior-version retention",
+              "description": "Per section 5.2.5, the archive retains the current source file plus the immediately-prior version until superseded. The prior archive entry is deleted only at the end of Quiesce (section 5.2.20) on successful runs, preserving replay capability for the just-completed run's inputs.",
+              "approval": "",
+              "status": "not_started",
+              "test_ids": []
+            },
+            {
+              "req_id": "EPIC-010-F-102-S-004-REQ-T-003",
+              "story_id": "EPIC-010-F-102-S-004",
+              "name": "Byte-offset indexed staging for replay",
+              "description": "Per section 5.2.7, staging preserves each source row's native structure as one Mongo document keyed by the source's natural key (NPI for NPPES; NPI + practice-location for pl_pfile). Every field of every row is a Mongo field on that document with column names preserved verbatim, supporting byte-offset-indexed replay of source rows during rework.",
+              "approval": "",
+              "status": "not_started",
+              "test_ids": []
+            }
+          ]
+        },
+        {
+          "story_id": "EPIC-010-F-102-S-005",
+          "requirements": [
+            {
+              "req_id": "EPIC-010-F-102-S-005-REQ-B-001",
+              "story_id": "EPIC-010-F-102-S-005",
+              "name": "Post-load source vs DB reconciliation",
+              "description": "Per section 5.2.18 (Full) and section 5.3.11 (Incremental), the Controller runs three parity checks after load: count parity (per state, source NPI count == providers_v<N> record count), NPI set parity (orphans in either direction recorded), and field spot-check (random 100 NPIs per state re-parsed from source vs record). Incremental adds preserved / changed / new / removed count assertions.",
+              "approval": "",
+              "status": "not_started",
+              "test_ids": []
+            },
+            {
+              "req_id": "EPIC-010-F-102-S-005-REQ-T-001",
+              "story_id": "EPIC-010-F-102-S-005",
+              "name": "Discrepancy persistence and four run-end notifications",
+              "description": "Per section 5.2.19 and chapter 8, the Controller aggregates pipeline.discrepancies for the run, generates a PDF grouped by state -> entity_type -> reason, uploads to Blob, and sends four notifications: text abnormal-end, text successful-end, email abnormal-end error report, and email discrepancy report with PDF attachment.",
+              "approval": "",
+              "status": "not_started",
+              "test_ids": []
+            },
+            {
+              "req_id": "EPIC-010-F-102-S-005-REQ-T-002",
+              "story_id": "EPIC-010-F-102-S-005",
+              "name": "Failure-threshold abort at every step boundary",
+              "description": "Per section 5.1, pipeline.config.failure_thresholds carries a per-run discrepancy-count ceiling; the framework checks the current count at every step exit and aborts the run when the ceiling is exceeded. Post-load reconciliation (section 5.2.18) also aborts when reconciliation diff count exceeds reconciliation_diff_max.",
+              "approval": "",
+              "status": "not_started",
+              "test_ids": []
+            }
+          ]
+        },
+        {
+          "story_id": "EPIC-010-F-102-S-007",
+          "requirements": [
+            {
+              "req_id": "EPIC-010-F-102-S-007-REQ-B-001",
+              "story_id": "EPIC-010-F-102-S-007",
+              "name": "Single authenticated entrance to the pipeline",
+              "description": "Per section 5.2.1, every run enters through Invoke with {pipeline_name, load_mode, state_scope, caller_identity}. Unknown caller_identity writes a pipeline.security_issues row and returns HTTP 401; invalid state_scope returns HTTP 400; duplicate run_id returns HTTP 409 with no side effects. On admission the pipeline writes a fresh pipeline.runs manifest with status=pending_vm_provision.",
+              "approval": "",
+              "status": "not_started",
+              "test_ids": []
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "feature_id": "EPIC-010-F-103",
+      "stories": [
+        {
+          "story_id": "EPIC-010-F-103-S-001",
+          "requirements": [
+            {
+              "req_id": "EPIC-010-F-103-S-001-REQ-B-001",
+              "story_id": "EPIC-010-F-103-S-001",
+              "name": "End-to-end provider orchestration umbrella (B-001 through B-019)",
+              "description": "The map row 'EPIC-010-F-103-S-001-REQ-B-001 through B-019' pins the entire Full-load orchestration (section 5.1 and sections 5.2 steps 9 through 17: Normalize NPI, secondary practice addresses, Type-1 first branch, Type-2 first branch, License-based address repair, County enrichment, Urban flag, Type-1 second branch, Type-2 second branch) as the realization of the S-001 provider-record contract. Individual sub-REQs B-002 through B-019 are not enumerated in the map; author them off the per-step substance in section 5.2.",
+              "approval": "",
+              "status": "not_started",
+              "test_ids": []
+            },
+            {
+              "req_id": "EPIC-010-F-103-S-001-REQ-B-002",
+              "story_id": "EPIC-010-F-103-S-001",
+              "name": "Full-source-file delete-on-absence for target scope",
+              "description": "Per sections 5.2.6 and 5.3.10, Full mode deletes every provider record in the target state_scope from providers_v<N> before rebuild (deleteMany({mailing_state: {$in: state_scope}})); Incremental mode deletes providers_v<N> documents for every NPI in the incremental 'removed' set. Together these realize branch (b) of the full-source-file delete-on-absence contract.",
+              "approval": "",
+              "status": "not_started",
+              "test_ids": []
+            },
+            {
+              "req_id": "EPIC-010-F-103-S-001-REQ-B-005",
+              "story_id": "EPIC-010-F-103-S-001",
+              "name": "License-based address repair for ambiguous state",
+              "description": "Per section 5.2.13, for each provider carrying state_missing_ambiguous_license on a practice address the Worker looks up licenses; if exactly one license implies a state, the address is stamped with state=implied_state and state_source=license_inference. Persistent ambiguity yields discrepancy reason=state_missing_no_license or state_missing_multiple_licenses.",
+              "approval": "",
+              "status": "not_started",
+              "test_ids": []
+            }
+          ]
+        },
+        {
+          "story_id": "EPIC-010-F-103-S-004",
+          "requirements": [
+            {
+              "req_id": "EPIC-010-F-103-S-004-REQ-B-001",
+              "story_id": "EPIC-010-F-103-S-004",
+              "name": "County enrichment cost-ordered cascade (umbrella B-001..B-008)",
+              "description": "The map row spans REQ-B-001 through B-008 realized at section 5.2.14. Every practice address gets county identity attached at a 98% SLA using the ordered cascade zip_crosswalk (free) -> census_batch (free) -> nppes_registry (free, ~5 req/s per IP) -> google_maps (paid, throttled per manifest quota); first success stamps county.fips, county.name, county.source. Cascade exhaustion yields discrepancy reason=county_unresolvable. Individual sub-REQs B-002..B-008 must be authored off the per-cascade-stage substance.",
+              "approval": "",
+              "status": "not_started",
+              "test_ids": []
+            }
+          ]
+        },
+        {
+          "story_id": "EPIC-010-F-103-S-005",
+          "requirements": [
+            {
+              "req_id": "EPIC-010-F-103-S-005-REQ-B-001",
+              "story_id": "EPIC-010-F-103-S-005",
+              "name": "Urban flag from USDA RUCC join",
+              "description": "Per section 5.2.15, the Urban flag step joins providers_v<N>.practice_addresses[*].county.fips to pipeline_sources_rucc.FIPS and stamps urban=true where RUCC in {1,2,3} and urban=false otherwise. RUCC lookup miss yields discrepancy reason=rucc_lookup_miss.",
+              "approval": "",
+              "status": "not_started",
+              "test_ids": []
+            },
+            {
+              "req_id": "EPIC-010-F-103-S-005-REQ-B-002",
+              "story_id": "EPIC-010-F-103-S-005",
+              "name": "Urban classification per-state fan-out",
+              "description": "Per section 5.2.15, urban classification runs at per-state fan-out concurrency (min(len(state_scope), step_parallelism_caps.urban_flag)) and produces per-address urban true/false values on every enriched practice address.",
+              "approval": "",
+              "status": "not_started",
+              "test_ids": []
+            }
+          ]
+        },
+        {
+          "story_id": "EPIC-010-F-103-S-007",
+          "requirements": [
+            {
+              "req_id": "EPIC-010-F-103-S-007-REQ-B-001",
+              "story_id": "EPIC-010-F-103-S-007",
+              "name": "Proprietary flag enrichment umbrella (B-001..B-004)",
+              "description": "The map spans B-001 through B-004 realized at sections 5.2.11, 5.2.12, and 5.2.16. The Worker joins each provider's primary taxonomy code to pipeline_sources_specialty_catalog and stamps can_prescribe, is_homeopathic, and is_disqualified onto the record. Individual sub-REQs B-002..B-004 must be authored off section 5.2.16 substance.",
+              "approval": "",
+              "status": "not_started",
+              "test_ids": []
+            },
+            {
+              "req_id": "EPIC-010-F-103-S-007-REQ-B-004",
+              "story_id": "EPIC-010-F-103-S-007",
+              "name": "Institutional identity materialization via NUCC join",
+              "description": "Per section 5.2.17, the Type-2 second branch completes each institutional record with a human-readable facility-type description by joining the primary taxonomy code to NUCC descriptors and materializing institutional_identity per section 7.1. NUCC lookup miss yields discrepancy reason=nucc_lookup_miss_institutional.",
+              "approval": "",
+              "status": "not_started",
+              "test_ids": []
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "feature_id": "EPIC-010-F-105",
+      "stories": [
+        {
+          "story_id": "EPIC-010-F-105-S-001",
+          "requirements": [
+            {
+              "req_id": "EPIC-010-F-105-S-001-REQ-B-001",
+              "story_id": "EPIC-010-F-105-S-001",
+              "name": "F-105 single source of truth catalog",
+              "description": "Per section 5.2.8 and section 7.4, the F-105 catalog is the business-maintained NUCC lookup at chathealthydatapipeline.ProprietaryData.SpecialtyAndProviderFlags. Each record carries code, is_licensed_clinical_role, can_prescribe, is_homeopathic, is_disqualified. Load-F-105-catalog copies the catalog into a per-run read cache chathealthyfrontend.pipeline_sources_specialty_catalog.",
+              "approval": "",
+              "status": "not_started",
+              "test_ids": []
+            }
+          ]
+        }
+      ]
+    }
+  ],
+  "topics_without_req_ids": [
+    {
+      "category": "story-only",
+      "map_entry": "EPIC-010-F-103-S-002",
+      "map_note": "NPPES base + canonical NPI key. Realizing sections 5.2.4, 5.2.7."
+    },
+    {
+      "category": "story-only",
+      "map_entry": "EPIC-010-F-103-S-003",
+      "map_note": "Multi-address file (pl_pfile). Realizing section 5.2.10."
+    },
+    {
+      "category": "story-only",
+      "map_entry": "EPIC-010-F-103-S-008",
+      "map_note": "Normative provider schema. Realizing section 7.1."
+    },
+    {
+      "category": "story-only",
+      "map_entry": "EPIC-010-F-105-S-002",
+      "map_note": "can_prescribe flag. Realizing section 5.2.16."
+    },
+    {
+      "category": "story-only",
+      "map_entry": "EPIC-010-F-105-S-003",
+      "map_note": "is_homeopathic flag. Realizing section 5.2.16."
+    },
+    {
+      "category": "out-of-epic",
+      "map_entry": "EPIC-002-F-003-S-006-REQ-B-001",
+      "map_note": "ChatHealthy operates its own CA (sections 3.4, 6.5). Out-of-epic - not drafted."
+    },
+    {
+      "category": "out-of-epic",
+      "map_entry": "EPIC-002-F-003-S-006-REQ-B-002",
+      "map_note": "Every issued cert traceable; CA namespace policy (section 6.5). Out-of-epic - not drafted."
+    },
+    {
+      "category": "out-of-epic",
+      "map_entry": "EPIC-002-F-003-S-006-REQ-B-004",
+      "map_note": "Long-lived cert lifetime for Runbook + Controller (sections 3.1, 3.4, 6.5). Out-of-epic - not drafted."
+    },
+    {
+      "category": "out-of-epic",
+      "map_entry": "EPIC-002-F-003-S-007-REQ-B-001",
+      "map_note": "Private credentials held only by their issued identity; Mongo X.509 throughout (sections 3.4, 5.2). Out-of-epic - not drafted."
+    },
+    {
+      "category": "out-of-epic",
+      "map_entry": "EPIC-002-F-003-S-007-REQ-B-002",
+      "map_note": "Least privilege on secrets (section 5.2.2). Out-of-epic - not drafted."
+    },
+    {
+      "category": "out-of-epic",
+      "map_entry": "EPIC-002-F-003-S-007-REQ-B-003",
+      "map_note": "Every secret read audited (section 6.6). Out-of-epic - not drafted."
+    },
+    {
+      "category": "out-of-epic",
+      "map_entry": "EPIC-002-F-003-S-008-REQ-B-001",
+      "map_note": "One canonical identity per component (sections 3.1, 3.4). Out-of-epic - not drafted."
+    },
+    {
+      "category": "out-of-epic",
+      "map_entry": "EPIC-002-F-003-S-008-REQ-B-002",
+      "map_note": "Single authoritative identity registry consumed at admission (sections 3.18, 5.2.1). Out-of-epic - not drafted."
+    },
+    {
+      "category": "out-of-epic",
+      "map_entry": "EPIC-002-F-003-S-008-REQ-B-004",
+      "map_note": "Registry entry names every authenticating surface (chapter 8). Out-of-epic - not drafted."
+    },
+    {
+      "category": "out-of-epic",
+      "map_entry": "EPIC-008-F-012-S-001-REQ-B-006",
+      "map_note": "Human authorization gate on deploy (deploy chain). Out-of-epic - not drafted."
+    },
+    {
+      "category": "out-of-epic",
+      "map_entry": "EPIC-008-F-012-S-001-REQ-B-007",
+      "map_note": "No commit or deploy without explicit human authorization - Rule-065 (deploy chain). Out-of-epic - not drafted."
+    },
+    {
+      "category": "out-of-epic",
+      "map_entry": "EPIC-008-F-012-S-001-REQ-B-010",
+      "map_note": "Manifest is exact-truth for files shipped to each target (deploy chain). Out-of-epic - not drafted."
+    },
+    {
+      "category": "out-of-epic",
+      "map_entry": "EPIC-008-F-012-S-012-REQ-B-003",
+      "map_note": "Secrets in Key Vault (section 3.6). Out-of-epic - not drafted."
+    },
+    {
+      "category": "out-of-epic",
+      "map_entry": "EPIC-008-F-012-S-012-REQ-B-005",
+      "map_note": "Managed-identity secret fetch - no plaintext propagation (sections 3.3, 6.5). Out-of-epic - not drafted."
+    },
+    {
+      "category": "out-of-epic",
+      "map_entry": "EPIC-008-F-012-S-012-REQ-B-006",
+      "map_note": "Key Vault access audit (section 6.6). Out-of-epic - not drafted."
+    },
+    {
+      "category": "out-of-epic",
+      "map_entry": "EPIC-008-F-012-S-019-REQ-B-001 through REQ-B-006",
+      "map_note": "Zero-trust network topology (sections 4.2, 4.3). Out-of-epic - not drafted."
+    },
+    {
+      "category": "bug-ref",
+      "map_entry": "BUG-001",
+      "map_note": "Least-permanent-infrastructure principle honored: zero compute between runs (section 4.3.1). Bug, not REQ."
+    },
+    {
+      "category": "bug-ref",
+      "map_entry": "BUG-006",
+      "map_note": "Full-mode delete-target-scope and Incremental-mode delete-removed both realize the delete-on-absence contract (sections 5.2.6, 5.3.10). Bug, not REQ."
+    }
+  ]
+}
