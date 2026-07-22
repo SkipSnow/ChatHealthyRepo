@@ -461,8 +461,13 @@ runcmd:
     az acr login --name {VM_ACR}
     # Pull the pipeline image.
     docker pull {image_ref}
-    # Run Controller. On exit, container is gone; Controller's finally block
-    # fires `az vm delete` on AZURE_VM_NAME before returning.
+    # Run Controller. Container is --rm so filesystem cleans up on exit.
+    # Controller's finally block fires `az vm delete` on AZURE_VM_NAME on
+    # normal exit. But if Controller aborts BEFORE main() runs (e.g.,
+    # bootstrap observability gate raises), no finally fires. The cloud-init
+    # safety-net after docker run ALWAYS fires az vm delete, idempotent —
+    # a duplicate DELETE 404s if Controller already fired it.
+    set +e
     docker run --rm --network host \\
       -e CHATHEALTHY_NODE_IDENTITY='pipeline-control' \\
       -e CH_SPACE_NAME='pipeline-control' \\
@@ -482,6 +487,16 @@ runcmd:
       -e AZURE_SUBSCRIPTION_ID='{SUBSCRIPTION_ID}' \\
       -e AZURE_VM_NAME='{vm_name_for_farewell}' \\
       {image_ref}
+    DOCKER_EXIT=$?
+    echo "chpipeline: docker run exit=$DOCKER_EXIT $(date -u +%FT%TZ)"
+    set -e
+    # Farewell VM delete. Fires regardless of docker exit code:
+    #   - Controller normal exit (0): its finally already dispatched delete;
+    #     this second DELETE 404s harmlessly.
+    #   - Controller aborted (non-zero): finally never ran; this is the
+    #     only VM-teardown path. Prevents idle VMs from accumulating.
+    echo "chpipeline: firing farewell az vm delete $(date -u +%FT%TZ)"
+    az vm delete --resource-group {RESOURCE_GROUP} --name {vm_name_for_farewell} --yes --no-wait || true
 """
     return base64.b64encode(yaml_body.encode("utf-8")).decode("ascii")
 
