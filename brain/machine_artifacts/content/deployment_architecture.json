@@ -7063,7 +7063,7 @@
                   "source_location": "pipeline/deploy/provider_pipeline_runbook.py",
                   "handler_type": "python_source",
                   "disposition": "referenced",
-                  "content_hash": "3edd3d6ce01725ad685192bdf06c8ad678091f57f8c668a2a821737c01973973",
+                  "content_hash": "2459d9cb932c0be917ed76c33fdf9c9b25ec3ff118c3c6c06b6b2c309a85bb59",
                   "package": "provider_pipeline"
                 }
               ],
@@ -7074,7 +7074,8 @@
                 "ATLAS_PRIVATE_KEY": "local_env",
                 "ATLAS_PROJECT_ID": "local_env",
                 "AZURE_STORAGE_CONNECTION_STRING": "local_env",
-                "KEY_VAULT_URI": "local_env"
+                "KEY_VAULT_URI": "local_env",
+                "AZ_VM_ADMIN_SSH_PUBKEY": "local_env"
               },
               "config": {
                 "runbook_name": "ProviderPipelineRunbook",

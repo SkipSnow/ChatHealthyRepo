@@ -379,6 +379,19 @@ runcmd:
     return base64.b64encode(yaml_body.encode("utf-8")).decode("ascii")
 
 
+def _get_ssh_pubkey() -> str:
+    """Fetch the admin SSH pubkey from Automation Variables (AZ_VM_ADMIN_SSH_PUBKEY).
+    Azure Linux VM osProfile requires either at least one SSH key or password auth;
+    we pick the key path so the VM has no interactive-login surface with a
+    password. The private key is held by the operator; NSG denies inbound SSH
+    anyway - the key exists to satisfy ARM validation, not for interactive use."""
+    try:
+        import automationassets
+        return automationassets.get_automation_variable("AZ_VM_ADMIN_SSH_PUBKEY")
+    except Exception:
+        return os.environ.get("AZ_VM_ADMIN_SSH_PUBKEY", "")
+
+
 def _provision_vm(run_id: str, load_mode: str, state_scope,
                   invocation_mode: str, resume_from_step: str = "") -> dict:
     """v32 §5.2.2: PUT a fresh Pipeline Run VM into snet-pipeline-compute.
@@ -468,7 +481,10 @@ def _provision_vm(run_id: str, load_mode: str, state_scope,
                 "adminUsername": "chpipeline",
                 "linuxConfiguration": {
                     "disablePasswordAuthentication": True,
-                    "ssh": {"publicKeys": []},   # no interactive SSH; MI-only
+                    "ssh": {"publicKeys": [{
+                        "path": "/home/chpipeline/.ssh/authorized_keys",
+                        "keyData": _get_ssh_pubkey(),
+                    }]},
                     "provisionVMAgent": True,
                 },
                 "customData": user_data_b64,
