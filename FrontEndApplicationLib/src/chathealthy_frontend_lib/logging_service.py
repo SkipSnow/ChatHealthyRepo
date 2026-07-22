@@ -297,9 +297,7 @@ def _build_handler(destination: str) -> logging.Handler:
         parent = os.path.dirname(destination)
         if parent:
             os.makedirs(parent, exist_ok=True)
-        h = logging.FileHandler(
-            destination, mode="a", encoding="utf-8", errors="replace",
-        )
+        h = logging.FileHandler(destination, mode="a", encoding="utf-8")
     h.setFormatter(_Formatter(fmt=_FORMAT, datefmt=_DATEFMT))
     return h
 
