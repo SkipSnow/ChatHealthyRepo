@@ -29,11 +29,13 @@ from __future__ import annotations
 from chathealthy_frontend_lib.logging_service import ChatHealthyLoggingService
 
 import argparse
+import datetime
 import json
-import logging
 import os
 import subprocess
 import sys
+
+from chathealthy_frontend_lib.mongo_utilities import ChatHealthyMongoUtilities
 
 from blob_client import get_blob_service
 from pipeline_db import get_mongo
@@ -141,13 +143,8 @@ def _states_list(raw: str) -> list[str]:
 def main(argv: list[str] | None = None) -> int:
     ns = _parse_args(argv if argv is not None else sys.argv[1:])
 
-    root = ChatHealthyLoggingService()
-    if not root.handlers:
-        handler = logging.StreamHandler(sys.stderr)
-        handler.setFormatter(logging.Formatter(
-            "%(asctime)s %(levelname)s %(name)s %(message)s"))
-        root.addHandler(handler)
-    root.setLevel(getattr(logging, ns.log_level.upper(), logging.INFO))
+    if ns.log_level:
+        os.environ.setdefault("LOG_LEVEL", ns.log_level.upper())
 
     load_pipeline_env()
 
@@ -213,30 +210,29 @@ def _quiesce_mongo_state(run_id: str, final_status: str) -> None:
         _log.warning("quiesce_mongo_state: no run_id available; skipping")
         return
     try:
-        import pymongo
-        from chathealthy_frontend_lib.mongo_utilities import ChatHealthyMongoUtilities
         mongo = ChatHealthyMongoUtilities("MONGO_FRONTEND_connectionString").getConnection()
-        try:
-            mongo["admin"]["cluster_lifecycle"].delete_one({"_id": run_id})
-            _log.info("quiesce: reservation cancelled run_id=%s", run_id)
-        except Exception as exc:
-            _log.error("quiesce: reservation cancel FAILED run_id=%s err=%s",
-                       run_id, str(exc)[:500])
-        try:
-            mongo["chathealthyfrontend"]["pipeline.runs"].update_one(
-                {"run_id": run_id},
-                {"$set": {
-                    "status": final_status,
-                    "ended_at": __import__("datetime").datetime.utcnow(),
-                }},
-            )
-            _log.info("quiesce: manifest marked terminal run_id=%s status=%s",
-                      run_id, final_status)
-        except Exception as exc:
-            _log.error("quiesce: manifest update FAILED run_id=%s err=%s",
-                       run_id, str(exc)[:500])
     except Exception as exc:
         _log.error("quiesce: unable to open front-cluster Mongo run_id=%s err=%s",
+                   run_id, str(exc)[:500])
+        return
+    try:
+        mongo["admin"]["cluster_lifecycle"].delete_one({"_id": run_id})
+        _log.info("quiesce: reservation cancelled run_id=%s", run_id)
+    except Exception as exc:
+        _log.error("quiesce: reservation cancel FAILED run_id=%s err=%s",
+                   run_id, str(exc)[:500])
+    try:
+        mongo["chathealthyfrontend"]["pipeline.runs"].update_one(
+            {"run_id": run_id},
+            {"$set": {
+                "status": final_status,
+                "ended_at": datetime.datetime.utcnow(),
+            }},
+        )
+        _log.info("quiesce: manifest marked terminal run_id=%s status=%s",
+                  run_id, final_status)
+    except Exception as exc:
+        _log.error("quiesce: manifest update FAILED run_id=%s err=%s",
                    run_id, str(exc)[:500])
 
 

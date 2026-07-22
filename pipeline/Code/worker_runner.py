@@ -18,7 +18,6 @@ from chathealthy_frontend_lib.logging_service import ChatHealthyLoggingService
 from chathealthy_frontend_lib.exceptions import ChatHealthyException
 
 import argparse
-import logging
 import os
 import sys
 
@@ -66,13 +65,8 @@ def _states_list(raw: str) -> list[str]:
 def main(argv: list[str] | None = None) -> int:
     ns = _parse_args(argv if argv is not None else sys.argv[1:])
 
-    root = ChatHealthyLoggingService()
-    if not root.handlers:
-        handler = logging.StreamHandler(sys.stderr)
-        handler.setFormatter(logging.Formatter(
-            "%(asctime)s %(levelname)s %(name)s %(message)s"))
-        root.addHandler(handler)
-    root.setLevel(getattr(logging, ns.log_level.upper(), logging.INFO))
+    if ns.log_level:
+        os.environ.setdefault("LOG_LEVEL", ns.log_level.upper())
 
     if not ns.step:
         raise ChatHealthyException(mode="value_error", message="worker_runner: --step or PIPELINE_STEP env var required")

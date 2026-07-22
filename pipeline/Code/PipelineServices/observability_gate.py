@@ -215,33 +215,29 @@ class ObservabilityGate:
 
     @staticmethod
     def _dump_to_stderr(exc: ChatHealthyException) -> None:
-        """Write every field the ChatHealthyException carries + the
-        wrapped original + tracebacks to stderr."""
-        ChatHealthyLoggingService().info("*" * 78)
-        ChatHealthyLoggingService().info("ObservabilityGate: failure detail")
-        ChatHealthyLoggingService().info(f"  mode:      {exc.mode!r}")
-        ChatHealthyLoggingService().info(f"  message:   {exc.message}")
-        ChatHealthyLoggingService().info(f"  server:    {exc.server!r}")
-        ChatHealthyLoggingService().info(f"  component: {exc.component!r}")
+        """Log every field the ChatHealthyException carries + the wrapped
+        original + tracebacks via ChatHealthyLoggingService (the canonical
+        logger; per Rule-005 no print() is legitimate)."""
+        chls = ChatHealthyLoggingService()
+        chls.error("*" * 78)
+        chls.error("ObservabilityGate: failure detail")
+        chls.error("  mode:      %r", exc.mode)
+        chls.error("  message:   %s", exc.message)
+        chls.error("  server:    %r", exc.server)
+        chls.error("  component: %r", exc.component)
         for k, v in (exc.context or {}).items():
-            ChatHealthyLoggingService().info(f"  ctx.{k}: {v!r}")
+            chls.error("  ctx.%s: %r", k, v)
         if exc.exception is not None:
             original = exc.exception
-            print("  original (chained) exception:",
-                  file=sys.stderr, flush=True)
-            print(f"    type: {type(original).__name__}",
-                  file=sys.stderr, flush=True)
-            print(f"    args: {original.args!r}",
-                  file=sys.stderr, flush=True)
-            print(f"    repr: {original!r}",
-                  file=sys.stderr, flush=True)
+            chls.error("  original (chained) exception:")
+            chls.error("    type: %s", type(original).__name__)
+            chls.error("    args: %r", original.args)
+            chls.error("    repr: %r", original)
             if original.__traceback__ is not None:
-                print("    original traceback:",
-                      file=sys.stderr, flush=True)
-                traceback.print_tb(original.__traceback__, file=sys.stderr)
-        ChatHealthyLoggingService().info("  construction_stack:")
-        ChatHealthyLoggingService().info(exc.construction_stack)
-        print("  live traceback (may be pre-raise):",
-              file=sys.stderr, flush=True)
-        traceback.print_exc(file=sys.stderr)
-        ChatHealthyLoggingService().info("*" * 78)
+                chls.error("    original traceback:\n%s",
+                           "".join(traceback.format_tb(original.__traceback__)))
+        chls.error("  construction_stack:")
+        chls.error("%s", exc.construction_stack)
+        chls.error("  live traceback (may be pre-raise):\n%s",
+                   traceback.format_exc())
+        chls.error("*" * 78)

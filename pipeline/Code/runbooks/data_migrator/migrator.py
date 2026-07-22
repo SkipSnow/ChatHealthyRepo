@@ -54,7 +54,6 @@ from chathealthy_frontend_lib.mongo_utilities import ChatHealthyMongoUtilities
 import base64
 import itertools
 import json
-import logging
 import os
 import sys
 import threading
@@ -80,15 +79,6 @@ try:
             pass
 except ImportError:
     automationassets = None  # type: ignore
-
-_request_guid = "?"
-
-
-class _RGFilter(logging.Filter):
-    def filter(self, record):
-        record.request_guid = _request_guid
-        return True
-
 
 log = ChatHealthyLoggingService()
 _STATUS_DB = "admin"
@@ -723,11 +713,11 @@ def _main():
         except Exception as e:
             pass
 
-        print(json.dumps({
+        log.info(json.dumps({
             "migrator_status": "error" if has_exception else "ok",
             "job_id": job_id,
             "deprovisioner_aa_job_id": deprov_aa_job_id,
-        }), flush=True)
+        }))
 
 
 try:

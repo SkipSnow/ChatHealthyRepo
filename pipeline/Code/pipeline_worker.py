@@ -24,7 +24,6 @@ from chathealthy_frontend_lib.logging_service import ChatHealthyLoggingService
 import argparse
 import datetime
 import json
-import logging
 import os
 import socket
 import sys
@@ -166,13 +165,8 @@ def _parse_args(argv: list[str]) -> argparse.Namespace:
 
 def main(argv: list[str] | None = None) -> int:
     ns = _parse_args(argv if argv is not None else sys.argv[1:])
-    root = ChatHealthyLoggingService()
-    if not root.handlers:
-        handler = logging.StreamHandler(sys.stderr)
-        handler.setFormatter(logging.Formatter(
-            "%(asctime)s %(levelname)s %(name)s %(message)s"))
-        root.addHandler(handler)
-    root.setLevel(getattr(logging, ns.log_level.upper(), logging.INFO))
+    if ns.log_level:
+        os.environ.setdefault("LOG_LEVEL", ns.log_level.upper())
 
     if not ns.run_id:
         _log.error("pipeline_worker: --run-id or RUN_ID env is required")
