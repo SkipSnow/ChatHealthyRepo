@@ -346,9 +346,6 @@ class ChatHealthyLoggingService:
         kw: dict,
     ) -> None:
         _ensure_configured()
-        if not if_not_debug_log:
-            if not self._debug_mode_on():
-                return
         if exc is not None:
             if not isinstance(exc, ChatHealthyException):
                 raise ChatHealthyException(
