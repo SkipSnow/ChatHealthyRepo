@@ -37,6 +37,19 @@ import urllib.request
 import uuid
 
 
+# CHLS wants these in os.environ. Set them BEFORE the first log() call so
+# CH_LOG_DESTINATION drives log output to stderr (AA captures stderr into
+# the ARM job exception field, which is the only surface operators can
+# read on a failed run) and CH_SPACE_NAME + ENV_PREFIX satisfy the Mongo
+# handler prerequisite so it wires as soon as MONGO_FRONTEND_connectionString
+# gets published from the KV fetch further down.
+os.environ.setdefault("CH_LOG_DESTINATION", "stderr")
+os.environ.setdefault("CH_SPACE_NAME", "pipeline-runbook")
+os.environ.setdefault("ENV_PREFIX",
+                      os.environ.get("AUTOMATION_ENV_PREFIX", "dev"))
+os.environ.setdefault("CH_COMPONENT", "provider_pipeline_runbook")
+
+
 # ---------- Deploy-time invariants (Automation Variables in prod) ----------
 SUBSCRIPTION_ID = os.environ.get(
     "AUTOMATION_SUBSCRIPTION_ID", "7a17eec1-c477-4c7c-b1c1-d0662ce7a1ee"
@@ -453,6 +466,7 @@ runcmd:
     docker run --rm --network host \\
       -e CHATHEALTHY_NODE_IDENTITY='pipeline-control' \\
       -e CH_SPACE_NAME='pipeline-control' \\
+      -e CH_LOG_DESTINATION='stderr' \\
       -e CH_LOG_LEVEL='INFO' \\
       -e CH_COMPONENT='provider_pipeline_control' \\
       -e RUN_ID='{run_id}' \\
