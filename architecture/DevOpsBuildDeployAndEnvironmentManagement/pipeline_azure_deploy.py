@@ -177,32 +177,39 @@ def _ensure_kv_secrets_from_file_packages(target, env: str, vault_name: str) -> 
                 tmp_path = tmp.name
             try:
                 # Operator directive: KV holds exactly ONE version of this
-                # secret at any time. Delete + purge before set so the new
-                # value is version #1, not version #N. delete and purge
-                # are both async in Azure Key Vault: delete returns before
-                # the soft-delete state settles; purge returns before the
-                # name is actually freed. Poll both transitions to
-                # completion so the subsequent `set` sees a clean slate.
+                # secret at any time. Clear BOTH possible starting states
+                # before set: active (delete + poll show-deleted) and
+                # soft-deleted (purge + poll show-deleted gone). Prior
+                # implementation only checked active; when the secret was
+                # left in soft-delete by a prior failed deploy, set fired
+                # cold and hit "deleted but recoverable" every time.
                 import time as _time
-                exists = _az(
+                active = _az(
                     ["keyvault", "secret", "show", "--vault-name", vault_name,
                      "--name", secret_name, "--query", "id", "-o", "tsv"],
                     check=False,
                 )
-                if exists.returncode == 0 and exists.stdout.strip():
-                    step(f"  deleting existing {secret_name} (single-version policy)")
+                if active.returncode == 0 and active.stdout.strip():
+                    step(f"  deleting active {secret_name}")
                     _az(["keyvault", "secret", "delete", "--vault-name", vault_name,
                          "--name", secret_name], check=False)
-                    for _ in range(30):
+                    for _ in range(60):
                         r = _az(["keyvault", "secret", "show-deleted",
                                  "--vault-name", vault_name, "--name", secret_name,
                                  "--query", "id", "-o", "tsv"], check=False)
                         if r.returncode == 0 and r.stdout.strip():
                             break
                         _time.sleep(2)
+                soft_deleted = _az(
+                    ["keyvault", "secret", "show-deleted", "--vault-name", vault_name,
+                     "--name", secret_name, "--query", "id", "-o", "tsv"],
+                    check=False,
+                )
+                if soft_deleted.returncode == 0 and soft_deleted.stdout.strip():
+                    step(f"  purging soft-deleted {secret_name} (single-version policy)")
                     _az(["keyvault", "secret", "purge", "--vault-name", vault_name,
                          "--name", secret_name], check=False)
-                    for _ in range(30):
+                    for _ in range(60):
                         r = _az(["keyvault", "secret", "show-deleted",
                                  "--vault-name", vault_name, "--name", secret_name,
                                  "--query", "id", "-o", "tsv"], check=False)
