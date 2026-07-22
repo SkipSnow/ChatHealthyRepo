@@ -64,8 +64,6 @@ class _RGFilter(logging.Filter):
 
 
 log = ChatHealthyLoggingService()
-log.addFilter(_RGFilter())
-
 _AUTOMATION_API = "2023-11-01"
 _PROVISIONER_RUNBOOK = "ChatHealthyDataMigratorProvisioner"
 

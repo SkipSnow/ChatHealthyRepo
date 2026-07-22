@@ -153,8 +153,8 @@ def _get_token(resource: str, client_id: str | None = None) -> str:
 
 # ============================================================================
 # Structured event logging.
-# Every event goes through ChatHealthyLoggingService — the canonical logger
-# per Rule-005 — whose MongoLogHandler writes each record to Pipelines.Log_
+# Every event goes through ChatHealthyLoggingService - the canonical logger
+# per Rule-005 - whose MongoLogHandler writes each record to Pipelines.Log_
 # {env}. No parallel log path; no direct collection write from this module.
 # ============================================================================
 def log(event: str, **fields):
@@ -361,7 +361,7 @@ def _runbook_error_teardown(mongo, run_id: str, vm_name: str,
                             vm_provisioned: bool) -> None:
     """Called by the runbook on any error path after either the VM PUT
     landed or the reservation was written. Cancels the reservation and
-    deletes the VM so nothing leaks. Idempotent + best-effort — each
+    deletes the VM so nothing leaks. Idempotent + best-effort - each
     step is wrapped and its failure is logged but does not block the
     others."""
     if reservation_created:

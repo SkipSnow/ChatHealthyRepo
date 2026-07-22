@@ -282,27 +282,29 @@ TERMINAL_STATUSES = {"success", "failed", "aborted"}
 
 
 def _reservation_still_live(mongo, run_id: str) -> bool:
-    """Check 1: reservation table."""
+    """Check 1 (v33 §3.1.2): reservation on front cluster's
+    admin.cluster_lifecycle. The runbook writes {_id: run_id, expiry_at:
+    NOW + 10h}; Controller finally deletes the row on quiesce. A row that
+    exists and has expiry_at > NOW is a live claim -> Watchdog MUST NOT
+    touch the VM. Missing row means Controller already finished or the
+    reservation was reaped; err safe by returning False so subsequent
+    manifest/heartbeat/grace checks decide."""
     now = datetime.datetime.utcnow()
-    coll = mongo["chathealthyfrontend"]["pipeline.cluster_reservations"]
-    r = coll.find_one({"run_id": run_id})
+    coll = mongo["admin"]["cluster_lifecycle"]
+    r = coll.find_one({"_id": run_id})
     if not r:
         return False
-    created_at = r.get("created_at") or r.get("start_time")
-    if isinstance(created_at, str):
+    expiry_at = r.get("expiry_at")
+    if isinstance(expiry_at, str):
         try:
-            created_at = datetime.datetime.fromisoformat(
-                created_at.replace("Z", "+00:00")
+            expiry_at = datetime.datetime.fromisoformat(
+                expiry_at.replace("Z", "+00:00")
             ).replace(tzinfo=None)
         except Exception:
-            return True  # ambiguous -- err safe (don't kill)
-    if not isinstance(created_at, datetime.datetime):
+            return True  # ambiguous -> err safe (don't kill)
+    if not isinstance(expiry_at, datetime.datetime):
         return True
-    expected_min = int(r.get("expected_duration_minutes") or 120)
-    expire_at = created_at + datetime.timedelta(
-        minutes=expected_min + RESERVATION_EXTRA_GRACE_MINUTES
-    )
-    return now < expire_at
+    return now < expiry_at
 
 
 def _run_manifest(mongo, run_id: str) -> dict | None:
