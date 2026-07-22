@@ -648,14 +648,13 @@ def _put(url: str, body: dict, tok: str) -> dict:
 
 
 def _atlas_resume_pipeline_cluster() -> dict:
-    """v32 §5.2.2: POST Atlas Admin API to resume the pipeline cluster.
+    """v32 §5.2.2 (revised v35): POST Atlas Admin API to resume the
+    pipeline cluster, then POLL until the cluster reports stateName=IDLE.
 
-    Fires in parallel with VM create; the Controller polls the cluster's
-    state on boot and typically finds it IDLE within a few seconds
-    because the resume was kicked off earlier by this call.
-
-    Returns the Atlas API response dict. On any error, logs and returns
-    an empty dict (Controller will still poll and eventually succeed).
+    No silent-skip. Missing credentials or project id RAISE
+    ChatHealthyException so the caller aborts the run visibly instead of
+    marching on with a paused cluster. Returns the final Atlas GET
+    response once the cluster is IDLE.
     """
     try:
         import automationassets  # only in AA sandbox
@@ -666,34 +665,64 @@ def _atlas_resume_pipeline_cluster() -> dict:
         atlas_project_id = ATLAS_PROJECT_ID or os.environ.get("ATLAS_PROJECT_ID", "")
         atlas_pub = os.environ.get("ATLAS_PUBLIC_KEY", "")
         atlas_priv = os.environ.get("ATLAS_PRIVATE_KEY", "")
+    missing = []
     if not atlas_project_id:
-        log("atlas_resume_skipped_no_project_id")
-        return {}
-    if not atlas_pub or not atlas_priv:
-        log("atlas_resume_skipped_no_credentials")
-        return {}
-    # Atlas Admin API keys authenticate with HTTP Digest, NOT Basic. The
-    # `requests` library's HTTPDigestAuth handles the challenge/response
-    # dance correctly out-of-the-box; urllib's handler does not (it silently
-    # fails to retry if the server's challenge shape does not match its
-    # exact expectations). Legacy atlas_cluster_manager.py uses this same
-    # pattern and works from Function Apps.
+        missing.append("ATLAS_PROJECT_ID")
+    if not atlas_pub:
+        missing.append("ATLAS_PUBLIC_KEY")
+    if not atlas_priv:
+        missing.append("ATLAS_PRIVATE_KEY")
+    if missing:
+        raise ChatHealthyException(
+            mode="atlas_resume_env_unset",
+            message=(
+                "Atlas Admin credentials missing from Automation Variables: "
+                f"{', '.join(missing)}. Cannot resume pipeline cluster "
+                f"{ATLAS_PIPELINE_CLUSTER}; run must abort."
+            ),
+            component="ProviderPipelineRunbook",
+            missing=",".join(missing),
+        )
     import requests
     from requests.auth import HTTPDigestAuth
-    url = (f"{ATLAS_ADMIN_BASE}/groups/{atlas_project_id}"
-           f"/clusters/{ATLAS_PIPELINE_CLUSTER}")
-    r = requests.patch(
-        url,
-        auth=HTTPDigestAuth(atlas_pub, atlas_priv),
-        headers={
-            "Content-Type": "application/vnd.atlas.2024-08-05+json",
-            "Accept": "application/vnd.atlas.2024-08-05+json",
-        },
-        json={"paused": False},
-        timeout=30,
-    )
+    base = (f"{ATLAS_ADMIN_BASE}/groups/{atlas_project_id}"
+            f"/clusters/{ATLAS_PIPELINE_CLUSTER}")
+    headers = {
+        "Content-Type": "application/vnd.atlas.2024-08-05+json",
+        "Accept": "application/vnd.atlas.2024-08-05+json",
+    }
+    auth = HTTPDigestAuth(atlas_pub, atlas_priv)
+    # 1. Dispatch resume PATCH.
+    r = requests.patch(base, auth=auth, headers=headers,
+                       json={"paused": False}, timeout=30)
     r.raise_for_status()
-    return r.json() if r.content else {}
+    log("atlas_resume_patch_dispatched", cluster=ATLAS_PIPELINE_CLUSTER)
+    # 2. Poll GET until stateName=IDLE (cluster is up and accepting writes).
+    #    Typical wake takes 1-4 minutes. Cap at 8 minutes so a genuinely
+    #    stuck Atlas surfaces as a visible failure rather than a hang.
+    import time as _time
+    poll_start = _time.time()
+    poll_timeout_s = 480
+    while _time.time() - poll_start < poll_timeout_s:
+        g = requests.get(base, auth=auth, headers=headers, timeout=30)
+        g.raise_for_status()
+        state = (g.json() or {}).get("stateName", "")
+        if state == "IDLE":
+            log("atlas_resume_cluster_idle",
+                cluster=ATLAS_PIPELINE_CLUSTER,
+                waited_s=round(_time.time() - poll_start, 1))
+            return g.json()
+        _time.sleep(15)
+    raise ChatHealthyException(
+        mode="atlas_resume_timeout",
+        message=(
+            f"Atlas cluster {ATLAS_PIPELINE_CLUSTER} did not reach "
+            f"stateName=IDLE within {poll_timeout_s}s after resume PATCH."
+        ),
+        component="ProviderPipelineRunbook",
+        cluster=ATLAS_PIPELINE_CLUSTER,
+        waited_s=poll_timeout_s,
+    )
 
 
 def _provision_vm_and_wake_mongo_in_parallel(
