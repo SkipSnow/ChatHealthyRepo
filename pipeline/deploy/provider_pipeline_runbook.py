@@ -83,11 +83,7 @@ ATLAS_PIPELINE_CLUSTER = os.environ.get(
     "chathealthydatapipeline",
 )
 
-# Storage / Key Vault
-LOG_ACCOUNT_URL = os.environ.get(
-    "PIPELINE_LOG_ACCOUNT_URL", "https://stchpipelinedev.blob.core.windows.net"
-)
-LOG_CONTAINER = os.environ.get("PIPELINE_LOG_CONTAINER", "pipeline-logs")
+# Key Vault
 KEY_VAULT_URI = os.environ.get(
     "KEY_VAULT_URI", "https://kv-chpipeline-dev.vault.azure.net/"
 )
@@ -153,58 +149,34 @@ def _get_token(resource: str, client_id: str | None = None) -> str:
 
 
 # ============================================================================
-# Datalake blob logger -- writes to pipeline-logs/<pipeline>/YYYY-MM-DD.log
+# Canonical Mongo logger -- writes every structured event as one document to
+# chathealthyfrontend.logFileCollection per ReadMePipelineLogs.txt. Blob is
+# NOT the runtime observability surface. On write failure the stage abends
+# (silent operation with a broken observability surface is a fatal error).
 # ============================================================================
-_blob_token_cache = {"token": None, "expires_at": 0}
+_LOG_MONGO_HANDLE = None
+_LOG_BUFFER = []
 
 
-def _blob_token() -> str:
-    now = datetime.datetime.utcnow().timestamp()
-    if _blob_token_cache["token"] and _blob_token_cache["expires_at"] > now + 30:
-        return _blob_token_cache["token"]
-    tok = _get_token("https://storage.azure.com/")
-    _blob_token_cache["token"] = tok
-    _blob_token_cache["expires_at"] = now + 3300  # ~55 min
-    return tok
-
-
-def _log_blob_url() -> str:
-    today = datetime.datetime.utcnow().strftime("%Y-%m-%d")
-    return f"{LOG_ACCOUNT_URL}/{LOG_CONTAINER}/{PIPELINE_NAME}/{today}.log"
-
-
-def _ensure_append_blob():
-    """Create the append blob if it doesn't exist yet. If it does, no-op."""
-    url = _log_blob_url()
-    tok = _blob_token()
-    req = urllib.request.Request(
-        url,
-        method="PUT",
-        headers={
-            "Authorization": f"Bearer {tok}",
-            "x-ms-blob-type": "AppendBlob",
-            "x-ms-version": "2023-11-03",
-            "Content-Length": "0",
-            "If-None-Match": "*",  # only create if it doesn't already exist
-        },
-        data=b"",
-    )
-    try:
-        with urllib.request.urlopen(req, timeout=15):
-            pass
-    except urllib.error.HTTPError as e:
-        if e.code == 409:  # already exists -- that's fine
-            return
-        raise
-
-
-_append_ready = False
+def _activate_mongo_logging(mongo):
+    """Called by main() as soon as the front-cluster MongoClient is ready.
+    Sets the module-level handle and drains any buffered events into
+    logFileCollection. Abends on write failure per policy."""
+    global _LOG_MONGO_HANDLE
+    _LOG_MONGO_HANDLE = mongo["chathealthyfrontend"]["logFileCollection"]
+    if _LOG_BUFFER:
+        _LOG_MONGO_HANDLE.insert_many(_LOG_BUFFER)
+        _LOG_BUFFER.clear()
 
 
 def log(event: str, **fields):
-    """Log one structured event both to stdout (so it shows in Automation
-    job streams) AND append to the daily datalake blob."""
-    global _append_ready
+    """One structured event -> chathealthyfrontend.logFileCollection.
+    Also printed to stdout so it surfaces in the AA job streams for
+    real-time debugging visibility (stdout mirror, not a destination).
+    Events fired before the Mongo client opens buffer in memory; the
+    buffer flushes when _activate_mongo_logging() runs. If the Mongo
+    write fails the exception propagates -- per ReadMePipelineLogs.txt
+    the stage MUST abend if the log surface is broken."""
     now = datetime.datetime.utcnow().isoformat(timespec="seconds") + "Z"
     record = {
         "ts": now,
@@ -213,31 +185,11 @@ def log(event: str, **fields):
         "event": event,
     }
     record.update(fields)
-    line = json.dumps(record, default=str)
-    print(line, flush=True)
-    try:
-        if not _append_ready:
-            _ensure_append_blob()
-            _append_ready = True
-        url = _log_blob_url() + "?comp=appendblock"
-        tok = _blob_token()
-        body = (line + "\n").encode("utf-8")
-        req = urllib.request.Request(
-            url,
-            method="PUT",
-            headers={
-                "Authorization": f"Bearer {tok}",
-                "x-ms-version": "2023-11-03",
-                "Content-Length": str(len(body)),
-            },
-            data=body,
-        )
-        with urllib.request.urlopen(req, timeout=15):
-            pass
-    except Exception as exc:
-        # Never let logging break the runbook. Print the failure and move on.
-        print(f"blob_log_failure: {type(exc).__name__}: {exc}",
-              file=sys.stderr, flush=True)
+    print(json.dumps(record, default=str), flush=True)
+    if _LOG_MONGO_HANDLE is None:
+        _LOG_BUFFER.append(record)
+        return
+    _LOG_MONGO_HANDLE.insert_one(record)
 
 
 # ============================================================================
@@ -790,6 +742,9 @@ def main() -> int:
                     if direct.startswith("mongodb://") else 0)
                 mongo = pymongo.MongoClient(direct, **_mongo_kwargs)
                 mongo.admin.command("ping")
+            _activate_mongo_logging(mongo)
+            log("mongo_log_activated",
+                collection="chathealthyfrontend.logFileCollection")
             live = _find_live_pipeline_run(mongo)
             if live is not None:
                 is_duplicate_abend = True
