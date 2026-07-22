@@ -856,12 +856,17 @@ def _resolve_state_scope(raw):
 # Main
 # ============================================================================
 def main() -> int:
-    # Hoist Mongo secret fetch to the very top so CHLS's Mongo handler
-    # can wire on the first log() call below. Without this, log() -> CHLS
-    # -> _build_mongo_handler raises on missing MONGO_FRONTEND_connectionString
-    # and the runbook crashes silently before any structured event lands
-    # in Pipelines.Log_dev.
-    os.environ["MONGO_FRONTEND_connectionString"] = _get_mongo_conn_string()
+    # Hoist Mongo secret fetch AND SRV-to-direct conversion to the top so
+    # CHLS's Mongo handler can wire on the first log() call below. The AA
+    # Python 3 sandbox cannot resolve `_mongodb._tcp.*` SRV records, so
+    # the SRV-form URI from KV MUST be converted to its non-SRV direct
+    # form here via DNS-over-HTTPS before any CHLS.info() call constructs
+    # a MongoClient. Without this, log() -> CHLS -> mongo_utilities ->
+    # MongoClient(srv_uri) -> pymongo's SRV resolver fails and the
+    # runbook crashes on the very first log call.
+    os.environ["MONGO_FRONTEND_connectionString"] = _srv_to_direct_mongo_uri(
+        _get_mongo_conn_string()
+    )
 
     invocation_mode = INVOCATION_MODE
     webhook_body = _parse_webhook_input()
