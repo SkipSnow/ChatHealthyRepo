@@ -329,6 +329,19 @@ class ChatHealthyMongoUtilities:
         if appname:
             kwargs["appname"] = appname
 
+        # Point pymongo TLS at certifi's CA bundle so Atlas TLS
+        # handshakes succeed from environments whose system trust store
+        # lacks Atlas's Root CA (Azure Automation Python 3 sandbox, some
+        # minimal container images). certifi ships with pymongo as a
+        # transitive dep; if for some reason it is not importable, fall
+        # through to the system trust store and let TLS raise if it
+        # cannot verify - libraries throw, callers decide.
+        try:
+            import certifi
+            kwargs["tlsCAFile"] = certifi.where()
+        except ImportError:
+            pass
+
         client = MongoClient(uri, **kwargs)
         _client_cache[env_var_name] = client
         if env_var_name == "MONGO_FRONTEND_connectionString":
