@@ -21,11 +21,7 @@ log = ChatHealthyLoggingService()
 
 
 def _anthropic_api_key() -> str:
-    return (
-        os.environ.get("ANTHROPIC_API_KEY")
-        or os.environ.get("Anthropic_API_KEY")
-        or ""
-    )
+    return os.environ.get("ANTHROPIC_API_KEY", "")
 
 
 NUCC_DERIVATION_MODEL_NAME = "claude-haiku-4-5-20251001"
