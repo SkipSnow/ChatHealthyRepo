@@ -471,7 +471,7 @@ runcmd:
     docker run --rm --network host \\
       -e CHATHEALTHY_NODE_IDENTITY='pipeline-control' \\
       -e CH_SPACE_NAME='pipeline-control' \\
-      -e CH_LOG_DESTINATION='stderr' \\
+      -e CH_LOG_DESTINATION='stderr,mongo' \\
       -e CH_LOG_LEVEL='INFO' \\
       -e CH_COMPONENT='provider_pipeline_control' \\
       -e PIPELINE_LOG_ACCOUNT_URL='https://stchpipelinedev.blob.core.windows.net' \\

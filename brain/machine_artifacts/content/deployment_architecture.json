@@ -7063,7 +7063,7 @@
                   "source_location": "pipeline/deploy/provider_pipeline_runbook.py",
                   "handler_type": "python_source",
                   "disposition": "referenced",
-                  "content_hash": "4eb581eda31684c60b2a8960a9591dde5c6277eea117c2bf6dbaae016e4a1f2b",
+                  "content_hash": "c8eb1b7f30b09359c572ed2210e3222700671ffad6aa4bdd7e744797c252e3da",
                   "package": "provider_pipeline"
                 }
               ],
