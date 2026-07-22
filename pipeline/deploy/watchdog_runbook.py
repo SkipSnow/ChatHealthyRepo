@@ -51,6 +51,16 @@ import urllib.error
 import urllib.request
 
 
+# CHLS env prerequisites for AA sandbox visibility. Set before any log()
+# call so log output flows to stderr (captured by AA) and the Mongo handler
+# wires as soon as MONGO_FRONTEND_connectionString is published.
+os.environ.setdefault("CH_LOG_DESTINATION", "stderr")
+os.environ.setdefault("CH_SPACE_NAME", "watchdog-runbook")
+os.environ.setdefault("ENV_PREFIX",
+                      os.environ.get("AUTOMATION_ENV_PREFIX", "dev"))
+os.environ.setdefault("CH_COMPONENT", "watchdog_runbook")
+
+
 SUBSCRIPTION_ID = os.environ.get(
     "AUTOMATION_SUBSCRIPTION_ID", "7a17eec1-c477-4c7c-b1c1-d0662ce7a1ee"
 )
