@@ -1,6 +1,6 @@
 # Copyright (c) 2026 ChatHealthy.ai LLC. All rights reserved.
 # Licensed under the FindCare Evaluation License (FEL-1.0).
-"""ChatHealthyException — the single deliberate-exception type for ChatHealthy.ai
+"""ChatHealthyException - the single deliberate-exception type for ChatHealthy.ai
 authored code.
 
 Realizes EPIC-008-F-002-S-009-REQ-B-001. Inherits from Exception (not
@@ -28,7 +28,7 @@ class ChatHealthyException(Exception):
         # Caller's stack captured at construction time, excluding this
         # __init__ frame. Used by ChatHealthyLoggingService to render the
         # destination's traceback when the exception is logged-only (never
-        # raised — so Python has not attached its own __traceback__).
+        # raised - so Python has not attached its own __traceback__).
         self.construction_stack: str = "".join(_traceback.format_stack()[:-1])
 
     def __repr__(self) -> str:

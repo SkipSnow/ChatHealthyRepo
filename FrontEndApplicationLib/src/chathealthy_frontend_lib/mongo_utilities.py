@@ -74,11 +74,11 @@ def _exc_detail(exc: BaseException) -> str:
 
 def _classify_mongo_exception(exc: BaseException, elapsed_s: float) -> str:
     """Map a pymongo error to a ChatHealthy mode. Empty string for non-pymongo
-    exceptions — caller re-raises raw.
+    exceptions - caller re-raises raw.
 
     `mongo_query_timeout` ONLY fires when elapsed is within 2s of the
     configured client budget (TIMEOUT_MS). Anything else from the
-    ConnectionFailure family is `mongo_network_failure` — the connection
+    ConnectionFailure family is `mongo_network_failure` - the connection
     layer dropped for some reason that is NOT a budget exhaustion."""
     if isinstance(exc, (ConnectionFailure, ServerSelectionTimeoutError)):
         if elapsed_s >= (TIMEOUT_MS / 1000.0) - 2.0:
@@ -99,7 +99,7 @@ def _convert_mongo_exception(exc: BaseException, elapsed_s: float,
                               op: str, db: str, coll: str) -> None:
     """Translate a recognised pymongo exception into a ChatHealthyException
     carrying the verbatim Mongo response in context, raised `from exc`. For
-    an unrecognised exception, return None — the caller re-raises raw."""
+    an unrecognised exception, return None - the caller re-raises raw."""
     mode = _classify_mongo_exception(exc, elapsed_s)
     if not mode:
         return
@@ -118,7 +118,7 @@ def _convert_mongo_exception(exc: BaseException, elapsed_s: float,
 class TimedCursor:
     """Pass-through cursor wrapper. Logs START / END / FAIL for the
     cursor iteration. Elapsed time is the asctime delta between START
-    and END/FAIL — read it directly from the log; no time math here."""
+    and END/FAIL - read it directly from the log; no time math here."""
 
     def __init__(self, cursor: Any, op: str, db: str, coll: str) -> None:
         self._cursor = cursor
@@ -149,7 +149,7 @@ class TimedCursor:
             raise
 
     def close(self) -> None:
-        """Explicit close — delegate to the wrapped pymongo cursor.
+        """Explicit close - delegate to the wrapped pymongo cursor.
         Surfaced so callers can use `with closing(coll.find(...))` and
         guarantee the server-side cursor is released even when the
         caller never iterates."""
@@ -272,7 +272,7 @@ class TimedDatabase:
 class TimedClient:
     """Pass-through proxy over MongoClient that wraps every Collection
     returned via `client[db][coll]` so each op logs START + END/FAIL via
-    ChatHealthyLoggingService. No time math — the asctime in each log
+    ChatHealthyLoggingService. No time math - the asctime in each log
     line is the only timestamp."""
 
     def __init__(self, client: MongoClient) -> None:
@@ -357,7 +357,7 @@ class ChatHealthyMongoUtilities:
     def getRawClient(self) -> MongoClient:
         """Return the raw MongoClient singleton, bypassing the TimedClient
         instrumentation wrapper. ONLY for callers that must avoid the
-        per-op log emissions TimedClient produces — the Mongo log handler
+        per-op log emissions TimedClient produces - the Mongo log handler
         in particular, where wrapped writes would recurse infinitely
         through the logging framework. All other call sites MUST use
         getConnection()."""

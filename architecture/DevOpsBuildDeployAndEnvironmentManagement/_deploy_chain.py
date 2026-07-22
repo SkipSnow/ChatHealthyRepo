@@ -971,37 +971,67 @@ def az_automation_runbook_replace_content(rg: str, aa: str, runbook: str, conten
 
 
 _SCHEDULE_NAME_RE = re.compile(r"^SCH-[A-Za-z]+-(\d+)(min|hour)$", re.IGNORECASE)
+_SCHEDULE_DAILY_UTC_RE = re.compile(r"^SCH-[A-Za-z]+-(\d{4})UTC$", re.IGNORECASE)
 
 
 def _parse_schedule_from_name(name: str) -> dict | None:
-    """Parse a schedule name of the form 'SCH-<Runbook>-<N>(min|hour)' into
-    the ARM Schedule properties body. Returns None if the name does not
-    match the recurring-interval convention (e.g., 'SCH-ProviderPipeline-
-    0200UTC' is a daily-at-time schedule, not covered here yet)."""
-    m = _SCHEDULE_NAME_RE.match(name.strip())
-    if not m:
-        return None
-    n = int(m.group(1))
-    unit = m.group(2).lower()
+    """Parse a schedule name into the ARM Schedule properties body.
+    Two forms supported:
+      SCH-<Runbook>-<N>(min|hour)  -> recurring every N minutes/hours
+      SCH-<Runbook>-<HHMM>UTC     -> daily at HH:MM UTC
+    Returns None if the name matches neither convention."""
+    name = name.strip()
     from datetime import datetime, timedelta, timezone
-    # Azure Automation requires startTime > NOW + 5min (strict inequality).
-    # 10-min offset gives safe margin for clock skew.
-    start = (datetime.now(timezone.utc) + timedelta(minutes=10)).strftime(
-        "%Y-%m-%dT%H:%M:%S+00:00"
-    )
-    frequency = "Minute" if unit == "min" else "Hour"
-    return {
-        "properties": {
-            "description": (
-                f"Auto-created from runbook.schedule_names entry {name!r} "
-                f"(interval={n} {unit})"
-            ),
-            "startTime": start,
-            "frequency": frequency,
-            "interval": n,
-            "timeZone": "UTC",
+    # Recurring interval form
+    m = _SCHEDULE_NAME_RE.match(name)
+    if m:
+        n = int(m.group(1))
+        unit = m.group(2).lower()
+        # Azure Automation requires startTime > NOW + 5min (strict).
+        # 10-min offset gives safe margin for clock skew.
+        start = (datetime.now(timezone.utc) + timedelta(minutes=10)).strftime(
+            "%Y-%m-%dT%H:%M:%S+00:00"
+        )
+        frequency = "Minute" if unit == "min" else "Hour"
+        return {
+            "properties": {
+                "description": (
+                    f"Auto-created from runbook.schedule_names entry {name!r} "
+                    f"(interval={n} {unit})"
+                ),
+                "startTime": start,
+                "frequency": frequency,
+                "interval": n,
+                "timeZone": "UTC",
+            }
         }
-    }
+    # Daily-at-fixed-time UTC form (HHMM)
+    m = _SCHEDULE_DAILY_UTC_RE.match(name)
+    if m:
+        hhmm = m.group(1)
+        hh, mm = int(hhmm[:2]), int(hhmm[2:])
+        now = datetime.now(timezone.utc)
+        target_today = now.replace(hour=hh, minute=mm, second=0, microsecond=0)
+        # Azure needs startTime > NOW + 5min. If today's target has passed
+        # or is within 10 min, roll to tomorrow.
+        if target_today <= now + timedelta(minutes=10):
+            target = target_today + timedelta(days=1)
+        else:
+            target = target_today
+        start = target.strftime("%Y-%m-%dT%H:%M:%S+00:00")
+        return {
+            "properties": {
+                "description": (
+                    f"Auto-created from runbook.schedule_names entry {name!r} "
+                    f"(daily at {hh:02d}:{mm:02d} UTC)"
+                ),
+                "startTime": start,
+                "frequency": "Day",
+                "interval": 1,
+                "timeZone": "UTC",
+            }
+        }
+    return None
 
 
 def az_automation_schedule_ensure(rg: str, aa: str, name: str) -> bool:

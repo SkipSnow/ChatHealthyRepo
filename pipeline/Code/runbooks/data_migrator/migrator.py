@@ -91,8 +91,6 @@ class _RGFilter(logging.Filter):
 
 
 log = ChatHealthyLoggingService()
-log.addFilter(_RGFilter())
-
 _STATUS_DB = "admin"
 _STATUS_COLLECTION = "ChatHealthyDataMigrator_jobs"
 _BATCH_SIZE = 5000
@@ -631,7 +629,7 @@ def _main():
 
         # Mirror indexes BEFORE the threadpool so any unique constraints
         # (e.g. the NPI unique index on providers) enforce duplicate-write
-        # detection during the load, not after — and so the destination
+        # detection during the load, not after - and so the destination
         # collection holds its source-mirror invariant even on partial-write
         # paths.
         if preserve_indexes:
@@ -665,7 +663,7 @@ def _main():
         # parts. The partitions use $elemMatch (per-element scoping), so
         # they only claim docs that have a SINGLE element matching the
         # per-element constraints. Counting the raw base_filter overcounts
-        # vs what any thread could write — that gap is permanently
+        # vs what any thread could write - that gap is permanently
         # uncoverable. The correct target is the union of partition
         # filters: count docs that match at least one partition.
         partition_filters = [
@@ -690,7 +688,7 @@ def _main():
     finally:
         # Each finally step is isolated so a failure in one (e.g. a
         # transient pipeline-cluster blip during finalize) does NOT skip
-        # the load-bearing downstream steps — releasing the reservation
+        # the load-bearing downstream steps - releasing the reservation
         # and firing the deprovisioner.
         try:
             status_doc.finalize(has_exception)

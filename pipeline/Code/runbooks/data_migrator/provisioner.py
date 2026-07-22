@@ -74,8 +74,6 @@ class _RGFilter(logging.Filter):
 
 
 log = ChatHealthyLoggingService()
-log.addFilter(_RGFilter())
-
 _COMPUTE_API = "2024-07-01"
 _NETWORK_API = "2024-01-01"
 _AUTOMATION_API = "2023-11-01"

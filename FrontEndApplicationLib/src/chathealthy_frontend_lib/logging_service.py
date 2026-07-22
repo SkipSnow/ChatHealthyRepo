@@ -45,11 +45,11 @@ def clear_request_context(token: Any) -> None:
 def bind_user_object_to_log(user_object: Any) -> None:
     """Bind the user_object's GUID to the log context. After this call,
     every log emitted on the same async task carries session_guid +
-    user_action=true. Framework call — handle_gate invokes this once
+    user_action=true. Framework call - handle_gate invokes this once
     the user_object exists. Developers using this library NEVER need
     to extract the GUID themselves; user_object is the source of truth.
 
-    Idempotent — re-binding with the same async task overwrites the
+    Idempotent - re-binding with the same async task overwrites the
     prior value. Per-request isolation is automatic because each
     asgi request runs in its own async task and contextvars are
     per-task.
@@ -196,7 +196,7 @@ class _MongoLogHandler(logging.Handler):
                 if exc_type is not None:
                     doc["exc_type"] = exc_type.__name__
             # Schema-defined extras: callers pass extra={...} on log()
-            # to override these defaults. Each is a direct check — no
+            # to override these defaults. Each is a direct check - no
             # abstraction, no policy.
             if hasattr(record, "fatal_error"):
                 doc["fatal_error"] = record.fatal_error
