@@ -145,8 +145,19 @@ class _MongoLogHandler(logging.Handler):
         # break the deadlock cycle. The file handler still gets them.
         self._in_emit = threading.local()
         # Pymongo's own records would recurse back through here via
-        # the monitor thread - drop them at handler entry.
-        self.addFilter(lambda r: not r.name.startswith("pymongo."))
+        # the monitor thread - drop them at handler entry. Also drop
+        # azure.core.pipeline.policies.http_logging_policy noise which
+        # would otherwise flood Log_dev with per-HTTP-request docs.
+        def _noise_filter(r: logging.LogRecord) -> bool:
+            n = r.name or ""
+            if n.startswith("pymongo."):
+                return False
+            if n.startswith("azure."):
+                return False
+            if n.startswith("urllib3."):
+                return False
+            return True
+        self.addFilter(_noise_filter)
 
     def _get_coll(self):
         if self._coll is None:
@@ -259,7 +270,13 @@ def _compute_destinations() -> tuple[str, ...]:
     """
     raw = os.environ.get("CH_LOG_DESTINATION")
     if raw is None:
-        return ("./logs", "mongo")
+        # Default is stderr-only. Callers that need Mongo persistence
+        # set CH_LOG_DESTINATION="stderr,mongo" explicitly AND ensure
+        # MONGO_FRONTEND_connectionString + CH_SPACE_NAME + ENV_PREFIX
+        # are set BEFORE their first log() call (per _build_mongo_handler's
+        # missing-env raise contract). AA runbooks that fetch the Mongo
+        # secret from KV must hoist that fetch to the top of main().
+        return ("stderr",)
     return tuple(t.strip() for t in raw.split(",") if t.strip())
 
 

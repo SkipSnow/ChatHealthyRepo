@@ -58,6 +58,28 @@ except ImportError:
 
 ACTIVITY_WINDOW  = int(os.environ.get("ACTIVITY_WINDOW_MINUTES", "30"))
 ENV_PREFIX       = os.environ.get("ENV_PREFIX", "dev")
+
+# CHLS env setup + SRV-bypass MUST happen before the module-level
+# ChatHealthyLoggingService() singleton is instantiated on line ~85. The
+# reservation_reaper already receives MONGO_FRONTEND_connectionString via
+# automationassets, but it arrives in mongodb+srv:// form; AA Python 3
+# sandbox cannot resolve _mongodb._tcp SRV records so we translate to the
+# non-SRV direct URI before pymongo touches it.
+os.environ.setdefault("CH_SPACE_NAME", "reservation-reaper")
+os.environ.setdefault("CH_COMPONENT", "reservation-reaper")
+os.environ.setdefault("CH_LOG_DESTINATION", "stderr,mongo")
+try:
+    from chathealthy_frontend_lib.pipeline_boot import srv_to_direct_uri as _srv_to_direct
+    _mongo_uri = os.environ.get("MONGO_FRONTEND_connectionString", "")
+    if _mongo_uri.startswith("mongodb+srv://"):
+        os.environ["MONGO_FRONTEND_connectionString"] = _srv_to_direct(_mongo_uri)
+except Exception as _bootstrap_exc:  # noqa: BLE001
+    sys.stderr.write(
+        f"reservation_reaper: SRV bypass failed "
+        f"({type(_bootstrap_exc).__name__}: {_bootstrap_exc}); "
+        "falling back to stderr-only logging.\n"
+    )
+    os.environ["CH_LOG_DESTINATION"] = "stderr"
 CLUSTER_NAME     = os.environ.get("PIPELINE_CLUSTER", "ChatHealthyDataPipelines")
 MONGO_URI        = os.environ["MONGO_FRONTEND_connectionString"]
 ATLAS_PUB        = os.environ["ATLAS_PUBLIC_KEY"]
@@ -330,19 +352,26 @@ def _main():
     log.info("Loaded %d reservations from %s.%s", len(reservations), DB_NAME, COLLECTION)
 
     kept, reaped = [], []
+    now_utc_naive = datetime.utcnow()
     for r in reservations:
-        end_str = r.get("expected_end_time")
-        if not end_str:
+        # The runbook-written reservation shape (provider_pipeline_runbook.py
+        # _create_reservation) uses `expiry_at` as a naive UTC datetime.
+        # Reap when now (naive UTC) > expiry_at.
+        expiry_dt = r.get("expiry_at")
+        if expiry_dt is None:
             kept.append(r); continue
-        try:
-            end_dt = datetime.fromisoformat(end_str)
-        except (ValueError, TypeError):
-            kept.append(r); continue
-        if now <= end_dt:
+        if isinstance(expiry_dt, str):
+            try:
+                expiry_dt = datetime.fromisoformat(expiry_dt)
+            except (ValueError, TypeError):
+                kept.append(r); continue
+        if getattr(expiry_dt, "tzinfo", None) is not None:
+            expiry_dt = expiry_dt.astimezone(timezone.utc).replace(tzinfo=None)
+        if now_utc_naive <= expiry_dt:
             kept.append(r); continue
         reaped.append(r)
-        log.info("Reaping overdue reservation: job_id=%s requester=%s",
-                 r.get("job_id", ""), r.get("requester", ""))
+        log.info("Reaping overdue reservation: _id=%s requester=%s expiry_at=%s",
+                 r.get("_id", ""), r.get("requester", ""), expiry_dt.isoformat())
 
     if reaped:
         coll.delete_many({"_id": {"$in": [r["_id"] for r in reaped]}})

@@ -892,6 +892,10 @@ def main() -> int:
     # Fresh run_id
     now = datetime.datetime.utcnow()
     run_id = f"prov-{now.strftime('%Y-%m-%dT%H-%M-%SZ')}-{uuid.uuid4().hex[:6]}"
+    # Publish RUN_ID into env so subsequent log() calls populate job_id
+    # on the CHLS Mongo document (Log_{env}.job_id). ChatHealthyLoggingService
+    # reads os.environ.get('RUN_ID') at emit time.
+    os.environ["RUN_ID"] = run_id
     log("run_id_generated", run_id=run_id)
 
     # Sentinel for the finally block. When True this invocation is a

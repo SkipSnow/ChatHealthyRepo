@@ -43,6 +43,49 @@ sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 import ca_helpers as ch
 
 
+# Hydrate deploy-pushed Automation Variables into os.environ. deploy_chain
+# pushes each name in the secrets block on the DeploymentTargetRecord as
+# an Automation Variable; without this hydration the runbook falls back
+# to code defaults hardcoded for dev.
+try:
+    import automationassets as _aa
+    for _k in ("KEY_VAULT_URI", "AUTOMATION_ENV_PREFIX"):
+        try:
+            os.environ[_k] = str(_aa.get_automation_variable(_k))
+        except Exception:
+            pass
+except ImportError:
+    pass
+
+
+# Wire Mongo logging BEFORE ChatHealthyLoggingService() singleton is
+# instantiated. KV Mongo secret fetch + SRV bypass so CHLS's Mongo
+# handler wires to the front-end cluster (log to Log_{env}). Falls back
+# to stderr-only on any failure so CA bootstrap never blocks on logging
+# plumbing.
+os.environ.setdefault("CH_SPACE_NAME", "ca-bootstrap")
+os.environ.setdefault("CH_COMPONENT", "ca-bootstrap")
+os.environ.setdefault("ENV_PREFIX",
+                      os.environ.get("AUTOMATION_ENV_PREFIX", "dev"))
+try:
+    from chathealthy_frontend_lib.pipeline_boot import bootstrap_aa_mongo_logging as _boot
+    _boot(
+        kv_uri=os.environ.get(
+            "KEY_VAULT_URI", "https://kv-chpipeline-dev.vault.azure.net/",
+        ),
+        secret_name="MONGO-FRONTEND-connectionString",
+        component_name="ca-bootstrap",
+        env_prefix=os.environ.get("AUTOMATION_ENV_PREFIX", "dev"),
+    )
+except Exception as _bootstrap_exc:  # noqa: BLE001
+    sys.stderr.write(
+        f"ca_bootstrap: bootstrap_aa_mongo_logging failed "
+        f"({type(_bootstrap_exc).__name__}: {_bootstrap_exc}); "
+        "continuing with stderr-only logging.\n"
+    )
+    os.environ["CH_LOG_DESTINATION"] = "stderr"
+
+
 LOG = ChatHealthyLoggingService()
 
 

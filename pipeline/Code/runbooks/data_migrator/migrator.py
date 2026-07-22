@@ -72,13 +72,35 @@ try:
     for k in ("MONGO_connectionString", "MONGO_FRONTEND_connectionString",
               "ATLAS_PUBLIC_KEY", "ATLAS_PRIVATE_KEY", "ATLAS_PROJECT_ID",
               "AZ_SUBSCRIPTION_ID", "AZ_AUTOMATION_RESOURCE_GROUP",
-              "AZ_AUTOMATION_ACCOUNT"):
+              "AZ_AUTOMATION_ACCOUNT",
+              "KEY_VAULT_URI", "AUTOMATION_ENV_PREFIX"):
         try:
             os.environ[k] = str(automationassets.get_automation_variable(k))
         except Exception:
             pass
 except ImportError:
     automationassets = None  # type: ignore
+
+# Wire Mongo logging BEFORE ChatHealthyLoggingService() below. Migrator
+# runs on the Hybrid Worker VM (full DNS available) so SRV bypass is a
+# no-op for direct URIs and defensive for SRV URIs.
+os.environ.setdefault("CH_SPACE_NAME", "data-migrator-migrator")
+os.environ.setdefault("CH_COMPONENT", "data-migrator-migrator")
+os.environ.setdefault("ENV_PREFIX",
+                      os.environ.get("AUTOMATION_ENV_PREFIX", "dev"))
+os.environ.setdefault("CH_LOG_DESTINATION", "stderr,mongo")
+try:
+    from chathealthy_frontend_lib.pipeline_boot import srv_to_direct_uri as _srv
+    _uri = os.environ.get("MONGO_FRONTEND_connectionString", "")
+    if _uri.startswith("mongodb+srv://"):
+        os.environ["MONGO_FRONTEND_connectionString"] = _srv(_uri)
+except Exception as _bootstrap_exc:  # noqa: BLE001
+    sys.stderr.write(
+        f"migrator: SRV bypass failed "
+        f"({type(_bootstrap_exc).__name__}: {_bootstrap_exc}); "
+        "falling back to stderr-only logging.\n"
+    )
+    os.environ["CH_LOG_DESTINATION"] = "stderr"
 
 log = ChatHealthyLoggingService()
 _STATUS_DB = "admin"

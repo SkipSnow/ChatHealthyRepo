@@ -45,13 +45,38 @@ try:
     for k in ("AZ_SUBSCRIPTION_ID", "AZ_RESOURCE_GROUP", "AZ_AUTOMATION_ACCOUNT",
               "ATLAS_PUBLIC_KEY", "ATLAS_PRIVATE_KEY", "ATLAS_PROJECT_ID",
               "MONGO_CLUSTER_pipeline_connectionString",
-              "MONGO_CLUSTER_frontend_connectionString"):
+              "MONGO_CLUSTER_frontend_connectionString",
+              "KEY_VAULT_URI", "AUTOMATION_ENV_PREFIX"):
         try:
             os.environ[k] = str(automationassets.get_automation_variable(k))
         except Exception:
             pass
 except ImportError:
     pass
+
+# Wire Mongo logging BEFORE ChatHealthyLoggingService() below. See
+# deprovisioner.py for the fallback-to-stderr contract.
+os.environ.setdefault("CH_SPACE_NAME", "data-migrator-orchestrator")
+os.environ.setdefault("CH_COMPONENT", "data-migrator-orchestrator")
+os.environ.setdefault("ENV_PREFIX",
+                      os.environ.get("AUTOMATION_ENV_PREFIX", "dev"))
+try:
+    from chathealthy_frontend_lib.pipeline_boot import bootstrap_aa_mongo_logging as _boot
+    _boot(
+        kv_uri=os.environ.get(
+            "KEY_VAULT_URI", "https://kv-chpipeline-dev.vault.azure.net/",
+        ),
+        secret_name="MONGO-FRONTEND-connectionString",
+        component_name="data-migrator-orchestrator",
+        env_prefix=os.environ.get("AUTOMATION_ENV_PREFIX", "dev"),
+    )
+except Exception as _bootstrap_exc:  # noqa: BLE001
+    sys.stderr.write(
+        f"orchestrator: bootstrap_aa_mongo_logging failed "
+        f"({type(_bootstrap_exc).__name__}: {_bootstrap_exc}); "
+        "continuing with stderr-only logging.\n"
+    )
+    os.environ["CH_LOG_DESTINATION"] = "stderr"
 
 log = ChatHealthyLoggingService()
 _AUTOMATION_API = "2023-11-01"
