@@ -74,10 +74,8 @@ _FORMAT = "%(asctime)s %(levelname)s %(name)s - %(message)s"
 _DATEFMT = "%Y-%m-%d %H:%M:%S"
 
 _lock = threading.Lock()
-_bound_destination: Optional[str] = None
+_bound_destinations: Optional[tuple[str, ...]] = None
 _bound_level: Optional[int] = None
-_mongo_handler_bound: bool = False
-_mongo_env_warned: bool = False
 
 
 class _Formatter(logging.Formatter):
@@ -128,9 +126,12 @@ class _Formatter(logging.Formatter):
 
 class _MongoLogHandler(logging.Handler):
     """Synchronous writer to Pipelines.Log_{env}. Each emit produces one
-    document conforming to ChatHealthyLogsSchema.json. Any insert failure
-    crashes the process via os._exit(1) per operator directive (no
-    silent loss)."""
+    document conforming to ChatHealthyLogsSchema.json. Libraries throw:
+    any pymongo failure is propagated. Python's stdlib
+    `Logger.handle()` catches handler exceptions via
+    `Handler.handleError()`, which by default writes the exception to
+    sys.stderr and continues — that is the standard stdlib behavior for
+    a handler that fails. No process kill, no policy decision."""
 
     def __init__(self, env: str, target: str) -> None:
         super().__init__()
@@ -210,41 +211,16 @@ class _MongoLogHandler(logging.Handler):
             if hasattr(record, "http_path"):
                 doc["http_path"] = record.http_path
             self._get_coll().insert_one(doc)
-        except Exception as exc:
-            sys.stderr.write(
-                f"\n*** FATAL: ChatHealthyLoggingService write to "
-                f"admin.ChatHealthyLogs_{self._env} failed: "
-                f"{type(exc).__name__}: {exc}\n"
-            )
-            sys.stderr.flush()
-            os._exit(1)
         finally:
             self._in_emit.value = False
 
 
-def _maybe_build_mongo_handler() -> Optional[logging.Handler]:
-    """Build the Mongo handler. All three env bindings are required.
-
-    Contract: this function MUST NOT raise. Bootstrap code calls
-    CHLS.info() BEFORE Mongo env vars are loaded into os.environ (that
-    is exactly what bootstrap is doing when it emits its own boot
-    events). Raising here would force bootstrap into a print()-only
-    escape hatch, which violates Rule-005.
-
-    Behaviour:
-      * All three env bindings present -> build and return the Mongo
-        handler. _ensure_configured() sets _mongo_handler_bound = True
-        so this is not re-attempted every log call.
-      * Any env binding missing -> emit a single one-shot stderr
-        warning (so operators can see 'no Mongo logging yet' during
-        bootstrap), return None, and leave _mongo_handler_bound=False
-        so the next log call after env is loaded rebinds.
-
-    The "if you can't log to Mongo you die" policy is enforced by
-    PipelineServices.observability_gate.ObservabilityGate.check(),
-    which is a separate active probe. That gate, not this passive
-    handler construction, is the fatal signal for a running service.
-    """
+def _build_mongo_handler() -> logging.Handler:
+    """Build the Mongo handler. Called ONLY when 'mongo' is in
+    CH_LOG_DESTINATION. Raises ChatHealthyException if any required env
+    binding is missing - libraries throw, callers decide. If 'mongo' is
+    NOT in CH_LOG_DESTINATION, this function is never called and
+    mongo_utilities is never imported."""
     target = os.environ.get("CH_SPACE_NAME", "").strip()
     env = os.environ.get("ENV_PREFIX", "").strip()
     conn = os.environ.get("MONGO_FRONTEND_connectionString")
@@ -256,30 +232,35 @@ def _maybe_build_mongo_handler() -> Optional[logging.Handler]:
     if not env:
         missing.append("ENV_PREFIX")
     if missing:
-        global _mongo_env_warned
-        if not _mongo_env_warned:
-            sys.stderr.write(
-                "ChatHealthyLoggingService: Mongo handler NOT wired; missing env "
-                f"binding(s): {', '.join(missing)}. Logging to stderr/file only "
-                "until these are set (ObservabilityGate enforces the die-if-no-mongo "
-                "policy separately).\n"
-            )
-            sys.stderr.flush()
-            _mongo_env_warned = True
-        return None
+        raise ChatHealthyException(
+            mode="mongo_log_handler_env_unset",
+            message=(
+                "ChatHealthyLoggingService cannot wire the Mongo handler "
+                "because required env binding(s) are missing: "
+                f"{', '.join(missing)}. Either set them or remove 'mongo' "
+                "from CH_LOG_DESTINATION."
+            ),
+            component="ChatHealthyLoggingService",
+            missing=",".join(missing),
+        )
     h = _MongoLogHandler(env=env, target=target)
-    # Share the file handler's _Formatter so `formatted` is byte-equivalent
-    # to the file log line, including ChatHealthyException stacks.
     h.setFormatter(_Formatter(fmt=_FORMAT, datefmt=_DATEFMT))
     return h
 
 
-def _compute_destination() -> str:
-    dest = os.environ.get("CH_LOG_DESTINATION", "./logs")
-    if dest in ("stdout", "stderr"):
-        return dest
-    comp = os.environ.get("CH_COMPONENT", "chathealthy")
-    return f"{dest.rstrip('/')}/{comp}.log"
+def _compute_destinations() -> tuple[str, ...]:
+    """Parse CH_LOG_DESTINATION as a comma-separated list of destinations.
+
+    Each token is one of: 'stdout', 'stderr', 'mongo', or a file path.
+    Default (env unset): ('./logs', 'mongo') - preserves prior wiring
+    for existing runtime callers that set the Mongo env vars.
+    Callers who do not want Mongo (tests, bootstrap early) set
+    CH_LOG_DESTINATION explicitly WITHOUT 'mongo'.
+    """
+    raw = os.environ.get("CH_LOG_DESTINATION")
+    if raw is None:
+        return ("./logs", "mongo")
+    return tuple(t.strip() for t in raw.split(",") if t.strip())
 
 
 def _compute_level() -> int:
@@ -288,37 +269,39 @@ def _compute_level() -> int:
     return mapped if isinstance(mapped, int) else logging.INFO
 
 
-def _build_handler(destination: str) -> logging.Handler:
+def _build_handler_for(destination: str) -> logging.Handler:
     if destination == "stdout":
         h: logging.Handler = logging.StreamHandler(stream=sys.stdout)
     elif destination == "stderr":
         h = logging.StreamHandler()
+    elif destination == "mongo":
+        return _build_mongo_handler()
     else:
-        parent = os.path.dirname(destination)
+        # File path. Append component name so multiple services in the
+        # same directory get distinct files.
+        comp = os.environ.get("CH_COMPONENT", "chathealthy")
+        path = f"{destination.rstrip('/')}/{comp}.log"
+        parent = os.path.dirname(path)
         if parent:
             os.makedirs(parent, exist_ok=True)
-        h = logging.FileHandler(destination, mode="a", encoding="utf-8")
+        h = logging.FileHandler(path, mode="a", encoding="utf-8")
     h.setFormatter(_Formatter(fmt=_FORMAT, datefmt=_DATEFMT))
     return h
 
 
 def _ensure_configured() -> None:
-    """Re-read env vars; rebind if anything changed (REQ-B-003 + REQ-B-006)."""
-    global _bound_destination, _bound_level, _mongo_handler_bound
-    dest = _compute_destination()
+    """Re-read env vars; rebind if the destination list or level changed."""
+    global _bound_destinations, _bound_level
+    dests = _compute_destinations()
     level = _compute_level()
-    if dest == _bound_destination and level == _bound_level and _mongo_handler_bound:
+    if dests == _bound_destinations and level == _bound_level:
         return
     with _lock:
-        if dest == _bound_destination and level == _bound_level and _mongo_handler_bound:
+        if dests == _bound_destinations and level == _bound_level:
             return
-        handlers: list[logging.Handler] = [_build_handler(dest)]
-        mongo = _maybe_build_mongo_handler()
-        if mongo is not None:
-            handlers.append(mongo)
-            _mongo_handler_bound = True
+        handlers = [_build_handler_for(d) for d in dests]
         logging.basicConfig(level=level, handlers=handlers, force=True)
-        _bound_destination = dest
+        _bound_destinations = dests
         _bound_level = level
 
 
