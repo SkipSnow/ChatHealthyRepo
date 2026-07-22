@@ -250,8 +250,7 @@ def _is_worker(node_identity: str) -> bool:
 
 def main() -> int:
     pipeline_name = os.environ.get("PIPELINE_NAME", "provider")
-    import logging  # noqa: PLC0415 (see Rule-005; bootstrap exemption)
-    blob_logger.install(pipeline_name, level=logging.DEBUG)
+    blob_logger.install(pipeline_name)
 
     # Observability gate call is DEFERRED to after KV secret load below
     # (Control path only). MONGO_FRONTEND_connectionString + CH_SPACE_NAME
@@ -263,55 +262,39 @@ def main() -> int:
     import traceback  # noqa: PLC0415
 
     def _dump_obs_abend(_obs_exc: ChatHealthyException) -> None:
-        ChatHealthyLoggingService().info("=" * 78)
-        print("bootstrap: pipeline observability gate FAILED -- abending",
-              file=sys.stderr, flush=True)
-        print(f"  pipeline_name (component): {pipeline_name!r}",
-              file=sys.stderr, flush=True)
-        print(f"  execution/server:          "
-              f"{os.environ.get('CONTAINER_APP_JOB_EXECUTION_NAME', socket.gethostname())!r}",
-              file=sys.stderr, flush=True)
-        print(f"  env ENV_PREFIX:            "
-              f"{os.environ.get('ENV_PREFIX', '<unset>')!r}",
-              file=sys.stderr, flush=True)
-        print(f"  env CH_SPACE_NAME:         "
-              f"{os.environ.get('CH_SPACE_NAME', '<unset>')!r}",
-              file=sys.stderr, flush=True)
-        print(f"  env MONGO_FRONTEND_conn:   "
-              f"{'set' if os.environ.get('MONGO_FRONTEND_connectionString') else '<UNSET>'}",
-              file=sys.stderr, flush=True)
-        print(f"  mode:      {_obs_exc.mode!r}",
-              file=sys.stderr, flush=True)
-        print(f"  message:   {_obs_exc.message}",
-              file=sys.stderr, flush=True)
-        print(f"  server:    {_obs_exc.server!r}",
-              file=sys.stderr, flush=True)
-        print(f"  component: {_obs_exc.component!r}",
-              file=sys.stderr, flush=True)
+        chls = ChatHealthyLoggingService()
+        chls.error("=" * 78)
+        chls.error("bootstrap: pipeline observability gate FAILED -- abending")
+        chls.error("  pipeline_name (component): %r", pipeline_name)
+        chls.error("  execution/server:          %r",
+                   os.environ.get('CONTAINER_APP_JOB_EXECUTION_NAME',
+                                  socket.gethostname()))
+        chls.error("  env ENV_PREFIX:            %r",
+                   os.environ.get('ENV_PREFIX', '<unset>'))
+        chls.error("  env CH_SPACE_NAME:         %r",
+                   os.environ.get('CH_SPACE_NAME', '<unset>'))
+        chls.error("  env MONGO_FRONTEND_conn:   %s",
+                   'set' if os.environ.get('MONGO_FRONTEND_connectionString')
+                   else '<UNSET>')
+        chls.error("  mode:      %r", _obs_exc.mode)
+        chls.error("  message:   %s", _obs_exc.message)
+        chls.error("  server:    %r", _obs_exc.server)
+        chls.error("  component: %r", _obs_exc.component)
         for _k, _v in (_obs_exc.context or {}).items():
-            print(f"  ctx.{_k}: {_v!r}",
-                  file=sys.stderr, flush=True)
+            chls.error("  ctx.%s: %r", _k, _v)
         if _obs_exc.exception is not None:
             _orig = _obs_exc.exception
-            print("  original (chained) exception:",
-                  file=sys.stderr, flush=True)
-            print(f"    type: {type(_orig).__name__}",
-                  file=sys.stderr, flush=True)
-            print(f"    args: {_orig.args!r}",
-                  file=sys.stderr, flush=True)
-            print(f"    repr: {_orig!r}",
-                  file=sys.stderr, flush=True)
+            chls.error("  original (chained) exception:")
+            chls.error("    type: %s", type(_orig).__name__)
+            chls.error("    args: %r", _orig.args)
+            chls.error("    repr: %r", _orig)
             if _orig.__traceback__ is not None:
-                print("    original traceback:",
-                      file=sys.stderr, flush=True)
-                traceback.print_tb(_orig.__traceback__, file=sys.stderr)
-        print("  construction_stack (ChatHealthyException):",
-              file=sys.stderr, flush=True)
-        print(_obs_exc.construction_stack,
-              file=sys.stderr, flush=True)
-        ChatHealthyLoggingService().info("  live traceback:")
-        traceback.print_exc(file=sys.stderr)
-        ChatHealthyLoggingService().info("=" * 78)
+                chls.error("    original traceback:\n%s",
+                           "".join(traceback.format_tb(_orig.__traceback__)))
+        chls.error("  construction_stack (ChatHealthyException):")
+        chls.error("%s", _obs_exc.construction_stack)
+        chls.error("  live traceback:\n%s", traceback.format_exc())
+        chls.error("=" * 78)
 
     if len(sys.argv) < 2:
         _emit("usage: bootstrap.py <entry_point.py> [args...]")

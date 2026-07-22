@@ -77,6 +77,7 @@ _lock = threading.Lock()
 _bound_destination: Optional[str] = None
 _bound_level: Optional[int] = None
 _mongo_handler_bound: bool = False
+_mongo_env_warned: bool = False
 
 
 class _Formatter(logging.Formatter):
@@ -221,12 +222,29 @@ class _MongoLogHandler(logging.Handler):
             self._in_emit.value = False
 
 
-def _maybe_build_mongo_handler() -> logging.Handler:
-    """Build the Mongo handler. All three env bindings are required
-    (per operator directive 2026-07-19: "if you can't log to Mongo you
-    die"). Silent-skip on missing env was an anti-pattern that let
-    services boot with a broken observability surface; this now raises
-    ChatHealthyException so the caller aborts."""
+def _maybe_build_mongo_handler() -> Optional[logging.Handler]:
+    """Build the Mongo handler. All three env bindings are required.
+
+    Contract: this function MUST NOT raise. Bootstrap code calls
+    CHLS.info() BEFORE Mongo env vars are loaded into os.environ (that
+    is exactly what bootstrap is doing when it emits its own boot
+    events). Raising here would force bootstrap into a print()-only
+    escape hatch, which violates Rule-005.
+
+    Behaviour:
+      * All three env bindings present -> build and return the Mongo
+        handler. _ensure_configured() sets _mongo_handler_bound = True
+        so this is not re-attempted every log call.
+      * Any env binding missing -> emit a single one-shot stderr
+        warning (so operators can see 'no Mongo logging yet' during
+        bootstrap), return None, and leave _mongo_handler_bound=False
+        so the next log call after env is loaded rebinds.
+
+    The "if you can't log to Mongo you die" policy is enforced by
+    PipelineServices.observability_gate.ObservabilityGate.check(),
+    which is a separate active probe. That gate, not this passive
+    handler construction, is the fatal signal for a running service.
+    """
     target = os.environ.get("CH_SPACE_NAME", "").strip()
     env = os.environ.get("ENV_PREFIX", "").strip()
     conn = os.environ.get("MONGO_FRONTEND_connectionString")
@@ -238,17 +256,17 @@ def _maybe_build_mongo_handler() -> logging.Handler:
     if not env:
         missing.append("ENV_PREFIX")
     if missing:
-        raise ChatHealthyException(
-            mode="mongo_log_handler_env_unset",
-            message=(
-                "ChatHealthyLoggingService cannot wire the Mongo handler "
-                "because required env binding(s) are missing: "
-                f"{', '.join(missing)}. Operating without a durable "
-                "observability surface is a fatal configuration."
-            ),
-            component="ChatHealthyLoggingService",
-            missing=",".join(missing),
-        )
+        global _mongo_env_warned
+        if not _mongo_env_warned:
+            sys.stderr.write(
+                "ChatHealthyLoggingService: Mongo handler NOT wired; missing env "
+                f"binding(s): {', '.join(missing)}. Logging to stderr/file only "
+                "until these are set (ObservabilityGate enforces the die-if-no-mongo "
+                "policy separately).\n"
+            )
+            sys.stderr.flush()
+            _mongo_env_warned = True
+        return None
     h = _MongoLogHandler(env=env, target=target)
     # Share the file handler's _Formatter so `formatted` is byte-equivalent
     # to the file log line, including ChatHealthyException stacks.

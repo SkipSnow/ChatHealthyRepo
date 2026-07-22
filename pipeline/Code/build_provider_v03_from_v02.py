@@ -117,7 +117,6 @@ from chathealthy_frontend_lib.mongo_utilities import ChatHealthyMongoUtilities
 from chathealthy_frontend_lib.exceptions import ChatHealthyException
 
 import argparse
-import logging
 import os
 import sys
 from collections import Counter
@@ -144,14 +143,6 @@ ISSUER_ANALYSIS_XLSX = (
 )
 
 log = ChatHealthyLoggingService()
-
-
-def _setup_logging() -> None:
-    handler = logging.StreamHandler(sys.stdout)
-    handler.setFormatter(logging.Formatter("%(asctime)s %(levelname)s %(message)s"))
-    root = ChatHealthyLoggingService()
-    root.handlers[:] = [handler]
-    root.setLevel(logging.INFO)
 
 
 # ---------------------------------------------------------------------------
@@ -714,7 +705,6 @@ def parse_args() -> argparse.Namespace:
 
 
 def main() -> int:
-    _setup_logging()
     args = parse_args()
     return run(limit=args.limit, drop=args.drop, batch_size=args.batch_size)
 

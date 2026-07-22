@@ -337,8 +337,10 @@ def _cancel_reservation(mongo, run_id: str) -> None:
 
 
 def _delete_vm_via_arm(vm_name: str) -> None:
-    """Fire-and-forget az vm delete via ARM REST. Silent on already-gone
-    (404); raises only on other HTTP errors so caller can log + swallow."""
+    """Fire-and-forget VM delete via ARM REST. Silent on 404 (already gone)
+    and 409 (delete queued while another operation is in flight; ARM
+    completes the delete once the in-flight op finishes). Raises on
+    other HTTP errors so the caller can log + swallow."""
     url = (
         f"https://management.azure.com/subscriptions/{SUBSCRIPTION_ID}"
         f"/resourceGroups/{RESOURCE_GROUP}/providers/Microsoft.Compute/"
@@ -351,7 +353,7 @@ def _delete_vm_via_arm(vm_name: str) -> None:
         with urllib.request.urlopen(req, timeout=30):
             pass
     except urllib.error.HTTPError as e:
-        if e.code == 404:
+        if e.code in (404, 409):
             return
         raise
 
@@ -451,7 +453,7 @@ runcmd:
     docker run --rm --network host \\
       -e CHATHEALTHY_NODE_IDENTITY='pipeline-control' \\
       -e CH_SPACE_NAME='pipeline-control' \\
-      -e CH_LOG_LEVEL='DEBUG' \\
+      -e CH_LOG_LEVEL='INFO' \\
       -e CH_COMPONENT='provider_pipeline_control' \\
       -e RUN_ID='{run_id}' \\
       -e ENV_PREFIX='{ENV_PREFIX}' \\

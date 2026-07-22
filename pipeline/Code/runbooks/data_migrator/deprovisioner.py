@@ -29,7 +29,6 @@ from chathealthy_frontend_lib.exceptions import ChatHealthyException
 
 import base64
 import json
-import logging
 import os
 import sys
 import traceback
@@ -47,15 +46,6 @@ try:
             pass
 except ImportError:
     pass
-
-_request_guid = "?"
-
-
-class _RGFilter(logging.Filter):
-    def filter(self, record):
-        record.request_guid = _request_guid
-        return True
-
 
 log = ChatHealthyLoggingService()
 _COMPUTE_API = "2024-07-01"
@@ -187,8 +177,7 @@ def _main():
             step_fn()
         except Exception as exc:
             pass
-    print(json.dumps({"deprovisioner_status": "ok", "job_id": job_id, "vm_name": vm_name}),
-          flush=True)
+    log.info(json.dumps({"deprovisioner_status": "ok", "job_id": job_id, "vm_name": vm_name}))
 
 
 try:

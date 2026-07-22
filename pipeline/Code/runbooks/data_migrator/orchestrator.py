@@ -32,7 +32,6 @@ from chathealthy_frontend_lib.exceptions import ChatHealthyException
 
 import base64
 import json
-import logging
 import os
 import sys
 import traceback
@@ -53,15 +52,6 @@ try:
             pass
 except ImportError:
     pass
-
-_request_guid = "?"
-
-
-class _RGFilter(logging.Filter):
-    def filter(self, record):
-        record.request_guid = _request_guid
-        return True
-
 
 log = ChatHealthyLoggingService()
 _AUTOMATION_API = "2023-11-01"
@@ -236,12 +226,12 @@ def _main():
     provisioner_aa_job_id = _start_runbook_fire_and_forget(
         sub, rg, aa, _PROVISIONER_RUNBOOK, payload, run_on=None,
     )
-    print(json.dumps({
+    log.info(json.dumps({
         "orchestrator_status": "ok",
         "job_id": job_id,
         "vm_name": vm_name,
         "provisioner_aa_job_id": provisioner_aa_job_id,
-    }), flush=True)
+    }))
 
 
 try:
