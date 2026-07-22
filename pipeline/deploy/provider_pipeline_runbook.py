@@ -46,7 +46,7 @@ PIPELINE_NAME = "provider"
 
 # v32: Runbook creates a fresh VM per run (no ACA job).
 VM_LOCATION = os.environ.get("AUTOMATION_VM_LOCATION", "eastus2")
-VM_SIZE = os.environ.get("AUTOMATION_VM_SIZE", "Standard_D32s_v5")
+VM_SIZE = os.environ.get("AUTOMATION_VM_SIZE", "Standard_D8s_v6")
 VM_SUBNET = os.environ.get(
     "AUTOMATION_VM_SUBNET",
     "snet-pipeline-compute",
