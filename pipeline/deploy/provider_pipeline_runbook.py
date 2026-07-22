@@ -465,7 +465,7 @@ runcmd:
     # Controller's finally block fires `az vm delete` on AZURE_VM_NAME on
     # normal exit. But if Controller aborts BEFORE main() runs (e.g.,
     # bootstrap observability gate raises), no finally fires. The cloud-init
-    # safety-net after docker run ALWAYS fires az vm delete, idempotent —
+    # safety-net after docker run ALWAYS fires az vm delete, idempotent:
     # a duplicate DELETE 404s if Controller already fired it.
     set +e
     docker run --rm --network host \\
