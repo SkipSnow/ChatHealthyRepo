@@ -59,7 +59,7 @@ class EmbeddingClient:
     def expand_query_terms(self, query: str) -> list[str]:
         """AI query expansion via Claude Haiku. Returns keyword stems."""
         try:
-            client = Anthropic(api_key=os.getenv("Anthropic_API_KEY"))
+            client = Anthropic(api_key=os.getenv("ANTHROPIC_API_KEY"))
             response = client.messages.create(
                 model="claude-haiku-4-5-20251001",
                 max_tokens=128,

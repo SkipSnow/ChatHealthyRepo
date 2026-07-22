@@ -2310,7 +2310,7 @@
         "GOOGLE_API_KEY": "local_env",
         "HF_TOKEN": "local_env",
         "ADMIN_UNLOCK_KEY": "local_env",
-        "Anthropic_API_KEY": "local_env",
+        "ANTHROPIC_API_KEY": "local_env",
         "MONGO_FRONTEND_connectionString": "local_env",
         "NOTIFICATION_FROM_EMAIL": "local_env",
         "NOTIFICATION_TO_EMAIL": "local_env",
@@ -3013,7 +3013,7 @@
         "GOOGLE_API_KEY": "local_env",
         "MONGO_FRONTEND_connectionString": "local_env",
         "OPENAI_API_KEY": "local_env",
-        "Anthropic_API_KEY": "local_env"
+        "ANTHROPIC_API_KEY": "local_env"
       },
       "entitlements": [
         {
@@ -4492,7 +4492,7 @@
         "GOOGLE_API_KEY": "local_env",
         "HF_TOKEN": "local_env",
         "ADMIN_UNLOCK_KEY": "local_env",
-        "Anthropic_API_KEY": "local_env",
+        "ANTHROPIC_API_KEY": "local_env",
         "MONGO_FRONTEND_connectionString": "local_env",
         "NOTIFICATION_FROM_EMAIL": "local_env",
         "NOTIFICATION_TO_EMAIL": "local_env",
@@ -5511,7 +5511,7 @@
         "GOOGLE_API_KEY": "local_env",
         "MONGO_FRONTEND_connectionString": "local_env",
         "OPENAI_API_KEY": "local_env",
-        "Anthropic_API_KEY": "local_env"
+        "ANTHROPIC_API_KEY": "local_env"
       },
       "variables": {
         "ENV_PREFIX": "local_env",
@@ -6689,7 +6689,7 @@
         "CLOUDFLARE_API_TOKEN": "local_env",
         "CLOUDFLARE_ACCOUNT_ID": "local_env",
         "HF_TOKEN": "local_env",
-        "Anthropic_API_KEY": "local_env"
+        "ANTHROPIC_API_KEY": "local_env"
       },
       "variables": {
         "CHATHEALTHY_PROJECT_ROOT": "local_env",
@@ -7328,7 +7328,7 @@
         "ATLAS_PROJECT_ID": "local_env",
         "AZURE_STORAGE_CONNECTION_STRING": "local_env",
         "KEY_VAULT_URI": "local_env",
-        "Anthropic_API_KEY": "local_env",
+        "ANTHROPIC_API_KEY": "local_env",
         "GEMINI_API_KEY": "local_env",
         "SPARKMAIL_API_KEY": "local_env",
         "NOTIFICATION_FROM_EMAIL": "local_env",

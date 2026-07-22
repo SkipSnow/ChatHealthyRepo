@@ -29,7 +29,7 @@ _VENDOR_URLS = {
 
 # Model prefix → API key env var
 _VENDOR_KEYS = {
-    "claude": "Anthropic_API_KEY",
+    "claude": "ANTHROPIC_API_KEY",
     "gemini": "GEMINI_API_KEY",
     "gpt": "OPENAI_API_KEY",
     "o1": "OPENAI_API_KEY",
