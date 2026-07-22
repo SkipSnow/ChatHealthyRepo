@@ -498,8 +498,8 @@ _ACA_STAGE_REQUIREMENTS_NAME = "requirements.txt"
 # assembly happens deterministically at build time.
 _INLINE_LIB_MODULES = (
     "exceptions",       # no in-package deps
-    "mongo_utilities",  # imports .exceptions
-    "logging_service",  # imports .exceptions, lazy .mongo_utilities
+    "logging_service",  # imports .exceptions eagerly; imports .mongo_utilities lazily inside _MongoLogHandler.emit
+    "mongo_utilities",  # imports .exceptions AND .logging_service eagerly at module load; logging_service MUST be installed first
 )
 
 
