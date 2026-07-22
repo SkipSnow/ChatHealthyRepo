@@ -8,6 +8,7 @@ can all write to the same day's log without stomping each other. Auth via
 attached managed identity (DefaultAzureCredential).
 """
 from __future__ import annotations
+from chathealthy_frontend_lib.logging_service import ChatHealthyLoggingService
 
 import datetime
 import logging
@@ -82,7 +83,7 @@ class BlobAppendHandler(logging.Handler):
 def install(pipeline_name: str, level: int = logging.INFO) -> None:
     """Wire the BlobAppendHandler into the root logger AND a StreamHandler
     for stdout (so ACA console logs still show up in Log Analytics)."""
-    root = logging.getLogger()
+    root = ChatHealthyLoggingService()
     root.setLevel(level)
     fmt = logging.Formatter(
         "%(asctime)s %(levelname)s [%(name)s] %(message)s",
@@ -90,9 +91,9 @@ def install(pipeline_name: str, level: int = logging.INFO) -> None:
     )
     for h in list(root.handlers):
         root.removeHandler(h)
-    logging.getLogger("azure").setLevel(logging.WARNING)
-    logging.getLogger("msal").setLevel(logging.WARNING)
-    logging.getLogger("urllib3").setLevel(logging.WARNING)
+    ChatHealthyLoggingService().setLevel(logging.WARNING)
+    ChatHealthyLoggingService().setLevel(logging.WARNING)
+    ChatHealthyLoggingService().setLevel(logging.WARNING)
     stream = logging.StreamHandler(sys.stdout)
     stream.setFormatter(fmt)
     root.addHandler(stream)

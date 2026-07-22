@@ -39,8 +39,9 @@ Per Skip 2026-05-28: indexes are built by the software, not the operator.
 No external prerequisite. No manual side-action.
 """
 from __future__ import annotations
+from chathealthy_frontend_lib.logging_service import ChatHealthyLoggingService
 
-import logging
+
 import os
 import time
 
@@ -88,7 +89,7 @@ def _wait_for_cluster_ready(
         attempts += 1
         try:
             client.admin.command("ping")
-            logging.info(
+            ChatHealthyLoggingService().info(
                 "cluster ready after %d attempt(s) (~%.0fs)",
                 attempts, attempts * poll_seconds,
             )
@@ -100,7 +101,7 @@ def _wait_for_cluster_ready(
                     f"cluster not ready after {timeout_minutes} min "
                     f"({attempts} attempts): {exc}"
                 )
-            logging.info(
+            ChatHealthyLoggingService().info(
                 "cluster not ready (attempt %d, %.0fs remaining): %s",
                 attempts, remaining, exc,
             )
@@ -114,10 +115,8 @@ def _providers_collection_and_client(provider_collection: str | None) -> tuple:
     db_name, coll_name = fqn.split(".", 1)
     # serverSelectionTimeoutMS is short so each ping fails fast and the
     # _wait_for_cluster_ready poll loop drives the cadence.
-    client = MongoClient(
-        os.environ["MONGO_connectionString"],
-        serverSelectionTimeoutMS=5_000,
-    )
+    from chathealthy_frontend_lib.mongo_utilities import ChatHealthyMongoUtilities
+    client = ChatHealthyMongoUtilities("MONGO_connectionString").getConnection()
     return client[db_name][coll_name], client
 
 
@@ -131,7 +130,7 @@ def ensure_provider_indexes_fn(config: dict) -> dict:
         for spec in coll.list_indexes():
             existing_names.add(spec.get("name"))
     except Exception as exc:
-        logging.warning("ensure_provider_indexes: list_indexes failed: %s", exc)
+        ChatHealthyLoggingService().warning("ensure_provider_indexes: list_indexes failed: %s", exc)
 
     results: list[dict] = []
     for idx in _REQUIRED_INDEXES:
@@ -150,12 +149,12 @@ def ensure_provider_indexes_fn(config: dict) -> dict:
                 "already_existed": already,
                 "duration_seconds": round(time.time() - t0, 2),
             })
-            logging.info(
+            ChatHealthyLoggingService().info(
                 "ensure_provider_indexes: %s (already=%s) in %.1fs",
                 created_name, already, time.time() - t0,
             )
         except Exception as exc:
-            logging.error("ensure_provider_indexes: %s failed: %s", name, exc)
+            ChatHealthyLoggingService().error("ensure_provider_indexes: %s failed: %s", name, exc)
             results.append({
                 "name": name,
                 "already_existed": already,

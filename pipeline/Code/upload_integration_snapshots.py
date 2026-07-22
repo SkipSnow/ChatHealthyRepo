@@ -4,15 +4,15 @@
 """Upload frozen integration snapshots to pipeline-sources-test/{snapshot_id}/ — LLD §9.3."""
 
 from __future__ import annotations
+from chathealthy_frontend_lib.logging_service import ChatHealthyLoggingService
 
 import argparse
 import json
-import logging
+
 import os
 import sys
 
-logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(message)s")
-_log = logging.getLogger("upload_integration_snapshots")
+_log = ChatHealthyLoggingService()
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 if HERE not in sys.path:
@@ -83,9 +83,9 @@ def main(argv: list[str] | None = None) -> int:
 
     report = ensure_wy_vt_snapshots(args.snapshot_id, args.container)
     if args.json:
-        print(json.dumps(report, indent=2))
+        ChatHealthyLoggingService().info(json.dumps(report, indent=2))
     else:
-        print(json.dumps(report, indent=2))
+        ChatHealthyLoggingService().info(json.dumps(report, indent=2))
     return 0 if report.get("ready") else 1
 
 

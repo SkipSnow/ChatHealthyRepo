@@ -45,11 +45,13 @@ Public entry point: `load_staging(config, mongo, blob)`.
 """
 
 from __future__ import annotations
+from chathealthy_frontend_lib.logging_service import ChatHealthyLoggingService
+from chathealthy_frontend_lib.exceptions import ChatHealthyException
 
 import csv
 import io
 import json
-import logging
+
 import tempfile
 import zipfile
 from concurrent.futures import ThreadPoolExecutor, as_completed
@@ -58,7 +60,7 @@ from typing import Any, Iterator
 
 from pymongo import ASCENDING, InsertOne
 
-_log = logging.getLogger(__name__)
+_log = ChatHealthyLoggingService()
 
 STAGING_COLLECTIONS = {
     "nppes_npi": "pipeline_sources_nppes_npi",
@@ -81,7 +83,7 @@ def _now_iso() -> str:
 def _download_blob_to_tempfile(blob, container_name: str, blob_name: str) -> str:
     """Download blob to a local temp file; return its path."""
     if blob is None:
-        raise RuntimeError("staging_loader: blob client is required")
+        raise ChatHealthyException(mode="runtime_error", message="staging_loader: blob client is required")
     container = blob.get_container_client(container_name)
     blob_client = container.get_blob_client(blob_name)
     tmp = tempfile.NamedTemporaryFile(delete=False, prefix="staging_", suffix=".bin")
@@ -108,7 +110,7 @@ def _iter_zipped_csv_rows(local_zip_path: str, inner_name_hint: str | None = Non
     with zipfile.ZipFile(local_zip_path) as zf:
         candidates = [n for n in zf.namelist() if n.lower().endswith(".csv")]
         if not candidates:
-            raise RuntimeError(f"staging_loader: no CSV inside {local_zip_path}")
+            raise ChatHealthyException(mode="runtime_error", message=f"staging_loader: no CSV inside {local_zip_path}")
         target = None
         if inner_name_hint:
             for c in candidates:
@@ -132,7 +134,7 @@ def _iter_json_rows(local_path: str) -> Iterator[dict[str, Any]]:
         if first == "[":
             data = json.load(fh)
             if not isinstance(data, list):
-                raise RuntimeError("staging_loader: expected JSON array")
+                raise ChatHealthyException(mode="runtime_error", message="staging_loader: expected JSON array")
             for row in data:
                 yield row
         else:
@@ -152,7 +154,7 @@ def _resolve_iter(source_name: str, spec: dict, local_path: str) -> Iterator[dic
     elif fmt == "json":
         yield from _iter_json_rows(local_path)
     else:
-        raise RuntimeError(f"staging_loader[{source_name}]: unsupported format {fmt!r}")
+        raise ChatHealthyException(mode="runtime_error", message=f"staging_loader[{source_name}]: unsupported format {fmt!r}")
 
 
 def _first_present(row: dict, keys: tuple[str, ...]) -> str | None:
@@ -229,9 +231,9 @@ def _load_one_source(
     """Load one source into its staging collection."""
     coll_name = STAGING_COLLECTIONS.get(source_name)
     if not coll_name:
-        raise RuntimeError(f"staging_loader[{source_name}]: no staging collection mapping")
+        raise ChatHealthyException(mode="runtime_error", message=f"staging_loader[{source_name}]: no staging collection mapping")
     if mongo is None:
-        raise RuntimeError("staging_loader: mongo client is required")
+        raise ChatHealthyException(mode="runtime_error", message="staging_loader: mongo client is required")
     db = mongo[f"{env_prefix}_PublicHealthData"]
     coll = db[coll_name]
 
@@ -311,7 +313,7 @@ def load_staging(
     """
     sources = config.get("sources") or {}
     if not sources:
-        raise RuntimeError("staging_loader: config['sources'] is empty")
+        raise ChatHealthyException(mode="runtime_error", message="staging_loader: config['sources'] is empty")
 
     run_id = config["run_id"]
     env_prefix = config.get("env", "dev")
@@ -322,7 +324,6 @@ def load_staging(
 
     nppes_spec = sources.get("nppes_npi")
     if nppes_spec:
-        _log.info("staging_loader: nppes_npi serial load (LLD §4.6 single-PID)")
         results.append(_load_one_source(
             source_name="nppes_npi",
             spec=nppes_spec,
@@ -353,7 +354,6 @@ def load_staging(
                 try:
                     results.append(fut.result())
                 except Exception as exc:
-                    _log.exception("staging_loader[%s]: load failed", name)
                     results.append({"source_name": name, "error": f"{type(exc).__name__}: {exc}"})
 
     total = sum(int(r.get("inserted", 0)) for r in results)

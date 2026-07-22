@@ -9,12 +9,12 @@ NPPES NPI is serial single-PID; the other sources load in parallel.
 """
 
 from __future__ import annotations
+from chathealthy_frontend_lib.logging_service import ChatHealthyLoggingService
 
-import logging
 
 from staging_loader import STAGING_COLLECTIONS, load_staging
 
-_log = logging.getLogger(__name__)
+_log = ChatHealthyLoggingService()
 
 
 _FORMAT_BY_SOURCE = {

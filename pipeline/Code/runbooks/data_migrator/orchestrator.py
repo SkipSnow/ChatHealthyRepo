@@ -27,6 +27,8 @@ Environment (Automation Variables):
     AZ_AUTOMATION_ACCOUNT - ChatHealthyJobManager.
 """
 from __future__ import annotations
+from chathealthy_frontend_lib.logging_service import ChatHealthyLoggingService
+from chathealthy_frontend_lib.exceptions import ChatHealthyException
 
 import base64
 import json
@@ -61,11 +63,7 @@ class _RGFilter(logging.Filter):
         return True
 
 
-logging.basicConfig(
-    level=logging.INFO,
-    format="%(asctime)s %(levelname)s [rg=%(request_guid)s] %(message)s",
-)
-log = logging.getLogger("orchestrator")
+log = ChatHealthyLoggingService()
 log.addFilter(_RGFilter())
 
 _AUTOMATION_API = "2023-11-01"
@@ -89,27 +87,24 @@ def _read_payload() -> dict:
     locate "RequestBody:", and use json.JSONDecoder.raw_decode to consume
     the embedded JSON object."""
     if len(sys.argv) < 2:
-        raise RuntimeError("no payload: sys.argv[1] missing")
+        raise ChatHealthyException(mode="runtime_error", message="no payload: sys.argv[1] missing")
     s = " ".join(sys.argv[1:])
     marker = "RequestBody:"
     idx = s.find(marker)
     if idx == -1:
-        raise RuntimeError(
-            f"orchestrator: sys.argv missing 'RequestBody:' marker; "
+        raise ChatHealthyException(mode="runtime_error", message=f"orchestrator: sys.argv missing 'RequestBody:' marker; "
             f"argv_count={len(sys.argv)}; joined first 500 chars={s[:500]!r}"
         )
     rest = s[idx + len(marker):].lstrip()
     try:
         body, _consumed = json.JSONDecoder().raw_decode(rest)
     except json.JSONDecodeError as e:
-        raise RuntimeError(
-            f"orchestrator: RequestBody not parseable JSON; "
+        raise ChatHealthyException(mode="runtime_error", message=f"orchestrator: RequestBody not parseable JSON; "
             f"argv_count={len(sys.argv)}; rest first 500 chars={rest[:500]!r}; "
             f"error={e}"
         )
     if not isinstance(body, dict):
-        raise RuntimeError(
-            f"orchestrator: RequestBody is not a dict; got {type(body).__name__}"
+        raise ChatHealthyException(mode="runtime_error", message=f"orchestrator: RequestBody is not a dict; got {type(body).__name__}"
         )
     return body
 
@@ -167,9 +162,7 @@ def _start_runbook_fire_and_forget(sub: str, rg: str, aa: str, runbook: str,
         json=body, timeout=60,
     )
     if r.status_code not in (200, 201):
-        raise RuntimeError(
-            f"Start runbook {runbook!r} failed: HTTP {r.status_code} {r.text[:500]}"
-        )
+        raise ChatHealthyException(mode="runtime_error", message=f"Start runbook {runbook!r} failed: HTTP {r.status_code} {r.text[:500]}")
     return aa_job_id
 
 
@@ -226,11 +219,10 @@ def _main():
     payload = _read_payload()
     _request_guid = payload.get("request_guid", "?")
     if payload.get("health_check") is True:
-        log.info("health_check fired on orchestrator runbook")
         return
     job_id = payload.get("job_id")
     if not job_id:
-        raise RuntimeError("orchestrator: job_id missing from payload")
+        raise ChatHealthyException(mode="runtime_error", message="orchestrator: job_id missing from payload")
     vm_name = _vm_name_for_job(job_id)
     payload["vm_name"] = vm_name
 
@@ -238,7 +230,6 @@ def _main():
     rg = os.environ["AZ_RESOURCE_GROUP"]
     aa = os.environ["AZ_AUTOMATION_ACCOUNT"]
 
-    log.info("Orchestrator begin: job_id=%s vm_name=%s", job_id, vm_name)
 
     src_cluster = payload.get("source_cluster")
     if src_cluster:
@@ -247,8 +238,6 @@ def _main():
     provisioner_aa_job_id = _start_runbook_fire_and_forget(
         sub, rg, aa, _PROVISIONER_RUNBOOK, payload, run_on=None,
     )
-    log.info("Orchestrator fired provisioner: job_id=%s provisioner_aa_job_id=%s",
-             job_id, provisioner_aa_job_id)
     print(json.dumps({
         "orchestrator_status": "ok",
         "job_id": job_id,
@@ -263,5 +252,5 @@ try:
 except Exception:
     tb = traceback.format_exc()
     log.error("Orchestrator failed: %s", tb)
-    print(json.dumps({"orchestrator_status": "error", "error": tb[-1500:]}), flush=True)
+    ChatHealthyLoggingService().info(json.dumps({"orchestrator_status": "error", "error": tb[-1500:]}))
     sys.exit(1)

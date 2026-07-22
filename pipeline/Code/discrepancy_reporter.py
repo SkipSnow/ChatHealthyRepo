@@ -1,3 +1,4 @@
+from chathealthy_frontend_lib.logging_service import ChatHealthyLoggingService
 # Copyright © 2026 ChatHealthy.ai LLC. All rights reserved.
 # Licensed under the FindCare Evaluation License (FEL-1.0).
 #
@@ -13,7 +14,7 @@ records-as-messages design (§3.8).
 """
 
 import json
-import logging
+
 import os
 import urllib.parse
 import urllib.request
@@ -29,7 +30,7 @@ def report_discrepancy(load_id: str, record_key, reason: str, ctx: dict | None =
     task_hub = os.environ.get("DURABLE_TASK_HUB") or "DevPipelineNetherite3"
     connection = os.environ.get("DURABLE_TASK_CONNECTION") or "Storage"
     if not host or not code:
-        logging.warning("report_discrepancy: management creds missing; skipping signal")
+        ChatHealthyLoggingService().warning("report_discrepancy: management creds missing; skipping signal")
         return
     url = (
         f"https://{host}/runtime/webhooks/durabletask/entities/work_manager/"
@@ -53,16 +54,14 @@ def report_discrepancy(load_id: str, record_key, reason: str, ctx: dict | None =
         with urllib.request.urlopen(req, timeout=15) as r:
             _ = r.read()
     except Exception as exc:
-        logging.error("report_discrepancy signal failed: %s", exc)
+        ChatHealthyLoggingService().error("report_discrepancy signal failed: %s", exc)
 
 _mongo: MongoClient | None = None
 
 
 def _get_mongo_client() -> MongoClient:
-    global _mongo
-    if _mongo is None:
-        _mongo = MongoClient(os.environ["MONGO_connectionString"])
-    return _mongo
+    from chathealthy_frontend_lib.mongo_utilities import ChatHealthyMongoUtilities
+    return ChatHealthyMongoUtilities("MONGO_connectionString").getConnection()
 
 
 REPORT_COLLECTION = "admin.PipelineDiscrepancyReports"
@@ -175,7 +174,7 @@ class DiscrepancyReporter:
 
         db_name, coll_name = REPORT_COLLECTION.split(".", 1)
         _get_mongo_client()[db_name][coll_name].insert_one(report)
-        logging.info("Discrepancy report written to %s for load_id=%s", REPORT_COLLECTION, load_id)
+        ChatHealthyLoggingService().info("Discrepancy report written to %s for load_id=%s", REPORT_COLLECTION, load_id)
 
         # ── SparkPost email notification ──────────────────────────────────────
         status_line = "Reconciled OK" if reconcile_match else "MISMATCH — INVESTIGATE"
@@ -219,11 +218,11 @@ class DiscrepancyReporter:
                     subject=subject,
                     text=body,
                 )
-                logging.info("SparkPost email sent to %s", to_email)
+                ChatHealthyLoggingService().info("SparkPost email sent to %s", to_email)
             except Exception as exc:
-                logging.error("SparkPost send failed: %s", exc)
+                ChatHealthyLoggingService().error("SparkPost send failed: %s", exc)
         else:
-            logging.warning("SparkPost credentials not configured — load_id: %s", load_id)
+            ChatHealthyLoggingService().warning("SparkPost credentials not configured — load_id: %s", load_id)
 
         return {
             "report_collection": REPORT_COLLECTION,

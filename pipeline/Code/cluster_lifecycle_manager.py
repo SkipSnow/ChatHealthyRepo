@@ -1,3 +1,5 @@
+from chathealthy_frontend_lib.logging_service import ChatHealthyLoggingService
+from chathealthy_frontend_lib.exceptions import ChatHealthyException
 # Copyright (c) 2026 ChatHealthy.ai LLC. All rights reserved.
 # Licensed under the FindCare Evaluation License (FEL-1.0).
 #
@@ -16,7 +18,7 @@
 # Timer (5 min): check overdue, shut down idle. NO task execution.
 
 import json
-import logging
+
 import os
 from dataclasses import dataclass, field, asdict
 from datetime import datetime, timezone, timedelta
@@ -25,7 +27,7 @@ import requests
 from pymongo.errors import DuplicateKeyError
 from requests.auth import HTTPDigestAuth
 
-_log = logging.getLogger("ops.cluster_lifecycle")
+_log = ChatHealthyLoggingService()
 
 
 # ── Reservation Model ────────────────────────────────────────
@@ -122,9 +124,7 @@ class ClusterLifecycleManager:
                 expected_duration_minutes: int, expected_min_minutes: int = 0,
                 reservation_class: str = "automated") -> dict:
         if reservation_class not in ("automated", "human"):
-            raise ValueError(
-                f"reservation_class must be 'automated' or 'human', got {reservation_class!r}"
-            )
+            raise ChatHealthyException(mode="value_error", message=f"reservation_class must be 'automated' or 'human', got {reservation_class!r}")
         now = datetime.now(timezone.utc)
         doc = {
             "_id": job_id,
@@ -144,7 +144,7 @@ class ClusterLifecycleManager:
         try:
             coll.insert_one(doc)
         except DuplicateKeyError:
-            _log.warning("Reservation already exists for job_id=%s", job_id)
+            pass
         return doc
 
     # ── v0.1 API: ClusterStatus ──────────────────────────────

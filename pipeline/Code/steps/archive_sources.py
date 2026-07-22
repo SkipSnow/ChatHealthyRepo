@@ -4,8 +4,10 @@
 """archive_sources — copy fetched blobs to permanent archive + update registry."""
 
 from __future__ import annotations
+from chathealthy_frontend_lib.logging_service import ChatHealthyLoggingService
+from chathealthy_frontend_lib.exceptions import ChatHealthyException
 
-import logging
+
 from datetime import datetime, timezone
 
 from blob_client import get_blob_service
@@ -13,7 +15,7 @@ from pipeline_db import get_mongo
 from pipeline_source_archival import archive_source_blob, duplicate_version_detected
 from urban_flag import RUCC_JSON_BLOB_NAME
 
-_log = logging.getLogger(__name__)
+_log = ChatHealthyLoggingService()
 
 # Map manifest source keys to registry source_name and default blob resolution.
 _SOURCE_REGISTRY_KEYS = {
@@ -48,7 +50,7 @@ def _resolve_source_blob(source_key: str, fetch_result: dict, registry_doc: dict
     if source_key == "usda_rucc":
         return RUCC_JSON_BLOB_NAME, "rucc.json"
 
-    raise ValueError(f"cannot resolve blob for source {source_key}")
+    raise ChatHealthyException(mode="value_error", message=f"cannot resolve blob for source {source_key}")
 
 
 def execute(ctx) -> dict:

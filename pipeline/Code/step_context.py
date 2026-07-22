@@ -4,6 +4,7 @@
 """StepContext and run manifest models for LLD v22 orchestration."""
 
 from __future__ import annotations
+from chathealthy_frontend_lib.exceptions import ChatHealthyException
 
 import uuid
 from dataclasses import dataclass, field
@@ -36,7 +37,7 @@ class PipelineArgs:
     def resolved_states(self) -> list[str]:
         scope = self.state_scope or self.states
         if not scope:
-            raise ValueError("states or state_scope required")
+            raise ChatHealthyException(mode="value_error", message="states or state_scope required")
         if len(scope) == 1 and scope[0].upper() == "ALL":
             from steps._partitions import ALL_US_STATES
             return list(ALL_US_STATES)

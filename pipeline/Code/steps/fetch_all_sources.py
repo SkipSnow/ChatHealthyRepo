@@ -12,12 +12,12 @@ Realizes:
 """
 
 from __future__ import annotations
+from chathealthy_frontend_lib.logging_service import ChatHealthyLoggingService
 
-import logging
 
 from source_fetch_engine import fetch_all_sources
 
-_log = logging.getLogger(__name__)
+_log = ChatHealthyLoggingService()
 
 
 def _default_source_specs(env_prefix: str) -> dict:

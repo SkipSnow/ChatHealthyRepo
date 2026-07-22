@@ -32,10 +32,11 @@ it in its own memory or (for long-lived deploy-time provisioning) the
 deployer places it into KV under the target node's secret path.
 """
 from __future__ import annotations
+from chathealthy_frontend_lib.logging_service import ChatHealthyLoggingService
 
 import datetime
 import json
-import logging
+
 import os
 import socket
 import sys
@@ -46,12 +47,7 @@ sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 import ca_helpers as ch
 
 
-LOG = logging.getLogger(__name__)
-logging.basicConfig(
-    level=logging.INFO,
-    format="%(asctime)s %(levelname)s %(name)s %(message)s",
-    stream=sys.stdout,
-)
+LOG = ChatHealthyLoggingService()
 
 
 KEY_VAULT_URI = os.environ.get(

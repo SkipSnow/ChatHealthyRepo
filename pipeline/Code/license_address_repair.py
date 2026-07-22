@@ -3,12 +3,12 @@
 """LLD v22 Provider Pipeline — see pipeline/ArchitectureDesignAndAudit/ProviderPipeline_LowLevelDesign_v22.docx."""
 
 from __future__ import annotations
+from chathealthy_frontend_lib.logging_service import ChatHealthyLoggingService
 
-import logging
 
 from pipeline_runtime import PipelineRuntime
 
-_log = logging.getLogger("license_address_repair")
+_log = ChatHealthyLoggingService()
 
 
 def repair_license_addresses(ctx) -> dict:

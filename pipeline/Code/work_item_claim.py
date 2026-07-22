@@ -4,6 +4,7 @@
 """Mongo work_items claim protocol — LLD v22 §2.4."""
 
 from __future__ import annotations
+from chathealthy_frontend_lib.exceptions import ChatHealthyException
 
 import os
 from datetime import datetime, timedelta, timezone
@@ -102,7 +103,7 @@ def wait_for_step_completion(mongo_client, *, run_id: str, step: str, timeout_se
             failed = coll.count_documents({"run_id": run_id, "step": step, "status": "failed"})
             completed = coll.count_documents({"run_id": run_id, "step": step, "status": "completed"})
             if failed:
-                raise RuntimeError(f"step {step}: {failed} partitions failed ({completed} completed)")
+                raise ChatHealthyException(mode="runtime_error", message=f"step {step}: {failed} partitions failed ({completed} completed)")
             return {"completed": completed, "failed": failed}
         import time
         time.sleep(5)

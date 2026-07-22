@@ -28,14 +28,16 @@ cross-process coordination construct one gate per worker.
 """
 
 from __future__ import annotations
+from chathealthy_frontend_lib.logging_service import ChatHealthyLoggingService
+from chathealthy_frontend_lib.exceptions import ChatHealthyException
 
-import logging
+
 import threading
 import time
 from contextlib import contextmanager
 from typing import Iterator
 
-_log = logging.getLogger(__name__)
+_log = ChatHealthyLoggingService()
 
 
 class ConcurrencyBoundedSemaphore:
@@ -43,7 +45,7 @@ class ConcurrencyBoundedSemaphore:
 
     def __init__(self, max_in_flight: int) -> None:
         if max_in_flight < 1:
-            raise ValueError(f"max_in_flight must be >= 1, got {max_in_flight}")
+            raise ChatHealthyException(mode="value_error", message=f"max_in_flight must be >= 1, got {max_in_flight}")
         self._sem = threading.BoundedSemaphore(value=max_in_flight)
         self._max_in_flight = max_in_flight
 
@@ -69,7 +71,7 @@ class RateLimitedGate:
 
     def __init__(self, rate_per_second: float, burst: int | None = None) -> None:
         if rate_per_second <= 0:
-            raise ValueError(f"rate_per_second must be > 0, got {rate_per_second}")
+            raise ChatHealthyException(mode="value_error", message=f"rate_per_second must be > 0, got {rate_per_second}")
         self._rate = float(rate_per_second)
         self._capacity = float(burst if burst is not None else max(1, int(rate_per_second)))
         self._tokens = self._capacity
@@ -87,7 +89,7 @@ class RateLimitedGate:
     def acquire(self, tokens: float = 1.0) -> None:
         """Block until `tokens` are available, then consume them."""
         if tokens <= 0:
-            raise ValueError(f"tokens must be > 0, got {tokens}")
+            raise ChatHealthyException(mode="value_error", message=f"tokens must be > 0, got {tokens}")
         while True:
             with self._lock:
                 self._refill_locked()

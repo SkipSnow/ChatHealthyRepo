@@ -21,6 +21,7 @@ preserved as-is — it predates state scoping and does not interact with the
 multi-field predicate.
 """
 from __future__ import annotations
+from chathealthy_frontend_lib.exceptions import ChatHealthyException
 
 ALL_STATES_SENTINEL = "ALL"
 
@@ -43,23 +44,23 @@ def normalize_states(config: dict) -> list[str]:
     """
     states = config.get("states")
     if states is None:
-        raise ValueError("states parameter is REQUIRED. Cannot process all records.")
+        raise ChatHealthyException(mode="value_error", message="states parameter is REQUIRED. Cannot process all records.")
     if isinstance(states, dict):
         # legacy {"mode": "include"|"exclude", "list": [...]}
         mode = states.get("mode", "include").lower()
         lst = states.get("list", [])
         if not lst:
-            raise ValueError("states.list is empty. Cannot process all records.")
+            raise ChatHealthyException(mode="value_error", message="states.list is empty. Cannot process all records.")
         if mode not in ("include", "exclude"):
-            raise ValueError(f"invalid states mode: {mode!r}")
+            raise ChatHealthyException(mode="value_error", message=f"invalid states mode: {mode!r}")
         return {"mode": mode, "list": [s.upper() for s in lst if s]}
     if not isinstance(states, list):
-        raise ValueError(f"invalid states format: {states!r}")
+        raise ChatHealthyException(mode="value_error", message=f"invalid states format: {states!r}")
     if not states:
-        raise ValueError("states list is empty. Cannot process all records.")
+        raise ChatHealthyException(mode="value_error", message="states list is empty. Cannot process all records.")
     upper = [s.upper() for s in states if s]
     if not upper:
-        raise ValueError("states list contains no valid state codes.")
+        raise ChatHealthyException(mode="value_error", message="states list contains no valid state codes.")
     return upper
 
 

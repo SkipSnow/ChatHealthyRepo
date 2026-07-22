@@ -39,6 +39,7 @@ peek()  -> dict
     Return the bucket's current state for diagnostics.
 """
 from __future__ import annotations
+from chathealthy_frontend_lib.exceptions import ChatHealthyException
 
 import time
 
@@ -62,17 +63,13 @@ def _legacy_token_bucket_entity_fn(context) -> None:
 
     if op_name == "configure":
         if not isinstance(op_input, dict):
-            raise ValueError(
-                "token_bucket.configure requires a dict with refill_rate "
-                f"and capacity; got {op_input!r}"
-            )
+            raise ChatHealthyException(mode="value_error", message="token_bucket.configure requires a dict with refill_rate "
+                f"and capacity; got {op_input!r}")
         refill_rate = op_input.get("refill_rate")
         capacity    = op_input.get("capacity")
         if refill_rate is None or capacity is None:
-            raise ValueError(
-                "token_bucket.configure requires refill_rate AND capacity; "
-                f"got {op_input!r}"
-            )
+            raise ChatHealthyException(mode="value_error", message="token_bucket.configure requires refill_rate AND capacity; "
+                f"got {op_input!r}")
         state["refill_rate"]    = float(refill_rate)
         state["capacity"]       = int(capacity)
         state["tokens"]         = float(capacity)  # start full
@@ -89,7 +86,7 @@ def _legacy_token_bucket_entity_fn(context) -> None:
         elif op_name == "peek":
             context.set_result({"configured": False})
         else:
-            raise ValueError(f"token_bucket: unknown operation {op_name!r}")
+            raise ChatHealthyException(mode="value_error", message=f"token_bucket: unknown operation {op_name!r}")
         return
 
     # Lazy refill — fold elapsed wall time into the token count, capped.
@@ -126,7 +123,7 @@ def _legacy_token_bucket_entity_fn(context) -> None:
         })
         return
 
-    raise ValueError(f"token_bucket: unknown operation {op_name!r}")
+    raise ChatHealthyException(mode="value_error", message=f"token_bucket: unknown operation {op_name!r}")
 
 
 # ── Helpers for orchestrators ───────────────────────────────────────────────
@@ -143,5 +140,5 @@ def call_delay_seconds(refill_rate: float) -> float:
     this helper to derive their local pacing delay.
     """
     if refill_rate <= 0:
-        raise ValueError(f"refill_rate must be > 0, got {refill_rate}")
+        raise ChatHealthyException(mode="value_error", message=f"refill_rate must be > 0, got {refill_rate}")
     return 1.0 / float(refill_rate)

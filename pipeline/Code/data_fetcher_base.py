@@ -1,3 +1,6 @@
+from chathealthy_frontend_lib.logging_service import ChatHealthyLoggingService
+from chathealthy_frontend_lib.mongo_utilities import ChatHealthyMongoUtilities
+from chathealthy_frontend_lib.exceptions import ChatHealthyException
 # Copyright © 2026 ChatHealthy.ai LLC. All rights reserved.
 # Licensed under the FindCare Evaluation License (FEL-1.0).
 #
@@ -26,7 +29,7 @@ Usage:
 """
 
 import hashlib
-import logging
+
 import os
 import tempfile
 from datetime import datetime, timezone
@@ -43,7 +46,7 @@ _mongo: MongoClient | None = None
 def _get_mongo_client() -> MongoClient:
     global _mongo
     if _mongo is None:
-        _mongo = MongoClient(os.environ["MONGO_connectionString"])
+        _mongo = ChatHealthyMongoUtilities("MONGO_connectionString").getConnection()
     return _mongo
 
 
@@ -74,8 +77,7 @@ class DataFetcherBase:
                 return int(entry.get("number_of_days"))
         v = self.MAX_CACHE_AGE_DAYS
         if v is NotImplemented or v is None:
-            raise RuntimeError(
-                f"{self.source_name}: no staleness TTL configured "
+            raise ChatHealthyException(mode="runtime_error", message=f"{self.source_name}: no staleness TTL configured "
                 f"(supply via source_staleness array or set "
                 f"MAX_CACHE_AGE_DAYS on the subclass)"
             )
@@ -119,29 +121,21 @@ class DataFetcherBase:
         try:
             blob_exists = bc.exists()
         except Exception as exc:
-            logging.warning("[%s] cache exists() check failed (%s).", self.source_name, exc)
+            pass
 
         if blob_exists and max_age_days > 0:
             try:
                 props = bc.get_blob_properties()
                 age_days = (datetime.now(timezone.utc) - props.last_modified).days
                 if age_days < max_age_days:
-                    logging.info(
-                        "[%s] cache-first hit: %s aged %dd < TTL %dd; skipping remote.",
-                        self.source_name, blob_name, age_days, max_age_days,
-                    )
                     return {
                         "blob_path": blob_name,
                         "version": "cached",
                         "skipped": True,
                         "checksum_sha256": "",
                     }
-                logging.info(
-                    "[%s] cache stale: %s aged %dd >= TTL %dd; forcing remote re-fetch.",
-                    self.source_name, blob_name, age_days, max_age_days,
-                )
             except Exception as exc:
-                logging.warning("[%s] cache props check failed (%s); treating as stale.", self.source_name, exc)
+                pass
 
         # Cache is stale OR missing OR TTL=0. Try remote re-fetch. Per REQ-B-002,
         # if re-fetch fails, delete the stale blob and abend.
@@ -150,17 +144,11 @@ class DataFetcherBase:
                 self.source_url = self._resolve_source_url()
         except Exception as exc:
             if blob_exists:
-                logging.error(
-                    "[%s] URL discovery failed (%s); deleting stale blob %s per REQ-B-002.",
-                    self.source_name, exc, blob_name,
-                )
                 try:
                     bc.delete_blob()
                 except Exception as del_exc:
-                    logging.error("[%s] stale-blob delete failed: %s", self.source_name, del_exc)
-            raise RuntimeError(
-                f"[{self.source_name}] gather failed and stale blob deleted; pipeline must abend."
-            ) from exc
+                    pass
+            raise ChatHealthyException(mode="runtime_error", message=f"[{self.source_name}] gather failed and stale blob deleted; pipeline must abend.") from exc
 
         try:
             registry = self._load_registry()
@@ -172,10 +160,6 @@ class DataFetcherBase:
                 try:
                     service = get_blob_service()
                     service.get_container_client(self.container).get_blob_client(blob_path).get_blob_properties()
-                    logging.info(
-                        "[%s] Remote signature unchanged (%s), blob exists — skipping download.",
-                        self.source_name, remote_sig,
-                    )
                     return {
                         "blob_path": blob_path,
                         "version": registry.get("version", remote_sig),
@@ -183,30 +167,17 @@ class DataFetcherBase:
                         "checksum_sha256": registry.get("checksum_sha256", ""),
                     }
                 except Exception:
-                    logging.warning(
-                        "[%s] Registry says skip but blob '%s' not found — re-downloading.",
-                        self.source_name, blob_path,
-                    )
+                    pass
 
-            logging.info(
-                "[%s] Downloading from %s (signature: %s → %s)",
-                self.source_name, self.source_url,
-                registry.get("remote_signature", "none") if registry else "none",
-                remote_sig or "unknown",
-            )
 
             blob_path, checksum, size_bytes = self._download_to_blob()
             version = remote_sig or checksum[:16]
         except Exception as exc:
             if blob_exists:
-                logging.error(
-                    "[%s] re-fetch failed (%s); deleting stale blob %s per REQ-B-002.",
-                    self.source_name, exc, blob_name,
-                )
                 try:
                     bc.delete_blob()
                 except Exception as del_exc:
-                    logging.error("[%s] stale-blob delete failed: %s", self.source_name, del_exc)
+                    pass
             raise
 
         self._update_registry(
@@ -217,10 +188,6 @@ class DataFetcherBase:
             size_bytes=size_bytes,
         )
 
-        logging.info(
-            "[%s] Downloaded %d bytes → blob: %s  sha256: %s…",
-            self.source_name, size_bytes, blob_path, checksum[:16],
-        )
 
         return {
             "blob_path": blob_path,
@@ -245,7 +212,7 @@ class DataFetcherBase:
             sig = resp.headers.get("ETag") or resp.headers.get("Last-Modified")
             return sig.strip('"') if sig else None
         except Exception as exc:
-            logging.warning("[%s] HEAD request failed: %s", self.source_name, exc)
+            ChatHealthyLoggingService().warning("[%s] HEAD request failed: %s", self.source_name, exc)
             return None
 
     def _download_to_blob(self) -> tuple[str, str, int]:

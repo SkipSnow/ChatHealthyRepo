@@ -8,14 +8,16 @@ Deployed runs provision ephemeral ACA jobs per stage when ACA_JOB_DEPLOY=1.
 """
 
 from __future__ import annotations
+from chathealthy_frontend_lib.logging_service import ChatHealthyLoggingService
+from chathealthy_frontend_lib.exceptions import ChatHealthyException
 
 import json
-import logging
+
 import os
 import subprocess
 from typing import Any
 
-_log = logging.getLogger("aca_job_manager")
+_log = ChatHealthyLoggingService()
 
 ACA_RESOURCE_GROUP = os.environ.get("ACA_RESOURCE_GROUP", "ChatHealthyPipelineRG")
 ACA_ENVIRONMENT = os.environ.get("ACA_ENVIRONMENT", "chathealthy-pipeline-env")
@@ -48,11 +50,9 @@ def _local_mode() -> bool:
 
 def _az(args: list[str]) -> dict[str, Any]:
     cmd = ["az", *args, "-o", "json"]
-    _log.info("aca az: %s", " ".join(cmd))
     proc = subprocess.run(cmd, capture_output=True, text=True, check=False)
     if proc.returncode != 0:
-        raise RuntimeError(
-            f"az {' '.join(args)} failed ({proc.returncode}): {proc.stderr[:500]}"
+        raise ChatHealthyException(mode="runtime_error", message=f"az {' '.join(args)} failed ({proc.returncode}): {proc.stderr[:500]}"
         )
     return json.loads(proc.stdout) if proc.stdout.strip() else {}
 

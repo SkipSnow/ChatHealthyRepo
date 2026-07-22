@@ -112,6 +112,9 @@ No `re` import. Issuer normalization and license normalization use
 only plain string operations.
 """
 from __future__ import annotations
+from chathealthy_frontend_lib.logging_service import ChatHealthyLoggingService
+from chathealthy_frontend_lib.mongo_utilities import ChatHealthyMongoUtilities
+from chathealthy_frontend_lib.exceptions import ChatHealthyException
 
 import argparse
 import logging
@@ -140,13 +143,13 @@ ISSUER_ANALYSIS_XLSX = (
     REPO_ROOT / "_oneshots" / "test_output" / "v02_OI_Issuer_Analysis.xlsx"
 )
 
-log = logging.getLogger("build_provider_v03_from_v02")
+log = ChatHealthyLoggingService()
 
 
 def _setup_logging() -> None:
     handler = logging.StreamHandler(sys.stdout)
     handler.setFormatter(logging.Formatter("%(asctime)s %(levelname)s %(message)s"))
-    root = logging.getLogger()
+    root = ChatHealthyLoggingService()
     root.handlers[:] = [handler]
     root.setLevel(logging.INFO)
 
@@ -454,10 +457,6 @@ def transform_doc(doc: dict, counters: TransformCounters) -> dict | None:
                 if owned_by_v02:
                     counters.license_disputes += 1
                     dropped_form = {"state": state, "number": raw_id_str}
-                    log.warning(
-                        "license dispute: npi=%s kept=%r dropped=%r normalized_key=%r",
-                        npi, kept_form, dropped_form, key,
-                    )
                 else:
                     # Pass 3: intra-OI dupe. Silent.
                     counters.oi_license_dupes_dropped += 1
@@ -546,9 +545,7 @@ def transform_doc(doc: dict, counters: TransformCounters) -> dict | None:
         if st and num:
             key = _license_dedup_key(st, num)
             if key in final_keys:
-                raise AssertionError(
-                    f"duplicate license key after dedup: npi={npi} key={key!r}"
-                )
+                raise ChatHealthyException(mode="assertion_error", message=f"duplicate license key after dedup: npi={npi} key={key!r}")
             final_keys.add(key)
 
     out = dict(doc)
@@ -600,7 +597,7 @@ def run(limit: int | None, drop: bool, batch_size: int) -> int:
 
     _load_issuer_sets()
 
-    client = MongoClient(conn, serverSelectionTimeoutMS=120_000)
+    client = ChatHealthyMongoUtilities("MONGO_connectionString").getConnection()
     try:
         db = client[DB_NAME]
         src = db[SRC_COLLECTION]

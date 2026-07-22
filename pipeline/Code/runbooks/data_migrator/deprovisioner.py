@@ -24,6 +24,8 @@ Environment (Automation Variables):
     AZ_AUTOMATION_ACCOUNT         - ChatHealthyJobManager.
 """
 from __future__ import annotations
+from chathealthy_frontend_lib.logging_service import ChatHealthyLoggingService
+from chathealthy_frontend_lib.exceptions import ChatHealthyException
 
 import base64
 import json
@@ -55,11 +57,7 @@ class _RGFilter(logging.Filter):
         return True
 
 
-logging.basicConfig(
-    level=logging.INFO,
-    format="%(asctime)s %(levelname)s [rg=%(request_guid)s] %(message)s",
-)
-log = logging.getLogger("deprovisioner")
+log = ChatHealthyLoggingService()
 log.addFilter(_RGFilter())
 
 _COMPUTE_API = "2024-07-01"
@@ -73,7 +71,7 @@ def _read_payload() -> dict:
     it survives legacy AA's parameter quote-stripping. sys.argv[1] is a
     base64 string."""
     if len(sys.argv) < 2:
-        raise RuntimeError("no payload: sys.argv[1] missing")
+        raise ChatHealthyException(mode="runtime_error", message="no payload: sys.argv[1] missing")
     return json.loads(base64.b64decode(sys.argv[1]).decode("utf-8"))
 
 
@@ -103,14 +101,10 @@ def _delete_vm(sub: str, rg: str, vm_name: str) -> None:
         timeout=60,
     )
     if r.status_code in (200, 202, 204):
-        log.info("VM delete accepted: %s (status=%d)", vm_name, r.status_code)
         return
     if r.status_code == 404:
-        log.info("VM not found (already gone): %s", vm_name)
         return
-    raise RuntimeError(
-        f"VM delete REST call failed for {vm_name}: HTTP {r.status_code} {r.text[:500]}"
-    )
+    raise ChatHealthyException(mode="runtime_error", message=f"VM delete REST call failed for {vm_name}: HTTP {r.status_code} {r.text[:500]}")
 
 
 def _delete_nic(sub: str, vm_rg: str, vm_name: str) -> None:
@@ -133,14 +127,10 @@ def _delete_nic(sub: str, vm_rg: str, vm_name: str) -> None:
         timeout=60,
     )
     if r.status_code in (200, 202, 204):
-        log.info("NIC delete accepted: %s (status=%d)", nic_name, r.status_code)
         return
     if r.status_code == 404:
-        log.info("NIC not found (already gone): %s", nic_name)
         return
-    raise RuntimeError(
-        f"NIC delete REST call failed for {nic_name}: HTTP {r.status_code} {r.text[:500]}"
-    )
+    raise ChatHealthyException(mode="runtime_error", message=f"NIC delete REST call failed for {nic_name}: HTTP {r.status_code} {r.text[:500]}")
 
 
 def _delete_vm_mi_role_assignment(sub: str, aa_rg: str, aa: str, vm_name: str) -> None:
@@ -164,15 +154,11 @@ def _delete_vm_mi_role_assignment(sub: str, aa_rg: str, aa: str, vm_name: str) -
         timeout=60,
     )
     if r.status_code in (200, 204):
-        log.info("Deleted VM MI role assignment (assignment=%s)", assignment_guid)
         return
     if r.status_code == 404:
-        log.info("VM MI role assignment already gone (assignment=%s)", assignment_guid)
         return
-    raise RuntimeError(
-        f"DELETE role assignment {assignment_guid} on AA failed: "
-        f"HTTP {r.status_code} {r.text[:500]}"
-    )
+    raise ChatHealthyException(mode="runtime_error", message=f"DELETE role assignment {assignment_guid} on AA failed: "
+        f"HTTP {r.status_code} {r.text[:500]}")
 
 
 def _main():
@@ -180,20 +166,17 @@ def _main():
     payload = _read_payload()
     _request_guid = payload.get("request_guid", "?")
     if payload.get("health_check") is True:
-        log.info("health_check fired on deprovisioner runbook")
         return
     job_id = payload.get("job_id", "?")
     vm_name = payload.get("vm_name")
     if not vm_name:
-        raise RuntimeError("deprovisioner: vm_name missing from payload")
+        raise ChatHealthyException(mode="runtime_error", message="deprovisioner: vm_name missing from payload")
 
     sub = os.environ["AZ_SUBSCRIPTION_ID"]
     vm_rg = os.environ["AZ_VM_RESOURCE_GROUP"]
     aa_rg = os.environ["AZ_AUTOMATION_RESOURCE_GROUP"]
     aa = os.environ["AZ_AUTOMATION_ACCOUNT"]
 
-    log.info("Deprovision begin: job_id=%s vm_name=%s vm_rg=%s aa=%s",
-             job_id, vm_name, vm_rg, aa)
     # Each cleanup step is wrapped so one failure does not block the rest
     # (AB-end safety: deprovisioning must be best-effort across all the
     # partial-state resources the provisioner may have created).
@@ -205,9 +188,7 @@ def _main():
         try:
             step_fn()
         except Exception as exc:
-            log.warning("Deprovision %s step failed (continuing): %r", step_name, exc)
-    log.info("Deprovision complete: job_id=%s vm_name=%s (vm delete is async in Azure)",
-             job_id, vm_name)
+            pass
     print(json.dumps({"deprovisioner_status": "ok", "job_id": job_id, "vm_name": vm_name}),
           flush=True)
 
@@ -218,5 +199,5 @@ try:
 except Exception:
     tb = traceback.format_exc()
     log.error("Deprovisioner failed: %s", tb)
-    print(json.dumps({"deprovisioner_status": "error", "error": tb[-1500:]}), flush=True)
+    ChatHealthyLoggingService().info(json.dumps({"deprovisioner_status": "error", "error": tb[-1500:]}))
     sys.exit(1)

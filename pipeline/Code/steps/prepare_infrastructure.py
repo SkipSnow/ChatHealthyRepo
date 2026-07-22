@@ -4,15 +4,15 @@
 """prepare_infrastructure — wake Atlas, reserve cluster, ensure indexes."""
 
 from __future__ import annotations
+from chathealthy_frontend_lib.logging_service import ChatHealthyLoggingService
 
-import logging
 
 from cluster_lifecycle_manager import ClusterLifecycleManager
 from ensure_provider_indexes_activity import ensure_provider_indexes_fn
 from pipeline_config import ensure_pipeline_config
 from pipeline_db import get_frontend_mongo
 
-_log = logging.getLogger(__name__)
+_log = ChatHealthyLoggingService()
 
 
 def execute(ctx) -> dict:

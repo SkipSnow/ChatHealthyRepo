@@ -35,11 +35,12 @@ Public entry point: `stamp_urban_flags(config, mongo, blob)`.
 """
 
 from __future__ import annotations
+from chathealthy_frontend_lib.logging_service import ChatHealthyLoggingService
 
-import logging
+
 from typing import Any
 
-_log = logging.getLogger(__name__)
+_log = ChatHealthyLoggingService()
 
 CENSUS_UA_COUNTY_STAGING = "pipeline_sources_rucc"
 DEFAULT_URBAN_THRESHOLD_PCT = 50.0

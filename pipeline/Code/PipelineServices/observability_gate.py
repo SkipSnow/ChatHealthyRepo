@@ -217,14 +217,14 @@ class ObservabilityGate:
     def _dump_to_stderr(exc: ChatHealthyException) -> None:
         """Write every field the ChatHealthyException carries + the
         wrapped original + tracebacks to stderr."""
-        print("*" * 78, file=sys.stderr, flush=True)
-        print("ObservabilityGate: failure detail", file=sys.stderr, flush=True)
-        print(f"  mode:      {exc.mode!r}", file=sys.stderr, flush=True)
-        print(f"  message:   {exc.message}", file=sys.stderr, flush=True)
-        print(f"  server:    {exc.server!r}", file=sys.stderr, flush=True)
-        print(f"  component: {exc.component!r}", file=sys.stderr, flush=True)
+        ChatHealthyLoggingService().info("*" * 78)
+        ChatHealthyLoggingService().info("ObservabilityGate: failure detail")
+        ChatHealthyLoggingService().info(f"  mode:      {exc.mode!r}")
+        ChatHealthyLoggingService().info(f"  message:   {exc.message}")
+        ChatHealthyLoggingService().info(f"  server:    {exc.server!r}")
+        ChatHealthyLoggingService().info(f"  component: {exc.component!r}")
         for k, v in (exc.context or {}).items():
-            print(f"  ctx.{k}: {v!r}", file=sys.stderr, flush=True)
+            ChatHealthyLoggingService().info(f"  ctx.{k}: {v!r}")
         if exc.exception is not None:
             original = exc.exception
             print("  original (chained) exception:",
@@ -239,9 +239,9 @@ class ObservabilityGate:
                 print("    original traceback:",
                       file=sys.stderr, flush=True)
                 traceback.print_tb(original.__traceback__, file=sys.stderr)
-        print("  construction_stack:", file=sys.stderr, flush=True)
-        print(exc.construction_stack, file=sys.stderr, flush=True)
+        ChatHealthyLoggingService().info("  construction_stack:")
+        ChatHealthyLoggingService().info(exc.construction_stack)
         print("  live traceback (may be pre-raise):",
               file=sys.stderr, flush=True)
         traceback.print_exc(file=sys.stderr)
-        print("*" * 78, file=sys.stderr, flush=True)
+        ChatHealthyLoggingService().info("*" * 78)

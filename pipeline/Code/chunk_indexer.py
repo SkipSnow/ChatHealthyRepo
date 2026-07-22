@@ -18,9 +18,10 @@ NPPES dissemination CSV does not include embedded newlines in quoted
 fields — every \\n marks end-of-record. The naive byte-level scan is safe.
 """
 from __future__ import annotations
+from chathealthy_frontend_lib.logging_service import ChatHealthyLoggingService
 
 import json
-import logging
+
 import os
 
 from blob_client import get_blob_service
@@ -59,14 +60,14 @@ def build_chunk_index(
                 and cached.get("batch_size") == batch_size
                 and cached.get("header_end") == header_end
             ):
-                logging.info(
+                ChatHealthyLoggingService().info(
                     "chunk_indexer: cache hit %s (%d chunks)",
                     _index_blob_name(csv_blob_name), len(cached.get("chunks") or []),
                 )
                 return cached["chunks"]
-            logging.info("chunk_indexer: cache mismatch — rebuilding")
+            ChatHealthyLoggingService().info("chunk_indexer: cache mismatch — rebuilding")
     except Exception as exc:
-        logging.warning("chunk_indexer: cache read failed (%s) — rebuilding", exc)
+        ChatHealthyLoggingService().warning("chunk_indexer: cache read failed (%s) — rebuilding", exc)
 
     # Fresh scan
     csv_blob = cc.get_blob_client(csv_blob_name)
@@ -119,12 +120,12 @@ def build_chunk_index(
     }).encode("utf-8")
     try:
         idx_blob.upload_blob(payload, overwrite=True)
-        logging.info(
+        ChatHealthyLoggingService().info(
             "chunk_indexer: wrote sidecar %s (%d chunks)",
             _index_blob_name(csv_blob_name), len(chunks),
         )
     except Exception as exc:
-        logging.warning("chunk_indexer: sidecar write failed: %s", exc)
+        ChatHealthyLoggingService().warning("chunk_indexer: sidecar write failed: %s", exc)
 
     return chunks
 

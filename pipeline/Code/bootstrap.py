@@ -34,6 +34,7 @@ Both paths:
   - exec argv[1] with argv[2:] as forwarded args.
 """
 from __future__ import annotations
+from chathealthy_frontend_lib.logging_service import ChatHealthyLoggingService
 
 import atexit
 import os
@@ -262,7 +263,7 @@ def main() -> int:
     import traceback  # noqa: PLC0415
 
     def _dump_obs_abend(_obs_exc: ChatHealthyException) -> None:
-        print("=" * 78, file=sys.stderr, flush=True)
+        ChatHealthyLoggingService().info("=" * 78)
         print("bootstrap: pipeline observability gate FAILED -- abending",
               file=sys.stderr, flush=True)
         print(f"  pipeline_name (component): {pipeline_name!r}",
@@ -308,9 +309,9 @@ def main() -> int:
               file=sys.stderr, flush=True)
         print(_obs_exc.construction_stack,
               file=sys.stderr, flush=True)
-        print("  live traceback:", file=sys.stderr, flush=True)
+        ChatHealthyLoggingService().info("  live traceback:")
         traceback.print_exc(file=sys.stderr)
-        print("=" * 78, file=sys.stderr, flush=True)
+        ChatHealthyLoggingService().info("=" * 78)
 
     if len(sys.argv) < 2:
         _emit("usage: bootstrap.py <entry_point.py> [args...]")

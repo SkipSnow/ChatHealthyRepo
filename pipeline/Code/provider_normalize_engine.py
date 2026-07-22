@@ -4,8 +4,9 @@
 """Normalize staging NPPES rows into providers_v<N> — LLD §4.8."""
 
 from __future__ import annotations
+from chathealthy_frontend_lib.logging_service import ChatHealthyLoggingService
 
-import logging
+
 from typing import Any
 
 from pymongo import ReplaceOne
@@ -14,7 +15,7 @@ from pipeline_runtime import PipelineRuntime
 from provider_record_builder import build_provider_record
 from schemas.provider_record_validator import validate_provider_record
 
-_log = logging.getLogger("provider_normalize_engine")
+_log = ChatHealthyLoggingService()
 
 
 def _nucc_lookup(rt: PipelineRuntime) -> dict[str, dict]:

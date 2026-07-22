@@ -1,3 +1,6 @@
+from chathealthy_frontend_lib.logging_service import ChatHealthyLoggingService
+from chathealthy_frontend_lib.mongo_utilities import ChatHealthyMongoUtilities
+from chathealthy_frontend_lib.exceptions import ChatHealthyException
 # Copyright © 2026 ChatHealthy.ai LLC. All rights reserved.
 # Licensed under the FindCare Evaluation License (FEL-1.0).
 #
@@ -22,7 +25,7 @@ The DataSourceRegistry record stores poll_frequency = "monthly".
 """
 
 import io
-import logging
+
 import os
 import zipfile
 from datetime import datetime, timezone
@@ -40,7 +43,7 @@ _mongo: MongoClient | None = None
 def _get_mongo_client() -> MongoClient:
     global _mongo
     if _mongo is None:
-        _mongo = MongoClient(os.environ["MONGO_connectionString"])
+        _mongo = ChatHealthyMongoUtilities("MONGO_connectionString").getConnection()
     return _mongo
 
 _ENV_PREFIX = os.environ.get("ENV_PREFIX", "dev")
@@ -69,11 +72,10 @@ def _discover_icd10_url() -> str:
         re.IGNORECASE,
     )
     if not matches:
-        raise RuntimeError("Could not find ICD-10-CM tabular order zip on CMS page.")
+        raise ChatHealthyException(mode="runtime_error", message="Could not find ICD-10-CM tabular order zip on CMS page.")
     # First match is most recent (CMS lists newest first)
     path = matches[0]
     url = f"{ICD10_BASE_URL}/files/zip/{path}"
-    logging.info("Discovered ICD-10-CM file: %s", url)
     return url
 
 
@@ -86,7 +88,7 @@ class Icd10Fetcher(DataFetcherBase):
         try:
             self.source_url = _discover_icd10_url()
         except Exception as exc:
-            logging.warning("ICD-10 auto-discovery failed (%s). Using fallback.", exc)
+            ChatHealthyLoggingService().warning("ICD-10 auto-discovery failed (%s). Using fallback.", exc)
             self.source_url = ICD10_FALLBACK_URL
 
     def blob_name(self) -> str:
@@ -126,9 +128,8 @@ def _parse_icd10_zip(zip_bytes: bytes) -> list[dict]:
             None,
         )
         if not order_file:
-            raise RuntimeError(f"No order .txt file found in ICD-10-CM zip. Files: {zf.namelist()}")
+            raise ChatHealthyException(mode="runtime_error", message=f"No order .txt file found in ICD-10-CM zip. Files: {zf.namelist()}")
 
-        logging.info("Parsing ICD-10-CM order file: %s", order_file)
         with zf.open(order_file) as f:
             for line in f:
                 line = line.decode("utf-8", errors="replace").rstrip("\n")
@@ -157,7 +158,6 @@ def _parse_icd10_zip(zip_bytes: bytes) -> list[dict]:
                     "loaded_at": now,
                 })
 
-    logging.info("Parsed %d ICD-10-CM codes", len(codes))
     return codes
 
 
@@ -178,7 +178,7 @@ def load_icd10(config: dict = None) -> dict:
     fetch_result = fetcher.fetch()
 
     if fetch_result["skipped"]:
-        logging.info(
+        ChatHealthyLoggingService().info(
             "ICD-10-CM already landed (blob: %s) — no update needed.",
             fetch_result["blob_path"],
         )
@@ -188,7 +188,7 @@ def load_icd10(config: dict = None) -> dict:
             "blob_path": fetch_result["blob_path"],
         }
 
-    logging.info(
+    ChatHealthyLoggingService().info(
         "ICD-10-CM downloaded (blob: %s, sha256: %s…) — loading into MongoDB.",
         fetch_result["blob_path"], fetch_result["checksum_sha256"][:16],
     )
@@ -227,7 +227,7 @@ def load_icd10(config: dict = None) -> dict:
 
     total = collection.count_documents({})
     billable = collection.count_documents({"is_header": False})
-    logging.info(
+    ChatHealthyLoggingService().info(
         "ICD-10-CM loaded: %d total codes (%d billable, %d headers)",
         total, billable, total - billable,
     )
@@ -243,7 +243,6 @@ def load_icd10(config: dict = None) -> dict:
 
 if __name__ == "__main__":
     load_dotenv(Path(__file__).parent.parent / ".env")
-    logging.basicConfig(level=logging.INFO, format="%(levelname)s %(message)s")
     result = load_icd10()
     import json
-    print(json.dumps(result, indent=2))
+    ChatHealthyLoggingService().info(json.dumps(result, indent=2))

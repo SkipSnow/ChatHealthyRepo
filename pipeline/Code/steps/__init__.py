@@ -11,14 +11,16 @@ LLD-v23 canonical step name to the module file when the two differ.
 """
 
 from __future__ import annotations
+from chathealthy_frontend_lib.logging_service import ChatHealthyLoggingService
+from chathealthy_frontend_lib.exceptions import ChatHealthyException
 
 import importlib
-import logging
+
 import pkgutil
 from types import ModuleType
 from typing import Callable
 
-_log = logging.getLogger(__name__)
+_log = ChatHealthyLoggingService()
 
 
 # LLD v23 §3.2 step name -> module name in this package when they differ.
@@ -87,8 +89,7 @@ STEP_RUNNERS: dict[str, Callable] = _build_registry()
 def get_runner(step_name: str) -> Callable:
     fn = STEP_RUNNERS.get(step_name)
     if fn is None:
-        raise KeyError(
-            f"No runner registered for step {step_name!r}. "
+        raise ChatHealthyException(mode="key_error", message=f"No runner registered for step {step_name!r}. "
             f"Known steps: {sorted(STEP_RUNNERS.keys())}"
         )
     return fn

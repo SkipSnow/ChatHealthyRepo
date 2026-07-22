@@ -23,8 +23,10 @@ Behavior:
 """
 
 from __future__ import annotations
+from chathealthy_frontend_lib.logging_service import ChatHealthyLoggingService
+from chathealthy_frontend_lib.exceptions import ChatHealthyException
 
-import logging
+
 from datetime import datetime, timezone
 from typing import Any, Iterable
 
@@ -35,7 +37,7 @@ from step_spec import StepSpec
 from steps import get_runner
 from steps._partitions import county_partitions, state_partitions
 
-_log = logging.getLogger(__name__)
+_log = ChatHealthyLoggingService()
 
 
 def _utc_now_iso() -> str:
@@ -121,8 +123,6 @@ class BasePipelineOrchestrator:
         transition = StepTransition(step=spec.name, status="running", started_at=started)
         ctx.manifest.step_transitions.append(transition)
         ctx.manifest.updated_at = started
-        _log.info("step=%s parallelism=%s phase=%s begin",
-                  spec.name, spec.parallelism, spec.invocation_phase)
 
         try:
             if spec.parallelism in (None, "serial", "gather"):
@@ -130,19 +130,14 @@ class BasePipelineOrchestrator:
             elif spec.parallelism == "process_pool":
                 summary = self._invoke_process_pool(spec, ctx)
             else:
-                raise ValueError(
-                    f"Unknown parallelism {spec.parallelism!r} on step {spec.name}"
-                )
+                raise ChatHealthyException(mode="value_error", message=f"Unknown parallelism {spec.parallelism!r} on step {spec.name}")
             transition.summary = summary if isinstance(summary, dict) else {"result": summary}
             transition.status = "success"
             ctx.step_summaries[spec.name] = transition.summary
             ctx.manifest.completed_steps.add(spec.name)
-            _log.info("step=%s success summary_keys=%s",
-                      spec.name, list(transition.summary.keys()))
         except Exception as exc:
             transition.status = "failed"
             transition.error = str(exc)
-            _log.exception("step=%s failed", spec.name)
             raise
         finally:
             transition.finished_at = _utc_now_iso()
@@ -202,13 +197,9 @@ class BasePipelineOrchestrator:
         for spec in steps:
             for pre in spec.prerequisites:
                 if pre not in names:
-                    raise ValueError(
-                        f"Step {spec.name} names unknown prerequisite {pre!r}"
-                    )
+                    raise ChatHealthyException(mode="value_error", message=f"Step {spec.name} names unknown prerequisite {pre!r}")
 
     def _require_prereqs_met(self, spec: StepSpec, manifest: RunManifest) -> None:
         missing = [p for p in spec.prerequisites if p not in manifest.completed_steps]
         if missing:
-            raise RuntimeError(
-                f"Step {spec.name} prerequisites not met: {missing}"
-            )
+            raise ChatHealthyException(mode="runtime_error", message=f"Step {spec.name} prerequisites not met: {missing}")

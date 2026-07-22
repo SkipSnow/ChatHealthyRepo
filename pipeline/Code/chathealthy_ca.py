@@ -29,9 +29,10 @@ Both public helpers can read from either:
       the image bake step didn't happen
 """
 from __future__ import annotations
+from chathealthy_frontend_lib.logging_service import ChatHealthyLoggingService
 
 import json
-import logging
+
 import os
 import time
 import urllib.error
@@ -45,7 +46,7 @@ from cryptography.hazmat.primitives.asymmetric import rsa
 from cryptography.x509.oid import NameOID
 
 
-LOG = logging.getLogger(__name__)
+LOG = ChatHealthyLoggingService()
 
 
 # Default CA chain locations baked into container images by the deployer.

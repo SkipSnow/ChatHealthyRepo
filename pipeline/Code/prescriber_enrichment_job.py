@@ -1,3 +1,4 @@
+from chathealthy_frontend_lib.logging_service import ChatHealthyLoggingService
 # Copyright (c) 2026 ChatHealthy.ai LLC. All rights reserved.
 # Licensed under the FindCare Evaluation License (FEL-1.0).
 #
@@ -12,7 +13,7 @@
 import csv
 import io
 import json
-import logging
+
 import os
 from datetime import datetime, timezone
 
@@ -20,7 +21,7 @@ from pymongo import UpdateOne
 from blob_client import get_blob_service
 from pipeline_db import get_db
 
-_log = logging.getLogger("prescriber_enrichment")
+_log = ChatHealthyLoggingService()
 
 
 def _primary_practice_address(provider: dict) -> dict:

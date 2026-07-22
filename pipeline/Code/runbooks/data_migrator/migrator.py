@@ -47,6 +47,9 @@ Environment (Automation Variables):
     AZ_AUTOMATION_ACCOUNT                 - ChatHealthyJobManager.
 """
 from __future__ import annotations
+from chathealthy_frontend_lib.logging_service import ChatHealthyLoggingService
+from chathealthy_frontend_lib.exceptions import ChatHealthyException
+from chathealthy_frontend_lib.mongo_utilities import ChatHealthyMongoUtilities
 
 import base64
 import itertools
@@ -87,11 +90,7 @@ class _RGFilter(logging.Filter):
         return True
 
 
-logging.basicConfig(
-    level=logging.INFO,
-    format="%(asctime)s %(levelname)s [rg=%(request_guid)s] %(message)s",
-)
-log = logging.getLogger("migrator")
+log = ChatHealthyLoggingService()
 log.addFilter(_RGFilter())
 
 _STATUS_DB = "admin"
@@ -108,7 +107,7 @@ def _read_payload() -> dict:
     sender base64-encodes the payload JSON so it survives legacy AA's
     parameter quote-stripping. sys.argv[1] is a base64 string."""
     if len(sys.argv) < 2:
-        raise RuntimeError("no payload: sys.argv[1] missing")
+        raise ChatHealthyException(mode="runtime_error", message="no payload: sys.argv[1] missing")
     return json.loads(base64.b64decode(sys.argv[1]).decode("utf-8"))
 
 
@@ -124,10 +123,8 @@ def _connection_string_for_cluster(cluster_name: str) -> str:
                 return val
         except Exception:
             pass
-    raise RuntimeError(
-        f"No connection string for cluster {cluster_name!r}: env var "
-        f"{env_var!r} is not set."
-    )
+    raise ChatHealthyException(mode="runtime_error", message=f"No connection string for cluster {cluster_name!r}: env var "
+        f"{env_var!r} is not set.")
 
 
 class StatusDoc:
@@ -204,7 +201,7 @@ _atlas_cluster_name_cache: dict = {}
 def _hostname_from_conn_str(conn_str: str) -> str:
     """Extract host.id.mongodb.net from a mongodb+srv URI without using regex."""
     if "@" not in conn_str:
-        raise RuntimeError(f"connection string missing '@': {conn_str[:40]!r}")
+        raise ChatHealthyException(mode="runtime_error", message=f"connection string missing '@': {conn_str[:40]!r}")
     after_at = conn_str.split("@", 1)[1]
     return after_at.split("/", 1)[0].split("?", 1)[0]
 
@@ -237,8 +234,7 @@ def _atlas_cluster_name_for(friendly_name: str) -> str:
             atlas_name = c["name"]
             _atlas_cluster_name_cache[friendly_name] = atlas_name
             return atlas_name
-    raise RuntimeError(
-        f"No Atlas cluster in project matches hostname {hostname!r} "
+    raise ChatHealthyException(mode="runtime_error", message=f"No Atlas cluster in project matches hostname {hostname!r} "
         f"(connection string for alias {friendly_name!r})"
     )
 
@@ -283,18 +279,15 @@ def _wait_source_idle(cluster_name: str) -> None:
     deadline = time.time() + _SOURCE_WAKE_TIMEOUT_SEC
     while time.time() < deadline:
         state = _atlas_cluster_state(cluster_name)
-        log.info("Source cluster %s state=%s", cluster_name, state)
         if state == "IDLE":
             return
         time.sleep(_SOURCE_WAKE_POLL_SEC)
-    raise RuntimeError(
-        f"Source cluster {cluster_name} did not reach IDLE within "
-        f"{_SOURCE_WAKE_TIMEOUT_SEC}s"
-    )
+    raise ChatHealthyException(mode="runtime_error", message=f"Source cluster {cluster_name} did not reach IDLE within "
+        f"{_SOURCE_WAKE_TIMEOUT_SEC}s")
 
 
 def _frontend_admin_coll():
-    fe = MongoClient(os.environ["MONGO_FRONTEND_connectionString"])
+    fe = ChatHealthyMongoUtilities("MONGO_FRONTEND_connectionString").getConnection()
     return fe["admin"]["cluster_lifecycle"]
 
 
@@ -385,8 +378,7 @@ def _group_thread_criteria(thread_criteria: dict) -> dict:
 
 def _enumerate_partitions(src_coll, base_filter: dict, thread_criteria: dict) -> list[dict]:
     if not thread_criteria:
-        raise RuntimeError(
-            "thread_criteria is required (missing thread_criteria = abend at entry)"
+        raise ChatHealthyException(mode="runtime_error", message="thread_criteria is required (missing thread_criteria = abend at entry)"
         )
 
     jf_flat, jf_grouped = _group_by_prefix(base_filter or {})
@@ -522,27 +514,22 @@ def _mirror_indexes(src_coll, dst_coll) -> int:
                          "2dsphereIndexVersion", "wildcardProjection")
         }
         opts["name"] = name
-        log.info("Mirroring index %r unique=%r ...", name, opts.get("unique", False))
         dst_coll.create_index(key, **opts)
         # If the index is not present immediately after create_index,
         # the build did not land and we must not proceed to load data.
         dst_names_after = {ix["name"] for ix in dst_coll.list_indexes()}
         if name not in dst_names_after:
-            raise RuntimeError(
-                f"_mirror_indexes: create_index for {name!r} acked but the "
+            raise ChatHealthyException(mode="runtime_error", message=f"_mirror_indexes: create_index for {name!r} acked but the "
                 f"index is not present in dst_coll.list_indexes() afterward; "
                 f"refusing to write any docs."
             )
-        log.info("Mirrored index %r (verified present on destination)", name)
         expected_names.append(name)
 
     # Final check: every expected name must be present together.
     final_names = {ix["name"] for ix in dst_coll.list_indexes()}
     missing = [n for n in expected_names if n not in final_names]
     if missing:
-        raise RuntimeError(
-            f"_mirror_indexes: final verification failed; missing on destination: {missing!r}"
-        )
+        raise ChatHealthyException(mode="runtime_error", message=f"_mirror_indexes: final verification failed; missing on destination: {missing!r}")
     return len(expected_names)
 
 
@@ -588,9 +575,7 @@ def _fire_deprovisioner(job_id: str, vm_name: str, request_guid: str) -> str:
         json=body, timeout=60,
     )
     if r.status_code not in (200, 201):
-        raise RuntimeError(
-            f"Start deprovisioner failed: HTTP {r.status_code} {r.text[:500]}"
-        )
+        raise ChatHealthyException(mode="runtime_error", message=f"Start deprovisioner failed: HTTP {r.status_code} {r.text[:500]}")
     return aa_job_id
 
 
@@ -599,7 +584,6 @@ def _main():
     payload = _read_payload()
     _request_guid = payload.get("request_guid", "?")
     if payload.get("health_check") is True:
-        log.info("health_check fired on migrator runbook")
         return
     job_id = payload["job_id"]
     vm_name = payload["vm_name"]
@@ -614,15 +598,19 @@ def _main():
     preserve_indexes = bool(payload.get("preserve_indices", True))
     duration_min = int(payload.get("reservation_duration_minutes") or 60)
 
-    log.info("Migrator begin: job_id=%s src=%s/%s.%s dst=%s/%s.%s",
-             job_id, src_cluster, src_db_name, src_coll_name,
-             dst_cluster, dst_db_name, dst_coll_name)
 
-    src_uri = _connection_string_for_cluster(src_cluster)
-    dst_uri = _connection_string_for_cluster(dst_cluster)
-    src_client = MongoClient(src_uri, appname="ChatHealthyDataMigrator")
-    dst_client = MongoClient(dst_uri, appname="ChatHealthyDataMigrator")
-    pipeline_client = MongoClient(os.environ["MONGO_connectionString"])
+    # Ensure the per-cluster env vars are populated (KV/AutomationVariable
+    # lookup inside _connection_string_for_cluster), then route each client
+    # through the utility which reads the same env var it just populated.
+    _connection_string_for_cluster(src_cluster)
+    _connection_string_for_cluster(dst_cluster)
+    src_client = ChatHealthyMongoUtilities(
+        f"MONGO_CLUSTER_{src_cluster}_connectionString"
+    ).getConnection()
+    dst_client = ChatHealthyMongoUtilities(
+        f"MONGO_CLUSTER_{dst_cluster}_connectionString"
+    ).getConnection()
+    pipeline_client = ChatHealthyMongoUtilities("MONGO_connectionString").getConnection()
 
     src_coll = src_client[src_db_name][src_coll_name]
     dst_coll = dst_client[dst_db_name][dst_coll_name]
@@ -633,15 +621,11 @@ def _main():
     try:
         # Everything from Atlas wake onwards lives inside this try/finally
         # so the deprovisioner fires on AB end regardless of where we die.
-        log.info("Waking source cluster %s and reserving for %d min",
-                 src_cluster, duration_min)
         _atlas_resume_cluster(src_cluster)
         _reserve_source(src_cluster, job_id, duration_min)
         _wait_source_idle(src_cluster)
 
         if dst_coll_name in dst_client[dst_db_name].list_collection_names():
-            log.info("Destination collection %s.%s exists - dropping",
-                     dst_db_name, dst_coll_name)
             dst_client[dst_db_name].drop_collection(dst_coll_name)
         dst_client[dst_db_name].create_collection(dst_coll_name)
 
@@ -652,10 +636,8 @@ def _main():
         # paths.
         if preserve_indexes:
             created = _mirror_indexes(src_coll, dst_coll)
-            log.info("Mirrored %d user-defined indexes (pre-load)", created)
 
         partitions = _enumerate_partitions(src_coll, base_filter, thread_criteria)
-        log.info("Enumerated %d partitions", len(partitions))
         status_doc.init(base_filter, partitions)
 
         with ThreadPoolExecutor(max_workers=len(partitions)) as pool:
@@ -674,7 +656,6 @@ def _main():
                 except Exception as e:
                     status_doc.thread_status(thread_id, "error")
                     has_exception = True
-                    log.error("Thread %s failed: %r", thread_id, e)
                     raise
 
         # Reconciliation count must be the EFFECTIVE covered scope, not
@@ -697,9 +678,7 @@ def _main():
         source_total = src_coll.count_documents(covered_query)
         if success_writes != source_total:
             has_exception = True
-            raise RuntimeError(
-                f"Reconciliation mismatch: migrated={success_writes} source={source_total}"
-            )
+            raise ChatHealthyException(mode="runtime_error", message=f"Reconciliation mismatch: migrated={success_writes} source={source_total}")
 
     except Exception:
         # Threadpool failures set has_exception themselves and re-raise.
@@ -716,7 +695,7 @@ def _main():
         try:
             status_doc.finalize(has_exception)
         except Exception as e:
-            log.warning("status_doc.finalize failed (continuing): %r", e)
+            pass
 
         if has_exception:
             # On failure the destination is preserved so the failed state
@@ -734,32 +713,17 @@ def _main():
                 )
             except Exception as e:
                 dst_existing, dst_count, dst_indexes = None, None, f"<count/list_indexes failed: {e!r}>"
-            log.error(
-                "Migrator FAILED -- destination preserved for debugging. "
-                "job_id=%s vm_name=%s src=%s/%s.%s dst=%s/%s.%s "
-                "dst_collection_exists=%s dst_doc_count=%s dst_indexes=%s "
-                "thread_writes=%s preserve_indices=%s",
-                job_id, vm_name,
-                src_cluster, src_db_name, src_coll_name,
-                dst_cluster, dst_db_name, dst_coll_name,
-                dst_existing, dst_count, dst_indexes,
-                success_writes, preserve_indexes,
-            )
 
         try:
-            log.info("Releasing source reservation %s", job_id)
             _release_source(job_id)
         except Exception as e:
-            log.warning("Release source reservation failed (continuing): %r", e)
+            pass
 
         deprov_aa_job_id = None
         try:
-            log.info("Firing deprovisioner for vm=%s (fire-and-forget)", vm_name)
             deprov_aa_job_id = _fire_deprovisioner(job_id, vm_name, _request_guid)
-            log.info("Migrator fired deprovisioner: job_id=%s deprovisioner_aa_job_id=%s",
-                     job_id, deprov_aa_job_id)
         except Exception as e:
-            log.error("Fire deprovisioner FAILED - VM %s will leak: %r", vm_name, e)
+            pass
 
         print(json.dumps({
             "migrator_status": "error" if has_exception else "ok",
@@ -774,5 +738,5 @@ try:
 except Exception:
     tb = traceback.format_exc()
     log.error("Migrator failed: %s", tb)
-    print(json.dumps({"migrator_status": "error", "error": tb[-1500:]}), flush=True)
+    ChatHealthyLoggingService().info(json.dumps({"migrator_status": "error", "error": tb[-1500:]}))
     sys.exit(1)

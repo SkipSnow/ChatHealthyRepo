@@ -3,12 +3,13 @@
 """LLD v22 Provider Pipeline — see pipeline/ArchitectureDesignAndAudit/ProviderPipeline_LowLevelDesign_v22.docx."""
 
 from __future__ import annotations
+from chathealthy_frontend_lib.logging_service import ChatHealthyLoggingService
 
-import logging
+
 import os
 from typing import Any
 
-_log = logging.getLogger("notification_client")
+_log = ChatHealthyLoggingService()
 
 
 def twilio_enabled() -> bool:

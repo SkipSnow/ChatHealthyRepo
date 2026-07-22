@@ -1,3 +1,5 @@
+from chathealthy_frontend_lib.logging_service import ChatHealthyLoggingService
+from chathealthy_frontend_lib.mongo_utilities import ChatHealthyMongoUtilities
 # Copyright © 2026 ChatHealthy.ai LLC. All rights reserved.
 # Licensed under the FindCare Evaluation License (FEL-1.0).
 #
@@ -22,7 +24,7 @@ Collection schema per document:
   loaded_at    : str   — ISO timestamp
 """
 
-import logging
+
 import os
 from collections import defaultdict
 from datetime import datetime, timezone
@@ -39,7 +41,7 @@ _mongo: MongoClient | None = None
 def _get_mongo_client() -> MongoClient:
     global _mongo
     if _mongo is None:
-        _mongo = MongoClient(os.environ["MONGO_connectionString"])
+        _mongo = ChatHealthyMongoUtilities("MONGO_connectionString").getConnection()
     return _mongo
 
 
@@ -96,12 +98,12 @@ def load_crosswalk(config: dict = None) -> dict:
     fetch_result = fetcher.fetch()
 
     if fetch_result["skipped"]:
-        logging.info(
+        ChatHealthyLoggingService().info(
             "Census crosswalk already landed (blob: %s) — reading from blob.",
             fetch_result["blob_path"],
         )
     else:
-        logging.info(
+        ChatHealthyLoggingService().info(
             "Census crosswalk downloaded (blob: %s, sha256: %s…).",
             fetch_result["blob_path"], fetch_result["checksum_sha256"][:16],
         )
@@ -116,7 +118,7 @@ def load_crosswalk(config: dict = None) -> dict:
         .download_blob()
     )
     raw_bytes = b"".join(stream.chunks())
-    logging.info("Parsing Census ZCTA-to-county relationship file from blob...")
+    ChatHealthyLoggingService().info("Parsing Census ZCTA-to-county relationship file from blob...")
     content = raw_bytes.decode("utf-8-sig")
     lines = content.splitlines()
 
@@ -149,7 +151,7 @@ def load_crosswalk(config: dict = None) -> dict:
             "area_part": area_part,
         })
 
-    logging.info("Parsed %d distinct ZIP codes from Census file", len(zip_counties))
+    ChatHealthyLoggingService().info("Parsed %d distinct ZIP codes from Census file", len(zip_counties))
 
     # Build documents — primary county = highest area_part ratio
     now = datetime.now(timezone.utc).isoformat()
@@ -196,7 +198,7 @@ def load_crosswalk(config: dict = None) -> dict:
 
     total = collection.count_documents({})
     split_count = collection.count_documents({"is_split": True})
-    logging.info(
+    ChatHealthyLoggingService().info(
         "Crosswalk loaded: %d total ZIPs, %d split (ratio < %.0f%%)",
         total, split_count, SPLIT_THRESHOLD * 100,
     )
@@ -212,6 +214,5 @@ if __name__ == "__main__":
     from pathlib import Path
     from dotenv import load_dotenv
     load_dotenv(Path(__file__).parent.parent / ".env")
-    logging.basicConfig(level=logging.INFO, format="%(levelname)s %(message)s")
     result = load_crosswalk()
-    print(result)
+    ChatHealthyLoggingService().info(result)
