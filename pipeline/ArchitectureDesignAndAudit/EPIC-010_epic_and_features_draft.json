@@ -1,0 +1,121 @@
+{
+  "$schema": "https://dev.chathealthy.ai/schemas/ChatHealthyAgileBacklogSchema.json",
+  "version": "v33-draft-1",
+  "created": "2026-07-22",
+  "description": "First-draft proposal of EPIC-010 (Pipelines) at the epic and feature level only, driven by the Provider Pipeline Low-Level Design v33 (pipeline/ArchitectureDesignAndAudit/ProviderPipeline_LowLevelDesign_v33.docx). Contains the epic definition and seven feature definitions with empty story arrays. Stories and requirements are intentionally NOT proposed in this draft. Approval is 'proposed' and status is 'not_started' pending CTO review; these do not yet supersede the canonical EPIC-010 definitions in brain/machine_artifacts/content/agile_backlog.json.",
+  "epics": {
+    "epic": [
+      {
+        "epic_id": "EPIC-010",
+        "orphan": false,
+        "name": "Pipelines",
+        "type": "functional",
+        "status": "not_started",
+        "approval": "proposed",
+        "description": "ChatHealthy's data pipelines: the deterministic conveyors that ingest public-domain and licensed health datasets (NPPES provider registry and pl_pfile practice locations, NUCC provider taxonomy, U.S. Census ZCTA-to-county crosswalk, USDA RUCC classification, and licensed CMS Public Use Files over time), perform ETL, data-quality management, and enrichment, and publish the authoritative MongoDB collections consumed by the front end (FindCare and Evaluate Care). Every pipeline follows one shared shape: it is triggered on a schedule or on demand, provisions its own ephemeral Azure compute for the run (a single Pipeline Run VM hosting one Controller process and its Worker subprocesses), coordinates all parallel work through MongoDB work-items (no queues, no HTTP between Controller and Workers), holds a reservation that keeps the pipeline Atlas cluster unpaused only while live work exists, fetches every source in parallel, normalizes and enriches at state-scoped parallelism, and then quiesces itself — destroying the VM, releasing the reservation, and reporting discrepancies. No persistent compute runs between runs and zero idle compute cost is the design contract. All pipeline code executes in Azure and reads/writes the ChatHealthy MongoDB Atlas clusters (front-end cluster chathealthyfrontend for coordination/metadata; pipeline cluster chathealthydatapipeline for staging and versioned published output). The pipeline is a client of the F-003 identity/cryptography epic and the F-012 deployment epic and does not restate their rules.",
+        "features": {
+          "feature": [
+            {
+              "feature_id": "EPIC-010-F-101",
+              "orphan": false,
+              "name": "DB & Pipeline Infrastructure Management",
+              "status": "not_started",
+              "priority": "HIGH",
+              "approval": "proposed",
+              "due_date": "TBD",
+              "realized_by": [],
+              "description": "Operational management of the substrate every pipeline run depends on. Covers: the reservation-gated pause/resume lifecycle of the pipeline Atlas cluster (chathealthydatapipeline) so the cluster is unpaused only while at least one live reservation exists and paused when none remain; the per-run ephemeral Pipeline Run VM lifecycle (provision one VM at run start, run the Controller and Workers on it, destroy it at run end) with zero persistent compute and zero idle cost between runs; the safety reapers that prevent runaway cost without killing live work — the Watchdog Runbook (orphaned-VM detection state machine keyed on reservation, terminal status, Controller heartbeat, VM power state, and missing manifest) and the ReservationReaper (reaps only reservations past their outer time envelope); the Azure Blob storage account and its two containers per environment (the content-hash-keyed source archive retained until superseded, and per-run transients); and the cluster tier / VM sizing configuration knobs. Realized by the reservation, VM, Watchdog, and storage mechanisms in the Provider Pipeline LLD v33 (sections 3.1.2, 3.1.3, 3.1.7-3.1.9, 4.2, 4.3.1, 5.2.2, 5.2.20).",
+              "stories": {
+                "story": []
+              }
+            },
+            {
+              "feature_id": "EPIC-010-F-102",
+              "orphan": false,
+              "name": "Common Pipeline Orchestration",
+              "status": "not_started",
+              "priority": "HIGH",
+              "approval": "proposed",
+              "due_date": "TBD",
+              "realized_by": [],
+              "description": "The shared scaffolding reused by every individual pipeline. Covers: the durable BasePipelineOrchestrator framework and its StepSpec activity contract (ordered steps with prerequisites, invocation phase, timeout, parallelism spec, and completion marker), providing prerequisite gating, finally-block teardown that always fires on both success and failure paths, per-run failure-threshold abort, and skip-if-done step reuse keyed on source content hashes; the base Worker classes spawned as subprocesses and the MongoDB work-items coordination substrate with atomic findOneAndUpdate claims, heartbeats, and lease reclaim (no queues, no inter-process ports); the single authenticated entrance (Invoke) that admits a run and writes a fresh run manifest; the run manifest as the durable state-of-record and monitoring surface; common source-freshness gating (never trusting age) and content-hash-verified source fetching honoring vendor rate limits; the version-addressed source archive with prior-version retention; and post-load source-vs-DB reconciliation with discrepancy persistence and run-end notifications. Realized by the framework and cross-cutting mechanisms in the Provider Pipeline LLD v33 (sections 5.1, 5.2.1, 5.2.3-5.2.5, 5.2.18-5.2.19, 4.3.2-4.3.5, chapters 6 and 8).",
+              "stories": {
+                "story": []
+              }
+            },
+            {
+              "feature_id": "EPIC-010-F-103",
+              "orphan": false,
+              "name": "Provider Pipeline",
+              "status": "not_started",
+              "priority": "HIGH",
+              "approval": "proposed",
+              "due_date": "TBD",
+              "realized_by": [],
+              "description": "End-to-end load of the runtime provider record consumed by FindCare, published as the versioned providers_v<N> collection on the pipeline cluster. Ingests the monthly NPPES NPI dissemination file plus the pl_pfile practice-locations file, the NUCC provider taxonomy, the U.S. Census ZCTA-to-county crosswalk, and the USDA RUCC classification workbook; normalizes each provider (canonical NPI key, secondary practice addresses, Type-1 individual and Type-2 organization branches) and enriches it (license-based state repair for ambiguous addresses, cost-ordered county-identity cascade at a 98% SLA, urban flag from the RUCC join, proprietary can_prescribe / is_homeopathic / is_disqualified flags, and institutional identity via the NUCC join) at state-scoped parallelism. Operates in exactly one of two modes per invocation: Full (delete every provider in the target state scope and rebuild from source) or Incremental (preserve every provider whose per-NPI source record bundle is content-identical to the prior successful run and touch only changed, new, and removed records). Consumes only the monthly full NPPES file; weekly incremental files are out of scope. This feature is the primary subject of the Provider Pipeline LLD v33 (sections 5.2 and 5.3, data contracts in chapter 7).",
+              "stories": {
+                "story": []
+              }
+            },
+            {
+              "feature_id": "EPIC-010-F-104",
+              "orphan": false,
+              "name": "Specialty Pipeline",
+              "status": "not_started",
+              "priority": "HIGH",
+              "approval": "proposed",
+              "due_date": "TBD",
+              "realized_by": [],
+              "description": "End-to-end load of the specialty record consumed by FindCare, produced as {env}_PublicHealthData.SpecialtyMetaData on the front-end cluster. A sibling pipeline that reuses the shared substrate (F-101 infrastructure and F-102 orchestration) and consumes the F-105 proprietary flags catalog. Out of scope for the Provider Pipeline LLD v33 (it carries its own low-level design); listed here for epic completeness.",
+              "stories": {
+                "story": []
+              }
+            },
+            {
+              "feature_id": "EPIC-010-F-105",
+              "orphan": false,
+              "name": "Proprietary Provider and Specialty Flags",
+              "status": "not_started",
+              "priority": "HIGH",
+              "approval": "proposed",
+              "due_date": "TBD",
+              "realized_by": [],
+              "description": "The ChatHealthy-maintained, business-owned classification catalog keyed by NUCC taxonomy code, applied to both provider records (via F-103) and specialty records (via F-104). Each catalog entry carries the proprietary boolean flags that drive downstream eligibility and display (is_licensed_clinical_role, can_prescribe, is_homeopathic, is_disqualified). At run start each pipeline loads the catalog into a per-run read cache. Per the Provider Pipeline LLD v33 (sections 5.2.8 and 7.4) the catalog is the single source of truth for these flags; catalog authoring itself is referenced but not specified by the provider design. NOTE FOR REVIEW: the LLD v33 locates this catalog at the MongoDB collection chathealthydatapipeline.ProprietaryData.SpecialtyAndProviderFlags, whereas the current canonical backlog describes it as an Azure Blob JSON file (specialty_classification_gpt41.json) with two booleans — this discrepancy must be resolved during story authoring.",
+              "stories": {
+                "story": []
+              }
+            },
+            {
+              "feature_id": "EPIC-010-F-106",
+              "orphan": false,
+              "name": "PipelineRequestManager",
+              "status": "not_started",
+              "priority": "TBD",
+              "approval": "proposed",
+              "due_date": "TBD",
+              "realized_by": [],
+              "description": "Specifies how a pipeline uses the shared ManageRequests functions to send requests to peer ChatHealthy services and to handle requests received from them, across synchronous send, synchronous receive, asynchronous send, and asynchronous receive. Not exercised by the Provider Pipeline LLD v33; listed here for epic completeness.",
+              "stories": {
+                "story": []
+              }
+            },
+            {
+              "feature_id": "EPIC-010-F-107",
+              "orphan": false,
+              "name": "Medicare Provider Utilization Collection",
+              "status": "not_started",
+              "priority": "HIGH",
+              "approval": "proposed",
+              "due_date": "TBD",
+              "realized_by": [],
+              "description": "Builds the medicare_provider_utilization MongoDB collection from public CMS Medicare Public Use Files (PUFs), keyed by NPI, capturing the prescription and procedure facts CMS publishes for individual clinicians and linkable facilities. Facts are license-gated at both ingest and display: only Tier-A/B CMS PUF data and Tier-C/D third-party code sets with verified licenses on file may be collected or shown in Evaluate Care, and ChatHealthy must hold documented rights to perform statistical analysis (aggregation, percentile banding, cohort benchmarks, care-path overlap scoring) subject to CMS cell-suppression rules and third-party license constraints. Produces quantitative utilization measures (drug volumes, HCPCS service volumes, cost and generic-ratio bands, BETOS care-domain groupings, and ICD-10-CM indication mappings via proprietary crosswalks) so Evaluate Care can rank the care paths a prescriber most commonly treads for a user's clinical context. Does NOT use CCW/ResDAC identifiable claims or any dataset requiring a CMS Data Use Agreement. A sibling pipeline that reuses the shared substrate (F-101/F-102); not covered by the Provider Pipeline LLD v33.",
+              "stories": {
+                "story": []
+              }
+            }
+          ]
+        }
+      }
+    ]
+  }
+}
