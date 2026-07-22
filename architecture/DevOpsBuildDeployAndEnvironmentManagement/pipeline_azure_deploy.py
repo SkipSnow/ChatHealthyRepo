@@ -643,7 +643,10 @@ def ensure_acr(target, env: str) -> str:
         if not dockerfile:
             sys.exit(f"ERROR: ACR docker_image package {pkg.get('package_id')!r} missing dockerfile")
         step(f"docker build+push {name}.azurecr.io/{repo}:latest from {dockerfile}")
-        _az(["acr", "login", "--name", name])
+        # `az acr login` on Windows engages Docker's credential store, which
+        # starts Docker Desktop. `az acr build` server-side does NOT need
+        # this: it authenticates via the operator's current `az` session
+        # directly. Skipping the login avoids Docker Desktop popup entirely.
         # Build args required by Dockerfile.control: CHATHEALTHY_CA_ROOT_B64,
         # CHATHEALTHY_CA_INTERMEDIATE_B64 (F-003 CA baked into image).
         # KV holds the raw PEM under `ca-root-cert` and `ca-intermediate-cert`;
