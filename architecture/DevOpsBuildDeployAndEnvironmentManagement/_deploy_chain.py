@@ -1224,7 +1224,7 @@ def az_automation_runbook_dry_fire(rg: str, aa: str, runbook: str) -> dict:
         f"/providers/Microsoft.Automation/automationAccounts/{aa}"
         f"/jobs/{aa_job_id}?api-version=2023-11-01"
     )
-    deadline = time.time() + 240
+    deadline = time.time() + 600
     last_status = "?"
     while time.time() < deadline:
         r = subprocess.run(
@@ -1282,7 +1282,7 @@ def az_automation_poll_job_to_terminal(
     module load (chathealthy_frontend_lib inlined bootstrap +
     ChatHealthyLoggingService instantiation) can take up to 5 min end-
     to-end on a cold AA before the runbook's own logic runs. Empirically
-    240s was too tight for the ChatHealthyDataMigrator {Provisioner,
+    600s was too tight for the ChatHealthyDataMigrator {Provisioner,
     Deprovisioner} health-check dry-fires, which then failed the deploy
     even though the runbook itself would eventually short-circuit on
     health_check=True."""
@@ -1368,7 +1368,7 @@ def az_automation_orchestrator_verify_via_webhook(
     if status.startswith("Timeout"):
         sys.exit(
             f"ERROR: deploy FAILED for {aa}/{runbook} - orchestrator "
-            f"health-check via webhook did not reach terminal status in 240s "
+            f"health-check via webhook did not reach terminal status in 600s "
             f"(last={status}, job={aa_job_id})."
         )
     sys.exit(
@@ -1419,7 +1419,7 @@ def az_automation_runbook_verify_runnable(rg: str, aa: str, runbook: str) -> Non
     if status.startswith("Timeout"):
         sys.exit(
             f"ERROR: deploy FAILED for {aa}/{runbook} - health-check "
-            f"dry-fire did not reach terminal status in 240s "
+            f"dry-fire did not reach terminal status in 600s "
             f"(last={status}, job={job_id})."
         )
 
