@@ -114,6 +114,45 @@ _SHELL_TOOLS = {"Bash", "PowerShell"}
 
 
 # ─────────────────────────────────────────────────────────────────────────────
+# Hard remote-mutation marker sets. When the walker sees ANY of these patterns
+# in a walked file, the classification is deterministically gate_approve — the
+# LLM is not consulted for the verdict. Falls out of the failure we saw where
+# the LLM read 15+ `subprocess.run(['az', 'acr', 'build', ...])` sites,
+# classified the top-level command as "local script", and returned allow.
+# Prompting was insufficient; deterministic detection is required.
+# ─────────────────────────────────────────────────────────────────────────────
+_MUTATION_BINARY_VERBS: dict[str, set[str]] = {
+    "az": {
+        "create", "update", "delete", "replace", "set", "add", "remove",
+        "patch", "put", "restart", "start", "stop", "deallocate", "redeploy",
+        "purge", "rotate", "regenerate", "renew", "deploy", "publish",
+        "invoke", "run-command", "upload", "upload-batch", "assign",
+        "grant", "revoke", "reset",
+    },
+    "aws": {"create", "update", "delete", "put", "run", "terminate", "reboot", "stop", "start"},
+    "gcloud": {"create", "update", "delete", "add", "remove", "set", "reset", "restart"},
+    "atlas": {"create", "update", "delete", "add", "remove", "terminate"},
+    "gh": {"create", "delete", "edit", "merge", "close", "reopen", "lock", "unlock"},
+    "wrangler": {"deploy", "publish", "delete", "put"},
+    "kubectl": {"apply", "create", "delete", "edit", "patch", "replace", "scale", "set", "expose", "label", "annotate"},
+    "terraform": {"apply", "destroy", "import"},
+    "pulumi": {"up", "destroy"},
+    "docker": {"push"},
+    "npm": {"publish"},
+    "git": {"push"},  # top-level `git push` is allowlisted at Stage 1; a walked script doing `git push` still marks
+}
+
+_HTTP_MUTATION_ATTRS = {"post", "put", "delete", "patch"}
+_HTTP_MUTATION_METHODS = {"POST", "PUT", "DELETE", "PATCH"}
+
+_SUBPROCESS_QUALIFIED = {
+    "subprocess.run", "subprocess.call", "subprocess.Popen",
+    "subprocess.check_output", "subprocess.check_call",
+    "os.system", "os.popen",
+}
+
+
+# ─────────────────────────────────────────────────────────────────────────────
 # .env loader — no external deps
 # ─────────────────────────────────────────────────────────────────────────────
 def _load_env_var(name: str) -> str | None:
@@ -585,6 +624,97 @@ def _walk_command_closure(command: str) -> tuple[list[dict], list[str], list[str
                 seeds.append((r, depth + 1))
 
     return files, errors, dynamic
+
+
+def _extract_mutation_markers_from_ast(source: str, file_path: Path) -> list[str]:
+    """Scan a Python file for hard remote-mutation patterns. Return a list of
+    human-readable "path:line kind detail" markers. Empty list = no known
+    hard mutation pattern detected. Covers:
+
+      (1) subprocess.[run|call|Popen|check_output|check_call|os.system|
+          os.popen](['<binary>', '<verb>', ...]) where (binary, verb) is in
+          _MUTATION_BINARY_VERBS. Matches list AND tuple literal args.
+      (2) urllib.request.Request(..., method='POST'/'PUT'/'DELETE'/'PATCH')
+      (3) requests/httpx/aiohttp.request(..., method='POST'/'PUT'/'DELETE'/'PATCH')
+      (4) <anything>.post/.put/.delete/.patch(url, ...) — any HTTP mutation
+          attribute call with at least one argument.
+    """
+    markers: list[str] = []
+    try:
+        tree = ast.parse(source)
+    except SyntaxError:
+        return markers
+    try:
+        file_rel = str(file_path.resolve().relative_to(_PROJECT_ROOT)).replace("\\", "/")
+    except (ValueError, OSError):
+        file_rel = file_path.name
+    for node in ast.walk(tree):
+        if not isinstance(node, ast.Call):
+            continue
+        fname = _call_qualified_name(node.func)
+        # (1) subprocess-family with list/tuple literal args
+        if fname in _SUBPROCESS_QUALIFIED and node.args:
+            first = node.args[0]
+            if isinstance(first, (ast.List, ast.Tuple)):
+                toks = [e.value for e in first.elts
+                        if isinstance(e, ast.Constant) and isinstance(e.value, str)]
+                if toks:
+                    bin_raw = toks[0].rsplit("/", 1)[-1].rsplit("\\", 1)[-1].lower()
+                    for suf in (".exe", ".cmd", ".bat"):
+                        if bin_raw.endswith(suf):
+                            bin_raw = bin_raw[: -len(suf)]
+                            break
+                    verbs = _MUTATION_BINARY_VERBS.get(bin_raw)
+                    if verbs:
+                        for tok in toks[1:9]:
+                            if tok.lower() in verbs:
+                                markers.append(
+                                    f"{file_rel}:{node.lineno} subprocess {bin_raw} {tok.lower()}"
+                                )
+                                break
+        # (2) urllib.request.Request(..., method='POST'/...)
+        if fname == "urllib.request.Request":
+            for kw in node.keywords:
+                if kw.arg == "method" and isinstance(kw.value, ast.Constant) and isinstance(kw.value.value, str):
+                    if kw.value.value.upper() in _HTTP_MUTATION_METHODS:
+                        markers.append(
+                            f"{file_rel}:{node.lineno} urllib.request.Request method={kw.value.value.upper()}"
+                        )
+        # (3) <lib>.request(..., method='POST'/...)
+        if fname in ("requests.request", "httpx.request", "aiohttp.request"):
+            for kw in node.keywords:
+                if kw.arg == "method" and isinstance(kw.value, ast.Constant) and isinstance(kw.value.value, str):
+                    if kw.value.value.upper() in _HTTP_MUTATION_METHODS:
+                        markers.append(
+                            f"{file_rel}:{node.lineno} {fname} method={kw.value.value.upper()}"
+                        )
+        # (4) <object>.post/.put/.delete/.patch(url, ...) — HTTP mutation attribute call
+        if isinstance(node.func, ast.Attribute) and node.func.attr in _HTTP_MUTATION_ATTRS:
+            if node.args or node.keywords:
+                markers.append(
+                    f"{file_rel}:{node.lineno} HTTP {node.func.attr.upper()} attribute call"
+                )
+    # De-dup while preserving order
+    seen: set[str] = set()
+    out: list[str] = []
+    for m in markers:
+        if m not in seen:
+            seen.add(m)
+            out.append(m)
+    return out
+
+
+def _scan_hard_mutation_markers(files: list[dict]) -> list[str]:
+    """Aggregate hard mutation markers across every walked file. Returns the
+    combined marker list (may be empty). Only .py files are scanned; shell
+    scripts are left to the LLM stage since the AST scanner is Python-only."""
+    out: list[str] = []
+    for f in files:
+        path_str = f.get("path", "")
+        if not path_str.endswith(".py"):
+            continue
+        out.extend(_extract_mutation_markers_from_ast(f.get("content", ""), _PROJECT_ROOT / path_str))
+    return out
 
 
 # ─────────────────────────────────────────────────────────────────────────────
@@ -1179,6 +1309,42 @@ def main() -> int:
     # STAGE 5 — oneoff wrapper detection (recognized here so its payload is
     # part of the LLM's context)
     wrapper = _extract_oneoff(command)
+
+    # STAGE 2.5 — hard marker scan (walker-side deterministic detection).
+    # If ANY known remote-mutation pattern is present in walked code, the
+    # verdict is deterministic:
+    #   markers present + wrapped   -> gate_approve (operator decides)
+    #   markers present + unwrapped -> reject (must use oneoff.py)
+    # LLM is bypassed entirely. This closes the failure mode where the LLM
+    # read 15+ subprocess `az` calls and still returned "allow" because it
+    # latched onto "local script" wording.
+    markers = _scan_hard_mutation_markers(files)
+    # Unresolvable-dynamic-code guard: even without a matched marker, if the
+    # walker had to abandon a subprocess/exec/eval/importlib call because
+    # its args were runtime-dynamic, we cannot verify the code is safe. Per
+    # "block if can't determine" rule: escalate to operator.
+    if not markers and dynamic:
+        markers = [f"dynamic_evidence: {d}" for d in dynamic[:8]]
+
+    if markers:
+        verdict = "gate_approve" if wrapper else "reject"
+        head = "; ".join(markers[:3])
+        more = f" +{len(markers) - 3} more" if len(markers) > 3 else ""
+        reason = (
+            f"Rule-006 walker detected {len(markers)} hard remote-mutation "
+            f"marker(s) [{head}{more}]"
+            f"{'' if wrapper else ' — unwrapped: use oneoff.py'}"
+        )
+        audit_entry = {
+            "ts": ts, "tool": tool_name, "command": command,
+            "verdict": verdict, "reason": reason,
+            "cache": "bypass_llm_marker", "code_fingerprints": code_hashes,
+            "walk_errors": walk_errors, "dynamic_evidence": dynamic,
+            "mutation_markers": markers,
+            "wrapped": bool(wrapper),
+        }
+        return _dispatch_outcome(verdict, reason, tool_name, command,
+                                 code_hashes, wrapper, audit_entry)
 
     api_key = _load_env_var("GEMINI_API_KEY") or _load_env_var("GOOGLE_API_KEY")
     if not api_key:
