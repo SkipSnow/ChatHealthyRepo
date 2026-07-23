@@ -158,10 +158,20 @@ def _get_token(resource: str, client_id: str | None = None) -> str:
 # together with control, worker, runbook, and reaper events.
 # -----------------------------------------------------------------------------
 from chathealthy_frontend_lib.logging_service import ChatHealthyLoggingService  # noqa: PLC0415, E402
-_log = ChatHealthyLoggingService()
+
+# Lazily instantiate CHLS on first log() call so bootstrap_aa_mongo_logging
+# has already run inside main() by then and CH_LOG_DESTINATION=stderr,mongo
+# + MONGO_FRONTEND_connectionString are set. CHLS reads env at
+# instantiation; setting env AFTER a stderr-only instantiation does NOT
+# re-wire the Mongo handler. Instantiating at module top was the reason
+# no Watchdog events reached Pipelines.Log_dev.
+_log = None
 
 
 def log(event: str, **fields):
+    global _log
+    if _log is None:
+        _log = ChatHealthyLoggingService()
     entry = {"event": event, "host": _HOSTNAME}
     entry.update(fields)
     _log.info(json.dumps(entry, default=str))
