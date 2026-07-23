@@ -224,6 +224,7 @@ def _run_tests(env: str, tests: list[str]) -> int:
     test_map = {
         "find_care_smoke": "architecture/DevOpsBuildDeployAndEnvironmentManagement/find_care_smoke_test.py",
         "ur_um_regression": "architecture/DevOpsBuildDeployAndEnvironmentManagement/findcare_ur_um_regression_test.py",
+        "fire_provider_pipeline": "architecture/DevOpsBuildDeployAndEnvironmentManagement/fire_provider_pipeline_test.py",
     }
     test_paths = []
     for name in tests:
