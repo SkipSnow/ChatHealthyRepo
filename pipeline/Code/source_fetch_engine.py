@@ -130,6 +130,11 @@ def _basename_from_url(url: str, source_name: str) -> str:
     return name
 
 
+def _require_blob_client(blob) -> None:
+    if blob is None:
+        raise ChatHealthyException(mode="runtime_error", message="source_fetch_engine: blob client is required")
+
+
 def _upload_bytes_to_transient(
     blob,
     *,
@@ -138,16 +143,36 @@ def _upload_bytes_to_transient(
     local_path: str,
 ) -> None:
     """Upload local_path bytes to {container_name}/{blob_name}."""
-    if blob is None:
-        raise ChatHealthyException(mode="runtime_error", message="source_fetch_engine: blob client is required")
+    import time as _t  # noqa: PLC0415
+    _require_blob_client(blob)
+    local_size = os.path.getsize(local_path)
+    _log.info(
+        "source_fetch_engine.upload: START container=%s blob=%s local_size=%d bytes (%.2f MB)",
+        container_name, blob_name, local_size, local_size / 1024 / 1024,
+    )
     container = blob.get_container_client(container_name)
+    t_create = _t.time()
     try:
         container.create_container()
-    except Exception:
-        pass
+        _log.info(
+            "source_fetch_engine.upload: container.create_container OK container=%s elapsed=%.2fs",
+            container_name, _t.time() - t_create,
+        )
+    except Exception as _cc_exc:  # noqa: BLE001
+        _log.info(
+            "source_fetch_engine.upload: container.create_container skipped container=%s reason=%s elapsed=%.2fs",
+            container_name, type(_cc_exc).__name__, _t.time() - t_create,
+        )
     blob_client = container.get_blob_client(blob_name)
+    t_up = _t.time()
     with open(local_path, "rb") as fh:
         blob_client.upload_blob(fh, overwrite=True)
+    elapsed = _t.time() - t_up
+    mbps = (local_size / 1024 / 1024) / elapsed if elapsed > 0 else 0
+    _log.info(
+        "source_fetch_engine.upload: DONE container=%s blob=%s size=%d bytes elapsed=%.2fs avg=%.2f MB/s",
+        container_name, blob_name, local_size, elapsed, mbps,
+    )
 
 
 def _download_source(
@@ -158,14 +183,22 @@ def _download_source(
     http_timeout: int,
 ) -> tuple[str, str, int]:
     """Download to a tmp file, return (local_path, sha256, size_bytes)."""
+    import time as _t  # noqa: PLC0415
     url = _resolve_source_url(source_name, spec)
     gate.acquire()
-    _log.info("source_fetch_engine[%s]: GET %s", source_name, url)
+    _log.info("source_fetch_engine[%s]: GET %s (http_timeout=%ds)", source_name, url, http_timeout)
+    t0 = _t.time()
     resp = requests.get(url, stream=True, timeout=http_timeout)
     resp.raise_for_status()
+    content_len = resp.headers.get("Content-Length", "?")
+    _log.info(
+        "source_fetch_engine[%s]: connected status=%d content-length=%s",
+        source_name, resp.status_code, content_len,
+    )
     tmp = tempfile.NamedTemporaryFile(delete=False, prefix=f"{source_name}_", suffix=".bin")
     hasher = hashlib.sha256()
     size = 0
+    last_report_mb = 0
     try:
         for chunk in resp.iter_content(chunk_size=DEFAULT_CHUNK_BYTES):
             if not chunk:
@@ -173,9 +206,49 @@ def _download_source(
             tmp.write(chunk)
             hasher.update(chunk)
             size += len(chunk)
+            # Progress log every 100 MB. Cheap; small files (nucc,
+            # census, usda) never cross 100 MB so they produce zero
+            # extra lines; NPPES (~5 GB) produces ~50 lines total.
+            mb = size / 1024 / 1024
+            if int(mb) >= last_report_mb + 100:
+                elapsed = _t.time() - t0
+                mbps = mb / elapsed if elapsed > 0 else 0
+                _log.info(
+                    "source_fetch_engine[%s]: progress %.1f MB elapsed=%.1fs avg=%.2f MB/s",
+                    source_name, mb, elapsed, mbps,
+                )
+                last_report_mb = int(mb)
     finally:
         tmp.close()
+    elapsed = _t.time() - t0
+    mbps = (size / 1024 / 1024) / elapsed if elapsed > 0 else 0
+    _log.info(
+        "source_fetch_engine[%s]: download DONE size=%d bytes (%.2f MB) sha256=%s elapsed=%.2fs avg=%.2f MB/s local=%s",
+        source_name, size, size / 1024 / 1024, hasher.hexdigest()[:16], elapsed, mbps, tmp.name,
+    )
     return tmp.name, hasher.hexdigest(), size
+
+
+def _require_derive_inputs(source_name: str, parent_container, parent_blob_name, zip_glob) -> None:
+    if not (parent_container and parent_blob_name and zip_glob):
+        raise ChatHealthyException(mode="runtime_error", message=f"source_fetch_engine[{source_name}]: derived_from requires parent blob + zip_entry_glob")
+
+
+def _require_blob_client_for_derive(source_name: str, blob) -> None:
+    if blob is None:
+        raise ChatHealthyException(mode="runtime_error", message=f"source_fetch_engine[{source_name}]: blob client is required for derived_from")
+
+
+def _resolve_zip_entry(source_name: str, zip_glob: str, parent_blob_name: str, zf) -> str:
+    glob_lower = zip_glob.lower()
+    for n in zf.namelist():
+        if fnmatch.fnmatch(n.lower(), glob_lower):
+            return n
+    raise ChatHealthyException(
+        mode="runtime_error",
+        message=f"source_fetch_engine[{source_name}]: no entry matching {zip_glob!r} in {parent_blob_name}",
+        names_head=zf.namelist()[:10],
+    )
 
 
 def _extract_derived_source(
@@ -192,33 +265,39 @@ def _extract_derived_source(
     finds the first entry matching zip_entry_glob (case-insensitive),
     streams it to a tmp file with sha256.
     """
+    import time as _t  # noqa: PLC0415
     parent_container = parent_result.get("blob_container")
     parent_blob_name = parent_result.get("blob_path")
     zip_glob = spec.get("zip_entry_glob")
-    if not (parent_container and parent_blob_name and zip_glob):
-        raise ChatHealthyException(mode="runtime_error", message=f"source_fetch_engine[{source_name}]: derived_from requires parent "
-            "blob + zip_entry_glob")
-    if blob is None:
-        raise ChatHealthyException(mode="runtime_error", message=f"source_fetch_engine[{source_name}]: blob client is required for derived_from")
+    _require_derive_inputs(source_name, parent_container, parent_blob_name, zip_glob)
+    _require_blob_client_for_derive(source_name, blob)
+    _log.info(
+        "source_fetch_engine.derive[%s]: START parent_container=%s parent_blob=%s zip_glob=%s",
+        source_name, parent_container, parent_blob_name, zip_glob,
+    )
     container_client = blob.get_container_client(parent_container)
     parent_client = container_client.get_blob_client(parent_blob_name)
     fd, parent_tmp = tempfile.mkstemp(suffix=".zip", prefix=f"{source_name}_parent_")
     os.close(fd)
     try:
+        t_dl = _t.time()
+        parent_bytes = 0
         with open(parent_tmp, "wb") as fh:
             stream = parent_client.download_blob(max_concurrency=4)
             for chunk in stream.chunks():
                 fh.write(chunk)
-        glob_lower = zip_glob.lower()
+                parent_bytes += len(chunk)
+        _log.info(
+            "source_fetch_engine.derive[%s]: parent blob downloaded size=%.2f MB elapsed=%.2fs",
+            source_name, parent_bytes / 1024 / 1024, _t.time() - t_dl,
+        )
         with zipfile.ZipFile(parent_tmp) as zf:
-            entry_name = None
-            for n in zf.namelist():
-                if fnmatch.fnmatch(n.lower(), glob_lower):
-                    entry_name = n
-                    break
-            if entry_name is None:
-                raise ChatHealthyException(mode="runtime_error", message=f"source_fetch_engine[{source_name}]: no entry matching "
-                    f"{zip_glob!r} in {parent_blob_name}")
+            entry_name = _resolve_zip_entry(source_name, zip_glob, parent_blob_name, zf)
+            _log.info(
+                "source_fetch_engine.derive[%s]: extracting entry=%s from parent zip",
+                source_name, entry_name,
+            )
+            t_ex = _t.time()
             out = tempfile.NamedTemporaryFile(
                 delete=False, prefix=f"{source_name}_", suffix=".bin",
             )
@@ -235,6 +314,10 @@ def _extract_derived_source(
                         size += len(buf)
             finally:
                 out.close()
+            _log.info(
+                "source_fetch_engine.derive[%s]: extract DONE size=%.2f MB sha256=%s elapsed=%.2fs local=%s",
+                source_name, size / 1024 / 1024, hasher.hexdigest()[:16], _t.time() - t_ex, out.name,
+            )
             return out.name, hasher.hexdigest(), size, os.path.basename(entry_name)
     finally:
         try:
