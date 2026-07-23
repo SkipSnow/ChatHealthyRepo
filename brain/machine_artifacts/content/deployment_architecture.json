@@ -7332,7 +7332,12 @@
         "GEMINI_API_KEY": "local_env",
         "SPARKMAIL_API_KEY": "local_env",
         "NOTIFICATION_FROM_EMAIL": "local_env",
-        "NOTIFICATION_TO_EMAIL": "local_env"
+        "NOTIFICATION_TO_EMAIL": "local_env",
+        "SOURCE_URL_NPPES_NPI": "local_env",
+        "SOURCE_URL_NUCC": "local_env",
+        "SOURCE_URL_CENSUS_ZCTA_COUNTY": "local_env",
+        "SOURCE_URL_USDA_RUCC": "local_env",
+        "SPECIALTY_CLASSIFICATION_CATALOG_URL": "local_env"
       },
       "allowed_roles": [
         "Key Vault Secrets Officer",

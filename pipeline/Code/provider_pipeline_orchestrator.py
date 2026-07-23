@@ -35,8 +35,9 @@ class ProviderPipelineOrchestrator(BasePipelineOrchestrator):
         StepSpec(
             name="fetch_all_sources",
             prerequisites=["source_freshness_gate"],
-            parallelism="serial",
+            parallelism="process_pool",
             aca_job_name="prov-fetch-sources",
+            partition_key="source_name",
         ),
         StepSpec(
             name="source_archival",

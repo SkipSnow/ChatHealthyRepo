@@ -1,82 +1,97 @@
 """Single-source-of-truth loader for the proprietary NUCC classification catalog.
 
-Maps every NUCC taxonomy code to four booleans:
+Maps every NUCC taxonomy code to booleans:
   - can_prescribe     (true if the role has prescribing authority)
   - is_homeopathic    (true if the role is homeopathic)
-  - is_npi_registered (true if the code appears as a taxonomy on at least
-                       one provider record in NPPES)
-  - is_disqualified   (true if the code represents a non-clinical role —
-                       curated per BUG-005 from the NUCC Grouping field;
-                       codes under "Other Service Providers" or
-                       "Student, Health Care" are disqualified)
+  - is_npi_registered (optional; defaults False)
+  - is_disqualified   (optional; defaults False. Curated per BUG-005.)
 
-The catalog lives in the MongoDB collection
-`ProprietaryData.SpecialtyAndProviderFlags` on the pipeline cluster
-(ChatHealthyDataPipelines), per EPIC-010-F-105-S-001-REQ-T-001. The
-Provider pipeline denormalizes all three flags onto each provider
-record (via the provider's primary taxonomy code), and the Specialty
-pipeline writes the flags onto each SpecialtyMetaData record.
+The catalog JSON is a public document published to the ChatHealthy website
+under Data/. The URL is passed to this process as the env var
+SPECIALTY_CLASSIFICATION_CATALOG_URL via the standard deploy chain
+(declared in deployment_architecture.json, sourced from Code/.env, pushed
+to KV + Automation Variable, hydrated into the Controller container).
 
-No fallbacks. Mongo read failure raises.
+No fallbacks. Missing env, HTTP error, or empty result raises.
 """
 from __future__ import annotations
 from chathealthy_frontend_lib.exceptions import ChatHealthyException
-from chathealthy_frontend_lib.mongo_utilities import ChatHealthyMongoUtilities
 
+import json
 import os
+import ssl
 import threading
+import urllib.error
+import urllib.request
 from typing import Dict
 
-from pymongo import MongoClient
+try:
+    import certifi as _certifi
+    _CA_BUNDLE = _certifi.where()
+except ImportError:
+    _CA_BUNDLE = None
 
-_DB_NAME = "ProprietaryData"
-_COLL_NAME = "SpecialtyAndProviderFlags"
+
+_CATALOG_URL_ENV = "SPECIALTY_CLASSIFICATION_CATALOG_URL"
 
 _cache: Dict[str, Dict[str, bool]] | None = None
 _cache_lock = threading.Lock()
 
 
 def load_catalog() -> Dict[str, Dict[str, bool]]:
-    """Return {nucc_code: {"can_prescribe": bool, "is_homeopathic": bool}}.
-
-    Cached for the lifetime of the process.
-    """
+    """Return {nucc_code: {"can_prescribe": bool, "is_homeopathic": bool, ...}}."""
     global _cache
     if _cache is not None:
         return _cache
     with _cache_lock:
         if _cache is not None:
             return _cache
-        conn = os.environ["MONGO_connectionString"]
-        client = ChatHealthyMongoUtilities("MONGO_connectionString").getConnection()
-        try:
-            cursor = client[_DB_NAME][_COLL_NAME].find(
-                {}, {"_id": 0, "Code": 1, "can_prescribe": 1,
-                     "is_homeopathic": 1, "is_npi_registered": 1,
-                     "is_disqualified": 1}
+        url = os.environ.get(_CATALOG_URL_ENV, "").strip()
+        if not url:
+            raise ChatHealthyException(
+                mode="runtime_error",
+                message=f"{_CATALOG_URL_ENV} env var is not set",
+                component="specialty_classification_catalog",
             )
-            out: Dict[str, Dict[str, bool]] = {}
-            for row in cursor:
-                code = row.get("Code")
-                if not code:
-                    continue
-                out[code] = {
-                    "can_prescribe": bool(row.get("can_prescribe", False)),
-                    "is_homeopathic": bool(row.get("is_homeopathic", False)),
-                    "is_npi_registered": bool(row.get("is_npi_registered", False)),
-                    "is_disqualified": bool(row.get("is_disqualified", False)),
-                }
-        finally:
-            client.close()
+        ctx = ssl.create_default_context(cafile=_CA_BUNDLE) if _CA_BUNDLE else ssl.create_default_context()
+        req = urllib.request.Request(url, headers={"Accept": "application/json"})
+        with urllib.request.urlopen(req, context=ctx, timeout=30) as r:
+            doc = json.loads(r.read().decode("utf-8"))
+        rows = doc.get("classifications") if isinstance(doc, dict) else doc
+        if not isinstance(rows, list):
+            raise ChatHealthyException(
+                mode="runtime_error",
+                message=f"specialty_classification_catalog at {url} did not contain a 'classifications' list",
+                component="specialty_classification_catalog",
+                url=url,
+            )
+        out: Dict[str, Dict[str, bool]] = {}
+        for row in rows:
+            code = row.get("Code") or row.get("code")
+            if not code:
+                continue
+            homeopathic = row.get("is_homeopathic")
+            if homeopathic is None:
+                homeopathic = row.get("homeopathic", False)
+            out[code] = {
+                "can_prescribe": bool(row.get("can_prescribe", False)),
+                "is_homeopathic": bool(homeopathic),
+                "is_npi_registered": bool(row.get("is_npi_registered", False)),
+                "is_disqualified": bool(row.get("is_disqualified", False)),
+            }
         if not out:
-            raise ChatHealthyException(mode="runtime_error", message=f"specialty_classification_catalog: collection "
-                f"{_DB_NAME}.{_COLL_NAME} returned 0 documents")
+            raise ChatHealthyException(
+                mode="runtime_error",
+                message=f"specialty_classification_catalog at {url} returned 0 entries",
+                component="specialty_classification_catalog",
+                url=url,
+            )
         _cache = out
         return _cache
 
 
 def clear_cache() -> None:
-    """Test-only: force the next load_catalog() to re-read the collection."""
+    """Test-only: force the next load_catalog() to re-read."""
     global _cache
     with _cache_lock:
         _cache = None

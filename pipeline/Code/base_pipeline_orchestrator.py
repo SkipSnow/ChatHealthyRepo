@@ -131,12 +131,16 @@ class BasePipelineOrchestrator:
         ctx.manifest.updated_at = started
 
         try:
-            if spec.parallelism in (None, "serial", "gather"):
-                summary = self._invoke_in_process(spec, ctx)
-            elif spec.parallelism == "process_pool":
-                summary = self._invoke_process_pool(spec, ctx)
-            else:
-                raise ChatHealthyException(mode="value_error", message=f"Unknown parallelism {spec.parallelism!r} on step {spec.name}")
+            # LLD v36 §3.1.4/§3.1.5/§4.3.2: Controller orchestrates,
+            # Workers execute. Every step -> Worker subprocess dispatch;
+            # single-partition steps get one Worker, N-partition steps
+            # get N. Controller never executes step business logic itself.
+            if spec.parallelism not in (None, "serial", "gather", "process_pool"):
+                raise ChatHealthyException(
+                    mode="value_error",
+                    message=f"Unknown parallelism {spec.parallelism!r} on step {spec.name}",
+                )
+            summary = self._invoke_process_pool(spec, ctx)
             transition.summary = summary if isinstance(summary, dict) else {"result": summary}
             transition.status = "success"
             ctx.step_summaries[spec.name] = transition.summary
@@ -344,7 +348,25 @@ class BasePipelineOrchestrator:
     # Partition & prerequisite helpers
     # ------------------------------------------------------------------ #
     def _partitions_for(self, spec: StepSpec, ctx: StepContext) -> Iterable[dict]:
+        # Non-fanout steps (parallelism in {None,"serial","gather"}) get a
+        # single implicit partition so they still route through Worker
+        # subprocess dispatch per LLD v36 §3.1.4/§3.1.5/§4.3.2 (Controller
+        # orchestrates, Workers execute — every step).
+        if spec.parallelism in (None, "serial", "gather"):
+            return [{"single": True}]
         key = spec.partition_key or "business_address_state"
+        if key == "source_name":
+            # One partition per pipeline source; the step handler resolves
+            # each source's URL from a per-source env var. pl_pfile is
+            # derived from nppes_npi's ZIP in the nppes worker's output
+            # (see steps.fetch_all_sources._DERIVED_SOURCES).
+            return [
+                {"source": "nppes_npi"},
+                {"source": "nucc"},
+                {"source": "census_zcta_county"},
+                {"source": "usda_rucc"},
+                {"source": "pl_pfile"},
+            ]
         states = ctx.args.resolved_states()
         if key == "county_partition":
             return county_partitions(states)

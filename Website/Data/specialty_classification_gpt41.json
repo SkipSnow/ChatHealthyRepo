@@ -1,0 +1,4420 @@
+{
+  "$schema": "https://dev.chathealthy.ai/schemas/dev/chathealthy-relaxed.schema.json",
+  "classifications": [
+    {
+      "Code": "207LP2900X",
+      "can_prescribe": true,
+      "homeopathic": false
+    },
+    {
+      "Code": "207KI0005X",
+      "can_prescribe": true,
+      "homeopathic": false
+    },
+    {
+      "Code": "207L00000X",
+      "can_prescribe": true,
+      "homeopathic": false
+    },
+    {
+      "Code": "193400000X",
+      "can_prescribe": false,
+      "homeopathic": false
+    },
+    {
+      "Code": "207LC0200X",
+      "can_prescribe": true,
+      "homeopathic": false
+    },
+    {
+      "Code": "193200000X",
+      "can_prescribe": false,
+      "homeopathic": false
+    },
+    {
+      "Code": "207K00000X",
+      "can_prescribe": true,
+      "homeopathic": false
+    },
+    {
+      "Code": "207LA0401X",
+      "can_prescribe": true,
+      "homeopathic": false
+    },
+    {
+      "Code": "207KA0200X",
+      "can_prescribe": true,
+      "homeopathic": false
+    },
+    {
+      "Code": "207LH0002X",
+      "can_prescribe": true,
+      "homeopathic": false
+    },
+    {
+      "Code": "207LP3000X",
+      "can_prescribe": true,
+      "homeopathic": false
+    },
+    {
+      "Code": "208U00000X",
+      "can_prescribe": true,
+      "homeopathic": false
+    },
+    {
+      "Code": "207LP4000X",
+      "can_prescribe": true,
+      "homeopathic": false
+    },
+    {
+      "Code": "207Q00000X",
+      "can_prescribe": true,
+      "homeopathic": false
+    },
+    {
+      "Code": "207QA0000X",
+      "can_prescribe": true,
+      "homeopathic": false
+    },
+    {
+      "Code": "207PH0002X",
+      "can_prescribe": true,
+      "homeopathic": false
+    },
+    {
+      "Code": "207QA0401X",
+      "can_prescribe": true,
+      "homeopathic": false
+    },
+    {
+      "Code": "207QG0300X",
+      "can_prescribe": true,
+      "homeopathic": false
+    },
+    {
+      "Code": "204R00000X",
+      "can_prescribe": true,
+      "homeopathic": false
+    },
+    {
+      "Code": "207PT0002X",
+      "can_prescribe": true,
+      "homeopathic": false
+    },
+    {
+      "Code": "207NI0002X",
+      "can_prescribe": true,
+      "homeopathic": false
+    },
+    {
+      "Code": "207ND0900X",
+      "can_prescribe": true,
+      "homeopathic": false
+    },
+    {
+      "Code": "207P00000X",
+      "can_prescribe": true,
+      "homeopathic": false
+    },
+    {
+      "Code": "207PE0005X",
+      "can_prescribe": true,
+      "homeopathic": false
+    },
+    {
+      "Code": "207QS0010X",
+      "can_prescribe": true,
+      "homeopathic": false
+    },
+    {
+      "Code": "207PP0204X",
+      "can_prescribe": true,
+      "homeopathic": false
+    },
+    {
+      "Code": "207QB0002X",
+      "can_prescribe": true,
+      "homeopathic": false
+    },
+    {
+      "Code": "208C00000X",
+      "can_prescribe": true,
+      "homeopathic": false
+    },
+    {
+      "Code": "207QA0505X",
+      "can_prescribe": true,
+      "homeopathic": false
+    },
+    {
+      "Code": "207QP0002X",
+      "can_prescribe": true,
+      "homeopathic": false
+    },
+    {
+      "Code": "207QS1201X",
+      "can_prescribe": true,
+      "homeopathic": false
+    },
+    {
+      "Code": "207PS0010X",
+      "can_prescribe": true,
+      "homeopathic": false
+    },
+    {
+      "Code": "207QD0401X",
+      "can_prescribe": true,
+      "homeopathic": false
+    },
+    {
+      "Code": "207NP0225X",
+      "can_prescribe": true,
+      "homeopathic": false
+    },
+    {
+      "Code": "207NS0135X",
+      "can_prescribe": true,
+      "homeopathic": false
+    },
+    {
+      "Code": "207QH0002X",
+      "can_prescribe": true,
+      "homeopathic": false
+    },
+    {
+      "Code": "207ND0101X",
+      "can_prescribe": true,
+      "homeopathic": false
+    },
+    {
+      "Code": "207PE0004X",
+      "can_prescribe": true,
+      "homeopathic": false
+    },
+    {
+      "Code": "207N00000X",
+      "can_prescribe": true,
+      "homeopathic": false
+    },
+    {
+      "Code": "207RB0002X",
+      "can_prescribe": true,
+      "homeopathic": false
+    },
+    {
+      "Code": "202C00000X",
+      "can_prescribe": true,
+      "homeopathic": false
+    },
+    {
+      "Code": "207RP1001X",
+      "can_prescribe": true,
+      "homeopathic": false
+    },
+    {
+      "Code": "209800000X",
+      "can_prescribe": true,
+      "homeopathic": false
+    },
+    {
+      "Code": "207RA0001X",
+      "can_prescribe": true,
+      "homeopathic": false
+    },
+    {
+      "Code": "208M00000X",
+      "can_prescribe": true,
+      "homeopathic": false
+    },
+    {
+      "Code": "207RH0005X",
+      "can_prescribe": true,
+      "homeopathic": false
+    },
+    {
+      "Code": "207RI0200X",
+      "can_prescribe": true,
+      "homeopathic": false
+    },
+    {
+      "Code": "207RI0011X",
+      "can_prescribe": true,
+      "homeopathic": false
+    },
+    {
+      "Code": "207RT0003X",
+      "can_prescribe": true,
+      "homeopathic": false
+    },
+    {
+      "Code": "207RA0002X",
+      "can_prescribe": true,
+      "homeopathic": false
+    },
+    {
+      "Code": "207RS0010X",
+      "can_prescribe": true,
+      "homeopathic": false
+    },
+    {
+      "Code": "207SG0202X",
+      "can_prescribe": true,
+      "homeopathic": false
+    },
+    {
+      "Code": "207R00000X",
+      "can_prescribe": true,
+      "homeopathic": false
+    },
+    {
+      "Code": "207RC0000X",
+      "can_prescribe": true,
+      "homeopathic": false
+    },
+    {
+      "Code": "207RC0200X",
+      "can_prescribe": true,
+      "homeopathic": false
+    },
+    {
+      "Code": "207RH0003X",
+      "can_prescribe": true,
+      "homeopathic": false
+    },
+    {
+      "Code": "207RS0012X",
+      "can_prescribe": true,
+      "homeopathic": false
+    },
+    {
+      "Code": "207RA0201X",
+      "can_prescribe": true,
+      "homeopathic": false
+    },
+    {
+      "Code": "207RI0008X",
+      "can_prescribe": true,
+      "homeopathic": false
+    },
+    {
+      "Code": "207RM1200X",
+      "can_prescribe": true,
+      "homeopathic": false
+    },
+    {
+      "Code": "207RX0202X",
+      "can_prescribe": true,
+      "homeopathic": false
+    },
+    {
+      "Code": "207RG0100X",
+      "can_prescribe": true,
+      "homeopathic": false
+    },
+    {
+      "Code": "207RH0002X",
+      "can_prescribe": true,
+      "homeopathic": false
+    },
+    {
+      "Code": "207RR0500X",
+      "can_prescribe": true,
+      "homeopathic": false
+    },
+    {
+      "Code": "207RC0001X",
+      "can_prescribe": true,
+      "homeopathic": false
+    },
+    {
+      "Code": "207RP1002X",
+      "can_prescribe": true,
+      "homeopathic": false
+    },
+    {
+      "Code": "202D00000X",
+      "can_prescribe": true,
+      "homeopathic": true
+    },
+    {
+      "Code": "207RA0401X",
+      "can_prescribe": true,
+      "homeopathic": false
+    },
+    {
+      "Code": "207QB0505X",
+      "can_prescribe": true,
+      "homeopathic": false
+    },
+    {
+      "Code": "207RN0300X",
+      "can_prescribe": true,
+      "homeopathic": false
+    },
+    {
+      "Code": "207SC0300X",
+      "can_prescribe": true,
+      "homeopathic": false
+    },
+    {
+      "Code": "207RE0101X",
+      "can_prescribe": true,
+      "homeopathic": false
+    },
+    {
+      "Code": "207SG0201X",
+      "can_prescribe": true,
+      "homeopathic": false
+    },
+    {
+      "Code": "208D00000X",
+      "can_prescribe": true,
+      "homeopathic": false
+    },
+    {
+      "Code": "207RA0000X",
+      "can_prescribe": true,
+      "homeopathic": false
+    },
+    {
+      "Code": "207RG0300X",
+      "can_prescribe": true,
+      "homeopathic": false
+    },
+    {
+      "Code": "207RH0000X",
+      "can_prescribe": true,
+      "homeopathic": false
+    },
+    {
+      "Code": "207RI0001X",
+      "can_prescribe": true,
+      "homeopathic": false
+    },
+    {
+      "Code": "207V00000X",
+      "can_prescribe": true,
+      "homeopathic": false
+    },
+    {
+      "Code": "207VC0300X",
+      "can_prescribe": true,
+      "homeopathic": false
+    },
+    {
+      "Code": "207VM0101X",
+      "can_prescribe": true,
+      "homeopathic": false
+    },
+    {
+      "Code": "204C00000X",
+      "can_prescribe": true,
+      "homeopathic": false
+    },
+    {
+      "Code": "207W00000X",
+      "can_prescribe": true,
+      "homeopathic": false
+    },
+    {
+      "Code": "207WX0009X",
+      "can_prescribe": true,
+      "homeopathic": false
+    },
+    {
+      "Code": "207WX0108X",
+      "can_prescribe": true,
+      "homeopathic": false
+    },
+    {
+      "Code": "207U00000X",
+      "can_prescribe": true,
+      "homeopathic": false
+    },
+    {
+      "Code": "207VX0201X",
+      "can_prescribe": true,
+      "homeopathic": false
+    },
+    {
+      "Code": "207VB0002X",
+      "can_prescribe": true,
+      "homeopathic": false
+    },
+    {
+      "Code": "207XX0005X",
+      "can_prescribe": true,
+      "homeopathic": false
+    },
+    {
+      "Code": "204E00000X",
+      "can_prescribe": true,
+      "homeopathic": false
+    },
+    {
+      "Code": "207UN0901X",
+      "can_prescribe": true,
+      "homeopathic": false
+    },
+    {
+      "Code": "207XS0114X",
+      "can_prescribe": true,
+      "homeopathic": false
+    },
+    {
+      "Code": "207SG0205X",
+      "can_prescribe": false,
+      "homeopathic": false
+    },
+    {
+      "Code": "207UN0903X",
+      "can_prescribe": true,
+      "homeopathic": false
+    },
+    {
+      "Code": "207WX0200X",
+      "can_prescribe": true,
+      "homeopathic": false
+    },
+    {
+      "Code": "207X00000X",
+      "can_prescribe": true,
+      "homeopathic": false
+    },
+    {
+      "Code": "207XS0106X",
+      "can_prescribe": true,
+      "homeopathic": false
+    },
+    {
+      "Code": "207VF0040X",
+      "can_prescribe": true,
+      "homeopathic": false
+    },
+    {
+      "Code": "207WX0110X",
+      "can_prescribe": true,
+      "homeopathic": false
+    },
+    {
+      "Code": "207WX0109X",
+      "can_prescribe": true,
+      "homeopathic": false
+    },
+    {
+      "Code": "207XP3100X",
+      "can_prescribe": true,
+      "homeopathic": false
+    },
+    {
+      "Code": "207VE0102X",
+      "can_prescribe": true,
+      "homeopathic": false
+    },
+    {
+      "Code": "207SG0207X",
+      "can_prescribe": true,
+      "homeopathic": false
+    },
+    {
+      "Code": "207VH0002X",
+      "can_prescribe": true,
+      "homeopathic": false
+    },
+    {
+      "Code": "207T00000X",
+      "can_prescribe": true,
+      "homeopathic": false
+    },
+    {
+      "Code": "207UN0902X",
+      "can_prescribe": true,
+      "homeopathic": false
+    },
+    {
+      "Code": "207VG0400X",
+      "can_prescribe": true,
+      "homeopathic": false
+    },
+    {
+      "Code": "207XX0801X",
+      "can_prescribe": true,
+      "homeopathic": false
+    },
+    {
+      "Code": "207SM0001X",
+      "can_prescribe": true,
+      "homeopathic": false
+    },
+    {
+      "Code": "204D00000X",
+      "can_prescribe": true,
+      "homeopathic": false
+    },
+    {
+      "Code": "207VC0200X",
+      "can_prescribe": true,
+      "homeopathic": false
+    },
+    {
+      "Code": "207WX0120X",
+      "can_prescribe": true,
+      "homeopathic": false
+    },
+    {
+      "Code": "207WX0107X",
+      "can_prescribe": true,
+      "homeopathic": false
+    },
+    {
+      "Code": "207XX0004X",
+      "can_prescribe": true,
+      "homeopathic": false
+    },
+    {
+      "Code": "207XS0117X",
+      "can_prescribe": true,
+      "homeopathic": false
+    },
+    {
+      "Code": "207SG0203X",
+      "can_prescribe": true,
+      "homeopathic": false
+    },
+    {
+      "Code": "207VX0000X",
+      "can_prescribe": true,
+      "homeopathic": false
+    },
+    {
+      "Code": "207YX0007X",
+      "can_prescribe": true,
+      "homeopathic": false
+    },
+    {
+      "Code": "207ZP0101X",
+      "can_prescribe": true,
+      "homeopathic": false
+    },
+    {
+      "Code": "2081S0010X",
+      "can_prescribe": true,
+      "homeopathic": false
+    },
+    {
+      "Code": "207YP0228X",
+      "can_prescribe": true,
+      "homeopathic": false
+    },
+    {
+      "Code": "207YS0012X",
+      "can_prescribe": true,
+      "homeopathic": false
+    },
+    {
+      "Code": "207ZP0213X",
+      "can_prescribe": true,
+      "homeopathic": false
+    },
+    {
+      "Code": "2080P0202X",
+      "can_prescribe": true,
+      "homeopathic": false
+    },
+    {
+      "Code": "2080T0004X",
+      "can_prescribe": true,
+      "homeopathic": false
+    },
+    {
+      "Code": "2081P0301X",
+      "can_prescribe": true,
+      "homeopathic": false
+    },
+    {
+      "Code": "207YS0123X",
+      "can_prescribe": true,
+      "homeopathic": false
+    },
+    {
+      "Code": "2081P0010X",
+      "can_prescribe": true,
+      "homeopathic": false
+    },
+    {
+      "Code": "208200000X",
+      "can_prescribe": true,
+      "homeopathic": false
+    },
+    {
+      "Code": "2082S0105X",
+      "can_prescribe": true,
+      "homeopathic": false
+    },
+    {
+      "Code": "2080H0002X",
+      "can_prescribe": true,
+      "homeopathic": false
+    },
+    {
+      "Code": "208VP0014X",
+      "can_prescribe": true,
+      "homeopathic": false
+    },
+    {
+      "Code": "2080I0007X",
+      "can_prescribe": true,
+      "homeopathic": false
+    },
+    {
+      "Code": "2080P0210X",
+      "can_prescribe": true,
+      "homeopathic": false
+    },
+    {
+      "Code": "207YX0901X",
+      "can_prescribe": true,
+      "homeopathic": false
+    },
+    {
+      "Code": "2080A0000X",
+      "can_prescribe": true,
+      "homeopathic": false
+    },
+    {
+      "Code": "2080P0008X",
+      "can_prescribe": true,
+      "homeopathic": false
+    },
+    {
+      "Code": "2080S0012X",
+      "can_prescribe": true,
+      "homeopathic": false
+    },
+    {
+      "Code": "207ZP0102X",
+      "can_prescribe": true,
+      "homeopathic": false
+    },
+    {
+      "Code": "208000000X",
+      "can_prescribe": true,
+      "homeopathic": false
+    },
+    {
+      "Code": "2080B0002X",
+      "can_prescribe": true,
+      "homeopathic": false
+    },
+    {
+      "Code": "202K00000X",
+      "can_prescribe": true,
+      "homeopathic": false
+    },
+    {
+      "Code": "2081P0004X",
+      "can_prescribe": true,
+      "homeopathic": false
+    },
+    {
+      "Code": "207Y00000X",
+      "can_prescribe": true,
+      "homeopathic": false
+    },
+    {
+      "Code": "2080P0204X",
+      "can_prescribe": true,
+      "homeopathic": false
+    },
+    {
+      "Code": "207ZB0001X",
+      "can_prescribe": true,
+      "homeopathic": false
+    },
+    {
+      "Code": "207ZD0900X",
+      "can_prescribe": true,
+      "homeopathic": false
+    },
+    {
+      "Code": "207ZM0300X",
+      "can_prescribe": true,
+      "homeopathic": false
+    },
+    {
+      "Code": "207ZP0007X",
+      "can_prescribe": true,
+      "homeopathic": false
+    },
+    {
+      "Code": "2080C0008X",
+      "can_prescribe": true,
+      "homeopathic": false
+    },
+    {
+      "Code": "207YX0905X",
+      "can_prescribe": true,
+      "homeopathic": false
+    },
+    {
+      "Code": "208VP0000X",
+      "can_prescribe": true,
+      "homeopathic": false
+    },
+    {
+      "Code": "207ZP0105X",
+      "can_prescribe": true,
+      "homeopathic": false
+    },
+    {
+      "Code": "207ZC0500X",
+      "can_prescribe": true,
+      "homeopathic": false
+    },
+    {
+      "Code": "2080S0010X",
+      "can_prescribe": true,
+      "homeopathic": false
+    },
+    {
+      "Code": "2082S0099X",
+      "can_prescribe": true,
+      "homeopathic": false
+    },
+    {
+      "Code": "207ZC0006X",
+      "can_prescribe": true,
+      "homeopathic": false
+    },
+    {
+      "Code": "207ZI0100X",
+      "can_prescribe": true,
+      "homeopathic": false
+    },
+    {
+      "Code": "207ZN0500X",
+      "can_prescribe": true,
+      "homeopathic": false
+    },
+    {
+      "Code": "2080T0002X",
+      "can_prescribe": true,
+      "homeopathic": false
+    },
+    {
+      "Code": "207YX0602X",
+      "can_prescribe": true,
+      "homeopathic": false
+    },
+    {
+      "Code": "207ZP0104X",
+      "can_prescribe": true,
+      "homeopathic": false
+    },
+    {
+      "Code": "207ZC0008X",
+      "can_prescribe": true,
+      "homeopathic": false
+    },
+    {
+      "Code": "207ZF0201X",
+      "can_prescribe": true,
+      "homeopathic": false
+    },
+    {
+      "Code": "207ZH0000X",
+      "can_prescribe": true,
+      "homeopathic": false
+    },
+    {
+      "Code": "2080P0006X",
+      "can_prescribe": true,
+      "homeopathic": false
+    },
+    {
+      "Code": "2080P0206X",
+      "can_prescribe": true,
+      "homeopathic": false
+    },
+    {
+      "Code": "2080P0208X",
+      "can_prescribe": true,
+      "homeopathic": false
+    },
+    {
+      "Code": "2080P1004X",
+      "can_prescribe": true,
+      "homeopathic": false
+    },
+    {
+      "Code": "2080N0001X",
+      "can_prescribe": true,
+      "homeopathic": false
+    },
+    {
+      "Code": "2080P0205X",
+      "can_prescribe": true,
+      "homeopathic": false
+    },
+    {
+      "Code": "2080P0214X",
+      "can_prescribe": true,
+      "homeopathic": false
+    },
+    {
+      "Code": "2080P0216X",
+      "can_prescribe": true,
+      "homeopathic": false
+    },
+    {
+      "Code": "2083P0901X",
+      "can_prescribe": true,
+      "homeopathic": false
+    },
+    {
+      "Code": "2084P0802X",
+      "can_prescribe": true,
+      "homeopathic": false
+    },
+    {
+      "Code": "2084E0001X",
+      "can_prescribe": true,
+      "homeopathic": false
+    },
+    {
+      "Code": "2085R0202X",
+      "can_prescribe": true,
+      "homeopathic": false
+    },
+    {
+      "Code": "2085N0904X",
+      "can_prescribe": true,
+      "homeopathic": false
+    },
+    {
+      "Code": "2085P0229X",
+      "can_prescribe": true,
+      "homeopathic": false
+    },
+    {
+      "Code": "2080P0201X",
+      "can_prescribe": true,
+      "homeopathic": false
+    },
+    {
+      "Code": "2080P0207X",
+      "can_prescribe": true,
+      "homeopathic": false
+    },
+    {
+      "Code": "208100000X",
+      "can_prescribe": true,
+      "homeopathic": false
+    },
+    {
+      "Code": "2083A0300X",
+      "can_prescribe": true,
+      "homeopathic": false
+    },
+    {
+      "Code": "2081H0002X",
+      "can_prescribe": true,
+      "homeopathic": false
+    },
+    {
+      "Code": "2084D0003X",
+      "can_prescribe": true,
+      "homeopathic": false
+    },
+    {
+      "Code": "2084S0010X",
+      "can_prescribe": true,
+      "homeopathic": false
+    },
+    {
+      "Code": "2080P0203X",
+      "can_prescribe": true,
+      "homeopathic": false
+    },
+    {
+      "Code": "2083A0100X",
+      "can_prescribe": true,
+      "homeopathic": false
+    },
+    {
+      "Code": "2081N0008X",
+      "can_prescribe": true,
+      "homeopathic": false
+    },
+    {
+      "Code": "2081P2900X",
+      "can_prescribe": true,
+      "homeopathic": false
+    },
+    {
+      "Code": "2084N0600X",
+      "can_prescribe": true,
+      "homeopathic": false
+    },
+    {
+      "Code": "2084H0002X",
+      "can_prescribe": true,
+      "homeopathic": false
+    },
+    {
+      "Code": "2084A2900X",
+      "can_prescribe": true,
+      "homeopathic": false
+    },
+    {
+      "Code": "2084V0102X",
+      "can_prescribe": true,
+      "homeopathic": false
+    },
+    {
+      "Code": "2085N0700X",
+      "can_prescribe": true,
+      "homeopathic": false
+    },
+    {
+      "Code": "208600000X",
+      "can_prescribe": true,
+      "homeopathic": false
+    },
+    {
+      "Code": "2086X0206X",
+      "can_prescribe": true,
+      "homeopathic": false
+    },
+    {
+      "Code": "204F00000X",
+      "can_prescribe": true,
+      "homeopathic": false
+    },
+    {
+      "Code": "2085D0003X",
+      "can_prescribe": true,
+      "homeopathic": false
+    },
+    {
+      "Code": "2086P0122X",
+      "can_prescribe": true,
+      "homeopathic": false
+    },
+    {
+      "Code": "2086S0122X",
+      "can_prescribe": true,
+      "homeopathic": false
+    },
+    {
+      "Code": "101Y00000X",
+      "can_prescribe": false,
+      "homeopathic": false
+    },
+    {
+      "Code": "2083P0011X",
+      "can_prescribe": true,
+      "homeopathic": false
+    },
+    {
+      "Code": "2084P0805X",
+      "can_prescribe": true,
+      "homeopathic": false
+    },
+    {
+      "Code": "2084N0402X",
+      "can_prescribe": true,
+      "homeopathic": false
+    },
+    {
+      "Code": "2084P0015X",
+      "can_prescribe": true,
+      "homeopathic": false
+    },
+    {
+      "Code": "2086S0102X",
+      "can_prescribe": true,
+      "homeopathic": false
+    },
+    {
+      "Code": "208800000X",
+      "can_prescribe": true,
+      "homeopathic": false
+    },
+    {
+      "Code": "103K00000X",
+      "can_prescribe": false,
+      "homeopathic": false
+    },
+    {
+      "Code": "103G00000X",
+      "can_prescribe": false,
+      "homeopathic": false
+    },
+    {
+      "Code": "2086S0127X",
+      "can_prescribe": true,
+      "homeopathic": false
+    },
+    {
+      "Code": "2083T0002X",
+      "can_prescribe": true,
+      "homeopathic": false
+    },
+    {
+      "Code": "2083X0100X",
+      "can_prescribe": true,
+      "homeopathic": false
+    },
+    {
+      "Code": "2084A0401X",
+      "can_prescribe": true,
+      "homeopathic": false
+    },
+    {
+      "Code": "2084P0005X",
+      "can_prescribe": true,
+      "homeopathic": false
+    },
+    {
+      "Code": "2084N0008X",
+      "can_prescribe": true,
+      "homeopathic": false
+    },
+    {
+      "Code": "2085H0002X",
+      "can_prescribe": true,
+      "homeopathic": false
+    },
+    {
+      "Code": "2085R0204X",
+      "can_prescribe": true,
+      "homeopathic": false
+    },
+    {
+      "Code": "2086S0129X",
+      "can_prescribe": true,
+      "homeopathic": false
+    },
+    {
+      "Code": "103GC0700X",
+      "can_prescribe": false,
+      "homeopathic": false
+    },
+    {
+      "Code": "2084B0040X",
+      "can_prescribe": true,
+      "homeopathic": false
+    },
+    {
+      "Code": "2084P2900X",
+      "can_prescribe": true,
+      "homeopathic": false
+    },
+    {
+      "Code": "2086S0120X",
+      "can_prescribe": true,
+      "homeopathic": false
+    },
+    {
+      "Code": "101YA0400X",
+      "can_prescribe": false,
+      "homeopathic": false
+    },
+    {
+      "Code": "2083B0002X",
+      "can_prescribe": true,
+      "homeopathic": false
+    },
+    {
+      "Code": "2084B0002X",
+      "can_prescribe": true,
+      "homeopathic": false
+    },
+    {
+      "Code": "2085U0001X",
+      "can_prescribe": true,
+      "homeopathic": false
+    },
+    {
+      "Code": "2085R0203X",
+      "can_prescribe": true,
+      "homeopathic": false
+    },
+    {
+      "Code": "2088P0231X",
+      "can_prescribe": true,
+      "homeopathic": false
+    },
+    {
+      "Code": "103TP0016X",
+      "can_prescribe": true,
+      "homeopathic": false
+    },
+    {
+      "Code": "111NI0013X",
+      "can_prescribe": false,
+      "homeopathic": true
+    },
+    {
+      "Code": "101YP2500X",
+      "can_prescribe": false,
+      "homeopathic": false
+    },
+    {
+      "Code": "102L00000X",
+      "can_prescribe": false,
+      "homeopathic": false
+    },
+    {
+      "Code": "208G00000X",
+      "can_prescribe": true,
+      "homeopathic": false
+    },
+    {
+      "Code": "106E00000X",
+      "can_prescribe": false,
+      "homeopathic": false
+    },
+    {
+      "Code": "101YM0800X",
+      "can_prescribe": false,
+      "homeopathic": false
+    },
+    {
+      "Code": "103TC2200X",
+      "can_prescribe": false,
+      "homeopathic": false
+    },
+    {
+      "Code": "111N00000X",
+      "can_prescribe": false,
+      "homeopathic": true
+    },
+    {
+      "Code": "101YP1600X",
+      "can_prescribe": false,
+      "homeopathic": false
+    },
+    {
+      "Code": "102X00000X",
+      "can_prescribe": false,
+      "homeopathic": false
+    },
+    {
+      "Code": "2084P0804X",
+      "can_prescribe": true,
+      "homeopathic": false
+    },
+    {
+      "Code": "2083P0500X",
+      "can_prescribe": true,
+      "homeopathic": false
+    },
+    {
+      "Code": "2083S0010X",
+      "can_prescribe": true,
+      "homeopathic": false
+    },
+    {
+      "Code": "2084P0301X",
+      "can_prescribe": true,
+      "homeopathic": false
+    },
+    {
+      "Code": "2084P0800X",
+      "can_prescribe": true,
+      "homeopathic": false
+    },
+    {
+      "Code": "2088F0040X",
+      "can_prescribe": true,
+      "homeopathic": false
+    },
+    {
+      "Code": "106H00000X",
+      "can_prescribe": false,
+      "homeopathic": false
+    },
+    {
+      "Code": "111NN0400X",
+      "can_prescribe": false,
+      "homeopathic": true
+    },
+    {
+      "Code": "103TA0700X",
+      "can_prescribe": false,
+      "homeopathic": false
+    },
+    {
+      "Code": "2084F0202X",
+      "can_prescribe": true,
+      "homeopathic": false
+    },
+    {
+      "Code": "2084N0400X",
+      "can_prescribe": true,
+      "homeopathic": false
+    },
+    {
+      "Code": "2084S0012X",
+      "can_prescribe": true,
+      "homeopathic": false
+    },
+    {
+      "Code": "2085R0001X",
+      "can_prescribe": true,
+      "homeopathic": false
+    },
+    {
+      "Code": "2086S0105X",
+      "can_prescribe": true,
+      "homeopathic": false
+    },
+    {
+      "Code": "106S00000X",
+      "can_prescribe": false,
+      "homeopathic": false
+    },
+    {
+      "Code": "2083C0008X",
+      "can_prescribe": true,
+      "homeopathic": false
+    },
+    {
+      "Code": "2085B0100X",
+      "can_prescribe": true,
+      "homeopathic": false
+    },
+    {
+      "Code": "2085R0205X",
+      "can_prescribe": true,
+      "homeopathic": false
+    },
+    {
+      "Code": "2086H0002X",
+      "can_prescribe": true,
+      "homeopathic": false
+    },
+    {
+      "Code": "101200000X",
+      "can_prescribe": false,
+      "homeopathic": false
+    },
+    {
+      "Code": "103TH0004X",
+      "can_prescribe": false,
+      "homeopathic": false
+    },
+    {
+      "Code": "111NX0100X",
+      "can_prescribe": false,
+      "homeopathic": true
+    },
+    {
+      "Code": "103T00000X",
+      "can_prescribe": false,
+      "homeopathic": false
+    },
+    {
+      "Code": "103TC1900X",
+      "can_prescribe": false,
+      "homeopathic": false
+    },
+    {
+      "Code": "103TH0100X",
+      "can_prescribe": false,
+      "homeopathic": false
+    },
+    {
+      "Code": "103TP2700X",
+      "can_prescribe": false,
+      "homeopathic": false
+    },
+    {
+      "Code": "1041C0700X",
+      "can_prescribe": false,
+      "homeopathic": false
+    },
+    {
+      "Code": "125K00000X",
+      "can_prescribe": false,
+      "homeopathic": false
+    },
+    {
+      "Code": "1223P0106X",
+      "can_prescribe": true,
+      "homeopathic": false
+    },
+    {
+      "Code": "146N00000X",
+      "can_prescribe": false,
+      "homeopathic": false
+    },
+    {
+      "Code": "136A00000X",
+      "can_prescribe": false,
+      "homeopathic": false
+    },
+    {
+      "Code": "133N00000X",
+      "can_prescribe": false,
+      "homeopathic": false
+    },
+    {
+      "Code": "103TP2701X",
+      "can_prescribe": false,
+      "homeopathic": false
+    },
+    {
+      "Code": "103TR0400X",
+      "can_prescribe": false,
+      "homeopathic": false
+    },
+    {
+      "Code": "103TW0100X",
+      "can_prescribe": false,
+      "homeopathic": false
+    },
+    {
+      "Code": "111NN1001X",
+      "can_prescribe": false,
+      "homeopathic": true
+    },
+    {
+      "Code": "101YS0200X",
+      "can_prescribe": false,
+      "homeopathic": false
+    },
+    {
+      "Code": "103TA0400X",
+      "can_prescribe": false,
+      "homeopathic": false
+    },
+    {
+      "Code": "103TE1000X",
+      "can_prescribe": false,
+      "homeopathic": false
+    },
+    {
+      "Code": "103TE1100X",
+      "can_prescribe": false,
+      "homeopathic": false
+    },
+    {
+      "Code": "1223D0001X",
+      "can_prescribe": true,
+      "homeopathic": false
+    },
+    {
+      "Code": "1223X0008X",
+      "can_prescribe": true,
+      "homeopathic": false
+    },
+    {
+      "Code": "126900000X",
+      "can_prescribe": false,
+      "homeopathic": false
+    },
+    {
+      "Code": "1223E0200X",
+      "can_prescribe": true,
+      "homeopathic": false
+    },
+    {
+      "Code": "133VN1401X",
+      "can_prescribe": false,
+      "homeopathic": false
+    },
+    {
+      "Code": "133VN1005X",
+      "can_prescribe": false,
+      "homeopathic": false
+    },
+    {
+      "Code": "146M00000X",
+      "can_prescribe": false,
+      "homeopathic": false
+    },
+    {
+      "Code": "133VN1201X",
+      "can_prescribe": false,
+      "homeopathic": false
+    },
+    {
+      "Code": "133VN1301X",
+      "can_prescribe": false,
+      "homeopathic": false
+    },
+    {
+      "Code": "152WS0006X",
+      "can_prescribe": true,
+      "homeopathic": false
+    },
+    {
+      "Code": "132700000X",
+      "can_prescribe": false,
+      "homeopathic": false
+    },
+    {
+      "Code": "133VN1006X",
+      "can_prescribe": false,
+      "homeopathic": false
+    },
+    {
+      "Code": "133VN1501X",
+      "can_prescribe": false,
+      "homeopathic": false
+    },
+    {
+      "Code": "146L00000X",
+      "can_prescribe": false,
+      "homeopathic": false
+    },
+    {
+      "Code": "152WX0102X",
+      "can_prescribe": true,
+      "homeopathic": false
+    },
+    {
+      "Code": "152WV0400X",
+      "can_prescribe": true,
+      "homeopathic": false
+    },
+    {
+      "Code": "103TF0200X",
+      "can_prescribe": false,
+      "homeopathic": false
+    },
+    {
+      "Code": "103TC0700X",
+      "can_prescribe": false,
+      "homeopathic": false
+    },
+    {
+      "Code": "103TM1700X",
+      "can_prescribe": false,
+      "homeopathic": false
+    },
+    {
+      "Code": "103TM1800X",
+      "can_prescribe": false,
+      "homeopathic": false
+    },
+    {
+      "Code": "104100000X",
+      "can_prescribe": false,
+      "homeopathic": false
+    },
+    {
+      "Code": "111NP0017X",
+      "can_prescribe": false,
+      "homeopathic": true
+    },
+    {
+      "Code": "111NS0005X",
+      "can_prescribe": false,
+      "homeopathic": true
+    },
+    {
+      "Code": "126800000X",
+      "can_prescribe": false,
+      "homeopathic": false
+    },
+    {
+      "Code": "124Q00000X",
+      "can_prescribe": false,
+      "homeopathic": false
+    },
+    {
+      "Code": "125Q00000X",
+      "can_prescribe": true,
+      "homeopathic": false
+    },
+    {
+      "Code": "111NT0100X",
+      "can_prescribe": false,
+      "homeopathic": true
+    },
+    {
+      "Code": "1223P0300X",
+      "can_prescribe": true,
+      "homeopathic": false
+    },
+    {
+      "Code": "1223P0700X",
+      "can_prescribe": true,
+      "homeopathic": false
+    },
+    {
+      "Code": "152WP0200X",
+      "can_prescribe": true,
+      "homeopathic": false
+    },
+    {
+      "Code": "152WL0500X",
+      "can_prescribe": true,
+      "homeopathic": false
+    },
+    {
+      "Code": "103TS0200X",
+      "can_prescribe": false,
+      "homeopathic": false
+    },
+    {
+      "Code": "103TB0200X",
+      "can_prescribe": false,
+      "homeopathic": false
+    },
+    {
+      "Code": "103TF0000X",
+      "can_prescribe": false,
+      "homeopathic": false
+    },
+    {
+      "Code": "111NI0900X",
+      "can_prescribe": false,
+      "homeopathic": true
+    },
+    {
+      "Code": "103TP0814X",
+      "can_prescribe": false,
+      "homeopathic": false
+    },
+    {
+      "Code": "1041S0200X",
+      "can_prescribe": false,
+      "homeopathic": false
+    },
+    {
+      "Code": "111NR0400X",
+      "can_prescribe": false,
+      "homeopathic": true
+    },
+    {
+      "Code": "125J00000X",
+      "can_prescribe": false,
+      "homeopathic": false
+    },
+    {
+      "Code": "1223G0001X",
+      "can_prescribe": true,
+      "homeopathic": false
+    },
+    {
+      "Code": "1223X2210X",
+      "can_prescribe": true,
+      "homeopathic": false
+    },
+    {
+      "Code": "122400000X",
+      "can_prescribe": false,
+      "homeopathic": false
+    },
+    {
+      "Code": "1223X0400X",
+      "can_prescribe": true,
+      "homeopathic": false
+    },
+    {
+      "Code": "111NR0200X",
+      "can_prescribe": false,
+      "homeopathic": true
+    },
+    {
+      "Code": "122300000X",
+      "can_prescribe": true,
+      "homeopathic": false
+    },
+    {
+      "Code": "1223D0004X",
+      "can_prescribe": true,
+      "homeopathic": false
+    },
+    {
+      "Code": "1223S0112X",
+      "can_prescribe": true,
+      "homeopathic": false
+    },
+    {
+      "Code": "1223P0221X",
+      "can_prescribe": true,
+      "homeopathic": false
+    },
+    {
+      "Code": "111NX0800X",
+      "can_prescribe": false,
+      "homeopathic": true
+    },
+    {
+      "Code": "133NN1002X",
+      "can_prescribe": false,
+      "homeopathic": false
+    },
+    {
+      "Code": "146D00000X",
+      "can_prescribe": false,
+      "homeopathic": false
+    },
+    {
+      "Code": "133VN1004X",
+      "can_prescribe": false,
+      "homeopathic": false
+    },
+    {
+      "Code": "133V00000X",
+      "can_prescribe": false,
+      "homeopathic": false
+    },
+    {
+      "Code": "133VN1101X",
+      "can_prescribe": false,
+      "homeopathic": false
+    },
+    {
+      "Code": "146E00000X",
+      "can_prescribe": false,
+      "homeopathic": false
+    },
+    {
+      "Code": "152W00000X",
+      "can_prescribe": true,
+      "homeopathic": false
+    },
+    {
+      "Code": "152WC0802X",
+      "can_prescribe": true,
+      "homeopathic": false
+    },
+    {
+      "Code": "156F00000X",
+      "can_prescribe": false,
+      "homeopathic": false
+    },
+    {
+      "Code": "156FX1100X",
+      "can_prescribe": false,
+      "homeopathic": false
+    },
+    {
+      "Code": "163WD0400X",
+      "can_prescribe": false,
+      "homeopathic": false
+    },
+    {
+      "Code": "163WD1100X",
+      "can_prescribe": false,
+      "homeopathic": false
+    },
+    {
+      "Code": "163WE0003X",
+      "can_prescribe": false,
+      "homeopathic": false
+    },
+    {
+      "Code": "163WI0500X",
+      "can_prescribe": false,
+      "homeopathic": false
+    },
+    {
+      "Code": "163WX0200X",
+      "can_prescribe": false,
+      "homeopathic": false
+    },
+    {
+      "Code": "163WS0121X",
+      "can_prescribe": false,
+      "homeopathic": false
+    },
+    {
+      "Code": "163WR0006X",
+      "can_prescribe": false,
+      "homeopathic": false
+    },
+    {
+      "Code": "163WR0400X",
+      "can_prescribe": false,
+      "homeopathic": false
+    },
+    {
+      "Code": "163WP0200X",
+      "can_prescribe": false,
+      "homeopathic": false
+    },
+    {
+      "Code": "163WP0808X",
+      "can_prescribe": false,
+      "homeopathic": false
+    },
+    {
+      "Code": "376G00000X",
+      "can_prescribe": false,
+      "homeopathic": false
+    },
+    {
+      "Code": "156FC0800X",
+      "can_prescribe": false,
+      "homeopathic": false
+    },
+    {
+      "Code": "156FX1800X",
+      "can_prescribe": false,
+      "homeopathic": false
+    },
+    {
+      "Code": "163WP2201X",
+      "can_prescribe": false,
+      "homeopathic": false
+    },
+    {
+      "Code": "163WC3500X",
+      "can_prescribe": false,
+      "homeopathic": false
+    },
+    {
+      "Code": "163WC2100X",
+      "can_prescribe": false,
+      "homeopathic": false
+    },
+    {
+      "Code": "163W00000X",
+      "can_prescribe": false,
+      "homeopathic": false
+    },
+    {
+      "Code": "156FX1700X",
+      "can_prescribe": false,
+      "homeopathic": false
+    },
+    {
+      "Code": "156FX1900X",
+      "can_prescribe": false,
+      "homeopathic": false
+    },
+    {
+      "Code": "163WA0400X",
+      "can_prescribe": false,
+      "homeopathic": false
+    },
+    {
+      "Code": "163WA2000X",
+      "can_prescribe": false,
+      "homeopathic": false
+    },
+    {
+      "Code": "163WC1500X",
+      "can_prescribe": false,
+      "homeopathic": false
+    },
+    {
+      "Code": "156FC0801X",
+      "can_prescribe": false,
+      "homeopathic": false
+    },
+    {
+      "Code": "372600000X",
+      "can_prescribe": false,
+      "homeopathic": false
+    },
+    {
+      "Code": "372500000X",
+      "can_prescribe": false,
+      "homeopathic": false
+    },
+    {
+      "Code": "376K00000X",
+      "can_prescribe": false,
+      "homeopathic": false
+    },
+    {
+      "Code": "163WU0100X",
+      "can_prescribe": false,
+      "homeopathic": false
+    },
+    {
+      "Code": "163WW0101X",
+      "can_prescribe": false,
+      "homeopathic": false
+    },
+    {
+      "Code": "374J00000X",
+      "can_prescribe": false,
+      "homeopathic": false
+    },
+    {
+      "Code": "176P00000X",
+      "can_prescribe": false,
+      "homeopathic": false
+    },
+    {
+      "Code": "171400000X",
+      "can_prescribe": false,
+      "homeopathic": false
+    },
+    {
+      "Code": "1744G0900X",
+      "can_prescribe": false,
+      "homeopathic": false
+    },
+    {
+      "Code": "1835P2201X",
+      "can_prescribe": true,
+      "homeopathic": false
+    },
+    {
+      "Code": "1835G0000X",
+      "can_prescribe": true,
+      "homeopathic": false
+    },
+    {
+      "Code": "163WF0300X",
+      "can_prescribe": false,
+      "homeopathic": false
+    },
+    {
+      "Code": "163WH0200X",
+      "can_prescribe": false,
+      "homeopathic": false
+    },
+    {
+      "Code": "163WM0102X",
+      "can_prescribe": false,
+      "homeopathic": false
+    },
+    {
+      "Code": "163WM0705X",
+      "can_prescribe": false,
+      "homeopathic": false
+    },
+    {
+      "Code": "163WX0106X",
+      "can_prescribe": false,
+      "homeopathic": false
+    },
+    {
+      "Code": "163WX1500X",
+      "can_prescribe": false,
+      "homeopathic": false
+    },
+    {
+      "Code": "163WX0003X",
+      "can_prescribe": false,
+      "homeopathic": false
+    },
+    {
+      "Code": "163WN0800X",
+      "can_prescribe": false,
+      "homeopathic": false
+    },
+    {
+      "Code": "163WP1700X",
+      "can_prescribe": false,
+      "homeopathic": false
+    },
+    {
+      "Code": "163WP0807X",
+      "can_prescribe": false,
+      "homeopathic": false
+    },
+    {
+      "Code": "163WS0200X",
+      "can_prescribe": false,
+      "homeopathic": false
+    },
+    {
+      "Code": "163WW0000X",
+      "can_prescribe": false,
+      "homeopathic": false
+    },
+    {
+      "Code": "373H00000X",
+      "can_prescribe": false,
+      "homeopathic": false
+    },
+    {
+      "Code": "3747P1801X",
+      "can_prescribe": false,
+      "homeopathic": false
+    },
+    {
+      "Code": "170300000X",
+      "can_prescribe": false,
+      "homeopathic": false
+    },
+    {
+      "Code": "1710I1002X",
+      "can_prescribe": true,
+      "homeopathic": false
+    },
+    {
+      "Code": "170100000X",
+      "can_prescribe": false,
+      "homeopathic": false
+    },
+    {
+      "Code": "405300000X",
+      "can_prescribe": false,
+      "homeopathic": false
+    },
+    {
+      "Code": "176B00000X",
+      "can_prescribe": false,
+      "homeopathic": false
+    },
+    {
+      "Code": "172P00000X",
+      "can_prescribe": true,
+      "homeopathic": true
+    },
+    {
+      "Code": "175F00000X",
+      "can_prescribe": true,
+      "homeopathic": true
+    },
+    {
+      "Code": "174400000X",
+      "can_prescribe": false,
+      "homeopathic": false
+    },
+    {
+      "Code": "1744R1103X",
+      "can_prescribe": false,
+      "homeopathic": false
+    },
+    {
+      "Code": "156FX1101X",
+      "can_prescribe": false,
+      "homeopathic": false
+    },
+    {
+      "Code": "163WC0400X",
+      "can_prescribe": false,
+      "homeopathic": false
+    },
+    {
+      "Code": "167G00000X",
+      "can_prescribe": false,
+      "homeopathic": false
+    },
+    {
+      "Code": "163WI0600X",
+      "can_prescribe": false,
+      "homeopathic": false
+    },
+    {
+      "Code": "163WG0600X",
+      "can_prescribe": false,
+      "homeopathic": false
+    },
+    {
+      "Code": "163WL0100X",
+      "can_prescribe": false,
+      "homeopathic": false
+    },
+    {
+      "Code": "163WN0003X",
+      "can_prescribe": false,
+      "homeopathic": false
+    },
+    {
+      "Code": "163WN1003X",
+      "can_prescribe": false,
+      "homeopathic": false
+    },
+    {
+      "Code": "163WX0800X",
+      "can_prescribe": false,
+      "homeopathic": false
+    },
+    {
+      "Code": "163WM1400X",
+      "can_prescribe": false,
+      "homeopathic": false
+    },
+    {
+      "Code": "163WP0809X",
+      "can_prescribe": false,
+      "homeopathic": false
+    },
+    {
+      "Code": "163WP0218X",
+      "can_prescribe": false,
+      "homeopathic": false
+    },
+    {
+      "Code": "163WR1000X",
+      "can_prescribe": false,
+      "homeopathic": false
+    },
+    {
+      "Code": "374U00000X",
+      "can_prescribe": false,
+      "homeopathic": false
+    },
+    {
+      "Code": "376J00000X",
+      "can_prescribe": false,
+      "homeopathic": false
+    },
+    {
+      "Code": "171100000X",
+      "can_prescribe": false,
+      "homeopathic": true
+    },
+    {
+      "Code": "171M00000X",
+      "can_prescribe": false,
+      "homeopathic": false
+    },
+    {
+      "Code": "171WV0202X",
+      "can_prescribe": false,
+      "homeopathic": false
+    },
+    {
+      "Code": "174MM1900X",
+      "can_prescribe": false,
+      "homeopathic": false
+    },
+    {
+      "Code": "1835N1003X",
+      "can_prescribe": true,
+      "homeopathic": false
+    },
+    {
+      "Code": "156FX1202X",
+      "can_prescribe": false,
+      "homeopathic": false
+    },
+    {
+      "Code": "163WC1400X",
+      "can_prescribe": false,
+      "homeopathic": false
+    },
+    {
+      "Code": "156FX1201X",
+      "can_prescribe": false,
+      "homeopathic": false
+    },
+    {
+      "Code": "163WC0200X",
+      "can_prescribe": false,
+      "homeopathic": false
+    },
+    {
+      "Code": "164W00000X",
+      "can_prescribe": false,
+      "homeopathic": false
+    },
+    {
+      "Code": "163WC1600X",
+      "can_prescribe": false,
+      "homeopathic": false
+    },
+    {
+      "Code": "164X00000X",
+      "can_prescribe": false,
+      "homeopathic": false
+    },
+    {
+      "Code": "163WG0100X",
+      "can_prescribe": false,
+      "homeopathic": false
+    },
+    {
+      "Code": "163WG0000X",
+      "can_prescribe": false,
+      "homeopathic": false
+    },
+    {
+      "Code": "163WE0900X",
+      "can_prescribe": false,
+      "homeopathic": false
+    },
+    {
+      "Code": "163WH0500X",
+      "can_prescribe": false,
+      "homeopathic": false
+    },
+    {
+      "Code": "163WH1000X",
+      "can_prescribe": false,
+      "homeopathic": false
+    },
+    {
+      "Code": "163WN0300X",
+      "can_prescribe": false,
+      "homeopathic": false
+    },
+    {
+      "Code": "163WX1100X",
+      "can_prescribe": false,
+      "homeopathic": false
+    },
+    {
+      "Code": "163WN0002X",
+      "can_prescribe": false,
+      "homeopathic": false
+    },
+    {
+      "Code": "163WX0002X",
+      "can_prescribe": false,
+      "homeopathic": false
+    },
+    {
+      "Code": "163WP0000X",
+      "can_prescribe": false,
+      "homeopathic": false
+    },
+    {
+      "Code": "163WX0601X",
+      "can_prescribe": false,
+      "homeopathic": false
+    },
+    {
+      "Code": "374T00000X",
+      "can_prescribe": false,
+      "homeopathic": true
+    },
+    {
+      "Code": "374K00000X",
+      "can_prescribe": false,
+      "homeopathic": true
+    },
+    {
+      "Code": "174V00000X",
+      "can_prescribe": false,
+      "homeopathic": false
+    },
+    {
+      "Code": "172A00000X",
+      "can_prescribe": false,
+      "homeopathic": false
+    },
+    {
+      "Code": "174H00000X",
+      "can_prescribe": false,
+      "homeopathic": false
+    },
+    {
+      "Code": "171R00000X",
+      "can_prescribe": false,
+      "homeopathic": false
+    },
+    {
+      "Code": "175T00000X",
+      "can_prescribe": false,
+      "homeopathic": false
+    },
+    {
+      "Code": "1835E0208X",
+      "can_prescribe": true,
+      "homeopathic": false
+    },
+    {
+      "Code": "1835P1400X",
+      "can_prescribe": true,
+      "homeopathic": false
+    },
+    {
+      "Code": "172M00000X",
+      "can_prescribe": false,
+      "homeopathic": true
+    },
+    {
+      "Code": "1744R1102X",
+      "can_prescribe": false,
+      "homeopathic": false
+    },
+    {
+      "Code": "1835C0207X",
+      "can_prescribe": true,
+      "homeopathic": false
+    },
+    {
+      "Code": "1835C0205X",
+      "can_prescribe": true,
+      "homeopathic": false
+    },
+    {
+      "Code": "1835P0200X",
+      "can_prescribe": true,
+      "homeopathic": false
+    },
+    {
+      "Code": "1835S0206X",
+      "can_prescribe": true,
+      "homeopathic": false
+    },
+    {
+      "Code": "183700000X",
+      "can_prescribe": false,
+      "homeopathic": false
+    },
+    {
+      "Code": "364SA2200X",
+      "can_prescribe": true,
+      "homeopathic": false
+    },
+    {
+      "Code": "1835P0018X",
+      "can_prescribe": true,
+      "homeopathic": false
+    },
+    {
+      "Code": "1835P1200X",
+      "can_prescribe": false,
+      "homeopathic": false
+    },
+    {
+      "Code": "367H00000X",
+      "can_prescribe": false,
+      "homeopathic": false
+    },
+    {
+      "Code": "1835I0206X",
+      "can_prescribe": false,
+      "homeopathic": false
+    },
+    {
+      "Code": "1835N0905X",
+      "can_prescribe": false,
+      "homeopathic": false
+    },
+    {
+      "Code": "171WH0202X",
+      "can_prescribe": false,
+      "homeopathic": false
+    },
+    {
+      "Code": "175L00000X",
+      "can_prescribe": false,
+      "homeopathic": true
+    },
+    {
+      "Code": "174M00000X",
+      "can_prescribe": false,
+      "homeopathic": false
+    },
+    {
+      "Code": "1835P1300X",
+      "can_prescribe": false,
+      "homeopathic": false
+    },
+    {
+      "Code": "364SN0800X",
+      "can_prescribe": true,
+      "homeopathic": false
+    },
+    {
+      "Code": "364SE0003X",
+      "can_prescribe": true,
+      "homeopathic": false
+    },
+    {
+      "Code": "364SP0809X",
+      "can_prescribe": true,
+      "homeopathic": false
+    },
+    {
+      "Code": "364SP0813X",
+      "can_prescribe": true,
+      "homeopathic": false
+    },
+    {
+      "Code": "363LG0600X",
+      "can_prescribe": true,
+      "homeopathic": false
+    },
+    {
+      "Code": "363LW0102X",
+      "can_prescribe": true,
+      "homeopathic": false
+    },
+    {
+      "Code": "363LA2200X",
+      "can_prescribe": true,
+      "homeopathic": false
+    },
+    {
+      "Code": "363LX0001X",
+      "can_prescribe": true,
+      "homeopathic": false
+    },
+    {
+      "Code": "229N00000X",
+      "can_prescribe": false,
+      "homeopathic": false
+    },
+    {
+      "Code": "213E00000X",
+      "can_prescribe": true,
+      "homeopathic": false
+    },
+    {
+      "Code": "213EP0504X",
+      "can_prescribe": true,
+      "homeopathic": false
+    },
+    {
+      "Code": "222Q00000X",
+      "can_prescribe": false,
+      "homeopathic": false
+    },
+    {
+      "Code": "221700000X",
+      "can_prescribe": false,
+      "homeopathic": false
+    },
+    {
+      "Code": "225XH1200X",
+      "can_prescribe": false,
+      "homeopathic": false
+    },
+    {
+      "Code": "225XF0002X",
+      "can_prescribe": false,
+      "homeopathic": false
+    },
+    {
+      "Code": "225XL0004X",
+      "can_prescribe": false,
+      "homeopathic": false
+    },
+    {
+      "Code": "225000000X",
+      "can_prescribe": false,
+      "homeopathic": false
+    },
+    {
+      "Code": "2251E1300X",
+      "can_prescribe": false,
+      "homeopathic": false
+    },
+    {
+      "Code": "364S00000X",
+      "can_prescribe": true,
+      "homeopathic": false
+    },
+    {
+      "Code": "364SL0600X",
+      "can_prescribe": true,
+      "homeopathic": false
+    },
+    {
+      "Code": "364SM0705X",
+      "can_prescribe": true,
+      "homeopathic": false
+    },
+    {
+      "Code": "364SH1100X",
+      "can_prescribe": true,
+      "homeopathic": true
+    },
+    {
+      "Code": "364SH0200X",
+      "can_prescribe": true,
+      "homeopathic": false
+    },
+    {
+      "Code": "364SN0000X",
+      "can_prescribe": true,
+      "homeopathic": false
+    },
+    {
+      "Code": "364SS0200X",
+      "can_prescribe": true,
+      "homeopathic": false
+    },
+    {
+      "Code": "364SP0200X",
+      "can_prescribe": true,
+      "homeopathic": false
+    },
+    {
+      "Code": "364SP0808X",
+      "can_prescribe": true,
+      "homeopathic": false
+    },
+    {
+      "Code": "363LA2100X",
+      "can_prescribe": true,
+      "homeopathic": false
+    },
+    {
+      "Code": "363LN0000X",
+      "can_prescribe": true,
+      "homeopathic": false
+    },
+    {
+      "Code": "363LP0200X",
+      "can_prescribe": true,
+      "homeopathic": false
+    },
+    {
+      "Code": "2251X0800X",
+      "can_prescribe": false,
+      "homeopathic": false
+    },
+    {
+      "Code": "224P00000X",
+      "can_prescribe": false,
+      "homeopathic": false
+    },
+    {
+      "Code": "2251S0007X",
+      "can_prescribe": false,
+      "homeopathic": false
+    },
+    {
+      "Code": "363LS0200X",
+      "can_prescribe": true,
+      "homeopathic": false
+    },
+    {
+      "Code": "364SP0812X",
+      "can_prescribe": true,
+      "homeopathic": false
+    },
+    {
+      "Code": "363LP2300X",
+      "can_prescribe": true,
+      "homeopathic": false
+    },
+    {
+      "Code": "363AM0700X",
+      "can_prescribe": true,
+      "homeopathic": false
+    },
+    {
+      "Code": "363AS0400X",
+      "can_prescribe": true,
+      "homeopathic": false
+    },
+    {
+      "Code": "211D00000X",
+      "can_prescribe": false,
+      "homeopathic": false
+    },
+    {
+      "Code": "364SP2800X",
+      "can_prescribe": true,
+      "homeopathic": false
+    },
+    {
+      "Code": "224Y00000X",
+      "can_prescribe": false,
+      "homeopathic": false
+    },
+    {
+      "Code": "225A00000X",
+      "can_prescribe": false,
+      "homeopathic": false
+    },
+    {
+      "Code": "225XE1200X",
+      "can_prescribe": false,
+      "homeopathic": false
+    },
+    {
+      "Code": "225XR0403X",
+      "can_prescribe": false,
+      "homeopathic": false
+    },
+    {
+      "Code": "224ZF0002X",
+      "can_prescribe": false,
+      "homeopathic": false
+    },
+    {
+      "Code": "174N00000X",
+      "can_prescribe": false,
+      "homeopathic": false
+    },
+    {
+      "Code": "1710I1003X",
+      "can_prescribe": true,
+      "homeopathic": false
+    },
+    {
+      "Code": "173C00000X",
+      "can_prescribe": false,
+      "homeopathic": true
+    },
+    {
+      "Code": "1744P3200X",
+      "can_prescribe": false,
+      "homeopathic": false
+    },
+    {
+      "Code": "1835C0206X",
+      "can_prescribe": true,
+      "homeopathic": false
+    },
+    {
+      "Code": "367A00000X",
+      "can_prescribe": true,
+      "homeopathic": false
+    },
+    {
+      "Code": "364SA2100X",
+      "can_prescribe": true,
+      "homeopathic": false
+    },
+    {
+      "Code": "364SI0800X",
+      "can_prescribe": true,
+      "homeopathic": false
+    },
+    {
+      "Code": "364SC0200X",
+      "can_prescribe": true,
+      "homeopathic": false
+    },
+    {
+      "Code": "364SP0810X",
+      "can_prescribe": true,
+      "homeopathic": false
+    },
+    {
+      "Code": "364SW0102X",
+      "can_prescribe": true,
+      "homeopathic": false
+    },
+    {
+      "Code": "363LN0005X",
+      "can_prescribe": true,
+      "homeopathic": false
+    },
+    {
+      "Code": "224ZL0004X",
+      "can_prescribe": false,
+      "homeopathic": false
+    },
+    {
+      "Code": "225XP0200X",
+      "can_prescribe": false,
+      "homeopathic": false
+    },
+    {
+      "Code": "225XP0019X",
+      "can_prescribe": false,
+      "homeopathic": false
+    },
+    {
+      "Code": "225XM0800X",
+      "can_prescribe": false,
+      "homeopathic": false
+    },
+    {
+      "Code": "2251C2600X",
+      "can_prescribe": false,
+      "homeopathic": false
+    },
+    {
+      "Code": "2251N0400X",
+      "can_prescribe": false,
+      "homeopathic": false
+    },
+    {
+      "Code": "2251E1200X",
+      "can_prescribe": false,
+      "homeopathic": false
+    },
+    {
+      "Code": "2251P0200X",
+      "can_prescribe": false,
+      "homeopathic": false
+    },
+    {
+      "Code": "2251G0304X",
+      "can_prescribe": false,
+      "homeopathic": false
+    },
+    {
+      "Code": "2251H1300X",
+      "can_prescribe": false,
+      "homeopathic": false
+    },
+    {
+      "Code": "363LP1700X",
+      "can_prescribe": true,
+      "homeopathic": false
+    },
+    {
+      "Code": "363L00000X",
+      "can_prescribe": true,
+      "homeopathic": false
+    },
+    {
+      "Code": "363A00000X",
+      "can_prescribe": true,
+      "homeopathic": false
+    },
+    {
+      "Code": "364SX0200X",
+      "can_prescribe": true,
+      "homeopathic": false
+    },
+    {
+      "Code": "364SX0204X",
+      "can_prescribe": true,
+      "homeopathic": false
+    },
+    {
+      "Code": "364SP0807X",
+      "can_prescribe": true,
+      "homeopathic": false
+    },
+    {
+      "Code": "363LX0106X",
+      "can_prescribe": true,
+      "homeopathic": false
+    },
+    {
+      "Code": "213EG0000X",
+      "can_prescribe": true,
+      "homeopathic": false
+    },
+    {
+      "Code": "213EP1101X",
+      "can_prescribe": true,
+      "homeopathic": false
+    },
+    {
+      "Code": "225XE0001X",
+      "can_prescribe": false,
+      "homeopathic": false
+    },
+    {
+      "Code": "224900000X",
+      "can_prescribe": false,
+      "homeopathic": false
+    },
+    {
+      "Code": "225XH1300X",
+      "can_prescribe": false,
+      "homeopathic": false
+    },
+    {
+      "Code": "224Z00000X",
+      "can_prescribe": false,
+      "homeopathic": false
+    },
+    {
+      "Code": "172V00000X",
+      "can_prescribe": false,
+      "homeopathic": false
+    },
+    {
+      "Code": "171W00000X",
+      "can_prescribe": false,
+      "homeopathic": false
+    },
+    {
+      "Code": "171000000X",
+      "can_prescribe": false,
+      "homeopathic": false
+    },
+    {
+      "Code": "183500000X",
+      "can_prescribe": true,
+      "homeopathic": false
+    },
+    {
+      "Code": "1835G0303X",
+      "can_prescribe": true,
+      "homeopathic": false
+    },
+    {
+      "Code": "1835X0200X",
+      "can_prescribe": true,
+      "homeopathic": false
+    },
+    {
+      "Code": "374700000X",
+      "can_prescribe": false,
+      "homeopathic": false
+    },
+    {
+      "Code": "3747A0650X",
+      "can_prescribe": false,
+      "homeopathic": false
+    },
+    {
+      "Code": "175M00000X",
+      "can_prescribe": false,
+      "homeopathic": true
+    },
+    {
+      "Code": "173000000X",
+      "can_prescribe": true,
+      "homeopathic": false
+    },
+    {
+      "Code": "173F00000X",
+      "can_prescribe": false,
+      "homeopathic": false
+    },
+    {
+      "Code": "364SC1501X",
+      "can_prescribe": false,
+      "homeopathic": false
+    },
+    {
+      "Code": "364SC2300X",
+      "can_prescribe": false,
+      "homeopathic": false
+    },
+    {
+      "Code": "364SE1400X",
+      "can_prescribe": false,
+      "homeopathic": false
+    },
+    {
+      "Code": "364SF0001X",
+      "can_prescribe": false,
+      "homeopathic": false
+    },
+    {
+      "Code": "364SG0600X",
+      "can_prescribe": false,
+      "homeopathic": false
+    },
+    {
+      "Code": "364SX0106X",
+      "can_prescribe": false,
+      "homeopathic": false
+    },
+    {
+      "Code": "364SP1700X",
+      "can_prescribe": false,
+      "homeopathic": false
+    },
+    {
+      "Code": "364SP0811X",
+      "can_prescribe": false,
+      "homeopathic": false
+    },
+    {
+      "Code": "367500000X",
+      "can_prescribe": true,
+      "homeopathic": false
+    },
+    {
+      "Code": "363LC1500X",
+      "can_prescribe": true,
+      "homeopathic": false
+    },
+    {
+      "Code": "363LC0200X",
+      "can_prescribe": true,
+      "homeopathic": false
+    },
+    {
+      "Code": "363LP0808X",
+      "can_prescribe": true,
+      "homeopathic": false
+    },
+    {
+      "Code": "364SR0400X",
+      "can_prescribe": false,
+      "homeopathic": false
+    },
+    {
+      "Code": "363LP0222X",
+      "can_prescribe": true,
+      "homeopathic": false
+    },
+    {
+      "Code": "364ST0500X",
+      "can_prescribe": false,
+      "homeopathic": false
+    },
+    {
+      "Code": "363LF0000X",
+      "can_prescribe": true,
+      "homeopathic": false
+    },
+    {
+      "Code": "213ER0200X",
+      "can_prescribe": true,
+      "homeopathic": false
+    },
+    {
+      "Code": "213ES0000X",
+      "can_prescribe": true,
+      "homeopathic": false
+    },
+    {
+      "Code": "213ES0131X",
+      "can_prescribe": true,
+      "homeopathic": false
+    },
+    {
+      "Code": "225600000X",
+      "can_prescribe": false,
+      "homeopathic": false
+    },
+    {
+      "Code": "213ES0103X",
+      "can_prescribe": true,
+      "homeopathic": false
+    },
+    {
+      "Code": "225700000X",
+      "can_prescribe": false,
+      "homeopathic": true
+    },
+    {
+      "Code": "226300000X",
+      "can_prescribe": false,
+      "homeopathic": false
+    },
+    {
+      "Code": "225X00000X",
+      "can_prescribe": false,
+      "homeopathic": false
+    },
+    {
+      "Code": "225XG0600X",
+      "can_prescribe": false,
+      "homeopathic": false
+    },
+    {
+      "Code": "225XN1300X",
+      "can_prescribe": false,
+      "homeopathic": false
+    },
+    {
+      "Code": "224ZE0001X",
+      "can_prescribe": false,
+      "homeopathic": false
+    },
+    {
+      "Code": "222Z00000X",
+      "can_prescribe": false,
+      "homeopathic": false
+    },
+    {
+      "Code": "224ZR0403X",
+      "can_prescribe": false,
+      "homeopathic": false
+    },
+    {
+      "Code": "224L00000X",
+      "can_prescribe": false,
+      "homeopathic": false
+    },
+    {
+      "Code": "225100000X",
+      "can_prescribe": false,
+      "homeopathic": false
+    },
+    {
+      "Code": "2251H1200X",
+      "can_prescribe": false,
+      "homeopathic": false
+    },
+    {
+      "Code": "225200000X",
+      "can_prescribe": false,
+      "homeopathic": false
+    },
+    {
+      "Code": "225800000X",
+      "can_prescribe": false,
+      "homeopathic": false
+    },
+    {
+      "Code": "225CA2400X",
+      "can_prescribe": false,
+      "homeopathic": false
+    },
+    {
+      "Code": "225C00000X",
+      "can_prescribe": false,
+      "homeopathic": false
+    },
+    {
+      "Code": "225400000X",
+      "can_prescribe": false,
+      "homeopathic": false
+    },
+    {
+      "Code": "2278P3900X",
+      "can_prescribe": false,
+      "homeopathic": false
+    },
+    {
+      "Code": "2278P3800X",
+      "can_prescribe": false,
+      "homeopathic": false
+    },
+    {
+      "Code": "2279P1004X",
+      "can_prescribe": false,
+      "homeopathic": false
+    },
+    {
+      "Code": "2278P1006X",
+      "can_prescribe": false,
+      "homeopathic": false
+    },
+    {
+      "Code": "2279E1000X",
+      "can_prescribe": false,
+      "homeopathic": false
+    },
+    {
+      "Code": "2279P3800X",
+      "can_prescribe": false,
+      "homeopathic": false
+    },
+    {
+      "Code": "2279P4000X",
+      "can_prescribe": false,
+      "homeopathic": false
+    },
+    {
+      "Code": "2279S1500X",
+      "can_prescribe": false,
+      "homeopathic": false
+    },
+    {
+      "Code": "225B00000X",
+      "can_prescribe": false,
+      "homeopathic": false
+    },
+    {
+      "Code": "2278E1000X",
+      "can_prescribe": false,
+      "homeopathic": false
+    },
+    {
+      "Code": "225CA2500X",
+      "can_prescribe": false,
+      "homeopathic": false
+    },
+    {
+      "Code": "227800000X",
+      "can_prescribe": false,
+      "homeopathic": false
+    },
+    {
+      "Code": "2278P4000X",
+      "can_prescribe": false,
+      "homeopathic": false
+    },
+    {
+      "Code": "2279H0200X",
+      "can_prescribe": false,
+      "homeopathic": false
+    },
+    {
+      "Code": "2278P1004X",
+      "can_prescribe": false,
+      "homeopathic": false
+    },
+    {
+      "Code": "242T00000X",
+      "can_prescribe": false,
+      "homeopathic": false
+    },
+    {
+      "Code": "247100000X",
+      "can_prescribe": false,
+      "homeopathic": false
+    },
+    {
+      "Code": "246Y00000X",
+      "can_prescribe": false,
+      "homeopathic": false
+    },
+    {
+      "Code": "231HA2400X",
+      "can_prescribe": false,
+      "homeopathic": false
+    },
+    {
+      "Code": "235Z00000X",
+      "can_prescribe": false,
+      "homeopathic": false
+    },
+    {
+      "Code": "2471B0102X",
+      "can_prescribe": false,
+      "homeopathic": false
+    },
+    {
+      "Code": "2471Q0001X",
+      "can_prescribe": false,
+      "homeopathic": false
+    },
+    {
+      "Code": "2471R0002X",
+      "can_prescribe": false,
+      "homeopathic": false
+    },
+    {
+      "Code": "246ZB0500X",
+      "can_prescribe": false,
+      "homeopathic": false
+    },
+    {
+      "Code": "246ZE0500X",
+      "can_prescribe": false,
+      "homeopathic": false
+    },
+    {
+      "Code": "246ZE0600X",
+      "can_prescribe": false,
+      "homeopathic": false
+    },
+    {
+      "Code": "246QL0901X",
+      "can_prescribe": false,
+      "homeopathic": false
+    },
+    {
+      "Code": "246QL0900X",
+      "can_prescribe": false,
+      "homeopathic": false
+    },
+    {
+      "Code": "246W00000X",
+      "can_prescribe": false,
+      "homeopathic": false
+    },
+    {
+      "Code": "231H00000X",
+      "can_prescribe": false,
+      "homeopathic": false
+    },
+    {
+      "Code": "235500000X",
+      "can_prescribe": false,
+      "homeopathic": false
+    },
+    {
+      "Code": "2355A2700X",
+      "can_prescribe": false,
+      "homeopathic": false
+    },
+    {
+      "Code": "2471C3402X",
+      "can_prescribe": false,
+      "homeopathic": false
+    },
+    {
+      "Code": "246XC2901X",
+      "can_prescribe": false,
+      "homeopathic": false
+    },
+    {
+      "Code": "246QM0706X",
+      "can_prescribe": false,
+      "homeopathic": false
+    },
+    {
+      "Code": "2471C1101X",
+      "can_prescribe": false,
+      "homeopathic": false
+    },
+    {
+      "Code": "246Z00000X",
+      "can_prescribe": false,
+      "homeopathic": false
+    },
+    {
+      "Code": "246QC1000X",
+      "can_prescribe": false,
+      "homeopathic": false
+    },
+    {
+      "Code": "2472V0600X",
+      "can_prescribe": false,
+      "homeopathic": false
+    },
+    {
+      "Code": "246R00000X",
+      "can_prescribe": false,
+      "homeopathic": false
+    },
+    {
+      "Code": "246RP1900X",
+      "can_prescribe": false,
+      "homeopathic": false
+    },
+    {
+      "Code": "251B00000X",
+      "can_prescribe": false,
+      "homeopathic": false
+    },
+    {
+      "Code": "246RH0600X",
+      "can_prescribe": false,
+      "homeopathic": false
+    },
+    {
+      "Code": "251S00000X",
+      "can_prescribe": false,
+      "homeopathic": false
+    },
+    {
+      "Code": "2471N0900X",
+      "can_prescribe": false,
+      "homeopathic": false
+    },
+    {
+      "Code": "231HA2500X",
+      "can_prescribe": false,
+      "homeopathic": false
+    },
+    {
+      "Code": "2471C1106X",
+      "can_prescribe": false,
+      "homeopathic": false
+    },
+    {
+      "Code": "246ZB0600X",
+      "can_prescribe": false,
+      "homeopathic": false
+    },
+    {
+      "Code": "246QB0000X",
+      "can_prescribe": false,
+      "homeopathic": false
+    },
+    {
+      "Code": "246QH0600X",
+      "can_prescribe": false,
+      "homeopathic": false
+    },
+    {
+      "Code": "246QI0000X",
+      "can_prescribe": false,
+      "homeopathic": false
+    },
+    {
+      "Code": "246QM0900X",
+      "can_prescribe": false,
+      "homeopathic": false
+    },
+    {
+      "Code": "2472D0500X",
+      "can_prescribe": false,
+      "homeopathic": false
+    },
+    {
+      "Code": "251X00000X",
+      "can_prescribe": false,
+      "homeopathic": false
+    },
+    {
+      "Code": "251V00000X",
+      "can_prescribe": false,
+      "homeopathic": false
+    },
+    {
+      "Code": "261QE0800X",
+      "can_prescribe": false,
+      "homeopathic": false
+    },
+    {
+      "Code": "2472B0301X",
+      "can_prescribe": false,
+      "homeopathic": false
+    },
+    {
+      "Code": "261Q00000X",
+      "can_prescribe": false,
+      "homeopathic": false
+    },
+    {
+      "Code": "261QA1903X",
+      "can_prescribe": false,
+      "homeopathic": false
+    },
+    {
+      "Code": "253Z00000X",
+      "can_prescribe": false,
+      "homeopathic": false
+    },
+    {
+      "Code": "261QA3000X",
+      "can_prescribe": false,
+      "homeopathic": false
+    },
+    {
+      "Code": "261QI0500X",
+      "can_prescribe": false,
+      "homeopathic": false
+    },
+    {
+      "Code": "261QF0400X",
+      "can_prescribe": false,
+      "homeopathic": false
+    },
+    {
+      "Code": "261QH0100X",
+      "can_prescribe": false,
+      "homeopathic": false
+    },
+    {
+      "Code": "261QM1100X",
+      "can_prescribe": false,
+      "homeopathic": false
+    },
+    {
+      "Code": "261QM1300X",
+      "can_prescribe": false,
+      "homeopathic": false
+    },
+    {
+      "Code": "261QS0132X",
+      "can_prescribe": false,
+      "homeopathic": false
+    },
+    {
+      "Code": "261QR0207X",
+      "can_prescribe": false,
+      "homeopathic": false
+    },
+    {
+      "Code": "261QH0700X",
+      "can_prescribe": false,
+      "homeopathic": false
+    },
+    {
+      "Code": "261QE0002X",
+      "can_prescribe": false,
+      "homeopathic": false
+    },
+    {
+      "Code": "261QG0250X",
+      "can_prescribe": false,
+      "homeopathic": false
+    },
+    {
+      "Code": "261QM1200X",
+      "can_prescribe": false,
+      "homeopathic": false
+    },
+    {
+      "Code": "261QM1103X",
+      "can_prescribe": false,
+      "homeopathic": false
+    },
+    {
+      "Code": "261QP0904X",
+      "can_prescribe": false,
+      "homeopathic": false
+    },
+    {
+      "Code": "261QR0400X",
+      "can_prescribe": false,
+      "homeopathic": false
+    },
+    {
+      "Code": "261QM0801X",
+      "can_prescribe": false,
+      "homeopathic": false
+    },
+    {
+      "Code": "261QM1102X",
+      "can_prescribe": false,
+      "homeopathic": false
+    },
+    {
+      "Code": "261QP2300X",
+      "can_prescribe": false,
+      "homeopathic": false
+    },
+    {
+      "Code": "261QS1000X",
+      "can_prescribe": false,
+      "homeopathic": false
+    },
+    {
+      "Code": "261QR0208X",
+      "can_prescribe": false,
+      "homeopathic": false
+    },
+    {
+      "Code": "261QX0203X",
+      "can_prescribe": false,
+      "homeopathic": false
+    },
+    {
+      "Code": "261QS0112X",
+      "can_prescribe": false,
+      "homeopathic": false
+    },
+    {
+      "Code": "261QP0905X",
+      "can_prescribe": false,
+      "homeopathic": false
+    },
+    {
+      "Code": "273100000X",
+      "can_prescribe": false,
+      "homeopathic": false
+    },
+    {
+      "Code": "261QX0100X",
+      "can_prescribe": false,
+      "homeopathic": false
+    },
+    {
+      "Code": "261QR0404X",
+      "can_prescribe": false,
+      "homeopathic": false
+    },
+    {
+      "Code": "261QS1200X",
+      "can_prescribe": false,
+      "homeopathic": false
+    },
+    {
+      "Code": "2865M2000X",
+      "can_prescribe": false,
+      "homeopathic": false
+    },
+    {
+      "Code": "315P00000X",
+      "can_prescribe": false,
+      "homeopathic": false
+    },
+    {
+      "Code": "281P00000X",
+      "can_prescribe": false,
+      "homeopathic": false
+    },
+    {
+      "Code": "283Q00000X",
+      "can_prescribe": false,
+      "homeopathic": false
+    },
+    {
+      "Code": "261QP2000X",
+      "can_prescribe": false,
+      "homeopathic": false
+    },
+    {
+      "Code": "261QR0206X",
+      "can_prescribe": false,
+      "homeopathic": false
+    },
+    {
+      "Code": "261QR1300X",
+      "can_prescribe": false,
+      "homeopathic": false
+    },
+    {
+      "Code": "273R00000X",
+      "can_prescribe": false,
+      "homeopathic": false
+    },
+    {
+      "Code": "282NC0060X",
+      "can_prescribe": false,
+      "homeopathic": false
+    },
+    {
+      "Code": "225CX0006X",
+      "can_prescribe": false,
+      "homeopathic": false
+    },
+    {
+      "Code": "2278C0205X",
+      "can_prescribe": false,
+      "homeopathic": false
+    },
+    {
+      "Code": "2278G1100X",
+      "can_prescribe": false,
+      "homeopathic": false
+    },
+    {
+      "Code": "2278H0200X",
+      "can_prescribe": false,
+      "homeopathic": false
+    },
+    {
+      "Code": "2278P1005X",
+      "can_prescribe": false,
+      "homeopathic": false
+    },
+    {
+      "Code": "2278S1500X",
+      "can_prescribe": false,
+      "homeopathic": false
+    },
+    {
+      "Code": "2279P1006X",
+      "can_prescribe": false,
+      "homeopathic": false
+    },
+    {
+      "Code": "2279P1005X",
+      "can_prescribe": false,
+      "homeopathic": false
+    },
+    {
+      "Code": "2471V0105X",
+      "can_prescribe": false,
+      "homeopathic": false
+    },
+    {
+      "Code": "246X00000X",
+      "can_prescribe": false,
+      "homeopathic": false
+    },
+    {
+      "Code": "2355S0801X",
+      "can_prescribe": false,
+      "homeopathic": false
+    },
+    {
+      "Code": "390200000X",
+      "can_prescribe": false,
+      "homeopathic": false
+    },
+    {
+      "Code": "2471M1202X",
+      "can_prescribe": false,
+      "homeopathic": false
+    },
+    {
+      "Code": "2471M2300X",
+      "can_prescribe": false,
+      "homeopathic": false
+    },
+    {
+      "Code": "2471S1302X",
+      "can_prescribe": false,
+      "homeopathic": false
+    },
+    {
+      "Code": "246XS1301X",
+      "can_prescribe": false,
+      "homeopathic": false
+    },
+    {
+      "Code": "246YC3302X",
+      "can_prescribe": false,
+      "homeopathic": false
+    },
+    {
+      "Code": "246YR1600X",
+      "can_prescribe": false,
+      "homeopathic": false
+    },
+    {
+      "Code": "246ZB0302X",
+      "can_prescribe": false,
+      "homeopathic": false
+    },
+    {
+      "Code": "246QH0401X",
+      "can_prescribe": false,
+      "homeopathic": false
+    },
+    {
+      "Code": "246QH0000X",
+      "can_prescribe": false,
+      "homeopathic": false
+    },
+    {
+      "Code": "243U00000X",
+      "can_prescribe": false,
+      "homeopathic": false
+    },
+    {
+      "Code": "246XC2903X",
+      "can_prescribe": false,
+      "homeopathic": false
+    },
+    {
+      "Code": "246YC3301X",
+      "can_prescribe": false,
+      "homeopathic": false
+    },
+    {
+      "Code": "246ZX2200X",
+      "can_prescribe": false,
+      "homeopathic": false
+    },
+    {
+      "Code": "246ZC0007X",
+      "can_prescribe": false,
+      "homeopathic": false
+    },
+    {
+      "Code": "247000000X",
+      "can_prescribe": false,
+      "homeopathic": false
+    },
+    {
+      "Code": "247200000X",
+      "can_prescribe": false,
+      "homeopathic": false
+    },
+    {
+      "Code": "251C00000X",
+      "can_prescribe": false,
+      "homeopathic": false
+    },
+    {
+      "Code": "247ZC0005X",
+      "can_prescribe": false,
+      "homeopathic": false
+    },
+    {
+      "Code": "2472R0900X",
+      "can_prescribe": false,
+      "homeopathic": false
+    },
+    {
+      "Code": "246RM2200X",
+      "can_prescribe": false,
+      "homeopathic": false
+    },
+    {
+      "Code": "251T00000X",
+      "can_prescribe": false,
+      "homeopathic": false
+    },
+    {
+      "Code": "252Y00000X",
+      "can_prescribe": false,
+      "homeopathic": false
+    },
+    {
+      "Code": "251K00000X",
+      "can_prescribe": false,
+      "homeopathic": false
+    },
+    {
+      "Code": "261QM0850X",
+      "can_prescribe": true,
+      "homeopathic": false
+    },
+    {
+      "Code": "261QB0400X",
+      "can_prescribe": false,
+      "homeopathic": false
+    },
+    {
+      "Code": "261QC1500X",
+      "can_prescribe": false,
+      "homeopathic": false
+    },
+    {
+      "Code": "251300000X",
+      "can_prescribe": false,
+      "homeopathic": false
+    },
+    {
+      "Code": "253J00000X",
+      "can_prescribe": false,
+      "homeopathic": false
+    },
+    {
+      "Code": "251E00000X",
+      "can_prescribe": false,
+      "homeopathic": false
+    },
+    {
+      "Code": "251F00000X",
+      "can_prescribe": false,
+      "homeopathic": false
+    },
+    {
+      "Code": "251J00000X",
+      "can_prescribe": false,
+      "homeopathic": false
+    },
+    {
+      "Code": "261QC1800X",
+      "can_prescribe": false,
+      "homeopathic": false
+    },
+    {
+      "Code": "261QD0000X",
+      "can_prescribe": false,
+      "homeopathic": false
+    },
+    {
+      "Code": "261QD1600X",
+      "can_prescribe": false,
+      "homeopathic": false
+    },
+    {
+      "Code": "261QE0700X",
+      "can_prescribe": false,
+      "homeopathic": false
+    },
+    {
+      "Code": "261QM2800X",
+      "can_prescribe": true,
+      "homeopathic": false
+    },
+    {
+      "Code": "261QX0200X",
+      "can_prescribe": true,
+      "homeopathic": false
+    },
+    {
+      "Code": "261QM3000X",
+      "can_prescribe": false,
+      "homeopathic": false
+    },
+    {
+      "Code": "261QP1100X",
+      "can_prescribe": true,
+      "homeopathic": false
+    },
+    {
+      "Code": "261QP2400X",
+      "can_prescribe": false,
+      "homeopathic": false
+    },
+    {
+      "Code": "261QM1000X",
+      "can_prescribe": false,
+      "homeopathic": false
+    },
+    {
+      "Code": "261QP3300X",
+      "can_prescribe": true,
+      "homeopathic": false
+    },
+    {
+      "Code": "261QR0800X",
+      "can_prescribe": false,
+      "homeopathic": false
+    },
+    {
+      "Code": "261QR0405X",
+      "can_prescribe": false,
+      "homeopathic": false
+    },
+    {
+      "Code": "261QR1100X",
+      "can_prescribe": false,
+      "homeopathic": false
+    },
+    {
+      "Code": "276400000X",
+      "can_prescribe": false,
+      "homeopathic": false
+    },
+    {
+      "Code": "287300000X",
+      "can_prescribe": false,
+      "homeopathic": true
+    },
+    {
+      "Code": "281PC2000X",
+      "can_prescribe": false,
+      "homeopathic": false
+    },
+    {
+      "Code": "226000000X",
+      "can_prescribe": false,
+      "homeopathic": false
+    },
+    {
+      "Code": "2278E0002X",
+      "can_prescribe": false,
+      "homeopathic": false
+    },
+    {
+      "Code": "2279E0002X",
+      "can_prescribe": false,
+      "homeopathic": false
+    },
+    {
+      "Code": "2279P3900X",
+      "can_prescribe": false,
+      "homeopathic": false
+    },
+    {
+      "Code": "225500000X",
+      "can_prescribe": false,
+      "homeopathic": false
+    },
+    {
+      "Code": "2255A2300X",
+      "can_prescribe": false,
+      "homeopathic": false
+    },
+    {
+      "Code": "227900000X",
+      "can_prescribe": false,
+      "homeopathic": false
+    },
+    {
+      "Code": "2279C0205X",
+      "can_prescribe": false,
+      "homeopathic": false
+    },
+    {
+      "Code": "2279G0305X",
+      "can_prescribe": false,
+      "homeopathic": false
+    },
+    {
+      "Code": "2255R0406X",
+      "can_prescribe": false,
+      "homeopathic": false
+    },
+    {
+      "Code": "2278G0305X",
+      "can_prescribe": false,
+      "homeopathic": false
+    },
+    {
+      "Code": "2279G1100X",
+      "can_prescribe": false,
+      "homeopathic": false
+    },
+    {
+      "Code": "237600000X",
+      "can_prescribe": false,
+      "homeopathic": false
+    },
+    {
+      "Code": "246ZB0301X",
+      "can_prescribe": false,
+      "homeopathic": false
+    },
+    {
+      "Code": "246ZG0701X",
+      "can_prescribe": false,
+      "homeopathic": false
+    },
+    {
+      "Code": "246ZI1000X",
+      "can_prescribe": false,
+      "homeopathic": false
+    },
+    {
+      "Code": "246ZN0300X",
+      "can_prescribe": false,
+      "homeopathic": false
+    },
+    {
+      "Code": "246ZS0410X",
+      "can_prescribe": false,
+      "homeopathic": false
+    },
+    {
+      "Code": "237700000X",
+      "can_prescribe": false,
+      "homeopathic": false
+    },
+    {
+      "Code": "2471C3401X",
+      "can_prescribe": false,
+      "homeopathic": false
+    },
+    {
+      "Code": "2471V0106X",
+      "can_prescribe": false,
+      "homeopathic": false
+    },
+    {
+      "Code": "246ZG1000X",
+      "can_prescribe": false,
+      "homeopathic": false
+    },
+    {
+      "Code": "246QC2700X",
+      "can_prescribe": false,
+      "homeopathic": false
+    },
+    {
+      "Code": "2470A2800X",
+      "can_prescribe": false,
+      "homeopathic": false
+    },
+    {
+      "Code": "246ZA2600X",
+      "can_prescribe": false,
+      "homeopathic": false
+    },
+    {
+      "Code": "246Q00000X",
+      "can_prescribe": false,
+      "homeopathic": false
+    },
+    {
+      "Code": "2472E0500X",
+      "can_prescribe": false,
+      "homeopathic": false
+    },
+    {
+      "Code": "251G00000X",
+      "can_prescribe": false,
+      "homeopathic": false
+    },
+    {
+      "Code": "261QA0005X",
+      "can_prescribe": true,
+      "homeopathic": false
+    },
+    {
+      "Code": "261QA0006X",
+      "can_prescribe": true,
+      "homeopathic": false
+    },
+    {
+      "Code": "261QM0855X",
+      "can_prescribe": true,
+      "homeopathic": false
+    },
+    {
+      "Code": "261QA0600X",
+      "can_prescribe": false,
+      "homeopathic": false
+    },
+    {
+      "Code": "261QA0900X",
+      "can_prescribe": true,
+      "homeopathic": false
+    },
+    {
+      "Code": "261QC0050X",
+      "can_prescribe": true,
+      "homeopathic": false
+    },
+    {
+      "Code": "261QM2500X",
+      "can_prescribe": true,
+      "homeopathic": false
+    },
+    {
+      "Code": "261QF0050X",
+      "can_prescribe": true,
+      "homeopathic": false
+    },
+    {
+      "Code": "261QL0400X",
+      "can_prescribe": false,
+      "homeopathic": false
+    },
+    {
+      "Code": "261QM1101X",
+      "can_prescribe": true,
+      "homeopathic": false
+    },
+    {
+      "Code": "261QR0200X",
+      "can_prescribe": false,
+      "homeopathic": false
+    },
+    {
+      "Code": "261QR0401X",
+      "can_prescribe": false,
+      "homeopathic": false
+    },
+    {
+      "Code": "275N00000X",
+      "can_prescribe": false,
+      "homeopathic": false
+    },
+    {
+      "Code": "261QU0200X",
+      "can_prescribe": true,
+      "homeopathic": false
+    },
+    {
+      "Code": "261QV0200X",
+      "can_prescribe": true,
+      "homeopathic": false
+    },
+    {
+      "Code": "282N00000X",
+      "can_prescribe": true,
+      "homeopathic": false
+    },
+    {
+      "Code": "305S00000X",
+      "can_prescribe": false,
+      "homeopathic": false
+    },
+    {
+      "Code": "311Z00000X",
+      "can_prescribe": false,
+      "homeopathic": false
+    },
+    {
+      "Code": "282NC2000X",
+      "can_prescribe": true,
+      "homeopathic": false
+    },
+    {
+      "Code": "282NR1301X",
+      "can_prescribe": true,
+      "homeopathic": false
+    },
+    {
+      "Code": "291U00000X",
+      "can_prescribe": false,
+      "homeopathic": false
+    },
+    {
+      "Code": "305R00000X",
+      "can_prescribe": false,
+      "homeopathic": false
+    },
+    {
+      "Code": "3104A0630X",
+      "can_prescribe": false,
+      "homeopathic": false
+    },
+    {
+      "Code": "3104A0625X",
+      "can_prescribe": false,
+      "homeopathic": false
+    },
+    {
+      "Code": "2865X1600X",
+      "can_prescribe": true,
+      "homeopathic": false
+    },
+    {
+      "Code": "282J00000X",
+      "can_prescribe": false,
+      "homeopathic": true
+    },
+    {
+      "Code": "293D00000X",
+      "can_prescribe": false,
+      "homeopathic": false
+    },
+    {
+      "Code": "310400000X",
+      "can_prescribe": false,
+      "homeopathic": false
+    },
+    {
+      "Code": "273Y00000X",
+      "can_prescribe": false,
+      "homeopathic": false
+    },
+    {
+      "Code": "282NW0100X",
+      "can_prescribe": false,
+      "homeopathic": false
+    },
+    {
+      "Code": "292200000X",
+      "can_prescribe": false,
+      "homeopathic": false
+    },
+    {
+      "Code": "291900000X",
+      "can_prescribe": false,
+      "homeopathic": false
+    },
+    {
+      "Code": "310500000X",
+      "can_prescribe": false,
+      "homeopathic": false
+    },
+    {
+      "Code": "331L00000X",
+      "can_prescribe": false,
+      "homeopathic": false
+    },
+    {
+      "Code": "332900000X",
+      "can_prescribe": false,
+      "homeopathic": false
+    },
+    {
+      "Code": "177F00000X",
+      "can_prescribe": false,
+      "homeopathic": false
+    },
+    {
+      "Code": "323P00000X",
+      "can_prescribe": false,
+      "homeopathic": false
+    },
+    {
+      "Code": "3336I0012X",
+      "can_prescribe": true,
+      "homeopathic": false
+    },
+    {
+      "Code": "3336L0003X",
+      "can_prescribe": true,
+      "homeopathic": false
+    },
+    {
+      "Code": "335E00000X",
+      "can_prescribe": false,
+      "homeopathic": false
+    },
+    {
+      "Code": "3416L0300X",
+      "can_prescribe": false,
+      "homeopathic": false
+    },
+    {
+      "Code": "3336N0007X",
+      "can_prescribe": true,
+      "homeopathic": false
+    },
+    {
+      "Code": "314000000X",
+      "can_prescribe": false,
+      "homeopathic": false
+    },
+    {
+      "Code": "320900000X",
+      "can_prescribe": false,
+      "homeopathic": false
+    },
+    {
+      "Code": "282E00000X",
+      "can_prescribe": false,
+      "homeopathic": false
+    },
+    {
+      "Code": "286500000X",
+      "can_prescribe": false,
+      "homeopathic": false
+    },
+    {
+      "Code": "283X00000X",
+      "can_prescribe": false,
+      "homeopathic": false
+    },
+    {
+      "Code": "2865C1500X",
+      "can_prescribe": false,
+      "homeopathic": false
+    },
+    {
+      "Code": "284300000X",
+      "can_prescribe": false,
+      "homeopathic": false
+    },
+    {
+      "Code": "302F00000X",
+      "can_prescribe": false,
+      "homeopathic": false
+    },
+    {
+      "Code": "302R00000X",
+      "can_prescribe": false,
+      "homeopathic": false
+    },
+    {
+      "Code": "311500000X",
+      "can_prescribe": false,
+      "homeopathic": false
+    },
+    {
+      "Code": "320700000X",
+      "can_prescribe": false,
+      "homeopathic": false
+    },
+    {
+      "Code": "385HR2055X",
+      "can_prescribe": false,
+      "homeopathic": false
+    },
+    {
+      "Code": "332BN1400X",
+      "can_prescribe": false,
+      "homeopathic": false
+    },
+    {
+      "Code": "3336M0002X",
+      "can_prescribe": true,
+      "homeopathic": false
+    },
+    {
+      "Code": "385HR2060X",
+      "can_prescribe": false,
+      "homeopathic": false
+    },
+    {
+      "Code": "341600000X",
+      "can_prescribe": false,
+      "homeopathic": false
+    },
+    {
+      "Code": "341800000X",
+      "can_prescribe": false,
+      "homeopathic": false
+    },
+    {
+      "Code": "347C00000X",
+      "can_prescribe": false,
+      "homeopathic": false
+    },
+    {
+      "Code": "335G00000X",
+      "can_prescribe": false,
+      "homeopathic": false
+    },
+    {
+      "Code": "342000000X",
+      "can_prescribe": false,
+      "homeopathic": false
+    },
+    {
+      "Code": "322D00000X",
+      "can_prescribe": false,
+      "homeopathic": false
+    },
+    {
+      "Code": "332BP3500X",
+      "can_prescribe": false,
+      "homeopathic": false
+    },
+    {
+      "Code": "344600000X",
+      "can_prescribe": false,
+      "homeopathic": false
+    },
+    {
+      "Code": "320600000X",
+      "can_prescribe": false,
+      "homeopathic": false
+    },
+    {
+      "Code": "332U00000X",
+      "can_prescribe": false,
+      "homeopathic": false
+    },
+    {
+      "Code": "3336S0011X",
+      "can_prescribe": true,
+      "homeopathic": false
+    },
+    {
+      "Code": "335V00000X",
+      "can_prescribe": false,
+      "homeopathic": false
+    },
+    {
+      "Code": "3418M1110X",
+      "can_prescribe": false,
+      "homeopathic": false
+    },
+    {
+      "Code": "343900000X",
+      "can_prescribe": false,
+      "homeopathic": false
+    },
+    {
+      "Code": "283XC2000X",
+      "can_prescribe": false,
+      "homeopathic": false
+    },
+    {
+      "Code": "311ZA0620X",
+      "can_prescribe": false,
+      "homeopathic": false
+    },
+    {
+      "Code": "315D00000X",
+      "can_prescribe": false,
+      "homeopathic": false
+    },
+    {
+      "Code": "332BC3200X",
+      "can_prescribe": false,
+      "homeopathic": false
+    },
+    {
+      "Code": "333600000X",
+      "can_prescribe": true,
+      "homeopathic": false
+    },
+    {
+      "Code": "332BD1200X",
+      "can_prescribe": false,
+      "homeopathic": false
+    },
+    {
+      "Code": "332H00000X",
+      "can_prescribe": false,
+      "homeopathic": false
+    },
+    {
+      "Code": "3336C0003X",
+      "can_prescribe": false,
+      "homeopathic": false
+    },
+    {
+      "Code": "3336M0003X",
+      "can_prescribe": false,
+      "homeopathic": false
+    },
+    {
+      "Code": "3416A0800X",
+      "can_prescribe": false,
+      "homeopathic": false
+    },
+    {
+      "Code": "347B00000X",
+      "can_prescribe": false,
+      "homeopathic": false
+    },
+    {
+      "Code": "343800000X",
+      "can_prescribe": false,
+      "homeopathic": false
+    },
+    {
+      "Code": "3418M1130X",
+      "can_prescribe": false,
+      "homeopathic": false
+    },
+    {
+      "Code": "3140N1450X",
+      "can_prescribe": false,
+      "homeopathic": false
+    },
+    {
+      "Code": "385H00000X",
+      "can_prescribe": false,
+      "homeopathic": false
+    },
+    {
+      "Code": "385HR2050X",
+      "can_prescribe": false,
+      "homeopathic": false
+    },
+    {
+      "Code": "332BX2000X",
+      "can_prescribe": false,
+      "homeopathic": false
+    },
+    {
+      "Code": "333300000X",
+      "can_prescribe": false,
+      "homeopathic": false
+    },
+    {
+      "Code": "335U00000X",
+      "can_prescribe": false,
+      "homeopathic": false
+    },
+    {
+      "Code": "3336H0001X",
+      "can_prescribe": false,
+      "homeopathic": false
+    },
+    {
+      "Code": "3416S0300X",
+      "can_prescribe": false,
+      "homeopathic": false
+    },
+    {
+      "Code": "347E00000X",
+      "can_prescribe": false,
+      "homeopathic": false
+    },
+    {
+      "Code": "385HR2065X",
+      "can_prescribe": false,
+      "homeopathic": false
+    },
+    {
+      "Code": "332100000X",
+      "can_prescribe": false,
+      "homeopathic": false
+    },
+    {
+      "Code": "332G00000X",
+      "can_prescribe": false,
+      "homeopathic": false
+    },
+    {
+      "Code": "332000000X",
+      "can_prescribe": false,
+      "homeopathic": false
+    },
+    {
+      "Code": "3418M1120X",
+      "can_prescribe": false,
+      "homeopathic": false
+    },
+    {
+      "Code": "317400000X",
+      "can_prescribe": false,
+      "homeopathic": false
+    },
+    {
+      "Code": "313M00000X",
+      "can_prescribe": false,
+      "homeopathic": false
+    },
+    {
+      "Code": "332B00000X",
+      "can_prescribe": false,
+      "homeopathic": false
+    },
+    {
+      "Code": "332S00000X",
+      "can_prescribe": false,
+      "homeopathic": false
+    },
+    {
+      "Code": "332800000X",
+      "can_prescribe": false,
+      "homeopathic": false
+    },
+    {
+      "Code": "3336C0002X",
+      "can_prescribe": false,
+      "homeopathic": false
+    },
+    {
+      "Code": "347D00000X",
+      "can_prescribe": false,
+      "homeopathic": false
+    },
+    {
+      "Code": "174200000X",
+      "can_prescribe": false,
+      "homeopathic": false
+    },
+    {
+      "Code": "324500000X",
+      "can_prescribe": false,
+      "homeopathic": false
+    },
+    {
+      "Code": "3245S0500X",
+      "can_prescribe": false,
+      "homeopathic": false
+    },
+    {
+      "Code": "320800000X",
+      "can_prescribe": false,
+      "homeopathic": false
+    },
+    {
+      "Code": "3336C0004X",
+      "can_prescribe": false,
+      "homeopathic": false
+    },
+    {
+      "Code": "344800000X",
+      "can_prescribe": false,
+      "homeopathic": false
+    }
+  ]
+}

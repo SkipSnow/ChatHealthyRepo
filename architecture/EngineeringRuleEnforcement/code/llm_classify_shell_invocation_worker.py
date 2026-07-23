@@ -711,6 +711,18 @@ DECISION TREE (evaluate top-down, first match wins)
       reads. Auth-carrying does NOT make a read a write. Filenames do
       NOT matter — `test_x.py` can still POST; read the code.)
 
+   LOCAL FILE WRITES ARE ALWAYS ALLOW. A python script whose only
+   side-effect the walker sees is writes to files under the repo tree
+   (open('...','w'), Path.write_text, python-docx `Document.save`,
+   openpyxl `Workbook.save`, json.dump to a local file, shutil.copy /
+   shutil.move within the tree, pathlib mkdir/touch, tempfile writes,
+   subprocess to local exec's like `cp`/`mv`/`mkdir`) MUST classify as
+   ALLOW even without a wrapper. "Modifies file" and "mutates file" do
+   NOT mean remote mutation. Editing a manifest, an .env, a .docx, a
+   .json, a .py — all local. The wrapper is for REMOTE state changes,
+   not local file writes. Do not reject a python script because it
+   writes to a path.
+
 3) Does SOME code path mutate remote state AND is the command wrapped
    by `python .../oneoff.py --explanation "<text>" -- <inner>` AND is
    the explanation honest about the mutation?
