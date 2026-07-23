@@ -150,7 +150,7 @@ def _get_token(resource: str, client_id: str | None = None) -> str:
 
 
 # -----------------------------------------------------------------------------
-# Logging — emit through ChatHealthyLoggingService so events land in the
+# Logging - emit through ChatHealthyLoggingService so events land in the
 # Pipelines.Log_dev Mongo collection like every other component. The
 # runbook's public API here is `log(event: str, **fields)`; we serialize
 # {event, host, **fields} into a single JSON blob and route via _log.info
