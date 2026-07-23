@@ -473,6 +473,7 @@
                     "^pipeline/Code/tests/fixtures/",
                     "^architecture/EngineeringRuleEnforcement/tests/fixtures/",
                     "^Website/schemas/standard/",
+                    "^Website/Data/",
                     "^evaluateCare/APICatalogue/",
                     "^sharedServices/APICatalogue/"
                   ]
