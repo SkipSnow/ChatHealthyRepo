@@ -25,6 +25,7 @@ Behavior:
 from __future__ import annotations
 from chathealthy_frontend_lib.logging_service import ChatHealthyLoggingService
 from chathealthy_frontend_lib.exceptions import ChatHealthyException
+from chathealthy_frontend_lib.subprocess_utilities import spawn_detached_worker
 
 
 import datetime as _dt
@@ -44,6 +45,11 @@ from steps import get_runner
 from steps._partitions import county_partitions, state_partitions
 
 _log = ChatHealthyLoggingService()
+
+# Worker heartbeat is written every 120s by pipeline_worker._HeartbeatThread.
+# Controller marks a Worker "crashed" if its WI status is still running AND
+# heartbeat_at is older than this threshold. 5 min = >= 2 missed heartbeats.
+_HEARTBEAT_STALE_S = 300
 
 
 def _utc_now_iso() -> str:
@@ -248,59 +254,57 @@ class BasePipelineOrchestrator:
         env["CH_LOG_DESTINATION"] = env.get("CH_LOG_DESTINATION", "stderr,mongo")
         env["CH_SPACE_NAME"] = "worker"
         env["CH_COMPONENT"] = "worker"
-        procs: list[subprocess.Popen] = []
+        # Workers are FULLY DETACHED daemons: double-fork + setsid so the
+        # grandchild reparents to init (PID 1). Controller keeps NO handle.
+        # This is a firm policy — Controller/Worker communication is Mongo-
+        # only in both directions. The prior PIPE+subprocess.Popen design
+        # deadlocked NPPES on 64KB kernel-buffer fill; that failure mode is
+        # structurally impossible now because no pipe exists between them.
+        worker_pids: list[int] = []
         for replica in range(max_parallel):
-            p = subprocess.Popen(
+            pid = spawn_detached_worker(
                 [sys.executable, worker_py, spec.name,
                  "--replica", str(replica),
                  "--run-id", run_id],
                 env=env,
-                stdout=subprocess.PIPE,
-                stderr=subprocess.STDOUT,
-                text=True,
             )
-            procs.append(p)
+            worker_pids.append(pid)
         _log.info(
-            "orchestrator spawned step=%s workers=%d worker_py=%s",
-            spec.name, max_parallel, worker_py,
+            "orchestrator spawned step=%s workers=%d worker_py=%s pids=%s",
+            spec.name, max_parallel, worker_py, worker_pids,
         )
 
         # 3. Wait for terminal state on every work_item. Poll every 5s.
-        #    Also collect Worker exit codes so a Worker crash is surfaced.
+        #    Crash detection is heartbeat-based (not p.poll()) so the
+        #    Controller has zero stdio/pid dependency on the Worker: Worker
+        #    heartbeats every 120s to WI.heartbeat_at (pipeline_worker.py
+        #    _HeartbeatThread). A running WI whose heartbeat_at is stale
+        #    beyond _HEARTBEAT_STALE_S is a crash. This lets Workers run
+        #    fully detached (start_new_session, DEVNULL stdio) without
+        #    losing crash detection.
         deadline_polls = 0
         while True:
             open_count = wi_coll.count_documents({
                 "_id": {"$in": item_ids},
                 "status": {"$in": ["pending", "running"]},
             })
-            all_procs_done = all(p.poll() is not None for p in procs)
             if open_count == 0:
                 break
-            if all_procs_done and open_count > 0:
-                # Workers exited but work remains — Workers crashed. Surface.
-                wi_coll.update_many(
-                    {"_id": {"$in": item_ids}, "status": "pending"},
-                    {"$set": {
-                        "status": "failed",
-                        "output": {"error": "worker_exited_before_claim"},
-                        "finished_at": _dt.datetime.utcnow(),
-                    }},
-                )
-                wi_coll.update_many(
-                    {"_id": {"$in": item_ids}, "status": "running"},
-                    {"$set": {
-                        "status": "failed",
-                        "output": {"error": "worker_exited_while_running"},
-                        "finished_at": _dt.datetime.utcnow(),
-                    }},
-                )
-                break
+            # Heartbeat-based crash check: any 'running' WI whose heartbeat_at
+            # is older than _HEARTBEAT_STALE_S is a dead Worker. Mark failed.
+            stale_cutoff = _dt.datetime.utcnow() - _dt.timedelta(seconds=_HEARTBEAT_STALE_S)
+            crashed = list(wi_coll.find({
+                "_id": {"$in": item_ids},
+                "status": "running",
+                "heartbeat_at": {"$lt": stale_cutoff},
+            }, {"_id": 1, "partition": 1, "heartbeat_at": 1}))
+            if crashed:
+                self._surface_crashed_workers(wi_coll, spec, crashed)
             deadline_polls += 1
             if deadline_polls % 24 == 0:  # every ~2 min
                 _log.info(
-                    "orchestrator waiting step=%s remaining=%d workers_alive=%d",
+                    "orchestrator waiting step=%s remaining=%d",
                     spec.name, open_count,
-                    sum(1 for p in procs if p.poll() is None),
                 )
             time.sleep(5)
 
@@ -309,11 +313,31 @@ class BasePipelineOrchestrator:
         #    is separate from _invoke_process_pool's own dispatch/spawn/
         #    wait logging.
         return self._aggregate_worker_results(
-            spec, wi_coll, item_ids, partitions, procs, max_parallel,
+            spec, wi_coll, item_ids, partitions, max_parallel,
+        )
+
+    def _surface_crashed_workers(self, wi_coll, spec, crashed) -> None:
+        """Mark WIs whose Worker heartbeat has gone stale as failed. Called
+        from the poll loop; sole side effect is a Mongo update + info log."""
+        ids = [c["_id"] for c in crashed]
+        now = _dt.datetime.utcnow()
+        wi_coll.update_many(
+            {"_id": {"$in": ids}, "status": "running"},
+            {"$set": {
+                "status": "failed",
+                "output": {"error": "worker_heartbeat_stale",
+                           "stale_threshold_s": _HEARTBEAT_STALE_S},
+                "finished_at": now,
+            }},
+        )
+        _log.info(
+            "orchestrator crash-detected step=%s count=%d partitions=%s",
+            spec.name, len(ids),
+            [str(c.get("partition")) for c in crashed[:5]],
         )
 
     def _aggregate_worker_results(
-        self, spec, wi_coll, item_ids, partitions, procs, workers_spawned,
+        self, spec, wi_coll, item_ids, partitions, workers_spawned,
     ):
         done = wi_coll.count_documents({"_id": {"$in": item_ids}, "status": "done"})
         failed = wi_coll.count_documents({"_id": {"$in": item_ids}, "status": "failed"})
@@ -321,12 +345,10 @@ class BasePipelineOrchestrator:
             {"_id": {"$in": item_ids}, "status": "failed"},
             {"partition": 1, "output": 1},
         ).limit(10))
-        exit_codes = [p.returncode for p in procs]
         summary = {
             "step": spec.name,
             "partitions": len(partitions),
             "workers_spawned": workers_spawned,
-            "worker_exit_codes": exit_codes,
             "done": done,
             "failed": failed,
             "mode": "worker_subprocess",

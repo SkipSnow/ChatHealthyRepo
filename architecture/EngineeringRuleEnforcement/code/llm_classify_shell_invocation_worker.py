@@ -265,7 +265,30 @@ _LOCAL_ALLOWLIST = [
     # ref syntax (`origin :branch`) are excluded — those are destructive and
     # require explicit operator approval via oneoff.py.
     r"^\s*git\s+push\b(?!.*(?:--force\b|--force-with-lease\b|--force-if-includes\b|(?:^|\s)-f\b|\s:\s|\s:$))",
-    # Git READ-only verbs (other write verbs like commit/fetch/pull are NOT here)
+    # Git LOCAL WRITES to the working tree / index / local refs. `git commit`
+    # is Rule-065-gated at pre-commit; the other verbs here are pure local-tree
+    # mutations (staging, unstaging, renaming, tagging, branch creation, index
+    # updates) that cannot reach any remote by themselves. Push is the only
+    # git verb that touches remote state; it stays under a separate allow-rule
+    # above (non-force forms only).
+    r"^\s*git\s+add\b",
+    r"^\s*git\s+commit\b(?!.*--allow-empty-message\b)",  # explicit message required
+    r"^\s*git\s+rm\b",
+    r"^\s*git\s+mv\b",
+    r"^\s*git\s+restore\b",
+    r"^\s*git\s+reset\b(?!.*--hard\b)",  # allow soft/mixed; --hard is destructive
+    r"^\s*git\s+checkout\b",
+    r"^\s*git\s+switch\b",
+    r"^\s*git\s+tag\b(?!.*-d\b|.*--delete\b)",  # allow create/list; delete is destructive
+    r"^\s*git\s+stash\s+(push|pop|apply|drop)\b",
+    r"^\s*git\s+cherry-pick\b",
+    r"^\s*git\s+revert\b",
+    r"^\s*git\s+merge\b(?!.*--abort\b)",
+    r"^\s*git\s+rebase\b(?!.*-i\b|.*--interactive\b)",  # interactive rebases would prompt
+    r"^\s*git\s+clean\b(?!.*-[dfx])",  # bare list only; -d/-f/-x are destructive
+    r"^\s*git\s+update-index\b",
+    r"^\s*git\s+update-ref\b",
+    # Git READ-only verbs
     r"^\s*git\s+status(\s|$)",
     r"^\s*git\s+log(\s|$)",
     r"^\s*git\s+diff(\s|$)",
