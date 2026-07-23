@@ -1273,9 +1273,19 @@ ORCHESTRATOR_WEBHOOK_ENV_KEY = "MONGOCLUSTER_MIGRATOR_ORCHESTRATOR_WEBHOOK_URL"
 
 
 def az_automation_poll_job_to_terminal(
-    rg: str, aa: str, aa_job_id: str, timeout_sec: int = 240,
+    rg: str, aa: str, aa_job_id: str, timeout_sec: int = 600,
 ) -> dict:
-    """Poll an AA job until terminal status. Returns {status, exception}."""
+    """Poll an AA job until terminal status. Returns {status, exception}.
+
+    Default 600s (10 min) accommodates the AA Python 3 sandbox cold-start
+    envelope: sandbox spin-up + python_packages install + our runbook
+    module load (chathealthy_frontend_lib inlined bootstrap +
+    ChatHealthyLoggingService instantiation) can take up to 5 min end-
+    to-end on a cold AA before the runbook's own logic runs. Empirically
+    240s was too tight for the ChatHealthyDataMigrator {Provisioner,
+    Deprovisioner} health-check dry-fires, which then failed the deploy
+    even though the runbook itself would eventually short-circuit on
+    health_check=True."""
     sub = az_subscription_id()
     poll_url = (
         f"https://management.azure.com/subscriptions/{sub}/resourceGroups/{rg}"
@@ -2150,7 +2160,7 @@ def deploy_azure_automation_runbook(
         except KeyError:
             sys.exit(
                 f"ERROR: deploy cannot verify {runbook} - "
-                f"{_ORCHESTRATOR_WEBHOOK_ENV_KEY} is not in the operator's "
+                f"{ORCHESTRATOR_WEBHOOK_ENV_KEY} is not in the operator's "
                 f"secret store. Set it in Code/.env."
             )
         az_automation_orchestrator_verify_via_webhook(rg, aa, webhook_url, runbook)
