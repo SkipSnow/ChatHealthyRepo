@@ -150,10 +150,29 @@ def _get_token(resource: str, client_id: str | None = None) -> str:
 
 
 # -----------------------------------------------------------------------------
-# Logging (append-blob, one blob per pipeline per day)
+# Logging — emit through ChatHealthyLoggingService so events land in the
+# Pipelines.Log_dev Mongo collection like every other component. The
+# runbook's public API here is `log(event: str, **fields)`; we serialize
+# {event, host, **fields} into a single JSON blob and route via _log.info
+# so downstream queries on component='watchdog' surface every event
+# together with control, worker, runbook, and reaper events.
 # -----------------------------------------------------------------------------
+from chathealthy_frontend_lib.logging_service import ChatHealthyLoggingService  # noqa: PLC0415, E402
+_log = ChatHealthyLoggingService()
+
+
 def log(event: str, **fields):
-    """Append a one-line JSON event to the daily log blob. Never raises."""
+    entry = {"event": event, "host": _HOSTNAME}
+    entry.update(fields)
+    _log.info(json.dumps(entry, default=str))
+
+
+def _legacy_blob_log_unused(event: str, **fields):
+    """Prior append-blob logger (superseded). Kept as dead code marker
+    so anyone reading git-blame sees the migration point. Not called
+    from anywhere; may be deleted once the migration is confirmed
+    end-to-end in prod.
+    """
     try:
         day = datetime.datetime.utcnow().strftime("%Y-%m-%d")
         blob_name = f"{PIPELINE_NAME}/{day}/watchdog.log"
@@ -166,7 +185,6 @@ def log(event: str, **fields):
         line = json.dumps(entry, default=str) + "\n"
         tok = _get_token("https://storage.azure.com/")
         url = f"{LOG_ACCOUNT_URL}/{LOG_CONTAINER}/{blob_name}"
-        # Try append; if blob does not exist, create it as append-blob.
         for method, extra_headers in (
             ("PUT",  {"x-ms-blob-type": "AppendBlob", "Content-Length": "0"}),
             ("PUT",  {"x-ms-blob-type": "AppendBlob", "Content-Length": "0",
@@ -188,7 +206,6 @@ def log(event: str, **fields):
                 urllib.request.urlopen(r, timeout=5).read()
                 return
             except urllib.error.HTTPError:
-                # Blob may not exist yet -- create it, then retry append.
                 try:
                     create = urllib.request.Request(
                         url,

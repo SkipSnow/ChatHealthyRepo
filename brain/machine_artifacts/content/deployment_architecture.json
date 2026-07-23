@@ -7190,6 +7190,158 @@
               }
             },
             {
+              "package_id": "data_migrator_orchestrator",
+              "kind": "runbook",
+              "files": [
+                {
+                  "source_location": "pipeline/Code/runbooks/data_migrator/orchestrator.py",
+                  "feature_id": "EPIC-008-F-012",
+                  "handler_type": "python_source",
+                  "disposition": "referenced",
+                  "content_hash": "4019bfa3232210833b61b4fdb4e4a1292c34168949d2872502d056c1195feb99",
+                  "package": "data_migrator_orchestrator"
+                }
+              ],
+              "secrets": {
+                "MONGO_FRONTEND_connectionString": "local_env",
+                "AZ_SUBSCRIPTION_ID": "local_env",
+                "AZ_RESOURCE_GROUP": "local_env",
+                "AZ_AUTOMATION_ACCOUNT": "local_env",
+                "ATLAS_PUBLIC_KEY": "local_env",
+                "ATLAS_PRIVATE_KEY": "local_env",
+                "ATLAS_PROJECT_ID": "local_env",
+                "MONGO_CLUSTER_pipeline_connectionString": "local_env",
+                "MONGO_CLUSTER_frontend_connectionString": "local_env",
+                "KEY_VAULT_URI": "local_env",
+                "AUTOMATION_ENV_PREFIX": "local_env"
+              },
+              "config": {
+                "runbook_name": "ChatHealthyDataMigratorOrchestrator",
+                "schedule_names": [],
+                "python_packages": [
+                  {"name": "requests", "content_url": "https://files.pythonhosted.org/packages/f9/9b/335f9764261e915ed497fcdeb11df5dfd6f7bf257d4a6a2a686d80da4d54/requests-2.32.3-py3-none-any.whl"},
+                  {"name": "pymongo", "content_url": "https://files.pythonhosted.org/packages/38/52/a58196a45232e9046c8b13f4fa3d89cca0e462b5c6d28969759226f781ee/pymongo-4.10.1-cp38-cp38-win_amd64.whl"},
+                  {"name": "dnspython", "content_url": "https://files.pythonhosted.org/packages/87/a1/8c5287991ddb8d3e4662f71356d9656d91ab3a36618c3dd11b280df0d255/dnspython-2.6.1-py3-none-any.whl"},
+                  {"name": "certifi", "content_url": "https://files.pythonhosted.org/packages/59/8c/57e832b7af6d7c5abe66eb3fbe3a3a32f4d11ea23a1aa7131371035be991/certifi-2026.5.20-py3-none-any.whl"}
+                ],
+                "automation_variables": [],
+                "node_address": "https://management.azure.com/subscriptions/7a17eec1-c477-4c7c-b1c1-d0662ce7a1ee/resourceGroups/rg-chathealthy-pipeline-dev/providers/Microsoft.Automation/automationAccounts/ChatHealthyJobManager/runbooks/ChatHealthyDataMigratorOrchestrator"
+              }
+            },
+            {
+              "package_id": "data_migrator_provisioner",
+              "kind": "runbook",
+              "files": [
+                {
+                  "source_location": "pipeline/Code/runbooks/data_migrator/provisioner.py",
+                  "feature_id": "EPIC-008-F-012",
+                  "handler_type": "python_source",
+                  "disposition": "referenced",
+                  "content_hash": "2f29845ff4227895afc956219d154713c021910cce68b8320093437727e7461c",
+                  "package": "data_migrator_provisioner"
+                }
+              ],
+              "secrets": {
+                "MONGO_FRONTEND_connectionString": "local_env",
+                "AZ_SUBSCRIPTION_ID": "local_env",
+                "AZ_VM_RESOURCE_GROUP": "local_env",
+                "AZ_VM_LOCATION": "local_env",
+                "AZ_VM_SIZE": "local_env",
+                "AZ_VM_SUBNET_ID": "local_env",
+                "AZ_VM_ADMIN_USERNAME": "local_env",
+                "AZ_VM_ADMIN_SSH_PUBKEY": "local_env",
+                "AZ_AUTOMATION_RESOURCE_GROUP": "local_env",
+                "AZ_AUTOMATION_ACCOUNT": "local_env",
+                "KEY_VAULT_URI": "local_env",
+                "AUTOMATION_ENV_PREFIX": "local_env"
+              },
+              "config": {
+                "runbook_name": "ChatHealthyDataMigratorProvisioner",
+                "schedule_names": [],
+                "python_packages": [
+                  {"name": "requests", "content_url": "https://files.pythonhosted.org/packages/f9/9b/335f9764261e915ed497fcdeb11df5dfd6f7bf257d4a6a2a686d80da4d54/requests-2.32.3-py3-none-any.whl"},
+                  {"name": "pymongo", "content_url": "https://files.pythonhosted.org/packages/38/52/a58196a45232e9046c8b13f4fa3d89cca0e462b5c6d28969759226f781ee/pymongo-4.10.1-cp38-cp38-win_amd64.whl"},
+                  {"name": "dnspython", "content_url": "https://files.pythonhosted.org/packages/87/a1/8c5287991ddb8d3e4662f71356d9656d91ab3a36618c3dd11b280df0d255/dnspython-2.6.1-py3-none-any.whl"},
+                  {"name": "certifi", "content_url": "https://files.pythonhosted.org/packages/59/8c/57e832b7af6d7c5abe66eb3fbe3a3a32f4d11ea23a1aa7131371035be991/certifi-2026.5.20-py3-none-any.whl"}
+                ],
+                "automation_variables": [],
+                "node_address": "https://management.azure.com/subscriptions/7a17eec1-c477-4c7c-b1c1-d0662ce7a1ee/resourceGroups/rg-chathealthy-pipeline-dev/providers/Microsoft.Automation/automationAccounts/ChatHealthyJobManager/runbooks/ChatHealthyDataMigratorProvisioner"
+              }
+            },
+            {
+              "package_id": "data_migrator_migrator",
+              "kind": "runbook",
+              "files": [
+                {
+                  "source_location": "pipeline/Code/runbooks/data_migrator/migrator.py",
+                  "feature_id": "EPIC-008-F-012",
+                  "handler_type": "python_source",
+                  "disposition": "referenced",
+                  "content_hash": "9bb0a1df598d2f0fe02a30b30433e0cfcedca3359392b43ae6e1638aa808ae7a",
+                  "package": "data_migrator_migrator"
+                }
+              ],
+              "secrets": {
+                "MONGO_connectionString": "local_env",
+                "MONGO_FRONTEND_connectionString": "local_env",
+                "ATLAS_PUBLIC_KEY": "local_env",
+                "ATLAS_PRIVATE_KEY": "local_env",
+                "ATLAS_PROJECT_ID": "local_env",
+                "AZ_SUBSCRIPTION_ID": "local_env",
+                "AZ_AUTOMATION_RESOURCE_GROUP": "local_env",
+                "AZ_AUTOMATION_ACCOUNT": "local_env",
+                "KEY_VAULT_URI": "local_env",
+                "AUTOMATION_ENV_PREFIX": "local_env"
+              },
+              "config": {
+                "runbook_name": "ChatHealthyDataMigrator",
+                "schedule_names": [],
+                "python_packages": [
+                  {"name": "requests", "content_url": "https://files.pythonhosted.org/packages/f9/9b/335f9764261e915ed497fcdeb11df5dfd6f7bf257d4a6a2a686d80da4d54/requests-2.32.3-py3-none-any.whl"},
+                  {"name": "pymongo", "content_url": "https://files.pythonhosted.org/packages/38/52/a58196a45232e9046c8b13f4fa3d89cca0e462b5c6d28969759226f781ee/pymongo-4.10.1-cp38-cp38-win_amd64.whl"},
+                  {"name": "dnspython", "content_url": "https://files.pythonhosted.org/packages/87/a1/8c5287991ddb8d3e4662f71356d9656d91ab3a36618c3dd11b280df0d255/dnspython-2.6.1-py3-none-any.whl"},
+                  {"name": "certifi", "content_url": "https://files.pythonhosted.org/packages/59/8c/57e832b7af6d7c5abe66eb3fbe3a3a32f4d11ea23a1aa7131371035be991/certifi-2026.5.20-py3-none-any.whl"}
+                ],
+                "automation_variables": [],
+                "node_address": "https://management.azure.com/subscriptions/7a17eec1-c477-4c7c-b1c1-d0662ce7a1ee/resourceGroups/rg-chathealthy-pipeline-dev/providers/Microsoft.Automation/automationAccounts/ChatHealthyJobManager/runbooks/ChatHealthyDataMigrator"
+              }
+            },
+            {
+              "package_id": "data_migrator_deprovisioner",
+              "kind": "runbook",
+              "files": [
+                {
+                  "source_location": "pipeline/Code/runbooks/data_migrator/deprovisioner.py",
+                  "feature_id": "EPIC-008-F-012",
+                  "handler_type": "python_source",
+                  "disposition": "referenced",
+                  "content_hash": "2c25fe939a2ea7e119fb973530626faedb19d0b62fbfae2d927971a0b29ab292",
+                  "package": "data_migrator_deprovisioner"
+                }
+              ],
+              "secrets": {
+                "MONGO_FRONTEND_connectionString": "local_env",
+                "AZ_SUBSCRIPTION_ID": "local_env",
+                "AZ_VM_RESOURCE_GROUP": "local_env",
+                "AZ_AUTOMATION_RESOURCE_GROUP": "local_env",
+                "AZ_AUTOMATION_ACCOUNT": "local_env",
+                "KEY_VAULT_URI": "local_env",
+                "AUTOMATION_ENV_PREFIX": "local_env"
+              },
+              "config": {
+                "runbook_name": "ChatHealthyDataMigratorDeprovisioner",
+                "schedule_names": [],
+                "python_packages": [
+                  {"name": "requests", "content_url": "https://files.pythonhosted.org/packages/f9/9b/335f9764261e915ed497fcdeb11df5dfd6f7bf257d4a6a2a686d80da4d54/requests-2.32.3-py3-none-any.whl"},
+                  {"name": "pymongo", "content_url": "https://files.pythonhosted.org/packages/38/52/a58196a45232e9046c8b13f4fa3d89cca0e462b5c6d28969759226f781ee/pymongo-4.10.1-cp38-cp38-win_amd64.whl"},
+                  {"name": "dnspython", "content_url": "https://files.pythonhosted.org/packages/87/a1/8c5287991ddb8d3e4662f71356d9656d91ab3a36618c3dd11b280df0d255/dnspython-2.6.1-py3-none-any.whl"},
+                  {"name": "certifi", "content_url": "https://files.pythonhosted.org/packages/59/8c/57e832b7af6d7c5abe66eb3fbe3a3a32f4d11ea23a1aa7131371035be991/certifi-2026.5.20-py3-none-any.whl"}
+                ],
+                "automation_variables": [],
+                "node_address": "https://management.azure.com/subscriptions/7a17eec1-c477-4c7c-b1c1-d0662ce7a1ee/resourceGroups/rg-chathealthy-pipeline-dev/providers/Microsoft.Automation/automationAccounts/ChatHealthyJobManager/runbooks/ChatHealthyDataMigratorDeprovisioner"
+              }
+            },
+            {
               "package_id": "watchdog_runbook",
               "kind": "runbook",
               "files": [
@@ -7327,6 +7479,7 @@
         "ATLAS_PRIVATE_KEY": "local_env",
         "ATLAS_PROJECT_ID": "local_env",
         "AZURE_STORAGE_CONNECTION_STRING": "local_env",
+        "PIPELINE_STORAGE_CONNECTION_STRING": "local_env",
         "KEY_VAULT_URI": "local_env",
         "ANTHROPIC_API_KEY": "local_env",
         "GEMINI_API_KEY": "local_env",

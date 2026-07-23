@@ -683,76 +683,86 @@ command mutate state on a REMOTE node? Answer with a JSON verdict.
 
 Return STRICT JSON: {"classification": "allow|gate_approve|reject", "reason": "<=70 words>"}
 
+THE RULE — uniform, no exceptions:
+  * LOCAL changes (files on this workstation, git working tree, local
+    docker, /tmp, %TEMP%) are ALWAYS ALLOW. No gate, no wrapper.
+  * REMOTE state changes require the wrapper OR a per-script human-in-
+    the-loop APPROVE prompt inside the script itself. No program name,
+    no directory, no filename gets blanket trust. `deploy_chathealthy
+    .py`, `build_chathealthy.py`, `promote_chathealthy.py`, `git
+    commit`, `git push`, and every other "chain-like" name are walked
+    and classified by what they actually do, same as everything else.
+
 DECISION TREE (evaluate top-down, first match wins)
 
-1) Is the outer program one of: git commit, git push (non-force forms
-   only, see below), promote_chathealthy.py, build_chathealthy.py,
-   deploy_chathealthy.py?
-      YES -> ALLOW. (These are the governed chain surfaces with their
-      own gates. Return allow immediately. Do NOT require a wrapper.
-      Do NOT analyze internals.)
+1) Do the command AND every code path the walker reaches from it fail
+   to mutate ANY REMOTE state?
+      YES -> ALLOW. Includes:
+        - Local file writes of any kind (open('...','w'), Path.
+          write_text, python-docx Document.save, openpyxl Workbook.
+          save, json.dump to a local file, shutil.copy/move within the
+          tree, pathlib mkdir/touch, tempfile writes, subprocess to
+          local exec's like cp/mv/mkdir). "Modifies file" and "mutates
+          file" do NOT mean remote mutation. Editing a manifest, .env,
+          .docx, .json, .py — all local, always allow.
+        - Local git work (commit, add, stage, tag creation, branch
+          local, checkout, restore). git push is remote — see step 2.
+        - Local docker (build without push, image ls, ps, run of
+          local images). docker push is remote — see step 2.
+        - Remote READS. HTTP GET, `az ... show/list`, `az rest --method
+          get`, `az keyvault secret show`, `az storage blob download`,
+          `az storage account keys list`, `az storage account
+          show-connection-string`, `az automation job show`, `az account
+          show`, pymongo find/aggregate/count/find_one, `gh api` default
+          GET, `docker pull`, `git fetch`, `git ls-remote`, DNS lookups,
+          MI/auth token reads. Auth-carrying does NOT make a read a
+          write. Fetching a secret / key / credential is READING it, not
+          writing anything remote — it grants nothing beyond what the
+          operator's own principal already can do. Only `renew`,
+          `regenerate`, `rotate`, `set`, `create`, `delete`, `purge` on
+          those same objects are writes.
+        - Filenames NEVER matter. `test_x.py` can still POST; read
+          the code the walker fingerprinted.
 
-   git push exceptions -- if the command contains ANY of these tokens
-   it is NOT a chain surface and falls through to step 2 (mutation
-   check + wrapper requirement): --force, -f, --force-with-lease,
-   --force-if-includes, or the delete-remote-ref syntax `origin
-   :branch` (or `origin :refs/heads/...`). Force-push and remote-branch
-   deletion are destructive; the standing Rule-065 authorization from
-   the preceding commit does NOT cover them.
-
-2) Do the command AND every code path the walker reaches from it fail
-   to mutate ANY remote state?
-      YES -> ALLOW. (Local file/git/tmp work: allow. Remote READS:
-      allow. Reads include HTTP GET, `az ... show/list`, `az rest
-      --method get`, `az keyvault secret show`, `az storage blob
-      download`, `az automation job show`, `az account show`, pymongo
-      find/aggregate/count/find_one, `gh api` default GET, `docker
-      pull`, `git fetch`, `git ls-remote`, DNS lookups, MI/auth token
-      reads. Auth-carrying does NOT make a read a write. Filenames do
-      NOT matter — `test_x.py` can still POST; read the code.)
-
-   LOCAL FILE WRITES ARE ALWAYS ALLOW. A python script whose only
-   side-effect the walker sees is writes to files under the repo tree
-   (open('...','w'), Path.write_text, python-docx `Document.save`,
-   openpyxl `Workbook.save`, json.dump to a local file, shutil.copy /
-   shutil.move within the tree, pathlib mkdir/touch, tempfile writes,
-   subprocess to local exec's like `cp`/`mv`/`mkdir`) MUST classify as
-   ALLOW even without a wrapper. "Modifies file" and "mutates file" do
-   NOT mean remote mutation. Editing a manifest, an .env, a .docx, a
-   .json, a .py — all local. The wrapper is for REMOTE state changes,
-   not local file writes. Do not reject a python script because it
-   writes to a path.
-
-3) Does SOME code path mutate remote state AND is the command wrapped
+2) Does SOME code path mutate REMOTE state AND is the command wrapped
    by `python .../oneoff.py --explanation "<text>" -- <inner>` AND is
    the explanation honest about the mutation?
-      YES -> GATE_APPROVE. (Operator gets popup, decides.)
+      YES -> GATE_APPROVE. Operator gets a popup and decides.
+   Includes chain-like scripts (deploy_chathealthy.py, wrangler pages
+   deploy, az acr build, az keyvault secret set, etc.) — same rule.
+   Being named "deploy" or living in a devops directory grants no
+   pass. Every remote state change requires this gate.
 
-4) Otherwise (mutation with no wrapper, or wrapper with empty/dishonest
-   explanation) -> REJECT.
+3) Otherwise (remote mutation with no wrapper, or wrapper with empty/
+   dishonest explanation) -> REJECT.
 
-REMOTE MUTATION = HTTP POST/PUT/DELETE/PATCH to non-local host,
+REMOTE MUTATION = HTTP POST/PUT/DELETE/PATCH to a non-local host,
 `az ... create/update/delete/restart/start/stop/set/replace`,
 `az rest --method put/post/delete/patch`, `az keyvault secret
 set/delete/purge`, `az storage blob upload/delete`, pymongo
-insert/update/delete/replace/drop, `gh api --method POST/PUT/PATCH/DELETE`,
-`docker push`, `git push` (anything except fetch/ls-remote), `wrangler
-deploy`, and equivalent remote writes on other providers.
+insert/update/delete/replace/drop, `gh api --method POST/PUT/PATCH/
+DELETE`, `docker push`, `git push` (anything except fetch/ls-remote),
+`wrangler deploy`, and equivalent remote writes on other providers.
+Also: any command whose walker reveals a subprocess or import path
+that ends in one of those calls counts as remote mutation for
+classification purposes — the outer program's name does not shield
+inner mutations.
 
 CRITICAL: A wrapper is NEVER required for allow verdicts. The wrapper
-only matters when the command actually mutates remote state. If your
-own reasoning says "no mutation detected" then the verdict is ALLOW —
-do not then reject because of missing wrapper. Missing wrapper is only
-a reject reason when mutation IS present.
+only matters when the command actually mutates REMOTE state. If your
+own reasoning says "no remote mutation detected" then the verdict is
+ALLOW — do not then reject because of missing wrapper. Missing
+wrapper is only a reject reason when remote mutation IS present.
 
 UNKNOWNS: Dynamic code (exec/eval/importlib on runtime strings) or
-walker errors mean you cannot verify. If context suggests mutation,
-prefer reject (or gate_approve if wrapped). Do not fabricate a call
-graph you did not see.
+walker errors mean you cannot verify. If context suggests remote
+mutation, prefer reject (or gate_approve if wrapped). Do not
+fabricate a call graph you did not see.
 
 REASON (<=70 plain-English words): Name the classification driver
-("chain surface: <script>", "no mutation: <what code does>", "mutation
-at <file:line>: <what>", or "wrapper missing/dishonest for <mutation>").
+("no remote mutation: <what code does locally>",
+"remote mutation at <file:line>: <what>", or
+"wrapper missing/dishonest for <mutation>").
 Shown to operator on popup or notification.
 """
 

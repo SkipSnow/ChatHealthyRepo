@@ -44,8 +44,35 @@ def container_brain() -> str:
 
 
 def get_blob_service() -> BlobServiceClient:
+    """Pipeline-scoped BlobServiceClient. Points at the pipeline storage
+    account (stchpipelinedev per manifest target_azure_storage_account_
+    pipeline), NOT the front-end storage account (findcarestorage) that
+    AZURE_STORAGE_CONNECTION_STRING carries.
+
+    Reads PIPELINE_STORAGE_CONNECTION_STRING from env. Deploy chain
+    populates it from Code/.env into KV and hydrates it into the
+    Controller container via bootstrap._load_all_secrets_into_env; the
+    Runbook receives the same value via its Automation Variables and
+    passes it to the Controller container via docker -e."""
     global _blob_service
     if _blob_service is None:
+        conn = os.environ.get("PIPELINE_STORAGE_CONNECTION_STRING", "").strip()
+        if not conn:
+            from chathealthy_frontend_lib.exceptions import ChatHealthyException  # noqa: PLC0415
+            raise ChatHealthyException(
+                mode="runtime_error",
+                message=(
+                    "PIPELINE_STORAGE_CONNECTION_STRING env var is not set. "
+                    "This is the connection string for the pipeline storage "
+                    "account (stchpipelinedev per deployment_architecture.json). "
+                    "The prior code fell back to AZURE_STORAGE_CONNECTION_STRING "
+                    "which points at the front-end storage account "
+                    "(findcarestorage) and caused every pipeline fetch to upload "
+                    "to the WRONG account. Set PIPELINE_STORAGE_CONNECTION_STRING "
+                    "in Code/.env and re-deploy."
+                ),
+                component="pipeline.blob_client",
+            )
         session = requests.Session()
         adapter = HTTPAdapter(
             pool_connections=_BLOB_POOL_MAXSIZE,
@@ -54,7 +81,7 @@ def get_blob_service() -> BlobServiceClient:
         session.mount("https://", adapter)
         session.mount("http://", adapter)
         _blob_service = BlobServiceClient.from_connection_string(
-            os.environ["AZURE_STORAGE_CONNECTION_STRING"],
+            conn,
             transport=RequestsTransport(session=session),
         )
     return _blob_service

@@ -56,6 +56,27 @@ try:
 except ImportError:
     pass
 
+# CHLS Mongo destination + SRV bypass. Every runbook logs to
+# Pipelines.Log_<env>; this configuration makes the ChatHealthyLoggingService
+# singleton (line ~108) wire the Mongo handler on first log call.
+os.environ.setdefault("CH_SPACE_NAME", "change-db-version")
+os.environ.setdefault("CH_COMPONENT", "change-db-version")
+os.environ.setdefault("ENV_PREFIX",
+                      os.environ.get("AUTOMATION_ENV_PREFIX", "dev"))
+os.environ.setdefault("CH_LOG_DESTINATION", "stderr,mongo")
+try:
+    from chathealthy_frontend_lib.pipeline_boot import srv_to_direct_uri as _srv_to_direct
+    _mongo_uri = os.environ.get("MONGO_FRONTEND_connectionString", "")
+    if _mongo_uri.startswith("mongodb+srv://"):
+        os.environ["MONGO_FRONTEND_connectionString"] = _srv_to_direct(_mongo_uri)
+except Exception as _bootstrap_exc:  # noqa: BLE001
+    sys.stderr.write(
+        f"change_db_version: SRV bypass failed "
+        f"({type(_bootstrap_exc).__name__}: {_bootstrap_exc}); "
+        "falling back to stderr-only logging.\n"
+    )
+    os.environ["CH_LOG_DESTINATION"] = "stderr"
+
 # Atlas SRV connection strings (mongodb+srv://...) require dnspython
 # SRV resolution. The AA Python3 sandbox's system DNS does not answer
 # external SRV queries reliably, so explicitly point dnspython at
