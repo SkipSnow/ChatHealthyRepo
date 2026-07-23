@@ -26,12 +26,25 @@ detect PIPELINE_LOCAL_MODE=1 in env).
 """
 
 from __future__ import annotations
+
+import os
+
+# CH_LOG_DESTINATION MUST be set before the first ChatHealthyLoggingService
+# call — CHLS caches the destination binding on first _emit() and any later
+# env change is ignored. Set to "stderr,mongo" so Controller logs reach both
+# docker stdout AND Pipelines.Log_{env}. Other runbooks (reservation_reaper,
+# migrator, change_db_version) all set this at module load for the same
+# reason; control_runner was missing it, which is why Log_dev was empty for
+# every prior pipeline run.
+os.environ.setdefault("CH_LOG_DESTINATION", "stderr,mongo")
+os.environ.setdefault("CH_SPACE_NAME", "controller")
+os.environ.setdefault("CH_COMPONENT", "provider_pipeline_control")
+
 from chathealthy_frontend_lib.logging_service import ChatHealthyLoggingService
 
 import argparse
 import datetime
 import json
-import os
 import subprocess
 import sys
 
