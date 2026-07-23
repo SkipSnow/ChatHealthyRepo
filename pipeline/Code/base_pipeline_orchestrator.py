@@ -176,7 +176,12 @@ class BasePipelineOrchestrator:
             return {"step": spec.name, "partitions": 0, "mode": "worker_subprocess"}
 
         run_id = ctx.manifest.run_id
-        wi_coll = ctx.mongo_client["chathealthyfrontend"]["pipeline.work_items"]
+        # LLD v36 §4.3.4: the coordination substrate (pipeline.work_items)
+        # lives on the FRONT-END cluster (always-on chathealthyfrontend
+        # Atlas). ctx.mongo_client is the PIPELINE cluster (paused between
+        # runs) and is not the right target for coordination writes.
+        from pipeline_db import get_frontend_mongo  # noqa: PLC0415
+        wi_coll = get_frontend_mongo()["chathealthyfrontend"]["pipeline.work_items"]
 
         # 1. Enqueue work_items.
         args_snapshot = {

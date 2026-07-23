@@ -31,7 +31,7 @@ import threading
 import time
 import traceback
 
-from pipeline_db import get_mongo
+from pipeline_db import get_frontend_mongo, get_mongo
 from blob_client import get_blob_service
 from step_context import PipelineArgs, RunManifest, StepContext, StepTransition
 from steps import get_runner
@@ -71,9 +71,11 @@ def _reconstruct_step_context(payload: dict, mongo, blob) -> StepContext:
     )
     # Rehydrate manifest fields the Worker's step reads (source_versions,
     # metrics, completed_steps) from the live pipeline.runs doc so per-step
-    # decisions that depend on earlier steps' state (freshness map, prior
-    # source versions) work identically to inline execution.
-    live = mongo[FRONTEND_DB]["pipeline.runs"].find_one({"run_id": payload["run_id"]})
+    # decisions that depend on earlier steps' state work identically to
+    # inline execution. LLD v36 §4.3.4: pipeline.runs lives on the FRONT-END
+    # cluster; get_mongo() returns the pipeline cluster (paused between runs).
+    coord = get_frontend_mongo()
+    live = coord[FRONTEND_DB]["pipeline.runs"].find_one({"run_id": payload["run_id"]})
     if live:
         manifest.source_versions = live.get("source_versions") or {}
         manifest.metrics = live.get("metrics") or {}
@@ -118,7 +120,8 @@ def _dispatch(step: str, payload: dict) -> dict:
         for k, v in (deltas.get("metrics") or {}).items():
             set_ops[f"metrics.{k}"] = v
         if set_ops:
-            mongo[FRONTEND_DB]["pipeline.runs"].update_one(
+            # pipeline.runs is on the FRONT-END cluster (see LLD v36 §4.3.4).
+            get_frontend_mongo()[FRONTEND_DB]["pipeline.runs"].update_one(
                 {"run_id": payload["run_id"]},
                 {"$set": set_ops},
             )
@@ -221,10 +224,13 @@ def main(argv: list[str] | None = None) -> int:
         _log.error("pipeline_worker: --run-id or RUN_ID env is required")
         return 2
 
-    mongo = get_mongo()
+    # LLD v36 §4.3.4: work_items lives on the FRONT-END cluster (always-on).
+    # Step handlers still see the pipeline-cluster client via ctx.mongo_client
+    # (rehydrated inside _dispatch).
+    coord = get_frontend_mongo()
     worker_pid = os.getpid()
 
-    item = _claim_work_item(mongo, ns.run_id, ns.step, worker_pid)
+    item = _claim_work_item(coord, ns.run_id, ns.step, worker_pid)
     if item is None:
         _log.info("pipeline_worker: no pending work-item for run_id=%s step=%s — exiting cleanly",
                   ns.run_id, ns.step)
@@ -233,11 +239,11 @@ def main(argv: list[str] | None = None) -> int:
     _log.info("pipeline_worker: claimed item _id=%s run_id=%s step=%s payload=%s",
               item.get("_id"), ns.run_id, ns.step, item.get("payload"))
 
-    heartbeat = _HeartbeatThread(mongo, item["_id"])
+    heartbeat = _HeartbeatThread(coord, item["_id"])
     heartbeat.start()
     try:
         output = _dispatch(ns.step, item.get("payload") or {})
-        _mark_done(mongo, item["_id"], output)
+        _mark_done(coord, item["_id"], output)
         _log.info("pipeline_worker: done item _id=%s output_keys=%s",
                   item["_id"], sorted(output.keys()))
         return 0
@@ -247,7 +253,7 @@ def main(argv: list[str] | None = None) -> int:
             "msg": str(exc),
             "traceback": traceback.format_exc()[-2000:],
         }
-        _mark_failed(mongo, item["_id"], err)
+        _mark_failed(coord, item["_id"], err)
         _log.error("pipeline_worker: failed item _id=%s: %s", item["_id"], err["msg"])
         return 1
     finally:
