@@ -6195,7 +6195,7 @@
           "source_location": "pipeline/Code/blob_client.py",
           "handler_type": "python_source",
           "disposition": "referenced",
-          "content_hash": "7a4f141eaf690583e1dc92c8a9de125eb1302d965c47c5700c7f9ec78c984d11",
+          "content_hash": "749d72299af95a8418bbcfe22c046e9b92db8e8b834530bffcff0596becc6414",
           "package": "default"
         },
         {
@@ -7025,7 +7025,7 @@
                   "feature_id": "EPIC-008-F-012",
                   "handler_type": "python_source",
                   "disposition": "referenced",
-                  "content_hash": "a29244629f308918615710176220fb3fe635f39523c1f90acb41b64a5083ced6",
+                  "content_hash": "586be1bbedc183ecb62bd8321027364ca3bed05457599ca21f79c9ddf4e2a0f7",
                   "package": "change_db_version"
                 }
               ],
@@ -7219,10 +7219,22 @@
                 "runbook_name": "ChatHealthyDataMigratorOrchestrator",
                 "schedule_names": [],
                 "python_packages": [
-                  {"name": "requests", "content_url": "https://files.pythonhosted.org/packages/f9/9b/335f9764261e915ed497fcdeb11df5dfd6f7bf257d4a6a2a686d80da4d54/requests-2.32.3-py3-none-any.whl"},
-                  {"name": "pymongo", "content_url": "https://files.pythonhosted.org/packages/38/52/a58196a45232e9046c8b13f4fa3d89cca0e462b5c6d28969759226f781ee/pymongo-4.10.1-cp38-cp38-win_amd64.whl"},
-                  {"name": "dnspython", "content_url": "https://files.pythonhosted.org/packages/87/a1/8c5287991ddb8d3e4662f71356d9656d91ab3a36618c3dd11b280df0d255/dnspython-2.6.1-py3-none-any.whl"},
-                  {"name": "certifi", "content_url": "https://files.pythonhosted.org/packages/59/8c/57e832b7af6d7c5abe66eb3fbe3a3a32f4d11ea23a1aa7131371035be991/certifi-2026.5.20-py3-none-any.whl"}
+                  {
+                    "name": "requests",
+                    "content_url": "https://files.pythonhosted.org/packages/f9/9b/335f9764261e915ed497fcdeb11df5dfd6f7bf257d4a6a2a686d80da4d54/requests-2.32.3-py3-none-any.whl"
+                  },
+                  {
+                    "name": "pymongo",
+                    "content_url": "https://files.pythonhosted.org/packages/38/52/a58196a45232e9046c8b13f4fa3d89cca0e462b5c6d28969759226f781ee/pymongo-4.10.1-cp38-cp38-win_amd64.whl"
+                  },
+                  {
+                    "name": "dnspython",
+                    "content_url": "https://files.pythonhosted.org/packages/87/a1/8c5287991ddb8d3e4662f71356d9656d91ab3a36618c3dd11b280df0d255/dnspython-2.6.1-py3-none-any.whl"
+                  },
+                  {
+                    "name": "certifi",
+                    "content_url": "https://files.pythonhosted.org/packages/59/8c/57e832b7af6d7c5abe66eb3fbe3a3a32f4d11ea23a1aa7131371035be991/certifi-2026.5.20-py3-none-any.whl"
+                  }
                 ],
                 "automation_variables": [],
                 "node_address": "https://management.azure.com/subscriptions/7a17eec1-c477-4c7c-b1c1-d0662ce7a1ee/resourceGroups/rg-chathealthy-pipeline-dev/providers/Microsoft.Automation/automationAccounts/ChatHealthyJobManager/runbooks/ChatHealthyDataMigratorOrchestrator"
@@ -7259,10 +7271,22 @@
                 "runbook_name": "ChatHealthyDataMigratorProvisioner",
                 "schedule_names": [],
                 "python_packages": [
-                  {"name": "requests", "content_url": "https://files.pythonhosted.org/packages/f9/9b/335f9764261e915ed497fcdeb11df5dfd6f7bf257d4a6a2a686d80da4d54/requests-2.32.3-py3-none-any.whl"},
-                  {"name": "pymongo", "content_url": "https://files.pythonhosted.org/packages/38/52/a58196a45232e9046c8b13f4fa3d89cca0e462b5c6d28969759226f781ee/pymongo-4.10.1-cp38-cp38-win_amd64.whl"},
-                  {"name": "dnspython", "content_url": "https://files.pythonhosted.org/packages/87/a1/8c5287991ddb8d3e4662f71356d9656d91ab3a36618c3dd11b280df0d255/dnspython-2.6.1-py3-none-any.whl"},
-                  {"name": "certifi", "content_url": "https://files.pythonhosted.org/packages/59/8c/57e832b7af6d7c5abe66eb3fbe3a3a32f4d11ea23a1aa7131371035be991/certifi-2026.5.20-py3-none-any.whl"}
+                  {
+                    "name": "requests",
+                    "content_url": "https://files.pythonhosted.org/packages/f9/9b/335f9764261e915ed497fcdeb11df5dfd6f7bf257d4a6a2a686d80da4d54/requests-2.32.3-py3-none-any.whl"
+                  },
+                  {
+                    "name": "pymongo",
+                    "content_url": "https://files.pythonhosted.org/packages/38/52/a58196a45232e9046c8b13f4fa3d89cca0e462b5c6d28969759226f781ee/pymongo-4.10.1-cp38-cp38-win_amd64.whl"
+                  },
+                  {
+                    "name": "dnspython",
+                    "content_url": "https://files.pythonhosted.org/packages/87/a1/8c5287991ddb8d3e4662f71356d9656d91ab3a36618c3dd11b280df0d255/dnspython-2.6.1-py3-none-any.whl"
+                  },
+                  {
+                    "name": "certifi",
+                    "content_url": "https://files.pythonhosted.org/packages/59/8c/57e832b7af6d7c5abe66eb3fbe3a3a32f4d11ea23a1aa7131371035be991/certifi-2026.5.20-py3-none-any.whl"
+                  }
                 ],
                 "automation_variables": [],
                 "node_address": "https://management.azure.com/subscriptions/7a17eec1-c477-4c7c-b1c1-d0662ce7a1ee/resourceGroups/rg-chathealthy-pipeline-dev/providers/Microsoft.Automation/automationAccounts/ChatHealthyJobManager/runbooks/ChatHealthyDataMigratorProvisioner"
@@ -7297,10 +7321,22 @@
                 "runbook_name": "ChatHealthyDataMigrator",
                 "schedule_names": [],
                 "python_packages": [
-                  {"name": "requests", "content_url": "https://files.pythonhosted.org/packages/f9/9b/335f9764261e915ed497fcdeb11df5dfd6f7bf257d4a6a2a686d80da4d54/requests-2.32.3-py3-none-any.whl"},
-                  {"name": "pymongo", "content_url": "https://files.pythonhosted.org/packages/38/52/a58196a45232e9046c8b13f4fa3d89cca0e462b5c6d28969759226f781ee/pymongo-4.10.1-cp38-cp38-win_amd64.whl"},
-                  {"name": "dnspython", "content_url": "https://files.pythonhosted.org/packages/87/a1/8c5287991ddb8d3e4662f71356d9656d91ab3a36618c3dd11b280df0d255/dnspython-2.6.1-py3-none-any.whl"},
-                  {"name": "certifi", "content_url": "https://files.pythonhosted.org/packages/59/8c/57e832b7af6d7c5abe66eb3fbe3a3a32f4d11ea23a1aa7131371035be991/certifi-2026.5.20-py3-none-any.whl"}
+                  {
+                    "name": "requests",
+                    "content_url": "https://files.pythonhosted.org/packages/f9/9b/335f9764261e915ed497fcdeb11df5dfd6f7bf257d4a6a2a686d80da4d54/requests-2.32.3-py3-none-any.whl"
+                  },
+                  {
+                    "name": "pymongo",
+                    "content_url": "https://files.pythonhosted.org/packages/38/52/a58196a45232e9046c8b13f4fa3d89cca0e462b5c6d28969759226f781ee/pymongo-4.10.1-cp38-cp38-win_amd64.whl"
+                  },
+                  {
+                    "name": "dnspython",
+                    "content_url": "https://files.pythonhosted.org/packages/87/a1/8c5287991ddb8d3e4662f71356d9656d91ab3a36618c3dd11b280df0d255/dnspython-2.6.1-py3-none-any.whl"
+                  },
+                  {
+                    "name": "certifi",
+                    "content_url": "https://files.pythonhosted.org/packages/59/8c/57e832b7af6d7c5abe66eb3fbe3a3a32f4d11ea23a1aa7131371035be991/certifi-2026.5.20-py3-none-any.whl"
+                  }
                 ],
                 "automation_variables": [],
                 "node_address": "https://management.azure.com/subscriptions/7a17eec1-c477-4c7c-b1c1-d0662ce7a1ee/resourceGroups/rg-chathealthy-pipeline-dev/providers/Microsoft.Automation/automationAccounts/ChatHealthyJobManager/runbooks/ChatHealthyDataMigrator"
@@ -7332,10 +7368,22 @@
                 "runbook_name": "ChatHealthyDataMigratorDeprovisioner",
                 "schedule_names": [],
                 "python_packages": [
-                  {"name": "requests", "content_url": "https://files.pythonhosted.org/packages/f9/9b/335f9764261e915ed497fcdeb11df5dfd6f7bf257d4a6a2a686d80da4d54/requests-2.32.3-py3-none-any.whl"},
-                  {"name": "pymongo", "content_url": "https://files.pythonhosted.org/packages/38/52/a58196a45232e9046c8b13f4fa3d89cca0e462b5c6d28969759226f781ee/pymongo-4.10.1-cp38-cp38-win_amd64.whl"},
-                  {"name": "dnspython", "content_url": "https://files.pythonhosted.org/packages/87/a1/8c5287991ddb8d3e4662f71356d9656d91ab3a36618c3dd11b280df0d255/dnspython-2.6.1-py3-none-any.whl"},
-                  {"name": "certifi", "content_url": "https://files.pythonhosted.org/packages/59/8c/57e832b7af6d7c5abe66eb3fbe3a3a32f4d11ea23a1aa7131371035be991/certifi-2026.5.20-py3-none-any.whl"}
+                  {
+                    "name": "requests",
+                    "content_url": "https://files.pythonhosted.org/packages/f9/9b/335f9764261e915ed497fcdeb11df5dfd6f7bf257d4a6a2a686d80da4d54/requests-2.32.3-py3-none-any.whl"
+                  },
+                  {
+                    "name": "pymongo",
+                    "content_url": "https://files.pythonhosted.org/packages/38/52/a58196a45232e9046c8b13f4fa3d89cca0e462b5c6d28969759226f781ee/pymongo-4.10.1-cp38-cp38-win_amd64.whl"
+                  },
+                  {
+                    "name": "dnspython",
+                    "content_url": "https://files.pythonhosted.org/packages/87/a1/8c5287991ddb8d3e4662f71356d9656d91ab3a36618c3dd11b280df0d255/dnspython-2.6.1-py3-none-any.whl"
+                  },
+                  {
+                    "name": "certifi",
+                    "content_url": "https://files.pythonhosted.org/packages/59/8c/57e832b7af6d7c5abe66eb3fbe3a3a32f4d11ea23a1aa7131371035be991/certifi-2026.5.20-py3-none-any.whl"
+                  }
                 ],
                 "automation_variables": [],
                 "node_address": "https://management.azure.com/subscriptions/7a17eec1-c477-4c7c-b1c1-d0662ce7a1ee/resourceGroups/rg-chathealthy-pipeline-dev/providers/Microsoft.Automation/automationAccounts/ChatHealthyJobManager/runbooks/ChatHealthyDataMigratorDeprovisioner"
@@ -7350,7 +7398,7 @@
                   "feature_id": "EPIC-008-F-012",
                   "handler_type": "python_source",
                   "disposition": "referenced",
-                  "content_hash": "7a7577765e158421d1752913313e68825f999075c3ea73ce7222d46b152a5bf3",
+                  "content_hash": "c1222203de4711aa7c9faf03c995a9bedd1d1fe126dce889cb39cab723e68cca",
                   "package": "watchdog_runbook"
                 }
               ],
