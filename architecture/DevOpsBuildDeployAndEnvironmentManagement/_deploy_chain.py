@@ -1357,7 +1357,7 @@ def az_automation_orchestrator_verify_via_webhook(
         )
     aa_job_id = str(job_ids[0])
     step(f"  health-check dry-fire {runbook} via webhook (aa_job_id={aa_job_id})")
-    result = az_automation_poll_job_to_terminal(rg, aa, aa_job_id, timeout_sec=240)
+    result = az_automation_poll_job_to_terminal(rg, aa, aa_job_id, timeout_sec=600)
     status = result["status"]
     if status == "Completed":
         step(

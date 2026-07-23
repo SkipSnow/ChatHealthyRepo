@@ -7213,7 +7213,8 @@
                 "MONGO_CLUSTER_pipeline_connectionString": "local_env",
                 "MONGO_CLUSTER_frontend_connectionString": "local_env",
                 "KEY_VAULT_URI": "local_env",
-                "AUTOMATION_ENV_PREFIX": "local_env"
+                "AUTOMATION_ENV_PREFIX": "local_env",
+                "MONGOCLUSTER_MIGRATOR_ORCHESTRATOR_WEBHOOK_URL": "local_env"
               },
               "config": {
                 "runbook_name": "ChatHealthyDataMigratorOrchestrator",
