@@ -1139,17 +1139,43 @@ def _prompt_approve_browser(tool_name: str, command: str, reason: str,
         + "</p>"
         f"<h2>Command</h2><pre>{esc_cmd}</pre>"
         f"<form id=f method=POST action=/decide>"
-        f"<button class=approve name=verdict value=approve type=submit>APPROVE</button>"
-        f"<button class=reject name=verdict value=reject type=submit>REJECT</button>"
-        f"<input type=hidden name=token value=\"{token}\"></form>"
-        "<script>document.getElementById('f').addEventListener('submit',async function(e){"
-        "e.preventDefault();var fd=new FormData(e.target);"
-        "if(e.submitter&&e.submitter.name)fd.set(e.submitter.name,e.submitter.value);"
+        f"<button class=approve name=verdict value=approve type=button>APPROVE</button>"
+        f"<button class=reject name=verdict value=reject type=button>REJECT</button>"
+        f"<input type=hidden name=token value=\"{token}\">"
+        f"<input type=hidden name=human_click value=\"\" id=human_click_field>"
+        f"<input type=hidden name=verdict value=\"\" id=verdict_field>"
+        f"</form>"
+        "<script>"
+        "var humanMouseClicked=false;"
+        "function armMouse(btn,verdictValue){"
+        "btn.addEventListener('mousedown',function(e){"
+        "if(e.isTrusted&&e.type==='mousedown'&&e.button===0){"
+        "humanMouseClicked=true;"
+        "document.getElementById('human_click_field').value='true';"
+        "document.getElementById('verdict_field').value=verdictValue;"
+        "}"
+        "});"
+        "btn.addEventListener('mouseup',async function(e){"
+        "if(!humanMouseClicked||!e.isTrusted||e.type!=='mouseup'||e.button!==0){"
+        "document.body.innerHTML='<h1>Rejected: real mouse click required. Programmatic submission blocked.</h1>';"
+        "return;"
+        "}"
+        "if(document.getElementById('verdict_field').value!==verdictValue){"
+        "document.body.innerHTML='<h1>Rejected: verdict mismatch.</h1>';"
+        "return;"
+        "}"
+        "var fd=new FormData(document.getElementById('f'));"
+        "fd.set('human_click','true');"
+        "fd.set('verdict',verdictValue);"
         "try{var r=await fetch('/decide',{method:'POST',body:new URLSearchParams(fd)});"
         "if(r.ok){window.close();document.body.innerHTML='<h1>Recorded.</h1>';}"
-        "else{document.body.innerHTML='<h1>Error '+r.status+'</h1>';}}"
+        "else{document.body.innerHTML='<h1>Error '+r.status+' '+await r.text()+'</h1>';}}"
         "catch(err){document.body.innerHTML='<h1>Network error</h1>';}"
-        "});</script></body></html>"
+        "});"
+        "}"
+        "armMouse(document.querySelector('button.approve'),'approve');"
+        "armMouse(document.querySelector('button.reject'),'reject');"
+        "</script></body></html>"
     )
     ack = "<!doctype html><h1 style=\"font-family:system-ui;padding:40px\">Recorded.</h1>"
 
@@ -1178,6 +1204,13 @@ def _prompt_approve_browser(tool_name: str, command: str, reason: str,
             fields = parse_qs(raw)
             if fields.get("token", [""])[0] != token:
                 self._send(400, "<h1>Bad token</h1>")
+                return
+            if fields.get("human_click", [""])[0] != "true":
+                self._send(
+                    400,
+                    "<h1>Rejected: human_click marker missing. A real mouse "
+                    "click on APPROVE or REJECT is required.</h1>",
+                )
                 return
             v = fields.get("verdict", [""])[0]
             if v in ("approve", "reject"):
