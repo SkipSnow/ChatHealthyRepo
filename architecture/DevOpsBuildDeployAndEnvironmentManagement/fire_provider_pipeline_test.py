@@ -65,10 +65,22 @@ def test_fire_provider_pipeline() -> None:
     state_scope_raw = os.environ.get("PIPELINE_TEST_STATE_SCOPE", "VT,DE")
     state_scope = [s.strip().upper() for s in state_scope_raw.split(",") if s.strip()]
     load_mode = os.environ.get("PIPELINE_TEST_LOAD_MODE", "full")
+    # Mandatory. Operator must set PIPELINE_TEST_DATA_VERSION so the
+    # pipeline knows which versioned staging + target collections to
+    # write. There is no default -- writing to the wrong version is
+    # exactly the class of bug we are trying to prevent.
+    dv_raw = os.environ.get("PIPELINE_TEST_DATA_VERSION", "").strip()
+    if not dv_raw.isdigit() or int(dv_raw) < 1:
+        pytest.fail(
+            "PIPELINE_TEST_DATA_VERSION env var is required (int >= 1). "
+            "Example: PIPELINE_TEST_DATA_VERSION=3"
+        )
+    data_version = int(dv_raw)
     payload = {
         "state_scope": state_scope,
         "load_mode": load_mode,
         "invocation_mode": "tests",
+        "data_version": data_version,
     }
     body = json.dumps(payload).encode("utf-8")
     req = urllib.request.Request(

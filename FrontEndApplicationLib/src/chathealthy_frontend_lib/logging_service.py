@@ -186,6 +186,9 @@ class _MongoLogHandler(logging.Handler):
                 "component": self._target,
                 "pipeline_name": os.environ.get("PIPELINE_NAME", "").strip() or None,
                 "job_id": os.environ.get("RUN_ID", "").strip() or None,
+                "data_version": (int(os.environ["DATA_VERSION"])
+                                 if os.environ.get("DATA_VERSION", "").strip().isdigit()
+                                 else None),
                 "vnet_name": os.environ.get("CHATHEALTHY_VNET_NAME", "").strip() or None,
                 "formatted": self.format(record),
                 "pathname": record.pathname,

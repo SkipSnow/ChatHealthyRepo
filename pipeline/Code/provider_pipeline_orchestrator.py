@@ -49,7 +49,7 @@ class ProviderPipelineOrchestrator(BasePipelineOrchestrator):
             prerequisites=["source_archival"],
             parallelism="process_pool",
             aca_job_name="prov-load-staging",
-            partition_key="business_address_state",
+            partition_key="source_name",
         ),
         StepSpec(
             name="load_f006_catalog",

@@ -32,7 +32,11 @@ def load_pipeline_config(mongo_client, env_prefix: str = "dev") -> dict[str, Any
     if doc:
         doc.pop("_id", None)
         return doc
-    target = f"{env_prefix}_PublicHealthData.providers_v1"
+    # NOTE: default target here is only reached when Mongo config doc is
+    # missing AND caller did not supply --data-version-derived target.
+    # PipelineArgs.provider_write_target() is the authoritative source
+    # for callers with a data_version in hand.
+    target = "PublicData.Provider_v_0"
     return {
         "env": env_prefix,
         "dataset_versions": {"provider_write_target": target},
@@ -52,7 +56,11 @@ def load_pipeline_config(mongo_client, env_prefix: str = "dev") -> dict[str, Any
 
 def ensure_pipeline_config(mongo_client, env_prefix: str = "dev") -> dict[str, Any]:
     coll = mongo_client[CONFIG_DB][CONFIG_COLL]
-    target = f"{env_prefix}_PublicHealthData.providers_v1"
+    # NOTE: default target here is only reached when Mongo config doc is
+    # missing AND caller did not supply --data-version-derived target.
+    # PipelineArgs.provider_write_target() is the authoritative source
+    # for callers with a data_version in hand.
+    target = "PublicData.Provider_v_0"
     defaults = load_pipeline_config(mongo_client, env_prefix)
     defaults.setdefault("dataset_versions", {})["provider_write_target"] = target
     coll.update_one(

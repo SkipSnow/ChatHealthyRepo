@@ -146,6 +146,15 @@ def _parse_args(argv: list[str]) -> argparse.Namespace:
                         default=int(os.environ.get("EXPECTED_DURATION_MINUTES", "120")))
     parser.add_argument("--log-level", dest="log_level",
                         default=os.environ.get("LOG_LEVEL", "INFO"))
+    # Mandatory. May come from --data-version CLI arg or DATA_VERSION env.
+    # PipelineArgs.__post_init__ enforces int >= 1.
+    _dv_env = os.environ.get("DATA_VERSION", "").strip()
+    _dv_default = int(_dv_env) if _dv_env.isdigit() else None
+    parser.add_argument("--data-version", dest="data_version", type=int,
+                        default=_dv_default, required=(_dv_default is None),
+                        help="Provider collection version number "
+                             "(e.g. 3 -> Provider_v_3). MANDATORY. Reads "
+                             "DATA_VERSION env if flag omitted.")
     return parser.parse_args(argv)
 
 
@@ -163,6 +172,11 @@ def main(argv: list[str] | None = None) -> int:
 
     states_list = _states_list(ns.states)
     incremental = (ns.load_mode == "incremental")
+    # Export data_version to env so Worker subprocesses (spawned via
+    # spawn_detached_worker with the current os.environ.copy()) inherit
+    # it, and so CHLS _MongoLogHandler.emit() picks it up on every log
+    # line (see logging_service.py "data_version" doc field).
+    os.environ["DATA_VERSION"] = str(ns.data_version)
     args = PipelineArgs(
         states=states_list,
         env_prefix=ns.env_prefix,
@@ -170,6 +184,7 @@ def main(argv: list[str] | None = None) -> int:
         resume_from_step=ns.resume_from_step,
         run_id=ns.run_id,
         incremental=incremental,
+        data_version=ns.data_version,
     )
 
     orchestrator = ProviderPipelineOrchestrator(

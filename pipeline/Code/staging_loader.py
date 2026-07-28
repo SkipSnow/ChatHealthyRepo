@@ -62,14 +62,46 @@ from pymongo import ASCENDING, InsertOne
 
 _log = ChatHealthyLoggingService()
 
-STAGING_COLLECTIONS = {
-    "nppes_npi": "pipeline_sources_nppes_npi",
-    "pl_pfile": "pipeline_sources_pl_pfile",
-    "nucc": "pipeline_sources_nucc_taxonomy",
-    "census_zcta_county": "pipeline_sources_zip_county_crosswalk",
-    "usda_rucc": "pipeline_sources_rucc",
-    "specialty_catalog": "pipeline_sources_specialty_catalog",
+STAGING_DB_NAME = "PublicStaging"
+
+# Base collection name per source (versioned at use-time as
+# f"{base}_v_{data_version}"). All staging tables live in the fixed
+# PublicStaging DB on the ChatHealthyPipelines cluster.
+STAGING_BASE_NAMES = {
+    "nppes_npi": "Provider",
+    "pl_pfile": "PlPfile",
+    "nucc": "Nucc",
+    "census_zcta_county": "CensusZctaCounty",
+    "usda_rucc": "UsdaRucc",
+    "specialty_catalog": "SpecialtyCatalog",
 }
+
+
+def staging_collection_name(source_name: str, data_version: int) -> str:
+    """Return "<Base>_v_<data_version>" for the given source. Raises if
+    the source is unknown or data_version invalid."""
+    base = STAGING_BASE_NAMES.get(source_name)
+    if not base:
+        raise ChatHealthyException(
+            mode="value_error",
+            message=f"staging_loader: no STAGING_BASE_NAMES entry for source {source_name!r}",
+            source_name=source_name,
+        )
+    if not isinstance(data_version, int) or data_version < 1:
+        raise ChatHealthyException(
+            mode="value_error",
+            message="staging_loader: data_version must be int >= 1",
+            source_name=source_name,
+            data_version=repr(data_version),
+        )
+    return f"{base}_v_{data_version}"
+
+
+# Legacy alias — some downstream callers may still reference STAGING_
+# COLLECTIONS by name. It now returns None-values because the actual
+# collection name is version-dependent; those callers MUST migrate to
+# staging_collection_name(source_name, data_version).
+STAGING_COLLECTIONS = {k: None for k in STAGING_BASE_NAMES}
 
 DEFAULT_BATCH_SIZE = 1000
 DEFAULT_STAGING_CONCURRENCY = 4
@@ -201,21 +233,66 @@ def _wrap_row(
 
 
 def _ensure_indexes(coll, source_name: str) -> None:
-    """LLD REQ-T-003/REQ-T-004: byte-offset index + NPI join key on secondary."""
+    """Create indexes on the versioned staging collection.
+
+    NPPES gets a UNIQUE index on npi. Any duplicate NPI insert raises
+    BulkWriteError, which propagates out of _load_one_source and fails
+    the step. NO retry, NO try/except swallow. That is the failure
+    surface that catches the exact 34M-row inflation that happened with
+    the prior non-unique index.
+
+    pl_pfile has multiple rows per NPI (one per practice location); its
+    index cannot be unique on npi alone.
+
+    All other sources get non-unique indexes on their natural key for
+    downstream lookup performance.
+    """
     coll.create_index([("run_id", ASCENDING), ("_source_row_index", ASCENDING)])
-    if source_name in ("nppes_npi", "pl_pfile"):
-        coll.create_index([("run_id", ASCENDING), ("npi", ASCENDING)])
-    if source_name == "nucc":
-        coll.create_index([("run_id", ASCENDING), ("code", ASCENDING)])
-    if source_name == "census_zcta_county":
-        coll.create_index([("run_id", ASCENDING), ("zcta5", ASCENDING)])
-    if source_name == "usda_rucc":
-        coll.create_index([("run_id", ASCENDING), ("fips", ASCENDING)])
+    if source_name == "nppes_npi":
+        coll.create_index([("npi", ASCENDING)], unique=True, name="npi_unique")
+    elif source_name == "pl_pfile":
+        coll.create_index([("npi", ASCENDING)])
+    elif source_name == "nucc":
+        coll.create_index([("code", ASCENDING)])
+    elif source_name == "census_zcta_county":
+        coll.create_index([("zcta5", ASCENDING)])
+    elif source_name == "usda_rucc":
+        coll.create_index([("fips", ASCENDING)])
 
 
 def _drop_prior_run_rows(coll, run_id: str) -> int:
     res = coll.delete_many({"run_id": run_id})
     return res.deleted_count if res else 0
+
+
+_NPPES_STATE_COLUMN = "Provider Business Practice Location Address State Name"
+
+
+def _require_staging_collection(source_name: str) -> str:
+    coll_name = STAGING_COLLECTIONS.get(source_name)
+    if not coll_name:
+        raise ChatHealthyException(mode="runtime_error", message=f"staging_loader[{source_name}]: no staging collection mapping")
+    return coll_name
+
+
+def _require_mongo(mongo) -> None:
+    if mongo is None:
+        raise ChatHealthyException(mode="runtime_error", message="staging_loader: mongo client is required")
+
+
+def _drop_prior_state_scoped_rows(coll, source_name: str, states: tuple[str, ...]) -> int:
+    """Full-load hygiene for NPPES: delete every existing row whose state
+    is in the current state scope. Records from other states stay
+    untouched. Called BEFORE the fresh load so the collection ends up
+    with exactly the current run's state scope + everything else from
+    prior runs. Returns the delete count."""
+    if source_name != "nppes_npi" or not states:
+        return 0
+    filter_states = [s.upper() for s in states if s]
+    if not filter_states:
+        return 0
+    res = coll.delete_many({_NPPES_STATE_COLUMN: {"$in": filter_states}})
+    return int(res.deleted_count or 0)
 
 
 def _load_one_source(
@@ -227,18 +304,34 @@ def _load_one_source(
     mongo,
     blob,
     batch_size: int,
+    data_version: int,
+    states: tuple[str, ...] = (),
+    incremental: bool = False,
 ) -> dict[str, Any]:
-    """Load one source into its staging collection."""
-    coll_name = STAGING_COLLECTIONS.get(source_name)
-    if not coll_name:
-        raise ChatHealthyException(mode="runtime_error", message=f"staging_loader[{source_name}]: no staging collection mapping")
-    if mongo is None:
-        raise ChatHealthyException(mode="runtime_error", message="staging_loader: mongo client is required")
-    db = mongo[f"{env_prefix}_PublicHealthData"]
+    """Load one source into its versioned staging collection.
+
+    Target: mongo["PublicStaging"][staging_collection_name(source_name,
+    data_version)] on the ChatHealthyPipelines cluster.
+
+    states: 2-letter state codes to keep for NPPES rows. Empty => keep all
+        (equivalent to state_scope=ALL). Only applied to source_name ==
+        'nppes_npi'. Other sources (reference tables, pl_pfile) always
+        load in full.
+    incremental: when False (full load) AND states is non-empty AND
+        source is NPPES, additionally delete every existing row in the
+        staging collection whose state is in `states` BEFORE inserting
+        the fresh rows. Records from out-of-scope states are preserved.
+    """
+    coll_name = staging_collection_name(source_name, data_version)
+    _require_mongo(mongo)
+    db = mongo[STAGING_DB_NAME]
     coll = db[coll_name]
 
     _ensure_indexes(coll, source_name)
-    deleted = _drop_prior_run_rows(coll, run_id)
+    deleted_current_run = _drop_prior_run_rows(coll, run_id)
+    deleted_state_scoped = (
+        0 if incremental else _drop_prior_state_scoped_rows(coll, source_name, states)
+    )
 
     container_name = spec["blob_container"]
     blob_name = spec["blob_path"]
@@ -246,12 +339,23 @@ def _load_one_source(
 
     npi_hint = NPPES_NPI_COLUMN_CANDIDATES if source_name in ("nppes_npi", "pl_pfile") else None
 
+    state_filter: set[str] = set()
+    if source_name == "nppes_npi" and states:
+        state_filter = {s.upper() for s in states if s}
+
     inserted = 0
+    skipped_out_of_scope = 0
     ops: list[InsertOne] = []
     row_index = 0
 
     try:
         for row in _resolve_iter(source_name, spec, local_path):
+            if state_filter:
+                row_state = (row.get(_NPPES_STATE_COLUMN) or "").strip().upper()
+                if row_state not in state_filter:
+                    row_index += 1
+                    skipped_out_of_scope += 1
+                    continue
             doc = _wrap_row(
                 row,
                 source_name=source_name,
@@ -279,7 +383,9 @@ def _load_one_source(
         "source_name": source_name,
         "collection": coll_name,
         "inserted": inserted,
-        "deleted_prior_rows_for_run": deleted,
+        "deleted_prior_rows_for_run": deleted_current_run,
+        "deleted_prior_rows_for_states": deleted_state_scoped,
+        "skipped_out_of_scope_rows": skipped_out_of_scope,
         "row_count": row_index,
     }
 
@@ -319,6 +425,16 @@ def load_staging(
     env_prefix = config.get("env", "dev")
     batch_size = int(config.get("batch_size", DEFAULT_BATCH_SIZE))
     concurrency = int(config.get("staging_concurrency", DEFAULT_STAGING_CONCURRENCY))
+    states: tuple[str, ...] = tuple(s for s in (config.get("states") or ()) if s)
+    incremental: bool = bool(config.get("incremental"))
+    dv = config.get("data_version")
+    if not isinstance(dv, int) or dv < 1:
+        raise ChatHealthyException(
+            mode="value_error",
+            message="staging_loader: config['data_version'] must be int >= 1",
+            data_version=repr(dv),
+        )
+    data_version: int = dv
 
     results: list[dict[str, Any]] = []
 
@@ -332,6 +448,9 @@ def load_staging(
             mongo=mongo,
             blob=blob,
             batch_size=batch_size,
+            data_version=data_version,
+            states=states,
+            incremental=incremental,
         ))
 
     parallel_sources = {n: s for n, s in sources.items() if n != "nppes_npi"}
@@ -347,14 +466,18 @@ def load_staging(
                     mongo=mongo,
                     blob=blob,
                     batch_size=batch_size,
+                    data_version=data_version,
+                    states=states,
+                    incremental=incremental,
                 ): name for name, spec in parallel_sources.items()
             }
             for fut in as_completed(futures):
                 name = futures[fut]
-                try:
-                    results.append(fut.result())
-                except Exception as exc:
-                    results.append({"source_name": name, "error": f"{type(exc).__name__}: {exc}"})
+                # No swallowing. If a Worker future raises, .result()
+                # re-raises here and propagates out of load_staging so
+                # the step fails loud. Operator directive: "if we fail
+                # we fail" - no fallbacks, no retries.
+                results.append(fut.result())
 
     total = sum(int(r.get("inserted", 0)) for r in results)
     return {"results": results, "total_inserted": total}

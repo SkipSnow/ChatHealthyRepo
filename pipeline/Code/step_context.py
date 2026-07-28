@@ -33,6 +33,21 @@ class PipelineArgs:
     discrepancy_threshold: int = 1000
     resume_from_step: str | None = None
     run_id: str | None = None
+    # Mandatory data-version integer. Default 0 is only for dataclass
+    # field-ordering; __post_init__ enforces >= 1 at construction.
+    data_version: int = 0
+
+    def __post_init__(self):
+        if not isinstance(self.data_version, int) or self.data_version < 1:
+            raise ChatHealthyException(
+                mode="value_error",
+                message=(
+                    "PipelineArgs.data_version is mandatory and must be an "
+                    "int >= 1. Pass --data-version <n> on the CLI or set "
+                    "DATA_VERSION env var."
+                ),
+                data_version=repr(self.data_version),
+            )
 
     def resolved_states(self) -> list[str]:
         scope = self.state_scope or self.states
@@ -44,9 +59,13 @@ class PipelineArgs:
         return [s.upper() for s in scope]
 
     def provider_write_target(self) -> str:
+        # Target production provider collection on the pipeline cluster.
+        # Cluster: ChatHealthyPipelines. DB: PublicData. Collection:
+        # Provider_v_{n}. A separate migration job moves this to the
+        # front-end cluster for user-facing queries.
         if self.provider_collection:
             return self.provider_collection
-        return f"{self.env_prefix}_PublicHealthData.providers_v1"
+        return f"PublicData.Provider_v_{self.data_version}"
 
 
 @dataclass

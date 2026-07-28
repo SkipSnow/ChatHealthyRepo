@@ -396,6 +396,19 @@ def _runbook_error_teardown(mongo, run_id: str, vm_name: str,
                 run_id=run_id, vm_name=vm_name, error=str(exc)[:500])
 
 
+def _raise_missing_data_version(webhook_body) -> None:
+    """Raise-only helper: rejects a webhook payload that omits data_version.
+    Rule-005 keeps the raise separate from the caller's log call."""
+    raise ChatHealthyException(
+        mode="value_error",
+        message=(
+            "provider_pipeline_runbook: webhook payload MUST include "
+            "data_version as int >= 1. Fire again with a valid value."
+        ),
+        webhook_body_head=str(webhook_body)[:400],
+    )
+
+
 def _write_run_manifest(mongo, run_id: str, load_mode: str,
                         state_scope, invocation_mode: str,
                         config: dict) -> None:
@@ -419,7 +432,8 @@ def _write_run_manifest(mongo, run_id: str, load_mode: str,
 # ARM -- start the prov-control ACA Job with env-var overrides
 # ============================================================================
 def _cloud_init_user_data(run_id: str, load_mode: str, state_scope,
-                          invocation_mode: str, resume_from_step: str) -> str:
+                          invocation_mode: str, resume_from_step: str,
+                          data_version: int) -> str:
     """Return the base64-encoded cloud-init user_data blob for the VM.
 
     The VM boots this cloud-init:
@@ -488,6 +502,7 @@ runcmd:
       -e CH_COMPONENT='provider_pipeline_control' \\
       -e PIPELINE_LOG_ACCOUNT_URL='https://stchpipelinedev.blob.core.windows.net' \\
       -e RUN_ID='{run_id}' \\
+      -e DATA_VERSION='{data_version}' \\
       -e ENV_PREFIX='{ENV_PREFIX}' \\
       -e INVOCATION_MODE='{invocation_mode}' \\
       -e LOAD_MODE='{load_mode}' \\
@@ -527,7 +542,8 @@ def _get_ssh_pubkey() -> str:
 
 
 def _provision_vm(run_id: str, load_mode: str, state_scope,
-                  invocation_mode: str, resume_from_step: str = "") -> dict:
+                  invocation_mode: str, resume_from_step: str = "",
+                  data_version: int = 0) -> dict:
     """v32 §5.2.2: PUT a fresh Pipeline Run VM into snet-pipeline-compute.
 
     Async by nature: ARM returns a provisioning-state URL, not a
@@ -583,7 +599,8 @@ def _provision_vm(run_id: str, load_mode: str, state_scope,
         f"virtualMachines/{vm_name}?api-version=2024-03-01"
     )
     user_data_b64 = _cloud_init_user_data(
-        run_id, load_mode, state_scope, invocation_mode, resume_from_step
+        run_id, load_mode, state_scope, invocation_mode, resume_from_step,
+        data_version,
     )
     vm_body = {
         "location": VM_LOCATION,
@@ -732,6 +749,7 @@ def _atlas_resume_pipeline_cluster() -> dict:
 def _provision_vm_and_wake_mongo_in_parallel(
     run_id: str, load_mode: str, state_scope,
     invocation_mode: str, resume_from_step: str = "",
+    data_version: int = 0,
 ) -> dict:
     """v32 §5.2.2 par-block: fire VM create AND Atlas resume in parallel.
 
@@ -746,7 +764,8 @@ def _provision_vm_and_wake_mongo_in_parallel(
     def _run_vm():
         try:
             results["vm"] = _provision_vm(
-                run_id, load_mode, state_scope, invocation_mode, resume_from_step
+                run_id, load_mode, state_scope, invocation_mode, resume_from_step,
+                data_version,
             )
         except Exception as exc:  # noqa: BLE001
             results["vm_error"] = f"{type(exc).__name__}: {exc}"
@@ -892,6 +911,21 @@ def main() -> int:
         (webhook_body.get("resume_from_step") or "").strip()
         if webhook_body else ""
     )
+    # Mandatory data_version — no default. Operator's fire_provider_
+    # pipeline_test enforces this on the payload side; runbook enforces
+    # it on the receive side. Fail loud if missing.
+    dv_raw = (webhook_body or {}).get("data_version")
+    try:
+        data_version = int(dv_raw)
+    except (TypeError, ValueError):
+        data_version = 0
+    if data_version < 1:
+        log("runbook_reject_no_data_version", webhook_body=str(webhook_body)[:400])
+        _raise_missing_data_version(webhook_body)
+    # Publish to env so cloud-init template injects it into docker run
+    # -e DATA_VERSION=<n>, which the Controller argparse and CHLS both
+    # read.
+    os.environ["DATA_VERSION"] = str(data_version)
 
     log("runbook_start",
         pipeline=PIPELINE_NAME,
@@ -899,6 +933,7 @@ def main() -> int:
         invocation_mode=invocation_mode,
         load_mode=load_mode,
         state_scope=state_scope,
+        data_version=data_version,
         resume_from_step=resume_from_step or None)
 
     # Fresh run_id
@@ -992,7 +1027,8 @@ def main() -> int:
         vm_name_for_teardown = f"vm-chpipeline-{_reservation_short_id(run_id)}"
         try:
             result = _provision_vm_and_wake_mongo_in_parallel(
-                run_id, load_mode, state_scope, invocation_mode, resume_from_step
+                run_id, load_mode, state_scope, invocation_mode, resume_from_step,
+                data_version,
             )
             vm_id = ((result.get("vm") or {}).get("id")) if result.get("vm") else None
             vm_provisioned = True
