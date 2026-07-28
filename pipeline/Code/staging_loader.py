@@ -181,9 +181,19 @@ def _iter_xlsx_rows(local_path: str) -> Iterator[dict[str, str]]:
     """Iterate rows of a .xlsx file as dicts keyed by the header row of
     the first sheet. Requires openpyxl (already a pipeline dep for
     embeddings). Fails loud if the file cannot be opened or the sheet
-    is empty."""
+    is empty.
+
+    Reads the file into BytesIO so openpyxl detects format via magic
+    bytes (zipfile signature) rather than filename extension. Source
+    fetches (e.g. usda_rucc from data.ers.usda.gov) sometimes land
+    with a .bin extension when the download URL does not end in .xlsx;
+    passing a file-like object bypasses openpyxl's extension check.
+    """
+    from io import BytesIO  # noqa: PLC0415
     from openpyxl import load_workbook  # noqa: PLC0415
-    wb = load_workbook(local_path, read_only=True, data_only=True)
+    with open(local_path, "rb") as fh:
+        buf = BytesIO(fh.read())
+    wb = load_workbook(buf, read_only=True, data_only=True)
     ws = wb.active
     rows = ws.iter_rows(values_only=True)
     try:
