@@ -285,13 +285,17 @@ def _drop_prior_state_scoped_rows(coll, source_name: str, states: tuple[str, ...
     is in the current state scope. Records from other states stay
     untouched. Called BEFORE the fresh load so the collection ends up
     with exactly the current run's state scope + everything else from
-    prior runs. Returns the delete count."""
+    prior runs. Returns the delete count.
+
+    Note: _wrap_row nests the raw CSV row under doc["raw"], so the
+    Mongo query must use the dotted "raw.<column>" path, not the bare
+    column name."""
     if source_name != "nppes_npi" or not states:
         return 0
     filter_states = [s.upper() for s in states if s]
     if not filter_states:
         return 0
-    res = coll.delete_many({_NPPES_STATE_COLUMN: {"$in": filter_states}})
+    res = coll.delete_many({f"raw.{_NPPES_STATE_COLUMN}": {"$in": filter_states}})
     return int(res.deleted_count or 0)
 
 
