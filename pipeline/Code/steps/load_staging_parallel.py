@@ -29,13 +29,16 @@ from staging_loader import load_staging
 _log = ChatHealthyLoggingService()
 
 
+# Per-source format spec. Third slot is the CSV delimiter when applicable
+# (default comma), or None when not applicable. NPPES uses tab; the census
+# ZCTA/county file uses pipe. usda_rucc is an Excel .xlsx binary.
 _FORMAT_BY_SOURCE = {
-    "nppes_npi": ("zip_csv", "npidata"),
-    "pl_pfile": ("zip_csv", "pl_pfile"),
-    "nucc": ("csv", None),
-    "census_zcta_county": ("csv", None),
-    "usda_rucc": ("csv", None),
-    "specialty_catalog": ("json", None),
+    "nppes_npi": ("zip_csv", "npidata", None),
+    "pl_pfile": ("zip_csv", "pl_pfile", None),
+    "nucc": ("csv", None, ","),
+    "census_zcta_county": ("csv", None, "|"),
+    "usda_rucc": ("xlsx", None, None),
+    "specialty_catalog": ("json", None, None),
 }
 
 
@@ -75,7 +78,7 @@ def _require_fetch_result(source_name: str, fetch_results: dict) -> dict:
     return r
 
 
-def _require_format(source_name: str) -> tuple[str, str | None]:
+def _require_format(source_name: str) -> tuple[str, str | None, str | None]:
     fmt_map = _FORMAT_BY_SOURCE.get(source_name)
     if not fmt_map:
         raise ChatHealthyException(
@@ -94,7 +97,7 @@ def run_step(ctx) -> dict:
 
     fetch_results = ctx.manifest.metrics.get("fetch_results") or {}
     fetch_result = _require_fetch_result(source_name, fetch_results)
-    fmt, hint = _require_format(source_name)
+    fmt, hint, delimiter = _require_format(source_name)
 
     spec = {
         "blob_container": fetch_result.get("blob_container"),
@@ -103,6 +106,8 @@ def run_step(ctx) -> dict:
     }
     if hint:
         spec["inner_name_hint"] = hint
+    if delimiter:
+        spec["delimiter"] = delimiter
 
     config = dict(ctx.config)
     config.setdefault("run_id", ctx.run_id)
