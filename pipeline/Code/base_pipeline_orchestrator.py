@@ -197,6 +197,7 @@ class BasePipelineOrchestrator:
             "load_mode": (
                 "full" if not ctx.args.incremental else "incremental"
             ),
+            "data_version": int(ctx.args.data_version),
         }
         # Config we pass to Worker excludes non-picklable clients; each
         # Worker reconstructs its own mongo_client + blob_client.
