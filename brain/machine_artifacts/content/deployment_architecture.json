@@ -12,6 +12,26 @@
           "cloudflare_pages": {
             "project_name": "chathealthy-website-dev"
           },
+          "cloudflare_firewall_rules": [
+            {
+              "description": "pipeline-auth-Data-bypass-dev",
+              "zone_name": "chathealthy.ai",
+              "expression": "(http.host eq \"dev.chathealthy.ai\" and starts_with(http.request.uri.path, \"/Data/\") and http.request.headers[\"x-chathealthy-pipeline-auth\"][0] eq \"${CLOUDFLARE_PIPELINE_AUTH_HEADER}\")",
+              "action": "skip",
+              "action_parameters": {
+                "products": [
+                  "bic",
+                  "hot",
+                  "rateLimit",
+                  "securityLevel",
+                  "uaBlock",
+                  "zoneLockdown",
+                  "waf"
+                ]
+              },
+              "enabled": true
+            }
+          ],
           "packages": [
             {
               "package_id": "json_schemas",
@@ -34,6 +54,26 @@
           "cloudflare_pages": {
             "project_name": "chathealthy-website-qa"
           },
+          "cloudflare_firewall_rules": [
+            {
+              "description": "pipeline-auth-Data-bypass-qa",
+              "zone_name": "chathealthy.ai",
+              "expression": "(http.host eq \"qa.chathealthy.ai\" and starts_with(http.request.uri.path, \"/Data/\") and http.request.headers[\"x-chathealthy-pipeline-auth\"][0] eq \"${CLOUDFLARE_PIPELINE_AUTH_HEADER}\")",
+              "action": "skip",
+              "action_parameters": {
+                "products": [
+                  "bic",
+                  "hot",
+                  "rateLimit",
+                  "securityLevel",
+                  "uaBlock",
+                  "zoneLockdown",
+                  "waf"
+                ]
+              },
+              "enabled": true
+            }
+          ],
           "packages": [
             {
               "package_id": "json_schemas",
@@ -56,6 +96,26 @@
           "cloudflare_pages": {
             "project_name": "chathealthywebsite"
           },
+          "cloudflare_firewall_rules": [
+            {
+              "description": "pipeline-auth-Data-bypass-prod",
+              "zone_name": "chathealthy.ai",
+              "expression": "(http.host eq \"chathealthy.ai\" and starts_with(http.request.uri.path, \"/Data/\") and http.request.headers[\"x-chathealthy-pipeline-auth\"][0] eq \"${CLOUDFLARE_PIPELINE_AUTH_HEADER}\")",
+              "action": "skip",
+              "action_parameters": {
+                "products": [
+                  "bic",
+                  "hot",
+                  "rateLimit",
+                  "securityLevel",
+                  "uaBlock",
+                  "zoneLockdown",
+                  "waf"
+                ]
+              },
+              "enabled": true
+            }
+          ],
           "packages": [
             {
               "package_id": "json_schemas",
@@ -452,7 +512,8 @@
       ],
       "secrets": {
         "CLOUDFLARE_API_TOKEN": "local_env",
-        "CLOUDFLARE_ACCOUNT_ID": "local_env"
+        "CLOUDFLARE_ACCOUNT_ID": "local_env",
+        "CLOUDFLARE_PIPELINE_AUTH_HEADER": "local_env"
       },
       "entitlements": [
         {
@@ -460,7 +521,9 @@
           "account": "ChatHealthyLLC",
           "scopes": [
             "Account:Cloudflare Pages:Edit",
-            "Account:Account Settings:Read"
+            "Account:Account Settings:Read",
+            "Zone:Zone:Read",
+            "Zone:Firewall Services:Edit"
           ]
         }
       ]
@@ -7535,7 +7598,8 @@
         "SOURCE_URL_NUCC": "local_env",
         "SOURCE_URL_CENSUS_ZCTA_COUNTY": "local_env",
         "SOURCE_URL_USDA_RUCC": "local_env",
-        "SPECIALTY_CLASSIFICATION_CATALOG_URL": "local_env"
+        "SPECIALTY_CLASSIFICATION_CATALOG_URL": "local_env",
+        "CLOUDFLARE_PIPELINE_AUTH_HEADER": "local_env"
       },
       "allowed_roles": [
         "Key Vault Secrets Officer",
