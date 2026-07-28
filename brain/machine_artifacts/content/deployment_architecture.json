@@ -19,6 +19,10 @@
               "expression": "(http.host eq \"dev.chathealthy.ai\" and starts_with(http.request.uri.path, \"/Data/\") and http.request.headers[\"x-chathealthy-pipeline-auth\"][0] eq \"${CLOUDFLARE_PIPELINE_AUTH_HEADER}\")",
               "action": "skip",
               "action_parameters": {
+                "phases": [
+                  "http_ratelimit",
+                  "http_request_sbfm"
+                ],
                 "products": [
                   "bic",
                   "hot",
@@ -61,6 +65,10 @@
               "expression": "(http.host eq \"qa.chathealthy.ai\" and starts_with(http.request.uri.path, \"/Data/\") and http.request.headers[\"x-chathealthy-pipeline-auth\"][0] eq \"${CLOUDFLARE_PIPELINE_AUTH_HEADER}\")",
               "action": "skip",
               "action_parameters": {
+                "phases": [
+                  "http_ratelimit",
+                  "http_request_sbfm"
+                ],
                 "products": [
                   "bic",
                   "hot",
@@ -103,6 +111,10 @@
               "expression": "(http.host eq \"chathealthy.ai\" and starts_with(http.request.uri.path, \"/Data/\") and http.request.headers[\"x-chathealthy-pipeline-auth\"][0] eq \"${CLOUDFLARE_PIPELINE_AUTH_HEADER}\")",
               "action": "skip",
               "action_parameters": {
+                "phases": [
+                  "http_ratelimit",
+                  "http_request_sbfm"
+                ],
                 "products": [
                   "bic",
                   "hot",
