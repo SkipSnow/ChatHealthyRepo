@@ -62,6 +62,7 @@ def _reconstruct_step_context(payload: dict, mongo, blob) -> StepContext:
         run_id=payload.get("run_id"),
         resume_from_step=args_snap.get("resume_from_step") or None,
         incremental=(args_snap.get("load_mode") == "incremental"),
+        data_version=int(args_snap.get("data_version") or 0),
     )
     pipeline_name = payload.get("pipeline_name", "provider")
     manifest = RunManifest(
