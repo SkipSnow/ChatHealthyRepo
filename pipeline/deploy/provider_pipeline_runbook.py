@@ -911,7 +911,7 @@ def main() -> int:
         (webhook_body.get("resume_from_step") or "").strip()
         if webhook_body else ""
     )
-    # Mandatory data_version — no default. Operator's fire_provider_
+    # Mandatory data_version - no default. Operator's fire_provider_
     # pipeline_test enforces this on the payload side; runbook enforces
     # it on the receive side. Fail loud if missing.
     dv_raw = (webhook_body or {}).get("data_version")
