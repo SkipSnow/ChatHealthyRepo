@@ -69,6 +69,7 @@ def load_catalog() -> Dict[str, Dict[str, bool]]:
             url,
             headers={
                 "Accept": "application/json",
+                "User-Agent": "ChatHealthy-Pipeline/1.0",
                 "X-ChatHealthy-Pipeline-Auth": auth_header,
             },
         )
