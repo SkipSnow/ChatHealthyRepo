@@ -54,7 +54,13 @@ def load_catalog() -> Dict[str, Dict[str, bool]]:
                 component="specialty_classification_catalog",
             )
         ctx = ssl.create_default_context(cafile=_CA_BUNDLE) if _CA_BUNDLE else ssl.create_default_context()
-        req = urllib.request.Request(url, headers={"Accept": "application/json"})
+        req = urllib.request.Request(
+            url,
+            headers={
+                "Accept": "application/json",
+                "User-Agent": "ChatHealthyPipeline/1.0",
+            },
+        )
         with urllib.request.urlopen(req, context=ctx, timeout=30) as r:
             doc = json.loads(r.read().decode("utf-8"))
         rows = doc.get("classifications") if isinstance(doc, dict) else doc
