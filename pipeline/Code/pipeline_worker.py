@@ -119,7 +119,17 @@ def _dispatch(step: str, payload: dict) -> dict:
         for k, v in (deltas.get("source_versions") or {}).items():
             set_ops[f"source_versions.{k}"] = v
         for k, v in (deltas.get("metrics") or {}).items():
-            set_ops[f"metrics.{k}"] = v
+            # Nested dict (e.g. metrics.fetch_results): $set the LEAF keys
+            # individually so parallel Workers don't overwrite each other's
+            # sibling contributions. Prior code $set metrics.fetch_results
+            # to this Worker's single-source dict, clobbering the other
+            # Workers' fetch_results and causing load_staging Workers to
+            # see "no fetch_result on manifest" for 4 of 5 sources.
+            if isinstance(v, dict) and v:
+                for inner_k, inner_v in v.items():
+                    set_ops[f"metrics.{k}.{inner_k}"] = inner_v
+            else:
+                set_ops[f"metrics.{k}"] = v
         if set_ops:
             # pipeline.runs is on the FRONT-END cluster (see LLD v36 §4.3.4).
             get_frontend_mongo()[FRONTEND_DB]["pipeline.runs"].update_one(
