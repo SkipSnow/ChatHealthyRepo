@@ -6990,9 +6990,7 @@
               "config": {
                 "runbook_name": "ReservationReaper",
                 "schedule_names": [
-                  "SCH-Reaper-15min-a",
-                  "SCH-Reaper-15min-b",
-                  "SCH-Reaper-15min-c"
+                  "SCH-Reaper-15min"
                 ],
                 "python_packages": [
                   {
@@ -7079,9 +7077,7 @@
               },
               "config": {
                 "runbook_name": "ProviderPipelineRunbook",
-                "schedule_names": [
-                  "SCH-ProviderPipeline-0200UTC"
-                ],
+                "schedule_names": [],
                 "python_packages": [
                   {
                     "name": "pymongo",

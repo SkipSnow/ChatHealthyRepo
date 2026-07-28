@@ -461,6 +461,16 @@ runcmd:
     az acr login --name {VM_ACR}
     # Pull the pipeline image.
     docker pull {image_ref}
+    # Prepare scratch directory on the VM's local NVMe temp disk. Dsv6-family
+    # VMs ship with ~220 GB of local NVMe mounted at /mnt/resource by waagent
+    # (free with the SKU, wiped on VM stop). We bind-mount this into the
+    # container as /scratch and set TMPDIR=/scratch so all Python tempfile
+    # writes (NPPES download, zip extract, derived sources) land on NVMe
+    # rather than the 30 GB Premium_LRS OS disk. Prior runs hit
+    # [Errno 28] No space left on device on the OS disk with the ~5 GB
+    # NPPES extract; with /scratch the working set has 22x headroom.
+    mkdir -p /mnt/resource/pipeline-scratch
+    chmod 1777 /mnt/resource/pipeline-scratch
     # Run Controller. Container is --rm so filesystem cleans up on exit.
     # Controller's finally block fires `az vm delete` on AZURE_VM_NAME on
     # normal exit. But if Controller aborts BEFORE main() runs (e.g.,
@@ -469,6 +479,8 @@ runcmd:
     # a duplicate DELETE 404s if Controller already fired it.
     set +e
     docker run --rm --network host \\
+      -v /mnt/resource/pipeline-scratch:/scratch \\
+      -e TMPDIR=/scratch \\
       -e CHATHEALTHY_NODE_IDENTITY='pipeline-control' \\
       -e CH_SPACE_NAME='control' \\
       -e CH_LOG_DESTINATION='stderr,mongo' \\
