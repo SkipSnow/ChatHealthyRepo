@@ -384,16 +384,27 @@ class BasePipelineOrchestrator:
             return [{"single": True}]
         key = spec.partition_key or "business_address_state"
         if key == "source_name":
-            # One partition per pipeline source; the step handler resolves
-            # each source's URL from a per-source env var. pl_pfile is
-            # derived from nppes_npi's ZIP in the nppes worker's output
-            # (see steps.fetch_all_sources._DERIVED_SOURCES).
+            # One partition per pipeline source (INCLUDING pl_pfile) for
+            # downstream steps like load_staging_parallel that need one
+            # Worker per source.
             return [
                 {"source": "nppes_npi"},
                 {"source": "nucc"},
                 {"source": "census_zcta_county"},
                 {"source": "usda_rucc"},
                 {"source": "pl_pfile"},
+            ]
+        if key == "source_name_base":
+            # Fetch-phase partitioning. pl_pfile is EXCLUDED because it is
+            # derived from nppes_npi's ZIP inside the nppes Worker's own
+            # fetch (see steps.fetch_all_sources._DERIVED_SOURCES). Giving
+            # pl_pfile its own fetch Worker would race the parent Worker
+            # and fail with "derived_from parent unavailable".
+            return [
+                {"source": "nppes_npi"},
+                {"source": "nucc"},
+                {"source": "census_zcta_county"},
+                {"source": "usda_rucc"},
             ]
         states = ctx.args.resolved_states()
         if key == "county_partition":
