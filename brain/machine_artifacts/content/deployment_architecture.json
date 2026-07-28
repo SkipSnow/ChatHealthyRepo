@@ -6486,7 +6486,7 @@
           "source_location": "pipeline/Code/specialty_classification_catalog.py",
           "handler_type": "python_source",
           "disposition": "referenced",
-          "content_hash": "8cbb3577de8aa96affb7ad233fe4728d63f8d9e99d18c71c2e36a5991fe66164",
+          "content_hash": "8d3ebdb789f9af39921f0ba06a3212ebd8601a0e818a4ca8efa3f465c23a9619",
           "package": "default"
         },
         {
