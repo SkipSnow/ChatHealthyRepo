@@ -37,7 +37,7 @@ class ProviderPipelineOrchestrator(BasePipelineOrchestrator):
             prerequisites=["source_freshness_gate"],
             parallelism="process_pool",
             aca_job_name="prov-fetch-sources",
-            partition_key="source_name",
+            partition_key="source_name_base",
         ),
         StepSpec(
             name="source_archival",
