@@ -68,7 +68,15 @@ def _source_spec_from_env(source_name: str) -> dict:
 
 
 def run_step(ctx) -> dict:
-    """Worker path: fetch ONE source, identified by ctx.config['partition']['source']."""
+    """Worker path: fetch ONE source, identified by ctx.config['partition']['source'].
+
+    When source_name is nppes_npi, the Worker ALSO derives every
+    _DERIVED_SOURCES entry whose derived_from == nppes_npi (currently
+    pl_pfile) from the same downloaded zip. This is the only correct
+    ordering because derived sources cannot run as their own Workers
+    (the parent's downloaded blob is not visible across Worker
+    processes).
+    """
     partition = ctx.config.get("partition") or {}
     source_name = partition.get("source") if isinstance(partition, dict) else None
     if not source_name:
@@ -82,11 +90,18 @@ def run_step(ctx) -> dict:
     spec = _source_spec_from_env(source_name)
     spec.setdefault("freshness_decision", freshness.get(source_name, "fetch"))
 
+    sources: dict = {source_name: spec}
+    for derived_name, derived_spec in _DERIVED_SOURCES.items():
+        if derived_spec.get("derived_from") == source_name:
+            child = dict(derived_spec)
+            child.setdefault("freshness_decision", freshness.get(derived_name, "fetch"))
+            sources[derived_name] = child
+
     config = {
         "run_id": ctx.run_id,
         "env": ctx.env_prefix,
         "transient_container": f"{ctx.env_prefix}-pipeline-transients",
-        "sources": {source_name: spec},
+        "sources": sources,
     }
     result = fetch_all_sources(
         config,
