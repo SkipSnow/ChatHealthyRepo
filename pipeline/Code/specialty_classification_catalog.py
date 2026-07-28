@@ -54,11 +54,22 @@ def load_catalog() -> Dict[str, Dict[str, bool]]:
                 component="specialty_classification_catalog",
             )
         ctx = ssl.create_default_context(cafile=_CA_BUNDLE) if _CA_BUNDLE else ssl.create_default_context()
+        auth_header = os.environ.get("CLOUDFLARE_PIPELINE_AUTH_HEADER", "").strip()
+        if not auth_header:
+            raise ChatHealthyException(
+                mode="runtime_error",
+                message=(
+                    "CLOUDFLARE_PIPELINE_AUTH_HEADER env var is not set. "
+                    "This secret is the value Cloudflare's firewall rule "
+                    "checks to admit pipeline requests to chathealthy.ai/Data/."
+                ),
+                component="specialty_classification_catalog",
+            )
         req = urllib.request.Request(
             url,
             headers={
                 "Accept": "application/json",
-                "User-Agent": "ChatHealthyPipeline/1.0",
+                "X-ChatHealthy-Pipeline-Auth": auth_header,
             },
         )
         with urllib.request.urlopen(req, context=ctx, timeout=30) as r:
