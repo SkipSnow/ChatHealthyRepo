@@ -318,7 +318,7 @@
           "source_location": "Website/schemas/ChatHealthyDeploymentArchitectureSchema.json",
           "handler_type": "json",
           "disposition": "referenced",
-          "content_hash": "60df12948c5e94ee17e08ef5a0c9dd9b449497c4c101c5735d0d8246cae49c15",
+          "content_hash": "ff2485d795435cd9346827083ed21045e892b04c9b68ee97dd0fd1a2eb5ce101",
           "package": "json_schemas"
         },
         {
@@ -5781,7 +5781,7 @@
           "source_location": "Website/schemas/ChatHealthyDeploymentArchitectureSchema.json",
           "handler_type": "json",
           "disposition": "referenced",
-          "content_hash": "60df12948c5e94ee17e08ef5a0c9dd9b449497c4c101c5735d0d8246cae49c15",
+          "content_hash": "ff2485d795435cd9346827083ed21045e892b04c9b68ee97dd0fd1a2eb5ce101",
           "package": "default"
         },
         {
@@ -6411,7 +6411,7 @@
           "source_location": "pipeline/Code/specialty_classification_catalog.py",
           "handler_type": "python_source",
           "disposition": "referenced",
-          "content_hash": "07b2238e55af939eac2d5876746028615797935f3d1da2c6b41f675856850861",
+          "content_hash": "8cbb3577de8aa96affb7ad233fe4728d63f8d9e99d18c71c2e36a5991fe66164",
           "package": "default"
         },
         {
