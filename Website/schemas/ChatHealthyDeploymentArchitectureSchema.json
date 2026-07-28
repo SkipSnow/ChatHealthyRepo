@@ -321,6 +321,60 @@
                     }
                   }
                 },
+                "cloudflare_firewall_rules": {
+                  "type": "array",
+                  "description": "Zone-scoped Cloudflare Custom Rules (WAF phase http_request_firewall_custom) to reconcile for this env binding's Cloudflare zone. Only valid on cloudflare_pages_project targets. Each entry is one rule; the deploy chain identifies existing rules by `description` (which must be unique within the zone's custom-rules ruleset) and either creates or updates them via Cloudflare API v4. Reference SecretsResolver values inside `expression` via ${VAR_NAME} substitution (resolver runs against Code/.env for local, KV for deployed envs).",
+                  "items": {
+                    "type": "object",
+                    "additionalProperties": false,
+                    "required": [
+                      "description",
+                      "zone_name",
+                      "expression",
+                      "action"
+                    ],
+                    "properties": {
+                      "description": {
+                        "type": "string",
+                        "description": "Human-readable rule name AND the deploy-time identity used to find, update, or create the rule idempotently.",
+                        "minLength": 1,
+                        "maxLength": 200
+                      },
+                      "zone_name": {
+                        "type": "string",
+                        "description": "Cloudflare zone name (e.g. 'chathealthy.ai'). The deploy chain resolves this to a zone_id via /zones?name=<zone_name>.",
+                        "minLength": 3,
+                        "maxLength": 253
+                      },
+                      "expression": {
+                        "type": "string",
+                        "description": "Cloudflare Rules Language expression. May reference SecretsResolver values via ${VAR_NAME}; substitution happens at deploy time before the API call.",
+                        "minLength": 1
+                      },
+                      "action": {
+                        "type": "string",
+                        "enum": [
+                          "skip",
+                          "block",
+                          "log",
+                          "challenge",
+                          "js_challenge",
+                          "managed_challenge"
+                        ],
+                        "description": "Rule action. Use 'skip' with action_parameters.products to bypass Bot Management + WAF for pipeline-auth traffic; 'block' to deny; 'challenge' for user challenge; etc."
+                      },
+                      "action_parameters": {
+                        "type": "object",
+                        "description": "Optional action parameters. For 'skip' action, set products to array of security products to bypass (e.g. ['bic','hot','rateLimit','securityLevel','uaBlock','zoneLockdown','waf']).",
+                        "additionalProperties": true
+                      },
+                      "enabled": {
+                        "type": "boolean",
+                        "default": true
+                      }
+                    }
+                  }
+                },
                 "azure_automation_account": {
                   "type": "object",
                   "additionalProperties": false,
