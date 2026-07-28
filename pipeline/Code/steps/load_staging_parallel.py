@@ -34,7 +34,7 @@ _log = ChatHealthyLoggingService()
 # ZCTA/county file uses pipe. usda_rucc is an Excel .xlsx binary.
 _FORMAT_BY_SOURCE = {
     "nppes_npi": ("zip_csv", "npidata", None),
-    "pl_pfile": ("zip_csv", "pl_pfile", None),
+    "pl_pfile": ("csv", None, ","),
     "nucc": ("csv", None, ","),
     "census_zcta_county": ("csv", None, "|"),
     "usda_rucc": ("xlsx", None, None),
