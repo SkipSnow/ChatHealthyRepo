@@ -216,15 +216,38 @@ def _ensure_kv_secrets_from_file_packages(target, env: str, vault_name: str) -> 
                         if r.returncode != 0 or not r.stdout.strip():
                             break
                         _time.sleep(2)
-                r = _az(
-                    [
-                        "keyvault", "secret", "set",
-                        "--vault-name", vault_name,
-                        "--name", secret_name,
-                        "--file", tmp_path,
-                    ],
-                    check=False,
-                )
+                # Bounded retry on Azure's post-purge server-side
+                # eventual-consistency window. show-deleted already
+                # returned empty (client view above), but the vault's
+                # server-side "in progress" flag may not yet have
+                # cleared, causing set to return "ObjectIsBeingDeleted".
+                # Retry ONLY on that specific transient; any other
+                # failure exits immediately.
+                r = None
+                for attempt in range(6):
+                    r = _az(
+                        [
+                            "keyvault", "secret", "set",
+                            "--vault-name", vault_name,
+                            "--name", secret_name,
+                            "--file", tmp_path,
+                        ],
+                        check=False,
+                    )
+                    if r.returncode == 0:
+                        break
+                    stderr_txt = (r.stderr or "")
+                    is_soft_delete_race = (
+                        "ObjectIsBeingDeleted" in stderr_txt
+                        or "is currently being deleted" in stderr_txt
+                    )
+                    if not is_soft_delete_race:
+                        break  # deterministic failure, no retry
+                    step(
+                        f"  {secret_name} set raced Azure soft-delete grace; "
+                        f"retry {attempt + 1}/6 after 5s"
+                    )
+                    _time.sleep(5)
             finally:
                 try:
                     os.unlink(tmp_path)
