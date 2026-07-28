@@ -7061,7 +7061,7 @@
                   "source_location": "pipeline/deploy/provider_pipeline_runbook.py",
                   "handler_type": "python_source",
                   "disposition": "referenced",
-                  "content_hash": "2f75612e36da6b1d3584c4b7069705351ae4995d874285b8c79b83b8038dde3b",
+                  "content_hash": "273a0f52a2ea866cf48cf2237c4c6dc4977c64118ab3922da416db5b040a079c",
                   "package": "provider_pipeline"
                 }
               ],
