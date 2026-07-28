@@ -38,6 +38,7 @@ class EnvironmentBinding:
     identity: dict | None = None
     huggingface_space: dict | None = None
     cloudflare_pages: dict | None = None
+    cloudflare_firewall_rules: list | None = None
     branch: str | None = None
     # Consolidated Atlas sub-block: project + cluster + accepted_access +
     # private_endpoint_service under one substrate target. Deploy handler
@@ -74,6 +75,7 @@ class EnvironmentBinding:
             "identity",
             "huggingface_space",
             "cloudflare_pages",
+            "cloudflare_firewall_rules",
             "branch",
             "atlas",
             "runbooks",
@@ -104,6 +106,7 @@ class EnvironmentBinding:
             identity=d.get("identity"),
             huggingface_space=d.get("huggingface_space"),
             cloudflare_pages=d.get("cloudflare_pages"),
+            cloudflare_firewall_rules=d.get("cloudflare_firewall_rules"),
             branch=d.get("branch"),
             atlas=d.get("atlas"),
             runbooks=d.get("runbooks"),
