@@ -1,18 +1,30 @@
 # Copyright (c) 2026 ChatHealthy.ai LLC. All rights reserved.
 # Licensed under the FindCare Evaluation License (FEL-1.0).
 
-"""load_staging_parallel — Provider Pipeline step wrapper for LLD v23 §4.6.
+"""load_staging_parallel — Provider Pipeline step wrapper.
 
-Loads every fetched source into its per-source staging collection on the
-pipeline cluster (byte-offset-indexed; NPI-keyed for secondary sources).
-NPPES NPI is serial single-PID; the other sources load in parallel.
+One Worker per source. The step is dispatched with partition_key=
+"source_name" so 6 Workers run concurrently (NPPES + 5 reference/
+derived sources). Each Worker loads its ONE source into the versioned
+staging collection on the pipeline cluster (ChatHealthyPipelines.
+PublicStaging.<Base>_v_{data_version}).
+
+NPPES-specific behavior (applied by the loader; this handler just passes
+the args through):
+  * Rows outside ctx.args.resolved_states() are skipped.
+  * On full-load mode, prior rows in the versioned collection whose
+    state is in scope are deleted BEFORE insert (so re-runs of the same
+    state scope don't accumulate).
+  * Unique index on npi — duplicate insert => BulkWriteError => step
+    fails loud. No retry, no fallback.
 """
 
 from __future__ import annotations
+from chathealthy_frontend_lib.exceptions import ChatHealthyException
 from chathealthy_frontend_lib.logging_service import ChatHealthyLoggingService
 
 
-from staging_loader import STAGING_COLLECTIONS, load_staging
+from staging_loader import load_staging
 
 _log = ChatHealthyLoggingService()
 
@@ -27,48 +39,85 @@ _FORMAT_BY_SOURCE = {
 }
 
 
-def _build_source_specs(fetch_results: dict) -> dict:
-    """Convert fetch_results (LLD §4.4) into staging_loader spec input."""
-    sources: dict = {}
-    for name, spec in _FORMAT_BY_SOURCE.items():
-        r = fetch_results.get(name)
-        if not r or r.get("skipped"):
-            continue
-        fmt, hint = spec
-        entry = {
-            "blob_container": r.get("blob_container"),
-            "blob_path": r.get("blob_path"),
-            "format": fmt,
-        }
-        if hint:
-            entry["inner_name_hint"] = hint
-        sources[name] = entry
-    return sources
+def _require_partition_source(partition) -> str:
+    if not isinstance(partition, dict) or not partition.get("source"):
+        raise ChatHealthyException(
+            mode="value_error",
+            message=(
+                "load_staging_parallel: expected ctx.config['partition']"
+                "['source'] to name the source this worker owns. Step is "
+                "partition_key='source_name'; Controller assigns one "
+                "source per Worker."
+            ),
+            partition=repr(partition),
+        )
+    return partition["source"]
+
+
+def _require_fetch_result(source_name: str, fetch_results: dict) -> dict:
+    r = fetch_results.get(source_name)
+    if not r:
+        raise ChatHealthyException(
+            mode="value_error",
+            message=f"load_staging_parallel[{source_name}]: no fetch_result on manifest",
+            source_name=source_name,
+        )
+    if r.get("skipped"):
+        raise ChatHealthyException(
+            mode="value_error",
+            message=(
+                f"load_staging_parallel[{source_name}]: fetch_result marks "
+                "skipped=true. Cannot load a skipped source. If skip is "
+                "intentional, remove the source from the partition list."
+            ),
+            source_name=source_name,
+        )
+    return r
+
+
+def _require_format(source_name: str) -> tuple[str, str | None]:
+    fmt_map = _FORMAT_BY_SOURCE.get(source_name)
+    if not fmt_map:
+        raise ChatHealthyException(
+            mode="value_error",
+            message=f"load_staging_parallel: no format mapping for source {source_name!r}",
+            source_name=source_name,
+        )
+    return fmt_map
 
 
 def run_step(ctx) -> dict:
+    """Worker path: load ONE source's staging data, identified by
+    ctx.config['partition']['source']."""
+    partition = ctx.config.get("partition") or {}
+    source_name = _require_partition_source(partition)
+
+    fetch_results = ctx.manifest.metrics.get("fetch_results") or {}
+    fetch_result = _require_fetch_result(source_name, fetch_results)
+    fmt, hint = _require_format(source_name)
+
+    spec = {
+        "blob_container": fetch_result.get("blob_container"),
+        "blob_path": fetch_result.get("blob_path"),
+        "format": fmt,
+    }
+    if hint:
+        spec["inner_name_hint"] = hint
+
     config = dict(ctx.config)
     config.setdefault("run_id", ctx.run_id)
     config.setdefault("env", ctx.env_prefix)
-
-    fetch_results = ctx.manifest.metrics.get("fetch_results") or {}
-    sources = config.get("sources") or _build_source_specs(fetch_results)
-    if not sources:
-        _log.warning("load_staging_parallel: no fetched sources to load")
-        return {"results": [], "total_inserted": 0}
-    config["sources"] = sources
+    config["sources"] = {source_name: spec}
+    config["states"] = ctx.args.resolved_states()
+    config["incremental"] = bool(ctx.args.incremental)
+    config["data_version"] = int(ctx.args.data_version)
 
     result = load_staging(
         config,
         mongo=ctx.mongo_client,
         blob=ctx.blob_client,
     ) or {}
-
-    ctx.manifest.metrics["staging_load"] = {
-        "total_inserted": result.get("total_inserted"),
-        "per_source": {r.get("source_name"): r for r in result.get("results") or []},
-        "collections": {n: STAGING_COLLECTIONS[n] for n in sources.keys() if n in STAGING_COLLECTIONS},
-    }
+    _log.info("load_staging_parallel[%s]: done result=%s", source_name, result)
     return result
 
 
