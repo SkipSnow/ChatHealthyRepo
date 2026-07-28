@@ -68,12 +68,12 @@ STAGING_DB_NAME = "PublicStaging"
 # f"{base}_v_{data_version}"). All staging tables live in the fixed
 # PublicStaging DB on the ChatHealthyPipelines cluster.
 STAGING_BASE_NAMES = {
-    "nppes_npi": "Provider",
-    "pl_pfile": "PlPfile",
-    "nucc": "Nucc",
-    "census_zcta_county": "CensusZctaCounty",
-    "usda_rucc": "UsdaRucc",
-    "specialty_catalog": "SpecialtyCatalog",
+    "nppes_npi": "StagingProvider",
+    "pl_pfile": "StagingPlPfile",
+    "nucc": "StagingNucc",
+    "census_zcta_county": "StagingCensusZctaCounty",
+    "usda_rucc": "StagingUsdaRucc",
+    "specialty_catalog": "StagingSpecialtyCatalog",
 }
 
 
@@ -177,6 +177,29 @@ def _iter_json_rows(local_path: str) -> Iterator[dict[str, Any]]:
                 yield json.loads(line)
 
 
+def _iter_xlsx_rows(local_path: str) -> Iterator[dict[str, str]]:
+    """Iterate rows of a .xlsx file as dicts keyed by the header row of
+    the first sheet. Requires openpyxl (already a pipeline dep for
+    embeddings). Fails loud if the file cannot be opened or the sheet
+    is empty."""
+    from openpyxl import load_workbook  # noqa: PLC0415
+    wb = load_workbook(local_path, read_only=True, data_only=True)
+    ws = wb.active
+    rows = ws.iter_rows(values_only=True)
+    try:
+        header = [str(h) if h is not None else "" for h in next(rows)]
+    except StopIteration:
+        wb.close()
+        return
+    for row in rows:
+        record: dict[str, str] = {}
+        for i, val in enumerate(row):
+            key = header[i] if i < len(header) else f"_col{i}"
+            record[key] = "" if val is None else str(val)
+        yield record
+    wb.close()
+
+
 def _resolve_iter(source_name: str, spec: dict, local_path: str) -> Iterator[dict[str, Any]]:
     fmt = spec.get("format", "csv").lower()
     if fmt == "csv":
@@ -185,6 +208,8 @@ def _resolve_iter(source_name: str, spec: dict, local_path: str) -> Iterator[dic
         yield from _iter_zipped_csv_rows(local_path, inner_name_hint=spec.get("inner_name_hint"))
     elif fmt == "json":
         yield from _iter_json_rows(local_path)
+    elif fmt == "xlsx":
+        yield from _iter_xlsx_rows(local_path)
     else:
         raise ChatHealthyException(mode="runtime_error", message=f"staging_loader[{source_name}]: unsupported format {fmt!r}")
 
