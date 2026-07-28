@@ -223,7 +223,131 @@ def deploy_cloudflare(
         cmd, env=env_for_wrangler, check=True,
         shell=(sys.platform == "win32"),
     )
+    _reconcile_cloudflare_firewall_rules(env_binding, env, resolver, api_token)
     return project
+
+
+# ═════════════════════════════════════════════════════════════════════════
+# Cloudflare Custom Rules reconciliation (Zone WAF phase http_request_firewall_custom)
+# ═════════════════════════════════════════════════════════════════════════
+
+_CF_API = "https://api.cloudflare.com/client/v4"
+_CF_VAR_RE = re.compile(r"\$\{([A-Za-z_][A-Za-z0-9_]*)\}")
+
+
+def _cf_api(
+    method: str,
+    path: str,
+    api_token: str,
+    body: dict | None = None,
+) -> dict:
+    req = urllib.request.Request(
+        f"{_CF_API}{path}",
+        method=method,
+        headers={
+            "Authorization": f"Bearer {api_token}",
+            "Content-Type": "application/json",
+        },
+        data=(json.dumps(body).encode("utf-8") if body is not None else None),
+    )
+    try:
+        with urllib.request.urlopen(req, timeout=30) as r:
+            return json.loads(r.read().decode("utf-8"))
+    except urllib.error.HTTPError as exc:
+        detail = ""
+        try:
+            detail = exc.read().decode("utf-8", errors="replace")[:800]
+        except Exception:  # noqa: BLE001
+            pass
+        sys.exit(
+            f"ERROR: Cloudflare API {method} {path} returned {exc.code}\n"
+            f"body_sent={json.dumps(body)[:400] if body else '(none)'}\n"
+            f"response={detail}"
+        )
+
+
+def _cf_resolve_zone_id(zone_name: str, api_token: str) -> str:
+    doc = _cf_api("GET", f"/zones?name={zone_name}&status=active", api_token)
+    zones = doc.get("result") or []
+    if not zones:
+        sys.exit(f"ERROR: Cloudflare zone {zone_name!r} not found on this account")
+    return zones[0]["id"]
+
+
+def _substitute_secrets(expr: str, env: str, resolver: SecretsResolver) -> str:
+    def repl(match: re.Match) -> str:
+        key = match.group(1)
+        return resolver.resolve(key, env)
+    return _CF_VAR_RE.sub(repl, expr)
+
+
+def _reconcile_cloudflare_firewall_rules(
+    env_binding, env: str, resolver: SecretsResolver, api_token: str,
+) -> None:
+    """Reconcile Cloudflare Custom Rules declared on the env binding.
+
+    Rules are identified by `description` within the zone's
+    http_request_firewall_custom ruleset. Existing rule with matching
+    description is PATCHed; otherwise a POST creates a new one.
+    """
+    rules_decl = getattr(env_binding, "cloudflare_firewall_rules", None) or []
+    if isinstance(rules_decl, dict):
+        rules_decl = [rules_decl]
+    if not rules_decl:
+        return
+    step(f"=== cloudflare_firewall_rules env={env} count={len(rules_decl)} ===")
+    zones_seen: dict[str, tuple[str, str, list[dict]]] = {}
+    for rule in rules_decl:
+        zone_name = rule["zone_name"]
+        if zone_name not in zones_seen:
+            zone_id = _cf_resolve_zone_id(zone_name, api_token)
+            rs = _cf_api(
+                "GET",
+                f"/zones/{zone_id}/rulesets/phases/http_request_firewall_custom/entrypoint",
+                api_token,
+            )
+            ruleset = rs.get("result") or {}
+            zones_seen[zone_name] = (
+                zone_id,
+                ruleset.get("id", ""),
+                list(ruleset.get("rules") or []),
+            )
+        zone_id, ruleset_id, existing = zones_seen[zone_name]
+        if not ruleset_id:
+            sys.exit(
+                f"ERROR: zone {zone_name!r} has no http_request_firewall_custom "
+                f"ruleset entrypoint (unexpected — zones always ship one)."
+            )
+        expr = _substitute_secrets(rule["expression"], env, resolver)
+        body = {
+            "description": rule["description"],
+            "expression": expr,
+            "action": rule["action"],
+            "enabled": bool(rule.get("enabled", True)),
+        }
+        if rule.get("action_parameters") is not None:
+            body["action_parameters"] = rule["action_parameters"]
+        existing_rule = next(
+            (r for r in existing if r.get("description") == rule["description"]),
+            None,
+        )
+        if existing_rule:
+            rule_id = existing_rule["id"]
+            step(f"  update rule id={rule_id} description={rule['description']!r}")
+            _cf_api(
+                "PATCH",
+                f"/zones/{zone_id}/rulesets/{ruleset_id}/rules/{rule_id}",
+                api_token,
+                body=body,
+            )
+        else:
+            step(f"  create rule description={rule['description']!r}")
+            _cf_api(
+                "POST",
+                f"/zones/{zone_id}/rulesets/{ruleset_id}/rules",
+                api_token,
+                body=body,
+            )
 
 
 # ═════════════════════════════════════════════════════════════════════════
