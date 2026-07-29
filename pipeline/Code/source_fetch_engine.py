@@ -188,7 +188,16 @@ def _download_source(
     gate.acquire()
     _log.info("source_fetch_engine[%s]: GET %s (http_timeout=%ds)", source_name, url, http_timeout)
     t0 = _t.time()
-    resp = requests.get(url, stream=True, timeout=http_timeout)
+    # ChatHealthy-Pipeline UA + optional pipeline auth header. Cloudflare
+    # bot protection on chathealthy.ai/* rejects the default python-requests
+    # UA; the auth header (when set) matches a Cloudflare custom rule that
+    # bypasses BIC/WAF for the /Data/* pipeline fetch path. Other origins
+    # (NPPES, NUCC, Census, USDA) ignore both headers.
+    headers = {"User-Agent": "ChatHealthy-Pipeline/1.0"}
+    auth_hdr = os.environ.get("CLOUDFLARE_PIPELINE_AUTH_HEADER", "").strip()
+    if auth_hdr:
+        headers["X-ChatHealthy-Pipeline-Auth"] = auth_hdr
+    resp = requests.get(url, stream=True, timeout=http_timeout, headers=headers)
     resp.raise_for_status()
     content_len = resp.headers.get("Content-Length", "?")
     _log.info(

@@ -159,7 +159,8 @@ def _iter_zipped_csv_rows(local_zip_path: str, inner_name_hint: str | None = Non
 
 
 def _iter_json_rows(local_path: str) -> Iterator[dict[str, Any]]:
-    """Iterate a JSON list or line-delimited JSON."""
+    """Iterate a JSON list, a JSON object wrapping a list (F-105 shape:
+    {\"classifications\": [...]}), or line-delimited JSON."""
     with open(local_path, "r", encoding="utf-8") as fh:
         first = fh.read(1)
         fh.seek(0)
@@ -168,6 +169,28 @@ def _iter_json_rows(local_path: str) -> Iterator[dict[str, Any]]:
             if not isinstance(data, list):
                 raise ChatHealthyException(mode="runtime_error", message="staging_loader: expected JSON array")
             for row in data:
+                yield row
+        elif first == "{":
+            data = json.load(fh)
+            if not isinstance(data, dict):
+                raise ChatHealthyException(mode="runtime_error", message="staging_loader: expected JSON object")
+            list_val = None
+            for k in ("classifications", "rows", "items", "data", "records"):
+                v = data.get(k)
+                if isinstance(v, list):
+                    list_val = v
+                    break
+            if list_val is None:
+                for v in data.values():
+                    if isinstance(v, list):
+                        list_val = v
+                        break
+            if list_val is None:
+                raise ChatHealthyException(
+                    mode="runtime_error",
+                    message="staging_loader: JSON object has no list-valued key to iterate",
+                )
+            for row in list_val:
                 yield row
         else:
             for line in fh:
