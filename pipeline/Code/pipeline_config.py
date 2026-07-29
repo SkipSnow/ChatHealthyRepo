@@ -36,7 +36,10 @@ def load_pipeline_config(mongo_client, env_prefix: str = "dev") -> dict[str, Any
     # missing AND caller did not supply --data-version-derived target.
     # PipelineArgs.provider_write_target() is the authoritative source
     # for callers with a data_version in hand.
-    target = "PublicData.Provider_v_0"
+    # BASE name only (no _v_N suffix). Runtime callers append
+    # _v_{data_version} at read time, so this value must never carry
+    # a version number — otherwise runtime produces Provider_v_0_v_3.
+    target = "PublicData.Provider"
     return {
         "env": env_prefix,
         "dataset_versions": {"provider_write_target": target},
@@ -60,7 +63,10 @@ def ensure_pipeline_config(mongo_client, env_prefix: str = "dev") -> dict[str, A
     # missing AND caller did not supply --data-version-derived target.
     # PipelineArgs.provider_write_target() is the authoritative source
     # for callers with a data_version in hand.
-    target = "PublicData.Provider_v_0"
+    # BASE name only (no _v_N suffix). Runtime callers append
+    # _v_{data_version} at read time, so this value must never carry
+    # a version number — otherwise runtime produces Provider_v_0_v_3.
+    target = "PublicData.Provider"
     defaults = load_pipeline_config(mongo_client, env_prefix)
     defaults.setdefault("dataset_versions", {})["provider_write_target"] = target
     coll.update_one(
