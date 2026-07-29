@@ -18,16 +18,38 @@ def attach_practice_addresses(ctx) -> dict:
     attached = 0
     skipped_dup = 0
 
+    # pl_pfile CSV columns (from CMS NPPES practice-locations file) live
+    # under row["raw"] per staging_loader._wrap_row. Column names carry
+    # leading/trailing whitespace variance in the CMS file; the reads
+    # below match the exact column names as published in pl_pfile*.csv.
+    _PL_ADDR1 = "Provider Secondary Practice Location Address- Address Line 1"
+    _PL_ADDR2 = "Provider Secondary Practice Location Address-  Address Line 2"
+    _PL_CITY = "Provider Secondary Practice Location Address - City Name"
+    _PL_STATE = "Provider Secondary Practice Location Address - State Name"
+    _PL_ZIP = "Provider Secondary Practice Location Address - Postal Code"
+    _PL_COUNTRY = "Provider Secondary Practice Location Address - Country Code (If outside U.S.)"
+    _PL_PHONE = "Provider Secondary Practice Location Address - Telephone Number"
+
     for row in rt.staging_coll("pl_pfile").find({"run_id": rt.run_id}):
-        npi = row.get("npi")
+        npi = row.get("npi") or (row.get("raw") or {}).get("NPI")
         if not npi:
             continue
-        addr = row.get("address")
-        if not addr:
+        raw = row.get("raw") or {}
+        line1 = (raw.get(_PL_ADDR1) or "").strip()
+        city = (raw.get(_PL_CITY) or "").strip()
+        state = (raw.get(_PL_STATE) or "").strip()
+        zip_code = (raw.get(_PL_ZIP) or "").strip()
+        if not (line1 and city and state):
             continue
 
         incoming = {
-            **addr,
+            "line1": line1,
+            "line2": (raw.get(_PL_ADDR2) or "").strip() or None,
+            "city": city,
+            "state": state,
+            "zip": zip_code,
+            "country": (raw.get(_PL_COUNTRY) or "US").strip() or "US",
+            "phone": (raw.get(_PL_PHONE) or "").strip() or None,
             "address_type": "secondary_practice",
             "primary": False,
             "source": "pl_pfile",
