@@ -127,13 +127,13 @@ class TimedCursor:
         self._coll = coll
 
     def __iter__(self):
-        log.info("mongo.%s iter START db=%s coll=%s",
+        log.debug("mongo.%s iter START db=%s coll=%s",
                   self._op, self._db, self._coll)
         start = time.monotonic()
         try:
             for doc in self._cursor:
                 yield doc
-            log.info("mongo.%s iter END db=%s coll=%s",
+            log.debug("mongo.%s iter END db=%s coll=%s",
                       self._op, self._db, self._coll)
         except Exception as exc:
             elapsed = time.monotonic() - start
@@ -183,7 +183,7 @@ class TimedCollection:
         return getattr(self._coll, name)
 
     def aggregate(self, pipeline, *args, **kwargs):
-        log.info("mongo.aggregate START db=%s coll=%s pipeline=%s opts=%s",
+        log.debug("mongo.aggregate START db=%s coll=%s pipeline=%s opts=%s",
                   self._db_name, self._coll_name, q(pipeline), q(kwargs))
         start = time.monotonic()
         try:
@@ -203,7 +203,7 @@ class TimedCollection:
             kwargs["batch_size"] = batch_size
         filt = args[0] if args else kwargs.get("filter", {})
         proj = args[1] if len(args) > 1 else kwargs.get("projection")
-        log.info("mongo.find START db=%s coll=%s filter=%s projection=%s opts=%s",
+        log.debug("mongo.find START db=%s coll=%s filter=%s projection=%s opts=%s",
                   self._db_name, self._coll_name, q(filt), q(proj), q(kwargs))
         start = time.monotonic()
         try:
@@ -221,12 +221,12 @@ class TimedCollection:
     def find_one(self, *args, **kwargs):
         filt = args[0] if args else kwargs.get("filter", {})
         proj = args[1] if len(args) > 1 else kwargs.get("projection")
-        log.info("mongo.find_one START db=%s coll=%s filter=%s projection=%s opts=%s",
+        log.debug("mongo.find_one START db=%s coll=%s filter=%s projection=%s opts=%s",
                   self._db_name, self._coll_name, q(filt), q(proj), q(kwargs))
         start = time.monotonic()
         try:
             result = self._coll.find_one(*args, **kwargs)
-            log.info("mongo.find_one END db=%s coll=%s hit=%s",
+            log.debug("mongo.find_one END db=%s coll=%s hit=%s",
                       self._db_name, self._coll_name, result is not None)
             return result
         except Exception as exc:
@@ -240,12 +240,12 @@ class TimedCollection:
 
     def count_documents(self, *args, **kwargs):
         filt = args[0] if args else kwargs.get("filter", {})
-        log.info("mongo.count_documents START db=%s coll=%s filter=%s opts=%s",
+        log.debug("mongo.count_documents START db=%s coll=%s filter=%s opts=%s",
                   self._db_name, self._coll_name, q(filt), q(kwargs))
         start = time.monotonic()
         try:
             result = self._coll.count_documents(*args, **kwargs)
-            log.info("mongo.count_documents END db=%s coll=%s n=%d",
+            log.debug("mongo.count_documents END db=%s coll=%s n=%d",
                       self._db_name, self._coll_name, result)
             return result
         except Exception as exc:
