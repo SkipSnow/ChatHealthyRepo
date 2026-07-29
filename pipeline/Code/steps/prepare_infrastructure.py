@@ -18,6 +18,7 @@ _log = ChatHealthyLoggingService()
 def execute(ctx) -> dict:
     cfg = ensure_pipeline_config(get_frontend_mongo(), ctx.env_prefix)
     ctx.config.setdefault("dataset_versions", cfg.get("dataset_versions", {}))
+    ctx.config.setdefault("source_freshness", cfg.get("source_freshness", []))
     cluster = ctx.config.get("pipeline_cluster", "ChatHealthyDataPipelines")
     duration = int(ctx.args.expected_duration_minutes)
     ops = ClusterLifecycleManager(get_db_fn=get_frontend_mongo)

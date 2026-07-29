@@ -89,13 +89,27 @@ def run_step(ctx) -> dict:
         )
     freshness = ctx.manifest.metrics.get("source_freshness") or {}
     spec = _source_spec_from_env(source_name)
-    spec.setdefault("freshness_decision", freshness.get(source_name, "fetch"))
+    # freshness value is either a legacy string (fetch|reuse) or a dict
+    # with decision + archive coords per the source_freshness_gate v2
+    # contract. Normalise to the dict form and copy archive coords into
+    # the spec so _fetch_one_source can honor reuse without another DB
+    # roundtrip.
+    def _apply_freshness(spec_dict: dict, fresh_val) -> dict:
+        if isinstance(fresh_val, dict):
+            spec_dict.setdefault("freshness_decision", fresh_val.get("decision", "fetch"))
+            for k in ("archive_container", "archive_blob_path", "archive_filename", "archived_version"):
+                if fresh_val.get(k) is not None:
+                    spec_dict[k] = fresh_val[k]
+        else:
+            spec_dict.setdefault("freshness_decision", fresh_val or "fetch")
+        return spec_dict
+    spec = _apply_freshness(spec, freshness.get(source_name))
 
     sources: dict = {source_name: spec}
     for derived_name, derived_spec in _DERIVED_SOURCES.items():
         if derived_spec.get("derived_from") == source_name:
             child = dict(derived_spec)
-            child.setdefault("freshness_decision", freshness.get(derived_name, "fetch"))
+            child = _apply_freshness(child, freshness.get(derived_name))
             sources[derived_name] = child
 
     config = {
