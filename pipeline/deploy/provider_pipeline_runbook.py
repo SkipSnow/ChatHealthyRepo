@@ -625,6 +625,14 @@ def _provision_vm(run_id: str, load_mode: str, state_scope,
                 "osDisk": {
                     "createOption": "FromImage",
                     "managedDisk": {"storageAccountType": "Premium_LRS"},
+                    # Cascade the OS disk with the VM. Without this, an
+                    # az vm delete leaves the Unattached OS disk behind,
+                    # each ~30 GB Premium_LRS. Accumulated 35 orphans by
+                    # 2026-07-29 costing ~200 USD/month. Watchdog also
+                    # reaps orphans as a safety net (see
+                    # watchdog_runbook._reap_orphan_disks), but this
+                    # closes the leak at the source for every future run.
+                    "deleteOption": "Delete",
                 },
             },
             "osProfile": {
