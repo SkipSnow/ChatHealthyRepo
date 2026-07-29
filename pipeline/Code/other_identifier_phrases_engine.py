@@ -71,8 +71,8 @@ _log = ChatHealthyLoggingService()
 STAGING_DB = "PublicStaging"
 STAGING_COLL = "OtherIdentifierPhrases"
 
-_LLM_MODEL_ID = "google-gla:gemini-2.5-flash"
-_LLM_MODEL_NAME_FOR_AUDIT = "gemini-2.5-flash"
+_LLM_MODEL_ID = "openai:gpt-4o-mini"
+_LLM_MODEL_NAME_FOR_AUDIT = "gpt-4o-mini"
 _LLM_TIMEOUT_S = 300
 
 
@@ -344,16 +344,14 @@ _SYSTEM_PROMPT = (
 def _run_llm_batch(state: str, phrases: list[dict], phrase_cls, input_cls, output_cls) -> list[dict]:
     from pydantic_ai import Agent
 
-    api_key = os.getenv("GEMINI_API_KEY") or os.getenv("GOOGLE_API_KEY")
+    api_key = os.getenv("OPENAI_API_KEY")
     if not api_key:
         raise ChatHealthyException(
             mode="runtime_error",
-            message="classify_other_identifier_phrases: GEMINI_API_KEY / "
-                    "GOOGLE_API_KEY not set",
+            message="classify_other_identifier_phrases: OPENAI_API_KEY not set",
             component="other_identifier_phrases_engine",
             state=state,
         )
-    os.environ.setdefault("GOOGLE_API_KEY", api_key)
 
     agent = Agent(
         _LLM_MODEL_ID,
