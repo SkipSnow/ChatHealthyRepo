@@ -120,6 +120,7 @@ def execute(ctx) -> dict:
             _log.error("archive failed %s: %s", source_key, exc)
             raise
 
+        source_version_identifier = fetch_result.get("source_version_identifier")
         registry.update_one(
             {"source_name": registry_name},
             {"$set": {
@@ -127,6 +128,8 @@ def execute(ctx) -> dict:
                 "last_archived_at": now,
                 "version": version,
                 "archived_version": version,
+                "source_version_identifier": source_version_identifier,
+                "filename": result.get("archive_blob", "").rsplit("/", 1)[-1],
                 "archive_blob": result["archive_blob"],
                 "archive_container": result["archive_container"],
                 "archive_path": result["archive_path"],

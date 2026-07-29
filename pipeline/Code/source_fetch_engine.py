@@ -356,8 +356,33 @@ def _fetch_one_source(
         "freshness_decision": freshness_decision,
     }
     if freshness_decision == "reuse":
-        result["skipped"] = True
-        result["reason"] = "freshness_reuse"
+        # Reuse the archived blob from the LAST successful fetch.
+        # source_freshness_gate has verified the source's version
+        # identifier is unchanged AND the archive blob exists; the gate
+        # threaded the archive coords into spec so downstream steps see
+        # a normal fetch_result (blob_container + blob_path) and do not
+        # know the difference between a fresh download and a reuse.
+        archive_container = spec.get("archive_container")
+        archive_blob = spec.get("archive_blob")
+        archive_version = spec.get("archived_version")
+        archive_filename = spec.get("archive_filename")
+        if not (archive_container and archive_blob):
+            raise ChatHealthyException(
+                mode="runtime_error",
+                message=(
+                    f"_fetch_one_source[{source_name}]: freshness_decision=reuse "
+                    f"but spec is missing archive_container/archive_blob — "
+                    f"source_freshness_gate must attach these when deciding reuse"
+                ),
+                component="source_fetch_engine",
+                source_name=source_name,
+            )
+        result["blob_container"] = archive_container
+        result["blob_path"] = archive_blob
+        result["filename"] = archive_filename or archive_blob.rsplit("/", 1)[-1]
+        result["source_version_identifier"] = archive_version or ""
+        result["skipped"] = False
+        result["reused_from_archive"] = True
         result["finished_at"] = _now_iso()
         return result
 
@@ -397,6 +422,21 @@ def _fetch_one_source(
     result["sha256"] = sha256
     result["size_bytes"] = size
     result["version"] = sha256[:16]
+    # source-side identifier used by the NEXT run's freshness_gate to
+    # decide reuse. Probe once now against the URL we just fetched so
+    # the identifier reflects the version we actually archived. Silent
+    # None on probe failure: freshness reuse degrades to always-fetch
+    # next run, but the current fetch/archive succeeds. Rule-005 keeps
+    # the log call in the caller (fetch_all_sources), not in this
+    # raise-capable function body.
+    try:
+        from source_freshness_probe import probe_source_version
+        result["source_version_identifier"] = probe_source_version(
+            source_name, _resolve_source_url(source_name, spec),
+        )
+    except Exception:  # noqa: BLE001
+        result["source_version_identifier"] = None
+        result["source_version_probe_failed"] = True
     result["skipped"] = False
     result["finished_at"] = _now_iso()
     return result

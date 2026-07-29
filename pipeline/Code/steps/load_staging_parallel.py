@@ -65,12 +65,18 @@ def _require_fetch_result(source_name: str, fetch_results: dict) -> dict:
             message=f"load_staging_parallel[{source_name}]: no fetch_result on manifest",
             source_name=source_name,
         )
-    if r.get("skipped"):
+    # A reuse-from-archive fetch_result carries skipped=false plus
+    # reused_from_archive=true and valid blob_container/blob_path
+    # pointing at the archive blob. Only reject fetch_results that
+    # truly have no blob to load from (skipped=true with no coords,
+    # or explicit error).
+    if not r.get("blob_container") or not r.get("blob_path"):
         raise ChatHealthyException(
             mode="value_error",
             message=(
-                f"load_staging_parallel[{source_name}]: fetch_result marks "
-                "skipped=true. Cannot load a skipped source. If skip is "
+                f"load_staging_parallel[{source_name}]: fetch_result has no "
+                f"blob_container/blob_path (skipped={r.get('skipped')}, "
+                f"error={r.get('error')!r}). Cannot load. If skip is "
                 "intentional, remove the source from the partition list."
             ),
             source_name=source_name,
