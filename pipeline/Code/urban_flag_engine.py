@@ -49,52 +49,51 @@ _log = ChatHealthyLoggingService()
 # CENSUS_UA_COUNTY_STAGING="pipeline_sources_rucc" name lived on
 # dev_PublicHealthData and never held rows under the current loader —
 # removed.
-DEFAULT_URBAN_THRESHOLD_PCT = 50.0
+URBAN_RUCC_MAX = 3  # Port of pipeline/Code/urban_flag.py: RUCC 1..3 = urban, 4..9 = rural.
 DEFAULT_BATCH = 500
 
-PERCENT_URBAN_KEYS = (
-    "percent_urban_population",
-    "PCT_URBAN",
-    "pct_urban_2020",
-    "POPPCT_URBAN",
-    "Percent Urban Population",
-)
 
-
-def _first_present(row: dict, keys: tuple[str, ...]) -> str | None:
-    for k in keys:
-        v = row.get(k)
-        if v is not None and str(v).strip() != "":
-            return str(v).strip()
+def _find_fips_col(raw_keys) -> str | None:
+    for k in raw_keys:
+        low = str(k).strip().lower()
+        if low in ("fips", "fips_code", "fipscode", "fips_txt"):
+            return k
     return None
 
 
-def _parse_pct(value: str | None) -> float | None:
-    if value is None:
-        return None
-    try:
-        return float(str(value).strip().rstrip("%"))
-    except (TypeError, ValueError):
-        return None
+def _find_rucc_col(raw_keys) -> str | None:
+    for k in raw_keys:
+        low = str(k).strip().lower()
+        if low.startswith("rucc_") or low == "rucc" or "ruralurbancontinuum" in low:
+            return k
+    return None
 
 
-def _load_percent_urban_by_fips(
+def _load_urban_by_fips(
     mongo, env_prefix: str, run_id: str, data_version: int,
-) -> dict[str, float]:
-    """Load {fips -> percent_urban_population} from the USDA RUCC staging
-    collection for this run_id."""
+) -> dict[str, bool]:
+    """Load {fips -> urban_bool} from the USDA RUCC staging collection.
+    Ports pipeline/Code/urban_flag.py semantics: RUCC 1..3 -> True, 4..9 -> False."""
     coll_name = staging_collection_name("usda_rucc", data_version)
     coll = mongo[STAGING_DB_NAME][coll_name]
-    out: dict[str, float] = {}
+    out: dict[str, bool] = {}
+    fips_col = None
+    rucc_col = None
     for row in coll.find({"run_id": run_id}):
         raw = row.get("raw") or {}
-        fips = str(row.get("fips") or raw.get("FIPS") or "").strip().zfill(5)
-        if not fips or fips == "00000":
+        if fips_col is None or rucc_col is None:
+            fips_col = _find_fips_col(raw.keys())
+            rucc_col = _find_rucc_col(raw.keys())
+            if fips_col is None or rucc_col is None:
+                continue
+        try:
+            fips = str(raw.get(fips_col) or "").strip().zfill(5)
+            rucc = int(raw.get(rucc_col))
+        except (TypeError, ValueError):
             continue
-        pct = _parse_pct(_first_present(raw, PERCENT_URBAN_KEYS))
-        if pct is None:
+        if len(fips) != 5 or fips == "00000" or rucc < 1 or rucc > 9:
             continue
-        out.setdefault(fips, pct)
+        out[fips] = rucc <= URBAN_RUCC_MAX
     return out
 
 
@@ -122,20 +121,22 @@ def stamp_urban_flags(
 ) -> dict[str, Any]:
     """Stamp `urban` on every enriched practice address in the run.
 
+    Ports pipeline/Code/urban_flag.py semantics: RUCC 1..3 = urban=True,
+    4..9 = urban=False, missing fips in USDA RUCC lookup = urban=null.
+
     Required config keys:
       - run_id                 (str)
       - env                    (str)
+      - data_version           (int)
       - provider_collection    (str "<db>.<coll>")
-      - urban_threshold_pct    (float, default 50.0)
-      - batch_size             (int, default 500)
       - partition_state        (str | None) — restrict scan to this state
 
     Returns:
       {
-        "total_addresses":  int,
-        "urban_true":       int,
-        "urban_false":      int,
-        "lookup_miss":      int,
+        "total_addresses":   int,
+        "urban_true":        int,
+        "urban_false":       int,
+        "lookup_miss":       int,
         "providers_updated": int,
       }
     """
@@ -143,12 +144,11 @@ def stamp_urban_flags(
     env_prefix = config["env"]
     data_version = int(config["data_version"])
     provider_collection = config["provider_collection"]
-    threshold = float(config.get("urban_threshold_pct", DEFAULT_URBAN_THRESHOLD_PCT))
     partition_state = (config.get("partition_state") or "").upper() or None
 
-    pct_by_fips = _load_percent_urban_by_fips(mongo, env_prefix, run_id, data_version)
-    if not pct_by_fips:
-        _log.warning("urban_flag_engine: no 2020_UA_COUNTY rows for run_id=%s", run_id)
+    urban_by_fips = _load_urban_by_fips(mongo, env_prefix, run_id, data_version)
+    if not urban_by_fips:
+        _log.warning("urban_flag_engine: no USDA RUCC rows for run_id=%s", run_id)
 
     db_name, coll_name = provider_collection.split(".", 1)
     coll = mongo[db_name][coll_name]
@@ -174,8 +174,8 @@ def stamp_urban_flags(
                 continue
             fips = str(c["fips"]).strip().zfill(5)
             total += 1
-            pct = pct_by_fips.get(fips)
-            if pct is None:
+            urban = urban_by_fips.get(fips)
+            if urban is None:
                 c["urban"] = None
                 lookup_miss += 1
                 _record_lookup_miss(
@@ -185,10 +185,8 @@ def stamp_urban_flags(
                     fips=fips,
                 )
             else:
-                is_urban = pct >= threshold
-                c["urban"] = bool(is_urban)
-                c["percent_urban_population"] = pct
-                if is_urban:
+                c["urban"] = bool(urban)
+                if urban:
                     urban_true += 1
                 else:
                     urban_false += 1
