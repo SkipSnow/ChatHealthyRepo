@@ -351,12 +351,25 @@ _LOCAL_ALLOWLIST = [
 _LOCAL_ALLOWLIST_RE = [re.compile(p, re.IGNORECASE) for p in _LOCAL_ALLOWLIST]
 
 
+_ENV_VAR_PREFIX_RE = re.compile(r"^\s*([A-Za-z_][A-Za-z0-9_]*=\S+\s+)+")
+
+
+def _strip_env_var_prefix(seg: str) -> str:
+    """Strip leading inline env-var assignments (FOO=bar BAR=baz ...) so the
+    Stage-1 allowlist regex can match the actual command head. Standard sh
+    syntax allows `VAR=val cmd args` to run `cmd args` with `VAR` in env;
+    the allowlist regexes anchor on `^\\s*<verb>` and would otherwise miss
+    a legitimate allowlisted command that carries inline env assignments."""
+    return _ENV_VAR_PREFIX_RE.sub("", seg, count=1)
+
+
 def _is_local_allowlisted(command: str) -> bool:
     """True iff every effect of `command` is confined to the local filesystem.
-    Splits on shell separators; every segment must match the allowlist."""
+    Splits on shell separators; every segment must match the allowlist after
+    stripping leading inline env-var assignments."""
     # Split on shell separators, keep only non-empty segments.
     segments = re.split(r"(?:&&|\|\||;|\||\n)", command)
-    segments = [s.strip() for s in segments if s.strip()]
+    segments = [_strip_env_var_prefix(s.strip()) for s in segments if s.strip()]
     if not segments:
         return False
     for seg in segments:
