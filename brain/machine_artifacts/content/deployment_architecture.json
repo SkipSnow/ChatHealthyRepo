@@ -6662,7 +6662,7 @@
           "feature_id": "EPIC-008-F-012",
           "handler_type": "python_source",
           "disposition": "referenced",
-          "content_hash": "c2ef8970cbcaf7f0797620ca15c58fb5bac604dfabf21675bd8eb38bccb6266a",
+          "content_hash": "19e5570dc6a9bce95421d93c5194d32ac37467b2278fcb2bd115477d6f461cd0",
           "package": "default"
         },
         {
@@ -6934,7 +6934,7 @@
           "feature_id": "EPIC-008-F-012",
           "handler_type": "python_source",
           "disposition": "referenced",
-          "content_hash": "c2ef8970cbcaf7f0797620ca15c58fb5bac604dfabf21675bd8eb38bccb6266a",
+          "content_hash": "19e5570dc6a9bce95421d93c5194d32ac37467b2278fcb2bd115477d6f461cd0",
           "package": "default"
         },
         {
