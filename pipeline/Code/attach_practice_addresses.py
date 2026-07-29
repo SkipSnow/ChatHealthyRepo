@@ -55,7 +55,7 @@ _BULK_CHUNK = 1000
 
 
 def _extract_partition_state(ctx) -> str:
-    partition = getattr(ctx, "partition", None) or {}
+    partition = ctx.config.get("partition") or {}
     state = (partition.get("business_address_state") or "").upper().strip()
     if not state:
         raise ChatHealthyException(

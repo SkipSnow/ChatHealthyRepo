@@ -410,6 +410,12 @@ def classify_other_identifier_phrases(config: dict, *, mongo, blob=None) -> dict
     """
     run_id = config["run_id"]
     partition = config.get("partition") or {}
+    if not partition:
+        raise ChatHealthyException(
+            mode="runtime_error",
+            message="per-state fanout required but config['partition'] is empty",
+            component="other_identifier_phrases_engine",
+        )
     state = (partition.get("business_address_state") or "").upper().strip()
     if not state:
         raise ChatHealthyException(
@@ -529,6 +535,12 @@ def apply_other_identifier_classifications(config: dict, *, mongo, blob=None) ->
 
     run_id = config["run_id"]
     partition = config.get("partition") or {}
+    if not partition:
+        raise ChatHealthyException(
+            mode="runtime_error",
+            message="per-state fanout required but config['partition'] is empty",
+            component="other_identifier_phrases_engine",
+        )
     state = (partition.get("business_address_state") or "").upper().strip()
     if not state:
         raise ChatHealthyException(
