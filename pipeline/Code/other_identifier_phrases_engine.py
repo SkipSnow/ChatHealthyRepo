@@ -357,7 +357,7 @@ def _run_llm_batch(state: str, phrases: list[dict], phrase_cls, input_cls, outpu
 
     agent = Agent(
         _LLM_MODEL_ID,
-        result_type=output_cls,
+        output_type=output_cls,
         system_prompt=_SYSTEM_PROMPT,
     )
     batch_in = input_cls(
