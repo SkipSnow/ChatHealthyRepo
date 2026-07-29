@@ -464,6 +464,43 @@ def _build_gate(source_name: str, throttle_rates: dict) -> RateLimitedGate:
     return RateLimitedGate(rate_per_second=rate)
 
 
+def _purge_prior_run_transients(blob, container_name: str, current_run_id: str) -> int:
+    """Delete every blob in the transient container that does NOT belong
+    to the current run_id. Design intent per operator: when a new run
+    lands, its blobs replace prior runs' blobs — the transient container
+    holds at most one run's worth of intermediates at any moment. Returns
+    the count deleted (best effort — errors log-warn, do not raise)."""
+    if blob is None:
+        return 0
+    try:
+        cc = blob.get_container_client(container_name)
+        purged = 0
+        for b in cc.list_blobs():
+            # Blob names begin with the run_id prefix (see _target_blob_name).
+            # Anything not starting with the current run_id is a prior-run leftover.
+            if not b.name.startswith(f"{current_run_id}/"):
+                try:
+                    cc.delete_blob(b.name)
+                    purged += 1
+                except Exception as exc:  # noqa: BLE001
+                    _log.warning(
+                        "source_fetch_engine: purge failed for %s: %s",
+                        b.name, exc,
+                    )
+        if purged:
+            _log.info(
+                "source_fetch_engine: purged %d prior-run blob(s) from %s (kept only run_id=%s)",
+                purged, container_name, current_run_id,
+            )
+        return purged
+    except Exception as exc:  # noqa: BLE001
+        _log.warning(
+            "source_fetch_engine: prior-run purge failed on container %s: %s",
+            container_name, exc,
+        )
+        return 0
+
+
 def _persist_versions_to_manifest(
     mongo, *, run_id: str, source_versions: dict[str, str]
 ) -> None:
@@ -529,6 +566,8 @@ def fetch_all_sources(
 
     base_sources = {n: s for n, s in sources.items() if not s.get("derived_from")}
     derived_sources = {n: s for n, s in sources.items() if s.get("derived_from")}
+
+    _purge_prior_run_transients(blob, transient_container, run_id)
 
     per_source_gates: dict[str, RateLimitedGate] = {
         name: _build_gate(name, throttle_rates) for name in base_sources.keys()
