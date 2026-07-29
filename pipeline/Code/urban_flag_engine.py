@@ -40,9 +40,15 @@ from chathealthy_frontend_lib.logging_service import ChatHealthyLoggingService
 
 from typing import Any
 
+from staging_loader import STAGING_DB_NAME, staging_collection_name
+
 _log = ChatHealthyLoggingService()
 
-CENSUS_UA_COUNTY_STAGING = "pipeline_sources_rucc"
+# usda_rucc is the source_name in STAGING_BASE_NAMES; staging_loader
+# writes to PublicStaging.StagingUsdaRucc_v_{data_version}. The legacy
+# CENSUS_UA_COUNTY_STAGING="pipeline_sources_rucc" name lived on
+# dev_PublicHealthData and never held rows under the current loader —
+# removed.
 DEFAULT_URBAN_THRESHOLD_PCT = 50.0
 DEFAULT_BATCH = 500
 
@@ -73,10 +79,12 @@ def _parse_pct(value: str | None) -> float | None:
 
 
 def _load_percent_urban_by_fips(
-    mongo, env_prefix: str, run_id: str
+    mongo, env_prefix: str, run_id: str, data_version: int,
 ) -> dict[str, float]:
-    """Load {fips -> percent_urban_population} from the Census 2020_UA_COUNTY workbook."""
-    coll = mongo[f"{env_prefix}_PublicHealthData"][CENSUS_UA_COUNTY_STAGING]
+    """Load {fips -> percent_urban_population} from the USDA RUCC staging
+    collection for this run_id."""
+    coll_name = staging_collection_name("usda_rucc", data_version)
+    coll = mongo[STAGING_DB_NAME][coll_name]
     out: dict[str, float] = {}
     for row in coll.find({"run_id": run_id}):
         raw = row.get("raw") or {}
@@ -133,11 +141,12 @@ def stamp_urban_flags(
     """
     run_id = config["run_id"]
     env_prefix = config["env"]
+    data_version = int(config["data_version"])
     provider_collection = config["provider_collection"]
     threshold = float(config.get("urban_threshold_pct", DEFAULT_URBAN_THRESHOLD_PCT))
     partition_state = (config.get("partition_state") or "").upper() or None
 
-    pct_by_fips = _load_percent_urban_by_fips(mongo, env_prefix, run_id)
+    pct_by_fips = _load_percent_urban_by_fips(mongo, env_prefix, run_id, data_version)
     if not pct_by_fips:
         _log.warning("urban_flag_engine: no 2020_UA_COUNTY rows for run_id=%s", run_id)
 
