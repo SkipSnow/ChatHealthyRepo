@@ -97,7 +97,11 @@ def run_step(ctx) -> dict:
     def _apply_freshness(spec_dict: dict, fresh_val) -> dict:
         if isinstance(fresh_val, dict):
             spec_dict.setdefault("freshness_decision", fresh_val.get("decision", "fetch"))
-            for k in ("archive_container", "archive_blob_path", "archive_filename", "archived_version"):
+            # source_freshness_gate writes 'archive_blob' (not
+            # 'archive_blob_path'); the earlier key-name mismatch caused
+            # reuse-decision sources to lose their archive coords and be
+            # silently skipped by source_fetch_engine.
+            for k in ("archive_container", "archive_blob", "archive_filename", "archived_version"):
                 if fresh_val.get(k) is not None:
                     spec_dict[k] = fresh_val[k]
         else:
