@@ -143,7 +143,7 @@ def attach_practice_addresses(ctx) -> dict:
                 ops_buffer = []
 
     for doc in rt.providers_coll.find(
-        {"addresses": {"$elemMatch": {"address_type": "business", "state": state}}},
+        {"addresses": {"$elemMatch": {"address_type": "practice", "state": state}}},
         {"npi": 1, "addresses": 1},
     ):
         providers_scanned += 1

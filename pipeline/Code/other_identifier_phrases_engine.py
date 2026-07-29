@@ -88,7 +88,7 @@ def _phrase_state_id(type_code: str, issuer_text: str, state: str) -> str:
 
 def _business_state_of(doc: dict) -> str | None:
     for a in (doc.get("addresses") or []):
-        if isinstance(a, dict) and a.get("address_type") == "business":
+        if isinstance(a, dict) and a.get("address_type") == "practice":
             st = (a.get("state") or "").strip().upper()
             if st:
                 return st
@@ -140,7 +140,7 @@ def harvest_other_identifier_phrases(config: dict, *, mongo, blob=None) -> dict:
     }
     if scoped_states:
         provider_query["addresses"] = {"$elemMatch": {
-            "address_type": "business",
+            "address_type": "practice",
             "state": {"$in": scoped_states},
         }}
 
@@ -599,7 +599,7 @@ def apply_other_identifier_classifications(config: dict, *, mongo, blob=None) ->
     lookup = _state_classification_lookup(staging_coll, state, run_id)
 
     query = {
-        "addresses": {"$elemMatch": {"address_type": "business", "state": state}},
+        "addresses": {"$elemMatch": {"address_type": "practice", "state": state}},
         "other_identifiers": {"$exists": True, "$ne": []},
     }
 
