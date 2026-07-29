@@ -325,10 +325,10 @@ _SYSTEM_PROMPT = (
     "  - PROVIDER_ID: NPI, INDIVIDUAL NPI, GROUP NPI, TAX ID, CAQH, "
     "    NCPDP, NABP, UPIN.\n"
     "  - FACILITY_ID: CLIA, DME.\n"
-    "  - UNKNOWN: only when the phrase is genuinely uninterpretable "
-    "    (cryptic 2-3 letter abbreviations you cannot resolve; \"N/A\", "
-    "    \"NONE\", \"PROVIDER NUMBER\", \"OTHER ID NUMBER\"). Avoid "
-    "    UNKNOWN when you can reasonably infer a category from context.\n\n"
+    "  - UNKNOWN: use freely for any phrase you cannot classify with "
+    "    reasonable confidence. Do not skip phrases; every input entry "
+    "    must have a classification. UNKNOWN is a valid, honest answer "
+    "    when the issuer text is cryptic, ambiguous, or missing context.\n\n"
     "When classification=INSURANCE, ALWAYS set payer_type and "
     "canonical_payer_name. Collapse variants aggressively: BC/BS, BCBS, "
     "BLUE CROSS, BLUE SHIELD, BLUE CROSS BLUE SHIELD, BCBSVT, VT BCBS, "
@@ -341,26 +341,31 @@ _SYSTEM_PROMPT = (
 )
 
 
-def _run_llm_batch(state: str, phrases: list[dict], phrase_cls, input_cls, output_cls) -> list[dict]:
+_MAX_ITERATIONS = 5
+
+
+def _make_agent(output_cls):
     from pydantic_ai import Agent
-
-    api_key = os.getenv("GEMINI_API_KEY") or os.getenv("GOOGLE_API_KEY")
-    if not api_key:
-        raise ChatHealthyException(
-            mode="runtime_error",
-            message="classify_other_identifier_phrases: GEMINI_API_KEY / "
-                    "GOOGLE_API_KEY not set",
-            component="other_identifier_phrases_engine",
-            state=state,
-        )
-    os.environ.setdefault("GOOGLE_API_KEY", api_key)
-
-    agent = Agent(
+    return Agent(
         _LLM_MODEL_ID,
         output_type=output_cls,
         system_prompt=_SYSTEM_PROMPT,
-        output_retries=5,
+        output_retries=3,
     )
+
+
+def _run_llm_call(
+    agent,
+    state: str,
+    phrases: list[dict],
+    phrase_cls,
+    input_cls,
+) -> dict[tuple[str, str], dict]:
+    """Send phrases to the LLM in one call. Return {(type_code, issuer_text):
+    classification_dict} for whatever the LLM returned successfully. Missing
+    entries (LLM omitted a phrase) are simply absent from the map; caller
+    iterates on them. On whole-call failure (network / pydantic-ai retry
+    exhausted / etc.) return empty map."""
     batch_in = input_cls(
         state=state,
         phrases=[
@@ -372,34 +377,75 @@ def _run_llm_batch(state: str, phrases: list[dict], phrase_cls, input_cls, outpu
             for p in phrases
         ],
     )
-
-    result = agent.run_sync(batch_in.model_dump_json())
-
+    try:
+        result = agent.run_sync(batch_in.model_dump_json())
+    except Exception:
+        return {}
     got = result.output if hasattr(result, "output") else result.data
-    by_key: dict[tuple[str, str], Any] = {}
+    out: dict[tuple[str, str], dict] = {}
     for c in got.classifications:
-        by_key[(c.type_code, c.issuer_text.upper())] = c
-
-    out: list[dict] = []
-    for p in phrases:
-        c = by_key.get((p["type_code"], p["issuer_text"]))
-        if c is None:
-            out.append({
-                "classification": "UNKNOWN",
-                "payer_type": None,
-                "canonical_payer_name": None,
-                "license_type": None,
-                "reasoning": "LLM did not return a classification for this phrase.",
-            })
-            continue
-        out.append({
+        out[(c.type_code, c.issuer_text.upper())] = {
             "classification": c.classification,
             "payer_type": c.payer_type,
             "canonical_payer_name": c.canonical_payer_name,
             "license_type": c.license_type,
             "reasoning": c.reasoning,
-        })
+        }
     return out
+
+
+def _classify_iteratively(
+    state: str,
+    pending: list[dict],
+    phrase_cls,
+    input_cls,
+    output_cls,
+) -> dict[str, dict]:
+    """Iterate up to _MAX_ITERATIONS times over the pending phrases,
+    classifying in chunks of _CHUNK_SIZE. Chunks that fail LLM validation
+    are re-tried on the next iteration. On the LAST iteration the prompt
+    permits UNKNOWN so no phrase gets stuck forever.
+
+    Returns {phrase_id: classification_dict}. Caller persists per phrase."""
+    api_key = os.getenv("GEMINI_API_KEY") or os.getenv("GOOGLE_API_KEY")
+    if not api_key:
+        raise ChatHealthyException(
+            mode="runtime_error",
+            message="classify_other_identifier_phrases: GEMINI_API_KEY / "
+                    "GOOGLE_API_KEY not set",
+            component="other_identifier_phrases_engine",
+            state=state,
+        )
+    os.environ.setdefault("GOOGLE_API_KEY", api_key)
+
+    classified: dict[str, dict] = {}
+    remaining = list(pending)
+    agent = _make_agent(output_cls)
+
+    for iteration in range(_MAX_ITERATIONS):
+        by_key = _run_llm_call(agent, state, remaining, phrase_cls, input_cls)
+        if not by_key:
+            continue
+        new_remaining: list[dict] = []
+        for p in remaining:
+            cls = by_key.get((p["type_code"], p["issuer_text"]))
+            if cls is None:
+                new_remaining.append(p)
+            else:
+                classified[p["_id"]] = cls
+        remaining = new_remaining
+        if not remaining:
+            break
+
+    for p in remaining:
+        classified[p["_id"]] = {
+            "classification": "UNKNOWN",
+            "payer_type": None,
+            "canonical_payer_name": None,
+            "license_type": None,
+            "reasoning": "LLM failed to classify after all iterations.",
+        }
+    return classified
 
 
 def classify_other_identifier_phrases(config: dict, *, mongo, blob=None) -> dict:
@@ -436,19 +482,15 @@ def classify_other_identifier_phrases(config: dict, *, mongo, blob=None) -> dict
     if not pending:
         return {"state": state, "classified": 0, "pending": 0}
 
-    payload = [
-        {
-            "type_code": d["type_code"],
-            "issuer_text": d["issuer_text"],
-            "sample_identifiers": d.get("sample_identifiers", []),
-        }
-        for d in pending
-    ]
-    results = _run_llm_batch(state, payload, phrase_cls, input_cls, output_cls)
+    classified_map = _classify_iteratively(state, pending, phrase_cls, input_cls, output_cls)
 
     classified = 0
+    unknown = 0
     now_iso = datetime.now(timezone.utc).isoformat()
-    for doc, cls in zip(pending, results):
+    for doc in pending:
+        cls = classified_map.get(doc["_id"])
+        if cls is None:
+            continue
         staging_coll.update_one(
             {"_id": doc["_id"], "classification": None},
             {
@@ -464,8 +506,10 @@ def classify_other_identifier_phrases(config: dict, *, mongo, blob=None) -> dict
             },
         )
         classified += 1
+        if cls["classification"] == "UNKNOWN":
+            unknown += 1
 
-    return {"state": state, "classified": classified, "pending": len(pending)}
+    return {"state": state, "classified": classified, "unknown": unknown, "pending": len(pending)}
 
 
 # ── Stage 3: apply ─────────────────────────────────────────────────────────
