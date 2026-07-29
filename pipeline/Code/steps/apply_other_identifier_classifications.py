@@ -24,7 +24,7 @@ def run_step(ctx) -> dict:
     config = dict(ctx.config)
     config.setdefault("run_id", ctx.run_id)
     config.setdefault("provider_collection", ctx.provider_collection)
-    partition = getattr(ctx, "partition", None) or {}
+    partition = ctx.config.get("partition") or {}
     config["partition"] = partition
 
     result = apply_other_identifier_classifications(

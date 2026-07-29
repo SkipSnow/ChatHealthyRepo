@@ -22,7 +22,7 @@ _log = ChatHealthyLoggingService()
 def run_step(ctx) -> dict:
     config = dict(ctx.config)
     config.setdefault("run_id", ctx.run_id)
-    partition = getattr(ctx, "partition", None) or {}
+    partition = ctx.config.get("partition") or {}
     config["partition"] = partition
 
     result = classify_other_identifier_phrases(

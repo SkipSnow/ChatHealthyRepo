@@ -22,7 +22,7 @@ def run_step(ctx) -> dict:
     config.setdefault("provider_collection", ctx.provider_collection)
     config.setdefault("google_maps_enabled", bool(ctx.args.google_maps_enabled))
 
-    partition = getattr(ctx, "partition", None) or {}
+    partition = ctx.config.get("partition") or {}
     config.setdefault("partition_state", partition.get("business_address_state"))
     config.setdefault("partition_kind", partition.get("kind"))
 
