@@ -19,9 +19,14 @@ def license_key(entry: dict) -> tuple[str, str]:
 
 
 def insurance_key(entry: dict) -> tuple[str, str]:
-    """Unique per insurance slot within one NPI: (insurance_type, state)."""
+    """Unique per insurance slot within one NPI: (payer_name, state).
+
+    Was (insurance_type, state), which collapsed every commercial payer
+    within a state to one entry (COMMERCIAL, VT). Real granularity is
+    at the payer_name level (BLUE_CROSS_BLUE_SHIELD, AETNA, CIGNA all
+    coexist for the same provider in the same state)."""
     return (
-        (entry.get("insurance_type") or "").strip().upper(),
+        (entry.get("payer_name") or entry.get("insurance_type") or "").strip().upper(),
         (entry.get("state") or "").strip().upper(),
     )
 
