@@ -393,6 +393,7 @@ class BasePipelineOrchestrator:
                 {"source": "census_zcta_county"},
                 {"source": "usda_rucc"},
                 {"source": "pl_pfile"},
+                {"source": "specialty_catalog"},
             ]
         if key == "source_name_base":
             # Fetch-phase partitioning. pl_pfile is EXCLUDED because it is
@@ -405,6 +406,7 @@ class BasePipelineOrchestrator:
                 {"source": "nucc"},
                 {"source": "census_zcta_county"},
                 {"source": "usda_rucc"},
+                {"source": "specialty_catalog"},
             ]
         states = ctx.args.resolved_states()
         if key == "county_partition":

@@ -38,6 +38,7 @@ _SOURCE_URL_ENVS = {
     "nucc": "SOURCE_URL_NUCC",
     "census_zcta_county": "SOURCE_URL_CENSUS_ZCTA_COUNTY",
     "usda_rucc": "SOURCE_URL_USDA_RUCC",
+    "specialty_catalog": "SPECIALTY_CLASSIFICATION_CATALOG_URL",
 }
 _DERIVED_SOURCES = {
     "pl_pfile": {"derived_from": "nppes_npi", "zip_entry_glob": "pl_pfile*.csv"},
