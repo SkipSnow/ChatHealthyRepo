@@ -316,9 +316,31 @@ def _vm_power_state(vm_name: str, tok: str) -> str:
     return "unknown"
 
 
-def _delete_vm_and_nic(vm: dict, tok: str) -> None:
+def _vm_disk_names(vm: dict) -> list[str]:
+    """Extract the OS disk name(s) and any attached data disk names from a
+    VM inventory record. Used so the Watchdog can delete the disks along
+    with the VM (deleteWithParent is not set by our current VM provision
+    call, so a VM delete leaves its OS disk orphaned as Unattached)."""
+    names: list[str] = []
+    profile = ((vm.get("properties") or {}).get("storageProfile") or {})
+    os_disk = profile.get("osDisk") or {}
+    os_name = (os_disk.get("name") or "").strip()
+    if os_name:
+        names.append(os_name)
+    for d in (profile.get("dataDisks") or []):
+        dn = (d.get("name") or "").strip()
+        if dn:
+            names.append(dn)
+    return names
+
+
+def _delete_vm_nic_and_disks(vm: dict, tok: str) -> None:
     vm_name = vm["name"]
-    # Best-effort: also delete the NIC (name pattern from Runbook: <vm>-nic)
+    disk_names = _vm_disk_names(vm)
+    # Order: capture disk names FIRST (we have them from the inventory
+    # record), then delete VM, then delete NIC, then delete disks. Delete
+    # of the disk before or during VM delete would 409 Conflict; delete
+    # after the VM release is safe.
     _arm_delete(
         (f"https://management.azure.com/subscriptions/{SUBSCRIPTION_ID}"
          f"/resourceGroups/{RESOURCE_GROUP}/providers/Microsoft.Compute/"
@@ -331,6 +353,70 @@ def _delete_vm_and_nic(vm: dict, tok: str) -> None:
          f"networkInterfaces/{vm_name}-nic?api-version=2023-09-01"),
         tok,
     )
+    for disk_name in disk_names:
+        try:
+            _arm_delete(
+                (f"https://management.azure.com/subscriptions/{SUBSCRIPTION_ID}"
+                 f"/resourceGroups/{RESOURCE_GROUP}/providers/Microsoft.Compute/"
+                 f"disks/{disk_name}?api-version=2023-04-02"),
+                tok,
+            )
+            log("delete_vm_disk", vm=vm_name, disk=disk_name)
+        except Exception as exc:  # noqa: BLE001
+            # Disk may already be gone or in a transient state; the orphan
+            # disk sweep at end of run picks it up on the next tick.
+            log("delete_vm_disk_error", vm=vm_name, disk=disk_name,
+                error=f"{type(exc).__name__}: {exc}")
+
+
+# Legacy name kept for callers below; forwards to the new-name function.
+def _delete_vm_and_nic(vm: dict, tok: str) -> None:
+    _delete_vm_nic_and_disks(vm, tok)
+
+
+def _list_orphan_disks(tok: str) -> list[dict]:
+    """Return every Unattached OS disk whose name matches the pipeline
+    VM convention vm-chpipeline-*_OsDisk_*. These are OS disks whose
+    parent VM was deleted (or reaped) without cascade-delete of the disk.
+    Historical run-up: 35 disks x ~30 GB x $0.15/GB/mo = ~$150-200/mo
+    of pure leak, seen 2026-07-29."""
+    url = (f"https://management.azure.com/subscriptions/{SUBSCRIPTION_ID}"
+           f"/resourceGroups/{RESOURCE_GROUP}/providers/Microsoft.Compute/"
+           f"disks?api-version=2023-04-02")
+    resp = _arm_get(url, tok)
+    out = []
+    for d in resp.get("value", []):
+        name = d.get("name", "")
+        state = ((d.get("properties") or {}).get("diskState") or "")
+        if state == "Unattached" and name.startswith("vm-chpipeline-") and "_OsDisk_" in name:
+            out.append(d)
+    return out
+
+
+def _reap_orphan_disks(tok: str) -> None:
+    """Sweep at end of every watchdog tick. Catches disks whose parent
+    VM was already reaped without the cascade OS-disk delete."""
+    try:
+        disks = _list_orphan_disks(tok)
+    except Exception as exc:  # noqa: BLE001
+        log("orphan_disk_sweep_list_error",
+            error=f"{type(exc).__name__}: {exc}")
+        return
+    log("orphan_disk_sweep_inventory", count=len(disks),
+        names=[d["name"] for d in disks])
+    for d in disks:
+        name = d["name"]
+        try:
+            _arm_delete(
+                (f"https://management.azure.com/subscriptions/{SUBSCRIPTION_ID}"
+                 f"/resourceGroups/{RESOURCE_GROUP}/providers/Microsoft.Compute/"
+                 f"disks/{name}?api-version=2023-04-02"),
+                tok,
+            )
+            log("orphan_disk_delete", disk=name)
+        except Exception as exc:  # noqa: BLE001
+            log("orphan_disk_delete_error", disk=name,
+                error=f"{type(exc).__name__}: {exc}")
 
 
 # -----------------------------------------------------------------------------
@@ -521,6 +607,10 @@ def main() -> int:
                 vm=vm.get("name", "?"),
                 error=f"{type(exc).__name__}: {exc}",
                 traceback=traceback.format_exc()[-1500:])
+    # Sweep any Unattached vm-chpipeline-*_OsDisk_* disks that outlived
+    # their VM (pre-deleteOption VMs or edge cases where the cascade
+    # delete lost a disk).
+    _reap_orphan_disks(tok)
     log("watchdog_end")
     return 0
 
