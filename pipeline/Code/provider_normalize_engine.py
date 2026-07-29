@@ -31,8 +31,33 @@ def _nucc_lookup(rt: PipelineRuntime) -> dict[str, dict]:
 def serial_bulk_load(ctx) -> dict[str, Any]:
     rt = PipelineRuntime(ctx)
     nucc = _nucc_lookup(rt)
+    # Full-mode drain: DELETE rows whose primary practice-address state
+    # is in this run's state_scope. Two bugs fixed at once vs. the prior
+    # coll.drop():
+    #   (a) drop() nuked every index (npi_1, addresses.county.source_1,
+    #       etc.) that prepare_infrastructure created — later steps
+    #       (add_secondary_practices, county_enrichment, add-on lookups)
+    #       then COLLSCAN every find({npi: ...}) and stall the run.
+    #   (b) drop() ignored state_scope entirely and threw away every
+    #       OTHER state's rows too — a run scoped to VT+DE was silently
+    #       destroying CA, NY, and every other state's providers.
+    # delete_many with the state filter leaves the collection object,
+    # its indexes, and any schema validator intact; only in-scope rows
+    # are removed and repopulated by the ReplaceOne(upsert=True) below.
     if not ctx.args.incremental:
-        rt.providers_coll.drop()
+        states = [s for s in (ctx.args.resolved_states() or []) if s]
+        if states:
+            state_filter = {
+                "addresses": {"$elemMatch": {
+                    "address_type": "practice",
+                    "state": {"$in": [s.upper() for s in states]},
+                }}
+            }
+            drained = rt.providers_coll.delete_many(state_filter).deleted_count
+            _log.info(
+                "serial_bulk_load: drained %d rows for state_scope=%s (indexes preserved)",
+                drained, states,
+            )
 
     seen_npis: set[str] = set()
     inserted = 0
