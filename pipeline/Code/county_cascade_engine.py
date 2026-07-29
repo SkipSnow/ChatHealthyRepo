@@ -54,7 +54,7 @@ from throttle_semaphore import RateLimitedConcurrencyGate, RateLimitedGate
 
 _log = ChatHealthyLoggingService()
 
-PRACTICE_ADDRESS_TYPES = frozenset({"primary_practice", "secondary_practice"})
+PRACTICE_ADDRESS_TYPES = frozenset({"practice", "secondary_practice"})
 DEFAULT_SLA = 0.98
 DEFAULT_BATCH_SIZE = 500
 DEFAULT_NPPES_RATE = 5.0
