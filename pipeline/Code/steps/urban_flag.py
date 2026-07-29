@@ -13,6 +13,8 @@ _log = ChatHealthyLoggingService()
 
 def run_step(ctx) -> dict:
     config = dict(ctx.config)
+    config["run_id"] = ctx.run_id
+    config["env"] = ctx.env_prefix
     config["states"] = ctx.args.resolved_states()
     if getattr(ctx, "provider_collection", None):
         config["provider_collection"] = ctx.provider_collection
