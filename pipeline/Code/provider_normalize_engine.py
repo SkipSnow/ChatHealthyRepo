@@ -20,8 +20,9 @@ _log = ChatHealthyLoggingService()
 
 def _nucc_lookup(rt: PipelineRuntime) -> dict[str, dict]:
     out: dict[str, dict] = {}
-    for row in rt.staging_coll("nucc_taxonomy").find({}):
-        code = row.get("Code") or row.get("_id")
+    for row in rt.staging_coll("nucc").find({"run_id": rt.run_id}):
+        raw = row.get("raw") or {}
+        code = raw.get("Code") or row.get("Code") or row.get("_id")
         if code:
             out[str(code)] = row
     return out
