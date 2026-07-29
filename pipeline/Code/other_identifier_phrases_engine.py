@@ -359,6 +359,7 @@ def _run_llm_batch(state: str, phrases: list[dict], phrase_cls, input_cls, outpu
         _LLM_MODEL_ID,
         output_type=output_cls,
         system_prompt=_SYSTEM_PROMPT,
+        output_retries=5,
     )
     batch_in = input_cls(
         state=state,
