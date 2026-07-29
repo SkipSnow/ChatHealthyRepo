@@ -1,83 +1,166 @@
 # Copyright (c) 2026 ChatHealthy.ai LLC. All rights reserved.
 # Licensed under the FindCare Evaluation License (FEL-1.0).
 
-"""Attach pl_pfile secondary practice addresses — LLD §4.9."""
+"""Attach pl_pfile secondary practice addresses — LLD §4.9.
+
+Per-state fanout. Each worker owns one business_address_state.
+Streaming, chunked algorithm designed to scale from VT (~5K
+providers) to CA (~400K providers) without holding all pl_pfile
+matches or all provider docs in memory:
+
+  1. Cursor-iterate Provider_v_3 filtered to this state's business
+     address. Accumulate 1000 provider docs at a time into a chunk.
+  2. For each chunk, extract the NPI list and query pl_pfile once
+     with `$in` on those 1000 NPIs — small query payload, uses the
+     NPI index on the pl_pfile staging collection, returns only the
+     matching subset.
+  3. Group returned pl_pfile rows by NPI in a per-chunk dict.
+  4. For each provider in the chunk: merge and dedupe addresses in
+     memory, push an UpdateOne into a bulk-op buffer.
+  5. Flush the bulk-op buffer via bulk_write every 1000 ops.
+  6. Discard the chunk's in-memory state; advance the provider cursor.
+
+Bounded memory per worker: ~1000 provider docs + their matched
+pl_pfile rows. Independent of state size — CA works the same shape
+as VT, just more iterations.
+
+Replaces the prior implementation that walked all 11M pl_pfile rows
+sequentially and issued one Atlas find_one + one update_one per row
+(~60 hours per fire).
+"""
 
 from __future__ import annotations
 from chathealthy_frontend_lib.logging_service import ChatHealthyLoggingService
+from chathealthy_frontend_lib.exceptions import ChatHealthyException
 
 
-from address_dedup import address_location_key, dedupe_addresses, merge_address
+from pymongo import UpdateOne
+
+from address_dedup import dedupe_addresses
 from pipeline_runtime import PipelineRuntime
 
 _log = ChatHealthyLoggingService()
 
 
-def attach_practice_addresses(ctx) -> dict:
-    rt = PipelineRuntime(ctx)
-    attached = 0
-    skipped_dup = 0
+_PL_ADDR1 = "Provider Secondary Practice Location Address- Address Line 1"
+_PL_ADDR2 = "Provider Secondary Practice Location Address-  Address Line 2"
+_PL_CITY = "Provider Secondary Practice Location Address - City Name"
+_PL_STATE = "Provider Secondary Practice Location Address - State Name"
+_PL_ZIP = "Provider Secondary Practice Location Address - Postal Code"
+_PL_COUNTRY = "Provider Secondary Practice Location Address - Country Code (If outside U.S.)"
+_PL_PHONE = "Provider Secondary Practice Location Address - Telephone Number"
 
-    # pl_pfile CSV columns (from CMS NPPES practice-locations file) live
-    # under row["raw"] per staging_loader._wrap_row. Column names carry
-    # leading/trailing whitespace variance in the CMS file; the reads
-    # below match the exact column names as published in pl_pfile*.csv.
-    _PL_ADDR1 = "Provider Secondary Practice Location Address- Address Line 1"
-    _PL_ADDR2 = "Provider Secondary Practice Location Address-  Address Line 2"
-    _PL_CITY = "Provider Secondary Practice Location Address - City Name"
-    _PL_STATE = "Provider Secondary Practice Location Address - State Name"
-    _PL_ZIP = "Provider Secondary Practice Location Address - Postal Code"
-    _PL_COUNTRY = "Provider Secondary Practice Location Address - Country Code (If outside U.S.)"
-    _PL_PHONE = "Provider Secondary Practice Location Address - Telephone Number"
+_PROVIDER_CHUNK = 1000
+_BULK_CHUNK = 1000
 
-    for row in rt.staging_coll("pl_pfile").find({"run_id": rt.run_id}):
-        npi = row.get("npi") or (row.get("raw") or {}).get("NPI")
+
+def _extract_partition_state(ctx) -> str:
+    partition = getattr(ctx, "partition", None) or {}
+    state = (partition.get("business_address_state") or "").upper().strip()
+    if not state:
+        raise ChatHealthyException(
+            mode="runtime_error",
+            message="attach_practice_addresses: per-state fanout required "
+                    "but ctx.partition.business_address_state is empty",
+            component="attach_practice_addresses",
+        )
+    return state
+
+
+def _pl_row_to_address(row: dict) -> dict | None:
+    raw = row.get("raw") or {}
+    line1 = (raw.get(_PL_ADDR1) or "").strip()
+    city = (raw.get(_PL_CITY) or "").strip()
+    pl_state = (raw.get(_PL_STATE) or "").strip()
+    if not (line1 and city and pl_state):
+        return None
+    return {
+        "line1": line1,
+        "line2": (raw.get(_PL_ADDR2) or "").strip() or None,
+        "city": city,
+        "state": pl_state,
+        "zip": (raw.get(_PL_ZIP) or "").strip(),
+        "country": (raw.get(_PL_COUNTRY) or "US").strip() or "US",
+        "phone": (raw.get(_PL_PHONE) or "").strip() or None,
+        "address_type": "secondary_practice",
+        "primary": False,
+        "source": "pl_pfile",
+        "county": {"fips": None},
+    }
+
+
+def _fetch_pl_by_npi(pl_coll, run_id: str, npis: list[str]) -> dict[str, list[dict]]:
+    pl_by_npi: dict[str, list[dict]] = {}
+    for row in pl_coll.find({"run_id": run_id, "npi": {"$in": npis}}):
+        npi = str(row.get("npi") or "")
         if not npi:
             continue
-        raw = row.get("raw") or {}
-        line1 = (raw.get(_PL_ADDR1) or "").strip()
-        city = (raw.get(_PL_CITY) or "").strip()
-        state = (raw.get(_PL_STATE) or "").strip()
-        zip_code = (raw.get(_PL_ZIP) or "").strip()
-        if not (line1 and city and state):
+        incoming = _pl_row_to_address(row)
+        if incoming is None:
             continue
+        pl_by_npi.setdefault(npi, []).append(incoming)
+    return pl_by_npi
 
-        incoming = {
-            "line1": line1,
-            "line2": (raw.get(_PL_ADDR2) or "").strip() or None,
-            "city": city,
-            "state": state,
-            "zip": zip_code,
-            "country": (raw.get(_PL_COUNTRY) or "US").strip() or "US",
-            "phone": (raw.get(_PL_PHONE) or "").strip() or None,
-            "address_type": "secondary_practice",
-            "primary": False,
-            "source": "pl_pfile",
-            "county": {"fips": None},
-        }
-        loc_key = address_location_key(incoming)
 
-        doc = rt.providers_coll.find_one({"npi": str(npi)}, {"addresses": 1})
-        if not doc:
-            continue
+def _flush(providers_coll, ops_buffer: list[UpdateOne]) -> int:
+    if not ops_buffer:
+        return 0
+    result = providers_coll.bulk_write(ops_buffer, ordered=False)
+    return result.modified_count
 
-        addresses = list(doc.get("addresses") or [])
-        existing_idx = next(
-            (i for i, a in enumerate(addresses) if address_location_key(a) == loc_key),
-            None,
-        )
-        if existing_idx is not None:
-            addresses[existing_idx] = merge_address(addresses[existing_idx], incoming)
-            skipped_dup += 1
-        else:
-            addresses.append(incoming)
 
-        addresses = dedupe_addresses(addresses)
-        result = rt.providers_coll.update_one(
-            {"npi": str(npi)},
-            {"$set": {"addresses": addresses}},
-        )
-        if result.modified_count:
-            attached += 1
+def attach_practice_addresses(ctx) -> dict:
+    rt = PipelineRuntime(ctx)
+    state = _extract_partition_state(ctx)
+    pl_coll = rt.staging_coll("pl_pfile")
 
-    return {"addresses_attached": attached, "skipped_duplicate_location": skipped_dup}
+    ops_buffer: list[UpdateOne] = []
+    providers_scanned = 0
+    providers_updated = 0
+    addresses_attached = 0
+    pl_rows_matched = 0
+
+    chunk: list[dict] = []
+
+    def _process_chunk(chunk: list[dict]) -> None:
+        nonlocal pl_rows_matched, addresses_attached, providers_updated, ops_buffer
+        npis = [str(d.get("npi")) for d in chunk if d.get("npi")]
+        if not npis:
+            return
+        pl_by_npi = _fetch_pl_by_npi(pl_coll, rt.run_id, npis)
+        pl_rows_matched += sum(len(v) for v in pl_by_npi.values())
+        for doc in chunk:
+            npi = str(doc.get("npi") or "")
+            new_addrs = pl_by_npi.get(npi)
+            if not new_addrs:
+                continue
+            existing = list(doc.get("addresses") or [])
+            merged = dedupe_addresses([*existing, *new_addrs])
+            ops_buffer.append(UpdateOne({"npi": npi}, {"$set": {"addresses": merged}}))
+            addresses_attached += len(new_addrs)
+            if len(ops_buffer) >= _BULK_CHUNK:
+                providers_updated += _flush(rt.providers_coll, ops_buffer)
+                ops_buffer = []
+
+    for doc in rt.providers_coll.find(
+        {"addresses": {"$elemMatch": {"address_type": "business", "state": state}}},
+        {"npi": 1, "addresses": 1},
+    ):
+        providers_scanned += 1
+        chunk.append(doc)
+        if len(chunk) >= _PROVIDER_CHUNK:
+            _process_chunk(chunk)
+            chunk = []
+
+    if chunk:
+        _process_chunk(chunk)
+    if ops_buffer:
+        providers_updated += _flush(rt.providers_coll, ops_buffer)
+
+    return {
+        "state": state,
+        "providers_scanned": providers_scanned,
+        "pl_pfile_rows_matched": pl_rows_matched,
+        "providers_updated": providers_updated,
+        "addresses_attached": addresses_attached,
+    }
