@@ -13,17 +13,17 @@ from typing import Any
 
 from pipeline_config import load_pipeline_config
 from pipeline_db import get_frontend_mongo, get_mongo
+from staging_loader import STAGING_DB_NAME, staging_collection_name
+
 
 _log = ChatHealthyLoggingService()
 
-STAGING = {
-    "nppes_npi": "pipeline_sources_nppes_npi",
-    "pl_pfile": "pipeline_sources_pl_pfile",
-    "nucc_taxonomy": "pipeline_sources_nucc_taxonomy",
-    "zip_county_crosswalk": "pipeline_sources_zip_county_crosswalk",
-    "rucc": "pipeline_sources_rucc",
-    "specialty_catalog": "pipeline_sources_specialty_catalog",
-}
+# Default base name (db.coll, WITHOUT the _v_<data_version> suffix) for the
+# provider write target. Runtime appends _v_{data_version} at read time so
+# a data_version bump does not require a config change. The Mongo
+# pipeline.config MAY override this base with its own dataset_versions
+# .provider_write_target entry (base name only, no version).
+_DEFAULT_PROVIDER_TARGET_BASE = "PublicData.Provider"
 
 REPORTS_CONTAINER_SUFFIX = "-pipeline-reports"
 
@@ -42,7 +42,8 @@ class PipelineRuntime:
         self.frontend = get_frontend_mongo()
         self.env = ctx.env_prefix
         self.run_id = ctx.run_id
-        self.db = self.mongo[f"{self.env}_PublicHealthData"]
+        self.data_version = int(ctx.args.data_version)
+        self.staging_db = self.mongo[STAGING_DB_NAME]
         self._provider_collection: str | None = None
 
     @property
@@ -50,12 +51,14 @@ class PipelineRuntime:
         if self._provider_collection:
             return self._provider_collection
         cfg = load_pipeline_config(self.frontend, self.env)
-        target = (
+        base = (
             cfg.get("dataset_versions", {}).get("provider_write_target")
-            or self.ctx.args.provider_write_target()
+            or _DEFAULT_PROVIDER_TARGET_BASE
         )
-        if "." not in target:
-            target = f"{self.env}_PublicHealthData.{target}"
+        # Config carries the base name (db.coll, no version suffix); the
+        # runtime appends _v_{data_version} so we never rewrite the config
+        # to bump a version.
+        target = f"{base}_v_{self.data_version}"
         self._provider_collection = target
         return target
 
@@ -64,8 +67,10 @@ class PipelineRuntime:
         db_name, coll_name = self.provider_collection.split(".", 1)
         return self.mongo[db_name][coll_name]
 
-    def staging_coll(self, key: str):
-        return self.db[STAGING[key]]
+    def staging_coll(self, source_name: str):
+        # source_name matches staging_loader.STAGING_BASE_NAMES keys.
+        # staging_collection_name() returns the base + _v_{data_version}.
+        return self.staging_db[staging_collection_name(source_name, self.data_version)]
 
     @property
     def discrepancies_coll(self):
