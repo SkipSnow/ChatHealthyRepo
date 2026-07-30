@@ -317,10 +317,20 @@
                   "out_of_scope_zip_state_mismatch",
                   null
                 ]
+              },
+              "rucc": {
+                "description": "USDA Rural-Urban Continuum Code (1-9) for this county from the USDA ERS RUCC catalog. 1-3 = metro (1=1M+, 2=250K-1M, 3=<250K); 4-9 = nonmetro urban/rural gradient. Stamped alongside fips/name/source by the county-cascade pipeline for every practice address whose stage produced a numeric FIPS (crosswalk, Census batch, NPPES registry). Absent (or null) when the cascade stage produced a non-numeric fips_key (Google Maps) or the FIPS is not in the RUCC catalog. Front-end consumers apply their own urban/rural threshold at query time from this raw integer.",
+                "type": [
+                  "integer",
+                  "null"
+                ],
+                "minimum": 1,
+                "maximum": 9
               }
             }
           },
           "urban": {
+            "description": "RETIRED 2026-07-30. Previously stamped by the standalone urban_flag step (RUCC 1-3 -> true, 4-9 -> false); that step was retired in favor of county.rucc which preserves the raw integer. Field kept in schema so historical records still validate; no new records populate it. Consumers should read addresses[i].county.rucc and apply their own threshold.",
             "type": [
               "boolean",
               "null"

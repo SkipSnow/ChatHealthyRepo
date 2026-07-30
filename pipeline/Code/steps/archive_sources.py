@@ -13,7 +13,10 @@ from datetime import datetime, timezone
 from blob_client import get_blob_service
 from pipeline_db import get_mongo
 from pipeline_source_archival import archive_source_blob, duplicate_version_detected
-from urban_flag import RUCC_JSON_BLOB_NAME
+
+# Legacy fallback blob name for usda_rucc; retained as a literal after
+# urban_flag.py was retired (RUCC now stamped as int by county_cascade).
+_RUCC_JSON_BLOB_NAME = "rucc.json"
 
 _log = ChatHealthyLoggingService()
 
@@ -48,7 +51,7 @@ def _resolve_source_blob(source_key: str, fetch_result: dict, registry_doc: dict
         return bp, bp.split("/")[-1]
 
     if source_key == "usda_rucc":
-        return RUCC_JSON_BLOB_NAME, "rucc.json"
+        return _RUCC_JSON_BLOB_NAME, "rucc.json"
 
     raise ChatHealthyException(mode="value_error", message=f"cannot resolve blob for source {source_key}")
 

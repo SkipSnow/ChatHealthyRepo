@@ -77,6 +77,18 @@ class ProviderPipelineOrchestrator(BasePipelineOrchestrator):
             partition_key="business_address_state",
         ),
         StepSpec(
+            # F-105 flag stamping (can_prescribe / is_homeopathic /
+            # is_disqualified) driven off the provider's primary taxonomy
+            # code via the specialty_classification_catalog. Independent
+            # of county enrichment -- runs as soon as the normalized
+            # provider record exists.
+            name="provider_flags_enrichment",
+            prerequisites=["add_secondary_practices"],
+            parallelism="process_pool",
+            aca_job_name="prov-provider-flags",
+            partition_key="business_address_state",
+        ),
+        StepSpec(
             name="harvest_other_identifier_phrases",
             prerequisites=["add_secondary_practices"],
             parallelism="serial",
@@ -118,6 +130,12 @@ class ProviderPipelineOrchestrator(BasePipelineOrchestrator):
             partition_key="business_address_state",
         ),
         StepSpec(
+            # County enrichment now also stamps addresses[i].county.rucc
+            # (int 1-9 USDA RUCC) alongside fips/name/source. The
+            # standalone urban_flag step has been retired -- doing both
+            # in one pass avoids a second per-state address scan +
+            # bulk_write. Front-end decides urban/rural threshold at
+            # query time from the raw rucc integer.
             name="county_enrichment",
             prerequisites=["license_address_repair"],
             parallelism="process_pool",
@@ -125,22 +143,15 @@ class ProviderPipelineOrchestrator(BasePipelineOrchestrator):
             partition_key="county_partition",
         ),
         StepSpec(
-            name="urban_flag",
-            prerequisites=["county_enrichment"],
-            parallelism="process_pool",
-            aca_job_name="prov-urban-flag",
-            partition_key="business_address_state",
-        ),
-        StepSpec(
             name="type1_second_branch",
-            prerequisites=["urban_flag"],
+            prerequisites=["county_enrichment"],
             parallelism="process_pool",
             aca_job_name="prov-type1-second-branch",
             partition_key="business_address_state",
         ),
         StepSpec(
             name="type2_second_branch",
-            prerequisites=["urban_flag"],
+            prerequisites=["county_enrichment"],
             parallelism="process_pool",
             aca_job_name="prov-type2-second-branch",
             partition_key="business_address_state",

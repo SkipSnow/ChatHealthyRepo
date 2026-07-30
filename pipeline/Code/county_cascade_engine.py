@@ -142,17 +142,31 @@ def _zip5(addr: dict) -> str | None:
     return z.zfill(5)[:5]
 
 
-def _stamp_county(addr: dict, *, fips: str, source: str, name: str | None = None) -> None:
+def _stamp_county(
+    addr: dict, *,
+    fips: str, source: str,
+    name: str | None = None, rucc: int | None = None,
+) -> None:
     """Stamp a county identity on an address.
 
     fips is authoritative (5-digit county FIPS). name is included when a
     stage or reverse-lookup can supply one — the crosswalk carries names
     in the (fips, name) tuple; Census-batch stampings resolve names via
     the fips_to_name reverse index; Google stampings receive names
-    directly from the API."""
+    directly from the API.
+
+    rucc is the USDA Rural-Urban Continuum Code (int 1-9) for the
+    county's FIPS, when available. Preserved as an integer so callers
+    (FindCare filters, EvaluateCare ranking) can apply their own
+    threshold at query time rather than being forced into a
+    pipeline-baked urban=bool. Absent when the RUCC lookup misses or
+    when the stage produces a non-numeric fips (google_maps returns
+    'STATE::CountyName' shape, not a numeric FIPS)."""
     entry: dict = {"fips": fips, "source": source}
     if name:
         entry["name"] = name
+    if rucc is not None:
+        entry["rucc"] = rucc
     addr["county"] = entry
 
 
@@ -312,6 +326,53 @@ def _load_zcta_crosswalk(mongo, env_prefix: str, run_id: str, data_version: int)
     return out
 
 
+def _load_rucc_by_fips(mongo, run_id: str, data_version: int) -> dict[str, int]:
+    """Load {5-digit county FIPS -> USDA RUCC integer 1..9} from staging.
+
+    Reads from PublicStaging.StagingUsdaRucc_v_{data_version}. Preserves
+    the raw integer (1..9) so downstream consumers can apply their own
+    urban/rural threshold at query time — no boolean collapse here.
+
+    RUCC integer semantics (from USDA ERS):
+      1: Metro 1M+          6: Nonmetro 2.5K-20K adjacent
+      2: Metro 250K-1M      7: Nonmetro 2.5K-20K nonadjacent
+      3: Metro <250K        8: Nonmetro <2.5K adjacent
+      4: Nonmetro 20K+ adj  9: Nonmetro <2.5K nonadjacent
+      5: Nonmetro 20K+ non-adj"""
+    from staging_loader import STAGING_DB_NAME, staging_collection_name
+    coll_name = staging_collection_name("usda_rucc", data_version)
+    coll = mongo[STAGING_DB_NAME][coll_name]
+    scanned = 0
+    out: dict[str, int] = {}
+    fips_col: str | None = None
+    rucc_col: str | None = None
+    for row in coll.find({"run_id": run_id}):
+        scanned += 1
+        raw = row.get("raw") or {}
+        if fips_col is None or rucc_col is None:
+            for k in raw.keys():
+                low = str(k).strip().lower()
+                if fips_col is None and low in ("fips", "fips_code", "fipscode", "fips_txt"):
+                    fips_col = k
+                if rucc_col is None and (low.startswith("rucc_") or low == "rucc" or "ruralurbancontinuum" in low):
+                    rucc_col = k
+            if fips_col is None or rucc_col is None:
+                continue
+        try:
+            fips = str(raw.get(fips_col) or "").strip().zfill(5)[:5]
+            rucc = int(raw.get(rucc_col))
+        except (TypeError, ValueError):
+            continue
+        if len(fips) != 5 or fips == "00000" or rucc < 1 or rucc > 9:
+            continue
+        out[fips] = rucc
+    _log.info(
+        "county_cascade: rucc load coll=%s.%s scanned=%d loaded=%d",
+        STAGING_DB_NAME, coll_name, scanned, len(out),
+    )
+    return out
+
+
 # ── Stage 1 — zip_crosswalk ────────────────────────────────────────────────
 # No HTTP; the crosswalk is loaded once by _load_zcta_crosswalk before
 # the funnel entry. Split is apply-only (no fetch, no parse).
@@ -331,17 +392,22 @@ def _build_fips_to_name(crosswalk: dict[str, tuple[str, str]]) -> dict[str, str]
 def _zip_crosswalk_apply(
     pairs: list[tuple[dict, dict]],
     crosswalk: dict[str, tuple[str, str]],
+    rucc_by_fips: dict[str, int],
 ) -> tuple[list[tuple[dict, dict]], int]:
     """Pure lookup+stamp: for each pair, look up its 5-digit ZIP in the
-    crosswalk dict. Hit → stamp county.fips + county.name. Miss → route
-    to residue."""
+    crosswalk dict. Hit → stamp county.fips + county.name + county.rucc
+    (int 1-9 when the fips resolves in the RUCC catalog; otherwise
+    omitted). Miss → route to residue."""
     residue: list[tuple[dict, dict]] = []
     hits = 0
     for doc, addr in pairs:
         z = _zip5(addr)
         if z and z in crosswalk:
             fips, name = crosswalk[z]
-            _stamp_county(addr, fips=fips, source=ZIP_CROSSWALK, name=name or None)
+            _stamp_county(
+                addr, fips=fips, source=ZIP_CROSSWALK,
+                name=name or None, rucc=rucc_by_fips.get(fips),
+            )
             hits += 1
         else:
             residue.append((doc, addr))
@@ -351,9 +417,10 @@ def _zip_crosswalk_apply(
 def _stage_zip_crosswalk(
     pairs: list[tuple[dict, dict]],
     crosswalk: dict[str, tuple[str, str]],
+    rucc_by_fips: dict[str, int],
 ) -> tuple[list[tuple[dict, dict]], int]:
     """Stage 1 orchestrator: apply the pre-loaded crosswalk + emit log."""
-    residue, hits = _zip_crosswalk_apply(pairs, crosswalk)
+    residue, hits = _zip_crosswalk_apply(pairs, crosswalk, rucc_by_fips)
     _log.info(
         "county_cascade[zip_crosswalk]: in=%d hit=%d residue=%d crosswalk_size=%d",
         len(pairs), hits, len(residue), len(crosswalk),
@@ -472,11 +539,13 @@ def _census_batch_apply(
     chunk: list[tuple[dict, dict]],
     resolved: dict[int, dict],
     fips_to_name: dict[str, str],
+    rucc_by_fips: dict[str, int],
 ) -> tuple[list[tuple[dict, dict]], int]:
-    """Pure: stamp county.fips + county.name + coordinates on chunk[idx]
-    for every idx in resolved; route misses to residue. County name
-    comes from fips_to_name (Census API doesn't publish it). Coordinates
-    are omitted if the API response didn't carry them (rare)."""
+    """Pure: stamp county.fips + county.name + county.rucc + coordinates
+    on chunk[idx] for every idx in resolved; route misses to residue.
+    County name comes from fips_to_name (Census API doesn't publish it),
+    rucc comes from rucc_by_fips (USDA catalog). Coordinates are
+    omitted if the API response didn't carry them (rare)."""
     residue: list[tuple[dict, dict]] = []
     hits = 0
     for idx, (doc, addr) in enumerate(chunk):
@@ -486,6 +555,7 @@ def _census_batch_apply(
             _stamp_county(
                 addr, fips=fips, source=CENSUS_BATCH,
                 name=fips_to_name.get(fips) or None,
+                rucc=rucc_by_fips.get(fips),
             )
             if "latitude" in entry and "longitude" in entry:
                 # Census batch geocoder is always TIGER-based range
@@ -508,10 +578,12 @@ def _stage_census_batch(
     gate: RateLimitedGate,
     batch_size: int,
     fips_to_name: dict[str, str],
+    rucc_by_fips: dict[str, int],
 ) -> tuple[list[tuple[dict, dict]], int]:
     """Stage 2 orchestrator: chunk → build body → fetch → parse → apply.
     fips_to_name is the reverse index built from the crosswalk so every
-    stamped county carries the human-readable name alongside the FIPS."""
+    stamped county carries the human-readable name alongside the FIPS;
+    rucc_by_fips lets the applier stamp the USDA RUCC integer alongside."""
     _log.info("county_cascade[census_batch]: entering in=%d batch_size=%d", len(pairs), batch_size)
     residue: list[tuple[dict, dict]] = []
     hits = 0
@@ -523,7 +595,7 @@ def _stage_census_batch(
             residue.extend(chunk)
             continue
         resolved = _census_batch_parse(text)
-        chunk_residue, chunk_hits = _census_batch_apply(chunk, resolved, fips_to_name)
+        chunk_residue, chunk_hits = _census_batch_apply(chunk, resolved, fips_to_name, rucc_by_fips)
         residue.extend(chunk_residue)
         hits += chunk_hits
     _log.info(
@@ -712,6 +784,7 @@ def _stage_nppes_registry(
     crosswalk: dict[str, tuple[str, str]],
     census_gate: RateLimitedGate,
     fips_to_name: dict[str, str],
+    rucc_by_fips: dict[str, int],
 ) -> tuple[list[tuple[dict, dict]], int]:
     """Stage 3 orchestrator, three phases:
       Phase 1 — per-NPI refresh: fetch NPPES canonical LOCATION address;
@@ -750,7 +823,10 @@ def _stage_nppes_registry(
         entry = crosswalk.get(_zip5(addr) or "")
         if entry:
             fips, name = entry
-            _stamp_county(addr, fips=fips, source=NPPES_REGISTRY, name=name or None)
+            _stamp_county(
+                addr, fips=fips, source=NPPES_REGISTRY,
+                name=name or None, rucc=rucc_by_fips.get(fips),
+            )
             r1_hits += 1
         else:
             r1_residue.append((doc, addr))
@@ -775,6 +851,7 @@ def _stage_nppes_registry(
                     _stamp_county(
                         addr, fips=fips, source=NPPES_REGISTRY,
                         name=fips_to_name.get(fips) or None,
+                        rucc=rucc_by_fips.get(fips),
                     )
                     if "latitude" in entry and "longitude" in entry:
                         _stamp_coordinates(
@@ -1030,6 +1107,12 @@ def run_county_cascade(
     # county.name on every stamped record (Skip: "you need it in every
     # record"). Built once at funnel entry from the crosswalk.
     fips_to_name = _build_fips_to_name(crosswalk)
+    # rucc_by_fips: USDA RUCC integer 1-9 per county. Stamped alongside
+    # fips/name on every practice address by all stages that produce a
+    # numeric FIPS (crosswalk, Census, NPPES). Google's fips_key is
+    # non-numeric ("STATE::County Name") so its lookups yield None and
+    # rucc is simply omitted from Google-stamped counties.
+    rucc_by_fips = _load_rucc_by_fips(mongo, run_id, data_version)
     session = requests.Session()
 
     # Gates are lazily instantiated so a run that resolves entirely from the
@@ -1070,7 +1153,7 @@ def run_county_cascade(
             continue
         total += chunk_total
 
-        residue, hit1 = _stage_zip_crosswalk(pairs, crosswalk)
+        residue, hit1 = _stage_zip_crosswalk(pairs, crosswalk, rucc_by_fips)
         stage_hits[ZIP_CROSSWALK] += hit1
 
         # Per-chunk SLA gate — advance only when this chunk hasn't cleared
@@ -1088,6 +1171,7 @@ def run_county_cascade(
             residue, hit2 = _stage_census_batch(
                 residue, session=session, gate=census_gate,
                 batch_size=batch_size, fips_to_name=fips_to_name,
+                rucc_by_fips=rucc_by_fips,
             )
             stage_hits[CENSUS_BATCH] += hit2
 
@@ -1110,6 +1194,7 @@ def run_county_cascade(
                 residue, session=session, gate=nppes_gate,
                 crosswalk=crosswalk, census_gate=census_gate,
                 fips_to_name=fips_to_name,
+                rucc_by_fips=rucc_by_fips,
             )
             stage_hits[NPPES_REGISTRY] += hit3
 

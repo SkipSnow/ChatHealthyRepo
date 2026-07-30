@@ -39,7 +39,10 @@ def ensure_wy_vt_snapshots(snapshot_id: str = "wy-vt-v1", container: str = "prov
     """Ensure minimal frozen snapshot blobs exist for WY+VT integration tests."""
     from blob_client import get_blob_service
     from pipeline_integration_snapshot import snapshot_blob_path, SOURCE_KEYS
-    from urban_flag import RUCC_JSON_BLOB_NAME
+
+    # Legacy blob name for usda_rucc; urban_flag.py was retired but the
+    # constant lives on here inline for the snapshot copy.
+    RUCC_JSON_BLOB_NAME = "rucc.json"
 
     cc = get_blob_service().get_container_client(container)
     report: dict = {"snapshot_id": snapshot_id, "uploaded": [], "existing": []}
