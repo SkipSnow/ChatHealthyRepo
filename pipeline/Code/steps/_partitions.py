@@ -20,9 +20,12 @@ def state_partitions(states: list[str]) -> list[dict]:
 
 
 def county_partitions(states: list[str]) -> list[dict]:
+    # kind values MUST match address_type in the provider docs (normalize
+    # writes "practice", attach_practice_addresses writes
+    # "secondary_practice"). Prior "primary_practice" here matched nothing.
     parts: list[dict] = []
     for st in state_partitions(states):
         state = st["business_address_state"]
-        for kind in ("primary_practice", "secondary_practice"):
+        for kind in ("practice", "secondary_practice"):
             parts.append({"business_address_state": state, "kind": kind})
     return parts

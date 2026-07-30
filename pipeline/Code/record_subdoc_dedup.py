@@ -10,11 +10,20 @@ def _license_id(entry: dict) -> str:
     return (entry.get("license_id") or entry.get("number") or "").strip()
 
 
+def _normalize_license_id_for_key(license_id: str) -> str:
+    """Strip non-alphanumeric characters so 'C10002916' and 'C1-0002916'
+    dedupe as the same license. NPPES license numbers show up in both
+    the raw main-file License_Number column and the Other Provider
+    Identifier slots with slightly different formatting (hyphens, spaces)
+    that would otherwise defeat dedup."""
+    return "".join(ch for ch in license_id.upper() if ch.isalnum())
+
+
 def license_key(entry: dict) -> tuple[str, str]:
-    """Unique per license within one NPI: (state, license_id)."""
+    """Unique per license within one NPI: (state, normalized_license_id)."""
     return (
         (entry.get("state") or "").strip().upper(),
-        _license_id(entry).upper(),
+        _normalize_license_id_for_key(_license_id(entry)),
     )
 
 
