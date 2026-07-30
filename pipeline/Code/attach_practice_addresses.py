@@ -79,7 +79,10 @@ def _pl_row_to_address(row: dict) -> dict | None:
         "line2": (raw.get(_PL_ADDR2) or "").strip() or None,
         "city": city,
         "state": pl_state,
-        "zip": (raw.get(_PL_ZIP) or "").strip(),
+        # Truncate to 5-digit ZIP at ingest (mirrors normalize_provider_rows
+        # for primary practice + business). pl_pfile carries some 9-digit
+        # no-hyphen ZIP+4 forms like "056724776" — take only the first 5.
+        "zip": (raw.get(_PL_ZIP) or "").strip().split("-", 1)[0][:5],
         "country": (raw.get(_PL_COUNTRY) or "US").strip() or "US",
         "phone": (raw.get(_PL_PHONE) or "").strip() or None,
         "address_type": "secondary_practice",

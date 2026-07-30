@@ -76,11 +76,16 @@ def test_fire_provider_pipeline() -> None:
             "Example: PIPELINE_TEST_DATA_VERSION=3"
         )
     data_version = int(dv_raw)
+    # google_maps_enabled: keep OFF for the test fire by default (paid stage).
+    # Operator can flip on via PIPELINE_TEST_GOOGLE_MAPS_ENABLED={1,true,yes}.
+    gm_raw = os.environ.get("PIPELINE_TEST_GOOGLE_MAPS_ENABLED", "").strip().lower()
+    google_maps_enabled = gm_raw in ("1", "true", "yes")
     payload = {
         "state_scope": state_scope,
         "load_mode": load_mode,
         "invocation_mode": "tests",
         "data_version": data_version,
+        "google_maps_enabled": google_maps_enabled,
     }
     body = json.dumps(payload).encode("utf-8")
     req = urllib.request.Request(

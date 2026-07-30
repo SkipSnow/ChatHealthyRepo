@@ -50,6 +50,8 @@ from __future__ import annotations
 from chathealthy_frontend_lib.logging_service import ChatHealthyLoggingService
 
 
+import csv
+import io
 import os
 from typing import Any, Iterable, Iterator
 
@@ -102,15 +104,31 @@ def _addr_needs_enrichment(addr: dict) -> bool:
 
 
 def _zip5(addr: dict) -> str | None:
+    """Normalize an address's zip/postal_code to a 5-digit US ZIP.
+
+    Accepts: '19713' (5), '19713-4776' (ZIP+4 hyphenated), '197134776'
+    (9-digit no hyphen), '5672' (short-pad to '05672'). Returns None if
+    no zip present. Always returns exactly 5 characters when non-None."""
     z = addr.get("zip") or addr.get("postal_code") or ""
     z = str(z).strip()
     if not z:
         return None
-    return z.split("-", 1)[0].zfill(5)
+    z = z.split("-", 1)[0]
+    return z.zfill(5)[:5]
 
 
-def _stamp_county(addr: dict, *, fips: str, name: str, source: str) -> None:
-    addr["county"] = {"fips": fips, "name": name, "source": source}
+def _stamp_county(addr: dict, *, fips: str, source: str, name: str | None = None) -> None:
+    """Stamp a county identity on an address.
+
+    fips is authoritative (5-digit county FIPS). name is optional metadata;
+    the ZIP crosswalk source has no name column, so most stampings write
+    fips only. Stages that DO produce a human-readable name (nppes_registry,
+    google_maps) may pass one; census_batch synthesizes a placeholder from
+    the FIPS."""
+    entry: dict = {"fips": fips, "source": source}
+    if name:
+        entry["name"] = name
+    addr["county"] = entry
 
 
 def _stream_provider_chunks(
@@ -167,44 +185,195 @@ def _pairs_from_chunk(
     return pairs
 
 
-def _load_zcta_crosswalk(mongo, env_prefix: str, run_id: str, data_version: int) -> dict[str, tuple[str, str]]:
+def _load_zcta_crosswalk(mongo, env_prefix: str, run_id: str, data_version: int) -> dict[str, str]:
     """Load the ZCTA-to-County crosswalk into an in-memory dict.
 
     Reads from PublicStaging.StagingCensusZctaCounty_v_{data_version} per
     the current staging convention (staging_loader.staging_collection_name).
-    Prior lookup targeted the legacy env-prefixed PublicHealthData path
-    which does not exist in the new pipeline; the crosswalk lookup
-    silently returned empty and every county-cascade Stage 1 pass got 0
-    hits."""
+
+    Contract: returns {5-digit ZIP -> 5-digit county FIPS}. County name is
+    NOT part of the crosswalk contract — the Census 2020 ZCTA↔County file
+    publishes GEOID_ZCTA5_20 (ZIP) and GEOID_COUNTY_20 (county FIPS) only;
+    there is no county-name column, and the pipeline's downstream consumers
+    (urban_flag, embedding) key off FIPS anyway.
+
+    Also accepts legacy unsuffixed keys (ZCTA5/GEOID/etc.) so the loader
+    stays resilient if the source ever ships without the _20 suffix."""
     from staging_loader import STAGING_DB_NAME, staging_collection_name
     coll_name = staging_collection_name("census_zcta_county", data_version)
     coll = mongo[STAGING_DB_NAME][coll_name]
-    out: dict[str, tuple[str, str]] = {}
+    scanned = 0
+    key_misses = 0
+    out: dict[str, str] = {}
     for row in coll.find({"run_id": run_id}):
+        scanned += 1
         raw = row.get("raw") or {}
-        z = row.get("zcta5") or raw.get("ZCTA5") or raw.get("ZCTA") or ""
-        z = str(z).strip().zfill(5)
+        z = (
+            row.get("zcta5")
+            or raw.get("GEOID_ZCTA5_20")
+            or raw.get("ZCTA5")
+            or raw.get("ZCTA")
+            or ""
+        )
+        z = str(z).strip().split("-", 1)[0]
         if not z:
+            key_misses += 1
             continue
-        fips = str(raw.get("GEOID") or raw.get("COUNTY_FIPS") or "").strip().zfill(5)
-        name = str(raw.get("NAME") or raw.get("name") or raw.get("COUNTY_NAME") or "").strip()
-        if fips and name:
-            out.setdefault(z, (fips, name))
+        # ZIP is the FIRST 5 chars — same normalization _zip5 uses for
+        # address-side lookups. Consistency between the crosswalk keys
+        # and the crosswalk-lookup keys is a correctness requirement.
+        z = z.zfill(5)[:5]
+        fips_raw = (
+            raw.get("GEOID_COUNTY_20")
+            or raw.get("GEOID")
+            or raw.get("COUNTY_FIPS")
+            or ""
+        )
+        fips = str(fips_raw).strip()
+        if not fips:
+            key_misses += 1
+            continue
+        # County FIPS = state FIPS (2) + county FIPS (3) = first 5 chars.
+        fips = fips.zfill(5)[:5]
+        out.setdefault(z, fips)
+    _log.info(
+        "county_cascade: crosswalk load coll=%s.%s scanned=%d loaded=%d key_misses=%d sample_raw_keys=%s",
+        STAGING_DB_NAME, coll_name, scanned, len(out), key_misses,
+        list((coll.find_one({"run_id": run_id}) or {}).get("raw", {}).keys())[:10] if scanned else [],
+    )
+    if scanned and not out:
+        _log.warning(
+            "county_cascade: crosswalk load returned 0 usable rows from %d staging rows — "
+            "check raw-key names (looking for GEOID_ZCTA5_20/GEOID_COUNTY_20)",
+            scanned,
+        )
     return out
 
 
-def _stage_zip_crosswalk(
+# ── Stage 1 — zip_crosswalk ────────────────────────────────────────────────
+# No HTTP; the crosswalk is loaded once by _load_zcta_crosswalk before
+# the funnel entry. Split is apply-only (no fetch, no parse).
+
+def _zip_crosswalk_apply(
     pairs: list[tuple[dict, dict]],
-    crosswalk: dict[str, tuple[str, str]],
+    crosswalk: dict[str, str],
 ) -> tuple[list[tuple[dict, dict]], int]:
-    """Stamp county from the crosswalk; return (residue, hits)."""
+    """Pure lookup+stamp: for each pair, look up its 5-digit ZIP in the
+    crosswalk dict. Hit → stamp county.fips. Miss → route to residue."""
     residue: list[tuple[dict, dict]] = []
     hits = 0
     for doc, addr in pairs:
         z = _zip5(addr)
         if z and z in crosswalk:
-            fips, name = crosswalk[z]
-            _stamp_county(addr, fips=fips, name=name, source=ZIP_CROSSWALK)
+            _stamp_county(addr, fips=crosswalk[z], source=ZIP_CROSSWALK)
+            hits += 1
+        else:
+            residue.append((doc, addr))
+    return residue, hits
+
+
+def _stage_zip_crosswalk(
+    pairs: list[tuple[dict, dict]],
+    crosswalk: dict[str, str],
+) -> tuple[list[tuple[dict, dict]], int]:
+    """Stage 1 orchestrator: apply the pre-loaded crosswalk + emit log."""
+    residue, hits = _zip_crosswalk_apply(pairs, crosswalk)
+    _log.info(
+        "county_cascade[zip_crosswalk]: in=%d hit=%d residue=%d crosswalk_size=%d",
+        len(pairs), hits, len(residue), len(crosswalk),
+    )
+    return residue, hits
+
+
+# ── Stage 2 — census_batch ─────────────────────────────────────────────────
+# Fetch = one HTTP POST per chunk. Parse = pure CSV → dict. Apply = pure
+# stamp+residue. Orchestrator loops chunks and threads fetch → parse → apply.
+
+def _census_batch_row(idx: int, addr: dict) -> str:
+    """Build one CSV input row for the Census batch geocoder request body."""
+    street = addr.get("line1") or addr.get("street_1") or addr.get("address_1") or ""
+    city = addr.get("city") or ""
+    state = addr.get("state") or ""
+    zip5 = _zip5(addr) or ""
+    return f"{idx},{street},{city},{state},{zip5}"
+
+
+def _census_batch_body(chunk: list[tuple[dict, dict]]) -> str:
+    """Pure: build the multipart-body CSV text for one chunk of pairs."""
+    return "\n".join(_census_batch_row(i, addr) for i, (_doc, addr) in enumerate(chunk))
+
+
+def _census_batch_fetch(
+    body: str,
+    *,
+    session: requests.Session,
+    gate: RateLimitedGate,
+) -> str | None:
+    """Impure I/O only: POST the pre-built CSV body to Census.
+    Returns response text on success; None if the chunk failed for any
+    reason (caller treats None as 'zero matches this chunk')."""
+    gate.acquire()
+    try:
+        resp = session.post(
+            CENSUS_BATCH_URL,
+            files={"addressFile": ("chunk.csv", body, "text/csv")},
+            data={"benchmark": "Public_AR_Current", "vintage": "Current_Current"},
+            timeout=180,
+        )
+        resp.raise_for_status()
+        return resp.text
+    except Exception as exc:
+        _log.warning("county_cascade[census_batch]: chunk fetch failed (%s)", exc)
+        return None
+
+
+def _census_batch_parse(text: str | None) -> dict[int, str]:
+    """Pure: parse the Census batch geocoder response CSV.
+
+    Response is quoted CSV where the matched-address field carries commas
+    inside its quotes; csv.reader honors quoted-field boundaries so
+    columns align correctly. A naive line.split(',') shifts every field
+    and misidentifies match_type — that was the pre-refactor bug.
+
+    Census 12-column response with geography:
+      [0]id [1]input_addr [2]match_type [3]match_indicator
+      [4]matched_addr [5]coordinates [6]tigerline_id [7]side
+      [8]state_fips [9]county_fips [10]tract [11]block
+
+    Returns {row_id -> 5-digit county FIPS} for every 'Match' row.
+    Skips No_Match / Tie / malformed rows."""
+    resolved: dict[int, str] = {}
+    if not text:
+        return resolved
+    reader = csv.reader(io.StringIO(text))
+    for parts in reader:
+        if len(parts) < 12:
+            continue
+        try:
+            row_id = int(parts[0].strip())
+        except ValueError:
+            continue
+        if parts[2].strip().lower() != "match":
+            continue
+        state_fips = parts[8].strip()
+        county_fips = parts[9].strip()
+        if not (state_fips and county_fips):
+            continue
+        resolved[row_id] = f"{state_fips.zfill(2)}{county_fips.zfill(3)}"
+    return resolved
+
+
+def _census_batch_apply(
+    chunk: list[tuple[dict, dict]],
+    resolved: dict[int, str],
+) -> tuple[list[tuple[dict, dict]], int]:
+    """Pure: stamp county.fips on chunk[idx] for every idx in resolved;
+    route misses to residue. Returns (residue, hits)."""
+    residue: list[tuple[dict, dict]] = []
+    hits = 0
+    for idx, (doc, addr) in enumerate(chunk):
+        if idx in resolved:
+            _stamp_county(addr, fips=resolved[idx], source=CENSUS_BATCH)
             hits += 1
         else:
             residue.append((doc, addr))
@@ -218,60 +387,183 @@ def _stage_census_batch(
     gate: RateLimitedGate,
     batch_size: int,
 ) -> tuple[list[tuple[dict, dict]], int]:
-    """Census batch geocoder — free tier. Residue passed through on any failure."""
+    """Stage 2 orchestrator: chunk → build body → fetch → parse → apply."""
+    _log.info("county_cascade[census_batch]: entering in=%d batch_size=%d", len(pairs), batch_size)
     residue: list[tuple[dict, dict]] = []
     hits = 0
-    if not pairs:
-        return residue, hits
-
-    def _row(idx: int, addr: dict) -> str:
-        street = addr.get("line1") or addr.get("street_1") or addr.get("address_1") or ""
-        city = addr.get("city") or ""
-        state = addr.get("state") or ""
-        zip5 = _zip5(addr) or ""
-        return f"{idx},{street},{city},{state},{zip5}"
-
     for start in range(0, len(pairs), batch_size):
         chunk = pairs[start:start + batch_size]
-        body = "\n".join(_row(i, addr) for i, (_doc, addr) in enumerate(chunk))
-        gate.acquire()
-        try:
-            resp = session.post(
-                CENSUS_BATCH_URL,
-                files={"addressFile": ("chunk.csv", body, "text/csv")},
-                data={"benchmark": "Public_AR_Current", "vintage": "Current_Current"},
-                timeout=180,
+        body = _census_batch_body(chunk)
+        text = _census_batch_fetch(body, session=session, gate=gate)
+        if text is None:
+            residue.extend(chunk)
+            continue
+        resolved = _census_batch_parse(text)
+        chunk_residue, chunk_hits = _census_batch_apply(chunk, resolved)
+        residue.extend(chunk_residue)
+        hits += chunk_hits
+    _log.info(
+        "county_cascade[census_batch]: in=%d hit=%d residue=%d",
+        len(pairs), hits, len(residue),
+    )
+    return residue, hits
+
+
+# ── Stage 3 — nppes_registry ───────────────────────────────────────────────
+# NPPES publishes no county data. What NPPES DOES publish is the
+# canonical practice address per NPI, which may be fresher / cleaner
+# than what our loaded record carries (e.g., our ZIP is malformed
+# 9-digit-no-hyphen "056724776"; NPPES canonical is clean 5-digit
+# "05672"). Stage 3's job:
+#   1. Fetch NPPES's canonical LOCATION-purpose address for the NPI.
+#   2. If the canonical differs from ours, MUTATE the address in place
+#      with the canonical values and tag address_refresh_provenance so
+#      downstream consumers see NPPES-refreshed data, not the stale
+#      record we loaded from the monthly dissemination file.
+#   3. Re-look up the (now-possibly-refreshed) ZIP in the stage-1
+#      crosswalk. If hit, stamp county with source=nppes_registry.
+#
+# Only applies to primary practice addresses (address_type=="practice").
+# Secondary-practice addresses come from the pl_pfile — NPPES registry
+# API doesn't carry them — so stage 3 is a no-op for those.
+
+_ADDRESS_REFRESH_FIELDS = ("line1", "line2", "city", "state", "zip")
+
+
+def _nppes_registry_fetch(
+    npi: str,
+    *,
+    session: requests.Session,
+    gate: RateLimitedConcurrencyGate,
+) -> dict | None:
+    """Impure I/O only: one NPPES registry lookup by NPI. Returns parsed
+    JSON payload on success, None on any failure."""
+    try:
+        with gate.hold():
+            resp = session.get(
+                NPPES_REGISTRY_URL,
+                params={"number": npi, "version": "2.1"},
+                timeout=30,
             )
             resp.raise_for_status()
-            resolved: dict[int, tuple[str, str]] = {}
-            for line in resp.text.splitlines():
-                parts = line.split(",")
-                if len(parts) < 12:
-                    continue
-                try:
-                    row_id = int(parts[0].strip('"'))
-                except ValueError:
-                    continue
-                if parts[2].strip('"').lower() != "match":
-                    continue
-                state_fips = parts[8].strip('"')
-                county_fips = parts[9].strip('"')
-                if not (state_fips and county_fips):
-                    continue
-                fips = f"{state_fips.zfill(2)}{county_fips.zfill(3)}"
-                name = f"FIPS {fips}"
-                resolved[row_id] = (fips, name)
-            for idx, (_doc, addr) in enumerate(chunk):
-                if idx in resolved:
-                    fips, name = resolved[idx]
-                    _stamp_county(addr, fips=fips, name=name, source=CENSUS_BATCH)
-                    hits += 1
-                else:
-                    residue.append((_doc, addr))
-        except Exception as exc:
-            _log.warning("county_cascade[census_batch]: chunk failed (%s); passing residue", exc)
-            residue.extend(chunk)
-    return residue, hits
+            return resp.json()
+    except Exception as exc:
+        _log.warning("county_cascade[nppes_registry]: %s failed (%s)", npi, exc)
+        return None
+
+
+def _nppes_registry_parse(payload: dict | None) -> dict | None:
+    """Pure: extract the canonical LOCATION-purpose address dict from an
+    NPPES registry payload. Returns None if no LOCATION address is
+    present or its postal_code is empty.
+
+    Returned dict shape matches the provider-record address shape used
+    elsewhere in the pipeline: line1, line2, city, state, zip (5-digit),
+    country. NPPES field names (address_1 / address_2 / postal_code /
+    country_code) are normalized here.
+
+    ZIP normalization uses _zip5 for consistency with every other
+    caller (crosswalk keys, apply comparisons, Census request rows).
+    The 5-digit ZIP is the FIRST five characters, not the last."""
+    if not payload:
+        return None
+    for r in (payload.get("results") or []):
+        for a in (r.get("addresses") or []):
+            if a.get("address_purpose", "").upper() != "LOCATION":
+                continue
+            zip5 = _zip5({"zip": a.get("postal_code")})
+            if not zip5:
+                continue
+            return {
+                "line1": (a.get("address_1") or "").strip(),
+                "line2": (a.get("address_2") or "").strip(),
+                "city": (a.get("city") or "").strip(),
+                "state": (a.get("state") or "").strip().upper(),
+                "zip": zip5,
+                "country": (a.get("country_code") or "US").strip(),
+            }
+    return None
+
+
+def _address_differs(ours: dict, canonical: dict) -> bool:
+    """Pure: return True iff any of the compared refresh-fields differ
+    (case- and whitespace-insensitive). ZIP is normalized to its 5-digit
+    prefix before comparison — '056724776' and '05672' are considered
+    the SAME ZIP, not different."""
+    for f in _ADDRESS_REFRESH_FIELDS:
+        if f == "zip":
+            ours_v = _zip5(ours) or ""
+            canonical_v = _zip5(canonical) or ""
+        else:
+            ours_v = str(ours.get(f) or "").strip().upper()
+            canonical_v = str(canonical.get(f) or "").strip().upper()
+        if ours_v != canonical_v:
+            return True
+    return False
+
+
+def _apply_address_refresh(addr: dict, canonical: dict) -> None:
+    """Mutate addr in place: overwrite each refresh-field with the
+    canonical NPPES value, tag with provenance so downstream consumers
+    know the record was refreshed from the live NPPES registry rather
+    than the monthly dissemination file."""
+    for f in _ADDRESS_REFRESH_FIELDS:
+        v = canonical.get(f)
+        if v:
+            addr[f] = v
+    addr["address_refresh_provenance"] = NPPES_REGISTRY
+
+
+def _nppes_registry_refresh_pair(
+    doc: dict,
+    addr: dict,
+    *,
+    session: requests.Session,
+    gate: RateLimitedConcurrencyGate,
+) -> bool:
+    """Impure. If the address is primary-practice and NPPES has a
+    canonical LOCATION address that differs from ours, mutate addr in
+    place with the canonical values (and tag address_refresh_provenance).
+    Returns True iff we actually mutated addr. False otherwise (not
+    practice-type, no NPI, no NPPES payload, canonical missing, or
+    canonical identical to ours).
+
+    Failure-safety: any exception is caught, logged, and — if addr was
+    already partially mutated — rolled back from a shallow snapshot.
+    The address is either fully-refreshed or exactly-as-received-in.
+    Never partially-mutated."""
+    if addr.get("address_type") != "practice":
+        return False
+    npi = doc.get("npi") or doc.get("NPI")
+    if not npi:
+        return False
+    try:
+        payload = _nppes_registry_fetch(str(npi), session=session, gate=gate)
+        canonical = _nppes_registry_parse(payload)
+        if not canonical:
+            return False
+        if not _address_differs(addr, canonical):
+            return False
+        snapshot = {k: v for k, v in addr.items()}
+        try:
+            _apply_address_refresh(addr, canonical)
+            return True
+        except Exception as inner_exc:
+            # Mutation-time failure — restore snapshot so addr isn't
+            # left half-refreshed on disk after the pipeline persists it.
+            addr.clear()
+            addr.update(snapshot)
+            _log.warning(
+                "county_cascade[nppes_registry]: refresh mutation failed "
+                "for NPI %s, rolled back (%s)", npi, inner_exc,
+            )
+            return False
+    except Exception as exc:
+        _log.warning(
+            "county_cascade[nppes_registry]: refresh raised for NPI %s "
+            "(%s); leaving address unchanged", npi, exc,
+        )
+        return False
 
 
 def _stage_nppes_registry(
@@ -279,48 +571,146 @@ def _stage_nppes_registry(
     *,
     session: requests.Session,
     gate: RateLimitedConcurrencyGate,
+    crosswalk: dict[str, str],
+    census_gate: RateLimitedGate,
 ) -> tuple[list[tuple[dict, dict]], int]:
-    """Per-NPI CMS NPPES registry lookup — free, ~5 req/s per IP."""
-    residue: list[tuple[dict, dict]] = []
-    hits = 0
+    """Stage 3 orchestrator, three phases:
+      Phase 1 — per-NPI refresh: fetch NPPES canonical LOCATION address;
+                if it differs from ours, mutate addr in place (line1 /
+                line2 / city / state / zip) and tag
+                address_refresh_provenance=nppes_registry.
+      Phase 2 — retry stage 1 (crosswalk) on the refreshed set. Free.
+      Phase 3 — retry stage 2 (Census batch) on the phase-2 residue.
+                One POST for the whole set — no chunking loop, because
+                the address-differed set is a rounding error per fire.
+
+    Every hit produced inside stage 3 is stamped source=nppes_registry
+    because the NPPES refresh is the causal agent that unlocked it;
+    address_refresh_provenance on the address preserves the enrichment
+    chain. Addresses whose canonical == ours skip both retries — same
+    address that already failed stages 1 & 2 would fail them again."""
+    _log.info("county_cascade[nppes_registry]: entering in=%d", len(pairs))
+
+    # Phase 1
+    refreshed: list[tuple[dict, dict]] = []
+    unchanged: list[tuple[dict, dict]] = []
     for doc, addr in pairs:
-        npi = doc.get("npi") or doc.get("NPI")
-        if not npi:
-            residue.append((doc, addr))
-            continue
-        try:
-            with gate.hold():
-                resp = session.get(
-                    NPPES_REGISTRY_URL,
-                    params={"number": npi, "version": "2.1"},
-                    timeout=30,
-                )
-                resp.raise_for_status()
-                data = resp.json()
-        except Exception as exc:
-            _log.warning("county_cascade[nppes_registry]: %s failed (%s)", npi, exc)
-            residue.append((doc, addr))
-            continue
-        results = data.get("results") or []
-        matched = False
-        for r in results:
-            for a in (r.get("addresses") or []):
-                if a.get("address_purpose", "").upper() != "LOCATION":
-                    continue
-                azip = str(a.get("postal_code") or "").strip().split("-", 1)[0].zfill(5)
-                if azip and azip == _zip5(addr):
-                    fips = str(a.get("county_code") or "").strip()
-                    name = str(a.get("county_name") or "").strip()
-                    if fips and name:
-                        _stamp_county(addr, fips=fips, name=name, source=NPPES_REGISTRY)
-                        hits += 1
-                        matched = True
-                        break
-            if matched:
-                break
-        if not matched:
-            residue.append((doc, addr))
-    return residue, hits
+        if _nppes_registry_refresh_pair(doc, addr, session=session, gate=gate):
+            refreshed.append((doc, addr))
+        else:
+            unchanged.append((doc, addr))
+
+    # Phase 2 — crosswalk retry, free
+    r1_residue: list[tuple[dict, dict]] = []
+    r1_hits = 0
+    for doc, addr in refreshed:
+        fips = crosswalk.get(_zip5(addr) or "")
+        if fips:
+            _stamp_county(addr, fips=fips, source=NPPES_REGISTRY)
+            r1_hits += 1
+        else:
+            r1_residue.append((doc, addr))
+
+    # Phase 3 — Census batch retry, single POST (no batch-size loop).
+    # Reuses the same fetch/parse functions stage 2 built.
+    r2_residue: list[tuple[dict, dict]] = list(r1_residue)
+    r2_hits = 0
+    if r1_residue:
+        text = _census_batch_fetch(
+            _census_batch_body(r1_residue),
+            session=session, gate=census_gate,
+        )
+        if text is not None:
+            resolved = _census_batch_parse(text)
+            r2_residue = []
+            for idx, (doc, addr) in enumerate(r1_residue):
+                if idx in resolved:
+                    _stamp_county(addr, fips=resolved[idx], source=NPPES_REGISTRY)
+                    r2_hits += 1
+                else:
+                    r2_residue.append((doc, addr))
+
+    total_hits = r1_hits + r2_hits
+    total_residue = unchanged + r2_residue
+    _log.info(
+        "county_cascade[nppes_registry]: in=%d hit=%d residue=%d "
+        "(refreshed=%d crosswalk_retry=%d census_retry=%d unchanged=%d)",
+        len(pairs), total_hits, len(total_residue),
+        len(refreshed), r1_hits, r2_hits, len(unchanged),
+    )
+    return total_residue, total_hits
+
+
+# ── Stage 4 — google_maps ──────────────────────────────────────────────────
+# Per-address paid HTTP GET. Split: address-string builder (pure), fetch
+# (impure), parse (pure), lookup wrapper (impure), stage orchestrator.
+
+def _google_maps_addr_line(addr: dict) -> str:
+    """Pure: build the single-line address string sent as ?address=..."""
+    parts = [
+        addr.get("line1") or addr.get("street_1") or addr.get("address_1") or "",
+        addr.get("city") or "",
+        addr.get("state") or "",
+        _zip5(addr) or "",
+    ]
+    return ", ".join(p for p in parts if p)
+
+
+def _google_maps_fetch(
+    addr_line: str,
+    *,
+    session: requests.Session,
+    gate: RateLimitedConcurrencyGate,
+    api_key: str,
+) -> dict | None:
+    """Impure I/O only: one Google Maps geocode call. JSON or None."""
+    try:
+        with gate.hold():
+            resp = session.get(
+                GOOGLE_MAPS_GEOCODE_URL,
+                params={"address": addr_line, "key": api_key},
+                timeout=30,
+            )
+            resp.raise_for_status()
+            return resp.json()
+    except Exception as exc:
+        _log.warning("county_cascade[google_maps]: query failed (%s)", exc)
+        return None
+
+
+def _google_maps_parse(payload: dict | None) -> tuple[str | None, str | None]:
+    """Pure: extract (fips_key, county_name) from a Google Maps geocode
+    response. fips_key is 'STATE::County Name' since Google returns no
+    numeric FIPS. Returns (None, None) on no county match."""
+    if not payload:
+        return None, None
+    for result in (payload.get("results") or []):
+        county_name = None
+        state_short = None
+        for comp in (result.get("address_components") or []):
+            types = comp.get("types") or []
+            if "administrative_area_level_2" in types:
+                county_name = comp.get("long_name")
+            if "administrative_area_level_1" in types:
+                state_short = comp.get("short_name")
+        if county_name:
+            return f"{state_short or ''}::{county_name}", county_name
+    return None, None
+
+
+def _google_maps_lookup(
+    addr: dict,
+    *,
+    session: requests.Session,
+    gate: RateLimitedConcurrencyGate,
+    api_key: str,
+) -> tuple[str | None, str | None]:
+    """Impure wrapper: build addr line, fetch, parse."""
+    payload = _google_maps_fetch(
+        _google_maps_addr_line(addr),
+        session=session, gate=gate, api_key=api_key,
+    )
+    return _google_maps_parse(payload)
 
 
 def _stage_google_maps(
@@ -330,51 +720,24 @@ def _stage_google_maps(
     gate: RateLimitedConcurrencyGate,
     api_key: str,
 ) -> tuple[list[tuple[dict, dict]], int]:
-    """Google Maps Geocoding API — paid; the terminal cascade stage."""
+    """Stage 4 orchestrator: paid terminal stage. No key → skip whole stage."""
+    if not api_key:
+        _log.warning("county_cascade[google_maps]: no API key; skipping stage in=%d", len(pairs))
+        return pairs, 0
+    _log.info("county_cascade[google_maps]: entering in=%d", len(pairs))
     residue: list[tuple[dict, dict]] = []
     hits = 0
-    if not api_key:
-        _log.warning("county_cascade[google_maps]: no API key; skipping stage")
-        return pairs, 0
     for doc, addr in pairs:
-        parts = [
-            addr.get("line1") or addr.get("street_1") or addr.get("address_1") or "",
-            addr.get("city") or "",
-            addr.get("state") or "",
-            _zip5(addr) or "",
-        ]
-        addr_line = ", ".join(p for p in parts if p)
-        try:
-            with gate.hold():
-                resp = session.get(
-                    GOOGLE_MAPS_GEOCODE_URL,
-                    params={"address": addr_line, "key": api_key},
-                    timeout=30,
-                )
-                resp.raise_for_status()
-                data = resp.json()
-        except Exception as exc:
-            _log.warning("county_cascade[google_maps]: query failed (%s)", exc)
+        fips_key, name = _google_maps_lookup(addr, session=session, gate=gate, api_key=api_key)
+        if fips_key:
+            _stamp_county(addr, fips=fips_key, source=GOOGLE_MAPS, name=name)
+            hits += 1
+        else:
             residue.append((doc, addr))
-            continue
-        matched = False
-        for result in (data.get("results") or []):
-            county_name = None
-            state_short = None
-            for comp in (result.get("address_components") or []):
-                types = comp.get("types") or []
-                if "administrative_area_level_2" in types:
-                    county_name = comp.get("long_name")
-                if "administrative_area_level_1" in types:
-                    state_short = comp.get("short_name")
-            if county_name:
-                fips_key = f"{state_short or ''}::{county_name}"
-                _stamp_county(addr, fips=fips_key, name=county_name, source=GOOGLE_MAPS)
-                hits += 1
-                matched = True
-                break
-        if not matched:
-            residue.append((doc, addr))
+    _log.info(
+        "county_cascade[google_maps]: in=%d hit=%d residue=%d",
+        len(pairs), hits, len(residue),
+    )
     return residue, hits
 
 
@@ -444,6 +807,13 @@ def run_county_cascade(
     provider_coll = mongo[db_name][coll_name]
     discrepancies_coll = mongo["chathealthyfrontend"]["pipeline.discrepancies"]
 
+    _log.info(
+        "county_cascade: funnel entering run_id=%s state=%s kind=%s sla_target=%.3f google_enabled=%s "
+        "google_api_key_set=%s provider_collection=%s",
+        run_id, partition_state or "ALL", partition_kind or "ALL",
+        sla_target, google_enabled, bool(google_api_key), config["provider_collection"],
+    )
+
     data_version = int(config.get("data_version") or 0)
     crosswalk = _load_zcta_crosswalk(mongo, env_prefix, run_id, data_version)
     session = requests.Session()
@@ -512,7 +882,19 @@ def run_county_cascade(
                     max_in_flight=int(concurrency.get("nppes_max_in_flight", DEFAULT_NPPES_MAX_IN_FLIGHT)),
                     rate_per_second=float(throttle_rates.get(NPPES_REGISTRY, DEFAULT_NPPES_RATE)),
                 )
-            residue, hit3 = _stage_nppes_registry(residue, session=session, gate=nppes_gate)
+            # Stage 3 refreshes each address from NPPES, then retries
+            # stages 1 (crosswalk) and 2 (Census) on the refreshed set
+            # before letting anything flow to stage 4 (Google, paid).
+            # Needs the census_gate — build it lazily if stage 2 was
+            # skipped upstream by the SLA gate.
+            if census_gate is None:
+                census_gate = RateLimitedGate(
+                    rate_per_second=float(throttle_rates.get(CENSUS_BATCH, 1.0)),
+                )
+            residue, hit3 = _stage_nppes_registry(
+                residue, session=session, gate=nppes_gate,
+                crosswalk=crosswalk, census_gate=census_gate,
+            )
             stage_hits[NPPES_REGISTRY] += hit3
 
         if residue and google_enabled and _need_more(residue):
@@ -548,6 +930,11 @@ def run_county_cascade(
     _flush_unresolvables()
 
     if total == 0:
+        _log.warning(
+            "county_cascade: funnel exiting with 0 eligible addresses "
+            "(run_id=%s state=%s kind=%s) — nothing to enrich",
+            run_id, partition_state or "ALL", partition_kind or "ALL",
+        )
         return {
             "total_addresses": 0,
             "stage_hits": stage_hits,
@@ -557,6 +944,12 @@ def run_county_cascade(
         }
 
     match_rate = resolved_running / total
+    _log.info(
+        "county_cascade: funnel done run_id=%s state=%s kind=%s total=%d "
+        "stage_hits=%s match_rate=%.4f sla_met=%s unresolvable=%d",
+        run_id, partition_state or "ALL", partition_kind or "ALL",
+        total, stage_hits, match_rate, match_rate >= sla_target, unresolvable_total,
+    )
     return {
         "total_addresses": total,
         "stage_hits": stage_hits,
