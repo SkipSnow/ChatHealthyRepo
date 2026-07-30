@@ -25,7 +25,7 @@ class _Mongo:
 
 @patch("pipeline_runtime.get_frontend_mongo", return_value=_Mongo())
 def test_partition_filter_state(_mock_frontend):
-    args = PipelineArgs(states=["WY"], env_prefix="dev")
+    args = PipelineArgs(states=["WY"], env_prefix="dev", data_version=3)
     manifest = RunManifest(run_id="r1", pipeline_name="provider", env_prefix="dev")
     ctx = StepContext(args=args, manifest=manifest, config={}, mongo_client=_Mongo(), blob_client=None)
     rt = PipelineRuntime(ctx)

@@ -8,7 +8,7 @@ from steps.source_freshness_gate import run_step
 
 @pytest.mark.unit
 def test_freshness_gate():
-    args = PipelineArgs(states=["WY"], env_prefix="dev")
+    args = PipelineArgs(states=["WY"], env_prefix="dev", data_version=3)
     manifest = RunManifest.new("provider", args)
     ctx = StepContext(
         args=args,
@@ -30,4 +30,4 @@ def test_freshness_gate():
     fake_mongo.__getitem__.return_value = registry
     with patch("pipeline_db.get_mongo", return_value=fake_mongo):
         out = run_step(ctx)
-    assert len(out["decisions"]) == 4
+    assert len(out["decisions"]) == 5
