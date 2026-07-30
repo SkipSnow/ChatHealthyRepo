@@ -408,6 +408,8 @@ def _classify_iteratively(
     phrase_cls,
     input_cls,
     output_cls,
+    *,
+    persist_chunk=None,
 ) -> dict[str, dict]:
     """Iterate up to _MAX_ITERATIONS times over the pending phrases,
     classifying in chunks of _CHUNK_SIZE. Chunks that fail LLM validation
@@ -438,12 +440,16 @@ def _classify_iteratively(
             if not by_key:
                 new_remaining.extend(chunk)
                 continue
+            chunk_persisted: list[tuple[dict, dict]] = []
             for p in chunk:
                 cls = by_key.get((p["type_code"], p["issuer_text"]))
                 if cls is None:
                     new_remaining.append(p)
                 else:
                     classified[p["_id"]] = cls
+                    chunk_persisted.append((p, cls))
+            if persist_chunk and chunk_persisted:
+                persist_chunk(chunk_persisted)
         remaining = new_remaining
         if not remaining:
             break
@@ -493,16 +499,48 @@ def classify_other_identifier_phrases(config: dict, *, mongo, blob=None) -> dict
     if not pending:
         return {"state": state, "classified": 0, "pending": 0}
 
-    classified_map = _classify_iteratively(state, pending, phrase_cls, input_cls, output_cls)
+    classified_count = 0
+    unknown_count = 0
 
-    classified = 0
-    unknown = 0
+    def _persist_chunk(items: list[tuple[dict, dict]]) -> None:
+        """Called by _classify_iteratively after each chunk's LLM call
+        succeeds. Writes each phrase's classification to staging so a
+        crash mid-iteration does not lose the already-classified work."""
+        nonlocal classified_count, unknown_count
+        now_iso = datetime.now(timezone.utc).isoformat()
+        for doc, cls in items:
+            staging_coll.update_one(
+                {"_id": doc["_id"], "classification": None},
+                {
+                    "$set": {
+                        "classification": cls["classification"],
+                        "payer_type": cls["payer_type"],
+                        "canonical_payer_name": cls["canonical_payer_name"],
+                        "license_type": cls["license_type"],
+                        "reasoning": cls["reasoning"],
+                        "classified_at": now_iso,
+                        "classified_by": _LLM_MODEL_NAME_FOR_AUDIT,
+                    }
+                },
+            )
+            classified_count += 1
+            if cls["classification"] == "UNKNOWN":
+                unknown_count += 1
+
+    classified_map = _classify_iteratively(
+        state, pending, phrase_cls, input_cls, output_cls,
+        persist_chunk=_persist_chunk,
+    )
+
+    # Anything still not persisted (fell through to the UNKNOWN fallback
+    # in _classify_iteratively) gets written here so the classification
+    # actually lands on the staging row.
     now_iso = datetime.now(timezone.utc).isoformat()
     for doc in pending:
         cls = classified_map.get(doc["_id"])
         if cls is None:
             continue
-        staging_coll.update_one(
+        result = staging_coll.update_one(
             {"_id": doc["_id"], "classification": None},
             {
                 "$set": {
@@ -516,11 +554,17 @@ def classify_other_identifier_phrases(config: dict, *, mongo, blob=None) -> dict
                 }
             },
         )
-        classified += 1
-        if cls["classification"] == "UNKNOWN":
-            unknown += 1
+        if result.modified_count:
+            classified_count += 1
+            if cls["classification"] == "UNKNOWN":
+                unknown_count += 1
 
-    return {"state": state, "classified": classified, "unknown": unknown, "pending": len(pending)}
+    return {
+        "state": state,
+        "classified": classified_count,
+        "unknown": unknown_count,
+        "pending": len(pending),
+    }
 
 
 # ── Stage 3: apply ─────────────────────────────────────────────────────────
