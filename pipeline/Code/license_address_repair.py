@@ -5,10 +5,13 @@
 from __future__ import annotations
 from chathealthy_frontend_lib.logging_service import ChatHealthyLoggingService
 
+from pymongo import UpdateOne
 
 from pipeline_runtime import PipelineRuntime
 
 _log = ChatHealthyLoggingService()
+
+_BULK_WRITE_CHUNK = 1000
 
 
 def repair_license_addresses(ctx) -> dict:
@@ -17,7 +20,16 @@ def repair_license_addresses(ctx) -> dict:
     state = part.get("business_address_state", "")
     filt = rt.partition_filter(state) if state else {}
     repaired = flagged = 0
-    for doc in rt.providers_coll.find(filt):
+
+    update_ops: list[UpdateOne] = []
+
+    def _flush() -> None:
+        if not update_ops:
+            return
+        rt.providers_coll.bulk_write(update_ops, ordered=False)
+        update_ops.clear()
+
+    for doc in rt.providers_coll.find(filt).batch_size(_BULK_WRITE_CHUNK):
         licenses = doc.get("licenses") or []
         changed = False
         for addr in doc.get("addresses") or []:
@@ -43,5 +55,12 @@ def repair_license_addresses(ctx) -> dict:
                 )
                 flagged += 1
         if changed:
-            rt.providers_coll.update_one({"_id": doc["_id"]}, {"$set": {"addresses": doc.get("addresses")}})
+            update_ops.append(UpdateOne(
+                {"_id": doc["_id"]},
+                {"$set": {"addresses": doc.get("addresses")}},
+            ))
+            if len(update_ops) >= _BULK_WRITE_CHUNK:
+                _flush()
+
+    _flush()
     return {"repaired": repaired, "flagged": flagged, "state": state or "ALL"}
