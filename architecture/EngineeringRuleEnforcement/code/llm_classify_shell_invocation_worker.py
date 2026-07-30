@@ -258,16 +258,15 @@ _LOCAL_ALLOWLIST = [
     r"^\s*true(\s|$)",
     r"^\s*false(\s|$)",
     r"^\s*yes(\s|$)",
-    # ChatHealthy canonical DevOps chain — build/deploy/promote scripts are
-    # the sanctioned governance surfaces. Operator authorization for those is
-    # implicit in the choice to use the correct script (operator direction
-    # 2026-07-23: "running promote, build or deploy are all allowed"). The
-    # two remaining governance events are commit (Rule-065 pre-commit gate)
-    # and standalone test-fire (Rule-006 walker catches the webhook POST in
-    # fire_provider_pipeline_test.py when invoked directly via pytest).
+    # ChatHealthy canonical DevOps chain — build/promote scripts are
+    # sanctioned governance surfaces (operator direction 2026-07-23).
+    # deploy_chathealthy.py is intentionally NOT allowlisted per operator
+    # direction 2026-07-29: --tests forms trigger heavy stateful ops
+    # (test-fires, VM spin-up, LLM burst) that require per-invocation
+    # popup approval, and treating routine deploys the same way keeps
+    # governance uniform.
     r"^\s*\S*python\S*\s+.*build_chathealthy\.py\b",
     r"^\s*\S*python\S*\s+.*promote_chathealthy\.py\b",
-    r"^\s*\S*python\S*\s+.*deploy_chathealthy\.py\b",
     # Git push — Rule-065 makes push-after-authorized-commit implicit in the
     # commit authorization; the commit has already cleared the pre-commit gate,
     # so push carries no additional governance need. Force-push forms

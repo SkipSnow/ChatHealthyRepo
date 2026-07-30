@@ -17,4 +17,4 @@ def test_twilio_disabled_by_default(monkeypatch):
 def test_twilio_enabled_still_no_live_send(monkeypatch):
     monkeypatch.setenv("TWILIO_ENABLED", "1")
     assert twilio_enabled() is True
-    assert NotificationClient().send_email("a@b.com", "s", "b")["status"] == "skipped"
+    assert NotificationClient().send_email("a@b.com", "s", "b")["status"] == "noop"
