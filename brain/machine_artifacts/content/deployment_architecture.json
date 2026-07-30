@@ -6422,7 +6422,7 @@
           "feature_id": "EPIC-008-F-012",
           "handler_type": "python_source",
           "disposition": "referenced",
-          "content_hash": "1ef912f001c94b57d2137d304dcbec5737a48343f17d0a13da33de44ad6a0e4f",
+          "content_hash": "dba89ffab04bfc0d9843ac5c231741e92f854d3622b241f0d7b3fd9d001cb945",
           "package": "default"
         },
         {
@@ -6542,7 +6542,7 @@
           "feature_id": "EPIC-008-F-012",
           "handler_type": "python_source",
           "disposition": "referenced",
-          "content_hash": "9d6ff24133ac53bb4719aab16022bd495bd6fd4a27f9e32443623f0bf5409b98",
+          "content_hash": "aef799d12abbabf0a683234cbd377245f84842cc5797fb41e1b0d71ff38e11af",
           "package": "default"
         },
         {
@@ -6658,14 +6658,6 @@
           "package": "default"
         },
         {
-          "source_location": "pipeline/Code/steps/urban_flag.py",
-          "feature_id": "EPIC-008-F-012",
-          "handler_type": "python_source",
-          "disposition": "referenced",
-          "content_hash": "19e5570dc6a9bce95421d93c5194d32ac37467b2278fcb2bd115477d6f461cd0",
-          "package": "default"
-        },
-        {
           "feature_id": "EPIC-008-F-012",
           "source_location": "pipeline/Code/type1_first_branch.py",
           "handler_type": "python_source",
@@ -6702,23 +6694,7 @@
           "source_location": "pipeline/Code/upload_integration_snapshots.py",
           "handler_type": "python_source",
           "disposition": "referenced",
-          "content_hash": "613f4b8149ffc061d5385ea9f39f663f3de19888efe30780c4ce0c3c436c8f8c",
-          "package": "default"
-        },
-        {
-          "feature_id": "EPIC-008-F-012",
-          "source_location": "pipeline/Code/urban_flag.py",
-          "handler_type": "python_source",
-          "disposition": "referenced",
-          "content_hash": "26769d7a3e5fd25a397ee235baaafbaa39f987eebbcdd620674a348a9e927274",
-          "package": "default"
-        },
-        {
-          "feature_id": "EPIC-008-F-012",
-          "source_location": "pipeline/Code/urban_flag_step.py",
-          "handler_type": "python_source",
-          "disposition": "referenced",
-          "content_hash": "ce01591fbaca98494471f946355a17de73def8a2e1246bee349392d492719ab8",
+          "content_hash": "45a35d97a8de03ee50b06cdafd7508acb0a1b10b1bd46ff061fba366aa90446c",
           "package": "default"
         },
         {
@@ -6830,7 +6806,7 @@
           "feature_id": "EPIC-008-F-012",
           "handler_type": "python_source",
           "disposition": "referenced",
-          "content_hash": "1ef912f001c94b57d2137d304dcbec5737a48343f17d0a13da33de44ad6a0e4f",
+          "content_hash": "dba89ffab04bfc0d9843ac5c231741e92f854d3622b241f0d7b3fd9d001cb945",
           "package": "default"
         },
         {
@@ -6870,7 +6846,7 @@
           "feature_id": "EPIC-008-F-012",
           "handler_type": "python_source",
           "disposition": "referenced",
-          "content_hash": "9d6ff24133ac53bb4719aab16022bd495bd6fd4a27f9e32443623f0bf5409b98",
+          "content_hash": "aef799d12abbabf0a683234cbd377245f84842cc5797fb41e1b0d71ff38e11af",
           "package": "default"
         },
         {
@@ -6927,14 +6903,6 @@
           "handler_type": "python_source",
           "disposition": "referenced",
           "content_hash": "caeb5794b481e862abd4425e166857b4108c924a2f7fcb6e36adeb8e9704218a",
-          "package": "default"
-        },
-        {
-          "source_location": "pipeline/Code/steps/urban_flag.py",
-          "feature_id": "EPIC-008-F-012",
-          "handler_type": "python_source",
-          "disposition": "referenced",
-          "content_hash": "19e5570dc6a9bce95421d93c5194d32ac37467b2278fcb2bd115477d6f461cd0",
           "package": "default"
         },
         {
