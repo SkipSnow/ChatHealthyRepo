@@ -16,5 +16,5 @@ def test_aca_provision_local_mode(monkeypatch):
 
     out = provision_job("prov-test", parallelism=4)
     assert out["mode"] == "local"
-    assert start_job("prov-test", run_id="r1", step="urban_flag", env_prefix="dev")["mode"] == "local"
+    assert start_job("prov-test", run_id="r1", step="county_enrichment", env_prefix="dev")["mode"] == "local"
     assert delete_job("prov-test")["mode"] == "local"
