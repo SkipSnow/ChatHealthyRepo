@@ -433,7 +433,8 @@ def _write_run_manifest(mongo, run_id: str, load_mode: str,
 # ============================================================================
 def _cloud_init_user_data(run_id: str, load_mode: str, state_scope,
                           invocation_mode: str, resume_from_step: str,
-                          data_version: int) -> str:
+                          data_version: int,
+                          google_maps_enabled: bool = False) -> str:
     """Return the base64-encoded cloud-init user_data blob for the VM.
 
     The VM boots this cloud-init:
@@ -503,6 +504,7 @@ runcmd:
       -e PIPELINE_LOG_ACCOUNT_URL='https://stchpipelinedev.blob.core.windows.net' \\
       -e RUN_ID='{run_id}' \\
       -e DATA_VERSION='{data_version}' \\
+      -e GOOGLE_MAPS_ENABLED='{"1" if google_maps_enabled else "0"}' \\
       -e ENV_PREFIX='{ENV_PREFIX}' \\
       -e INVOCATION_MODE='{invocation_mode}' \\
       -e LOAD_MODE='{load_mode}' \\
@@ -543,7 +545,8 @@ def _get_ssh_pubkey() -> str:
 
 def _provision_vm(run_id: str, load_mode: str, state_scope,
                   invocation_mode: str, resume_from_step: str = "",
-                  data_version: int = 0) -> dict:
+                  data_version: int = 0,
+                  google_maps_enabled: bool = False) -> dict:
     """v32 §5.2.2: PUT a fresh Pipeline Run VM into snet-pipeline-compute.
 
     Async by nature: ARM returns a provisioning-state URL, not a
@@ -600,7 +603,7 @@ def _provision_vm(run_id: str, load_mode: str, state_scope,
     )
     user_data_b64 = _cloud_init_user_data(
         run_id, load_mode, state_scope, invocation_mode, resume_from_step,
-        data_version,
+        data_version, google_maps_enabled,
     )
     vm_body = {
         "location": VM_LOCATION,
@@ -758,6 +761,7 @@ def _provision_vm_and_wake_mongo_in_parallel(
     run_id: str, load_mode: str, state_scope,
     invocation_mode: str, resume_from_step: str = "",
     data_version: int = 0,
+    google_maps_enabled: bool = False,
 ) -> dict:
     """v32 §5.2.2 par-block: fire VM create AND Atlas resume in parallel.
 
@@ -773,7 +777,7 @@ def _provision_vm_and_wake_mongo_in_parallel(
         try:
             results["vm"] = _provision_vm(
                 run_id, load_mode, state_scope, invocation_mode, resume_from_step,
-                data_version,
+                data_version, google_maps_enabled,
             )
         except Exception as exc:  # noqa: BLE001
             results["vm_error"] = f"{type(exc).__name__}: {exc}"
@@ -935,6 +939,18 @@ def main() -> int:
     # read.
     os.environ["DATA_VERSION"] = str(data_version)
 
+    # Optional: google_maps_enabled toggles the paid stage in the county
+    # cascade (LLD 4.13 stage 4). Off by default; on when webhook payload
+    # says {1,true,yes} or bool True. Published via env so cloud-init
+    # injects -e GOOGLE_MAPS_ENABLED=<0|1> that the Controller argparse
+    # picks up.
+    gm_raw = (webhook_body or {}).get("google_maps_enabled")
+    if isinstance(gm_raw, bool):
+        google_maps_enabled = gm_raw
+    else:
+        google_maps_enabled = str(gm_raw or "").strip().lower() in ("1", "true", "yes")
+    os.environ["GOOGLE_MAPS_ENABLED"] = "1" if google_maps_enabled else "0"
+
     log("runbook_start",
         pipeline=PIPELINE_NAME,
         env=ENV_PREFIX,
@@ -942,6 +958,7 @@ def main() -> int:
         load_mode=load_mode,
         state_scope=state_scope,
         data_version=data_version,
+        google_maps_enabled=google_maps_enabled,
         resume_from_step=resume_from_step or None)
 
     # Fresh run_id
@@ -1036,7 +1053,7 @@ def main() -> int:
         try:
             result = _provision_vm_and_wake_mongo_in_parallel(
                 run_id, load_mode, state_scope, invocation_mode, resume_from_step,
-                data_version,
+                data_version, google_maps_enabled,
             )
             vm_id = ((result.get("vm") or {}).get("id")) if result.get("vm") else None
             vm_provisioned = True

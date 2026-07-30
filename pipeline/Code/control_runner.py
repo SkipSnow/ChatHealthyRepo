@@ -155,6 +155,18 @@ def _parse_args(argv: list[str]) -> argparse.Namespace:
                         help="Provider collection version number "
                              "(e.g. 3 -> Provider_v_3). MANDATORY. Reads "
                              "DATA_VERSION env if flag omitted.")
+    # Optional. Enables the paid Google Maps terminal stage in the
+    # county-enrichment cascade (LLD §4.13 stage 4). Off by default; on
+    # via --google-maps-enabled or GOOGLE_MAPS_ENABLED env in {1,true,yes}.
+    # Requires GOOGLE_MAPS_API_KEY in the environment when enabled.
+    _gm_env = os.environ.get("GOOGLE_MAPS_ENABLED", "").strip().lower()
+    _gm_default = _gm_env in ("1", "true", "yes")
+    parser.add_argument("--google-maps-enabled", dest="google_maps_enabled",
+                        action="store_true", default=_gm_default,
+                        help="Enable the paid Google Maps stage in the "
+                             "county-enrichment cascade. Reads "
+                             "GOOGLE_MAPS_ENABLED env if flag omitted "
+                             "({1,true,yes}=on).")
     return parser.parse_args(argv)
 
 
@@ -177,6 +189,7 @@ def main(argv: list[str] | None = None) -> int:
     # it, and so CHLS _MongoLogHandler.emit() picks it up on every log
     # line (see logging_service.py "data_version" doc field).
     os.environ["DATA_VERSION"] = str(ns.data_version)
+    os.environ["GOOGLE_MAPS_ENABLED"] = "1" if ns.google_maps_enabled else "0"
     args = PipelineArgs(
         states=states_list,
         env_prefix=ns.env_prefix,
@@ -185,6 +198,7 @@ def main(argv: list[str] | None = None) -> int:
         run_id=ns.run_id,
         incremental=incremental,
         data_version=ns.data_version,
+        google_maps_enabled=ns.google_maps_enabled,
     )
 
     orchestrator = ProviderPipelineOrchestrator(
