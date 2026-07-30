@@ -307,6 +307,18 @@ _SYSTEM_PROMPT = (
     "You classify NPPES Other Provider Identifier phrases scoped to a "
     "single US state. For each input phrase return exactly one "
     "classification in the same order.\n\n"
+    "OVERRIDE RULES (apply BEFORE the category descriptions):\n"
+    "  * Any phrase containing the word MEDICARE (any spelling variant: "
+    "    'MEDICARE PTAN', 'MEDICARE PROVIDER NUMBER', 'MEDICARE GROUP', "
+    "    'MEDICARE RR', 'RAILROAD MEDICARE', 'RR MEDICARE', 'MEDICARE "
+    "    RAILROAD', 'TRAVELERS MEDICARE', 'PALMETTO GBA') MUST be "
+    "    classified as INSURANCE with payer_type=MEDICARE. PTAN is a "
+    "    Medicare enrollment number, NOT a generic provider identifier. "
+    "    Never classify a MEDICARE phrase as PROVIDER_ID.\n"
+    "  * Bare PTAN (without 'MEDICARE' spelled out) is also a Medicare "
+    "    enrollment number - INSURANCE/MEDICARE.\n"
+    "  * Any phrase containing MEDICAID or MCAID MUST be classified as "
+    "    INSURANCE with payer_type=MEDICAID.\n\n"
     "NPPES Other Provider Identifier slots historically carried payer "
     "enrollment IDs, but providers also used them for state licenses, "
     "NPI, TAX ID, CLIA, CAQH, and other credentials. type_code=\"05\" "
@@ -506,7 +518,38 @@ def classify_other_identifier_phrases(config: dict, *, mongo, blob=None) -> dict
     if not pending:
         return {"state": state, "classified": 0, "pending": 0}
 
-    classified_count = 0
+    # Type-05 fastpath: NPPES codes type_05 as MEDICAID by construction.
+    # Skip the LLM for those entries - just persist MEDICAID/MEDICAID.
+    # Saves 30-50% of LLM calls at scale since roughly half of NPPES
+    # Other Provider Identifier entries are Medicaid.
+    now_iso_fp = datetime.now(timezone.utc).isoformat()
+    fastpath_count = 0
+    llm_pending = []
+    for doc in pending:
+        if (doc.get("type_code") or "").strip() == "05":
+            staging_coll.update_one(
+                {"_id": doc["_id"], "classification": None},
+                {
+                    "$set": {
+                        "classification": "INSURANCE",
+                        "payer_type": "MEDICAID",
+                        "canonical_payer_name": "MEDICAID",
+                        "license_type": None,
+                        "reasoning": "type_code=05 fastpath (NPPES codes type_05 as Medicaid by construction).",
+                        "classified_at": now_iso_fp,
+                        "classified_by": "type_05_fastpath",
+                    }
+                },
+            )
+            fastpath_count += 1
+        else:
+            llm_pending.append(doc)
+
+    if not llm_pending:
+        return {"state": state, "classified": fastpath_count, "unknown": 0, "pending": len(pending)}
+
+    pending = llm_pending
+    classified_count = fastpath_count
     unknown_count = 0
 
     def _persist_chunk(items: list[tuple[dict, dict]]) -> None:
@@ -591,9 +634,19 @@ def _route_entry(entry: dict, cls: dict | None, state: str) -> tuple[str, dict]:
     entry_state = (entry.get("state") or "").strip().upper() or state
     issuer_raw = (entry.get("issuer") or "").strip()
 
-    if cls is None or cls.get("classification") in (None, "UNKNOWN"):
+    if cls is None or cls.get("classification") is None:
+        # Not yet classified in staging (edge case - apply raced ahead of
+        # classify for this phrase). Mark pending so a re-fire picks it up.
         retained = dict(entry)
         retained["classification_pending"] = True
+        return ("other", retained)
+    if cls.get("classification") == "UNKNOWN":
+        # UNKNOWN is a legitimate terminal classification from the LLM -
+        # the phrase was genuinely uninterpretable. Retain in
+        # other_identifiers[] tagged as UNKNOWN (not pending; a re-fire
+        # would not classify it any better).
+        retained = dict(entry)
+        retained["classification"] = "UNKNOWN"
         return ("other", retained)
 
     kind = cls["classification"]
@@ -638,7 +691,10 @@ def apply_other_identifier_classifications(config: dict, *, mongo, blob=None) ->
       - provider_collection: "<db>.<coll>" on pipeline cluster
       - partition.business_address_state
     """
+    from pymongo import UpdateOne
     from record_subdoc_dedup import merge_insurance, merge_licenses
+
+    _APPLY_BULK_CHUNK = 1000
 
     run_id = config["run_id"]
     partition = config.get("partition") or {}
@@ -671,6 +727,15 @@ def apply_other_identifier_classifications(config: dict, *, mongo, blob=None) ->
     promoted_license = 0
     retained_other = 0
     pending_unknown = 0
+    ops_buffer: list[UpdateOne] = []
+
+    def _flush():
+        nonlocal updated
+        if not ops_buffer:
+            return
+        result = provider_coll.bulk_write(ops_buffer, ordered=False)
+        updated += result.modified_count
+        ops_buffer.clear()
 
     for doc in provider_coll.find(query, no_cursor_timeout=True):
         scanned += 1
@@ -722,8 +787,11 @@ def apply_other_identifier_classifications(config: dict, *, mongo, blob=None) ->
         if unset_op:
             op["$unset"] = unset_op
         if op:
-            provider_coll.update_one({"_id": doc["_id"]}, op)
-            updated += 1
+            ops_buffer.append(UpdateOne({"_id": doc["_id"]}, op))
+            if len(ops_buffer) >= _APPLY_BULK_CHUNK:
+                _flush()
+
+    _flush()
 
     return {
         "state": state,
