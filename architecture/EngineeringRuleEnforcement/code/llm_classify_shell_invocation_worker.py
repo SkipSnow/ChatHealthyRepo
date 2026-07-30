@@ -1055,7 +1055,11 @@ def _classify_via_llm(api_key: str, payload_text: str) -> tuple[str, str, str | 
 # Browser notification (fire-and-forget on reject)
 # ─────────────────────────────────────────────────────────────────────────────
 def _notify_browser(tool_name: str, command: str, code_fingerprints: list[str],
-                    reason: str, verdict: str, extra: str = "") -> None:
+                    reason: str, verdict: str, extra: str = "",
+                    wrapper: dict | None = None) -> None:
+    # If a oneoff wrapper is present, surface the INNER command in the
+    # Command block — the wrapper machinery is noise on the notification.
+    display_cmd = (wrapper.get("inner") if wrapper else command) or command
     html = (
         "<!doctype html><html><head><meta charset=utf-8>"
         f"<title>Rule-006 {verdict.upper()}</title>"
@@ -1074,7 +1078,7 @@ def _notify_browser(tool_name: str, command: str, code_fingerprints: list[str],
         + (", ".join(f'<span class="hash">{h}</span>' for h in code_fingerprints) or "none")
         + "</p>"
         "<h2>Command</h2>"
-        f"<pre>{command.replace('<', '&lt;').replace('>', '&gt;')}</pre>"
+        f"<pre>{display_cmd.replace('<', '&lt;').replace('>', '&gt;')}</pre>"
         "</body></html>"
     )
     try:
@@ -1123,7 +1127,12 @@ def _prompt_approve_browser(tool_name: str, command: str, reason: str,
         return False
     verdict: dict[str, str | None] = {"value": None}
     token = secrets.token_urlsafe(8)
-    esc_cmd = command.replace("<", "&lt;").replace(">", "&gt;")
+    # When a oneoff wrapper is present, the operator wants to see the INNER
+    # command they're approving — not the wrapper machinery. Show the
+    # inner command in the Command block; the wrapper's explanation gets
+    # its own section above.
+    display_cmd = (wrapper.get("inner") if wrapper else command) or command
+    esc_cmd = display_cmd.replace("<", "&lt;").replace(">", "&gt;")
     wrapper_block = ""
     if wrapper:
         exp = (wrapper.get("explanation") or "(empty)").replace("<", "&lt;").replace(">", "&gt;")
@@ -1405,7 +1414,8 @@ def main() -> int:
         reason = "Rule-006 misconfigured: GEMINI_API_KEY not found in Code/.env"
         _audit({"ts": ts, "tool": tool_name, "command": command,
                 "verdict": "reject", "reason": reason, "stage": "config"})
-        _notify_browser(tool_name, command, code_hashes, reason, "reject")
+        _notify_browser(tool_name, command, code_hashes, reason, "reject",
+                        wrapper=_extract_oneoff(command))
         _emit_deny(reason)
         return 0
 
@@ -1485,7 +1495,7 @@ def _dispatch_outcome(classification: str, reason: str, tool_name: str,
             return 0
         deny_reason = f"gate_approve rejected by operator: {reason}"
         _notify_browser(tool_name, command, code_hashes, deny_reason,
-                        "gate_approve REJECTED")
+                        "gate_approve REJECTED", wrapper=wrapper)
         _emit_deny(deny_reason)
         return 0
     # reject — deny immediately, fire-and-forget notify, no operator prompt
@@ -1494,7 +1504,8 @@ def _dispatch_outcome(classification: str, reason: str, tool_name: str,
              "was auto-denied without an approval prompt. If the intent was "
              "legitimate, Claude must invoke via oneoff.py with a &lt;=70-word "
              "explanation.") if not wrapper else ""
-    _notify_browser(tool_name, command, code_hashes, reason, "reject", extra=extra)
+    _notify_browser(tool_name, command, code_hashes, reason, "reject",
+                    extra=extra, wrapper=wrapper)
     _emit_deny(reason)
     return 0
 

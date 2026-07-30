@@ -249,21 +249,23 @@ def main(argv: list[str] | None = None) -> int:
     )
     parser.add_argument("--env", required=True, choices=VALID_ENVS)
     parser.add_argument(
-        "--target", default="all",
-        help="'all' (front-end stack: Cloudflare Pages + HF Spaces) | "
-             "'pipeline' (every Azure target, alone) | "
-             "'cloudflare' | 'hf' | 'azure' | 'aca' | a specific target_id. "
-             "Defaults to 'all'. EPIC-008-F-012-S-001-REQ-B-012: 'pipeline' "
-             "and any other target value MUST NOT be combined.",
+        "--target", required=True,
+        help="'pipeline' | 'cloudflare' | 'hf' | 'azure' | 'aca' | 'all' "
+             "(front-end stack) | a specific target_id. When --target names "
+             "a GROUP ('pipeline'/'cloudflare'/'hf'/'azure'/'aca'/'all'), "
+             "--package MUST be explicitly enumerated — no shortcut for "
+             "'all packages' exists on purpose. If you want to deploy "
+             "every runbook under a group, name every package. "
+             "EPIC-008-F-012-S-001-REQ-B-012: 'pipeline' MUST NOT be "
+             "combined with other target values.",
     )
     parser.add_argument(
         "--package", default="",
-        help="Optional comma-separated list of package_id values. When set, "
-             "deploy filters the packages under each selected target to "
-             "just these package_ids (host shell/identity/etc targets are "
-             "still deployed). Example: --target target_azure_automation_"
-             "account_chathealthyjobmanager --package provider_pipeline "
-             "deploys only the provider_pipeline runbook onto the AA.",
+        help="Comma-separated list of package_id values. MANDATORY when "
+             "--target is a group name; forbidden shortcut: no way to say "
+             "'all packages under this target' — you must name each one. "
+             "Optional when --target names a specific target_id. Example: "
+             "--target pipeline --package provider_pipeline,reservation_reaper",
     )
     parser.add_argument(
         "--tests", default="",
@@ -284,6 +286,21 @@ def main(argv: list[str] | None = None) -> int:
             "ERROR: --target=pipeline MUST be the sole target. Pipeline "
             "deploys are independent of front-end deploys "
             "(EPIC-008-F-012-S-001-REQ-B-012)."
+        )
+
+    # Force explicit --package enumeration when --target is a group name.
+    # Design intent: the operator must think through and TYPE every
+    # package being deployed. No blanket 'all packages under this group'
+    # shortcut exists — the friction is the feature. Prevents accidental
+    # 10-runbook shotgun deploys when a single package was intended.
+    _GROUP_TARGETS = frozenset({"pipeline", "cloudflare", "hf", "azure", "aca", "all"})
+    if args.target in _GROUP_TARGETS and not args.package.strip():
+        sys.exit(
+            f"ERROR: --target={args.target!r} is a group selector. "
+            f"--package MUST be explicitly enumerated (comma-separated). "
+            f"No 'all packages' shortcut exists — name every package you "
+            f"intend to deploy. Example: --target pipeline --package "
+            f"provider_pipeline"
         )
 
     _enforce_env_branch_check(repo_root, args.env)

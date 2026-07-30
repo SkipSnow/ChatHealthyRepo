@@ -14,6 +14,7 @@ No soft fallbacks. Every az failure aborts with stderr.
 """
 from __future__ import annotations
 
+import hashlib
 import json
 import os
 import subprocess
@@ -672,6 +673,23 @@ def ensure_acr(target, env: str) -> str:
         build_context = config.get("build_context", ".")
         if not dockerfile:
             sys.exit(f"ERROR: ACR docker_image package {pkg.get('package_id')!r} missing dockerfile")
+        # Content-hash gate: skip build+push if ACR already has an image
+        # whose :latest tag digest matches the current content-hash tag
+        # (i.e., a prior deploy already built + pushed this exact source).
+        # Content hash covers Dockerfile bytes + every file under each
+        # COPY-source path parsed from the Dockerfile itself (defensive:
+        # picks up new COPY sources automatically when the Dockerfile
+        # changes). Non-source paths in build_context ("." usually the
+        # repo root) are NOT hashed — they're not baked into the image.
+        content_hash = _dockerfile_context_hash(dockerfile, build_context)
+        content_tag = f"content-{content_hash[:12]}"
+        if _acr_image_current(name, rg, repo, "latest", content_tag):
+            step(
+                f"docker build+push SKIPPED — {name}/{repo}:latest already "
+                f"points to content {content_hash[:12]} (source unchanged)"
+            )
+            continue
+
         step(f"docker build+push {name}.azurecr.io/{repo}:latest from {dockerfile}")
         # `az acr login` on Windows engages Docker's credential store, which
         # starts Docker Desktop. `az acr build` server-side does NOT need
@@ -697,12 +715,15 @@ def ensure_acr(target, env: str) -> str:
         # characters in the remote build output (Windows charmap encoding
         # UnicodeEncodeError). Build succeeds or fails independently of
         # log streaming; failure surfaces via the ARM operation status.
+        # Tag with BOTH :latest and :content-<hash> so the next deploy
+        # can compare digests and skip if source is unchanged.
         _az(
             [
                 "acr", "build",
                 "--registry", name,
                 "--resource-group", rg,
                 "--image", f"{repo}:latest",
+                "--image", f"{repo}:{content_tag}",
                 "--file", dockerfile,
                 "--build-arg", f"CHATHEALTHY_CA_ROOT_B64={ca_root_b64}",
                 "--build-arg", f"CHATHEALTHY_CA_INTERMEDIATE_B64={ca_int_b64}",
@@ -711,6 +732,87 @@ def ensure_acr(target, env: str) -> str:
             ]
         )
     return name
+
+
+def _dockerfile_context_hash(dockerfile_path: str, build_context: str) -> str:
+    """Compute a stable sha256 covering the Dockerfile itself + every file
+    under each `COPY <src>` path referenced by the Dockerfile.
+
+    Only source paths that get baked into the image affect the hash —
+    ambient files under the build_context that aren't COPY'd don't count.
+
+    Excludes __pycache__ / .git / .pytest_cache to keep the hash stable
+    across dev-machine noise."""
+    df = Path(dockerfile_path).resolve()
+    ctx = Path(build_context).resolve()
+    h = hashlib.sha256()
+    h.update(df.read_bytes())
+    # Parse COPY <src> [<src2> ...] <dst> — take every token except the
+    # last as a source path relative to build_context.
+    copy_srcs: list[str] = []
+    for line in df.read_text(encoding="utf-8", errors="replace").splitlines():
+        stripped = line.strip()
+        if not stripped.upper().startswith("COPY "):
+            continue
+        parts = stripped.split()
+        if len(parts) < 3:
+            continue
+        copy_srcs.extend(parts[1:-1])
+    _EXCLUDE_DIRS = {"__pycache__", ".git", ".pytest_cache", "node_modules", ".venv"}
+    for src in copy_srcs:
+        root = (ctx / src).resolve()
+        if not root.exists():
+            # COPY of a non-existent path would fail the build too; still
+            # hash the missing-path token so the hash captures the request.
+            h.update(f"MISSING:{src}\n".encode("utf-8"))
+            continue
+        if root.is_file():
+            h.update(f"{root.relative_to(ctx)}\n".encode("utf-8"))
+            h.update(root.read_bytes())
+            continue
+        for f in sorted(root.rglob("*")):
+            if any(part in _EXCLUDE_DIRS for part in f.parts):
+                continue
+            if not f.is_file():
+                continue
+            h.update(f"{f.relative_to(ctx)}\n".encode("utf-8"))
+            h.update(f.read_bytes())
+    return h.hexdigest()
+
+
+def _acr_image_current(
+    registry: str, resource_group: str, repo: str,
+    live_tag: str, content_tag: str,
+) -> bool:
+    """Return True iff registry/repo already carries both :live_tag and
+    :content_tag AND they resolve to the same image digest. Meaning:
+    the currently-live image is the current source. Safe to skip build.
+
+    Returns False on any az error / missing tag / digest mismatch — the
+    caller then rebuilds and re-pushes both tags."""
+    live_digest = _acr_tag_digest(registry, resource_group, repo, live_tag)
+    if not live_digest:
+        return False
+    content_digest = _acr_tag_digest(registry, resource_group, repo, content_tag)
+    if not content_digest:
+        return False
+    return live_digest == content_digest
+
+
+def _acr_tag_digest(
+    registry: str, resource_group: str, repo: str, tag: str,
+) -> str | None:
+    """Query the sha256 digest for registry/repo:tag. Returns None if the
+    tag doesn't exist or the az call fails."""
+    r = _az(
+        ["acr", "manifest", "show",
+         "--name", f"{registry}/{repo}:{tag}",
+         "--query", "digest", "-o", "tsv"],
+        check=False,
+    )
+    if r.returncode != 0:
+        return None
+    return (r.stdout or "").strip() or None
 
 
 def _az_secret(vault_name: str, secret_name: str, default: str = "") -> str:
