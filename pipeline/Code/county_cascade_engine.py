@@ -997,15 +997,37 @@ def _stage_google_maps(
     gate: RateLimitedConcurrencyGate,
     api_key: str,
 ) -> tuple[list[tuple[dict, dict]], int]:
-    """Stage 4 orchestrator: paid terminal stage. No key → skip whole stage."""
+    """Stage 4 orchestrator: paid terminal stage. No key → skip whole stage.
+
+    Google Geocoding API has no multi-address batch endpoint (forward
+    geocoding is one HTTP round-trip per address), so 'batching' here
+    means firing requests concurrently under the RateLimitedConcurrencyGate
+    that already caps in-flight + smooths QPS. Concurrency ceiling comes
+    from the gate itself; ThreadPoolExecutor workers = gate.max_in_flight
+    so we never queue more than the gate would admit. Order of stamping
+    is preserved by walking pairs in input order after futures resolve;
+    stamp mutations touch only per-pair addr dicts so parallel workers
+    don't race on shared state."""
     if not api_key:
         _log.warning("county_cascade[google_maps]: no API key; skipping stage in=%d", len(pairs))
         return pairs, 0
-    _log.info("county_cascade[google_maps]: entering in=%d", len(pairs))
+    if not pairs:
+        return pairs, 0
+    _log.info(
+        "county_cascade[google_maps]: entering in=%d workers=%d",
+        len(pairs), gate.max_in_flight,
+    )
     residue: list[tuple[dict, dict]] = []
     hits = 0
-    for doc, addr in pairs:
-        entry = _google_maps_lookup(addr, session=session, gate=gate, api_key=api_key)
+    from concurrent.futures import ThreadPoolExecutor
+    with ThreadPoolExecutor(max_workers=max(1, gate.max_in_flight)) as pool:
+        results = list(pool.map(
+            lambda pair: _google_maps_lookup(
+                pair[1], session=session, gate=gate, api_key=api_key,
+            ),
+            pairs,
+        ))
+    for (doc, addr), entry in zip(pairs, results):
         if entry:
             _stamp_county(
                 addr, fips=entry["fips_key"], source=GOOGLE_MAPS,
