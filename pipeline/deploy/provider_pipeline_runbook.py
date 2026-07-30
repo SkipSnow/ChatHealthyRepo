@@ -1108,6 +1108,13 @@ def main() -> int:
             return 1
 
         # v32 §5.2.2: provision VM AND wake Mongo in parallel.
+        # Lock lifetime handoff: the runbook acquired the pipeline_lock
+        # above; on successful VM PUT, ownership transfers to the
+        # Controller inside the VM (its quiesce step releases the lock
+        # at pipeline end). If the runbook fails BEFORE VM PUT succeeds,
+        # runbook_owns_lock_release stays True and the finally block
+        # releases the lock so a stuck lock doesn't wedge future fires.
+        runbook_owns_lock_release = True
         reservation_created = False
         vm_provisioned = False
         vm_name_for_teardown = f"vm-chpipeline-{_reservation_short_id(run_id)}"
@@ -1118,6 +1125,9 @@ def main() -> int:
             )
             vm_id = ((result.get("vm") or {}).get("id")) if result.get("vm") else None
             vm_provisioned = True
+            # VM is up; Controller now owns lock release via its
+            # _quiesce_mongo_state step. Runbook must NOT release.
+            runbook_owns_lock_release = False
             log("vm_provision_dispatched_and_mongo_woke_in_parallel",
                 run_id=run_id,
                 vm_id=vm_id,
@@ -1159,27 +1169,34 @@ def main() -> int:
         log("runbook_exit", run_id=run_id)
         return 0
     finally:
-        # Teardown clause. When is_duplicate_abend is True the live run
-        # owns every shared resource; the duplicate MUST leave them
-        # alone (its lock acquire failed, so it never owned the lock).
+        # Teardown clause. Three cases:
+        #   (a) is_duplicate_abend -- another live run owns the lock;
+        #       this invocation's acquire failed so it never owned the
+        #       lock. Do nothing.
+        #   (b) runbook_owns_lock_release=True -- runbook acquired the
+        #       lock but failed before VM PUT succeeded. Release now so
+        #       a stuck lock doesn't wedge future fires.
+        #   (c) runbook_owns_lock_release=False -- VM PUT succeeded;
+        #       Controller inside the VM owns lock release via its
+        #       _quiesce_mongo_state step. Runbook must NOT release
+        #       here or the ~25min VM run would be unlocked.
         if is_duplicate_abend:
             log("duplicate_abend_teardown_skipped", run_id=run_id)
-        else:
-            # Release our pipeline lock. Guarded by run_id so a duplicate
-            # fire's finally can never clobber the real holder's lock.
-            # The Controller in the container is responsible for releasing
-            # the lock at its own exit too -- this runbook-side release
-            # is the belt to Controller's suspenders in case the runbook
-            # itself failed post-acquire but pre-Controller-startup.
+        elif runbook_owns_lock_release:
             try:
                 if mongo is not None:
                     _release_pipeline_lock(mongo, PIPELINE_NAME, run_id)
                     log("pipeline_lock_released_runbook_side",
-                        pipeline_name=PIPELINE_NAME, run_id=run_id)
+                        pipeline_name=PIPELINE_NAME, run_id=run_id,
+                        reason="runbook_failed_before_vm_handoff")
             except Exception as exc:
                 log("pipeline_lock_release_error",
                     pipeline_name=PIPELINE_NAME, run_id=run_id,
                     error=str(exc)[:400])
+        else:
+            log("pipeline_lock_ownership_handed_to_vm",
+                pipeline_name=PIPELINE_NAME, run_id=run_id,
+                vm_name=vm_name_for_teardown)
 
 
 if __name__ == "__main__":

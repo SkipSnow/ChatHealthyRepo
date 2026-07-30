@@ -299,6 +299,28 @@ def _quiesce_mongo_state(run_id: str, final_status: str) -> None:
     except Exception as exc:
         _log.error("quiesce: reservation cancel FAILED run_id=%s err=%s",
                    run_id, str(exc)[:500])
+    # Release the per-pipeline mutual-exclusion lock. Runbook acquired
+    # it at fire-start; Controller inherits ownership when the VM boots
+    # and MUST release it here so the next fire for the same
+    # pipeline_name is not blocked. Guarded by run_id so a duplicate
+    # fire's Controller (theoretically impossible but belt-and-suspenders)
+    # can never clobber the real holder's lock.
+    pipeline_name = os.environ.get("PIPELINE_NAME", "")
+    if pipeline_name:
+        try:
+            r = mongo["admin"]["cluster_lifecycle"].delete_one({
+                "_id": f"pipeline_lock:{pipeline_name}",
+                "run_id": run_id,
+            })
+            _log.info(
+                "quiesce: pipeline_lock released pipeline=%s run_id=%s deleted=%d",
+                pipeline_name, run_id, r.deleted_count,
+            )
+        except Exception as exc:
+            _log.error(
+                "quiesce: pipeline_lock release FAILED pipeline=%s run_id=%s err=%s",
+                pipeline_name, run_id, str(exc)[:500],
+            )
     try:
         mongo["chathealthyfrontend"]["pipeline.runs"].update_one(
             {"run_id": run_id},
