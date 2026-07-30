@@ -296,7 +296,7 @@ _PIPELINE_LOCK_TTL_HOURS = 12
 
 def _pipeline_lock_id(pipeline_name: str) -> str:
     """Deterministic _id for the same-pipeline mutual-exclusion lock.
-    Same pipeline_name → same _id → Mongo enforces at-most-one-active
+    Same pipeline_name -> same _id -> Mongo enforces at-most-one-active
     via its natural _id uniqueness. Distinct from reservation rows
     (which have arbitrary _ids) so the two concerns don't collide."""
     return f"pipeline_lock:{pipeline_name}"
@@ -311,9 +311,9 @@ def _acquire_pipeline_lock(
     shared resource).
 
     Uses insert_one on a deterministic _id so Mongo's natural _id
-    uniqueness gives us the atomic acquire — no read-check-write race.
-    Two webhooks arriving at the same instant → exactly one insert
-    wins, the other gets DuplicateKeyError → abend. This is the
+    uniqueness gives us the atomic acquire -- no read-check-write race.
+    Two webhooks arriving at the same instant -> exactly one insert
+    wins, the other gets DuplicateKeyError -> abend. This is the
     correctness contract; the requirement is 'no pipeline can run
     twice concurrently.'
 
@@ -356,7 +356,7 @@ def _acquire_pipeline_lock(
 def _release_pipeline_lock(mongo, pipeline_name: str, run_id: str) -> None:
     """Release the per-pipeline lock iff we own it (matched by run_id).
     Idempotent: safe to call in a finally block even if we never
-    acquired (a different run_id owns the lock now → no-op)."""
+    acquired (a different run_id owns the lock now -> no-op)."""
     coll = mongo["admin"]["cluster_lifecycle"]
     coll.delete_one({"_id": _pipeline_lock_id(pipeline_name), "run_id": run_id})
 
@@ -1073,7 +1073,7 @@ def main() -> int:
             log("mongo_connected", cluster="chathealthyfrontend")
             # Same-pipeline mutual exclusion. Atomic acquire on
             # _id="pipeline_lock:<pipeline_name>". Only blocks fires
-            # for the SAME pipeline_name — different pipelines and
+            # for the SAME pipeline_name -- different pipelines and
             # manual DB-awake reservations are transparent.
             _vm_name_for_lock = f"vm-chpipeline-{_reservation_short_id(run_id)}"
             blocking = _acquire_pipeline_lock(
@@ -1168,7 +1168,7 @@ def main() -> int:
             # Release our pipeline lock. Guarded by run_id so a duplicate
             # fire's finally can never clobber the real holder's lock.
             # The Controller in the container is responsible for releasing
-            # the lock at its own exit too — this runbook-side release
+            # the lock at its own exit too -- this runbook-side release
             # is the belt to Controller's suspenders in case the runbook
             # itself failed post-acquire but pre-Controller-startup.
             try:
