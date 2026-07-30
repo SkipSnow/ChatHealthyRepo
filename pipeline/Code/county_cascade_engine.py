@@ -37,6 +37,12 @@ Idempotency: an address already carrying a fully populated `county`
 object (fips + name + source) is skipped. Re-runs pick up only the
 residue.
 
+Scale contract: providers are streamed via cursor and processed in
+bounded chunks (_PROVIDER_CHUNK). At most one chunk's pairs and writes
+sit in memory at a time — memory is O(chunk), not O(state).
+Persistence is bulk_write with UpdateOne ops and insert_many for
+unresolvables; no per-provider update_one is issued.
+
 Public entry point: `run_county_cascade(config, mongo, blob)`.
 """
 
@@ -45,10 +51,10 @@ from chathealthy_frontend_lib.logging_service import ChatHealthyLoggingService
 
 
 import os
-import time
-from typing import Any, Iterable
+from typing import Any, Iterable, Iterator
 
 import requests
+from pymongo import UpdateOne
 
 from throttle_semaphore import RateLimitedConcurrencyGate, RateLimitedGate
 
@@ -70,6 +76,16 @@ ZIP_CROSSWALK = "zip_crosswalk"
 CENSUS_BATCH = "census_batch"
 NPPES_REGISTRY = "nppes_registry"
 GOOGLE_MAPS = "google_maps"
+
+# Chunk sizes keep memory bounded regardless of state size.
+# _PROVIDER_CHUNK — providers materialized per cascade pass (~2 addresses per provider
+# under most partitions → ~1000 pairs per chunk under _PROVIDER_CHUNK=500). Sized so
+# Census batch chunks (batch_size, default 500) can absorb a single pass without
+# fragmentation.
+# _BULK_WRITE_CHUNK — bulk_write / insert_many flush cap. pymongo's own driver splits
+# oversize batches, but we keep the cap explicit for backpressure.
+_PROVIDER_CHUNK = 500
+_BULK_WRITE_CHUNK = 1000
 
 
 def _addr_needs_enrichment(addr: dict) -> bool:
@@ -97,14 +113,20 @@ def _stamp_county(addr: dict, *, fips: str, name: str, source: str) -> None:
     addr["county"] = {"fips": fips, "name": name, "source": source}
 
 
-def _iterate_addresses(
+def _stream_provider_chunks(
     coll,
     run_id: str,
     *,
     partition_state: str | None,
     partition_kind: str | None,
-) -> Iterable[tuple[dict, dict]]:
-    """Yield (provider_doc, address_dict) pairs eligible for enrichment."""
+) -> Iterator[list[tuple[dict, list[dict]]]]:
+    """Yield chunks of (provider_doc, eligible_addresses[]) tuples.
+
+    Streams providers via cursor.batch_size — never materializes the full
+    partition list. Each chunk holds _PROVIDER_CHUNK providers with only
+    their enrichment-eligible addresses attached (references into the
+    same doc.addresses list, so mutations propagate).
+    """
     query: dict[str, Any] = {"run_id": run_id}
     match: dict[str, Any] = {"address_type": {"$in": list(PRACTICE_ADDRESS_TYPES)}}
     if partition_kind:
@@ -112,14 +134,37 @@ def _iterate_addresses(
     if partition_state:
         match["state"] = partition_state
     query["addresses"] = {"$elemMatch": match}
-    for doc in coll.find(query):
+
+    cursor = coll.find(query).batch_size(_PROVIDER_CHUNK)
+    chunk: list[tuple[dict, list[dict]]] = []
+    for doc in cursor:
+        eligible: list[dict] = []
         for addr in (doc.get("addresses") or []):
             if partition_state and (addr.get("state") or "").upper() != partition_state:
                 continue
             if partition_kind and addr.get("address_type") != partition_kind:
                 continue
             if _addr_needs_enrichment(addr):
-                yield doc, addr
+                eligible.append(addr)
+        if not eligible:
+            continue
+        chunk.append((doc, eligible))
+        if len(chunk) >= _PROVIDER_CHUNK:
+            yield chunk
+            chunk = []
+    if chunk:
+        yield chunk
+
+
+def _pairs_from_chunk(
+    chunk: list[tuple[dict, list[dict]]],
+) -> list[tuple[dict, dict]]:
+    """Flatten a provider chunk into (doc, addr) pairs for cascade stages."""
+    pairs: list[tuple[dict, dict]] = []
+    for doc, addrs in chunk:
+        for addr in addrs:
+            pairs.append((doc, addr))
+    return pairs
 
 
 def _load_zcta_crosswalk(mongo, env_prefix: str, run_id: str, data_version: int) -> dict[str, tuple[str, str]]:
@@ -333,18 +378,8 @@ def _stage_google_maps(
     return residue, hits
 
 
-def _persist_provider_addresses(coll, doc: dict) -> None:
-    coll.update_one({"_id": doc["_id"]}, {"$set": {"addresses": doc.get("addresses", [])}})
-
-
-def _record_unresolvable(
-    discrepancies_coll,
-    *,
-    run_id: str,
-    doc: dict,
-    addr: dict,
-) -> None:
-    discrepancies_coll.insert_one({
+def _build_unresolvable_doc(run_id: str, doc: dict, addr: dict) -> dict:
+    return {
         "run_id": run_id,
         "npi": doc.get("npi"),
         "reason": "county_unresolvable",
@@ -352,7 +387,7 @@ def _record_unresolvable(
         "state": (addr.get("state") or "").upper() or None,
         "entity_kind": "individual" if doc.get("entity_type_code") == "1" else "institutional",
         "detail": {"address": {k: addr.get(k) for k in ("street_1", "city", "state", "zip")}},
-    })
+    }
 
 
 def run_county_cascade(
@@ -363,12 +398,16 @@ def run_county_cascade(
 ) -> dict[str, Any]:
     """Enrich county on every eligible practice address in the run.
 
+    Streams providers in chunks of _PROVIDER_CHUNK so memory is O(chunk)
+    regardless of state size. Each chunk runs the full cascade, then
+    persists via bulk_write / insert_many before the next chunk is read.
+
     Required config keys:
       - run_id                        (str)
       - env                           (str)
       - provider_collection           (str "<db>.<coll>")
       - partition_state               (str | None) — restrict scan to this state
-      - partition_kind                (str | None) — "primary_practice" | "secondary_practice"
+      - partition_kind                (str | None) — "practice" | "secondary_practice"
       - sla_target                    (float, default 0.98)
       - google_maps_api_key           (str) — required to enable google_maps stage
       - google_maps_enabled           (bool, default False)
@@ -405,14 +444,108 @@ def run_county_cascade(
     provider_coll = mongo[db_name][coll_name]
     discrepancies_coll = mongo["chathealthyfrontend"]["pipeline.discrepancies"]
 
-    pairs = list(_iterate_addresses(
+    data_version = int(config.get("data_version") or 0)
+    crosswalk = _load_zcta_crosswalk(mongo, env_prefix, run_id, data_version)
+    session = requests.Session()
+
+    # Gates are lazily instantiated so a run that resolves entirely from the
+    # crosswalk never opens an HTTP session against Census or NPPES.
+    census_gate: RateLimitedGate | None = None
+    nppes_gate: RateLimitedConcurrencyGate | None = None
+    google_gate: RateLimitedConcurrencyGate | None = None
+
+    stage_hits = {ZIP_CROSSWALK: 0, CENSUS_BATCH: 0, NPPES_REGISTRY: 0, GOOGLE_MAPS: 0}
+    total = 0
+    resolved_running = 0
+    unresolvable_total = 0
+
+    update_ops: list[UpdateOne] = []
+    unresolvable_docs: list[dict] = []
+
+    def _flush_updates() -> None:
+        if not update_ops:
+            return
+        provider_coll.bulk_write(update_ops, ordered=False)
+        update_ops.clear()
+
+    def _flush_unresolvables() -> None:
+        if not unresolvable_docs:
+            return
+        discrepancies_coll.insert_many(unresolvable_docs, ordered=False)
+        unresolvable_docs.clear()
+
+    for chunk in _stream_provider_chunks(
         provider_coll,
         run_id,
         partition_state=partition_state,
         partition_kind=partition_kind,
-    ))
-    total = len(pairs)
-    stage_hits = {ZIP_CROSSWALK: 0, CENSUS_BATCH: 0, NPPES_REGISTRY: 0, GOOGLE_MAPS: 0}
+    ):
+        pairs = _pairs_from_chunk(chunk)
+        chunk_total = len(pairs)
+        if not chunk_total:
+            continue
+        total += chunk_total
+
+        residue, hit1 = _stage_zip_crosswalk(pairs, crosswalk)
+        stage_hits[ZIP_CROSSWALK] += hit1
+
+        # Per-chunk SLA gate — advance only when this chunk hasn't cleared
+        # the SLA on its own. Running totals decide subsequent chunks.
+        def _need_more(residue_list: list) -> bool:
+            resolved_in_chunk = chunk_total - len(residue_list)
+            chunk_rate = resolved_in_chunk / chunk_total
+            return chunk_rate < sla_target
+
+        if residue and _need_more(residue):
+            if census_gate is None:
+                census_gate = RateLimitedGate(
+                    rate_per_second=float(throttle_rates.get(CENSUS_BATCH, 1.0)),
+                )
+            residue, hit2 = _stage_census_batch(
+                residue, session=session, gate=census_gate, batch_size=batch_size
+            )
+            stage_hits[CENSUS_BATCH] += hit2
+
+        if residue and _need_more(residue):
+            if nppes_gate is None:
+                nppes_gate = RateLimitedConcurrencyGate(
+                    max_in_flight=int(concurrency.get("nppes_max_in_flight", DEFAULT_NPPES_MAX_IN_FLIGHT)),
+                    rate_per_second=float(throttle_rates.get(NPPES_REGISTRY, DEFAULT_NPPES_RATE)),
+                )
+            residue, hit3 = _stage_nppes_registry(residue, session=session, gate=nppes_gate)
+            stage_hits[NPPES_REGISTRY] += hit3
+
+        if residue and google_enabled and _need_more(residue):
+            if google_gate is None:
+                google_gate = RateLimitedConcurrencyGate(
+                    max_in_flight=int(concurrency.get("google_max_in_flight", DEFAULT_GOOGLE_MAX_IN_FLIGHT)),
+                    rate_per_second=float(throttle_rates.get(GOOGLE_MAPS, DEFAULT_GOOGLE_RATE)),
+                )
+            residue, hit4 = _stage_google_maps(
+                residue, session=session, gate=google_gate, api_key=google_api_key
+            )
+            stage_hits[GOOGLE_MAPS] += hit4
+
+        resolved_running += (chunk_total - len(residue))
+        unresolvable_total += len(residue)
+
+        # Persist this chunk before moving on — every touched provider
+        # gets exactly one UpdateOne carrying its full addresses[].
+        for doc, _addrs in chunk:
+            update_ops.append(UpdateOne(
+                {"_id": doc["_id"]},
+                {"$set": {"addresses": doc.get("addresses", [])}},
+            ))
+            if len(update_ops) >= _BULK_WRITE_CHUNK:
+                _flush_updates()
+
+        for doc, addr in residue:
+            unresolvable_docs.append(_build_unresolvable_doc(run_id, doc, addr))
+            if len(unresolvable_docs) >= _BULK_WRITE_CHUNK:
+                _flush_unresolvables()
+
+    _flush_updates()
+    _flush_unresolvables()
 
     if total == 0:
         return {
@@ -423,52 +556,11 @@ def run_county_cascade(
             "unresolvable_count": 0,
         }
 
-    data_version = int(config.get("data_version") or 0)
-    crosswalk = _load_zcta_crosswalk(mongo, env_prefix, run_id, data_version)
-    residue, hit1 = _stage_zip_crosswalk(pairs, crosswalk)
-    stage_hits[ZIP_CROSSWALK] = hit1
-
-    session = requests.Session()
-
-    if residue and (total - len(residue)) / total < sla_target:
-        census_gate = RateLimitedGate(rate_per_second=float(throttle_rates.get(CENSUS_BATCH, 1.0)))
-        residue, hit2 = _stage_census_batch(
-            residue, session=session, gate=census_gate, batch_size=batch_size
-        )
-        stage_hits[CENSUS_BATCH] = hit2
-
-    if residue and (total - len(residue)) / total < sla_target:
-        nppes_gate = RateLimitedConcurrencyGate(
-            max_in_flight=int(concurrency.get("nppes_max_in_flight", DEFAULT_NPPES_MAX_IN_FLIGHT)),
-            rate_per_second=float(throttle_rates.get(NPPES_REGISTRY, DEFAULT_NPPES_RATE)),
-        )
-        residue, hit3 = _stage_nppes_registry(residue, session=session, gate=nppes_gate)
-        stage_hits[NPPES_REGISTRY] = hit3
-
-    if residue and google_enabled and (total - len(residue)) / total < sla_target:
-        google_gate = RateLimitedConcurrencyGate(
-            max_in_flight=int(concurrency.get("google_max_in_flight", DEFAULT_GOOGLE_MAX_IN_FLIGHT)),
-            rate_per_second=float(throttle_rates.get(GOOGLE_MAPS, DEFAULT_GOOGLE_RATE)),
-        )
-        residue, hit4 = _stage_google_maps(
-            residue, session=session, gate=google_gate, api_key=google_api_key
-        )
-        stage_hits[GOOGLE_MAPS] = hit4
-
-    touched: dict[Any, dict] = {}
-    for doc, _addr in pairs:
-        touched[doc["_id"]] = doc
-    for doc in touched.values():
-        _persist_provider_addresses(provider_coll, doc)
-
-    for doc, addr in residue:
-        _record_unresolvable(discrepancies_coll, run_id=run_id, doc=doc, addr=addr)
-
-    match_rate = (total - len(residue)) / total
+    match_rate = resolved_running / total
     return {
         "total_addresses": total,
         "stage_hits": stage_hits,
         "match_rate": match_rate,
         "sla_met": match_rate >= sla_target,
-        "unresolvable_count": len(residue),
+        "unresolvable_count": unresolvable_total,
     }

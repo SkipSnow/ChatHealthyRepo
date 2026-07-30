@@ -40,6 +40,8 @@ from chathealthy_frontend_lib.logging_service import ChatHealthyLoggingService
 
 from typing import Any
 
+from pymongo import UpdateOne
+
 from staging_loader import STAGING_DB_NAME, staging_collection_name
 
 _log = ChatHealthyLoggingService()
@@ -51,6 +53,7 @@ _log = ChatHealthyLoggingService()
 # removed.
 URBAN_RUCC_MAX = 3  # Port of pipeline/Code/urban_flag.py: RUCC 1..3 = urban, 4..9 = rural.
 DEFAULT_BATCH = 500
+_BULK_WRITE_CHUNK = 1000
 
 
 def _find_fips_col(raw_keys) -> str | None:
@@ -97,20 +100,14 @@ def _load_urban_by_fips(
     return out
 
 
-def _record_lookup_miss(
-    discrepancies_coll,
-    *,
-    run_id: str,
-    npi: str | None,
-    fips: str,
-) -> None:
-    discrepancies_coll.insert_one({
+def _build_lookup_miss_doc(run_id: str, npi: str | None, fips: str) -> dict:
+    return {
         "run_id": run_id,
         "npi": npi,
         "reason": "rucc_lookup_miss",
         "step": "urban_flag",
         "detail": {"fips": fips},
-    })
+    }
 
 
 def stamp_urban_flags(
@@ -164,7 +161,22 @@ def stamp_urban_flags(
     lookup_miss = 0
     providers_updated = 0
 
-    for doc in coll.find(query, {"npi": 1, "addresses": 1}):
+    update_ops: list[UpdateOne] = []
+    lookup_miss_docs: list[dict] = []
+
+    def _flush_updates() -> None:
+        if not update_ops:
+            return
+        coll.bulk_write(update_ops, ordered=False)
+        update_ops.clear()
+
+    def _flush_lookup_misses() -> None:
+        if not lookup_miss_docs:
+            return
+        discrepancies_coll.insert_many(lookup_miss_docs, ordered=False)
+        lookup_miss_docs.clear()
+
+    for doc in coll.find(query, {"npi": 1, "addresses": 1}).batch_size(_BULK_WRITE_CHUNK):
         touched = False
         for addr in (doc.get("addresses") or []):
             if not isinstance(addr, dict):
@@ -178,12 +190,9 @@ def stamp_urban_flags(
             if urban is None:
                 c["urban"] = None
                 lookup_miss += 1
-                _record_lookup_miss(
-                    discrepancies_coll,
-                    run_id=run_id,
-                    npi=doc.get("npi"),
-                    fips=fips,
-                )
+                lookup_miss_docs.append(_build_lookup_miss_doc(run_id, doc.get("npi"), fips))
+                if len(lookup_miss_docs) >= _BULK_WRITE_CHUNK:
+                    _flush_lookup_misses()
             else:
                 c["urban"] = bool(urban)
                 if urban:
@@ -192,11 +201,16 @@ def stamp_urban_flags(
                     urban_false += 1
             touched = True
         if touched:
-            coll.update_one(
+            update_ops.append(UpdateOne(
                 {"_id": doc["_id"]},
                 {"$set": {"addresses": doc["addresses"]}},
-            )
+            ))
             providers_updated += 1
+            if len(update_ops) >= _BULK_WRITE_CHUNK:
+                _flush_updates()
+
+    _flush_updates()
+    _flush_lookup_misses()
 
     return {
         "total_addresses": total,

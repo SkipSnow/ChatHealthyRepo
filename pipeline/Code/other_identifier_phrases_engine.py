@@ -64,6 +64,8 @@ import time
 from datetime import datetime, timezone
 from typing import Any
 
+from pymongo import UpdateOne
+
 
 _log = ChatHealthyLoggingService()
 
@@ -74,6 +76,7 @@ STAGING_COLL = "OtherIdentifierPhrases"
 _LLM_MODEL_ID = "google-gla:gemini-2.5-flash"
 _LLM_MODEL_NAME_FOR_AUDIT = "gemini-2.5-flash"
 _LLM_TIMEOUT_S = 300
+_BULK_WRITE_CHUNK = 1000
 
 
 # ── phrase-key computation ─────────────────────────────────────────────────
@@ -193,8 +196,16 @@ def harvest_other_identifier_phrases(config: dict, *, mongo, blob=None) -> dict:
 
     now_iso = datetime.now(timezone.utc).isoformat()
     upserted = 0
+    ops: list[UpdateOne] = []
+
+    def _flush() -> None:
+        if not ops:
+            return
+        staging_coll.bulk_write(ops, ordered=False)
+        ops.clear()
+
     for pid, slot in accumulator.items():
-        staging_coll.update_one(
+        ops.append(UpdateOne(
             {"_id": pid},
             {
                 "$set": {
@@ -215,8 +226,12 @@ def harvest_other_identifier_phrases(config: dict, *, mongo, blob=None) -> dict:
                 },
             },
             upsert=True,
-        )
+        ))
         upserted += 1
+        if len(ops) >= _BULK_WRITE_CHUNK:
+            _flush()
+
+    _flush()
 
     _log.info(
         "harvest_other_identifier_phrases: scanned=%d entries=%d "
@@ -525,9 +540,17 @@ def classify_other_identifier_phrases(config: dict, *, mongo, blob=None) -> dict
     now_iso_fp = datetime.now(timezone.utc).isoformat()
     fastpath_count = 0
     llm_pending = []
+    fp_ops: list[UpdateOne] = []
+
+    def _flush_fp() -> None:
+        if not fp_ops:
+            return
+        staging_coll.bulk_write(fp_ops, ordered=False)
+        fp_ops.clear()
+
     for doc in pending:
         if (doc.get("type_code") or "").strip() == "05":
-            staging_coll.update_one(
+            fp_ops.append(UpdateOne(
                 {"_id": doc["_id"], "classification": None},
                 {
                     "$set": {
@@ -540,10 +563,14 @@ def classify_other_identifier_phrases(config: dict, *, mongo, blob=None) -> dict
                         "classified_by": "type_05_fastpath",
                     }
                 },
-            )
+            ))
             fastpath_count += 1
+            if len(fp_ops) >= _BULK_WRITE_CHUNK:
+                _flush_fp()
         else:
             llm_pending.append(doc)
+
+    _flush_fp()
 
     if not llm_pending:
         return {"state": state, "classified": fastpath_count, "unknown": 0, "pending": len(pending)}
@@ -557,9 +584,12 @@ def classify_other_identifier_phrases(config: dict, *, mongo, blob=None) -> dict
         succeeds. Writes each phrase's classification to staging so a
         crash mid-iteration does not lose the already-classified work."""
         nonlocal classified_count, unknown_count
+        if not items:
+            return
         now_iso = datetime.now(timezone.utc).isoformat()
+        ops: list[UpdateOne] = []
         for doc, cls in items:
-            staging_coll.update_one(
+            ops.append(UpdateOne(
                 {"_id": doc["_id"], "classification": None},
                 {
                     "$set": {
@@ -572,10 +602,15 @@ def classify_other_identifier_phrases(config: dict, *, mongo, blob=None) -> dict
                         "classified_by": _LLM_MODEL_NAME_FOR_AUDIT,
                     }
                 },
-            )
+            ))
             classified_count += 1
             if cls["classification"] == "UNKNOWN":
                 unknown_count += 1
+            if len(ops) >= _BULK_WRITE_CHUNK:
+                staging_coll.bulk_write(ops, ordered=False)
+                ops.clear()
+        if ops:
+            staging_coll.bulk_write(ops, ordered=False)
 
     classified_map = _classify_iteratively(
         state, pending, phrase_cls, input_cls, output_cls,
@@ -586,11 +621,40 @@ def classify_other_identifier_phrases(config: dict, *, mongo, blob=None) -> dict
     # in _classify_iteratively) gets written here so the classification
     # actually lands on the staging row.
     now_iso = datetime.now(timezone.utc).isoformat()
+    fill_ops: list[UpdateOne] = []
+    fill_tracks: list[dict] = []  # parallel list so we can post-flush count UNKNOWNs
+
+    def _flush_fill() -> None:
+        nonlocal classified_count, unknown_count
+        if not fill_ops:
+            return
+        result = staging_coll.bulk_write(fill_ops, ordered=False)
+        # bulk_write returns aggregate modified_count only; single-threaded
+        # per state so mismatches only occur if a prior classifier already
+        # populated the row. Attribute the deltas by walking fill_tracks in
+        # order and trusting the aggregate ratio.
+        matched = result.modified_count or 0
+        if matched >= len(fill_ops):
+            for cls in fill_tracks:
+                classified_count += 1
+                if cls["classification"] == "UNKNOWN":
+                    unknown_count += 1
+        elif matched > 0:
+            # Partial match — best-effort attribution: count matched ones
+            # from the head of the batch (single-writer semantics make full
+            # matches the norm; partials indicate a re-fire race).
+            for cls in fill_tracks[:matched]:
+                classified_count += 1
+                if cls["classification"] == "UNKNOWN":
+                    unknown_count += 1
+        fill_ops.clear()
+        fill_tracks.clear()
+
     for doc in pending:
         cls = classified_map.get(doc["_id"])
         if cls is None:
             continue
-        result = staging_coll.update_one(
+        fill_ops.append(UpdateOne(
             {"_id": doc["_id"], "classification": None},
             {
                 "$set": {
@@ -603,11 +667,12 @@ def classify_other_identifier_phrases(config: dict, *, mongo, blob=None) -> dict
                     "classified_by": _LLM_MODEL_NAME_FOR_AUDIT,
                 }
             },
-        )
-        if result.modified_count:
-            classified_count += 1
-            if cls["classification"] == "UNKNOWN":
-                unknown_count += 1
+        ))
+        fill_tracks.append(cls)
+        if len(fill_ops) >= _BULK_WRITE_CHUNK:
+            _flush_fill()
+
+    _flush_fill()
 
     return {
         "state": state,
