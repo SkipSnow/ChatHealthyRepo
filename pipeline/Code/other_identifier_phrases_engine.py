@@ -346,11 +346,18 @@ _MAX_ITERATIONS = 5
 
 def _make_agent(output_cls):
     from pydantic_ai import Agent
+    from pydantic_ai.settings import ModelSettings
+    # Gemini 2.5 Flash default max_output_tokens is 8192 which truncates
+    # our structured-output response when the batch has more than ~100
+    # phrases (~60 output tokens each). Raising to 65000 (near Flash's
+    # per-call ceiling) so a single call can classify a full state's
+    # ~1000-1500 phrases without truncation.
     return Agent(
         _LLM_MODEL_ID,
         output_type=output_cls,
         system_prompt=_SYSTEM_PROMPT,
         output_retries=3,
+        model_settings=ModelSettings(max_tokens=65000),
     )
 
 
