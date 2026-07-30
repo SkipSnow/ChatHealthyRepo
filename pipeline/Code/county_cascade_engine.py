@@ -122,9 +122,18 @@ def _iterate_addresses(
                 yield doc, addr
 
 
-def _load_zcta_crosswalk(mongo, env_prefix: str, run_id: str) -> dict[str, tuple[str, str]]:
-    """Load the ZCTA-to-County crosswalk into an in-memory dict."""
-    coll = mongo[f"{env_prefix}_PublicHealthData"]["pipeline_sources_zip_county_crosswalk"]
+def _load_zcta_crosswalk(mongo, env_prefix: str, run_id: str, data_version: int) -> dict[str, tuple[str, str]]:
+    """Load the ZCTA-to-County crosswalk into an in-memory dict.
+
+    Reads from PublicStaging.StagingCensusZctaCounty_v_{data_version} per
+    the current staging convention (staging_loader.staging_collection_name).
+    Prior lookup targeted the legacy env-prefixed PublicHealthData path
+    which does not exist in the new pipeline; the crosswalk lookup
+    silently returned empty and every county-cascade Stage 1 pass got 0
+    hits."""
+    from staging_loader import STAGING_DB_NAME, staging_collection_name
+    coll_name = staging_collection_name("census_zcta_county", data_version)
+    coll = mongo[STAGING_DB_NAME][coll_name]
     out: dict[str, tuple[str, str]] = {}
     for row in coll.find({"run_id": run_id}):
         raw = row.get("raw") or {}
@@ -171,7 +180,7 @@ def _stage_census_batch(
         return residue, hits
 
     def _row(idx: int, addr: dict) -> str:
-        street = addr.get("street_1") or addr.get("address_1") or ""
+        street = addr.get("line1") or addr.get("street_1") or addr.get("address_1") or ""
         city = addr.get("city") or ""
         state = addr.get("state") or ""
         zip5 = _zip5(addr) or ""
@@ -284,7 +293,7 @@ def _stage_google_maps(
         return pairs, 0
     for doc, addr in pairs:
         parts = [
-            addr.get("street_1") or addr.get("address_1") or "",
+            addr.get("line1") or addr.get("street_1") or addr.get("address_1") or "",
             addr.get("city") or "",
             addr.get("state") or "",
             _zip5(addr) or "",
@@ -414,7 +423,8 @@ def run_county_cascade(
             "unresolvable_count": 0,
         }
 
-    crosswalk = _load_zcta_crosswalk(mongo, env_prefix, run_id)
+    data_version = int(config.get("data_version") or 0)
+    crosswalk = _load_zcta_crosswalk(mongo, env_prefix, run_id, data_version)
     residue, hit1 = _stage_zip_crosswalk(pairs, crosswalk)
     stage_hits[ZIP_CROSSWALK] = hit1
 

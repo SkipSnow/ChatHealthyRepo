@@ -20,6 +20,7 @@ def run_step(ctx) -> dict:
     config.setdefault("run_id", ctx.run_id)
     config.setdefault("env", ctx.env_prefix)
     config.setdefault("provider_collection", ctx.provider_collection)
+    config.setdefault("data_version", int(ctx.args.data_version))
     config.setdefault("google_maps_enabled", bool(ctx.args.google_maps_enabled))
 
     partition = ctx.config.get("partition") or {}
