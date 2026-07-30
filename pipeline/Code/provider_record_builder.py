@@ -73,11 +73,18 @@ def build_provider_record(
         doc["entity_type_code"] = etc
         doc["entity_type_code_label"] = "individual" if etc == "1" else "institutional"
     if nucc_catalog and doc.get("taxonomies"):
+        _INTERNAL_FIELDS = {"_id", "run_id", "_source_row_index",
+                            "source_name", "loaded_at"}
         for tax in doc["taxonomies"]:
             code = tax.get("code")
             entry = nucc_catalog.get(code or "")
             if entry:
-                tax["classification"] = entry
+                # Strip pipeline internals (_id/run_id/loaded_at/etc.)
+                # before embedding into the provider record - those leak
+                # ETL state into what would ship to FindCare.
+                tax["classification"] = {
+                    k: v for k, v in entry.items() if k not in _INTERNAL_FIELDS
+                }
     return dedupe_within_record(doc)
 
 
