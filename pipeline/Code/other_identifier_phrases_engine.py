@@ -128,6 +128,13 @@ def harvest_other_identifier_phrases(config: dict, *, mongo, blob=None) -> dict:
         if s
     ]
 
+    # Ensure the source-side index classify + apply depend on. Idempotent
+    # per pymongo semantics. Without this both classify's "pending" query
+    # and apply's "classified for state" query COLLSCAN the whole staging
+    # table. run_id is uniform within a run so it needs no index.
+    staging_coll.create_index([("state", 1), ("classification", 1)],
+                               name="state_1_classification_1", background=True)
+
     if scoped_states:
         prior_deleted = staging_coll.delete_many(
             {"state": {"$in": scoped_states}}
