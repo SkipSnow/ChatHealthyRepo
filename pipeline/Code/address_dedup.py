@@ -7,12 +7,22 @@ from __future__ import annotations
 
 
 def address_location_key(addr: dict) -> str:
-    """Hash key for dedup: line1|city|state|zip (5-digit)."""
+    """Hash key for dedup: (address_type, line1, city, state, zip5).
+
+    address_type is part of the key so a practice address and a mailing
+    (business) address at the same physical location stay as TWO distinct
+    entries. Prior implementation dropped address_type from the key,
+    collapsing practice + business at the same building into a single
+    entry - which lost the mailing address from every solo-practitioner
+    whose practice location doubled as their mailing address. Only
+    ACCIDENTAL duplicates (same type + same location) collapse now.
+    """
+    atype = (addr.get("address_type") or "").strip().lower()
     line1 = (addr.get("line1") or "").strip().upper()
     city = (addr.get("city") or "").strip().upper()
     state = (addr.get("state") or "").strip().upper()
     zip5 = (addr.get("zip") or "")[:5]
-    return f"{line1}|{city}|{state}|{zip5}"
+    return f"{atype}|{line1}|{city}|{state}|{zip5}"
 
 
 _ADDRESS_TYPE_RANK = {
@@ -55,13 +65,24 @@ def merge_address(existing: dict, incoming: dict) -> dict:
 
 
 def dedupe_addresses(addresses: list[dict]) -> list[dict]:
-    """Collapse addresses[] to one entry per location key (LLD §4.9.3)."""
+    """Collapse addresses[] to one entry per (address_type, location) key.
+
+    Two entries with the SAME address_type + SAME location collapse (real
+    duplicate). Two entries with DIFFERENT address_type at the same
+    location DO NOT collapse - practice + business at the same building
+    stay as two entries with their respective tags. Same for
+    secondary_practice landing on top of an existing practice/business
+    entry via attach_practice_addresses.
+    """
     by_key: dict[str, dict] = {}
     for addr in addresses:
         if not isinstance(addr, dict):
             continue
         key = address_location_key(addr)
-        if key in ("|||", "||"):
+        # Reject the empty-location placeholders. Length varies with the
+        # new address_type prefix.
+        empty_bare = "||||"  # <empty_type>|||| when line1/city/state/zip all empty
+        if key.endswith("||||") and not key.split("|", 1)[0]:
             continue
         if key not in by_key:
             by_key[key] = addr
