@@ -326,9 +326,60 @@
               "null"
             ]
           },
+          "coordinates": {
+            "description": "Geo coordinates for this specific address. Stamped by county-cascade stages that publish coordinates (census_batch: TIGER street-segment interpolation; google_maps: variable, per precision field). Absent when no cascade stage produced coordinates for this address — MUST NOT be defaulted to a county/zip centroid.",
+            "type": [
+              "object",
+              "null"
+            ],
+            "additionalProperties": false,
+            "required": [
+              "latitude",
+              "longitude",
+              "source",
+              "precision"
+            ],
+            "properties": {
+              "latitude": {
+                "description": "WGS84 decimal degrees, range [-90, +90].",
+                "type": "number",
+                "minimum": -90,
+                "maximum": 90
+              },
+              "longitude": {
+                "description": "WGS84 decimal degrees, range [-180, +180].",
+                "type": "number",
+                "minimum": -180,
+                "maximum": 180
+              },
+              "source": {
+                "description": "Which API produced these coordinates.",
+                "enum": [
+                  "census_batch",
+                  "google_maps"
+                ]
+              },
+              "precision": {
+                "description": "Qualitative accuracy bucket. census_batch is always range_interpolated; google_maps reports its own per-result location_type.",
+                "enum": [
+                  "rooftop",
+                  "range_interpolated",
+                  "geometric_center",
+                  "approximate"
+                ]
+              }
+            }
+          },
           "address_repair_provenance": {
             "enum": [
               "license_state_match",
+              null
+            ]
+          },
+          "address_refresh_provenance": {
+            "description": "Set to nppes_registry when the county-cascade stage 3 refreshed this address's fields (line1/line2/city/state/zip) from the live NPPES registry after the monthly-dissemination-file load. Absent otherwise.",
+            "enum": [
+              "nppes_registry",
               null
             ]
           }

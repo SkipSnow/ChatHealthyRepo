@@ -120,15 +120,39 @@ def _zip5(addr: dict) -> str | None:
 def _stamp_county(addr: dict, *, fips: str, source: str, name: str | None = None) -> None:
     """Stamp a county identity on an address.
 
-    fips is authoritative (5-digit county FIPS). name is optional metadata;
-    the ZIP crosswalk source has no name column, so most stampings write
-    fips only. Stages that DO produce a human-readable name (nppes_registry,
-    google_maps) may pass one; census_batch synthesizes a placeholder from
-    the FIPS."""
+    fips is authoritative (5-digit county FIPS). name is included when a
+    stage or reverse-lookup can supply one — the crosswalk carries names
+    in the (fips, name) tuple; Census-batch stampings resolve names via
+    the fips_to_name reverse index; Google stampings receive names
+    directly from the API."""
     entry: dict = {"fips": fips, "source": source}
     if name:
         entry["name"] = name
     addr["county"] = entry
+
+
+def _stamp_coordinates(
+    addr: dict, *,
+    latitude: float, longitude: float, source: str, precision: str,
+) -> None:
+    """Stamp geo coordinates on an address for downstream mapping use.
+
+    Stages that publish coordinates: census_batch (always
+    range_interpolated — TIGER street-segment interpolation) and
+    google_maps (variable: rooftop / range_interpolated /
+    geometric_center / approximate — reflects Google's own confidence).
+
+    Fields:
+      - latitude / longitude: WGS84 decimal degrees (not GeoJSON order).
+      - source: which API produced the point (census_batch | google_maps).
+      - precision: qualitative accuracy bucket, one of rooftop |
+        range_interpolated | geometric_center | approximate."""
+    addr["coordinates"] = {
+        "latitude": float(latitude),
+        "longitude": float(longitude),
+        "source": source,
+        "precision": precision,
+    }
 
 
 def _stream_provider_chunks(
@@ -185,26 +209,29 @@ def _pairs_from_chunk(
     return pairs
 
 
-def _load_zcta_crosswalk(mongo, env_prefix: str, run_id: str, data_version: int) -> dict[str, str]:
+def _load_zcta_crosswalk(mongo, env_prefix: str, run_id: str, data_version: int) -> dict[str, tuple[str, str]]:
     """Load the ZCTA-to-County crosswalk into an in-memory dict.
 
     Reads from PublicStaging.StagingCensusZctaCounty_v_{data_version} per
     the current staging convention (staging_loader.staging_collection_name).
 
-    Contract: returns {5-digit ZIP -> 5-digit county FIPS}. County name is
-    NOT part of the crosswalk contract — the Census 2020 ZCTA↔County file
-    publishes GEOID_ZCTA5_20 (ZIP) and GEOID_COUNTY_20 (county FIPS) only;
-    there is no county-name column, and the pipeline's downstream consumers
-    (urban_flag, embedding) key off FIPS anyway.
+    Contract: returns {5-digit ZIP -> (5-digit county FIPS, county name)}.
+    The Census 2020 ZCTA↔County file publishes GEOID_ZCTA5_20 (ZIP),
+    GEOID_COUNTY_20 (county FIPS), and NAMELSAD_COUNTY_20 (human-readable
+    county name, e.g. 'New Castle County'). All three are captured so
+    downstream stampings can include the name (needed for UX display of
+    county alongside the numeric FIPS).
 
-    Also accepts legacy unsuffixed keys (ZCTA5/GEOID/etc.) so the loader
-    stays resilient if the source ever ships without the _20 suffix."""
+    Also accepts legacy unsuffixed keys so the loader stays resilient if
+    the source ever ships without the _20 suffix. Name is optional at
+    the row level — a row without a name still contributes its FIPS,
+    with '' as the name."""
     from staging_loader import STAGING_DB_NAME, staging_collection_name
     coll_name = staging_collection_name("census_zcta_county", data_version)
     coll = mongo[STAGING_DB_NAME][coll_name]
     scanned = 0
     key_misses = 0
-    out: dict[str, str] = {}
+    out: dict[str, tuple[str, str]] = {}
     for row in coll.find({"run_id": run_id}):
         scanned += 1
         raw = row.get("raw") or {}
@@ -235,7 +262,17 @@ def _load_zcta_crosswalk(mongo, env_prefix: str, run_id: str, data_version: int)
             continue
         # County FIPS = state FIPS (2) + county FIPS (3) = first 5 chars.
         fips = fips.zfill(5)[:5]
-        out.setdefault(z, fips)
+        # County name column: NAMELSAD_COUNTY_20 in the Census 2020
+        # ZCTA↔County national relationship file. Falls back to unsuffixed
+        # legacy names if the source layout changes.
+        name = str(
+            raw.get("NAMELSAD_COUNTY_20")
+            or raw.get("NAME_COUNTY_20")
+            or raw.get("NAME")
+            or raw.get("COUNTY_NAME")
+            or ""
+        ).strip()
+        out.setdefault(z, (fips, name))
     _log.info(
         "county_cascade: crosswalk load coll=%s.%s scanned=%d loaded=%d key_misses=%d sample_raw_keys=%s",
         STAGING_DB_NAME, coll_name, scanned, len(out), key_misses,
@@ -254,18 +291,32 @@ def _load_zcta_crosswalk(mongo, env_prefix: str, run_id: str, data_version: int)
 # No HTTP; the crosswalk is loaded once by _load_zcta_crosswalk before
 # the funnel entry. Split is apply-only (no fetch, no parse).
 
+def _build_fips_to_name(crosswalk: dict[str, tuple[str, str]]) -> dict[str, str]:
+    """Reverse-index the crosswalk to {5-digit county FIPS -> county name}.
+    Used by stages that only get a FIPS back from their upstream API
+    (Census batch geocoder returns state_fips + county_fips but no name)
+    so every stamped county carries name alongside fips."""
+    out: dict[str, str] = {}
+    for _zip, (fips, name) in crosswalk.items():
+        if fips and name:
+            out.setdefault(fips, name)
+    return out
+
+
 def _zip_crosswalk_apply(
     pairs: list[tuple[dict, dict]],
-    crosswalk: dict[str, str],
+    crosswalk: dict[str, tuple[str, str]],
 ) -> tuple[list[tuple[dict, dict]], int]:
     """Pure lookup+stamp: for each pair, look up its 5-digit ZIP in the
-    crosswalk dict. Hit → stamp county.fips. Miss → route to residue."""
+    crosswalk dict. Hit → stamp county.fips + county.name. Miss → route
+    to residue."""
     residue: list[tuple[dict, dict]] = []
     hits = 0
     for doc, addr in pairs:
         z = _zip5(addr)
         if z and z in crosswalk:
-            _stamp_county(addr, fips=crosswalk[z], source=ZIP_CROSSWALK)
+            fips, name = crosswalk[z]
+            _stamp_county(addr, fips=fips, source=ZIP_CROSSWALK, name=name or None)
             hits += 1
         else:
             residue.append((doc, addr))
@@ -274,7 +325,7 @@ def _zip_crosswalk_apply(
 
 def _stage_zip_crosswalk(
     pairs: list[tuple[dict, dict]],
-    crosswalk: dict[str, str],
+    crosswalk: dict[str, tuple[str, str]],
 ) -> tuple[list[tuple[dict, dict]], int]:
     """Stage 1 orchestrator: apply the pre-loaded crosswalk + emit log."""
     residue, hits = _zip_crosswalk_apply(pairs, crosswalk)
@@ -327,7 +378,7 @@ def _census_batch_fetch(
         return None
 
 
-def _census_batch_parse(text: str | None) -> dict[int, str]:
+def _census_batch_parse(text: str | None) -> dict[int, dict]:
     """Pure: parse the Census batch geocoder response CSV.
 
     Response is quoted CSV where the matched-address field carries commas
@@ -337,12 +388,15 @@ def _census_batch_parse(text: str | None) -> dict[int, str]:
 
     Census 12-column response with geography:
       [0]id [1]input_addr [2]match_type [3]match_indicator
-      [4]matched_addr [5]coordinates [6]tigerline_id [7]side
+      [4]matched_addr [5]coordinates ("lng,lat" as ONE quoted field)
+      [6]tigerline_id [7]side
       [8]state_fips [9]county_fips [10]tract [11]block
 
-    Returns {row_id -> 5-digit county FIPS} for every 'Match' row.
-    Skips No_Match / Tie / malformed rows."""
-    resolved: dict[int, str] = {}
+    Returns {row_id -> {fips, latitude, longitude}} for every 'Match' row.
+    coordinates keys are omitted if the coordinates field is empty or
+    fails to parse (extremely rare on a Match row). Skips No_Match /
+    Tie / malformed rows entirely."""
+    resolved: dict[int, dict] = {}
     if not text:
         return resolved
     reader = csv.reader(io.StringIO(text))
@@ -359,21 +413,49 @@ def _census_batch_parse(text: str | None) -> dict[int, str]:
         county_fips = parts[9].strip()
         if not (state_fips and county_fips):
             continue
-        resolved[row_id] = f"{state_fips.zfill(2)}{county_fips.zfill(3)}"
+        entry: dict = {"fips": f"{state_fips.zfill(2)}{county_fips.zfill(3)}"}
+        # Census coordinates column: "lng,lat" (LONGITUDE first). One
+        # quoted CSV field so csv.reader hands it back as a single value.
+        coord_raw = parts[5].strip()
+        if coord_raw:
+            coord_parts = coord_raw.split(",")
+            if len(coord_parts) == 2:
+                try:
+                    entry["longitude"] = float(coord_parts[0].strip())
+                    entry["latitude"] = float(coord_parts[1].strip())
+                except ValueError:
+                    pass
+        resolved[row_id] = entry
     return resolved
 
 
 def _census_batch_apply(
     chunk: list[tuple[dict, dict]],
-    resolved: dict[int, str],
+    resolved: dict[int, dict],
+    fips_to_name: dict[str, str],
 ) -> tuple[list[tuple[dict, dict]], int]:
-    """Pure: stamp county.fips on chunk[idx] for every idx in resolved;
-    route misses to residue. Returns (residue, hits)."""
+    """Pure: stamp county.fips + county.name + coordinates on chunk[idx]
+    for every idx in resolved; route misses to residue. County name
+    comes from fips_to_name (Census API doesn't publish it). Coordinates
+    are omitted if the API response didn't carry them (rare)."""
     residue: list[tuple[dict, dict]] = []
     hits = 0
     for idx, (doc, addr) in enumerate(chunk):
         if idx in resolved:
-            _stamp_county(addr, fips=resolved[idx], source=CENSUS_BATCH)
+            entry = resolved[idx]
+            fips = entry["fips"]
+            _stamp_county(
+                addr, fips=fips, source=CENSUS_BATCH,
+                name=fips_to_name.get(fips) or None,
+            )
+            if "latitude" in entry and "longitude" in entry:
+                # Census batch geocoder is always TIGER-based range
+                # interpolation — no rooftop, no better precision hint.
+                _stamp_coordinates(
+                    addr, latitude=entry["latitude"],
+                    longitude=entry["longitude"], source=CENSUS_BATCH,
+                    precision="range_interpolated",
+                )
             hits += 1
         else:
             residue.append((doc, addr))
@@ -386,8 +468,11 @@ def _stage_census_batch(
     session: requests.Session,
     gate: RateLimitedGate,
     batch_size: int,
+    fips_to_name: dict[str, str],
 ) -> tuple[list[tuple[dict, dict]], int]:
-    """Stage 2 orchestrator: chunk → build body → fetch → parse → apply."""
+    """Stage 2 orchestrator: chunk → build body → fetch → parse → apply.
+    fips_to_name is the reverse index built from the crosswalk so every
+    stamped county carries the human-readable name alongside the FIPS."""
     _log.info("county_cascade[census_batch]: entering in=%d batch_size=%d", len(pairs), batch_size)
     residue: list[tuple[dict, dict]] = []
     hits = 0
@@ -399,7 +484,7 @@ def _stage_census_batch(
             residue.extend(chunk)
             continue
         resolved = _census_batch_parse(text)
-        chunk_residue, chunk_hits = _census_batch_apply(chunk, resolved)
+        chunk_residue, chunk_hits = _census_batch_apply(chunk, resolved, fips_to_name)
         residue.extend(chunk_residue)
         hits += chunk_hits
     _log.info(
@@ -571,8 +656,9 @@ def _stage_nppes_registry(
     *,
     session: requests.Session,
     gate: RateLimitedConcurrencyGate,
-    crosswalk: dict[str, str],
+    crosswalk: dict[str, tuple[str, str]],
     census_gate: RateLimitedGate,
+    fips_to_name: dict[str, str],
 ) -> tuple[list[tuple[dict, dict]], int]:
     """Stage 3 orchestrator, three phases:
       Phase 1 — per-NPI refresh: fetch NPPES canonical LOCATION address;
@@ -580,9 +666,13 @@ def _stage_nppes_registry(
                 line2 / city / state / zip) and tag
                 address_refresh_provenance=nppes_registry.
       Phase 2 — retry stage 1 (crosswalk) on the refreshed set. Free.
+                Uses crosswalk's (fips, name) tuple so stamped county
+                carries name.
       Phase 3 — retry stage 2 (Census batch) on the phase-2 residue.
                 One POST for the whole set — no chunking loop, because
                 the address-differed set is a rounding error per fire.
+                Uses fips_to_name reverse index so census-produced FIPS
+                gets its human name too.
 
     Every hit produced inside stage 3 is stamped source=nppes_registry
     because the NPPES refresh is the causal agent that unlocked it;
@@ -600,19 +690,21 @@ def _stage_nppes_registry(
         else:
             unchanged.append((doc, addr))
 
-    # Phase 2 — crosswalk retry, free
+    # Phase 2 — crosswalk retry, free. Stamps name from crosswalk tuple.
     r1_residue: list[tuple[dict, dict]] = []
     r1_hits = 0
     for doc, addr in refreshed:
-        fips = crosswalk.get(_zip5(addr) or "")
-        if fips:
-            _stamp_county(addr, fips=fips, source=NPPES_REGISTRY)
+        entry = crosswalk.get(_zip5(addr) or "")
+        if entry:
+            fips, name = entry
+            _stamp_county(addr, fips=fips, source=NPPES_REGISTRY, name=name or None)
             r1_hits += 1
         else:
             r1_residue.append((doc, addr))
 
     # Phase 3 — Census batch retry, single POST (no batch-size loop).
-    # Reuses the same fetch/parse functions stage 2 built.
+    # Reuses the same fetch/parse functions stage 2 built. Names come
+    # from the fips_to_name reverse index.
     r2_residue: list[tuple[dict, dict]] = list(r1_residue)
     r2_hits = 0
     if r1_residue:
@@ -625,7 +717,18 @@ def _stage_nppes_registry(
             r2_residue = []
             for idx, (doc, addr) in enumerate(r1_residue):
                 if idx in resolved:
-                    _stamp_county(addr, fips=resolved[idx], source=NPPES_REGISTRY)
+                    entry = resolved[idx]
+                    fips = entry["fips"]
+                    _stamp_county(
+                        addr, fips=fips, source=NPPES_REGISTRY,
+                        name=fips_to_name.get(fips) or None,
+                    )
+                    if "latitude" in entry and "longitude" in entry:
+                        _stamp_coordinates(
+                            addr, latitude=entry["latitude"],
+                            longitude=entry["longitude"], source=CENSUS_BATCH,
+                            precision="range_interpolated",
+                        )
                     r2_hits += 1
                 else:
                     r2_residue.append((doc, addr))
@@ -678,12 +781,25 @@ def _google_maps_fetch(
         return None
 
 
-def _google_maps_parse(payload: dict | None) -> tuple[str | None, str | None]:
-    """Pure: extract (fips_key, county_name) from a Google Maps geocode
-    response. fips_key is 'STATE::County Name' since Google returns no
-    numeric FIPS. Returns (None, None) on no county match."""
+_GOOGLE_PRECISION_MAP = {
+    "ROOFTOP": "rooftop",
+    "RANGE_INTERPOLATED": "range_interpolated",
+    "GEOMETRIC_CENTER": "geometric_center",
+    "APPROXIMATE": "approximate",
+}
+
+
+def _google_maps_parse(payload: dict | None) -> dict | None:
+    """Pure: extract fips_key + county_name + coordinates from a Google
+    Maps geocode response. Returns None on no county match. Coordinates
+    keys (latitude/longitude/precision) are included when the payload
+    carries geometry; omitted otherwise (rare on a successful geocode).
+
+    fips_key is 'STATE::County Name' since Google returns no numeric
+    FIPS. Downstream consumers can key on this like any other source
+    label."""
     if not payload:
-        return None, None
+        return None
     for result in (payload.get("results") or []):
         county_name = None
         state_short = None
@@ -693,9 +809,25 @@ def _google_maps_parse(payload: dict | None) -> tuple[str | None, str | None]:
                 county_name = comp.get("long_name")
             if "administrative_area_level_1" in types:
                 state_short = comp.get("short_name")
-        if county_name:
-            return f"{state_short or ''}::{county_name}", county_name
-    return None, None
+        if not county_name:
+            continue
+        entry: dict = {
+            "fips_key": f"{state_short or ''}::{county_name}",
+            "name": county_name,
+        }
+        geometry = result.get("geometry") or {}
+        location = geometry.get("location") or {}
+        lat = location.get("lat")
+        lng = location.get("lng")
+        if lat is not None and lng is not None:
+            entry["latitude"] = float(lat)
+            entry["longitude"] = float(lng)
+            entry["precision"] = _GOOGLE_PRECISION_MAP.get(
+                (geometry.get("location_type") or "").upper(),
+                "approximate",
+            )
+        return entry
+    return None
 
 
 def _google_maps_lookup(
@@ -704,7 +836,7 @@ def _google_maps_lookup(
     session: requests.Session,
     gate: RateLimitedConcurrencyGate,
     api_key: str,
-) -> tuple[str | None, str | None]:
+) -> dict | None:
     """Impure wrapper: build addr line, fetch, parse."""
     payload = _google_maps_fetch(
         _google_maps_addr_line(addr),
@@ -728,9 +860,18 @@ def _stage_google_maps(
     residue: list[tuple[dict, dict]] = []
     hits = 0
     for doc, addr in pairs:
-        fips_key, name = _google_maps_lookup(addr, session=session, gate=gate, api_key=api_key)
-        if fips_key:
-            _stamp_county(addr, fips=fips_key, source=GOOGLE_MAPS, name=name)
+        entry = _google_maps_lookup(addr, session=session, gate=gate, api_key=api_key)
+        if entry:
+            _stamp_county(
+                addr, fips=entry["fips_key"], source=GOOGLE_MAPS,
+                name=entry.get("name"),
+            )
+            if "latitude" in entry and "longitude" in entry:
+                _stamp_coordinates(
+                    addr, latitude=entry["latitude"],
+                    longitude=entry["longitude"], source=GOOGLE_MAPS,
+                    precision=entry.get("precision", "approximate"),
+                )
             hits += 1
         else:
             residue.append((doc, addr))
@@ -816,6 +957,11 @@ def run_county_cascade(
 
     data_version = int(config.get("data_version") or 0)
     crosswalk = _load_zcta_crosswalk(mongo, env_prefix, run_id, data_version)
+    # fips_to_name reverse index: Census batch geocoder returns FIPS but
+    # no name, so stages that hit via Census need this lookup to include
+    # county.name on every stamped record (Skip: "you need it in every
+    # record"). Built once at funnel entry from the crosswalk.
+    fips_to_name = _build_fips_to_name(crosswalk)
     session = requests.Session()
 
     # Gates are lazily instantiated so a run that resolves entirely from the
@@ -872,7 +1018,8 @@ def run_county_cascade(
                     rate_per_second=float(throttle_rates.get(CENSUS_BATCH, 1.0)),
                 )
             residue, hit2 = _stage_census_batch(
-                residue, session=session, gate=census_gate, batch_size=batch_size
+                residue, session=session, gate=census_gate,
+                batch_size=batch_size, fips_to_name=fips_to_name,
             )
             stage_hits[CENSUS_BATCH] += hit2
 
@@ -894,6 +1041,7 @@ def run_county_cascade(
             residue, hit3 = _stage_nppes_registry(
                 residue, session=session, gate=nppes_gate,
                 crosswalk=crosswalk, census_gate=census_gate,
+                fips_to_name=fips_to_name,
             )
             stage_hits[NPPES_REGISTRY] += hit3
 
