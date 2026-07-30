@@ -53,12 +53,37 @@ from chathealthy_frontend_lib.logging_service import ChatHealthyLoggingService
 import csv
 import io
 import os
+import time
 from typing import Any, Iterable, Iterator
 
 import requests
 from pymongo import UpdateOne
 
 from throttle_semaphore import RateLimitedConcurrencyGate, RateLimitedGate
+
+# Retry policy for HTTP fetches in the cascade. Vendor endpoints (Census
+# batch geocoder, NPPES registry, Google Maps) occasionally return 429
+# (rate-limit) or 5xx (transient server failure); the old
+# county_enrichment_job.py used retry-with-backoff for these instead of
+# dropping the batch/address to residue on first stumble. Backoff is
+# exponential: 1s, 2s, 4s.
+_RETRY_MAX_ATTEMPTS = 4  # 1 initial + 3 retries
+_RETRY_BACKOFF_BASE_S = 1.0
+_RETRYABLE_STATUS = frozenset({408, 425, 429, 500, 502, 503, 504})
+
+
+def _is_retryable_http(exc: BaseException) -> bool:
+    """True iff exc is a transient failure worth retrying with backoff.
+    Timeouts + connection errors + retryable HTTP status codes qualify;
+    programming errors (400/401/403/404) do NOT — retrying those just
+    hits the same failure faster."""
+    if isinstance(exc, (requests.ConnectionError, requests.Timeout)):
+        return True
+    if isinstance(exc, requests.HTTPError):
+        status = getattr(exc.response, "status_code", None)
+        if status in _RETRYABLE_STATUS:
+            return True
+    return False
 
 _log = ChatHealthyLoggingService()
 
@@ -361,21 +386,35 @@ def _census_batch_fetch(
     gate: RateLimitedGate,
 ) -> str | None:
     """Impure I/O only: POST the pre-built CSV body to Census.
-    Returns response text on success; None if the chunk failed for any
-    reason (caller treats None as 'zero matches this chunk')."""
-    gate.acquire()
-    try:
-        resp = session.post(
-            CENSUS_BATCH_URL,
-            files={"addressFile": ("chunk.csv", body, "text/csv")},
-            data={"benchmark": "Public_AR_Current", "vintage": "Current_Current"},
-            timeout=180,
-        )
-        resp.raise_for_status()
-        return resp.text
-    except Exception as exc:
-        _log.warning("county_cascade[census_batch]: chunk fetch failed (%s)", exc)
-        return None
+    Returns response text on success; None if the chunk failed after
+    retry-with-backoff (caller treats None as 'zero matches this chunk')."""
+    for attempt in range(_RETRY_MAX_ATTEMPTS):
+        gate.acquire()
+        try:
+            resp = session.post(
+                CENSUS_BATCH_URL,
+                files={"addressFile": ("chunk.csv", body, "text/csv")},
+                data={"benchmark": "Public_AR_Current", "vintage": "Current_Current"},
+                timeout=180,
+            )
+            resp.raise_for_status()
+            return resp.text
+        except Exception as exc:
+            if attempt + 1 < _RETRY_MAX_ATTEMPTS and _is_retryable_http(exc):
+                backoff = _RETRY_BACKOFF_BASE_S * (2 ** attempt)
+                _log.warning(
+                    "county_cascade[census_batch]: attempt %d/%d failed (%s); "
+                    "sleeping %.1fs before retry",
+                    attempt + 1, _RETRY_MAX_ATTEMPTS, exc, backoff,
+                )
+                time.sleep(backoff)
+                continue
+            _log.warning(
+                "county_cascade[census_batch]: chunk fetch failed after "
+                "%d attempt(s) (%s)", attempt + 1, exc,
+            )
+            return None
+    return None
 
 
 def _census_batch_parse(text: str | None) -> dict[int, dict]:
@@ -522,19 +561,33 @@ def _nppes_registry_fetch(
     gate: RateLimitedConcurrencyGate,
 ) -> dict | None:
     """Impure I/O only: one NPPES registry lookup by NPI. Returns parsed
-    JSON payload on success, None on any failure."""
-    try:
-        with gate.hold():
-            resp = session.get(
-                NPPES_REGISTRY_URL,
-                params={"number": npi, "version": "2.1"},
-                timeout=30,
+    JSON payload on success, None after retry-with-backoff on failure."""
+    for attempt in range(_RETRY_MAX_ATTEMPTS):
+        try:
+            with gate.hold():
+                resp = session.get(
+                    NPPES_REGISTRY_URL,
+                    params={"number": npi, "version": "2.1"},
+                    timeout=30,
+                )
+                resp.raise_for_status()
+                return resp.json()
+        except Exception as exc:
+            if attempt + 1 < _RETRY_MAX_ATTEMPTS and _is_retryable_http(exc):
+                backoff = _RETRY_BACKOFF_BASE_S * (2 ** attempt)
+                _log.warning(
+                    "county_cascade[nppes_registry]: %s attempt %d/%d "
+                    "failed (%s); sleeping %.1fs",
+                    npi, attempt + 1, _RETRY_MAX_ATTEMPTS, exc, backoff,
+                )
+                time.sleep(backoff)
+                continue
+            _log.warning(
+                "county_cascade[nppes_registry]: %s failed after %d "
+                "attempt(s) (%s)", npi, attempt + 1, exc,
             )
-            resp.raise_for_status()
-            return resp.json()
-    except Exception as exc:
-        _log.warning("county_cascade[nppes_registry]: %s failed (%s)", npi, exc)
-        return None
+            return None
+    return None
 
 
 def _nppes_registry_parse(payload: dict | None) -> dict | None:
@@ -766,19 +819,34 @@ def _google_maps_fetch(
     gate: RateLimitedConcurrencyGate,
     api_key: str,
 ) -> dict | None:
-    """Impure I/O only: one Google Maps geocode call. JSON or None."""
-    try:
-        with gate.hold():
-            resp = session.get(
-                GOOGLE_MAPS_GEOCODE_URL,
-                params={"address": addr_line, "key": api_key},
-                timeout=30,
+    """Impure I/O only: one Google Maps geocode call. JSON or None after
+    retry-with-backoff on transient failure."""
+    for attempt in range(_RETRY_MAX_ATTEMPTS):
+        try:
+            with gate.hold():
+                resp = session.get(
+                    GOOGLE_MAPS_GEOCODE_URL,
+                    params={"address": addr_line, "key": api_key},
+                    timeout=30,
+                )
+                resp.raise_for_status()
+                return resp.json()
+        except Exception as exc:
+            if attempt + 1 < _RETRY_MAX_ATTEMPTS and _is_retryable_http(exc):
+                backoff = _RETRY_BACKOFF_BASE_S * (2 ** attempt)
+                _log.warning(
+                    "county_cascade[google_maps]: attempt %d/%d failed "
+                    "(%s); sleeping %.1fs",
+                    attempt + 1, _RETRY_MAX_ATTEMPTS, exc, backoff,
+                )
+                time.sleep(backoff)
+                continue
+            _log.warning(
+                "county_cascade[google_maps]: query failed after %d "
+                "attempt(s) (%s)", attempt + 1, exc,
             )
-            resp.raise_for_status()
-            return resp.json()
-    except Exception as exc:
-        _log.warning("county_cascade[google_maps]: query failed (%s)", exc)
-        return None
+            return None
+    return None
 
 
 _GOOGLE_PRECISION_MAP = {

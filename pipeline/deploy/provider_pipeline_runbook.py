@@ -288,22 +288,77 @@ def _read_pipeline_config(mongo) -> dict:
     return doc
 
 
-def _find_live_pipeline_run(mongo) -> dict | None:
-    """Runbook gatekeeper: return the first ACTIVE cluster_lifecycle
-    reservation on the pipeline cluster, or None. Reservations are
-    the canonical liveness signal -- Control/Worker acquire on start
-    and release on finish, reservation_reaper clears stale entries.
-    An active reservation means a real job is in flight (or was very
-    recently); the runbook MUST abend without touching any shared
-    resource."""
-    pipeline_cluster = os.environ.get(
-        "PIPELINE_CLUSTER_NAME", "ChatHealthyDataPipelines"
-    )
+# Same-pipeline lock TTL. Longer than any realistic pipeline run so a
+# crashed VM never wedges future fires forever, but long enough that a
+# healthy long-running fire never expires mid-flight.
+_PIPELINE_LOCK_TTL_HOURS = 12
+
+
+def _pipeline_lock_id(pipeline_name: str) -> str:
+    """Deterministic _id for the same-pipeline mutual-exclusion lock.
+    Same pipeline_name → same _id → Mongo enforces at-most-one-active
+    via its natural _id uniqueness. Distinct from reservation rows
+    (which have arbitrary _ids) so the two concerns don't collide."""
+    return f"pipeline_lock:{pipeline_name}"
+
+
+def _acquire_pipeline_lock(
+    mongo, pipeline_name: str, run_id: str, vm_name: str,
+) -> dict | None:
+    """Atomically acquire the per-pipeline lock. Returns None on success
+    (we hold the lock); returns the blocking lock document if another
+    fire already holds it (caller MUST abend without touching any
+    shared resource).
+
+    Uses insert_one on a deterministic _id so Mongo's natural _id
+    uniqueness gives us the atomic acquire — no read-check-write race.
+    Two webhooks arriving at the same instant → exactly one insert
+    wins, the other gets DuplicateKeyError → abend. This is the
+    correctness contract; the requirement is 'no pipeline can run
+    twice concurrently.'
+
+    Stale-lock self-heal: if an existing lock's expires_at is in the
+    past (crashed VM never released), delete it and retry the insert
+    once. Guards against wedging the pipeline forever on a crash."""
+    from datetime import datetime, timedelta, timezone
+    from pymongo.errors import DuplicateKeyError
     coll = mongo["admin"]["cluster_lifecycle"]
-    return coll.find_one({
-        "cluster_name": pipeline_cluster,
-        "status": "active",
-    })
+    now = datetime.now(timezone.utc)
+    doc = {
+        "_id": _pipeline_lock_id(pipeline_name),
+        "kind": "pipeline_lock",
+        "pipeline_name": pipeline_name,
+        "run_id": run_id,
+        "vm_name": vm_name,
+        "acquired_at": now.isoformat(),
+        "expires_at": (now + timedelta(hours=_PIPELINE_LOCK_TTL_HOURS)).isoformat(),
+    }
+    try:
+        coll.insert_one(doc)
+        return None
+    except DuplicateKeyError:
+        existing = coll.find_one({"_id": doc["_id"]})
+        if existing:
+            exp = existing.get("expires_at") or ""
+            if exp and exp < now.isoformat():
+                # Stale lock (crashed VM never released). Delete + retry
+                # once. If a second concurrent fire grabbed it between
+                # our delete and insert, we lose the race legitimately.
+                coll.delete_one({"_id": doc["_id"], "run_id": existing.get("run_id")})
+                try:
+                    coll.insert_one(doc)
+                    return None
+                except DuplicateKeyError:
+                    return coll.find_one({"_id": doc["_id"]})
+        return existing
+
+
+def _release_pipeline_lock(mongo, pipeline_name: str, run_id: str) -> None:
+    """Release the per-pipeline lock iff we own it (matched by run_id).
+    Idempotent: safe to call in a finally block even if we never
+    acquired (a different run_id owns the lock now → no-op)."""
+    coll = mongo["admin"]["cluster_lifecycle"]
+    coll.delete_one({"_id": _pipeline_lock_id(pipeline_name), "run_id": run_id})
 
 
 RESERVATION_TTL_HOURS = 10
@@ -1016,17 +1071,23 @@ def main() -> int:
                 ).getConnection()
                 mongo.admin.command("ping")
             log("mongo_connected", cluster="chathealthyfrontend")
-            live = _find_live_pipeline_run(mongo)
-            if live is not None:
+            # Same-pipeline mutual exclusion. Atomic acquire on
+            # _id="pipeline_lock:<pipeline_name>". Only blocks fires
+            # for the SAME pipeline_name — different pipelines and
+            # manual DB-awake reservations are transparent.
+            _vm_name_for_lock = f"vm-chpipeline-{_reservation_short_id(run_id)}"
+            blocking = _acquire_pipeline_lock(
+                mongo, PIPELINE_NAME, run_id, _vm_name_for_lock,
+            )
+            if blocking is not None:
                 is_duplicate_abend = True
                 log("pipeline_already_running_abend",
                     attempted_run_id=run_id,
-                    active_reservation_job_id=(
-                        live.get("_id") or live.get("job_id")
-                    ),
-                    reservation_requester=live.get("requester"),
-                    reservation_start_time=str(live.get("start_time")),
-                    reservation_class=live.get("reservation_class"))
+                    pipeline_name=PIPELINE_NAME,
+                    live_run_id=blocking.get("run_id"),
+                    live_vm_name=blocking.get("vm_name"),
+                    live_acquired_at=str(blocking.get("acquired_at")),
+                    live_expires_at=str(blocking.get("expires_at")))
                 return 1
             config = _read_pipeline_config(mongo)
             log("config_read",
@@ -1099,9 +1160,26 @@ def main() -> int:
         return 0
     finally:
         # Teardown clause. When is_duplicate_abend is True the live run
-        # owns every shared resource; the duplicate MUST leave them alone.
+        # owns every shared resource; the duplicate MUST leave them
+        # alone (its lock acquire failed, so it never owned the lock).
         if is_duplicate_abend:
             log("duplicate_abend_teardown_skipped", run_id=run_id)
+        else:
+            # Release our pipeline lock. Guarded by run_id so a duplicate
+            # fire's finally can never clobber the real holder's lock.
+            # The Controller in the container is responsible for releasing
+            # the lock at its own exit too — this runbook-side release
+            # is the belt to Controller's suspenders in case the runbook
+            # itself failed post-acquire but pre-Controller-startup.
+            try:
+                if mongo is not None:
+                    _release_pipeline_lock(mongo, PIPELINE_NAME, run_id)
+                    log("pipeline_lock_released_runbook_side",
+                        pipeline_name=PIPELINE_NAME, run_id=run_id)
+            except Exception as exc:
+                log("pipeline_lock_release_error",
+                    pipeline_name=PIPELINE_NAME, run_id=run_id,
+                    error=str(exc)[:400])
 
 
 if __name__ == "__main__":
