@@ -5,30 +5,6 @@
   "description": "All system bugs. Each bug has its own environment and status attributes. Environments constrained to local/dev/qa/prod. Source of truth for defect tracking.",
   "bug": [
     {
-      "bugid": "BUG-001",
-      "title": "Pipeline component choice bad. Azure Container Apps is architecturally incorrect financially. Azure Batch is correct.",
-      "description": "Requirement: least possible permanent infrastructure. Azure Container Apps mandates a Standard Load Balancer (auto-provisioned, non-deletable, continuous ~$18-20/mo). Azure Batch has no such mandate.",
-      "environments": [
-        "dev",
-        "qa",
-        "prod"
-      ],
-      "status": "deferred",
-      "severity": "medium",
-      "req_id": "ORPHAN",
-      "story_id": "EPIC-010-F-101-S-004",
-      "test_id": "",
-      "discovery_date": "2026-07-18",
-      "due_date": "2027-06-30",
-      "reproduction": "az resource list -g ME_cae-chathealthy-pipeline-dev_rg-chathealthy-pipeline-dev_eastus2 → observe capp-svc-lb.",
-      "orphan": false,
-      "next_action": [
-        "Author the \"least possible permanent infrastructure\" requirement under EPIC-010-F-101-S-004 and re-link this bug req_id.",
-        "Migration: swap Controller Microsoft.App/jobs/{name}/start calls for Azure Batch task submission. Container images and identity model unchanged.",
-        "Add target_kind azure_batch_account to schema; retire target_azure_container_apps_environment_pipeline at cutover."
-      ]
-    },
-    {
       "bugid": "BUG-004",
       "title": "HuggingFace Not seemingly capable of PKI mutual authentication",
       "description": "the current fastAPI deployment files, e.g {project root}\\evaluateCare\\Code\u0007pp.py are multi functional, mixiing server initation with the API definitions and without proper encapsualtion. In addtion there is no clean destinction between Public APIs and private internal APIs within the routing tables. FindCare's main.py needs a total refactor.",
