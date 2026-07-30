@@ -342,6 +342,7 @@ _SYSTEM_PROMPT = (
 
 
 _MAX_ITERATIONS = 5
+_CHUNK_SIZE = 50
 
 
 def _make_agent(output_cls):
@@ -430,16 +431,19 @@ def _classify_iteratively(
     agent = _make_agent(output_cls)
 
     for iteration in range(_MAX_ITERATIONS):
-        by_key = _run_llm_call(agent, state, remaining, phrase_cls, input_cls)
-        if not by_key:
-            continue
         new_remaining: list[dict] = []
-        for p in remaining:
-            cls = by_key.get((p["type_code"], p["issuer_text"]))
-            if cls is None:
-                new_remaining.append(p)
-            else:
-                classified[p["_id"]] = cls
+        for start in range(0, len(remaining), _CHUNK_SIZE):
+            chunk = remaining[start:start + _CHUNK_SIZE]
+            by_key = _run_llm_call(agent, state, chunk, phrase_cls, input_cls)
+            if not by_key:
+                new_remaining.extend(chunk)
+                continue
+            for p in chunk:
+                cls = by_key.get((p["type_code"], p["issuer_text"]))
+                if cls is None:
+                    new_remaining.append(p)
+                else:
+                    classified[p["_id"]] = cls
         remaining = new_remaining
         if not remaining:
             break
