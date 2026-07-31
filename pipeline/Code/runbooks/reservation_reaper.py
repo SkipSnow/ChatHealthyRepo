@@ -20,7 +20,7 @@ cloud-init fails to install docker) or dies mid-run, the lock sits
 until its 12h TTL blocks every subsequent fire. On each tick the
 reaper checks every pipeline_lock past its startup grace and reaps
 the row when Pipelines.Log_{env} has no matching Controller heartbeat
-in the heartbeat window — same signal that would tell an operator
+in the heartbeat window -- same signal that would tell an operator
 "Controller isn't there." Matching pipeline.runs doc is stamped
 status=failed reason=controller_never_started_or_died.
 
@@ -458,12 +458,12 @@ def _main():
     now_utc_aware = datetime.now(timezone.utc)
     for r in reservations:
         # Row shape discriminator. Two shapes coexist here:
-        #  - kind == "pipeline_lock" — atomic per-pipeline mutex added
+        #  - kind == "pipeline_lock" -- atomic per-pipeline mutex added
         #    2026-07-28 in commit 1384700d. Fields: _id="pipeline_lock:{name}",
         #    kind, pipeline_name, run_id, vm_name, acquired_at (ISO str),
         #    expires_at (ISO str). Released by Controller on run wrap OR
         #    by this reaper on Controller-silence heartbeat (new below).
-        #  - legacy DB reservation — the original shape. Fields: _id=run_id,
+        #  - legacy DB reservation -- the original shape. Fields: _id=run_id,
         #    expiry_at (naive datetime), status, requester. Released by
         #    wall-clock TTL only.
         # New pipeline_lock path FIRST because the legacy path treats
