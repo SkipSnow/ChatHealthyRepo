@@ -414,7 +414,7 @@
           "source_location": "Website/schemas/ChatHealthyProvidersSchema.json",
           "handler_type": "json",
           "disposition": "referenced",
-          "content_hash": "24e684c96f35021677c42b9133dcba5d4340d0939923bf5114208c82d494ba26",
+          "content_hash": "a0e065c7e4805b9975d82c44dd4e744529a4254d4f7cf8db42a001180147fa0f",
           "package": "json_schemas"
         },
         {
@@ -5880,7 +5880,7 @@
           "source_location": "Website/schemas/ChatHealthyProvidersSchema.json",
           "handler_type": "json",
           "disposition": "referenced",
-          "content_hash": "24e684c96f35021677c42b9133dcba5d4340d0939923bf5114208c82d494ba26",
+          "content_hash": "a0e065c7e4805b9975d82c44dd4e744529a4254d4f7cf8db42a001180147fa0f",
           "package": "default"
         },
         {
@@ -6430,7 +6430,7 @@
           "source_location": "pipeline/Code/provider_record_builder.py",
           "handler_type": "python_source",
           "disposition": "referenced",
-          "content_hash": "360b7431ce8c3800ff52cadf62289eea046303d2c84059aae11617110e6b79cc",
+          "content_hash": "a5bf527736dac84072d4ceee342096b01f6d3dd032dd96b742d62abf06e6fbe8",
           "package": "default"
         },
         {
