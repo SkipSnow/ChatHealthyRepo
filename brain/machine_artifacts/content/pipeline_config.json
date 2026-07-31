@@ -1,0 +1,65 @@
+{
+  "$schema": "https://dev.chathealthy.ai/schemas/ChatHealthyPipelineConfigSchema.json",
+  "pipeline_config": [
+    {
+      "env": "dev",
+      "batch_limits": {
+        "normalize_batch_size": 1000
+      },
+      "dataset_versions": {
+        "provider_write_target": "PublicData.Provider"
+      },
+      "failure_thresholds": {
+        "discrepancy_abort": 1000
+      },
+      "source_freshness": [
+        { "source_name": "nppes_npi",          "number_of_days": 30  },
+        { "source_name": "census_zcta_county", "number_of_days": 365 },
+        { "source_name": "usda_rucc",          "number_of_days": 365 },
+        { "source_name": "icd10_cm",           "number_of_days": 90  },
+        { "source_name": "nucc",               "number_of_days": 90  },
+        { "source_name": "specialty_catalog",  "always_refetch": true }
+      ]
+    },
+    {
+      "env": "qa",
+      "batch_limits": {
+        "normalize_batch_size": 1000
+      },
+      "dataset_versions": {
+        "provider_write_target": "PublicData.Provider"
+      },
+      "failure_thresholds": {
+        "discrepancy_abort": 1000
+      },
+      "source_freshness": [
+        { "source_name": "nppes_npi",          "number_of_days": 30  },
+        { "source_name": "census_zcta_county", "number_of_days": 365 },
+        { "source_name": "usda_rucc",          "number_of_days": 365 },
+        { "source_name": "icd10_cm",           "number_of_days": 90  },
+        { "source_name": "nucc",               "number_of_days": 90  },
+        { "source_name": "specialty_catalog",  "always_refetch": true }
+      ]
+    },
+    {
+      "env": "prod",
+      "batch_limits": {
+        "normalize_batch_size": 1000
+      },
+      "dataset_versions": {
+        "provider_write_target": "PublicData.Provider"
+      },
+      "failure_thresholds": {
+        "discrepancy_abort": 1000
+      },
+      "source_freshness": [
+        { "source_name": "nppes_npi",          "number_of_days": 30  },
+        { "source_name": "census_zcta_county", "number_of_days": 365 },
+        { "source_name": "usda_rucc",          "number_of_days": 365 },
+        { "source_name": "icd10_cm",           "number_of_days": 90  },
+        { "source_name": "nucc",               "number_of_days": 90  },
+        { "source_name": "specialty_catalog",  "always_refetch": true }
+      ]
+    }
+  ]
+}

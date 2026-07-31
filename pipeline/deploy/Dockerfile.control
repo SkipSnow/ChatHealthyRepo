@@ -26,6 +26,11 @@ RUN pip install --no-cache-dir /app/FrontEndApplicationLib
 
 COPY pipeline/Code /app/pipeline/Code/
 
+# Brain metadata (single source of truth per operator directive 2026-07-31).
+# pipeline_config.py resolves this file relative to its own location, so
+# the /app/brain/... path here must match parents[2] of pipeline/Code/.
+COPY brain/machine_artifacts/content/pipeline_config.json /app/brain/machine_artifacts/content/pipeline_config.json
+
 ENV PYTHONPATH=/app/pipeline/Code
 ENV PYTHONUNBUFFERED=1
 

@@ -1,84 +1,106 @@
 # Copyright (c) 2026 ChatHealthy.ai LLC. All rights reserved.
 # Licensed under the FindCare Evaluation License (FEL-1.0).
 
-"""PipelineConfig loader — reads chathealthyfrontend.pipeline.config."""
+"""PipelineConfig loader.
 
-from __future__ import annotations
+Reads brain/machine_artifacts/content/pipeline_config.json and returns
+the single record whose `env` matches the caller's environment.
 
-import os
-from typing import Any
+The brain JSON is the single source of truth (operator directive
+2026-07-31: pipeline metadata belongs in the brain, not in Mongo, not
+in code). Structure:
 
-CONFIG_DB = "chathealthyfrontend"
-CONFIG_COLL = "pipeline.config"
-
-_DEFAULT_PROVIDER_CONFIG: dict[str, Any] = {
-    "pipeline_name": "provider",
-    "env": "dev",
-    "source_freshness": [
-        {"source_name": "nppes_npi", "number_of_days": 30},
-        {"source_name": "census_zcta_county", "number_of_days": 365},
-        {"source_name": "usda_rucc", "number_of_days": 365},
-        {"source_name": "icd10_cm", "number_of_days": 90},
-        {"source_name": "nucc", "number_of_days": 90},
-    ],
-    "failure_thresholds": {"discrepancy_abort": 1000},
-    "batch_limits": {"normalize_batch_size": 1000},
-}
-
-
-def load_pipeline_config(mongo_client, env_prefix: str = "dev") -> dict[str, Any]:
-    coll = mongo_client[CONFIG_DB][CONFIG_COLL]
-    doc = coll.find_one({"env": env_prefix}) or coll.find_one({"env": "dev"})
-    if doc:
-        doc.pop("_id", None)
-        return doc
-    # NOTE: default target here is only reached when Mongo config doc is
-    # missing AND caller did not supply --data-version-derived target.
-    # PipelineArgs.provider_write_target() is the authoritative source
-    # for callers with a data_version in hand.
-    # BASE name only (no _v_N suffix). Runtime callers append
-    # _v_{data_version} at read time, so this value must never carry
-    # a version number — otherwise runtime produces Provider_v_0_v_3.
-    target = "PublicData.Provider"
-    return {
-        "env": env_prefix,
-        "dataset_versions": {"provider_write_target": target},
-        "source_freshness": [
-            {"source_name": "nppes_npi", "number_of_days": 30},
-            {"source_name": "census_zcta_county", "number_of_days": 365},
-            {"source_name": "usda_rucc", "number_of_days": 365},
-            {"source_name": "icd10_cm", "number_of_days": 90},
-            {"source_name": "nucc", "number_of_days": 90},
-        ],
-        "failure_thresholds": {"discrepancy_abort": 1000},
-        "batch_limits": {"normalize_batch_size": 1000},
-        "throttle_rates": {},
-        "notification_receivers": [],
+    {
+      "$schema": ".../ChatHealthyPipelineConfigSchema.json",
+      "pipeline_config": [
+        {"env": "dev",  "batch_limits": {...}, ...},
+        {"env": "qa",   ...},
+        {"env": "prod", ...}
+      ]
     }
 
+Ships into the pipeline Docker image via a COPY in
+pipeline/deploy/Dockerfile.control so the runtime reads it from disk;
+no network fetch, no Mongo round-trip, no drift between commit and
+what the pipeline sees.
+"""
 
-def ensure_pipeline_config(mongo_client, env_prefix: str = "dev") -> dict[str, Any]:
-    coll = mongo_client[CONFIG_DB][CONFIG_COLL]
-    # NOTE: default target here is only reached when Mongo config doc is
-    # missing AND caller did not supply --data-version-derived target.
-    # PipelineArgs.provider_write_target() is the authoritative source
-    # for callers with a data_version in hand.
-    # BASE name only (no _v_N suffix). Runtime callers append
-    # _v_{data_version} at read time, so this value must never carry
-    # a version number — otherwise runtime produces Provider_v_0_v_3.
-    target = "PublicData.Provider"
-    defaults = load_pipeline_config(mongo_client, env_prefix)
-    defaults.setdefault("dataset_versions", {})["provider_write_target"] = target
-    coll.update_one(
-        {"env": env_prefix},
-        {"$setOnInsert": {"env": env_prefix}, "$set": {
-            "dataset_versions.provider_write_target": target,
-            "failure_thresholds": defaults.get("failure_thresholds"),
-            "batch_limits": defaults.get("batch_limits"),
-            "source_freshness": defaults.get("source_freshness"),
-        }},
-        upsert=True,
+from __future__ import annotations
+from chathealthy_frontend_lib.logging_service import ChatHealthyLoggingService
+from chathealthy_frontend_lib.exceptions import ChatHealthyException
+
+import json
+from pathlib import Path
+from typing import Any
+
+_log = ChatHealthyLoggingService()
+
+# The brain JSON path resolution: same relative structure in-repo and
+# inside the Docker image (both /app/brain/machine_artifacts/content/
+# and <repo>/brain/machine_artifacts/content/ walk from pipeline/Code
+# via parents[2]).
+_CONFIG_PATH = (
+    Path(__file__).resolve().parents[2]
+    / "brain" / "machine_artifacts" / "content" / "pipeline_config.json"
+)
+
+
+def load_pipeline_config(mongo_client=None, env_prefix: str = "dev") -> dict[str, Any]:
+    """Return the pipeline_config record for env_prefix.
+
+    mongo_client is retained as a parameter for call-site
+    compatibility during the config-to-brain migration; it is IGNORED
+    (Mongo is no longer the source of truth). Callers may remove the
+    argument at their convenience.
+
+    Raises ChatHealthyException on missing file, malformed JSON, or
+    absent env record. No silent fallback -- if the config file is
+    missing or wrong the pipeline must fail loud."""
+    if not _CONFIG_PATH.is_file():
+        raise ChatHealthyException(
+            mode="pipeline_config_missing",
+            message=(
+                f"pipeline_config: brain file not present at "
+                f"{_CONFIG_PATH}. Rebuild or repair the Docker image so "
+                f"COPY brain/machine_artifacts/content/pipeline_config.json "
+                f"lands the file."
+            ),
+            path=str(_CONFIG_PATH),
+        )
+    try:
+        payload = json.loads(_CONFIG_PATH.read_text(encoding="utf-8"))
+    except json.JSONDecodeError as exc:
+        raise ChatHealthyException(
+            mode="pipeline_config_malformed_json",
+            message=(
+                f"pipeline_config: {_CONFIG_PATH} is not valid JSON: {exc}"
+            ),
+            path=str(_CONFIG_PATH),
+        ) from exc
+    records = payload.get("pipeline_config") or []
+    for rec in records:
+        if isinstance(rec, dict) and rec.get("env") == env_prefix:
+            return dict(rec)
+    envs_present = [
+        r.get("env") for r in records if isinstance(r, dict) and r.get("env")
+    ]
+    raise ChatHealthyException(
+        mode="pipeline_config_env_not_found",
+        message=(
+            f"pipeline_config: no pipeline_config[] entry for env "
+            f"{env_prefix!r}. Envs present in {_CONFIG_PATH}: {envs_present}"
+        ),
+        path=str(_CONFIG_PATH),
+        env_prefix=env_prefix,
+        envs_present=envs_present,
     )
-    doc = coll.find_one({"env": env_prefix}) or defaults
-    doc.pop("_id", None)
-    return doc
+
+
+def ensure_pipeline_config(mongo_client=None, env_prefix: str = "dev") -> dict[str, Any]:
+    """Shim: load_pipeline_config is now authoritative. Callers previously
+    relied on ensure_pipeline_config to upsert defaults into Mongo. That
+    write path is gone -- the brain JSON is the only source of truth.
+    Retained as a shim so prepare_infrastructure keeps working without
+    a same-commit change to callers; downstream commits will replace
+    call sites with the plain loader."""
+    return load_pipeline_config(mongo_client, env_prefix)
