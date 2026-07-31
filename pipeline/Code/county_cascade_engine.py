@@ -571,6 +571,9 @@ def _census_batch_apply(
     return residue, hits
 
 
+_CENSUS_STAGE_MAX_WORKERS = 8
+
+
 def _stage_census_batch(
     pairs: list[tuple[dict, dict]],
     *,
@@ -580,21 +583,42 @@ def _stage_census_batch(
     fips_to_name: dict[str, str],
     rucc_by_fips: dict[str, int],
 ) -> tuple[list[tuple[dict, dict]], int]:
-    """Stage 2 orchestrator: chunk → build body → fetch → parse → apply.
-    fips_to_name is the reverse index built from the crosswalk so every
-    stamped county carries the human-readable name alongside the FIPS;
-    rucc_by_fips lets the applier stamp the USDA RUCC integer alongside."""
-    _log.info("county_cascade[census_batch]: entering in=%d batch_size=%d", len(pairs), batch_size)
-    residue: list[tuple[dict, dict]] = []
-    hits = 0
-    for start in range(0, len(pairs), batch_size):
-        chunk = pairs[start:start + batch_size]
+    """Stage 2 orchestrator: chunk -> build body -> fetch -> parse -> apply.
+
+    Chunks are fetched concurrently under the RateLimitedGate. The gate
+    already smooths QPS; ThreadPoolExecutor only unwinds the artificial
+    serial for-loop that used to make every chunk wait for the previous
+    HTTP round-trip. Order is preserved by walking the chunk index
+    after futures resolve. Stamp mutations touch only per-pair addr
+    dicts so parallel workers do not race on shared state."""
+    if not pairs:
+        return [], 0
+    _log.info(
+        "county_cascade[census_batch]: entering in=%d batch_size=%d workers=%d",
+        len(pairs), batch_size, _CENSUS_STAGE_MAX_WORKERS,
+    )
+    chunks: list[list[tuple[dict, dict]]] = [
+        pairs[start:start + batch_size]
+        for start in range(0, len(pairs), batch_size)
+    ]
+
+    def _fetch_and_parse(chunk):
         body = _census_batch_body(chunk)
         text = _census_batch_fetch(body, session=session, gate=gate)
         if text is None:
+            return None
+        return _census_batch_parse(text)
+
+    from concurrent.futures import ThreadPoolExecutor
+    with ThreadPoolExecutor(max_workers=max(1, min(_CENSUS_STAGE_MAX_WORKERS, len(chunks)))) as pool:
+        resolved_per_chunk = list(pool.map(_fetch_and_parse, chunks))
+
+    residue: list[tuple[dict, dict]] = []
+    hits = 0
+    for chunk, resolved in zip(chunks, resolved_per_chunk):
+        if resolved is None:
             residue.extend(chunk)
             continue
-        resolved = _census_batch_parse(text)
         chunk_residue, chunk_hits = _census_batch_apply(chunk, resolved, fips_to_name, rucc_by_fips)
         residue.extend(chunk_residue)
         hits += chunk_hits
@@ -805,16 +829,35 @@ def _stage_nppes_registry(
     address_refresh_provenance on the address preserves the enrichment
     chain. Addresses whose canonical == ours skip both retries — same
     address that already failed stages 1 & 2 would fail them again."""
-    _log.info("county_cascade[nppes_registry]: entering in=%d", len(pairs))
+    _log.info(
+        "county_cascade[nppes_registry]: entering in=%d workers=%d",
+        len(pairs), gate.max_in_flight,
+    )
 
-    # Phase 1
+    # Phase 1 -- per-NPI HTTP refresh. Concurrency capped by the gate
+    # itself (gate.max_in_flight); ThreadPoolExecutor workers match so
+    # we never queue more than the gate would admit. Order preserved via
+    # zip(pairs, results); stamp mutations are per-pair addr dicts so no
+    # cross-worker race.
+    from concurrent.futures import ThreadPoolExecutor
+
+    def _refresh(pair):
+        doc, addr = pair
+        return _nppes_registry_refresh_pair(doc, addr, session=session, gate=gate)
+
+    if pairs:
+        with ThreadPoolExecutor(max_workers=max(1, gate.max_in_flight)) as pool:
+            refresh_flags = list(pool.map(_refresh, pairs))
+    else:
+        refresh_flags = []
+
     refreshed: list[tuple[dict, dict]] = []
     unchanged: list[tuple[dict, dict]] = []
-    for doc, addr in pairs:
-        if _nppes_registry_refresh_pair(doc, addr, session=session, gate=gate):
-            refreshed.append((doc, addr))
+    for pair, was_refreshed in zip(pairs, refresh_flags):
+        if was_refreshed:
+            refreshed.append(pair)
         else:
-            unchanged.append((doc, addr))
+            unchanged.append(pair)
 
     # Phase 2 — crosswalk retry, free. Stamps name from crosswalk tuple.
     r1_residue: list[tuple[dict, dict]] = []
@@ -1178,14 +1221,13 @@ def run_county_cascade(
         residue, hit1 = _stage_zip_crosswalk(pairs, crosswalk, rucc_by_fips)
         stage_hits[ZIP_CROSSWALK] += hit1
 
-        # Per-chunk SLA gate — advance only when this chunk hasn't cleared
-        # the SLA on its own. Running totals decide subsequent chunks.
-        def _need_more(residue_list: list) -> bool:
-            resolved_in_chunk = chunk_total - len(residue_list)
-            chunk_rate = resolved_in_chunk / chunk_total
-            return chunk_rate < sla_target
-
-        if residue and _need_more(residue):
+        # No SLA short-circuit. Every residue address MUST advance through
+        # every subsequent stage until it is stamped or the cascade is
+        # exhausted. sla_target is a FLOOR for the discrepancy alerter,
+        # not a stop-trying threshold. Prior _need_more gate was a
+        # Claude-invented requirement that silently accepted <100%
+        # coverage above the floor -- deleted 2026-07-31 per operator.
+        if residue:
             if census_gate is None:
                 census_gate = RateLimitedGate(
                     rate_per_second=float(throttle_rates.get(CENSUS_BATCH, 1.0)),
@@ -1197,7 +1239,7 @@ def run_county_cascade(
             )
             stage_hits[CENSUS_BATCH] += hit2
 
-        if residue and _need_more(residue):
+        if residue:
             if nppes_gate is None:
                 nppes_gate = RateLimitedConcurrencyGate(
                     max_in_flight=int(concurrency.get("nppes_max_in_flight", DEFAULT_NPPES_MAX_IN_FLIGHT)),
@@ -1206,8 +1248,6 @@ def run_county_cascade(
             # Stage 3 refreshes each address from NPPES, then retries
             # stages 1 (crosswalk) and 2 (Census) on the refreshed set
             # before letting anything flow to stage 4 (Google, paid).
-            # Needs the census_gate — build it lazily if stage 2 was
-            # skipped upstream by the SLA gate.
             if census_gate is None:
                 census_gate = RateLimitedGate(
                     rate_per_second=float(throttle_rates.get(CENSUS_BATCH, 1.0)),
@@ -1220,7 +1260,7 @@ def run_county_cascade(
             )
             stage_hits[NPPES_REGISTRY] += hit3
 
-        if residue and google_enabled and _need_more(residue):
+        if residue and google_enabled:
             if google_gate is None:
                 google_gate = RateLimitedConcurrencyGate(
                     max_in_flight=int(concurrency.get("google_max_in_flight", DEFAULT_GOOGLE_MAX_IN_FLIGHT)),
