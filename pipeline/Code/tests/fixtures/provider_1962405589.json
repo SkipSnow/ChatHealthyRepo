@@ -1,0 +1,104 @@
+{
+  "taxonomies": [
+    {
+      "code": "363L00000X",
+      "primary": true,
+      "classification": {
+        "raw": {
+          "Code": "363L00000X",
+          "Grouping": "Physician Assistants & Advanced Practice Nursing Providers",
+          "Classification": "Nurse Practitioner",
+          "Specialization": "",
+          "Definition": "(1) A registered nurse provider with a graduate degree in nursing prepared for advanced practice involving independent and interdependent decision making and direct accountability for clinical judgment across the health care continuum or in a certified specialty. (2) A registered nurse who has completed additional training beyond basic nursing education and who provides primary health care services in accordance with state nurse practice laws or statutes. Tasks performed by nurse practitioners vary with practice requirements mandated by geographic, political, economic, and social factors. Nurse practitioner specialists include, but are not limited to, family nurse practitioners, gerontological nurse practitioners, pediatric nurse practitioners, obstetric-gynecologic nurse practitioners, and school nurse practitioners.",
+          "Notes": "Source: (1) American Nurses' Association, American Nurses Credentialing Center, 1996 Certification Catalogue. (2) ) Lexikon: Dictionary of Health Care Terms, Organizations and Acronyms for the Era of Reform, The Joint Commission on Accreditation of Healthcare Organizations, Oakbrook Terrace, Illinois: 1994, p. 549.",
+          "Display Name": "Nurse Practitioner",
+          "Section": "Individual"
+        },
+        "code": "363L00000X"
+      }
+    }
+  ],
+  "licenses": [
+    {
+      "state": "PA",
+      "number": "SP008386",
+      "license_id": "SP008386"
+    }
+  ],
+  "addresses": [
+    {
+      "line1": "3411 SILVERSIDE RD STE 100",
+      "city": "WILMINGTON",
+      "state": "DE",
+      "zip": "19810",
+      "country": "US",
+      "phone": "3025435454",
+      "address_type": "practice",
+      "county": {
+        "fips": null
+      }
+    },
+    {
+      "line1": "3411 SILVERSIDE RD STE 100",
+      "city": "WILMINGTON",
+      "state": "DE",
+      "zip": "19810",
+      "country": "US",
+      "phone": "3025435454",
+      "address_type": "business",
+      "county": {
+        "fips": null
+      }
+    },
+    {
+      "line1": "5803 Kingsessing Ave",
+      "line2": null,
+      "city": "Philadelphia",
+      "state": "PA",
+      "zip": "19143",
+      "country": "US",
+      "phone": "2156852684",
+      "address_type": "secondary_practice",
+      "primary": false,
+      "source": "pl_pfile",
+      "county": {
+        "fips": null
+      }
+    },
+    {
+      "line1": "665 Churchmans Rd",
+      "line2": null,
+      "city": "Newark",
+      "state": "DE",
+      "zip": "19702",
+      "country": "US",
+      "phone": "1302731090",
+      "address_type": "secondary_practice",
+      "primary": false,
+      "source": "pl_pfile",
+      "county": {
+        "fips": "10003",
+        "source": "zip_crosswalk",
+        "name": "New Castle County",
+        "rucc": 1
+      }
+    }
+  ],
+  "npi": "1962405589",
+  "entity_type_code": "1",
+  "provider_last_name_legal_name": "LONG",
+  "provider_first_name": "SUZIE",
+  "provider_middle_name": "H",
+  "provider_credential_text": "C.R.N.P.",
+  "provider_enumeration_date": "05/27/2005",
+  "last_update_date": "08/15/2023",
+  "provider_sex_code": "F",
+  "is_sole_proprietor": "Y",
+  "certification_date": "08/15/2023",
+  "run_id": "prov-2026-07-31T16-51-15Z-c8080b",
+  "entity_type_code_label": "individual",
+  "can_prescribe": true,
+  "is_homeopathic": false,
+  "is_npi_registered": true,
+  "sex": "F"
+}

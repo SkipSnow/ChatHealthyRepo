@@ -89,6 +89,11 @@ def test_census_batch_records_thread_use(monkeypatch):
     def fake_fetch(body, *, session, gate):
         with lock:
             thread_ids.add(threading.get_ident())
+        # Sleep so the ThreadPool can actually dispatch multiple chunks
+        # concurrently; a zero-cost fake would serialize trivially and
+        # give a false negative on the "is-this-actually-parallel" test.
+        import time
+        time.sleep(0.05)
         return None  # force residue to entire chunk; test only wants dispatch signal
 
     monkeypatch.setattr(cce, "_census_batch_fetch", fake_fetch)
@@ -126,6 +131,10 @@ def test_nppes_registry_phase1_parallel(monkeypatch):
     def fake_refresh(doc, addr, *, session, gate):
         with lock:
             calls_by_npi[doc["npi"]] = threading.get_ident()
+        # Sleep so the ThreadPool actually dispatches concurrently
+        # instead of a zero-cost fake serializing everything.
+        import time
+        time.sleep(0.05)
         # Half of the pairs return True (refreshed), half False (unchanged)
         return int(doc["npi"]) % 2 == 0
 

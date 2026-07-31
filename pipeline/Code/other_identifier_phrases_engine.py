@@ -852,9 +852,12 @@ def apply_other_identifier_classifications(config: dict, *, mongo, blob=None) ->
         if unset_op:
             op["$unset"] = unset_op
         if op:
-            ops_buffer.append(UpdateOne({"_id": doc["_id"]}, op))
-            if len(ops_buffer) >= _APPLY_BULK_CHUNK:
-                _flush()
+            # NPI-atomic ownership: filter on npi (parent key).
+            npi = doc.get("npi")
+            if npi:
+                ops_buffer.append(UpdateOne({"npi": npi}, op))
+                if len(ops_buffer) >= _APPLY_BULK_CHUNK:
+                    _flush()
 
     _flush()
 

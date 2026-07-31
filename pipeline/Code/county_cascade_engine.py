@@ -208,13 +208,16 @@ def _stream_provider_chunks(
     their enrichment-eligible addresses attached (references into the
     same doc.addresses list, so mutations propagate).
     """
+    # NPI-atomic ownership: a provider belongs to exactly ONE state worker
+    # (state of addresses[0], the NPPES primary practice). The worker then
+    # enriches ALL its practice + secondary_practice addresses, regardless
+    # of which state each address is in. This prevents the cross-worker
+    # $set clobber that produced null-county on 3 of 4 addresses for NPI
+    # 1962405589 in run c8080b.
     query: dict[str, Any] = {"run_id": run_id}
-    match: dict[str, Any] = {"address_type": {"$in": list(PRACTICE_ADDRESS_TYPES)}}
-    if partition_kind:
-        match["address_type"] = partition_kind
     if partition_state:
-        match["state"] = partition_state
-    query["addresses"] = {"$elemMatch": match}
+        query["addresses.0.address_type"] = "practice"
+        query["addresses.0.state"] = partition_state
 
     cursor = coll.find(query).batch_size(_PROVIDER_CHUNK)
     chunk: list[tuple[dict, list[dict]]] = []
@@ -1274,11 +1277,17 @@ def run_county_cascade(
         resolved_running += (chunk_total - len(residue))
         unresolvable_total += len(residue)
 
-        # Persist this chunk before moving on — every touched provider
-        # gets exactly one UpdateOne carrying its full addresses[].
+        # Persist this chunk before moving on. Filter on npi (the
+        # parent key) rather than _id -- NPI-atomic ownership rule.
+        # $set of the full addresses[] is safe because this worker is
+        # the exclusive owner of this NPI (partition query enforces it
+        # via addresses.0.state = partition_state).
         for doc, _addrs in chunk:
+            npi = doc.get("npi")
+            if not npi:
+                continue
             update_ops.append(UpdateOne(
-                {"_id": doc["_id"]},
+                {"npi": npi},
                 {"$set": {"addresses": doc.get("addresses", [])}},
             ))
             if len(update_ops) >= _BULK_WRITE_CHUNK:

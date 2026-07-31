@@ -55,12 +55,18 @@ def repair_license_addresses(ctx) -> dict:
                 )
                 flagged += 1
         if changed:
-            update_ops.append(UpdateOne(
-                {"_id": doc["_id"]},
-                {"$set": {"addresses": doc.get("addresses")}},
-            ))
-            if len(update_ops) >= _BULK_WRITE_CHUNK:
-                _flush()
+            # NPI-atomic ownership: filter on npi (parent key). Full-
+            # array $set is safe because rt.partition_filter now scopes
+            # each state worker to NPIs whose primary practice is in
+            # this state -- no cross-worker overlap on any single NPI.
+            npi = doc.get("npi")
+            if npi:
+                update_ops.append(UpdateOne(
+                    {"npi": npi},
+                    {"$set": {"addresses": doc.get("addresses")}},
+                ))
+                if len(update_ops) >= _BULK_WRITE_CHUNK:
+                    _flush()
 
     _flush()
     return {"repaired": repaired, "flagged": flagged, "state": state or "ALL"}

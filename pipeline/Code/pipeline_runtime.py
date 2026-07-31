@@ -126,19 +126,26 @@ class PipelineRuntime:
         return "individual"
 
     def partition_filter(self, state: str) -> dict:
+        """NPI-atomic ownership: a provider is owned by exactly ONE state
+        worker -- the state of its PRIMARY practice (addresses[0], which
+        normalize_provider_rows guarantees is the NPPES primary practice
+        location). This closes the class of bug where a multi-state
+        provider (practice in DE, secondary in PA) appeared in BOTH DE
+        and PA workers' queries, causing full-array $set clobber on the
+        shared doc. See NPI 1962405589 in run c8080b for the real-world
+        instance. Rule 2026-07-31: never partition below the NPI."""
         if not state:
             return {"run_id": self.run_id}
         if state == "ALL_OTHERS":
             return {
                 "run_id": self.run_id,
-                "addresses": {"$elemMatch": {
-                    "address_type": "mailing",
-                    "state": {"$nin": list(STATE_US_SET)},
-                }},
+                "addresses.0.address_type": "practice",
+                "addresses.0.state": {"$nin": list(STATE_US_SET)},
             }
         return {
             "run_id": self.run_id,
-            "addresses": {"$elemMatch": {"state": state}},
+            "addresses.0.address_type": "practice",
+            "addresses.0.state": state,
         }
 
     def discrepancies_collection(self):

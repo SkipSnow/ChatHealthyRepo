@@ -33,10 +33,13 @@ def enrich_type1_first(ctx) -> dict:
         if "sex" not in doc and doc.get("provider_sex_code"):
             patch["sex"] = doc["provider_sex_code"]
         if patch:
-            update_ops.append(UpdateOne({"_id": doc["_id"]}, {"$set": patch}))
-            updated += 1
-            if len(update_ops) >= _BULK_WRITE_CHUNK:
-                _flush()
+            # NPI-atomic ownership: filter on npi (parent key).
+            npi = doc.get("npi")
+            if npi:
+                update_ops.append(UpdateOne({"npi": npi}, {"$set": patch}))
+                updated += 1
+                if len(update_ops) >= _BULK_WRITE_CHUNK:
+                    _flush()
 
     _flush()
     return {"updated": updated, "state": state or "ALL"}
