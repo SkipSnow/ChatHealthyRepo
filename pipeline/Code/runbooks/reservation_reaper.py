@@ -12,6 +12,18 @@ Replaces the cluster_lifecycle_timer in pipeline/Code/function_app.py.
 Runs every 5 minutes on schedule SCH-Reaper-5min in the
 ChatHealthyJobManager Automation Account.
 
+Also reaps stuck per-pipeline atomic mutex rows in
+admin.cluster_lifecycle (rows with kind=="pipeline_lock", added
+2026-07-28 in commit 1384700d). A pipeline_lock is released by the
+Controller on run wrap; when the Controller never starts (e.g., VM
+cloud-init fails to install docker) or dies mid-run, the lock sits
+until its 12h TTL blocks every subsequent fire. On each tick the
+reaper checks every pipeline_lock past its startup grace and reaps
+the row when Pipelines.Log_{env} has no matching Controller heartbeat
+in the heartbeat window — same signal that would tell an operator
+"Controller isn't there." Matching pipeline.runs doc is stamped
+status=failed reason=controller_never_started_or_died.
+
 Environment (Automation Variables, exposed via os.environ at runtime):
   MONGO_FRONTEND_connectionString - front-end (always-on) cluster MongoDB URI
   ATLAS_PUBLIC_KEY                - Atlas API public key
@@ -302,6 +314,93 @@ def _r2_purge_old_job_records():
         log.warning("R2: purge raised %r; continuing", ex)
 
 
+# Startup grace for pipeline_lock rows: how long we wait after
+# acquired_at before the "Controller silent" test is legitimate. VM
+# boot + apt + docker pull + Controller container start is typically
+# 3-5 minutes in a healthy fire; 8 min leaves headroom for slow days.
+PIPELINE_LOCK_STARTUP_GRACE_MIN = 8
+
+# Controller heartbeat window. ChatHealthyLoggingService writes to
+# Pipelines.Log_{env} on every info+ record; a live Controller produces
+# many per minute (pymongo pings, WI claims, heartbeats). Five minutes
+# of total silence on a run that is past its startup grace means the
+# Controller either never started or died. Reap.
+PIPELINE_LOCK_HEARTBEAT_MIN = 5
+
+
+def _reap_stuck_pipeline_lock(coll, log_coll, runs_coll, row, now_aware):
+    """Reap a pipeline_lock row iff its Controller has been silent.
+
+    Two-signal test:
+      (a) row's acquired_at is at least PIPELINE_LOCK_STARTUP_GRACE_MIN
+          ago (VM boot + docker pull + Controller start should be done).
+      (b) Pipelines.Log_{env} has ZERO documents matching
+          {job_id: <row.run_id>, timeStamp: >= now - PIPELINE_LOCK_HEARTBEAT_MIN}.
+
+    Both conditions must hold. If they do, the lock's owning Controller
+    never started or has died -- release the lock so the next fire can
+    proceed. Atomic delete_one filter includes both _id and run_id so
+    a concurrent legitimate release cannot race with us.
+
+    Also deletes the matching legacy reservation row (whose _id equals
+    row.run_id) and stamps pipeline.runs status=failed with a reason.
+
+    Returns True iff this row was reaped.
+    """
+    acquired_at = row.get("acquired_at")
+    if isinstance(acquired_at, str):
+        try:
+            acquired_at = datetime.fromisoformat(acquired_at)
+        except (ValueError, TypeError):
+            return False
+    if not acquired_at:
+        return False
+    if getattr(acquired_at, "tzinfo", None) is None:
+        acquired_at = acquired_at.replace(tzinfo=timezone.utc)
+    age_min = (now_aware - acquired_at).total_seconds() / 60.0
+    if age_min < PIPELINE_LOCK_STARTUP_GRACE_MIN:
+        return False  # Still inside startup grace; give the Controller time.
+    run_id = row.get("run_id")
+    if not run_id:
+        return False
+    # Heartbeat probe: any log document for this run_id in the last
+    # PIPELINE_LOCK_HEARTBEAT_MIN minutes. limit=1 stops the count early
+    # for the common alive-Controller case (huge Log collection).
+    cutoff = now_aware - timedelta(minutes=PIPELINE_LOCK_HEARTBEAT_MIN)
+    recent_ct = log_coll.count_documents(
+        {"job_id": run_id, "timeStamp": {"$gte": cutoff}},
+        limit=1,
+    )
+    if recent_ct > 0:
+        return False  # Controller has emitted recent logs -> alive.
+    # Dead. Reap.
+    log.info(
+        "Reaping stuck pipeline_lock: _id=%s run_id=%s age_min=%.1f "
+        "(no logs in last %d min; Controller never started or died)",
+        row.get("_id"), run_id, age_min, PIPELINE_LOCK_HEARTBEAT_MIN,
+    )
+    # Atomic release: filter on _id AND run_id so a concurrent legitimate
+    # release by the actual Controller cannot race with us.
+    coll.delete_one({"_id": row["_id"], "run_id": run_id})
+    # Also delete the matching legacy reservation row (same run_id, in
+    # the same collection under _id=run_id).
+    coll.delete_one({"_id": run_id})
+    # Stamp pipeline.runs for post-mortem.
+    try:
+        runs_coll.update_one(
+            {"run_id": run_id, "status": "running"},
+            {"$set": {
+                "status": "failed",
+                "failure_reason": "controller_never_started_or_died",
+                "reaped_by_reservation_reaper_at": now_aware,
+            }},
+        )
+    except Exception as ex:  # noqa: BLE001
+        log.warning("Could not stamp pipeline.runs failure for %s: %r",
+                    run_id, ex)
+    return True
+
+
 def _r1_client_active_recently(auth, window_ms_start, window_ms_end):
     r = requests.get(
         f"{ATLAS_BASE}/dbAccessHistory/clusters/{CLUSTER_NAME}",
@@ -348,15 +447,36 @@ def _main():
     # will read the same env directly.
     client = ChatHealthyMongoUtilities("MONGO_FRONTEND_connectionString").getConnection()
     coll = client[DB_NAME][COLLECTION]
+    log_coll = client["Pipelines"][f"Log_{ENV_PREFIX}"]
+    runs_coll = client["chathealthyfrontend"]["pipeline.runs"]
     reservations = list(coll.find({}))
-    log.info("Loaded %d reservations from %s.%s", len(reservations), DB_NAME, COLLECTION)
+    log.info("Loaded %d cluster_lifecycle rows from %s.%s",
+             len(reservations), DB_NAME, COLLECTION)
 
     kept, reaped = [], []
     now_utc_naive = datetime.utcnow()
+    now_utc_aware = datetime.now(timezone.utc)
     for r in reservations:
-        # The runbook-written reservation shape (provider_pipeline_runbook.py
-        # _create_reservation) uses `expiry_at` as a naive UTC datetime.
-        # Reap when now (naive UTC) > expiry_at.
+        # Row shape discriminator. Two shapes coexist here:
+        #  - kind == "pipeline_lock" — atomic per-pipeline mutex added
+        #    2026-07-28 in commit 1384700d. Fields: _id="pipeline_lock:{name}",
+        #    kind, pipeline_name, run_id, vm_name, acquired_at (ISO str),
+        #    expires_at (ISO str). Released by Controller on run wrap OR
+        #    by this reaper on Controller-silence heartbeat (new below).
+        #  - legacy DB reservation — the original shape. Fields: _id=run_id,
+        #    expiry_at (naive datetime), status, requester. Released by
+        #    wall-clock TTL only.
+        # New pipeline_lock path FIRST because the legacy path treats
+        # missing expiry_at as "keep forever" and would silently protect
+        # every pipeline_lock row from reaping.
+        if r.get("kind") == "pipeline_lock":
+            if _reap_stuck_pipeline_lock(coll, log_coll, runs_coll,
+                                         r, now_utc_aware):
+                reaped.append(r)
+            else:
+                kept.append(r)
+            continue
+        # Legacy reservation shape: reap by wall-clock expiry_at.
         expiry_dt = r.get("expiry_at")
         if expiry_dt is None:
             kept.append(r); continue
@@ -374,7 +494,12 @@ def _main():
                  r.get("_id", ""), r.get("requester", ""), expiry_dt.isoformat())
 
     if reaped:
-        coll.delete_many({"_id": {"$in": [r["_id"] for r in reaped]}})
+        # Pipeline_lock rows delete themselves inside _reap_stuck_pipeline_lock
+        # (needs the guarded _id+run_id filter to prove atomic ownership).
+        # Legacy reservation rows delete here by _id.
+        legacy_ids = [r["_id"] for r in reaped if r.get("kind") != "pipeline_lock"]
+        if legacy_ids:
+            coll.delete_many({"_id": {"$in": legacy_ids}})
 
     live = [r for r in kept if r.get("status", "active") == "active"]
 
