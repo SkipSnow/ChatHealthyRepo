@@ -108,6 +108,10 @@ class RateLimitedConcurrencyGate:
         self._sem = ConcurrencyBoundedSemaphore(max_in_flight=max_in_flight)
         self._gate = RateLimitedGate(rate_per_second=rate_per_second)
 
+    @property
+    def max_in_flight(self) -> int:
+        return self._sem.max_in_flight
+
     @contextmanager
     def hold(self, timeout: float | None = None) -> Iterator[None]:
         with self._sem.hold(timeout=timeout):
