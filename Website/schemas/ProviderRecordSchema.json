@@ -454,9 +454,9 @@
       "description": "The single NUCC code NPPES designates as the primary taxonomy (per NPPES Readme v.2 sec. 1.1: primary is a per-NPI fact, not a per-taxonomy attribute). Lifted from Primary Taxonomy Switch by normalize_provider_rows.",
       "type": "string"
     },
-    "primary_taxonomy_code_label": {
-      "description": "Human-readable label for primary_taxonomy_code. NUCC 'Display Name'.",
-      "type": "string"
+    "is_primary_care": {
+      "description": "Type-1 only. True iff any Healthcare Provider Primary Taxonomy Switch_N = 'Y' on the source NPPES record. Absent on type-2 records.",
+      "type": "boolean"
     },
     "insurance": {
       "description": "Optional. Omitted or empty when NPPES reported no insurance-bearing other identifiers.",
