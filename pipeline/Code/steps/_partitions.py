@@ -20,12 +20,9 @@ def state_partitions(states: list[str]) -> list[dict]:
 
 
 def county_partitions(states: list[str]) -> list[dict]:
-    # kind values MUST match address_type in the provider docs (normalize
-    # writes "practice", attach_practice_addresses writes
-    # "secondary_practice"). Prior "primary_practice" here matched nothing.
-    parts: list[dict] = []
-    for st in state_partitions(states):
-        state = st["business_address_state"]
-        for kind in ("practice", "secondary_practice"):
-            parts.append({"business_address_state": state, "kind": kind})
-    return parts
+    # One worker per state -- period. The prior split by (state, kind)
+    # sent two workers at the same provider doc for any provider with
+    # BOTH a practice and a secondary_practice address, causing full-
+    # array $set clobber (proven with NPI 1962405589). Operator rule
+    # 2026-07-31: worker scope = state, never sub-partition.
+    return state_partitions(states)
