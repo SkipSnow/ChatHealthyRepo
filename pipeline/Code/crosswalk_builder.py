@@ -763,8 +763,12 @@ def compute_specialty_baselines(
     for doc in cursor:
         npi = doc.get("npi", "")
         taxonomies = doc.get("taxonomies", [])
-        primary = next((t for t in taxonomies if t.get("primary")), None)
-        tax_code = (primary or taxonomies[0] if taxonomies else {}).get("code", "")
+        # primary_taxonomy_code lives top-level per LLD v39 sec. 7.1.
+        # Fall back to first taxonomy code only if the top-level field
+        # is absent (e.g., legacy record shape).
+        tax_code = (doc.get("primary_taxonomy_code") or "").strip()
+        if not tax_code and taxonomies:
+            tax_code = (taxonomies[0].get("code") or "").strip()
         # Use first 3 chars as specialty group (e.g., "207" = physicians)
         tax_prefix = tax_code[:3] if len(tax_code) >= 3 else tax_code
 

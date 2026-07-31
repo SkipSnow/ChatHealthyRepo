@@ -297,10 +297,16 @@ def project(record: dict) -> dict:
     )
 
     # --- derived: taxonomies ---
+    # primary_taxonomy_code lives top-level on the record (LLD v39 sec.
+    # 7.1). Fall back to scanning taxonomies[] for a legacy per-entry
+    # primary flag only when the top-level field is absent.
     taxonomies = record.get("taxonomies") or []
-    primary_taxonomy_code = next(
-        (_clean(t.get("code")) for t in taxonomies if t.get("primary")), None
-    )
+    primary_taxonomy_code = _clean(record.get("primary_taxonomy_code"))
+    if not primary_taxonomy_code:
+        primary_taxonomy_code = next(
+            (_clean(t.get("code")) for t in taxonomies if t.get("primary")),
+            None,
+        )
     all_taxonomy_codes = " ".join(
         _clean(t.get("code")) for t in taxonomies if _clean(t.get("code"))
     ) or None

@@ -155,35 +155,27 @@ def _load_registered_npis(mongo, data_version: int) -> set[str]:
 
 
 def _primary_taxonomy_code(doc: dict) -> str:
-    """Return the primary taxonomy code from the provider record.
+    """Return the primary taxonomy code for a provider.
 
-    Raises if no taxonomies present or no taxonomy carries a code. If no
-    explicit primary marker exists, uses the first taxonomy entry's code
-    (NPPES convention: the ordering itself signals primacy when the
-    explicit flag is absent)."""
-    tax_list = doc.get("taxonomies") or []
-    if not tax_list:
-        raise ChatHealthyException(
-            mode="provider_missing_taxonomies",
-            message=(
-                f"provider_flags_engine: provider _id={doc.get('_id')} "
-                f"npi={doc.get('npi')!r} has no taxonomies"
-            ),
-            npi=doc.get("npi"),
-        )
-    for tax in tax_list:
-        if isinstance(tax, dict) and tax.get("primary") is True:
-            code = tax.get("code")
-            if code:
-                return str(code).strip()
-    first = tax_list[0]
-    if isinstance(first, dict) and first.get("code"):
-        return str(first["code"]).strip()
+    Reads the top-level primary_taxonomy_code field, which is stamped by
+    normalize_provider_rows from the NPPES per-slot Primary Taxonomy
+    Switch (per NPPES Readme v.2 sec. 1.1, semantically per-NPI).
+
+    Raises if the field is missing -- no fallback to taxonomies[0].code
+    because a missing primary designator means either NPPES didn't
+    provide one (data-quality issue to surface) or normalize failed to
+    lift it (code bug). Silent fallback would mask both."""
+    code = (doc.get("primary_taxonomy_code") or "").strip()
+    if code:
+        return code
     raise ChatHealthyException(
-        mode="provider_taxonomies_missing_code",
+        mode="provider_missing_primary_taxonomy_code",
         message=(
-            f"provider_flags_engine: provider _id={doc.get('_id')} "
-            f"npi={doc.get('npi')!r} has taxonomies but none carry a code"
+            f"provider_flags_engine: provider npi={doc.get('npi')!r} has "
+            f"no top-level primary_taxonomy_code. Either NPPES did not "
+            f"designate a primary taxonomy (source-data issue) or "
+            f"normalize_provider_rows failed to lift it from the raw "
+            f"Primary Taxonomy Switch columns."
         ),
         npi=doc.get("npi"),
     )

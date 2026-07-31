@@ -27,6 +27,13 @@ from datetime import datetime, timezone
 
 from pymongo import MongoClient, UpdateOne
 
+from code_labels import (
+    state_label_of,
+    country_label_of,
+    sex_label_of,
+    yes_no_label_of,
+)
+
 
 # ── Mongo client ─────────────────────────────────────────────────────────────
 
@@ -95,25 +102,35 @@ def normalize_raw_record(raw: dict) -> dict:
     doc: dict = {}
     consumed: set = set()
 
-    # Taxonomy parallel arrays
+    # Taxonomy parallel arrays. NPPES encodes ONE primary designator per
+    # NPI as a per-slot "Healthcare Provider Primary Taxonomy Switch_N"
+    # column with 'Y' on exactly one slot (per NPPES Readme v.2 sec. 1.1).
+    # Semantically it's a single per-NPI fact. We lift it out of the
+    # taxonomies[] array and stamp it top-level as primary_taxonomy_code
+    # (+ its label). Each taxonomies[] entry becomes just {code, code_label}
+    # -- no per-entry primary flag, no group, no bloated classification.
+    # code_label is stamped later by provider_record_builder using the
+    # NUCC catalog; normalize doesn't have the catalog loaded here.
     for prefix in (TAX_CODE_PREFIX, TAX_SWITCH_PREFIX, TAX_GROUP_PREFIX):
         consumed.update(h for h in raw if h.startswith(prefix))
     taxonomies: list = []
+    primary_code: str | None = None
     for h in sorted(h for h in raw if h.startswith(TAX_CODE_PREFIX)):
         idx = h[len(TAX_CODE_PREFIX):]
         code = (raw.get(h) or "").strip()
         if not code:
             continue
         switch = (raw.get(f"{TAX_SWITCH_PREFIX}{idx}") or "").strip()
-        group = (raw.get(f"{TAX_GROUP_PREFIX}{idx}") or "").strip()
-        entry = {"code": code, "primary": switch.upper() == "Y"}
-        if group:
-            entry["group"] = group
-        taxonomies.append(entry)
+        if switch.upper() == "Y" and primary_code is None:
+            primary_code = code
+        taxonomies.append({"code": code})
     if taxonomies:
         doc["taxonomies"] = taxonomies
+    if primary_code:
+        doc["primary_taxonomy_code"] = primary_code
 
-    # License parallel arrays
+    # License parallel arrays. Per LLD v39 sec. 7.1, licenses[i].state
+    # gets a sibling state_label.
     consumed.update(h for h in raw if h.startswith(LICENSE_NUMBER_PREFIX))
     consumed.update(h for h in raw if h.startswith(LICENSE_STATE_PREFIX))
     licenses: list = []
@@ -126,6 +143,9 @@ def normalize_raw_record(raw: dict) -> dict:
         entry: dict = {}
         if state:
             entry["state"] = state
+            lbl = state_label_of(state)
+            if lbl:
+                entry["state_label"] = lbl
         if number:
             entry["number"] = number
         licenses.append(entry)
@@ -166,6 +186,17 @@ def normalize_raw_record(raw: dict) -> dict:
     # regardless of address_type; the county enrichment passes populate it.
     addresses: list = []
 
+    def _apply_address_labels(addr: dict) -> None:
+        """LLD v39 sec. 7.1: state and country get sibling _label fields."""
+        if addr.get("state"):
+            lbl = state_label_of(addr["state"])
+            if lbl:
+                addr["state_label"] = lbl
+        if addr.get("country"):
+            lbl = country_label_of(addr["country"])
+            if lbl:
+                addr["country_code_label"] = lbl
+
     practice = {
         sub: (raw[field] or "").strip()
         for field, sub in PRACTICE_ADDRESS_FIELDS.items()
@@ -177,6 +208,7 @@ def normalize_raw_record(raw: dict) -> dict:
     if practice:
         practice["address_type"] = "practice"
         practice["county"] = {"fips": None}
+        _apply_address_labels(practice)
         addresses.append(practice)
 
     business = {
@@ -190,6 +222,7 @@ def normalize_raw_record(raw: dict) -> dict:
     if business:
         business["address_type"] = "business"
         business["county"] = {"fips": None}
+        _apply_address_labels(business)
         addresses.append(business)
 
     if addresses:
@@ -238,6 +271,16 @@ def normalize_raw_record(raw: dict) -> dict:
                 .replace(".", "")
             )
             doc[key] = v
+
+    # Top-level coded fields get sibling _label per LLD v39 sec. 7.1.
+    if doc.get("provider_sex_code"):
+        lbl = sex_label_of(doc["provider_sex_code"])
+        if lbl:
+            doc["provider_sex_code_label"] = lbl
+    if doc.get("is_sole_proprietor"):
+        lbl = yes_no_label_of(doc["is_sole_proprietor"])
+        if lbl:
+            doc["is_sole_proprietor_label"] = lbl
 
     return doc
 

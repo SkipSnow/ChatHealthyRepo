@@ -28,14 +28,17 @@ def dedupe_within_record(doc: dict) -> dict:
 
     taxonomies = doc.get("taxonomies") or []
     if taxonomies:
+        # NPPES can slot the same code twice (once with Primary=N and once
+        # with Primary=Y). normalize_raw_record has already lifted the
+        # primary designator to doc["primary_taxonomy_code"], so here we
+        # just dedupe by code -- there is no per-entry primary flag to
+        # preserve. First occurrence wins on entry contents.
         by_code: dict[str, dict] = {}
         for entry in taxonomies:
             code = (entry.get("code") or "").strip()
             if not code:
                 continue
-            existing = by_code.get(code)
-            if existing is None or entry.get("primary"):
-                by_code[code] = entry
+            by_code.setdefault(code, entry)
         doc["taxonomies"] = list(by_code.values())
 
     other_ids = doc.get("other_identifiers") or []
@@ -72,19 +75,31 @@ def build_provider_record(
     if etc:
         doc["entity_type_code"] = etc
         doc["entity_type_code_label"] = "individual" if etc == "1" else "institutional"
-    if nucc_catalog and doc.get("taxonomies"):
-        _INTERNAL_FIELDS = {"_id", "run_id", "_source_row_index",
-                            "source_name", "loaded_at"}
-        for tax in doc["taxonomies"]:
-            code = tax.get("code")
-            entry = nucc_catalog.get(code or "")
+    if nucc_catalog:
+        # Per LLD v39 sec. 7.1: taxonomies[i].code_label MUST be populated
+        # from the NUCC catalog "Display Name" column. Prior behavior
+        # copied the ENTIRE catalog row into tax["classification"] on
+        # every provider (~700 bytes duplicated per taxonomy per provider,
+        # ~4GB across a national fire), was undocumented in the schema,
+        # and buried the name inside classification.raw.Display_Name.
+        # Deleted 2026-07-31. Only the Display Name goes on the record.
+        for tax in doc.get("taxonomies") or []:
+            code = (tax.get("code") or "").strip()
+            entry = nucc_catalog.get(code)
             if entry:
-                # Strip pipeline internals (_id/run_id/loaded_at/etc.)
-                # before embedding into the provider record - those leak
-                # ETL state into what would ship to FindCare.
-                tax["classification"] = {
-                    k: v for k, v in entry.items() if k not in _INTERNAL_FIELDS
-                }
+                raw_row = entry.get("raw") or entry
+                display_name = (raw_row.get("Display Name") or "").strip()
+                if display_name:
+                    tax["code_label"] = display_name
+        # Stamp the top-level primary taxonomy label too.
+        primary_code = doc.get("primary_taxonomy_code")
+        if primary_code:
+            entry = nucc_catalog.get(primary_code)
+            if entry:
+                raw_row = entry.get("raw") or entry
+                display_name = (raw_row.get("Display Name") or "").strip()
+                if display_name:
+                    doc["primary_taxonomy_code_label"] = display_name
     return dedupe_within_record(doc)
 
 
