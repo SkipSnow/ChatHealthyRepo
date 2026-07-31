@@ -145,14 +145,16 @@ def harvest_other_identifier_phrases(config: dict, *, mongo, blob=None) -> dict:
     else:
         prior_deleted = staging_coll.delete_many({}).deleted_count
 
+    # NPI-atomic ownership: partition by PRIMARY practice state
+    # (addresses.0). Prior $elemMatch on any practice address scanned
+    # multi-state providers from every state worker they had a practice
+    # address in -- double work + wrong assignment.
     provider_query: dict[str, Any] = {
         "other_identifiers": {"$exists": True, "$ne": []},
     }
     if scoped_states:
-        provider_query["addresses"] = {"$elemMatch": {
-            "address_type": "practice",
-            "state": {"$in": scoped_states},
-        }}
+        provider_query["addresses.0.address_type"] = "practice"
+        provider_query["addresses.0.state"] = {"$in": scoped_states}
 
     accumulator: dict[str, dict[str, Any]] = {}
     scanned = 0
@@ -781,8 +783,14 @@ def apply_other_identifier_classifications(config: dict, *, mongo, blob=None) ->
     staging_coll = _resolve_staging_collection(mongo)
     lookup = _state_classification_lookup(staging_coll, state, run_id)
 
+    # NPI-atomic ownership: partition by PRIMARY practice state
+    # (addresses.0). See harvest_other_identifier_phrases above for the
+    # same rule + rationale -- keeps apply's per-state work aligned with
+    # harvest's per-state work, so every provider is processed by exactly
+    # one state worker.
     query = {
-        "addresses": {"$elemMatch": {"address_type": "practice", "state": state}},
+        "addresses.0.address_type": "practice",
+        "addresses.0.state": state,
         "other_identifiers": {"$exists": True, "$ne": []},
     }
 
