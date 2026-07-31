@@ -268,10 +268,13 @@ def apply_provider_flags(
         query["entity_type_code"] = "1"
     elif entity_kind_filter == "institutional":
         query["entity_type_code"] = "2"
+    # NPI-atomic ownership: partition by primary practice state (addresses.0).
+    # One worker per state owns every NPI whose primary practice address is
+    # in that state. Match the same shape every other partition-aware engine
+    # uses (attach_practice_addresses, county_cascade_engine, embedding_engine).
     if partition_state:
-        query["addresses"] = {
-            "$elemMatch": {"address_type": "mailing", "state": partition_state}
-        }
+        query["addresses.0.address_type"] = "practice"
+        query["addresses.0.state"] = partition_state
 
     ops: list[UpdateOne] = []
     modified = 0
@@ -279,6 +282,7 @@ def apply_provider_flags(
 
     projection = {
         "npi": 1,
+        "primary_taxonomy_code": 1,
         "taxonomies": 1,
         "provider_credential_text": 1,
     }

@@ -37,6 +37,7 @@ from chathealthy_frontend_lib.exceptions import ChatHealthyException
 from pymongo import UpdateOne
 
 from address_dedup import dedupe_addresses
+from code_labels import state_label_of, country_label_of
 from pipeline_runtime import PipelineRuntime
 
 _log = ChatHealthyLoggingService()
@@ -74,7 +75,8 @@ def _pl_row_to_address(row: dict) -> dict | None:
     pl_state = (raw.get(_PL_STATE) or "").strip()
     if not (line1 and city and pl_state):
         return None
-    return {
+    country = (raw.get(_PL_COUNTRY) or "US").strip() or "US"
+    addr = {
         "line1": line1,
         "line2": (raw.get(_PL_ADDR2) or "").strip() or None,
         "city": city,
@@ -83,13 +85,21 @@ def _pl_row_to_address(row: dict) -> dict | None:
         # for primary practice + business). pl_pfile carries some 9-digit
         # no-hyphen ZIP+4 forms like "056724776" — take only the first 5.
         "zip": (raw.get(_PL_ZIP) or "").strip().split("-", 1)[0][:5],
-        "country": (raw.get(_PL_COUNTRY) or "US").strip() or "US",
+        "country": country,
         "phone": (raw.get(_PL_PHONE) or "").strip() or None,
         "address_type": "secondary_practice",
         "primary": False,
         "source": "pl_pfile",
         "county": {"fips": None},
     }
+    # LLD v39 sec. 7.1: state and country get sibling _label fields.
+    slbl = state_label_of(pl_state)
+    if slbl:
+        addr["state_label"] = slbl
+    clbl = country_label_of(country)
+    if clbl:
+        addr["country_code_label"] = clbl
+    return addr
 
 
 def _fetch_pl_by_npi(pl_coll, run_id: str, npis: list[str]) -> dict[str, list[dict]]:
