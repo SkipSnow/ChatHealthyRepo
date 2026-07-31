@@ -1,0 +1,90 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://dev.chathealthy.ai/schemas/ChatHealthyPipelineConfigSchema.json",
+  "title": "ChatHealthy Pipeline Config",
+  "description": "Per-environment configuration for the ChatHealthy data pipeline. Replaces the chathealthyfrontend.pipeline.config Mongo document; source of truth is brain/machine_artifacts/content/pipeline_config.json.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["$schema", "pipeline_config"],
+  "properties": {
+    "$schema": {
+      "type": "string",
+      "format": "uri"
+    },
+    "pipeline_config": {
+      "type": "array",
+      "minItems": 1,
+      "items": { "$ref": "#/$defs/EnvConfig" }
+    }
+  },
+  "$defs": {
+    "EnvConfig": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "env",
+        "batch_limits",
+        "dataset_versions",
+        "failure_thresholds",
+        "source_freshness"
+      ],
+      "properties": {
+        "env": {
+          "description": "Environment this record applies to.",
+          "enum": ["local", "dev", "qa", "prod"]
+        },
+        "batch_limits":       { "$ref": "#/$defs/BatchLimits" },
+        "dataset_versions":   { "$ref": "#/$defs/DatasetVersions" },
+        "failure_thresholds": { "$ref": "#/$defs/FailureThresholds" },
+        "source_freshness": {
+          "type": "array",
+          "items": { "$ref": "#/$defs/SourceFreshness" }
+        }
+      }
+    },
+    "BatchLimits": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["normalize_batch_size"],
+      "properties": {
+        "normalize_batch_size": { "type": "integer", "minimum": 1 }
+      }
+    },
+    "DatasetVersions": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["provider_write_target"],
+      "properties": {
+        "provider_write_target": {
+          "description": "Base collection name for the pipeline's written provider record. Runtime appends _v_{data_version}. Must NOT carry a version suffix here.",
+          "type": "string"
+        }
+      }
+    },
+    "FailureThresholds": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["discrepancy_abort"],
+      "properties": {
+        "discrepancy_abort": { "type": "integer", "minimum": 1 }
+      }
+    },
+    "SourceFreshness": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["source_name"],
+      "properties": {
+        "source_name": { "type": "string" },
+        "number_of_days": {
+          "description": "TTL guidance for the source. Ignored when always_refetch is true.",
+          "type": "integer",
+          "minimum": 1
+        },
+        "always_refetch": {
+          "description": "When true, the freshness gate skips the HEAD/ETag probe and always fetches. Correct for small ChatHealthy-hosted proprietary files where Cloudflare edge cache can mask fresh origin updates.",
+          "type": "boolean"
+        }
+      }
+    }
+  }
+}
