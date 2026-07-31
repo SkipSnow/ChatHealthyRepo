@@ -437,33 +437,26 @@
         "additionalProperties": false,
         "required": [
           "code",
-          "code_label",
-          "primary"
+          "code_label"
         ],
         "properties": {
           "code": {
             "type": "string"
           },
           "code_label": {
+            "description": "NUCC 'Display Name' for the code (LLD v39 sec. 7.1 labels-alongside-codes rule).",
             "type": "string"
-          },
-          "primary": {
-            "type": "boolean"
-          },
-          "state_code": {
-            "type": [
-              "string",
-              "null"
-            ]
-          },
-          "state_code_label": {
-            "type": [
-              "string",
-              "null"
-            ]
           }
         }
       }
+    },
+    "primary_taxonomy_code": {
+      "description": "The single NUCC code NPPES designates as the primary taxonomy (per NPPES Readme v.2 sec. 1.1: primary is a per-NPI fact, not a per-taxonomy attribute). Lifted from Primary Taxonomy Switch by normalize_provider_rows.",
+      "type": "string"
+    },
+    "primary_taxonomy_code_label": {
+      "description": "Human-readable label for primary_taxonomy_code. NUCC 'Display Name'.",
+      "type": "string"
     },
     "insurance": {
       "description": "Optional. Omitted or empty when NPPES reported no insurance-bearing other identifiers.",
