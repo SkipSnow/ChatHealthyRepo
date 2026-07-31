@@ -71,11 +71,17 @@ def execute(ctx) -> dict:
     mongo = ctx.mongo_client or get_mongo()
     registry = mongo["admin"]["DataSourceRegistry"]
     freshness_list = ctx.config.get("source_freshness") or []
-    # `source_freshness` may be a list of {source_name, ...} entries
-    # (matches Mongo pipeline.config shape). We only care about the
-    # source_name keys — TTL fields, if any, are ignored (design is
-    # source-side version check, not TTL).
-    configured = [e.get("source_name") for e in freshness_list if isinstance(e, dict) and e.get("source_name")]
+    # `source_freshness` mirrors chathealthyfrontend.pipeline.config.
+    # Each entry: {source_name, number_of_days?, always_refetch?}.
+    # always_refetch=True means bypass the HEAD probe and always fetch
+    # -- correct for small ChatHealthy-hosted files where Cloudflare
+    # edge cache can mask fresh origin updates behind stale ETags.
+    config_by_name: dict[str, dict] = {
+        e.get("source_name"): e
+        for e in freshness_list
+        if isinstance(e, dict) and e.get("source_name")
+    }
+    configured = list(config_by_name.keys())
     if not configured:
         # Default to the full known-source list when config carries no
         # freshness entries. Empty here previously caused every run to
@@ -94,6 +100,15 @@ def execute(ctx) -> dict:
         url = os.environ.get(env_key, "").strip()
         if not url:
             decisions[name] = {"decision": "fetch", "reason": f"env var {env_key} not set"}
+            continue
+        entry = config_by_name.get(name) or {}
+        if entry.get("always_refetch") is True:
+            decisions[name] = {
+                "decision": "fetch",
+                "reason": "always_refetch=true in pipeline.config",
+                "current_version": None,
+                "archived_version": None,
+            }
             continue
         try:
             current = probe_source_version(name, url)
