@@ -7033,7 +7033,7 @@
               "config": {
                 "runbook_name": "ReservationReaper",
                 "schedule_names": [
-                  "SCH-Reaper-5min"
+                  "SCH-Reaper-15min"
                 ],
                 "python_packages": [
                   {
