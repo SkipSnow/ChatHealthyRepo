@@ -75,6 +75,11 @@ def build_provider_record(
     if etc:
         doc["entity_type_code"] = etc
         doc["entity_type_code_label"] = "individual" if etc == "1" else "institutional"
+        # Type-1 only. True iff any Healthcare Provider Primary Taxonomy
+        # Switch_N on the raw record is "Y" (normalize_raw_record lifts
+        # such a match into doc["primary_taxonomy_code"]).
+        if etc == "1":
+            doc["is_primary_care"] = bool(doc.get("primary_taxonomy_code"))
     if nucc_catalog:
         # Per LLD v39 sec. 7.1: taxonomies[i].code_label MUST be populated
         # from the NUCC catalog "Display Name" column. Prior behavior
@@ -91,15 +96,6 @@ def build_provider_record(
                 display_name = (raw_row.get("Display Name") or "").strip()
                 if display_name:
                     tax["code_label"] = display_name
-        # Stamp the top-level primary taxonomy label too.
-        primary_code = doc.get("primary_taxonomy_code")
-        if primary_code:
-            entry = nucc_catalog.get(primary_code)
-            if entry:
-                raw_row = entry.get("raw") or entry
-                display_name = (raw_row.get("Display Name") or "").strip()
-                if display_name:
-                    doc["primary_taxonomy_code_label"] = display_name
     return dedupe_within_record(doc)
 
 

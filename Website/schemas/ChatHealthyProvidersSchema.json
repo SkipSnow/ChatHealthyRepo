@@ -109,7 +109,7 @@
           "minItems": 1
         },
         "taxonomies": {
-          "description": "Provider specialty taxonomy codes (NUCC Health Care Provider Taxonomy). Each type-1 provider has at least one NUCC code. Each entry is {code, code_label} -- the labels-alongside-codes rule (LLD v39 sec. 7.1). The primary designator is stored top-level as primary_taxonomy_code + primary_taxonomy_code_label (per NPPES Readme v.2 sec. 1.1: primary is a per-NPI fact, not a per-taxonomy attribute).",
+          "description": "Provider specialty taxonomy codes (NUCC Health Care Provider Taxonomy). Each type-1 provider has at least one NUCC code. Each entry is {code, code_label} -- the labels-alongside-codes rule (LLD v39 sec. 7.1). The primary designator is stored top-level as primary_taxonomy_code (per NPPES Readme v.2 sec. 1.1: primary is a per-NPI fact, not a per-taxonomy attribute).",
           "type": "array",
           "items": {
             "type": "object",
@@ -134,10 +134,9 @@
           "type": "string",
           "pattern": "^[A-Z0-9]{10}$"
         },
-        "primary_taxonomy_code_label": {
-          "description": "Human-readable label for primary_taxonomy_code. NUCC 'Display Name' populated by provider_record_builder.",
-          "type": "string",
-          "examples": ["Family Medicine Physician"]
+        "is_primary_care": {
+          "description": "Type-1 only. True iff any Healthcare Provider Primary Taxonomy Switch_N = 'Y' on the source NPPES record. Absent on type-2 records.",
+          "type": "boolean"
         },
         "licenses": {
           "description": "Optional. Omitted when NPPES reported no license slots.",
