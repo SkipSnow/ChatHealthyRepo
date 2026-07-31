@@ -199,21 +199,22 @@ def _stream_provider_chunks(
     run_id: str,
     *,
     partition_state: str | None,
-    partition_kind: str | None,
 ) -> Iterator[list[tuple[dict, list[dict]]]]:
     """Yield chunks of (provider_doc, eligible_addresses[]) tuples.
 
-    Streams providers via cursor.batch_size — never materializes the full
-    partition list. Each chunk holds _PROVIDER_CHUNK providers with only
-    their enrichment-eligible addresses attached (references into the
-    same doc.addresses list, so mutations propagate).
+    Streams providers via cursor.batch_size -- never materializes the
+    full partition list. Each chunk holds _PROVIDER_CHUNK providers
+    with ALL their enrichment-eligible addresses attached (references
+    into the same doc.addresses list, so mutations propagate).
+
+    NPI-atomic ownership: a provider belongs to exactly ONE state
+    worker (state of addresses[0], the NPPES primary practice). The
+    worker then enriches ALL of that provider's practice +
+    secondary_practice addresses in one atomic pass, REGARDLESS of
+    which state each address is in. Filtering addresses by
+    partition_state here would leave out-of-scope secondaries
+    permanently un-enriched (no other worker owns this provider).
     """
-    # NPI-atomic ownership: a provider belongs to exactly ONE state worker
-    # (state of addresses[0], the NPPES primary practice). The worker then
-    # enriches ALL its practice + secondary_practice addresses, regardless
-    # of which state each address is in. This prevents the cross-worker
-    # $set clobber that produced null-county on 3 of 4 addresses for NPI
-    # 1962405589 in run c8080b.
     query: dict[str, Any] = {"run_id": run_id}
     if partition_state:
         query["addresses.0.address_type"] = "practice"
@@ -222,14 +223,10 @@ def _stream_provider_chunks(
     cursor = coll.find(query).batch_size(_PROVIDER_CHUNK)
     chunk: list[tuple[dict, list[dict]]] = []
     for doc in cursor:
-        eligible: list[dict] = []
-        for addr in (doc.get("addresses") or []):
-            if partition_state and (addr.get("state") or "").upper() != partition_state:
-                continue
-            if partition_kind and addr.get("address_type") != partition_kind:
-                continue
-            if _addr_needs_enrichment(addr):
-                eligible.append(addr)
+        eligible = [
+            addr for addr in (doc.get("addresses") or [])
+            if _addr_needs_enrichment(addr)
+        ]
         if not eligible:
             continue
         chunk.append((doc, eligible))
@@ -1123,8 +1120,9 @@ def run_county_cascade(
       - run_id                        (str)
       - env                           (str)
       - provider_collection           (str "<db>.<coll>")
-      - partition_state               (str | None) — restrict scan to this state
-      - partition_kind                (str | None) — "practice" | "secondary_practice"
+      - partition_state               (str | None) -- restrict scan to
+                                        providers whose primary practice
+                                        (addresses.0) is in this state
       - sla_target                    (float, default 0.98)
       - google_maps_api_key           (str) — required to enable google_maps stage
       - google_maps_enabled           (bool, default False)
@@ -1149,7 +1147,6 @@ def run_county_cascade(
     run_id = config["run_id"]
     env_prefix = config["env"]
     partition_state = (config.get("partition_state") or "").upper() or None
-    partition_kind = config.get("partition_kind")
     sla_target = float(config.get("sla_target", DEFAULT_SLA))
     throttle_rates = config.get("throttle_rates") or {}
     concurrency = config.get("concurrency") or {}
@@ -1162,9 +1159,9 @@ def run_county_cascade(
     discrepancies_coll = mongo["chathealthyfrontend"]["pipeline.discrepancies"]
 
     _log.info(
-        "county_cascade: funnel entering run_id=%s state=%s kind=%s sla_target=%.3f google_enabled=%s "
+        "county_cascade: funnel entering run_id=%s state=%s sla_target=%.3f google_enabled=%s "
         "google_api_key_set=%s provider_collection=%s",
-        run_id, partition_state or "ALL", partition_kind or "ALL",
+        run_id, partition_state or "ALL",
         sla_target, google_enabled, bool(google_api_key), config["provider_collection"],
     )
 
@@ -1213,7 +1210,6 @@ def run_county_cascade(
         provider_coll,
         run_id,
         partition_state=partition_state,
-        partition_kind=partition_kind,
     ):
         pairs = _pairs_from_chunk(chunk)
         chunk_total = len(pairs)
@@ -1304,8 +1300,8 @@ def run_county_cascade(
     if total == 0:
         _log.warning(
             "county_cascade: funnel exiting with 0 eligible addresses "
-            "(run_id=%s state=%s kind=%s) — nothing to enrich",
-            run_id, partition_state or "ALL", partition_kind or "ALL",
+            "(run_id=%s state=%s) — nothing to enrich",
+            run_id, partition_state or "ALL",
         )
         return {
             "total_addresses": 0,
@@ -1317,9 +1313,9 @@ def run_county_cascade(
 
     match_rate = resolved_running / total
     _log.info(
-        "county_cascade: funnel done run_id=%s state=%s kind=%s total=%d "
+        "county_cascade: funnel done run_id=%s state=%s total=%d "
         "stage_hits=%s match_rate=%.4f sla_met=%s unresolvable=%d",
-        run_id, partition_state or "ALL", partition_kind or "ALL",
+        run_id, partition_state or "ALL",
         total, stage_hits, match_rate, match_rate >= sla_target, unresolvable_total,
     )
     return {

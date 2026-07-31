@@ -45,13 +45,19 @@ def serial_bulk_load(ctx) -> dict[str, Any]:
     # its indexes, and any schema validator intact; only in-scope rows
     # are removed and repopulated by the ReplaceOne(upsert=True) below.
     if not ctx.args.incremental:
-        states = [s for s in (ctx.args.resolved_states() or []) if s]
+        states = [s.upper() for s in (ctx.args.resolved_states() or []) if s]
         if states:
+            # NPI-atomic ownership rule (commit 7ee164f0): a provider is
+            # owned by the state of its PRIMARY practice (addresses.0),
+            # not by any address they happen to have. Drain semantics
+            # MUST match partition_filter's semantics so drain covers
+            # exactly the set normalize will re-write; the prior
+            # $elemMatch(any practice, state) drained multi-state
+            # providers whose primary is elsewhere and normalize never
+            # re-added them -> silent data loss.
             state_filter = {
-                "addresses": {"$elemMatch": {
-                    "address_type": "practice",
-                    "state": {"$in": [s.upper() for s in states]},
-                }}
+                "addresses.0.address_type": "practice",
+                "addresses.0.state": {"$in": states},
             }
             drained = rt.providers_coll.delete_many(state_filter).deleted_count
             _log.info(

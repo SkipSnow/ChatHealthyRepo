@@ -23,9 +23,12 @@ def run_step(ctx) -> dict:
     config.setdefault("data_version", int(ctx.args.data_version))
     config.setdefault("google_maps_enabled", bool(ctx.args.google_maps_enabled))
 
+    # county_partitions collapsed to per-state only (commit 7ee164f0);
+    # partition.kind no longer exists in the manifest. NPI-atomic
+    # ownership: one worker per primary-practice state, enriches every
+    # eligible address on its providers.
     partition = ctx.config.get("partition") or {}
     config.setdefault("partition_state", partition.get("business_address_state"))
-    config.setdefault("partition_kind", partition.get("kind"))
 
     result = run_county_cascade(
         config,
@@ -33,7 +36,7 @@ def run_step(ctx) -> dict:
         blob=ctx.blob_client,
     ) or {}
 
-    key = f"county_cascade:{config.get('partition_state') or 'ALL'}:{config.get('partition_kind') or 'BOTH'}"
+    key = f"county_cascade:{config.get('partition_state') or 'ALL'}"
     ctx.manifest.metrics.setdefault("county_enrichment", {})[key] = result
     return result
 
