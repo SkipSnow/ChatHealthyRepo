@@ -507,13 +507,20 @@ def _cloud_init_user_data(run_id: str, load_mode: str, state_scope,
     short_id = run_id.split("-")[-1][:8] if "-" in run_id else run_id[:8]
     vm_name_for_farewell = f"vm-chpipeline-{short_id}"
     yaml_body = f"""#cloud-config
+# Override the default Azure Ubuntu mirror (azure.archive.ubuntu.com), which is
+# intermittently unreachable from snet-pipeline-compute on port 80 and has
+# caused repeated cloud-init failures. Canonical's own archive.ubuntu.com is on
+# a different CDN with a different network path from our subnet.
+apt:
+  primary:
+    - arches: [default]
+      uri: https://archive.ubuntu.com/ubuntu
+  security:
+    - arches: [default]
+      uri: https://security.ubuntu.com/ubuntu
 package_update: true
 package_upgrade: false
 packages:
-  - ca-certificates
-  - curl
-  - gnupg
-  - jq
   - docker.io
 runcmd:
   - |
