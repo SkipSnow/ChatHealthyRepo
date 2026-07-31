@@ -45,6 +45,12 @@ test_output
 claude_thoughts
 gpt_thoughts
 
+# One-shot scratch (throwaway scripts + report xlsx). Not shipped to any
+# container. Excluding here also prevents Excel lock files (~$*.xlsx)
+# from breaking `az acr build` when a workbook is open on the workstation.
+_oneshots
+**/~$*
+
 # Docker leftovers
 **/Dockerfile.bak
 **/.dockerignore
