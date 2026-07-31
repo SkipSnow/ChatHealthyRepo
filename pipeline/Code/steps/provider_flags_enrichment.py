@@ -1,11 +1,13 @@
 # Copyright (c) 2026 ChatHealthy.ai LLC. All rights reserved.
 # Licensed under the FindCare Evaluation License (FEL-1.0).
 
-"""provider_flags_enrichment — Provider Pipeline step wrapper for LLD v23 §4.15/§4.16.
+"""provider_flags_enrichment -- Provider Pipeline step wrapper.
 
 Bridges StepContext to provider_flags_engine.apply_provider_flags().
-Applies the four F-105 flags (can_prescribe, is_homeopathic,
-is_disqualified, is_npi_registered) to every provider record in the run.
+Stamps can_prescribe (credential level-1 MD/DO OR catalog level-2),
+is_homeopathic (catalog), and is_npi_registered (NPPES staging) on every
+provider record in the run partition. No fallbacks: engine raises on
+any unresolvable path.
 """
 
 from __future__ import annotations
@@ -20,7 +22,7 @@ _log = ChatHealthyLoggingService()
 def run_step(ctx) -> dict:
     config = dict(ctx.config)
     config.setdefault("run_id", ctx.run_id)
-    config.setdefault("env", ctx.env_prefix)
+    config.setdefault("data_version", int(ctx.args.data_version))
     config.setdefault("provider_collection", ctx.provider_collection)
 
     partition = getattr(ctx, "partition", None) or {}
