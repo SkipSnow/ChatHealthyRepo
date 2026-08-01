@@ -2857,7 +2857,7 @@ def run_cloud_deploy(env: str, target_arg: str,
          + (f" filtered_targets={len(explicit_target_ids)}"
             if explicit_target_ids is not None else ""))
     brain_path = repo_root / "brain" / "machine_artifacts" / "content" / "deployment_architecture.json"
-    env_file = repo_root / "Code" / ".env"
+    env_file = repo_root / ".env"
     load_filter = target_arg if target_arg.startswith("target_") else None
     coll: DeploymentCollection = RecordLoader().load_collection(
         brain_path, target_id_filter=load_filter,
@@ -3117,7 +3117,7 @@ class LocalDeploy:
         backlog_path = self.repo_root / "brain" / "machine_artifacts" / "content" / "agile_backlog.json"
         backlog_schema = self.repo_root / "Website" / "schemas" / "ChatHealthyAgileBacklogSchema.json"
         deployment_path = self.repo_root / "brain" / "machine_artifacts" / "content" / "deployment_architecture.json"
-        env_path = self.repo_root / "Code" / ".env"
+        env_path = self.repo_root / ".env"
         coll = RecordLoader().load_collection(deployment_path)
         backlog = AgileBacklogLoader(schema_uri=backlog_schema).load(backlog_path)
         env_values: set[str] = set()
@@ -3212,7 +3212,7 @@ class LocalDeploy:
         cflags = creation_flags()
         from dotenv import load_dotenv
         from pymongo import MongoClient
-        load_dotenv(self.repo_root / "Code" / ".env")
+        load_dotenv(self.repo_root / ".env")
         conn = os.environ.get("MONGO_FRONTEND_connectionString")
         if not conn:
             sys.exit("ERROR: MONGO_FRONTEND_connectionString not set; cannot read local build counter.")
@@ -3421,7 +3421,7 @@ class LocalDeploy:
     def _start_backend_processes(self) -> None:
         """V11 S-002-REQ-T-001 docker run + S-002-REQ-T-002 host-OS Website."""
         certs_host = str(self.certs_dir).replace("\\", "/")
-        env_file = self.repo_root / "Code" / ".env"
+        env_file = self.repo_root / ".env"
         if not env_file.is_file():
             sys.exit(
                 f"ERROR: env file missing at {env_file}; backend containers "
