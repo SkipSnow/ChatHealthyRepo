@@ -323,7 +323,7 @@ def _drop_prior_run_rows(coll, run_id: str) -> int:
     return res.deleted_count if res else 0
 
 
-_NPPES_STATE_COLUMN = "Provider Business Practice Location Address State Name"
+_NPPES_STATE_COLUMN = "Provider Business Mailing Address State Name"
 
 
 def _require_staging_collection(source_name: str) -> str:
@@ -339,21 +339,12 @@ def _require_mongo(mongo) -> None:
 
 
 def _drop_prior_state_scoped_rows(coll, source_name: str, states: tuple[str, ...]) -> int:
-    """Full-load hygiene for NPPES: delete every existing row whose state
-    is in the current state scope. Records from other states stay
-    untouched. Called BEFORE the fresh load so the collection ends up
-    with exactly the current run's state scope + everything else from
-    prior runs. Returns the delete count.
-
-    Note: _wrap_row nests the raw CSV row under doc["raw"], so the
-    Mongo query must use the dotted "raw.<column>" path, not the bare
-    column name."""
-    if source_name != "nppes_npi" or not states:
+    """Full-load hygiene for NPPES: delete EVERY existing row (full drain
+    each run). Rows from prior runs are never preserved regardless of
+    state_scope overlap. Returns the delete count."""
+    if source_name != "nppes_npi":
         return 0
-    filter_states = [s.upper() for s in states if s]
-    if not filter_states:
-        return 0
-    res = coll.delete_many({f"raw.{_NPPES_STATE_COLUMN}": {"$in": filter_states}})
+    res = coll.delete_many({})
     return int(res.deleted_count or 0)
 
 

@@ -208,17 +208,16 @@ def _stream_provider_chunks(
     into the same doc.addresses list, so mutations propagate).
 
     NPI-atomic ownership: a provider belongs to exactly ONE state
-    worker (state of addresses[0], the NPPES primary practice). The
-    worker then enriches ALL of that provider's practice +
-    secondary_practice addresses in one atomic pass, REGARDLESS of
-    which state each address is in. Filtering addresses by
+    worker (the state of its BUSINESS mailing address — single-valued
+    per NPPES contract). The worker then enriches ALL of that provider's
+    practice + secondary_practice addresses in one atomic pass,
+    REGARDLESS of which state each address is in. Filtering addresses by
     partition_state here would leave out-of-scope secondaries
     permanently un-enriched (no other worker owns this provider).
     """
     query: dict[str, Any] = {"run_id": run_id}
     if partition_state:
-        query["addresses.0.address_type"] = "practice"
-        query["addresses.0.state"] = partition_state
+        query["addresses"] = {"$elemMatch": {"address_type": "business", "state": partition_state}}
 
     cursor = coll.find(query).batch_size(_PROVIDER_CHUNK)
     chunk: list[tuple[dict, list[dict]]] = []
@@ -1121,8 +1120,8 @@ def run_county_cascade(
       - env                           (str)
       - provider_collection           (str "<db>.<coll>")
       - partition_state               (str | None) -- restrict scan to
-                                        providers whose primary practice
-                                        (addresses.0) is in this state
+                                        providers whose BUSINESS mailing
+                                        address is in this state
       - sla_target                    (float, default 0.98)
       - google_maps_api_key           (str) — required to enable google_maps stage
       - google_maps_enabled           (bool, default False)

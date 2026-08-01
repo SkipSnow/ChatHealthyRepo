@@ -30,12 +30,10 @@ def test_partition_filter_state(_mock_frontend):
     ctx = StepContext(args=args, manifest=manifest, config={}, mongo_client=_Mongo(), blob_client=None)
     rt = PipelineRuntime(ctx)
     filt = rt.partition_filter("WY")
-    # NPI-atomic ownership: partition matches on addresses.0 (primary
-    # practice) so each NPI is owned by exactly one state worker.
-    # $elemMatch on ANY address would put multi-state providers in
-    # multiple workers' queries and produce cross-worker $set clobber.
+    # NPI-atomic ownership: partition matches on the single-valued
+    # business (mailing) address, per LLD. Business address is required
+    # by NPPES and unique per NPI, so $elemMatch gives exactly one owner.
     assert filt == {
         "run_id": "r1",
-        "addresses.0.address_type": "practice",
-        "addresses.0.state": "WY",
+        "addresses": {"$elemMatch": {"address_type": "business", "state": "WY"}},
     }

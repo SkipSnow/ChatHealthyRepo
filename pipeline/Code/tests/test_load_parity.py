@@ -188,7 +188,7 @@ class TestFrontendParity:
         mismatches = []
         for state, pipeline_count in sorted(db_state_counts.items()):
             fe_count = fe_coll.count_documents(
-                {"addresses": {"$elemMatch": {"address_type": "practice", "state": state}}}
+                {"addresses": {"$elemMatch": {"address_type": "business", "state": state}}}
             )
             if fe_count != pipeline_count:
                 mismatches.append({

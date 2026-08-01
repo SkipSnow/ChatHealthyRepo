@@ -174,14 +174,13 @@ def generate_provider_embeddings(
     db_name, coll_name = provider_collection.split(".", 1)
     coll = mongo[db_name][coll_name]
 
-    # NPI-atomic ownership: partition by PRIMARY practice state
-    # (addresses.0), not by mailing state. Prior $elemMatch on mailing
-    # was inconsistent with pipeline_runtime.partition_filter and put
-    # multi-state providers in the wrong worker.
+    # NPI-atomic ownership: partition by BUSINESS mailing address state.
+    # Business address is single-valued per NPPES contract, so $elemMatch
+    # gives exactly one owner per NPI. Practice addresses are optional
+    # and multi-valued (secondary practices) so cannot serve as key.
     query: dict[str, Any] = {"run_id": run_id}
     if partition_state:
-        query["addresses.0.address_type"] = "practice"
-        query["addresses.0.state"] = partition_state
+        query["addresses"] = {"$elemMatch": {"address_type": "business", "state": partition_state}}
 
     client = _build_openai_client(config.get("openai_api_key"))
 

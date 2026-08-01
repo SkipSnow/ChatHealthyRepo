@@ -9,6 +9,7 @@ from chathealthy_frontend_lib.logging_service import ChatHealthyLoggingService
 
 from typing import Any
 
+from chathealthy_frontend_lib.exceptions import ChatHealthyException
 from pymongo import ReplaceOne
 
 from pipeline_runtime import PipelineRuntime
@@ -28,42 +29,34 @@ def _nucc_lookup(rt: PipelineRuntime) -> dict[str, dict]:
     return out
 
 
-def serial_bulk_load(ctx) -> dict[str, Any]:
+_NPPES_STATE_COLUMN = "Provider Business Mailing Address State Name"
+
+
+def per_state_normalize(ctx, state: str) -> dict[str, Any]:
+    """Per-state normalize (NPI-atomic ownership): drain this state's rows
+    in the target, read only this state's staging rows, build + validate +
+    bulk_write. Replaces the prior two-step design (serial_bulk_load +
+    per_state_fanout) which serialized on one worker and then re-validated
+    what it just wrote. This runs 51-way in parallel with state_scope=ALL.
+
+    Partition key: BUSINESS mailing address state (single-valued per NPI
+    per NPPES contract). Practice addresses are optional and multi-valued
+    (secondary practices); business mailing is required and unique, so it
+    is the reliable NPI-atomic partition key.
+    """
     rt = PipelineRuntime(ctx)
+    state = (state or "").upper()
+    if not state:
+        raise ChatHealthyException(mode="value_error", message="per_state_normalize: state is required")
     nucc = _nucc_lookup(rt)
-    # Full-mode drain: DELETE rows whose primary practice-address state
-    # is in this run's state_scope. Two bugs fixed at once vs. the prior
-    # coll.drop():
-    #   (a) drop() nuked every index (npi_1, addresses.county.source_1,
-    #       etc.) that prepare_infrastructure created — later steps
-    #       (add_secondary_practices, county_enrichment, add-on lookups)
-    #       then COLLSCAN every find({npi: ...}) and stall the run.
-    #   (b) drop() ignored state_scope entirely and threw away every
-    #       OTHER state's rows too — a run scoped to VT+DE was silently
-    #       destroying CA, NY, and every other state's providers.
-    # delete_many with the state filter leaves the collection object,
-    # its indexes, and any schema validator intact; only in-scope rows
-    # are removed and repopulated by the ReplaceOne(upsert=True) below.
+
+    # Full-mode drain: DELETE rows whose BUSINESS mailing address state
+    # matches this partition. Preserves indexes (delete_many, not drop()).
+    drained = 0
     if not ctx.args.incremental:
-        states = [s.upper() for s in (ctx.args.resolved_states() or []) if s]
-        if states:
-            # NPI-atomic ownership rule (commit 7ee164f0): a provider is
-            # owned by the state of its PRIMARY practice (addresses.0),
-            # not by any address they happen to have. Drain semantics
-            # MUST match partition_filter's semantics so drain covers
-            # exactly the set normalize will re-write; the prior
-            # $elemMatch(any practice, state) drained multi-state
-            # providers whose primary is elsewhere and normalize never
-            # re-added them -> silent data loss.
-            state_filter = {
-                "addresses.0.address_type": "practice",
-                "addresses.0.state": {"$in": states},
-            }
-            drained = rt.providers_coll.delete_many(state_filter).deleted_count
-            _log.info(
-                "serial_bulk_load: drained %d rows for state_scope=%s (indexes preserved)",
-                drained, states,
-            )
+        drained = rt.providers_coll.delete_many({
+            "addresses": {"$elemMatch": {"address_type": "business", "state": state}},
+        }).deleted_count
 
     seen_npis: set[str] = set()
     inserted = 0
@@ -72,7 +65,12 @@ def serial_bulk_load(ctx) -> dict[str, Any]:
     ops: list[ReplaceOne] = []
     batch_size = int(ctx.config.get("batch_limits", {}).get("normalize_batch_size", 1000))
 
-    for row in rt.staging_coll("nppes_npi").find({"run_id": rt.run_id}):
+    # Read only this state's staging rows. staging_load filters by
+    # state_scope at ingest, so with state_scope=ALL every state's rows
+    # are present here; per-state fanout partitions them for parallel
+    # normalize.
+    query = {"run_id": rt.run_id, f"raw.{_NPPES_STATE_COLUMN}": state}
+    for row in rt.staging_coll("nppes_npi").find(query):
         raw = row.get("raw") or {}
         npi = str(row.get("npi") or raw.get("NPI") or "").strip()
         if not npi:
@@ -90,8 +88,8 @@ def serial_bulk_load(ctx) -> dict[str, Any]:
             rt.record_discrepancy(
                 npi=npi,
                 reason="schema_violation",
-                step="normalize_npi_serial_bulk_load",
-                state=rt.mailing_state(doc),
+                step="normalize_npi_per_state_fanout",
+                state=state,
                 entity_kind=rt.entity_kind(doc),
                 detail={"errors": errors},
             )
@@ -108,29 +106,10 @@ def serial_bulk_load(ctx) -> dict[str, Any]:
         inserted += result.upserted_count + result.modified_count
 
     return {
+        "state": state,
+        "drained": drained,
         "inserted": inserted,
         "unique_npis": len(seen_npis),
         "skipped_duplicate_staging_rows": skipped_dup,
         "schema_violations": violations,
-        "target": rt.provider_collection,
     }
-
-
-def per_state_fanout(ctx, state: str) -> dict[str, Any]:
-    rt = PipelineRuntime(ctx)
-    filt = rt.partition_filter(state)
-    validated = 0
-    for doc in rt.providers_coll.find(filt):
-        ok, errors = validate_provider_record(doc)
-        if ok:
-            validated += 1
-        else:
-            rt.record_discrepancy(
-                npi=doc.get("npi"),
-                reason="schema_violation",
-                step="normalize_npi_per_state_fanout",
-                state=state,
-                entity_kind=rt.entity_kind(doc),
-                detail={"errors": errors},
-            )
-    return {"state": state, "validated": validated}
