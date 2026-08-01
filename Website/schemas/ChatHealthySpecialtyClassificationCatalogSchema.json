@@ -1,0 +1,134 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://dev.chathealthy.ai/schemas/ChatHealthySpecialtyClassificationCatalogSchema.json",
+  "title": "ChatHealthy Specialty Classification Catalog (F-105)",
+  "description": "ChatHealthy proprietary NUCC taxonomy overlay. Serves both as the source of ChatHealthy-specific flags (can_prescribe, homeopathic) for every NUCC code AND as the FHIR CodeSystem SUPPLEMENT for regulator-only codes NUCC does not publish. Each entry carries a canonical URL (system-URL + code anchor) for FHIR-compliant concept identification. Entries with is_supplemented=true carry the NUCC-equivalent metadata inline. Grounded in HL7 FHIR R5 CodeSystem-supplement pattern (https://hl7.org/fhir/R5/codesystem.html#supplements). See NUCC_SpecialtyCodeDataDiscrepancyManagement.docx for governance.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "$schema",
+    "url",
+    "classifications"
+  ],
+  "properties": {
+    "$schema": {
+      "type": "string",
+      "format": "uri"
+    },
+    "url": {
+      "type": "string",
+      "format": "uri",
+      "description": "The canonical URL of this supplement file. Serves as the FHIR CodeSystem `url` (system identifier). Per-entry URLs extend this by appending #<code> as the anchor."
+    },
+    "classifications": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "code",
+          "url",
+          "can_prescribe",
+          "homeopathic",
+          "is_supplemented"
+        ],
+        "properties": {
+          "code": {
+            "type": "string",
+            "pattern": "^[A-Z0-9]{10}$",
+            "description": "NUCC-format taxonomy code (10 alphanumeric characters)."
+          },
+          "url": {
+            "type": "string",
+            "format": "uri",
+            "description": "Canonical per-entry URL = supplement URL + '#' + code. Enables FHIR-compliant concept anchoring."
+          },
+          "can_prescribe": {
+            "type": "boolean"
+          },
+          "homeopathic": {
+            "type": "boolean"
+          },
+          "is_supplemented": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "value"
+            ],
+            "properties": {
+              "value": {
+                "type": "boolean",
+                "description": "True for supplement entries (code not in current NUCC); false for normal NUCC-backed entries."
+              },
+              "note": {
+                "type": "string",
+                "description": "Curator note explaining the supplement provenance. Required when value=true."
+              }
+            },
+            "allOf": [
+              {
+                "if": {
+                  "properties": {
+                    "value": {
+                      "const": true
+                    }
+                  },
+                  "required": [
+                    "value"
+                  ]
+                },
+                "then": {
+                  "required": [
+                    "note"
+                  ]
+                }
+              }
+            ]
+          },
+          "grouping": {
+            "type": "string"
+          },
+          "classification": {
+            "type": "string"
+          },
+          "specialization": {
+            "type": "string"
+          },
+          "definition": {
+            "type": "string"
+          }
+        },
+        "allOf": [
+          {
+            "if": {
+              "properties": {
+                "is_supplemented": {
+                  "properties": {
+                    "value": {
+                      "const": true
+                    }
+                  },
+                  "required": [
+                    "value"
+                  ]
+                }
+              },
+              "required": [
+                "is_supplemented"
+              ]
+            },
+            "then": {
+              "required": [
+                "grouping",
+                "classification",
+                "specialization",
+                "definition"
+              ]
+            }
+          }
+        ]
+      }
+    }
+  }
+}
