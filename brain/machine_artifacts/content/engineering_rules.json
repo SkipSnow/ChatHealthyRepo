@@ -345,7 +345,7 @@
               "executable_path": "architecture/EngineeringRuleEnforcement/code/llm_classify_shell_invocation_worker.py",
               "requires_lock": false,
               "scopes": [],
-              "timeout": 90
+              "timeout": 960
             }
           ]
         }

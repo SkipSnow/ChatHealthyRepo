@@ -89,7 +89,7 @@ _LLM_BACKOFF_JITTER_S = 0.6
 # programs always go through the LLM" rule while ensuring a transient Gemini
 # outage never silently blocks legitimate work.
 _LLM_UNAVAILABLE_VERDICT = "gate_approve"
-_APPROVE_TIMEOUT_S = 600
+_APPROVE_TIMEOUT_S = 900
 _MAX_FILE_BYTES = 400_000
 _MAX_TOTAL_BYTES = 1_500_000
 _WALK_MAX_NODES = 60
