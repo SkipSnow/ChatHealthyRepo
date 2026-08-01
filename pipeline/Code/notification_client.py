@@ -81,8 +81,16 @@ class NotificationClient:
         subject: str,
         body: str,
         attachments: list | None = None,
+        html_body: str | None = None,
         **meta: Any,
     ) -> dict:
+        # Auto-promote HTML-looking body to html_body so Gmail renders
+        # the table instead of showing raw <html> markup.
+        if html_body is None and body.lstrip().lower().startswith(
+            ("<html", "<body", "<!doctype")
+        ):
+            html_body = body
+            body = "See HTML version of this notification."
         if not self.sparkpost_enabled:
             _log.info(
                 "notification email (no-op) to=%s subject=%s attachments=%s",
@@ -103,14 +111,14 @@ class NotificationClient:
                 "name": a.get("filename", "attachment"),
                 "data": _b64.b64encode(content).decode("ascii"),
             })
-        payload = {
-            "content": {
-                "from": from_addr,
-                "subject": subject,
-                "text": body,
-            },
-            "recipients": [{"address": to}],
+        content = {
+            "from": from_addr,
+            "subject": subject,
+            "text": body,
         }
+        if html_body:
+            content["html"] = html_body
+        payload = {"content": content, "recipients": [{"address": to}]}
         if sp_attachments:
             payload["content"]["attachments"] = sp_attachments
         try:
