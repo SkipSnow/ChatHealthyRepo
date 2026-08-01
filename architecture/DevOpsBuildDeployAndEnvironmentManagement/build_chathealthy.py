@@ -99,10 +99,10 @@ def _bump_build_counter(env: str) -> int:
     from pymongo import MongoClient
 
     repo_root = _find_repo_root(Path(__file__))
-    load_dotenv(repo_root / "Code" / ".env")
+    load_dotenv(repo_root / ".env")
     conn = os.getenv("MONGO_FRONTEND_connectionString")
     if not conn:
-        sys.exit("ERROR: MONGO_FRONTEND_connectionString not set in env or Code/.env")
+        sys.exit("ERROR: MONGO_FRONTEND_connectionString not set in env or .env")
     coll = MongoClient(conn, serverSelectionTimeoutMS=10000)["admin"]["Versions"]
     latest = coll.find_one(sort=[("from", -1)])
     if latest is None:
@@ -203,7 +203,7 @@ def main(argv: list[str] | None = None) -> int:
     brain_path = repo_root / "brain" / "machine_artifacts" / "content" / "deployment_architecture.json"
     backlog_schema = repo_root / "Website" / "schemas" / "ChatHealthyAgileBacklogSchema.json"
     backlog_path = repo_root / "brain" / "machine_artifacts" / "content" / "agile_backlog.json"
-    env_file = repo_root / "Code" / ".env"
+    env_file = repo_root / ".env"
 
     # Refresh content_hash entries in the manifest to match the current disk
     # bytes BEFORE Crosswalk runs. The build is the canonical mechanism for

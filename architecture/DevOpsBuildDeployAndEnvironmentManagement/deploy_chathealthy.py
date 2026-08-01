@@ -57,7 +57,7 @@ _ENV_BRANCH = {"local": "dev", "dev": "dev", "qa": "qa", "prod": "main"}
 def _repo_root() -> Path:
     cur = Path(__file__).resolve()
     for p in (cur, *cur.parents):
-        if (p / ".git").is_dir() or (p / "Code" / ".env").is_file():
+        if (p / ".git").is_dir() or (p / ".env").is_file():
             return p
     raise RuntimeError("repo root not found")
 
@@ -102,7 +102,7 @@ def _latest_admin_build() -> int | None:
     from dotenv import load_dotenv
     from pymongo import MongoClient
 
-    load_dotenv(_repo_root() / "Code" / ".env")
+    load_dotenv(_repo_root() / ".env")
     conn = os.getenv("MONGO_FRONTEND_connectionString")
     if not conn:
         return None

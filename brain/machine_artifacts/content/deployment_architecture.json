@@ -6422,7 +6422,7 @@
           "feature_id": "EPIC-008-F-012",
           "handler_type": "python_source",
           "disposition": "referenced",
-          "content_hash": "efebf9c2e982ab51b2d6817d2d02d8160b506faf25912c190a2bde1e27da0761",
+          "content_hash": "1359f3105cd3d9597bed12cc2cfee623925728cc4ed7da1f55634e269d0f91e9",
           "package": "default"
         },
         {
@@ -6486,7 +6486,7 @@
           "source_location": "pipeline/Code/specialty_classification_catalog.py",
           "handler_type": "python_source",
           "disposition": "referenced",
-          "content_hash": "44e54180b986dcd42035201c82fd5f5fe847a350e384213abb612a5bf36b57da",
+          "content_hash": "b496a5992e3426a201e8a3f481a196fed0143b41796604aa4135ea2d9dd9f69c",
           "package": "default"
         },
         {
@@ -6798,7 +6798,7 @@
           "feature_id": "EPIC-008-F-012",
           "handler_type": "python_source",
           "disposition": "referenced",
-          "content_hash": "efebf9c2e982ab51b2d6817d2d02d8160b506faf25912c190a2bde1e27da0761",
+          "content_hash": "1359f3105cd3d9597bed12cc2cfee623925728cc4ed7da1f55634e269d0f91e9",
           "package": "default"
         },
         {
