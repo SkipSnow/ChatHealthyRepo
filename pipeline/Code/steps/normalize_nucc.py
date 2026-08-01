@@ -24,14 +24,19 @@ from __future__ import annotations
 
 from pymongo import InsertOne, UpdateOne
 
+from pipeline_runtime import PipelineRuntime
 from specialty_classification_catalog import load_catalog
 from staging_loader import STAGING_DB_NAME, staging_collection_name
 
 
 def execute(ctx) -> dict:
-    mongo = ctx.mongo
-    data_version = ctx.data_version
-    run_id = ctx.run_id
+    # StepContext does not expose .mongo directly; instantiate PipelineRuntime
+    # which owns the mongo client + data_version + run_id per the standard
+    # pattern every other step uses (see provider_normalize_engine.py).
+    rt = PipelineRuntime(ctx)
+    mongo = rt.mongo
+    data_version = rt.data_version
+    run_id = rt.run_id
 
     coll_name = staging_collection_name("nucc", data_version)
     coll = mongo[STAGING_DB_NAME][coll_name]
