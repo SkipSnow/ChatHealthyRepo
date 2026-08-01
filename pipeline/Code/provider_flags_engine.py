@@ -218,10 +218,9 @@ def _stamp_taxonomy_status(doc: dict, catalog: dict) -> None:
             continue
         if entry.get("is_supplemented"):
             tax["status"] = "Supplemented"
-            for k in ("grouping", "classification", "specialization", "definition"):
-                v = entry.get(k)
-                if v is not None:
-                    tax[k] = v
+            # No description peers on the provider record -- F-105 is the
+            # sole source of truth for grouping/classification/etc per
+            # operator directive 2026-08-01.
         # Normal NUCC-backed case: leave the taxonomy element untouched.
 
 
@@ -255,15 +254,20 @@ def _apply_flags_to_doc(
     code = _primary_taxonomy_code(doc)
     if code not in catalog:
         if discrepancy_sink is not None:
+            # Signal shape per LLD v41 §8.4 (rewritten 2026-08-01) --
+            # level / source_line / npi / field / explanation flow
+            # straight into the discrepancy_report.pdf body row.
             discrepancy_sink({
+                "level": "error",
                 "reason": "unresolved_taxonomy_code",
-                "code": code,
+                "source_line": doc.get("source_line"),
                 "npi": doc.get("npi"),
-                "message": (
-                    f"provider_flags_engine: primary taxonomy code {code!r} "
-                    f"on npi={doc.get('npi')!r} is in neither current NUCC "
-                    f"nor the F-105 supplement catalog. Flag stamping skipped; "
-                    f"code recorded to the discrepancy report for curator review."
+                "field": "Healthcare Provider Taxonomy Code_1",
+                "code": code,
+                "explanation": (
+                    f"Primary taxonomy code {code!r} is in neither current "
+                    f"NUCC nor the F-105 supplement catalog. Flag stamping "
+                    f"skipped; code recorded for curator review."
                 ),
             })
             return None
