@@ -6586,14 +6586,6 @@
           "package": "default"
         },
         {
-          "source_location": "pipeline/Code/steps/normalize_npi_serial_bulk_load.py",
-          "feature_id": "EPIC-008-F-012",
-          "handler_type": "python_source",
-          "disposition": "referenced",
-          "content_hash": "b45ffa74e044959116be8624e738f1d6d2547c49300df5da122313d17f2cf623",
-          "package": "default"
-        },
-        {
           "source_location": "pipeline/Code/steps/post_load_reconciliation.py",
           "feature_id": "EPIC-008-F-012",
           "handler_type": "python_source",
@@ -6855,14 +6847,6 @@
           "handler_type": "python_source",
           "disposition": "referenced",
           "content_hash": "87c5815f1de6d114faff29c55d8d192c0fd57e5da06997243461d98a9efa7d0c",
-          "package": "default"
-        },
-        {
-          "source_location": "pipeline/Code/steps/normalize_npi_serial_bulk_load.py",
-          "feature_id": "EPIC-008-F-012",
-          "handler_type": "python_source",
-          "disposition": "referenced",
-          "content_hash": "b45ffa74e044959116be8624e738f1d6d2547c49300df5da122313d17f2cf623",
           "package": "default"
         },
         {
