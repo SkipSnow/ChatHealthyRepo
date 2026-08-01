@@ -1317,6 +1317,16 @@ _DEPLOY_ENV_NONLOCAL_RE = re.compile(
     re.IGNORECASE,
 )
 
+# Rule-006 statement 5 Stage-1 accommodation. Matches invocations of the
+# three canonical chain-surface entry points regardless of --env value.
+# The deploy-from-git preflight above still runs before this allowlist.
+_CHAIN_SURFACE_RE = re.compile(
+    r"(?:^|[\r\n]|(?<=[|;&])\s*)"
+    r"python[3]?\s+"
+    r"[^\s\n|;&]*(?:build|deploy|promote)_chathealthy\.py\b",
+    re.IGNORECASE,
+)
+
 
 def _git_state_ok_for_deploy() -> tuple[bool, str]:
     import subprocess as _sp
@@ -1400,6 +1410,17 @@ def main() -> int:
         _audit({"ts": ts, "tool": tool_name, "command": command,
                 "verdict": "allow", "reason": "local allowlist",
                 "stage": "1_local_allowlist"})
+        return 0
+
+    # STAGE 1b — canonical chain-surface allowlist (Rule-006 statement 5
+    # accommodation per operator direction 2026-07-23). The three canonical
+    # build/deploy/promote entry points ARE the sanctioned deployment
+    # process; firing them is itself the operator's authorization. Deploy-
+    # from-git preflight above still gates non-local invocations.
+    if _CHAIN_SURFACE_RE.search(command):
+        _audit({"ts": ts, "tool": tool_name, "command": command,
+                "verdict": "allow", "reason": "chain surface (stmt 5)",
+                "stage": "1b_chain_surface_allowlist"})
         return 0
 
     # STAGE 2 — recursive code-path walk
