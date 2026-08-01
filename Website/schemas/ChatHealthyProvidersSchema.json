@@ -4,16 +4,22 @@
   "title": "Providers",
   "description": "A bundle of healthcare provider records. The Providers wrapper holds a 'provider' array. To use the inner provider as a MongoDB $jsonSchema collection validator, target '#/definitions/provider' and replace 'type' with 'bsonType' throughout. Required fields: npi, loaded_at. Every other field is optional. Patterns and enums constrain the shape of values that are present.",
   "type": "object",
-  "required": ["Providers"],
+  "required": [
+    "Providers"
+  ],
   "properties": {
     "Providers": {
       "type": "object",
-      "required": ["provider"],
+      "required": [
+        "provider"
+      ],
       "properties": {
         "provider": {
           "description": "ChatHealthy.AI's proprietary provider record. It contains an array of provider records. May be empty.",
           "type": "array",
-          "items": { "$ref": "#/definitions/provider" }
+          "items": {
+            "$ref": "#/definitions/provider"
+          }
         }
       },
       "additionalProperties": false
@@ -24,7 +30,11 @@
       "title": "Provider",
       "description": "A healthcare provider record sourced from the NPPES NPI Registry, enriched with per-address county / urban data and proprietary classification flags. Required: npi (NPPES business key) and loaded_at (dispatcher-stamped at message dispatch).",
       "type": "object",
-      "required": ["npi", "loaded_at", "entity_type_code"],
+      "required": [
+        "npi",
+        "loaded_at",
+        "entity_type_code"
+      ],
       "properties": {
         "_id": {
           "description": "MongoDB ObjectId — auto-assigned on insert. Omit on write; always present on read.",
@@ -34,18 +44,25 @@
           "description": "National Provider Identifier — 10-digit string, globally unique, issued by CMS. Never numeric; leading zeros are significant. THE record's business key.",
           "type": "string",
           "pattern": "^[0-9]{10}$",
-          "examples": ["1144247073", "1215954557"]
+          "examples": [
+            "1144247073",
+            "1215954557"
+          ]
         },
         "loaded_at": {
           "description": "ISO-8601 UTC timestamp stamped by the ChatHealthyDataPipelineProcessor. This timestamp represents the moment when the first raw record JSON is constructed. ",
           "type": "string",
           "format": "date-time",
-          "examples": ["2026-05-25T22:40:08.123456+00:00"]
+          "examples": [
+            "2026-05-25T22:40:08.123456+00:00"
+          ]
         },
         "load_id": {
           "description": "Pipeline run identifier that wrote this record (parent orchestration's instance_id). Provenance — use npi as the stable identifier across runs.",
           "type": "string",
-          "examples": ["651268f0987b48c79afb1c78d6625f27"]
+          "examples": [
+            "651268f0987b48c79afb1c78d6625f27"
+          ]
         },
         "record_id": {
           "description": "Sequential integer assigned within a single pipeline run. Unique within one run but NOT globally unique across runs — use npi as the stable identifier.",
@@ -55,13 +72,18 @@
         "entity_type_code": {
           "description": "NPI entity type. '1' = individual practitioner. '2' = organization (hospital, pharmacy, group practice, etc.).",
           "type": "string",
-          "enum": ["1", "2"]
+          "enum": [
+            "1",
+            "2"
+          ]
         },
         "provider_enumeration_date": {
           "description": "Date the NPI was issued by CMS. Format: MM/DD/YYYY (as received from NPPES CSV; not converted to ISO 8601).",
           "type": "string",
           "pattern": "^[0-9]{2}/[0-9]{2}/[0-9]{4}$",
-          "examples": ["07/16/2006"]
+          "examples": [
+            "07/16/2006"
+          ]
         },
         "last_update_date": {
           "description": "Date the NPI record was last updated in the NPPES registry. Format: MM/DD/YYYY.",
@@ -78,12 +100,19 @@
           "type": "array",
           "items": {
             "type": "object",
-            "required": ["event", "date", "is_active"],
+            "required": [
+              "event",
+              "date",
+              "is_active"
+            ],
             "properties": {
               "event": {
                 "description": "Event type. Controlled vocabulary.",
                 "type": "string",
-                "enum": ["deactivated", "reactivated"]
+                "enum": [
+                  "deactivated",
+                  "reactivated"
+                ]
               },
               "date": {
                 "description": "Event date (MM/DD/YYYY) as reported by NPPES.",
@@ -105,7 +134,9 @@
         "addresses": {
           "description": "Unified address array. Replaces the previous separate practice_address + mailing_address fields. Exactly one entry has address_type='business' (the NPPES mailing/billing address); one or more entries have address_type='practice' (the primary practice location from the main NPPES file plus any secondary locations attached from the NPPES Practice Location Reference File pl_pfile_*.csv). County + urban enrichment is carried on every address entry regardless of type.",
           "type": "array",
-          "items": { "$ref": "#/definitions/address" },
+          "items": {
+            "$ref": "#/definitions/address"
+          },
           "minItems": 1
         },
         "taxonomies": {
@@ -113,20 +144,123 @@
           "type": "array",
           "items": {
             "type": "object",
-            "required": ["code"],
+            "additionalProperties": false,
+            "required": [
+              "code",
+              "code_label"
+            ],
             "properties": {
               "code": {
-                "description": "NUCC taxonomy code. 10-character alphanumeric string.",
                 "type": "string",
-                "pattern": "^[A-Z0-9]{10}$",
-                "examples": ["207R00000X", "333600000X"]
+                "description": "The taxonomy code as reported by CMS/NPPES for a `reported` element, or the canonical NUCC code for a `canonical_derived` element."
               },
               "code_label": {
-                "description": "NUCC 'Display Name' for the code. Populated by provider_record_builder from the NUCC catalog.",
                 "type": "string",
-                "examples": ["Family Medicine Physician", "Nurse Practitioner"]
+                "description": "Human-readable display for the code. Sourced from NUCC when reference_status=current_reference; sourced from the proprietary F-105 repair entry otherwise."
+              },
+              "taxonomy_role": {
+                "type": "string",
+                "enum": [
+                  "reported",
+                  "canonical_derived"
+                ],
+                "description": "`reported` = code as directly reported by CMS/NPPES; `canonical_derived` = code introduced by an approved F-105 canonical mapping. Both roles may coexist on the same provider when a repair carries an approved mapping."
+              },
+              "reference_status": {
+                "type": "string",
+                "enum": [
+                  "current_reference",
+                  "historical_reference",
+                  "records_registry_only",
+                  "locally_curated",
+                  "unresolved"
+                ],
+                "description": "Where this code stands relative to the current NUCC release. current_reference=present in current NUCC; historical_reference=present in a prior NUCC release, no longer published; records_registry_only=present in CMS/NPPES but never in NUCC; locally_curated=proprietary code not sourced from NUCC; unresolved=code present in neither NUCC nor the F-105 catalog."
+              },
+              "authority": {
+                "type": "string",
+                "enum": [
+                  "CMS_NPPES",
+                  "NUCC"
+                ],
+                "description": "Which authority attests this specific code on this provider. CMS_NPPES for `reported` elements; NUCC for `canonical_derived` elements."
+              },
+              "grouping": {
+                "type": "string",
+                "description": "NUCC grouping (or proprietary equivalent when reference_status != current_reference). REQUIRED when reference_status != current_reference."
+              },
+              "classification": {
+                "type": "string",
+                "description": "NUCC classification (or proprietary equivalent when reference_status != current_reference)."
+              },
+              "specialization": {
+                "type": "string",
+                "description": "NUCC specialization (or proprietary equivalent when reference_status != current_reference)."
+              },
+              "definition": {
+                "type": "string",
+                "description": "NUCC definition (or proprietary equivalent when reference_status != current_reference)."
+              },
+              "related_taxonomy": {
+                "type": "object",
+                "additionalProperties": false,
+                "description": "Link to a companion taxonomy element on the same provider. Present on `reported` elements when an approved canonical mapping exists (points at the `canonical_derived` twin), and on `canonical_derived` elements to point back at the `reported` source.",
+                "required": [
+                  "code",
+                  "relationship"
+                ],
+                "properties": {
+                  "code": {
+                    "type": "string"
+                  },
+                  "relationship": {
+                    "type": "string",
+                    "enum": [
+                      "possibly-equivalent-to",
+                      "equivalent-to",
+                      "broader-than",
+                      "narrower-than",
+                      "replaced-by",
+                      "likely-typographical-variant-of",
+                      "related-to",
+                      "mapped-from"
+                    ],
+                    "description": "Semantics of the relationship. Modeled after HL7 FHIR R5 ConceptMap relationship codes."
+                  }
+                }
+              },
+              "status": {
+                "type": "string",
+                "enum": [
+                  "Supplemented",
+                  "Missing"
+                ],
+                "description": "Optional. 'Supplemented' when this code is in the F-105 supplement catalog (absent from current NUCC); description peers (grouping/classification/specialization/definition) are also stamped on the element. 'Missing' when the code is in neither current NUCC nor F-105 (recorded to the discrepancy report). Absent = normal NUCC-backed. See NUCC_SpecialtyCodeDataDiscrepancyManagement.docx."
               }
-            }
+            },
+            "allOf": [
+              {
+                "if": {
+                  "properties": {
+                    "reference_status": {
+                      "const": "current_reference"
+                    }
+                  },
+                  "required": [
+                    "reference_status"
+                  ]
+                },
+                "then": {},
+                "else": {
+                  "required": [
+                    "grouping",
+                    "classification",
+                    "specialization",
+                    "definition"
+                  ]
+                }
+              }
+            ]
           }
         },
         "primary_taxonomy_code": {
@@ -152,7 +286,10 @@
               "state_label": {
                 "description": "Full state name for the two-letter state code (LLD v39 sec. 7.1).",
                 "type": "string",
-                "examples": ["Pennsylvania", "California"]
+                "examples": [
+                  "Pennsylvania",
+                  "California"
+                ]
               },
               "number": {
                 "description": "License number as reported by the provider to CMS.",
@@ -166,7 +303,9 @@
           "type": "array",
           "items": {
             "type": "object",
-            "required": ["identifier"],
+            "required": [
+              "identifier"
+            ],
             "properties": {
               "identifier": {
                 "description": "The identifier value as reported in NPPES.",
@@ -179,7 +318,10 @@
               "type_description": {
                 "description": "Human-readable type label derived from type_code via OID_TYPE_DESCRIPTIONS. Present when type_code is in the dictionary.",
                 "type": "string",
-                "examples": ["OTHER", "MEDICAID"]
+                "examples": [
+                  "OTHER",
+                  "MEDICAID"
+                ]
               },
               "state": {
                 "description": "State associated with this identifier (e.g. the state that issued a state Medicaid ID).",
@@ -189,7 +331,9 @@
               "issuer": {
                 "description": "Issuing organization. Free-form string from NPPES.",
                 "type": "string",
-                "examples": ["BLUE SHIELD"]
+                "examples": [
+                  "BLUE SHIELD"
+                ]
               }
             }
           }
@@ -197,7 +341,10 @@
         "bad_data": {
           "description": "Set when a provider record fails a data-quality gate. Present only when flagged. Permanent until source data is corrected.",
           "type": "object",
-          "required": ["flagged", "reason"],
+          "required": [
+            "flagged",
+            "reason"
+          ],
           "properties": {
             "flagged": {
               "description": "True when the record is flagged.",
@@ -218,7 +365,10 @@
         "out_of_scope": {
           "description": "Set when a provider record is currently excluded from operational scope (deactivated, foreign, etc.). Optional; absence means in-scope. See also the `active` event log which captures any historical inactivity even when not currently flagged.",
           "type": "object",
-          "required": ["flagged", "reason"],
+          "required": [
+            "flagged",
+            "reason"
+          ],
           "properties": {
             "flagged": {
               "description": "True when the record is currently excluded.",
@@ -269,32 +419,52 @@
         "provider_credential_text": {
           "description": "Professional credential suffix (e.g. 'M.D.', 'D.O.', 'R.N.').",
           "type": "string",
-          "examples": ["M.D.", "D.O.", "R.N.", "Ph.D."]
+          "examples": [
+            "M.D.",
+            "D.O.",
+            "R.N.",
+            "Ph.D."
+          ]
         },
         "provider_sex_code": {
           "description": "Provider sex as reported to CMS.",
           "type": "string",
-          "enum": ["M", "F"]
+          "enum": [
+            "M",
+            "F"
+          ]
         },
         "provider_sex_code_label": {
           "description": "Human-readable label for provider_sex_code (LLD v39 sec. 7.1).",
           "type": "string",
-          "examples": ["Male", "Female"]
+          "examples": [
+            "Male",
+            "Female"
+          ]
         },
         "is_sole_proprietor": {
           "description": "Whether the individual provider operates as a sole proprietor ('Y'/'N'). Typically present on individual records.",
           "type": "string",
-          "enum": ["Y", "N"]
+          "enum": [
+            "Y",
+            "N"
+          ]
         },
         "is_sole_proprietor_label": {
           "description": "Human-readable label for is_sole_proprietor (LLD v39 sec. 7.1).",
           "type": "string",
-          "examples": ["Yes", "No"]
+          "examples": [
+            "Yes",
+            "No"
+          ]
         },
         "provider_organization_name_legal_business_name": {
           "description": "Legal business name of the organization. Typically present on organization records (entity_type_code = '2').",
           "type": "string",
-          "examples": ["WALMART INC.", "MAYO CLINIC"]
+          "examples": [
+            "WALMART INC.",
+            "MAYO CLINIC"
+          ]
         },
         "provider_other_organization_name": {
           "description": "Alternate or DBA name for the organization.",
@@ -303,7 +473,12 @@
         "provider_other_organization_name_type_code": {
           "description": "Type code for provider_other_organization_name.",
           "type": "string",
-          "enum": ["3", "4", "5", "6"]
+          "enum": [
+            "3",
+            "4",
+            "5",
+            "6"
+          ]
         },
         "employer_identification_number_ein": {
           "description": "Federal EIN for the organization. May be '<UNAVAIL>' if CMS could not obtain it.",
@@ -312,7 +487,10 @@
         "is_organization_subpart": {
           "description": "Whether this organization is a subpart of a larger organization ('Y'/'N').",
           "type": "string",
-          "enum": ["Y", "N"]
+          "enum": [
+            "Y",
+            "N"
+          ]
         },
         "parent_organization_lbn": {
           "description": "Legal business name of the parent organization.",
@@ -337,7 +515,11 @@
         "authorized_official_title_or_position": {
           "description": "Job title or position of the authorized official.",
           "type": "string",
-          "examples": ["DIRECTOR OF HEALTHCARE CONTRACTING", "CEO", "CHIEF MEDICAL OFFICER"]
+          "examples": [
+            "DIRECTOR OF HEALTHCARE CONTRACTING",
+            "CEO",
+            "CHIEF MEDICAL OFFICER"
+          ]
         },
         "authorized_official_telephone_number": {
           "description": "Phone number of the authorized official. Digits only, no formatting.",
@@ -350,7 +532,9 @@
         "embedding": {
           "description": "Vector embedding of the provider record for semantic search.",
           "type": "array",
-          "items": { "type": "number" }
+          "items": {
+            "type": "number"
+          }
         },
         "embedding_text": {
           "description": "Text source used to generate the embedding. Should match the user-facing rendering of the provider so the embedding's semantic space encodes what the user actually sees.",
@@ -369,8 +553,14 @@
         {
           "description": "Type 1 individual practitioners: name + sex + sole-proprietor flag required (100% presence in NPPES sampling).",
           "if": {
-            "properties": { "entity_type_code": { "const": "1" } },
-            "required": ["entity_type_code"]
+            "properties": {
+              "entity_type_code": {
+                "const": "1"
+              }
+            },
+            "required": [
+              "entity_type_code"
+            ]
           },
           "then": {
             "required": [
@@ -384,8 +574,14 @@
         {
           "description": "Type 2 organizations: organization name + EIN + authorized-official quartet + is_organization_subpart required (100% presence in NPPES sampling). Nested: if is_organization_subpart='Y', parent_organization_lbn and parent_organization_tin become required (100% co-occurrence in NPPES sampling — 7,522/7,522 subpart records carried both; 0/10,000 non-subpart records carried either).",
           "if": {
-            "properties": { "entity_type_code": { "const": "2" } },
-            "required": ["entity_type_code"]
+            "properties": {
+              "entity_type_code": {
+                "const": "2"
+              }
+            },
+            "required": [
+              "entity_type_code"
+            ]
           },
           "then": {
             "required": [
@@ -400,11 +596,20 @@
             "allOf": [
               {
                 "if": {
-                  "properties": { "is_organization_subpart": { "const": "Y" } },
-                  "required": ["is_organization_subpart"]
+                  "properties": {
+                    "is_organization_subpart": {
+                      "const": "Y"
+                    }
+                  },
+                  "required": [
+                    "is_organization_subpart"
+                  ]
                 },
                 "then": {
-                  "required": ["parent_organization_lbn", "parent_organization_tin"]
+                  "required": [
+                    "parent_organization_lbn",
+                    "parent_organization_tin"
+                  ]
                 }
               }
             ]
@@ -416,12 +621,19 @@
       "title": "Address",
       "description": "A US address as reported in the NPPES NPI registry. Used inside the provider's `addresses` array; discriminated by address_type ('business' = the NPPES mailing/billing address, 'practice' = a practice location). Carries a nested county sub-document populated by the county enrichment passes (Pass 1 ZIP crosswalk + Census batch + Census billing + NPPES registry + Google Maps fallback) and an urban flag derived from USDA Rural-Urban Continuum Codes.",
       "type": "object",
-      "required": ["address_type"],
+      "required": [
+        "address_type"
+      ],
       "properties": {
         "address_type": {
           "description": "Discriminator. 'business' = the NPPES mailing/billing address (exactly one per provider). 'practice' = the NPPES primary practice location. 'secondary_practice' = a practice location appended from pl_pfile_*.csv. 'mailing' = legacy alias occasionally present.",
           "type": "string",
-          "enum": ["business", "practice", "secondary_practice", "mailing"]
+          "enum": [
+            "business",
+            "practice",
+            "secondary_practice",
+            "mailing"
+          ]
         },
         "line1": {
           "description": "Street address line 1.",
@@ -443,7 +655,10 @@
         "state_label": {
           "description": "Full state name for the two-letter state code (LLD v39 sec. 7.1).",
           "type": "string",
-          "examples": ["Delaware", "California"]
+          "examples": [
+            "Delaware",
+            "California"
+          ]
         },
         "zip": {
           "description": "5-digit ZIP code. Stored as a string to preserve leading zeros. Truncated from any ZIP+4 input at parse time.",
@@ -454,12 +669,17 @@
           "description": "ISO 3166-1 alpha-2 country code. 'US' for domestic providers. Foreign values trigger out_of_scope with reason 'foreign_provider'.",
           "type": "string",
           "pattern": "^[A-Z]{2}$",
-          "examples": ["US"]
+          "examples": [
+            "US"
+          ]
         },
         "country_code_label": {
           "description": "Full country name for the ISO country code (LLD v39 sec. 7.1).",
           "type": "string",
-          "examples": ["United States", "Canada"]
+          "examples": [
+            "United States",
+            "Canada"
+          ]
         },
         "phone": {
           "description": "Phone number as reported by NPPES. Digits only or with formatting as received.",
@@ -486,7 +706,10 @@
       "properties": {
         "fips": {
           "description": "5-digit FIPS county code (2-digit state + 3-digit county). Null when enrichment failed (source carries one of the geocoder_pass*_failed labels) or the address is excluded (out_of_scope*). Example: '30063' = Missoula County, MT.",
-          "type": ["string", "null"],
+          "type": [
+            "string",
+            "null"
+          ],
           "pattern": "^[0-9]{5}$"
         },
         "name": {

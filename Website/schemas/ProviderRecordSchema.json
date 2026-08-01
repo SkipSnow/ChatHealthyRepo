@@ -441,13 +441,116 @@
         ],
         "properties": {
           "code": {
-            "type": "string"
+            "type": "string",
+            "description": "The taxonomy code as reported by CMS/NPPES for a `reported` element, or the canonical NUCC code for a `canonical_derived` element."
           },
           "code_label": {
-            "description": "NUCC 'Display Name' for the code (LLD v39 sec. 7.1 labels-alongside-codes rule).",
-            "type": "string"
+            "type": "string",
+            "description": "Human-readable display for the code. Sourced from NUCC when reference_status=current_reference; sourced from the proprietary F-105 repair entry otherwise."
+          },
+          "taxonomy_role": {
+            "type": "string",
+            "enum": [
+              "reported",
+              "canonical_derived"
+            ],
+            "description": "`reported` = code as directly reported by CMS/NPPES; `canonical_derived` = code introduced by an approved F-105 canonical mapping. Both roles may coexist on the same provider when a repair carries an approved mapping."
+          },
+          "reference_status": {
+            "type": "string",
+            "enum": [
+              "current_reference",
+              "historical_reference",
+              "records_registry_only",
+              "locally_curated",
+              "unresolved"
+            ],
+            "description": "Where this code stands relative to the current NUCC release. current_reference=present in current NUCC; historical_reference=present in a prior NUCC release, no longer published; records_registry_only=present in CMS/NPPES but never in NUCC; locally_curated=proprietary code not sourced from NUCC; unresolved=code present in neither NUCC nor the F-105 catalog."
+          },
+          "authority": {
+            "type": "string",
+            "enum": [
+              "CMS_NPPES",
+              "NUCC"
+            ],
+            "description": "Which authority attests this specific code on this provider. CMS_NPPES for `reported` elements; NUCC for `canonical_derived` elements."
+          },
+          "grouping": {
+            "type": "string",
+            "description": "NUCC grouping (or proprietary equivalent when reference_status != current_reference). REQUIRED when reference_status != current_reference."
+          },
+          "classification": {
+            "type": "string",
+            "description": "NUCC classification (or proprietary equivalent when reference_status != current_reference)."
+          },
+          "specialization": {
+            "type": "string",
+            "description": "NUCC specialization (or proprietary equivalent when reference_status != current_reference)."
+          },
+          "definition": {
+            "type": "string",
+            "description": "NUCC definition (or proprietary equivalent when reference_status != current_reference)."
+          },
+          "related_taxonomy": {
+            "type": "object",
+            "additionalProperties": false,
+            "description": "Link to a companion taxonomy element on the same provider. Present on `reported` elements when an approved canonical mapping exists (points at the `canonical_derived` twin), and on `canonical_derived` elements to point back at the `reported` source.",
+            "required": [
+              "code",
+              "relationship"
+            ],
+            "properties": {
+              "code": {
+                "type": "string"
+              },
+              "relationship": {
+                "type": "string",
+                "enum": [
+                  "possibly-equivalent-to",
+                  "equivalent-to",
+                  "broader-than",
+                  "narrower-than",
+                  "replaced-by",
+                  "likely-typographical-variant-of",
+                  "related-to",
+                  "mapped-from"
+                ],
+                "description": "Semantics of the relationship. Modeled after HL7 FHIR R5 ConceptMap relationship codes."
+              }
+            }
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "Supplemented",
+              "Missing"
+            ],
+            "description": "Optional. 'Supplemented' when this code is in the F-105 supplement catalog (absent from current NUCC); description peers (grouping/classification/specialization/definition) are also stamped on the element. 'Missing' when the code is in neither current NUCC nor F-105 (recorded to the discrepancy report). Absent = normal NUCC-backed. See NUCC_SpecialtyCodeDataDiscrepancyManagement.docx."
           }
-        }
+        },
+        "allOf": [
+          {
+            "if": {
+              "properties": {
+                "reference_status": {
+                  "const": "current_reference"
+                }
+              },
+              "required": [
+                "reference_status"
+              ]
+            },
+            "then": {},
+            "else": {
+              "required": [
+                "grouping",
+                "classification",
+                "specialization",
+                "definition"
+              ]
+            }
+          }
+        ]
       }
     },
     "primary_taxonomy_code": {
