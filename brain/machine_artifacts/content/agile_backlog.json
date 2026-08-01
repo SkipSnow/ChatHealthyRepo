@@ -12167,6 +12167,26 @@
                               }
                             ]
                           }
+                        },
+                        {
+                          "req_id": "EPIC-008-F-002-S-010-REQ-B-010",
+                          "orphan": false,
+                          "name": "Mongo utility library has no cluster or workload knowledge",
+                          "requirement": "The chathealthy_frontend_lib mongo utility MUST have zero references to any Mongo cluster facts.",
+                          "priority": "must-have",
+                          "status": "not_started",
+                          "approval": "approved",
+                          "depends_on": [],
+                          "tests": {
+                            "test": [
+                              {
+                                "test_id": "EPIC-008-F-002-S-010-REQ-B-010-TEST-UNSUPPORTABLE",
+                                "test_type": "Unsupportable",
+                                "orphan": false,
+                                "file": "UNSUPPORTABLE"
+                              }
+                            ]
+                          }
                         }
                       ]
                     }

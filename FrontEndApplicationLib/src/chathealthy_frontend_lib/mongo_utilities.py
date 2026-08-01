@@ -297,14 +297,25 @@ class ChatHealthyMongoUtilities:
     REQ-B-008: logging governed by EPIC-008-F-011-S-005.
     """
 
-    def __init__(self, env_var_name: str = "MONGO_FRONTEND_connectionString") -> None:
+    def __init__(
+        self,
+        env_var_name: str = "MONGO_FRONTEND_connectionString",
+        timeout_ms: int | None = None,
+    ) -> None:
         """env_var_name selects which cluster's connection string is read
         from the runtime environment. Default preserves REQ-B-002 single-
         URI behavior for existing front-end callers. Pipeline code passes
         'MONGO_connectionString' for the pipeline cluster or a per-cluster
         name like 'MONGO_CLUSTER_<x>_connectionString' for migration
         workloads. One MongoClient singleton cached per distinct env-var
-        (REQ-B-003 refined for multi-cluster)."""
+        (REQ-B-003 refined for multi-cluster).
+
+        timeout_ms sets pymongo's client-side operation timeout (CSOT).
+        When None, a cluster-specific default is chosen -- see BUG-001
+        for the tech-debt cleanup that removes this cluster branching
+        from the library. Cached per env_var_name; the FIRST caller for
+        a given env var wins the timeout and later callers get the
+        cached MongoClient regardless of their arg."""
         global cached_client
         self._env_var_name = env_var_name
 
@@ -324,7 +335,19 @@ class ChatHealthyMongoUtilities:
                 component="ChatHealthyMongoUtilities",
             )
 
-        kwargs = {"timeoutMS": TIMEOUT_MS}
+        # HACK: cluster-specific default timeout. Pipeline cluster gets
+        # 24h to accommodate long-running batch cursor iterations that
+        # blew up run 56ff79 at the default 120s. Everything else keeps
+        # the historical 120s interactive ceiling. Library should not
+        # know which env var names correspond to which clusters; see
+        # BUG-001 for the cleanup.
+        if timeout_ms is None:
+            if env_var_name == "MONGO_connectionString":
+                timeout_ms = 86_400_000  # 24 hours
+            else:
+                timeout_ms = TIMEOUT_MS
+
+        kwargs = {"timeoutMS": timeout_ms}
         appname = os.environ.get("CHATHEALTHY_SERVICE_NAME")
         if appname:
             kwargs["appname"] = appname
@@ -348,7 +371,7 @@ class ChatHealthyMongoUtilities:
             cached_client = client
         log.info(
             "MongoClient established for %s (appname=%s timeoutMS=%d)",
-            env_var_name, appname or "<unset>", TIMEOUT_MS,
+            env_var_name, appname or "<unset>", timeout_ms,
         )
 
     def getConnection(self) -> TimedClient:
