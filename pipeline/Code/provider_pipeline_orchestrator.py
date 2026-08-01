@@ -64,6 +64,19 @@ class ProviderPipelineOrchestrator(BasePipelineOrchestrator):
             partition_key="business_address_state",
         ),
         StepSpec(
+            # Enrich raw NUCC staging with F-105 proprietary data
+            # (can_prescribe / is_homeopathic / is_disqualified) and insert
+            # F-105 supplement codes not present in NUCC as new rows with
+            # is_supplemented=true. Runs in parallel with per-state provider
+            # normalization -- same prerequisites, independent write target
+            # (StagingNucc_v_N vs providers_v_N). Design directive 2026-08-01.
+            # SMD collection creation is out of scope (Specialty Pipeline).
+            name="normalize_nucc",
+            prerequisites=["load_f006_catalog"],
+            parallelism="serial",
+            aca_job_name="prov-normalize-nucc",
+        ),
+        StepSpec(
             name="add_secondary_practices",
             prerequisites=["normalize_npi_per_state_fanout"],
             parallelism="process_pool",
