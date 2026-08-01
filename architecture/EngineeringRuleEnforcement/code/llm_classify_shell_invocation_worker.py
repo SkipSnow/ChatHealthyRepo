@@ -96,7 +96,7 @@ _WALK_MAX_NODES = 60
 _WALK_MAX_DEPTH = 6
 
 _PROJECT_ROOT = Path(__file__).resolve().parents[3]
-_ENV_FILE = _PROJECT_ROOT / "Code" / ".env"
+_ENV_FILE = _PROJECT_ROOT / ".env"
 _AUDIT_DIR = (
     _PROJECT_ROOT
     / "architecture"
