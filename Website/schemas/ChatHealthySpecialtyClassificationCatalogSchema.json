@@ -95,6 +95,10 @@
           "specialization": {
             "type": "string"
           },
+          "display_name": {
+            "type": "string",
+            "description": "Authoritative NUCC-equivalent display label for this code (used as taxonomies[i].code_label on provider records). Required on supplement entries so downstream consumers get a proper label instead of a derived-from-specialization fallback like 'Surgical' when the intended label is 'Surgical Technologist'."
+          },
           "definition": {
             "type": "string"
           }

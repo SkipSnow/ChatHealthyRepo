@@ -9,7 +9,7 @@ Maps every NUCC taxonomy code to booleans:
 The catalog JSON is a public document published to the ChatHealthy website
 under Data/. The URL is passed to this process as the env var
 SPECIALTY_CLASSIFICATION_CATALOG_URL via the standard deploy chain
-(declared in deployment_architecture.json, sourced from Code/.env, pushed
+(declared in deployment_architecture.json, sourced from .env, pushed
 to KV + Automation Variable, hydrated into the Controller container).
 
 No fallbacks. Missing env, HTTP error, or empty result raises.
@@ -109,6 +109,7 @@ def load_catalog() -> Dict[str, Dict[str, bool]]:
                 "grouping": row.get("grouping"),
                 "classification": row.get("classification"),
                 "specialization": row.get("specialization"),
+                "display_name": row.get("display_name"),
                 "definition": row.get("definition"),
                 "is_npi_registered": bool(row.get("is_npi_registered", False)),
                 "is_disqualified": bool(row.get("is_disqualified", False)),

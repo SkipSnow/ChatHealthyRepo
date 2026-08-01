@@ -3151,6 +3151,7 @@
       "grouping": "Technologists, Technicians & Other Technical Service Providers",
       "classification": "Specialist/Technologist, Other",
       "specialization": "Surgical",
+      "display_name": "Surgical Technologist",
       "definition": "A specialist or technologist providing surgical-adjacent technical services. Works under the supervision of a surgeon to facilitate invasive procedures; handles sterile technique, equipment, and operative-environment safety.",
       "is_supplemented": {
         "value": true,
