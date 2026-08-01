@@ -197,15 +197,76 @@ def _credential_grants_prescribing(credential_text: str | None) -> bool:
     return bool(tokens & _PRESCRIBING_CREDENTIAL_TOKENS)
 
 
+def _stamp_taxonomy_status(doc: dict, catalog: dict) -> None:
+    """Stamp `status` on doc['taxonomies'][i] ONLY for the 0.001% of
+    codes that are not normal NUCC-backed. Absent = normal (default);
+    'Supplemented' = code exists in F-105 as an operational supplement
+    (also stamps grouping/classification/specialization/definition from
+    the F-105 supplement entry); 'Missing' = code is in neither current
+    NUCC nor F-105.
+
+    Ceremonial bytes matter across 9.25M records -- normal records
+    stay untouched so downstream serialization is unchanged for them.
+    See NUCC_SpecialtyCodeDataDiscrepancyManagement.docx."""
+    for tax in doc.get("taxonomies") or []:
+        code = (tax.get("code") or "").strip()
+        if not code:
+            continue
+        entry = catalog.get(code)
+        if entry is None:
+            tax["status"] = "Missing"
+            continue
+        if entry.get("is_supplemented"):
+            tax["status"] = "Supplemented"
+            for k in ("grouping", "classification", "specialization", "definition"):
+                v = entry.get(k)
+                if v is not None:
+                    tax[k] = v
+        # Normal NUCC-backed case: leave the taxonomy element untouched.
+
+
 def _apply_flags_to_doc(
     doc: dict,
     *,
-    catalog: dict[str, dict[str, bool]],
+    catalog: dict[str, dict[str, object]],
     registered_npis: set[str],
-) -> dict[str, bool]:
-    """Deterministic flag computation. Raises on any unresolvable path."""
+    discrepancy_sink=None,
+) -> dict[str, bool] | None:
+    """Deterministic flag computation.
+
+    Also mutates doc['taxonomies'] in place to stamp `taxonomy_source`
+    on every taxonomy element (enum: Present | Supplemented | Missing).
+    Supplemented taxonomies also receive their NUCC-equivalent
+    description fields from the F-105 supplement entry.
+
+    When the primary taxonomy code is absent from the F-105 catalog:
+      - If `discrepancy_sink` was provided, invoke it with a
+        {reason, code, npi, message} entry and return None. The caller
+        skips flag stamping for this record and continues; upstream
+        report_discrepancy() persists the entry to the discrepancy
+        report per LLD v42 §6.9 (Data Quality — NUCC supplement pattern).
+      - If no sink was provided, raise (pre-supplement-pattern behavior).
+    """
+    # Stamp taxonomies[i].status ONLY on Supplemented or Missing codes
+    # (absent = normal NUCC-backed; ~99.999% of records). See
+    # NUCC_SpecialtyCodeDataDiscrepancyManagement.docx.
+    _stamp_taxonomy_status(doc, catalog)
+
     code = _primary_taxonomy_code(doc)
     if code not in catalog:
+        if discrepancy_sink is not None:
+            discrepancy_sink({
+                "reason": "unresolved_taxonomy_code",
+                "code": code,
+                "npi": doc.get("npi"),
+                "message": (
+                    f"provider_flags_engine: primary taxonomy code {code!r} "
+                    f"on npi={doc.get('npi')!r} is in neither current NUCC "
+                    f"nor the F-105 supplement catalog. Flag stamping skipped; "
+                    f"code recorded to the discrepancy report for curator review."
+                ),
+            })
+            return None
         raise ChatHealthyException(
             mode="taxonomy_code_missing_from_catalog",
             message=(
@@ -247,9 +308,14 @@ def apply_provider_flags(
       - partition_state       (str | None) - restrict to this business state
       - batch_size            (int, default 500)
 
-    Returns metrics dict. Raises ChatHealthyException on any unresolvable
-    provider or catalog condition -- the step fails loud rather than
-    stamping silent-wrong defaults."""
+    Returns metrics dict. Unresolved taxonomy codes (present in neither
+    current NUCC nor the F-105 supplement catalog) DO NOT abort the run:
+    the record's flag stamping is skipped and a discrepancy entry is
+    emitted via report_discrepancy() for the tail-of-run discrepancy
+    report (LLD v42 sec. 6.9 Data Quality / see
+    NUCC_SpecialtyCodeDataDiscrepancyManagement.docx). Artifact-level
+    defects (missing catalog, empty staging, misconfigured provider
+    doc) still raise ChatHealthyException."""
     run_id = config["run_id"]
     data_version = int(config["data_version"])
     provider_collection = config["provider_collection"]
@@ -259,6 +325,25 @@ def apply_provider_flags(
 
     catalog = _load_catalog(mongo, data_version)
     registered = _load_registered_npis(mongo, data_version)
+
+    # Discrepancy sink: every unresolved taxonomy code encountered inside
+    # this run gets forwarded to report_discrepancy() which persists it
+    # to the work_manager entity for the tail-of-run discrepancy report.
+    # See LLD v42 sec. 6.9 Data Quality and
+    # NUCC_SpecialtyCodeDataDiscrepancyManagement.docx for governance.
+    from discrepancy_reporter import report_discrepancy
+
+    def _sink(entry: dict) -> None:
+        report_discrepancy(
+            load_id=run_id,
+            record_key=entry.get("npi"),
+            reason=entry.get("reason", "unresolved_taxonomy_code"),
+            ctx={
+                "code": entry.get("code"),
+                "message": entry.get("message"),
+                "step": "provider_flags_enrichment",
+            },
+        )
 
     db_name, coll_name = provider_collection.split(".", 1)
     coll = mongo[db_name][coll_name]
@@ -279,6 +364,7 @@ def apply_provider_flags(
     ops: list[UpdateOne] = []
     modified = 0
     matched = 0
+    unresolved = 0
 
     projection = {
         "npi": 1,
@@ -289,8 +375,15 @@ def apply_provider_flags(
     for doc in coll.find(query, projection):
         matched += 1
         flags = _apply_flags_to_doc(
-            doc, catalog=catalog, registered_npis=registered,
+            doc,
+            catalog=catalog,
+            registered_npis=registered,
+            discrepancy_sink=_sink,
         )
+        if flags is None:
+            # Unresolved code -- sink already recorded it; skip stamping.
+            unresolved += 1
+            continue
         # Clear any stale is_disqualified from prior engine versions --
         # no source-file field currently drives it, so we do not stamp it.
         ops.append(UpdateOne(
@@ -309,6 +402,7 @@ def apply_provider_flags(
     return {
         "matched": matched,
         "modified": modified,
+        "unresolved_taxonomy_count": unresolved,
         "catalog_size": len(catalog),
         "registered_npi_count": len(registered),
     }

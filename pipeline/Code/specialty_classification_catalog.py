@@ -83,17 +83,33 @@ def load_catalog() -> Dict[str, Dict[str, bool]]:
                 component="specialty_classification_catalog",
                 url=url,
             )
-        out: Dict[str, Dict[str, bool]] = {}
+        out: Dict[str, Dict[str, object]] = {}
         for row in rows:
-            code = row.get("Code") or row.get("code")
+            code = row.get("code")
             if not code:
                 continue
             homeopathic = row.get("is_homeopathic")
             if homeopathic is None:
                 homeopathic = row.get("homeopathic", False)
+            # is_supplemented is a nested object {value: bool, note?: str} per
+            # the F-105 schema. Extract the boolean value; when true, the entry
+            # also carries the NUCC-equivalent description peers per
+            # NUCC_SpecialtyCodeDataDiscrepancyManagement.docx.
+            is_supp = row.get("is_supplemented")
+            if isinstance(is_supp, dict):
+                is_supplemented = bool(is_supp.get("value"))
+            elif isinstance(is_supp, bool):
+                is_supplemented = is_supp
+            else:
+                is_supplemented = False
             out[code] = {
                 "can_prescribe": bool(row.get("can_prescribe", False)),
                 "is_homeopathic": bool(homeopathic),
+                "is_supplemented": is_supplemented,
+                "grouping": row.get("grouping"),
+                "classification": row.get("classification"),
+                "specialization": row.get("specialization"),
+                "definition": row.get("definition"),
                 "is_npi_registered": bool(row.get("is_npi_registered", False)),
                 "is_disqualified": bool(row.get("is_disqualified", False)),
             }
