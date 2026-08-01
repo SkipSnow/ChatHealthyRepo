@@ -528,7 +528,38 @@ def _main():
     if should_pause:
         resp = requests.get(ATLAS_CLUSTER_URL, auth=atlas_auth,
                             headers=ATLAS_HEADERS, timeout=15)
-        cluster_state = resp.json().get("stateName", "UNKNOWN")
+        cluster_info = resp.json()
+        cluster_state = cluster_info.get("stateName", "UNKNOWN")
+        # Post-job scale-down per operator directive 2026-08-01:
+        # if the cluster is at M80 (JOB_TIER), resize to M30 before pausing
+        # so the reaper leaves the cluster on a smaller tier even if
+        # the pause step later fails or is deferred.
+        current_tier = ""
+        try:
+            current_tier = cluster_info.get("replicationSpecs", [{}])[0]\
+                .get("regionConfigs", [{}])[0]\
+                .get("electableSpecs", {}).get("instanceSize", "")
+        except (IndexError, KeyError, AttributeError):
+            pass
+        if current_tier == "M80" and cluster_state == "IDLE":
+            log.info("Reaper: cluster %s at M80 -- resizing to M30 before pause",
+                     CLUSTER_NAME)
+            resize_body = {
+                "replicationSpecs": [{
+                    "regionConfigs": [{
+                        "electableSpecs": {"instanceSize": "M30", "nodeCount": 3},
+                        "analyticsSpecs": {"instanceSize": "M30", "nodeCount": 0},
+                        "readOnlySpecs": {"instanceSize": "M30", "nodeCount": 0},
+                        "autoScaling": {"compute": {"enabled": True,
+                                                     "maxInstanceSize": "M40",
+                                                     "minInstanceSize": "M30",
+                                                     "scaleDownEnabled": False}},
+                        "priority": 7,
+                    }],
+                }],
+            }
+            requests.patch(ATLAS_CLUSTER_URL, json=resize_body,
+                           auth=atlas_auth, headers=ATLAS_HEADERS, timeout=30)
         if cluster_state == "IDLE":
             resp = requests.patch(
                 ATLAS_CLUSTER_URL, json={"paused": True},

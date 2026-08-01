@@ -37,9 +37,13 @@ PUBLIC_KEY    = os.environ["ATLAS_PUBLIC_KEY"]
 PRIVATE_KEY   = os.environ["ATLAS_PRIVATE_KEY"]
 PROJECT_ID    = os.environ["ATLAS_PROJECT_ID"]
 
-# Tier config
-JOB_TIER      = "M30"    # pre-scale before heavy jobs
+# Tier config (per operator directive 2026-08-01)
+# On job start: if current tier < M80, scale to M80.
+# On job end (finally + reaper): if current tier == M80, scale to M30.
+JOB_TIER      = "M80"    # scale-up target before heavy jobs
 JOB_MAX       = "M200"   # autoscale ceiling during jobs
+POST_JOB_TIER = "M30"    # scale-down target when the job ends (kept warm, not paused)
+POST_JOB_MAX  = "M40"    # autoscale ceiling at post-job idle
 IDLE_TIER     = "M10"    # autoscale floor (used in resize payload; cluster is paused between jobs, not resized)
 IDLE_MAX      = "M20"    # autoscale ceiling (used in resize payload)
 
@@ -185,6 +189,31 @@ def scale_up(cluster_name: str) -> None:
     resize_cluster(cluster_name, JOB_TIER, JOB_MAX, lock_tier=True)
     wait_for_idle(cluster_name)
     log.info("%s is ready at %s (autoscale locked).", cluster_name, JOB_TIER)
+
+
+def scale_to_post_job(cluster_name: str) -> None:
+    """Resize the cluster back down to POST_JOB_TIER (M30) when the job
+    ends. Called from the orchestrator finally block AND from the
+    reservation reaper. Guard per operator directive 2026-08-01: only
+    resize if the cluster is CURRENTLY at JOB_TIER (M80). This avoids
+    downgrading a cluster that a human operator has intentionally
+    resized to a different tier for other work."""
+    log.info("Post-job scale-down check on %s (target if at %s: %s)",
+             cluster_name, JOB_TIER, POST_JOB_TIER)
+    info = get_cluster_info(cluster_name)
+    if info["paused"]:
+        log.info("%s is paused -- no resize needed.", cluster_name)
+        return
+    if info["tier"] != JOB_TIER:
+        log.info("%s is at %s (not %s) -- skipping post-job resize.",
+                 cluster_name, info["tier"], JOB_TIER)
+        return
+    if info["state"] != "IDLE":
+        log.info("Cluster is %s -- waiting for IDLE before resizing...", info["state"])
+        wait_for_idle(cluster_name)
+    resize_cluster(cluster_name, POST_JOB_TIER, POST_JOB_MAX, lock_tier=True)
+    wait_for_idle(cluster_name)
+    log.info("%s resized to post-job tier %s.", cluster_name, POST_JOB_TIER)
 
 
 def scale_down(cluster_name: str) -> None:
