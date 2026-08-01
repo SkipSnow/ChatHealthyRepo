@@ -1,0 +1,1464 @@
+{
+  "$schema": "https://dev.chathealthy.ai/schemas/ChatHealthyAgileBacklogSchema.json",
+  "version": "v41-reverse-engineered-1",
+  "created": "2026-08-01",
+  "description": "Reverse-engineered EPIC-010 backlog proposal. Canonical truth is exclusively the Provider Pipeline Low-Level Design v41 (pipeline/ArchitectureDesignAndAudit/ProviderPipeline_LowLevelDesign_v41.docx); no prior backlog content was consulted as authority. Requirement IDs the design explicitly binds to behavior are preserved at their design-cited meanings (e.g. EPIC-010-F-103-S-001-REQ-B-002 delete-on-absence, -B-005 license repair, EPIC-010-F-103-S-004-REQ-B-001..B-008 county cascade). Where the design cites a requirement range without enumerating each member (F-103-S-001-REQ-B-001 through B-019), only the members groundable in design text are proposed; remaining numbers are intentionally left unproposed for iteration. All items carry approval=proposed and test file placeholders of TBD.",
+  "epics": {
+    "epic": [
+      {
+        "epic_id": "EPIC-010",
+        "orphan": false,
+        "name": "Pipelines",
+        "type": "functional",
+        "status": "not_started",
+        "approval": "proposed",
+        "description": "ChatHealthy's data pipelines: deterministic conveyors that turn raw public-domain health data (NPPES monthly dissemination file plus pl_pfile practice locations, NUCC provider taxonomy, U.S. Census ZCTA-to-county crosswalk, USDA RUCC classification workbook, and licensed CMS PUFs over time) into the authoritative MongoDB collections the front end reads. Every pipeline follows one shared shape: it is triggered on a schedule or on demand through a single authenticated entrance, provisions its own ephemeral compute (one Azure VM per run hosting one Controller process and its detached Worker subprocesses), coordinates all parallel work exclusively through the MongoDB work_items collection (no ports, no HTTP, no queues, no Event Grid), holds a reservation that keeps the pipeline Atlas cluster unpaused only while live work exists, fetches every source in parallel behind an always-on freshness gate, normalizes and enriches at state-scoped parallelism, and then quiesces itself: deleting the VM, releasing the reservation, and reporting discrepancies. No persistent compute runs between runs; zero idle compute cost is the design contract. The failure model is batch, not transactional: a failed run is torn down and the next invocation re-runs from scratch, with upsert-by-NPI making partial output harmless. All pipeline code executes in Azure and reads/writes the ChatHealthy MongoDB Atlas clusters (front-end cluster chathealthyfrontend for coordination and metadata; pipeline cluster chathealthydatapipeline for staging and the versioned published output). The pipeline is a client of the EPIC-002-F-003 identity/cryptography feature and the EPIC-008-F-012 deployment feature and does not restate their rules. Source: Provider Pipeline Low-Level Design v41.",
+        "features": {
+          "feature": [
+            {
+              "feature_id": "EPIC-010-F-101",
+              "orphan": false,
+              "name": "DB & Pipeline Infrastructure Management",
+              "status": "not_started",
+              "priority": "HIGH",
+              "approval": "proposed",
+              "due_date": "TBD",
+              "realized_by": [],
+              "description": "Operational management of the substrate every pipeline run depends on. Covers: the reservation-gated pause/resume lifecycle of the pipeline Atlas cluster (chathealthydatapipeline) so the cluster is unpaused only while at least one live reservation exists and paused when none remain; the per-run ephemeral Pipeline Run VM lifecycle (Runbook creates one VM at run start, Controller and Workers run on it, Controller destroys it at run end) with zero persistent compute between runs; the safety reapers that prevent runaway cost without killing live work (the Watchdog Runbook's four-check orphaned-VM detection state machine and the ReservationReaper's strictly expiry-based reservation reaping); permanent networking as deploy topology (the pipeline never creates or destroys a network object at run time); the Azure Blob storage account with its two containers per environment (content-hash-keyed source archive retained until superseded, and per-run transients); per-run cost tracking; and the configuration store plus dataset version management. Source: LLD v41 sections 3.1.2, 3.1.3, 3.1.7-3.1.9, 4.2, 4.3.1, 5.2.2, 5.2.20, 6.3, 6.7, 6.8.",
+              "stories": {
+                "story": [
+                  {
+                    "story_id": "EPIC-010-F-101-S-001",
+                    "orphan": false,
+                    "name": "Reservation-gated cluster and ephemeral VM lifecycle",
+                    "description": "As the pipeline operator, I need every run to own exactly the infrastructure it uses for exactly as long as it uses it: a reservation created by the Runbook immediately after the VM PUT keeps the pipeline Atlas cluster unpaused; the Controller inherits and deletes that reservation in its finally block as the primary release path; the safety reapers (Watchdog and ReservationReaper) clean up only what is provably orphaned; and the network boundary is permanent deploy topology that runs never mutate. Source: LLD v41 sections 3.1.2, 4.2, 4.3.1, 4.3.4, 5.2.2, 5.2.20.",
+                    "size": "L",
+                    "status": "not_started",
+                    "approval": "proposed",
+                    "requirements": {
+                      "requirement": [
+                        {
+                          "req_id": "EPIC-010-F-101-S-001-REQ-B-001",
+                          "orphan": false,
+                          "name": "Reservation-owned uptime",
+                          "requirement": "The pipeline Atlas cluster (chathealthydatapipeline) is unpaused only while at least one live reservation exists. The Runbook creates the run's reservation on the front cluster's admin.cluster_lifecycle collection immediately after the VM PUT succeeds, with fields {_id: run_id, run_id, vm_name, requester, cluster_name, start_time=NOW, expiry_at=NOW+10h, reservation_class=pipeline_run, pipeline_name}. The Controller inherits the reservation and deletes it in its main.finally as the primary release path. At quiesce, if no other live reservation and no operator-class reservation exists, the Controller requests Atlas pause.",
+                          "priority": "must-have",
+                          "status": "not_started",
+                          "depends_on": [],
+                          "approval": "proposed",
+                          "tests": {
+                            "test": [
+                              {
+                                "test_id": "EPIC-010-F-101-S-001-REQ-B-001-TEST-1",
+                                "orphan": false,
+                                "test_type": "integration",
+                                "file": "TBD"
+                              }
+                            ]
+                          }
+                        },
+                        {
+                          "req_id": "EPIC-010-F-101-S-001-REQ-B-002",
+                          "orphan": false,
+                          "name": "Ephemeral per-run VM with zero idle cost",
+                          "requirement": "Every run provisions exactly one Azure VM (name pattern vm-chpipeline-<run_id_short>, tags pipeline_run_id/pipeline_name/env, default size Standard_D32s_v5 with the sizing knob at pipeline.config.vm_sizing), created by the Runbook via az vm create with cloud-init that authenticates to ACR via the VM's managed identity, pulls the pipeline image tagged with the run's target git SHA, and execs the Controller. The Controller destroys the VM at quiesce via a fire-and-forget az vm delete. Zero compute persists between runs.",
+                          "priority": "must-have",
+                          "status": "not_started",
+                          "depends_on": [],
+                          "approval": "proposed",
+                          "tests": {
+                            "test": [
+                              {
+                                "test_id": "EPIC-010-F-101-S-001-REQ-B-002-TEST-1",
+                                "orphan": false,
+                                "test_type": "integration",
+                                "file": "TBD"
+                              }
+                            ]
+                          }
+                        },
+                        {
+                          "req_id": "EPIC-010-F-101-S-001-REQ-B-003",
+                          "orphan": false,
+                          "name": "Watchdog orphaned-VM detection state machine",
+                          "requirement": "The Watchdog Runbook runs every 15 minutes (SCH-Watchdog-15min) and deletes a pipeline_run_id-tagged VM only when every ordered check fails: (1) live unexpired reservation exists -> skip; (2) run manifest status terminal in {success, failed, aborted} -> delete as cleanup; (3) manifest in {pending_vm_provision, running} with controller_heartbeat_at older than 15 minutes -> confirm VM PowerState, mark manifest failed with abort_reason controller_heartbeat_lost (VM stopped/deallocated) or controller_process_dead (VM running), then delete; (4) missing manifest -> delete after a 30-minute grace. The Watchdog never deletes a VM whose reservation is live.",
+                          "priority": "must-have",
+                          "status": "not_started",
+                          "depends_on": [],
+                          "approval": "proposed",
+                          "tests": {
+                            "test": [
+                              {
+                                "test_id": "EPIC-010-F-101-S-001-REQ-B-003-TEST-1",
+                                "orphan": false,
+                                "test_type": "integration",
+                                "file": "TBD"
+                              }
+                            ]
+                          }
+                        },
+                        {
+                          "req_id": "EPIC-010-F-101-S-001-REQ-B-004",
+                          "orphan": false,
+                          "name": "Reservation-driven cluster usage and expiry-only reaping",
+                          "requirement": "The ReservationReaper runs on three staggered 15-minute schedules (SCH-Reaper-15min-a/b/c) and reaps only reservations whose expiry_at is in the past (the 10-hour outer envelope). It never reaps on heartbeat staleness; heartbeat-based failure detection belongs exclusively to the Watchdog's detection state machine. Cluster pause/unpause is driven solely by the reservation set.",
+                          "priority": "must-have",
+                          "status": "not_started",
+                          "depends_on": [],
+                          "approval": "proposed",
+                          "tests": {
+                            "test": [
+                              {
+                                "test_id": "EPIC-010-F-101-S-001-REQ-B-004-TEST-1",
+                                "orphan": false,
+                                "test_type": "integration",
+                                "file": "TBD"
+                              }
+                            ]
+                          }
+                        },
+                        {
+                          "req_id": "EPIC-010-F-101-S-001-REQ-B-005",
+                          "orphan": false,
+                          "name": "Permanent network topology",
+                          "requirement": "The VNet, both subnets (snet-pipeline-compute, snet-pipeline-atlas), the Atlas Private Endpoint, the private DNS zone, and all NSG rules are permanent deploy topology provisioned by the deployment chain. The pipeline never creates or destroys a network object at run time; only the VM is transient.",
+                          "priority": "must-have",
+                          "status": "not_started",
+                          "depends_on": [],
+                          "approval": "proposed",
+                          "tests": {
+                            "test": [
+                              {
+                                "test_id": "EPIC-010-F-101-S-001-REQ-B-005-TEST-1",
+                                "orphan": false,
+                                "test_type": "analysis",
+                                "file": "TBD"
+                              }
+                            ]
+                          }
+                        }
+                      ]
+                    }
+                  },
+                  {
+                    "story_id": "EPIC-010-F-101-S-004",
+                    "orphan": false,
+                    "name": "Pipeline cost tracking",
+                    "description": "As the pipeline operator, I need every run to account for its own cost so that the zero-idle-cost contract is verifiable and per-run spend is visible in the run-end notification. Source: LLD v41 sections 6.7 and 8.2.",
+                    "size": "S",
+                    "status": "not_started",
+                    "approval": "proposed",
+                    "requirements": {
+                      "requirement": [
+                        {
+                          "req_id": "EPIC-010-F-101-S-004-REQ-T-003",
+                          "orphan": false,
+                          "name": "Cost tracking on step transitions",
+                          "requirement": "Per-step wall-clock and peak memory are captured by the orchestration framework and appended to the run manifest's step_transitions[]. Per-run totals are computed at quiesce_infrastructure and stored on the manifest metrics. Compute cost is computed as VM SKU hourly rate x run wall-clock; Atlas cost as a function of tier-hours; vendor cost (Google Maps geocoding) is tracked per call and rolled up. The successful-end notification reports the run's compute and vendor cost.",
+                          "priority": "must-have",
+                          "status": "not_started",
+                          "depends_on": [],
+                          "approval": "proposed",
+                          "tests": {
+                            "test": [
+                              {
+                                "test_id": "EPIC-010-F-101-S-004-REQ-T-003-TEST-1",
+                                "orphan": false,
+                                "test_type": "integration",
+                                "file": "TBD"
+                              }
+                            ]
+                          }
+                        }
+                      ]
+                    }
+                  },
+                  {
+                    "story_id": "EPIC-010-F-101-S-005",
+                    "orphan": false,
+                    "name": "Configuration store and dataset version management",
+                    "description": "As the pipeline operator, I need one hand-maintained configuration surface for every tunable knob and a dataset versioning scheme in which multiple provider dataset versions coexist and promotion to active is an explicit operator action, never a side effect of a run. Source: LLD v41 sections 6.3 and 6.8.",
+                    "size": "M",
+                    "status": "not_started",
+                    "approval": "proposed",
+                    "requirements": {
+                      "requirement": [
+                        {
+                          "req_id": "EPIC-010-F-101-S-005-REQ-B-001",
+                          "orphan": false,
+                          "name": "Dataset version management",
+                          "requirement": "The provider dataset supports multiple versions coexisting under distinct collection names (providers_v1, providers_v2, ...). A Full load writes into the currently-declared target version. Promotion of a new version to active is a separate operator action, not a side effect of a run.",
+                          "priority": "must-have",
+                          "status": "not_started",
+                          "depends_on": [],
+                          "approval": "proposed",
+                          "tests": {
+                            "test": [
+                              {
+                                "test_id": "EPIC-010-F-101-S-005-REQ-B-001-TEST-1",
+                                "orphan": false,
+                                "test_type": "integration",
+                                "file": "TBD"
+                              }
+                            ]
+                          }
+                        },
+                        {
+                          "req_id": "EPIC-010-F-101-S-005-REQ-B-003",
+                          "orphan": false,
+                          "name": "Single hand-maintained configuration store",
+                          "requirement": "Every tunable knob lives on chathealthyfrontend.pipeline.config, in documents keyed by _id: source_freshness, batch_limits, failure_thresholds, cost_bands, dataset_versions, throttle_rates, notification_receivers, step_parallelism_caps, tier_by_load_mode, vm_sizing. The Controller reads the configuration once at startup into an in-process PipelineConfig; mid-run configuration changes take effect on the next run. The active dataset version pointer lives at pipeline.config.dataset_versions.",
+                          "priority": "must-have",
+                          "status": "not_started",
+                          "depends_on": [],
+                          "approval": "proposed",
+                          "tests": {
+                            "test": [
+                              {
+                                "test_id": "EPIC-010-F-101-S-005-REQ-B-003-TEST-1",
+                                "orphan": false,
+                                "test_type": "integration",
+                                "file": "TBD"
+                              }
+                            ]
+                          }
+                        }
+                      ]
+                    }
+                  }
+                ]
+              }
+            },
+            {
+              "feature_id": "EPIC-010-F-102",
+              "orphan": false,
+              "name": "Common Pipeline Orchestration",
+              "status": "not_started",
+              "priority": "HIGH",
+              "approval": "proposed",
+              "due_date": "TBD",
+              "realized_by": [],
+              "description": "The shared scaffolding reused by every pipeline. Covers: the BasePipelineOrchestrator framework and its StepSpec activity contract (name, prerequisites, invocation_phase, timeout_seconds, parallelism_spec in {single, per_source, per_state, per_state_x_entity}, completion_marker_key) with its four guarantees (prerequisite gate, finally-block teardown on both success and failure paths, failure-threshold abort, skip-if-done step reuse keyed on source content hashes); the base Worker classes spawned as detached subprocesses coordinated exclusively through the MongoDB work_items collection with atomic findOneAndUpdate claims, 120-second heartbeats, and 440-second stale-claim reclaim to pending; the single authenticated entrance that admits a run and writes a fresh run manifest; the run manifest as the durable state-of-record and monitoring surface; the always-on source freshness gate that never trusts age, with LLM-assisted publication-date extraction for human-readable landing pages; content-hash-verified parallel source fetching honoring vendor throttles; the version-addressed immutable source archive with prior-version retention until superseded; post-load source-vs-DB reconciliation; discrepancy persistence under a controlled reason vocabulary; and the four run-end notifications. Source: LLD v41 sections 4.3.2-4.3.5, 5.1, 5.2.1, 5.2.3-5.2.5, 5.2.18-5.2.19, chapters 6 and 8.",
+              "stories": {
+                "story": [
+                  {
+                    "story_id": "EPIC-010-F-102-S-001",
+                    "orphan": false,
+                    "name": "Orchestration framework and activity contract",
+                    "description": "As a pipeline author, I need a shared orchestration base class that sequences declared steps under explicit guarantees so that every pipeline gets prerequisite gating, guaranteed teardown, failure-threshold aborts, skip-if-done reuse, controlled restart points, and a durable monitoring surface without re-implementing them. Source: LLD v41 sections 5.1, 6.2, 6.9.",
+                    "size": "XL",
+                    "status": "not_started",
+                    "approval": "proposed",
+                    "requirements": {
+                      "requirement": [
+                        {
+                          "req_id": "EPIC-010-F-102-S-001-REQ-B-001",
+                          "orphan": false,
+                          "name": "Framework guarantees and StepSpec contract",
+                          "requirement": "Every pipeline runs on BasePipelineOrchestrator with a concrete subclass declaring PIPELINE_NAME and STEPS as ordered StepSpec records, each carrying name, prerequisites[], invocation_phase in {normal, finally_block}, timeout_seconds, parallelism_spec in {single, per_source, per_state, per_state_x_entity}, and a completion_marker_key. The framework provides four guarantees: (1) prerequisite gate: a step is entered only when every prerequisite step is status=success on the run manifest; (2) finally-block: run() wraps the main step loop in try/finally and every finally_block step runs on both success and failure paths; (3) failure-threshold abort: pipeline.config.failure_thresholds carries a per-run discrepancy-count ceiling checked at every step exit, aborting when exceeded; (4) skip-if-done: before executing a step the framework checks pipeline.step_completion_markers for (run_id, step, scope_key) and skips the step, reusing its recorded output, when a marker exists whose stored source_content_hashes match the current run's source hashes.",
+                          "priority": "must-have",
+                          "status": "not_started",
+                          "depends_on": [],
+                          "approval": "proposed",
+                          "tests": {
+                            "test": [
+                              {
+                                "test_id": "EPIC-010-F-102-S-001-REQ-B-001-TEST-1",
+                                "orphan": false,
+                                "test_type": "integration",
+                                "file": "TBD"
+                              }
+                            ]
+                          }
+                        },
+                        {
+                          "req_id": "EPIC-010-F-102-S-001-REQ-B-002",
+                          "orphan": false,
+                          "name": "Controlled restart points",
+                          "requirement": "After infrastructure is provisioned (Invoke and Prepare Infrastructure always run), an operator may specify start_step at invoke time to enter the pipeline at exactly one of four named entry points: \"fetch data\", \"load staging\", \"normalize data\", \"enrich data\". Any other start_step value is rejected at Invoke with HTTP 400. The framework validates prerequisites at each restart point (\"load staging\" requires the source archive to hold the last known-good file for every source; \"normalize data\" requires non-empty staging collections; \"enrich data\" requires non-empty providers_v<N> for the target state_scope) and aborts with abort_reason=restart_prereq_missing when unmet. No mid-run resume path exists; a failed run re-runs from scratch under a new run_id.",
+                          "priority": "must-have",
+                          "status": "not_started",
+                          "depends_on": [],
+                          "approval": "proposed",
+                          "tests": {
+                            "test": [
+                              {
+                                "test_id": "EPIC-010-F-102-S-001-REQ-B-002-TEST-1",
+                                "orphan": false,
+                                "test_type": "integration",
+                                "file": "TBD"
+                              }
+                            ]
+                          }
+                        },
+                        {
+                          "req_id": "EPIC-010-F-102-S-001-REQ-T-008",
+                          "orphan": false,
+                          "name": "Run manifest as durable state-of-record",
+                          "requirement": "chathealthyfrontend.pipeline.runs is the durable state-of-record and monitoring surface. Each manifest carries: _id, run_id, pipeline_name, env, invocation_mode, load_mode, state_scope, started_at, finished_at, status, abort_reason, source_versions, source_freshness_decisions, step_transitions[], incremental_diff (Incremental only), discrepancy_summary, vm_resource_id, controller_heartbeat_at, metrics, git_head_sha, operator_email, operator_sms. The Controller updates the manifest at every step boundary and refreshes controller_heartbeat_at every 60 seconds. Indexes: {run_id} unique; {pipeline_name, started_at:-1}; {status, started_at:-1}; {status, controller_heartbeat_at}.",
+                          "priority": "must-have",
+                          "status": "not_started",
+                          "depends_on": [],
+                          "approval": "proposed",
+                          "tests": {
+                            "test": [
+                              {
+                                "test_id": "EPIC-010-F-102-S-001-REQ-T-008-TEST-1",
+                                "orphan": false,
+                                "test_type": "integration",
+                                "file": "TBD"
+                              }
+                            ]
+                          }
+                        }
+                      ]
+                    }
+                  },
+                  {
+                    "story_id": "EPIC-010-F-102-S-002",
+                    "orphan": false,
+                    "name": "Base worker classes and Mongo work-item coordination",
+                    "description": "As a pipeline author, I need a shared Worker substrate in which detached subprocesses claim work atomically from MongoDB, heartbeat while running, and are reclaimed automatically on crash, so that Worker failure never requires operator intervention and no HTTP, ports, or queues participate in intra-run coordination. Source: LLD v41 sections 4.3.3, 4.3.4, 7.2.",
+                    "size": "L",
+                    "status": "not_started",
+                    "approval": "proposed",
+                    "requirements": {
+                      "requirement": [
+                        {
+                          "req_id": "EPIC-010-F-102-S-002-REQ-B-001",
+                          "orphan": false,
+                          "name": "Detached Workers coordinated exclusively via work_items",
+                          "requirement": "Workers are launched via spawn_detached_worker (double-fork + setsid + execvpe); the Controller keeps no process handle and never calls poll(), wait(), or reads returncode. Each Worker atomically claims one work-item from chathealthyfrontend.pipeline.work_items via findOneAndUpdate on {run_id, step, status: pending} sorted by created_at ascending, updates heartbeat_at every 120 seconds from a background thread, writes result and exit code to the work-item, and exits. The Controller scans every 120 seconds for claims with status=running whose heartbeat_at is older than 440 seconds and resets them to pending for re-claim. Per-step concurrency is min(fan-out width, pipeline.config.step_parallelism_caps.<step>), where post-branching fan-out width is len(state_scope) x entity_types. Workers bind no ports and communicate only through Mongo.",
+                          "priority": "must-have",
+                          "status": "not_started",
+                          "depends_on": [],
+                          "approval": "proposed",
+                          "tests": {
+                            "test": [
+                              {
+                                "test_id": "EPIC-010-F-102-S-002-REQ-B-001-TEST-1",
+                                "orphan": false,
+                                "test_type": "integration",
+                                "file": "TBD"
+                              }
+                            ]
+                          }
+                        }
+                      ]
+                    }
+                  },
+                  {
+                    "story_id": "EPIC-010-F-102-S-003",
+                    "orphan": false,
+                    "name": "Source acquisition and freshness management",
+                    "description": "As the pipeline operator, I need every source fetched in parallel behind a freshness gate that always runs and never trusts age, with content-hash verification, vendor throttle compliance, and LLM-assisted publication discovery for sources that publish only human-readable landing pages, so that the pipeline always processes the current publication of every source without redundant downloads. Source: LLD v41 sections 5.2.3 and 5.2.4.",
+                    "size": "L",
+                    "status": "not_started",
+                    "approval": "proposed",
+                    "requirements": {
+                      "requirement": [
+                        {
+                          "req_id": "EPIC-010-F-102-S-003-REQ-B-001",
+                          "orphan": false,
+                          "name": "Content-hash-verified parallel source fetching",
+                          "requirement": "For each source declared in pipeline.config.sources whose freshness verdict is fetch, the Worker HTTPS-GETs the vendor's canonical URL, streams bytes to {env}-pipeline-transients/{run_id}/fetch/{source_name} while computing SHA-256 incrementally, and records content_hash, bytes, and fetched_at on the work-item. Fetch timeout is retried 3 times with backoff. A hash mismatch on re-download writes a discrepancy with reason=external_api_error, the Worker exits non-zero, and the step is marked failed. Reuse verdicts perform no network fetch and point to the existing archive entry with reused=true.",
+                          "priority": "must-have",
+                          "status": "not_started",
+                          "depends_on": [],
+                          "approval": "proposed",
+                          "tests": {
+                            "test": [
+                              {
+                                "test_id": "EPIC-010-F-102-S-003-REQ-B-001-TEST-1",
+                                "orphan": false,
+                                "test_type": "integration",
+                                "file": "TBD"
+                              }
+                            ]
+                          }
+                        },
+                        {
+                          "req_id": "EPIC-010-F-102-S-003-REQ-B-002",
+                          "orphan": false,
+                          "name": "Always-on freshness gate that never trusts age",
+                          "requirement": "The source freshness gate runs for every source on every invocation that reaches it; it never uses age as a proxy for freshness. For each source it obtains the current publication signal (HTTP HEAD / Last-Modified / ETag / versioned filename from pipeline.config.sources.<source_name>.freshness_url, or LLM-assisted extraction per REQ-T-004), compares against the top of the source archive, and yields action=fetch when the published version is strictly newer, otherwise action=reuse. The per-source decision and content_hash are stashed on pipeline.runs.source_freshness_decisions.",
+                          "priority": "must-have",
+                          "status": "not_started",
+                          "depends_on": [],
+                          "approval": "proposed",
+                          "tests": {
+                            "test": [
+                              {
+                                "test_id": "EPIC-010-F-102-S-003-REQ-B-002-TEST-1",
+                                "orphan": false,
+                                "test_type": "integration",
+                                "file": "TBD"
+                              }
+                            ]
+                          }
+                        },
+                        {
+                          "req_id": "EPIC-010-F-102-S-003-REQ-T-002",
+                          "orphan": false,
+                          "name": "Gather activity inventory",
+                          "requirement": "Every source declared in pipeline.config.sources produces exactly one gather activity per run; the fetch step fans out per source, and no source outside pipeline.config.sources is fetched.",
+                          "priority": "must-have",
+                          "status": "not_started",
+                          "depends_on": [],
+                          "approval": "proposed",
+                          "tests": {
+                            "test": [
+                              {
+                                "test_id": "EPIC-010-F-102-S-003-REQ-T-002-TEST-1",
+                                "orphan": false,
+                                "test_type": "integration",
+                                "file": "TBD"
+                              }
+                            ]
+                          }
+                        },
+                        {
+                          "req_id": "EPIC-010-F-102-S-003-REQ-T-003",
+                          "orphan": false,
+                          "name": "Source-gather concurrency bounded by throttle",
+                          "requirement": "Source fetches respect vendor rate-limit headers and the per-source throttle declared at pipeline.config.sources.<name>.throttle; vendor HTTP 429 responses trigger back-off per the source's declared policy.",
+                          "priority": "must-have",
+                          "status": "not_started",
+                          "depends_on": [],
+                          "approval": "proposed",
+                          "tests": {
+                            "test": [
+                              {
+                                "test_id": "EPIC-010-F-102-S-003-REQ-T-003-TEST-1",
+                                "orphan": false,
+                                "test_type": "integration",
+                                "file": "TBD"
+                              }
+                            ]
+                          }
+                        },
+                        {
+                          "req_id": "EPIC-010-F-102-S-003-REQ-T-004",
+                          "orphan": false,
+                          "name": "AI-agent publication discovery for moving sources",
+                          "requirement": "For sources that publish only a human-readable landing page, the freshness gate calls the LLM at generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-lite:generateContent with the prompt template stored at pipeline.config.freshness_gate_prompt, which must return strict JSON {published_at, version_tag}. If the LLM is unreachable, the gate falls back to strict URL/HEAD comparison only; if no signal exists at all, the verdict is action=fetch (fail-forward on the side of freshness). Terminal failure writes a discrepancy with reason=external_api_error.",
+                          "priority": "must-have",
+                          "status": "not_started",
+                          "depends_on": [],
+                          "approval": "proposed",
+                          "tests": {
+                            "test": [
+                              {
+                                "test_id": "EPIC-010-F-102-S-003-REQ-T-004-TEST-1",
+                                "orphan": false,
+                                "test_type": "integration",
+                                "file": "TBD"
+                              }
+                            ]
+                          }
+                        }
+                      ]
+                    }
+                  },
+                  {
+                    "story_id": "EPIC-010-F-102-S-004",
+                    "orphan": false,
+                    "name": "Source file storage management",
+                    "description": "As the pipeline operator, I need fetched source files persisted in two places (run-scoped transients and a version-addressed immutable archive keyed by content hash), retained until superseded so any run can be replayed against its exact source bytes, and staged with byte-offset indexing and NPI pre-indexing so downstream steps never re-parse raw bytes. Source: LLD v41 sections 3.1.9, 5.2.4, 5.2.5, 5.2.7.",
+                    "size": "M",
+                    "status": "not_started",
+                    "approval": "proposed",
+                    "requirements": {
+                      "requirement": [
+                        {
+                          "req_id": "EPIC-010-F-102-S-004-REQ-B-001",
+                          "orphan": false,
+                          "name": "Version-addressed immutable source archive",
+                          "requirement": "Fetched sources are archived at {env}-pipeline-sources/{source_name}/{content_hash}/{filename}. The archive retains the current source file plus the immediately-prior version until superseded: the prior successful run's archive entry is deleted only at the quiesce of the next successful run that fetched a newer source (distinct content_hash), preserving the ability to replay a run against its exact source bytes.",
+                          "priority": "must-have",
+                          "status": "not_started",
+                          "depends_on": [],
+                          "approval": "proposed",
+                          "tests": {
+                            "test": [
+                              {
+                                "test_id": "EPIC-010-F-102-S-004-REQ-B-001-TEST-1",
+                                "orphan": false,
+                                "test_type": "integration",
+                                "file": "TBD"
+                              }
+                            ]
+                          }
+                        },
+                        {
+                          "req_id": "EPIC-010-F-102-S-004-REQ-T-001",
+                          "orphan": false,
+                          "name": "Two-places persistence with archival skip",
+                          "requirement": "Every newly-fetched source is copied from the run-scoped transient path {env}-pipeline-transients/{run_id}/fetch/{source_name} to the permanent archive path. When the destination archive path already exists (identical bytes previously archived), the Worker skips the copy and records reused=true on the work-item. Blob write failures are retried 3 times with backoff before failing the step.",
+                          "priority": "must-have",
+                          "status": "not_started",
+                          "depends_on": [],
+                          "approval": "proposed",
+                          "tests": {
+                            "test": [
+                              {
+                                "test_id": "EPIC-010-F-102-S-004-REQ-T-001-TEST-1",
+                                "orphan": false,
+                                "test_type": "integration",
+                                "file": "TBD"
+                              }
+                            ]
+                          }
+                        },
+                        {
+                          "req_id": "EPIC-010-F-102-S-004-REQ-T-003",
+                          "orphan": false,
+                          "name": "Byte-offset indexing for replay",
+                          "requirement": "Source CSVs are byte-offset indexed before record processing so any row range can be replayed deterministically without re-scanning the file.",
+                          "priority": "must-have",
+                          "status": "not_started",
+                          "depends_on": [],
+                          "approval": "proposed",
+                          "tests": {
+                            "test": [
+                              {
+                                "test_id": "EPIC-010-F-102-S-004-REQ-T-003-TEST-1",
+                                "orphan": false,
+                                "test_type": "unit",
+                                "file": "TBD"
+                              }
+                            ]
+                          }
+                        },
+                        {
+                          "req_id": "EPIC-010-F-102-S-004-REQ-T-004",
+                          "orphan": false,
+                          "name": "Secondary-source pre-index paired with NPI key",
+                          "requirement": "Secondary-source rows (pl_pfile) are pre-indexed with their NPI key at staging load so the downstream join to the base provider record is index-driven.",
+                          "priority": "must-have",
+                          "status": "not_started",
+                          "depends_on": [],
+                          "approval": "proposed",
+                          "tests": {
+                            "test": [
+                              {
+                                "test_id": "EPIC-010-F-102-S-004-REQ-T-004-TEST-1",
+                                "orphan": false,
+                                "test_type": "integration",
+                                "file": "TBD"
+                              }
+                            ]
+                          }
+                        }
+                      ]
+                    }
+                  },
+                  {
+                    "story_id": "EPIC-010-F-102-S-005",
+                    "orphan": false,
+                    "name": "Reconciliation, discrepancy reporting, and notifications",
+                    "description": "As the pipeline operator, I need every run to reconcile destination against source, persist every per-record failure under a controlled vocabulary, abort on threshold breach, and end with a discrepancy report and four notifications regardless of success or failure, so that no data loss or quality regression passes silently. Source: LLD v41 sections 5.2.18, 5.2.19, 5.3.11, 6.1, chapter 8.",
+                    "size": "L",
+                    "status": "not_started",
+                    "approval": "proposed",
+                    "requirements": {
+                      "requirement": [
+                        {
+                          "req_id": "EPIC-010-F-102-S-005-REQ-B-001",
+                          "orphan": false,
+                          "name": "Source-vs-DB reconciliation",
+                          "requirement": "Post-load reconciliation is Controller-owned and runs three checks: (1) count parity per in-scope state between source NPIs and providers_v<N> records; (2) NPI set parity with orphans in either direction recorded; (3) field spot-check of 100 random NPIs per state re-parsed from source and compared to the landed record. Every mismatch writes a discrepancy with reason=reconciliation_diff. Incremental runs additionally assert preserved_count == len(unchanged), changed_count == len(changed), new_count == len(new), removed_count == len(removed), and preserved+changed+new == count(providers_v<N> in scope). Results are written to pipeline.runs.reconciliation_summary.",
+                          "priority": "must-have",
+                          "status": "not_started",
+                          "depends_on": [
+                            {
+                              "story_id": "EPIC-010-F-103-S-002",
+                              "reason": "Count and NPI set parity are computed against the NPPES staging collection."
+                            }
+                          ],
+                          "approval": "proposed",
+                          "tests": {
+                            "test": [
+                              {
+                                "test_id": "EPIC-010-F-102-S-005-REQ-B-001-TEST-1",
+                                "orphan": false,
+                                "test_type": "integration",
+                                "file": "TBD"
+                              }
+                            ]
+                          }
+                        },
+                        {
+                          "req_id": "EPIC-010-F-102-S-005-REQ-T-001",
+                          "orphan": false,
+                          "name": "Discrepancy persistence and run-end notifications",
+                          "requirement": "Every per-record failure across every step lands in chathealthyfrontend.pipeline.discrepancies with a uniform schema whose reason is drawn from the controlled vocabulary of LLD v41 section 6.1; Workers reject unrecognized reason values at write time, and vocabulary additions require an operator-approved schema update. In the finally block of every run the Controller aggregates the run's discrepancies, generates a PDF grouped by state then entity_type then reason, uploads it to Blob, and sends the four Chapter-8 notifications (abnormal-end SMS, successful-end SMS, abnormal-end error-report email, discrepancy-report email with PDF attachment) through the shared notification library, each carrying the F-003 signature of the Controller identity. PDF generation failure substitutes a text summary and logs reason=report_generation_failure.",
+                          "priority": "must-have",
+                          "status": "not_started",
+                          "depends_on": [],
+                          "approval": "proposed",
+                          "tests": {
+                            "test": [
+                              {
+                                "test_id": "EPIC-010-F-102-S-005-REQ-T-001-TEST-1",
+                                "orphan": false,
+                                "test_type": "integration",
+                                "file": "TBD"
+                              }
+                            ]
+                          }
+                        },
+                        {
+                          "req_id": "EPIC-010-F-102-S-005-REQ-T-002",
+                          "orphan": false,
+                          "name": "Failure-threshold aborts",
+                          "requirement": "pipeline.config.failure_thresholds carries per-run discrepancy-count ceilings. The framework checks the ceiling at every step exit and aborts the run when exceeded. Post-load reconciliation aborts the run with status=aborted when its diff count exceeds pipeline.config.failure_thresholds.reconciliation_diff_max.",
+                          "priority": "must-have",
+                          "status": "not_started",
+                          "depends_on": [],
+                          "approval": "proposed",
+                          "tests": {
+                            "test": [
+                              {
+                                "test_id": "EPIC-010-F-102-S-005-REQ-T-002-TEST-1",
+                                "orphan": false,
+                                "test_type": "integration",
+                                "file": "TBD"
+                              }
+                            ]
+                          }
+                        }
+                      ]
+                    }
+                  },
+                  {
+                    "story_id": "EPIC-010-F-102-S-007",
+                    "orphan": false,
+                    "name": "Single authenticated entrance",
+                    "description": "As the security owner, I need exactly one authenticated entrance to every pipeline so that every run is attributable to a validated caller identity and every rejected attempt is audited. Source: LLD v41 sections 5.2.1 and 7.0.",
+                    "size": "M",
+                    "status": "not_started",
+                    "approval": "proposed",
+                    "requirements": {
+                      "requirement": [
+                        {
+                          "req_id": "EPIC-010-F-102-S-007-REQ-B-001",
+                          "orphan": false,
+                          "name": "Single authenticated entrance",
+                          "requirement": "A pipeline is invoked only via its cron schedule or its on-demand webhook, both delivering the section 7.0 JSON payload to the Runbook. Invoke validates the payload and admits the run: unknown caller_identity (not present in pipeline.authorized_callers) writes a pipeline.security_issues row and returns HTTP 401; a missing or malformed required field (pipeline_name, env, load_mode, state_scope, invocation_mode, caller_identity) or invalid state_scope returns HTTP 400; a duplicate run_id returns HTTP 409 with no side effects. Admission writes a fresh chathealthyfrontend.pipeline.runs document with status=pending_vm_provision. The Provider Pipeline Runbook carries no schedule; it fires exclusively via the on-demand webhook.",
+                          "priority": "must-have",
+                          "status": "not_started",
+                          "depends_on": [],
+                          "approval": "proposed",
+                          "tests": {
+                            "test": [
+                              {
+                                "test_id": "EPIC-010-F-102-S-007-REQ-B-001-TEST-1",
+                                "orphan": false,
+                                "test_type": "integration",
+                                "file": "TBD"
+                              }
+                            ]
+                          }
+                        }
+                      ]
+                    }
+                  }
+                ]
+              }
+            },
+            {
+              "feature_id": "EPIC-010-F-103",
+              "orphan": false,
+              "name": "Provider Pipeline",
+              "status": "not_started",
+              "priority": "HIGH",
+              "approval": "proposed",
+              "due_date": "TBD",
+              "realized_by": [],
+              "description": "End-to-end load of the runtime provider record consumed by FindCare, published as the versioned providers_v<N> collection on the pipeline cluster (chathealthydatapipeline). Ingests the monthly NPPES NPI dissemination file plus the pl_pfile practice-locations file, the NUCC provider taxonomy, the U.S. Census ZCTA-to-county crosswalk, and the USDA RUCC classification workbook; normalizes each provider into the normative section 7.1 record shape (canonical NPI key, Common/Individual/Institutional field treatment with human-readable _label siblings, secondary practice addresses) and enriches it (license-based state repair for ambiguous addresses, cost-ordered county-identity cascade at a 98% SLA with RUCC stamping, proprietary can_prescribe / is_homeopathic / is_disqualified flags, institutional identity via the NUCC join) at state-scoped parallelism, fanning out to state x entity-type at the Type-1/Type-2 branches. Operates in exactly one of two modes per invocation: Full (delete every provider in the target state scope and rebuild from source) or Incremental (preserve every provider whose per-NPI source record bundle is content-identical to the prior successful run and touch only changed, new, and removed records). Consumes only the monthly full NPPES file; weekly incremental files are out of scope. Source: LLD v41 sections 5.2, 5.3, and chapter 7.",
+              "stories": {
+                "story": [
+                  {
+                    "story_id": "EPIC-010-F-103-S-001",
+                    "orphan": false,
+                    "name": "End-to-end provider record load (Full and Incremental)",
+                    "description": "As a FindCare consumer, I need every NPPES provider in scope normalized into the published provider record shape and kept current month over month, with Full mode rebuilding the target scope from source and Incremental mode preserving the ~95% of records whose source bundles are unchanged so that enrichment cost is paid only for real change. The design cites requirements B-001 through B-019 for this story; the members individually groundable in the design text are proposed below and the remaining numbers are left unproposed for iteration. Source: LLD v41 sections 5.1, 5.2.6, 5.2.9, 5.2.13, 5.3.",
+                    "size": "XL",
+                    "status": "not_started",
+                    "approval": "proposed",
+                    "requirements": {
+                      "requirement": [
+                        {
+                          "req_id": "EPIC-010-F-103-S-001-REQ-B-001",
+                          "orphan": false,
+                          "name": "Normalize NPPES rows into the normative record",
+                          "requirement": "The normalize step converts raw NPPES staging rows into the normative section 7.1 provider record and upserts into chathealthydatapipeline.providers_v<N> keyed on npi, fanning out per state with partition key = provider business mailing address state. Field treatment follows the design's three subsections exactly: Common fields loaded for every record (npi, kind derived from Entity Type Code, enumeration_date, last_updated_at, activity_status_log[], primary_practice_address, mailing_address (not county-eligible), taxonomies[] up to 15 slots, insurance_identifiers[], licenses[], sole_proprietor); Individual (Type 1) additions (names, sex normalized to M/F, other_last_names[], sole_proprietor_scope); Institutional (Type 2) additions (legal_business_name, dba_name, authorized_official, parent_organization when subpart, administrative_contact). Explicitly not loaded: the NPPES business-practice state-name column and the NPPES Certification Date. Records failing schema validation write a discrepancy with reason=schema_violation and are skipped.",
+                          "priority": "must-have",
+                          "status": "not_started",
+                          "depends_on": [
+                            {
+                              "story_id": "EPIC-010-F-103-S-002",
+                              "reason": "Normalization reads the NPPES staging collection loaded by the base-source story."
+                            }
+                          ],
+                          "approval": "proposed",
+                          "tests": {
+                            "test": [
+                              {
+                                "test_id": "EPIC-010-F-103-S-001-REQ-B-001-TEST-1",
+                                "orphan": false,
+                                "test_type": "integration",
+                                "file": "TBD"
+                              }
+                            ]
+                          }
+                        },
+                        {
+                          "req_id": "EPIC-010-F-103-S-001-REQ-B-002",
+                          "orphan": false,
+                          "name": "Full-source-file delete-on-absence",
+                          "requirement": "Because the pipeline consumes the full source file, records absent from source are deleted from the published collection. Full mode: before rebuild, a Controller-dispatched delete removes every provider record in the target state_scope from providers_v<N> (deleteMany on mailing_state in state_scope, or the full collection for [\"ALL\"]), recording pre-delete and delete counts on the run manifest; delete failure aborts the run with abort_reason=scope_delete_failed. Incremental mode: the removed set (NPIs present in providers_v<N> but absent from staging, filtered to in-scope states) is deleted, with the delete count recorded on the manifest and per-NPI discrepancies reason=incremental_removed_delete_failed on terminal failure.",
+                          "priority": "must-have",
+                          "status": "not_started",
+                          "depends_on": [],
+                          "approval": "proposed",
+                          "tests": {
+                            "test": [
+                              {
+                                "test_id": "EPIC-010-F-103-S-001-REQ-B-002-TEST-1",
+                                "orphan": false,
+                                "test_type": "integration",
+                                "file": "TBD"
+                              }
+                            ]
+                          }
+                        },
+                        {
+                          "req_id": "EPIC-010-F-103-S-001-REQ-B-003",
+                          "orphan": false,
+                          "name": "Two operational modes on the monthly full file",
+                          "requirement": "The pipeline operates in exactly one of two modes per invocation, selected by the load_mode manifest field at invocation time: Full (every step runs, every enrichment re-computed) or Incremental (only changed, new, and removed records touched). Both modes consume the monthly full NPPES dissemination file; neither consumes the weekly NPPES incremental dissemination file. An Incremental run against a state_scope with no prior successful full-load baseline aborts with abort_reason=incremental_needs_baseline.",
+                          "priority": "must-have",
+                          "status": "not_started",
+                          "depends_on": [],
+                          "approval": "proposed",
+                          "tests": {
+                            "test": [
+                              {
+                                "test_id": "EPIC-010-F-103-S-001-REQ-B-003-TEST-1",
+                                "orphan": false,
+                                "test_type": "integration",
+                                "file": "TBD"
+                              }
+                            ]
+                          }
+                        },
+                        {
+                          "req_id": "EPIC-010-F-103-S-001-REQ-B-004",
+                          "orphan": false,
+                          "name": "Semantic content-identity hash on every record",
+                          "requirement": "Full-mode normalization stamps providers_v<N>.content_identity_hash on every record: sha256 of the JSON-serialized normalized NPI record bundle, where the bundle is the NPPES base row plus every pl_pfile row for the NPI (canonically ordered) plus the current NUCC descriptor pins for every referenced taxonomy code, and normalization applies the section 5.3.0 rules (whitespace trim and collapse, state/country code uppercasing, zip5 truncation, phone digit-stripping, Unicode simple case-folding of name fields, canonical pl_pfile row order). The hash is semantic, not byte-level; no byte-level parity exists anywhere in the pipeline.",
+                          "priority": "must-have",
+                          "status": "not_started",
+                          "depends_on": [],
+                          "approval": "proposed",
+                          "tests": {
+                            "test": [
+                              {
+                                "test_id": "EPIC-010-F-103-S-001-REQ-B-004-TEST-1",
+                                "orphan": false,
+                                "test_type": "unit",
+                                "file": "TBD"
+                              }
+                            ]
+                          }
+                        },
+                        {
+                          "req_id": "EPIC-010-F-103-S-001-REQ-B-005",
+                          "orphan": false,
+                          "name": "License-based address state repair",
+                          "requirement": "For each provider carrying state_missing_ambiguous_license on a practice address, the pipeline looks up the provider's licenses; when exactly one license unambiguously implies a state, it stamps address.state = implied_state and address.state_source = license_inference. Persisting ambiguity writes a discrepancy with reason=state_missing_no_license or state_missing_multiple_licenses.",
+                          "priority": "must-have",
+                          "status": "not_started",
+                          "depends_on": [],
+                          "approval": "proposed",
+                          "tests": {
+                            "test": [
+                              {
+                                "test_id": "EPIC-010-F-103-S-001-REQ-B-005-TEST-1",
+                                "orphan": false,
+                                "test_type": "integration",
+                                "file": "TBD"
+                              }
+                            ]
+                          }
+                        },
+                        {
+                          "req_id": "EPIC-010-F-103-S-001-REQ-B-006",
+                          "orphan": false,
+                          "name": "Incremental four-way diff and preserve-unchanged",
+                          "requirement": "Incremental mode computes the current run's content-identity hash per NPI (per-state Worker fan-out) and diffs against providers_v<N>.content_identity_hash to produce four disjoint sets written to pipeline.runs.incremental_diff: unchanged (hashes equal), changed (both exist, hashes differ), new (in staging only), removed (in providers_v<N> only, in-scope). Unchanged records receive zero work: the existing document with all enrichments is retained untouched, no county cascade, RUCC lookup, or vendor geocoding call fires, and the Controller asserts post-step that untouched document count equals len(unchanged), aborting with reason=incremental_preserve_count_mismatch on mismatch. Changed and new NPIs re-run the full per-record pipeline scoped to their set.",
+                          "priority": "must-have",
+                          "status": "not_started",
+                          "depends_on": [
+                            {
+                              "story_id": "EPIC-010-F-103-S-001",
+                              "reason": "The diff consumes the content_identity_hash stamped by Full-mode normalization (REQ-B-004)."
+                            }
+                          ],
+                          "approval": "proposed",
+                          "tests": {
+                            "test": [
+                              {
+                                "test_id": "EPIC-010-F-103-S-001-REQ-B-006-TEST-1",
+                                "orphan": false,
+                                "test_type": "integration",
+                                "file": "TBD"
+                              }
+                            ]
+                          }
+                        }
+                      ]
+                    }
+                  },
+                  {
+                    "story_id": "EPIC-010-F-103-S-002",
+                    "orphan": false,
+                    "name": "NPPES base source and canonical NPI key",
+                    "description": "As the pipeline, I need the monthly NPPES dissemination file landed as the base source with the NPI as the canonical key of every staging and published record, so that every downstream join, upsert, and parity check is keyed identically. Source: LLD v41 sections 5.2.4, 5.2.7, 7.5.",
+                    "size": "L",
+                    "status": "not_started",
+                    "approval": "proposed",
+                    "requirements": {
+                      "requirement": [
+                        {
+                          "req_id": "EPIC-010-F-103-S-002-REQ-B-001",
+                          "orphan": false,
+                          "name": "NPPES base landed one document per row",
+                          "requirement": "The NPPES monthly dissemination file lands in the staging collection pipeline_sources_nppes_npi on the pipeline cluster with one Mongo document per source row; every field of every row is a Mongo field on that document with column names preserved verbatim. Staging documents are the parsed structured form; downstream steps consume them as dicts and never re-parse raw bytes. Parse errors write per-row discrepancies with reason=parse_error and the load continues.",
+                          "priority": "must-have",
+                          "status": "not_started",
+                          "depends_on": [],
+                          "approval": "proposed",
+                          "tests": {
+                            "test": [
+                              {
+                                "test_id": "EPIC-010-F-103-S-002-REQ-B-001-TEST-1",
+                                "orphan": false,
+                                "test_type": "integration",
+                                "file": "TBD"
+                              }
+                            ]
+                          }
+                        },
+                        {
+                          "req_id": "EPIC-010-F-103-S-002-REQ-B-002",
+                          "orphan": false,
+                          "name": "Canonical NPI key",
+                          "requirement": "Staging upserts are keyed by each source's natural key: NPI for NPPES, NPI + practice-location-sequence for pl_pfile, NUCC code for taxonomy, ZCTA5 for the county crosswalk, FIPS for RUCC. The NPPES NPI load is serial single-process to guarantee ordering; other sources fan out per source. Published provider records are upserted by NPI, which makes partial output from a failed run harmless to the successor run.",
+                          "priority": "must-have",
+                          "status": "not_started",
+                          "depends_on": [],
+                          "approval": "proposed",
+                          "tests": {
+                            "test": [
+                              {
+                                "test_id": "EPIC-010-F-103-S-002-REQ-B-002-TEST-1",
+                                "orphan": false,
+                                "test_type": "integration",
+                                "file": "TBD"
+                              }
+                            ]
+                          }
+                        }
+                      ]
+                    }
+                  },
+                  {
+                    "story_id": "EPIC-010-F-103-S-003",
+                    "orphan": false,
+                    "name": "Additional practice addresses (pl_pfile)",
+                    "description": "As a FindCare consumer, I need every published practice address present on the provider record, so that multi-location providers are findable at every location. Source: LLD v41 section 5.2.10.",
+                    "size": "M",
+                    "status": "not_started",
+                    "approval": "proposed",
+                    "requirements": {
+                      "requirement": [
+                        {
+                          "req_id": "EPIC-010-F-103-S-003-REQ-B-001",
+                          "orphan": false,
+                          "name": "pl_pfile union onto the provider record",
+                          "requirement": "Per-state Workers read pl_pfile staging rows for the assigned state, group by NPI, and append additional practice address entries onto the provider record so every published practice address is present. Parse errors write discrepancies with reason=pl_pfile_parse_error; rows whose NPI matches no provider write reason=pl_pfile_orphan_npi and are skipped.",
+                          "priority": "must-have",
+                          "status": "not_started",
+                          "depends_on": [
+                            {
+                              "story_id": "EPIC-010-F-103-S-001",
+                              "reason": "Secondary addresses append onto base records produced by normalization."
+                            }
+                          ],
+                          "approval": "proposed",
+                          "tests": {
+                            "test": [
+                              {
+                                "test_id": "EPIC-010-F-103-S-003-REQ-B-001-TEST-1",
+                                "orphan": false,
+                                "test_type": "integration",
+                                "file": "TBD"
+                              }
+                            ]
+                          }
+                        }
+                      ]
+                    }
+                  },
+                  {
+                    "story_id": "EPIC-010-F-103-S-004",
+                    "orphan": false,
+                    "name": "County enrichment cascade",
+                    "description": "As a payer or member searching by county, I need county identity attached to practice addresses at a 98% SLA using a cost-ordered cascade that spends money only when free stages fail and only when the operator enabled the paid stage. Source: LLD v41 section 5.2.14 and the section 9.2 regression table.",
+                    "size": "XL",
+                    "status": "not_started",
+                    "approval": "proposed",
+                    "requirements": {
+                      "requirement": [
+                        {
+                          "req_id": "EPIC-010-F-103-S-004-REQ-B-001",
+                          "orphan": false,
+                          "name": "98% county SLA",
+                          "requirement": "county.fips is present on at least 98% of addresses with address_type=primary_practice across the run's in-scope states. Addresses for which every cascade stage is exhausted are left unmarked and write a discrepancy with reason=county_unresolvable.",
+                          "priority": "must-have",
+                          "status": "not_started",
+                          "depends_on": [],
+                          "approval": "proposed",
+                          "tests": {
+                            "test": [
+                              {
+                                "test_id": "EPIC-010-F-103-S-004-REQ-B-001-TEST-1",
+                                "orphan": false,
+                                "test_type": "integration",
+                                "file": "TBD"
+                              }
+                            ]
+                          }
+                        },
+                        {
+                          "req_id": "EPIC-010-F-103-S-004-REQ-B-002",
+                          "orphan": false,
+                          "name": "Cost-ordered cascade",
+                          "requirement": "County resolution attempts each cascade stage in cost order on every address of every owned NPI: zip_crosswalk (free) -> census_batch (free) -> nppes_registry (free, throttled ~5 req/s per IP) -> google_maps (paid, throttled per manifest quota). The first stage to succeed stamps county.fips, county.name, county.source, and county.rucc, and later stages do not fire for that address.",
+                          "priority": "must-have",
+                          "status": "not_started",
+                          "depends_on": [],
+                          "approval": "proposed",
+                          "tests": {
+                            "test": [
+                              {
+                                "test_id": "EPIC-010-F-103-S-004-REQ-B-002-TEST-1",
+                                "orphan": false,
+                                "test_type": "integration",
+                                "file": "TBD"
+                              }
+                            ]
+                          }
+                        },
+                        {
+                          "req_id": "EPIC-010-F-103-S-004-REQ-B-003",
+                          "orphan": false,
+                          "name": "Per-state NPI-atomic fan-out",
+                          "requirement": "County enrichment fans out per state only (one Worker per state, never per state x entity-type), with concurrency min(len(state_scope), step_parallelism_caps.county_enrichment). Each Worker owns every address on every NPI whose addresses[0] (primary practice) state matches its partition, regardless of the provider record's entity type.",
+                          "priority": "must-have",
+                          "status": "not_started",
+                          "depends_on": [],
+                          "approval": "proposed",
+                          "tests": {
+                            "test": [
+                              {
+                                "test_id": "EPIC-010-F-103-S-004-REQ-B-003-TEST-1",
+                                "orphan": false,
+                                "test_type": "integration",
+                                "file": "TBD"
+                              }
+                            ]
+                          }
+                        },
+                        {
+                          "req_id": "EPIC-010-F-103-S-004-REQ-B-004",
+                          "orphan": false,
+                          "name": "Operator-gated paid terminal stage",
+                          "requirement": "The google_maps stage fires only when the invocation carried google_maps_enabled=true (default false), forwarded by the Runbook to the Controller as GOOGLE_MAPS_ENABLED and honored by the Controller's argparse. When disabled, the cascade stops after nppes_registry and any remaining residue is recorded to pipeline.discrepancies with reason=county_unresolvable. Vendor HTTP 429 responses back off per the source's declared policy.",
+                          "priority": "must-have",
+                          "status": "not_started",
+                          "depends_on": [],
+                          "approval": "proposed",
+                          "tests": {
+                            "test": [
+                              {
+                                "test_id": "EPIC-010-F-103-S-004-REQ-B-004-TEST-1",
+                                "orphan": false,
+                                "test_type": "integration",
+                                "file": "TBD"
+                              }
+                            ]
+                          }
+                        },
+                        {
+                          "req_id": "EPIC-010-F-103-S-004-REQ-B-005",
+                          "orphan": false,
+                          "name": "Coordinates stamped only from producing stages",
+                          "requirement": "addresses[].coordinates is an optional sub-document stamped only by cascade stages that publish coordinates (census_batch: always precision=range_interpolated; google_maps: precision per its own location_type), with fields latitude (WGS84 decimal in [-90,+90]), longitude (WGS84 decimal in [-180,+180]), source (census_batch | google_maps), and precision (rooftop | range_interpolated | geometric_center | approximate). The sub-document is absent when no stage produced coordinates and is never defaulted to a county or zip centroid.",
+                          "priority": "must-have",
+                          "status": "not_started",
+                          "depends_on": [],
+                          "approval": "proposed",
+                          "tests": {
+                            "test": [
+                              {
+                                "test_id": "EPIC-010-F-103-S-004-REQ-B-005-TEST-1",
+                                "orphan": false,
+                                "test_type": "unit",
+                                "file": "TBD"
+                              }
+                            ]
+                          }
+                        },
+                        {
+                          "req_id": "EPIC-010-F-103-S-004-REQ-B-006",
+                          "orphan": false,
+                          "name": "Address refresh provenance",
+                          "requirement": "addresses[].address_refresh_provenance is set to nppes_registry when cascade stage 3 mutated the address (line1/line2/city/state/zip) from the live NPPES registry after the monthly dissemination-file load, and is absent otherwise.",
+                          "priority": "must-have",
+                          "status": "not_started",
+                          "depends_on": [],
+                          "approval": "proposed",
+                          "tests": {
+                            "test": [
+                              {
+                                "test_id": "EPIC-010-F-103-S-004-REQ-B-006-TEST-1",
+                                "orphan": false,
+                                "test_type": "integration",
+                                "file": "TBD"
+                              }
+                            ]
+                          }
+                        },
+                        {
+                          "req_id": "EPIC-010-F-103-S-004-REQ-B-007",
+                          "orphan": false,
+                          "name": "County name populated on every stamped county",
+                          "requirement": "addresses[].county.name is populated on every stamped county across all four stages: stage 1 from Census 2020 NAMELSAD_COUNTY_20; stages 2 and 3 via a fips_to_name reverse index built from the crosswalk; stage 4 from Google Maps administrative_area_level_2 long_name.",
+                          "priority": "must-have",
+                          "status": "not_started",
+                          "depends_on": [],
+                          "approval": "proposed",
+                          "tests": {
+                            "test": [
+                              {
+                                "test_id": "EPIC-010-F-103-S-004-REQ-B-007-TEST-1",
+                                "orphan": false,
+                                "test_type": "integration",
+                                "file": "TBD"
+                              }
+                            ]
+                          }
+                        },
+                        {
+                          "req_id": "EPIC-010-F-103-S-004-REQ-B-008",
+                          "orphan": false,
+                          "name": "RUCC stamped alongside county identity",
+                          "requirement": "addresses[].county.rucc (USDA Rural-Urban Continuum Code, integer 1-9) is stamped by county enrichment alongside county.fips/name/source on every practice address whose cascade stage produced a numeric FIPS (zip_crosswalk, census_batch, nppes_registry). It is absent when the stage produced a non-numeric fips key (google_maps) or the FIPS is not in the RUCC catalog; a RUCC lookup miss yields an absent field, not a discrepancy.",
+                          "priority": "must-have",
+                          "status": "not_started",
+                          "depends_on": [],
+                          "approval": "proposed",
+                          "tests": {
+                            "test": [
+                              {
+                                "test_id": "EPIC-010-F-103-S-004-REQ-B-008-TEST-1",
+                                "orphan": false,
+                                "test_type": "integration",
+                                "file": "TBD"
+                              }
+                            ]
+                          }
+                        }
+                      ]
+                    }
+                  },
+                  {
+                    "story_id": "EPIC-010-F-103-S-005",
+                    "orphan": false,
+                    "name": "Urban classification (USDA RUCC)",
+                    "description": "As a FindCare consumer, I need each practice address to carry its USDA Rural-Urban Continuum Code so urban/rural distinctions are available at query time. The dedicated urban-flag step is retired; RUCC semantics are delivered by the county enrichment cascade. Source: LLD v41 sections 5.2.14 and 5.2.15.",
+                    "size": "S",
+                    "status": "not_started",
+                    "approval": "proposed",
+                    "requirements": {
+                      "requirement": [
+                        {
+                          "req_id": "EPIC-010-F-103-S-005-REQ-B-001",
+                          "orphan": false,
+                          "name": "RUCC integer replaces the urban boolean",
+                          "requirement": "RUCC data is stamped as an integer 1-9 by county enrichment directly into addresses[].county.rucc alongside fips/name/source. The prior boolean urban field is preserved in the schema for historical-record compatibility only; no new records populate it, and no dedicated urban-flag step exists in the orchestrator STEPS.",
+                          "priority": "must-have",
+                          "status": "not_started",
+                          "depends_on": [
+                            {
+                              "story_id": "EPIC-010-F-103-S-004",
+                              "reason": "RUCC stamping is delivered by the county enrichment cascade."
+                            }
+                          ],
+                          "approval": "proposed",
+                          "tests": {
+                            "test": [
+                              {
+                                "test_id": "EPIC-010-F-103-S-005-REQ-B-001-TEST-1",
+                                "orphan": false,
+                                "test_type": "integration",
+                                "file": "TBD"
+                              }
+                            ]
+                          }
+                        },
+                        {
+                          "req_id": "EPIC-010-F-103-S-005-REQ-B-002",
+                          "orphan": false,
+                          "name": "Front-end owns the urban threshold",
+                          "requirement": "Front-end consumers apply their own urban/rural threshold to the RUCC value at query time (RUCC 1-3 metro; 4-9 nonmetro gradient); the pipeline does not bake an urban/rural boolean decision into new records.",
+                          "priority": "must-have",
+                          "status": "not_started",
+                          "depends_on": [],
+                          "approval": "proposed",
+                          "tests": {
+                            "test": [
+                              {
+                                "test_id": "EPIC-010-F-103-S-005-REQ-B-002-TEST-1",
+                                "orphan": false,
+                                "test_type": "analysis",
+                                "file": "TBD"
+                              }
+                            ]
+                          }
+                        }
+                      ]
+                    }
+                  },
+                  {
+                    "story_id": "EPIC-010-F-103-S-007",
+                    "orphan": false,
+                    "name": "Type-1 / Type-2 branch enrichment and proprietary flags",
+                    "description": "As a FindCare consumer, I need individual and institutional providers completed along their own branches, concurrently, with proprietary classification flags stamped on individuals and institutional identity materialized on organizations. Source: LLD v41 sections 5.2.11, 5.2.12, 5.2.16, 5.2.17.",
+                    "size": "L",
+                    "status": "not_started",
+                    "approval": "proposed",
+                    "requirements": {
+                      "requirement": [
+                        {
+                          "req_id": "EPIC-010-F-103-S-007-REQ-B-001",
+                          "orphan": false,
+                          "name": "Type-1 first branch",
+                          "requirement": "The Type-1 first branch completes individual-specific normalization (name canonicalization, sex normalization, sole-proprietor detection, per-license state lookup) for every kind=individual record in the assigned state. This step begins the state x entity-type fan-out and runs concurrent with the Type-2 first branch, the two branches together occupying len(state_scope) x 2 Worker slots. Absent sex writes reason=sex_absent; unresolvable state writes reason=state_missing_ambiguous_license.",
+                          "priority": "must-have",
+                          "status": "not_started",
+                          "depends_on": [],
+                          "approval": "proposed",
+                          "tests": {
+                            "test": [
+                              {
+                                "test_id": "EPIC-010-F-103-S-007-REQ-B-001-TEST-1",
+                                "orphan": false,
+                                "test_type": "integration",
+                                "file": "TBD"
+                              }
+                            ]
+                          }
+                        },
+                        {
+                          "req_id": "EPIC-010-F-103-S-007-REQ-B-002",
+                          "orphan": false,
+                          "name": "Type-2 first branch",
+                          "requirement": "The Type-2 first branch completes institutional-specific normalization (legal name and DBA canonicalization, authorized-official extraction, parent-organization linkage, administrative contact) for every kind=institutional record in the assigned state, running concurrent with the Type-1 first branch at per-state x entity-type fan-out. Missing organization name writes reason=org_name_absent; incomplete authorized official writes reason=authorized_official_incomplete.",
+                          "priority": "must-have",
+                          "status": "not_started",
+                          "depends_on": [],
+                          "approval": "proposed",
+                          "tests": {
+                            "test": [
+                              {
+                                "test_id": "EPIC-010-F-103-S-007-REQ-B-002-TEST-1",
+                                "orphan": false,
+                                "test_type": "integration",
+                                "file": "TBD"
+                              }
+                            ]
+                          }
+                        },
+                        {
+                          "req_id": "EPIC-010-F-103-S-007-REQ-B-003",
+                          "orphan": false,
+                          "name": "Type-1 second branch stamps F-105 flags",
+                          "requirement": "The Type-1 second branch joins each individual record's primary taxonomy code to the per-run F-105 catalog copy (pipeline_sources_specialty_catalog) and stamps can_prescribe, is_homeopathic, and is_disqualified on the record. A taxonomy code not present in the catalog writes a discrepancy with reason=taxonomy_code_unclassified.",
+                          "priority": "must-have",
+                          "status": "not_started",
+                          "depends_on": [
+                            {
+                              "story_id": "EPIC-010-F-105-S-001",
+                              "reason": "Flag stamping joins against the per-run F-105 catalog copy."
+                            }
+                          ],
+                          "approval": "proposed",
+                          "tests": {
+                            "test": [
+                              {
+                                "test_id": "EPIC-010-F-103-S-007-REQ-B-003-TEST-1",
+                                "orphan": false,
+                                "test_type": "integration",
+                                "file": "TBD"
+                              }
+                            ]
+                          }
+                        },
+                        {
+                          "req_id": "EPIC-010-F-103-S-007-REQ-B-004",
+                          "orphan": false,
+                          "name": "Type-2 second branch materializes institutional identity",
+                          "requirement": "The Type-2 second branch joins each institutional record's primary taxonomy to the NUCC descriptors, completes the record with a human-readable facility-type description, and materializes the institutional_identity object per the section 7.1 schema. A NUCC lookup miss writes a discrepancy with reason=nucc_lookup_miss_institutional.",
+                          "priority": "must-have",
+                          "status": "not_started",
+                          "depends_on": [],
+                          "approval": "proposed",
+                          "tests": {
+                            "test": [
+                              {
+                                "test_id": "EPIC-010-F-103-S-007-REQ-B-004-TEST-1",
+                                "orphan": false,
+                                "test_type": "integration",
+                                "file": "TBD"
+                              }
+                            ]
+                          }
+                        }
+                      ]
+                    }
+                  },
+                  {
+                    "story_id": "EPIC-010-F-103-S-008",
+                    "orphan": false,
+                    "name": "Normative provider record schema",
+                    "description": "As every consumer of the provider dataset, I need one published, normative JSON Schema that defines the provider record contract completely, so that pipeline output and consumer expectations can never drift apart silently. Source: LLD v41 section 7.1.",
+                    "size": "M",
+                    "status": "not_started",
+                    "approval": "proposed",
+                    "requirements": {
+                      "requirement": [
+                        {
+                          "req_id": "EPIC-010-F-103-S-008-REQ-B-001",
+                          "orphan": false,
+                          "name": "Published schema is the consumer contract",
+                          "requirement": "The runtime provider record is the published contract consumed by FindCare. Every field, every type, and every required/optional status is defined by the JSON Schema published at https://dev.chathealthy.ai/schemas/ProviderRecordSchema.json; every published record validates against it, and records failing validation during normalization are recorded as schema_violation discrepancies and skipped. The field-to-step map lives on the schema property descriptions (x-set-at-step).",
+                          "priority": "must-have",
+                          "status": "not_started",
+                          "depends_on": [],
+                          "approval": "proposed",
+                          "tests": {
+                            "test": [
+                              {
+                                "test_id": "EPIC-010-F-103-S-008-REQ-B-001-TEST-1",
+                                "orphan": false,
+                                "test_type": "integration",
+                                "file": "TBD"
+                              }
+                            ]
+                          }
+                        },
+                        {
+                          "req_id": "EPIC-010-F-103-S-008-REQ-B-002",
+                          "orphan": false,
+                          "name": "Label siblings on every coded field",
+                          "requirement": "Every coded field on the provider record carries a sibling <field>_label with the human-readable text, including at minimum: taxonomies[].code_label, classification_label, and specialization_label (from NUCC staging); licenses[].state_label; insurance_identifiers[].type_label; primary_practice_address and mailing_address state_label and country_code_label; and activity_status_log[].event_type_label.",
+                          "priority": "must-have",
+                          "status": "not_started",
+                          "depends_on": [],
+                          "approval": "proposed",
+                          "tests": {
+                            "test": [
+                              {
+                                "test_id": "EPIC-010-F-103-S-008-REQ-B-002-TEST-1",
+                                "orphan": false,
+                                "test_type": "integration",
+                                "file": "TBD"
+                              }
+                            ]
+                          }
+                        }
+                      ]
+                    }
+                  }
+                ]
+              }
+            },
+            {
+              "feature_id": "EPIC-010-F-104",
+              "orphan": false,
+              "name": "Specialty Pipeline",
+              "status": "not_started",
+              "priority": "HIGH",
+              "approval": "proposed",
+              "due_date": "TBD",
+              "realized_by": [],
+              "description": "Sibling pipeline to the Provider Pipeline, reusing the shared substrate (F-101 infrastructure, F-102 orchestration) and consuming the F-105 catalog. Explicitly out of scope for the Provider Pipeline LLD v41, which names it as a sibling with its own low-level design. No stories or requirements are proposed here because the v41 design contains no defining content for this feature.",
+              "stories": {
+                "story": []
+              }
+            },
+            {
+              "feature_id": "EPIC-010-F-105",
+              "orphan": false,
+              "name": "Proprietary Provider and Specialty Flags",
+              "status": "not_started",
+              "priority": "HIGH",
+              "approval": "proposed",
+              "due_date": "TBD",
+              "realized_by": [],
+              "description": "The ChatHealthy-maintained, business-owned classification catalog keyed by NUCC taxonomy code: the single source of truth for the proprietary boolean flags that drive downstream eligibility and display (is_licensed_clinical_role, can_prescribe, is_homeopathic, is_disqualified). The catalog lives at ProprietaryData.SpecialtyAndProviderFlags on the pipeline cluster and is copied per run into pipeline_sources_specialty_catalog on the front-end cluster by the Controller, with no algorithm-driven skip permitted. Catalog authoring itself is referenced but not authored by the Provider Pipeline LLD v41. Source: LLD v41 sections 5.2.8, 5.2.16, 7.4.",
+              "stories": {
+                "story": [
+                  {
+                    "story_id": "EPIC-010-F-105-S-001",
+                    "orphan": false,
+                    "name": "Classification catalog single source of truth",
+                    "description": "As the business owner of provider classification, I need one authoritative catalog collection whose per-run copy is the only flag source any pipeline reads, and whose refresh can never be silently skipped by an algorithm. Source: LLD v41 sections 5.2.8 and 7.4.",
+                    "size": "M",
+                    "status": "not_started",
+                    "approval": "proposed",
+                    "requirements": {
+                      "requirement": [
+                        {
+                          "req_id": "EPIC-010-F-105-S-001-REQ-B-001",
+                          "orphan": false,
+                          "name": "Catalog collection and shape",
+                          "requirement": "The F-105 catalog is the business-maintained NUCC lookup living at ProprietaryData.SpecialtyAndProviderFlags on the pipeline cluster. Every record carries code, is_licensed_clinical_role, can_prescribe, is_homeopathic, and is_disqualified. Indexes: {code} unique, plus {is_licensed_clinical_role} for the allow-list check. The catalog is the single source of truth for these flags.",
+                          "priority": "must-have",
+                          "status": "not_started",
+                          "depends_on": [],
+                          "approval": "proposed",
+                          "tests": {
+                            "test": [
+                              {
+                                "test_id": "EPIC-010-F-105-S-001-REQ-B-001-TEST-1",
+                                "orphan": false,
+                                "test_type": "integration",
+                                "file": "TBD"
+                              }
+                            ]
+                          }
+                        },
+                        {
+                          "req_id": "EPIC-010-F-105-S-001-REQ-B-002",
+                          "orphan": false,
+                          "name": "Per-run catalog copy with no algorithmic skip",
+                          "requirement": "At each run the Controller copies chathealthydatapipeline.ProprietaryData.SpecialtyAndProviderFlags to chathealthyfrontend.pipeline_sources_specialty_catalog as the per-run read cache. There is no algorithm-driven skip of this copy based on content hash or calendar day; only an operator-specified start_step skips it. A missing catalog aborts the run with abort_reason=f105_catalog_absent.",
+                          "priority": "must-have",
+                          "status": "not_started",
+                          "depends_on": [],
+                          "approval": "proposed",
+                          "tests": {
+                            "test": [
+                              {
+                                "test_id": "EPIC-010-F-105-S-001-REQ-B-002-TEST-1",
+                                "orphan": false,
+                                "test_type": "integration",
+                                "file": "TBD"
+                              }
+                            ]
+                          }
+                        }
+                      ]
+                    }
+                  },
+                  {
+                    "story_id": "EPIC-010-F-105-S-002",
+                    "orphan": false,
+                    "name": "can_prescribe classification",
+                    "description": "As a FindCare consumer, I need every individual provider to carry an authoritative can_prescribe flag derived solely from the F-105 catalog. Source: LLD v41 section 5.2.16 and the section 9.2 regression table.",
+                    "size": "S",
+                    "status": "not_started",
+                    "approval": "proposed",
+                    "requirements": {
+                      "requirement": [
+                        {
+                          "req_id": "EPIC-010-F-105-S-002-REQ-B-001",
+                          "orphan": false,
+                          "name": "can_prescribe stamped from the catalog",
+                          "requirement": "can_prescribe is stamped on every individual provider record by the Type-1 second branch from the per-run F-105 catalog copy, keyed by the record's primary taxonomy code. For every record with can_prescribe=true, the primary taxonomy is present in the F-105 allow-list (is_licensed_clinical_role).",
+                          "priority": "must-have",
+                          "status": "not_started",
+                          "depends_on": [
+                            {
+                              "story_id": "EPIC-010-F-105-S-001",
+                              "reason": "The flag is read from the per-run catalog copy."
+                            }
+                          ],
+                          "approval": "proposed",
+                          "tests": {
+                            "test": [
+                              {
+                                "test_id": "EPIC-010-F-105-S-002-REQ-B-001-TEST-1",
+                                "orphan": false,
+                                "test_type": "integration",
+                                "file": "TBD"
+                              }
+                            ]
+                          }
+                        }
+                      ]
+                    }
+                  },
+                  {
+                    "story_id": "EPIC-010-F-105-S-003",
+                    "orphan": false,
+                    "name": "is_homeopathic classification",
+                    "description": "As a FindCare consumer, I need every individual provider to carry an authoritative is_homeopathic flag derived solely from the F-105 catalog. Source: LLD v41 section 5.2.16 and the section 9.2 regression table.",
+                    "size": "S",
+                    "status": "not_started",
+                    "approval": "proposed",
+                    "requirements": {
+                      "requirement": [
+                        {
+                          "req_id": "EPIC-010-F-105-S-003-REQ-B-001",
+                          "orphan": false,
+                          "name": "is_homeopathic stamped from the catalog",
+                          "requirement": "is_homeopathic is stamped on every individual provider record by the Type-1 second branch from the per-run F-105 catalog copy, keyed by the record's primary taxonomy code, and is present on every individual record.",
+                          "priority": "must-have",
+                          "status": "not_started",
+                          "depends_on": [
+                            {
+                              "story_id": "EPIC-010-F-105-S-001",
+                              "reason": "The flag is read from the per-run catalog copy."
+                            }
+                          ],
+                          "approval": "proposed",
+                          "tests": {
+                            "test": [
+                              {
+                                "test_id": "EPIC-010-F-105-S-003-REQ-B-001-TEST-1",
+                                "orphan": false,
+                                "test_type": "integration",
+                                "file": "TBD"
+                              }
+                            ]
+                          }
+                        }
+                      ]
+                    }
+                  }
+                ]
+              }
+            }
+          ]
+        }
+      }
+    ]
+  }
+}

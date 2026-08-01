@@ -5,6 +5,29 @@
   "description": "All system bugs. Each bug has its own environment and status attributes. Environments constrained to local/dev/qa/prod. Source of truth for defect tracking.",
   "bug": [
     {
+      "bugid": "BUG-001",
+      "title": "chathealthy_frontend_lib.mongo_utilities carries cluster-specific coupling",
+      "description": "FrontEndApplicationLib/src/chathealthy_frontend_lib/mongo_utilities.py violates REQ-B-010. The utility file hardcodes ChatHealthy cluster env var names as default args, in equality branches, and in the timeout-default selector added 2026-08-01 as a code-commented hack pending this bug's fix.",
+      "environments": [
+        "local",
+        "dev",
+        "qa",
+        "prod"
+      ],
+      "status": "new",
+      "severity": "medium",
+      "req_id": "EPIC-008-F-002-S-010-REQ-B-010",
+      "story_id": "EPIC-008-F-002-S-010",
+      "test_id": "Null",
+      "discovery_date": "2026-08-01",
+      "due_date": "2026-09-15",
+      "reproduction": "1. Open FrontEndApplicationLib/src/chathealthy_frontend_lib/mongo_utilities.py. 2. Grep for MONGO_FRONTEND_connectionString and MONGO_connectionString -- both appear as hardcoded literals.",
+      "orphan": false,
+      "next_action": [
+        "Design, document and implement solution."
+      ]
+    },
+    {
       "bugid": "BUG-004",
       "title": "HuggingFace Not seemingly capable of PKI mutual authentication",
       "description": "the current fastAPI deployment files, e.g {project root}\\evaluateCare\\Code\u0007pp.py are multi functional, mixiing server initation with the API definitions and without proper encapsualtion. In addtion there is no clean destinction between Public APIs and private internal APIs within the routing tables. FindCare's main.py needs a total refactor.",

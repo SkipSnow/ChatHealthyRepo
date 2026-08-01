@@ -935,26 +935,30 @@ for classification purposes — the outer program's name does not
 shield inner mutations.
 
 INTROSPECT POST MARKERS. The walker flags `method=POST` syntactically
-from AST, but HTTP method alone is NOT proof of mutation. Many APIs
-use POST for READ-ONLY queries because GET has URL-length limits.
-When you see a POST marker, read the file's surrounding code to
-determine intent:
-  * POST to LLM/AI endpoints (`generativelanguage.googleapis.com`,
-    `api.openai.com`, `api.anthropic.com`, `*.cognitiveservices.
-    azure.com`) that send a prompt and receive a completion → READ.
-    No remote state altered by the completion request.
-  * POST to search/query APIs where the body is a query and the
-    response is data (Elastic `_search`, GraphQL queries, RPC-style
-    read endpoints) → READ.
+from AST, but HTTP method alone is NOT proof of mutation. A very
+narrow set of POST idioms are actually reads:
+  * POST to LLM/AI completion endpoints (`generativelanguage.
+    googleapis.com`, `api.openai.com`, `api.anthropic.com`,
+    `*.cognitiveservices.azure.com`) that send a prompt and receive
+    a completion → READ. No remote state altered.
   * POST to token/exchange endpoints (OAuth `/token`, IMDS
     `/metadata/identity/oauth2/token`, ACR `oauth2/exchange`) that
     exchange a credential for another credential → READ.
-  * POST that uploads bytes, creates a resource, triggers a job,
-    sends a message, publishes to a webhook, or writes to a
-    persistence layer → MUTATION.
-If the file's surrounding code makes intent ambiguous (the POST body
-comes from a runtime string you can't inspect, or the target URL is
-computed at runtime), default to MUTATION and require the wrapper.
+
+EVERYTHING ELSE that is a POST is a MUTATION. This includes but is
+not limited to: webhook triggers (Azure Automation OnDemand webhooks,
+GitHub Actions dispatches, generic webhook URLs); job/pipeline/run
+starters (anything that returns a JobId, RunId, PipelineId,
+BuildId, DeploymentId); message publishers (SNS, PubSub, Kafka REST,
+service-bus); artifact uploaders; and any HTTP endpoint the
+surrounding code names with words like "trigger", "start", "fire",
+"invoke", "dispatch", "publish", "enqueue", "submit", "create",
+"upload", "webhook", "hook", "notify", "load", "ingest", "import",
+"sync", "push", "drain", "reset", "reap", "kick", "run". If the URL
+is fetched from a Key Vault secret named `*-WEBHOOK-URL`,
+`*-TRIGGER-URL`, `*-HOOK`, `*-CALLBACK`, `*-LOAD-*`, or similar —
+treat as MUTATION. If in ANY doubt, treat as MUTATION. Better to
+over-gate a read than under-gate a mutation.
 
 CRITICAL: A wrapper is NEVER required for allow verdicts. The wrapper
 only matters when the command actually mutates REMOTE state. If your
