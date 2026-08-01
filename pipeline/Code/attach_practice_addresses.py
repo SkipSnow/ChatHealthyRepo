@@ -155,12 +155,12 @@ def attach_practice_addresses(ctx) -> dict:
                 providers_updated += _flush(rt.providers_coll, ops_buffer)
                 ops_buffer = []
 
-    # NPI-atomic ownership: match on addresses.0 (primary practice)
-    # so each NPI is owned by exactly one state worker. Prior "$elemMatch"
-    # on ANY address matched a provider from every state where they had
-    # ANY address, causing multi-worker collisions on the same NPI.
+    # NPI-atomic ownership: match on BUSINESS mailing address (single-
+    # valued per NPPES contract, so $elemMatch gives exactly one owner
+    # per NPI). Practice addresses are optional and multi-valued and
+    # cannot serve as the atomic partition key.
     for doc in rt.providers_coll.find(
-        {"addresses.0.address_type": "practice", "addresses.0.state": state},
+        {"addresses": {"$elemMatch": {"address_type": "business", "state": state}}},
         {"npi": 1, "addresses": 1},
     ):
         providers_scanned += 1

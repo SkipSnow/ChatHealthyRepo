@@ -57,14 +57,8 @@ class ProviderPipelineOrchestrator(BasePipelineOrchestrator):
             parallelism="serial",
         ),
         StepSpec(
-            name="normalize_npi_serial_bulk_load",
-            prerequisites=["load_f006_catalog"],
-            parallelism="serial",
-            aca_job_name="prov-normalize",
-        ),
-        StepSpec(
             name="normalize_npi_per_state_fanout",
-            prerequisites=["normalize_npi_serial_bulk_load"],
+            prerequisites=["load_f006_catalog"],
             parallelism="process_pool",
             aca_job_name="prov-normalize-state-fanout",
             partition_key="business_address_state",

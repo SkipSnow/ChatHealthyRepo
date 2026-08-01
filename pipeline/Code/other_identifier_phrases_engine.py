@@ -91,7 +91,7 @@ def _phrase_state_id(type_code: str, issuer_text: str, state: str) -> str:
 
 def _business_state_of(doc: dict) -> str | None:
     for a in (doc.get("addresses") or []):
-        if isinstance(a, dict) and a.get("address_type") == "practice":
+        if isinstance(a, dict) and a.get("address_type") == "business":
             st = (a.get("state") or "").strip().upper()
             if st:
                 return st
@@ -145,16 +145,15 @@ def harvest_other_identifier_phrases(config: dict, *, mongo, blob=None) -> dict:
     else:
         prior_deleted = staging_coll.delete_many({}).deleted_count
 
-    # NPI-atomic ownership: partition by PRIMARY practice state
-    # (addresses.0). Prior $elemMatch on any practice address scanned
-    # multi-state providers from every state worker they had a practice
-    # address in -- double work + wrong assignment.
+    # NPI-atomic ownership: partition by BUSINESS mailing address state.
+    # Business address is single-valued per NPPES contract, so $elemMatch
+    # gives exactly one owner per NPI. Practice addresses are optional
+    # and multi-valued (secondary practices) so cannot serve as key.
     provider_query: dict[str, Any] = {
         "other_identifiers": {"$exists": True, "$ne": []},
     }
     if scoped_states:
-        provider_query["addresses.0.address_type"] = "practice"
-        provider_query["addresses.0.state"] = {"$in": scoped_states}
+        provider_query["addresses"] = {"$elemMatch": {"address_type": "business", "state": {"$in": scoped_states}}}
 
     accumulator: dict[str, dict[str, Any]] = {}
     scanned = 0
@@ -783,14 +782,12 @@ def apply_other_identifier_classifications(config: dict, *, mongo, blob=None) ->
     staging_coll = _resolve_staging_collection(mongo)
     lookup = _state_classification_lookup(staging_coll, state, run_id)
 
-    # NPI-atomic ownership: partition by PRIMARY practice state
-    # (addresses.0). See harvest_other_identifier_phrases above for the
-    # same rule + rationale -- keeps apply's per-state work aligned with
-    # harvest's per-state work, so every provider is processed by exactly
-    # one state worker.
+    # NPI-atomic ownership: partition by BUSINESS mailing address state.
+    # Same rule as harvest above -- keeps apply's per-state work aligned
+    # with harvest's per-state work, so every provider is processed by
+    # exactly one state worker.
     query = {
-        "addresses.0.address_type": "practice",
-        "addresses.0.state": state,
+        "addresses": {"$elemMatch": {"address_type": "business", "state": state}},
         "other_identifiers": {"$exists": True, "$ne": []},
     }
 
