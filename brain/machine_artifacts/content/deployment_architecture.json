@@ -414,7 +414,7 @@
           "source_location": "Website/schemas/ChatHealthyProvidersSchema.json",
           "handler_type": "json",
           "disposition": "referenced",
-          "content_hash": "a0e065c7e4805b9975d82c44dd4e744529a4254d4f7cf8db42a001180147fa0f",
+          "content_hash": "6743487999ca260ec754e1b97306b39f9407ee6159a4e1a19e4b922120c3d34a",
           "package": "json_schemas"
         },
         {
@@ -5880,7 +5880,7 @@
           "source_location": "Website/schemas/ChatHealthyProvidersSchema.json",
           "handler_type": "json",
           "disposition": "referenced",
-          "content_hash": "a0e065c7e4805b9975d82c44dd4e744529a4254d4f7cf8db42a001180147fa0f",
+          "content_hash": "6743487999ca260ec754e1b97306b39f9407ee6159a4e1a19e4b922120c3d34a",
           "package": "default"
         },
         {
