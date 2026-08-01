@@ -308,6 +308,14 @@ def _ensure_indexes(coll, source_name: str) -> None:
     coll.create_index([("run_id", ASCENDING), ("_source_row_index", ASCENDING)])
     if source_name == "nppes_npi":
         coll.create_index([("npi", ASCENDING)], unique=True, name="npi_unique")
+        # per_state_normalize (51-way fanout) filters staging by run_id
+        # + business mailing state. Compound index avoids COLLSCAN over
+        # ~9M rows × 51 workers concurrent — without this the workers
+        # time out on staging cursor iteration.
+        coll.create_index(
+            [("run_id", ASCENDING), (f"raw.{_NPPES_STATE_COLUMN}", ASCENDING)],
+            name="run_id_business_state",
+        )
     elif source_name == "pl_pfile":
         coll.create_index([("npi", ASCENDING)])
     elif source_name == "nucc":
