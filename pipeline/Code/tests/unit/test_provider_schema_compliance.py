@@ -113,7 +113,7 @@ def test_built_record_validates_against_providers_schema(
 
     # Sanity: the new-shape fields we're forcing in this commit
     assert doc.get("primary_taxonomy_code") == "363L00000X"
-    assert doc.get("primary_taxonomy_code_label") == "Nurse Practitioner"
+    assert doc.get("is_primary_care") is True
     assert doc["taxonomies"] == [{"code": "363L00000X", "code_label": "Nurse Practitioner"}]
     assert "classification" not in (doc["taxonomies"][0])
     assert doc["licenses"][0]["state"] == "PA"
