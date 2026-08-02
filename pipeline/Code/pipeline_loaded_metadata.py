@@ -5,15 +5,25 @@
 
 Operator rules 2026-08-02:
   * Loaded = migrated from staging to PublicHealthData on the pipeline
-    cluster.
-  * All files versioned with the right version number.
+    cluster. Staging collections live in ChatHealthyDataPipelines.
+    PublicStaging; loaded collections live in ChatHealthyDataPipelines.
+    PublicHealthData.
+  * All collections versioned with the right integer version number.
   * Versioning is part of the key: metadata _id = versioned collection
     name (e.g. "SpecialtyMetaData_v_3"). One metadata record per version.
-  * A step SKIPS the load if ALL of these are true:
+  * Load-state metadata lives on the FRONT-END cluster
+    (chathealthyfrontend.pipeline.loaded_metadata). Rationale: frontend
+    cluster is always awake even when the pipeline cluster is paused
+    between fires, so freshness lookups + skip decisions can happen
+    before waking Atlas. Same placement pattern as every other
+    pipeline-orchestration collection (pipeline.runs, pipeline.config,
+    pipeline.discrepancies, pipeline.work_items).
+  * A step SKIPS the load iff ALL of these are true:
       - source hash matches metadata.source_hash
-      - collection actually exists on PublicHealthData
-      - metadata.row_count matches the actual row count on the collection
       - metadata.operationally_fit is True
+      - the loaded PublicHealthData collection actually exists on the
+        pipeline cluster (parity check against physical presence)
+      - metadata.row_count matches actual row count on the collection
   * Non-fatal errors -> mark loaded (operationally_fit=True), don't
     reload on next fire.
   * Fatal errors -> don't write metadata -> absence signals the next
@@ -21,6 +31,9 @@ Operator rules 2026-08-02:
 
 Every pipeline step that produces a PublicHealthData collection uses
 this module: `should_skip()` at entry, `mark_loaded()` at exit.
+Callers pass BOTH mongo clients: `frontend` for the metadata coll
+(chathealthyfrontend), `pipeline` for the physical PublicHealthData
+collection presence + row-count checks.
 """
 
 from __future__ import annotations
@@ -28,35 +41,37 @@ from __future__ import annotations
 from datetime import datetime, timezone
 
 
-_PUBLIC_DB = "PublicHealthData"
-_METADATA_COLL = "_loaded_metadata"
+_LOADED_DB = "PublicHealthData"  # pipeline cluster
+_METADATA_DB = "chathealthyfrontend"  # frontend cluster
+_METADATA_COLL = "pipeline.loaded_metadata"
 
 
-def read_metadata(mongo, publichealthdata_collection_name: str) -> dict | None:
+def read_metadata(frontend, publichealthdata_collection_name: str) -> dict | None:
     """Return the load-metadata doc for the versioned PublicHealthData
     collection (e.g. 'SpecialtyMetaData_v_3'), or None if no prior
-    successful load exists.
-    """
-    return mongo[_PUBLIC_DB][_METADATA_COLL].find_one(
+    successful load exists. Reads from the FRONTEND cluster."""
+    return frontend[_METADATA_DB][_METADATA_COLL].find_one(
         {"_id": publichealthdata_collection_name}
     )
 
 
-def publichealthdata_collection_exists(mongo, collection_name: str) -> bool:
-    return collection_name in mongo[_PUBLIC_DB].list_collection_names()
+def publichealthdata_collection_exists(pipeline_mongo, collection_name: str) -> bool:
+    return collection_name in pipeline_mongo[_LOADED_DB].list_collection_names()
 
 
 def should_skip(
-    mongo,
     *,
+    pipeline_mongo,
+    frontend_mongo,
     publichealthdata_collection_name: str,
     current_source_hash: str,
 ) -> tuple[bool, str]:
     """Return (skip: bool, reason: str). Skip iff ALL four:
-      1. current_source_hash is non-empty AND matches metadata.source_hash
+      1. current_source_hash non-empty AND matches metadata.source_hash
+         (metadata on frontend cluster)
       2. metadata.operationally_fit is True
       3. the versioned PublicHealthData collection exists on the
-         pipeline cluster
+         pipeline cluster (physical check, not metadata)
       4. actual row count on that collection == metadata.row_count
          (parity check catches out-of-band drops / truncates / drift)
 
@@ -64,7 +79,7 @@ def should_skip(
     """
     if not current_source_hash:
         return False, "no current source hash available"
-    meta = read_metadata(mongo, publichealthdata_collection_name)
+    meta = read_metadata(frontend_mongo, publichealthdata_collection_name)
     if not meta:
         return False, f"no prior load metadata for {publichealthdata_collection_name!r}"
     if meta.get("source_hash") != current_source_hash:
@@ -74,13 +89,13 @@ def should_skip(
         )
     if not meta.get("operationally_fit"):
         return False, "prior load not marked operationally_fit"
-    if not publichealthdata_collection_exists(mongo, publichealthdata_collection_name):
+    if not publichealthdata_collection_exists(pipeline_mongo, publichealthdata_collection_name):
         return False, (
             f"PublicHealthData collection {publichealthdata_collection_name!r} "
-            f"does not exist"
+            f"does not exist on pipeline cluster"
         )
     recorded_rows = meta.get("row_count")
-    actual_rows = mongo[_PUBLIC_DB][publichealthdata_collection_name].count_documents({})
+    actual_rows = pipeline_mongo[_LOADED_DB][publichealthdata_collection_name].count_documents({})
     if recorded_rows != actual_rows:
         return False, (
             f"row-count parity mismatch (metadata.row_count={recorded_rows} "
@@ -94,8 +109,8 @@ def should_skip(
 
 
 def mark_loaded(
-    mongo,
     *,
+    frontend_mongo,
     publichealthdata_collection_name: str,
     staging_collection_name: str,
     source_hash: str,
@@ -106,13 +121,13 @@ def mark_loaded(
     detail: dict | None = None,
 ) -> None:
     """Upsert load metadata for the versioned PublicHealthData collection.
-    Called at the end of a step that produced the collection without a
-    fatal error. operationally_fit=True per operator rule (non-fatal
-    errors still mark the collection loaded and usable).
+    Writes to the FRONTEND cluster (chathealthyfrontend.pipeline.
+    loaded_metadata). Called at the end of a step that produced the
+    collection without a fatal error.
 
-    Both the source staging collection and the target PublicHealthData
-    collection are recorded so an operator can read the metadata doc
-    alone and know the full migration lineage.
+    Both source staging collection and target loaded collection names
+    are recorded so an operator can read the metadata doc alone and
+    know the full migration lineage.
 
     The `run_id` field matches the `run_id` field stamped on each
     individual data record in the loaded collection -- operators can
@@ -121,7 +136,7 @@ def mark_loaded(
     A step MUST NOT call this on a fatal-error path -- absence of the
     doc is the signal that the next fire should reload.
     """
-    mongo[_PUBLIC_DB][_METADATA_COLL].update_one(
+    frontend_mongo[_METADATA_DB][_METADATA_COLL].update_one(
         {"_id": publichealthdata_collection_name},
         {
             "$set": {

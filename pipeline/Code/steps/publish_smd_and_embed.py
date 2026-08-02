@@ -56,7 +56,8 @@ from pipeline_runtime import PipelineRuntime
 from staging_loader import STAGING_DB_NAME, staging_collection_name
 
 
-_PUBLIC_DB = "PublicHealthData"
+_STAGING_DB = "PublicStaging"
+_LOADED_DB = "PublicHealthData"
 
 
 def _loaded_coll_name(data_version: int) -> str:
@@ -103,13 +104,14 @@ def execute(ctx) -> dict:
     current_hash = _current_nucc_source_hash(ctx)
 
     # Universal skip gate (pipeline_loaded_metadata.should_skip):
-    #   * hash matches metadata.source_hash
+    #   * hash matches metadata.source_hash (metadata on frontend cluster)
     #   * metadata.operationally_fit is True
-    #   * PublicHealthData collection exists
+    #   * loaded PublicHealthData collection exists on pipeline cluster
     #   * row count on collection == metadata.row_count
     # All four true -> no reload needed; return skip summary.
     skip, reason = should_skip(
-        rt.mongo,
+        pipeline_mongo=rt.mongo,
+        frontend_mongo=rt.frontend,
         publichealthdata_collection_name=loaded_name,
         current_source_hash=current_hash,
     )
@@ -131,11 +133,12 @@ def execute(ctx) -> dict:
     # rows never sneak into the publish.
     src = rt.mongo[STAGING_DB_NAME][src_coll_name]
 
-    # Target: pipeline cluster's PublicHealthData. Both staging + loaded
-    # collections live in the same DB so renameCollection can atomic-
-    # swap between them.
-    smd_db = rt.mongo[_PUBLIC_DB]
-    smd_staging = smd_db[staging_name]
+    # Target: pipeline cluster. Staging goes in PublicStaging; loaded
+    # will be in PublicHealthData. Cross-DB atomic swap happens at the
+    # end via `client.admin.command('renameCollection', ..., dropTarget=True)`
+    # (the admin command supports cross-DB; only the Collection.rename()
+    # pymongo helper is same-DB-only).
+    smd_staging = rt.mongo[_STAGING_DB][staging_name]
 
     # Wipe any residue from a previous partially-completed run before
     # writing this run's rows. dropTarget=True on the final rename would
@@ -166,10 +169,10 @@ def execute(ctx) -> dict:
 
     # Embed every staged row on the pipeline cluster. generate_specialty
     # _embeddings iterates find({}) on the collection we point it at, so
-    # restricting to the staging collection keeps the scope tight.
+    # restricting to the PublicStaging staging collection keeps scope tight.
     embed_summary = generate_specialty_embeddings(
         {
-            "specialty_collection": f"{_PUBLIC_DB}.{staging_name}",
+            "specialty_collection": f"{_STAGING_DB}.{staging_name}",
             "openai_api_key": os.environ.get("OPENAI_API_KEY"),
         },
         mongo=rt.mongo,
@@ -208,21 +211,27 @@ def execute(ctx) -> dict:
         )
         unembedded_count += 1
 
-    # Atomic swap. rename(dropTarget=True) on the SAME database is the
-    # server-side MongoDB renameCollection admin command, executed as
-    # one op. Post-swap: PublicHealthData.SpecialtyMetaData_v_{n} is
-    # what the staging collection held; the prior loaded collection is
-    # dropped in the same command.
-    smd_staging.rename(loaded_name, dropTarget=True)
+    # Atomic swap ACROSS databases. renameCollection via admin.command
+    # supports cross-DB source/target (the pymongo Collection.rename()
+    # helper does NOT -- that one is same-DB only). dropTarget=True
+    # drops any prior loaded collection in the same server-side op, so
+    # consumers transition from prior-fire-complete to this-fire-complete
+    # atomically.
+    rt.mongo.admin.command({
+        "renameCollection": f"{_STAGING_DB}.{staging_name}",
+        "to": f"{_LOADED_DB}.{loaded_name}",
+        "dropTarget": True,
+    })
 
     # Mark loaded per operator rule: non-fatal errors (like embed 429s
     # that produced discrepancies) still mark the collection loaded and
     # operationally_fit. A fatal error earlier in this step would have
     # raised before reaching this point, leaving no metadata doc, which
-    # is the signal for the next fire to reload.
-    loaded_row_count = rt.mongo[_PUBLIC_DB][loaded_name].count_documents({})
+    # is the signal for the next fire to reload. Metadata lives on the
+    # frontend cluster (chathealthyfrontend.pipeline.loaded_metadata).
+    loaded_row_count = rt.mongo[_LOADED_DB][loaded_name].count_documents({})
     mark_loaded(
-        rt.mongo,
+        frontend_mongo=rt.frontend,
         publichealthdata_collection_name=loaded_name,
         staging_collection_name=staging_name,
         source_hash=current_hash,
@@ -243,7 +252,7 @@ def execute(ctx) -> dict:
     return {
         "skipped": False,
         "publichealthdata_collection_name": loaded_name,
-        "smd_collection": f"{_PUBLIC_DB}.{loaded_name}",
+        "smd_collection": f"{_LOADED_DB}.{loaded_name}",
         "rows_copied": copied,
         "row_count": loaded_row_count,
         "source_hash": current_hash,
