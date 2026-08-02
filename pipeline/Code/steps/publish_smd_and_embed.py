@@ -1,32 +1,47 @@
 # Copyright (c) 2026 ChatHealthy.ai LLC. All rights reserved.
 # Licensed under the FindCare Evaluation License (FEL-1.0).
 
-"""Publish StagingNucc -> SpecialtyMetaData + generate embeddings.
+"""Publish StagingNucc -> PublicHealthData.SpecialtyMetaData_v_N + embeddings.
 
 Realizes Provider Pipeline LLD v42 §5.2.8a. Runs after normalize_nucc.
 
+**Pipeline-cluster-only.** Pipelines never migrate data from the pipeline
+back-end cluster to the front-end cluster (operator directive 2026-08-02).
+Every write in this step targets ChatHealthyDataPipelines. A separate
+migrator job (out of scope for this step) is the sole legal path from
+pipeline -> frontend.
+
 Sequence inside execute():
 
-  1. Copy every row from PublicStaging.StagingNucc_v_{data_version} on
-     the pipeline cluster into a staging collection on the frontend
-     cluster: {env}_PublicHealthData.SpecialtyMetaData_staging. Strips
-     pipeline-only fields (_id, run_id, _source_row_index, raw).
-  2. Generate a text-embedding-3-large embedding for every row in the
-     frontend-side staging collection (embedding_engine
-     .generate_specialty_embeddings). Stamps embedding, embedding_model,
-     embedding_generated_at on each doc.
-  3. Atomic swap on the frontend cluster:
-        SpecialtyMetaData_staging  -->  SpecialtyMetaData
-     via Collection.rename(new_name, dropTarget=True). Both collections
-     live in {env}_PublicHealthData so the rename is same-DB.
+  1. Copy every row from PublicStaging.StagingNucc_v_{data_version} into
+     PublicHealthData.SpecialtyMetaData_staging_v_{data_version} on the
+     same (pipeline) cluster. Strips pipeline-only fields (_id, run_id,
+     _source_row_index, raw).
+  2. Generate a text-embedding-3-large embedding for every staged row
+     (embedding_engine.generate_specialty_embeddings). Stamps embedding,
+     embedding_model, embedding_generated_at on each doc.
+  3. Atomic swap:
+        PublicHealthData.SpecialtyMetaData_staging_v_{n}
+         --> PublicHealthData.SpecialtyMetaData_v_{n}
+     via Collection.rename(new_name, dropTarget=True). Same-DB (renameCollection
+     requires it). This IS the "loaded" transition per operator rule
+     2026-08-02: "loaded means migrated from staging to PublicHealthData
+     in the pipeline cluster." Non-fatal errors (like embed 429s) still
+     mark the collection loaded; fatal errors block the rename so the
+     next fire reloads.
 
-After a successful run the front-end $vectorSearch (EPIC-002-F-005-S-001
--REQ-T-003) sees a fully-embedded SMD with 883 NUCC + F-105 supplements.
-FindCare's specialty filter can execute without falling back on regex.
+Post-swap: PublicHealthData.SpecialtyMetaData_v_{n} holds 884 rows (883
+NUCC + F-105 supplements) each with an embedding vector (or discrepancy
+records for any rows the embed API dropped). The migrator, running on
+its own schedule, is responsible for shipping this to the front-end
+cluster for user-facing $vectorSearch (EPIC-002-F-005-S-001-REQ-T-003).
 
-No polling, no locks, no retry; each PublicData collection has exactly
-one producing pipeline and cross-run collision is prevented upstream by
-the Atlas cluster reservation semaphore (v42 §5.2.8a bullet 8).
+All collection names are version-suffixed (_v_N) per operator rule
+"all files must be versioned with the right version number."
+
+No polling, no locks, no retry; each PublicHealthData collection has
+exactly one producing pipeline and cross-run collision is prevented
+upstream by the Atlas cluster reservation semaphore.
 """
 
 from __future__ import annotations
@@ -36,16 +51,35 @@ import os
 from chathealthy_frontend_lib.exceptions import ChatHealthyException
 
 from embedding_engine import generate_specialty_embeddings
+from pipeline_loaded_metadata import mark_loaded, should_skip
 from pipeline_runtime import PipelineRuntime
 from staging_loader import STAGING_DB_NAME, staging_collection_name
 
 
-_LIVE_COLLECTION = "SpecialtyMetaData"
-_STAGING_COLLECTION = "SpecialtyMetaData_staging"
+_PUBLIC_DB = "PublicHealthData"
 
 
-def _smd_db_name(env: str) -> str:
-    return f"{env}_PublicHealthData"
+def _loaded_coll_name(data_version: int) -> str:
+    return f"SpecialtyMetaData_v_{data_version}"
+
+
+def _staging_coll_name(data_version: int) -> str:
+    return f"SpecialtyMetaData_staging_v_{data_version}"
+
+
+def _current_nucc_source_hash(ctx) -> str:
+    """Extract the NUCC source-version identifier from this run's metrics.
+
+    Populated by source_freshness_gate + fetch_all_sources earlier in the
+    pipeline. Shape: 'etag=...;lastmod=...;clen=...' -- a stable
+    identifier across fires of the same underlying source. When empty,
+    the hash gate treats it as 'unknown' and forces a load.
+    """
+    manifest = getattr(ctx, "manifest", None)
+    metrics = (getattr(manifest, "metrics", None) or {}) if manifest else {}
+    freshness = metrics.get("source_freshness") or {}
+    nucc = freshness.get("nucc") or {}
+    return (nucc.get("current_version") or "").strip()
 
 
 def _bail_openai_key_missing() -> None:
@@ -62,25 +96,51 @@ def _bail_openai_key_missing() -> None:
 
 def execute(ctx) -> dict:
     rt = PipelineRuntime(ctx)
+    dv = rt.data_version
+    loaded_name = _loaded_coll_name(dv)
+    staging_name = _staging_coll_name(dv)
+    src_coll_name = staging_collection_name("nucc", dv)
+    current_hash = _current_nucc_source_hash(ctx)
+
+    # Universal skip gate (pipeline_loaded_metadata.should_skip):
+    #   * hash matches metadata.source_hash
+    #   * metadata.operationally_fit is True
+    #   * PublicHealthData collection exists
+    #   * row count on collection == metadata.row_count
+    # All four true -> no reload needed; return skip summary.
+    skip, reason = should_skip(
+        rt.mongo,
+        publichealthdata_collection_name=loaded_name,
+        current_source_hash=current_hash,
+    )
+    if skip:
+        return {
+            "skipped": True,
+            "reason": reason,
+            "publichealthdata_collection_name": loaded_name,
+            "source_hash": current_hash,
+        }
 
     # Fail fast if the OpenAI key is missing — better here than after
-    # the copy step has already touched the frontend cluster.
+    # the copy step has already staged rows.
     if not (os.environ.get("OPENAI_API_KEY") or "").strip():
         _bail_openai_key_missing()
 
     # Source: StagingNucc on the pipeline cluster (populated by
     # normalize_nucc). Read the run_id filter so a residual older run's
     # rows never sneak into the publish.
-    src_coll_name = staging_collection_name("nucc", rt.data_version)
     src = rt.mongo[STAGING_DB_NAME][src_coll_name]
 
-    smd_db = rt.frontend[_smd_db_name(rt.env)]
-    smd_staging = smd_db[_STAGING_COLLECTION]
+    # Target: pipeline cluster's PublicHealthData. Both staging + loaded
+    # collections live in the same DB so renameCollection can atomic-
+    # swap between them.
+    smd_db = rt.mongo[_PUBLIC_DB]
+    smd_staging = smd_db[staging_name]
 
     # Wipe any residue from a previous partially-completed run before
     # writing this run's rows. dropTarget=True on the final rename would
-    # handle live's residue; SMD_staging is our own scratch space and
-    # a stray earlier row would inflate the publish count.
+    # handle live's residue; staging is our own scratch space and a stray
+    # earlier row would inflate the publish count.
     smd_staging.delete_many({})
 
     copied = 0
@@ -89,8 +149,12 @@ def execute(ctx) -> dict:
         pub = {
             k: v
             for k, v in row.items()
-            if k not in ("_id", "run_id", "_source_row_index", "raw")
+            if k not in ("_id", "_source_row_index", "raw")
         }
+        # Ensure run_id is set on every published row. Same field name
+        # provider records use; matches _loaded_metadata.run_id so an
+        # operator can trace any row back to its metadata doc.
+        pub["run_id"] = rt.run_id
         batch.append(pub)
         if len(batch) >= 500:
             smd_staging.insert_many(batch, ordered=False)
@@ -100,15 +164,15 @@ def execute(ctx) -> dict:
         smd_staging.insert_many(batch, ordered=False)
         copied += len(batch)
 
-    # Embed every staged row. generate_specialty_embeddings iterates
-    # find({}) on the collection we point it at, so restricting to
-    # _STAGING_COLLECTION keeps the embedding scope tight.
+    # Embed every staged row on the pipeline cluster. generate_specialty
+    # _embeddings iterates find({}) on the collection we point it at, so
+    # restricting to the staging collection keeps the scope tight.
     embed_summary = generate_specialty_embeddings(
         {
-            "specialty_collection": f"{_smd_db_name(rt.env)}.{_STAGING_COLLECTION}",
+            "specialty_collection": f"{_PUBLIC_DB}.{staging_name}",
             "openai_api_key": os.environ.get("OPENAI_API_KEY"),
         },
-        mongo=rt.frontend,
+        mongo=rt.mongo,
     )
 
     # Non-fatal: record one discrepancy per SMD row still missing an
@@ -146,13 +210,43 @@ def execute(ctx) -> dict:
 
     # Atomic swap. rename(dropTarget=True) on the SAME database is the
     # server-side MongoDB renameCollection admin command, executed as
-    # one op. Post-swap: the live SpecialtyMetaData collection is what
-    # SMD_staging held; the old live is dropped in the same command.
-    smd_staging.rename(_LIVE_COLLECTION, dropTarget=True)
+    # one op. Post-swap: PublicHealthData.SpecialtyMetaData_v_{n} is
+    # what the staging collection held; the prior loaded collection is
+    # dropped in the same command.
+    smd_staging.rename(loaded_name, dropTarget=True)
+
+    # Mark loaded per operator rule: non-fatal errors (like embed 429s
+    # that produced discrepancies) still mark the collection loaded and
+    # operationally_fit. A fatal error earlier in this step would have
+    # raised before reaching this point, leaving no metadata doc, which
+    # is the signal for the next fire to reload.
+    loaded_row_count = rt.mongo[_PUBLIC_DB][loaded_name].count_documents({})
+    mark_loaded(
+        rt.mongo,
+        publichealthdata_collection_name=loaded_name,
+        staging_collection_name=staging_name,
+        source_hash=current_hash,
+        run_id=rt.run_id,
+        data_version=dv,
+        row_count=loaded_row_count,
+        operationally_fit=True,
+        detail={
+            "embed_candidates": embed_summary["candidate_count"],
+            "embed_updated": embed_summary["updated_count"],
+            "embed_failed": embed_summary["failed_count"],
+            "embed_unembedded_rows": unembedded_count,
+            "embed_model": embed_summary["model"],
+            "embed_dimensions": embed_summary["dimensions"],
+        },
+    )
 
     return {
-        "smd_collection": f"{_smd_db_name(rt.env)}.{_LIVE_COLLECTION}",
+        "skipped": False,
+        "publichealthdata_collection_name": loaded_name,
+        "smd_collection": f"{_PUBLIC_DB}.{loaded_name}",
         "rows_copied": copied,
+        "row_count": loaded_row_count,
+        "source_hash": current_hash,
         "embed_candidates": embed_summary["candidate_count"],
         "embed_updated": embed_summary["updated_count"],
         "embed_failed": embed_summary["failed_count"],

@@ -149,13 +149,13 @@ def fake_openai(monkeypatch):
 def test_generate_specialty_embeddings_writes_vector_and_metadata(fake_openai):
     from embedding_engine import generate_specialty_embeddings, CANONICAL_MODEL, CANONICAL_DIM
     client = mongomock.MongoClient()
-    coll = client["dev_PublicHealthData"]["SpecialtyMetaData_staging"]
+    coll = client["PublicHealthData"]["SpecialtyMetaData_staging_v_3"]
     coll.insert_many([
         {"Code": "207W00000X", "Display Name": "Ophthalmology"},
         {"Code": "246ZS0400X", "Display Name": "Surgical Technologist", "is_supplemented": True},
     ])
     summary = generate_specialty_embeddings(
-        {"specialty_collection": "dev_PublicHealthData.SpecialtyMetaData_staging"},
+        {"specialty_collection": "PublicHealthData.SpecialtyMetaData_staging_v_3"},
         mongo=client,
     )
     assert summary["candidate_count"] == 2
@@ -174,7 +174,7 @@ def test_generate_specialty_embeddings_writes_vector_and_metadata(fake_openai):
 def test_generate_specialty_embeddings_skips_already_embedded(fake_openai):
     from embedding_engine import generate_specialty_embeddings, CANONICAL_MODEL, CANONICAL_DIM
     client = mongomock.MongoClient()
-    coll = client["dev_PublicHealthData"]["SpecialtyMetaData_staging"]
+    coll = client["PublicHealthData"]["SpecialtyMetaData_staging_v_3"]
     coll.insert_one({
         "Code": "207W00000X",
         "Display Name": "Ophthalmology",
@@ -183,7 +183,7 @@ def test_generate_specialty_embeddings_skips_already_embedded(fake_openai):
     })
     coll.insert_one({"Code": "246ZS0400X", "Display Name": "Surgical Technologist"})
     summary = generate_specialty_embeddings(
-        {"specialty_collection": "dev_PublicHealthData.SpecialtyMetaData_staging"},
+        {"specialty_collection": "PublicHealthData.SpecialtyMetaData_staging_v_3"},
         mongo=client,
     )
     # Only the un-embedded row is a candidate; the pre-embedded one is skipped.
@@ -195,10 +195,10 @@ def test_generate_specialty_embeddings_skips_already_embedded(fake_openai):
 def test_generate_specialty_embeddings_skips_rows_with_no_composable_text(fake_openai):
     from embedding_engine import generate_specialty_embeddings
     client = mongomock.MongoClient()
-    coll = client["dev_PublicHealthData"]["SpecialtyMetaData_staging"]
+    coll = client["PublicHealthData"]["SpecialtyMetaData_staging_v_3"]
     coll.insert_one({"Code": "ZZZ0000000X"})  # no Display Name / etc.
     summary = generate_specialty_embeddings(
-        {"specialty_collection": "dev_PublicHealthData.SpecialtyMetaData_staging"},
+        {"specialty_collection": "PublicHealthData.SpecialtyMetaData_staging_v_3"},
         mongo=client,
     )
     assert summary["candidate_count"] == 0
@@ -297,10 +297,12 @@ def test_publish_smd_and_embed_end_to_end(fake_openai, fake_clusters, monkeypatc
         {"run_id": "run-old", "Code": "STALE00000X", "Display Name": "Stale"},
     ])
 
-    # Pre-seed the live SMD with a completely different set of docs so we
-    # can prove the atomic swap DROPPED live and REPLACED it with the
-    # staging contents — never a merge, never a leftover.
-    live = frontend["dev_PublicHealthData"]["SpecialtyMetaData"]
+    # Pre-seed the LIVE SMD on the PIPELINE cluster (this is where SMD
+    # now lives — pipelines never migrate to frontend) with a completely
+    # different set of docs so we can prove the atomic swap DROPPED live
+    # and REPLACED it with the staging contents — never a merge, never
+    # a leftover.
+    live = pipeline["PublicHealthData"]["SpecialtyMetaData_v_3"]
     live.insert_many([
         {"Code": "OLD1111111X", "Display Name": "Old row 1"},
         {"Code": "OLD2222222X", "Display Name": "Old row 2"},
@@ -313,10 +315,11 @@ def test_publish_smd_and_embed_end_to_end(fake_openai, fake_clusters, monkeypatc
     assert summary["embed_candidates"] == 2
     assert summary["embed_updated"] == 2
     assert summary["embed_failed"] == 0
-    assert summary["smd_collection"] == "dev_PublicHealthData.SpecialtyMetaData"
+    assert summary["smd_collection"] == "PublicHealthData.SpecialtyMetaData_v_3"
 
-    # Post-swap: live collection holds the two staged rows, each embedded.
-    live_after = frontend["dev_PublicHealthData"]["SpecialtyMetaData"]
+    # Post-swap: live collection on PIPELINE cluster holds the two
+    # staged rows, each embedded.
+    live_after = pipeline["PublicHealthData"]["SpecialtyMetaData_v_3"]
     published = list(live_after.find({}))
     codes = sorted(r.get("Code") for r in published)
     assert codes == ["207W00000X", "246ZS0400X"]  # old rows gone, stale run gone
@@ -324,12 +327,18 @@ def test_publish_smd_and_embed_end_to_end(fake_openai, fake_clusters, monkeypatc
         assert row["embedding_model"] == CANONICAL_MODEL
         assert len(row["embedding"]) == CANONICAL_DIM
     # Staging collection was renamed away — must no longer exist.
-    assert "SpecialtyMetaData_staging" not in frontend["dev_PublicHealthData"].list_collection_names()
-    # Pipeline-only fields are stripped from the published rows.
+    assert "SpecialtyMetaData_staging_v_3" not in pipeline["PublicHealthData"].list_collection_names()
+    # Pipeline-only fields stripped; run_id kept per operator rule 2026-08-02
+    # so each SpecialtyMetaData row carries the run_id that loaded it, matching
+    # the run_id on the _loaded_metadata doc for that collection.
     for row in published:
         assert "_source_row_index" not in row
-        assert "run_id" not in row
         assert "raw" not in row
+        assert row.get("run_id") == "run-abc"
+    # FRONTEND cluster MUST remain untouched — pipelines never migrate.
+    assert "SpecialtyMetaData_v_3" not in frontend["dev_PublicHealthData"].list_collection_names()
+    assert "SpecialtyMetaData" not in frontend["dev_PublicHealthData"].list_collection_names()
+    assert "SpecialtyMetaData_staging" not in frontend["dev_PublicHealthData"].list_collection_names()
 
 
 @pytest.mark.unit
@@ -378,8 +387,9 @@ def test_publish_smd_and_embed_records_discrepancies_when_embed_fails(
     ctx = _FakeCtx(pipeline, frontend)
     summary = execute(ctx)
 
-    # Atomic swap MUST have fired: SMD holds the two rows.
-    live = frontend["dev_PublicHealthData"]["SpecialtyMetaData"]
+    # Atomic swap MUST have fired on PIPELINE cluster: SMD_v_3 holds
+    # the two rows.
+    live = pipeline["PublicHealthData"]["SpecialtyMetaData_v_3"]
     codes = sorted(r.get("Code") for r in live.find({}))
     assert codes == ["207W00000X", "246ZS0400X"]
 
@@ -392,6 +402,10 @@ def test_publish_smd_and_embed_records_discrepancies_when_embed_fails(
     assert summary["embed_updated"] == 0
     assert summary["embed_failed"] == 2
     assert summary["embed_unembedded_rows"] == 2
+
+    # FRONTEND cluster MUST remain untouched.
+    assert "SpecialtyMetaData" not in frontend["dev_PublicHealthData"].list_collection_names()
+    assert "SpecialtyMetaData_v_3" not in frontend["dev_PublicHealthData"].list_collection_names()
 
     # ONE discrepancy per un-embedded row, reason prefixed 'error_'.
     disc = frontend["chathealthyfrontend"]["pipeline.discrepancies"]
@@ -418,7 +432,9 @@ def test_nucc_lookup_reads_from_published_smd(fake_clusters):
     from provider_normalize_engine import _nucc_lookup
 
     pipeline, frontend = fake_clusters
-    smd = frontend["dev_PublicHealthData"]["SpecialtyMetaData"]
+    # SMD lives on the PIPELINE cluster's PublicHealthData.SpecialtyMetaData_v_N
+    # per operator directive 2026-08-02 (pipelines never touch frontend).
+    smd = pipeline["PublicHealthData"]["SpecialtyMetaData_v_3"]
     smd.insert_many([
         {"Code": "207W00000X", "Display Name": "Ophthalmology"},
         {"Code": "246ZS0400X", "Display Name": "Surgical Technologist"},
