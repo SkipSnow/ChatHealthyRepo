@@ -85,11 +85,11 @@ class Icd10Fetcher(DataFetcherBase):
 
     def __init__(self, config: dict = None):
         super().__init__(config)
-        try:
-            self.source_url = _discover_icd10_url()
-        except Exception as exc:
-            ChatHealthyLoggingService().warning("ICD-10 auto-discovery failed (%s). Using fallback.", exc)
-            self.source_url = ICD10_FALLBACK_URL
+        # No fallback per operator directive: silent fallback to a stale
+        # hardcoded April-2026 URL is worse than failing loudly. If
+        # discovery breaks, the pipeline MUST surface the problem, not
+        # silently reprocess months-old data.
+        self.source_url = _discover_icd10_url()
 
     def blob_name(self) -> str:
         # Derive a short name from the URL

@@ -558,8 +558,13 @@ def _main():
                     }],
                 }],
             }
-            requests.patch(ATLAS_CLUSTER_URL, json=resize_body,
-                           auth=atlas_auth, headers=ATLAS_HEADERS, timeout=30)
+            resize_resp = requests.patch(ATLAS_CLUSTER_URL, json=resize_body,
+                                          auth=atlas_auth, headers=ATLAS_HEADERS, timeout=30)
+            if resize_resp.status_code not in (200, 202):
+                log.warning(
+                    "Reaper: M80->M30 resize rejected (%d): %s -- cluster left at M80; will retry next tick",
+                    resize_resp.status_code, resize_resp.text[:300],
+                )
         if cluster_state == "IDLE":
             resp = requests.patch(
                 ATLAS_CLUSTER_URL, json={"paused": True},

@@ -70,6 +70,17 @@ from pymongo import UpdateOne
 _log = ChatHealthyLoggingService()
 
 
+def _bail_missing_scoped_states():
+    raise ChatHealthyException(
+        mode="other_identifier_phrases_missing_states",
+        message=(
+            "other_identifier_phrases_engine: scoped_states is empty. "
+            "Silent full-wipe of the staging collection is forbidden -- "
+            "caller MUST pass explicit state codes to bound the drain."
+        ),
+    )
+
+
 STAGING_DB = "PublicStaging"
 STAGING_COLL = "OtherIdentifierPhrases"
 
@@ -138,12 +149,11 @@ def harvest_other_identifier_phrases(config: dict, *, mongo, blob=None) -> dict:
     staging_coll.create_index([("state", 1), ("classification", 1)],
                                name="state_1_classification_1", background=True)
 
-    if scoped_states:
-        prior_deleted = staging_coll.delete_many(
-            {"state": {"$in": scoped_states}}
-        ).deleted_count
-    else:
-        prior_deleted = staging_coll.delete_many({}).deleted_count
+    if not scoped_states:
+        _bail_missing_scoped_states()
+    prior_deleted = staging_coll.delete_many(
+        {"state": {"$in": scoped_states}}
+    ).deleted_count
 
     # NPI-atomic ownership: partition by BUSINESS mailing address state.
     # Business address is single-valued per NPPES contract, so $elemMatch

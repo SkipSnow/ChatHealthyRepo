@@ -16,6 +16,20 @@ from collections import Counter
 _log = ChatHealthyLoggingService()
 
 
+def _bail_no_state_column(header):
+    from chathealthy_frontend_lib.exceptions import ChatHealthyException
+    raise ChatHealthyException(
+        mode="count_providers_by_state_no_state_column",
+        message=(
+            "count_providers_by_state: neither the canonical 'Provider "
+            "Business Practice Location Address State Name' column nor any "
+            "'state...practice' column was found in the CSV header. Prior "
+            "code silently reported zero counts for every state."
+        ),
+        header_sample=header[:5],
+    )
+
+
 def count_providers_by_state(payload: dict = None) -> dict:
     """Stream the NPPES CSV from blob and count providers per state.
 
@@ -54,12 +68,13 @@ def count_providers_by_state(payload: dict = None) -> dict:
                         state_idx = i
                         break
                 if state_idx < 0:
-                    # Fallback: any column with 'state' in name
                     for i, col in enumerate(header):
                         if "state" in col.lower() and "practice" in col.lower():
                             state_idx = i
                             break
-                _log.info("State column: index=%d, name=%s", state_idx, header[state_idx] if state_idx >= 0 else "NOT FOUND")
+                if state_idx < 0:
+                    _bail_no_state_column(header)
+                _log.info("State column: index=%d, name=%s", state_idx, header[state_idx])
                 continue
 
             total += 1

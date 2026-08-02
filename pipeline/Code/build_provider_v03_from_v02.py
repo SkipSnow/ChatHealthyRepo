@@ -588,7 +588,11 @@ def run(limit: int | None, drop: bool, batch_size: int) -> int:
 
     _load_issuer_sets()
 
-    client = ChatHealthyMongoUtilities("MONGO_connectionString").getConnection()
+    # Use the SAME env var this function just validated is present. The
+    # prior code validated MONGO_FRONTEND_connectionString then opened
+    # with MONGO_connectionString -- opened a client to the wrong
+    # cluster while claiming the front-end conn string was good.
+    client = ChatHealthyMongoUtilities("MONGO_FRONTEND_connectionString").getConnection()
     try:
         db = client[DB_NAME]
         src = db[SRC_COLLECTION]
