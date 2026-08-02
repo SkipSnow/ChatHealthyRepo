@@ -18,12 +18,16 @@ from staging_loader import STAGING_DB_NAME, staging_collection_name
 
 _log = ChatHealthyLoggingService()
 
-# Default base name (db.coll, WITHOUT the _v_<data_version> suffix) for the
-# provider write target. Runtime appends _v_{data_version} at read time so
-# a data_version bump does not require a config change. The Mongo
-# pipeline.config MAY override this base with its own dataset_versions
-# .provider_write_target entry (base name only, no version).
-_DEFAULT_PROVIDER_TARGET_BASE = "PublicData.Provider"
+# Every Provider write during the pipeline targets the STAGING collection
+# in ChatHealthyDataPipelines.PublicHealthData (not the loaded collection
+# consumers read). Operator directive 2026-08-02: consumers must never
+# observe partially-enriched Provider records mid-pipeline; publish_provider
+# at the end of the run atomic-renames staging -> Provider_v_{data_version}
+# and calls pipeline_loaded_metadata.mark_loaded, so consumers transition
+# from prior-fire-complete to this-fire-complete in one operation, never
+# seeing in-flight state. Both staging + loaded live in the same DB
+# (PublicHealthData) because MongoDB renameCollection requires same-DB.
+_DEFAULT_PROVIDER_TARGET_BASE = "PublicHealthData.Provider_staging"
 
 REPORTS_CONTAINER_SUFFIX = "-pipeline-reports"
 
