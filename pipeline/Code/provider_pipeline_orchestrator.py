@@ -57,20 +57,6 @@ class ProviderPipelineOrchestrator(BasePipelineOrchestrator):
             parallelism="serial",
         ),
         StepSpec(
-            # v42 §5.2.9 Pass B: reads the fully-published SpecialtyMetaData
-            # (with F-105 supplements) on the frontend cluster to stamp
-            # taxonomies[i].code_label. Prerequisite chain enforces that:
-            # normalize_nucc supplements StagingNucc; publish_smd_and_embed
-            # copies + embeds + atomic-renames into live SMD; only then
-            # does normalize run. Fixes the code_label race on F-105-only
-            # primary codes surfaced 2026-08-02.
-            name="normalize_npi_per_state_fanout",
-            prerequisites=["load_f006_catalog", "publish_smd_and_embed"],
-            parallelism="process_pool",
-            aca_job_name="prov-normalize-state-fanout",
-            partition_key="business_address_state",
-        ),
-        StepSpec(
             # Enrich raw NUCC staging with F-105 proprietary data
             # (can_prescribe / is_homeopathic / is_disqualified) and insert
             # F-105 supplement codes not present in NUCC as new rows with
@@ -86,11 +72,28 @@ class ProviderPipelineOrchestrator(BasePipelineOrchestrator):
             # generate text-embedding-3-large per row, atomic swap to
             # live SpecialtyMetaData via renameCollection(dropTarget=True).
             # Downstream Provider normalize + FindCare $vectorSearch both
-            # depend on this having landed.
+            # depend on this having landed. MUST appear before
+            # normalize_npi_per_state_fanout in this list -- the orchestrator
+            # walks STEPS in array order and enforces prereqs at first
+            # visit; positional order is the topological gate.
             name="publish_smd_and_embed",
             prerequisites=["normalize_nucc"],
             parallelism="serial",
             aca_job_name="prov-publish-smd-embed",
+        ),
+        StepSpec(
+            # v42 §5.2.9 Pass B: reads the fully-published SpecialtyMetaData
+            # (with F-105 supplements) on the frontend cluster to stamp
+            # taxonomies[i].code_label. Prerequisite chain enforces that:
+            # normalize_nucc supplements StagingNucc; publish_smd_and_embed
+            # copies + embeds + atomic-renames into live SMD; only then
+            # does normalize run. Fixes the code_label race on F-105-only
+            # primary codes surfaced 2026-08-02.
+            name="normalize_npi_per_state_fanout",
+            prerequisites=["load_f006_catalog", "publish_smd_and_embed"],
+            parallelism="process_pool",
+            aca_job_name="prov-normalize-state-fanout",
+            partition_key="business_address_state",
         ),
         StepSpec(
             name="add_secondary_practices",

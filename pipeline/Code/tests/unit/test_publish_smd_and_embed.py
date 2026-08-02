@@ -374,7 +374,9 @@ def test_nucc_lookup_reads_from_published_smd(fake_clusters):
 @pytest.mark.unit
 def test_orchestrator_publish_smd_between_normalize_nucc_and_normalize_fanout():
     from provider_pipeline_orchestrator import ProviderPipelineOrchestrator
-    by_name = {s.name: s for s in ProviderPipelineOrchestrator.STEPS}
+    steps = list(ProviderPipelineOrchestrator.STEPS)
+    names = [s.name for s in steps]
+    by_name = {s.name: s for s in steps}
     assert "publish_smd_and_embed" in by_name, "new v42 step missing from STEPS"
     pub = by_name["publish_smd_and_embed"]
     fanout = by_name["normalize_npi_per_state_fanout"]
@@ -382,3 +384,17 @@ def test_orchestrator_publish_smd_between_normalize_nucc_and_normalize_fanout():
     assert "publish_smd_and_embed" in fanout.prerequisites, (
         "code_label ordering fix: fanout must gate on published SMD"
     )
+    # Positional-order invariant: BasePipelineOrchestrator walks STEPS in
+    # array order and enforces prereqs at first visit, so every step MUST
+    # appear AFTER every one of its prereqs in this list. Fire 2026-08-02
+    # crashed because normalize_npi_per_state_fanout preceded its own
+    # prereq publish_smd_and_embed in the array — prereq check fired
+    # before the scheduler ever dispatched the earlier-topologically step.
+    for spec in steps:
+        idx = names.index(spec.name)
+        for pre in spec.prerequisites:
+            assert pre in names, f"{spec.name!r} names unknown prereq {pre!r}"
+            assert names.index(pre) < idx, (
+                f"topological order broken: {spec.name!r} at position "
+                f"{idx} lists prereq {pre!r} at position {names.index(pre)}"
+            )
