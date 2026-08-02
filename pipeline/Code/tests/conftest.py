@@ -18,6 +18,32 @@ _REPO_ROOT = Path(__file__).resolve().parents[3]
 _LIB_SRC = _REPO_ROOT / "FrontEndApplicationLib" / "src"
 if _LIB_SRC.is_dir() and str(_LIB_SRC) not in sys.path:
     sys.path.insert(0, str(_LIB_SRC))
+# Pipeline runtime modules live at pipeline/Code and are imported by
+# name (`from notification_client import ...`) rather than as a package.
+# Tests need that directory on sys.path so bare imports resolve.
+_PIPELINE_CODE = _REPO_ROOT / "pipeline" / "Code"
+if _PIPELINE_CODE.is_dir() and str(_PIPELINE_CODE) not in sys.path:
+    sys.path.insert(0, str(_PIPELINE_CODE))
+
+# Load Code/.env before pytest collects any test module. Several
+# pipeline modules read cluster credentials (ATLAS_PUBLIC_KEY,
+# ATLAS_PRIVATE_KEY, ATLAS_PROJECT_ID, MONGO_connectionString) at
+# module-load time; a test file that imports them (directly or
+# transitively) fails collection with KeyError when the env isn't
+# populated. The promote test gate runs pytest in its own subprocess
+# and the parent shell's env doesn't always propagate through the
+# subprocess chain, so loading .env here at collection time is the
+# reliable path.
+_ENV_FILE = _REPO_ROOT / ".env"
+if _ENV_FILE.is_file():
+    try:
+        from dotenv import load_dotenv as _load_dotenv  # type: ignore[import-untyped]
+        _load_dotenv(_ENV_FILE, override=False)
+    except ImportError:
+        # dotenv is a pipeline runtime dependency; if it is somehow
+        # missing here, silently fall through - the collection error
+        # from the missing env var will still surface clearly.
+        pass
 
 # ChatHealthyLoggingService gracefully skips the Mongo handler when any
 # of CH_SPACE_NAME / ENV_PREFIX / MONGO_FRONTEND_connectionString is

@@ -236,6 +236,16 @@ class ScanFilesEnforcementWorker(EnforcementWorker):
                     self.violation_count += 1
                     any_violations = True
 
+            # Managed-file gate (Deployment Architecture v14 Ch 3.2 + 3.7):
+            # a staged file whose repo-relative path matches any managed
+            # source_location in deployment_architecture.json is rejected.
+            # Managed files live only in the manifest's embedded_content;
+            # the source tree MUST NOT hold them.
+            for v in self._scan_managed_source_location_reappearance(file_path):
+                self._emit_violation(v)
+                self.violation_count += 1
+                any_violations = True
+
         return EXIT_VIOLATIONS_FOUND if any_violations else EXIT_OK
 
     # ────────────────────────────────────────────────────────────────────────
@@ -365,6 +375,68 @@ class ScanFilesEnforcementWorker(EnforcementWorker):
                 )
             )
         return violations
+
+    # ────────────────────────────────────────────────────────────────────────
+    # _scan_managed_source_location_reappearance
+    # (Deployment Architecture v14 Ch 3.2, Ch 3.7 - manifest owns bytes,
+    #  source tree MUST NOT hold them)
+    # ────────────────────────────────────────────────────────────────────────
+    _MANAGED_SOURCE_LOCATIONS_CACHE = None
+
+    def _load_managed_source_locations(self) -> set[str]:
+        """Read deployment_architecture.json and return the set of every
+        source_location where disposition == 'managed'. Cached per worker
+        instance."""
+        if self._MANAGED_SOURCE_LOCATIONS_CACHE is not None:
+            return self._MANAGED_SOURCE_LOCATIONS_CACHE
+        import json as _json
+        manifest_path = PROJECT_ROOT / "brain" / "machine_artifacts" / "content" / "deployment_architecture.json"
+        result: set[str] = set()
+        if not manifest_path.is_file():
+            self._MANAGED_SOURCE_LOCATIONS_CACHE = result
+            return result
+        try:
+            with open(manifest_path, "r", encoding="utf-8") as fh:
+                m = _json.load(fh)
+        except Exception:
+            self._MANAGED_SOURCE_LOCATIONS_CACHE = result
+            return result
+
+        def _walk(node):
+            if isinstance(node, dict):
+                if node.get("disposition") == "managed" and node.get("source_location"):
+                    result.add(node["source_location"].replace("\\", "/"))
+                for v in node.values():
+                    _walk(v)
+            elif isinstance(node, list):
+                for x in node:
+                    _walk(x)
+        _walk(m)
+        self._MANAGED_SOURCE_LOCATIONS_CACHE = result
+        return result
+
+    def _scan_managed_source_location_reappearance(self, file_path: str) -> list[ViolationRecord]:
+        """Reject if the staged file's repo-relative path matches any
+        source_location declared as `disposition:"managed"` in the
+        manifest. Managed files live only in embedded_content in the
+        manifest; the source tree MUST NOT hold them."""
+        normalized = file_path.replace("\\", "/")
+        managed = self._load_managed_source_locations()
+        if normalized in managed:
+            return [ViolationRecord(
+                enforcement_id=self.enforcement_id,
+                rule_id=self.rule_id,
+                resource=file_path,
+                message=(
+                    f"File {file_path!r} is declared as `disposition:\"managed\"` "
+                    f"in deployment_architecture.json - its bytes live in the "
+                    f"manifest's embedded_content and MUST NOT be staged in the "
+                    f"source tree. Delete this file from the working tree or "
+                    f"change the manifest entry to `disposition:\"referenced\"`."
+                ),
+                severity="error",
+            )]
+        return []
 
     # ────────────────────────────────────────────────────────────────────────
     # _scan_no_secret_values  (Rule-008 statement #5 — REQ-T-053)
