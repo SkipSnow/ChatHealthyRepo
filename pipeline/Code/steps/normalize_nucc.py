@@ -1,24 +1,22 @@
 # Copyright (c) 2026 ChatHealthy.ai LLC. All rights reserved.
 # Licensed under the FindCare Evaluation License (FEL-1.0).
-"""Normalize NUCC staging: enrich raw NUCC rows with F-105 proprietary
-data + insert F-105 supplement codes not in NUCC as new rows.
+"""Normalize NUCC staging + publish to front-end SpecialtyMetaData.
 
 Runs in parallel with normalize_npi_per_state_fanout. Same prerequisites
 (load_f006_catalog + load_staging_parallel). After this step completes,
-PublicStaging.StagingNucc_v_{data_version} holds every code any provider
-might carry (883 NUCC + N F-105 supplements). Each row is enriched with:
+PublicStaging.StagingNucc_v_{data_version} (pipeline cluster) AND
+{env}_PublicHealthData.SpecialtyMetaData (front-end cluster) both hold
+every code any provider might carry (883 NUCC + N F-105 supplements).
+Each row carries:
 
   - is_supplemented (bool)         true iff the code exists ONLY in F-105
   - can_prescribe (bool)           from F-105
   - is_homeopathic (bool)          from F-105
   - is_disqualified (bool)         from F-105 (BUG-005 curated allow/deny)
 
-Realizes design directive 2026-08-01: 'normalization of NUCC ... add all
-the metadata from the proprietary data and any missing records.'
-
-Explicitly NOT in scope: populating dev_PublicHealthData.SpecialtyMetaData
-on the front-end cluster. That is the Specialty Pipeline's job and runs
-outside the Provider Pipeline.
+Two-phase per operator directive 2026-08-01: LOAD to staging, then PUBLISH
+to public data. The publish phase full-drains and re-inserts every fire;
+884 rows is trivial and prevents any drift between staging + live.
 """
 from __future__ import annotations
 
@@ -144,10 +142,29 @@ def execute(ctx) -> dict:
         res = coll.bulk_write(supplement_ops, ordered=False)
         supplements_inserted = int(res.inserted_count or 0)
 
+    # Publish phase: copy every staging row for this run into the
+    # front-end cluster's live SpecialtyMetaData collection. Full drain
+    # + re-insert per operator directive 2026-08-01 ("you load staging
+    # and then you put the file to use in public data"). 884 rows is
+    # trivial; full replace prevents drift between staging and live.
+    smd_db_name = f"{rt.env}_PublicHealthData"
+    smd = rt.frontend[smd_db_name]["SpecialtyMetaData"]
+    smd.delete_many({})
+    published_docs = []
+    for row in coll.find({"run_id": run_id}):
+        pub = {k: v for k, v in row.items() if k not in ("_id", "run_id", "_source_row_index", "raw")}
+        published_docs.append(pub)
+    smd_published = 0
+    if published_docs:
+        res = smd.insert_many(published_docs, ordered=False)
+        smd_published = len(res.inserted_ids)
+
     return {
         "nucc_rows_enriched": len(staging_codes),
         "supplements_inserted": supplements_inserted,
         "collection": coll_name,
+        "smd_collection": f"{smd_db_name}.SpecialtyMetaData",
+        "smd_published": smd_published,
     }
 
 
