@@ -19,15 +19,19 @@ from staging_loader import STAGING_DB_NAME, staging_collection_name
 _log = ChatHealthyLoggingService()
 
 # Every Provider write during the pipeline targets the STAGING collection
-# in ChatHealthyDataPipelines.PublicHealthData (not the loaded collection
-# consumers read). Operator directive 2026-08-02: consumers must never
-# observe partially-enriched Provider records mid-pipeline; publish_provider
-# at the end of the run atomic-renames staging -> Provider_v_{data_version}
-# and calls pipeline_loaded_metadata.mark_loaded, so consumers transition
-# from prior-fire-complete to this-fire-complete in one operation, never
-# seeing in-flight state. Both staging + loaded live in the same DB
-# (PublicHealthData) because MongoDB renameCollection requires same-DB.
-_DEFAULT_PROVIDER_TARGET_BASE = "PublicHealthData.Provider_staging"
+# in ChatHealthyDataPipelines.PublicStaging. Operator directive 2026-08-02:
+# * All staging collections live in one DB: PublicStaging (pipeline cluster).
+# * All loaded / production-ready collections live in one DB: PublicHealthData
+#   (pipeline cluster).
+# * Consumers must never observe partially-enriched Provider records; the
+#   loaded collection stays at last-known-good until publish_provider does
+#   the atomic renameCollection swap from PublicStaging.Provider_staging_v_
+#   {data_version} into PublicHealthData.Provider_v_{data_version}.
+# * Load-state metadata for every loaded collection lives on the frontend
+#   cluster (chathealthyfrontend.pipeline.loaded_metadata).
+# The admin.command('renameCollection', ...) supports cross-DB rename, so
+# the atomic swap between the two DBs stays a single server-side op.
+_DEFAULT_PROVIDER_TARGET_BASE = "PublicStaging.Provider_staging"
 
 REPORTS_CONTAINER_SUFFIX = "-pipeline-reports"
 

@@ -37,7 +37,8 @@ from pipeline_loaded_metadata import mark_loaded
 from pipeline_runtime import PipelineRuntime
 
 
-_PUBLIC_DB = "PublicHealthData"
+_STAGING_DB = "PublicStaging"
+_LOADED_DB = "PublicHealthData"
 
 
 def _loaded_coll_name(data_version: int) -> str:
@@ -62,7 +63,7 @@ def _bail_staging_missing(coll_name: str) -> None:
     raise ChatHealthyException(
         mode="runtime_error",
         message=(
-            f"publish_provider: PublicHealthData.{coll_name} does not exist. "
+            f"publish_provider: PublicStaging.{coll_name} does not exist. "
             "No Provider staging collection to publish -- upstream write "
             "steps must have failed or been skipped."
         ),
@@ -75,25 +76,33 @@ def execute(ctx) -> dict:
     loaded_name = _loaded_coll_name(dv)
     staging_name = _staging_coll_name(dv)
 
-    smd_db = rt.mongo[_PUBLIC_DB]
-    if staging_name not in smd_db.list_collection_names():
+    staging_db_h = rt.mongo[_STAGING_DB]
+    if staging_name not in staging_db_h.list_collection_names():
         _bail_staging_missing(staging_name)
 
-    staging_coll = smd_db[staging_name]
+    staging_coll = staging_db_h[staging_name]
     staging_row_count = staging_coll.count_documents({})
 
-    # Atomic swap. renameCollection(dropTarget=true) on the same DB is a
-    # single server-side op. Consumers reading Provider_v_{dv} transition
-    # from prior-fire-complete to this-fire-complete in one instant.
-    staging_coll.rename(loaded_name, dropTarget=True)
+    # Atomic swap ACROSS databases: PublicStaging.<staging_name> ->
+    # PublicHealthData.<loaded_name>. admin.command('renameCollection', ...)
+    # supports cross-DB (Collection.rename() is same-DB only). dropTarget
+    # drops any prior loaded collection in the same server-side op, so
+    # consumers transition prior-fire-complete -> this-fire-complete
+    # atomically.
+    rt.mongo.admin.command({
+        "renameCollection": f"{_STAGING_DB}.{staging_name}",
+        "to": f"{_LOADED_DB}.{loaded_name}",
+        "dropTarget": True,
+    })
 
-    loaded_row_count = smd_db[loaded_name].count_documents({})
+    loaded_row_count = rt.mongo[_LOADED_DB][loaded_name].count_documents({})
 
-    # Mark loaded. Absence of this call = the swap didn't happen (fatal
-    # error), and _loaded_metadata retains its prior entry, which is
-    # what the next fire's should_skip compares against.
+    # Mark loaded on the frontend cluster. Absence of this call = the
+    # swap didn't happen (fatal error), and pipeline.loaded_metadata
+    # retains its prior entry which is what the next fire's should_skip
+    # compares against.
     mark_loaded(
-        rt.mongo,
+        frontend_mongo=rt.frontend,
         publichealthdata_collection_name=loaded_name,
         staging_collection_name=staging_name,
         source_hash=_current_nppes_source_hash(ctx),

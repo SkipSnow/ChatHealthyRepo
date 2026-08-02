@@ -149,13 +149,13 @@ def fake_openai(monkeypatch):
 def test_generate_specialty_embeddings_writes_vector_and_metadata(fake_openai):
     from embedding_engine import generate_specialty_embeddings, CANONICAL_MODEL, CANONICAL_DIM
     client = mongomock.MongoClient()
-    coll = client["PublicHealthData"]["SpecialtyMetaData_staging_v_3"]
+    coll = client["PublicStaging"]["SpecialtyMetaData_staging_v_3"]
     coll.insert_many([
         {"Code": "207W00000X", "Display Name": "Ophthalmology"},
         {"Code": "246ZS0400X", "Display Name": "Surgical Technologist", "is_supplemented": True},
     ])
     summary = generate_specialty_embeddings(
-        {"specialty_collection": "PublicHealthData.SpecialtyMetaData_staging_v_3"},
+        {"specialty_collection": "PublicStaging.SpecialtyMetaData_staging_v_3"},
         mongo=client,
     )
     assert summary["candidate_count"] == 2
@@ -174,7 +174,7 @@ def test_generate_specialty_embeddings_writes_vector_and_metadata(fake_openai):
 def test_generate_specialty_embeddings_skips_already_embedded(fake_openai):
     from embedding_engine import generate_specialty_embeddings, CANONICAL_MODEL, CANONICAL_DIM
     client = mongomock.MongoClient()
-    coll = client["PublicHealthData"]["SpecialtyMetaData_staging_v_3"]
+    coll = client["PublicStaging"]["SpecialtyMetaData_staging_v_3"]
     coll.insert_one({
         "Code": "207W00000X",
         "Display Name": "Ophthalmology",
@@ -183,7 +183,7 @@ def test_generate_specialty_embeddings_skips_already_embedded(fake_openai):
     })
     coll.insert_one({"Code": "246ZS0400X", "Display Name": "Surgical Technologist"})
     summary = generate_specialty_embeddings(
-        {"specialty_collection": "PublicHealthData.SpecialtyMetaData_staging_v_3"},
+        {"specialty_collection": "PublicStaging.SpecialtyMetaData_staging_v_3"},
         mongo=client,
     )
     # Only the un-embedded row is a candidate; the pre-embedded one is skipped.
@@ -195,10 +195,10 @@ def test_generate_specialty_embeddings_skips_already_embedded(fake_openai):
 def test_generate_specialty_embeddings_skips_rows_with_no_composable_text(fake_openai):
     from embedding_engine import generate_specialty_embeddings
     client = mongomock.MongoClient()
-    coll = client["PublicHealthData"]["SpecialtyMetaData_staging_v_3"]
+    coll = client["PublicStaging"]["SpecialtyMetaData_staging_v_3"]
     coll.insert_one({"Code": "ZZZ0000000X"})  # no Display Name / etc.
     summary = generate_specialty_embeddings(
-        {"specialty_collection": "PublicHealthData.SpecialtyMetaData_staging_v_3"},
+        {"specialty_collection": "PublicStaging.SpecialtyMetaData_staging_v_3"},
         mongo=client,
     )
     assert summary["candidate_count"] == 0
@@ -244,9 +244,32 @@ class _FakeCtx:
 
 @pytest.fixture
 def fake_clusters(monkeypatch):
-    """Two independent mongomock clients so cross-cluster copy is real."""
+    """Two independent mongomock clients + shim for admin.command
+    (mongomock doesn't implement it). The shim only recognises the
+    renameCollection command with cross-DB source/target and simulates
+    it via a raw doc copy + drop, matching what MongoDB does server-side.
+    """
     pipeline = mongomock.MongoClient()
     frontend = mongomock.MongoClient()
+
+    def _fake_admin_command(cmd, *args, **kwargs):
+        if isinstance(cmd, dict) and "renameCollection" in cmd:
+            src = cmd["renameCollection"]
+            dst = cmd["to"]
+            drop_target = bool(cmd.get("dropTarget", False))
+            src_db, src_coll = src.split(".", 1)
+            dst_db, dst_coll = dst.split(".", 1)
+            src_c = pipeline[src_db][src_coll]
+            dst_c = pipeline[dst_db][dst_coll]
+            if drop_target:
+                pipeline[dst_db].drop_collection(dst_coll)
+            for doc in src_c.find({}):
+                dst_c.insert_one(doc)
+            pipeline[src_db].drop_collection(src_coll)
+            return {"ok": 1}
+        raise NotImplementedError(f"fake admin.command does not handle {cmd!r}")
+
+    pipeline.admin.command = _fake_admin_command
     monkeypatch.setattr("pipeline_runtime.get_frontend_mongo", lambda: frontend)
     monkeypatch.setattr("pipeline_runtime.get_mongo", lambda: pipeline)
     return pipeline, frontend
