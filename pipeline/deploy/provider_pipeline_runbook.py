@@ -489,7 +489,8 @@ def _write_run_manifest(mongo, run_id: str, load_mode: str,
 def _cloud_init_user_data(run_id: str, load_mode: str, state_scope,
                           invocation_mode: str, resume_from_step: str,
                           data_version: int,
-                          google_maps_enabled: bool = False) -> str:
+                          google_maps_enabled: bool = False,
+                          testing_variance: bool = False) -> str:
     """Return the base64-encoded cloud-init user_data blob for the VM.
 
     The VM boots this cloud-init:
@@ -567,6 +568,7 @@ runcmd:
       -e RUN_ID='{run_id}' \\
       -e DATA_VERSION='{data_version}' \\
       -e GOOGLE_MAPS_ENABLED='{"1" if google_maps_enabled else "0"}' \\
+      -e TESTING_VARIANCE='{"1" if testing_variance else "0"}' \\
       -e ENV_PREFIX='{ENV_PREFIX}' \\
       -e INVOCATION_MODE='{invocation_mode}' \\
       -e LOAD_MODE='{load_mode}' \\
@@ -608,7 +610,8 @@ def _get_ssh_pubkey() -> str:
 def _provision_vm(run_id: str, load_mode: str, state_scope,
                   invocation_mode: str, resume_from_step: str = "",
                   data_version: int = 0,
-                  google_maps_enabled: bool = False) -> dict:
+                  google_maps_enabled: bool = False,
+                  testing_variance: bool = False) -> dict:
     """v32 §5.2.2: PUT a fresh Pipeline Run VM into snet-pipeline-compute.
 
     Async by nature: ARM returns a provisioning-state URL, not a
@@ -665,7 +668,7 @@ def _provision_vm(run_id: str, load_mode: str, state_scope,
     )
     user_data_b64 = _cloud_init_user_data(
         run_id, load_mode, state_scope, invocation_mode, resume_from_step,
-        data_version, google_maps_enabled,
+        data_version, google_maps_enabled, testing_variance,
     )
     vm_body = {
         "location": VM_LOCATION,
@@ -824,6 +827,7 @@ def _provision_vm_and_wake_mongo_in_parallel(
     invocation_mode: str, resume_from_step: str = "",
     data_version: int = 0,
     google_maps_enabled: bool = False,
+    testing_variance: bool = False,
 ) -> dict:
     """v32 §5.2.2 par-block: fire VM create AND Atlas resume in parallel.
 
@@ -839,7 +843,7 @@ def _provision_vm_and_wake_mongo_in_parallel(
         try:
             results["vm"] = _provision_vm(
                 run_id, load_mode, state_scope, invocation_mode, resume_from_step,
-                data_version, google_maps_enabled,
+                data_version, google_maps_enabled, testing_variance,
             )
         except Exception as exc:  # noqa: BLE001
             results["vm_error"] = f"{type(exc).__name__}: {exc}"
@@ -1013,6 +1017,19 @@ def main() -> int:
         google_maps_enabled = str(gm_raw or "").strip().lower() in ("1", "true", "yes")
     os.environ["GOOGLE_MAPS_ENABLED"] = "1" if google_maps_enabled else "0"
 
+    # v42: testing_variance webhook arg. Default False. When True, the
+    # normalize step applies an inline hardcoded mutation table so a
+    # discrepancy-report end-to-end test can inject test cases (e.g.,
+    # overlay code DDDDDDDDDD on a known NPI) without hand-editing
+    # staging. Published to env so cloud-init injects -e TESTING_VARIANCE
+    # which Controller argparse picks up.
+    tv_raw = (webhook_body or {}).get("testing_variance")
+    if isinstance(tv_raw, bool):
+        testing_variance = tv_raw
+    else:
+        testing_variance = str(tv_raw or "").strip().lower() in ("1", "true", "yes")
+    os.environ["TESTING_VARIANCE"] = "1" if testing_variance else "0"
+
     log("runbook_start",
         pipeline=PIPELINE_NAME,
         env=ENV_PREFIX,
@@ -1128,7 +1145,7 @@ def main() -> int:
         try:
             result = _provision_vm_and_wake_mongo_in_parallel(
                 run_id, load_mode, state_scope, invocation_mode, resume_from_step,
-                data_version, google_maps_enabled,
+                data_version, google_maps_enabled, testing_variance,
             )
             vm_id = ((result.get("vm") or {}).get("id")) if result.get("vm") else None
             vm_provisioned = True

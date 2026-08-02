@@ -139,6 +139,88 @@ def _process_batch(
     return 0, 0
 
 
+def _compose_specialty_text(doc: dict) -> str:
+    """Concatenation of semantic fields for the SpecialtyMetaData vector search.
+
+    v42 §5.2.8a: the SMD collection ($vectorSearch target for FindCare
+    specialty filter) needs one embedding per NUCC/F-105 code. Composition
+    mirrors the display fields a human sees when reading a specialty page:
+    Display Name, Grouping, Classification, Specialization, Definition.
+    Empty fields are skipped so the composed string never carries `|| ||`
+    filler that would poison the embedding.
+    """
+    parts: list[str] = []
+    for key in ("Display Name", "Grouping", "Classification", "Specialization", "Definition"):
+        val = doc.get(key)
+        if val:
+            s = str(val).strip()
+            if s:
+                parts.append(s)
+    return " | ".join(parts).strip()
+
+
+def generate_specialty_embeddings(
+    config: dict,
+    *,
+    mongo=None,
+) -> dict[str, Any]:
+    """Generate text-embedding-3-large embeddings for every SMD row needing one.
+
+    Required config keys:
+      - specialty_collection  (str "<db>.<coll>")
+      - batch_size            (int, default 96)
+      - max_in_flight         (int, default 4)
+      - openai_api_key        (str; falls back to OPENAI_API_KEY env)
+
+    Iterates every doc in the target collection (no run_id filter — SMD
+    is a full-replace snapshot per publish, not a running-accumulation).
+    Returns candidate/updated/failed counts + model + dimensions.
+    """
+    specialty_collection = config["specialty_collection"]
+    batch_size = int(config.get("batch_size", DEFAULT_BATCH_SIZE))
+    max_in_flight = int(config.get("max_in_flight", DEFAULT_MAX_IN_FLIGHT))
+
+    db_name, coll_name = specialty_collection.split(".", 1)
+    coll = mongo[db_name][coll_name]
+
+    client = _build_openai_client(config.get("openai_api_key"))
+
+    batches: list[list[tuple[Any, str]]] = []
+    current: list[tuple[Any, str]] = []
+    candidate = 0
+
+    for doc in coll.find({}):
+        if not _needs_embedding(doc):
+            continue
+        text = _compose_specialty_text(doc)
+        if not text:
+            continue
+        candidate += 1
+        current.append((doc["_id"], text))
+        if len(current) >= batch_size:
+            batches.append(current)
+            current = []
+    if current:
+        batches.append(current)
+
+    updated = 0
+    failed = 0
+    with ThreadPoolExecutor(max_workers=max(1, max_in_flight)) as pool:
+        futs = [pool.submit(_process_batch, client=client, coll=coll, batch=b) for b in batches]
+        for fut in as_completed(futs):
+            u, f = fut.result()
+            updated += u
+            failed += f
+
+    return {
+        "candidate_count": candidate,
+        "updated_count": updated,
+        "failed_count": failed,
+        "model": CANONICAL_MODEL,
+        "dimensions": CANONICAL_DIM,
+    }
+
+
 def generate_provider_embeddings(
     config: dict,
     *,

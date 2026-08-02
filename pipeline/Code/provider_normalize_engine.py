@@ -21,12 +21,26 @@ _log = ChatHealthyLoggingService()
 
 
 def _nucc_lookup(rt: PipelineRuntime) -> dict[str, dict]:
+    """Return code -> SMD row for every published specialty.
+
+    v42 §5.2.9 Pass B: reads the fully-published SpecialtyMetaData
+    on the frontend cluster, which the ordered step list guarantees is
+    complete before this function is called (publish_smd_and_embed is a
+    transitive prerequisite of normalize_npi_per_state_fanout). Includes
+    both native NUCC codes and F-105 supplements (e.g. 246ZS0400X).
+
+    The SMD row has the display fields at the top level (Code, Display
+    Name, Grouping, Classification, Specialization, Definition). To keep
+    the caller (build_provider_record) untouched, wrap the flat SMD row
+    in the {'raw': {...}} shape build_provider_record expects.
+    """
+    smd = rt.frontend[f"{rt.env}_PublicHealthData"]["SpecialtyMetaData"]
     out: dict[str, dict] = {}
-    for row in rt.staging_coll("nucc").find({"run_id": rt.run_id}):
-        raw = row.get("raw") or {}
-        code = raw.get("Code") or row.get("Code") or row.get("_id")
-        if code:
-            out[str(code)] = row
+    for row in smd.find({}):
+        code = row.get("Code") or row.get("code")
+        if not code:
+            continue
+        out[str(code)] = {"raw": row}
     return out
 
 
@@ -86,7 +100,10 @@ def per_state_normalize(ctx, state: str) -> dict[str, Any]:
                 continue
             seen_npis.add(npi)
 
-            doc = build_provider_record(raw, npi=npi, run_id=rt.run_id, nucc_catalog=nucc)
+            doc = build_provider_record(
+                raw, npi=npi, run_id=rt.run_id, nucc_catalog=nucc,
+                testing_variance=bool(getattr(ctx.args, "testing_variance", False)),
+            )
             ok, errors = validate_provider_record(doc)
             if not ok:
                 violations += 1
