@@ -198,6 +198,16 @@ class BasePipelineOrchestrator:
                 "full" if not ctx.args.incremental else "incremental"
             ),
             "data_version": int(ctx.args.data_version),
+            # Operator-driven flags carried on the args snapshot so worker
+            # subprocesses see the same value the Controller received.
+            # Prior omission silently defaulted both to False in every
+            # Worker: google_maps_enabled since its introduction (paid
+            # cascade stage never fired even when operator asked for it);
+            # testing_variance since v42 (surfaced 2026-08-02 when NPI
+            # 1669475695 shipped without the DDDDDDDDDD overlay despite
+            # testing_variance=true in the webhook).
+            "google_maps_enabled": bool(getattr(ctx.args, "google_maps_enabled", False)),
+            "testing_variance": bool(getattr(ctx.args, "testing_variance", False)),
         }
         # Config we pass to Worker excludes non-picklable clients; each
         # Worker reconstructs its own mongo_client + blob_client.
