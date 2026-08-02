@@ -189,8 +189,23 @@ class ProviderPipelineOrchestrator(BasePipelineOrchestrator):
             aca_job_name="prov-post-load-reconciliation",
         ),
         StepSpec(
-            name="discrepancy_and_notifications",
+            # Operator directive 2026-08-02: consumers never observe
+            # partially-enriched Provider records mid-pipeline. Every
+            # upstream write step targets PublicHealthData.
+            # Provider_staging_v_{data_version}; publish_provider does
+            # the atomic renameCollection swap into Provider_v_{
+            # data_version} and calls mark_loaded so consumers transition
+            # from prior-fire-complete to this-fire-complete in one
+            # operation. Runs late, after reconciliation, so only a
+            # verified-good build ever lands as loaded.
+            name="publish_provider",
             prerequisites=["post_load_reconciliation"],
+            parallelism="serial",
+            aca_job_name="prov-publish-provider",
+        ),
+        StepSpec(
+            name="discrepancy_and_notifications",
+            prerequisites=["publish_provider"],
             parallelism="serial",
             aca_job_name="prov-discrepancy-notify",
         ),
