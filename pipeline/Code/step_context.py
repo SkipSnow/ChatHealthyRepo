@@ -36,6 +36,11 @@ class PipelineArgs:
     # Mandatory data-version integer. Default 0 is only for dataclass
     # field-ordering; __post_init__ enforces >= 1 at construction.
     data_version: int = 0
+    # v42 test-injection hook: when True, normalize applies a hardcoded
+    # inline mutation table (see normalize_provider_rows). Default False.
+    # Temporary - the mutation code + this flag are expected to be
+    # removed once the test each variance line supports has passed.
+    testing_variance: bool = False
 
     def __post_init__(self):
         if not isinstance(self.data_version, int) or self.data_version < 1:

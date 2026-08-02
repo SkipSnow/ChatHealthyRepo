@@ -60,12 +60,59 @@ def dedupe_within_record(doc: dict) -> dict:
     return doc
 
 
+# v42 test-variance mutation table. TEMPORARY. Each entry names an NPI
+# and a dotted field path with the value to overlay when the caller
+# passes testing_variance=True. Used to inject test cases (e.g. the
+# discrepancy-report end-to-end test overlays code DDDDDDDDDD onto a
+# known real NPI so provider_flags_enrichment reaches the unresolved-
+# taxonomy-code path deterministically). REMOVE these rows once the
+# test each row supports has passed and is no longer needed.
+_TEST_VARIANCE = [
+    {"npi": "1669475695", "path": "primary_taxonomy_code", "value": "DDDDDDDDDD"},
+    {"npi": "1669475695", "path": "taxonomies.0.code", "value": "DDDDDDDDDD"},
+]
+
+
+def _apply_test_variance(doc: dict) -> None:
+    """Apply any _TEST_VARIANCE row whose npi matches doc['npi'].
+    Mutates doc in place. Dotted paths supported for one-level nesting
+    into list indices (e.g. 'taxonomies.0.code')."""
+    npi = doc.get("npi")
+    if not npi:
+        return
+    for row in _TEST_VARIANCE:
+        if row.get("npi") != npi:
+            continue
+        path = row["path"].split(".")
+        target = doc
+        for i, key in enumerate(path):
+            last = (i == len(path) - 1)
+            if key.isdigit():
+                idx = int(key)
+                if not isinstance(target, list) or idx >= len(target):
+                    break
+                if last:
+                    target[idx] = row["value"]
+                else:
+                    target = target[idx]
+            else:
+                if not isinstance(target, dict):
+                    break
+                if last:
+                    target[key] = row["value"]
+                else:
+                    target = target.get(key)
+                    if target is None:
+                        break
+
+
 def build_provider_record(
     raw: dict,
     *,
     npi: str,
     run_id: str | None = None,
     nucc_catalog: dict[str, dict] | None = None,
+    testing_variance: bool = False,
 ) -> dict:
     doc = normalize_raw_record(raw)
     doc["npi"] = str(npi).zfill(10)
@@ -106,6 +153,8 @@ def build_provider_record(
                 # non-current codes downstream (F-105 supplemented codes
                 # get their reference_status stamped by normalize_nucc).
                 tax.setdefault("reference_status", "current_reference")
+    if testing_variance:
+        _apply_test_variance(doc)
     return dedupe_within_record(doc)
 
 
