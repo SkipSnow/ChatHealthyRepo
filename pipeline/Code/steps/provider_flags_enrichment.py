@@ -35,8 +35,6 @@ def run_step(ctx) -> dict:
         config,
         mongo=ctx.mongo_client,
         blob=ctx.blob_client,
-        frontend=rt.frontend,
-        env_prefix=rt.env,
     ) or {}
 
     key = f"flags:{config.get('entity_kind_filter') or 'ALL'}:{config.get('partition_state') or 'ALL'}"
