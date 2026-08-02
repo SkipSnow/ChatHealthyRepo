@@ -85,7 +85,11 @@ def provision_job(
             "--memory", memory,
             "--command", "python", "worker_runner.py",
         ])
-    except RuntimeError:
+    except ChatHealthyException:
+        # `_az()` raises ChatHealthyException on non-zero az exit (e.g.
+        # job already exists). The prior `except RuntimeError` never
+        # caught that, so the update branch was dead code and create
+        # failures crashed the run.
         _az([
             "containerapp", "job", "update",
             "--name", job_name,

@@ -21,30 +21,32 @@ _log = ChatHealthyLoggingService()
 CMS_PARTD_DATASET_UUID = "9552739e-3d05-4c1b-8eff-ecabf391e2e5"
 CMS_PARTD_RESOURCES_URL = f"https://data.cms.gov/data-api/v1/dataset-resources/{CMS_PARTD_DATASET_UUID}"
 
-# Fallback URL — used only if the dataset-resources API is unreachable.
-CMS_PARTD_FALLBACK_URL = (
-    "https://data.cms.gov/sites/default/files/2025-04/"
-    "0d5915ce-002c-4d87-bde8-24ffb08bb6cc/"
-    "MUP_DPR_RY25_P04_V10_DY23_NPIBN.csv"
-)
+def _bail_no_csv_discovered():
+    from chathealthy_frontend_lib.exceptions import ChatHealthyException
+    raise ChatHealthyException(
+        mode="cms_partd_discovery_no_csv",
+        message=(
+            "prescriber_data_fetcher: CMS dataset-resources API returned no "
+            "CSV entry. Cannot proceed without a discovered source URL."
+        ),
+        api_url=CMS_PARTD_RESOURCES_URL,
+    )
 
 
 def _discover_cms_partd_url() -> str:
-    """Discover the latest CMS Part D Prescriber CSV download URL via API."""
-    try:
-        resp = _requests.get(CMS_PARTD_RESOURCES_URL, timeout=15)
-        resp.raise_for_status()
-        data = resp.json().get("data", [])
-        for entry in data:
-            if entry.get("downloadURL", "").endswith(".csv"):
-                url = entry["downloadURL"]
-                _log.info("Discovered CMS Part D URL: %s", url)
-                return url
-        _log.warning("No CSV found in dataset-resources response, using fallback")
-        return CMS_PARTD_FALLBACK_URL
-    except Exception as e:
-        _log.warning("CMS dataset-resources API failed: %s — using fallback URL", e)
-        return CMS_PARTD_FALLBACK_URL
+    """Discover the latest CMS Part D Prescriber CSV download URL via API.
+    No fallback: if discovery breaks, raise. A silent fallback to a
+    hardcoded April-2025 URL would silently reprocess year-old data
+    with no version-drift signal."""
+    resp = _requests.get(CMS_PARTD_RESOURCES_URL, timeout=15)
+    resp.raise_for_status()
+    data = resp.json().get("data", [])
+    for entry in data:
+        if entry.get("downloadURL", "").endswith(".csv"):
+            url = entry["downloadURL"]
+            _log.info("Discovered CMS Part D URL: %s", url)
+            return url
+    _bail_no_csv_discovered()
 
 
 class CMSPartDFetcher(DataFetcherBase):

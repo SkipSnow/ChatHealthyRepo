@@ -62,7 +62,21 @@ class PrescriberLoadWorker(PipelineWorkerBase):
     def __init__(self, config: dict):
         super().__init__(config)
         self.env_prefix = config.get("env_prefix", "dev")
-        self.states = config.get("states", ["DE"])
+        # No silent DE default: prior code substituted ['DE'] when caller
+        # forgot to pass states, silently writing DE data over the wrong
+        # cohort. Raise instead so misconfiguration surfaces immediately.
+        states = config.get("states")
+        if not states:
+            from chathealthy_frontend_lib.exceptions import ChatHealthyException
+            raise ChatHealthyException(
+                mode="prescriber_load_worker_missing_states",
+                message=(
+                    "PrescriberLoadWorker: config['states'] is required. Prior "
+                    "silent default of ['DE'] would write DE data over the "
+                    "wrong cohort. Caller MUST pass an explicit state list."
+                ),
+            )
+        self.states = states
         self.blob_name = config.get("blob_name", "cms_partd_prescriber_latest.csv")
         self.container = config.get("blob_container", "provider-data")
         self.batch_size = config.get("batch_size", 500)

@@ -37,16 +37,26 @@ def _safety_cleanup(mongo, scoped_states: list[str]) -> dict:
     handles its own state-scoped drain.
     """
     upper_states = [s.upper().strip() for s in (scoped_states or []) if s]
+    if not upper_states:
+        # No silent full-wipe: prior code would delete_many({}) the entire
+        # cross-fire collection when caller passed empty state scope. That
+        # kills work for OTHER in-flight fires. Caller MUST pass an
+        # explicit state scope; otherwise refuse to touch anything.
+        from chathealthy_frontend_lib.exceptions import ChatHealthyException
+        raise ChatHealthyException(
+            mode="prepare_infrastructure_missing_state_scope",
+            message=(
+                "prepare_infrastructure safety-cleanup: scoped_states is empty. "
+                "Silent full-wipe of the pipeline-owned staging collections is "
+                "forbidden -- caller MUST pass an explicit list of state codes."
+            ),
+        )
     results = []
     for db_name, coll_name in _PIPELINE_OWNED_STAGING_TO_RESET:
         try:
             coll = mongo[db_name][coll_name]
-            if upper_states:
-                n = coll.delete_many({"state": {"$in": upper_states}}).deleted_count
-                scope_note = f"state in {upper_states}"
-            else:
-                n = coll.delete_many({}).deleted_count
-                scope_note = "(no state scope)"
+            n = coll.delete_many({"state": {"$in": upper_states}}).deleted_count
+            scope_note = f"state in {upper_states}"
             results.append({
                 "collection": f"{db_name}.{coll_name}",
                 "deleted": n,
