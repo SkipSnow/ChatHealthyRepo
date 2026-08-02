@@ -168,13 +168,16 @@ class _FakeDB(dict):
 
 
 class _FakeFrontendMongo:
-    """provider_flags_engine._load_catalog(frontend_client, env_prefix)
-    reads from {env_prefix}_PublicHealthData.SpecialtyMetaData on the
-    front-end cluster. This fake wires that path for the tests."""
-    def __init__(self, coll_rows, env_prefix="dev"):
-        self._db_name = f"{env_prefix}_PublicHealthData"
+    """provider_flags_engine._load_catalog(mongo, data_version) reads from
+    PublicHealthData.SpecialtyMetaData_v_{data_version} on the PIPELINE
+    cluster (operator directive 2026-08-02: pipelines never read data
+    collections from the front-end cluster). Kept the class name for
+    diff readability; targets pipeline cluster now."""
+    def __init__(self, coll_rows, data_version=3):
+        self._db_name = "PublicHealthData"
+        self._coll_name = f"SpecialtyMetaData_v_{data_version}"
         self._db = _FakeDB()
-        self._db["SpecialtyMetaData"] = _FakeCollection(coll_rows)
+        self._db[self._coll_name] = _FakeCollection(coll_rows)
 
     def __getitem__(self, db_name):
         assert db_name == self._db_name, (
@@ -194,7 +197,7 @@ def test_load_catalog_happy_path():
         {"_id": 2, "Code": "175F00000X",
          "can_prescribe": False, "is_homeopathic": True, "is_supplemented": False},
     ])
-    catalog = _load_catalog(mongo, env_prefix="dev")
+    catalog = _load_catalog(mongo, data_version=3)
     assert catalog["207Y00000X"] == {
         "can_prescribe": True, "is_homeopathic": False, "is_supplemented": False,
     }
@@ -207,7 +210,7 @@ def test_load_catalog_happy_path():
 def test_load_catalog_raises_on_empty_collection():
     mongo = _FakeFrontendMongo([])
     with pytest.raises(ChatHealthyException) as exc_info:
-        _load_catalog(mongo, env_prefix="dev")
+        _load_catalog(mongo, data_version=3)
     assert exc_info.value.mode == "catalog_empty"
 
 
@@ -217,7 +220,7 @@ def test_load_catalog_raises_on_missing_code():
         {"_id": 1, "can_prescribe": True, "is_homeopathic": False},
     ])
     with pytest.raises(ChatHealthyException) as exc_info:
-        _load_catalog(mongo, env_prefix="dev")
+        _load_catalog(mongo, data_version=3)
     assert exc_info.value.mode == "catalog_row_missing_code"
 
 
@@ -227,7 +230,7 @@ def test_load_catalog_raises_on_missing_can_prescribe():
         {"_id": 1, "Code": "AAA", "is_homeopathic": False},
     ])
     with pytest.raises(ChatHealthyException) as exc_info:
-        _load_catalog(mongo, env_prefix="dev")
+        _load_catalog(mongo, data_version=3)
     assert exc_info.value.mode == "catalog_row_missing_can_prescribe"
 
 
@@ -237,5 +240,5 @@ def test_load_catalog_raises_on_missing_homeopathic():
         {"_id": 1, "Code": "AAA", "can_prescribe": True},
     ])
     with pytest.raises(ChatHealthyException) as exc_info:
-        _load_catalog(mongo, env_prefix="dev")
+        _load_catalog(mongo, data_version=3)
     assert exc_info.value.mode == "catalog_row_missing_homeopathic"

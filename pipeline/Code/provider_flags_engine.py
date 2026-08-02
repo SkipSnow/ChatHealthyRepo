@@ -56,20 +56,20 @@ DEFAULT_BATCH = 500
 _PRESCRIBING_CREDENTIAL_TOKENS = frozenset({"MD", "DO"})
 
 
-def _load_catalog(frontend_client, env_prefix: str) -> dict[str, dict[str, bool]]:
+def _load_catalog(mongo, data_version: int) -> dict[str, dict[str, bool]]:
     """Load the normalized specialty catalog into
     {code -> {can_prescribe, is_homeopathic, is_supplemented}}.
 
-    Reads from {env}_PublicHealthData.SpecialtyMetaData on the front-end
-    cluster -- the same collection FindCare's specialty filter reads,
-    published by normalize_nucc after it merges raw NUCC + F-105
-    supplements. Fields are at TOP LEVEL of every doc (Code /
-    can_prescribe / is_homeopathic / is_supplemented) because
-    normalize_nucc flattens them there. Raises if collection is empty
-    or any row is missing an expected field -- no fallback."""
-    smd_db_name = f"{env_prefix}_PublicHealthData"
-    coll = frontend_client[smd_db_name]["SpecialtyMetaData"]
-    coll_ref = f"{smd_db_name}.SpecialtyMetaData"
+    Reads from ChatHealthyDataPipelines.PublicHealthData.SpecialtyMetaData_v_
+    {data_version} on the PIPELINE cluster (operator directive 2026-08-02:
+    pipelines never read data collections from the front-end cluster; the
+    canonical PublicHealthData collection is produced by publish_smd_and_embed
+    on the pipeline cluster). Fields are at TOP LEVEL of every doc (Code /
+    can_prescribe / is_homeopathic / is_supplemented). Raises if collection
+    is empty or any row is missing an expected field -- no fallback."""
+    coll_name = f"SpecialtyMetaData_v_{data_version}"
+    coll = mongo["PublicHealthData"][coll_name]
+    coll_ref = f"PublicHealthData.{coll_name}"
     out: dict[str, dict[str, bool]] = {}
     for row in coll.find({}):
         code = row.get("Code") or row.get("code")
@@ -114,8 +114,9 @@ def _load_catalog(frontend_client, env_prefix: str) -> dict[str, dict[str, bool]
             mode="catalog_empty",
             message=(
                 f"provider_flags_engine: {coll_ref} loaded zero catalog "
-                f"rows -- normalize_nucc must have failed to publish. "
-                f"F-105 flag enrichment cannot proceed."
+                f"rows -- publish_smd_and_embed must have failed to "
+                f"land the loaded collection. F-105 flag enrichment "
+                f"cannot proceed."
             ),
             collection=coll_ref,
         )
@@ -299,8 +300,6 @@ def apply_provider_flags(
     *,
     mongo=None,
     blob=None,
-    frontend=None,
-    env_prefix: str = "dev",
 ) -> dict[str, Any]:
     """Stamp the flags on every provider record in the run.
 
@@ -327,17 +326,17 @@ def apply_provider_flags(
     partition_state = (config.get("partition_state") or "").upper() or None
     batch_size = int(config.get("batch_size", DEFAULT_BATCH))
 
-    if frontend is None:
+    if mongo is None:
         raise ChatHealthyException(
-            mode="frontend_client_required",
+            mode="mongo_client_required",
             message=(
-                "provider_flags_engine: frontend Mongo client is required "
-                "to read {env}_PublicHealthData.SpecialtyMetaData (the "
-                "normalized catalog published by normalize_nucc). Caller "
-                "must pass frontend= kwarg."
+                "provider_flags_engine: pipeline-cluster Mongo client is "
+                "required to read PublicHealthData.SpecialtyMetaData_v_"
+                "{data_version} (the loaded catalog produced by "
+                "publish_smd_and_embed). Caller must pass mongo= kwarg."
             ),
         )
-    catalog = _load_catalog(frontend, env_prefix)
+    catalog = _load_catalog(mongo, data_version)
     registered = _load_registered_npis(mongo, data_version)
 
     # Discrepancy sink: every unresolved taxonomy code encountered inside
