@@ -6059,7 +6059,7 @@
       "files": [
         {
           "feature_id": "EPIC-008-F-012",
-          "source_location": "pipeline/ArchitectureDesignAndAudit/Perplexity_final_urgent_provider_pipeline_audit_findings.docx",
+          "source_location": "pipeline/ArchitectureDesignAndAudit/audit/Perplexity_final_urgent_provider_pipeline_audit_findings.docx",
           "handler_type": "static_asset",
           "disposition": "referenced",
           "content_hash": "a04e0bbca8c531753758963a041d9ee065f47e7a38cbf68a15e87529e4f807b0",
