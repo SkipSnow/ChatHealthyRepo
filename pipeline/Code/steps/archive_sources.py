@@ -24,9 +24,10 @@ _log = ChatHealthyLoggingService()
 _SOURCE_REGISTRY_KEYS = {
     "nppes_npi": "nppes_npi",
     "pl_pfile": "pl_pfile",
+    "nucc": "nucc",
     "census_zcta_county": "census_zcta_county",
     "usda_rucc": "usda_rucc",
-    "specialty_catalog": "nucc",
+    "specialty_catalog": "specialty_catalog",
     "icd10_cm": "icd10_cm",
 }
 
