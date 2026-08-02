@@ -347,11 +347,18 @@ def _require_mongo(mongo) -> None:
 
 
 def _drop_prior_state_scoped_rows(coll, source_name: str, states: tuple[str, ...]) -> int:
-    """Full-load hygiene for NPPES: delete EVERY existing row (full drain
-    each run). Rows from prior runs are never preserved regardless of
-    state_scope overlap. Returns the delete count."""
-    if source_name != "nppes_npi":
-        return 0
+    """Full-load hygiene: delete EVERY existing row from every source's
+    staging collection (full drain each run). Rows from prior runs are
+    never preserved regardless of state_scope overlap. Returns the delete
+    count.
+
+    Applies to every source. The non-NPPES sources are all small (nucc
+    ~530 KB, specialty_catalog ~230 KB, census ~7 MB, usda ~160 KB,
+    pl_pfile carried inside the NPPES zip). Reloading them wholesale
+    each fire is cheap and prevents cross-fire schema-drift crashes
+    (surfaced 2026-08-01: prior fires' StagingSpecialtyCatalog rows
+    with lowercase raw.code broke provider_flags_enrichment when the
+    engine walked the collection without a run_id filter)."""
     res = coll.delete_many({})
     return int(res.deleted_count or 0)
 

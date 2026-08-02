@@ -107,7 +107,12 @@ def test_complete_drain_wipes_all_staging_rows_for_nppes(staging_nppes_coll):
     assert "npi_unique" in idx_names, "indexes must be preserved (delete_many, not drop)"
 
 
-def test_complete_drain_is_noop_for_non_nppes_source(staging_nucc_coll):
+def test_complete_drain_wipes_every_source_not_just_nppes(staging_nucc_coll):
+    """Every staging source gets the complete drain (operator directive
+    2026-08-01). Non-NPPES sources are small (nucc ~530 KB, catalog
+    ~230 KB, etc.); reloading them each fire is cheap and prevents
+    stale prior-fire schema from surviving into new-schema loads
+    (which crashed provider_flags_enrichment on 2026-08-01)."""
     coll = staging_nucc_coll
     rows = [
         {"code": f"20700000{i:02d}X", "run_id": "prior-run-A", "raw": {"Code": f"20700000{i:02d}X"}}
@@ -118,8 +123,8 @@ def test_complete_drain_is_noop_for_non_nppes_source(staging_nucc_coll):
 
     deleted = _drop_prior_state_scoped_rows(coll, "nucc", ())
 
-    assert deleted == 0, "non-nppes drain must be a no-op"
-    assert coll.count_documents({}) == 5, "nucc rows must survive complete-drain no-op"
+    assert deleted == 5, "complete drain must wipe every row for every source"
+    assert coll.count_documents({}) == 0, "nucc collection must be empty after drain"
 
 
 def test_constrained_drain_removes_only_matching_business_state(target_coll):
