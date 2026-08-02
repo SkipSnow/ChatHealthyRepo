@@ -167,66 +167,75 @@ class _FakeDB(dict):
         return dict.__getitem__(self, name)
 
 
-class _FakeMongo:
-    def __init__(self, coll_rows):
+class _FakeFrontendMongo:
+    """provider_flags_engine._load_catalog(frontend_client, env_prefix)
+    reads from {env_prefix}_PublicHealthData.SpecialtyMetaData on the
+    front-end cluster. This fake wires that path for the tests."""
+    def __init__(self, coll_rows, env_prefix="dev"):
+        self._db_name = f"{env_prefix}_PublicHealthData"
         self._db = _FakeDB()
-        # staging_collection_name("specialty_catalog", 3) -> "StagingSpecialtyCatalog_v_3"
-        self._db["StagingSpecialtyCatalog_v_3"] = _FakeCollection(coll_rows)
-        # nppes staging (not exercised in _load_catalog tests)
-        self._db["StagingProvider_v_3"] = _FakeCollection([])
+        self._db["SpecialtyMetaData"] = _FakeCollection(coll_rows)
 
     def __getitem__(self, db_name):
+        assert db_name == self._db_name, (
+            f"unexpected db lookup: {db_name!r} (expected {self._db_name!r})"
+        )
         return self._db
 
 
 @pytest.mark.unit
 def test_load_catalog_happy_path():
-    mongo = _FakeMongo([
-        {"_id": 1, "raw": {"Code": "207Y00000X",
-                            "can_prescribe": True, "homeopathic": False}},
-        {"_id": 2, "raw": {"Code": "175F00000X",
-                            "can_prescribe": False, "homeopathic": True}},
+    # normalize_nucc publishes flattened top-level fields (Code, can_prescribe,
+    # is_homeopathic, is_supplemented) into SpecialtyMetaData; _load_catalog
+    # reads them directly from top level, not from a raw sub-doc.
+    mongo = _FakeFrontendMongo([
+        {"_id": 1, "Code": "207Y00000X",
+         "can_prescribe": True, "is_homeopathic": False, "is_supplemented": False},
+        {"_id": 2, "Code": "175F00000X",
+         "can_prescribe": False, "is_homeopathic": True, "is_supplemented": False},
     ])
-    catalog = _load_catalog(mongo, data_version=3)
-    assert catalog["207Y00000X"] == {"can_prescribe": True, "is_homeopathic": False}
-    assert catalog["175F00000X"] == {"can_prescribe": False, "is_homeopathic": True}
+    catalog = _load_catalog(mongo, env_prefix="dev")
+    assert catalog["207Y00000X"] == {
+        "can_prescribe": True, "is_homeopathic": False, "is_supplemented": False,
+    }
+    assert catalog["175F00000X"] == {
+        "can_prescribe": False, "is_homeopathic": True, "is_supplemented": False,
+    }
 
 
 @pytest.mark.unit
 def test_load_catalog_raises_on_empty_collection():
-    mongo = _FakeMongo([])
+    mongo = _FakeFrontendMongo([])
     with pytest.raises(ChatHealthyException) as exc_info:
-        _load_catalog(mongo, data_version=3)
+        _load_catalog(mongo, env_prefix="dev")
     assert exc_info.value.mode == "catalog_empty"
 
 
 @pytest.mark.unit
-def test_load_catalog_raises_on_missing_raw():
-    mongo = _FakeMongo([{"_id": 1, "notraw": {}}])
-    with pytest.raises(ChatHealthyException) as exc_info:
-        _load_catalog(mongo, data_version=3)
-    assert exc_info.value.mode == "catalog_row_malformed"
-
-
-@pytest.mark.unit
 def test_load_catalog_raises_on_missing_code():
-    mongo = _FakeMongo([{"_id": 1, "raw": {"can_prescribe": True, "homeopathic": False}}])
+    mongo = _FakeFrontendMongo([
+        {"_id": 1, "can_prescribe": True, "is_homeopathic": False},
+    ])
     with pytest.raises(ChatHealthyException) as exc_info:
-        _load_catalog(mongo, data_version=3)
+        _load_catalog(mongo, env_prefix="dev")
     assert exc_info.value.mode == "catalog_row_missing_code"
 
 
 @pytest.mark.unit
 def test_load_catalog_raises_on_missing_can_prescribe():
-    mongo = _FakeMongo([{"_id": 1, "raw": {"Code": "AAA", "homeopathic": False}}])
+    mongo = _FakeFrontendMongo([
+        {"_id": 1, "Code": "AAA", "is_homeopathic": False},
+    ])
     with pytest.raises(ChatHealthyException) as exc_info:
-        _load_catalog(mongo, data_version=3)
+        _load_catalog(mongo, env_prefix="dev")
     assert exc_info.value.mode == "catalog_row_missing_can_prescribe"
 
 
 @pytest.mark.unit
 def test_load_catalog_raises_on_missing_homeopathic():
-    mongo = _FakeMongo([{"_id": 1, "raw": {"Code": "AAA", "can_prescribe": True}}])
+    mongo = _FakeFrontendMongo([
+        {"_id": 1, "Code": "AAA", "can_prescribe": True},
+    ])
     with pytest.raises(ChatHealthyException) as exc_info:
-        _load_catalog(mongo, data_version=3)
+        _load_catalog(mongo, env_prefix="dev")
     assert exc_info.value.mode == "catalog_row_missing_homeopathic"

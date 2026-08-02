@@ -664,6 +664,47 @@ def ensure_acr(target, env: str) -> str:
     # pipeline VM image). Build + push each one so the Pipeline Run VM
     # can pull it at cloud-init time.
     packages = _env_packages(target, env, "azure_container_registry")
+    # Per Deployment Architecture v14: managed files live only in the
+    # manifest (embedded_content). Materialize them into the source
+    # tree just-in-time so the docker build context includes them, then
+    # delete them from source tree after the ACR build finishes (finally
+    # ensures cleanup even on build failure). Between deploys, the source
+    # tree is empty of managed deployment-fact files.
+    _repo_root = Path(__file__).resolve().parent.parent.parent
+    _managed_paths = []
+    for _pkg in packages:
+        for _f in _pkg.get("files", []) or []:
+            if _f.get("disposition") == "managed" and _f.get("source_location"):
+                _managed_paths.append((_f["source_location"], _f.get("embedded_content") or ""))
+    _wrote_paths = []
+    try:
+        for _rel, _content in _managed_paths:
+            _out = _repo_root / _rel
+            _out.parent.mkdir(parents=True, exist_ok=True)
+            if _content.startswith("__base64__:"):
+                import base64 as _b64_ext
+                _out.write_bytes(_b64_ext.b64decode(_content[len("__base64__:"):], validate=True))
+            else:
+                _out.write_bytes(_content.encode("utf-8"))
+            _wrote_paths.append(_out)
+        step(f"  materialized {len(_wrote_paths)} managed file(s) for ACR build")
+        _acr_docker_build_loop(packages, name, rg)
+    finally:
+        for _out in _wrote_paths:
+            try:
+                if _out.is_file():
+                    _out.unlink()
+            except OSError:
+                pass
+        if _wrote_paths:
+            step(f"  cleaned {len(_wrote_paths)} managed file(s) from source tree")
+    return name
+
+
+def _acr_docker_build_loop(packages, name: str, rg: str) -> None:
+    """Existing per-package docker_image build+push loop, extracted so
+    the ensure_acr wrapper can bracket it with materialize+cleanup for
+    v14 managed files."""
     for pkg in packages:
         if pkg.get("kind") != "docker_image":
             continue

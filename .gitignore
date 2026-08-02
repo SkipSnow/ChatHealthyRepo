@@ -3,6 +3,12 @@ code/.env
 Code/.env
 **/.env
 
+# Managed deployment-fact files (Deployment Architecture v14 Ch 3.2 /
+# 3.7). Bytes live in deployment_architecture.json embedded_content;
+# Extractor materializes on demand, build deletes after use. Source
+# tree MUST NOT hold these files.
+pipeline/Code/requirements-pipeline.txt
+
 SourcePropriataryData/
 
 ~*

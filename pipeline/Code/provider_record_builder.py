@@ -96,6 +96,16 @@ def build_provider_record(
                 display_name = (raw_row.get("Display Name") or "").strip()
                 if display_name:
                     tax["code_label"] = display_name
+                # Per ChatHealthyProvidersSchema taxonomies items allOf:
+                # when reference_status != current_reference, grouping /
+                # classification / specialization / definition become
+                # required. A code that resolved via nucc_catalog IS a
+                # current-reference match; stamping this here keeps the
+                # schema's conditional-required branch off the record for
+                # the common case and preserves the ability to declare
+                # non-current codes downstream (F-105 supplemented codes
+                # get their reference_status stamped by normalize_nucc).
+                tax.setdefault("reference_status", "current_reference")
     return dedupe_within_record(doc)
 
 

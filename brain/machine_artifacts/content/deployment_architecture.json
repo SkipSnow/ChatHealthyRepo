@@ -6459,14 +6459,6 @@
         },
         {
           "feature_id": "EPIC-008-F-012",
-          "source_location": "pipeline/Code/requirements-pipeline.txt",
-          "handler_type": "static_asset",
-          "disposition": "referenced",
-          "content_hash": "2c1bd1ca60a59a96e51348aa79906856394a267fdaaf0a423fde37c9627c40d9",
-          "package": "default"
-        },
-        {
-          "feature_id": "EPIC-008-F-012",
           "source_location": "pipeline/Code/run_pipeline_tests.py",
           "handler_type": "python_source",
           "disposition": "referenced",
@@ -6753,14 +6745,6 @@
         }
       ],
       "files": [
-        {
-          "feature_id": "EPIC-008-F-012",
-          "source_location": "pipeline/Code/requirements-pipeline.txt",
-          "handler_type": "static_asset",
-          "disposition": "referenced",
-          "content_hash": "2c1bd1ca60a59a96e51348aa79906856394a267fdaaf0a423fde37c9627c40d9",
-          "package": "default"
-        },
         {
           "source_location": "pipeline/Code/step_spec.py",
           "feature_id": "EPIC-008-F-012",
@@ -7747,6 +7731,14 @@
                   "handler_type": "dockerfile",
                   "disposition": "referenced",
                   "content_hash": "c684b81d5e0cdc5058e61257e4e4458f61d9c31af565e86ce327ed5116605624",
+                  "package": "pipeline_vm_image"
+                },
+                {
+                  "feature_id": "EPIC-008-F-012",
+                  "source_location": "pipeline/Code/requirements-pipeline.txt",
+                  "handler_type": "python_requirements",
+                  "disposition": "managed",
+                  "embedded_content": "azure-functions>=1.17.0\nazure-functions-durable>=1.2.0\npython-dotenv>=1.0.0\npymongo>=4.7.0\ncertifi>=2024.7.4\nanthropic>=0.40.0\nrequests>=2.31.0\nbeautifulsoup4>=4.12.0\nazure-storage-blob>=12.19.0\nazure-storage-queue>=12.10.0\nopenai>=1.0.0\nsparkpost>=1.3.6\nopenpyxl>=3.1.0\npydantic-ai==1.93.0\nreportlab>=4.0.0\n",
                   "package": "pipeline_vm_image"
                 }
               ],
