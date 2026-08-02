@@ -6430,7 +6430,7 @@
           "source_location": "pipeline/Code/provider_record_builder.py",
           "handler_type": "python_source",
           "disposition": "referenced",
-          "content_hash": "a5bf527736dac84072d4ceee342096b01f6d3dd032dd96b742d62abf06e6fbe8",
+          "content_hash": "747b8976e812130614698825e88aef5c3612a306dcf67a40992fe8be8d12fa14",
           "package": "default"
         },
         {
