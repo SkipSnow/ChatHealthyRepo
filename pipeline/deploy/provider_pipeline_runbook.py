@@ -721,7 +721,17 @@ def _provision_vm(run_id: str, load_mode: str, state_scope,
                     "id": (f"/subscriptions/{SUBSCRIPTION_ID}"
                            f"/resourceGroups/{RESOURCE_GROUP}"
                            f"/providers/Microsoft.Network/networkInterfaces/{nic_name}"),
-                    "properties": {"primary": True},
+                    "properties": {
+                        "primary": True,
+                        # Cascade NIC with VM delete. Without this, every
+                        # `az vm delete` leaves the NIC behind as an orphan
+                        # (same class of leak as the osDisk deleteOption
+                        # above, noted 2026-08-02 on run 353476 -- the
+                        # vm-chpipeline-353476-nic survived teardown).
+                        # Watchdog also reaps orphan NICs as a safety net,
+                        # but this closes the leak at the source.
+                        "deleteOption": "Delete",
+                    },
                 }],
             },
             "userData": user_data_b64,

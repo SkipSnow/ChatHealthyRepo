@@ -344,6 +344,71 @@ def test_publish_smd_and_embed_bails_when_openai_key_missing(fake_clusters, monk
     assert "OPENAI_API_KEY" in str(exc_info.value)
 
 
+@pytest.mark.unit
+def test_publish_smd_and_embed_records_discrepancies_when_embed_fails(
+    fake_openai, fake_clusters, monkeypatch,
+):
+    """Operator directive 2026-08-02: embed failure is a non-fatal
+    error. Publish MUST still atomic-swap so SMD is usable for lookups,
+    AND one discrepancy per un-embedded row MUST be written so the PDF
+    report surfaces exactly which codes need re-embedding when OpenAI
+    credits are topped."""
+    from staging_loader import STAGING_DB_NAME, staging_collection_name
+    from steps.publish_smd_and_embed import execute
+
+    # Make every OpenAI embed call raise (simulates HTTP 429 insufficient_quota)
+    import embedding_engine as _ee
+    orig_embed_batch = _ee._embed_batch
+
+    def _explode(client, texts):
+        raise RuntimeError("insufficient_quota: You have no credits remaining")
+
+    monkeypatch.setattr(_ee, "_embed_batch", _explode)
+
+    pipeline, frontend = fake_clusters
+    src = pipeline[STAGING_DB_NAME][staging_collection_name("nucc", 3)]
+    src.insert_many([
+        {"run_id": "run-abc", "Code": "207W00000X", "code": "207W00000X",
+         "Display Name": "Ophthalmology", "is_supplemented": False,
+         "raw": {"Code": "207W00000X"}},
+        {"run_id": "run-abc", "Code": "246ZS0400X", "code": "246ZS0400X",
+         "Display Name": "Surgical Technologist", "is_supplemented": True,
+         "raw": {"Code": "246ZS0400X"}},
+    ])
+    ctx = _FakeCtx(pipeline, frontend)
+    summary = execute(ctx)
+
+    # Atomic swap MUST have fired: SMD holds the two rows.
+    live = frontend["dev_PublicHealthData"]["SpecialtyMetaData"]
+    codes = sorted(r.get("Code") for r in live.find({}))
+    assert codes == ["207W00000X", "246ZS0400X"]
+
+    # Neither row has an embedding field (OpenAI failed).
+    for row in live.find({}):
+        assert "embedding" not in row
+        assert "embedding_model" not in row
+
+    # Summary carries the count.
+    assert summary["embed_updated"] == 0
+    assert summary["embed_failed"] == 2
+    assert summary["embed_unembedded_rows"] == 2
+
+    # ONE discrepancy per un-embedded row, reason prefixed 'error_'.
+    disc = frontend["chathealthyfrontend"]["pipeline.discrepancies"]
+    rows = list(disc.find({"reason": "error_specialty_embedding_failed"}))
+    assert len(rows) == 2
+    disc_codes = sorted(r["detail"]["code"] for r in rows)
+    assert disc_codes == ["207W00000X", "246ZS0400X"]
+    for r in rows:
+        assert r["step"] == "publish_smd_and_embed"
+        assert r["entity_kind"] == "specialty"
+        assert r["npi"] is None
+        assert "note" in r["detail"]
+
+    # Restore for later tests in the same session
+    monkeypatch.setattr(_ee, "_embed_batch", orig_embed_batch)
+
+
 # ---------- _nucc_lookup (post-v42 SMD reader) ----------
 
 

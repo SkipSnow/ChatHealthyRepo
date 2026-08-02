@@ -111,6 +111,39 @@ def execute(ctx) -> dict:
         mongo=rt.frontend,
     )
 
+    # Non-fatal: record one discrepancy per SMD row still missing an
+    # embedding vector after generate_specialty_embeddings returned.
+    # Embed batches that failed the OpenAI call surface here as un-
+    # embedded rows; we publish SMD anyway (SMD is usable for lookups
+    # without embeddings; FindCare $vectorSearch degrades gracefully)
+    # AND write per-row discrepancies so the PDF report + operator see
+    # exactly which codes need re-embedding when the API is available
+    # again. Reason prefixed 'error_' per operator directive 2026-08-02
+    # -- non-fatal but still an error class the PDF report elevates.
+    unembedded_count = 0
+    for row in smd_staging.find(
+        {"embedding": {"$exists": False}},
+        {"Code": 1, "Display Name": 1, "is_supplemented": 1},
+    ):
+        rt.record_discrepancy(
+            npi=None,
+            reason="error_specialty_embedding_failed",
+            step="publish_smd_and_embed",
+            entity_kind="specialty",
+            detail={
+                "code": row.get("Code"),
+                "display_name": row.get("Display Name"),
+                "is_supplemented": bool(row.get("is_supplemented")),
+                "note": (
+                    "OpenAI embedding call did not populate this SMD row; "
+                    "row published without embedding vector. Re-run "
+                    "publish_smd_and_embed after OpenAI credits are "
+                    "topped to backfill."
+                ),
+            },
+        )
+        unembedded_count += 1
+
     # Atomic swap. rename(dropTarget=True) on the SAME database is the
     # server-side MongoDB renameCollection admin command, executed as
     # one op. Post-swap: the live SpecialtyMetaData collection is what
@@ -123,6 +156,7 @@ def execute(ctx) -> dict:
         "embed_candidates": embed_summary["candidate_count"],
         "embed_updated": embed_summary["updated_count"],
         "embed_failed": embed_summary["failed_count"],
+        "embed_unembedded_rows": unembedded_count,
         "embed_model": embed_summary["model"],
         "embed_dimensions": embed_summary["dimensions"],
     }
