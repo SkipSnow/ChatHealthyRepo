@@ -9,23 +9,25 @@ Stamps on every provider record in the run:
                                provider_credential_text parses to MD or DO
                                gets can_prescribe=True regardless of
                                taxonomy. Level 2: primary taxonomy code
-                               lookup in the F-105 catalog's can_prescribe.
-  is_homeopathic       (bool)  Primary taxonomy code lookup in F-105
-                               catalog's homeopathic field.
+                               lookup in the normalized specialty catalog.
+  is_homeopathic       (bool)  Primary taxonomy code lookup in normalized
+                               specialty catalog.
   is_npi_registered    (bool)  True iff the NPI appears in the NPPES
                                staging load and is not deactivated.
 
 Sourced from:
-  - F-105 catalog        PublicStaging.StagingSpecialtyCatalog_v_{data_version}
-                         (rows loaded from SPECIALTY_CLASSIFICATION_CATALOG_URL
-                         at fetch time, raw={"Code","can_prescribe","homeopathic"})
+  - Specialty catalog    {env}_PublicHealthData.SpecialtyMetaData on the
+                         front-end cluster. Published by normalize_nucc
+                         (Provider Pipeline) with 883 NUCC codes + N F-105
+                         supplements, all normalized to top-level Code /
+                         can_prescribe / is_homeopathic / is_supplemented.
+                         Reads the SAME collection FindCare's specialty
+                         filter reads -- one source of truth.
   - NPPES NPI staging    PublicStaging.StagingProvider_v_{data_version}
 
 Discipline: no fallbacks. Any collection-empty, code-not-in-catalog,
 credential-not-parseable, or row-field-missing condition raises
-ChatHealthyException. A missing catalog row for a taxonomy code that
-appeared on a provider is a bug in the catalog (or in the taxonomy
-code on the provider) that MUST surface, not a silent False.
+ChatHealthyException.
 """
 
 from __future__ import annotations
@@ -54,72 +56,68 @@ DEFAULT_BATCH = 500
 _PRESCRIBING_CREDENTIAL_TOKENS = frozenset({"MD", "DO"})
 
 
-def _load_catalog(mongo, data_version: int) -> dict[str, dict[str, bool]]:
-    """Load F-105 catalog rows into {code -> {can_prescribe, is_homeopathic}}.
+def _load_catalog(frontend_client, env_prefix: str) -> dict[str, dict[str, bool]]:
+    """Load the normalized specialty catalog into
+    {code -> {can_prescribe, is_homeopathic, is_supplemented}}.
 
-    Reads from PublicStaging.StagingSpecialtyCatalog_v_{data_version}.
-    Raises if the collection is empty or any row is missing an expected
-    field. There is no fallback -- an empty catalog or a malformed row
-    means the fetch/stage step failed silently, and every downstream
-    determination would be wrong."""
-    coll_name = staging_collection_name("specialty_catalog", data_version)
-    coll = mongo[STAGING_DB_NAME][coll_name]
+    Reads from {env}_PublicHealthData.SpecialtyMetaData on the front-end
+    cluster -- the same collection FindCare's specialty filter reads,
+    published by normalize_nucc after it merges raw NUCC + F-105
+    supplements. Fields are at TOP LEVEL of every doc (Code /
+    can_prescribe / is_homeopathic / is_supplemented) because
+    normalize_nucc flattens them there. Raises if collection is empty
+    or any row is missing an expected field -- no fallback."""
+    smd_db_name = f"{env_prefix}_PublicHealthData"
+    coll = frontend_client[smd_db_name]["SpecialtyMetaData"]
+    coll_ref = f"{smd_db_name}.SpecialtyMetaData"
     out: dict[str, dict[str, bool]] = {}
     for row in coll.find({}):
-        raw = row.get("raw")
-        if not isinstance(raw, dict):
-            raise ChatHealthyException(
-                mode="catalog_row_malformed",
-                message=(
-                    f"provider_flags_engine: {STAGING_DB_NAME}.{coll_name} "
-                    f"row _id={row.get('_id')} has no 'raw' subdocument"
-                ),
-                collection=coll_name,
-            )
-        code = raw.get("Code")
-        can_prescribe = raw.get("can_prescribe")
-        is_homeopathic = raw.get("homeopathic")
+        code = row.get("Code") or row.get("code")
+        can_prescribe = row.get("can_prescribe")
+        is_homeopathic = row.get("is_homeopathic")
+        is_supplemented = row.get("is_supplemented")
         if not code:
             raise ChatHealthyException(
                 mode="catalog_row_missing_code",
                 message=(
-                    f"provider_flags_engine: {STAGING_DB_NAME}.{coll_name} "
-                    f"row _id={row.get('_id')} raw is missing 'Code'"
+                    f"provider_flags_engine: {coll_ref} row _id="
+                    f"{row.get('_id')} is missing 'Code' (top level)"
                 ),
-                collection=coll_name,
-                raw_keys=sorted(list(raw.keys())),
+                collection=coll_ref,
+                keys=sorted(list(row.keys())),
             )
         if can_prescribe is None:
             raise ChatHealthyException(
                 mode="catalog_row_missing_can_prescribe",
                 message=(
-                    f"provider_flags_engine: {STAGING_DB_NAME}.{coll_name} "
-                    f"row for Code={code!r} is missing 'can_prescribe'"
+                    f"provider_flags_engine: {coll_ref} row for "
+                    f"Code={code!r} is missing 'can_prescribe' (top level)"
                 ),
-                collection=coll_name, code=code,
+                collection=coll_ref, code=code,
             )
         if is_homeopathic is None:
             raise ChatHealthyException(
                 mode="catalog_row_missing_homeopathic",
                 message=(
-                    f"provider_flags_engine: {STAGING_DB_NAME}.{coll_name} "
-                    f"row for Code={code!r} is missing 'homeopathic'"
+                    f"provider_flags_engine: {coll_ref} row for "
+                    f"Code={code!r} is missing 'is_homeopathic' (top level)"
                 ),
-                collection=coll_name, code=code,
+                collection=coll_ref, code=code,
             )
         out[str(code).strip()] = {
             "can_prescribe": bool(can_prescribe),
             "is_homeopathic": bool(is_homeopathic),
+            "is_supplemented": bool(is_supplemented),
         }
     if not out:
         raise ChatHealthyException(
             mode="catalog_empty",
             message=(
-                f"provider_flags_engine: {STAGING_DB_NAME}.{coll_name} "
-                f"loaded zero catalog rows -- fetch/stage step must have "
-                f"failed. F-105 flag enrichment cannot proceed."
+                f"provider_flags_engine: {coll_ref} loaded zero catalog "
+                f"rows -- normalize_nucc must have failed to publish. "
+                f"F-105 flag enrichment cannot proceed."
             ),
-            collection=coll_name,
+            collection=coll_ref,
         )
     return out
 
@@ -301,6 +299,8 @@ def apply_provider_flags(
     *,
     mongo=None,
     blob=None,
+    frontend=None,
+    env_prefix: str = "dev",
 ) -> dict[str, Any]:
     """Stamp the flags on every provider record in the run.
 
@@ -327,7 +327,17 @@ def apply_provider_flags(
     partition_state = (config.get("partition_state") or "").upper() or None
     batch_size = int(config.get("batch_size", DEFAULT_BATCH))
 
-    catalog = _load_catalog(mongo, data_version)
+    if frontend is None:
+        raise ChatHealthyException(
+            mode="frontend_client_required",
+            message=(
+                "provider_flags_engine: frontend Mongo client is required "
+                "to read {env}_PublicHealthData.SpecialtyMetaData (the "
+                "normalized catalog published by normalize_nucc). Caller "
+                "must pass frontend= kwarg."
+            ),
+        )
+    catalog = _load_catalog(frontend, env_prefix)
     registered = _load_registered_npis(mongo, data_version)
 
     # Discrepancy sink: every unresolved taxonomy code encountered inside

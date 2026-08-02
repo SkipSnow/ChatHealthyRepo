@@ -14,12 +14,14 @@ from __future__ import annotations
 from chathealthy_frontend_lib.logging_service import ChatHealthyLoggingService
 
 
+from pipeline_runtime import PipelineRuntime
 from provider_flags_engine import apply_provider_flags
 
 _log = ChatHealthyLoggingService()
 
 
 def run_step(ctx) -> dict:
+    rt = PipelineRuntime(ctx)
     config = dict(ctx.config)
     config.setdefault("run_id", ctx.run_id)
     config.setdefault("data_version", int(ctx.args.data_version))
@@ -33,6 +35,8 @@ def run_step(ctx) -> dict:
         config,
         mongo=ctx.mongo_client,
         blob=ctx.blob_client,
+        frontend=rt.frontend,
+        env_prefix=rt.env,
     ) or {}
 
     key = f"flags:{config.get('entity_kind_filter') or 'ALL'}:{config.get('partition_state') or 'ALL'}"
