@@ -285,20 +285,76 @@ def main(argv: list[str] | None = None) -> int:
                   manifest.run_id if manifest else "(none)", final_status)
         exit_code = 0 if final_status == "succeeded" else 1
     finally:
+        # On any non-success terminal state, kill every child process the
+        # Controller spawned (worker subprocesses). Operator directive
+        # 2026-08-03: "if we get a fatal error the controller must kill any
+        # active workers". Prevents LLM/DB writes from continuing after the
+        # run has already abended.
+        if final_status != "succeeded":
+            _kill_active_workers()
         run_id_for_quiesce = (
             (manifest.run_id if manifest and manifest.run_id else None)
             or os.environ.get("RUN_ID", "")
         )
-        _quiesce_mongo_state(run_id_for_quiesce, final_status)
+        _quiesce_mongo_state(run_id_for_quiesce, final_status,
+                              manifest=manifest, args=args)
         _fire_farewell_vm_delete()
     return exit_code
 
 
-def _quiesce_mongo_state(run_id: str, final_status: str) -> None:
-    """v32 §5.2.20 quiesce steps 1-2: cancel the pipeline-run reservation
-    on the front cluster and mark the run manifest terminal. Best-effort
-    per step; a failure in one MUST NOT block the other, and neither
-    blocks the subsequent VM delete."""
+def _kill_active_workers() -> None:
+    """SIGTERM every descendant process of this Controller. Container tear-
+    down would eventually kill them anyway, but we want them stopped
+    promptly on abend so they don't complete additional LLM calls / DB
+    writes after the run is already failed."""
+    import signal  # noqa: PLC0415
+    try:
+        # pgrep -P <pid> lists direct children; iterate depth-first so we
+        # cover workers that in turn spawned helpers.
+        my_pid = os.getpid()
+        seen: set[int] = set()
+        stack = [my_pid]
+        killed: list[int] = []
+        while stack:
+            parent = stack.pop()
+            try:
+                out = subprocess.run(
+                    ["pgrep", "-P", str(parent)],
+                    capture_output=True, text=True, timeout=5,
+                )
+                for line in out.stdout.splitlines():
+                    line = line.strip()
+                    if not line.isdigit():
+                        continue
+                    child = int(line)
+                    if child in seen or child == my_pid:
+                        continue
+                    seen.add(child)
+                    stack.append(child)
+                    try:
+                        os.kill(child, signal.SIGTERM)
+                        killed.append(child)
+                    except (ProcessLookupError, PermissionError):
+                        continue
+            except (FileNotFoundError, subprocess.TimeoutExpired):
+                # pgrep unavailable (unlikely in the Ubuntu container) or
+                # timed out. Container tear-down will still clean up.
+                break
+        if killed:
+            _log.info("control_runner: SIGTERM sent to %d worker pid(s): %s",
+                       len(killed), killed)
+    except Exception as exc:  # noqa: BLE001
+        _log.warning("control_runner: _kill_active_workers failed: %s",
+                     type(exc).__name__)
+
+
+def _quiesce_mongo_state(run_id: str, final_status: str, *,
+                          manifest=None, args=None) -> None:
+    """v32 §5.2.20 quiesce steps 1-2 + 2026-08-03 addition: cancel the
+    pipeline-run reservation on the front cluster, mark the run manifest
+    terminal, AND unconditionally emit the discrepancy report. Best-effort
+    per step; a failure in one MUST NOT block the other, and none block
+    the subsequent VM delete."""
     if not run_id:
         _log.warning("quiesce_mongo_state: no run_id available; skipping")
         return
@@ -352,8 +408,7 @@ def _quiesce_mongo_state(run_id: str, final_status: str) -> None:
     # On any non-success terminal status, flip this run's in-flight
     # work_items to failed so no zombies persist. A successful run has
     # already flipped its own work_items via the orchestrator's normal
-    # completion path. Watchdog runs the same flip as a catch-all when
-    # it reaps a run that Controller couldn't clean up itself.
+    # completion path.
     if final_status != "succeeded":
         try:
             res = mongo["chathealthyfrontend"]["pipeline.work_items"].update_many(
@@ -373,6 +428,41 @@ def _quiesce_mongo_state(run_id: str, final_status: str) -> None:
         except Exception as exc:
             _log.error("quiesce: work_items flip FAILED run_id=%s err=%s",
                        run_id, str(exc)[:500])
+
+    # Discrepancy report — ALWAYS emit, perfect run OR abend. Operator
+    # directive 2026-08-03: "we always in every case, even with a perfect
+    # job or an abend get the discrepancy report". Best-effort so a
+    # SparkPost outage doesn't block the reservation release above or the
+    # subsequent VM delete.
+    try:
+        # Late import to avoid circular / dep-order issues at module load
+        # (this file is the entry point; steps.* imports pipeline_runtime).
+        from steps.discrepancy_reports_and_notifications import emit_discrepancy_report  # noqa: PLC0415
+        from pipeline_config import load_pipeline_config  # noqa: PLC0415
+        env_prefix = os.environ.get("ENV_PREFIX", "dev")
+        cfg = load_pipeline_config(mongo_client=None, env_prefix=env_prefix)
+        manifest_status = manifest.status if manifest else final_status
+        manifest_doc = (
+            manifest.to_document()
+            if manifest and hasattr(manifest, "to_document") else
+            {"run_id": run_id, "status": manifest_status}
+        )
+        summary = emit_discrepancy_report(
+            frontend_mongo=mongo,
+            run_id=run_id,
+            manifest_status=manifest_status,
+            manifest_doc=manifest_doc,
+            config=cfg,
+            operator_email=getattr(args, "operator_email", None) if args else None,
+            operator_sms=getattr(args, "operator_sms", None) if args else None,
+        )
+        _log.info(
+            "quiesce: discrepancy report emitted run_id=%s total=%d pdf_bytes=%d",
+            run_id, summary.get("total", 0), summary.get("pdf_bytes", 0),
+        )
+    except Exception as exc:
+        _log.error("quiesce: discrepancy report FAILED run_id=%s err=%s",
+                   run_id, str(exc)[:500])
 
 
 if __name__ == "__main__":

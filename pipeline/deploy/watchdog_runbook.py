@@ -507,32 +507,14 @@ def _run_manifest(mongo, run_id: str) -> dict | None:
     )
 
 
-def _mark_run_failed(mongo, run_id: str, abort_reason: str) -> None:
-    mongo["chathealthyfrontend"]["pipeline.runs"].update_one(
-        {"run_id": run_id},
-        {"$set": {
-            "status": "failed",
-            "abort_reason": abort_reason,
-            "finished_at": datetime.datetime.utcnow().isoformat() + "Z",
-        }},
-    )
-    # Flip any of this run's in-flight work_items to failed. Statuses in the
-    # wild: pending, claimed, running (older code path). Terminal =
-    # completed, done, failed. Without this flip, a Controller crash mid-step
-    # leaves zombie work_items that never reach a terminal state.
-    res = mongo["chathealthyfrontend"]["pipeline.work_items"].update_many(
-        {"run_id": run_id,
-         "status": {"$nin": ["completed", "done", "failed"]}},
-        {"$set": {
-            "status": "failed",
-            "abort_reason": abort_reason,
-            "failed_at": datetime.datetime.utcnow().isoformat() + "Z",
-        }},
-    )
-    if res.modified_count:
-        log("mark_run_failed_flipped_work_items",
-            run_id=run_id, abort_reason=abort_reason,
-            work_items_flipped=res.modified_count)
+# Reaper design boundary (Skip, 2026-08-03): the reaper touches
+# INFRASTRUCTURE ONLY. It does NOT touch data (collections, documents) and
+# does NOT touch job metadata (pipeline.runs manifest, pipeline.work_items,
+# admin.cluster_lifecycle, pipeline_lock). Data and job metadata are the
+# pipeline's own concern — Controller's finally block owns them at Level 1,
+# and stale-lock self-heal in _acquire_pipeline_lock catches anything the
+# Controller couldn't. The reaper's only job is to delete stalled VMs +
+# their orphaned NICs + orphaned disks so infrastructure cost doesn't leak.
 
 
 def _process_vm(vm: dict, mongo, tok: str) -> None:
@@ -581,7 +563,13 @@ def _process_vm(vm: dict, mongo, tok: str) -> None:
                 abort = f"controller_heartbeat_lost_power_{power}"
             log("delete_stale_heartbeat", vm=vm_name, run_id=run_id,
                 power=power, abort_reason=abort)
-            _mark_run_failed(mongo, run_id, abort)
+            # Reaper only deletes the VM + orphaned NICs/disks. It does NOT
+            # update pipeline.runs — that's job metadata and stays untouched
+            # per the reaper-infrastructure-only boundary. Next fire's
+            # _acquire_pipeline_lock stale-lock self-heal handles freeing
+            # the pipeline_lock; the manifest's status stays 'running' until
+            # Controller (had it survived) or a separate metadata reaper
+            # transitions it.
             _delete_vm_and_nic(vm, tok)
             return
         log("skip_heartbeat_fresh", vm=vm_name, run_id=run_id,
