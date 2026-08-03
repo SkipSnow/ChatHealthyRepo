@@ -422,7 +422,7 @@ def _reap_orphan_disks(tok: str) -> None:
 def _list_orphan_nics(tok: str) -> list[dict]:
     """Return every NIC in the RG that matches the pipeline VM naming
     convention (vm-chpipeline-*-nic) AND has no parent VM attached.
-    Explicitly EXCLUDES the Atlas private-endpoint NIC (pe-atlas-*) — that
+    Explicitly EXCLUDES the Atlas private-endpoint NIC (pe-atlas-*) -- that
     NIC has no virtualMachine binding by design and must never be deleted.
     Historical run-up: 82 orphan NICs observed 2026-08-03 accumulated
     over ~months of VM deletes that didn't cascade to their NICs."""
@@ -511,7 +511,7 @@ def _run_manifest(mongo, run_id: str) -> dict | None:
 # INFRASTRUCTURE ONLY. It does NOT touch data (collections, documents) and
 # does NOT touch job metadata (pipeline.runs manifest, pipeline.work_items,
 # admin.cluster_lifecycle, pipeline_lock). Data and job metadata are the
-# pipeline's own concern — Controller's finally block owns them at Level 1,
+# pipeline's own concern -- Controller's finally block owns them at Level 1,
 # and stale-lock self-heal in _acquire_pipeline_lock catches anything the
 # Controller couldn't. The reaper's only job is to delete stalled VMs +
 # their orphaned NICs + orphaned disks so infrastructure cost doesn't leak.
@@ -564,7 +564,7 @@ def _process_vm(vm: dict, mongo, tok: str) -> None:
             log("delete_stale_heartbeat", vm=vm_name, run_id=run_id,
                 power=power, abort_reason=abort)
             # Reaper only deletes the VM + orphaned NICs/disks. It does NOT
-            # update pipeline.runs — that's job metadata and stays untouched
+            # update pipeline.runs -- that's job metadata and stays untouched
             # per the reaper-infrastructure-only boundary. Next fire's
             # _acquire_pipeline_lock stale-lock self-heal handles freeing
             # the pipeline_lock; the manifest's status stays 'running' until
