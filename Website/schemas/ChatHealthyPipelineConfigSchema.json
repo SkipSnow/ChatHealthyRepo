@@ -34,7 +34,12 @@
           "enum": ["local", "dev", "qa", "prod"]
         },
         "batch_limits":       { "$ref": "#/$defs/BatchLimits" },
-        "dataset_versions":   { "$ref": "#/$defs/DatasetVersions" },
+        "dataset_versions": {
+          "description": "Registry of every dataset the pipeline touches. Four entry shapes: Class A (independent source with its own fetch), Class B-owner (bundled source that owns the archive fetch), Class B-extractor (bundled source that reuses another entry's fetch), Class C (pipeline-derived collection with no source). Runtime appends _v_{data_version} to staging_name and public_data_name; those base names MUST NOT carry a version suffix here.",
+          "type": "array",
+          "minItems": 1,
+          "items": { "$ref": "#/$defs/DatasetVersionEntry" }
+        },
         "failure_thresholds": { "$ref": "#/$defs/FailureThresholds" },
         "source_freshness": {
           "type": "array",
@@ -50,16 +55,107 @@
         "normalize_batch_size": { "type": "integer", "minimum": 1 }
       }
     },
-    "DatasetVersions": {
+    "DatasetVersionEntry": {
       "type": "object",
       "additionalProperties": false,
-      "required": ["provider_write_target"],
       "properties": {
-        "provider_write_target": {
-          "description": "Base collection name for the pipeline's written provider record. Runtime appends _v_{data_version}. Must NOT carry a version suffix here.",
-          "type": "string"
+        "source_name": {
+          "description": "Friendly identifier. Lowercase snake_case. Uniqueness within the array is a runtime concern until the Phase-2 registry lands.",
+          "type": "string",
+          "pattern": "^[a-z0-9_]+$"
+        },
+        "fetch": {
+          "description": "Provenance of the dataset. Present when this entry owns the download. Absent for Class B-extractor entries (they reuse the archive fetched by another bundled entry) and for Class C derived entries.",
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["source_url"],
+          "properties": {
+            "source_url": {
+              "description": "Direct URL as a plain string, or an object with page_url + instructions when the URL is discovered by the AI-agent url-discovery worker.",
+              "anyOf": [
+                { "type": "string", "format": "uri" },
+                {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": ["page_url", "instructions"],
+                  "properties": {
+                    "page_url":     { "type": "string", "format": "uri" },
+                    "instructions": { "type": "string", "minLength": 1 }
+                  }
+                }
+              ]
+            }
+          }
+        },
+        "bundled_with": {
+          "description": "Archive identifier shared by two or more entries whose data lives in the same downloaded archive. Present on Class B-owner and Class B-extractor entries.",
+          "type": "string",
+          "minLength": 1
+        },
+        "archive_member": {
+          "description": "Glob pattern matching the entry's data file inside the bundled archive. Required whenever bundled_with is present.",
+          "type": "string",
+          "minLength": 1
+        },
+        "file_format": {
+          "description": "Explicit declaration of the on-disk data format of the file that will be staged. Required on every non-derived entry; forbidden on Class C derived entries.",
+          "enum": ["csv", "tsv", "pipe_delimited", "xlsx", "json", "zip_containing_csv"]
+        },
+        "staging_name": {
+          "description": "Fully qualified staging collection name in DB.coll form. Runtime appends _v_{data_version}. MUST NOT carry a version suffix here.",
+          "type": "string",
+          "pattern": "^[A-Za-z0-9_]+\\.[A-Za-z0-9_]+$"
+        },
+        "public_data_name": {
+          "description": "Fully qualified public-data collection name in DB.coll form. Runtime appends _v_{data_version}. MUST NOT carry a version suffix here.",
+          "type": "string",
+          "pattern": "^[A-Za-z0-9_]+\\.[A-Za-z0-9_]+$"
+        },
+        "depends_on": {
+          "description": "Direct upstream source_name lineage for a Class C derived entry. Each string MUST match another entry's source_name in the same dataset_versions array; the registry enforces resolvability and acyclicity at load time. Forbidden on Class A / Class B-owner / Class B-extractor entries.",
+          "type": "array",
+          "minItems": 1,
+          "uniqueItems": true,
+          "items": {
+            "type": "string",
+            "pattern": "^[a-z0-9_]+$"
+          }
         }
-      }
+      },
+      "oneOf": [
+        {
+          "title": "Class A - independent source",
+          "required": ["source_name", "fetch", "file_format", "staging_name", "public_data_name"],
+          "allOf": [
+            { "not": { "required": ["bundled_with"] } },
+            { "not": { "required": ["archive_member"] } },
+            { "not": { "required": ["depends_on"] } }
+          ]
+        },
+        {
+          "title": "Class B-owner - bundled source that owns the archive fetch",
+          "required": ["source_name", "bundled_with", "fetch", "archive_member", "file_format", "staging_name", "public_data_name"],
+          "not": { "required": ["depends_on"] }
+        },
+        {
+          "title": "Class B-extractor - bundled source that reuses another entry's fetch",
+          "required": ["source_name", "bundled_with", "archive_member", "file_format", "staging_name", "public_data_name"],
+          "allOf": [
+            { "not": { "required": ["fetch"] } },
+            { "not": { "required": ["depends_on"] } }
+          ]
+        },
+        {
+          "title": "Class C - derived (pipeline-produced) collection",
+          "required": ["source_name", "staging_name", "public_data_name", "depends_on"],
+          "allOf": [
+            { "not": { "required": ["fetch"] } },
+            { "not": { "required": ["bundled_with"] } },
+            { "not": { "required": ["archive_member"] } },
+            { "not": { "required": ["file_format"] } }
+          ]
+        }
+      ]
     },
     "FailureThresholds": {
       "type": "object",
