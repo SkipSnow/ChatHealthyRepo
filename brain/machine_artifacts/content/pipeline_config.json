@@ -7,7 +7,7 @@
         "normalize_batch_size": 1000
       },
       "dataset_versions": {
-        "provider_write_target": "PublicData.Provider"
+        "provider_write_target": "PublicStaging.Provider_staging"
       },
       "failure_thresholds": {
         "discrepancy_abort": 1000
@@ -27,7 +27,7 @@
         "normalize_batch_size": 1000
       },
       "dataset_versions": {
-        "provider_write_target": "PublicData.Provider"
+        "provider_write_target": "PublicStaging.Provider_staging"
       },
       "failure_thresholds": {
         "discrepancy_abort": 1000
@@ -47,7 +47,7 @@
         "normalize_batch_size": 1000
       },
       "dataset_versions": {
-        "provider_write_target": "PublicData.Provider"
+        "provider_write_target": "PublicStaging.Provider_staging"
       },
       "failure_thresholds": {
         "discrepancy_abort": 1000

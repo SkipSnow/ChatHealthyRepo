@@ -64,13 +64,23 @@ class PipelineArgs:
         return [s.upper() for s in scope]
 
     def provider_write_target(self) -> str:
-        # Target production provider collection on the pipeline cluster.
-        # Cluster: ChatHealthyPipelines. DB: PublicData. Collection:
-        # Provider_v_{n}. A separate migration job moves this to the
-        # front-end cluster for user-facing queries.
-        if self.provider_collection:
-            return self.provider_collection
-        return f"PublicData.Provider_v_{self.data_version}"
+        # Callers that use PipelineArgs to derive the write target must set
+        # provider_collection explicitly (from config or CLI override). No
+        # fallback: operator directive 2026-08-03 "no fallbacks — fatal
+        # error if missing". The prior hardcoded PublicData.Provider default
+        # is what let fire #8 write to the wrong collection.
+        if not self.provider_collection:
+            raise ChatHealthyException(
+                mode="pipeline_args_missing_field",
+                message=(
+                    "PipelineArgs.provider_collection is required and is not "
+                    "set. Callers must resolve the write target from "
+                    "pipeline_config (dataset_versions.provider_write_target) "
+                    "and pass it in explicitly."
+                ),
+                data_version=self.data_version,
+            )
+        return self.provider_collection
 
 
 @dataclass

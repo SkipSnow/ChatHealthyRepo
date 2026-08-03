@@ -4,6 +4,7 @@
 """Shared runtime helpers — collections, discrepancies, provider write target."""
 
 from __future__ import annotations
+from chathealthy_frontend_lib.exceptions import ChatHealthyException
 from chathealthy_frontend_lib.logging_service import ChatHealthyLoggingService
 
 
@@ -31,8 +32,6 @@ _log = ChatHealthyLoggingService()
 #   cluster (chathealthyfrontend.pipeline.loaded_metadata).
 # The admin.command('renameCollection', ...) supports cross-DB rename, so
 # the atomic swap between the two DBs stays a single server-side op.
-_DEFAULT_PROVIDER_TARGET_BASE = "PublicStaging.Provider_staging"
-
 REPORTS_CONTAINER_SUFFIX = "-pipeline-reports"
 
 STATE_US_SET = {
@@ -59,10 +58,27 @@ class PipelineRuntime:
         if self._provider_collection:
             return self._provider_collection
         cfg = load_pipeline_config(self.frontend, self.env)
-        base = (
-            cfg.get("dataset_versions", {}).get("provider_write_target")
-            or _DEFAULT_PROVIDER_TARGET_BASE
-        )
+        # Config is the sole source of truth for the collection base name;
+        # data_version comes from CLI. No fallback: if the config record for
+        # this env does not carry provider_write_target the pipeline abends
+        # (operator directive 2026-08-03 "no fallbacks — fatal error if
+        # missing"). A silent default would let a config drift ship writes
+        # to the wrong collection undetected, which is exactly what caused
+        # fire #8 to fail at publish_provider.
+        base = cfg.get("dataset_versions", {}).get("provider_write_target")
+        if not base:
+            raise ChatHealthyException(
+                mode="pipeline_config_missing_field",
+                message=(
+                    "pipeline_config: dataset_versions.provider_write_target is "
+                    f"required for env {self.env!r} and is missing/empty. Set "
+                    "it in brain/machine_artifacts/content/pipeline_config.json "
+                    "(e.g. 'PublicStaging.Provider_staging') and redeploy the "
+                    "Controller image."
+                ),
+                env=self.env,
+                cfg_keys=sorted(cfg.keys()),
+            )
         # Config carries the base name (db.coll, no version suffix); the
         # runtime appends _v_{data_version} so we never rewrite the config
         # to bump a version.
