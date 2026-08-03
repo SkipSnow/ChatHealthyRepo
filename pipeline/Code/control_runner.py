@@ -349,6 +349,30 @@ def _quiesce_mongo_state(run_id: str, final_status: str) -> None:
     except Exception as exc:
         _log.error("quiesce: manifest update FAILED run_id=%s err=%s",
                    run_id, str(exc)[:500])
+    # On any non-success terminal status, flip this run's in-flight
+    # work_items to failed so no zombies persist. A successful run has
+    # already flipped its own work_items via the orchestrator's normal
+    # completion path. Watchdog runs the same flip as a catch-all when
+    # it reaps a run that Controller couldn't clean up itself.
+    if final_status != "succeeded":
+        try:
+            res = mongo["chathealthyfrontend"]["pipeline.work_items"].update_many(
+                {"run_id": run_id,
+                 "status": {"$nin": ["completed", "done", "failed"]}},
+                {"$set": {
+                    "status": "failed",
+                    "abort_reason": f"controller_quiesce_{final_status}",
+                    "failed_at": datetime.datetime.utcnow(),
+                }},
+            )
+            if res.modified_count:
+                _log.info(
+                    "quiesce: work_items flipped run_id=%s count=%d",
+                    run_id, res.modified_count,
+                )
+        except Exception as exc:
+            _log.error("quiesce: work_items flip FAILED run_id=%s err=%s",
+                       run_id, str(exc)[:500])
 
 
 if __name__ == "__main__":

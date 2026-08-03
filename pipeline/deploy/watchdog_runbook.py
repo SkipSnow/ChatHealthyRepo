@@ -419,6 +419,56 @@ def _reap_orphan_disks(tok: str) -> None:
                 error=f"{type(exc).__name__}: {exc}")
 
 
+def _list_orphan_nics(tok: str) -> list[dict]:
+    """Return every NIC in the RG that matches the pipeline VM naming
+    convention (vm-chpipeline-*-nic) AND has no parent VM attached.
+    Explicitly EXCLUDES the Atlas private-endpoint NIC (pe-atlas-*) — that
+    NIC has no virtualMachine binding by design and must never be deleted.
+    Historical run-up: 82 orphan NICs observed 2026-08-03 accumulated
+    over ~months of VM deletes that didn't cascade to their NICs."""
+    url = (f"https://management.azure.com/subscriptions/{SUBSCRIPTION_ID}"
+           f"/resourceGroups/{RESOURCE_GROUP}/providers/Microsoft.Network/"
+           f"networkInterfaces?api-version=2023-09-01")
+    resp = _arm_get(url, tok)
+    out = []
+    for n in resp.get("value", []):
+        name = n.get("name", "")
+        if not name.startswith("vm-chpipeline-") or not name.endswith("-nic"):
+            continue
+        vm_binding = ((n.get("properties") or {}).get("virtualMachine") or {}).get("id")
+        if vm_binding:
+            continue
+        out.append(n)
+    return out
+
+
+def _reap_orphan_nics(tok: str) -> None:
+    """Sweep at end of every watchdog tick. Catches NICs whose parent VM
+    was deleted without a cascade NIC delete (older VM provisions did not
+    set deleteOption on the NIC binding). Analog of _reap_orphan_disks."""
+    try:
+        nics = _list_orphan_nics(tok)
+    except Exception as exc:  # noqa: BLE001
+        log("orphan_nic_sweep_list_error",
+            error=f"{type(exc).__name__}: {exc}")
+        return
+    log("orphan_nic_sweep_inventory", count=len(nics),
+        names=[n["name"] for n in nics])
+    for n in nics:
+        name = n["name"]
+        try:
+            _arm_delete(
+                (f"https://management.azure.com/subscriptions/{SUBSCRIPTION_ID}"
+                 f"/resourceGroups/{RESOURCE_GROUP}/providers/Microsoft.Network/"
+                 f"networkInterfaces/{name}?api-version=2023-09-01"),
+                tok,
+            )
+            log("orphan_nic_delete", nic=name)
+        except Exception as exc:  # noqa: BLE001
+            log("orphan_nic_delete_error", nic=name,
+                error=f"{type(exc).__name__}: {exc}")
+
+
 # -----------------------------------------------------------------------------
 # The 4-check state machine per v32 §3.1.2
 # -----------------------------------------------------------------------------
@@ -466,6 +516,23 @@ def _mark_run_failed(mongo, run_id: str, abort_reason: str) -> None:
             "finished_at": datetime.datetime.utcnow().isoformat() + "Z",
         }},
     )
+    # Flip any of this run's in-flight work_items to failed. Statuses in the
+    # wild: pending, claimed, running (older code path). Terminal =
+    # completed, done, failed. Without this flip, a Controller crash mid-step
+    # leaves zombie work_items that never reach a terminal state.
+    res = mongo["chathealthyfrontend"]["pipeline.work_items"].update_many(
+        {"run_id": run_id,
+         "status": {"$nin": ["completed", "done", "failed"]}},
+        {"$set": {
+            "status": "failed",
+            "abort_reason": abort_reason,
+            "failed_at": datetime.datetime.utcnow().isoformat() + "Z",
+        }},
+    )
+    if res.modified_count:
+        log("mark_run_failed_flipped_work_items",
+            run_id=run_id, abort_reason=abort_reason,
+            work_items_flipped=res.modified_count)
 
 
 def _process_vm(vm: dict, mongo, tok: str) -> None:
@@ -611,6 +678,10 @@ def main() -> int:
     # their VM (pre-deleteOption VMs or edge cases where the cascade
     # delete lost a disk).
     _reap_orphan_disks(tok)
+    # Same sweep for vm-chpipeline-*-nic NICs that outlived their VM.
+    # Atlas PE NIC (pe-atlas-*) is explicitly excluded by the naming
+    # prefix filter in _list_orphan_nics.
+    _reap_orphan_nics(tok)
     log("watchdog_end")
     return 0
 
