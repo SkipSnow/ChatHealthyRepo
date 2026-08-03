@@ -1,11 +1,30 @@
 {
   "permissions": {
+    "defaultMode": "bypassPermissions",
     "allow": [
       "Monitor",
-      "Bash(tail:*)",
-      "Bash(cat:*)",
-      "Bash(head:*)",
-      "Bash"
+      "Bash(*)",
+      "PowerShell(*)",
+      "Read(*)",
+      "Edit(*)",
+      "Write(*)",
+      "Grep(*)",
+      "Glob(*)",
+      "TaskStop(*)",
+      "TodoWrite(*)",
+      "AskUserQuestion(*)",
+      "WebFetch(*)",
+      "WebSearch(*)",
+      "Task(*)",
+      "Agent(*)",
+      "Skill(*)",
+      "ToolSearch(*)",
+      "Artifact(*)",
+      "SendMessage(*)",
+      "ScheduleWakeup(*)",
+      "ReportFindings(*)",
+      "WorkFlow(*)",
+      "NotebookEdit(*)"
     ]
   },
   "hooks": {
