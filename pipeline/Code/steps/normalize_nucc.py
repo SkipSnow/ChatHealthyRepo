@@ -27,7 +27,7 @@ from pymongo import InsertOne, UpdateOne
 
 from pipeline_runtime import PipelineRuntime
 from specialty_classification_catalog import load_catalog
-from staging_loader import STAGING_DB_NAME, staging_collection_name
+from staging_loader import staging_collection_name, staging_db_name
 
 
 def execute(ctx) -> dict:
@@ -36,11 +36,10 @@ def execute(ctx) -> dict:
     # pattern every other step uses (see provider_normalize_engine.py).
     rt = PipelineRuntime(ctx)
     mongo = rt.mongo
-    data_version = rt.data_version
     run_id = rt.run_id
 
-    coll_name = staging_collection_name("nucc", data_version)
-    coll = mongo[STAGING_DB_NAME][coll_name]
+    coll_name = staging_collection_name(rt.registry, "nucc")
+    coll = mongo[staging_db_name(rt.registry, "nucc")][coll_name]
 
     f105 = load_catalog()  # {code -> {can_prescribe, is_homeopathic, is_supplemented, is_disqualified, grouping, classification, specialization, definition}}
 

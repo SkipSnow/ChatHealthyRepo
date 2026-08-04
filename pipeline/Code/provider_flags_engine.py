@@ -38,7 +38,7 @@ from typing import Any
 
 from pymongo import UpdateOne
 
-from staging_loader import STAGING_DB_NAME, staging_collection_name
+from staging_loader import staging_collection_name, staging_db_name
 
 _log = ChatHealthyLoggingService()
 
@@ -123,10 +123,11 @@ def _load_catalog(mongo, data_version: int) -> dict[str, dict[str, bool]]:
     return out
 
 
-def _load_registered_npis(mongo, data_version: int) -> set[str]:
+def _load_registered_npis(mongo, registry) -> set[str]:
     """Every NPI in the NPPES staging load that is not deactivated."""
-    coll_name = staging_collection_name("nppes_npi", data_version)
-    coll = mongo[STAGING_DB_NAME][coll_name]
+    coll_name = staging_collection_name(registry, "nppes_npi")
+    db_name = staging_db_name(registry, "nppes_npi")
+    coll = mongo[db_name][coll_name]
     out: set[str] = set()
     for row in coll.find({}, {"npi": 1, "raw": 1}):
         npi = row.get("npi")
@@ -145,7 +146,7 @@ def _load_registered_npis(mongo, data_version: int) -> set[str]:
         raise ChatHealthyException(
             mode="nppes_staging_empty",
             message=(
-                f"provider_flags_engine: {STAGING_DB_NAME}.{coll_name} "
+                f"provider_flags_engine: {db_name}.{coll_name} "
                 f"produced zero non-deactivated NPIs -- staging load failed."
             ),
             collection=coll_name,
@@ -336,8 +337,12 @@ def apply_provider_flags(
                 "publish_smd_and_embed). Caller must pass mongo= kwarg."
             ),
         )
+    # Registry from config's dataset_versions[]: the source-of-truth
+    # nppes_npi staging collection name lives there, not in code.
+    from pipeline_dataset_registry import PipelineDatasetRegistry
+    registry = PipelineDatasetRegistry(config, data_version, mongo)
     catalog = _load_catalog(mongo, data_version)
-    registered = _load_registered_npis(mongo, data_version)
+    registered = _load_registered_npis(mongo, registry)
 
     # Discrepancy sink: every unresolved taxonomy code encountered inside
     # this run gets forwarded to report_discrepancy() which persists it

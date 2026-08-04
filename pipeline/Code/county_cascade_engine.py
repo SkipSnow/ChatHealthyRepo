@@ -247,11 +247,12 @@ def _pairs_from_chunk(
     return pairs
 
 
-def _load_zcta_crosswalk(mongo, env_prefix: str, run_id: str, data_version: int) -> dict[str, tuple[str, str]]:
+def _load_zcta_crosswalk(mongo, registry, env_prefix: str, run_id: str) -> dict[str, tuple[str, str]]:
     """Load the ZCTA-to-County crosswalk into an in-memory dict.
 
-    Reads from PublicStaging.StagingCensusZctaCounty_v_{data_version} per
-    the current staging convention (staging_loader.staging_collection_name).
+    Reads from the pipeline cluster's census_zcta_county staging
+    collection per the registry (dataset_versions[]) so the source ->
+    collection map lives in one place.
 
     Contract: returns {5-digit ZIP -> (5-digit county FIPS, county name)}.
     The Census 2020 ZCTA↔County file publishes GEOID_ZCTA5_20 (ZIP),
@@ -262,11 +263,12 @@ def _load_zcta_crosswalk(mongo, env_prefix: str, run_id: str, data_version: int)
 
     Also accepts legacy unsuffixed keys so the loader stays resilient if
     the source ever ships without the _20 suffix. Name is optional at
-    the row level — a row without a name still contributes its FIPS,
+    the row level -- a row without a name still contributes its FIPS,
     with '' as the name."""
-    from staging_loader import STAGING_DB_NAME, staging_collection_name
-    coll_name = staging_collection_name("census_zcta_county", data_version)
-    coll = mongo[STAGING_DB_NAME][coll_name]
+    from staging_loader import staging_collection_name, staging_db_name
+    coll_name = staging_collection_name(registry, "census_zcta_county")
+    db_name = staging_db_name(registry, "census_zcta_county")
+    coll = mongo[db_name][coll_name]
     scanned = 0
     key_misses = 0
     out: dict[str, tuple[str, str]] = {}
@@ -313,7 +315,7 @@ def _load_zcta_crosswalk(mongo, env_prefix: str, run_id: str, data_version: int)
         out.setdefault(z, (fips, name))
     _log.info(
         "county_cascade: crosswalk load coll=%s.%s scanned=%d loaded=%d key_misses=%d sample_raw_keys=%s",
-        STAGING_DB_NAME, coll_name, scanned, len(out), key_misses,
+        db_name, coll_name, scanned, len(out), key_misses,
         list((coll.find_one({"run_id": run_id}) or {}).get("raw", {}).keys())[:10] if scanned else [],
     )
     if scanned and not out:
@@ -325,12 +327,13 @@ def _load_zcta_crosswalk(mongo, env_prefix: str, run_id: str, data_version: int)
     return out
 
 
-def _load_rucc_by_fips(mongo, run_id: str, data_version: int) -> dict[str, int]:
+def _load_rucc_by_fips(mongo, registry, run_id: str) -> dict[str, int]:
     """Load {5-digit county FIPS -> USDA RUCC integer 1..9} from staging.
 
-    Reads from PublicStaging.StagingUsdaRucc_v_{data_version}. Preserves
-    the raw integer (1..9) so downstream consumers can apply their own
-    urban/rural threshold at query time — no boolean collapse here.
+    Reads from the pipeline cluster's usda_rucc staging collection per
+    the registry (dataset_versions[]). Preserves the raw integer (1..9)
+    so downstream consumers can apply their own urban/rural threshold at
+    query time -- no boolean collapse here.
 
     RUCC integer semantics (from USDA ERS):
       1: Metro 1M+          6: Nonmetro 2.5K-20K adjacent
@@ -338,9 +341,10 @@ def _load_rucc_by_fips(mongo, run_id: str, data_version: int) -> dict[str, int]:
       3: Metro <250K        8: Nonmetro <2.5K adjacent
       4: Nonmetro 20K+ adj  9: Nonmetro <2.5K nonadjacent
       5: Nonmetro 20K+ non-adj"""
-    from staging_loader import STAGING_DB_NAME, staging_collection_name
-    coll_name = staging_collection_name("usda_rucc", data_version)
-    coll = mongo[STAGING_DB_NAME][coll_name]
+    from staging_loader import staging_collection_name, staging_db_name
+    coll_name = staging_collection_name(registry, "usda_rucc")
+    db_name = staging_db_name(registry, "usda_rucc")
+    coll = mongo[db_name][coll_name]
     scanned = 0
     out: dict[str, int] = {}
     fips_col: str | None = None
@@ -367,7 +371,7 @@ def _load_rucc_by_fips(mongo, run_id: str, data_version: int) -> dict[str, int]:
         out[fips] = rucc
     _log.info(
         "county_cascade: rucc load coll=%s.%s scanned=%d loaded=%d",
-        STAGING_DB_NAME, coll_name, scanned, len(out),
+        db_name, coll_name, scanned, len(out),
     )
     return out
 
@@ -1165,7 +1169,12 @@ def run_county_cascade(
     )
 
     data_version = int(config.get("data_version") or 0)
-    crosswalk = _load_zcta_crosswalk(mongo, env_prefix, run_id, data_version)
+    # Build the registry from config's dataset_versions[] so census +
+    # rucc staging collection names are resolved via the single source
+    # of truth (brain/machine_artifacts/content/pipeline_config.json).
+    from pipeline_dataset_registry import PipelineDatasetRegistry
+    registry = PipelineDatasetRegistry(config, data_version, mongo)
+    crosswalk = _load_zcta_crosswalk(mongo, registry, env_prefix, run_id)
     # fips_to_name reverse index: Census batch geocoder returns FIPS but
     # no name, so stages that hit via Census need this lookup to include
     # county.name on every stamped record (Skip: "you need it in every
@@ -1176,7 +1185,7 @@ def run_county_cascade(
     # numeric FIPS (crosswalk, Census, NPPES). Google's fips_key is
     # non-numeric ("STATE::County Name") so its lookups yield None and
     # rucc is simply omitted from Google-stamped counties.
-    rucc_by_fips = _load_rucc_by_fips(mongo, run_id, data_version)
+    rucc_by_fips = _load_rucc_by_fips(mongo, registry, run_id)
     session = requests.Session()
 
     # Gates are lazily instantiated so a run that resolves entirely from the

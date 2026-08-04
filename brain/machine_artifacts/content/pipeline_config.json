@@ -6,9 +6,105 @@
       "batch_limits": {
         "normalize_batch_size": 1000
       },
-      "dataset_versions": {
-        "provider_write_target": "PublicStaging.Provider_staging"
-      },
+      "dataset_versions": [
+        {
+          "source_name": "nppes_npi",
+          "bundled_with": "nppes_full_dissemination_zip",
+          "fetch": {
+            "source_url": {
+              "page_url": "https://download.cms.gov/nppes/NPI_Files.html",
+              "instructions": "Find the URL of the latest **full monthly** NPPES NPI Dissemination zip file. Rules: (a) Look for files whose name starts with `NPPES_Data_Dissemination_<Month>_<Year>` and ends with `.zip`. (b) The publisher sometimes appends a version stamp like `_V2`, `_V3`, etc. When multiple version stamps exist for the same month, return the HIGHEST version number for the LATEST month. (c) IGNORE filenames that contain `Weekly` (those are incremental diff files, not full files). (d) IGNORE filenames that contain `Deactivated` (those are deactivated-NPI reports, not provider data). (e) Return only the absolute URL of the chosen file."
+            }
+          },
+          "archive_member": "npidata_pfile*.csv",
+          "file_format": "csv",
+          "staging_name": "PublicStaging.StagingProvider",
+          "public_data_name": "PublicHealthData.NppesNpi"
+        },
+        {
+          "source_name": "pl_pfile",
+          "bundled_with": "nppes_full_dissemination_zip",
+          "archive_member": "pl_pfile*.csv",
+          "file_format": "csv",
+          "staging_name": "PublicStaging.StagingPlPfile",
+          "public_data_name": "PublicHealthData.PlPfile"
+        },
+        {
+          "source_name": "nucc",
+          "fetch": {
+            "source_url": {
+              "page_url": "https://www.nucc.org/index.php/code-sets-mainmenu-41/provider-taxonomy-mainmenu-40/csv-mainmenu-57",
+              "instructions": "Find the URL of the latest NUCC Provider Taxonomy CSV file. Rules: (a) Look for the CSV file (filename ends with .csv) that contains the current taxonomy code set; the file usually has a name like `nucc_taxonomy_<version>.csv`. (b) If multiple versions are listed, return the URL of the most recent one. (c) IGNORE PDF, XLSX, and ZIP files -- only the CSV is the data file we want. (d) Return only the absolute URL."
+            }
+          },
+          "file_format": "csv",
+          "staging_name": "PublicStaging.StagingNucc",
+          "public_data_name": "PublicHealthData.Nucc"
+        },
+        {
+          "source_name": "census_zcta_county",
+          "fetch": {
+            "source_url": {
+              "page_url": "https://www2.census.gov/geo/docs/maps-data/data/rel2020/zcta520/",
+              "instructions": "Find the URL of the latest US Census ZCTA-to-County relationship file. Rules: (a) The file is a pipe-delimited TXT named like `tab20_zcta520_county20_natl.txt` -- national-scope ZCTA-to-county crosswalk. (b) Pick the national-scope file (`_natl`), NOT a state-level extract. (c) Return only the absolute URL."
+            }
+          },
+          "file_format": "pipe_delimited",
+          "staging_name": "PublicStaging.StagingCensusZctaCounty",
+          "public_data_name": "PublicHealthData.CensusZctaCounty"
+        },
+        {
+          "source_name": "usda_rucc",
+          "fetch": {
+            "source_url": {
+              "page_url": "https://www.ers.usda.gov/data-products/rural-urban-continuum-codes/",
+              "instructions": "Find the URL of the latest USDA Rural-Urban Continuum Codes (RUCC) spreadsheet file. Rules: (a) Look for the most recent year's RUCC file (filename typically `Ruralurbancontinuumcodes<YEAR>.xlsx` or similar). (b) MUST be an XLSX or CSV, not PDF. (c) Pick the file that contains the actual county-level RUCC codes 1-9, not documentation. (d) Return only the absolute URL."
+            }
+          },
+          "file_format": "xlsx",
+          "staging_name": "PublicStaging.StagingUsdaRucc",
+          "public_data_name": "PublicHealthData.UsdaRucc"
+        },
+        {
+          "source_name": "specialty_catalog",
+          "fetch": {
+            "source_url": "https://chathealthy.ai/Data/specialty_classification_gpt41.json"
+          },
+          "file_format": "json",
+          "staging_name": "PublicStaging.StagingSpecialtyCatalog",
+          "public_data_name": "PublicHealthData.SpecialtyCatalog"
+        },
+        {
+          "source_name": "icd10_cm",
+          "fetch": {
+            "source_url": {
+              "page_url": "https://www.cms.gov/medicare/coding-billing/icd-10-codes",
+              "instructions": "Find the URL of the latest CMS ICD-10-CM Code Descriptions in Tabular Order zip file. Rules: (a) The filename matches the pattern `<Month>-<Day>-<Year>-code-descriptions-tabular-order.zip` and is hosted under `https://www.cms.gov/files/zip/`. (b) CMS ships an annual full file on Oct 1 and a mid-year update on Apr 1; when multiple releases are listed, return the URL of the most recent release. (c) IGNORE `addenda`, `guidelines`, `procedure`, and `ICD-10-PCS` files -- only `code-descriptions-tabular-order` is the file we want. (d) Return only the absolute URL."
+            }
+          },
+          "file_format": "zip_containing_csv",
+          "staging_name": "PublicStaging.StagingIcd10Cm",
+          "public_data_name": "PublicHealthData.Icd10Cm"
+        },
+        {
+          "source_name": "provider",
+          "staging_name": "PublicStaging.Provider_staging",
+          "public_data_name": "PublicHealthData.Provider",
+          "depends_on": ["nppes_npi", "pl_pfile", "smd", "usda_rucc", "census_zcta_county"]
+        },
+        {
+          "source_name": "smd",
+          "staging_name": "PublicStaging.SpecialtyMetaData_staging",
+          "public_data_name": "PublicHealthData.SpecialtyMetaData",
+          "depends_on": ["nucc", "specialty_catalog"]
+        },
+        {
+          "source_name": "other_identifier_phrases",
+          "staging_name": "PublicStaging.OtherIdentifierPhrases",
+          "public_data_name": "PublicHealthData.OtherIdentifierPhrases",
+          "depends_on": ["provider"]
+        }
+      ],
       "failure_thresholds": {
         "discrepancy_abort": 1000
       },
@@ -26,9 +122,105 @@
       "batch_limits": {
         "normalize_batch_size": 1000
       },
-      "dataset_versions": {
-        "provider_write_target": "PublicStaging.Provider_staging"
-      },
+      "dataset_versions": [
+        {
+          "source_name": "nppes_npi",
+          "bundled_with": "nppes_full_dissemination_zip",
+          "fetch": {
+            "source_url": {
+              "page_url": "https://download.cms.gov/nppes/NPI_Files.html",
+              "instructions": "Find the URL of the latest **full monthly** NPPES NPI Dissemination zip file. Rules: (a) Look for files whose name starts with `NPPES_Data_Dissemination_<Month>_<Year>` and ends with `.zip`. (b) The publisher sometimes appends a version stamp like `_V2`, `_V3`, etc. When multiple version stamps exist for the same month, return the HIGHEST version number for the LATEST month. (c) IGNORE filenames that contain `Weekly` (those are incremental diff files, not full files). (d) IGNORE filenames that contain `Deactivated` (those are deactivated-NPI reports, not provider data). (e) Return only the absolute URL of the chosen file."
+            }
+          },
+          "archive_member": "npidata_pfile*.csv",
+          "file_format": "csv",
+          "staging_name": "PublicStaging.StagingProvider",
+          "public_data_name": "PublicHealthData.NppesNpi"
+        },
+        {
+          "source_name": "pl_pfile",
+          "bundled_with": "nppes_full_dissemination_zip",
+          "archive_member": "pl_pfile*.csv",
+          "file_format": "csv",
+          "staging_name": "PublicStaging.StagingPlPfile",
+          "public_data_name": "PublicHealthData.PlPfile"
+        },
+        {
+          "source_name": "nucc",
+          "fetch": {
+            "source_url": {
+              "page_url": "https://www.nucc.org/index.php/code-sets-mainmenu-41/provider-taxonomy-mainmenu-40/csv-mainmenu-57",
+              "instructions": "Find the URL of the latest NUCC Provider Taxonomy CSV file. Rules: (a) Look for the CSV file (filename ends with .csv) that contains the current taxonomy code set; the file usually has a name like `nucc_taxonomy_<version>.csv`. (b) If multiple versions are listed, return the URL of the most recent one. (c) IGNORE PDF, XLSX, and ZIP files -- only the CSV is the data file we want. (d) Return only the absolute URL."
+            }
+          },
+          "file_format": "csv",
+          "staging_name": "PublicStaging.StagingNucc",
+          "public_data_name": "PublicHealthData.Nucc"
+        },
+        {
+          "source_name": "census_zcta_county",
+          "fetch": {
+            "source_url": {
+              "page_url": "https://www2.census.gov/geo/docs/maps-data/data/rel2020/zcta520/",
+              "instructions": "Find the URL of the latest US Census ZCTA-to-County relationship file. Rules: (a) The file is a pipe-delimited TXT named like `tab20_zcta520_county20_natl.txt` -- national-scope ZCTA-to-county crosswalk. (b) Pick the national-scope file (`_natl`), NOT a state-level extract. (c) Return only the absolute URL."
+            }
+          },
+          "file_format": "pipe_delimited",
+          "staging_name": "PublicStaging.StagingCensusZctaCounty",
+          "public_data_name": "PublicHealthData.CensusZctaCounty"
+        },
+        {
+          "source_name": "usda_rucc",
+          "fetch": {
+            "source_url": {
+              "page_url": "https://www.ers.usda.gov/data-products/rural-urban-continuum-codes/",
+              "instructions": "Find the URL of the latest USDA Rural-Urban Continuum Codes (RUCC) spreadsheet file. Rules: (a) Look for the most recent year's RUCC file (filename typically `Ruralurbancontinuumcodes<YEAR>.xlsx` or similar). (b) MUST be an XLSX or CSV, not PDF. (c) Pick the file that contains the actual county-level RUCC codes 1-9, not documentation. (d) Return only the absolute URL."
+            }
+          },
+          "file_format": "xlsx",
+          "staging_name": "PublicStaging.StagingUsdaRucc",
+          "public_data_name": "PublicHealthData.UsdaRucc"
+        },
+        {
+          "source_name": "specialty_catalog",
+          "fetch": {
+            "source_url": "https://chathealthy.ai/Data/specialty_classification_gpt41.json"
+          },
+          "file_format": "json",
+          "staging_name": "PublicStaging.StagingSpecialtyCatalog",
+          "public_data_name": "PublicHealthData.SpecialtyCatalog"
+        },
+        {
+          "source_name": "icd10_cm",
+          "fetch": {
+            "source_url": {
+              "page_url": "https://www.cms.gov/medicare/coding-billing/icd-10-codes",
+              "instructions": "Find the URL of the latest CMS ICD-10-CM Code Descriptions in Tabular Order zip file. Rules: (a) The filename matches the pattern `<Month>-<Day>-<Year>-code-descriptions-tabular-order.zip` and is hosted under `https://www.cms.gov/files/zip/`. (b) CMS ships an annual full file on Oct 1 and a mid-year update on Apr 1; when multiple releases are listed, return the URL of the most recent release. (c) IGNORE `addenda`, `guidelines`, `procedure`, and `ICD-10-PCS` files -- only `code-descriptions-tabular-order` is the file we want. (d) Return only the absolute URL."
+            }
+          },
+          "file_format": "zip_containing_csv",
+          "staging_name": "PublicStaging.StagingIcd10Cm",
+          "public_data_name": "PublicHealthData.Icd10Cm"
+        },
+        {
+          "source_name": "provider",
+          "staging_name": "PublicStaging.Provider_staging",
+          "public_data_name": "PublicHealthData.Provider",
+          "depends_on": ["nppes_npi", "pl_pfile", "smd", "usda_rucc", "census_zcta_county"]
+        },
+        {
+          "source_name": "smd",
+          "staging_name": "PublicStaging.SpecialtyMetaData_staging",
+          "public_data_name": "PublicHealthData.SpecialtyMetaData",
+          "depends_on": ["nucc", "specialty_catalog"]
+        },
+        {
+          "source_name": "other_identifier_phrases",
+          "staging_name": "PublicStaging.OtherIdentifierPhrases",
+          "public_data_name": "PublicHealthData.OtherIdentifierPhrases",
+          "depends_on": ["provider"]
+        }
+      ],
       "failure_thresholds": {
         "discrepancy_abort": 1000
       },
@@ -46,9 +238,105 @@
       "batch_limits": {
         "normalize_batch_size": 1000
       },
-      "dataset_versions": {
-        "provider_write_target": "PublicStaging.Provider_staging"
-      },
+      "dataset_versions": [
+        {
+          "source_name": "nppes_npi",
+          "bundled_with": "nppes_full_dissemination_zip",
+          "fetch": {
+            "source_url": {
+              "page_url": "https://download.cms.gov/nppes/NPI_Files.html",
+              "instructions": "Find the URL of the latest **full monthly** NPPES NPI Dissemination zip file. Rules: (a) Look for files whose name starts with `NPPES_Data_Dissemination_<Month>_<Year>` and ends with `.zip`. (b) The publisher sometimes appends a version stamp like `_V2`, `_V3`, etc. When multiple version stamps exist for the same month, return the HIGHEST version number for the LATEST month. (c) IGNORE filenames that contain `Weekly` (those are incremental diff files, not full files). (d) IGNORE filenames that contain `Deactivated` (those are deactivated-NPI reports, not provider data). (e) Return only the absolute URL of the chosen file."
+            }
+          },
+          "archive_member": "npidata_pfile*.csv",
+          "file_format": "csv",
+          "staging_name": "PublicStaging.StagingProvider",
+          "public_data_name": "PublicHealthData.NppesNpi"
+        },
+        {
+          "source_name": "pl_pfile",
+          "bundled_with": "nppes_full_dissemination_zip",
+          "archive_member": "pl_pfile*.csv",
+          "file_format": "csv",
+          "staging_name": "PublicStaging.StagingPlPfile",
+          "public_data_name": "PublicHealthData.PlPfile"
+        },
+        {
+          "source_name": "nucc",
+          "fetch": {
+            "source_url": {
+              "page_url": "https://www.nucc.org/index.php/code-sets-mainmenu-41/provider-taxonomy-mainmenu-40/csv-mainmenu-57",
+              "instructions": "Find the URL of the latest NUCC Provider Taxonomy CSV file. Rules: (a) Look for the CSV file (filename ends with .csv) that contains the current taxonomy code set; the file usually has a name like `nucc_taxonomy_<version>.csv`. (b) If multiple versions are listed, return the URL of the most recent one. (c) IGNORE PDF, XLSX, and ZIP files -- only the CSV is the data file we want. (d) Return only the absolute URL."
+            }
+          },
+          "file_format": "csv",
+          "staging_name": "PublicStaging.StagingNucc",
+          "public_data_name": "PublicHealthData.Nucc"
+        },
+        {
+          "source_name": "census_zcta_county",
+          "fetch": {
+            "source_url": {
+              "page_url": "https://www2.census.gov/geo/docs/maps-data/data/rel2020/zcta520/",
+              "instructions": "Find the URL of the latest US Census ZCTA-to-County relationship file. Rules: (a) The file is a pipe-delimited TXT named like `tab20_zcta520_county20_natl.txt` -- national-scope ZCTA-to-county crosswalk. (b) Pick the national-scope file (`_natl`), NOT a state-level extract. (c) Return only the absolute URL."
+            }
+          },
+          "file_format": "pipe_delimited",
+          "staging_name": "PublicStaging.StagingCensusZctaCounty",
+          "public_data_name": "PublicHealthData.CensusZctaCounty"
+        },
+        {
+          "source_name": "usda_rucc",
+          "fetch": {
+            "source_url": {
+              "page_url": "https://www.ers.usda.gov/data-products/rural-urban-continuum-codes/",
+              "instructions": "Find the URL of the latest USDA Rural-Urban Continuum Codes (RUCC) spreadsheet file. Rules: (a) Look for the most recent year's RUCC file (filename typically `Ruralurbancontinuumcodes<YEAR>.xlsx` or similar). (b) MUST be an XLSX or CSV, not PDF. (c) Pick the file that contains the actual county-level RUCC codes 1-9, not documentation. (d) Return only the absolute URL."
+            }
+          },
+          "file_format": "xlsx",
+          "staging_name": "PublicStaging.StagingUsdaRucc",
+          "public_data_name": "PublicHealthData.UsdaRucc"
+        },
+        {
+          "source_name": "specialty_catalog",
+          "fetch": {
+            "source_url": "https://chathealthy.ai/Data/specialty_classification_gpt41.json"
+          },
+          "file_format": "json",
+          "staging_name": "PublicStaging.StagingSpecialtyCatalog",
+          "public_data_name": "PublicHealthData.SpecialtyCatalog"
+        },
+        {
+          "source_name": "icd10_cm",
+          "fetch": {
+            "source_url": {
+              "page_url": "https://www.cms.gov/medicare/coding-billing/icd-10-codes",
+              "instructions": "Find the URL of the latest CMS ICD-10-CM Code Descriptions in Tabular Order zip file. Rules: (a) The filename matches the pattern `<Month>-<Day>-<Year>-code-descriptions-tabular-order.zip` and is hosted under `https://www.cms.gov/files/zip/`. (b) CMS ships an annual full file on Oct 1 and a mid-year update on Apr 1; when multiple releases are listed, return the URL of the most recent release. (c) IGNORE `addenda`, `guidelines`, `procedure`, and `ICD-10-PCS` files -- only `code-descriptions-tabular-order` is the file we want. (d) Return only the absolute URL."
+            }
+          },
+          "file_format": "zip_containing_csv",
+          "staging_name": "PublicStaging.StagingIcd10Cm",
+          "public_data_name": "PublicHealthData.Icd10Cm"
+        },
+        {
+          "source_name": "provider",
+          "staging_name": "PublicStaging.Provider_staging",
+          "public_data_name": "PublicHealthData.Provider",
+          "depends_on": ["nppes_npi", "pl_pfile", "smd", "usda_rucc", "census_zcta_county"]
+        },
+        {
+          "source_name": "smd",
+          "staging_name": "PublicStaging.SpecialtyMetaData_staging",
+          "public_data_name": "PublicHealthData.SpecialtyMetaData",
+          "depends_on": ["nucc", "specialty_catalog"]
+        },
+        {
+          "source_name": "other_identifier_phrases",
+          "staging_name": "PublicStaging.OtherIdentifierPhrases",
+          "public_data_name": "PublicHealthData.OtherIdentifierPhrases",
+          "depends_on": ["provider"]
+        }
+      ],
       "failure_thresholds": {
         "discrepancy_abort": 1000
       },

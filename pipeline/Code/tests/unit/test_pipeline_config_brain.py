@@ -82,7 +82,12 @@ def test_shipped_brain_json_loads_all_declared_envs():
         rec = pc.load_pipeline_config(env_prefix=env)
         assert rec["env"] == env
         assert "normalize_batch_size" in rec["batch_limits"]
-        assert "provider_write_target" in rec["dataset_versions"]
+        # dataset_versions is a list of dataset entries per registry
+        # contract; provider MUST be one of them.
+        dv = rec["dataset_versions"]
+        assert isinstance(dv, list) and dv, "dataset_versions must be a non-empty list"
+        source_names = {e["source_name"] for e in dv if isinstance(e, dict)}
+        assert "provider" in source_names
         assert "discrepancy_abort" in rec["failure_thresholds"]
         names = {s["source_name"] for s in rec["source_freshness"]}
         assert "specialty_catalog" in names

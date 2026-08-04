@@ -41,7 +41,6 @@ from __future__ import annotations
 from datetime import datetime, timezone
 
 
-_LOADED_DB = "PublicHealthData"  # pipeline cluster
 _METADATA_DB = "chathealthyfrontend"  # frontend cluster
 _METADATA_COLL = "pipeline.loaded_metadata"
 
@@ -55,14 +54,24 @@ def read_metadata(frontend, publichealthdata_collection_name: str) -> dict | Non
     )
 
 
-def publichealthdata_collection_exists(pipeline_mongo, collection_name: str) -> bool:
-    return collection_name in pipeline_mongo[_LOADED_DB].list_collection_names()
+def publichealthdata_collection_exists(
+    pipeline_mongo,
+    registry,
+    source_name: str,
+    collection_name: str,
+) -> bool:
+    # public_data_db comes from the registry entry, not a module constant --
+    # each dataset_versions[] source owns its own destination DB.
+    entry = registry.by_source_name(source_name)
+    return collection_name in pipeline_mongo[entry.public_data_db].list_collection_names()
 
 
 def should_skip(
     *,
     pipeline_mongo,
     frontend_mongo,
+    registry,
+    source_name: str,
     publichealthdata_collection_name: str,
     current_source_hash: str,
 ) -> tuple[bool, str]:
@@ -71,7 +80,8 @@ def should_skip(
          (metadata on frontend cluster)
       2. metadata.operationally_fit is True
       3. the versioned PublicHealthData collection exists on the
-         pipeline cluster (physical check, not metadata)
+         pipeline cluster (physical check, not metadata) -- the DB name
+         comes from registry.by_source_name(source_name).public_data_db
       4. actual row count on that collection == metadata.row_count
          (parity check catches out-of-band drops / truncates / drift)
 
@@ -89,13 +99,18 @@ def should_skip(
         )
     if not meta.get("operationally_fit"):
         return False, "prior load not marked operationally_fit"
-    if not publichealthdata_collection_exists(pipeline_mongo, publichealthdata_collection_name):
+    if not publichealthdata_collection_exists(
+        pipeline_mongo, registry, source_name, publichealthdata_collection_name,
+    ):
         return False, (
             f"PublicHealthData collection {publichealthdata_collection_name!r} "
             f"does not exist on pipeline cluster"
         )
+    entry = registry.by_source_name(source_name)
     recorded_rows = meta.get("row_count")
-    actual_rows = pipeline_mongo[_LOADED_DB][publichealthdata_collection_name].count_documents({})
+    actual_rows = pipeline_mongo[entry.public_data_db][
+        publichealthdata_collection_name
+    ].count_documents({})
     if recorded_rows != actual_rows:
         return False, (
             f"row-count parity mismatch (metadata.row_count={recorded_rows} "

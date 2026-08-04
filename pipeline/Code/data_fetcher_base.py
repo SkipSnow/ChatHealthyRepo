@@ -59,9 +59,13 @@ class DataFetcherBase:
     # The runtime value can also be overridden by config (operator-set).
     MAX_CACHE_AGE_DAYS: int = NotImplemented
 
-    def __init__(self, config: dict = None):
+    def __init__(self, config: dict = None, registry=None):
         self.config = config or {}
         self.container = self.config.get("blob_container", "provider-data")
+        # registry threads PipelineDatasetRegistry through to subclasses whose
+        # source_url is discovery-driven; discovery-owning subclasses look up
+        # their own source_name via self._registry.resolve_source_url(...).
+        self._registry = registry
 
     def _max_cache_age_days(self) -> int:
         """Resolve the effective staleness TTL for this source.

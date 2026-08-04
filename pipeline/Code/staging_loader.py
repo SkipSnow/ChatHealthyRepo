@@ -60,48 +60,43 @@ from typing import Any, Iterator
 
 from pymongo import ASCENDING, InsertOne
 
+from pipeline_dataset_registry import PipelineDatasetRegistry
+
 _log = ChatHealthyLoggingService()
 
-STAGING_DB_NAME = "PublicStaging"
 
-# Base collection name per source (versioned at use-time as
-# f"{base}_v_{data_version}"). All staging tables live in the fixed
-# PublicStaging DB on the ChatHealthyPipelines cluster.
-STAGING_BASE_NAMES = {
-    "nppes_npi": "StagingProvider",
-    "pl_pfile": "StagingPlPfile",
-    "nucc": "StagingNucc",
-    "census_zcta_county": "StagingCensusZctaCounty",
-    "usda_rucc": "StagingUsdaRucc",
-    "specialty_catalog": "StagingSpecialtyCatalog",
-}
-
-
-def staging_collection_name(source_name: str, data_version: int) -> str:
-    """Return "<Base>_v_<data_version>" for the given source. Raises if
-    the source is unknown or data_version invalid."""
-    base = STAGING_BASE_NAMES.get(source_name)
-    if not base:
+def staging_collection_name(registry: PipelineDatasetRegistry, source_name: str) -> str:
+    """Return the fully-versioned staging collection base name for
+    source_name (e.g. "StagingNucc_v_3"). Delegates to the registry so
+    the source-to-collection map lives in one place: dataset_versions[]
+    in brain/machine_artifacts/content/pipeline_config.json."""
+    if not isinstance(registry, PipelineDatasetRegistry):
         raise ChatHealthyException(
-            mode="value_error",
-            message=f"staging_loader: no STAGING_BASE_NAMES entry for source {source_name!r}",
+            mode="staging_loader_registry_wrong_type",
+            message=(
+                "staging_loader.staging_collection_name: registry MUST be a "
+                f"PipelineDatasetRegistry; got {type(registry).__name__}."
+            ),
             source_name=source_name,
         )
-    if not isinstance(data_version, int) or data_version < 1:
+    return registry.staging_collection_name(source_name)
+
+
+def staging_db_name(registry: PipelineDatasetRegistry, source_name: str) -> str:
+    """Return the staging DB name for source_name (e.g. "PublicStaging").
+    Split off from staging_collection_name so callers that need the
+    fully-qualified db.coll can compose without re-parsing."""
+    if not isinstance(registry, PipelineDatasetRegistry):
         raise ChatHealthyException(
-            mode="value_error",
-            message="staging_loader: data_version must be int >= 1",
+            mode="staging_loader_registry_wrong_type",
+            message=(
+                "staging_loader.staging_db_name: registry MUST be a "
+                f"PipelineDatasetRegistry; got {type(registry).__name__}."
+            ),
             source_name=source_name,
-            data_version=repr(data_version),
         )
-    return f"{base}_v_{data_version}"
+    return registry.by_source_name(source_name).staging_db
 
-
-# Legacy alias — some downstream callers may still reference STAGING_
-# COLLECTIONS by name. It now returns None-values because the actual
-# collection name is version-dependent; those callers MUST migrate to
-# staging_collection_name(source_name, data_version).
-STAGING_COLLECTIONS = {k: None for k in STAGING_BASE_NAMES}
 
 DEFAULT_BATCH_SIZE = 1000
 DEFAULT_STAGING_CONCURRENCY = 4
@@ -334,13 +329,6 @@ def _drop_prior_run_rows(coll, run_id: str) -> int:
 _NPPES_STATE_COLUMN = "Provider Business Mailing Address State Name"
 
 
-def _require_staging_collection(source_name: str) -> str:
-    coll_name = STAGING_COLLECTIONS.get(source_name)
-    if not coll_name:
-        raise ChatHealthyException(mode="runtime_error", message=f"staging_loader[{source_name}]: no staging collection mapping")
-    return coll_name
-
-
 def _require_mongo(mongo) -> None:
     if mongo is None:
         raise ChatHealthyException(mode="runtime_error", message="staging_loader: mongo client is required")
@@ -372,14 +360,15 @@ def _load_one_source(
     mongo,
     blob,
     batch_size: int,
-    data_version: int,
+    registry: PipelineDatasetRegistry,
     states: tuple[str, ...] = (),
     incremental: bool = False,
 ) -> dict[str, Any]:
     """Load one source into its versioned staging collection.
 
-    Target: mongo["PublicStaging"][staging_collection_name(source_name,
-    data_version)] on the ChatHealthyPipelines cluster.
+    Target: mongo[<staging_db>][<staging_collection>] on the pipeline
+    cluster, both derived from the registry so the source->collection
+    map lives in dataset_versions[] only.
 
     states: 2-letter state codes to keep for NPPES rows. Empty => keep all
         (equivalent to state_scope=ALL). Only applied to source_name ==
@@ -390,9 +379,10 @@ def _load_one_source(
         staging collection whose state is in `states` BEFORE inserting
         the fresh rows. Records from out-of-scope states are preserved.
     """
-    coll_name = staging_collection_name(source_name, data_version)
+    coll_name = staging_collection_name(registry, source_name)
+    db_name = staging_db_name(registry, source_name)
     _require_mongo(mongo)
-    db = mongo[STAGING_DB_NAME]
+    db = mongo[db_name]
     coll = db[coll_name]
 
     _ensure_indexes(coll, source_name)
@@ -504,6 +494,11 @@ def load_staging(
         )
     data_version: int = dv
 
+    # Registry is the single source of truth for source -> (staging_db,
+    # staging_coll_base) mapping. Built once at load_staging entry so
+    # every _load_one_source call shares one validated view of the config.
+    registry = PipelineDatasetRegistry(config, data_version, mongo)
+
     results: list[dict[str, Any]] = []
 
     nppes_spec = sources.get("nppes_npi")
@@ -516,7 +511,7 @@ def load_staging(
             mongo=mongo,
             blob=blob,
             batch_size=batch_size,
-            data_version=data_version,
+            registry=registry,
             states=states,
             incremental=incremental,
         ))
@@ -534,7 +529,7 @@ def load_staging(
                     mongo=mongo,
                     blob=blob,
                     batch_size=batch_size,
-                    data_version=data_version,
+                    registry=registry,
                     states=states,
                     incremental=incremental,
                 ): name for name, spec in parallel_sources.items()

@@ -1,12 +1,13 @@
+from chathealthy_frontend_lib.exceptions import ChatHealthyException
 from chathealthy_frontend_lib.logging_service import ChatHealthyLoggingService
 from chathealthy_frontend_lib.mongo_utilities import ChatHealthyMongoUtilities
-# Copyright © 2026 ChatHealthy.ai LLC. All rights reserved.
+# Copyright (c) 2026 ChatHealthy.ai LLC. All rights reserved.
 # Licensed under the FindCare Evaluation License (FEL-1.0).
 #
 # Coded by Claude Sonnet 4.6 (Anthropic).
 # Developed in collaboration with ChatGPT (OpenAI).
 
-"""ZipCountyCrosswalkLoader — loads US Census ZCTA-to-county relationship data
+"""ZipCountyCrosswalkLoader -- loads US Census ZCTA-to-county relationship data
 into PublicHealthData.ZipCountyCrosswalk.
 
 Source: US Census Bureau ZCTA-to-county relationship file (2020 census).
@@ -15,13 +16,13 @@ area-based ratio (AREALAND_PART / AREALAND_ZCTA5_20), which approximates
 HUD's res_ratio. The primary county (highest ratio) is flagged.
 
 Collection schema per document:
-  zip          : str   — 5-digit ZIP code
-  county_fips  : str   — 5-digit FIPS code of primary county
-  county_name  : str   — human-readable county name
-  res_ratio    : float — fraction of ZIP area in primary county
-  is_split     : bool  — True if any county has ratio < 0.98
-  all_counties : list  — [{fips, name, ratio}] for all counties in this ZIP
-  loaded_at    : str   — ISO timestamp
+  zip          : str   -- 5-digit ZIP code
+  county_fips  : str   -- 5-digit FIPS code of primary county
+  county_name  : str   -- human-readable county name
+  res_ratio    : float -- fraction of ZIP area in primary county
+  is_split     : bool  -- True if any county has ratio < 0.98
+  all_counties : list  -- [{fips, name, ratio}] for all counties in this ZIP
+  loaded_at    : str   -- ISO timestamp
 """
 
 
@@ -29,7 +30,6 @@ import os
 from collections import defaultdict
 from datetime import datetime, timezone
 
-import requests
 from pymongo import MongoClient, UpdateOne
 
 from blob_client import get_blob_service
@@ -45,37 +45,31 @@ def _get_mongo_client() -> MongoClient:
     return _mongo
 
 
-_CENSUS_ZCTA_INDEX_URL = (
-    "https://www2.census.gov/geo/docs/maps-data/data/rel2020/zcta520/"
-)
-
-
 class CrosswalkFetcher(DataFetcherBase):
     """US Census ZCTA-to-county relationship file fetcher.
 
-    URL discovered by AI agent (F-102-S-003-REQ-T-006). No fallback constant;
-    on discovery failure the constructor raises and the load fails loudly.
+    Source URL is resolved by the injected PipelineDatasetRegistry against the
+    census_zcta_county entry in dataset_versions[] (brain pipeline_config.json).
     """
     source_name = "census_zcta_county"
 
-    def __init__(self, config: dict = None):
-        super().__init__(config)
+    def __init__(self, config: dict = None, registry=None):
+        super().__init__(config, registry=registry)
+        if self._registry is None:
+            raise ChatHealthyException(
+                mode="pipeline_config_missing_field",
+                message=(
+                    "CrosswalkFetcher requires a PipelineDatasetRegistry so "
+                    "the census_zcta_county source_url resolves from "
+                    "dataset_versions[]. Registry was not supplied."
+                ),
+                fetcher="CrosswalkFetcher",
+                missing_field="registry",
+            )
         self.source_url = ""
 
     def _resolve_source_url(self) -> str:
-        from source_url_discovery import find_latest_data_url
-        return find_latest_data_url(
-            source_name="census_zcta_county",
-            page_url=_CENSUS_ZCTA_INDEX_URL,
-            instructions=(
-                "Find the URL of the latest US Census ZCTA-to-County "
-                "relationship file. Rules: (a) The file is a pipe-delimited "
-                "TXT named like `tab20_zcta520_county20_natl.txt` — national-"
-                "scope ZCTA-to-county crosswalk. (b) Pick the national-scope "
-                "file (`_natl`), NOT a state-level extract. (c) Return only "
-                "the absolute URL."
-            ),
-        )
+        return self._registry.resolve_source_url(self.source_name)
 
     def blob_name(self) -> str:
         return "census_zcta_county_2020.txt"
@@ -84,31 +78,41 @@ CROSSWALK_COLLECTION = "dev_PublicHealthData.ZipCountyCrosswalk"
 SPLIT_THRESHOLD = 0.98
 
 
-def load_crosswalk(config: dict = None) -> dict:
+def load_crosswalk(config: dict = None, registry=None) -> dict:
     """Download Census ZCTA-county file (if changed) and upsert into MongoDB.
 
-    Uses ETag/checksum guard — skips download if file is unchanged.
+    Uses ETag/checksum guard -- skips download if file is unchanged.
     Returns summary dict with counts.
     """
     config = config or {}
+    if registry is None:
+        raise ChatHealthyException(
+            mode="pipeline_config_missing_field",
+            message=(
+                "load_crosswalk requires a PipelineDatasetRegistry so the "
+                "census_zcta_county source_url resolves from "
+                "dataset_versions[]. Registry was not supplied."
+            ),
+            missing_field="registry",
+        )
     collection_name = config.get("crosswalk_collection", CROSSWALK_COLLECTION)
     db_name, coll_name = collection_name.split(".", 1)
 
-    fetcher = CrosswalkFetcher(config)
+    fetcher = CrosswalkFetcher(config, registry=registry)
     fetch_result = fetcher.fetch()
 
     if fetch_result["skipped"]:
         ChatHealthyLoggingService().info(
-            "Census crosswalk already landed (blob: %s) — reading from blob.",
+            "Census crosswalk already landed (blob: %s) -- reading from blob.",
             fetch_result["blob_path"],
         )
     else:
         ChatHealthyLoggingService().info(
-            "Census crosswalk downloaded (blob: %s, sha256: %s…).",
+            "Census crosswalk downloaded (blob: %s, sha256: %s...).",
             fetch_result["blob_path"], fetch_result["checksum_sha256"][:16],
         )
 
-    # Always read from blob — never re-download from CMS
+    # Always read from blob -- never re-download from CMS
     blob_service = get_blob_service()
     container = config.get("blob_container", "provider-data")
     stream = (
@@ -153,7 +157,7 @@ def load_crosswalk(config: dict = None) -> dict:
 
     ChatHealthyLoggingService().info("Parsed %d distinct ZIP codes from Census file", len(zip_counties))
 
-    # Build documents — primary county = highest area_part ratio
+    # Build documents -- primary county = highest area_part ratio
     now = datetime.now(timezone.utc).isoformat()
     ops = []
 
@@ -169,7 +173,7 @@ def load_crosswalk(config: dict = None) -> dict:
                 "ratio": ratio,
             })
 
-        # Sort by ratio descending — primary county first
+        # Sort by ratio descending -- primary county first
         county_list.sort(key=lambda x: x["ratio"], reverse=True)
         primary = county_list[0]
         is_split = primary["ratio"] < SPLIT_THRESHOLD
@@ -210,9 +214,15 @@ def load_crosswalk(config: dict = None) -> dict:
 
 
 if __name__ == "__main__":
-    import sys
     from pathlib import Path
     from dotenv import load_dotenv
+    from pipeline_config import load_pipeline_config
+    from pipeline_dataset_registry import PipelineDatasetRegistry
     load_dotenv(Path(__file__).parent.parent / ".env")
-    result = load_crosswalk()
+    _env = os.environ.get("ENV_PREFIX", "dev")
+    _data_version = int(os.environ.get("PIPELINE_DATA_VERSION", "3"))
+    _registry = PipelineDatasetRegistry(
+        load_pipeline_config(env_prefix=_env), _data_version, _get_mongo_client(),
+    )
+    result = load_crosswalk(registry=_registry)
     ChatHealthyLoggingService().info(result)
