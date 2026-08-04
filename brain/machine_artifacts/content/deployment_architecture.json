@@ -238,7 +238,7 @@
           "source_location": "Website/index.html",
           "handler_type": "static_asset",
           "disposition": "referenced",
-          "content_hash": "f5a815514a5c5c2cabaf60d500fee2f36f5de61af0d09f5a92bee1f662f9150d",
+          "content_hash": "da4b69ec178df45730a286bd1dba17b21afbe54143523d54b11e2398088e7ff9",
           "package": "runtime_driver"
         },
         {
@@ -600,30 +600,6 @@
           "handler_type": "cert_or_key",
           "disposition": "referenced",
           "content_hash": "09b2cf01c5a66bd3754db49ed21d372cf886e0ae69cc53f172335c443f6ad04d",
-          "package": "default"
-        },
-        {
-          "feature_id": "EPIC-008-F-012",
-          "source_location": "FrontEndApplicationLib/architectureAndDesign/EPIC-003-F-003-Manage-Errors-design-v5.docx",
-          "handler_type": "static_asset",
-          "disposition": "referenced",
-          "content_hash": "48458c634bd0a138b420ec1ba75c653d61d66b0fe64e84cf3c25c5dcb2602a2b",
-          "package": "default"
-        },
-        {
-          "feature_id": "EPIC-008-F-012",
-          "source_location": "FrontEndApplicationLib/architectureAndDesign/EPIC-003-F-005-Manage-Logging-design-v10.docx",
-          "handler_type": "static_asset",
-          "disposition": "referenced",
-          "content_hash": "165c6dcb38dfe623670a06d8689b26b535226b67aca3a76b5c5f64a02734442c",
-          "package": "default"
-        },
-        {
-          "feature_id": "EPIC-008-F-012",
-          "source_location": "FrontEndApplicationLib/architectureAndDesign/EPIC-003-F-005-Manage-Logging-design-v9.docx",
-          "handler_type": "static_asset",
-          "disposition": "referenced",
-          "content_hash": "78a9bedb1e1aa96f4684d1573317ad977c1e130a73ca62905a1980ee0c672efa",
           "package": "default"
         },
         {
@@ -1987,14 +1963,6 @@
         },
         {
           "feature_id": "EPIC-008-F-012",
-          "source_location": "FindCare/SpecialtyFilter/SpecialtyFilterDesign_V3.docx",
-          "handler_type": "static_asset",
-          "disposition": "referenced",
-          "content_hash": "d0c013cef605385d76a3a4be669a12c6af8d89e4e02d47728764ef6ccb4c695c",
-          "package": "default"
-        },
-        {
-          "feature_id": "EPIC-008-F-012",
           "source_location": "FindCare/SpecialtyFilter/__init__.py",
           "handler_type": "python_source",
           "disposition": "referenced",
@@ -2039,38 +2007,6 @@
           "handler_type": "static_asset",
           "disposition": "referenced",
           "content_hash": "f2f9c657a2276f963050c4705ab054aab062d6183b78b624fc90f89b96c20fb5",
-          "package": "default"
-        },
-        {
-          "feature_id": "EPIC-008-F-012",
-          "source_location": "FindCare/architectureAndDesign/EPIC-006-F-025-Provider-Detail-design-v3.docx",
-          "handler_type": "static_asset",
-          "disposition": "referenced",
-          "content_hash": "dbdba238647b7d0e8f7862f7d71e9d352f9ab42fde7b4f9134ffdb7403119378",
-          "package": "default"
-        },
-        {
-          "feature_id": "EPIC-008-F-012",
-          "source_location": "FrontEndApplicationLib/architectureAndDesign/EPIC-003-F-003-Manage-Errors-design-v5.docx",
-          "handler_type": "static_asset",
-          "disposition": "referenced",
-          "content_hash": "48458c634bd0a138b420ec1ba75c653d61d66b0fe64e84cf3c25c5dcb2602a2b",
-          "package": "default"
-        },
-        {
-          "feature_id": "EPIC-008-F-012",
-          "source_location": "FrontEndApplicationLib/architectureAndDesign/EPIC-003-F-005-Manage-Logging-design-v10.docx",
-          "handler_type": "static_asset",
-          "disposition": "referenced",
-          "content_hash": "165c6dcb38dfe623670a06d8689b26b535226b67aca3a76b5c5f64a02734442c",
-          "package": "default"
-        },
-        {
-          "feature_id": "EPIC-008-F-012",
-          "source_location": "FrontEndApplicationLib/architectureAndDesign/EPIC-003-F-005-Manage-Logging-design-v9.docx",
-          "handler_type": "static_asset",
-          "disposition": "referenced",
-          "content_hash": "78a9bedb1e1aa96f4684d1573317ad977c1e130a73ca62905a1980ee0c672efa",
           "package": "default"
         },
         {
@@ -2223,14 +2159,6 @@
           "handler_type": "python_source",
           "disposition": "referenced",
           "content_hash": "58a9a75ee055dcc2985900f2a6c4b91ad9f4460c61269867074d7411ef429bc1",
-          "package": "default"
-        },
-        {
-          "feature_id": "EPIC-008-F-012",
-          "source_location": "brain/machine_artifacts/content/How_Claude_Code_Builds_and_Maintains_deployment_architecture.docx",
-          "handler_type": "static_asset",
-          "disposition": "referenced",
-          "content_hash": "d19893e8447023850eeb06d4ac1061fdb4f6878e7d92860d19ccde4f45a22646",
           "package": "default"
         },
         {
@@ -2515,14 +2443,6 @@
         },
         {
           "feature_id": "EPIC-008-F-012",
-          "source_location": "FindCare/SpecialtyFilter/SpecialtyFilterDesign_V3.docx",
-          "handler_type": "static_asset",
-          "disposition": "referenced",
-          "content_hash": "d0c013cef605385d76a3a4be669a12c6af8d89e4e02d47728764ef6ccb4c695c",
-          "package": "default"
-        },
-        {
-          "feature_id": "EPIC-008-F-012",
           "source_location": "FindCare/SpecialtyFilter/__init__.py",
           "handler_type": "python_source",
           "disposition": "referenced",
@@ -2559,30 +2479,6 @@
           "handler_type": "static_asset",
           "disposition": "referenced",
           "content_hash": "44b544cfee4f28c633f9845a2cddcf3d57223a3315b05069f7e69f4a7fc70509",
-          "package": "default"
-        },
-        {
-          "feature_id": "EPIC-008-F-012",
-          "source_location": "FrontEndApplicationLib/architectureAndDesign/EPIC-003-F-003-Manage-Errors-design-v5.docx",
-          "handler_type": "static_asset",
-          "disposition": "referenced",
-          "content_hash": "48458c634bd0a138b420ec1ba75c653d61d66b0fe64e84cf3c25c5dcb2602a2b",
-          "package": "default"
-        },
-        {
-          "feature_id": "EPIC-008-F-012",
-          "source_location": "FrontEndApplicationLib/architectureAndDesign/EPIC-003-F-005-Manage-Logging-design-v10.docx",
-          "handler_type": "static_asset",
-          "disposition": "referenced",
-          "content_hash": "165c6dcb38dfe623670a06d8689b26b535226b67aca3a76b5c5f64a02734442c",
-          "package": "default"
-        },
-        {
-          "feature_id": "EPIC-008-F-012",
-          "source_location": "FrontEndApplicationLib/architectureAndDesign/EPIC-003-F-005-Manage-Logging-design-v9.docx",
-          "handler_type": "static_asset",
-          "disposition": "referenced",
-          "content_hash": "78a9bedb1e1aa96f4684d1573317ad977c1e130a73ca62905a1980ee0c672efa",
           "package": "default"
         },
         {
@@ -4161,14 +4057,6 @@
         },
         {
           "feature_id": "EPIC-008-F-012",
-          "source_location": "FindCare/SpecialtyFilter/SpecialtyFilterDesign_V3.docx",
-          "handler_type": "static_asset",
-          "disposition": "referenced",
-          "content_hash": "d0c013cef605385d76a3a4be669a12c6af8d89e4e02d47728764ef6ccb4c695c",
-          "package": "default"
-        },
-        {
-          "feature_id": "EPIC-008-F-012",
           "source_location": "FindCare/SpecialtyFilter/__init__.py",
           "handler_type": "python_source",
           "disposition": "referenced",
@@ -4213,38 +4101,6 @@
           "handler_type": "static_asset",
           "disposition": "referenced",
           "content_hash": "f2f9c657a2276f963050c4705ab054aab062d6183b78b624fc90f89b96c20fb5",
-          "package": "default"
-        },
-        {
-          "feature_id": "EPIC-008-F-012",
-          "source_location": "FindCare/architectureAndDesign/EPIC-006-F-025-Provider-Detail-design-v3.docx",
-          "handler_type": "static_asset",
-          "disposition": "referenced",
-          "content_hash": "dbdba238647b7d0e8f7862f7d71e9d352f9ab42fde7b4f9134ffdb7403119378",
-          "package": "default"
-        },
-        {
-          "feature_id": "EPIC-008-F-012",
-          "source_location": "FrontEndApplicationLib/architectureAndDesign/EPIC-003-F-003-Manage-Errors-design-v5.docx",
-          "handler_type": "static_asset",
-          "disposition": "referenced",
-          "content_hash": "48458c634bd0a138b420ec1ba75c653d61d66b0fe64e84cf3c25c5dcb2602a2b",
-          "package": "default"
-        },
-        {
-          "feature_id": "EPIC-008-F-012",
-          "source_location": "FrontEndApplicationLib/architectureAndDesign/EPIC-003-F-005-Manage-Logging-design-v10.docx",
-          "handler_type": "static_asset",
-          "disposition": "referenced",
-          "content_hash": "165c6dcb38dfe623670a06d8689b26b535226b67aca3a76b5c5f64a02734442c",
-          "package": "default"
-        },
-        {
-          "feature_id": "EPIC-008-F-012",
-          "source_location": "FrontEndApplicationLib/architectureAndDesign/EPIC-003-F-005-Manage-Logging-design-v9.docx",
-          "handler_type": "static_asset",
-          "disposition": "referenced",
-          "content_hash": "78a9bedb1e1aa96f4684d1573317ad977c1e130a73ca62905a1980ee0c672efa",
           "package": "default"
         },
         {
@@ -4405,14 +4261,6 @@
           "handler_type": "python_source",
           "disposition": "referenced",
           "content_hash": "58a9a75ee055dcc2985900f2a6c4b91ad9f4460c61269867074d7411ef429bc1",
-          "package": "default"
-        },
-        {
-          "feature_id": "EPIC-008-F-012",
-          "source_location": "brain/machine_artifacts/content/How_Claude_Code_Builds_and_Maintains_deployment_architecture.docx",
-          "handler_type": "static_asset",
-          "disposition": "referenced",
-          "content_hash": "d19893e8447023850eeb06d4ac1061fdb4f6878e7d92860d19ccde4f45a22646",
           "package": "default"
         },
         {
@@ -4627,30 +4475,6 @@
           "handler_type": "cert_or_key",
           "disposition": "referenced",
           "content_hash": "09b2cf01c5a66bd3754db49ed21d372cf886e0ae69cc53f172335c443f6ad04d",
-          "package": "default"
-        },
-        {
-          "feature_id": "EPIC-008-F-012",
-          "source_location": "FrontEndApplicationLib/architectureAndDesign/EPIC-003-F-003-Manage-Errors-design-v5.docx",
-          "handler_type": "static_asset",
-          "disposition": "referenced",
-          "content_hash": "48458c634bd0a138b420ec1ba75c653d61d66b0fe64e84cf3c25c5dcb2602a2b",
-          "package": "default"
-        },
-        {
-          "feature_id": "EPIC-008-F-012",
-          "source_location": "FrontEndApplicationLib/architectureAndDesign/EPIC-003-F-005-Manage-Logging-design-v10.docx",
-          "handler_type": "static_asset",
-          "disposition": "referenced",
-          "content_hash": "165c6dcb38dfe623670a06d8689b26b535226b67aca3a76b5c5f64a02734442c",
-          "package": "default"
-        },
-        {
-          "feature_id": "EPIC-008-F-012",
-          "source_location": "FrontEndApplicationLib/architectureAndDesign/EPIC-003-F-005-Manage-Logging-design-v9.docx",
-          "handler_type": "static_asset",
-          "disposition": "referenced",
-          "content_hash": "78a9bedb1e1aa96f4684d1573317ad977c1e130a73ca62905a1980ee0c672efa",
           "package": "default"
         },
         {
@@ -5013,14 +4837,6 @@
         },
         {
           "feature_id": "EPIC-008-F-012",
-          "source_location": "FindCare/SpecialtyFilter/SpecialtyFilterDesign_V3.docx",
-          "handler_type": "static_asset",
-          "disposition": "referenced",
-          "content_hash": "d0c013cef605385d76a3a4be669a12c6af8d89e4e02d47728764ef6ccb4c695c",
-          "package": "default"
-        },
-        {
-          "feature_id": "EPIC-008-F-012",
           "source_location": "FindCare/SpecialtyFilter/__init__.py",
           "handler_type": "python_source",
           "disposition": "referenced",
@@ -5057,30 +4873,6 @@
           "handler_type": "static_asset",
           "disposition": "referenced",
           "content_hash": "44b544cfee4f28c633f9845a2cddcf3d57223a3315b05069f7e69f4a7fc70509",
-          "package": "default"
-        },
-        {
-          "feature_id": "EPIC-008-F-012",
-          "source_location": "FrontEndApplicationLib/architectureAndDesign/EPIC-003-F-003-Manage-Errors-design-v5.docx",
-          "handler_type": "static_asset",
-          "disposition": "referenced",
-          "content_hash": "48458c634bd0a138b420ec1ba75c653d61d66b0fe64e84cf3c25c5dcb2602a2b",
-          "package": "default"
-        },
-        {
-          "feature_id": "EPIC-008-F-012",
-          "source_location": "FrontEndApplicationLib/architectureAndDesign/EPIC-003-F-005-Manage-Logging-design-v10.docx",
-          "handler_type": "static_asset",
-          "disposition": "referenced",
-          "content_hash": "165c6dcb38dfe623670a06d8689b26b535226b67aca3a76b5c5f64a02734442c",
-          "package": "default"
-        },
-        {
-          "feature_id": "EPIC-008-F-012",
-          "source_location": "FrontEndApplicationLib/architectureAndDesign/EPIC-003-F-005-Manage-Logging-design-v9.docx",
-          "handler_type": "static_asset",
-          "disposition": "referenced",
-          "content_hash": "78a9bedb1e1aa96f4684d1573317ad977c1e130a73ca62905a1980ee0c672efa",
           "package": "default"
         },
         {
@@ -5704,7 +5496,7 @@
           "source_location": "Website/index.html",
           "handler_type": "static_asset",
           "disposition": "referenced",
-          "content_hash": "f5a815514a5c5c2cabaf60d500fee2f36f5de61af0d09f5a92bee1f662f9150d",
+          "content_hash": "da4b69ec178df45730a286bd1dba17b21afbe54143523d54b11e2398088e7ff9",
           "package": "default"
         },
         {
@@ -6057,190 +5849,6 @@
         }
       ],
       "files": [
-        {
-          "feature_id": "EPIC-008-F-012",
-          "source_location": "pipeline/ArchitectureDesignAndAudit/audit/Perplexity_final_urgent_provider_pipeline_audit_findings.docx",
-          "handler_type": "static_asset",
-          "disposition": "referenced",
-          "content_hash": "a04e0bbca8c531753758963a041d9ee065f47e7a38cbf68a15e87529e4f807b0",
-          "package": "default"
-        },
-        {
-          "feature_id": "EPIC-008-F-012",
-          "source_location": "pipeline/ArchitectureDesignAndAudit/archive/PerplexityPipelineStackWhitePaper.docx",
-          "handler_type": "static_asset",
-          "disposition": "referenced",
-          "content_hash": "1fd477fe42b414efb10b458b79ec3be0eb655287143b5e5ace379a9dfbbe3350",
-          "package": "default"
-        },
-        {
-          "feature_id": "EPIC-008-F-012",
-          "source_location": "pipeline/ArchitectureDesignAndAudit/archive/ProviderPipeline_LowLevelDesign_v10.docx",
-          "handler_type": "static_asset",
-          "disposition": "referenced",
-          "content_hash": "f26a84a181b847d0187eefe130803fc497cf285243c8353d514c6b7a26ac5e22",
-          "package": "default"
-        },
-        {
-          "feature_id": "EPIC-008-F-012",
-          "source_location": "pipeline/ArchitectureDesignAndAudit/archive/ProviderPipeline_LowLevelDesign_v11.docx",
-          "handler_type": "static_asset",
-          "disposition": "referenced",
-          "content_hash": "b2a0a923fff69daa15b584c504eda1c289145885a0fc10fbdcac1738cfbee2fe",
-          "package": "default"
-        },
-        {
-          "feature_id": "EPIC-008-F-012",
-          "source_location": "pipeline/ArchitectureDesignAndAudit/archive/ProviderPipeline_LowLevelDesign_v12.docx",
-          "handler_type": "static_asset",
-          "disposition": "referenced",
-          "content_hash": "0fb84b4fce830055aa6e191a3d22b4ddcb62f12cf5e9139792adb29b079c2332",
-          "package": "default"
-        },
-        {
-          "feature_id": "EPIC-008-F-012",
-          "source_location": "pipeline/ArchitectureDesignAndAudit/archive/ProviderPipeline_LowLevelDesign_v13.docx",
-          "handler_type": "static_asset",
-          "disposition": "referenced",
-          "content_hash": "7556f87a09cb85f8f238b8d718c388961bbce781a6bf2ff7bb6da8d94d927abc",
-          "package": "default"
-        },
-        {
-          "feature_id": "EPIC-008-F-012",
-          "source_location": "pipeline/ArchitectureDesignAndAudit/archive/ProviderPipeline_LowLevelDesign_v14.docx",
-          "handler_type": "static_asset",
-          "disposition": "referenced",
-          "content_hash": "70b3735e68c8339956a8746438ce765c186bff17a9b9821a9d6f1f0fe2be879a",
-          "package": "default"
-        },
-        {
-          "feature_id": "EPIC-008-F-012",
-          "source_location": "pipeline/ArchitectureDesignAndAudit/archive/ProviderPipeline_LowLevelDesign_v15.docx",
-          "handler_type": "static_asset",
-          "disposition": "referenced",
-          "content_hash": "dc4c2a3a16b165a62851a106f5509cc70ce3047f6140f6628ec62951906ac0b5",
-          "package": "default"
-        },
-        {
-          "feature_id": "EPIC-008-F-012",
-          "source_location": "pipeline/ArchitectureDesignAndAudit/archive/ProviderPipeline_LowLevelDesign_v16.docx",
-          "handler_type": "static_asset",
-          "disposition": "referenced",
-          "content_hash": "ca4fd567568b93ed85d85b33a1cbb9e1008052473f297d1268e23dc7368b831a",
-          "package": "default"
-        },
-        {
-          "feature_id": "EPIC-008-F-012",
-          "source_location": "pipeline/ArchitectureDesignAndAudit/archive/ProviderPipeline_LowLevelDesign_v17.docx",
-          "handler_type": "static_asset",
-          "disposition": "referenced",
-          "content_hash": "187d2e0284cefe4cb8fe75f5f76f4b29d0fbf85f2d1a559f23a9b1a337df28d0",
-          "package": "default"
-        },
-        {
-          "feature_id": "EPIC-008-F-012",
-          "source_location": "pipeline/ArchitectureDesignAndAudit/archive/ProviderPipeline_LowLevelDesign_v18.docx",
-          "handler_type": "static_asset",
-          "disposition": "referenced",
-          "content_hash": "a3671d0b1b7e0ec5e435e72ecb71bf7ff30085c536e43c01f197376c6901234a",
-          "package": "default"
-        },
-        {
-          "feature_id": "EPIC-008-F-012",
-          "source_location": "pipeline/ArchitectureDesignAndAudit/archive/ProviderPipeline_LowLevelDesign_v19.docx",
-          "handler_type": "static_asset",
-          "disposition": "referenced",
-          "content_hash": "90313d99b8c8cd20e4fbb7f133b7bc859b772d219cff0ecee2a4c2d5cd1e493f",
-          "package": "default"
-        },
-        {
-          "feature_id": "EPIC-008-F-012",
-          "source_location": "pipeline/ArchitectureDesignAndAudit/archive/ProviderPipeline_LowLevelDesign_v20.docx",
-          "handler_type": "static_asset",
-          "disposition": "referenced",
-          "content_hash": "1660932edcbf5687d6f5c13861c134919566525fdfa532b32243858f4a0b43c7",
-          "package": "default"
-        },
-        {
-          "feature_id": "EPIC-008-F-012",
-          "source_location": "pipeline/ArchitectureDesignAndAudit/archive/ProviderPipeline_LowLevelDesign_v21.docx",
-          "handler_type": "static_asset",
-          "disposition": "referenced",
-          "content_hash": "823d1334e9ddca0733f1d8bd964a55357da82a662003e339da788601d5df5177",
-          "package": "default"
-        },
-        {
-          "feature_id": "EPIC-008-F-012",
-          "source_location": "pipeline/ArchitectureDesignAndAudit/archive/ProviderPipeline_LowLevelDesign_v4.docx",
-          "handler_type": "static_asset",
-          "disposition": "referenced",
-          "content_hash": "727680ef87b10b9086bcb1916f7669066d6b45fd7a6ab0c349312538fa85bd9d",
-          "package": "default"
-        },
-        {
-          "feature_id": "EPIC-008-F-012",
-          "source_location": "pipeline/ArchitectureDesignAndAudit/archive/ProviderPipeline_LowLevelDesign_v5.docx",
-          "handler_type": "static_asset",
-          "disposition": "referenced",
-          "content_hash": "d9f89eeb05f42ea9c48cc4e1eb6ddc80d033fe31aa18826696b767d484a73946",
-          "package": "default"
-        },
-        {
-          "feature_id": "EPIC-008-F-012",
-          "source_location": "pipeline/ArchitectureDesignAndAudit/archive/ProviderPipeline_LowLevelDesign_v6.docx",
-          "handler_type": "static_asset",
-          "disposition": "referenced",
-          "content_hash": "d6e6d8538bedfe0826e0f807156194f22115378fb20a8db7caa339c9b7682e6e",
-          "package": "default"
-        },
-        {
-          "feature_id": "EPIC-008-F-012",
-          "source_location": "pipeline/ArchitectureDesignAndAudit/archive/ProviderPipeline_LowLevelDesign_v7.docx",
-          "handler_type": "static_asset",
-          "disposition": "referenced",
-          "content_hash": "fbc476b76bc1b83e19889a2b561868442167562cc24af653419ca59100bdb4fb",
-          "package": "default"
-        },
-        {
-          "feature_id": "EPIC-008-F-012",
-          "source_location": "pipeline/ArchitectureDesignAndAudit/archive/ProviderPipeline_LowLevelDesign_v8.docx",
-          "handler_type": "static_asset",
-          "disposition": "referenced",
-          "content_hash": "e413a745e947470afc773290731def5211034d45dd2b96c5c49e5e2f674187a1",
-          "package": "default"
-        },
-        {
-          "feature_id": "EPIC-008-F-012",
-          "source_location": "pipeline/ArchitectureDesignAndAudit/archive/ProviderPipeline_LowLevelDesign_v9.docx",
-          "handler_type": "static_asset",
-          "disposition": "referenced",
-          "content_hash": "1e70cd1b45879b4ae010736fa9124d2c6b3d8aaa358240c2d8295c23a71652dc",
-          "package": "default"
-        },
-        {
-          "feature_id": "EPIC-008-F-012",
-          "source_location": "pipeline/ArchitectureDesignAndAudit/archive/ResponseToPerplexityPipelineStack.docx",
-          "handler_type": "static_asset",
-          "disposition": "referenced",
-          "content_hash": "ba3e731619cbb64cb4cd58d4666a5878a5b1b0cf9232ec3dd7b64bcb99106271",
-          "package": "default"
-        },
-        {
-          "feature_id": "EPIC-008-F-012",
-          "source_location": "pipeline/ArchitectureDesignAndAudit/~$oviderPipeline_LowLevelDesign_v12.docx",
-          "handler_type": "static_asset",
-          "disposition": "referenced",
-          "content_hash": "59460c13953de50b35b588f38ae25879cb737895dd16cc1789323ad481418edd",
-          "package": "default"
-        },
-        {
-          "feature_id": "EPIC-008-F-012",
-          "source_location": "pipeline/ArchitectureDesignAndAudit/~$oviderPipeline_LowLevelDesign_v13.docx",
-          "handler_type": "static_asset",
-          "disposition": "referenced",
-          "content_hash": "c5ecd520d4515b7acfb61430affde1138d87dc8975f4c50bcbf6198b5ec998c6",
-          "package": "default"
-        },
         {
           "feature_id": "EPIC-008-F-012",
           "source_location": "pipeline/Code/aca_job_manager.py",
