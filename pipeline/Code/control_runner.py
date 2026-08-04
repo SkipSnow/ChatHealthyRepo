@@ -201,9 +201,10 @@ def main(argv: list[str] | None = None) -> int:
         google_maps_enabled=ns.google_maps_enabled,
     )
 
+    from pipeline_config import load_pipeline_config
     orchestrator = ProviderPipelineOrchestrator(
         env=ns.env_prefix,
-        config={},
+        config=load_pipeline_config(env_prefix=ns.env_prefix),
         mongo_client=get_mongo(),
         blob_client=get_blob_service(),
     )
