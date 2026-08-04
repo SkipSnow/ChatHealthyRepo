@@ -64,11 +64,7 @@ def _reconstruct_step_context(payload: dict, mongo, blob) -> StepContext:
         incremental=(args_snap.get("load_mode") == "incremental"),
         data_version=int(args_snap.get("data_version") or 0),
         # Operator-driven flags round-trip through the payload snapshot.
-        # Prior omission silently defaulted both to False in every Worker
-        # (paired with base_pipeline_orchestrator's args_snapshot which
-        # likewise omitted them until 2026-08-02).
         google_maps_enabled=bool(args_snap.get("google_maps_enabled", False)),
-        testing_variance=bool(args_snap.get("testing_variance", False)),
     )
     pipeline_name = payload.get("pipeline_name", "provider")
     manifest = RunManifest(

@@ -36,11 +36,6 @@ class PipelineArgs:
     # Mandatory data-version integer. Default 0 is only for dataclass
     # field-ordering; __post_init__ enforces >= 1 at construction.
     data_version: int = 0
-    # v42 test-injection hook: when True, normalize applies a hardcoded
-    # inline mutation table (see normalize_provider_rows). Default False.
-    # Temporary - the mutation code + this flag are expected to be
-    # removed once the test each variance line supports has passed.
-    testing_variance: bool = False
 
     def __post_init__(self):
         if not isinstance(self.data_version, int) or self.data_version < 1:
@@ -62,25 +57,6 @@ class PipelineArgs:
             from steps._partitions import ALL_US_STATES
             return list(ALL_US_STATES)
         return [s.upper() for s in scope]
-
-    def provider_write_target(self) -> str:
-        # Callers that use PipelineArgs to derive the write target must set
-        # provider_collection explicitly (from config or CLI override). No
-        # fallback: operator directive 2026-08-03 "no fallbacks — fatal
-        # error if missing". The prior hardcoded PublicData.Provider default
-        # is what let fire #8 write to the wrong collection.
-        if not self.provider_collection:
-            raise ChatHealthyException(
-                mode="pipeline_args_missing_field",
-                message=(
-                    "PipelineArgs.provider_collection is required and is not "
-                    "set. Callers must resolve the write target from "
-                    "pipeline_config (dataset_versions.provider_write_target) "
-                    "and pass it in explicitly."
-                ),
-                data_version=self.data_version,
-            )
-        return self.provider_collection
 
 
 @dataclass
@@ -156,7 +132,14 @@ class StepContext:
 
     @property
     def provider_collection(self) -> str:
-        return self.args.provider_write_target()
+        # CLI override wins (explicit --provider-collection). Otherwise
+        # delegate to PipelineRuntime, which resolves the provider
+        # staging collection via the registry (dataset_versions[]
+        # in brain/machine_artifacts/content/pipeline_config.json).
+        if self.args.provider_collection:
+            return self.args.provider_collection
+        from pipeline_runtime import PipelineRuntime  # local import: avoids circular
+        return PipelineRuntime(self).provider_collection
 
     @property
     def aca_job_resource_id(self) -> str | None:

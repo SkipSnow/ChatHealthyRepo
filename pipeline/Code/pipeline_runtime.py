@@ -13,21 +13,22 @@ from datetime import datetime, timezone
 from typing import Any
 
 from pipeline_config import load_pipeline_config
+from pipeline_dataset_registry import PipelineDatasetRegistry
 from pipeline_db import get_frontend_mongo, get_mongo
-from staging_loader import STAGING_DB_NAME, staging_collection_name
+from staging_loader import staging_collection_name, staging_db_name
 
 
 _log = ChatHealthyLoggingService()
 
 # Every Provider write during the pipeline targets the STAGING collection
-# in ChatHealthyDataPipelines.PublicStaging. Operator directive 2026-08-02:
-# * All staging collections live in one DB: PublicStaging (pipeline cluster).
-# * All loaded / production-ready collections live in one DB: PublicHealthData
-#   (pipeline cluster).
+# on the pipeline cluster (staging_db + staging_coll_base come from
+# dataset_versions[] in brain/machine_artifacts/content/pipeline_config.json,
+# resolved via PipelineDatasetRegistry). Operator directive 2026-08-02:
+# * Staging + loaded DB choices live in the registry, not in code.
 # * Consumers must never observe partially-enriched Provider records; the
 #   loaded collection stays at last-known-good until publish_provider does
-#   the atomic renameCollection swap from PublicStaging.Provider_staging_v_
-#   {data_version} into PublicHealthData.Provider_v_{data_version}.
+#   the atomic renameCollection swap from the staging collection into the
+#   public_data collection.
 # * Load-state metadata for every loaded collection lives on the frontend
 #   cluster (chathealthyfrontend.pipeline.loaded_metadata).
 # The admin.command('renameCollection', ...) supports cross-DB rename, so
@@ -50,41 +51,52 @@ class PipelineRuntime:
         self.env = ctx.env_prefix
         self.run_id = ctx.run_id
         self.data_version = int(ctx.args.data_version)
-        self.staging_db = self.mongo[STAGING_DB_NAME]
-        self._provider_collection: str | None = None
+        self._registry: PipelineDatasetRegistry | None = None
+
+    @property
+    def registry(self) -> PipelineDatasetRegistry:
+        # Cached: the registry parses + fully validates the config's
+        # dataset_versions[] array on construction, so building it once
+        # per runtime avoids re-running the six structural invariants
+        # every time a caller resolves a collection name.
+        if self._registry is None:
+            cfg = load_pipeline_config(env_prefix=self.env)
+            self._registry = PipelineDatasetRegistry(cfg, self.data_version, self.mongo)
+        return self._registry
 
     @property
     def provider_collection(self) -> str:
-        if self._provider_collection:
-            return self._provider_collection
-        cfg = load_pipeline_config(self.frontend, self.env)
-        # Config is the sole source of truth for the collection base name;
-        # data_version comes from CLI. No fallback: if the config record for
-        # this env does not carry provider_write_target the pipeline abends
-        # (operator directive 2026-08-03 "no fallbacks — fatal error if
-        # missing"). A silent default would let a config drift ship writes
-        # to the wrong collection undetected, which is exactly what caused
-        # fire #8 to fail at publish_provider.
-        base = cfg.get("dataset_versions", {}).get("provider_write_target")
-        if not base:
-            raise ChatHealthyException(
-                mode="pipeline_config_missing_field",
-                message=(
-                    "pipeline_config: dataset_versions.provider_write_target is "
-                    f"required for env {self.env!r} and is missing/empty. Set "
-                    "it in brain/machine_artifacts/content/pipeline_config.json "
-                    "(e.g. 'PublicStaging.Provider_staging') and redeploy the "
-                    "Controller image."
-                ),
-                env=self.env,
-                cfg_keys=sorted(cfg.keys()),
-            )
-        # Config carries the base name (db.coll, no version suffix); the
-        # runtime appends _v_{data_version} so we never rewrite the config
-        # to bump a version.
-        target = f"{base}_v_{self.data_version}"
-        self._provider_collection = target
-        return target
+        # Registry owns the source->collection map. Provider writes go
+        # to the STAGING collection during the fire (operator directive
+        # 2026-08-02); publish_provider swaps staging into public_data
+        # via cross-DB renameCollection at the end.
+        entry = self.registry.by_source_name("provider")
+        coll = self.registry.staging_collection_name("provider")
+        return f"{entry.staging_db}.{coll}"
+
+    @property
+    def provider_staging_collection(self) -> str:
+        entry = self.registry.by_source_name("provider")
+        coll = self.registry.staging_collection_name("provider")
+        return f"{entry.staging_db}.{coll}"
+
+    @property
+    def provider_public_data_collection(self) -> str:
+        entry = self.registry.by_source_name("provider")
+        coll = self.registry.public_data_collection_name("provider")
+        return f"{entry.public_data_db}.{coll}"
+
+    @property
+    def smd_staging_collection(self) -> str:
+        entry = self.registry.by_source_name("smd")
+        coll = self.registry.staging_collection_name("smd")
+        return f"{entry.staging_db}.{coll}"
+
+    @property
+    def smd_public_data_collection(self) -> str:
+        entry = self.registry.by_source_name("smd")
+        coll = self.registry.public_data_collection_name("smd")
+        return f"{entry.public_data_db}.{coll}"
 
     @property
     def providers_coll(self):
@@ -92,9 +104,12 @@ class PipelineRuntime:
         return self.mongo[db_name][coll_name]
 
     def staging_coll(self, source_name: str):
-        # source_name matches staging_loader.STAGING_BASE_NAMES keys.
-        # staging_collection_name() returns the base + _v_{data_version}.
-        return self.staging_db[staging_collection_name(source_name, self.data_version)]
+        # source_name is a dataset_versions[] entry name; the registry
+        # resolves it to the versioned staging collection on the pipeline
+        # cluster.
+        return self.mongo[staging_db_name(self.registry, source_name)][
+            staging_collection_name(self.registry, source_name)
+        ]
 
     @property
     def discrepancies_coll(self):

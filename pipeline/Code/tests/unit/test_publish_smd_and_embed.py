@@ -20,6 +20,16 @@ import mongomock
 import pytest
 
 
+def _test_registry(pipeline_mongo):
+    """Load the real brain-file dev-env config and hand it to the registry.
+    Keeps test-side collection lookups coupled to dataset_versions[] just
+    like production; brain JSON is the single source of truth."""
+    from pipeline_config import load_pipeline_config
+    from pipeline_dataset_registry import PipelineDatasetRegistry
+    cfg = load_pipeline_config(env_prefix="dev")
+    return PipelineDatasetRegistry(cfg, 3, pipeline_mongo)
+
+
 # ---------- _compose_specialty_text ----------
 
 
@@ -277,14 +287,18 @@ def fake_clusters(monkeypatch):
 
 @pytest.mark.unit
 def test_publish_smd_and_embed_end_to_end(fake_openai, fake_clusters, monkeypatch):
-    from staging_loader import STAGING_DB_NAME, staging_collection_name
+    from staging_loader import staging_collection_name, staging_db_name
     from steps.publish_smd_and_embed import execute
     from embedding_engine import CANONICAL_MODEL, CANONICAL_DIM
 
     pipeline, frontend = fake_clusters
-    # Seed StagingNucc on the pipeline cluster (v42: normalize_nucc's
-    # output). Mix a native NUCC row + one F-105 supplement row.
-    src = pipeline[STAGING_DB_NAME][staging_collection_name("nucc", 3)]
+    # Seed the NUCC staging collection on the pipeline cluster (v42:
+    # normalize_nucc's output). Names come through the registry so the
+    # test stays coupled to dataset_versions[] rather than hardcoding
+    # PublicStaging + StagingNucc_v_3 in two places. Mix a native NUCC
+    # row + one F-105 supplement row.
+    reg = _test_registry(pipeline)
+    src = pipeline[staging_db_name(reg, "nucc")][staging_collection_name(reg, "nucc")]
     src.insert_many([
         {
             "run_id": "run-abc",
@@ -385,7 +399,7 @@ def test_publish_smd_and_embed_records_discrepancies_when_embed_fails(
     AND one discrepancy per un-embedded row MUST be written so the PDF
     report surfaces exactly which codes need re-embedding when OpenAI
     credits are topped."""
-    from staging_loader import STAGING_DB_NAME, staging_collection_name
+    from staging_loader import staging_collection_name, staging_db_name
     from steps.publish_smd_and_embed import execute
 
     # Make every OpenAI embed call raise (simulates HTTP 429 insufficient_quota)
@@ -398,7 +412,8 @@ def test_publish_smd_and_embed_records_discrepancies_when_embed_fails(
     monkeypatch.setattr(_ee, "_embed_batch", _explode)
 
     pipeline, frontend = fake_clusters
-    src = pipeline[STAGING_DB_NAME][staging_collection_name("nucc", 3)]
+    reg = _test_registry(pipeline)
+    src = pipeline[staging_db_name(reg, "nucc")][staging_collection_name(reg, "nucc")]
     src.insert_many([
         {"run_id": "run-abc", "Code": "207W00000X", "code": "207W00000X",
          "Display Name": "Ophthalmology", "is_supplemented": False,

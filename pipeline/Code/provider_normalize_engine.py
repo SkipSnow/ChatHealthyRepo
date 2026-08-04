@@ -106,7 +106,6 @@ def per_state_normalize(ctx, state: str) -> dict[str, Any]:
 
             doc = build_provider_record(
                 raw, npi=npi, run_id=rt.run_id, nucc_catalog=nucc,
-                testing_variance=bool(getattr(ctx.args, "testing_variance", False)),
             )
             ok, errors = validate_provider_record(doc)
             if not ok:

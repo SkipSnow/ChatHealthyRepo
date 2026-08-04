@@ -37,18 +37,6 @@ from pipeline_loaded_metadata import mark_loaded
 from pipeline_runtime import PipelineRuntime
 
 
-_STAGING_DB = "PublicStaging"
-_LOADED_DB = "PublicHealthData"
-
-
-def _loaded_coll_name(data_version: int) -> str:
-    return f"Provider_v_{data_version}"
-
-
-def _staging_coll_name(data_version: int) -> str:
-    return f"Provider_staging_v_{data_version}"
-
-
 def _current_nppes_source_hash(ctx) -> str:
     """Provider's primary source is the NPPES dissemination file. Read
     the sha256 fetch_all_sources stamped on this run's metrics."""
@@ -59,11 +47,11 @@ def _current_nppes_source_hash(ctx) -> str:
     return (nppes.get("sha256") or nppes.get("source_version_identifier") or "").strip()
 
 
-def _bail_staging_missing(coll_name: str) -> None:
+def _bail_staging_missing(fq_staging: str) -> None:
     raise ChatHealthyException(
-        mode="runtime_error",
+        mode="publish_provider_staging_missing",
         message=(
-            f"publish_provider: PublicStaging.{coll_name} does not exist. "
+            f"publish_provider: {fq_staging} does not exist. "
             "No Provider staging collection to publish -- upstream write "
             "steps must have failed or been skipped."
         ),
@@ -73,29 +61,32 @@ def _bail_staging_missing(coll_name: str) -> None:
 def execute(ctx) -> dict:
     rt = PipelineRuntime(ctx)
     dv = rt.data_version
-    loaded_name = _loaded_coll_name(dv)
-    staging_name = _staging_coll_name(dv)
+    provider_entry = rt.registry.by_source_name("provider")
+    staging_db = provider_entry.staging_db
+    loaded_db = provider_entry.public_data_db
+    staging_name = rt.registry.staging_collection_name("provider")
+    loaded_name = rt.registry.public_data_collection_name("provider")
 
-    staging_db_h = rt.mongo[_STAGING_DB]
+    staging_db_h = rt.mongo[staging_db]
     if staging_name not in staging_db_h.list_collection_names():
-        _bail_staging_missing(staging_name)
+        _bail_staging_missing(f"{staging_db}.{staging_name}")
 
     staging_coll = staging_db_h[staging_name]
     staging_row_count = staging_coll.count_documents({})
 
-    # Atomic swap ACROSS databases: PublicStaging.<staging_name> ->
-    # PublicHealthData.<loaded_name>. admin.command('renameCollection', ...)
+    # Atomic swap ACROSS databases: <staging_db>.<staging_name> ->
+    # <loaded_db>.<loaded_name>. admin.command('renameCollection', ...)
     # supports cross-DB (Collection.rename() is same-DB only). dropTarget
     # drops any prior loaded collection in the same server-side op, so
     # consumers transition prior-fire-complete -> this-fire-complete
     # atomically.
     rt.mongo.admin.command({
-        "renameCollection": f"{_STAGING_DB}.{staging_name}",
-        "to": f"{_LOADED_DB}.{loaded_name}",
+        "renameCollection": f"{staging_db}.{staging_name}",
+        "to": f"{loaded_db}.{loaded_name}",
         "dropTarget": True,
     })
 
-    loaded_row_count = rt.mongo[_LOADED_DB][loaded_name].count_documents({})
+    loaded_row_count = rt.mongo[loaded_db][loaded_name].count_documents({})
 
     # Mark loaded on the frontend cluster. Absence of this call = the
     # swap didn't happen (fatal error), and pipeline.loaded_metadata

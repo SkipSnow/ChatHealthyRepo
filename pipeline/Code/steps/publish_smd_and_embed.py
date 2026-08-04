@@ -53,19 +53,7 @@ from chathealthy_frontend_lib.exceptions import ChatHealthyException
 from embedding_engine import generate_specialty_embeddings
 from pipeline_loaded_metadata import mark_loaded, should_skip
 from pipeline_runtime import PipelineRuntime
-from staging_loader import STAGING_DB_NAME, staging_collection_name
-
-
-_STAGING_DB = "PublicStaging"
-_LOADED_DB = "PublicHealthData"
-
-
-def _loaded_coll_name(data_version: int) -> str:
-    return f"SpecialtyMetaData_v_{data_version}"
-
-
-def _staging_coll_name(data_version: int) -> str:
-    return f"SpecialtyMetaData_staging_v_{data_version}"
+from staging_loader import staging_collection_name, staging_db_name
 
 
 def _current_nucc_source_hash(ctx) -> str:
@@ -98,9 +86,13 @@ def _bail_openai_key_missing() -> None:
 def execute(ctx) -> dict:
     rt = PipelineRuntime(ctx)
     dv = rt.data_version
-    loaded_name = _loaded_coll_name(dv)
-    staging_name = _staging_coll_name(dv)
-    src_coll_name = staging_collection_name("nucc", dv)
+    smd_entry = rt.registry.by_source_name("smd")
+    staging_db = smd_entry.staging_db
+    loaded_db = smd_entry.public_data_db
+    staging_name = rt.registry.staging_collection_name("smd")
+    loaded_name = rt.registry.public_data_collection_name("smd")
+    src_db = staging_db_name(rt.registry, "nucc")
+    src_coll_name = staging_collection_name(rt.registry, "nucc")
     current_hash = _current_nucc_source_hash(ctx)
 
     # Universal skip gate (pipeline_loaded_metadata.should_skip):
@@ -112,6 +104,8 @@ def execute(ctx) -> dict:
     skip, reason = should_skip(
         pipeline_mongo=rt.mongo,
         frontend_mongo=rt.frontend,
+        registry=rt.registry,
+        source_name="smd",
         publichealthdata_collection_name=loaded_name,
         current_source_hash=current_hash,
     )
@@ -128,17 +122,17 @@ def execute(ctx) -> dict:
     if not (os.environ.get("OPENAI_API_KEY") or "").strip():
         _bail_openai_key_missing()
 
-    # Source: StagingNucc on the pipeline cluster (populated by
+    # Source: NUCC staging on the pipeline cluster (populated by
     # normalize_nucc). Read the run_id filter so a residual older run's
     # rows never sneak into the publish.
-    src = rt.mongo[STAGING_DB_NAME][src_coll_name]
+    src = rt.mongo[src_db][src_coll_name]
 
-    # Target: pipeline cluster. Staging goes in PublicStaging; loaded
-    # will be in PublicHealthData. Cross-DB atomic swap happens at the
+    # Target: pipeline cluster. Staging + loaded DB names come from the
+    # registry (dataset_versions[]). Cross-DB atomic swap happens at the
     # end via `client.admin.command('renameCollection', ..., dropTarget=True)`
     # (the admin command supports cross-DB; only the Collection.rename()
     # pymongo helper is same-DB-only).
-    smd_staging = rt.mongo[_STAGING_DB][staging_name]
+    smd_staging = rt.mongo[staging_db][staging_name]
 
     # Wipe any residue from a previous partially-completed run before
     # writing this run's rows. dropTarget=True on the final rename would
@@ -169,10 +163,10 @@ def execute(ctx) -> dict:
 
     # Embed every staged row on the pipeline cluster. generate_specialty
     # _embeddings iterates find({}) on the collection we point it at, so
-    # restricting to the PublicStaging staging collection keeps scope tight.
+    # restricting to the SMD staging collection keeps scope tight.
     embed_summary = generate_specialty_embeddings(
         {
-            "specialty_collection": f"{_STAGING_DB}.{staging_name}",
+            "specialty_collection": f"{staging_db}.{staging_name}",
             "openai_api_key": os.environ.get("OPENAI_API_KEY"),
         },
         mongo=rt.mongo,
@@ -218,8 +212,8 @@ def execute(ctx) -> dict:
     # consumers transition from prior-fire-complete to this-fire-complete
     # atomically.
     rt.mongo.admin.command({
-        "renameCollection": f"{_STAGING_DB}.{staging_name}",
-        "to": f"{_LOADED_DB}.{loaded_name}",
+        "renameCollection": f"{staging_db}.{staging_name}",
+        "to": f"{loaded_db}.{loaded_name}",
         "dropTarget": True,
     })
 
@@ -229,7 +223,7 @@ def execute(ctx) -> dict:
     # raised before reaching this point, leaving no metadata doc, which
     # is the signal for the next fire to reload. Metadata lives on the
     # frontend cluster (chathealthyfrontend.pipeline.loaded_metadata).
-    loaded_row_count = rt.mongo[_LOADED_DB][loaded_name].count_documents({})
+    loaded_row_count = rt.mongo[loaded_db][loaded_name].count_documents({})
     mark_loaded(
         frontend_mongo=rt.frontend,
         publichealthdata_collection_name=loaded_name,
@@ -252,7 +246,7 @@ def execute(ctx) -> dict:
     return {
         "skipped": False,
         "publichealthdata_collection_name": loaded_name,
-        "smd_collection": f"{_LOADED_DB}.{loaded_name}",
+        "smd_collection": f"{loaded_db}.{loaded_name}",
         "rows_copied": copied,
         "row_count": loaded_row_count,
         "source_hash": current_hash,

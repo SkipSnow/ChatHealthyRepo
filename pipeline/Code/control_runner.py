@@ -167,19 +167,6 @@ def _parse_args(argv: list[str]) -> argparse.Namespace:
                              "county-enrichment cascade. Reads "
                              "GOOGLE_MAPS_ENABLED env if flag omitted "
                              "({1,true,yes}=on).")
-    # v42: testing_variance. When True, normalize applies an inline
-    # hardcoded mutation table (e.g., overlay code DDDDDDDDDD on a
-    # known NPI) so the discrepancy-report end-to-end test can inject
-    # test cases. Off by default. Temporary hook - removed once tests
-    # pass and no longer need injection.
-    _tv_env = os.environ.get("TESTING_VARIANCE", "").strip().lower()
-    _tv_default = _tv_env in ("1", "true", "yes")
-    parser.add_argument("--testing-variance", dest="testing_variance",
-                        action="store_true", default=_tv_default,
-                        help="Enable the normalize-step test-variance hook "
-                             "(inline hardcoded record mutations). Reads "
-                             "TESTING_VARIANCE env if flag omitted "
-                             "({1,true,yes}=on).")
     return parser.parse_args(argv)
 
 
@@ -203,7 +190,6 @@ def main(argv: list[str] | None = None) -> int:
     # line (see logging_service.py "data_version" doc field).
     os.environ["DATA_VERSION"] = str(ns.data_version)
     os.environ["GOOGLE_MAPS_ENABLED"] = "1" if ns.google_maps_enabled else "0"
-    os.environ["TESTING_VARIANCE"] = "1" if ns.testing_variance else "0"
     args = PipelineArgs(
         states=states_list,
         env_prefix=ns.env_prefix,
@@ -213,7 +199,6 @@ def main(argv: list[str] | None = None) -> int:
         incremental=incremental,
         data_version=ns.data_version,
         google_maps_enabled=ns.google_maps_enabled,
-        testing_variance=ns.testing_variance,
     )
 
     orchestrator = ProviderPipelineOrchestrator(
@@ -447,8 +432,9 @@ def _quiesce_mongo_state(run_id: str, final_status: str, *,
             if manifest and hasattr(manifest, "to_document") else
             {"run_id": run_id, "status": manifest_status}
         )
+        pipeline_mongo = ChatHealthyMongoUtilities("MONGO_connectionString").getConnection()
         summary = emit_discrepancy_report(
-            frontend_mongo=mongo,
+            pipeline_mongo=pipeline_mongo,
             run_id=run_id,
             manifest_status=manifest_status,
             manifest_doc=manifest_doc,
