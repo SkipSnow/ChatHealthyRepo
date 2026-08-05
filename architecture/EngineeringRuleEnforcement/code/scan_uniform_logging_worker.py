@@ -261,19 +261,6 @@ def all_violations(source: str, file_path: str) -> list[tuple[int, str]]:
     )
 
 
-def head_source(repo_relative_path: str) -> str:
-    completed = subprocess.run(
-        ["git", "show", f"HEAD:{repo_relative_path}"],
-        cwd=str(PROJECT_ROOT),
-        capture_output=True,
-        text=True,
-        check=False,
-    )
-    if completed.returncode != 0:
-        return ""
-    return completed.stdout
-
-
 class ScanUniformLoggingEnforcementWorker(EnforcementWorker):
     """Rule-005: uniform logging discipline."""
 

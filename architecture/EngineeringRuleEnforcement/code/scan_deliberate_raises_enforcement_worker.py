@@ -64,20 +64,6 @@ def _count_forbidden_raises(source: str) -> list[tuple[int, str]]:
     return hits
 
 
-def _head_source(repo_relative_path: str) -> str:
-    """Return the HEAD version of the file as a string. Empty string if
-    the file is new (no HEAD entry) or any git error."""
-    completed = subprocess.run(
-        ["git", "show", f"HEAD:{repo_relative_path}"],
-        cwd=str(PROJECT_ROOT),
-        capture_output=True,
-        text=True,
-        check=False,
-    )
-    if completed.returncode != 0:
-        return ""
-    return completed.stdout
-
 
 class ScanDeliberateRaisesEnforcementWorker(EnforcementWorker):
     """Rule-003: deliberate raises must use ChatHealthyException."""
