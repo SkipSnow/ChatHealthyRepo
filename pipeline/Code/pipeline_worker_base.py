@@ -36,6 +36,25 @@ fail_on_row_error (bool, default False)
           _pipeline_resume() is called so the subclass can advance state;
           the loop continues.
   True  → the first row error abends the job (re-raises after logging).
+
+Warning vs Error (use log_warning() and log_error())
+-----------------------------------------------------
+  ERROR   — Row cannot be published:
+            - Row not loadable (parse failure, required field missing)
+            - County not found after all enrichment step filter functions run
+            Logged at ERROR level. Also written to DiscrepancyReport level="error".
+
+  WARNING — Row is publishable but has data quality issues:
+            - Enrichment data inconsistent or missing but row still usable
+            - Optional field populated with default
+            - Data quality flag raised but row can proceed
+            - Any issue that does not prevent publishing
+            Logged at INFO level. Also written to DiscrepancyReport level="warning".
+
+  FATAL   — Job-terminating failure (MongoDB unreachable, vault unreachable, etc.).
+            Only DiscrepancyReport.fatal_error() or automatic exception handling
+            emit these. No log_fatal() method; let the exception propagate
+            or call fatal_error() explicitly.
 """
 
 
@@ -64,6 +83,30 @@ class PipelineWorkerBase(ABC):
         self._load_id: str | None = config.get("load_id")
         self._job: str | None = config.get("job")
         self._worker_id: str | None = config.get("worker_id")
+        # DiscrepancyReport for forking warnings/errors to both logs and discrepancy tracking
+        self._discrepancy_report = self._initialize_discrepancy_report(config)
+        # Threshold gates (read from config, checked against global counters in DB)
+        self._warning_threshold: int | None = config.get("warning_threshold")
+        self._error_threshold: int | None = config.get("error_threshold")
+
+    def _initialize_discrepancy_report(self, config: dict):
+        """Initialize DiscrepancyReport if config provides required fields."""
+        try:
+            from steps.discrepancy_report import DiscrepancyReport
+            run_id = config.get("run_id")
+            env = config.get("env", os.environ.get("ENV_PREFIX", "dev"))
+            pipeline_name = config.get("job", "unknown")
+            source = config.get("source", "pipeline")
+            if not run_id:
+                return None
+            return DiscrepancyReport(
+                run_id=run_id,
+                env=env,
+                pipeline_name=pipeline_name,
+                source=source,
+            )
+        except Exception:
+            return None
 
     # ── Public entry point ────────────────────────────────────────────────────
 
@@ -83,6 +126,102 @@ class PipelineWorkerBase(ABC):
             self._pipeline_close()
             self._write_row_errors(fatal_exception=fatal_exception)
         return self._pipeline_build_result()
+
+    # ── Warning and error forking ──────────────────────────────────────────────
+
+    def log_warning(self, explanation: str, source_line: str | None = None, npi: str | None = None) -> None:
+        """Log a warning to both ChatHealthyLoggingService (info level) and DiscrepancyReport.
+        If warning_threshold is exceeded, triggers fatal_error.
+
+        Args:
+            explanation: Warning explanation.
+            source_line: Source location (e.g., row key, NPI).
+            npi: Optional NPI.
+
+        Raises:
+            Exception if threshold exceeded (fatal_error called).
+        """
+        log = ChatHealthyLoggingService()
+        if not self._discrepancy_report:
+            log.info("Row warning [%s]: %s", source_line or "unknown", explanation)
+            return
+
+        # Increment global counter in database
+        warning_count = self._discrepancy_report.increment_warning_count()
+        log.info("Row warning [%d/%s] [%s]: %s",
+                 warning_count,
+                 self._warning_threshold or "unlimited",
+                 source_line or "unknown",
+                 explanation)
+
+        # Write discrepancy
+        self._discrepancy_report.write(
+            discrepancy_level="warning",
+            explanation=explanation,
+            source_line=source_line,
+            npi=npi,
+            field=None,
+        )
+
+        # Check threshold
+        if self._warning_threshold and warning_count >= self._warning_threshold:
+            from steps.discrepancy_report import fatal_error
+            fatal_error(
+                self._discrepancy_report,
+                level="fatal",
+                explanation=f"Warning threshold exceeded: {warning_count} warnings >= {self._warning_threshold} limit",
+                source_line=source_line,
+                records_processed=warning_count,
+                rows_before_fatal=warning_count,
+            )
+            raise Exception(f"Warning threshold exceeded: {warning_count} >= {self._warning_threshold}")
+
+    def log_error(self, explanation: str, source_line: str | None = None, npi: str | None = None) -> None:
+        """Log an error to both ChatHealthyLoggingService (error level) and DiscrepancyReport.
+        If error_threshold is exceeded, triggers fatal_error.
+
+        Args:
+            explanation: Error explanation.
+            source_line: Source location (e.g., row key, NPI).
+            npi: Optional NPI.
+
+        Raises:
+            Exception if threshold exceeded (fatal_error called).
+        """
+        log = ChatHealthyLoggingService()
+        if not self._discrepancy_report:
+            log.error("Row error [%s]: %s", source_line or "unknown", explanation)
+            return
+
+        # Increment global counter in database
+        error_count = self._discrepancy_report.increment_error_count()
+        log.error("Row error [%d/%s] [%s]: %s",
+                  error_count,
+                  self._error_threshold or "unlimited",
+                  source_line or "unknown",
+                  explanation)
+
+        # Write discrepancy
+        self._discrepancy_report.write(
+            discrepancy_level="error",
+            explanation=explanation,
+            source_line=source_line,
+            npi=npi,
+            field=None,
+        )
+
+        # Check threshold
+        if self._error_threshold and error_count >= self._error_threshold:
+            from steps.discrepancy_report import fatal_error
+            fatal_error(
+                self._discrepancy_report,
+                level="fatal",
+                explanation=f"Error threshold exceeded: {error_count} errors >= {self._error_threshold} limit",
+                source_line=source_line,
+                records_processed=error_count,
+                rows_before_fatal=error_count,
+            )
+            raise Exception(f"Error threshold exceeded: {error_count} >= {self._error_threshold}")
 
     # ── Row-error persistence (internal) ─────────────────────────────────────
 
@@ -138,7 +277,39 @@ class PipelineWorkerBase(ABC):
         except Exception as exc:
             key = self._pipeline_row_key()
             reason = str(exc)
-            ChatHealthyLoggingService().error("Row error [%s]: %s", key, reason)
+            log = ChatHealthyLoggingService()
+
+            if self._discrepancy_report:
+                # Increment global counter in database
+                error_count = self._discrepancy_report.increment_error_count()
+                log.error("Row error [%d/%s] [%s]: %s",
+                          error_count,
+                          self._error_threshold or "unlimited",
+                          key,
+                          reason)
+                # Write discrepancy
+                self._discrepancy_report.write(
+                    discrepancy_level="error",
+                    explanation=reason,
+                    source_line=key,
+                    npi=None,
+                    field=None,
+                )
+                # Check threshold
+                if self._error_threshold and error_count >= self._error_threshold:
+                    from steps.discrepancy_report import fatal_error
+                    fatal_error(
+                        self._discrepancy_report,
+                        level="fatal",
+                        explanation=f"Error threshold exceeded: {error_count} errors >= {self._error_threshold} limit",
+                        source_line=key,
+                        records_processed=error_count,
+                        rows_before_fatal=error_count,
+                    )
+                    raise Exception(f"Error threshold exceeded: {error_count} >= {self._error_threshold}")
+            else:
+                log.error("Row error [%s]: %s", key, reason)
+
             self.row_errors.append({"row_key": key, "reason": reason})
             if self.fail_on_row_error:
                 raise

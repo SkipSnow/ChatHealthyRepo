@@ -28,7 +28,21 @@ class FatalErrorReason(str, Enum):
 
 
 class DiscrepancyDetail(str, Enum):
-    """Discrepancy severity level."""
+    """Discrepancy severity level.
+
+    ERROR (row blocking):
+      - Row cannot be loaded/parsed (parse failure, required field missing)
+      - County not found after all enrichment step filter functions have run
+
+    WARNING (non-blocking):
+      - Enrichment data inconsistent or missing but row is still usable
+      - Optional field populated with default
+      - Data quality flag raised but row can proceed
+      - Any issue that does not prevent the row from being published
+
+    FATAL:
+      - Job-terminating failure (MongoDB unreachable, vault unreachable, etc.)
+    """
     WARNING = "warning"
     ERROR = "error"
     FATAL = "fatal"
@@ -169,6 +183,75 @@ class DiscrepancyReport:
         except Exception as exc:
             log.error("write: could not write discrepancy: %s", exc)
             return False
+
+    def increment_warning_count(self) -> int:
+        """Atomically increment global warning counter for this run_id.
+        Returns the new count after increment.
+        """
+        log = ChatHealthyLoggingService()
+        try:
+            if not self.mongo_connection:
+                return -1
+            counters_coll = self.mongo_connection["chathealthypipelines"]["pipeline.run_counters"]
+            result = counters_coll.find_one_and_update(
+                {"run_id": self.run_id},
+                {"$inc": {"warning_count": 1}},
+                upsert=True,
+                return_document=True,
+            )
+            return result.get("warning_count", 0)
+        except ChatHealthyException as exc:
+            log.error("increment_warning_count failed: %s", exc, exc=exc)
+            return -1
+        except Exception as exc:
+            log.error("increment_warning_count failed: %s", exc)
+            return -1
+
+    def increment_error_count(self) -> int:
+        """Atomically increment global error counter for this run_id.
+        Returns the new count after increment.
+        """
+        log = ChatHealthyLoggingService()
+        try:
+            if not self.mongo_connection:
+                return -1
+            counters_coll = self.mongo_connection["chathealthypipelines"]["pipeline.run_counters"]
+            result = counters_coll.find_one_and_update(
+                {"run_id": self.run_id},
+                {"$inc": {"error_count": 1}},
+                upsert=True,
+                return_document=True,
+            )
+            return result.get("error_count", 0)
+        except ChatHealthyException as exc:
+            log.error("increment_error_count failed: %s", exc, exc=exc)
+            return -1
+        except Exception as exc:
+            log.error("increment_error_count failed: %s", exc)
+            return -1
+
+    def get_counts(self) -> dict:
+        """Get current warning and error counts for this run_id.
+        Returns: {"warning_count": N, "error_count": M}
+        """
+        log = ChatHealthyLoggingService()
+        try:
+            if not self.mongo_connection:
+                return {"warning_count": 0, "error_count": 0}
+            counters_coll = self.mongo_connection["chathealthypipelines"]["pipeline.run_counters"]
+            result = counters_coll.find_one({"run_id": self.run_id})
+            if not result:
+                return {"warning_count": 0, "error_count": 0}
+            return {
+                "warning_count": result.get("warning_count", 0),
+                "error_count": result.get("error_count", 0),
+            }
+        except ChatHealthyException as exc:
+            log.error("get_counts failed: %s", exc, exc=exc)
+            return {"warning_count": 0, "error_count": 0}
+        except Exception as exc:
+            log.error("get_counts failed: %s", exc)
+            return {"warning_count": 0, "error_count": 0}
 
     def write_email(self) -> bool:
         """Read all discrepancies from mongo, send email with fatal error in body and others in PDF.
