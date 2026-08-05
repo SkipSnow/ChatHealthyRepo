@@ -22,19 +22,29 @@ work happens inside Control + Workers. This dodges the 3-hour Azure
 Automation fair-share cap.
 """
 from __future__ import annotations
-from chathealthy_frontend_lib.logging_service import ChatHealthyLoggingService
-from chathealthy_frontend_lib.mongo_utilities import ChatHealthyMongoUtilities
-from chathealthy_frontend_lib.exceptions import ChatHealthyException
 
 import datetime
 import json
 import os
 import socket
 import sys
+import subprocess
 import traceback
 import urllib.error
 import urllib.request
 import uuid
+
+# Ensure required Azure SDK packages are installed in Automation runtime
+_REQUIRED_PACKAGES = ["azure-identity", "azure-keyvault-secrets", "pymongo", "cryptography"]
+for _pkg in _REQUIRED_PACKAGES:
+    try:
+        __import__(_pkg.replace("-", "_"))
+    except ImportError:
+        subprocess.check_call([sys.executable, "-m", "pip", "install", "-q", _pkg])
+
+from chathealthy_frontend_lib.logging_service import ChatHealthyLoggingService
+from chathealthy_frontend_lib.mongo_utilities import ChatHealthyMongoUtilities
+from chathealthy_frontend_lib.exceptions import ChatHealthyException
 
 
 # CHLS wants these in os.environ. Set them BEFORE the first log() call so

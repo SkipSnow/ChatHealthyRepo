@@ -20,6 +20,9 @@ from chathealthy_frontend_lib.exceptions import ChatHealthyException
 def mock_kv_secrets():
     """Mock Key Vault secrets for end-to-end test."""
     return {
+        "mongo-client-cert-key-pipelineEditor": "-----BEGIN CERTIFICATE-----\nMOCK_CLIENT_CERT\n-----END CERTIFICATE-----",
+        "mongo-uri-pipelineEditor": "mongodb+srv://cluster.mongodb.net/?authMechanism=MONGODB-X509",
+        "mongo-public-key": "-----BEGIN CERTIFICATE-----\nMOCK_MONGO_PUBLIC_KEY\n-----END CERTIFICATE-----",
         "certs-pipelineEditor": "-----BEGIN CERTIFICATE-----\nMOCK_CLIENT_CERT\n-----END CERTIFICATE-----",
         "cert-mongo-publicKey": "-----BEGIN CERTIFICATE-----\nMOCK_MONGO_PUBLIC_KEY\n-----END CERTIFICATE-----",
     }
@@ -43,9 +46,15 @@ def mock_secret_client(mock_kv_secrets):
 
 def test_e2e_identity_to_mongodb_connection(mock_secret_client):
     """End-to-end: pipelineEditor identity → mTLS connection to MongoDB."""
+    env_vars = {
+        "KEY_VAULT_URI": "https://test-vault.vault.azure.net/",
+        "AZURE_TENANT_ID": "test-tenant-id",
+        "AZURE_CLIENT_ID": "test-client-id",
+        "AZURE_CLIENT_SECRET": "test-client-secret",
+    }
     with patch("chathealthy_frontend_lib.mongo_utilities.SecretClient", return_value=mock_secret_client):
-        with patch("chathealthy_frontend_lib.mongo_utilities.DefaultAzureCredential"):
-            with patch.dict(os.environ, {"KEY_VAULT_URI": "https://test-vault.vault.azure.net/"}):
+        with patch("chathealthy_frontend_lib.mongo_utilities.ClientSecretCredential"):
+            with patch.dict(os.environ, env_vars):
                 with patch("chathealthy_frontend_lib.mongo_utilities.MongoClient") as mock_mongo:
                     utilities = ChatHealthyMongoUtilities()
                     connection = utilities.getConnection("pipelineEditor")
@@ -70,9 +79,15 @@ def test_e2e_missing_client_cert_raises(mock_secret_client):
     """When client cert is missing, getConnection raises ChatHealthyException."""
     mock_secret_client.get_secret.side_effect = lambda name: None if name == "certs-pipelineEditor" else Mock(value="key")
 
+    env_vars = {
+        "KEY_VAULT_URI": "https://test-vault.vault.azure.net/",
+        "AZURE_TENANT_ID": "test-tenant-id",
+        "AZURE_CLIENT_ID": "test-client-id",
+        "AZURE_CLIENT_SECRET": "test-client-secret",
+    }
     with patch("chathealthy_frontend_lib.mongo_utilities.SecretClient", return_value=mock_secret_client):
-        with patch("chathealthy_frontend_lib.mongo_utilities.DefaultAzureCredential"):
-            with patch.dict(os.environ, {"KEY_VAULT_URI": "https://test-vault.vault.azure.net/"}):
+        with patch("chathealthy_frontend_lib.mongo_utilities.ClientSecretCredential"):
+            with patch.dict(os.environ, env_vars):
                 utilities = ChatHealthyMongoUtilities()
 
                 with pytest.raises(ChatHealthyException) as exc_info:
@@ -85,9 +100,15 @@ def test_e2e_missing_mongodb_public_key_raises(mock_secret_client):
     """When MongoDB public key is missing, getConnection raises ChatHealthyException."""
     mock_secret_client.get_secret.side_effect = lambda name: None if name == "cert-mongo-publicKey" else Mock(value="cert")
 
+    env_vars = {
+        "KEY_VAULT_URI": "https://test-vault.vault.azure.net/",
+        "AZURE_TENANT_ID": "test-tenant-id",
+        "AZURE_CLIENT_ID": "test-client-id",
+        "AZURE_CLIENT_SECRET": "test-client-secret",
+    }
     with patch("chathealthy_frontend_lib.mongo_utilities.SecretClient", return_value=mock_secret_client):
-        with patch("chathealthy_frontend_lib.mongo_utilities.DefaultAzureCredential"):
-            with patch.dict(os.environ, {"KEY_VAULT_URI": "https://test-vault.vault.azure.net/"}):
+        with patch("chathealthy_frontend_lib.mongo_utilities.ClientSecretCredential"):
+            with patch.dict(os.environ, env_vars):
                 utilities = ChatHealthyMongoUtilities()
 
                 with pytest.raises(ChatHealthyException) as exc_info:
@@ -98,9 +119,15 @@ def test_e2e_missing_mongodb_public_key_raises(mock_secret_client):
 
 def test_e2e_discrepancy_report_connects_with_identity():
     """DiscrepancyReport establishes MongoDB connection using pipelineEditor identity."""
+    env_vars = {
+        "KEY_VAULT_URI": "https://test-vault.vault.azure.net/",
+        "AZURE_TENANT_ID": "test-tenant-id",
+        "AZURE_CLIENT_ID": "test-client-id",
+        "AZURE_CLIENT_SECRET": "test-client-secret",
+    }
     with patch("chathealthy_frontend_lib.mongo_utilities.SecretClient") as mock_kv:
-        with patch("chathealthy_frontend_lib.mongo_utilities.DefaultAzureCredential"):
-            with patch.dict(os.environ, {"KEY_VAULT_URI": "https://test-vault.vault.azure.net/"}):
+        with patch("chathealthy_frontend_lib.mongo_utilities.ClientSecretCredential"):
+            with patch.dict(os.environ, env_vars):
                 with patch("chathealthy_frontend_lib.mongo_utilities.MongoClient"):
                     from pipeline.Code.steps.discrepancy_report import DiscrepancyReport
 
