@@ -11882,8 +11882,8 @@
                         {
                           "req_id": "EPIC-008-F-002-S-009-REQ-B-006",
                           "orphan": false,
-                          "name": "Pre-commit gate forbids new deliberate raises of built-in types",
-                          "requirement": "A new engineering rule (Rule-NNN, operator picks the number) MUST gate pre-commit. The worker scans every staged Python file under ChatHealthy.ai's authored directories (sharedServices/, FindCare/, evaluateCare/, Code/, FrontEndApplicationLib/, architecture/) and rejects any line matching a deliberate raise of ValueError, RuntimeError, AssertionError, KeyError, TypeError. Exempted: re-raises with no expression, test files asserting expected behavior, and external-library calls that we do not author. Forbidden raises in existing code at the moment the rule lands are tracked as orphan-fix items; the rule rejects only NEW commits that introduce additional violations until the historical backlog is migrated.",
+                          "name": "Pre-commit gate forbids deliberate raises of built-in types",
+                          "requirement": "A new engineering rule (Rule-NNN, operator picks the number) MUST gate pre-commit. The worker scans every staged Python file under ChatHealthy.ai's authored directories (sharedServices/, FindCare/, evaluateCare/, Code/, FrontEndApplicationLib/, architecture/) and rejects any line matching a deliberate raise of ValueError, RuntimeError, AssertionError, KeyError, TypeError. Exempted: re-raises with no expression, test files asserting expected behavior, and external-library calls that we do not author. Any violation found — new or legacy — is rejected. No carve-outs for historical code.",
                           "priority": "must-have",
                           "status": "in_progress",
                           "approval": "approved",
