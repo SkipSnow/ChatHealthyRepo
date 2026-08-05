@@ -11,6 +11,7 @@ emitted via DiscrepancyReport.emit() and fatal_error().
 from __future__ import annotations
 
 import os
+from datetime import datetime, timezone
 from enum import Enum
 
 from azure.identity import DefaultAzureCredential
@@ -48,8 +49,10 @@ class DiscrepancyReport:
         self.env = env
         self.pipeline_name = pipeline_name
         self.source = source
+        self.start_time = datetime.now(timezone.utc).isoformat()
         self.operator_email = self._get_operator_email_from_vault()
         self.mongo_connection = self._establish_mongo_connection()
+        self.config = self._load_pipeline_config()
 
     def _establish_mongo_connection(self):
         """Establish MongoDB connection using pipelineEditor identity."""
@@ -64,6 +67,18 @@ class DiscrepancyReport:
                 message=f"Failed to establish MongoDB connection: {exc}",
                 component="DiscrepancyReport",
             ) from exc
+
+    def _load_pipeline_config(self) -> dict:
+        """Load pipeline configuration from MongoDB."""
+        try:
+            if not self.mongo_connection:
+                return {}
+            from pipeline_db import get_db
+            db = get_db(self.env)
+            config = db["PipelineConfig"].find_one({"_id": self.pipeline_name})
+            return config or {}
+        except Exception:
+            return {}
 
     def _get_operator_email_from_vault(self) -> str | None:
         """Fetch operator email from Key Vault."""
@@ -241,6 +256,8 @@ def fatal_error(
     level: str | DiscrepancyDetail,
     explanation: str,
     source_line: str | None = None,
+    records_processed: int = 0,
+    rows_before_fatal: int = 0,
 ) -> bool:
     """Handle fatal error: write to mongo and send email report.
 
@@ -249,6 +266,8 @@ def fatal_error(
         level: Fatal error severity level.
         explanation: Fatal error explanation.
         source_line: Fatal error source location.
+        records_processed: Number of records processed before fatal error.
+        rows_before_fatal: Which row we were on when fatal occurred.
 
     Returns:
         True if report sent successfully, False otherwise.
@@ -263,6 +282,31 @@ def fatal_error(
         else:
             level_enum = level
 
+        # Query for actual warning/error counts from discrepancies collection
+        discs_coll_name = report.config.get("warnings_errors_collection", "pipeline.discrepancies")
+        discs_coll = report.mongo_connection["chathealthypipelines"][discs_coll_name]
+
+        warning_count = discs_coll.count_documents({"run_id": report.run_id, "level": "warning"})
+        error_count = discs_coll.count_documents({"run_id": report.run_id, "level": "error"})
+
+        # Build manifest for PDF generation
+        end_time = datetime.now(timezone.utc).isoformat()
+        manifest = {
+            "run_id": report.run_id,
+            "pipeline_name": report.pipeline_name,
+            "run_started_utc": report.start_time,
+            "run_ended_utc": end_time,
+            "fatal_reason": explanation,
+            "records_100_percent_successfully_collected": False,
+            "records_with_non_fatal_warnings": warning_count,
+            "records_with_non_fatal_errors": error_count,
+            "rows_before_fatal": rows_before_fatal if rows_before_fatal > 0 else "n/a",
+            "rows_not_looked_at": "Unknown",
+            "warning_threshold": report.config.get("warning_threshold", "Unknown"),
+            "error_threshold": report.config.get("error_threshold", "Unknown"),
+        }
+
+        # Write fatal error document
         reports_coll = report.mongo_connection["chathealthypipelines"]["pipeline.discrepancy_reports"]
         fatal_doc = {
             "run_id": report.run_id,
@@ -270,6 +314,7 @@ def fatal_error(
             "source": source_line or report.source,
             "level": level_enum.value,
             "explanation": explanation,
+            "manifest": manifest,
         }
         reports_coll.insert_one(fatal_doc)
         return report.write_email()
