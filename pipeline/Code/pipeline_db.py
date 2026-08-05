@@ -36,7 +36,7 @@ def _validate_env(env_prefix: str) -> str:
 def get_mongo() -> MongoClient:
     """Return the pipeline-cluster MongoClient via ChatHealthyMongoUtilities.
     Uses pipelineEditor identity with X.509 mTLS authentication."""
-    return ChatHealthyMongoUtilities(identity="pipelineEditor").getConnection()
+    return ChatHealthyMongoUtilities().getConnection("pipelineEditor")
 
 
 def get_frontend_mongo() -> MongoClient:
@@ -44,7 +44,7 @@ def get_frontend_mongo() -> MongoClient:
     Uses pipelineEditor identity (unified identity) with X.509 mTLS authentication.
     Used by ClusterLifecycleManager so reservation reads/writes never
     depend on the pipeline cluster being awake."""
-    return ChatHealthyMongoUtilities(identity="pipelineEditor").getConnection()
+    return ChatHealthyMongoUtilities().getConnection("pipelineEditor")
 
 
 def get_db(env_prefix: str = None):

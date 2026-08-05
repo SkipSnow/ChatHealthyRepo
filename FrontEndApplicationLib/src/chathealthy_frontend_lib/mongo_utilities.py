@@ -328,14 +328,9 @@ class ChatHealthyMongoUtilities:
 
         uri = os.environ.get(env_var_name)
         if not uri:
-            raise ChatHealthyException(
-                mode="mongo_env_unset",
-                message=(
-                    f"{env_var_name} not set in the runtime environment; "
-                    "ChatHealthyMongoUtilities cannot connect."
-                ),
-                component="ChatHealthyMongoUtilities",
-            )
+            # When using mTLS via getConnection(identity), env vars are not needed.
+            # Skip connection establishment here; getConnection() will handle it.
+            return
 
         # HACK: cluster-specific default timeout. Pipeline cluster gets
         # 24h to accommodate long-running batch cursor iterations that
