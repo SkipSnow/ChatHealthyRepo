@@ -487,3 +487,92 @@ def CreateNonFatalError(
     except Exception as exc:
         log.error("CreateNonFatalError: could not write error: %s", exc)
         return False
+
+
+def emit_discrepancy_report(
+    pipeline_mongo,
+    run_id: str,
+    manifest_status: str,
+    manifest_doc: dict,
+    config: dict,
+    operator_email: str | None = None,
+    operator_sms: str | None = None,
+) -> dict:
+    """Emit discrepancy report for the completed run.
+
+    Reads all discrepancies from MongoDB, sends email to operator, and returns
+    summary. Operator email defaults to NOTIFICATION_TO_EMAIL from environment
+    if not provided. This is called at job completion by control_runner.
+
+    Args:
+        pipeline_mongo: MongoDB connection to chathealthypipelines cluster
+        run_id: Run identifier
+        manifest_status: Final status of the run (succeeded, failed, etc.)
+        manifest_doc: Run manifest document
+        config: Pipeline configuration
+        operator_email: Optional operator email; falls back to env var
+        operator_sms: Optional operator SMS number (reserved for future use)
+
+    Returns:
+        dict with "total" (discrepancy count) and "pdf_bytes" (report size)
+    """
+    log = ChatHealthyLoggingService()
+
+    try:
+        if not pipeline_mongo:
+            log.error("emit_discrepancy_report: mongo unavailable, skipping email")
+            return {"total": 0, "pdf_bytes": 0}
+
+        # Create report instance with operator email
+        report = DiscrepancyReport(
+            run_id=run_id,
+            env=os.environ.get("ENV_PREFIX", "dev"),
+            pipeline_name=os.environ.get("PIPELINE_NAME", "provider"),
+            source="control_runner",
+        )
+
+        # Override with passed-in operator email, or use environment default
+        if operator_email:
+            report.operator_email = operator_email
+        elif not report.operator_email:
+            report.operator_email = os.environ.get("NOTIFICATION_TO_EMAIL", "").strip()
+
+        report.mongo_connection = pipeline_mongo
+
+        # Count discrepancies
+        discrepancies_coll = pipeline_mongo["chathealthypipelines"]["pipeline.discrepancies"]
+        total = discrepancies_coll.count_documents({"run_id": run_id})
+
+        # Send email if operator email is set
+        email_sent = False
+        if report.operator_email and "@" in report.operator_email:
+            email_sent = report.write_email()
+            if email_sent:
+                log.info(
+                    "emit_discrepancy_report: email sent to %s run_id=%s",
+                    report.operator_email, run_id,
+                )
+            else:
+                log.warning(
+                    "emit_discrepancy_report: email send failed run_id=%s to=%s",
+                    run_id, report.operator_email,
+                )
+        else:
+            log.warning(
+                "emit_discrepancy_report: operator_email not configured run_id=%s",
+                run_id,
+            )
+
+        return {
+            "total": total,
+            "pdf_bytes": 0,  # PDF generation deferred
+            "email_sent": email_sent,
+            "operator_email": report.operator_email,
+        }
+
+    except ChatHealthyException as exc:
+        log.error("emit_discrepancy_report: %s", exc, exc=exc)
+        return {"total": 0, "pdf_bytes": 0, "error": str(exc)}
+    except Exception as exc:
+        log.error("emit_discrepancy_report: unexpected error: %s", exc)
+        return {"total": 0, "pdf_bytes": 0, "error": str(exc)}
