@@ -129,6 +129,9 @@ class ScanMongoClientDirectAccessEnforcementWorker(EnforcementWorker):
         return violations
 
 
+def main(argv: list[str] | None = None) -> int:
+    return ScanMongoClientDirectAccessEnforcementWorker.main(argv)
+
+
 if __name__ == "__main__":
-    enforcement_id = sys.argv[1] if len(sys.argv) > 1 else "Rule-004-ENF-001"
-    sys.exit(ScanMongoClientDirectAccessEnforcementWorker(enforcement_id).run())
+    sys.exit(main())
