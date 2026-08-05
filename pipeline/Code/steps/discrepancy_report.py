@@ -409,11 +409,57 @@ def fatal_error(
         return False
 
 
+def check_threshold_and_trigger_fatal_if_needed(
+    report: DiscrepancyReport,
+    level: str,
+) -> bool:
+    """Check if warning/error threshold reached; trigger fatal_error if so.
+
+    Args:
+        report: DiscrepancyReport with mongo connection.
+        level: "warning" or "error"
+
+    Returns:
+        True if fatal was triggered, False otherwise.
+    """
+    log = ChatHealthyLoggingService()
+    try:
+        if not report.mongo_connection:
+            return False
+
+        # Get current counts
+        counts = report.get_counts()
+
+        if level == "warning":
+            current_count = counts.get("warning_count", 0)
+            threshold = report.config.get("warning_threshold")
+        elif level == "error":
+            current_count = counts.get("error_count", 0)
+            threshold = report.config.get("error_threshold")
+        else:
+            return False
+
+        # Check if threshold reached
+        if threshold and current_count >= threshold:
+            explanation = f"Non-fatal {level}s exceeded threshold: {current_count} >= {threshold}"
+            return fatal_error(report, DiscrepancyDetail.FATAL, explanation)
+
+        return False
+    except ChatHealthyException as exc:
+        log.error("check_threshold_and_trigger_fatal_if_needed failed: %s", exc, exc=exc)
+        return False
+    except Exception as exc:
+        log.error("check_threshold_and_trigger_fatal_if_needed failed: %s", exc)
+        return False
+
+
 def createWarning(
     report: DiscrepancyReport,
     job_name: str,
     source: str,
     details: str,
+    data_source: str,
+    record_id: str,
 ) -> bool:
     """Record a warning using the report's mongo connection.
 
@@ -422,6 +468,8 @@ def createWarning(
         job_name: Name of the job/pipeline.
         source: Source location of the warning.
         details: Warning details.
+        data_source: Data source (e.g., "NPPES", "NUCC").
+        record_id: Business key of the record (e.g., NPI, NUCC code).
 
     Returns:
         True if recorded successfully, False otherwise.
@@ -436,10 +484,16 @@ def createWarning(
             "run_id": report.run_id,
             "job_name": job_name,
             "source": source,
+            "data_source": data_source,
+            "record_id": record_id,
             "level": "warning",
             "details": details,
         }
         reports_coll.insert_one(warning_doc)
+        log.warning("createWarning: %s - %s", source, details)
+        report.increment_warning_count()
+        if check_threshold_and_trigger_fatal_if_needed(report, "warning"):
+            return False
         return True
     except ChatHealthyException as exc:
         log.error("createWarning: could not write warning: %s", exc, exc=exc)
@@ -454,6 +508,8 @@ def CreateNonFatalError(
     job_name: str,
     source: str,
     details: str,
+    data_source: str,
+    record_id: str,
 ) -> bool:
     """Record a non-fatal error using the report's mongo connection.
 
@@ -462,6 +518,8 @@ def CreateNonFatalError(
         job_name: Name of the job/pipeline.
         source: Source location of the error.
         details: Error details.
+        data_source: Data source (e.g., "NPPES", "NUCC").
+        record_id: Business key of the record (e.g., NPI, NUCC code).
 
     Returns:
         True if recorded successfully, False otherwise.
@@ -476,10 +534,16 @@ def CreateNonFatalError(
             "run_id": report.run_id,
             "job_name": job_name,
             "source": source,
+            "data_source": data_source,
+            "record_id": record_id,
             "level": "error",
             "details": details,
         }
         reports_coll.insert_one(error_doc)
+        log.error("CreateNonFatalError: %s - %s", source, details)
+        report.increment_error_count()
+        if check_threshold_and_trigger_fatal_if_needed(report, "error"):
+            return False
         return True
     except ChatHealthyException as exc:
         log.error("CreateNonFatalError: could not write error: %s", exc, exc=exc)

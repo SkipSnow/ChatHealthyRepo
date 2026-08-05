@@ -31,9 +31,15 @@ def mock_secret_client(mock_key_vault_secret):
 
 def test_get_connection_with_identity_fetches_from_vault(mock_secret_client):
     """getConnection(identity) should fetch URI from Key Vault."""
+    env_vars = {
+        "KEY_VAULT_URI": "https://test-vault.vault.azure.net/",
+        "AZURE_TENANT_ID": "test-tenant-id",
+        "AZURE_CLIENT_ID": "test-client-id",
+        "AZURE_CLIENT_SECRET": "test-client-secret",
+    }
     with patch("chathealthy_frontend_lib.mongo_utilities.SecretClient", return_value=mock_secret_client):
-        with patch("chathealthy_frontend_lib.mongo_utilities.DefaultAzureCredential"):
-            with patch.dict(os.environ, {"KEY_VAULT_URI": "https://test-vault.vault.azure.net/"}):
+        with patch("chathealthy_frontend_lib.mongo_utilities.ClientSecretCredential"):
+            with patch.dict(os.environ, env_vars):
                 with patch("chathealthy_frontend_lib.mongo_utilities.MongoClient") as mock_mongo:
                     utilities = ChatHealthyMongoUtilities()
                     connection = utilities.getConnection("pipelineEditor")
@@ -50,7 +56,7 @@ def test_get_connection_raises_when_identity_not_found(mock_secret_client):
     mock_secret_client.get_secret.return_value = None
 
     with patch("chathealthy_frontend_lib.mongo_utilities.SecretClient", return_value=mock_secret_client):
-        with patch("chathealthy_frontend_lib.mongo_utilities.DefaultAzureCredential"):
+        with patch("chathealthy_frontend_lib.mongo_utilities.ClientSecretCredential"):
             with patch.dict(os.environ, {"KEY_VAULT_URI": "https://test-vault.vault.azure.net/"}):
                 utilities = ChatHealthyMongoUtilities()
 
@@ -64,7 +70,7 @@ def test_get_connection_raises_when_identity_not_found(mock_secret_client):
 def test_get_connection_raises_when_key_vault_uri_not_set(mock_secret_client):
     """getConnection should raise when KEY_VAULT_URI env var is not set."""
     with patch("chathealthy_frontend_lib.mongo_utilities.SecretClient"):
-        with patch("chathealthy_frontend_lib.mongo_utilities.DefaultAzureCredential"):
+        with patch("chathealthy_frontend_lib.mongo_utilities.ClientSecretCredential"):
             with patch.dict(os.environ, {}, clear=True):
                 utilities = ChatHealthyMongoUtilities()
 
@@ -80,7 +86,7 @@ def test_get_connection_raises_on_vault_access_error(mock_secret_client):
     mock_secret_client.get_secret.side_effect = Exception("Vault access denied")
 
     with patch("chathealthy_frontend_lib.mongo_utilities.SecretClient", return_value=mock_secret_client):
-        with patch("chathealthy_frontend_lib.mongo_utilities.DefaultAzureCredential"):
+        with patch("chathealthy_frontend_lib.mongo_utilities.ClientSecretCredential"):
             with patch.dict(os.environ, {"KEY_VAULT_URI": "https://test-vault.vault.azure.net/"}):
                 utilities = ChatHealthyMongoUtilities()
 
