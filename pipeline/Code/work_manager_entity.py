@@ -52,7 +52,7 @@ _VALID_WORK_KINDS = (_DEFAULT_WORK_KIND, _REPAIR_WORK_KIND)
 
 def _get_mongo_client():
     from pymongo import MongoClient
-    return ChatHealthyMongoUtilities("MONGO_connectionString").getConnection()
+    return ChatHealthyMongoUtilities(identity="pipelineEditor").getConnection()
 
 
 def _migrate_state_to_queues(state: dict) -> None:

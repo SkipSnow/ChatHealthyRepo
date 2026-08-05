@@ -232,4 +232,4 @@ TOOL = AuthorizationsAndAuthenticationsTool()
 def get_mongo_frontend():
     """Front-end cluster client (Users.sessions + Users.users) via the canonical utility."""
     from chathealthy_frontend_lib.mongo_utilities import ChatHealthyMongoUtilities
-    return ChatHealthyMongoUtilities().getConnection()
+    return ChatHealthyMongoUtilities(identity="pipelineEditor").getConnection()

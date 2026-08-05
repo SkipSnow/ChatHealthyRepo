@@ -40,11 +40,11 @@ from pathlib import Path
 from typing import Iterable
 
 
-# F-003 identity registry entries for the pipeline tier's long-lived
-# nodes. Worker (short-lived, self-minting) is intentionally absent.
+# F-003 identity registry entries for the pipeline tier.
+# All pipeline identities (long-lived and workers) use pre-provisioned certs
+# from Key Vault. Consolidated to one "pipelineEditor" identity shared by all.
 LONG_LIVED_IDENTITIES: tuple[str, ...] = (
-    "pipeline-runbook",
-    "pipeline-control",
+    "pipelineEditor",
 )
 
 # Rotation window: rotate a cert if less than this many days remain
@@ -405,13 +405,14 @@ def provision_long_lived_certs(
         # RBAC + revoke always run (even when mint is skipped) so a prior
         # failed grant pass is repaired. Test-injection path skips Azure.
         if kv_client is None:
-            mi_name = f"mi-{identity.replace('pipeline-', '')}"
-            mi_oid = _mi_object_id(
-                mi_name,
-                _resolve_mi_resource_group(kv_target, env),
-            )
-            _kv_grant_read(vault_name, mi_oid, cert_secret)
-            _kv_grant_read(vault_name, mi_oid, key_secret)
+            # Consolidated identity "pipelineEditor" is used by both mi-runbook and
+            # mi-control, so grant both MIs read access to the shared cert.
+            mi_names = ("mi-runbook", "mi-control") if identity == "pipelineEditor" else [f"mi-{identity.replace('pipeline-', '')}"]
+            rg = _resolve_mi_resource_group(kv_target, env)
+            for mi_name in mi_names:
+                mi_oid = _mi_object_id(mi_name, rg)
+                _kv_grant_read(vault_name, mi_oid, cert_secret)
+                _kv_grant_read(vault_name, mi_oid, key_secret)
             _kv_revoke_deployer_read(vault_name, deployer_id, cert_secret)
             _kv_revoke_deployer_read(vault_name, deployer_id, key_secret)
 

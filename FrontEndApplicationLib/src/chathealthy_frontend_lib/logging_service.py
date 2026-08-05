@@ -168,7 +168,7 @@ class _MongoLogHandler(logging.Handler):
                     # raw client bypasses TimedClient because TimedClient
                     # logs every op, which would recurse here.
                     from .mongo_utilities import ChatHealthyMongoUtilities
-                    client = ChatHealthyMongoUtilities().getRawClient()
+                    client = ChatHealthyMongoUtilities(identity="pipelineEditor").getRawClient()
                     self._coll = client["Pipelines"][f"Log_{self._env}"]
         return self._coll
 

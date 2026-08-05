@@ -113,62 +113,85 @@ def _promote_local_to_dev(repo_root: Path, label: str | None = None) -> int:
         return result.returncode
     print("[promote] push origin dev")
     result = subprocess.run(["git", "push", "origin", "dev"], cwd=str(repo_root))
-    return result.returncode
+    if result.returncode != 0:
+        return result.returncode
+
+    # Sync the working-tree .env up to KV so every cloud build/deploy
+    # after this promote uses today's canonical secret values. The KV
+    # secret is the source of truth for all cloud envs (operator
+    # directive 2026-08-04); a local -> dev promote MUST push the
+    # operator's current .env or dev will still be running with stale
+    # secrets even though the code was just promoted.
+    return _sync_env_to_kv(repo_root)
+
+
+def _sync_env_to_kv(repo_root: Path) -> int:
+    """Upload <repo>/.env to kv-chpipeline-dev/env-file using the
+    project's gz:<base64> encoding. Returns 0 on success, non-zero on
+    failure."""
+    import base64, gzip, os, shutil, tempfile
+    env_src = repo_root / ".env"
+    if not env_src.is_file():
+        print(f"[promote] WARNING: {env_src} not found; skipping KV sync")
+        return 0
+    plaintext = env_src.read_bytes()
+    payload = "gz:" + base64.b64encode(gzip.compress(plaintext)).decode("ascii")
+    fd, path = tempfile.mkstemp(suffix=".txt")
+    try:
+        with os.fdopen(fd, "w", encoding="ascii") as f:
+            f.write(payload)
+        az = shutil.which("az") or "az"
+        r = subprocess.run(
+            [az, "keyvault", "secret", "set",
+             "--vault-name", "kv-chpipeline-dev", "--name", "env-file",
+             "--file", path, "-o", "tsv", "--query", "id"],
+            capture_output=True, text=True, shell=False,
+        )
+        if r.returncode != 0:
+            print(f"[promote] KV sync FAILED: {r.stderr.strip()[:300]}")
+            return r.returncode
+        print(f"[promote] KV sync OK: kv-chpipeline-dev/env-file "
+              f"({len(plaintext)} plaintext bytes)")
+        return 0
+    finally:
+        try:
+            os.remove(path)
+        except OSError:
+            pass
 
 
 def _promote_branch_to_branch(repo_root: Path, source_env: str, target_env: str) -> int:
-    """Fully automated: fetch, checkout target, reset target to source tip,
-    force-push, return to the original branch. The operator does not have
-    to switch branches at any point. Implements REQ-B-004 (byte-identical
+    """Fully automated: fetch, then push origin/<source> to <target> on
+    the remote in a single force-with-lease. Does NOT touch the local
+    working tree or switch branches — dirty local files (from unrelated
+    work) do not block a promote because the promote is entirely a
+    remote-branch pointer move. Implements REQ-B-004 (byte-identical
     overwrite)."""
     source_branch = _ENV_TO_BRANCH[source_env]
     target_branch = _ENV_TO_BRANCH[target_env]
-    original_branch = _current_branch(repo_root)
-
-    status = _run_git(["status", "--porcelain"], repo_root).stdout.strip()
-    if status:
-        sys.exit(
-            f"ERROR: working tree is not clean. Commit or stash changes "
-            f"on branch {original_branch!r} before promoting.\n{status}"
-        )
 
     print("[promote] fetch origin")
     _run_git(["fetch", "origin"], repo_root)
 
-    if original_branch != target_branch:
-        print(f"[promote] checkout {target_branch}")
-        result = subprocess.run(
-            ["git", "checkout", target_branch],
-            cwd=str(repo_root),
-        )
-        if result.returncode != 0:
-            print(f"[promote] checkout {target_branch} FAILED")
-            return result.returncode
+    # Push origin/<source> tip to remote's <target> branch without a
+    # local checkout. Refspec form `<src>:refs/heads/<dst>` moves the
+    # remote branch pointer directly; the local working tree is never
+    # read or modified. --force-with-lease matches the prior semantics
+    # (byte-identical overwrite of target with source's tip, guarded
+    # against concurrent-writer surprises).
+    refspec = f"refs/remotes/origin/{source_branch}:refs/heads/{target_branch}"
+    print(f"[promote] push --force-with-lease origin {refspec}")
+    result = subprocess.run(
+        ["git", "push", "--force-with-lease", "origin", refspec],
+        cwd=str(repo_root),
+    )
+    if result.returncode != 0:
+        print(f"[promote] push FAILED — origin {target_branch} unchanged")
+        return result.returncode
 
-    try:
-        print(f"[promote] reset --hard origin/{source_branch} (wipe out any divergence on {target_branch})")
-        result = subprocess.run(
-            ["git", "reset", "--hard", f"origin/{source_branch}"],
-            cwd=str(repo_root),
-        )
-        if result.returncode != 0:
-            print(f"[promote] reset FAILED on {target_branch}")
-            return result.returncode
-
-        print(f"[promote] push --force-with-lease origin {target_branch}")
-        result = subprocess.run(
-            ["git", "push", "--force-with-lease", "origin", target_branch],
-            cwd=str(repo_root),
-        )
-        if result.returncode != 0:
-            return result.returncode
-    finally:
-        if original_branch != target_branch:
-            print(f"[promote] checkout back to {original_branch}")
-            subprocess.run(
-                ["git", "checkout", original_branch],
-                cwd=str(repo_root),
-            )
+    # Refresh the local remote-tracking ref for the target so subsequent
+    # `git log origin/<target>` shows the new tip immediately.
+    _run_git(["fetch", "origin", target_branch], repo_root)
     return 0
 
 

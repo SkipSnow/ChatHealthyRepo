@@ -67,7 +67,7 @@ def _read_build_info() -> dict:
 
 
 def _mongo_client() -> MongoClient:
-    return ChatHealthyMongoUtilities().getConnection()
+    return ChatHealthyMongoUtilities(identity="pipelineEditor").getConnection()
 
 
 def _read_env_doc(env: str) -> dict:

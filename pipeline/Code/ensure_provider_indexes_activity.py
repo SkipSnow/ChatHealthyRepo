@@ -116,7 +116,7 @@ def _providers_collection_and_client(provider_collection: str | None) -> tuple:
     # serverSelectionTimeoutMS is short so each ping fails fast and the
     # _wait_for_cluster_ready poll loop drives the cadence.
     from chathealthy_frontend_lib.mongo_utilities import ChatHealthyMongoUtilities
-    client = ChatHealthyMongoUtilities("MONGO_connectionString").getConnection()
+    client = ChatHealthyMongoUtilities(identity="pipelineEditor").getConnection()
     return client[db_name][coll_name], client
 
 

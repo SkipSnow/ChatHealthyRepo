@@ -53,7 +53,7 @@ TARGET_COLL = "ConstrainedDrainProvider"
 
 @pytest.fixture(scope="module")
 def mongo():
-    client = ChatHealthyMongoUtilities("MONGO_connectionString").getConnection()
+    client = ChatHealthyMongoUtilities(identity="pipelineEditor").getConnection()
     yield client
     client.drop_database(SCRATCH_DB)
 
@@ -199,7 +199,7 @@ def test_drains_do_not_touch_live_collections(mongo):
     """Sentinel: this test file must never touch PublicData.Provider_v_3
     or PublicStaging.StagingProvider_v_3. Counts before + after the module
     fixtures run must be identical. Reads only -- no writes."""
-    frontend = ChatHealthyMongoUtilities("MONGO_FRONTEND_connectionString").getConnection()
+    frontend = ChatHealthyMongoUtilities(identity="pipelineEditor").getConnection()
     live_target_count = frontend["PublicData"]["Provider_v_3"].estimated_document_count()
     live_staging_count = mongo["PublicStaging"]["StagingProvider_v_3"].estimated_document_count()
     assert live_target_count >= 0

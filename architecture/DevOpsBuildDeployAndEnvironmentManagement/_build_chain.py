@@ -53,7 +53,11 @@ import ch_fonts_inliner
 import hf_helpers as rd
 
 
-_BUILD_ROOT_REL = Path("architecture/DevOpsBuildDeployAndEnvironmentManagement/localBuild")
+# Canonical build output root (operator directive 2026-08-04):
+# `<repo>/build/` is the single well-known location for every build's
+# per-target output. build_chathealthy.py purges it entirely at the
+# start of every invocation; deploy_chathealthy.py reads only from it.
+_BUILD_ROOT_REL = Path("build")
 REMOTE_BUILD_ROOT_REL = Path("architecture/DevOpsBuildDeployAndEnvironmentManagement/remoteBuild")
 
 
@@ -87,11 +91,23 @@ def _read_dev_build_number() -> int:
     from pymongo import MongoClient
 
     repo_root = _find_repo_root(Path(__file__))
-    load_dotenv(repo_root / "Code" / ".env")
+    # Canonical env source per operator directive 2026-08-04: the .env
+    # materialized into <repo>/build/.env at the start of every build.
+    # If that isn't there yet (e.g. called outside a build), fall back
+    # to the working-tree .env at <repo>/.env — the operator's own copy.
+    build_env = repo_root / "build" / ".env"
+    working_tree_env = repo_root / ".env"
+    for candidate in (build_env, working_tree_env):
+        if candidate.is_file():
+            load_dotenv(candidate)
+            break
 
     conn = os.getenv("MONGO_FRONTEND_connectionString")
     if not conn:
-        sys.exit("ERROR: MONGO_FRONTEND_connectionString not set in env or Code/.env")
+        sys.exit(
+            "ERROR: MONGO_FRONTEND_connectionString not found in "
+            f"{build_env} or {working_tree_env}."
+        )
     coll = MongoClient(conn, serverSelectionTimeoutMS=10000)["admin"]["Versions"]
     latest = coll.find_one(sort=[("from", -1)])
     if latest is None:
@@ -235,18 +251,27 @@ def _substitute_hf_urls_in_index_html(repo_root: Path, build_dir: Path, env: str
         )
     for idx in indexes:
         text = idx.read_text(encoding="utf-8")
-        for placeholder in _HF_URL_PLACEHOLDERS:
-            if placeholder not in text:
-                raise RuntimeError(
-                    f"_substitute_hf_urls_in_index_html: {idx.relative_to(build_dir)} "
-                    f"is missing placeholder {placeholder!r}. Every index.html in the "
-                    f"Cloudflare Pages target MUST contain every __HF_URL_*__ "
-                    f"placeholder verbatim. If a substituted URL was committed back "
-                    f"into source, restore the placeholder."
-                )
+        # A page that carries NONE of the __HF_URL_*__ placeholders is a
+        # static page not participating in HF-URL substitution (e.g. a
+        # maintenance page). Skip the require-all check for those. Only
+        # fail-loud when a page has SOME placeholders but is missing at
+        # least one -- that's the "someone committed substituted output
+        # back into source" case.
+        present = [p for p in _HF_URL_PLACEHOLDERS if p in text]
+        if present and len(present) < len(_HF_URL_PLACEHOLDERS):
+            missing = sorted(set(_HF_URL_PLACEHOLDERS) - set(present))
+            raise RuntimeError(
+                f"_substitute_hf_urls_in_index_html: {idx.relative_to(build_dir)} "
+                f"is participating in HF-URL substitution (found {sorted(present)}) "
+                f"but is missing {missing!r}. Every participating index.html MUST "
+                f"contain every __HF_URL_*__ placeholder verbatim. If a "
+                f"substituted URL was committed back into source, restore the "
+                f"placeholder."
+            )
         for placeholder, url in targets_for_placeholder.items():
-            text = text.replace(placeholder, url)
-            _step(f"  hf-url {idx.name}: {placeholder} -> {url}")
+            if placeholder in text:
+                text = text.replace(placeholder, url)
+                _step(f"  hf-url {idx.name}: {placeholder} -> {url}")
         idx.write_text(text, encoding="utf-8")
         final = idx.read_text(encoding="utf-8")
         for placeholder in _HF_URL_PLACEHOLDERS:
@@ -255,12 +280,15 @@ def _substitute_hf_urls_in_index_html(repo_root: Path, build_dir: Path, env: str
                     f"_substitute_hf_urls_in_index_html: {idx.relative_to(build_dir)} "
                     f"still contains {placeholder!r} after substitution; build aborted."
                 )
-        for url in targets_for_placeholder.values():
-            if url not in final:
-                raise RuntimeError(
-                    f"_substitute_hf_urls_in_index_html: {idx.relative_to(build_dir)} "
-                    f"missing expected URL {url!r} after substitution; build aborted."
-                )
+        # Post-substitution URL-presence check applies only if the page
+        # participated in substitution.
+        if present:
+            for url in targets_for_placeholder.values():
+                if url not in final:
+                    raise RuntimeError(
+                        f"_substitute_hf_urls_in_index_html: {idx.relative_to(build_dir)} "
+                        f"missing expected URL {url!r} after substitution; build aborted."
+                    )
 
 
 def _build_cloudflare(repo_root: Path, target: TargetRecord, build_dir: Path,

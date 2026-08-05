@@ -42,7 +42,7 @@ _mongo: MongoClient | None = None
 
 def _get_mongo_client() -> MongoClient:
     from chathealthy_frontend_lib.mongo_utilities import ChatHealthyMongoUtilities
-    return ChatHealthyMongoUtilities("MONGO_connectionString").getConnection()
+    return ChatHealthyMongoUtilities(identity="pipelineEditor").getConnection()
 
 
 # ── NPPES field-prefix constants ─────────────────────────────────────────────

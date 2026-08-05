@@ -1,29 +1,20 @@
 """Container bootstrap for the pipeline tier.
 
-Two boot paths, dispatched on the node's canonical identity (env var
-CHATHEALTHY_NODE_IDENTITY):
+Single boot path for all identities (long-lived and workers), dispatched on
+the node's canonical identity (env var CHATHEALTHY_NODE_IDENTITY):
 
-  Long-lived identities  (pipeline-runbook, pipeline-control, and any
-  future long-lived service):
-    - Attached managed identity is the seed credential.
-    - Seed-read the leaf cert + private key from Key Vault at the
-      node-scoped path certs/<node-identity> using the MI (F-003 §5.1,
-      §6.1). Materialize as PEM files with 0600 perms.
-    - Load every other secret this node needs from KV via the same MI.
-    - Load the CA public cert + intermediate chain from KV so downstream
-      Mongo X.509 clients can verify server (F-003 §7.1).
+All pipeline identities (pipeline-runbook, pipeline-control,
+pipeline-worker-*, and any future pipeline service):
+  - Attached managed identity is the seed credential.
+  - Seed-read the leaf cert + private key from Key Vault at the consolidated
+    path certs/pipelineEditor using the MI (F-003 §5.1, §6.1). All pipeline
+    identities share this single pre-provisioned cert. Materialize as PEM
+    files with 0600 perms.
+  - Load every other secret this node needs from KV via the same MI.
+  - Load the CA public cert + intermediate chain from KV so downstream
+    Mongo X.509 clients can verify server (F-003 §7.1).
 
-  Short-lived identities  (pipeline-worker-*):
-    - Attached managed identity is the seed credential.
-    - Self-mint a leaf cert via the F-003 Runbook cert-issuance API
-      using chathealthy_ca.mint_via_managed_identity (F-003 §5.2).
-    - Hold cert + key in memory; only materialize to a 0600 temp file
-      because pymongo tlsCertificateKeyFile needs a path.
-    - Load the CA chain from the image bake location (deploy-baked at
-      /etc/chathealthy/ca/) or fall back to KV.
-    - Do NOT write anything to KV.
-
-Both paths:
+Single path:
   - Set env vars for downstream code:
       CHATHEALTHY_NODE_IDENTITY   (already present; unchanged)
       CHATHEALTHY_CERT_PATH       (path to leaf cert PEM)
@@ -44,13 +35,10 @@ import tempfile
 from pathlib import Path
 from typing import Iterable, Optional, Tuple
 
-from azure.identity import DefaultAzureCredential, ManagedIdentityCredential
+from azure.identity import DefaultAzureCredential
 from azure.keyvault.secrets import SecretClient
-from cryptography.hazmat.primitives import serialization
-from cryptography.hazmat.primitives.asymmetric import rsa
 
 import blob_logger
-import chathealthy_ca
 from PipelineServices.observability_gate import ObservabilityGate
 from chathealthy_frontend_lib.exceptions import ChatHealthyException
 
@@ -64,14 +52,12 @@ ENV_CERT_PATH = "CHATHEALTHY_CERT_PATH"
 ENV_KEY_PATH = "CHATHEALTHY_KEY_PATH"
 ENV_CA_CHAIN_PATH = "CHATHEALTHY_CA_CHAIN_PATH"
 
-# KV path convention (F-003 §6.1). One secret per long-lived identity;
-# workers never have a KV entry.
-KV_CERT_PREFIX = "certs-"           # certs-pipeline-runbook, certs-pipeline-control
-KV_KEY_SUFFIX = "-key"              # certs-pipeline-runbook-key, ...
+# KV path convention (F-003 §6.1). All pipeline identities share one
+# consolidated cert secret to avoid per-identity cert proliferation.
+KV_CERT_PREFIX = "certs-"           # certs-pipelineEditor (shared by all)
+KV_KEY_SUFFIX = "-key"              # certs-pipelineEditor-key
 KV_CA_PUBLIC = "ca-root-cert"
 KV_CA_INTERMEDIATE_CHAIN = "ca-intermediate-cert"
-
-WORKER_NAMESPACE_PREFIX = "pipeline-worker"
 
 
 def _kv_name_to_env_key(kv_name: str) -> str:
@@ -204,9 +190,11 @@ def _seed_read_long_lived_cert(
     node_identity: str,
 ) -> Tuple[Path, Path]:
     """F-003 §5.1 step 6: at container boot the long-lived target reads
-    its cert + key from KV under the node-scoped path via its own MI.
-    Returns (cert_path, key_path)."""
-    cert_secret = f"{KV_CERT_PREFIX}{node_identity}"
+    its cert + key from KV under the consolidated path via its own MI.
+    All pipeline identities (pipeline-runbook, pipeline-control) read from
+    the same cert secret. Returns (cert_path, key_path)."""
+    # All pipeline identities share the consolidated "pipelineEditor" cert
+    cert_secret = f"{KV_CERT_PREFIX}pipelineEditor"
     key_secret = f"{cert_secret}{KV_KEY_SUFFIX}"
     _emit(f"seed-reading long-lived cert from KV: {cert_secret}")
     cert_pem = client.get_secret(cert_secret).value or ""
@@ -223,29 +211,6 @@ def _seed_read_long_lived_cert(
     return cert_path, key_path
 
 
-def _self_mint_worker_cert(
-    node_identity: str,
-    mi_credential: ManagedIdentityCredential,
-) -> Tuple[Path, Path]:
-    """F-003 §5.2: short-lived Worker generates a keypair in memory,
-    posts a CSR to the F-003 Runbook cert-issuance API using its
-    attached MI, receives a signed leaf, materializes to memory-backed
-    temp files (pymongo tlsCertificateKeyFile needs a path)."""
-    _emit(f"self-minting short-lived cert for {node_identity}")
-    # chathealthy_ca.mint_via_managed_identity generates keypair,
-    # builds CSR with subject=node_identity, POSTs to CA endpoint,
-    # returns (cert_pem_bytes, key_pem_bytes).
-    cert_pem, key_pem = chathealthy_ca.mint_via_managed_identity(
-        subject=node_identity,
-        mi_credential=mi_credential,
-    )
-    cert_path = _track(_write_secure_file(cert_pem, "_cert.pem"))
-    key_path = _track(_write_secure_file(key_pem, "_key.pem"))
-    return cert_path, key_path
-
-
-def _is_worker(node_identity: str) -> bool:
-    return node_identity.startswith(WORKER_NAMESPACE_PREFIX)
 
 
 def main() -> int:
@@ -305,26 +270,16 @@ def main() -> int:
     node_identity = _resolve_node_identity()
     _emit(f"node identity: {node_identity}")
 
-    cred: DefaultAzureCredential | ManagedIdentityCredential
-    if _is_worker(node_identity):
-        # Worker path: no KV seed-read. Managed identity is used only
-        # to authenticate to the F-003 cert-issuance API. Workers have
-        # no per-node secret set in KV; they receive their cert
-        # material from Control via work-item and self-mint.
-        mi_cred = ManagedIdentityCredential()
-        cert_path, key_path = _self_mint_worker_cert(node_identity, mi_cred)
-        ca_path = _materialize_ca_chain(client=None)
-    else:
-        # Long-lived path: seed-read cert + key + bulk-load all other
-        # secrets from KV using the attached MI.
-        vault_uri = _resolve_vault_uri()
-        cred = DefaultAzureCredential()
-        client = SecretClient(vault_url=vault_uri, credential=cred)
-        _emit(f"KV client bound to {vault_uri}")
-        cert_path, key_path = _seed_read_long_lived_cert(client, node_identity)
-        n = _load_all_secrets_into_env(client)
-        _emit(f"loaded {n} non-cert secrets into env")
-        ca_path = _materialize_ca_chain(client=client)
+    # Unified path: all pipeline identities (long-lived and workers) seed-read
+    # pre-provisioned certs from KV. Load all secrets via the attached MI.
+    vault_uri = _resolve_vault_uri()
+    cred = DefaultAzureCredential()
+    client = SecretClient(vault_url=vault_uri, credential=cred)
+    _emit(f"KV client bound to {vault_uri}")
+    cert_path, key_path = _seed_read_long_lived_cert(client, node_identity)
+    n = _load_all_secrets_into_env(client)
+    _emit(f"loaded {n} non-cert secrets into env")
+    ca_path = _materialize_ca_chain(client=client)
 
     os.environ[ENV_CERT_PATH] = str(cert_path)
     os.environ[ENV_KEY_PATH] = str(key_path)

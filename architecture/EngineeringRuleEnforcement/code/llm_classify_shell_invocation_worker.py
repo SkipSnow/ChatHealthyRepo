@@ -1317,6 +1317,46 @@ _DEPLOY_ENV_NONLOCAL_RE = re.compile(
     re.IGNORECASE,
 )
 
+# Parse --target <value> out of a chain-surface command so the
+# deploy-from-git preflight can scope its dirty-tree check to only the
+# files that belong to that target. Skip's operator directive
+# 2026-08-04: one package, one env, one target -- a targeted deploy
+# MUST NOT require unrelated files in the working tree to be clean.
+_TARGET_ARG_RE = re.compile(
+    r"--target[\s=]([A-Za-z0-9_,\-]+)",
+    re.IGNORECASE,
+)
+
+
+def _resolve_target_files(target_arg: str) -> set[str] | None:
+    """Return the set of repo-relative file paths declared under the
+    named target's files[] in deployment_architecture.json. Returns
+    None if the target is 'all' / a group selector / missing from the
+    manifest -- in which case the caller falls back to a whole-tree
+    check (safe default: caller only knows to restrict when we return
+    a concrete set)."""
+    if not target_arg or target_arg.lower() in ("all", "*"):
+        return None
+    manifest = _PROJECT_ROOT / "brain" / "machine_artifacts" / "content" / "deployment_architecture.json"
+    if not manifest.is_file():
+        return None
+    try:
+        data = json.loads(manifest.read_text(encoding="utf-8"))
+    except Exception:  # noqa: BLE001
+        return None
+    # target_arg may be a single id or comma-separated list; union their files.
+    wanted = {t.strip() for t in target_arg.split(",") if t.strip()}
+    files: set[str] = set()
+    matched_any = False
+    for t in data.get("DeploymentTargetRecord", []) or []:
+        if t.get("target_id") in wanted:
+            matched_any = True
+            for f in t.get("files", []) or []:
+                src = f.get("source_location") if isinstance(f, dict) else None
+                if src:
+                    files.add(src.replace("\\", "/"))
+    return files if matched_any else None
+
 # Rule-006 statement 5 Stage-1 accommodation. Matches invocations of the
 # three canonical chain-surface entry points regardless of --env value.
 # The deploy-from-git preflight above still runs before this allowlist.

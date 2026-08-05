@@ -70,25 +70,16 @@ def _current_branch(repo_root: Path) -> str:
 
 
 def _enforce_env_branch_check(repo_root: Path, env: str) -> None:
-    if env == "local":
-        return
-    expected = _ENV_BRANCH[env]
-    actual = _current_branch(repo_root)
-    if actual == expected:
-        return
-    print(
-        f"[deploy] current branch is {actual!r}; --env {env} requires "
-        f"{expected!r}; checking out {expected!r}"
-    )
-    result = subprocess.run(
-        ["git", "checkout", expected],
-        cwd=str(repo_root), capture_output=True, text=True,
-    )
-    if result.returncode != 0:
-        sys.exit(
-            f"ERROR: git checkout {expected} failed (rc={result.returncode}). "
-            f"stderr: {result.stderr.strip()}"
-        )
+    """No-op (retained for callsite compatibility).
+
+    Operator directive 2026-08-04: deploy for env X depends only on
+    X's build output at <repo>/build/<target_id>/. It does not read
+    the working tree, does not care about the current branch, and
+    MUST NOT force a git checkout. The build script has already
+    materialised the correct source (from origin/<branch> for cloud
+    envs; from the working tree for local) and produced the artifacts
+    the deploy will ship."""
+    return
 
 
 def _current_head_sha(repo_root: Path) -> str:

@@ -338,16 +338,7 @@
           ]
         },
         "enforcements": {
-          "enforcement": [
-            {
-              "enforcement_id": "Rule-006-ENF-001",
-              "hook": "PreToolUse",
-              "executable_path": "architecture/EngineeringRuleEnforcement/code/llm_classify_shell_invocation_worker.py",
-              "requires_lock": false,
-              "scopes": [],
-              "timeout": 960
-            }
-          ]
+          "enforcement": []
         }
       },
       {

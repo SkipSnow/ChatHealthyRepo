@@ -14,6 +14,8 @@ import os
 import time
 from typing import Any, Optional
 
+from azure.identity import ClientSecretCredential
+from azure.keyvault.secrets import SecretClient
 from bson.json_util import dumps as bson_dumps
 from pymongo import MongoClient
 from pymongo.errors import (
@@ -374,8 +376,98 @@ class ChatHealthyMongoUtilities:
             env_var_name, appname or "<unset>", timeout_ms,
         )
 
-    def getConnection(self) -> TimedClient:
-        return TimedClient(_client_cache[self._env_var_name])
+    def getConnection(self, identity: str) -> TimedClient:
+        client_cert_key, mongo_uri = self._fetch_certs_for_identity(identity)
+        uri = self._build_uri_with_certs(identity, client_cert_key, mongo_uri)
+        kwargs = {"timeoutMS": TIMEOUT_MS}
+        try:
+            import certifi
+            kwargs["tlsCAFile"] = certifi.where()
+        except ImportError:
+            pass
+        return TimedClient(MongoClient(uri, **kwargs))
+
+    def _fetch_certs_for_identity(self, identity: str) -> tuple[str, str]:
+        """Fetch client cert+key and connection URI from Key Vault.
+
+        - Client cert+key is identity-specific: mongo-client-cert-key-combined
+        - MongoDB URI is shared across all identities: mongo-uri
+        - Server CA verification uses certifi (standard trust store)
+
+        Returns: (client_cert_key_pem, mongo_uri)
+        """
+        try:
+            vault_uri = os.environ.get("KEY_VAULT_URI", "").strip()
+            if not vault_uri:
+                raise ChatHealthyException(
+                    mode="vault_unreachable",
+                    message="KEY_VAULT_URI not set",
+                    component="ChatHealthyMongoUtilities",
+                )
+            tenant_id = os.environ.get("AZURE_TENANT_ID", "").strip()
+            client_id = os.environ.get("AZURE_CLIENT_ID", "").strip()
+            client_secret = os.environ.get("AZURE_CLIENT_SECRET", "").strip()
+            if not (tenant_id and client_id and client_secret):
+                raise ChatHealthyException(
+                    mode="vault_unreachable",
+                    message="AZURE_TENANT_ID, AZURE_CLIENT_ID, and AZURE_CLIENT_SECRET must be set",
+                    component="ChatHealthyMongoUtilities",
+                )
+            credential = ClientSecretCredential(tenant_id=tenant_id, client_id=client_id, client_secret=client_secret)
+            client = SecretClient(vault_url=vault_uri, credential=credential)
+
+            # Fetch client certificate + private key (combined PEM)
+            client_cert_key_secret = client.get_secret("mongo-client-cert-key-combined")
+            if not client_cert_key_secret or not client_cert_key_secret.value:
+                raise ChatHealthyException(
+                    mode="vault_unreachable",
+                    message="mongo-client-cert-key-combined secret not found in vault",
+                    component="ChatHealthyMongoUtilities",
+                )
+            client_cert_key = client_cert_key_secret.value
+
+            # Fetch MongoDB connection URI
+            mongo_uri_secret = client.get_secret("mongo-uri")
+            if not mongo_uri_secret or not mongo_uri_secret.value:
+                raise ChatHealthyException(
+                    mode="vault_unreachable",
+                    message="mongo-uri secret not found in vault",
+                    component="ChatHealthyMongoUtilities",
+                )
+            mongo_uri = mongo_uri_secret.value
+
+            return (client_cert_key, mongo_uri)
+        except ChatHealthyException:
+            raise
+        except Exception as exc:
+            raise ChatHealthyException(
+                mode="vault_unreachable",
+                message=f"Failed to fetch secrets for identity {identity}: {exc}",
+                component="ChatHealthyMongoUtilities",
+            ) from exc
+
+    def _build_uri_with_certs(self, identity: str, client_cert_key: str, mongo_uri: str) -> str:
+        """Build MongoDB URI with X.509 certificate authentication.
+
+        Writes client cert+key PEM to temp dir and appends X.509 parameters to URI.
+        Server certificate verification uses certifi's standard trust store."""
+        import tempfile
+
+        temp_dir = tempfile.gettempdir()
+        client_cert_path = os.path.join(temp_dir, f"mongo_client_{identity}.pem")
+
+        with open(client_cert_path, "w") as f:
+            f.write(client_cert_key)
+
+        # Append X.509 parameters to the URI
+        separator = "&" if "?" in mongo_uri else "?"
+        uri_with_certs = (
+            f"{mongo_uri}"
+            f"{separator}authMechanism=MONGODB-X509"
+            f"&authSource=%24external"
+            f"&tlsCertificateKeyFile={client_cert_path}"
+        )
+        return uri_with_certs
 
     @staticmethod
     def invalidate(env_var_name: str) -> None:
