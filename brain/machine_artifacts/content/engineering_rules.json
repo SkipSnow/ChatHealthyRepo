@@ -161,13 +161,18 @@
       {
         "id": "Rule-004",
         "name": "Direct MongoClient(...) instantiation forbidden outside the canonical utility",
-        "description": "Realizes EPIC-008-F-002-S-010-REQ-B-007. Direct MongoClient(...) instantiation in any ChatHealthy.ai-authored Python file is forbidden except within FrontEndApplicationLib/src/chathealthy_frontend_lib/mongo_utilities.py itself. All callers MUST obtain a MongoClient via ChatHealthyMongoUtilities().getConnection().",
+        "description": "Realizes EPIC-008-F-002-S-010-REQ-B-007 and REQ-B-012. Direct MongoClient(...) instantiation and direct MONGO_* environment variable reads are forbidden except within FrontEndApplicationLib/src/chathealthy_frontend_lib/mongo_utilities.py itself. All callers MUST obtain a MongoClient via ChatHealthyMongoUtilities().getConnection(cert_name). No alternative connection paths permitted.",
         "rule_statements": {
           "rule_statement": [
             {
               "statement_number": 1,
               "statement_body": "A pre-commit gate MUST scan staged Python files via AST and reject any commit that introduces a direct MongoClient(...) call outside FrontEndApplicationLib/src/chathealthy_frontend_lib/mongo_utilities.py. Scope is the front-end application code (sharedServices, FindCare, EvaluateCare, FindCareChat backend, FrontEndApplicationLib/src). Test files and one-shot scripts are excluded.",
               "req_id": "EPIC-008-F-002-S-010-REQ-B-007"
+            },
+            {
+              "statement_number": 2,
+              "statement_body": "A pre-commit gate MUST scan staged Python files via AST and reject any commit that introduces a direct read of MONGO_connectionString, MONGO_FRONTEND_connectionString, or MONGO_CLUSTER_*_connectionString environment variables outside FrontEndApplicationLib/src/chathealthy_frontend_lib/mongo_utilities.py. Patterns: os.environ.get(\"MONGO_*\"), os.environ[\"MONGO_*\"], os.environ.pop(\"MONGO_*\"), os.environ.setdefault(\"MONGO_*\"). Scope and exclusions match statement 1.",
+              "req_id": "EPIC-008-F-002-S-010-REQ-B-012"
             }
           ]
         },
