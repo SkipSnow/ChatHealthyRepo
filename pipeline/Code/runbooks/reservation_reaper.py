@@ -443,9 +443,8 @@ def _main():
         ChatHealthyLoggingService().info(msg)
         return
 
-    # MONGO_URI came from MONGO_FRONTEND_connectionString env; the utility
-    # will read the same env directly.
-    client = ChatHealthyMongoUtilities("MONGO_FRONTEND_connectionString").getConnection()
+    # Uses pipelineEditor identity to access frontend cluster resources
+    client = ChatHealthyMongoUtilities(identity="pipelineEditor").getConnection()
     coll = client[DB_NAME][COLLECTION]
     log_coll = client["Pipelines"][f"Log_{ENV_PREFIX}"]
     runs_coll = client["chathealthyfrontend"]["pipeline.runs"]

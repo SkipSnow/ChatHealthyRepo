@@ -297,7 +297,7 @@ def _wait_source_idle(cluster_name: str) -> None:
 
 
 def _frontend_admin_coll():
-    fe = ChatHealthyMongoUtilities("MONGO_FRONTEND_connectionString").getConnection()
+    fe = ChatHealthyMongoUtilities(identity="frontend").getConnection()
     return fe["admin"]["cluster_lifecycle"]
 
 
@@ -614,13 +614,9 @@ def _main():
     # through the utility which reads the same env var it just populated.
     _connection_string_for_cluster(src_cluster)
     _connection_string_for_cluster(dst_cluster)
-    src_client = ChatHealthyMongoUtilities(
-        f"MONGO_CLUSTER_{src_cluster}_connectionString"
-    ).getConnection()
-    dst_client = ChatHealthyMongoUtilities(
-        f"MONGO_CLUSTER_{dst_cluster}_connectionString"
-    ).getConnection()
-    pipeline_client = ChatHealthyMongoUtilities("MONGO_connectionString").getConnection()
+    src_client = ChatHealthyMongoUtilities(identity="pipelineEditor").getConnection()
+    dst_client = ChatHealthyMongoUtilities(identity="pipelineEditor").getConnection()
+    pipeline_client = ChatHealthyMongoUtilities(identity="pipelineEditor").getConnection()
 
     src_coll = src_client[src_db_name][src_coll_name]
     dst_coll = dst_client[dst_db_name][dst_coll_name]

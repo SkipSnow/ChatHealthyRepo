@@ -29,6 +29,7 @@ from __future__ import annotations
 import argparse
 import json
 import os
+import shutil
 import subprocess
 import sys
 from datetime import datetime, timezone
@@ -57,6 +58,60 @@ VALID_ENVS = ("local", "dev", "qa", "prod")
 _ENV_BRANCH = {"local": "dev", "dev": "dev", "qa": "qa", "prod": "main"}
 
 
+def _materialize_env_file(env: str, canonical_repo: Path, build_dir: Path) -> Path:
+    """Write the .env this build/deploy will use to <build_dir>/.env,
+    then return that path.
+
+      * --env local          -> copy the working-tree file <repo>/.env
+                                (operator's own file; the operator
+                                maintains this).
+      * --env dev|qa|prod    -> fetch the `env-file` secret from Azure
+                                Key Vault (kv-chpipeline-dev), decode
+                                the project's gz:<base64> wrapper, and
+                                write the resulting dotenv bytes.
+
+    Downstream build steps (leak-check, mongo connect, etc.) and the
+    matching deploy MUST read <build_dir>/.env — never the working-tree
+    .env for cloud envs, never anywhere else. Every build re-materialises
+    the file from scratch; no stale copies from prior builds survive."""
+    dst = build_dir / ".env"
+    if env == "local":
+        src = canonical_repo / ".env"
+        if not src.is_file():
+            sys.exit(f"ERROR: --env local requires {src}; not found.")
+        shutil.copy2(src, dst)
+        _step(f"materialised {dst} from working-tree .env")
+        return dst
+    # cloud env: pull env-file from KV, decode gz:<base64>, write to dst.
+    import base64, gzip
+    az = shutil.which("az") or "az"
+    r = subprocess.run(
+        [az, "keyvault", "secret", "show",
+         "--vault-name", "kv-chpipeline-dev", "--name", "env-file",
+         "--query", "value", "-o", "tsv"],
+        capture_output=True, text=True, shell=False,
+    )
+    if r.returncode != 0:
+        sys.exit(
+            f"ERROR: cannot fetch kv-chpipeline-dev/env-file: "
+            f"{r.stderr.strip()[:300]}"
+        )
+    raw = r.stdout.strip()
+    if not raw.startswith("gz:"):
+        sys.exit(
+            "ERROR: kv-chpipeline-dev/env-file has unexpected encoding "
+            "(expected 'gz:<base64>'); refusing to interpret."
+        )
+    plaintext = gzip.decompress(base64.b64decode(raw[3:])).decode("utf-8")
+    dst.write_text(plaintext, encoding="utf-8")
+    _step(f"materialised {dst} from kv-chpipeline-dev/env-file")
+    # Load into os.environ so this build's downstream code that uses
+    # os.getenv() sees the values without any explicit load_dotenv call.
+    from dotenv import load_dotenv
+    load_dotenv(dst, override=False)
+    return dst
+
+
 def _current_branch(repo_root: Path) -> str:
     return subprocess.run(
         ["git", "symbolic-ref", "--short", "HEAD"],
@@ -64,30 +119,68 @@ def _current_branch(repo_root: Path) -> str:
     ).stdout.strip()
 
 
-def _enforce_env_branch_check(repo_root: Path, env: str) -> None:
-    """INV-2: --env dev|qa|prod build from the matching branch. --env local
-    has no branch requirement (INV-1: working-tree source). If the current
-    branch differs from the expected one, switch to it — never require the
-    operator to do a manual checkout. If the checkout fails, abend with a
-    clean error (do NOT plow forward on the wrong branch)."""
+def _get_build_source(canonical_repo: Path, env: str) -> Path:
+    """Return the directory the build reads its sources from.
+
+      --env local            -> the working tree (build reads whatever the
+                                operator has on disk).
+      --env dev | qa | prod  -> a fresh checkout of origin/<branch> in a
+                                temp directory. The local working tree,
+                                current branch, and any uncommitted files
+                                are irrelevant to and untouched by the
+                                build. Caller MUST pair this with
+                                _release_build_source() when done."""
     if env == "local":
-        return
-    expected = _ENV_BRANCH[env]
-    actual = _current_branch(repo_root)
-    if actual == expected:
-        return
-    print(
-        f"[build] current branch is {actual!r}; --env {env} requires "
-        f"{expected!r}; checking out {expected!r}"
+        return canonical_repo
+    branch = _ENV_BRANCH[env]
+    _run_git(["fetch", "origin", branch], canonical_repo, "fetch")
+    import tempfile
+    src = Path(tempfile.mkdtemp(prefix=f"build_{env}_{branch}_"))
+    print(f"[build] materialising origin/{branch} at {src}")
+    _run_git(
+        ["worktree", "add", "--detach", "--force", str(src), f"origin/{branch}"],
+        canonical_repo, "worktree add",
     )
-    result = subprocess.run(
-        ["git", "checkout", expected],
-        cwd=str(repo_root), capture_output=True, text=True,
+    return src
+
+
+def _release_build_source(build_source: Path, canonical_repo: Path) -> None:
+    """Remove the temp worktree created by _get_build_source. No-op for
+    --env local (build_source is the working tree)."""
+    if build_source == canonical_repo:
+        return
+    subprocess.run(
+        ["git", "worktree", "remove", "--force", str(build_source)],
+        cwd=str(canonical_repo), capture_output=True, text=True,
     )
-    if result.returncode != 0:
+
+
+def _export_built_packages(built: list[Path], build_source: Path, canonical_repo: Path) -> list[Path]:
+    """Copy built package dirs out of the temp build source back to the
+    canonical repo's localBuild/ so deploy_chathealthy.py finds them at
+    the well-known location. No-op for --env local."""
+    if build_source == canonical_repo:
+        return built
+    exported: list[Path] = []
+    for pkg in built:
+        rel = pkg.relative_to(build_source)
+        dst = canonical_repo / rel
+        if dst.exists():
+            shutil.rmtree(dst, ignore_errors=True)
+        dst.parent.mkdir(parents=True, exist_ok=True)
+        shutil.copytree(pkg, dst)
+        exported.append(dst)
+    return exported
+
+
+def _run_git(args: list[str], cwd: Path, label: str) -> None:
+    r = subprocess.run(
+        ["git", *args], cwd=str(cwd), capture_output=True, text=True,
+    )
+    if r.returncode != 0:
         sys.exit(
-            f"ERROR: git checkout {expected} failed (rc={result.returncode}). "
-            f"stderr: {result.stderr.strip()}"
+            f"ERROR: git {label} failed (rc={r.returncode}). "
+            f"stderr: {r.stderr.strip()}"
         )
 
 
@@ -99,10 +192,19 @@ def _bump_build_counter(env: str) -> int:
     from pymongo import MongoClient
 
     repo_root = _find_repo_root(Path(__file__))
-    load_dotenv(repo_root / ".env")
+    # Canonical env source per operator directive 2026-08-04.
+    build_env = repo_root / "build" / ".env"
+    working_tree_env = repo_root / ".env"
+    for candidate in (build_env, working_tree_env):
+        if candidate.is_file():
+            load_dotenv(candidate)
+            break
     conn = os.getenv("MONGO_FRONTEND_connectionString")
     if not conn:
-        sys.exit("ERROR: MONGO_FRONTEND_connectionString not set in env or .env")
+        sys.exit(
+            "ERROR: MONGO_FRONTEND_connectionString not found in "
+            f"{build_env} or {working_tree_env}."
+        )
     coll = MongoClient(conn, serverSelectionTimeoutMS=10000)["admin"]["Versions"]
     latest = coll.find_one(sort=[("from", -1)])
     if latest is None:
@@ -192,18 +294,47 @@ def main(argv: list[str] | None = None) -> int:
     )
     args = parser.parse_args(argv)
 
-    repo_root = _find_repo_root(Path(__file__))
+    canonical_repo = _find_repo_root(Path(__file__))
+
+    # Purge the canonical build output dir. Every build starts from a
+    # clean slate; there is no residual state from a prior invocation.
+    canonical_build_dir = canonical_repo / "build"
+    if canonical_build_dir.exists():
+        shutil.rmtree(canonical_build_dir, ignore_errors=True)
+    canonical_build_dir.mkdir(parents=True, exist_ok=True)
+    _step(f"purged and recreated {canonical_build_dir}")
+
+    # Materialise .env into <repo>/build/.env: working tree for --env
+    # local, KV for --env dev|qa|prod. Downstream build code reads env
+    # values via os.environ; _materialize_env_file loads them for us.
+    _materialize_env_file(args.env, canonical_repo, canonical_build_dir)
+
+    # Pull sources from the correct place per env:
+    #   local           -> the working tree
+    #   dev | qa | prod -> a temp checkout of origin/<branch>
+    repo_root = _get_build_source(canonical_repo, args.env)
     _step(f"repo_root={repo_root} env={args.env} target={args.target}")
 
-    _enforce_env_branch_check(repo_root, args.env)
+    try:
+        rc = _build_body(args, repo_root, canonical_repo, canonical_build_dir)
+    finally:
+        _release_build_source(repo_root, canonical_repo)
+    return rc
 
+
+def _build_body(args, repo_root: Path, canonical_repo: Path, canonical_build_dir: Path) -> int:
     build_sha = _resolve_build_sha(repo_root)
     _step(f"HEAD={build_sha}")
 
     brain_path = repo_root / "brain" / "machine_artifacts" / "content" / "deployment_architecture.json"
     backlog_schema = repo_root / "Website" / "schemas" / "ChatHealthyAgileBacklogSchema.json"
     backlog_path = repo_root / "brain" / "machine_artifacts" / "content" / "agile_backlog.json"
-    env_file = repo_root / ".env"
+    # .env comes from the canonical build dir (materialized at build
+    # start: working tree for --env local, KV for --env dev|qa|prod).
+    # NEVER read from a git source (working tree or temp worktree) at
+    # this call site — that would sneak the operator's dev tree into
+    # cloud builds via the leak-check.
+    env_file = canonical_build_dir / ".env"
 
     # Refresh content_hash entries in the manifest to match the current disk
     # bytes BEFORE Crosswalk runs. The build is the canonical mechanism for
@@ -266,9 +397,25 @@ def main(argv: list[str] | None = None) -> int:
         _stamp_env_on_manifest(package_dir, args.env, build_sha, build_n)
         built.append(package_dir)
 
+    # Export built packages to the canonical <repo>/build/ location so
+    # deploy_chathealthy.py finds them regardless of where they were
+    # actually assembled (temp worktree for dev|qa|prod; already the
+    # canonical location for local).
+    if repo_root != canonical_repo:
+        exported: list[Path] = []
+        for pkg in built:
+            rel = pkg.relative_to(repo_root / "build")
+            dst = canonical_build_dir / rel
+            if dst.exists():
+                shutil.rmtree(dst, ignore_errors=True)
+            dst.parent.mkdir(parents=True, exist_ok=True)
+            shutil.copytree(pkg, dst)
+            exported.append(dst)
+        built = exported
+
     _step(f"built {len(built)} package(s) (env={args.env}, build={build_n}):")
     for b in built:
-        _step(f"  {b.relative_to(repo_root)}")
+        _step(f"  {b.relative_to(canonical_repo)}")
     return 0
 
 

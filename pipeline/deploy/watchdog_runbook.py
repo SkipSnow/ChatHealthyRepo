@@ -258,9 +258,8 @@ def _mongo_client():
         ca = certifi.where()
     except ImportError:
         ca = None
-    conn = _get_mongo_conn_string()
-    os.environ["MONGO_FRONTEND_connectionString"] = conn
-    return ChatHealthyMongoUtilities("MONGO_FRONTEND_connectionString").getConnection()
+    _get_mongo_conn_string()  # Validate connection is possible; result not used
+    return ChatHealthyMongoUtilities(identity="pipelineEditor").getConnection()
 
 
 # -----------------------------------------------------------------------------

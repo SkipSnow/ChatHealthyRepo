@@ -242,7 +242,7 @@ def main(argv: list[str] | None = None) -> int:
         while not _hb_stop.wait(60):
             try:
                 m = ChatHealthyMongoUtilities(
-                    "MONGO_FRONTEND_connectionString"
+                    identity="pipelineEditor"
                 ).getConnection()
                 now = datetime.datetime.utcnow()
                 m["chathealthyfrontend"]["pipeline.runs"].update_one(
@@ -262,6 +262,11 @@ def main(argv: list[str] | None = None) -> int:
                              rid, str(exc)[:200])
     threading.Thread(target=_heartbeat, daemon=True, name="controller-heartbeat").start()
 
+    manifest = None
+    final_status = "failed"
+    exit_code = 1
+    fatal_exception = None
+
     try:
         manifest = orchestrator.run(args)
         if manifest and manifest.run_id:
@@ -270,6 +275,16 @@ def main(argv: list[str] | None = None) -> int:
         _log.info("control_runner: run %s finished status=%s",
                   manifest.run_id if manifest else "(none)", final_status)
         exit_code = 0 if final_status == "succeeded" else 1
+    except Exception as exc:
+        fatal_exception = exc
+        final_status = "failed"
+        _log.error("control_runner: fatal exception during orchestration: %s", exc,
+                   exc=exc if isinstance(exc, ChatHealthyException) else ChatHealthyException(
+                       mode="orchestration_failure",
+                       message=f"Fatal exception during orchestration: {exc}",
+                       component="ControlRunner",
+                       exception=exc,
+                   ))
     finally:
         # On any non-success terminal state, kill every child process the
         # Controller spawned (worker subprocesses). Operator directive
@@ -283,8 +298,10 @@ def main(argv: list[str] | None = None) -> int:
             or os.environ.get("RUN_ID", "")
         )
         _quiesce_mongo_state(run_id_for_quiesce, final_status,
-                              manifest=manifest, args=args)
-        _fire_farewell_vm_delete()
+                              manifest=manifest, args=args, fatal_exception=fatal_exception)
+        if manifest:
+            _pause_pipeline_cluster()
+            _fire_farewell_vm_delete()
     return exit_code
 
 
@@ -334,18 +351,56 @@ def _kill_active_workers() -> None:
                      type(exc).__name__)
 
 
+def _pause_pipeline_cluster() -> None:
+    """Pause the pipeline cluster via Atlas API. Best-effort; failure does
+    not block VM deletion. The reaper is the fallback if this fails."""
+    try:
+        import requests  # noqa: PLC0415
+        from requests.auth import HTTPDigestAuth  # noqa: PLC0415
+    except ImportError:
+        _log.warning("quiesce: requests not available; cluster pause skipped")
+        return
+
+    pub_key = os.environ.get("ATLAS_PUBLIC_KEY", "").strip()
+    priv_key = os.environ.get("ATLAS_PRIVATE_KEY", "").strip()
+    project_id = os.environ.get("ATLAS_PROJECT_ID", "").strip()
+    cluster_name = os.environ.get("PIPELINE_CLUSTER", "chathealthypipeline").strip()
+
+    if not (pub_key and priv_key and project_id):
+        _log.warning("quiesce: Atlas credentials not configured; cluster pause skipped")
+        return
+
+    try:
+        auth = HTTPDigestAuth(pub_key, priv_key)
+        url = f"https://cloud.mongodb.com/api/atlas/v2/groups/{project_id}/clusters/{cluster_name}"
+        resp = requests.patch(
+            url,
+            json={"paused": True},
+            auth=auth,
+            headers={"Content-Type": "application/json"},
+            timeout=30,
+        )
+        if resp.status_code in (200, 202):
+            _log.info("quiesce: pipeline cluster paused")
+        else:
+            _log.warning("quiesce: cluster pause rejected (%d): %s",
+                        resp.status_code, resp.text[:200])
+    except Exception as exc:
+        _log.warning("quiesce: cluster pause failed (reaper will retry): %s", exc)
+
+
 def _quiesce_mongo_state(run_id: str, final_status: str, *,
-                          manifest=None, args=None) -> None:
+                          manifest=None, args=None, fatal_exception=None) -> None:
     """v32 §5.2.20 quiesce steps 1-2 + 2026-08-03 addition: cancel the
     pipeline-run reservation on the front cluster, mark the run manifest
-    terminal, AND unconditionally emit the discrepancy report. Best-effort
-    per step; a failure in one MUST NOT block the other, and none block
-    the subsequent VM delete."""
+    terminal, AND unconditionally emit the discrepancy report with any fatal
+    exception details. Best-effort per step; a failure in one MUST NOT block
+    the other, and none block the subsequent VM delete."""
     if not run_id:
         _log.warning("quiesce_mongo_state: no run_id available; skipping")
         return
     try:
-        mongo = ChatHealthyMongoUtilities("MONGO_FRONTEND_connectionString").getConnection()
+        mongo = ChatHealthyMongoUtilities(identity="pipelineEditor").getConnection()
     except Exception as exc:
         _log.error("quiesce: unable to open front-cluster Mongo run_id=%s err=%s",
                    run_id, str(exc)[:500])
@@ -418,35 +473,54 @@ def _quiesce_mongo_state(run_id: str, final_status: str, *,
     # Discrepancy report — ALWAYS emit, perfect run OR abend. Operator
     # directive 2026-08-03: "we always in every case, even with a perfect
     # job or an abend get the discrepancy report". Best-effort so a
-    # SparkPost outage doesn't block the reservation release above or the
-    # subsequent VM delete.
+    # mongo/SparkPost outage doesn't block the reservation release.
     try:
-        # Late import to avoid circular / dep-order issues at module load
-        # (this file is the entry point; steps.* imports pipeline_runtime).
-        from steps.discrepancy_reports_and_notifications import emit_discrepancy_report  # noqa: PLC0415
-        from pipeline_config import load_pipeline_config  # noqa: PLC0415
-        env_prefix = os.environ.get("ENV_PREFIX", "dev")
-        cfg = load_pipeline_config(mongo_client=None, env_prefix=env_prefix)
-        manifest_status = manifest.status if manifest else final_status
-        manifest_doc = (
-            manifest.to_document()
-            if manifest and hasattr(manifest, "to_document") else
-            {"run_id": run_id, "status": manifest_status}
-        )
-        pipeline_mongo = ChatHealthyMongoUtilities("MONGO_connectionString").getConnection()
-        summary = emit_discrepancy_report(
-            pipeline_mongo=pipeline_mongo,
-            run_id=run_id,
-            manifest_status=manifest_status,
-            manifest_doc=manifest_doc,
-            config=cfg,
-            operator_email=getattr(args, "operator_email", None) if args else None,
-            operator_sms=getattr(args, "operator_sms", None) if args else None,
-        )
-        _log.info(
-            "quiesce: discrepancy report emitted run_id=%s total=%d pdf_bytes=%d",
-            run_id, summary.get("total", 0), summary.get("pdf_bytes", 0),
-        )
+        pipeline_mongo = None
+        try:
+            pipeline_mongo = ChatHealthyMongoUtilities(identity="pipelineEditor").getConnection()
+        except Exception as mongo_exc:
+            _log.error("quiesce: mongo unreachable for discrepancy report run_id=%s err=%s",
+                       run_id, str(mongo_exc)[:500])
+            fatal_exception = fatal_exception or mongo_exc
+
+        if pipeline_mongo:
+            # Mongo is reachable - use normal emit_discrepancy_report path
+            from steps.discrepancy_reports_and_notifications import emit_discrepancy_report  # noqa: PLC0415
+            from pipeline_config import load_pipeline_config  # noqa: PLC0415
+            env_prefix = os.environ.get("ENV_PREFIX", "dev")
+            cfg = load_pipeline_config(mongo_client=None, env_prefix=env_prefix)
+            manifest_status = manifest.status if manifest else final_status
+            manifest_doc = (
+                manifest.to_document()
+                if manifest and hasattr(manifest, "to_document") else
+                {"run_id": run_id, "status": manifest_status}
+            )
+            if fatal_exception:
+                manifest_doc["fatal_exception"] = {
+                    "type": type(fatal_exception).__name__,
+                    "message": str(fatal_exception),
+                    "mode": getattr(fatal_exception, "mode", "unknown"),
+                }
+            summary = emit_discrepancy_report(
+                pipeline_mongo=pipeline_mongo,
+                run_id=run_id,
+                manifest_status=manifest_status,
+                manifest_doc=manifest_doc,
+                config=cfg,
+                operator_email=getattr(args, "operator_email", None) if args else None,
+                operator_sms=getattr(args, "operator_sms", None) if args else None,
+            )
+            _log.info(
+                "quiesce: discrepancy report emitted run_id=%s total=%d pdf_bytes=%d",
+                run_id, summary.get("total", 0), summary.get("pdf_bytes", 0),
+            )
+        else:
+            # Mongo unreachable - emit minimal report to stderr
+            _log.error(
+                "quiesce: DISCREPANCY REPORT run_id=%s status=%s fatal_exception=%s",
+                run_id, final_status,
+                f"{type(fatal_exception).__name__}: {fatal_exception}" if fatal_exception else "None"
+            )
     except Exception as exc:
         _log.error("quiesce: discrepancy report FAILED run_id=%s err=%s",
                    run_id, str(exc)[:500])

@@ -47,10 +47,10 @@ _base_mongo = None  # lazy singleton — avoids import at module load when Mongo
 
 
 def _get_base_mongo_client():
-    if not os.environ.get("MONGO_connectionString"):
+    if not os.environ.get("MONGO_HOST"):
         return None
     from chathealthy_frontend_lib.mongo_utilities import ChatHealthyMongoUtilities
-    return ChatHealthyMongoUtilities("MONGO_connectionString").getConnection()
+    return ChatHealthyMongoUtilities(identity="pipelineEditor").getConnection()
 
 
 class PipelineWorkerBase(ABC):
@@ -69,51 +69,64 @@ class PipelineWorkerBase(ABC):
 
     def pipeline_execute(self) -> dict:
         """Drive the processing loop.  Called by orchestration."""
+        fatal_exception = None
         try:
             self._pipeline_open()
             while self._pipeline_has_next():
                 self._pipeline_step()
         except Exception as exc:
             self._job_failed = True
+            fatal_exception = exc
             self._pipeline_on_job_failure(exc)
             raise
         finally:
             self._pipeline_close()
-            self._write_row_errors()
+            self._write_row_errors(fatal_exception=fatal_exception)
         return self._pipeline_build_result()
 
     # ── Row-error persistence (internal) ─────────────────────────────────────
 
-    def _write_row_errors(self) -> None:
-        """Write row_errors to admin.PipelineDiscrepancyReports if configured.
+    def _write_row_errors(self, *, fatal_exception: Exception | None = None) -> None:
+        """Write row_errors and fatal_exception to admin.PipelineDiscrepancyReports.
 
         Best-effort — logs a warning on failure but never raises.
-        No-op when row_errors is empty or report_collection is not set in config.
+        No-op when both row_errors is empty and fatal_exception is None, or
+        when report_collection is not set in config.
         """
-        if not self.row_errors or not self._report_collection:
+        if (not self.row_errors and not fatal_exception) or not self._report_collection:
             return
         try:
             client = _get_base_mongo_client()
             if client is None:
                 ChatHealthyLoggingService().warning(
-                    "PipelineWorkerBase: MONGO_connectionString not set — "
-                    "%d row errors not persisted", len(self.row_errors)
+                    "PipelineWorkerBase: MONGO_HOST not set — "
+                    "%d row errors + %s fatal exception not persisted",
+                    len(self.row_errors), "no" if not fatal_exception else "a"
                 )
                 return
             db_name, coll_name = self._report_collection.split(".", 1)
-            client[db_name][coll_name].insert_one({
+            doc = {
                 "job": self._job,
                 "load_id": self._load_id,
                 "worker_id": self._worker_id,
                 "row_errors": self.row_errors,
                 "datetime": datetime.now(timezone.utc).isoformat(),
-            })
+            }
+            if fatal_exception:
+                doc["fatal_exception"] = {
+                    "type": type(fatal_exception).__name__,
+                    "message": str(fatal_exception),
+                    "mode": getattr(fatal_exception, "mode", "unknown"),
+                }
+            client[db_name][coll_name].insert_one(doc)
             ChatHealthyLoggingService().info(
-                "PipelineWorkerBase: wrote %d row errors to %s (load_id=%s)",
-                len(self.row_errors), self._report_collection, self._load_id,
+                "PipelineWorkerBase: wrote %d row errors%s to %s (load_id=%s)",
+                len(self.row_errors),
+                " + fatal exception" if fatal_exception else "",
+                self._report_collection, self._load_id,
             )
         except Exception as exc:
-            ChatHealthyLoggingService().warning("PipelineWorkerBase: failed to persist row errors: %s", exc)
+            ChatHealthyLoggingService().warning("PipelineWorkerBase: failed to persist errors: %s", exc)
 
     # ── Template method (private) ─────────────────────────────────────────────
 

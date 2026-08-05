@@ -87,6 +87,10 @@ _oneshots/
 .wrangler/
 
 architecture/DevOpsBuildDeployAndEnvironmentManagement/localBuild/
+# Canonical build output root (operator directive 2026-08-04). Purged
+# and rebuilt on every `build_chathealthy.py` invocation; `deploy_
+# chathealthy.py` reads from here only.
+/build/
 .claude/worktrees/
 
 architecture/EngineeringRuleEnforcement/ArchitectureDesignAndAuditDocs/commit_authorization.log

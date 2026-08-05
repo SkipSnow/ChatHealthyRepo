@@ -886,8 +886,7 @@
       ],
       "secrets": {
         "EVALCARE_SIGNING_KEY_B64": "local_env",
-        "HF_TOKEN": "local_env",
-        "MONGO_FRONTEND_connectionString": "local_env"
+        "HF_TOKEN": "local_env"
       },
       "entitlements": [
         {
@@ -2314,7 +2313,6 @@
         "HF_TOKEN": "local_env",
         "ADMIN_UNLOCK_KEY": "local_env",
         "ANTHROPIC_API_KEY": "local_env",
-        "MONGO_FRONTEND_connectionString": "local_env",
         "NOTIFICATION_FROM_EMAIL": "local_env",
         "NOTIFICATION_TO_EMAIL": "local_env",
         "OPENAI_API_KEY": "local_env",
@@ -2982,7 +2980,6 @@
         "HF_TOKEN": "local_env",
         "GEMINI_API_KEY": "local_env",
         "GOOGLE_API_KEY": "local_env",
-        "MONGO_FRONTEND_connectionString": "local_env",
         "OPENAI_API_KEY": "local_env",
         "ANTHROPIC_API_KEY": "local_env"
       },
@@ -4416,7 +4413,6 @@
         "HF_TOKEN": "local_env",
         "ADMIN_UNLOCK_KEY": "local_env",
         "ANTHROPIC_API_KEY": "local_env",
-        "MONGO_FRONTEND_connectionString": "local_env",
         "NOTIFICATION_FROM_EMAIL": "local_env",
         "NOTIFICATION_TO_EMAIL": "local_env",
         "OPENAI_API_KEY": "local_env",
@@ -4761,8 +4757,7 @@
       ],
       "secrets": {
         "EVALCARE_SIGNING_KEY_B64": "local_env",
-        "HF_TOKEN": "local_env",
-        "MONGO_FRONTEND_connectionString": "local_env"
+        "HF_TOKEN": "local_env"
       },
       "variables": {
         "ENV_PREFIX": "local_env",
@@ -5376,7 +5371,6 @@
         "HF_TOKEN": "local_env",
         "GEMINI_API_KEY": "local_env",
         "GOOGLE_API_KEY": "local_env",
-        "MONGO_FRONTEND_connectionString": "local_env",
         "OPENAI_API_KEY": "local_env",
         "ANTHROPIC_API_KEY": "local_env"
       },
@@ -6321,7 +6315,6 @@
         "EVALCARE_URL": "local_env",
         "GITHUB_ACTIONS": "local_env",
         "GITHUB_SHA": "local_env",
-        "MONGO_FRONTEND_connectionString": "local_env",
         "PUSHOVER_TOKEN": "local_env",
         "PUSHOVER_USER": "local_env",
         "SHARED_SERVICES_URL": "local_env",
@@ -6537,7 +6530,6 @@
         "EVALCARE_URL": "local_env",
         "GITHUB_ACTIONS": "local_env",
         "GITHUB_SHA": "local_env",
-        "MONGO_FRONTEND_connectionString": "local_env",
         "PUSHOVER_TOKEN": "local_env",
         "PUSHOVER_USER": "local_env",
         "SHARED_SERVICES_URL": "local_env",
@@ -6579,7 +6571,6 @@
                 }
               ],
               "secrets": {
-                "MONGO_FRONTEND_connectionString": "local_env",
                 "ATLAS_PUBLIC_KEY": "local_env",
                 "ATLAS_PRIVATE_KEY": "local_env",
                 "ATLAS_PROJECT_ID": "local_env",
@@ -6603,8 +6594,7 @@
                 "AZ_VM_SIZE": "local_env",
                 "AZ_VM_SUBNET_ID": "local_env",
                 "IDENTITY_ENDPOINT": "local_env",
-                "IDENTITY_HEADER": "local_env",
-                "MONGO_connectionString": "local_env"
+                "IDENTITY_HEADER": "local_env"
               },
               "config": {
                 "runbook_name": "ReservationReaper",
@@ -6647,7 +6637,6 @@
                 }
               ],
               "secrets": {
-                "MONGO_FRONTEND_connectionString": "local_env",
                 "API_TOKEN_MAP": "local_env"
               },
               "config": {
@@ -6685,8 +6674,6 @@
                 }
               ],
               "secrets": {
-                "MONGO_connectionString": "local_env",
-                "MONGO_FRONTEND_connectionString": "local_env",
                 "ATLAS_PUBLIC_KEY": "local_env",
                 "ATLAS_PRIVATE_KEY": "local_env",
                 "ATLAS_PROJECT_ID": "local_env",
@@ -6818,15 +6805,12 @@
                 }
               ],
               "secrets": {
-                "MONGO_FRONTEND_connectionString": "local_env",
                 "AZ_SUBSCRIPTION_ID": "local_env",
                 "AZ_RESOURCE_GROUP": "local_env",
                 "AZ_AUTOMATION_ACCOUNT": "local_env",
                 "ATLAS_PUBLIC_KEY": "local_env",
                 "ATLAS_PRIVATE_KEY": "local_env",
                 "ATLAS_PROJECT_ID": "local_env",
-                "MONGO_CLUSTER_pipeline_connectionString": "local_env",
-                "MONGO_CLUSTER_frontend_connectionString": "local_env",
                 "KEY_VAULT_URI": "local_env",
                 "AUTOMATION_ENV_PREFIX": "local_env",
                 "MONGOCLUSTER_MIGRATOR_ORCHESTRATOR_WEBHOOK_URL": "local_env"
@@ -6870,7 +6854,6 @@
                 }
               ],
               "secrets": {
-                "MONGO_FRONTEND_connectionString": "local_env",
                 "AZ_SUBSCRIPTION_ID": "local_env",
                 "AZ_VM_RESOURCE_GROUP": "local_env",
                 "AZ_VM_LOCATION": "local_env",
@@ -6922,8 +6905,6 @@
                 }
               ],
               "secrets": {
-                "MONGO_connectionString": "local_env",
-                "MONGO_FRONTEND_connectionString": "local_env",
                 "ATLAS_PUBLIC_KEY": "local_env",
                 "ATLAS_PRIVATE_KEY": "local_env",
                 "ATLAS_PROJECT_ID": "local_env",
@@ -6972,7 +6953,6 @@
                 }
               ],
               "secrets": {
-                "MONGO_FRONTEND_connectionString": "local_env",
                 "AZ_SUBSCRIPTION_ID": "local_env",
                 "AZ_VM_RESOURCE_GROUP": "local_env",
                 "AZ_AUTOMATION_RESOURCE_GROUP": "local_env",
@@ -7019,7 +6999,6 @@
                 }
               ],
               "secrets": {
-                "MONGO_FRONTEND_connectionString": "local_env",
                 "IDENTITY_ENDPOINT": "local_env",
                 "IDENTITY_HEADER": "local_env",
                 "KEY_VAULT_URI": "local_env",
@@ -7137,8 +7116,6 @@
       ],
       "files": [],
       "secrets": {
-        "MONGO_connectionString": "local_env",
-        "MONGO_FRONTEND_connectionString": "local_env",
         "ATLAS_PUBLIC_KEY": "local_env",
         "ATLAS_PRIVATE_KEY": "local_env",
         "ATLAS_PROJECT_ID": "local_env",

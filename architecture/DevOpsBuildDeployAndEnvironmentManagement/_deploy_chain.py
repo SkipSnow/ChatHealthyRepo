@@ -65,7 +65,10 @@ from secrets_resolver import SecretsResolver
 from target_record import DeploymentCollection, TargetRecord
 
 
-BUILD_ROOT_REL = Path("architecture/DevOpsBuildDeployAndEnvironmentManagement/localBuild")
+# Canonical build output root (operator directive 2026-08-04): every
+# build writes to <repo>/build/<target_id>/; every deploy reads from
+# there. build_chathealthy.py purges the whole tree before each build.
+BUILD_ROOT_REL = Path("build")
 
 
 def firm_git_identity() -> dict:
@@ -131,31 +134,13 @@ ENV_BRANCH: dict[str, str] = {
 
 
 def require_branch_matches_env(env: str) -> None:
-    """Hard-fail unless the local working-tree branch is the one the firm
-    promote chain says deploys to `env`. Runs at main() entry so neither
-    local nor cloud deploys can ever ship a wrong-branch source set."""
-    expected = ENV_BRANCH.get(env)
-    if not expected:
-        sys.exit(f"ERROR: unknown env {env!r}; promote-chain guard refuses to proceed.")
-    cp = subprocess.run(
-        ["git", "symbolic-ref", "--short", "HEAD"],
-        capture_output=True, text=True,
-    )
-    if cp.returncode != 0 or not cp.stdout.strip():
-        sys.exit(
-            "ERROR: deploy refuses to run from a detached HEAD or non-branch state.\n"
-            f"  stderr: {(cp.stderr or '').strip()[:300]}"
-        )
-    actual = cp.stdout.strip()
-    if actual != expected:
-        sys.exit(
-            f"ERROR: promote-chain guard — refusing to deploy.\n"
-            f"  env                   : {env}\n"
-            f"  expected branch       : {expected}\n"
-            f"  current branch (HEAD) : {actual}\n"
-            f"To deploy {env} you MUST be on branch '{expected}'. Use the "
-            "promote workflow to land the change there first."
-        )
+    """No-op (retained for callsite compatibility).
+
+    Operator directive 2026-08-04: deploy for env X reads only from
+    <repo>/build/<target_id>/, which the build script populated from
+    origin/<branch-for-X>. The local working-tree branch is irrelevant
+    to the deploy and MUST NOT be enforced."""
+    return
 
 
 def find_repo_root(start: Path) -> Path:
@@ -2530,45 +2515,17 @@ def require_branch_matches_env_binding(
     target,
     env: str,
 ) -> None:
-    """Refuse the deploy unless the local branch matches the target's
-    env_binding.branch for the requested env. Enforces the promote chain
-    in code so a dev-branch checkout cannot push to qa or prod (and qa
-    cannot push to prod). Per the firm-level promote rule (dev branch
-    deploys dev, qa branch deploys qa, main branch deploys prod).
+    """No-op (retained for callsite compatibility).
 
-    Targets carrying promote_chain_bound=false in the manifest are
-    single-environment shared infrastructure (one pipeline FA, one
-    durable router ACA, one Automation Account + its runbooks) and are
-    deployed from any branch. The guard skips them.
-    """
-    if not target.promote_chain_bound:
-        return
-    binding = next(
-        (e for e in target.environments if e.env_binding == env), None,
-    )
-    if binding is None:
-        sys.exit(
-            f"ERROR: target {target.target_id!r} has no env_binding for env={env!r}; "
-            f"cannot enforce promote-chain guard."
-        )
-    expected = binding.branch
-    if not expected:
-        sys.exit(
-            f"ERROR: target {target.target_id!r} env_binding {env!r} has no "
-            "branch declared in deployment_architecture.json; the deploy refuses "
-            "to ship without a manifest-declared expected branch."
-        )
-    actual = current_git_branch(repo_root)
-    if actual != expected:
-        sys.exit(
-            f"ERROR: promote-chain guard — refusing to deploy.\n"
-            f"  target_id     : {target.target_id}\n"
-            f"  env           : {env}\n"
-            f"  expected branch (manifest): {expected}\n"
-            f"  current branch (HEAD)     : {actual}\n"
-            f"To deploy {env} you must be on '{expected}' (use the promote workflow "
-            f"to land the change there first)."
-        )
+    Operator directive 2026-08-04: deploy for env X reads only from
+    <repo>/build/<target_id>/, populated by the build script from
+    origin/<branch-for-X>. The local working-tree branch is
+    irrelevant to the deploy and MUST NOT be enforced. The promote-
+    chain invariant is upheld earlier -- promote_chathealthy.py
+    controls what lands on each remote branch, and the build reads
+    from those branches; there is no need to re-check branch identity
+    at deploy time."""
+    return
 
 
 def deploy_one(
@@ -3077,9 +3034,7 @@ class LocalDeploy:
         # and crash the browser when JS tries to fetch '__HF_URL_FINDCARE__'.
         # No fallback — if build_dir is missing, run build_chathealthy.py first.
         self.website_dir = (
-            self.repo_root / "architecture"
-            / "DevOpsBuildDeployAndEnvironmentManagement"
-            / "localBuild" / "target_cloudflare_pages_website"
+            self.repo_root / "build" / "target_cloudflare_pages_website"
         )
         if not self.website_dir.is_dir():
             sys.exit(
