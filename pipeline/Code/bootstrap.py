@@ -39,6 +39,7 @@ from azure.identity import DefaultAzureCredential
 from azure.keyvault.secrets import SecretClient
 
 import blob_logger
+import chathealthy_ca
 from PipelineServices.observability_gate import ObservabilityGate
 from chathealthy_frontend_lib.exceptions import ChatHealthyException
 
