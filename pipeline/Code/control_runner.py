@@ -41,6 +41,7 @@ os.environ.setdefault("CH_SPACE_NAME", "controller")
 os.environ.setdefault("CH_COMPONENT", "provider_pipeline_control")
 
 from chathealthy_frontend_lib.logging_service import ChatHealthyLoggingService
+from chathealthy_frontend_lib.exceptions import ChatHealthyException
 
 import argparse
 import datetime
@@ -275,16 +276,23 @@ def main(argv: list[str] | None = None) -> int:
         _log.info("control_runner: run %s finished status=%s",
                   manifest.run_id if manifest else "(none)", final_status)
         exit_code = 0 if final_status == "succeeded" else 1
-    except Exception as exc:
-        fatal_exception = exc
+    except ChatHealthyException as ch_exc:
+        fatal_exception = ch_exc
         final_status = "failed"
-        _log.error("control_runner: fatal exception during orchestration: %s", exc,
-                   exc=exc if isinstance(exc, ChatHealthyException) else ChatHealthyException(
-                       mode="orchestration_failure",
-                       message=f"Fatal exception during orchestration: {exc}",
-                       component="ControlRunner",
-                       exception=exc,
-                   ))
+        _log.error("control_runner: fatal exception during orchestration: %s", ch_exc, exc=ch_exc)
+    except Exception as other_exc:
+        fatal_exception = other_exc
+        final_status = "failed"
+        _log.error(
+            "control_runner: fatal exception during orchestration: %s",
+            other_exc,
+            exc=ChatHealthyException(
+                mode="orchestration_failure",
+                message=f"Fatal exception during orchestration: {other_exc}",
+                component="ControlRunner",
+                exception=other_exc,
+            ),
+        )
     finally:
         # On any non-success terminal state, kill every child process the
         # Controller spawned (worker subprocesses). Operator directive
