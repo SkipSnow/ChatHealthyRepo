@@ -6148,7 +6148,7 @@
           "package": "default"
         },
         {
-          "source_location": "pipeline/Code/steps/discrepancy_reports_and_notifications.py",
+          "source_location": "pipeline/Code/steps/discrepancy_report.py",
           "feature_id": "EPIC-008-F-012",
           "handler_type": "python_source",
           "disposition": "referenced",
@@ -6499,7 +6499,7 @@
           "package": "default"
         },
         {
-          "source_location": "pipeline/Code/steps/discrepancy_reports_and_notifications.py",
+          "source_location": "pipeline/Code/steps/discrepancy_report.py",
           "feature_id": "EPIC-008-F-012",
           "handler_type": "python_source",
           "disposition": "referenced",
