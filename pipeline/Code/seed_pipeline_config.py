@@ -24,7 +24,8 @@ PROVIDER_CONFIG = {
     "error_threshold": 30000,
     "failure_thresholds": {
         "discrepancy_abort": 100000
-    }
+    },
+    "warnings_errors_collection": "pipeline.discrepancies"
 }
 
 def seed_config(env_prefix: str) -> None:
