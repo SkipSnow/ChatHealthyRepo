@@ -8,12 +8,7 @@ Mechanism: AST-based scan (no regex per Rule-008 statement 4). For every
 staged .py file, parse and walk every `Raise` node. Reject if the raised
 expression is a Call whose .func is a Name in the forbidden set
 {ValueError, RuntimeError, AssertionError, KeyError, TypeError}.
-Re-raises (bare `raise`) are always allowed.
-
-Historical-violations carve-out per REQ-B-006: count violations in the
-staged file vs the HEAD version of the same file; reject only if the
-staged version has MORE forbidden raises than HEAD. Fixing or moving
-existing violations is allowed; introducing NEW ones is not.
+Re-raises (bare `raise`) are always allowed. Any violations found are rejected.
 """
 from __future__ import annotations
 
@@ -134,11 +129,7 @@ class ScanDeliberateRaisesEnforcementWorker(EnforcementWorker):
         return EXIT_VIOLATIONS_FOUND if any_violations else EXIT_OK
 
     def _scan_deliberate_raises(self, file_path: str) -> list[ViolationRecord]:
-        """Reject only NEW forbidden raises: staged-count - head-count > 0
-        triggers a violation. The violation enumerates each forbidden
-        raise present in the staged version so the operator sees what
-        to convert; the gate fires only when the staged version has
-        strictly more than the HEAD version had."""
+        """Reject any forbidden raises in staged file."""
         absolute_path = (PROJECT_ROOT / file_path).resolve()
         if not absolute_path.is_file():
             return []
@@ -147,13 +138,9 @@ class ScanDeliberateRaisesEnforcementWorker(EnforcementWorker):
         except UnicodeDecodeError:
             return []
         staged_hits = _count_forbidden_raises(staged_text)
-        head_text = _head_source(file_path)
-        head_hits = _count_forbidden_raises(head_text) if head_text else []
-        if len(staged_hits) <= len(head_hits):
+        if not staged_hits:
             return []
-        # Net-new violation introduced in this commit. List every
-        # forbidden raise in the staged version so the operator sees the
-        # full state to remediate.
+        # Any violation in the staged file is rejected.
         violations: list[ViolationRecord] = []
         for lineno, name in staged_hits:
             violations.append(ViolationRecord(
@@ -163,9 +150,7 @@ class ScanDeliberateRaisesEnforcementWorker(EnforcementWorker):
                 message=(
                     f"deliberate raise of built-in {name!r}; "
                     f"EPIC-008-F-002-S-009-REQ-B-002 forbids this — use "
-                    f"ChatHealthyException(mode=..., message=...) instead. "
-                    f"(staged count={len(staged_hits)}, HEAD count="
-                    f"{len(head_hits)})"
+                    f"ChatHealthyException(mode=..., message=...) instead."
                 ),
             ))
         return violations

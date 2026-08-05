@@ -15,10 +15,8 @@ Enforces four independent checks from EPIC-003-F-005:
       The stdlib logging module reaches the application only through
       logging_service.py; every other file uses ChatHealthyLoggingService.
 
-Mechanism: AST-based scan (no regex per Rule-008 statement 4). HEAD-delta
-carve-out (per Rule-003 pattern): reject only commits where the staged
-file has MORE violations than its HEAD version, so the rule lets existing
-call sites stay until they are migrated.
+Mechanism: AST-based scan (no regex per Rule-008 statement 4). Reject any
+violations found in staged files.
 """
 from __future__ import annotations
 
@@ -331,9 +329,7 @@ class ScanUniformLoggingEnforcementWorker(EnforcementWorker):
         except UnicodeDecodeError:
             return []
         staged_hits = all_violations(staged_text, file_path)
-        head_text = head_source(file_path)
-        head_hits = all_violations(head_text, file_path) if head_text else []
-        if len(staged_hits) <= len(head_hits):
+        if not staged_hits:
             return []
         violations: list[ViolationRecord] = []
         for lineno, label in staged_hits:
@@ -342,8 +338,7 @@ class ScanUniformLoggingEnforcementWorker(EnforcementWorker):
                 rule_id="Rule-005",
                 resource=f"{file_path}:{lineno}",
                 message=(
-                    f"{label}. Use ChatHealthyLoggingService instead. "
-                    f"(staged count={len(staged_hits)}, HEAD count={len(head_hits)})"
+                    f"{label}. Use ChatHealthyLoggingService instead."
                 ),
             ))
         return violations
