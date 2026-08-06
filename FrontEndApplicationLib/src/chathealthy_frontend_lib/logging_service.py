@@ -31,6 +31,43 @@ from .exceptions import ChatHealthyException
 _log_context: ContextVar[Optional[dict]] = ContextVar("ch_log_context", default=None)
 
 
+def set_run_id(run_id: Optional[str]) -> None:
+    """Bind the run this work belongs to; every later record carries it.
+
+    Without this, a shared log is a merged pile: you can see that something
+    happened but not which run it belonged to. Merges into the existing
+    context rather than replacing it, so a bound session_guid survives.
+    """
+    ctx = dict(_log_context.get(None) or {})
+    ctx["run_id"] = run_id
+    _log_context.set(ctx)
+
+
+def set_fatal_error(flag: bool) -> None:
+    """Declare whether this run is a fatal one; every later record carries it.
+
+    The logger cannot infer this. Only the caller knows whether the work in
+    flight is a fatal path, so the caller states it and every record emitted
+    afterwards is labelled accordingly. An individual call can still override
+    with extra={"fatal_error": ...}.
+    """
+    ctx = dict(_log_context.get(None) or {})
+    ctx["fatal_error"] = bool(flag)
+    _log_context.set(ctx)
+
+
+def set_data_version(data_version: Optional[int]) -> None:
+    """Bind the data generation this work is operating on.
+
+    Without it a log cannot answer "which data was this run touching", which
+    is the first question asked when investigating a data problem. The caller
+    knows; nothing downstream can infer it.
+    """
+    ctx = dict(_log_context.get(None) or {})
+    ctx["data_version"] = data_version
+    _log_context.set(ctx)
+
+
 def bind_request_context(*, session_guid: Optional[str] = None) -> Any:
     """Bind per-request log context. Returns a token to pass to
     clear_request_context() at request end."""
@@ -70,6 +107,20 @@ def bind_user_object_to_log(user_object: Any) -> None:
     _log_context.set({"session_guid": guid})
 
 
+# Third-party libraries narrate their internals at DEBUG. None of it is a
+# business event, and it belongs on no destination -- not the shared log and
+# not the console. Applied to EVERY handler, because a driver monitor thread
+# writing to a closed stderr during teardown is just as unwanted as it is in
+# Mongo. No trailing dots: records logged under the bare name "pymongo" slip
+# past a "pymongo." prefix.
+_NOISE_PREFIXES = ("pymongo", "azure", "urllib3", "msal")
+
+
+def _noise_filter(r: logging.LogRecord) -> bool:
+    n = r.name or ""
+    return not any(n.startswith(p) for p in _NOISE_PREFIXES)
+
+
 _FORMAT = "%(asctime)s %(levelname)s %(name)s - %(message)s"
 _DATEFMT = "%Y-%m-%d %H:%M:%S"
 
@@ -77,6 +128,12 @@ _lock = threading.Lock()
 _bound_destinations: Optional[tuple[str, ...]] = None
 _bound_level: Optional[int] = None
 _mongo_log_identity: Optional[str] = None
+
+# One log for one business process. The system is distributed across pipeline
+# workers, runbooks and front-end services; the business process is not. Every
+# component writes to this single collection and distinguishes itself by the
+# env, component and job_id FIELDS on each record.
+LOG_COLLECTION = "Log"
 
 
 def set_mongo_log_identity(identity: str) -> None:
@@ -162,15 +219,6 @@ class _MongoLogHandler(logging.Handler):
         # the monitor thread - drop them at handler entry. Also drop
         # azure.core.pipeline.policies.http_logging_policy noise which
         # would otherwise flood Log_dev with per-HTTP-request docs.
-        def _noise_filter(r: logging.LogRecord) -> bool:
-            n = r.name or ""
-            if n.startswith("pymongo."):
-                return False
-            if n.startswith("azure."):
-                return False
-            if n.startswith("urllib3."):
-                return False
-            return True
         self.addFilter(_noise_filter)
 
     def _get_coll(self):
@@ -182,9 +230,19 @@ class _MongoLogHandler(logging.Handler):
                     # raw client bypasses TimedClient because TimedClient
                     # logs every op, which would recurse here.
                     from .mongo_utilities import ChatHealthyMongoUtilities
-                    timed_client = ChatHealthyMongoUtilities().getConnection(_mongo_log_identity)
+                    # Logs are operational records: admin target, which must
+                    # answer 24x7 even while the pipeline factory is down.
+                    timed_client = ChatHealthyMongoUtilities().getConnection(
+                        _mongo_log_identity, "admin"
+                    )
                     raw_client = timed_client._client
-                    self._coll = raw_client["Pipelines"][f"Log_{self._env}"]
+                    # ONE log. The system is distributed but the business
+                    # process is single, so every component writes here and
+                    # env/component/job_id are FIELDS, not collection names.
+                    # A per-env collection duplicates the env field and makes
+                    # "what happened during run X" unanswerable across
+                    # components.
+                    self._coll = raw_client["Pipelines"][LOG_COLLECTION]
         return self._coll
 
     def emit(self, record: logging.LogRecord) -> None:
@@ -197,17 +255,39 @@ class _MongoLogHandler(logging.Handler):
             doc: dict = {
                 "timeStamp": datetime.now(timezone.utc),
                 "level": record.levelname,
-                "env": self._env,
+                # Read live rather than using the value captured when this
+                # handler was built. _ensure_configured() only rebuilds on a
+                # destination or level change, so a handler constructed during
+                # import would otherwise label every record with whatever
+                # ENV_PREFIX held at import time -- and env is now a filter on
+                # a shared collection, so a stale label is a wrong answer.
+                "env": os.environ.get("ENV_PREFIX", "").strip() or self._env,
                 "component": self._target,
                 "pipeline_name": os.environ.get("PIPELINE_NAME", "").strip() or None,
-                "job_id": os.environ.get("RUN_ID", "").strip() or None,
-                "data_version": (int(os.environ["DATA_VERSION"])
-                                 if os.environ.get("DATA_VERSION", "").strip().isdigit()
-                                 else None),
-                "vnet_name": os.environ.get("CHATHEALTHY_VNET_NAME", "").strip() or None,
+                # The run this record belongs to. Set via set_run_id(); this
+                # is what makes one shared log queryable per run rather than
+                # only by timestamp.
+                "run_id": ctx.get("run_id"),
+                # Declared by the caller via set_data_version(). Falls back
+                # to the DATA_VERSION env var for runbooks that set it.
+                "data_version": (
+                    ctx.get("data_version")
+                    if ctx.get("data_version") is not None
+                    else (int(os.environ["DATA_VERSION"])
+                          if os.environ.get("DATA_VERSION", "").strip().isdigit()
+                          else None)
+                ),
+                # The rendered line, prefix and all.
                 "formatted": self.format(record),
+                # The message alone, with args interpolated and no timestamp
+                # or level prefix. `formatted` is for reading; this is what
+                # you group, match and aggregate on.
+                "message": record.getMessage(),
                 "pathname": record.pathname,
-                "fatal_error": False,
+                # Declared by the caller via set_fatal_error(); False only
+                # because nobody has said otherwise, not because we decided
+                # it isn't fatal. A single call can still override below.
+                "fatal_error": bool(ctx.get("fatal_error", False)),
                 "user_action": bool(ctx_guid),
                 # session_guid is ALWAYS present on every doc. Null when
                 # there is no user session in flight (system / startup /
@@ -328,6 +408,7 @@ def _build_handler_for(destination: str) -> logging.Handler:
             os.makedirs(parent, exist_ok=True)
         h = logging.FileHandler(path, mode="a", encoding="utf-8")
     h.setFormatter(_Formatter(fmt=_FORMAT, datefmt=_DATEFMT))
+    h.addFilter(_noise_filter)
     return h
 
 

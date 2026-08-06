@@ -11,7 +11,7 @@ def test_find_job_data():
 
     # Connect to PIPELINE cluster where discrepancy_report writes data
     utilities = ChatHealthyMongoUtilities()
-    client = utilities.getConnection("pipelineEditor")
+    client = utilities.getConnection("pipelineEditor", "admin")
     assert client, "Could not get pipeline MongoDB connection"
     try:
         # Look in chathealthypipelines database

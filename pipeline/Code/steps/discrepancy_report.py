@@ -16,7 +16,12 @@ from enum import Enum
 
 from azure.identity import DefaultAzureCredential
 from azure.keyvault.secrets import SecretClient
-from chathealthy_frontend_lib.logging_service import ChatHealthyLoggingService
+from chathealthy_frontend_lib.logging_service import (
+    ChatHealthyLoggingService,
+    set_data_version,
+    set_fatal_error,
+    set_run_id,
+)
 from chathealthy_frontend_lib.exceptions import ChatHealthyException
 from chathealthy_frontend_lib.mongo_utilities import ChatHealthyMongoUtilities
 
@@ -26,6 +31,8 @@ from pipeline_db import METADATA_DB
 DISCREPANCIES_COLLECTION = "pipeline.discrepancy_reports"
 RUN_COUNTERS_COLLECTION = "pipeline.run_counters"
 PIPELINE_CONFIG_COLLECTION = "PipelineConfig"
+
+_log = ChatHealthyLoggingService()
 
 
 class FatalErrorReason(str, Enum):
@@ -68,6 +75,8 @@ class DiscrepancyReport:
         total_source_rows: int | None = None,
         rows_in_target: int | None = None,
         total_rows: int | None = None,
+        fatal_error: bool = False,
+        data_version: int | None = None,
     ) -> None:
         """
         Args:
@@ -87,11 +96,36 @@ class DiscrepancyReport:
         self.total_source_rows = total_source_rows
         self.rows_in_target = rows_in_target
         self.total_rows = total_rows
+        self.fatal_error = fatal_error
+        self.data_version = data_version
+        # Bound FIRST, before any work that logs. The vault fetch, the
+        # connection and the config load all emit records on the way in, and
+        # anything bound after them produces records that belong to this run
+        # but cannot be found by it.
+        set_run_id(run_id)
+        set_fatal_error(self.fatal_error)
+        set_data_version(self.data_version)
         self.start_time = datetime.now(timezone.utc).isoformat()
         self.operator_email = self._get_operator_email_from_vault()
         utilities = ChatHealthyMongoUtilities()
-        self.mongo_connection = utilities.getConnection("pipelineEditor")
+        # Discrepancy reports, run counters and pipeline config are all
+        # metadata: admin target, reachable while the data factory is down.
+        self.mongo_connection = utilities.getConnection("pipelineEditor", "admin")
         self.config = self._load_pipeline_config()
+        _log.info("Hello Skip")
+
+    def __del__(self) -> None:
+        """The class has no finally of its own, so teardown lands here.
+
+        Runs at garbage collection, which is non-deterministic and may occur
+        during interpreter shutdown when logging handlers are already torn
+        down. Everything is swallowed: a destructor that raises produces an
+        ignored exception on stderr and helps nobody.
+        """
+        try:
+            _log.info("Goodbye Skip")
+        except Exception:
+            pass
 
     def _load_pipeline_config(self) -> dict:
         """Load pipeline configuration from the metadata database."""
@@ -344,6 +378,7 @@ class DiscrepancyReport:
                 "total_source_rows": self.total_source_rows,
                 "warning_threshold": self.config.get("warning_threshold", "Unknown"),
                 "error_threshold": self.config.get("error_threshold", "Unknown"),
+                "data_version": self._reported(self.data_version),
             }
 
             # Flatten all discrepancies for header rendering
@@ -404,9 +439,21 @@ class DiscrepancyReport:
             if not receivers:
                 return False
 
+            # What the run measured, carried on the delivery record rather
+            # than a second record of its own -- the recipient would have been
+            # stated twice for no gain.
+            log_context = (
+                f"warnings={warning_count} errors={error_count} "
+                f"warning_threshold={self.config.get('warning_threshold', 'Unknown')} "
+                f"error_threshold={self.config.get('error_threshold', 'Unknown')} "
+                f"data_version={self._reported(self.data_version)}"
+            )
+
             for addr in receivers:
                 if addr and "@" in addr:
-                    client.send_email(addr, subject, body, attachments=attachments)
+                    client.send_email(addr, subject, body,
+                                      attachments=attachments,
+                                      log_context=log_context)
 
             return True
         except ChatHealthyException:
@@ -588,7 +635,15 @@ def fatal_error(
             "total_source_rows": report.total_source_rows,
             "warning_threshold": report.config.get("warning_threshold", "Unknown"),
             "error_threshold": report.config.get("error_threshold", "Unknown"),
+            "data_version": report._reported(report.data_version),
         }
+
+        # fatal_error defaults to False on every log record and is only set
+        # when a caller says so. This is the one place that should.
+        _log.error(
+            "FATAL %s: %s", report.pipeline_name, explanation,
+            extra={"fatal_error": True},
+        )
 
         # Write fatal error document
         reports_coll = report.mongo_connection[METADATA_DB][DISCREPANCIES_COLLECTION]

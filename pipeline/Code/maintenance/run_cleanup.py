@@ -21,7 +21,7 @@ if env_file.exists():
 
 try:
     log.info("Connecting to MongoDB...")
-    client = ChatHealthyMongoUtilities().getConnection("pipelineEditor")
+    client = ChatHealthyMongoUtilities().getConnection("pipelineEditor", "admin")
     log.info("Connected to MongoDB")
 
     collections_to_clear = [

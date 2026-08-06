@@ -24,15 +24,22 @@
     },
     "level": {
       "type": "string",
-      "enum": ["DEBUG", "INFO", "WARNING", "ERROR", "CRITICAL"]
+      "enum": [
+        "DEBUG",
+        "INFO",
+        "WARNING",
+        "ERROR",
+        "CRITICAL"
+      ]
     },
     "env": {
       "type": "string",
-      "enum": ["local", "dev", "qa", "prod"]
-    },
-    "target": {
-      "type": "string",
-      "description": "Per-build HF Space name (e.g. dev_SharedServicesSpace_1605) for HF deploys; container name (e.g. ch-sharedsvc) for local docker deploys."
+      "enum": [
+        "local",
+        "dev",
+        "qa",
+        "prod"
+      ]
     },
     "formatted": {
       "type": "string",
@@ -51,21 +58,19 @@
       "description": "True iff this log was produced while handling a user-driven request. When true, session_guid is required."
     },
     "session_guid": {
-      "type": ["string", "null"],
+      "type": [
+        "string",
+        "null"
+      ],
       "pattern": "^[0-9a-f]{32}$",
       "description": "Browser session GUID, 32 lowercase hex characters, or null when no user session is in flight (system / startup / background). Always present on every doc — never omitted. Canonical session-trace query: db.find({session_guid: <guid>}).sort({timeStamp: 1}). Indexed."
     },
-    "job_id": {
-      "type": ["string", "null"],
-      "description": "Pipeline RUN_ID (uuid). Same value on every log record produced by Control + every Worker of a single pipeline execution. null on non-pipeline services. Canonical job-trace query: db.find({job_id: <run_id>}).sort({timeStamp: 1})."
-    },
     "pipeline_name": {
-      "type": ["string", "null"],
+      "type": [
+        "string",
+        "null"
+      ],
       "description": "Pipeline name (e.g. 'provider'). Static per pipeline; propagated to every Worker by aca_job_manager.start_job. null on non-pipeline services."
-    },
-    "vnet_name": {
-      "type": ["string", "null"],
-      "description": "VNet the node runs inside (e.g. 'vnet-chathealthy-pipeline-dev'). Static per env; propagated via manifest default_apps_environment. null on non-VNet-attached services."
     },
     "exc_type": {
       "type": "string",
@@ -89,17 +94,51 @@
     "funcName": {
       "type": "string",
       "description": "Source function name where the log was emitted. Dev-debugging context, not indexed."
+    },
+    "message": {
+      "type": "string",
+      "description": "The log message with args interpolated, without the timestamp/level prefix. Group and match on this; read `formatted`."
+    },
+    "run_id": {
+      "type": [
+        "string",
+        "null"
+      ],
+      "description": "The pipeline run this record belongs to. Bound via set_run_id()."
+    },
+    "component": {
+      "type": [
+        "string",
+        "null"
+      ],
+      "description": "Emitting component, e.g. pipeline-local, reservation-reaper."
+    },
+    "data_version": {
+      "type": [
+        "integer",
+        "null"
+      ],
+      "description": "Pipeline data version in force for this record."
     }
   },
   "allOf": [
     {
       "if": {
-        "properties": { "user_action": { "const": true } },
-        "required": ["user_action"]
+        "properties": {
+          "user_action": {
+            "const": true
+          }
+        },
+        "required": [
+          "user_action"
+        ]
       },
       "then": {
         "properties": {
-          "session_guid": { "type": "string", "pattern": "^[0-9a-f]{32}$" }
+          "session_guid": {
+            "type": "string",
+            "pattern": "^[0-9a-f]{32}$"
+          }
         }
       }
     }

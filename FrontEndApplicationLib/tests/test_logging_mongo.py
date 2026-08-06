@@ -62,7 +62,7 @@ def test_mongo_logging_and_verify():
 
     # Verify message made it to database
     utilities = ChatHealthyMongoUtilities()
-    conn = utilities.getConnection("pipelineEditor")
+    conn = utilities.getConnection("pipelineEditor", "admin")
     db = conn["Pipelines"]
     coll = db["Log_dev"]
 
