@@ -15,7 +15,11 @@ if os.path.exists(env_file):
 sys.path.insert(0, os.path.join(repo_root, "FrontEndApplicationLib", "src"))
 sys.path.insert(0, os.path.join(repo_root, "pipeline", "Code"))
 
-from pipeline_db import get_db
+from chathealthy_frontend_lib.logging_service import ChatHealthyLoggingService
+
+from pipeline_db import get_metadata_db, METADATA_DB
+
+_log = ChatHealthyLoggingService()
 
 PROVIDER_CONFIG = {
     "_id": "provider",
@@ -25,21 +29,26 @@ PROVIDER_CONFIG = {
     "failure_thresholds": {
         "discrepancy_abort": 100000
     },
-    "warnings_errors_collection": "pipeline.discrepancies"
+    "warnings_errors_collection": "pipeline.discrepancy_reports",
+    "provider_collection": "providers",
+    "staging_collection": "provider_staging",
+    "staging_complete": False,
 }
 
 def seed_config(env_prefix: str) -> None:
-    """Seed PipelineConfig for given environment."""
-    db = get_db(env_prefix)
-    result = db["PipelineConfig"].replace_one(
+    """Seed PipelineConfig in the one metadata database."""
+    result = get_metadata_db()["PipelineConfig"].replace_one(
         {"_id": "provider"},
         PROVIDER_CONFIG,
         upsert=True
     )
-    print(f"{env_prefix}: matched={result.matched_count}, modified={result.modified_count}, upserted_id={result.upserted_id}")
+    _log.info(
+        "seeded %s.PipelineConfig from %s: matched=%s modified=%s upserted_id=%s",
+        METADATA_DB, env_prefix, result.matched_count,
+        result.modified_count, result.upserted_id,
+    )
 
 if __name__ == "__main__":
     envs = sys.argv[1:] if len(sys.argv) > 1 else ["dev", "qa", "prod"]
     for env in envs:
         seed_config(env)
-        print(f"✓ Seeded {env}")

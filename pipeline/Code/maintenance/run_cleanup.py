@@ -25,9 +25,9 @@ try:
     log.info("Connected to MongoDB")
 
     collections_to_clear = [
-        ("chathealthypipelines", "pipeline.discrepancies"),
-        ("chathealthypipelines", "pipeline.discrepancy_reports"),
-        ("chathealthypipelines", "pipeline.run_counters"),
+        ("Pipelines", "pipeline.discrepancies"),
+        ("Pipelines", "pipeline.discrepancy_reports"),
+        ("Pipelines", "pipeline.run_counters"),
         ("admin", "PipelineDiscrepancyReports"),
     ]
 

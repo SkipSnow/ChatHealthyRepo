@@ -52,7 +52,7 @@ from pipeline_fatal_recorder import record_fatal_discrepancy
 _log = ChatHealthyLoggingService()
 
 # Pipeline cluster coordination DB (per operator directive 2026-08-03).
-_METADATA_DB = "chathealthypipelines"
+_METADATA_DB = "Pipelines"
 _METADATA_COLL = "pipeline.loaded_metadata"
 _CHUNK_BYTES = 1024 * 1024
 _TRANSIENT_CONTAINER = "pipeline-transients"

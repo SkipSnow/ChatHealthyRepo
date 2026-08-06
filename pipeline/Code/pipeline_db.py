@@ -48,8 +48,25 @@ def get_frontend_mongo() -> MongoClient:
 
 
 def get_db(env_prefix: str = None):
-    """Get the PublicHealthData database with ENV_PREFIX routing.
-    Environment constrained by CV-010."""
+    """Get the PublicHealthData database.
+
+    Environments are separated by CLUSTER, not by database name. No database
+    is named for an environment: there is no dev_, qa_ or prod_ prefix. The
+    env_prefix argument is still validated so callers cannot pass a value
+    outside CV-010, but it does not participate in the database name.
+    """
     env_prefix = env_prefix or os.environ.get("ENV_PREFIX", "dev")
     _validate_env(env_prefix)
-    return get_mongo()[f"{env_prefix}_PublicHealthData"]
+    return get_mongo()["PublicHealthData"]
+
+
+# Every piece of pipeline metadata -- configuration, discrepancy reports, run
+# counters, fatal records, load state -- lives in this one database and nowhere
+# else. Physical pipeline DATA (provider collections, staging) is separate and
+# stays in the env-prefixed PublicHealthData databases.
+METADATA_DB = "Pipelines"
+
+
+def get_metadata_db():
+    """The single home for pipeline metadata: frontEnd.Pipelines."""
+    return get_mongo()[METADATA_DB]
