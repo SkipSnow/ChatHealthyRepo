@@ -13620,8 +13620,8 @@
                   {
                     "story_id": "EPIC-008-F-004-S-005",
                     "orphan": false,
-                    "name": "Issued certificates are retrievable and storable by requesting systems",
-                    "description": "Issued certificates are retrievable and storable by requesting systems, with DN-based vault retrieval matching and support for third-party certificate storage in qualified vaults.",
+                    "name": "Issued certificates and keys are retrievable via MongoDB certificate registry",
+                    "description": "Issued certificates and keys are retrievable via a MongoDB certificate registry that maps each Distinguished Name to its vault storage locations. The registry supports multiple certificates per identity, separate public/private key storage, and third-party certificate storage.",
                     "size": "M",
                     "status": "done",
                     "approval": "approved",
@@ -13630,8 +13630,8 @@
                         {
                           "req_id": "EPIC-008-F-004-S-005-REQ-B-001",
                           "orphan": false,
-                          "name": "Certificates retrievable and storable",
-                          "requirement": "The Certificate Authority MUST provide a mechanism for requesting systems to retrieve issued certificates after issuance. Requesting systems MUST be able to store and use retrieved certificates for authentication and encryption purposes. The CA MUST maintain a registry or archive of issued certificates for retrieval.",
+                          "name": "Certificates retrievable and storable via registry",
+                          "requirement": "The Certificate Authority MUST provide a mechanism for requesting systems to retrieve issued certificates after issuance. Requesting systems MUST be able to store and use retrieved certificates for authentication and encryption purposes. The CA MUST maintain a registry of issued certificates for retrieval.",
                           "priority": "must-have",
                           "status": "done",
                           "depends_on": [],
@@ -13650,16 +13650,11 @@
                         {
                           "req_id": "EPIC-008-F-004-S-005-REQ-B-002",
                           "orphan": false,
-                          "name": "DN must match vault retrieval key",
-                          "requirement": "The certificate's Distinguished Name MUST be exactly equal to the key used for retrieval from a compliant vault. This ensures one-to-one correspondence between issued certificates and their vault storage keys.",
+                          "name": "MongoDB certificate registry maps DN to vault secret names",
+                          "requirement": "A MongoDB collection in ChatHealthyConfig.CertificateRegistry MUST map each subject Distinguished Name to the vault secret names where its public certificate and private key are stored separately. Each DN entry MUST support multiple certificates for rotation and versioning. DN lookup MUST be deterministic — the same DN always resolves to the same registry entry.",
                           "priority": "must-have",
                           "status": "done",
-                          "depends_on": [
-                            {
-                              "reason": "Prerequisite requirement",
-                              "story_id": "EPIC-008-F-004-S-005-B"
-                            }
-                          ],
+                          "depends_on": [],
                           "tests": {
                             "test": [
                               {
@@ -13679,12 +13674,7 @@
                           "requirement": "The qualified vault MUST be able to store public certificates issued by other authorities, not only certificates issued by this Certificate Authority.",
                           "priority": "must-have",
                           "status": "done",
-                          "depends_on": [
-                            {
-                              "reason": "Prerequisite requirement",
-                              "story_id": "EPIC-008-F-004-S-005-B"
-                            }
-                          ],
+                          "depends_on": [],
                           "tests": {
                             "test": [
                               {
