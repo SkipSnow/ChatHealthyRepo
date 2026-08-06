@@ -31,6 +31,7 @@ import os
 import secrets
 import socket
 import socketserver
+import subprocess
 import sys
 import threading
 import time
@@ -67,6 +68,23 @@ _AGENT_MARKERS = ("CLAUDECODE", "CLAUDE_AGENT_SDK_VERSION", "CLAUDE_CODE_ENTRYPO
 # Web-prompt timeout (seconds).
 _BROWSER_TIMEOUT_SECONDS = 600
 
+# EPIC-008-F-012-S-001-REQ-B-013: commits land on this branch and no other.
+# qa and prod receive code only through promote_chathealthy.py.
+_COMMIT_BRANCH = "dev"
+
+# Wrong-branch notice: bounded so a refused commit never hangs on an unread page.
+_NOTICE_TIMEOUT_SECONDS = 30
+_NOTICE_GRACE_SECONDS = 2
+
+
+def _escape(text: str) -> str:
+    return (
+        text.replace("&", "&amp;")
+        .replace("<", "&lt;")
+        .replace(">", "&gt;")
+        .replace('"', "&quot;")
+    )
+
 # Audit log: every approve/reject/timeout/interrupt/error verdict is appended
 # here as one JSON line. Lives in the feature's ArchitectureDesignAndAuditDocs
 # directory alongside the design docs for EPIC-008-F-002.
@@ -92,9 +110,150 @@ class CommitAuthorizationWorker(EnforcementWorker):
         action = self._action_for_hook(self.hook)
 
         if self._is_real_interactive_shell():
-            return self._prompt_inline(action)
+            authorized = self._prompt_inline(action)
+        else:
+            authorized = self._prompt_via_browser(action)
 
-        return self._prompt_via_browser(action)
+        if authorized != EXIT_OK:
+            return authorized
+
+        if self.hook == "pre-commit":
+            branch = self._current_branch()
+            if branch != _COMMIT_BRANCH:
+                return self._deny_wrong_branch(action, branch)
+
+        return EXIT_OK
+
+    # ────────────────────────────────────────────────────────────────────────
+    def _commit_repo(self) -> str:
+        """The repository git is committing in.
+
+        The manager spawns workers with cwd=PROJECT_ROOT, so cwd cannot be
+        trusted to identify the repo under commit. The manager forwards its
+        own launch cwd — which git set to the committing repo — in
+        CHATHEALTHY_HOOK_CWD.
+        """
+        return os.environ.get("CHATHEALTHY_HOOK_CWD") or os.getcwd()
+
+    def _current_branch(self) -> str:
+        try:
+            out = subprocess.check_output(
+                ["git", "rev-parse", "--abbrev-ref", "HEAD"],
+                stderr=subprocess.DEVNULL,
+                cwd=self._commit_repo(),
+            )
+        except subprocess.CalledProcessError as exc:
+            raise WorkerInternalError(f"could not read current branch: {exc}")
+        return out.decode("utf-8").strip()
+
+    def _staged_files(self) -> list[str]:
+        try:
+            out = subprocess.check_output(
+                ["git", "diff", "--cached", "--name-only"],
+                stderr=subprocess.DEVNULL,
+                cwd=self._commit_repo(),
+            )
+        except subprocess.CalledProcessError as exc:
+            raise WorkerInternalError(f"could not read staged files: {exc}")
+        return [line.strip() for line in out.decode("utf-8").splitlines() if line.strip()]
+
+    # ────────────────────────────────────────────────────────────────────────
+    def _deny_wrong_branch(self, action: str, branch: str) -> int:
+        """REQ-B-013: refuse the commit, show the operator the violating files."""
+        files = self._staged_files()
+        reason = (
+            f"branch is {branch!r}; commits are permitted only on "
+            f"{_COMMIT_BRANCH!r}. qa and prod receive code via "
+            f"promote_chathealthy.py, never via commit. "
+            f"{len(files)} violating file(s)."
+        )
+        self._notify_wrong_branch(branch, files)
+        self._reject(action, reason)
+        return EXIT_VIOLATIONS_FOUND
+
+    def _notify_wrong_branch(self, branch: str, files: list[str]) -> None:
+        """Fire-and-forget browser notice naming the branch and every
+        violating file. Never blocks the deny: any failure here is swallowed
+        so the commit is refused regardless."""
+        try:
+            with socket.socket() as sock:
+                sock.bind(("127.0.0.1", 0))
+                port = sock.getsockname()[1]
+        except Exception:
+            return
+
+        rows = "".join(f"<li><code>{_escape(f)}</code></li>" for f in files) or \
+            "<li><em>no staged files reported</em></li>"
+        page_html = (
+            "<!doctype html><html><head><meta charset=utf-8>"
+            "<title>ChatHealthy commit refused</title>"
+            "<style>body{font-family:system-ui,sans-serif;padding:40px;"
+            "background:#7f1d1d;color:#fff}"
+            "h1{font-size:28px;margin-bottom:4px}"
+            "ul{text-align:left;display:inline-block;margin-top:16px}"
+            "code{background:rgba(0,0,0,.25);padding:2px 6px;border-radius:4px}"
+            "</style></head><body>"
+            "<h1>Commit refused &mdash; wrong branch</h1>"
+            f"<p>You are on <code>{_escape(branch)}</code>. "
+            f"Commits are permitted only on <code>{_COMMIT_BRANCH}</code>.</p>"
+            "<p>qa and prod receive code only through "
+            "<code>promote_chathealthy.py</code>, never through a commit.</p>"
+            f"<p><strong>{len(files)} violating file(s) in this commit:</strong></p>"
+            f"<ul>{rows}</ul>"
+            "<p>Rule-065</p>"
+            "<p>EPIC-008-F-012-S-001-REQ-B-013</p>"
+            "</body></html>"
+        )
+
+        fetched = {"value": False}
+
+        class _Handler(BaseHTTPRequestHandler):
+            def log_message(self, *args, **kwargs):
+                return
+
+            def do_GET(self):  # noqa: N802
+                payload = page_html.encode("utf-8")
+                self.send_response(200)
+                self.send_header("Content-Type", "text/html; charset=utf-8")
+                self.send_header("Content-Length", str(len(payload)))
+                self.send_header("Cache-Control", "no-store")
+                self.end_headers()
+                self.wfile.write(payload)
+                fetched["value"] = True
+
+        try:
+            server = socketserver.TCPServer(
+                ("127.0.0.1", port), _Handler, bind_and_activate=True
+            )
+        except Exception:
+            return
+
+        threading.Thread(target=server.serve_forever, daemon=True).start()
+        url = f"http://127.0.0.1:{port}/"
+        try:
+            webbrowser.open_new(url)
+        except Exception:
+            pass
+        sys.stdout.write(f"\nCommit refused. Details at: {url}\n")
+        sys.stdout.flush()
+
+        deadline = time.time() + _NOTICE_TIMEOUT_SECONDS
+        while time.time() < deadline and not fetched["value"]:
+            time.sleep(0.1)
+        if fetched["value"]:
+            time.sleep(_NOTICE_GRACE_SECONDS)
+            sys.stdout.write("Refusal notice DISPLAYED.\n")
+        else:
+            sys.stdout.write(
+                f"Refusal notice NOT DISPLAYED: no browser fetched it within "
+                f"{_NOTICE_TIMEOUT_SECONDS}s.\n"
+            )
+        sys.stdout.flush()
+        try:
+            server.shutdown()
+            server.server_close()
+        except Exception:
+            pass
 
     # ────────────────────────────────────────────────────────────────────────
     def _is_real_interactive_shell(self) -> bool:
@@ -239,8 +398,8 @@ class CommitAuthorizationWorker(EnforcementWorker):
             pass
         # Always also write the URL to stderr so the user can paste it if
         # the auto-open didn't land in front of them.
-        sys.stderr.write(f"\nAuthorization requested at: {url}\n")
-        sys.stderr.flush()
+        sys.stdout.write(f"\nAuthorization requested at: {url}\n")
+        sys.stdout.flush()
 
         deadline = time.time() + _BROWSER_TIMEOUT_SECONDS
         try:

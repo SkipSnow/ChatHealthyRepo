@@ -12,7 +12,7 @@ from pathlib import Path
 import pytest
 
 import chathealthy_enforcement_manager as ce
-from chathealthy_enforcement_manager import ChatHealthyEnforcementManager
+from chathealthy_enforcement_manager import ChatHealthyEnforcementManager, UnknownHookError
 
 
 # ─────────────────────────────────────────────────────────────────────────────
@@ -89,7 +89,7 @@ class TestConstructor:
         assert m.hook_name == "pre-commit"
 
     def test_unknown_hook_raises(self):
-        with pytest.raises(ValueError):
+        with pytest.raises(UnknownHookError):
             ChatHealthyEnforcementManager("not-a-hook")
 
 

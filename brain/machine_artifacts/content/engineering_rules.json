@@ -411,7 +411,7 @@
             {
               "statement_number": 5,
               "statement_body": "No file in any per-target build-package directory (local_build/v*/<target_id>/, remote_build/v*/<target_id>/) MAY contain any value held in the local secrets store (Code/.env). The pre-commit gate MUST scan every staged file in those paths and REJECT on any matched value, without echoing the matched value.",
-              "req_id": "EPIC-008-F-012-S-001-REQ-T-053"
+              "req_id": "EPIC-008-F-012-S-001-REQ-B-009"
             }
           ]
         },
@@ -651,13 +651,13 @@
       },
       {
         "id": "Rule-065",
-        "name": "No commit or deploy without explicit human authorization",
-        "description": "Every `git commit` and every deploy invocation MUST be explicitly authorized by the human operator at the moment it fires. A commit represents a human-vetted release candidate ready for distribution; the `git push` that immediately follows is the network operation completing the commit and is implicit in the commit's authorization \u2014 no separate authorization is required to push a freshly authorized commit. Interactive terminals satisfy this with an exact-match APPROVE token typed at a prompt that names the action and its affected artifacts; non-interactive contexts (CI runners, IDE integrations, headless shells) satisfy it with paired environment variables that name who authorized the action. The rule is enforced inside ChatHealthy's engineering-rules manager so it runs before any Anthropic / Claude Code hook for code-control integration ever sees the action.",
+        "name": "No commit without explicit human authorization",
+        "description": "Every `git commit` MUST be explicitly authorized by the human operator at the moment it fires. The commit covers any file in the ChatHealthy repository that is not gitignored. The `git push` that immediately follows is the network operation completing the commit and is implicit in the commit's authorization; no separate authorization is required to push a freshly authorized commit. A real interactive terminal satisfies this with an exact-match APPROVE token typed at a prompt naming the action; every other context (agent sessions, IDE integrations, headless shells) is served a local browser page with APPROVE and REJECT, blocking until the operator clicks or the 600-second timeout rejects. Deploy authorization is out of scope for this rule and is not enforced today.",
         "rule_statements": {
           "rule_statement": [
             {
               "statement_number": 1,
-              "statement_body": "No commit or deploy CAN take place without explicit human authorization. A commit represents a human-vetted release candidate; the push that immediately follows is implicit in the commit's authorization and does not require a separate authorization event. This requirement shall be enforced as part of ChatHealthy's rule enforcement prior to an Anthropic hook for code-control integration.",
+              "statement_body": "No commit CAN take place without explicit human authorization. A commit to the code repository can be for any file in the ChatHealthy repository that is not gitignored. A push is implicit with a commit; even though it is a separate command, it does not require a separate authorization event. This requirement shall be enforced as part of ChatHealthy's rule enforcements.",
               "req_id": "EPIC-008-F-012-S-001-REQ-B-007"
             }
           ]

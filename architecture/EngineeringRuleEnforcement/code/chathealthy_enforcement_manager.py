@@ -35,6 +35,17 @@ from filelock import FileLock, Timeout as FileLockTimeout
 _THIS_FILE = Path(__file__).resolve()
 PROJECT_ROOT = _THIS_FILE.parents[3]
 
+# Git runs a hook with cwd set to the repository being acted on, and tells the
+# hook nothing else about which repo that is (GIT_DIR is unset; GIT_INDEX_FILE
+# is relative). Workers are spawned with cwd=PROJECT_ROOT, which erases that
+# signal, so it is captured here at launch and forwarded to every worker.
+HOOK_CWD_ENV = "CHATHEALTHY_HOOK_CWD"
+LAUNCH_CWD = os.getcwd()
+
+
+class UnknownHookError(Exception):
+    """Hook name is not a member of HOOKS."""
+
 
 class ChatHealthyEnforcementManager:
     """Dispatcher for engineering-rule enforcement workers (design V19 §4.4.1)."""
@@ -81,7 +92,7 @@ class ChatHealthyEnforcementManager:
     def __init__(self, hook_name: str) -> None:
         """Validate hook_name; store. (V19 Table 3, ctor row.)"""
         if hook_name not in self.HOOKS:
-            raise ValueError(
+            raise UnknownHookError(
                 f"unknown hook_name {hook_name!r}; "
                 f"must be one of {self.HOOKS}"
             )
@@ -200,6 +211,8 @@ class ChatHealthyEnforcementManager:
 
         try:
             try:
+                worker_env = dict(os.environ)
+                worker_env[HOOK_CWD_ENV] = LAUNCH_CWD
                 completed = subprocess.run(
                     [sys.executable, str(executable_path), enforcement_id],
                     timeout=timeout_value,
@@ -207,6 +220,7 @@ class ChatHealthyEnforcementManager:
                     text=True,
                     check=False,
                     cwd=str(PROJECT_ROOT),
+                    env=worker_env,
                 )
             except subprocess.TimeoutExpired as exc:
                 # Manager-owned hard kill on timeout (V19 §4.3.2).
