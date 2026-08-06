@@ -283,7 +283,7 @@ class DiscrepancyReport:
             # Build complete manifest for email and PDF
             end_time = datetime.now(timezone.utc).isoformat()
             # Count actual warning/error documents from MongoDB - must query every time
-            discs_coll_name = self.config.get("warnings_errors_collection", "pipeline.discrepancies")
+            discs_coll_name = self.config.get("warnings_errors_collection", "pipeline.discrepancy_reports")
             discs_coll = self.mongo_connection["chathealthypipelines"][discs_coll_name]
             warning_count = discs_coll.count_documents({"run_id": self.run_id, "level": "warning"})
             error_count = discs_coll.count_documents({"run_id": self.run_id, "level": "error"})
@@ -498,8 +498,8 @@ def fatal_error(
         else:
             level_enum = level
 
-        # Query for actual warning/error counts from discrepancies collection
-        discs_coll_name = report.config.get("warnings_errors_collection", "pipeline.discrepancies")
+        # Query for actual warning/error counts from discrepancy_reports collection
+        discs_coll_name = report.config.get("warnings_errors_collection", "pipeline.discrepancy_reports")
         discs_coll = report.mongo_connection["chathealthypipelines"][discs_coll_name]
 
         warning_count = discs_coll.count_documents({"run_id": report.run_id, "level": "warning"})
@@ -737,7 +737,7 @@ def emit_discrepancy_report(
         report.mongo_connection = pipeline_mongo
 
         # Count discrepancies
-        discrepancies_coll = pipeline_mongo["chathealthypipelines"]["pipeline.discrepancies"]
+        discrepancies_coll = pipeline_mongo["chathealthypipelines"]["pipeline.discrepancy_reports"]
         total = discrepancies_coll.count_documents({"run_id": run_id})
 
         # Send email if operator email is set
