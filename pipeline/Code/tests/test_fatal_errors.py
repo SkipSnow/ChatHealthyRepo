@@ -3,7 +3,11 @@
 """Integration test: DiscrepancyReport sends email with warnings/errors."""
 
 import os
+import sys
 import uuid
+
+sys.path.insert(0, "FrontEndApplicationLib/src")
+
 from steps.discrepancy_report import DiscrepancyReport, fatal_error
 
 
@@ -15,7 +19,7 @@ def test_email_send_with_warnings_and_errors():
     os.environ["PIPELINE_NAME"] = "provider"
     run_id = f"test_email_{uuid.uuid4().hex[:8]}"
 
-    # Create report instance - uses REAL MongoDB connection
+    # Create report instance - uses REAL MongoDB connection to PIPELINE cluster
     report = DiscrepancyReport(
         run_id=run_id,
         env="dev",

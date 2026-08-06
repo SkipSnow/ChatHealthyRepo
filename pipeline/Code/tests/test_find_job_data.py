@@ -1,15 +1,18 @@
 """Find data created by test job in chathealthypipelines database"""
 import os
-from pymongo import MongoClient
+import sys
+
+sys.path.insert(0, "FrontEndApplicationLib/src")
+from chathealthy_frontend_lib.mongo_utilities import ChatHealthyMongoUtilities
 
 
 def test_find_job_data():
-    """Find warnings/errors in chathealthypipelines database."""
+    """Find warnings/errors in PIPELINE chathealthypipelines database."""
 
-    mongo_uri = os.environ.get("MONGO_FRONTEND_connectionString")
-    assert mongo_uri, "MONGO_FRONTEND_connectionString not set"
-
-    client = MongoClient(mongo_uri, serverSelectionTimeoutMS=5000)
+    # Connect to PIPELINE cluster where discrepancy_report writes data
+    utilities = ChatHealthyMongoUtilities()
+    client = utilities.getConnection("pipelineEditor")
+    assert client, "Could not get pipeline MongoDB connection"
     try:
         # Look in chathealthypipelines database
         db = client["chathealthypipelines"]

@@ -1,15 +1,19 @@
 """Verify skipsProof data in database"""
 import os
-from pymongo import MongoClient
+import sys
+
+sys.path.insert(0, "FrontEndApplicationLib/src")
+from chathealthy_frontend_lib.mongo_utilities import ChatHealthyMongoUtilities
 
 
 def test_verify_skipsproof_data():
-    """Check that skipsProof job data was written to database."""
+    """Check that skipsProof job data was written to PIPELINE database."""
 
-    mongo_uri = os.environ.get("MONGO_FRONTEND_connectionString")
-    assert mongo_uri, "MONGO_FRONTEND_connectionString not set"
+    # Connect to PIPELINE cluster where the data is actually written
+    utilities = ChatHealthyMongoUtilities()
+    client = utilities.getConnection("pipelineEditor")
+    assert client, "Could not get pipeline MongoDB connection"
 
-    client = MongoClient(mongo_uri, serverSelectionTimeoutMS=5000)
     try:
         db = client["chathealthypipelines"]
         coll = db["pipeline.discrepancy_reports"]

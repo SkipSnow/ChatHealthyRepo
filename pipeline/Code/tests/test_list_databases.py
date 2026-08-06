@@ -1,15 +1,18 @@
-"""List all databases on the cluster."""
+"""List all databases on the PIPELINE cluster."""
 import os
-from pymongo import MongoClient
+import sys
+
+sys.path.insert(0, "FrontEndApplicationLib/src")
+from chathealthy_frontend_lib.mongo_utilities import ChatHealthyMongoUtilities
 
 
 def test_list_databases():
-    """Show all databases and their collections."""
+    """Show all databases and their collections on PIPELINE cluster."""
 
-    mongo_uri = os.environ.get("MONGO_FRONTEND_connectionString")
-    assert mongo_uri, "MONGO_FRONTEND_connectionString not set"
-
-    client = MongoClient(mongo_uri, serverSelectionTimeoutMS=5000)
+    # Connect to PIPELINE cluster
+    utilities = ChatHealthyMongoUtilities()
+    client = utilities.getConnection("pipelineEditor")
+    assert client, "Could not get pipeline MongoDB connection"
     try:
         # List all databases
         databases = client.list_database_names()

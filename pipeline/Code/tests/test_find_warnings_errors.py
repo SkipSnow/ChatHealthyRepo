@@ -1,17 +1,21 @@
 """Find warnings and errors created by test_fatal_errors.py"""
 import os
-from pymongo import MongoClient
+import sys
+
+sys.path.insert(0, "FrontEndApplicationLib/src")
+from chathealthy_frontend_lib.mongo_utilities import ChatHealthyMongoUtilities
 
 
 def test_find_warnings_and_errors():
-    """Look for warnings and errors created by the test job."""
+    """Look for warnings and errors created by the test job in PIPELINE database."""
 
-    mongo_uri = os.environ.get("MONGO_FRONTEND_connectionString")
-    assert mongo_uri, "MONGO_FRONTEND_connectionString not set"
+    # Connect to PIPELINE cluster where discrepancy_report writes data
+    utilities = ChatHealthyMongoUtilities()
+    client = utilities.getConnection("pipelineEditor")
+    assert client, "Could not get pipeline MongoDB connection"
 
-    client = MongoClient(mongo_uri, serverSelectionTimeoutMS=5000)
     try:
-        db = client["dev_PublicHealthData"]
+        db = client["chathealthypipelines"]
 
         # Look for any collection that might contain warnings/errors
         collections = db.list_collection_names()
