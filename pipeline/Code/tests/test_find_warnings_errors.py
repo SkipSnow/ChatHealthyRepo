@@ -15,7 +15,7 @@ def test_find_warnings_and_errors():
     assert client, "Could not get pipeline MongoDB connection"
 
     try:
-        db = client["chathealthypipelines"]
+        db = client["Pipelines"]
 
         # Look for any collection that might contain warnings/errors
         collections = db.list_collection_names()

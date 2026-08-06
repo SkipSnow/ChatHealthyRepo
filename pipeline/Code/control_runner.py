@@ -34,7 +34,7 @@ import os
 # env change is ignored. Set to "stderr,mongo" so Controller logs reach both
 # docker stdout AND Pipelines.Log_{env}. Other runbooks (reservation_reaper,
 # migrator, change_db_version) all set this at module load for the same
-# reason; control_runner was missing it, which is why Log_dev was empty for
+# reason; control_runner was missing it, which is why the log was empty for
 # every prior pipeline run.
 os.environ.setdefault("CH_LOG_DESTINATION", "stderr,mongo")
 os.environ.setdefault("CH_SPACE_NAME", "controller")
@@ -52,7 +52,7 @@ import sys
 from chathealthy_frontend_lib.mongo_utilities import ChatHealthyMongoUtilities
 
 from blob_client import get_blob_service
-from pipeline_db import get_mongo
+from pipeline_db import get_mongo, METADATA_DB
 from pipeline_env import load_pipeline_env
 from provider_pipeline_orchestrator import ProviderPipelineOrchestrator
 from step_context import PipelineArgs
@@ -242,11 +242,11 @@ def main(argv: list[str] | None = None) -> int:
             return
         while not _hb_stop.wait(60):
             try:
-                m = ChatHealthyMongoUtilities(
-                    identity="pipelineEditor"
-                ).getConnection()
+                m = ChatHealthyMongoUtilities().getConnection(
+                    "pipelineEditor", "admin"
+                )
                 now = datetime.datetime.utcnow()
-                m["chathealthyfrontend"]["pipeline.runs"].update_one(
+                m[METADATA_DB]["pipeline.runs"].update_one(
                     {"run_id": rid},
                     {"$set": {"controller_heartbeat_at": now}},
                 )
@@ -254,7 +254,7 @@ def main(argv: list[str] | None = None) -> int:
                 # the initial 10h TTL is not reaped by reservation_reaper.
                 # Reaper reads expiry_at (post-fix); Watchdog reads
                 # controller_heartbeat_at on the manifest.
-                m["admin"]["cluster_lifecycle"].update_one(
+                m[METADATA_DB]["cluster_lifecycle"].update_one(
                     {"_id": rid},
                     {"$set": {"expiry_at": now + datetime.timedelta(hours=_RENEWAL_HOURS)}},
                 )
@@ -408,13 +408,13 @@ def _quiesce_mongo_state(run_id: str, final_status: str, *,
         _log.warning("quiesce_mongo_state: no run_id available; skipping")
         return
     try:
-        mongo = ChatHealthyMongoUtilities(identity="pipelineEditor").getConnection()
+        mongo = ChatHealthyMongoUtilities().getConnection("pipelineEditor", "admin")
     except Exception as exc:
         _log.error("quiesce: unable to open front-cluster Mongo run_id=%s err=%s",
                    run_id, str(exc)[:500])
         return
     try:
-        mongo["admin"]["cluster_lifecycle"].delete_one({"_id": run_id})
+        mongo[METADATA_DB]["cluster_lifecycle"].delete_one({"_id": run_id})
         _log.info("quiesce: reservation cancelled run_id=%s", run_id)
     except Exception as exc:
         _log.error("quiesce: reservation cancel FAILED run_id=%s err=%s",
@@ -428,7 +428,7 @@ def _quiesce_mongo_state(run_id: str, final_status: str, *,
     pipeline_name = os.environ.get("PIPELINE_NAME", "")
     if pipeline_name:
         try:
-            r = mongo["admin"]["cluster_lifecycle"].delete_one({
+            r = mongo[METADATA_DB]["cluster_lifecycle"].delete_one({
                 "_id": f"pipeline_lock:{pipeline_name}",
                 "run_id": run_id,
             })
@@ -442,7 +442,7 @@ def _quiesce_mongo_state(run_id: str, final_status: str, *,
                 pipeline_name, run_id, str(exc)[:500],
             )
     try:
-        mongo["chathealthyfrontend"]["pipeline.runs"].update_one(
+        mongo[METADATA_DB]["pipeline.runs"].update_one(
             {"run_id": run_id},
             {"$set": {
                 "status": final_status,
@@ -460,7 +460,7 @@ def _quiesce_mongo_state(run_id: str, final_status: str, *,
     # completion path.
     if final_status != "succeeded":
         try:
-            res = mongo["chathealthyfrontend"]["pipeline.work_items"].update_many(
+            res = mongo[METADATA_DB]["pipeline.work_items"].update_many(
                 {"run_id": run_id,
                  "status": {"$nin": ["completed", "done", "failed"]}},
                 {"$set": {
@@ -485,7 +485,7 @@ def _quiesce_mongo_state(run_id: str, final_status: str, *,
     try:
         pipeline_mongo = None
         try:
-            pipeline_mongo = ChatHealthyMongoUtilities(identity="pipelineEditor").getConnection()
+            pipeline_mongo = ChatHealthyMongoUtilities().getConnection("pipelineEditor", "admin")
         except Exception as mongo_exc:
             _log.error("quiesce: mongo unreachable for discrepancy report run_id=%s err=%s",
                        run_id, str(mongo_exc)[:500])

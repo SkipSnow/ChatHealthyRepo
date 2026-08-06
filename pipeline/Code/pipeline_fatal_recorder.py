@@ -14,7 +14,7 @@ raises, we log via ChatHealthyLoggingService and swallow the secondary
 failure so the ORIGINAL ChatHealthyException re-raise is never blocked by
 the recorder.
 
-The pipeline cluster coordination DB name is `chathealthypipelines`
+All pipeline metadata lives in the `Pipelines` database
 (operator directive 2026-08-03: pipeline coordination metadata lives on
 the pipeline cluster, never on the frontend cluster).
 """

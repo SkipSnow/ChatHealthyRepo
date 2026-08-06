@@ -112,7 +112,8 @@ class DiscrepancyReport:
         # metadata: admin target, reachable while the data factory is down.
         self.mongo_connection = utilities.getConnection("pipelineEditor", "admin")
         self.config = self._load_pipeline_config()
-        _log.info("Hello Skip")
+        _log.info("discrepancy report opened: pipeline=%s source=%s",
+                  self.pipeline_name, self.source)
 
     def __del__(self) -> None:
         """The class has no finally of its own, so teardown lands here.
@@ -123,7 +124,7 @@ class DiscrepancyReport:
         ignored exception on stderr and helps nobody.
         """
         try:
-            _log.info("Goodbye Skip")
+            _log.info("discrepancy report closed: pipeline=%s", self.pipeline_name)
         except Exception:
             pass
 
@@ -241,10 +242,10 @@ class DiscrepancyReport:
             discs_coll.insert_one(disc_dict)
             return True
         except ChatHealthyException as exc:
-            log.error("write: could not write discrepancy: %s", exc, exc=exc)
+            log.error("could not write discrepancy: %s", exc, exc=exc)
             return False
         except Exception as exc:
-            log.error("write: could not write discrepancy: %s", exc)
+            log.error("could not write discrepancy: %s", exc)
             return False
 
     def increment_warning_count(self) -> int:
@@ -264,10 +265,10 @@ class DiscrepancyReport:
             )
             return result.get("warning_count", 0)
         except ChatHealthyException as exc:
-            log.error("increment_warning_count failed: %s", exc, exc=exc)
+            log.error("could not increment the run warning counter: %s", exc, exc=exc)
             return -1
         except Exception as exc:
-            log.error("increment_warning_count failed: %s", exc)
+            log.error("could not increment the run warning counter: %s", exc)
             return -1
 
     def increment_error_count(self) -> int:
@@ -287,10 +288,10 @@ class DiscrepancyReport:
             )
             return result.get("error_count", 0)
         except ChatHealthyException as exc:
-            log.error("increment_error_count failed: %s", exc, exc=exc)
+            log.error("could not increment the run error counter: %s", exc, exc=exc)
             return -1
         except Exception as exc:
-            log.error("increment_error_count failed: %s", exc)
+            log.error("could not increment the run error counter: %s", exc)
             return -1
 
     def get_counts(self) -> dict:
@@ -310,10 +311,10 @@ class DiscrepancyReport:
                 "error_count": result.get("error_count", 0),
             }
         except ChatHealthyException as exc:
-            log.error("get_counts failed: %s", exc, exc=exc)
+            log.error("could not read the run counters: %s", exc, exc=exc)
             return {"warning_count": 0, "error_count": 0}
         except Exception as exc:
-            log.error("get_counts failed: %s", exc)
+            log.error("could not read the run counters: %s", exc)
             return {"warning_count": 0, "error_count": 0}
 
     def _write_email(self) -> bool:
@@ -507,16 +508,16 @@ class DiscrepancyReport:
                 "field_list": list(field_list or []),
             }
             reports_coll.insert_one(warning_doc)
-            log.warning("createWarning: %s - %s", source, details)
+            log.warning("data warning [%s]: %s", source, details)
             self.increment_warning_count()
             if check_threshold_and_trigger_fatal_if_needed(self, "warning"):
                 return False
             return True
         except ChatHealthyException as exc:
-            log.error("createWarning: could not write warning: %s", exc, exc=exc)
+            log.error("could not record warning: %s", exc, exc=exc)
             return False
         except Exception as exc:
-            log.error("createWarning: could not write warning: %s", exc)
+            log.error("could not record warning: %s", exc)
             return False
 
     def createNonFatalError(
@@ -565,16 +566,16 @@ class DiscrepancyReport:
                 "field_list": list(field_list or []),
             }
             reports_coll.insert_one(error_doc)
-            log.error("createNonFatalError: %s - %s", source, details)
+            log.error("data error [%s]: %s", source, details)
             self.increment_error_count()
             if check_threshold_and_trigger_fatal_if_needed(self, "error"):
                 return False
             return True
         except ChatHealthyException as exc:
-            log.error("createNonFatalError: could not write error: %s", exc, exc=exc)
+            log.error("could not record non-fatal error: %s", exc, exc=exc)
             return False
         except Exception as exc:
-            log.error("createNonFatalError: could not write error: %s", exc)
+            log.error("could not record non-fatal error: %s", exc)
             return False
 
 
@@ -658,10 +659,10 @@ def fatal_error(
         reports_coll.insert_one(fatal_doc)
         return report._write_email()
     except ChatHealthyException as exc:
-        log.error("fatal_error: could not write fatal error: %s", exc, exc=exc)
+        log.error("could not record the fatal error: %s", exc, exc=exc)
         return False
     except Exception as exc:
-        log.error("fatal_error: could not write fatal error: %s", exc)
+        log.error("could not record the fatal error: %s", exc)
         return False
 
 
@@ -702,10 +703,10 @@ def check_threshold_and_trigger_fatal_if_needed(
 
         return False
     except ChatHealthyException as exc:
-        log.error("check_threshold_and_trigger_fatal_if_needed failed: %s", exc, exc=exc)
+        log.error("threshold check failed: %s", exc, exc=exc)
         return False
     except Exception as exc:
-        log.error("check_threshold_and_trigger_fatal_if_needed failed: %s", exc)
+        log.error("threshold check failed: %s", exc)
         return False
 
 
@@ -746,16 +747,16 @@ def createWarning(
             "details": details,
         }
         reports_coll.insert_one(warning_doc)
-        log.warning("createWarning: %s - %s", source, details)
+        log.warning("data warning [%s]: %s", source, details)
         report.increment_warning_count()
         if check_threshold_and_trigger_fatal_if_needed(report, "warning"):
             return False
         return True
     except ChatHealthyException as exc:
-        log.error("createWarning: could not write warning: %s", exc, exc=exc)
+        log.error("could not record warning: %s", exc, exc=exc)
         return False
     except Exception as exc:
-        log.error("createWarning: could not write warning: %s", exc)
+        log.error("could not record warning: %s", exc)
         return False
 
 
@@ -796,16 +797,16 @@ def CreateNonFatalError(
             "details": details,
         }
         reports_coll.insert_one(error_doc)
-        log.error("CreateNonFatalError: %s - %s", source, details)
+        log.error("data error [%s]: %s", source, details)
         report.increment_error_count()
         if check_threshold_and_trigger_fatal_if_needed(report, "error"):
             return False
         return True
     except ChatHealthyException as exc:
-        log.error("CreateNonFatalError: could not write error: %s", exc, exc=exc)
+        log.error("could not record non-fatal error: %s", exc, exc=exc)
         return False
     except Exception as exc:
-        log.error("CreateNonFatalError: could not write error: %s", exc)
+        log.error("could not record non-fatal error: %s", exc)
         return False
 
 
@@ -825,7 +826,7 @@ def emit_discrepancy_report(
     if not provided. This is called at job completion by control_runner.
 
     Args:
-        pipeline_mongo: MongoDB connection to chathealthypipelines cluster
+        pipeline_mongo: MongoDB connection to the metadata database
         run_id: Run identifier
         manifest_status: Final status of the run (succeeded, failed, etc.)
         manifest_doc: Run manifest document
@@ -840,7 +841,7 @@ def emit_discrepancy_report(
 
     try:
         if not pipeline_mongo:
-            log.error("emit_discrepancy_report: mongo unavailable, skipping email")
+            log.error("metadata database unavailable; discrepancy email not sent")
             return {"total": 0, "pdf_bytes": 0}
 
         # Create report instance with operator email
@@ -849,6 +850,9 @@ def emit_discrepancy_report(
             env=os.environ.get("ENV_PREFIX", "dev"),
             pipeline_name=os.environ.get("PIPELINE_NAME", "provider"),
             source="ProviderPipelineOnDemand",
+            data_version=(int(os.environ["DATA_VERSION"])
+                          if os.environ.get("DATA_VERSION", "").strip().isdigit()
+                          else None),
         )
 
         # Override with passed-in operator email, or use environment default
@@ -891,8 +895,8 @@ def emit_discrepancy_report(
         }
 
     except ChatHealthyException as exc:
-        log.error("emit_discrepancy_report: %s", exc, exc=exc)
+        log.error("could not emit discrepancy report: %s", exc, exc=exc)
         return {"total": 0, "pdf_bytes": 0, "error": str(exc)}
     except Exception as exc:
-        log.error("emit_discrepancy_report: unexpected error: %s", exc)
+        log.error("unexpected failure emitting discrepancy report: %s", exc)
         return {"total": 0, "pdf_bytes": 0, "error": str(exc)}

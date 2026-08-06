@@ -83,9 +83,13 @@ def auth_token_to_session_token(auth_token: Any) -> SessionToken:
         wired = to_wire()
         if isinstance(wired, SessionToken):
             return wired
-    raise RuntimeError(
-        f"MintableAuthToken.manufacture returned {type(auth_token).__name__!r}; "
-        "no SessionToken accessible via to_wire()"
+    raise ChatHealthyException(
+        mode="security_violation",
+        component="AuthorizationsAndAuthentications",
+        message=(
+            f"MintableAuthToken.manufacture returned {type(auth_token).__name__!r}; "
+            "no SessionToken accessible via to_wire()"
+        ),
     )
 
 
@@ -141,9 +145,13 @@ def manage_session(user_object: UserObject) -> UserObject:
     loaded it from Users.sessions."""
     now = datetime.now(timezone.utc)
     if not isinstance(user_object.current_session_token, SessionToken):
-        raise ValueError(
-            "manage_session requires a real SessionToken on the incoming "
-            "user_object; got sentinel/None."
+        raise ChatHealthyException(
+            mode="security_violation",
+            component="AuthorizationsAndAuthentications",
+            message=(
+                "manage_session requires a real SessionToken on the incoming "
+                "user_object; got sentinel/None."
+            ),
         )
     user_object.current_session_token.put_nonce(ORIGIN)
     user_object.expires_at = now + timedelta(seconds=SESSION_TTL_SECONDS)
@@ -232,4 +240,4 @@ TOOL = AuthorizationsAndAuthenticationsTool()
 def get_mongo_frontend():
     """Front-end cluster client (Users.sessions + Users.users) via the canonical utility."""
     from chathealthy_frontend_lib.mongo_utilities import ChatHealthyMongoUtilities
-    return ChatHealthyMongoUtilities(identity="pipelineEditor").getConnection()
+    return ChatHealthyMongoUtilities().getConnection("pipelineEditor", "frontEnd")

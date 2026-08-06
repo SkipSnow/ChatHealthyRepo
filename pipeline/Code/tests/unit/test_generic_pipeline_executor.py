@@ -202,7 +202,7 @@ def test_fetch_phase_all_unchanged(fake_mongo, registry):
     })
     known_hash = hashlib.sha256(archive).hexdigest()
     # Seed metadata for the fetcher (nppes_npi) with the same hash.
-    meta = fake_mongo["chathealthypipelines"]["pipeline.loaded_metadata"]
+    meta = fake_mongo["Pipelines"]["pipeline.loaded_metadata"]
     meta.update_one(
         {"_id": "nppes_npi"},
         {"$set": {"source_name": "nppes_npi", "bundle_hash": known_hash,
@@ -226,7 +226,7 @@ def test_fetch_phase_bundled_hash_changed_marks_owner_and_siblings_stale(
         "pl_pfile_a.csv": b"new,rows\n",
     })
     # Seed a DIFFERENT bundle_hash so the executor sees a change.
-    meta = fake_mongo["chathealthypipelines"]["pipeline.loaded_metadata"]
+    meta = fake_mongo["Pipelines"]["pipeline.loaded_metadata"]
     meta.update_one(
         {"_id": "nppes_npi"},
         {"$set": {"bundle_hash": "stale_hash_from_last_run",
@@ -250,7 +250,7 @@ def test_fetch_phase_bundled_hash_changed_marks_owner_and_siblings_stale(
 
 
 def test_freshness_cascade_stale_upstream_makes_derived_stale(fake_mongo, registry):
-    meta = fake_mongo["chathealthypipelines"]["pipeline.loaded_metadata"]
+    meta = fake_mongo["Pipelines"]["pipeline.loaded_metadata"]
     # smd depends on nppes_npi; nppes_npi is stale.
     meta.update_one({"_id": "nppes_npi"},
                     {"$set": {"freshness": "stale", "kind": "bundled"}}, upsert=True)
@@ -265,7 +265,7 @@ def test_freshness_cascade_stale_upstream_makes_derived_stale(fake_mongo, regist
 
 
 def test_freshness_cascade_all_fresh_upstream_makes_derived_fresh(fake_mongo, registry):
-    meta = fake_mongo["chathealthypipelines"]["pipeline.loaded_metadata"]
+    meta = fake_mongo["Pipelines"]["pipeline.loaded_metadata"]
     for name in ("nppes_npi", "pl_pfile"):
         meta.update_one({"_id": name},
                         {"$set": {"freshness": "fresh", "kind": "bundled"}}, upsert=True)
@@ -278,7 +278,7 @@ def test_freshness_cascade_all_fresh_upstream_makes_derived_fresh(fake_mongo, re
 def test_freshness_cascade_visits_topological_order(fake_mongo, registry):
     """The cascade evaluates entries in registry.topological_order so a
     derived entry sees its dependencies' verdicts before its own decision."""
-    meta = fake_mongo["chathealthypipelines"]["pipeline.loaded_metadata"]
+    meta = fake_mongo["Pipelines"]["pipeline.loaded_metadata"]
     meta.update_one({"_id": "nppes_npi"},
                     {"$set": {"freshness": "fresh", "kind": "bundled"}}, upsert=True)
     meta.update_one({"_id": "pl_pfile"},
@@ -298,7 +298,7 @@ def test_freshness_cascade_visits_topological_order(fake_mongo, registry):
 
 
 def test_stage_and_publish_skips_fresh_entries(fake_mongo, registry):
-    meta = fake_mongo["chathealthypipelines"]["pipeline.loaded_metadata"]
+    meta = fake_mongo["Pipelines"]["pipeline.loaded_metadata"]
     for name in ("nppes_npi", "pl_pfile", "smd", "provider"):
         meta.update_one({"_id": name},
                         {"$set": {"freshness": "fresh", "kind": "fetched"}}, upsert=True)
@@ -312,7 +312,7 @@ def test_stage_and_publish_skips_fresh_entries(fake_mongo, registry):
 
 
 def test_stage_and_publish_renames_stale_entries(fake_mongo, registry):
-    meta = fake_mongo["chathealthypipelines"]["pipeline.loaded_metadata"]
+    meta = fake_mongo["Pipelines"]["pipeline.loaded_metadata"]
     meta.update_one({"_id": "smd"},
                     {"$set": {"freshness": "stale", "kind": "derived"}}, upsert=True)
     # Seed the staging collection so the rename target exists.
@@ -332,7 +332,7 @@ def test_stage_and_publish_renames_stale_entries(fake_mongo, registry):
 
 
 def test_stage_and_publish_missing_staging_reports_unpublished(fake_mongo, registry):
-    meta = fake_mongo["chathealthypipelines"]["pipeline.loaded_metadata"]
+    meta = fake_mongo["Pipelines"]["pipeline.loaded_metadata"]
     meta.update_one({"_id": "provider"},
                     {"$set": {"freshness": "stale", "kind": "derived"}}, upsert=True)
     # Do NOT seed the staging collection.
@@ -352,7 +352,7 @@ def test_ctor_rejects_wrong_registry_type(fake_mongo):
         GenericPipelineExecutor(object(), fake_mongo, _FakeBlobClient(b""), "run-i")
     assert ei.value.mode == "pipeline_executor_registry_wrong_type"
     # Fatal was recorded on the pipeline cluster.
-    discs = fake_mongo["chathealthypipelines"]["pipeline.discrepancies"].inserts
+    discs = fake_mongo["Pipelines"]["pipeline.discrepancies"].inserts
     assert any(d["reason"] == "fatal_pipeline_executor_registry_wrong_type" for d in discs)
 
 

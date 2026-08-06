@@ -69,7 +69,7 @@ def _get_base_mongo_client():
     if not os.environ.get("MONGO_HOST"):
         return None
     from chathealthy_frontend_lib.mongo_utilities import ChatHealthyMongoUtilities
-    return ChatHealthyMongoUtilities(identity="pipelineEditor").getConnection()
+    return ChatHealthyMongoUtilities().getConnection("pipelineEditor", "admin")
 
 
 class PipelineWorkerBase(ABC):
@@ -99,11 +99,16 @@ class PipelineWorkerBase(ABC):
             source = config.get("source", "pipeline")
             if not run_id:
                 return None
+            # data_version comes from config: the worker knows which data
+            # generation it is operating on and the report cannot infer it.
+            # Row counts are supplied later by whoever queries them; an
+            # absent count reports "Unknown" and never zero.
             return DiscrepancyReport(
                 run_id=run_id,
                 env=env,
                 pipeline_name=pipeline_name,
                 source=source,
+                data_version=config.get("data_version"),
             )
         except Exception:
             return None

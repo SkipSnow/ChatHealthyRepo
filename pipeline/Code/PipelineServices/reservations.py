@@ -14,13 +14,14 @@ cluster_lifecycle_manager.py and are called by Controller/Worker (which
 own the reservations they create).
 """
 from __future__ import annotations
+from pipeline_db import METADATA_DB
 
 
 def find_active_reservations(mongo_client, cluster_name: str) -> list:
     """Return every active reservation doc on cluster_name from
     admin.cluster_lifecycle. Empty list means no job is currently
     running -- the runbook is free to spawn Control."""
-    coll = mongo_client["admin"]["cluster_lifecycle"]
+    coll = mongo_client[METADATA_DB]["cluster_lifecycle"]
     return list(coll.find({
         "cluster_name": cluster_name,
         "status": "active",

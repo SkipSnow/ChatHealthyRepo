@@ -15,12 +15,12 @@ def test_check_database_for_evidence():
     assert client, "Could not get pipeline MongoDB connection"
 
     try:
-        db = client["chathealthypipelines"]
+        db = client["Pipelines"]
 
         # List all collections
         collections = sorted(db.list_collection_names())
 
-        print(f"\n✓ Connected to PIPELINE database: chathealthypipelines")
+        print(f"\n✓ Connected to metadata database: Pipelines")
         print(f"✓ Total collections: {len(collections)}")
 
         # Look for discrepancy-related collections

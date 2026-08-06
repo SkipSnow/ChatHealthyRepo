@@ -37,7 +37,10 @@ def resolve_homeopathic_specialties(
     # which are relevant to homeopathic/alternative care for this query.
     # We don't pre-filter to our 24 homeopathic flags — GPT may identify
     # additional specialties that are relevant in a homeopathic context.
-    meta_coll = db[f"{env_prefix}_PublicHealthData"]["SpecialtyMetaData"]
+    # Databases are not named for environments; environments are separated
+    # by cluster. The env-prefixed form pointed at a database that does not
+    # exist, which is why specialty resolution returned nothing.
+    meta_coll = db["PublicHealthData"]["SpecialtyMetaData"]
     candidate_docs = list(meta_coll.find(
         {"Code": {"$nin": list(existing_codes)}},
         {"Code": 1, "Display Name": 1, "Classification": 1, "Grouping": 1,

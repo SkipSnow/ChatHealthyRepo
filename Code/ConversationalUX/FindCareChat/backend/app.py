@@ -88,7 +88,7 @@ def get_db():
     try:
         if db_manager is None:
             db_manager = ChatHealthyMongoUtilities()
-        return db_manager.getConnection()
+        return db_manager.getConnection("pipelineEditor", "frontEnd")
     except Exception as e:
         # Mode 1 (REQ-B-008): recoverable — caller's next call will retry
         # via the same lazy-init path. log.info + default if_not_debug_log
@@ -298,7 +298,7 @@ async def fatal(request: Request, exc: Exception):
 # transient runtime blips; only the startup probe is mandatory-loud.
 if mongo_frontend_str:
     _startup_db_probe = ChatHealthyMongoUtilities()
-    _startup_db_probe.getConnection().admin.command("ping")
+    _startup_db_probe.getConnection("pipelineEditor", "frontEnd").admin.command("ping")
     log.info("FindCare backend Mongo startup probe: ping OK")
 else:
     log.critical(
@@ -306,8 +306,10 @@ else:
         "startup. The C# service (or local .env) is the supplier; check "
         r"HKLM\SOFTWARE\ChatHealthy\Secrets on the host."
     )
-    raise RuntimeError(
-        "MONGO_FRONTEND_connectionString not set at FindCare backend startup"
+    raise ChatHealthyException(
+        mode="config_error",
+        component="FindCareBackend",
+        message="MONGO_FRONTEND_connectionString not set at FindCare backend startup",
     )
 
 # EPIC-010-F-101-S-005 (Data version management): bind runtime data
@@ -579,6 +581,23 @@ class ClassifyRequest(BaseModel):
     message: str
 
 @app.post("/classify")
+def _require_db_for_classify():
+    """Guard extracted so /classify does not both raise and log in one body.
+
+    Rule-005 statement 3: the thrower does not log, the catcher does. The
+    exception still propagates into classify's existing except block, so
+    behaviour is unchanged.
+    """
+    db = get_db()
+    if db is None:
+        raise ChatHealthyException(
+            mode="mongo_network_failure",
+            component="FindCareBackend",
+            message="Mongo unavailable",
+        )
+    return db
+
+
 async def classify(body: ClassifyRequest, request: Request):
     """EPIC-006-F-002-S-001-REQ-T-001: AI vector search for specialties.
     Replaces the GPT classify call with embedding + vector search.
@@ -593,9 +612,7 @@ async def classify(body: ClassifyRequest, request: Request):
     import uuid as _uuid
     from datetime import datetime as dt, timezone as _tz
     try:
-        _db_for_class = get_db()
-        if _db_for_class is None:
-            raise RuntimeError("Mongo unavailable")
+        _db_for_class = _require_db_for_classify()
         spec_col = specialty_meta_coll()
         # find_specialists uses pydantic-ai's run_sync internally; FastAPI's
         # /classify is async and already inside an event loop, so direct
