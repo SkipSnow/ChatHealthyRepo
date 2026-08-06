@@ -15,7 +15,7 @@ def test_email_send_with_warnings_and_errors():
     """Test: create warnings/errors, then send email report."""
 
     # Setup
-    os.environ["ENV_PREFIX"] = "dev"
+    os.environ["ENV_PREFIX"] = "local"
     os.environ["PIPELINE_NAME"] = "provider"
     run_id = f"test_email_{uuid.uuid4().hex[:8]}"
 
@@ -25,12 +25,14 @@ def test_email_send_with_warnings_and_errors():
     # queries them; the test supplies representative values.
     report = DiscrepancyReport(
         run_id=run_id,
-        env="dev",
+        env="local",
         pipeline_name="provider",
         source="ProviderPipelineOnDemand",
         total_source_rows=8214553,
         rows_in_target=0,
         total_rows=8214550,
+        fatal_error=True,
+        data_version=3,
     )
 
     # Create some warnings

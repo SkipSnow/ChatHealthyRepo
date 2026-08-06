@@ -40,6 +40,26 @@ from .logging_service import ChatHealthyLoggingService
 log = ChatHealthyLoggingService()
 TIMEOUT_MS = 120000
 
+# Logical connection targets. A target names a PURPOSE, never a server:
+#
+#   frontEnd   user-facing data      PublicHealthData, Users
+#   admin      operational records   ChatHealthyConfig, ClaudeCodeLog, Pipelines
+#   pipelines  pipeline data         pipelinePublicHealthData
+#
+# The pipeline data factory is down by design most of the day, so anything
+# that must answer 24x7 belongs to admin, not pipelines.
+#
+# Today all three resolve to the same physical cluster: the separation is
+# real in the entitlement model and notional in the wiring. Buying the
+# pipeline or admin cluster changes this map and nothing else.
+CLUSTER_TARGETS = ("frontEnd", "admin", "pipelines")
+
+_TARGET_URI_ENV = {
+    "frontEnd": "MONGO_FRONTEND_connectionString",
+    "admin": "MONGO_FRONTEND_connectionString",
+    "pipelines": "MONGO_FRONTEND_connectionString",
+}
+
 
 def q(value: Any) -> str:
     """Render the verbatim JSON the application is asking pymongo to send."""
@@ -112,9 +132,12 @@ def _convert_mongo_exception(exc: BaseException, elapsed_s: float,
 
 
 class TimedCursor:
-    """Pass-through cursor wrapper. Logs START / END / FAIL for the
-    cursor iteration. Elapsed time is the asctime delta between START
-    and END/FAIL - read it directly from the log; no time math here."""
+    """Pass-through cursor wrapper. Logs FAIL only.
+
+    Per-operation START/END tracing was removed: it produced two records
+    per database call in the one shared business log, drowning the events
+    that mean something. Failures are rare and are the thing worth keeping.
+    """
 
     def __init__(self, cursor: Any, op: str, db: str, coll: str) -> None:
         self._cursor = cursor
@@ -123,14 +146,10 @@ class TimedCursor:
         self._coll = coll
 
     def __iter__(self):
-        log.debug("mongo.%s iter START db=%s coll=%s",
-                  self._op, self._db, self._coll)
         start = time.monotonic()
         try:
             for doc in self._cursor:
                 yield doc
-            log.debug("mongo.%s iter END db=%s coll=%s",
-                      self._op, self._db, self._coll)
         except Exception as exc:
             elapsed = time.monotonic() - start
             log.info("mongo.%s iter FAIL db=%s coll=%s elapsed_s=%.3f exc=%s: %s %s",
@@ -166,9 +185,12 @@ class TimedCursor:
 
 
 class TimedCollection:
-    """Pass-through Collection wrapper. Each op logs START with the
-    verbatim args sent to pymongo, and END or FAIL on completion. The
-    duration is the asctime delta between START and END/FAIL."""
+    """Pass-through Collection wrapper. Logs FAIL only.
+
+    Same reasoning as TimedCursor: a successful query is not an event worth
+    a log record. A failed one is, and carries elapsed time and the verbatim
+    Mongo response.
+    """
 
     def __init__(self, coll: Any) -> None:
         self._coll = coll
@@ -179,8 +201,6 @@ class TimedCollection:
         return getattr(self._coll, name)
 
     def aggregate(self, pipeline, *args, **kwargs):
-        log.debug("mongo.aggregate START db=%s coll=%s pipeline=%s opts=%s",
-                  self._db_name, self._coll_name, q(pipeline), q(kwargs))
         start = time.monotonic()
         try:
             cursor = self._coll.aggregate(pipeline, *args, **kwargs)
@@ -199,8 +219,6 @@ class TimedCollection:
             kwargs["batch_size"] = batch_size
         filt = args[0] if args else kwargs.get("filter", {})
         proj = args[1] if len(args) > 1 else kwargs.get("projection")
-        log.debug("mongo.find START db=%s coll=%s filter=%s projection=%s opts=%s",
-                  self._db_name, self._coll_name, q(filt), q(proj), q(kwargs))
         start = time.monotonic()
         try:
             cursor = self._coll.find(*args, **kwargs)
@@ -217,13 +235,9 @@ class TimedCollection:
     def find_one(self, *args, **kwargs):
         filt = args[0] if args else kwargs.get("filter", {})
         proj = args[1] if len(args) > 1 else kwargs.get("projection")
-        log.debug("mongo.find_one START db=%s coll=%s filter=%s projection=%s opts=%s",
-                  self._db_name, self._coll_name, q(filt), q(proj), q(kwargs))
         start = time.monotonic()
         try:
             result = self._coll.find_one(*args, **kwargs)
-            log.debug("mongo.find_one END db=%s coll=%s hit=%s",
-                      self._db_name, self._coll_name, result is not None)
             return result
         except Exception as exc:
             elapsed = time.monotonic() - start
@@ -236,13 +250,9 @@ class TimedCollection:
 
     def count_documents(self, *args, **kwargs):
         filt = args[0] if args else kwargs.get("filter", {})
-        log.debug("mongo.count_documents START db=%s coll=%s filter=%s opts=%s",
-                  self._db_name, self._coll_name, q(filt), q(kwargs))
         start = time.monotonic()
         try:
             result = self._coll.count_documents(*args, **kwargs)
-            log.debug("mongo.count_documents END db=%s coll=%s n=%d",
-                      self._db_name, self._coll_name, result)
             return result
         except Exception as exc:
             elapsed = time.monotonic() - start
@@ -306,33 +316,52 @@ class ChatHealthyMongoUtilities:
             component="ChatHealthyMongoUtilities",
         )
 
-    def getConnection(self, cert_name: str) -> TimedClient:
-        """Establish MongoDB connection using certificate name.
-
-        Currently uses URI-based auth. X.509 mTLS configured but fallback to
-        URI auth for MongoDB Atlas compatibility.
+    def getConnection(self, role: str, cluster: str) -> TimedClient:
+        """Establish a MongoDB connection for a role against a logical target.
 
         Args:
-            cert_name: Certificate/identity name (e.g., "pipelineEditor").
+            role: The identity to act as (e.g. "pipelineEditor"). Selects WHO.
+            cluster: A logical target from CLUSTER_TARGETS. Selects WHERE.
+
+        A role deliberately spans targets -- pipelineEditor does its work on
+        `pipelines` and writes its metadata to `admin` -- so role alone cannot
+        determine the server. Both arguments are required and neither has a
+        default: a caller that has not decided which target it wants has not
+        finished deciding what it is doing.
+
+        Today every target resolves to the same physical cluster, so this is
+        currently a behavioural no-op. What it adds is that each call site
+        DECLARES its target, which the code has never carried before.
 
         Returns:
             TimedClient wrapping an authenticated MongoClient.
 
         Raises:
-            ChatHealthyException if connection fails.
+            ChatHealthyException if either argument is invalid or the
+            connection fails.
         """
-        if not cert_name or not isinstance(cert_name, str):
+        if not role or not isinstance(role, str):
             raise ChatHealthyException(
                 mode="security_violation",
-                message=f"cert_name must be a non-empty string, got: {type(cert_name).__name__}",
+                message=f"role must be a non-empty string, got: {type(role).__name__}",
                 component="ChatHealthyMongoUtilities",
             )
 
-        mongo_uri = os.environ.get("MONGO_FRONTEND_connectionString", "").strip()
+        if cluster not in CLUSTER_TARGETS:
+            raise ChatHealthyException(
+                mode="security_violation",
+                message=(
+                    f"cluster must be one of {CLUSTER_TARGETS}, got: {cluster!r}"
+                ),
+                component="ChatHealthyMongoUtilities",
+            )
+
+        uri_env = _TARGET_URI_ENV[cluster]
+        mongo_uri = os.environ.get(uri_env, "").strip()
         if not mongo_uri:
             raise ChatHealthyException(
                 mode="mongo_network_failure",
-                message="MONGO_FRONTEND_connectionString not set",
+                message=f"{uri_env} not set (logical target {cluster!r})",
                 component="ChatHealthyMongoUtilities",
             )
 

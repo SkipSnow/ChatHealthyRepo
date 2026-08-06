@@ -82,6 +82,7 @@ class NotificationClient:
         body: str,
         attachments: list | None = None,
         html_body: str | None = None,
+        log_context: str = "",
         **meta: Any,
     ) -> dict:
         # Auto-promote HTML-looking body to html_body so Gmail renders
@@ -130,8 +131,9 @@ class NotificationClient:
                 timeout=15,
             )
             if r.status_code in (200, 201, 202):
-                _log.info("notification email delivered to=%s subject=%s",
-                          to, subject[:120])
+                _log.info("notification email delivered to=%s subject=%s%s",
+                          to, subject[:120],
+                          f" {log_context}" if log_context else "")
                 return {"channel": "email", "status": "delivered", "to": to}
             _log.warning("SparkPost email failed status=%s body=%s to=%s",
                          r.status_code, r.text[:300], to)

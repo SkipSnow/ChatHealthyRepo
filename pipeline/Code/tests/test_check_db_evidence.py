@@ -11,7 +11,7 @@ def test_check_database_for_evidence():
 
     # Connect to PIPELINE cluster where discrepancy data is written
     utilities = ChatHealthyMongoUtilities()
-    client = utilities.getConnection("pipelineEditor")
+    client = utilities.getConnection("pipelineEditor", "admin")
     assert client, "Could not get pipeline MongoDB connection"
 
     try:

@@ -1,4 +1,7 @@
-from chathealthy_frontend_lib.logging_service import ChatHealthyLoggingService
+from chathealthy_frontend_lib.logging_service import (
+    ChatHealthyLoggingService,
+    set_mongo_log_identity,
+)
 from chathealthy_frontend_lib.exceptions import ChatHealthyException
 from chathealthy_frontend_lib.mongo_utilities import ChatHealthyMongoUtilities
 # Copyright (c) 2026 ChatHealthy.ai LLC. All rights reserved.
@@ -15,6 +18,12 @@ import os
 from pymongo import MongoClient
 
 _log = ChatHealthyLoggingService()
+
+# The pipeline acts as pipelineEditor, including when it writes its own logs.
+# The Mongo log handler refuses to build without this, so it is set here:
+# pipeline_db is imported by every pipeline component, which makes this the
+# one place guaranteed to run before any pipeline code logs.
+set_mongo_log_identity("pipelineEditor")
 
 # CV-010: environment controlled vocabulary
 _VALID_ENVIRONMENTS = {"local", "dev", "qa", "prod"}
@@ -33,18 +42,24 @@ def _validate_env(env_prefix: str) -> str:
     return env_prefix
 
 
-def get_mongo() -> MongoClient:
-    """Return the pipeline-cluster MongoClient via ChatHealthyMongoUtilities.
-    Uses pipelineEditor identity with X.509 mTLS authentication."""
-    return ChatHealthyMongoUtilities().getConnection("pipelineEditor")
+def get_mongo(cluster: str = "pipelines") -> MongoClient:
+    """MongoClient for pipeline work, as pipelineEditor.
+
+    Defaults to the `pipelines` target -- the data factory, which is down by
+    design most of the day. Callers reaching for metadata want `admin`, and
+    should use get_metadata_db() rather than passing it here.
+    """
+    return ChatHealthyMongoUtilities().getConnection("pipelineEditor", cluster)
 
 
 def get_frontend_mongo() -> MongoClient:
-    """Return the front-cluster MongoClient via ChatHealthyMongoUtilities.
-    Uses pipelineEditor identity (unified identity) with X.509 mTLS authentication.
-    Used by ClusterLifecycleManager so reservation reads/writes never
-    depend on the pipeline cluster being awake."""
-    return ChatHealthyMongoUtilities().getConnection("pipelineEditor")
+    """MongoClient for the frontEnd target, as pipelineEditor.
+
+    Used by ClusterLifecycleManager. Note this returns the frontEnd target
+    specifically so reservation reads and writes never depend on the pipeline
+    factory being awake.
+    """
+    return ChatHealthyMongoUtilities().getConnection("pipelineEditor", "frontEnd")
 
 
 def get_db(env_prefix: str = None):
@@ -57,16 +72,21 @@ def get_db(env_prefix: str = None):
     """
     env_prefix = env_prefix or os.environ.get("ENV_PREFIX", "dev")
     _validate_env(env_prefix)
-    return get_mongo()["PublicHealthData"]
+    return get_mongo("frontEnd")["PublicHealthData"]
 
 
 # Every piece of pipeline metadata -- configuration, discrepancy reports, run
 # counters, fatal records, load state -- lives in this one database and nowhere
 # else. Physical pipeline DATA (provider collections, staging) is separate and
-# stays in the env-prefixed PublicHealthData databases.
+# lives on the pipelines target.
 METADATA_DB = "Pipelines"
 
 
 def get_metadata_db():
-    """The single home for pipeline metadata: frontEnd.Pipelines."""
-    return get_mongo()[METADATA_DB]
+    """The single home for pipeline metadata.
+
+    Lives on the `admin` target, which answers 24x7. Pipeline metadata must
+    be readable while the data factory is asleep -- notably so that "factory
+    unreachable" can itself be reported.
+    """
+    return get_mongo("admin")[METADATA_DB]
