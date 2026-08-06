@@ -56,7 +56,7 @@ class SecretsResolver:
     ) -> "SecretsResolver":
         """Build bindings by reading per-target `secrets` declarations.
 
-        Per EPIC-008-F-012-S-001-REQ-T-038: bindings dict MUST be
+        Per EPIC-008-F-012-S-001-REQ-B-009: bindings dict MUST be
         constructed by reading per-target key declarations from the
         manifest. Each TargetRecord enumerates its own keys; each
         (name, env_binding) pair in any target maps to that target's
@@ -138,7 +138,7 @@ class SecretsResolver:
     def env_values_for_leak_check(self, env_file: Path) -> set[str]:
         """Return the set of secret VALUES the leak-check must guard.
 
-        Per EPIC-008-F-012-S-001-REQ-T-057 the `.env` is organized into
+        Per EPIC-008-F-012-S-001-REQ-B-009 the `.env` is organized into
         two top-level sections, `# Secrets` and `# SecretSafe`. Only
         values whose key falls under `# Secrets` enter the needle set;
         SecretSafe values (URLs, model names, identifiers, booleans) are

@@ -444,7 +444,7 @@ class ScanFilesEnforcementWorker(EnforcementWorker):
     def _scan_no_secret_values(self, file_path: str) -> list[ViolationRecord]:
         """Reject if the staged file contains any value from the local .env.
 
-        Per EPIC-008-F-012-S-001-REQ-T-053: no file in any per-target build-
+        Per EPIC-008-F-012-S-001-REQ-B-009: no file in any per-target build-
         package directory may contain a literal secret VALUE. The check
         loads every value from Code/.env via SecretsResolver's leak-check
         helper, then substring-matches against the file's text bytes.

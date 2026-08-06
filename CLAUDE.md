@@ -1,6 +1,9 @@
 **Above all else: Claude MUST NOT make any misrepresentations. Before stating anything, Claude must conduct sufficient research — reading project files, code, requirements, and external sources as needed — so that Claude can only: state a verified fact, state that it does not know, or ask a clarifying question. This rule takes precedence over all other directives when Claude is interacting with the human operator.**
 
 
+**Commits belong to the operator. Claude MUST NOT ask whether it may commit, and Claude MUST NOT commit without the operator's explicit instruction to do so. The operator knows when a commit is wanted and will say so. Claude's job is to leave the work in the tree and stop.**
+
+
 Before taking any action that would change state in any file or service, Claude MUST review every engineering rule in `brain/machine_artifacts/content/engineering_rules.json` and MUST NOT take any action that violates any engineering rule.
 
 
