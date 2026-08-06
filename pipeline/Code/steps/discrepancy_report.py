@@ -65,22 +65,9 @@ class DiscrepancyReport:
         self.source = source
         self.start_time = datetime.now(timezone.utc).isoformat()
         self.operator_email = self._get_operator_email_from_vault()
-        self.mongo_connection = self._establish_mongo_connection()
+        utilities = ChatHealthyMongoUtilities()
+        self.mongo_connection = utilities.getConnection("pipelineEditor")
         self.config = self._load_pipeline_config()
-
-    def _establish_mongo_connection(self):
-        """Establish MongoDB connection using pipelineEditor identity."""
-        try:
-            utilities = ChatHealthyMongoUtilities()
-            return utilities.getConnection("pipelineEditor")
-        except ChatHealthyException:
-            raise
-        except Exception as exc:
-            raise ChatHealthyException(
-                mode="mongo_unreachable",
-                message=f"Failed to establish MongoDB connection: {exc}",
-                component="DiscrepancyReport",
-            ) from exc
 
     def _load_pipeline_config(self) -> dict:
         """Load pipeline configuration from MongoDB."""
@@ -253,7 +240,7 @@ class DiscrepancyReport:
             log.error("get_counts failed: %s", exc)
             return {"warning_count": 0, "error_count": 0}
 
-    def write_email(self) -> bool:
+    def _write_email(self) -> bool:
         """Read all discrepancies from mongo, send email with fatal error in body and others in PDF.
 
         Returns:
@@ -286,51 +273,197 @@ class DiscrepancyReport:
             if not fatal_reports:
                 return False
 
-            # Send email with fatal error in body
+            # Send email with pixel-perfect PDF header reproduction
             from notification_client import NotificationClient
+            from discrepancy_pdf import render_header_as_html
+
             client = NotificationClient()
             subject = f"Provider pipeline {self.run_id} - fatal"
-            body_lines = []
-            body_lines.append(f"FATAL: {fatal_reports[0].get('explanation')}")
-            body_lines.append(f"run_id={self.run_id}")
-            body_lines.append(f"source={fatal_reports[0].get('source')}")
-            body = "\n".join(body_lines)
 
-            # Build PDF with all issues in order: fatal, error, warning
+            # Build complete manifest for email and PDF
+            end_time = datetime.now(timezone.utc).isoformat()
+            # Count actual warning/error documents from MongoDB - must query every time
+            discs_coll_name = self.config.get("warnings_errors_collection", "pipeline.discrepancies")
+            discs_coll = self.mongo_connection["chathealthypipelines"][discs_coll_name]
+            warning_count = discs_coll.count_documents({"run_id": self.run_id, "level": "warning"})
+            error_count = discs_coll.count_documents({"run_id": self.run_id, "level": "error"})
+            manifest = {
+                "run_id": self.run_id,
+                "pipeline_name": self.pipeline_name,
+                "run_started_utc": self.start_time,
+                "run_ended_utc": end_time,
+                "fatal_reason": fatal_reports[0].get('explanation') if fatal_reports else "",
+                "records_100_percent_successfully_collected": False,
+                "records_with_non_fatal_warnings": warning_count,
+                "records_with_non_fatal_errors": error_count,
+                "rows_before_fatal": "Unknown",
+                "rows_not_looked_at": "Unknown",
+                "warning_threshold": self.config.get("warning_threshold", "Unknown"),
+                "error_threshold": self.config.get("error_threshold", "Unknown"),
+            }
+
+            # Flatten all discrepancies for header rendering
+            all_discrepancies = fatal_reports + error_reports + warning_reports
+
+            # Email body is pixel-perfect HTML reproduction of PDF header
+            body = render_header_as_html(manifest, all_discrepancies)
+
+            # Build PDF with all issues (using same manifest as email header)
             attachments = []
             if fatal_reports or error_reports or warning_reports:
                 from discrepancy_pdf import build_discrepancy_pdf
-                pdf_reports = []
-                if fatal_reports:
-                    pdf_reports.append({"level": "fatal", "items": fatal_reports})
-                if error_reports:
-                    pdf_reports.append({"level": "error", "items": error_reports})
-                if warning_reports:
-                    pdf_reports.append({"level": "warning", "items": warning_reports})
-
-                pdf_content = build_discrepancy_pdf(
-                    {"run_id": self.run_id, "total_issues": len(all_reports)},
-                    pdf_reports
-                )
+                pdf_content = build_discrepancy_pdf(manifest, all_discrepancies)
                 attachments.append({"filename": "discrepancies.pdf", "content": pdf_content})
 
             # Send email
             receivers = []
             if self.operator_email and self.operator_email not in receivers:
                 receivers.append(self.operator_email)
-            kv_operator = (os.environ.get("NOTIFICATION_TO_EMAIL") or "").strip()
+
+            # Fetch operator email from Azure Key Vault
+            try:
+                from azure.keyvault.secrets import SecretClient
+                from azure.identity import DefaultAzureCredential
+
+                vault_uri = "https://kv-chpipeline-dev.vault.azure.net/"
+                credential = DefaultAzureCredential()
+                kv_client = SecretClient(vault_url=vault_uri, credential=credential)
+                email_secret = kv_client.get_secret("notification-to-email")
+                kv_operator = (email_secret.value or "").strip()
+
+                if not kv_operator:
+                    raise ChatHealthyException(
+                        mode="config_error",
+                        message="notification-to-email secret in vault is empty",
+                        component="DiscrepancyReport",
+                    )
+
+                # Validate email format
+                if "@" not in kv_operator or not kv_operator.endswith((".com", ".ai", ".org", ".net", ".edu", ".gov")):
+                    raise ChatHealthyException(
+                        mode="config_error",
+                        message=f"notification-to-email from vault is malformed: {kv_operator}",
+                        component="DiscrepancyReport",
+                    )
+            except ChatHealthyException:
+                raise
+            except Exception as e:
+                raise ChatHealthyException(
+                    mode="vault_unreachable",
+                    message=f"Failed to fetch email from vault: {e}",
+                    component="DiscrepancyReport",
+                ) from e
+
             if kv_operator and kv_operator not in receivers:
                 receivers.append(kv_operator)
+
+            if not receivers:
+                return False
+
             for addr in receivers:
                 if addr and "@" in addr:
                     client.send_email(addr, subject, body, attachments=attachments)
 
             return True
+        except ChatHealthyException:
+            return False
+        except Exception:
+            return False
+
+    def createWarning(
+        self,
+        job_name: str,
+        source: str,
+        details: str,
+        data_source: str,
+        record_id: str,
+    ) -> bool:
+        """Record a warning using the report's mongo connection.
+
+        Args:
+            job_name: Name of the job/pipeline.
+            source: Source location of the warning.
+            details: Warning details.
+            data_source: Data source (e.g., "NPPES", "NUCC").
+            record_id: Business key of the record (e.g., NPI, NUCC code).
+
+        Returns:
+            True if recorded successfully, False otherwise.
+        """
+        log = ChatHealthyLoggingService()
+        try:
+            if not self.mongo_connection:
+                return False
+
+            reports_coll = self.mongo_connection["chathealthypipelines"]["pipeline.discrepancy_reports"]
+            warning_doc = {
+                "run_id": self.run_id,
+                "job_name": job_name,
+                "source": source,
+                "data_source": data_source,
+                "record_id": record_id,
+                "level": "warning",
+                "details": details,
+            }
+            reports_coll.insert_one(warning_doc)
+            log.warning("createWarning: %s - %s", source, details)
+            self.increment_warning_count()
+            if check_threshold_and_trigger_fatal_if_needed(self, "warning"):
+                return False
+            return True
         except ChatHealthyException as exc:
-            log.error("write_email: could not send report: %s", exc, exc=exc)
+            log.error("createWarning: could not write warning: %s", exc, exc=exc)
             return False
         except Exception as exc:
-            log.error("write_email: could not send report: %s", exc)
+            log.error("createWarning: could not write warning: %s", exc)
+            return False
+
+    def createNonFatalError(
+        self,
+        job_name: str,
+        source: str,
+        details: str,
+        data_source: str,
+        record_id: str,
+    ) -> bool:
+        """Record a non-fatal error using the report's mongo connection.
+
+        Args:
+            job_name: Name of the job/pipeline.
+            source: Source location of the error.
+            details: Error details.
+            data_source: Data source (e.g., "NPPES", "NUCC").
+            record_id: Business key of the record (e.g., NPI, NUCC code).
+
+        Returns:
+            True if recorded successfully, False otherwise.
+        """
+        log = ChatHealthyLoggingService()
+        try:
+            if not self.mongo_connection:
+                return False
+
+            reports_coll = self.mongo_connection["chathealthypipelines"]["pipeline.discrepancy_reports"]
+            error_doc = {
+                "run_id": self.run_id,
+                "job_name": job_name,
+                "source": source,
+                "data_source": data_source,
+                "record_id": record_id,
+                "level": "error",
+                "details": details,
+            }
+            reports_coll.insert_one(error_doc)
+            log.error("createNonFatalError: %s - %s", source, details)
+            self.increment_error_count()
+            if check_threshold_and_trigger_fatal_if_needed(self, "error"):
+                return False
+            return True
+        except ChatHealthyException as exc:
+            log.error("createNonFatalError: could not write error: %s", exc, exc=exc)
+            return False
+        except Exception as exc:
+            log.error("createNonFatalError: could not write error: %s", exc)
             return False
 
 
@@ -400,7 +533,7 @@ def fatal_error(
             "manifest": manifest,
         }
         reports_coll.insert_one(fatal_doc)
-        return report.write_email()
+        return report._write_email()
     except ChatHealthyException as exc:
         log.error("fatal_error: could not write fatal error: %s", exc, exc=exc)
         return False
@@ -592,7 +725,7 @@ def emit_discrepancy_report(
             run_id=run_id,
             env=os.environ.get("ENV_PREFIX", "dev"),
             pipeline_name=os.environ.get("PIPELINE_NAME", "provider"),
-            source="control_runner",
+            source="ProviderPipelineOnDemand",
         )
 
         # Override with passed-in operator email, or use environment default
@@ -610,7 +743,7 @@ def emit_discrepancy_report(
         # Send email if operator email is set
         email_sent = False
         if report.operator_email and "@" in report.operator_email:
-            email_sent = report.write_email()
+            email_sent = report._write_email()
             if email_sent:
                 log.info(
                     "emit_discrepancy_report: email sent to %s run_id=%s",

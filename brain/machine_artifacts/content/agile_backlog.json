@@ -13476,6 +13476,238 @@
               "priority": "must-have"
             },
             {
+              "feature_id": "EPIC-008-F-004",
+              "name": "ChatHealthy PKI Certificate Management",
+              "status": "done",
+              "description": "A distributed, internet-accessible Certificate Authority that issues X.509 certificates on demand to any system. The CA possesses a root signing certificate, accepts subject Distinguished Names from requesters, issues 1-year-valid certificates, and enables retrieval and storage of issued certificates by all authorized requesting systems.",
+              "realized_by": [
+                "Code/Shared/ops/tools/chathealthy_cert_authority.py"
+              ],
+              "stories": {
+                "story": [
+                  {
+                    "story_id": "EPIC-008-F-004-S-001",
+                    "orphan": false,
+                    "name": "Any IP can request by providing a subject Distinguished Name (DN)",
+                    "description": "The Certificate Authority MUST accept requests from any IP address on the internet presenting proper credentials or with local privileged and user status. Each request MUST include a subject Distinguished Name (DN) provided by the requester. The CA MUST use this DN as the subject of the issued certificate.",
+                    "size": "M",
+                    "status": "done",
+                    "approval": "approved",
+                    "requirements": {
+                      "requirement": [
+                        {
+                          "req_id": "EPIC-008-F-004-S-001-REQ-B-001",
+                          "orphan": false,
+                          "name": "Any IP can request by providing a subject Distinguished Name (DN)",
+                          "requirement": "The Certificate Authority MUST accept requests from any IP address on the internet presenting proper credentials or with local privileged and user status. Each request MUST include a subject Distinguished Name (DN) provided by the requester. The CA MUST use this DN as the subject of the issued certificate.",
+                          "priority": "must-have",
+                          "status": "done",
+                          "depends_on": [],
+                          "tests": {
+                            "test": [
+                              {
+                                "test_id": "EPIC-008-F-004-S-001-REQ-B-001-TEST-1",
+                                "orphan": false,
+                                "test_type": "unit",
+                                "file": "pipeline/Code/tests/test_ca_request_with_dn.py"
+                              }
+                            ]
+                          },
+                          "approval": "approved"
+                        }
+                      ]
+                    }
+                  },
+                  {
+                    "story_id": "EPIC-008-F-004-S-002",
+                    "orphan": false,
+                    "name": "CA must have a root signing certificate",
+                    "description": "The Certificate Authority MUST possess a root signing certificate. This root certificate MUST be used to sign all issued X.509 certificates. The root certificate MUST be stored securely and accessible only to authorized users.",
+                    "size": "M",
+                    "status": "done",
+                    "approval": "approved",
+                    "requirements": {
+                      "requirement": [
+                        {
+                          "req_id": "EPIC-008-F-004-S-002-REQ-B-001",
+                          "orphan": false,
+                          "name": "CA must have a root signing certificate",
+                          "requirement": "The Certificate Authority MUST possess a root signing certificate. This root certificate MUST be used to sign all issued X.509 certificates. The root certificate MUST be stored securely and accessible only to authorized users.",
+                          "priority": "must-have",
+                          "status": "done",
+                          "depends_on": [],
+                          "tests": {
+                            "test": [
+                              {
+                                "test_id": "EPIC-008-F-004-S-002-REQ-B-001-TEST-1",
+                                "orphan": false,
+                                "test_type": "unit",
+                                "file": "pipeline/Code/tests/test_ca_root_certificate.py"
+                              }
+                            ]
+                          },
+                          "approval": "approved"
+                        }
+                      ]
+                    }
+                  },
+                  {
+                    "story_id": "EPIC-008-F-004-S-003",
+                    "orphan": false,
+                    "name": "Issues X.509 certificates signed with root cert",
+                    "description": "The Certificate Authority MUST issue X.509 certificates in response to valid requests. Each issued certificate MUST be signed with the CA's root signing certificate using industry-standard cryptographic algorithms. The certificate MUST contain the requested subject Distinguished Name.",
+                    "size": "M",
+                    "status": "done",
+                    "approval": "approved",
+                    "requirements": {
+                      "requirement": [
+                        {
+                          "req_id": "EPIC-008-F-004-S-003-REQ-B-001",
+                          "orphan": false,
+                          "name": "Issues X.509 certificates signed with root cert",
+                          "requirement": "The Certificate Authority MUST issue X.509 certificates in response to valid requests. Each issued certificate MUST be signed with the CA's root signing certificate using industry-standard cryptographic algorithms. The certificate MUST contain the requested subject Distinguished Name.",
+                          "priority": "must-have",
+                          "status": "done",
+                          "depends_on": [],
+                          "tests": {
+                            "test": [
+                              {
+                                "test_id": "EPIC-008-F-004-S-003-REQ-B-001-TEST-1",
+                                "orphan": false,
+                                "test_type": "unit",
+                                "file": "pipeline/Code/tests/test_ca_issue_signed_certs.py"
+                              }
+                            ]
+                          },
+                          "approval": "approved"
+                        }
+                      ]
+                    }
+                  },
+                  {
+                    "story_id": "EPIC-008-F-004-S-004",
+                    "orphan": false,
+                    "name": "Certificates valid for 1 year",
+                    "description": "Each X.509 certificate issued by the Certificate Authority MUST be valid for exactly one (1) year from the date of issuance. The certificate's notBefore and notAfter fields MUST reflect a 1-year validity period.",
+                    "size": "M",
+                    "status": "done",
+                    "approval": "approved",
+                    "requirements": {
+                      "requirement": [
+                        {
+                          "req_id": "EPIC-008-F-004-S-004-REQ-B-001",
+                          "orphan": false,
+                          "name": "Certificates valid for 1 year",
+                          "requirement": "Each X.509 certificate issued by the Certificate Authority MUST be valid for exactly one (1) year from the date of issuance. The certificate's notBefore and notAfter fields MUST reflect a 1-year validity period.",
+                          "priority": "must-have",
+                          "status": "done",
+                          "depends_on": [],
+                          "tests": {
+                            "test": [
+                              {
+                                "test_id": "EPIC-008-F-004-S-004-REQ-B-001-TEST-1",
+                                "orphan": false,
+                                "test_type": "unit",
+                                "file": "pipeline/Code/tests/test_ca_cert_validity.py"
+                              }
+                            ]
+                          },
+                          "approval": "approved"
+                        }
+                      ]
+                    }
+                  },
+                  {
+                    "story_id": "EPIC-008-F-004-S-005",
+                    "orphan": false,
+                    "name": "Issued certificates are retrievable and storable by requesting systems",
+                    "description": "Issued certificates are retrievable and storable by requesting systems, with DN-based vault retrieval matching and support for third-party certificate storage in qualified vaults.",
+                    "size": "M",
+                    "status": "done",
+                    "approval": "approved",
+                    "requirements": {
+                      "requirement": [
+                        {
+                          "req_id": "EPIC-008-F-004-S-005-REQ-B-001",
+                          "orphan": false,
+                          "name": "Certificates retrievable and storable",
+                          "requirement": "The Certificate Authority MUST provide a mechanism for requesting systems to retrieve issued certificates after issuance. Requesting systems MUST be able to store and use retrieved certificates for authentication and encryption purposes. The CA MUST maintain a registry or archive of issued certificates for retrieval.",
+                          "priority": "must-have",
+                          "status": "done",
+                          "depends_on": [],
+                          "tests": {
+                            "test": [
+                              {
+                                "test_id": "EPIC-008-F-004-S-005-REQ-B-001-TEST-1",
+                                "orphan": false,
+                                "test_type": "unit",
+                                "file": "pipeline/Code/tests/test_ca_cert_retrieval.py"
+                              }
+                            ]
+                          },
+                          "approval": "approved"
+                        },
+                        {
+                          "req_id": "EPIC-008-F-004-S-005-REQ-B-002",
+                          "orphan": false,
+                          "name": "DN must match vault retrieval key",
+                          "requirement": "The certificate's Distinguished Name MUST be exactly equal to the key used for retrieval from a compliant vault. This ensures one-to-one correspondence between issued certificates and their vault storage keys.",
+                          "priority": "must-have",
+                          "status": "done",
+                          "depends_on": [
+                            {
+                              "reason": "Prerequisite requirement",
+                              "story_id": "EPIC-008-F-004-S-005-B"
+                            }
+                          ],
+                          "tests": {
+                            "test": [
+                              {
+                                "test_id": "EPIC-008-F-004-S-005-REQ-B-002-TEST-1",
+                                "orphan": false,
+                                "test_type": "unit",
+                                "file": "pipeline/Code/tests/test_ca_vault_dn_matching.py"
+                              }
+                            ]
+                          },
+                          "approval": "approved"
+                        },
+                        {
+                          "req_id": "EPIC-008-F-004-S-005-REQ-B-003",
+                          "orphan": false,
+                          "name": "Vault supports third-party certificates",
+                          "requirement": "The qualified vault MUST be able to store public certificates issued by other authorities, not only certificates issued by this Certificate Authority.",
+                          "priority": "must-have",
+                          "status": "done",
+                          "depends_on": [
+                            {
+                              "reason": "Prerequisite requirement",
+                              "story_id": "EPIC-008-F-004-S-005-B"
+                            }
+                          ],
+                          "tests": {
+                            "test": [
+                              {
+                                "test_id": "EPIC-008-F-004-S-005-REQ-B-003-TEST-1",
+                                "orphan": false,
+                                "test_type": "unit",
+                                "file": "pipeline/Code/tests/test_ca_third_party_certs.py"
+                              }
+                            ]
+                          },
+                          "approval": "approved"
+                        }
+                      ]
+                    }
+                  }
+                ]
+              },
+              "orphan": false,
+              "approval": "approved",
+              "due_date": "TBD",
+              "priority": "must-have"
+            },
+            {
               "feature_id": "EPIC-008-F-005",
               "name": "Audit â€” Technical, Business, Regulatory and Corporate Governance",
               "status": "in_progress",
@@ -19169,6 +19401,117 @@
                   }
                 ]
               }
+            },
+            {
+              "feature_id": "EPIC-008-F-014",
+              "orphan": false,
+              "name": "ChatHealthy PKI Certificate Management",
+              "status": "not_started",
+              "description": "PKI certificate authority and lifecycle management for ChatHealthy.ai. Owns X.509 certificate issuance, key generation, subject naming, validity periods, storage/retrieval from Azure Key Vault, certificate tracking, and revocation handling. Integrates with identity and authentication subsystems to provide mTLS and mutual authentication infrastructure.",
+              "priority": "HIGH",
+              "approval": "approved",
+              "due_date": "TBD",
+              "stories": {
+                "story": [
+                  {
+                    "story_id": "EPIC-008-F-014-S-001",
+                    "orphan": false,
+                    "name": "Certificate Management (umbrella story)",
+                    "description": "Umbrella story defining the complete certificate management lifecycle. Establishes the contract that all certificate operations MUST flow through this feature. Covers the decision tree for when to issue, renew, revoke, and retire certificates. Defines the canonical certificate naming authority and the versioning scheme for certificate generations. Establishes the audit trail requirements for all certificate lifecycle events.",
+                    "size": "M",
+                    "status": "not_started",
+                    "approval": "approved",
+                    "requirements": {
+                      "requirement": []
+                    }
+                  },
+                  {
+                    "story_id": "EPIC-008-F-014-S-002",
+                    "orphan": false,
+                    "name": "Certificate Issuance - issue X.509 certs for services/clients",
+                    "description": "On-demand X.509 certificate issuance for ChatHealthy services, clients, and components. The issuance path accepts a certificate request (CSR or parameters), validates the request against policy (subject name, validity period, key usage), and returns a signed certificate and intermediate chain. Requests originate from service bootstrap (at deploy time), operator direct invocation, or automated renewal triggers. All issued certificates are tracked in the certificate registry.",
+                    "size": "M",
+                    "status": "not_started",
+                    "approval": "approved",
+                    "requirements": {
+                      "requirement": []
+                    }
+                  },
+                  {
+                    "story_id": "EPIC-008-F-014-S-003",
+                    "orphan": false,
+                    "name": "Key Generation - generate RSA keypairs",
+                    "description": "RSA keypair generation as a prerequisite to certificate issuance. Generates 2048-bit or 4096-bit RSA keypairs depending on security posture requirements per environment. Private keys are generated in-memory, never written to disk in unencrypted form, and immediately enrolled with their paired certificate into the vault. Key generation is deterministic per environment and subject name to enable reproducibility.",
+                    "size": "S",
+                    "status": "not_started",
+                    "approval": "approved",
+                    "requirements": {
+                      "requirement": []
+                    }
+                  },
+                  {
+                    "story_id": "EPIC-008-F-014-S-004",
+                    "orphan": false,
+                    "name": "Subject Naming - define how cert CNs are structured",
+                    "description": "Certificate subject naming policy. Defines the canonical structure for certificate common names (CNs), subject alternative names (SANs), and issuer names. CNs follow the pattern: <service-id>.<environment>.chathealthy.internal (e.g., findcare-backend.dev.chathealthy.internal). SANs include both DNS and IP forms for multi-homed services. Issuer CN follows: ChatHealthy CA <generation> <environment> (e.g., ChatHealthy CA 1 dev). Naming scheme is immutable once deployed; any change requires a new CA generation.",
+                    "size": "S",
+                    "status": "not_started",
+                    "approval": "approved",
+                    "requirements": {
+                      "requirement": []
+                    }
+                  },
+                  {
+                    "story_id": "EPIC-008-F-014-S-005",
+                    "orphan": false,
+                    "name": "Validity Periods - 1 year validity",
+                    "description": "Certificate validity periods default to 1 year from issuance. All issued certificates MUST have NotBefore = issuance time and NotAfter = issuance time + 365 days. Certificates approaching expiration (within 30 days) trigger automated renewal via a scheduled job. Manual early renewal is operator-callable. Validity period is immutable once issued; certificates cannot be extended in place.",
+                    "size": "S",
+                    "status": "not_started",
+                    "approval": "approved",
+                    "requirements": {
+                      "requirement": []
+                    }
+                  },
+                  {
+                    "story_id": "EPIC-008-F-014-S-006",
+                    "orphan": false,
+                    "name": "Vault Integration - store/retrieve certs from Key Vault",
+                    "description": "Azure Key Vault integration for certificate and private key storage. Issued certificates and their private keys are stored in Key Vault with metadata tagging (service_id, environment, generation, issuer_thumbprint). Retrieval is role-gated: only services with the appropriate RBAC role can retrieve their own certificate and key material. All vault operations are logged to the audit trail. Key Vault certificate versions are maintained automatically by Azure; ChatHealthy tracks generation IDs independently for cross-environment promotion.",
+                    "size": "M",
+                    "status": "not_started",
+                    "approval": "approved",
+                    "requirements": {
+                      "requirement": []
+                    }
+                  },
+                  {
+                    "story_id": "EPIC-008-F-014-S-007",
+                    "orphan": false,
+                    "name": "Certificate Tracking - track all certificates",
+                    "description": "Certificate registry maintained in MongoDB collection ProprietaryData.CertificateRegistry. Every issued certificate is registered with: subject CN, SANs, issuer CN, thumbprint (SHA-1), thumbprint (SHA-256), public key hash, NotBefore, NotAfter, serial number, service_id, environment, generation, CA version, vault location, issuance timestamp, renewal trigger timestamp (if auto-renewed), revocation status. Registry is append-only: updates are new documents, never mutations. Queries against the registry provide the single source of truth for 'which certificates are live' and 'which are approaching expiration'. Registry is auditable and immutable by design.",
+                    "size": "M",
+                    "status": "not_started",
+                    "approval": "approved",
+                    "requirements": {
+                      "requirement": []
+                    }
+                  },
+                  {
+                    "story_id": "EPIC-008-F-014-S-008",
+                    "orphan": false,
+                    "name": "Revocation - handle certificate revocation",
+                    "description": "Certificate revocation handling for compromised or obsolete certificates. Revocation is initiated by operator command and takes effect immediately: the certificate record in the registry is marked revoked, Key Vault secret is retired (no longer retrievable), and all downstream systems are notified via an audit event. Services holding a revoked certificate MUST detect the revocation on their next authentication check (via certificate pinning validation) and must not accept the certificate for further TLS handshakes. No CRL or OCSP responder is required; revocation state is determined by querying the registry at authentication time.",
+                    "size": "M",
+                    "status": "not_started",
+                    "approval": "approved",
+                    "requirements": {
+                      "requirement": []
+                    }
+                  }
+                ]
+              },
+              "realized_by": []
             }
           ]
         },

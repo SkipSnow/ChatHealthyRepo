@@ -13,6 +13,7 @@ and enforced at pre-commit via Rule-004.
 from __future__ import annotations
 
 import os
+import re
 import tempfile
 import time
 from typing import Any
@@ -474,10 +475,41 @@ class ChatHealthyMongoUtilities:
             client_cert_path = os.path.join(temp_dir, f"mongo_client_{cert_name}.pem")
             ca_cert_path = os.path.join(temp_dir, f"mongo_ca_{cert_name}.pem")
 
-            with open(client_cert_path, "w") as f:
-                f.write(client_cert_key_pem)
-            with open(ca_cert_path, "w") as f:
-                f.write(mongo_ca_cert_pem)
+            # Normalize PEM format: vault may store without line breaks
+            # Convert "-----BEGIN...-----" to multi-line format with wrapped base64
+            def normalize_pem(pem_str: str) -> str:
+                """Ensure PEM has proper line breaks and base64 wrapping."""
+                if "\n" in pem_str:
+                    return pem_str  # Already formatted
+
+                # Find all PEM blocks: (-----BEGIN TYPE-----)(base64content)(-----END TYPE-----)
+                pattern = r'(-----BEGIN [^-]+-----)(.*?)(-----END [^-]+-----)'
+                blocks = re.findall(pattern, pem_str)
+
+                if not blocks:
+                    raise ValueError("No valid PEM markers found")
+
+                result = []
+                for begin_marker, content, end_marker in blocks:
+                    result.append(begin_marker)
+                    # Wrap base64 content at 64 chars
+                    content = content.strip()
+                    for i in range(0, len(content), 64):
+                        result.append(content[i:i+64])
+                    result.append(end_marker)
+
+                return "\n".join(result) + "\n"
+
+            normalized_cert = normalize_pem(client_cert_key_pem)
+            normalized_ca = normalize_pem(mongo_ca_cert_pem)
+
+            # Write in binary mode to avoid CRLF conversion on Windows
+            with open(client_cert_path, "wb") as f:
+                f.write(normalized_cert.encode("utf-8"))
+            log.debug("Wrote client cert+key to %s (len=%d)",
+                     client_cert_path, len(normalized_cert))
+            with open(ca_cert_path, "wb") as f:
+                f.write(normalized_ca.encode("utf-8"))
 
             separator = "&" if "?" in mongo_uri else "?"
             uri_with_mtls = (
