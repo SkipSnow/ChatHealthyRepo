@@ -52,6 +52,7 @@ from datetime import datetime, timezone, timedelta
 import requests
 from requests.auth import HTTPDigestAuth
 from pymongo import MongoClient
+from pipeline_db import METADATA_DB
 
 try:
     import automationassets
@@ -444,10 +445,10 @@ def _main():
         return
 
     # Uses pipelineEditor identity to access frontend cluster resources
-    client = ChatHealthyMongoUtilities(identity="pipelineEditor").getConnection()
+    client = ChatHealthyMongoUtilities().getConnection("pipelineEditor", "admin")
     coll = client[DB_NAME][COLLECTION]
     log_coll = client["Pipelines"][f"Log_{ENV_PREFIX}"]
-    runs_coll = client["chathealthyfrontend"]["pipeline.runs"]
+    runs_coll = client[METADATA_DB]["pipeline.runs"]
     reservations = list(coll.find({}))
     log.info("Loaded %d cluster_lifecycle rows from %s.%s",
              len(reservations), DB_NAME, COLLECTION)

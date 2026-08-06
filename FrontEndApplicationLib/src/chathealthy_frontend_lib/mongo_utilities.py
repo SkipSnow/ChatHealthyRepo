@@ -17,8 +17,6 @@ import tempfile
 import time
 from typing import Any
 
-from azure.identity import ClientSecretCredential
-from azure.keyvault.secrets import SecretClient
 from bson.json_util import dumps as bson_dumps
 from pymongo import MongoClient
 from pymongo.errors import (
@@ -409,6 +407,14 @@ class ChatHealthyMongoUtilities:
                     message="AZURE_TENANT_ID, AZURE_CLIENT_ID, AZURE_CLIENT_SECRET must be set",
                     component="ChatHealthyMongoUtilities",
                 )
+
+            # Imported here, not at module scope. Only the vault path needs
+            # the Azure SDK, and importing it at load time made every
+            # consumer of this module depend on azure-identity being
+            # installed -- which broke all three backend containers, whose
+            # images do not ship it.
+            from azure.identity import ClientSecretCredential
+            from azure.keyvault.secrets import SecretClient
 
             credential = ClientSecretCredential(
                 tenant_id=tenant_id, client_id=client_id, client_secret=client_secret

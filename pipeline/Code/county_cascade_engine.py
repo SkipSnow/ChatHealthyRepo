@@ -60,6 +60,7 @@ import requests
 from pymongo import UpdateOne
 
 from throttle_semaphore import RateLimitedConcurrencyGate, RateLimitedGate
+from pipeline_db import METADATA_DB
 
 # Retry policy for HTTP fetches in the cascade. Vendor endpoints (Census
 # batch geocoder, NPPES registry, Google Maps) occasionally return 429
@@ -1159,7 +1160,7 @@ def run_county_cascade(
 
     db_name, coll_name = config["provider_collection"].split(".", 1)
     provider_coll = mongo[db_name][coll_name]
-    discrepancies_coll = mongo["chathealthyfrontend"]["pipeline.discrepancies"]
+    discrepancies_coll = mongo[METADATA_DB]["pipeline.discrepancies"]
 
     _log.info(
         "county_cascade: funnel entering run_id=%s state=%s sla_target=%.3f google_enabled=%s "

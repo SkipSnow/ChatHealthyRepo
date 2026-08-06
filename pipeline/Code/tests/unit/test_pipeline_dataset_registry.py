@@ -18,7 +18,7 @@ from pipeline_dataset_registry import (
 
 
 # ---------------------------------------------------------------------------
-# fake mongo (captures inserts into chathealthypipelines.pipeline.discrepancies)
+# fake mongo (captures inserts into Pipelines.pipeline.discrepancies)
 # ---------------------------------------------------------------------------
 
 
@@ -47,7 +47,7 @@ class _FakeMongo:
 
     @property
     def discrepancies(self):
-        db = self.dbs.get("chathealthypipelines")
+        db = self.dbs.get("Pipelines")
         if db is None:
             return []
         coll = db.colls.get("pipeline.discrepancies")

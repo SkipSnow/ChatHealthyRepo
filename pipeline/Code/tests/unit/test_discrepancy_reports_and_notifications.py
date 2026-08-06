@@ -1,12 +1,12 @@
 # Copyright (c) 2026 ChatHealthy.ai LLC. All rights reserved.
 # Licensed under the FindCare Evaluation License (FEL-1.0).
 
-"""Unit tests for steps.discrepancy_reports_and_notifications.emit_
+"""Unit tests for steps.discrepancy_report.emit_
 discrepancy_report.
 
 Covers:
   * emit reads pipeline.discrepancies from the pipeline cluster
-    (chathealthypipelines database).
+    (Pipelines metadata database).
   * When manifest_doc has a truthy abort_reason, the email body starts
     with `FATAL: <abort_reason>`.
   * When manifest_doc has no abort_reason (or falsy), the FATAL line is
@@ -17,7 +17,7 @@ from __future__ import annotations
 
 import pytest
 
-from steps.discrepancy_reports_and_notifications import emit_discrepancy_report
+from steps.discrepancy_report import emit_discrepancy_report
 
 
 # ---------------------------------------------------------------------------
@@ -76,12 +76,15 @@ class _CapturingNotifier:
 
 def _mongo_with_discrepancies(rows):
     coll = _RecordingColl(rows)
-    return _Mongo({"chathealthypipelines": _Db({"pipeline.discrepancies": coll})}), coll
+    return _Mongo({"Pipelines": _Db({"pipeline.discrepancies": coll})}), coll
 
 
 def _stub_pdf(monkeypatch):
-    import steps.discrepancy_reports_and_notifications as mod
-    monkeypatch.setattr(mod, "build_discrepancy_pdf", lambda _md, _dx: b"PDFBYTES")
+    # discrepancy_report imports build_discrepancy_pdf inside the function,
+    # deliberately, so a missing reportlab does not break module import.
+    # Patch it on the source module; the late import picks it up.
+    import discrepancy_pdf
+    monkeypatch.setattr(discrepancy_pdf, "build_discrepancy_pdf", lambda _md, _dx: b"PDFBYTES")
 
 
 # ---------------------------------------------------------------------------

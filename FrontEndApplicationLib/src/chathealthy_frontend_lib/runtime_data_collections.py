@@ -31,7 +31,15 @@ from fastapi import APIRouter, Depends, HTTPException, Header
 from pymongo import MongoClient
 from pymongo.collection import Collection
 
+from .exceptions import ChatHealthyException
 from .mongo_utilities import ChatHealthyMongoUtilities
+from .logging_service import set_mongo_log_identity
+
+# The front-end services act as pipelineEditor, including when they write
+# their own logs. The Mongo log handler refuses to build without this, and
+# this module is imported by every service that resolves a data collection,
+# which makes it the front-end equivalent of pipeline_db.
+set_mongo_log_identity("pipelineEditor")
 
 
 _CONFIG_DB = "ChatHealthyConfig"
@@ -59,7 +67,10 @@ def _read_build_info() -> dict:
     for path in candidates:
         if path.is_file():
             return json.loads(path.read_text(encoding="utf-8"))
-    raise RuntimeError(
+    raise ChatHealthyException(
+        mode="config_error",
+        component="runtime_data_collections",
+        message=
         "runtime_data_collections: build_info.json not found in "
         f"{[str(p) for p in candidates]}. The build must write it so "
         "the runtime can identify its target_id and env."
@@ -67,14 +78,18 @@ def _read_build_info() -> dict:
 
 
 def _mongo_client() -> MongoClient:
-    return ChatHealthyMongoUtilities(identity="pipelineEditor").getConnection()
+    # Config lives in ChatHealthyConfig on the admin target.
+    return ChatHealthyMongoUtilities().getConnection("pipelineEditor", "admin")
 
 
 def _read_env_doc(env: str) -> dict:
     coll = _mongo_client()[_CONFIG_DB][_CONFIG_COLL]
     doc = coll.find_one({"env": env})
     if doc is None:
-        raise RuntimeError(
+        raise ChatHealthyException(
+            mode="config_error",
+            component="runtime_data_collections",
+            message=
             f"runtime_data_collections: ChatHealthyConfig.DBVersions has no document "
             f"for env={env!r}. Seed the document before starting the runtime "
             "(EPIC-010-F-101-S-005-REQ-B-003)."
@@ -90,7 +105,10 @@ def _bindings_from_doc(doc: dict, target_id: str) -> dict[str, str]:
             c["collection_environment_name"]: c["runtime_collection_name"]
             for c in entry.get("collections", [])
         }
-    raise RuntimeError(
+    raise ChatHealthyException(
+        mode="config_error",
+        component="runtime_data_collections",
+        message=
         f"runtime_data_collections: ChatHealthyConfig.DBVersions env={doc.get('env')!r} "
         f"has no targets[] entry for deployment_target={target_id!r}. "
         "Update the env doc to include this runtime."
@@ -111,12 +129,18 @@ def bind_from_manifest() -> None:
     target_id = info.get("target_id")
     env = os.environ.get("ENV_PREFIX")
     if not target_id:
-        raise RuntimeError(
+        raise ChatHealthyException(
+            mode="config_error",
+            component="runtime_data_collections",
+            message=
             f"runtime_data_collections: build_info.json missing target_id "
             f"({target_id!r}). Build step must emit it."
         )
     if not env:
-        raise RuntimeError(
+        raise ChatHealthyException(
+            mode="config_error",
+            component="runtime_data_collections",
+            message=
             "runtime_data_collections: ENV_PREFIX env var not set. The HF "
             "deploy must set it per target environment binding."
         )
@@ -130,7 +154,10 @@ def bind_from_manifest() -> None:
 def _coll_for(slot: str) -> Collection:
     fqn = _state.bindings.get(slot)
     if not fqn:
-        raise RuntimeError(
+        raise ChatHealthyException(
+            mode="config_error",
+            component="runtime_data_collections",
+            message=
             f"runtime_data_collections: slot {slot!r} is not bound. Call "
             "bind_from_manifest() at startup."
         )

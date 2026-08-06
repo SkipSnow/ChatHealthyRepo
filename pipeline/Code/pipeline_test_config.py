@@ -10,7 +10,7 @@ import os
 ENV_PREFIX = os.environ.get("ENV_PREFIX", "dev")
 TEST_PROVIDER_COLLECTION = os.environ.get(
     "PROVIDER_TEST_COLLECTION",
-    f"{ENV_PREFIX}_PublicHealthData.providers_test_v1",
+    "PublicHealthData.providers_test_v1",
 )
 TEST_RUNS_DB = "chathealthyfrontend"
 TEST_RUNS_COLL = os.environ.get("PIPELINE_TEST_RUNS_COLL", "pipeline_test.runs")

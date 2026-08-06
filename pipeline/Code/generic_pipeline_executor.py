@@ -5,7 +5,7 @@
 
 The executor lives entirely on the PIPELINE cluster. Coordination metadata
 (loaded_metadata rows keyed by source_name) is written to
-`chathealthypipelines.pipeline.loaded_metadata` on the pipeline_mongo
+`Pipelines.pipeline.loaded_metadata` on the metadata connection
 connection. The executor never touches the frontend cluster.
 
 Phase 1 (fetch_phase):
@@ -140,7 +140,7 @@ class GenericPipelineExecutor:
         raise exc
 
     # ------------------------------------------------------------------
-    # metadata helpers (pipeline cluster: chathealthypipelines DB)
+    # metadata helpers (admin target: the Pipelines DB)
     # ------------------------------------------------------------------
 
     def _metadata_coll(self):

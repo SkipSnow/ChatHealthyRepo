@@ -225,7 +225,7 @@ def main() -> int:
     if not uri:
         sys.exit("ERROR: MONGO_FRONTEND_connectionString not set.")
     from chathealthy_frontend_lib.mongo_utilities import ChatHealthyMongoUtilities
-    client = ChatHealthyMongoUtilities(identity="pipelineEditor").getConnection()
+    client = ChatHealthyMongoUtilities().getConnection("pipelineEditor", "admin")
     doc = client[_CONFIG_DB][_CONFIG_COLL].find_one({"env": env})
     client.close()
     if doc is None:

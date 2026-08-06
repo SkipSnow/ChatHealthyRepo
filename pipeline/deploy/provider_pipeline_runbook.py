@@ -46,6 +46,12 @@ from chathealthy_frontend_lib.logging_service import ChatHealthyLoggingService
 from chathealthy_frontend_lib.mongo_utilities import ChatHealthyMongoUtilities
 from chathealthy_frontend_lib.exceptions import ChatHealthyException
 
+# All pipeline metadata lives in one database. This runbook ships to Azure
+# Automation standalone, so it carries the constant rather than importing
+# pipeline_db, which is not deployed alongside it.
+METADATA_DB = "Pipelines"
+
+
 
 # CHLS wants these in os.environ. Set them BEFORE the first log() call so
 # CH_LOG_DESTINATION drives log output to stderr (AA captures stderr into
@@ -293,7 +299,7 @@ def _read_pipeline_config(mongo) -> dict:
     """LLD §2.6 step 2: read chathealthyfrontend.pipeline.config for
     pipeline_name='provider'. Returns config dict or empty dict if the
     document doesn't exist yet (first run)."""
-    coll = mongo["chathealthyfrontend"]["pipeline.config"]
+    coll = mongo[METADATA_DB]["pipeline.config"]
     doc = coll.find_one({"pipeline_name": PIPELINE_NAME, "env": ENV_PREFIX}) or {}
     return doc
 
@@ -332,7 +338,7 @@ def _acquire_pipeline_lock(
     once. Guards against wedging the pipeline forever on a crash."""
     from datetime import datetime, timedelta, timezone
     from pymongo.errors import DuplicateKeyError
-    coll = mongo["admin"]["cluster_lifecycle"]
+    coll = mongo[METADATA_DB]["cluster_lifecycle"]
     now = datetime.now(timezone.utc)
     doc = {
         "_id": _pipeline_lock_id(pipeline_name),
@@ -367,7 +373,7 @@ def _release_pipeline_lock(mongo, pipeline_name: str, run_id: str) -> None:
     """Release the per-pipeline lock iff we own it (matched by run_id).
     Idempotent: safe to call in a finally block even if we never
     acquired (a different run_id owns the lock now -> no-op)."""
-    coll = mongo["admin"]["cluster_lifecycle"]
+    coll = mongo[METADATA_DB]["cluster_lifecycle"]
     coll.delete_one({"_id": _pipeline_lock_id(pipeline_name), "run_id": run_id})
 
 
@@ -387,7 +393,7 @@ def _create_reservation(mongo, run_id: str, vm_name: str) -> None:
     reservation_reaper reaps expiry_at < now if Controller never gets
     that far. TTL is 10 hours (outer safety envelope, not a startup
     timeout)."""
-    coll = mongo["admin"]["cluster_lifecycle"]
+    coll = mongo[METADATA_DB]["cluster_lifecycle"]
     now = datetime.datetime.utcnow()
     expiry = now + datetime.timedelta(hours=RESERVATION_TTL_HOURS)
     coll.replace_one(
@@ -410,7 +416,7 @@ def _create_reservation(mongo, run_id: str, vm_name: str) -> None:
 
 def _cancel_reservation(mongo, run_id: str) -> None:
     """Delete the reservation for a specific run_id. Idempotent."""
-    coll = mongo["admin"]["cluster_lifecycle"]
+    coll = mongo[METADATA_DB]["cluster_lifecycle"]
     coll.delete_one({"_id": run_id})
 
 
@@ -478,7 +484,7 @@ def _write_run_manifest(mongo, run_id: str, load_mode: str,
                         state_scope, invocation_mode: str,
                         config: dict) -> None:
     """LLD §2.6 step 3: fresh manifest in chathealthyfrontend.pipeline.runs."""
-    coll = mongo["chathealthyfrontend"]["pipeline.runs"]
+    coll = mongo[METADATA_DB]["pipeline.runs"]
     manifest = {
         "run_id": run_id,
         "pipeline_name": PIPELINE_NAME,
@@ -1082,20 +1088,18 @@ def main() -> int:
             # publishes the direct-mode URI under the same name.
             try:
                 os.environ["MONGO_FRONTEND_connectionString"] = conn
-                mongo = ChatHealthyMongoUtilities(
-                    "MONGO_FRONTEND_connectionString"
-                ).getConnection()
+                mongo = ChatHealthyMongoUtilities().getConnection(
+                    "pipelineEditor", "frontEnd"
+                )
                 mongo.admin.command("ping")
             except Exception:
                 direct = _srv_to_direct_mongo_uri(conn)
                 log("mongo_srv_bypass_active",
                     direct_hostcount=direct.count(",") + 1 if direct.startswith("mongodb://") else 0)
                 os.environ["MONGO_FRONTEND_connectionString"] = direct
-                ChatHealthyMongoUtilities.invalidate(
-                    "MONGO_FRONTEND_connectionString")
-                mongo = ChatHealthyMongoUtilities(
-                    "MONGO_FRONTEND_connectionString"
-                ).getConnection()
+                mongo = ChatHealthyMongoUtilities().getConnection(
+                    "pipelineEditor", "frontEnd"
+                )
                 mongo.admin.command("ping")
             log("mongo_connected", cluster="chathealthyfrontend")
             # Same-pipeline mutual exclusion. Atomic acquire on

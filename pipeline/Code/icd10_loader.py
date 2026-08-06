@@ -43,11 +43,11 @@ _mongo: MongoClient | None = None
 def _get_mongo_client() -> MongoClient:
     global _mongo
     if _mongo is None:
-        _mongo = ChatHealthyMongoUtilities(identity="pipelineEditor").getConnection()
+        _mongo = ChatHealthyMongoUtilities().getConnection("pipelineEditor", "frontEnd")
     return _mongo
 
 _ENV_PREFIX = os.environ.get("ENV_PREFIX", "dev")
-ICD10_COLLECTION = f"{_ENV_PREFIX}_PublicHealthData.ICD10Codes"
+ICD10_COLLECTION = "PublicHealthData.ICD10Codes"
 
 
 class Icd10Fetcher(DataFetcherBase):

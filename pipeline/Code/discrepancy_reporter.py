@@ -61,7 +61,7 @@ _mongo: MongoClient | None = None
 
 def _get_mongo_client() -> MongoClient:
     from chathealthy_frontend_lib.mongo_utilities import ChatHealthyMongoUtilities
-    return ChatHealthyMongoUtilities(identity="pipelineEditor").getConnection()
+    return ChatHealthyMongoUtilities().getConnection("pipelineEditor", "frontEnd")
 
 
 REPORT_COLLECTION = "admin.PipelineDiscrepancyReports"
@@ -93,7 +93,7 @@ class DiscrepancyReporter:
 
         # ── Enrichment stats from staging collection ──────────────────────────
         _env = config.get("env_prefix", os.environ.get("ENV_PREFIX", "dev"))
-        provider_collection = config.get("provider_collection", f"{_env}_PublicHealthData.providers")
+        provider_collection = config.get("provider_collection", "PublicHealthData.providers")
         db_name, coll_name = provider_collection.split(".", 1)
         staging_coll = _get_mongo_client()[db_name][coll_name]
 

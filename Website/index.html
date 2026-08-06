@@ -1,108 +1,227 @@
 <!DOCTYPE html>
+<!-- Copyright (c) 2026 ChatHealthy.ai LLC. All rights reserved.
+     Licensed under the FindCare Evaluation License (FEL-1.0).
+
+     ChatHealthy.ai client shell.
+
+     Per brain/BusinessArtifacts/architecture/FrontEnd/FrontEndArchitecture.pptx:
+       - index.html is a lightweight container; ALL display logic lives in React.
+       - React streams content to the seven named frames via ClientRouter.render.
+       - Every server-bound action routes through ClientRouter.getStreamedPayloads
+         (streaming) or ClientRouter.getFullPayload (single JSON) → /gate.
+     The seven frame ids below — frame_Header, frame_Footer, frame_LeftPanel,
+     frame_RightPanel, frame_UserMessage, frame_UserPromptAndControl,
+     frame_MainWindow — are the architectural spine and MUST NOT change.
+
+     Layout proportions ported verbatim from production: body flex-column with
+     header (6%), main (flex:1), footer (4%); inside main, chat-label + a
+     content-row carrying side-panel (20%) + center-column (flex:1) + side-panel
+     (20%). -->
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <meta name="robots" content="noindex, nofollow">
-  <title>ChatHealthy.ai &mdash; Maintenance</title>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>ChatHealthy.ai</title>
+  <link rel="icon" type="image/png" href="/favicon.png" />
+  <!-- CH_FONTS -->
   <style>
     :root {
-      --bg: #ffffff;
-      --fg: #1f2937;
-      --muted: #4b5563;
-      --brand: #0f766e;
-      --brand-accent: #e26d5c;
+      --teal:    #0b7a75;
+      --border:  #d8e2e1;
+      --surface: #ffffff;
+      --bg:      #f5f5f4;
+      --ink:     #1f2937;
+      --max-w:   1200px;
+      --radius:  0.5em;
     }
-    * { box-sizing: border-box; }
-    html, body { margin: 0; padding: 0; }
+    html, body {
+      margin: 0; padding: 0; height: 100%; width: 100%;
+      color: var(--ink); background: var(--bg); overflow: hidden;
+    }
+    /* font-size discipline: html { font-size: 9px } is set by the inlined
+       CH_FONTS snippet (canonical). Body inherits 1rem; widgets MUST use
+       font-size: 1em. Browser-default heading multipliers (h1=2em, h2=1.5em
+       etc.) are the only larger sizes allowed. */
     body {
-      background: var(--bg);
-      color: var(--fg);
-      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto,
-                   "Helvetica Neue", Arial, sans-serif;
-      min-height: 100vh;
+      display: flex; flex-direction: column;
+    }
+    header#frame_Header {
+      position: sticky; top: 0; height: 6%;
+      background: var(--surface);
+      border-bottom: 0.125em solid var(--border);
+      flex: 0 0 auto;
+    }
+    main {
+      flex: 1; min-height: 0;
+      display: flex; flex-direction: column;
+      max-width: var(--max-w); width: 100%;
+      margin: 0 auto; padding: 1em; gap: 1em;
+      box-sizing: border-box;
+    }
+    .chat-label {
+      font-weight: 500; letter-spacing: 0.08em;
+      text-transform: uppercase; color: var(--teal);
+    }
+    .content-row {
+      flex: 1; min-height: 0;
       display: flex;
-      align-items: center;
-      justify-content: center;
-      padding: 2rem;
-      text-align: center;
     }
-    /* Brand lockup in the top-left corner */
-    .brand-lockup {
-      position: fixed;
-      top: 1.25rem;
-      left: 1.5rem;
-      display: inline-flex;
-      align-items: center;
-      gap: 0.5rem;
-      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto,
-                   "Helvetica Neue", Arial, sans-serif;
+    aside.side-panel {
+      width: 20%; height: 100%; overflow: auto;
     }
-    .brand-lockup .brand-mark {
-      width: 32px;
-      height: 32px;
-      display: inline-flex;
-      align-items: center;
-      justify-content: center;
-      background: var(--brand);
-      border-radius: 50%;
-      color: #ffffff;
+    #frame_LeftPanel  { background: rgb(225,225,255); border-right: 0.125em solid var(--border); }
+    #frame_RightPanel { background: var(--bg);       border-left:  0.125em solid var(--border); }
+    .center-column {
+      flex: 1; min-width: 0; height: 100%;
+      display: flex; flex-direction: column;
     }
-    .brand-lockup .brand-name {
-      font-size: 1.1rem;
-      font-weight: 600;
-      color: var(--brand);
-      letter-spacing: 0.01em;
+    #frame_MainWindow {
+      flex: 1; min-height: 0; overflow: auto;
+      background: var(--surface);
     }
-    .brand-lockup .brand-name .brand-tld { font-weight: 500; }
-    .brand-lockup .brand-tag {
-      font-size: 0.85rem;
-      color: var(--brand-accent);
-      font-style: italic;
-      margin-left: 0.25rem;
+    #frame_UserMessage         { flex: 0 0 auto; background: var(--surface); border-top: 0.0625em solid #e5e7eb; }
+    #frame_UserPromptAndControl{ flex: 0 0 auto; background: var(--surface); border-top: 0.0625em solid #e5e7eb; }
+    footer#frame_Footer {
+      height: 4%;
+      background: var(--surface);
+      border-top: 0.125em solid var(--border);
+      flex: 0 0 auto;
     }
-    .container { max-width: 520px; }
-    .icon { margin: 0 auto 2rem; width: 220px; height: 220px; }
-    h1 {
-      font-size: clamp(1.75rem, 4vw, 2.5rem);
-      font-weight: 700;
-      margin: 0 0 0.75rem;
-      letter-spacing: -0.01em;
-    }
-    p {
-      font-size: clamp(1rem, 2vw, 1.25rem);
-      color: var(--muted);
-      margin: 0.25rem 0;
+    .ch-react-iframe {
+      position: absolute; left: -9999px; top: -9999px;
+      width: 1px; height: 1px; border: 0; visibility: hidden;
     }
   </style>
 </head>
 <body>
-  <div class="brand-lockup" aria-label="ChatHealthy.ai Pre-Alpha">
-    <span class="brand-mark" aria-hidden="true">
-      <!-- White plus/health cross inside the green disc -->
-      <svg width="18" height="18" viewBox="0 0 24 24" role="img" aria-label="plus">
-        <path d="M10 4 h4 v6 h6 v4 h-6 v6 h-4 v-6 h-6 v-4 h6 z"
-              fill="#ffffff"/>
-      </svg>
-    </span>
-    <span class="brand-name">ChatHealthy<span class="brand-tld">.ai</span></span>
-    <span class="brand-tag">Pre-Alpha</span>
-  </div>
 
-  <main class="container">
-    <!-- Hard hat icon (inline SVG for reliable rendering) -->
-    <svg class="icon" viewBox="0 0 240 240" role="img" aria-label="Under construction">
-      <path d="M40 160 Q40 60 120 60 Q200 60 200 160 Z"
-            fill="#f59e0b" stroke="#78350f" stroke-width="3"/>
-      <rect x="20" y="150" width="200" height="24" rx="10"
-            fill="#d97706" stroke="#78350f" stroke-width="3"/>
-      <path d="M120 60 L120 160" stroke="#78350f" stroke-width="3" fill="none" stroke-linecap="round"/>
-      <path d="M80 68 Q120 130 160 68" stroke="#78350f" stroke-width="3" fill="none" stroke-linecap="round" opacity="0.55"/>
-      <path d="M55 100 Q120 135 185 100" stroke="#78350f" stroke-width="3" fill="none" stroke-linecap="round" opacity="0.4"/>
-      <path d="M65 100 Q80 75 105 68" stroke="#fde68a" stroke-width="5" fill="none" stroke-linecap="round" opacity="0.9"/>
-    </svg>
-    <h1>Paused for maintenance</h1>
-    <p>Be back soon.</p>
+  <header id="frame_Header"></header>
+
+  <main>
+    <span class="chat-label">Chat with Find Care AI</span>
+    <div class="content-row">
+      <aside id="frame_LeftPanel" class="side-panel"></aside>
+      <div class="center-column">
+        <div id="frame_MainWindow"></div>
+        <div id="frame_UserMessage"></div>
+        <div id="frame_UserPromptAndControl"></div>
+      </div>
+      <aside id="frame_RightPanel" class="side-panel"></aside>
+    </div>
   </main>
+
+  <footer id="frame_Footer"></footer>
+
+  <!-- React widget host. ClientRouter posts router:event-broadcast back via
+       iframe[data-frame="MainWindow"]. -->
+  <iframe id="coreReactFrame"
+          data-frame="MainWindow"
+          class="ch-react-iframe"
+          title="ChatHealthy widget host"
+          allow="microphone; clipboard-write"></iframe>
+
+  <script src="/ClientRouter.js"></script>
+  <script>
+    // Popup-window early exit. The OAuth callback redirects the popup
+    // back to the wrapper origin with ?oauth_popup_close=1; we close the
+    // window immediately without painting any UI. Window management is
+    // not display logic — no HTML is constructed here.
+    (function () {
+      var params = new URLSearchParams(window.location.search);
+      window._popupParams = Object.fromEntries(params);
+      if (params.get('oauth_popup_close') === '1') {
+        window.close();
+        return;
+      }
+    })();
+
+    (function () {
+      var SS = '__HF_URL_SHAREDSERVICES__';
+      window._envServiceUrls = { sharedservices: SS, findcare: '', evaluatecare: '' };
+      // Bootstrap call: peer_urls is a /gate op that returns one complete
+      // JSON payload. Routed through ClientRouter.getFullPayload so every
+      // server call — bootstrap included — goes through the one canonical
+      // client-side gateway (FrontEndArchitecture deck contract).
+      // credentials:'include' is wired inside getFullPayload.
+      window.ClientRouter.getFullPayload({ op: 'peer_urls', payload: {} })
+        .then(function (d) {
+          window._envServiceUrls.findcare     = (d && d.findcare)     || '';
+          window._envServiceUrls.evaluatecare = (d && d.evaluatecare) || '';
+          var iframe = document.getElementById('coreReactFrame');
+          if (iframe && window._envServiceUrls.findcare) {
+            // Forward popup URL params (e.g. fake_google_login state/flow)
+            // to the React iframe once it loads. Parameter passing only —
+            // the React widget produces all display.
+            iframe.addEventListener('load', function () {
+              if (!window._popupParams || !iframe.contentWindow) return;
+              // The React app inside the iframe registers its message
+              // listener inside a useEffect, which fires AFTER the
+              // iframe's load event. Retry on a short cadence so the
+              // first message after React mounts isn't lost. ~2 s of
+              // retries handles the mount window; the widget treats
+              // duplicate messages as idempotent.
+              var tries = 0;
+              var send = function () {
+                if (iframe.contentWindow) {
+                  // Include the SharedServices origin so widgets in the
+                  // iframe can post back to SS without relying on the
+                  // wrapper's _envServiceUrls (which is not visible
+                  // cross-origin).
+                  iframe.contentWindow.postMessage(
+                    {
+                      type: 'popup_params',
+                      params: window._popupParams,
+                      env: {
+                        sharedservices: (window._envServiceUrls && window._envServiceUrls.sharedservices) || '',
+                      },
+                    },
+                    '*'
+                  );
+                }
+              };
+              send();
+              var t = setInterval(function () {
+                send();
+                if (++tries >= 20) clearInterval(t);
+              }, 100);
+            });
+            iframe.src = window._envServiceUrls.findcare;
+          }
+          // Mint a signed SessionToken before any non-trivial /gate call
+          // fires. /gate validates the token on every non-trivial op, so
+          // ClientRouter must hold one before op=boot runs. /auth/issue
+          // is un-authenticated (pre-auth by design); every subsequent
+          // /gate call is validated using the token this returns.
+          //
+          // After bootstrap, eagerly mint the user_object via op=boot.
+          // Without this, the user_object is minted lazily on the first
+          // user gesture; a visitor who lands and just looks would be
+          // invisible to SharedServices — no admin.sessions row, no
+          // identity in the banner. The boot op handler mints/restores
+          // the user_object and streams kind:'boot' carrying a fresh
+          // signed token; ClientRouter captures it and threads it on
+          // every subsequent call.
+          if (window.ClientRouter && typeof window.ClientRouter.bootstrap === 'function') {
+            window.ClientRouter.bootstrap()
+              .then(function () {
+                if (typeof window.ClientRouter.getStreamedPayloads === 'function') {
+                  window.ClientRouter.getStreamedPayloads({ op: 'boot', payload: {} });
+                }
+              })
+              .catch(function () {
+                window.location.replace('/bootstrap-error.html');
+              });
+          }
+        })
+        .catch(function (_err) {
+          // Bootstrap is the spine of the page — without peer_urls,
+          // React cannot mount and nothing renders. Per Rule-009 this
+          // file authors no display content; redirect to the static
+          // bootstrap-error.html instead. The underlying error is
+          // visible in this browser's developer-tools Network panel.
+          window.location.replace('/bootstrap-error.html');
+        });
+    })();
+  </script>
 </body>
 </html>

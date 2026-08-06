@@ -57,7 +57,7 @@ class ObservabilityGate:
 
     def _verify_mongo_reachable(self) -> None:
         try:
-            client = ChatHealthyMongoUtilities(identity="pipelineEditor").getConnection()
+            client = ChatHealthyMongoUtilities().getConnection("pipelineEditor", "pipelines")
             ping_result = client.admin.command("ping")
         except ChatHealthyException as ch_exc:
             self._dump_to_stderr(ch_exc)

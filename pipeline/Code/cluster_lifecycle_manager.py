@@ -26,6 +26,7 @@ from datetime import datetime, timezone, timedelta
 import requests
 from pymongo.errors import DuplicateKeyError
 from requests.auth import HTTPDigestAuth
+from pipeline_db import METADATA_DB
 
 _log = ChatHealthyLoggingService()
 
@@ -102,7 +103,7 @@ class ClusterLifecycleManager:
 
     def _coll(self):
         client = self._get_db()
-        return client["admin"]["cluster_lifecycle"] if client is not None else None
+        return client[METADATA_DB]["cluster_lifecycle"] if client is not None else None
 
     def wake(self, cluster_name: str, job_id: str | None = None) -> None:
         try:

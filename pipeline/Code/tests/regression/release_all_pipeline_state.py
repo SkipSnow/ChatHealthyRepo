@@ -29,6 +29,7 @@ from pymongo import MongoClient
 _REPO_ROOT = Path(__file__).resolve().parents[4]
 sys.path.insert(0, str(_REPO_ROOT / "pipeline" / "Code"))
 from pipeline_env import load_pipeline_env  # noqa: E402
+from pipeline_db import METADATA_DB
 
 
 _PIPELINE_CLUSTER_NAME = os.environ.get(
@@ -56,7 +57,7 @@ def test_release_all_pipeline_state():
 
     print("[release] before: pipeline.runs status=running for provider:",
           file=sys.stderr, flush=True)
-    for r in client["chathealthyfrontend"]["pipeline.runs"].find(
+    for r in client[METADATA_DB]["pipeline.runs"].find(
         {"pipeline_name": "provider", "status": "running"},
         {"run_id": 1, "started_at": 1},
     ).limit(20):
@@ -65,7 +66,7 @@ def test_release_all_pipeline_state():
 
     print("[release] before: cluster_lifecycle for pipeline cluster:",
           file=sys.stderr, flush=True)
-    for r in client["admin"]["cluster_lifecycle"].find(
+    for r in client[METADATA_DB]["cluster_lifecycle"].find(
         {"cluster_name": _PIPELINE_CLUSTER_NAME},
     ).limit(20):
         print(f"  _id={r.get('_id')} status={r.get('status')} "
@@ -73,7 +74,7 @@ def test_release_all_pipeline_state():
               file=sys.stderr, flush=True)
 
     aborted_iso = datetime.datetime.utcnow().isoformat()
-    abort_result = client["chathealthyfrontend"]["pipeline.runs"].update_many(
+    abort_result = client[METADATA_DB]["pipeline.runs"].update_many(
         {"pipeline_name": "provider", "status": "running"},
         {"$set": {
             "status": "aborted_release_all",
@@ -84,20 +85,20 @@ def test_release_all_pipeline_state():
           f"modified={abort_result.modified_count}",
           file=sys.stderr, flush=True)
 
-    delete_result = client["admin"]["cluster_lifecycle"].delete_many(
+    delete_result = client[METADATA_DB]["cluster_lifecycle"].delete_many(
         {"cluster_name": _PIPELINE_CLUSTER_NAME},
     )
     print(f"[release] cleared reservations: deleted={delete_result.deleted_count}",
           file=sys.stderr, flush=True)
 
     # Post-condition assertions.
-    still_running = client["chathealthyfrontend"]["pipeline.runs"].count_documents(
+    still_running = client[METADATA_DB]["pipeline.runs"].count_documents(
         {"pipeline_name": "provider", "status": "running"},
     )
     assert still_running == 0, (
         f"expected zero running provider runs after release, got {still_running}"
     )
-    still_reserved = client["admin"]["cluster_lifecycle"].count_documents(
+    still_reserved = client[METADATA_DB]["cluster_lifecycle"].count_documents(
         {"cluster_name": _PIPELINE_CLUSTER_NAME},
     )
     assert still_reserved == 0, (
