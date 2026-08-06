@@ -76,6 +76,20 @@ _DATEFMT = "%Y-%m-%d %H:%M:%S"
 _lock = threading.Lock()
 _bound_destinations: Optional[tuple[str, ...]] = None
 _bound_level: Optional[int] = None
+_mongo_log_identity: Optional[str] = None
+
+
+def set_mongo_log_identity(identity: str) -> None:
+    """Set the MongoDB identity for the logging handler.
+
+    Call this before setting CH_LOG_DESTINATION="mongo" to specify which
+    MongoDB certificate identity to use for log persistence.
+
+    Args:
+        identity: MongoDB certificate name (e.g., "pipelineEditor")
+    """
+    global _mongo_log_identity
+    _mongo_log_identity = identity
 
 
 class _Formatter(logging.Formatter):
@@ -168,8 +182,9 @@ class _MongoLogHandler(logging.Handler):
                     # raw client bypasses TimedClient because TimedClient
                     # logs every op, which would recurse here.
                     from .mongo_utilities import ChatHealthyMongoUtilities
-                    client = ChatHealthyMongoUtilities(identity="pipelineEditor").getRawClient()
-                    self._coll = client["Pipelines"][f"Log_{self._env}"]
+                    timed_client = ChatHealthyMongoUtilities().getConnection(_mongo_log_identity)
+                    raw_client = timed_client._client
+                    self._coll = raw_client["Pipelines"][f"Log_{self._env}"]
         return self._coll
 
     def emit(self, record: logging.LogRecord) -> None:
@@ -232,15 +247,22 @@ class _MongoLogHandler(logging.Handler):
 def _build_mongo_handler() -> logging.Handler:
     """Build the Mongo handler. Called ONLY when 'mongo' is in
     CH_LOG_DESTINATION. Raises ChatHealthyException if any required env
-    binding is missing - libraries throw, callers decide. If 'mongo' is
+    binding or identity is missing - libraries throw, callers decide. If 'mongo' is
     NOT in CH_LOG_DESTINATION, this function is never called and
     mongo_utilities is never imported."""
+    if not _mongo_log_identity:
+        raise ChatHealthyException(
+            mode="mongo_log_identity_not_set",
+            message=(
+                "ChatHealthyLoggingService cannot wire the Mongo handler "
+                "because mongo_log_identity is not set. Call set_mongo_log_identity(identity) "
+                "before setting CH_LOG_DESTINATION='mongo'."
+            ),
+            component="ChatHealthyLoggingService",
+        )
     target = os.environ.get("CH_SPACE_NAME", "").strip()
     env = os.environ.get("ENV_PREFIX", "").strip()
-    conn = os.environ.get("MONGO_FRONTEND_connectionString")
     missing = []
-    if not conn:
-        missing.append("MONGO_FRONTEND_connectionString")
     if not target:
         missing.append("CH_SPACE_NAME")
     if not env:

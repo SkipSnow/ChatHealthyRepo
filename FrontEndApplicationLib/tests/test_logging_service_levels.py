@@ -143,3 +143,4 @@ def test_exception_method_attaches_active_exception_without_exc_kwarg(file_log):
     assert "caught: active-exception-marker" in body
     assert "ValueError" in body
     assert "active-exception-marker" in body
+
