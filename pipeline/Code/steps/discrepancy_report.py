@@ -3,7 +3,7 @@
 """Discrepancy reporting for pipeline operations.
 
 Discrepancies (warnings/errors) are stored on the FRONTEND cluster in the
-`chathealthypipelines` database under the `pipeline.discrepancies` collection.
+`Pipelines` database -- the single home for all pipeline metadata.
 Workers write discrepancies via DiscrepancyReport.write(); fatal errors are
 emitted via DiscrepancyReport.emit() and fatal_error().
 """
@@ -19,6 +19,13 @@ from azure.keyvault.secrets import SecretClient
 from chathealthy_frontend_lib.logging_service import ChatHealthyLoggingService
 from chathealthy_frontend_lib.exceptions import ChatHealthyException
 from chathealthy_frontend_lib.mongo_utilities import ChatHealthyMongoUtilities
+
+from pipeline_db import METADATA_DB
+
+# All discrepancy metadata lives in one collection in one database.
+DISCREPANCIES_COLLECTION = "pipeline.discrepancy_reports"
+RUN_COUNTERS_COLLECTION = "pipeline.run_counters"
+PIPELINE_CONFIG_COLLECTION = "PipelineConfig"
 
 
 class FatalErrorReason(str, Enum):
@@ -58,11 +65,28 @@ class DiscrepancyReport:
         env: str,
         pipeline_name: str,
         source: str,
+        total_source_rows: int | None = None,
+        rows_in_target: int | None = None,
+        total_rows: int | None = None,
     ) -> None:
+        """
+        Args:
+            total_source_rows: Rows read from the source file.
+            rows_in_target: Rows currently in the target collection.
+            total_rows: Rows in the staging collection.
+
+        The three counts are the CALLER's to supply. They count data, which
+        lives on the pipeline cluster; this object only ever talks to the
+        metadata database. Any count left None is reported as "Unknown" --
+        an absent count is never rendered as zero.
+        """
         self.run_id = run_id
         self.env = env
         self.pipeline_name = pipeline_name
         self.source = source
+        self.total_source_rows = total_source_rows
+        self.rows_in_target = rows_in_target
+        self.total_rows = total_rows
         self.start_time = datetime.now(timezone.utc).isoformat()
         self.operator_email = self._get_operator_email_from_vault()
         utilities = ChatHealthyMongoUtilities()
@@ -70,16 +94,21 @@ class DiscrepancyReport:
         self.config = self._load_pipeline_config()
 
     def _load_pipeline_config(self) -> dict:
-        """Load pipeline configuration from MongoDB."""
-        try:
-            if not self.mongo_connection:
-                return {}
-            from pipeline_db import get_db
-            db = get_db(self.env)
-            config = db["PipelineConfig"].find_one({"_id": self.pipeline_name})
-            return config or {}
-        except Exception:
-            return {}
+        """Load pipeline configuration from the metadata database."""
+        from pipeline_db import get_metadata_db
+        config = get_metadata_db()[PIPELINE_CONFIG_COLLECTION].find_one(
+            {"_id": self.pipeline_name}
+        )
+        if not config:
+            raise ChatHealthyException(
+                mode="config_error",
+                message=(
+                    f"no {PIPELINE_CONFIG_COLLECTION} document for "
+                    f"{self.pipeline_name!r} in {METADATA_DB}"
+                ),
+                component="DiscrepancyReport",
+            )
+        return config
 
     def _get_operator_email_from_vault(self) -> str | None:
         """Fetch operator email from Key Vault."""
@@ -93,6 +122,19 @@ class DiscrepancyReport:
             return (secret.value or "").strip() if secret else None
         except Exception:
             return None
+
+    def _target_collection_name(self) -> str:
+        """Short name of the collection this pipeline loads into. Never the
+        staging collection."""
+        configured = self.config.get("provider_collection") or self.config.get("target_collection")
+        if not configured:
+            return "target collection"
+        return str(configured).split(".")[-1]
+
+    @staticmethod
+    def _reported(count: int | None):
+        """A count the caller supplied, or "Unknown" if it did not."""
+        return "Unknown" if count is None else count
 
     def _build_manifest_doc(self, discrepancy_level: DiscrepancyDetail, explanation: str) -> dict:
         """Build manifest_doc from discrepancy details."""
@@ -161,7 +203,7 @@ class DiscrepancyReport:
                 level_enum = discrepancy_level
 
             disc_dict = self._build_discrepancy_dict(level_enum, explanation, source_line, npi, field)
-            discs_coll = self.mongo_connection["chathealthypipelines"]["pipeline.discrepancies"]
+            discs_coll = self.mongo_connection[METADATA_DB][DISCREPANCIES_COLLECTION]
             discs_coll.insert_one(disc_dict)
             return True
         except ChatHealthyException as exc:
@@ -179,7 +221,7 @@ class DiscrepancyReport:
         try:
             if not self.mongo_connection:
                 return -1
-            counters_coll = self.mongo_connection["chathealthypipelines"]["pipeline.run_counters"]
+            counters_coll = self.mongo_connection[METADATA_DB][RUN_COUNTERS_COLLECTION]
             result = counters_coll.find_one_and_update(
                 {"run_id": self.run_id},
                 {"$inc": {"warning_count": 1}},
@@ -202,7 +244,7 @@ class DiscrepancyReport:
         try:
             if not self.mongo_connection:
                 return -1
-            counters_coll = self.mongo_connection["chathealthypipelines"]["pipeline.run_counters"]
+            counters_coll = self.mongo_connection[METADATA_DB][RUN_COUNTERS_COLLECTION]
             result = counters_coll.find_one_and_update(
                 {"run_id": self.run_id},
                 {"$inc": {"error_count": 1}},
@@ -225,7 +267,7 @@ class DiscrepancyReport:
         try:
             if not self.mongo_connection:
                 return {"warning_count": 0, "error_count": 0}
-            counters_coll = self.mongo_connection["chathealthypipelines"]["pipeline.run_counters"]
+            counters_coll = self.mongo_connection[METADATA_DB][RUN_COUNTERS_COLLECTION]
             result = counters_coll.find_one({"run_id": self.run_id})
             if not result:
                 return {"warning_count": 0, "error_count": 0}
@@ -251,7 +293,7 @@ class DiscrepancyReport:
             if not self.mongo_connection:
                 return False
 
-            reports_coll = self.mongo_connection["chathealthypipelines"]["pipeline.discrepancy_reports"]
+            reports_coll = self.mongo_connection[METADATA_DB][DISCREPANCIES_COLLECTION]
             all_reports = list(reports_coll.find({"run_id": self.run_id}))
 
             if not all_reports:
@@ -283,8 +325,8 @@ class DiscrepancyReport:
             # Build complete manifest for email and PDF
             end_time = datetime.now(timezone.utc).isoformat()
             # Count actual warning/error documents from MongoDB - must query every time
-            discs_coll_name = self.config.get("warnings_errors_collection", "pipeline.discrepancy_reports")
-            discs_coll = self.mongo_connection["chathealthypipelines"][discs_coll_name]
+            discs_coll_name = DISCREPANCIES_COLLECTION
+            discs_coll = self.mongo_connection[METADATA_DB][discs_coll_name]
             warning_count = discs_coll.count_documents({"run_id": self.run_id, "level": "warning"})
             error_count = discs_coll.count_documents({"run_id": self.run_id, "level": "error"})
             manifest = {
@@ -296,8 +338,10 @@ class DiscrepancyReport:
                 "records_100_percent_successfully_collected": False,
                 "records_with_non_fatal_warnings": warning_count,
                 "records_with_non_fatal_errors": error_count,
-                "rows_before_fatal": "Unknown",
-                "rows_not_looked_at": "Unknown",
+                "rows_in_target": self._reported(self.rows_in_target),
+                "target_collection": self._target_collection_name(),
+                "total_rows": self._reported(self.total_rows),
+                "total_source_rows": self.total_source_rows,
                 "warning_threshold": self.config.get("warning_threshold", "Unknown"),
                 "error_threshold": self.config.get("error_threshold", "Unknown"),
             }
@@ -377,15 +421,21 @@ class DiscrepancyReport:
         details: str,
         data_source: str,
         record_id: str,
+        source_line: str | None = None,
+        npi: str | None = None,
+        field_list: list[str] | None = None,
     ) -> bool:
         """Record a warning using the report's mongo connection.
 
         Args:
             job_name: Name of the job/pipeline.
             source: Source location of the warning.
-            details: Warning details.
+            details: What went wrong, in operator-readable prose.
             data_source: Data source (e.g., "NPPES", "NUCC").
             record_id: Business key of the record (e.g., NPI, NUCC code).
+            source_line: Line in the source file the record came from.
+            npi: The record's NPI. Defaults to record_id.
+            field_list: Every field implicated in the warning.
 
         Returns:
             True if recorded successfully, False otherwise.
@@ -395,7 +445,7 @@ class DiscrepancyReport:
             if not self.mongo_connection:
                 return False
 
-            reports_coll = self.mongo_connection["chathealthypipelines"]["pipeline.discrepancy_reports"]
+            reports_coll = self.mongo_connection[METADATA_DB][DISCREPANCIES_COLLECTION]
             warning_doc = {
                 "run_id": self.run_id,
                 "job_name": job_name,
@@ -404,6 +454,10 @@ class DiscrepancyReport:
                 "record_id": record_id,
                 "level": "warning",
                 "details": details,
+                "explanation": details,
+                "npi": npi or record_id,
+                "source_line": source_line,
+                "field_list": list(field_list or []),
             }
             reports_coll.insert_one(warning_doc)
             log.warning("createWarning: %s - %s", source, details)
@@ -425,15 +479,21 @@ class DiscrepancyReport:
         details: str,
         data_source: str,
         record_id: str,
+        source_line: str | None = None,
+        npi: str | None = None,
+        field_list: list[str] | None = None,
     ) -> bool:
         """Record a non-fatal error using the report's mongo connection.
 
         Args:
             job_name: Name of the job/pipeline.
             source: Source location of the error.
-            details: Error details.
+            details: What went wrong, in operator-readable prose.
             data_source: Data source (e.g., "NPPES", "NUCC").
             record_id: Business key of the record (e.g., NPI, NUCC code).
+            source_line: Line in the source file the record came from.
+            npi: The record's NPI. Defaults to record_id.
+            field_list: Every field implicated in the error.
 
         Returns:
             True if recorded successfully, False otherwise.
@@ -443,7 +503,7 @@ class DiscrepancyReport:
             if not self.mongo_connection:
                 return False
 
-            reports_coll = self.mongo_connection["chathealthypipelines"]["pipeline.discrepancy_reports"]
+            reports_coll = self.mongo_connection[METADATA_DB][DISCREPANCIES_COLLECTION]
             error_doc = {
                 "run_id": self.run_id,
                 "job_name": job_name,
@@ -452,6 +512,10 @@ class DiscrepancyReport:
                 "record_id": record_id,
                 "level": "error",
                 "details": details,
+                "explanation": details,
+                "npi": npi or record_id,
+                "source_line": source_line,
+                "field_list": list(field_list or []),
             }
             reports_coll.insert_one(error_doc)
             log.error("createNonFatalError: %s - %s", source, details)
@@ -483,7 +547,9 @@ def fatal_error(
         explanation: Fatal error explanation.
         source_line: Fatal error source location.
         records_processed: Number of records processed before fatal error.
-        rows_before_fatal: Which row we were on when fatal occurred.
+        rows_before_fatal: Accepted for caller compatibility and ignored.
+            Row counts are supplied on the DiscrepancyReport constructor by
+            the caller, which is the only party that can query them.
 
     Returns:
         True if report sent successfully, False otherwise.
@@ -499,8 +565,8 @@ def fatal_error(
             level_enum = level
 
         # Query for actual warning/error counts from discrepancy_reports collection
-        discs_coll_name = report.config.get("warnings_errors_collection", "pipeline.discrepancy_reports")
-        discs_coll = report.mongo_connection["chathealthypipelines"][discs_coll_name]
+        discs_coll_name = DISCREPANCIES_COLLECTION
+        discs_coll = report.mongo_connection[METADATA_DB][discs_coll_name]
 
         warning_count = discs_coll.count_documents({"run_id": report.run_id, "level": "warning"})
         error_count = discs_coll.count_documents({"run_id": report.run_id, "level": "error"})
@@ -516,14 +582,16 @@ def fatal_error(
             "records_100_percent_successfully_collected": False,
             "records_with_non_fatal_warnings": warning_count,
             "records_with_non_fatal_errors": error_count,
-            "rows_before_fatal": rows_before_fatal if rows_before_fatal > 0 else "n/a",
-            "rows_not_looked_at": "Unknown",
+            "rows_in_target": report._reported(report.rows_in_target),
+            "target_collection": report._target_collection_name(),
+            "total_rows": report._reported(report.total_rows),
+            "total_source_rows": report.total_source_rows,
             "warning_threshold": report.config.get("warning_threshold", "Unknown"),
             "error_threshold": report.config.get("error_threshold", "Unknown"),
         }
 
         # Write fatal error document
-        reports_coll = report.mongo_connection["chathealthypipelines"]["pipeline.discrepancy_reports"]
+        reports_coll = report.mongo_connection[METADATA_DB][DISCREPANCIES_COLLECTION]
         fatal_doc = {
             "run_id": report.run_id,
             "job_name": report.pipeline_name,
@@ -612,7 +680,7 @@ def createWarning(
         if not report.mongo_connection:
             return False
 
-        reports_coll = report.mongo_connection["chathealthypipelines"]["pipeline.discrepancy_reports"]
+        reports_coll = report.mongo_connection[METADATA_DB][DISCREPANCIES_COLLECTION]
         warning_doc = {
             "run_id": report.run_id,
             "job_name": job_name,
@@ -662,7 +730,7 @@ def CreateNonFatalError(
         if not report.mongo_connection:
             return False
 
-        reports_coll = report.mongo_connection["chathealthypipelines"]["pipeline.discrepancy_reports"]
+        reports_coll = report.mongo_connection[METADATA_DB][DISCREPANCIES_COLLECTION]
         error_doc = {
             "run_id": report.run_id,
             "job_name": job_name,
@@ -737,7 +805,7 @@ def emit_discrepancy_report(
         report.mongo_connection = pipeline_mongo
 
         # Count discrepancies
-        discrepancies_coll = pipeline_mongo["chathealthypipelines"]["pipeline.discrepancy_reports"]
+        discrepancies_coll = pipeline_mongo[METADATA_DB][DISCREPANCIES_COLLECTION]
         total = discrepancies_coll.count_documents({"run_id": run_id})
 
         # Send email if operator email is set

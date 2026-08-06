@@ -29,7 +29,7 @@ from chathealthy_frontend_lib.logging_service import ChatHealthyLoggingService
 
 _log = ChatHealthyLoggingService()
 
-FATAL_DISCREPANCIES_DB = "chathealthypipelines"
+FATAL_DISCREPANCIES_DB = "Pipelines"
 FATAL_DISCREPANCIES_COLL = "pipeline.discrepancies"
 
 

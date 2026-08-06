@@ -59,8 +59,15 @@ def _fmt_header_fields(manifest: dict, discrepancies: list[dict]) -> list[tuple[
     """11 header field-value pairs, spec-verbatim labels."""
     errors = [d for d in discrepancies if (d.get("level") or "").lower() == "error"]
     warnings = [d for d in discrepancies if (d.get("level") or "").lower() == "warning"]
-    records_with_warnings = len({d.get("npi") for d in warnings if d.get("npi")})
-    records_with_errors = len({d.get("npi") for d in errors if d.get("npi")})
+    # The manifest is authoritative: it counts the documents actually stored
+    # for this run. Recomputing from the rendered rows undercounts whenever a
+    # discrepancy carries no npi.
+    records_with_warnings = manifest.get("records_with_non_fatal_warnings")
+    if records_with_warnings is None:
+        records_with_warnings = len(warnings)
+    records_with_errors = manifest.get("records_with_non_fatal_errors")
+    if records_with_errors is None:
+        records_with_errors = len(errors)
     total_source_rows = manifest.get("total_source_rows")
     if total_source_rows is None:
         successful = "Unknown"
@@ -69,8 +76,9 @@ def _fmt_header_fields(manifest: dict, discrepancies: list[dict]) -> list[tuple[
         successful = str(int(total_source_rows) - len(touched))
     fatal_reason = manifest.get("fatal_reason") or ""
     fatal_present = bool(fatal_reason)
-    rows_before_fatal = manifest.get("rows_before_fatal", "Unknown") if fatal_present else "n/a"
-    rows_not_looked_at = manifest.get("rows_not_looked_at", "Unknown") if fatal_present else "n/a"
+    rows_in_target = manifest.get("rows_in_target", "Unknown") if fatal_present else "n/a"
+    total_rows = manifest.get("total_rows", "Unknown") if fatal_present else "n/a"
+    target_collection = manifest.get("target_collection") or "target collection"
     return [
         ("Pipeline",                            str(manifest.get("pipeline_name", "provider"))),
         ("Run started",                         _fmt_local_time(manifest.get("run_started_utc"))),
@@ -81,8 +89,8 @@ def _fmt_header_fields(manifest: dict, discrepancies: list[dict]) -> list[tuple[
         ("Warning threshold",                   str(manifest.get("warning_threshold", "Unknown"))),
         ("Error threshold",                     str(manifest.get("error_threshold", "Unknown"))),
         ("Fatal error",                         fatal_reason if fatal_present else "None"),
-        ("Rows before fatal",                   str(rows_before_fatal)),
-        ("Rows not looked at",                  str(rows_not_looked_at)),
+        (f"Rows in {target_collection}",        str(rows_in_target)),
+        ("Total rows",                          str(total_rows)),
     ]
 
 
@@ -199,7 +207,7 @@ def build_discrepancy_pdf(manifest: dict, discrepancies: list[dict]) -> bytes:
         _p("TYPE", body_header_style),
         _p("SOURCE LINE", body_header_style),
         _p("NPI", body_header_style),
-        _p("FIELD", body_header_style),
+        _p("FIELD LIST", body_header_style),
         _p("EXPLANATION", body_header_style),
     ]]
     if not discrepancies:
@@ -211,12 +219,22 @@ def build_discrepancy_pdf(manifest: dict, discrepancies: list[dict]) -> bytes:
         ])
     else:
         for d in discrepancies:
+            # A fatal is a job-level event: it has no source line, no NPI and
+            # no field list, and those cells say so rather than reading as
+            # missing data.
+            blank = "N/A" if (d.get("level") or "").lower() == "fatal" else "-"
+            field_list = d.get("field_list")
+            if isinstance(field_list, (list, tuple)):
+                fields = ", ".join(str(f) for f in field_list) or blank
+            else:
+                fields = str(field_list or d.get("field") or blank)
             body_rows.append([
                 _p((d.get("level") or "?").upper(), body_cell_style),
-                _p(d.get("source_line") or "-", body_cell_style),
-                _p(d.get("npi") or "-", body_cell_style),
-                _p(d.get("field") or "-", body_cell_style),
-                _p(d.get("explanation") or d.get("message") or d.get("reason") or "", body_cell_style),
+                _p(d.get("source_line") or blank, body_cell_style),
+                _p(d.get("npi") or blank, body_cell_style),
+                _p(fields, body_cell_style),
+                _p(d.get("explanation") or d.get("details") or d.get("message")
+                   or d.get("reason") or blank, body_cell_style),
             ])
     body_table = Table(
         body_rows,
