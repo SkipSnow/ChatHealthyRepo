@@ -580,7 +580,6 @@ class ClassifyRequest(BaseModel):
     One AI call. System answers with DB query after."""
     message: str
 
-@app.post("/classify")
 def _require_db_for_classify():
     """Guard extracted so /classify does not both raise and log in one body.
 
@@ -598,6 +597,7 @@ def _require_db_for_classify():
     return db
 
 
+@app.post("/classify")
 async def classify(body: ClassifyRequest, request: Request):
     """EPIC-006-F-002-S-001-REQ-T-001: AI vector search for specialties.
     Replaces the GPT classify call with embedding + vector search.

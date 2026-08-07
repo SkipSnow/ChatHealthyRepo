@@ -105,21 +105,44 @@ class ClusterLifecycleManager:
         client = self._get_db()
         return client[METADATA_DB]["cluster_lifecycle"] if client is not None else None
 
-    def wake(self, cluster_name: str, job_id: str | None = None) -> None:
-        try:
-            resp = requests.patch(
-                _atlas_url(cluster_name),
-                json={"paused": False},
-                auth=_atlas_auth(),
-                headers=_atlas_headers(),
-                timeout=30,
+    @staticmethod
+    def _atlas_wake_request(cluster_name: str) -> str:
+        """PATCH the cluster to paused=false. Raises, never logs.
+
+        The status is checked BEFORE the body is read. Atlas returns a JSON
+        error document on 4xx, so .get("stateName") yields "unknown" and a
+        failed wake reads as a successful one -- which is how a 404
+        CLUSTER_NOT_FOUND from a wrong cluster name looked like success.
+        """
+        resp = requests.patch(
+            _atlas_url(cluster_name),
+            json={"paused": False},
+            auth=_atlas_auth(),
+            headers=_atlas_headers(),
+            timeout=30,
+        )
+        if resp.status_code >= 400:
+            raise ChatHealthyException(
+                mode="atlas_wake_failed",
+                component="ClusterLifecycleManager",
+                message=(
+                    f"Atlas wake for {cluster_name!r} returned HTTP "
+                    f"{resp.status_code}: {resp.text[:300]}"
+                ),
             )
-            state_name = resp.json().get("stateName", "unknown")
-            _log.info("Wake requested: %s by job=%s (state: %s)", cluster_name, job_id, state_name)
-        except Exception as e:
-            _log.error("Wake failed: %s by job=%s — %s", cluster_name, job_id, e)
-            if self._push:
-                self._push("Cluster Wake Failed", f"{cluster_name} (job={job_id}): {e}")
+        return resp.json().get("stateName", "unknown")
+
+    def wake(self, cluster_name: str, job_id: str | None = None) -> None:
+        """Ask Atlas to resume the cluster.
+
+        A failure PROPAGATES. It previously did not: every exception was
+        caught and logged here, so a caller could not tell a wake that
+        worked from one that never happened, and a pipeline would proceed
+        against a cluster that was still asleep.
+        """
+        state_name = self._atlas_wake_request(cluster_name)
+        _log.info("Wake requested: %s by job=%s (state: %s)",
+                  cluster_name, job_id, state_name)
 
     def reserve(self, cluster_name: str, job_id: str, requester: str,
                 expected_duration_minutes: int, expected_min_minutes: int = 0,
