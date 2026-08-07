@@ -53,7 +53,7 @@ def staged_repo(tmp_path):
         (repo / "seed.txt").write_text("seed\n", encoding="utf-8")
         _git(repo, "add", "seed.txt")
         _git(repo, "-c", "user.email=t@t", "-c", "user.name=t",
-             "commit", "-m", "base", "--no-verify")
+             "commit", "-m", "base")
         target = repo / FIXTURE_REL
         target.parent.mkdir(parents=True, exist_ok=True)
         shutil.copyfile(FIXTURE, target)
@@ -188,7 +188,7 @@ def test_interactive_commit_to_qa_is_refused_after_authorization(tmp_path):
     (repo / "seed.txt").write_text("seed\n", encoding="utf-8")
     _git(repo, "add", "seed.txt")
     _git(repo, "-c", "user.email=t@t", "-c", "user.name=t",
-         "commit", "-m", "base", "--no-verify")
+         "commit", "-m", "base")
 
     marker = repo / "hook_ran.marker"
     hook = repo / ".git" / "hooks" / "pre-commit"

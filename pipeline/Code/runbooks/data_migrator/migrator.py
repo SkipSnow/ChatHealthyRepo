@@ -66,6 +66,7 @@ from datetime import datetime, timezone
 import requests
 from pymongo import MongoClient, InsertOne
 from requests.auth import HTTPDigestAuth
+from pipeline_db import METADATA_DB
 
 try:
     import automationassets
@@ -297,8 +298,10 @@ def _wait_source_idle(cluster_name: str) -> None:
 
 
 def _frontend_admin_coll():
-    fe = ChatHealthyMongoUtilities(identity="frontend").getConnection()
-    return fe["admin"]["cluster_lifecycle"]
+    # Lifecycle records are operational, and must be readable while the
+    # source factory is asleep -- which is exactly when this job consults them.
+    fe = ChatHealthyMongoUtilities().getConnection("dataTransferAgent", "admin")
+    return fe[METADATA_DB]["cluster_lifecycle"]
 
 
 def _reserve_source(cluster_name: str, job_id: str, duration_minutes: int) -> None:
@@ -589,6 +592,24 @@ def _fire_deprovisioner(job_id: str, vm_name: str, request_guid: str) -> str:
     return aa_job_id
 
 
+def _assert_reconciled(success_writes: int, source_total: int) -> None:
+    """Reconciliation check. Raises, never logs.
+
+    Extracted so _main can emit its final status record without also being a
+    raising function -- Rule-005 statement 3: the thrower does not log, the
+    catcher does. _main's except block already sets has_exception and its
+    finally block logs the outcome, so behaviour is unchanged.
+    """
+    if success_writes != source_total:
+        raise ChatHealthyException(
+            mode="runtime_error",
+            message=(
+                f"Reconciliation mismatch: migrated={success_writes} "
+                f"source={source_total}"
+            ),
+        )
+
+
 def _main():
     global _request_guid
     payload = _read_payload()
@@ -614,9 +635,12 @@ def _main():
     # through the utility which reads the same env var it just populated.
     _connection_string_for_cluster(src_cluster)
     _connection_string_for_cluster(dst_cluster)
-    src_client = ChatHealthyMongoUtilities(identity="pipelineEditor").getConnection()
-    dst_client = ChatHealthyMongoUtilities(identity="pipelineEditor").getConnection()
-    pipeline_client = ChatHealthyMongoUtilities(identity="pipelineEditor").getConnection()
+    # The crossing: read the factory, write the front end, keep status in
+    # admin. Three connections, one identity -- the only principal permitted
+    # to write PublicHealthData.
+    src_client = ChatHealthyMongoUtilities().getConnection("dataTransferAgent", "pipelines")
+    dst_client = ChatHealthyMongoUtilities().getConnection("dataTransferAgent", "frontEnd")
+    pipeline_client = ChatHealthyMongoUtilities().getConnection("dataTransferAgent", "admin")
 
     src_coll = src_client[src_db_name][src_coll_name]
     dst_coll = dst_client[dst_db_name][dst_coll_name]
@@ -682,9 +706,7 @@ def _main():
         else:
             covered_query = {"$or": partition_filters}
         source_total = src_coll.count_documents(covered_query)
-        if success_writes != source_total:
-            has_exception = True
-            raise ChatHealthyException(mode="runtime_error", message=f"Reconciliation mismatch: migrated={success_writes} source={source_total}")
+        _assert_reconciled(success_writes, source_total)
 
     except Exception:
         # Threadpool failures set has_exception themselves and re-raise.
