@@ -717,7 +717,7 @@ class TestStep06:
         _send_button(page).click()
         # "Yes, keep waiting" button appears only on slow searches as a
         # confirmation prompt. Explicit conditional handling — no try/except
-        # swallow (BUG-003 item #11). Brief presence-check window then
+        # swallow. Brief presence-check window then
         # decide deterministically whether the button is part of THIS run.
         page.wait_for_load_state('networkidle', timeout=180_000)  # let UI settle
         keep_btns = _center(page).locator("button", has_text="Yes, keep waiting")

@@ -5,9 +5,11 @@ import sys
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).parent.parent.parent / "FrontEndApplicationLib" / "src"))
+sys.path.insert(0, str(Path(__file__).parent.parent))
 
 from chathealthy_frontend_lib.mongo_utilities import ChatHealthyMongoUtilities
 from chathealthy_frontend_lib.logging_service import ChatHealthyLoggingService
+from pipeline_db import PIPELINE_ADMIN_DB
 
 log = ChatHealthyLoggingService()
 
@@ -25,9 +27,9 @@ try:
     log.info("Connected to MongoDB")
 
     collections_to_clear = [
-        ("Pipelines", "pipeline.discrepancies"),
-        ("Pipelines", "pipeline.discrepancy_reports"),
-        ("Pipelines", "pipeline.run_counters"),
+        (PIPELINE_ADMIN_DB, "pipeline.discrepancies"),
+        (PIPELINE_ADMIN_DB, "pipeline.discrepancy_reports"),
+        (PIPELINE_ADMIN_DB, "pipeline.run_counters"),
         ("admin", "PipelineDiscrepancyReports"),
     ]
 

@@ -15,7 +15,7 @@ def test_check_database_for_evidence():
     assert client, "Could not get pipeline MongoDB connection"
 
     try:
-        db = client["Pipelines"]
+        db = client["pipelineAdmin"]
 
         # List all collections
         collections = sorted(db.list_collection_names())

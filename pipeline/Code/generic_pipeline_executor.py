@@ -52,7 +52,7 @@ from pipeline_fatal_recorder import record_fatal_discrepancy
 _log = ChatHealthyLoggingService()
 
 # Pipeline cluster coordination DB (per operator directive 2026-08-03).
-_METADATA_DB = "Pipelines"
+from pipeline_db import PIPELINE_ADMIN_DB
 _METADATA_COLL = "pipeline.loaded_metadata"
 _CHUNK_BYTES = 1024 * 1024
 _TRANSIENT_CONTAINER = "pipeline-transients"
@@ -144,7 +144,7 @@ class GenericPipelineExecutor:
     # ------------------------------------------------------------------
 
     def _metadata_coll(self):
-        return self._pipeline_mongo[_METADATA_DB][_METADATA_COLL]
+        return self._pipeline_mongo[PIPELINE_ADMIN_DB][_METADATA_COLL]
 
     def _read_metadata(self, source_name: str) -> Optional[dict]:
         return self._metadata_coll().find_one({"_id": source_name})

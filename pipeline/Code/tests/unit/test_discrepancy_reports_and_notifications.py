@@ -76,7 +76,7 @@ class _CapturingNotifier:
 
 def _mongo_with_discrepancies(rows):
     coll = _RecordingColl(rows)
-    return _Mongo({"Pipelines": _Db({"pipeline.discrepancies": coll})}), coll
+    return _Mongo({"pipelineAdmin": _Db({"pipeline.discrepancies": coll})}), coll
 
 
 def _stub_pdf(monkeypatch):

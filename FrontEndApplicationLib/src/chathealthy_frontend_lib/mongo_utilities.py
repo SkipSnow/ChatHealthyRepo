@@ -18,6 +18,7 @@ import time
 from typing import Any
 
 from bson.json_util import dumps as bson_dumps
+import httpx
 from pymongo import MongoClient
 from pymongo.errors import (
     ConfigurationError,
@@ -52,11 +53,24 @@ TIMEOUT_MS = 120000
 # pipeline or admin cluster changes this map and nothing else.
 CLUSTER_TARGETS = ("frontEnd", "admin", "pipelines")
 
-_TARGET_URI_ENV = {
-    "frontEnd": "MONGO_FRONTEND_connectionString",
-    "admin": "MONGO_FRONTEND_connectionString",
-    "pipelines": "MONGO_FRONTEND_connectionString",
+# A target maps to a HOST, never to a credentialed connection string. The
+# credential comes from the identity's certificate and nowhere else, so no
+# secret is involved in deciding where to connect.
+_TARGET_HOST = {
+    "frontEnd": "chathealthyfrontend.mdwahg.mongodb.net",
+    "admin": "chathealthyfrontend.mdwahg.mongodb.net",
+    "pipelines": "chathealthydatapipeline.mdwahg.mongodb.net",
 }
+
+# Vault secret names are conventional: the identity IS the key. This removes
+# the registry round-trip, which needed a Mongo connection to discover how to
+# make a Mongo connection.
+_VAULT_CERT_KEY = "cert-{identity}"
+_VAULT_PRIVATE_KEY = "key-{identity}"
+
+# One client per (identity, cluster). Certificate retrieval is a vault round
+# trip; doing it per call would put it on every query.
+_CLIENT_CACHE: dict[tuple[str, str], "TimedClient"] = {}
 
 
 def q(value: Any) -> str:
@@ -314,415 +328,156 @@ class ChatHealthyMongoUtilities:
             component="ChatHealthyMongoUtilities",
         )
 
-    def getConnection(self, role: str, cluster: str) -> TimedClient:
-        """Establish a MongoDB connection for a role against a logical target.
-
-        Args:
-            role: The identity to act as (e.g. "pipelineEditor"). Selects WHO.
-            cluster: A logical target from CLUSTER_TARGETS. Selects WHERE.
-
-        A role deliberately spans targets -- pipelineEditor does its work on
-        `pipelines` and writes its metadata to `admin` -- so role alone cannot
-        determine the server. Both arguments are required and neither has a
-        default: a caller that has not decided which target it wants has not
-        finished deciding what it is doing.
-
-        Today every target resolves to the same physical cluster, so this is
-        currently a behavioural no-op. What it adds is that each call site
-        DECLARES its target, which the code has never carried before.
-
-        Returns:
-            TimedClient wrapping an authenticated MongoClient.
-
-        Raises:
-            ChatHealthyException if either argument is invalid or the
-            connection fails.
-        """
-        if not role or not isinstance(role, str):
+    def _vault_secret(self, vault_uri: str, token: str, name: str) -> str:
+        """One secret out of Key Vault. Raises, never logs."""
+        response = httpx.get(
+            f"{vault_uri.rstrip('/')}/secrets/{name}",
+            params={"api-version": "7.4"},
+            headers={"Authorization": f"Bearer {token}"},
+            timeout=15,
+        )
+        if response.status_code != 200:
             raise ChatHealthyException(
                 mode="security_violation",
-                message=f"role must be a non-empty string, got: {type(role).__name__}",
+                message=f"Key Vault returned {response.status_code} for {name!r}",
                 component="ChatHealthyMongoUtilities",
             )
+        return response.json()["value"]
 
+    def _fetch_identity_cert(self, identity: str) -> str:
+        """Return the identity's cert+key PEM from Key Vault. Raises, never logs.
+
+        Key Vault is a REST API and this is two HTTPS calls: a client-credentials
+        token, then the secret. The Azure SDK does exactly this and costs tens of
+        megabytes per image to do it.
+        """
+        vault_uri = os.environ.get("KEY_VAULT_URI", "").strip()
+        if not vault_uri:
+            raise ChatHealthyException(
+                mode="vault_unreachable",
+                message="KEY_VAULT_URI not set",
+                component="ChatHealthyMongoUtilities",
+            )
+        try:
+            tenant = os.environ["AZURE_TENANT_ID"].strip()
+            client_id = os.environ["AZURE_CLIENT_ID"].strip()
+            client_secret = os.environ["AZURE_CLIENT_SECRET"].strip()
+        except KeyError as exc:
+            raise ChatHealthyException(
+                mode="vault_unreachable",
+                message=f"AZURE_TENANT_ID, AZURE_CLIENT_ID and AZURE_CLIENT_SECRET "
+                        f"are required; {exc} missing",
+                component="ChatHealthyMongoUtilities",
+            ) from exc
+
+        token_response = httpx.post(
+            f"https://login.microsoftonline.com/{tenant}/oauth2/v2.0/token",
+            data={
+                "grant_type": "client_credentials",
+                "client_id": client_id,
+                "client_secret": client_secret,
+                "scope": "https://vault.azure.net/.default",
+            },
+            timeout=15,
+        )
+        if token_response.status_code != 200:
+            raise ChatHealthyException(
+                mode="vault_unreachable",
+                message=f"Azure token request returned {token_response.status_code}",
+                component="ChatHealthyMongoUtilities",
+            )
+        token = token_response.json()["access_token"]
+
+        try:
+            cert = self._vault_secret(vault_uri, token, _VAULT_CERT_KEY.format(identity=identity))
+            key = self._vault_secret(vault_uri, token, _VAULT_PRIVATE_KEY.format(identity=identity))
+        except ChatHealthyException:
+            raise
+        except Exception as exc:
+            raise ChatHealthyException(
+                mode="security_violation",
+                message=f"No certificate in the vault for identity {identity!r}: {exc}",
+                component="ChatHealthyMongoUtilities",
+            ) from exc
+        return cert.strip() + chr(10) + key.strip() + chr(10)
+
+    def getConnection(self, identity: str, cluster: str) -> TimedClient:
+        """Connect to a logical target as an identity, over mTLS.
+
+        Args:
+            identity: WHO. Selects the X.509 certificate, and therefore the
+                MongoDB user and its grants.
+            cluster: WHERE. A logical target from CLUSTER_TARGETS, which maps
+                to a host.
+
+        There is no connection string and no password. The certificate IS the
+        credential: the server matches its subject DN against a $external user
+        and applies that user's role. An identity with no certificate, or whose
+        certificate names a user the server does not know, cannot connect --
+        which is the point.
+
+        There is deliberately no fallback. If the certificate cannot be
+        obtained this raises, because a fallback to a shared credential is the
+        escape hatch that makes the whole model decorative.
+
+        Raises:
+            ChatHealthyException if either argument is invalid, the certificate
+            cannot be obtained, or the connection fails.
+        """
+        if not identity or not isinstance(identity, str):
+            raise ChatHealthyException(
+                mode="security_violation",
+                message=f"identity must be a non-empty string, got: {type(identity).__name__}",
+                component="ChatHealthyMongoUtilities",
+            )
         if cluster not in CLUSTER_TARGETS:
             raise ChatHealthyException(
                 mode="security_violation",
-                message=(
-                    f"cluster must be one of {CLUSTER_TARGETS}, got: {cluster!r}"
-                ),
+                message=f"cluster must be one of {CLUSTER_TARGETS}, got: {cluster!r}",
                 component="ChatHealthyMongoUtilities",
             )
 
-        uri_env = _TARGET_URI_ENV[cluster]
-        mongo_uri = os.environ.get(uri_env, "").strip()
-        if not mongo_uri:
-            raise ChatHealthyException(
-                mode="mongo_network_failure",
-                message=f"{uri_env} not set (logical target {cluster!r})",
-                component="ChatHealthyMongoUtilities",
-            )
+        cached = _CLIENT_CACHE.get((identity, cluster))
+        if cached is not None:
+            return cached
 
+        cert_key_pem = self._fetch_identity_cert(identity)
+        cert_path = os.path.join(
+            tempfile.gettempdir(), f"mongo_{identity}_{cluster}.pem"
+        )
+        with open(cert_path, "w", encoding="utf-8") as handle:
+            handle.write(cert_key_pem)
         try:
-            client = MongoClient(mongo_uri, serverSelectionTimeoutMS=5000)
+            os.chmod(cert_path, 0o600)
+        except OSError:
+            pass
+
+        host = _TARGET_HOST[cluster]
+        uri = (
+            f"mongodb+srv://{host}/?authSource=%24external"
+            "&authMechanism=MONGODB-X509&retryWrites=true&w=majority"
+        )
+        try:
+            client = MongoClient(
+                uri,
+                tls=True,
+                tlsCertificateKeyFile=cert_path,
+                serverSelectionTimeoutMS=10000,
+            )
             client.admin.command("ping")
-            return TimedClient(client)
         except Exception as exc:
             raise ChatHealthyException(
                 mode="mongo_network_failure",
-                message=f"Failed to connect to MongoDB: {exc}",
+                message=f"mTLS connection failed for {identity!r} on {cluster!r}: {exc}",
                 component="ChatHealthyMongoUtilities",
             ) from exc
 
-    def _fetch_certs_and_uri(self, cert_name: str) -> tuple[str, str, str]:
-        """Fetch client cert+key, MongoDB URI, and MongoDB CA cert from Key Vault.
+        timed = TimedClient(client)
+        _CLIENT_CACHE[(identity, cluster)] = timed
+        return timed
 
-        Looks up identity in CertificateRegistry to get vault secret names,
-        then fetches from vault using those names.
 
-        Args:
-            cert_name: Name of the identity (e.g., "pipelineEditor").
 
-        Returns:
-            (client_cert_key_pem, mongo_uri, mongo_ca_cert_pem)
 
-        Raises:
-            ChatHealthyException if registry lookup fails, cert not found, or vault unreachable.
-        """
-        try:
-            vault_uri = os.environ.get("KEY_VAULT_URI", "").strip()
-            if not vault_uri:
-                raise ChatHealthyException(
-                    mode="vault_unreachable",
-                    message="KEY_VAULT_URI environment variable not set",
-                    component="ChatHealthyMongoUtilities",
-                )
 
-            tenant_id = os.environ.get("AZURE_TENANT_ID", "").strip()
-            client_id = os.environ.get("AZURE_CLIENT_ID", "").strip()
-            client_secret = os.environ.get("AZURE_CLIENT_SECRET", "").strip()
-            if not (tenant_id and client_id and client_secret):
-                raise ChatHealthyException(
-                    mode="vault_unreachable",
-                    message="AZURE_TENANT_ID, AZURE_CLIENT_ID, AZURE_CLIENT_SECRET must be set",
-                    component="ChatHealthyMongoUtilities",
-                )
 
-            # Imported here, not at module scope. Only the vault path needs
-            # the Azure SDK, and importing it at load time made every
-            # consumer of this module depend on azure-identity being
-            # installed -- which broke all three backend containers, whose
-            # images do not ship it.
-            from azure.identity import ClientSecretCredential
-            from azure.keyvault.secrets import SecretClient
-
-            credential = ClientSecretCredential(
-                tenant_id=tenant_id, client_id=client_id, client_secret=client_secret
-            )
-            vault_client = SecretClient(vault_url=vault_uri, credential=credential)
-
-            mongo_uri_str = os.environ.get("MONGO_FRONTEND_connectionString", "").strip()
-            if not mongo_uri_str:
-                raise ChatHealthyException(
-                    mode="mongo_network_failure",
-                    message="MONGO_FRONTEND_connectionString not set",
-                    component="ChatHealthyMongoUtilities",
-                )
-
-            temp_client = MongoClient(mongo_uri_str, serverSelectionTimeoutMS=5000)
-            try:
-                registry_coll = temp_client["ChatHealthyConfig"]["CertificateRegistry"]
-                registry_doc = registry_coll.find_one({"identity": cert_name})
-            finally:
-                temp_client.close()
-
-            if not registry_doc:
-                raise ChatHealthyException(
-                    mode="security_violation",
-                    message=f"Identity '{cert_name}' not found in registry",
-                    component="ChatHealthyMongoUtilities",
-                )
-
-            public_cert_key = registry_doc.get("public_cert_vault_key")
-            private_key_vault_key = registry_doc.get("private_key_vault_key")
-
-            if not public_cert_key:
-                raise ChatHealthyException(
-                    mode="security_violation",
-                    message=f"Identity '{cert_name}' has no public_cert_vault_key",
-                    component="ChatHealthyMongoUtilities",
-                )
-
-            if not private_key_vault_key:
-                raise ChatHealthyException(
-                    mode="security_violation",
-                    message=f"Identity '{cert_name}' has no private_key_vault_key",
-                    component="ChatHealthyMongoUtilities",
-                )
-
-            public_cert_secret = vault_client.get_secret(public_cert_key)
-            if not public_cert_secret or not public_cert_secret.value:
-                raise ChatHealthyException(
-                    mode="vault_unreachable",
-                    message=f"Secret '{public_cert_key}' not found in vault",
-                    component="ChatHealthyMongoUtilities",
-                )
-
-            private_key_secret = vault_client.get_secret(private_key_vault_key)
-            if not private_key_secret or not private_key_secret.value:
-                raise ChatHealthyException(
-                    mode="vault_unreachable",
-                    message=f"Secret '{private_key_vault_key}' not found in vault",
-                    component="ChatHealthyMongoUtilities",
-                )
-
-            cert_pem = public_cert_secret.value.rstrip() + "\n"
-            key_pem = private_key_secret.value.rstrip() + "\n"
-            combined_cert_key_pem = cert_pem + key_pem
-
-            uri_secret = vault_client.get_secret("mongo-uri")
-            if not uri_secret or not uri_secret.value:
-                raise ChatHealthyException(
-                    mode="vault_unreachable",
-                    message="Secret 'mongo-uri' not found in vault",
-                    component="ChatHealthyMongoUtilities",
-                )
-
-            ca_secret = vault_client.get_secret("mongo-ca-cert")
-            if not ca_secret or not ca_secret.value:
-                raise ChatHealthyException(
-                    mode="vault_unreachable",
-                    message="Secret 'mongo-ca-cert' not found in vault",
-                    component="ChatHealthyMongoUtilities",
-                )
-
-            return (combined_cert_key_pem, uri_secret.value, ca_secret.value)
-
-        except ChatHealthyException:
-            raise
-        except Exception as exc:
-            raise ChatHealthyException(
-                mode="vault_unreachable",
-                message=f"Failed to fetch certs from vault for identity '{cert_name}': {exc}",
-                component="ChatHealthyMongoUtilities",
-            ) from exc
-
-    def _extract_certificate_from_pem(self, cert_key_pem: str) -> str:
-        """Extract just the certificate portion from a combined cert+key PEM.
-
-        Args:
-            cert_key_pem: PEM string containing both certificate and private key.
-
-        Returns:
-            Certificate portion only (between BEGIN/END CERTIFICATE markers).
-        """
-        lines = cert_key_pem.split('\n')
-        cert_lines = []
-        in_cert = False
-
-        for line in lines:
-            if '-----BEGIN CERTIFICATE-----' in line:
-                in_cert = True
-            if in_cert:
-                cert_lines.append(line)
-            if '-----END CERTIFICATE-----' in line:
-                in_cert = False
-                break
-
-        if not cert_lines:
-            raise ChatHealthyException(
-                mode="security_violation",
-                message="No certificate found in PEM",
-                component="ChatHealthyMongoUtilities",
-            )
-
-        return '\n'.join(cert_lines)
-
-    def _lookup_vault_key(self, identity: str) -> str:
-        """Look up identity in CertificateRegistry to get vault secret name.
-
-        Queries ChatHealthyConfig.CertificateRegistry for the identity,
-        returns the private_key_vault_key name.
-
-        Args:
-            identity: Identity name (e.g., "pipelineEditor").
-
-        Returns:
-            Vault secret name for the private key (e.g., "key-pipelineEditor").
-
-        Raises:
-            ChatHealthyException if lookup fails or identity not found.
-        """
-        try:
-            mongo_uri = os.environ.get("MONGO_FRONTEND_connectionString", "").strip()
-            if not mongo_uri:
-                raise ChatHealthyException(
-                    mode="mongo_network_failure",
-                    message="MONGO_FRONTEND_connectionString not set",
-                    component="ChatHealthyMongoUtilities",
-                )
-
-            temp_client = MongoClient(mongo_uri, serverSelectionTimeoutMS=5000)
-            registry_coll = temp_client["ChatHealthyConfig"]["CertificateRegistry"]
-            doc = registry_coll.find_one({"identity": identity})
-            temp_client.close()
-
-            if not doc:
-                raise ChatHealthyException(
-                    mode="security_violation",
-                    message=f"Identity '{identity}' not found in CertificateRegistry",
-                    component="ChatHealthyMongoUtilities",
-                )
-
-            vault_key = doc.get("private_key_vault_key")
-            if not vault_key:
-                raise ChatHealthyException(
-                    mode="security_violation",
-                    message=f"Identity '{identity}' has no private_key_vault_key in registry",
-                    component="ChatHealthyMongoUtilities",
-                )
-
-            return vault_key
-
-        except ChatHealthyException:
-            raise
-        except Exception as exc:
-            raise ChatHealthyException(
-                mode="mongo_network_failure",
-                message=f"Failed to lookup identity '{identity}' in CertificateRegistry: {exc}",
-                component="ChatHealthyMongoUtilities",
-            ) from exc
-
-    def _verify_cert_subject_cn(self, client_cert_key_pem: str, expected_cn: str) -> None:
-        """Verify that the certificate's Subject CN matches expected_cn.
-
-        Args:
-            client_cert_key_pem: Client certificate+key PEM string.
-            expected_cn: Expected Common Name (CN) in certificate Subject.
-
-        Raises:
-            ChatHealthyException if CN doesn't match or cert is invalid.
-        """
-        try:
-            from cryptography import x509
-            from cryptography.hazmat.backends import default_backend
-
-            cert_only_pem = self._extract_certificate_from_pem(client_cert_key_pem)
-            cert_pem = cert_only_pem.encode("utf-8")
-            cert_obj = x509.load_pem_x509_certificate(cert_pem, default_backend())
-            subject = cert_obj.subject
-            cn_attr = subject.get_attributes_for_oid(x509.oid.NameOID.COMMON_NAME)
-
-            if not cn_attr:
-                raise ChatHealthyException(
-                    mode="security_violation",
-                    message=f"Certificate has no Common Name (CN) in Subject",
-                    component="ChatHealthyMongoUtilities",
-                )
-
-            cert_cn = cn_attr[0].value
-            if cert_cn != expected_cn:
-                raise ChatHealthyException(
-                    mode="security_violation",
-                    message=f"Certificate CN '{cert_cn}' does not match expected '{expected_cn}'",
-                    component="ChatHealthyMongoUtilities",
-                )
-
-        except ChatHealthyException:
-            raise
-        except Exception as exc:
-            raise ChatHealthyException(
-                mode="security_violation",
-                message=f"Failed to verify certificate CN: {exc}",
-                component="ChatHealthyMongoUtilities",
-            ) from exc
-
-    def _build_mtls_uri(
-        self,
-        cert_name: str,
-        client_cert_key_pem: str,
-        mongo_uri: str,
-        mongo_ca_cert_pem: str,
-    ) -> str:
-        """Build MongoDB URI with mTLS configuration.
-
-        Writes client cert+key and server CA cert to temp files, builds URI
-        with X.509 authMechanism and paths to both certs.
-
-        Args:
-            cert_name: Certificate name (for temp file naming).
-            client_cert_key_pem: Client cert+key PEM.
-            mongo_uri: Base MongoDB URI (without auth params).
-            mongo_ca_cert_pem: MongoDB server CA cert PEM.
-
-        Returns:
-            Complete MongoDB URI with X.509 parameters.
-        """
-        try:
-            temp_dir = tempfile.gettempdir()
-            client_cert_path = os.path.join(temp_dir, f"mongo_client_{cert_name}.pem")
-            ca_cert_path = os.path.join(temp_dir, f"mongo_ca_{cert_name}.pem")
-
-            # Write certs to temp files
-            with open(client_cert_path, "w") as f:
-                f.write(client_cert_key_pem)
-            if len(mongo_ca_cert_pem) > 200:
-                with open(ca_cert_path, "w") as f:
-                    f.write(mongo_ca_cert_pem)
-
-            # Return tuple: (base_uri, cert_path, ca_path) so caller can pass as kwargs
-            # This avoids embedding file paths in URI which may cause encoding issues
-            return (mongo_uri, client_cert_path, ca_cert_path)
-
-        except Exception as exc:
-            raise ChatHealthyException(
-                mode="security_violation",
-                message=f"Failed to build mTLS URI: {exc}",
-                component="ChatHealthyMongoUtilities",
-            ) from exc
-
-    def _create_mtls_client(self, base_uri: str, cert_path: str, ca_path: str) -> MongoClient:
-        """Create MongoClient with mTLS configuration.
-
-        Args:
-            base_uri: MongoDB URI without auth parameters.
-            cert_path: Path to client certificate+key PEM file.
-            ca_path: Path to server CA certificate PEM file.
-
-        Returns:
-            Authenticated MongoClient ready for queries.
-
-        Raises:
-            ChatHealthyException on connection failure.
-        """
-        try:
-            kwargs = {
-                "timeoutMS": TIMEOUT_MS,
-                "tlsCertificateKeyFile": cert_path,
-                "authMechanism": "MONGODB-X509",
-                "authSource": "$external",
-                "tlsInsecure": True,
-            }
-
-            if os.path.exists(ca_path):
-                with open(ca_path, "r") as f:
-                    ca_content = f.read()
-                if len(ca_content) > 200:
-                    kwargs["tlsCAFile"] = ca_path
-
-            appname = os.environ.get("CHATHEALTHY_SERVICE_NAME")
-            if appname:
-                kwargs["appname"] = appname
-
-            client = MongoClient(base_uri, **kwargs)
-            client.admin.command("ping")
-            return client
-
-        except ChatHealthyException:
-            raise
-        except Exception as exc:
-            raise ChatHealthyException(
-                mode="mongo_network_failure",
-                message=f"Failed to establish mTLS connection: {exc}",
-                component="ChatHealthyMongoUtilities",
-            ) from exc

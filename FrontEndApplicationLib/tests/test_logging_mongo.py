@@ -46,14 +46,6 @@ def test_mongo_logging_and_verify():
 
     set_mongo_log_identity("pipelineEditor")
 
-    # Debug: check what mongo-uri is in vault
-    try:
-        utilities = ChatHealthyMongoUtilities()
-        cert_key, mongo_uri, ca_cert = utilities._fetch_certs_and_uri("pipelineEditor")
-        print(f"DEBUG: mongo_uri from vault = {mongo_uri}")
-    except Exception as e:
-        print(f"DEBUG: Failed to fetch from vault: {e}")
-
     log = ChatHealthyLoggingService()
     test_id = str(uuid.uuid4())
     test_message = f"Test message: {test_id}"
@@ -64,7 +56,7 @@ def test_mongo_logging_and_verify():
     utilities = ChatHealthyMongoUtilities()
     conn = utilities.getConnection("pipelineEditor", "admin")
     db = conn["Pipelines"]
-    coll = db["Log_dev"]
+    coll = db["Log"]
 
     found = coll.find_one({"formatted": {"$regex": test_id}})
     assert found is not None, f"Message not found in database: {test_message}"

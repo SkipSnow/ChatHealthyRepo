@@ -43,7 +43,7 @@ from step_context import PipelineArgs, RunManifest, StepContext, StepTransition
 from step_spec import StepSpec
 from steps import get_runner
 from steps._partitions import county_partitions, state_partitions
-from pipeline_db import METADATA_DB
+from pipeline_db import PIPELINE_ADMIN_DB
 
 _log = ChatHealthyLoggingService()
 
@@ -188,7 +188,7 @@ class BasePipelineOrchestrator:
         # Atlas). ctx.mongo_client is the PIPELINE cluster (paused between
         # runs) and is not the right target for coordination writes.
         from pipeline_db import get_frontend_mongo  # noqa: PLC0415
-        wi_coll = get_frontend_mongo()[METADATA_DB]["pipeline.work_items"]
+        wi_coll = get_frontend_mongo()[PIPELINE_ADMIN_DB]["pipeline.work_items"]
 
         # 1. Enqueue work_items.
         args_snapshot = {

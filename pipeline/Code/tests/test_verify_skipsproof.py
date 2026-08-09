@@ -15,7 +15,7 @@ def test_verify_skipsproof_data():
     assert client, "Could not get pipeline MongoDB connection"
 
     try:
-        db = client["Pipelines"]
+        db = client["pipelineAdmin"]
         coll = db["pipeline.discrepancy_reports"]
 
         # Find skipsProof data

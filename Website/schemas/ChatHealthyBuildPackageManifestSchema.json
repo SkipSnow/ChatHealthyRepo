@@ -22,7 +22,7 @@
     "build_number": {
       "type": "integer",
       "minimum": 1,
-      "description": "System-wide build counter mint at build time, sourced from admin.Versions.latest.builds[env=dev].build on the front-end cluster (Rule-063 auto-increments on every non-deploy commit). v{build_number} names the package directory."
+      "description": "System-wide build counter mint at build time, sourced from admin.Versions.latest.builds[env=dev].build on the front-end cluster (see DeploymentArchitectureDesignAndMigrationPlanPhase_v14.docx section 2.1 build_chathealthy.py). v{build_number} names the package directory."
     },
     "build_sha": {
       "type": "string",

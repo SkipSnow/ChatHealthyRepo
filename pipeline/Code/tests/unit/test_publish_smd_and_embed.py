@@ -22,7 +22,7 @@ import pytest
 # All pipeline metadata lives in one database. This runbook ships to Azure
 # Automation standalone, so it carries the constant rather than importing
 # pipeline_db, which is not deployed alongside it.
-METADATA_DB = "Pipelines"
+PIPELINE_ADMIN_DB = "pipelineAdmin"
 
 
 
@@ -452,7 +452,7 @@ def test_publish_smd_and_embed_records_discrepancies_when_embed_fails(
     assert "SpecialtyMetaData_v_3" not in frontend["dev_PublicHealthData"].list_collection_names()
 
     # ONE discrepancy per un-embedded row, reason prefixed 'error_'.
-    disc = frontend[METADATA_DB]["pipeline.discrepancies"]
+    disc = frontend[PIPELINE_ADMIN_DB]["pipeline.discrepancies"]
     rows = list(disc.find({"reason": "error_specialty_embedding_failed"}))
     assert len(rows) == 2
     disc_codes = sorted(r["detail"]["code"] for r in rows)

@@ -52,7 +52,7 @@ import sys
 from chathealthy_frontend_lib.mongo_utilities import ChatHealthyMongoUtilities
 
 from blob_client import get_blob_service
-from pipeline_db import get_mongo, METADATA_DB
+from pipeline_db import get_mongo, PIPELINE_ADMIN_DB
 from pipeline_env import load_pipeline_env
 from provider_pipeline_orchestrator import ProviderPipelineOrchestrator
 from step_context import PipelineArgs
@@ -246,7 +246,7 @@ def main(argv: list[str] | None = None) -> int:
                     "pipelineEditor", "admin"
                 )
                 now = datetime.datetime.utcnow()
-                m[METADATA_DB]["pipeline.runs"].update_one(
+                m[PIPELINE_ADMIN_DB]["pipeline.runs"].update_one(
                     {"run_id": rid},
                     {"$set": {"controller_heartbeat_at": now}},
                 )
@@ -254,7 +254,7 @@ def main(argv: list[str] | None = None) -> int:
                 # the initial 10h TTL is not reaped by reservation_reaper.
                 # Reaper reads expiry_at (post-fix); Watchdog reads
                 # controller_heartbeat_at on the manifest.
-                m[METADATA_DB]["cluster_lifecycle"].update_one(
+                m[PIPELINE_ADMIN_DB]["cluster_lifecycle"].update_one(
                     {"_id": rid},
                     {"$set": {"expiry_at": now + datetime.timedelta(hours=_RENEWAL_HOURS)}},
                 )
@@ -299,6 +299,14 @@ def main(argv: list[str] | None = None) -> int:
         # 2026-08-03: "if we get a fatal error the controller must kill any
         # active workers". Prevents LLM/DB writes from continuing after the
         # run has already abended.
+        # Workers never declare a run fatal; they state what happened to their
+        # own work item and stop. The Controller reads those reports and is the
+        # one that calls it. Runs before the kill so the reason is recorded
+        # while the evidence is still there.
+        _fatal_on_worker_log_db_reports(
+            (manifest.run_id if manifest and manifest.run_id else None)
+            or os.environ.get("RUN_ID", "")
+        )
         if final_status != "succeeded":
             _kill_active_workers()
         run_id_for_quiesce = (
@@ -311,6 +319,45 @@ def main(argv: list[str] | None = None) -> int:
             _pause_pipeline_cluster()
             _fire_farewell_vm_delete()
     return exit_code
+
+
+def _fatal_on_worker_log_db_reports(run_id: str) -> None:
+    """Find Workers that died because the logging substrate refused to start,
+    and call it fatal. The Worker states the fact; this is where it becomes a
+    verdict. Never raises -- it runs in the Controller's finally, and its own
+    failure must not displace the outcome already being recorded.
+    """
+    if not run_id:
+        return
+    try:
+        from pipeline_fatal_recorder import record_fatal_discrepancy
+        wi = ChatHealthyMongoUtilities().getConnection("pipelineEditor", "admin")
+        rows = list(wi[PIPELINE_ADMIN_DB]["pipeline.work_items"].find(
+            {"run_id": run_id, "reason": {"$regex": "^log_db_fatal:"}},
+            {"step": 1, "reason": 1, "detail": 1},
+        ))
+        for row in rows:
+            record_fatal_discrepancy(
+                wi,
+                run_id=run_id,
+                step=str(row.get("step") or ""),
+                exc=ChatHealthyException(
+                    mode="worker_log_db_fatal",
+                    component="ControlRunner",
+                    message=(
+                        f"Worker step={row.get('step')!r} could not start its "
+                        f"logging substrate: {row.get('reason')}. "
+                        f"{row.get('detail', '')}"
+                    ),
+                ),
+            )
+        if rows:
+            _log.error(
+                "control_runner: %d worker(s) failed on log db; run is fatal",
+                len(rows),
+            )
+    except Exception:
+        pass
 
 
 def _kill_active_workers() -> None:
@@ -414,7 +461,7 @@ def _quiesce_mongo_state(run_id: str, final_status: str, *,
                    run_id, str(exc)[:500])
         return
     try:
-        mongo[METADATA_DB]["cluster_lifecycle"].delete_one({"_id": run_id})
+        mongo[PIPELINE_ADMIN_DB]["cluster_lifecycle"].delete_one({"_id": run_id})
         _log.info("quiesce: reservation cancelled run_id=%s", run_id)
     except Exception as exc:
         _log.error("quiesce: reservation cancel FAILED run_id=%s err=%s",
@@ -428,7 +475,7 @@ def _quiesce_mongo_state(run_id: str, final_status: str, *,
     pipeline_name = os.environ.get("PIPELINE_NAME", "")
     if pipeline_name:
         try:
-            r = mongo[METADATA_DB]["cluster_lifecycle"].delete_one({
+            r = mongo[PIPELINE_ADMIN_DB]["cluster_lifecycle"].delete_one({
                 "_id": f"pipeline_lock:{pipeline_name}",
                 "run_id": run_id,
             })
@@ -442,7 +489,7 @@ def _quiesce_mongo_state(run_id: str, final_status: str, *,
                 pipeline_name, run_id, str(exc)[:500],
             )
     try:
-        mongo[METADATA_DB]["pipeline.runs"].update_one(
+        mongo[PIPELINE_ADMIN_DB]["pipeline.runs"].update_one(
             {"run_id": run_id},
             {"$set": {
                 "status": final_status,
@@ -460,7 +507,7 @@ def _quiesce_mongo_state(run_id: str, final_status: str, *,
     # completion path.
     if final_status != "succeeded":
         try:
-            res = mongo[METADATA_DB]["pipeline.work_items"].update_many(
+            res = mongo[PIPELINE_ADMIN_DB]["pipeline.work_items"].update_many(
                 {"run_id": run_id,
                  "status": {"$nin": ["completed", "done", "failed"]}},
                 {"$set": {

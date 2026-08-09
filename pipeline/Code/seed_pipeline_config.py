@@ -17,7 +17,7 @@ sys.path.insert(0, os.path.join(repo_root, "pipeline", "Code"))
 
 from chathealthy_frontend_lib.logging_service import ChatHealthyLoggingService
 
-from pipeline_db import get_metadata_db, METADATA_DB
+from pipeline_db import get_metadata_db, PIPELINE_ADMIN_DB
 
 _log = ChatHealthyLoggingService()
 
@@ -44,7 +44,7 @@ def seed_config(env_prefix: str) -> None:
     )
     _log.info(
         "seeded %s.PipelineConfig from %s: matched=%s modified=%s upserted_id=%s",
-        METADATA_DB, env_prefix, result.matched_count,
+        PIPELINE_ADMIN_DB, env_prefix, result.matched_count,
         result.modified_count, result.upserted_id,
     )
 

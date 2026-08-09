@@ -1,14 +1,27 @@
-// ChatHealthyClaudeLogMgmt Windows Service
-// T005: Supervisor only. Starts Docker/Kafka, sidecar (PID 1), consumer (PID 2).
-//       Monitors both PIDs, restarts on death. Kills children on stop. No business logic.
-// T006: AUTO_START — runs on system boot.
-// BUG-LOG-002: Must kill child processes on stop/crash. No zombies.
-// v2.2 Part A — secret read from HKLM\SOFTWARE\ChatHealthy\Secrets and
-//       injected into the Python child's process environment block.
-//       Removes the BUG-012 machine-scope env var dependency.
+// Copyright (c) 2026 ChatHealthy.ai LLC. All rights reserved.
+// Licensed under the FindCare Evaluation License (FEL-1.0).
+//
+// Supervisor for the conversation-log pipeline.
+//
+// It supervises actors; it is not in the data path. No utterance passes
+// through it. If it dies, the writer still spools and the drain still ships --
+// only the alerting goes quiet.
+//
+// One job: keep the drain running.
+//
+// It does not read the spool, does not know a retention window, does not
+// sweep, does not talk to MongoDB, and raises no alarm -- it runs
+// as a service in Session 0 and cannot reach the operator's screen, so every
+// alarm it ever raised was invisible. Those rules live in Python:
+// conversation_log_sweep.py (retention, run by the drain on the first pass of
+// a new day) and conversation_log_alarm.py (telling the operator, invoked by
+// the writer, which runs in the operator's own session).
+//
+// There is no Kafka and no sidecar, and no connection string anywhere: the
+// drain authenticates with a certificate through the shared Mongo utility.
 
 using System.Diagnostics;
-using Microsoft.Win32;
+using System.Text.Json;
 
 namespace ChatHealthyLogService;
 
@@ -17,117 +30,71 @@ public class Worker(
     IHostApplicationLifetime lifetime
 ) : BackgroundService
 {
-    // Per BUG-002: project root is resolved from CHATHEALTHY_PROJECT_ROOT;
-    // no fallback. If the env var is not set, the supervisor logs critical
-    // and stops the host. Hardcoded absolute paths are forbidden.
+    // Project root comes from the environment; no fallback. A hardcoded
+    // absolute path is forbidden.
     private const string RepoRootEnvVar = "CHATHEALTHY_PROJECT_ROOT";
-    private const string SidecarScript = @"architecture\Conversation-logPipeline\conversation_log_producer.py";
-    private const string ConsumerScript = @"architecture\Conversation-logPipeline\conversation_log_consumer.py";
-    private const string DockerComposePath = @"architecture\Conversation-logPipeline\docker-compose.yml";
+    private const string DrainScript = @"architecture\Conversation-logPipeline\conversation_log_drain.py";
 
-    // v2.2 Part A — secret storage. The C# service runs as LocalSystem
-    // and reads the registry directly via Microsoft.Win32.Registry. The
-    // ACL on the key restricts read access to SYSTEM + Administrators.
-    private const string SecretRegistryPath = @"SOFTWARE\ChatHealthy\Secrets";
-    private const string SecretValueName = "MONGO_FRONTEND_connectionString";
-    private const int HealthCheckIntervalMs = 30_000;  // 30 seconds
-    private const int RestartDelayMs = 5_000;          // 5 seconds before restart
+    // Hard-coded, and identical to conversation_log_writer.py. One location,
+    // no environment to get wrong.
+    private const string SpoolDir = @"C:\tmp\ChatHealthySpool";
 
-    // v2.2 Part B 7.3 circuit breaker. If the same child has crashed
-    // CircuitBreakerCrashCount times within CircuitBreakerWindowMs the
-    // supervisor stops itself with a critical log naming the registry
-    // key. Crash-looping indicates a non-transient cause (credential
-    // drift, bad Python on disk, etc.) and silent restart-forever
-    // defeats the rotation-as-operational-response model.
-    // Window is sized against the supervisor's crash-loop cadence:
-    //   Mongo serverSelectionTimeoutMS = 5s
-    //   + HealthCheckIntervalMs = 30s
-    //   + RestartDelayMs = 5s
-    //   ≈ 40s per crash cycle.
-    // 5 minutes comfortably catches 3 cycles (~2 minutes) without
-    // tripping on a single transient blip.
+    // Our own configuration, shipped beside the binary. Deliberately NOT
+    // appsettings.json -- that file is the .NET host's own logging config and
+    // belongs to the framework. Mixing ours into it makes it unclear which
+    // settings are ours and which are Microsoft's.
+    private const string ServiceConfigFile = "chathealthy-log-service.json";
+
+    private const int HealthCheckIntervalMs = 12_000;
+    private const int RestartDelayMs = 5_000;
+
+
+
+
     private const int CircuitBreakerCrashCount = 3;
     private const int CircuitBreakerWindowMs = 300_000;
-    private readonly List<DateTime> _sidecarCrashes = [];
-    private readonly List<DateTime> _consumerCrashes = [];
+    private readonly List<DateTime> _drainCrashes = [];
 
     private string _repoRoot = "";
+    private string _drainLogLevel = "INFO";
+    private string _drainLogDirectory = "";
     private string _pythonExe = "";
-    private string _mongoConnectionString = "";
-    private Process? _sidecarProcess;
-    private Process? _consumerProcess;
+    private Process? _drainProcess;
 
     protected override async Task ExecuteAsync(CancellationToken stoppingToken)
     {
-        // Bulletproof prerequisite validation (BUG-002): env var present,
-        // directory exists, venv python exists. Each failure logs critical
-        // and stops the host — no silent fallback.
         _repoRoot = Environment.GetEnvironmentVariable(RepoRootEnvVar) ?? "";
-        if (string.IsNullOrWhiteSpace(_repoRoot))
+        if (string.IsNullOrWhiteSpace(_repoRoot) || !Directory.Exists(_repoRoot))
         {
             logger.LogCritical(
-                "{EnvVar} environment variable is not set. Set it at the " +
-                "Windows Service scope (value: absolute path to the project " +
-                "root) and restart the service. Supervisor cannot start " +
-                "without it.", RepoRootEnvVar);
+                "{EnvVar} is not set to an existing directory. The supervisor " +
+                "cannot locate the drain script and is stopping.", RepoRootEnvVar);
             lifetime.StopApplication();
             return;
         }
-        if (!Directory.Exists(_repoRoot))
-        {
-            logger.LogCritical(
-                "{EnvVar} points to {Path} which does not exist. Fix the " +
-                "env var and restart.", RepoRootEnvVar, _repoRoot);
-            lifetime.StopApplication();
-            return;
-        }
+
         _pythonExe = Path.Combine(_repoRoot, ".venv", "Scripts", "python.exe");
         if (!File.Exists(_pythonExe))
         {
             logger.LogCritical(
-                "Expected Python executable at {Path} does not exist. The " +
-                "project venv must be created before the supervisor can " +
-                "spawn workers.", _pythonExe);
+                "No interpreter at {PythonExe}. The supervisor cannot spawn " +
+                "the drain and is stopping.", _pythonExe);
             lifetime.StopApplication();
             return;
         }
+
+        _drainLogLevel = ReadDrainSetting("logLevel", "INFO");
+        _drainLogDirectory = ResolveDrainLogDirectory();
+        logger.LogInformation("Drain log level {Level}, log file in {Dir}",
+                              _drainLogLevel, _drainLogDirectory);
+
+        Directory.CreateDirectory(SpoolDir);
         logger.LogInformation(
-            "Supervisor starting: RepoRoot={RepoRoot}, PythonExe={PythonExe}",
-            _repoRoot, _pythonExe);
+            "Supervisor started. Spool {SpoolDir}, interval {Interval}ms.",
+            SpoolDir, HealthCheckIntervalMs);
 
-        // v2.2 Part A 5.2 — read the secret from HKLM once at startup.
-        // Critical-fail if the key is missing; without it the Python
-        // children would fall back to whatever's in their inherited env,
-        // which (post Part A migration) is empty for this var.
-        _mongoConnectionString = ReadSecretFromRegistry();
-        if (string.IsNullOrWhiteSpace(_mongoConnectionString))
-        {
-            logger.LogCritical(
-                @"Missing HKLM\{Path}\{Value}. The Part A migration must " +
-                "create this key with the connection string as REG_SZ; " +
-                "the C# service cannot supply the MongoDB credential " +
-                "without it.",
-                SecretRegistryPath, SecretValueName);
-            lifetime.StopApplication();
-            return;
-        }
-        logger.LogInformation(
-            "Secret read from registry OK (length={Length})",
-            _mongoConnectionString.Length);
+        _drainProcess = StartDrain();
 
-        // Step 1: Ensure Kafka is running in Docker
-        await EnsureKafkaRunning(stoppingToken);
-        if (stoppingToken.IsCancellationRequested) return;
-
-        // Wait for Kafka to be ready (health check)
-        logger.LogInformation("Waiting for Kafka broker to be ready...");
-        await Task.Delay(10_000, stoppingToken);
-
-        // Step 2: Start sidecar (PID 1) and consumer (PID 2)
-        _sidecarProcess = StartPython(SidecarScript, "Sidecar");
-        _consumerProcess = StartPython(ConsumerScript, "Consumer");
-
-        // Step 3: Monitor loop — restart any dead child
         while (!stoppingToken.IsCancellationRequested)
         {
             try
@@ -139,207 +106,144 @@ public class Worker(
                 break;
             }
 
-            // Check and restart sidecar
-            if (_sidecarProcess == null || _sidecarProcess.HasExited)
+            if (_drainProcess is null || _drainProcess.HasExited)
             {
-                if (TripCircuitBreaker(_sidecarCrashes, "Sidecar"))
-                    return;
-                logger.LogWarning("Sidecar (PID 1) died — restarting in {Delay}ms", RestartDelayMs);
+                if (TripCircuitBreaker(_drainCrashes, "Drain")) return;
+                logger.LogWarning("Drain died — restarting in {Delay}ms", RestartDelayMs);
                 await Task.Delay(RestartDelayMs, stoppingToken);
-                _sidecarProcess = StartPython(SidecarScript, "Sidecar");
+                _drainProcess = StartDrain();
             }
+        }
 
-            // Check and restart consumer
-            if (_consumerProcess == null || _consumerProcess.HasExited)
+        KillDrain();
+    }
+
+    /// <summary>
+    /// The drain's log level, from our own config file beside the binary.
+    /// Absent or unreadable means INFO -- a missing config must not make a
+    /// service noisier or quieter than the operator expects.
+    /// </summary>
+    private string ReadDrainSetting(string name, string fallback)
+    {
+        var path = Path.Combine(AppContext.BaseDirectory, ServiceConfigFile);
+        try
+        {
+            using var doc = JsonDocument.Parse(File.ReadAllText(path));
+            if (doc.RootElement.TryGetProperty("drain", out var drain) &&
+                drain.TryGetProperty(name, out var element))
             {
-                if (TripCircuitBreaker(_consumerCrashes, "Consumer"))
-                    return;
-                logger.LogWarning("Consumer (PID 2) died — restarting in {Delay}ms", RestartDelayMs);
-                await Task.Delay(RestartDelayMs, stoppingToken);
-                _consumerProcess = StartPython(ConsumerScript, "Consumer");
+                var value = element.GetString();
+                if (!string.IsNullOrWhiteSpace(value)) return value!;
             }
+        }
+        catch (Exception ex)
+        {
+            logger.LogWarning(ex, "Could not read {File}; {Name} stays at {Fallback}",
+                              path, name, fallback);
+        }
+        return fallback;
+    }
+
+    /// <summary>
+    /// Where the drain writes its log, resolved against the service's own
+    /// directory. "." puts the log beside the binary and beside the config
+    /// that set it, so both are in one place in the deployed directory.
+    /// </summary>
+    private string ResolveDrainLogDirectory()
+    {
+        var configured = ReadDrainSetting("logDirectory", ".");
+        var resolved = Path.GetFullPath(Path.Combine(AppContext.BaseDirectory, configured));
+        Directory.CreateDirectory(resolved);
+        return resolved;
+    }
+
+    private Process? StartDrain()
+    {
+        var script = Path.Combine(_repoRoot, DrainScript);
+        if (!File.Exists(script))
+        {
+            logger.LogCritical("Drain script not found at {Script}", script);
+            return null;
+        }
+        var psi = new ProcessStartInfo
+        {
+            FileName = _pythonExe,
+            Arguments = $"\"{script}\"",
+            WorkingDirectory = _repoRoot,
+            UseShellExecute = false,
+            CreateNoWindow = true,
+            RedirectStandardError = true,
+        };
+        // Explicit, not inherited. The child's log level is a deployed fact
+        // from our config file, so it does not depend on what happens to be
+        // set in the service account's environment.
+        psi.Environment["CH_LOG_LEVEL"] = _drainLogLevel;
+        psi.Environment["CH_LOG_DESTINATION"] = _drainLogDirectory;
+        try
+        {
+            var proc = Process.Start(psi);
+            // Its stderr is the only account of why it died. Redirecting and
+            // not reading it is how a ModuleNotFoundError became three silent
+            // crashes and a tripped breaker.
+            if (proc is not null)
+            {
+                proc.ErrorDataReceived += (_, e) =>
+                {
+                    if (!string.IsNullOrWhiteSpace(e.Data))
+                        logger.LogError("drain: {Line}", e.Data);
+                };
+                proc.BeginErrorReadLine();
+            }
+            logger.LogInformation("Drain started (PID {Pid})", proc?.Id);
+            return proc;
+        }
+        catch (Exception ex)
+        {
+            logger.LogError(ex, "Failed to start the drain");
+            return null;
+        }
+    }
+
+    private void KillDrain()
+    {
+        try
+        {
+            if (_drainProcess is { HasExited: false })
+            {
+                var pid = _drainProcess.Id;
+                _drainProcess.Kill(entireProcessTree: true);
+                // The supervisor logs the stop, because the drain cannot. This
+                // is a hard kill, so no finally block runs in the child and any
+                // stop line it wanted to write is never reached.
+                logger.LogInformation("Drain stopped (PID {Pid})", pid);
+            }
+        }
+        catch (Exception ex)
+        {
+            logger.LogWarning(ex, "Could not stop the drain process");
         }
     }
 
     /// <summary>
-    /// v2.2 Part B 7.3 — record a crash and decide whether to halt.
-    /// Returns true when the same child has crashed CircuitBreakerCrashCount
-    /// times within CircuitBreakerWindowMs; the caller must NOT restart and
-    /// must let ExecuteAsync unwind (lifetime.StopApplication is invoked).
+    /// Record a crash and decide whether to halt. Crash-looping means a
+    /// non-transient cause -- a missing certificate, a bad interpreter -- and
+    /// silent restart-forever hides it.
     /// </summary>
     private bool TripCircuitBreaker(List<DateTime> crashes, string name)
     {
         var now = DateTime.UtcNow;
-        var cutoff = now.AddMilliseconds(-CircuitBreakerWindowMs);
-        crashes.RemoveAll(t => t < cutoff);
+        crashes.RemoveAll(t => t < now.AddMilliseconds(-CircuitBreakerWindowMs));
         crashes.Add(now);
         if (crashes.Count >= CircuitBreakerCrashCount)
         {
             logger.LogCritical(
-                "{Name} crash-looping ({Count} crashes in {WindowMs}ms) — " +
-                "credential drift suspected; check " +
-                @"HKLM\SOFTWARE\ChatHealthy\Secrets" +
-                " and the Application Event Log (source " +
-                "ChatHealthyLogService.Consumer). Stopping the service " +
-                "instead of silent infinite restart.",
+                "{Name} crash-looping ({Count} crashes in {WindowMs}ms). Most " +
+                "likely its certificate cannot be read from the vault. " +
+                "Stopping instead of restarting forever.",
                 name, crashes.Count, CircuitBreakerWindowMs);
             lifetime.StopApplication();
             return true;
         }
         return false;
-    }
-
-    private async Task EnsureKafkaRunning(CancellationToken ct)
-    {
-        // Check if Kafka container is running
-        var checkPsi = new ProcessStartInfo
-        {
-            FileName = "docker",
-            Arguments = "ps --filter name=chathealthy-kafka --format {{.Status}}",
-            UseShellExecute = false,
-            RedirectStandardOutput = true,
-            CreateNoWindow = true,
-            WorkingDirectory = _repoRoot,
-        };
-
-        try
-        {
-            using var checkProcess = Process.Start(checkPsi);
-            if (checkProcess == null) throw new Exception("Failed to run docker ps");
-
-            var output = await checkProcess.StandardOutput.ReadToEndAsync(ct);
-            await checkProcess.WaitForExitAsync(ct);
-
-            if (!string.IsNullOrWhiteSpace(output) && output.Contains("Up"))
-            {
-                logger.LogInformation("Kafka container already running");
-                return;
-            }
-        }
-        catch (Exception ex)
-        {
-            logger.LogWarning(ex, "Failed to check Kafka container status");
-        }
-
-        // Start Kafka via docker compose
-        logger.LogInformation("Starting Kafka via docker compose...");
-        var composePsi = new ProcessStartInfo
-        {
-            FileName = "docker",
-            Arguments = $"compose -f \"{DockerComposePath}\" up -d",
-            UseShellExecute = false,
-            RedirectStandardOutput = true,
-            RedirectStandardError = true,
-            CreateNoWindow = true,
-            WorkingDirectory = _repoRoot,
-        };
-
-        try
-        {
-            using var composeProcess = Process.Start(composePsi);
-            if (composeProcess == null) throw new Exception("Failed to run docker compose");
-
-            var stdout = await composeProcess.StandardOutput.ReadToEndAsync(ct);
-            var stderr = await composeProcess.StandardError.ReadToEndAsync(ct);
-            await composeProcess.WaitForExitAsync(ct);
-
-            if (composeProcess.ExitCode == 0)
-                logger.LogInformation("Kafka started: {Output}", stdout.Trim());
-            else
-                logger.LogError("Kafka failed to start: {Error}", stderr.Trim());
-        }
-        catch (Exception ex)
-        {
-            logger.LogError(ex, "Failed to start Kafka");
-        }
-    }
-
-    /// <summary>
-    /// v2.2 Part A 5.2 — read the MongoDB connection string from
-    /// HKLM\SOFTWARE\ChatHealthy\Secrets\MONGO_FRONTEND_connectionString.
-    /// Returns empty string if missing; caller decides how to handle.
-    /// The ACL on the key (set during Part A migration) restricts read
-    /// access to SYSTEM + Administrators only.
-    /// </summary>
-    private string ReadSecretFromRegistry()
-    {
-        try
-        {
-            using var key = Registry.LocalMachine.OpenSubKey(SecretRegistryPath, writable: false);
-            if (key == null) return "";
-            return key.GetValue(SecretValueName) as string ?? "";
-        }
-        catch (Exception ex)
-        {
-            logger.LogError(ex,
-                @"Failed reading HKLM\{Path}\{Value}",
-                SecretRegistryPath, SecretValueName);
-            return "";
-        }
-    }
-
-    private Process? StartPython(string scriptRelPath, string name)
-    {
-        var fullPath = Path.Combine(_repoRoot, scriptRelPath);
-        var psi = new ProcessStartInfo
-        {
-            FileName = _pythonExe,
-            Arguments = $"\"{fullPath}\"",
-            UseShellExecute = false,
-            RedirectStandardOutput = false,
-            RedirectStandardError = false,
-            CreateNoWindow = true,
-            WorkingDirectory = _repoRoot,
-        };
-        // v2.2 Part A 5.3 — inject the secret into the child process's
-        // environment block. UseShellExecute=false makes .NET pre-
-        // populate psi.EnvironmentVariables with the parent's current
-        // env, so PATH / CHATHEALTHY_PROJECT_ROOT / everything else are
-        // preserved. We add ONLY MONGO_FRONTEND_connectionString. The
-        // value lives in the child's process memory only; no machine-
-        // scope or user-scope env var exists for it.
-        psi.EnvironmentVariables[SecretValueName] = _mongoConnectionString;
-
-        var process = Process.Start(psi);
-        if (process == null)
-        {
-            logger.LogError("Failed to start {Name}: {Script}", name, scriptRelPath);
-            return null;
-        }
-
-        logger.LogInformation("{Name} started (PID {Pid}): {Script}", name, process.Id, scriptRelPath);
-        return process;
-    }
-
-    public override async Task StopAsync(CancellationToken cancellationToken)
-    {
-        logger.LogInformation("StopAsync — killing all child processes");
-        KillChild(ref _sidecarProcess, "Sidecar");
-        KillChild(ref _consumerProcess, "Consumer");
-        await base.StopAsync(cancellationToken);
-    }
-
-    public override void Dispose()
-    {
-        KillChild(ref _sidecarProcess, "Sidecar");
-        KillChild(ref _consumerProcess, "Consumer");
-        _sidecarProcess?.Dispose();
-        _consumerProcess?.Dispose();
-        base.Dispose();
-    }
-
-    private void KillChild(ref Process? process, string name)
-    {
-        if (process == null || process.HasExited)
-            return;
-        try
-        {
-            process.Kill(entireProcessTree: true);
-            logger.LogInformation("{Name} killed (PID {Pid})", name, process.Id);
-        }
-        catch (Exception ex)
-        {
-            logger.LogWarning(ex, "Failed to kill {Name} (PID {Pid})", name, process.Id);
-        }
     }
 }

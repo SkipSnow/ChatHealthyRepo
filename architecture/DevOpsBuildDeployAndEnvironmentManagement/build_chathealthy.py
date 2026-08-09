@@ -58,6 +58,12 @@ VALID_ENVS = ("local", "dev", "qa", "prod")
 _ENV_BRANCH = {"local": "dev", "dev": "dev", "qa": "qa", "prod": "main"}
 
 
+# The build counter. Not admin: Atlas forbids writes there through a
+# custom role, so a counter in admin can never be bumped by an identity
+# we are able to define.
+VERSIONS_DB = "pipelineAdmin"
+VERSIONS_COLLECTION = "Versions"
+
 def _materialize_env_file(env: str, canonical_repo: Path, build_dir: Path) -> Path:
     """Write the .env this build/deploy will use to <build_dir>/.env,
     then return that path.
@@ -189,29 +195,36 @@ def _bump_build_counter(env: str) -> int:
     build = prior_build + 1 and git_number = current HEAD SHA. Returns
     the new build number. --env local does not call this."""
     from dotenv import load_dotenv
-    from pymongo import MongoClient
 
     repo_root = _find_repo_root(Path(__file__))
     # Canonical env source per operator directive 2026-08-04.
     build_env = repo_root / "build" / ".env"
     working_tree_env = repo_root / ".env"
+    # Both, not the first that exists: build/.env is a snapshot from an older
+    # build and can be missing keys the working tree has. load_dotenv does not
+    # override what is already set, so the earlier file still wins per key.
+    # build/.env is a snapshot from an older build and can carry values that
+    # have since been corrected -- on 2026-08-08 it still held a dead Azure
+    # tenant. The working tree is authoritative, so it loads last and wins.
     for candidate in (build_env, working_tree_env):
         if candidate.is_file():
-            load_dotenv(candidate)
-            break
-    conn = os.getenv("MONGO_FRONTEND_connectionString")
-    if not conn:
-        sys.exit(
-            "ERROR: MONGO_FRONTEND_connectionString not found in "
-            f"{build_env} or {working_tree_env}."
-        )
-    coll = MongoClient(conn, serverSelectionTimeoutMS=10000)["admin"]["Versions"]
+            load_dotenv(candidate, override=True)
+    # DevOpsUser, not the application's connection string: bumping the build
+    # counter is a devops act. And pipelineAdmin, not admin: Atlas refuses
+    # writes to admin through any custom role.
+    # The shared library is not pip-installed in the workstation venv; every
+    # repo script reaches it by path.
+    sys.path.insert(0, str(repo_root / "FrontEndApplicationLib" / "src"))
+    from chathealthy_frontend_lib.mongo_utilities import ChatHealthyMongoUtilities
+    coll = (ChatHealthyMongoUtilities()
+            .getConnection("DevOpsUser", "admin")[VERSIONS_DB][VERSIONS_COLLECTION])
     latest = coll.find_one(sort=[("from", -1)])
     if latest is None:
-        sys.exit("ERROR: admin.Versions has no records.")
+        sys.exit(f"ERROR: {VERSIONS_DB}.{VERSIONS_COLLECTION} has no records.")
     prior = latest.get("build")
     if prior is None:
-        sys.exit("ERROR: admin.Versions latest record has no 'build' field.")
+        sys.exit(f"ERROR: {VERSIONS_DB}.{VERSIONS_COLLECTION} latest record "
+                 "has no 'build' field.")
     new_build = int(prior) + 1
     git_sha = subprocess.run(
         ["git", "rev-parse", "--short", "HEAD"],
@@ -224,7 +237,7 @@ def _bump_build_counter(env: str) -> int:
         "from": datetime.now(timezone.utc).isoformat(),
     }
     coll.insert_one(new_doc)
-    _step(f"admin.Versions bumped: build {prior} -> {new_build}")
+    _step(f"{VERSIONS_DB}.{VERSIONS_COLLECTION} bumped: build {prior} -> {new_build}")
     return new_build
 
 
@@ -383,7 +396,7 @@ def _build_body(args, repo_root: Path, canonical_repo: Path, canonical_build_dir
 
     if args.env == "local":
         build_n = _read_dev_build_number()
-        _step(f"build_number={build_n} (read from admin.Versions; --env local does not bump)")
+        _step(f"build_number={build_n} (read from pipelineAdmin.Versions; --env local does not bump)")
     else:
         build_n = _bump_build_counter(args.env)
 

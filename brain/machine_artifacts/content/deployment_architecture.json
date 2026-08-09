@@ -374,7 +374,7 @@
           "source_location": "Website/schemas/ChatHealthyBuildPackageManifestSchema.json",
           "handler_type": "json",
           "disposition": "referenced",
-          "content_hash": "adc9b18a2f9fdf562cce4ebd1afe597a7cea1c7f2333c5e1ed9c99e486c0b18f",
+          "content_hash": "7ff4632fe55b6044e79a327f25d4e20f41b739b9e71e67cd7214e8bd8b361c74",
           "package": "json_schemas"
         },
         {
@@ -607,7 +607,7 @@
           "source_location": "FrontEndApplicationLib/pyproject.toml",
           "handler_type": "static_asset",
           "disposition": "referenced",
-          "content_hash": "7c634e1b53d75861f1f9349426b8b295e65be491d6c37975e77be2b0f8d6f662",
+          "content_hash": "3469e4b5317ebeb2d05b1c7a30b07c03e2fd676f1a63d5d1c1f0518adc59d0d4",
           "package": "default"
         },
         {
@@ -687,7 +687,7 @@
           "source_location": "FrontEndApplicationLib/src/chathealthy_frontend_lib/mongo_utilities.py",
           "handler_type": "python_source",
           "disposition": "referenced",
-          "content_hash": "7550828c6f8c3bf8bb01bab1105757df2523c098c3accb633e9564e92029fc52",
+          "content_hash": "ddb5ceaa60d667539e4586c98f6e6bd873168a18fa6084f7d805548ca3fa205e",
           "package": "default"
         },
         {
@@ -703,7 +703,7 @@
           "source_location": "FrontEndApplicationLib/src/chathealthy_frontend_lib/runtime_data_collections.py",
           "handler_type": "python_source",
           "disposition": "referenced",
-          "content_hash": "20cb5b14b432c48527718e35f20ff1c3fe846bdbf216bf881c21d8556b4c5940",
+          "content_hash": "e5622be04abedc419bfab33b72224c321f1b515db125f1dfe54c241572c6ea76",
           "package": "default"
         },
         {
@@ -816,7 +816,7 @@
           "source_location": "evaluateCare/Code/app.py",
           "handler_type": "python_source",
           "disposition": "referenced",
-          "content_hash": "e24c380ed90d5fbea3701e781069bb997f6386c9986903be0d10f362c48eea26",
+          "content_hash": "5674bbe22f4dfb5ede90a1aa0c5983afe9154deb9798075b3bcc6df737411b8f",
           "package": "default"
         },
         {
@@ -848,7 +848,7 @@
           "source_location": "evaluateCare/Code/healthcheck/health_endpoint.py",
           "handler_type": "python_source",
           "disposition": "referenced",
-          "content_hash": "61443eb0e5cc9386ad3456186074b45c1b0daf8e69e6a87703f664debf4af4eb",
+          "content_hash": "14c3385e2f32d6a99a93399befeb66c42d6760c72ce730ee3f608c5b1c607b25",
           "package": "default"
         },
         {
@@ -1000,7 +1000,7 @@
           "source_location": "Code/ConversationalUX/FindCareChat/backend/app.py",
           "handler_type": "python_source",
           "disposition": "referenced",
-          "content_hash": "c177fb6146d69678af647d9199fa68a02dd652a702e81bc937c1e5ada4d8a424",
+          "content_hash": "25d2d9e88f44904b86ee4b7bcf539fe053e72447dac3acc28e3b0d7eb6c30ad3",
           "package": "default"
         },
         {
@@ -1256,7 +1256,7 @@
           "source_location": "Code/ConversationalUX/FindCareChat/backend/infrastructure/embeddings/embedding_client.py",
           "handler_type": "python_source",
           "disposition": "referenced",
-          "content_hash": "b70f170f0f53997dc1508dc9920ad5f21ad9a12b2ede3d572641e91a2e2c650e",
+          "content_hash": "9669b8ecfa5e9b996a51867e98ba3c732e62bbd51b0e815414fdf5af83f24077",
           "package": "default"
         },
         {
@@ -1736,7 +1736,7 @@
           "source_location": "Code/Shared/prompt_system_maker.py",
           "handler_type": "python_source",
           "disposition": "referenced",
-          "content_hash": "a2cc77fa42c7777e0d6e54d99f09dc0fc9610da573aaa81969c9c47c58c35985",
+          "content_hash": "f107459f351f09c04df4924c2e2a95621ddf7370309e4ca0defc140f0887200f",
           "package": "default"
         },
         {
@@ -2005,7 +2005,7 @@
           "source_location": "FrontEndApplicationLib/pyproject.toml",
           "handler_type": "static_asset",
           "disposition": "referenced",
-          "content_hash": "7c634e1b53d75861f1f9349426b8b295e65be491d6c37975e77be2b0f8d6f662",
+          "content_hash": "3469e4b5317ebeb2d05b1c7a30b07c03e2fd676f1a63d5d1c1f0518adc59d0d4",
           "package": "default"
         },
         {
@@ -2085,7 +2085,7 @@
           "source_location": "FrontEndApplicationLib/src/chathealthy_frontend_lib/mongo_utilities.py",
           "handler_type": "python_source",
           "disposition": "referenced",
-          "content_hash": "7550828c6f8c3bf8bb01bab1105757df2523c098c3accb633e9564e92029fc52",
+          "content_hash": "ddb5ceaa60d667539e4586c98f6e6bd873168a18fa6084f7d805548ca3fa205e",
           "package": "default"
         },
         {
@@ -2101,7 +2101,7 @@
           "source_location": "FrontEndApplicationLib/src/chathealthy_frontend_lib/runtime_data_collections.py",
           "handler_type": "python_source",
           "disposition": "referenced",
-          "content_hash": "20cb5b14b432c48527718e35f20ff1c3fe846bdbf216bf881c21d8556b4c5940",
+          "content_hash": "e5622be04abedc419bfab33b72224c321f1b515db125f1dfe54c241572c6ea76",
           "package": "default"
         },
         {
@@ -2468,7 +2468,7 @@
           "source_location": "FrontEndApplicationLib/pyproject.toml",
           "handler_type": "static_asset",
           "disposition": "referenced",
-          "content_hash": "7c634e1b53d75861f1f9349426b8b295e65be491d6c37975e77be2b0f8d6f662",
+          "content_hash": "3469e4b5317ebeb2d05b1c7a30b07c03e2fd676f1a63d5d1c1f0518adc59d0d4",
           "package": "default"
         },
         {
@@ -2548,7 +2548,7 @@
           "source_location": "FrontEndApplicationLib/src/chathealthy_frontend_lib/mongo_utilities.py",
           "handler_type": "python_source",
           "disposition": "referenced",
-          "content_hash": "7550828c6f8c3bf8bb01bab1105757df2523c098c3accb633e9564e92029fc52",
+          "content_hash": "ddb5ceaa60d667539e4586c98f6e6bd873168a18fa6084f7d805548ca3fa205e",
           "package": "default"
         },
         {
@@ -2564,7 +2564,7 @@
           "source_location": "FrontEndApplicationLib/src/chathealthy_frontend_lib/runtime_data_collections.py",
           "handler_type": "python_source",
           "disposition": "referenced",
-          "content_hash": "20cb5b14b432c48527718e35f20ff1c3fe846bdbf216bf881c21d8556b4c5940",
+          "content_hash": "e5622be04abedc419bfab33b72224c321f1b515db125f1dfe54c241572c6ea76",
           "package": "default"
         },
         {
@@ -2628,7 +2628,7 @@
           "source_location": "sharedServices/Code/AuthorizationsAndAuthentications/authorizations_and_authentications_tool.py",
           "handler_type": "python_source",
           "disposition": "referenced",
-          "content_hash": "482b615e65ea5ed630ff07a648aa95a75ad73a0ad8129e9f478ffb8d577afc4e",
+          "content_hash": "51e85365a76402c70ebc870e1a0036c68ddb2803062f07679dbaf13833f5f1fb",
           "package": "default"
         },
         {
@@ -2897,7 +2897,7 @@
           "source_location": "sharedServices/Code/app.py",
           "handler_type": "python_source",
           "disposition": "referenced",
-          "content_hash": "e189c2d05480f9345997f58a3c855a75988177df2d2d834ba18869d136a52c1b",
+          "content_hash": "ad7f89ab31fd746f625c876051c713cc72fd50935424bcc702647cfa5cbd3a79",
           "package": "default"
         },
         {
@@ -2921,7 +2921,7 @@
           "source_location": "sharedServices/Code/healthcheck/health_endpoint.py",
           "handler_type": "python_source",
           "disposition": "referenced",
-          "content_hash": "ef2a97609ba1f831b71edd4b0b66695afe7de3edbe4e065e09d4e82a70829dd6",
+          "content_hash": "d01e4d5b835988f72e817bbc4562401518e36ae1ea6dcfb1eac9a145a04161ab",
           "package": "default"
         },
         {
@@ -3076,7 +3076,7 @@
           "source_location": "Code/ConversationalUX/FindCareChat/backend/app.py",
           "handler_type": "python_source",
           "disposition": "referenced",
-          "content_hash": "c177fb6146d69678af647d9199fa68a02dd652a702e81bc937c1e5ada4d8a424",
+          "content_hash": "25d2d9e88f44904b86ee4b7bcf539fe053e72447dac3acc28e3b0d7eb6c30ad3",
           "package": "default"
         },
         {
@@ -3332,7 +3332,7 @@
           "source_location": "Code/ConversationalUX/FindCareChat/backend/infrastructure/embeddings/embedding_client.py",
           "handler_type": "python_source",
           "disposition": "referenced",
-          "content_hash": "b70f170f0f53997dc1508dc9920ad5f21ad9a12b2ede3d572641e91a2e2c650e",
+          "content_hash": "9669b8ecfa5e9b996a51867e98ba3c732e62bbd51b0e815414fdf5af83f24077",
           "package": "default"
         },
         {
@@ -3812,7 +3812,7 @@
           "source_location": "Code/Shared/prompt_system_maker.py",
           "handler_type": "python_source",
           "disposition": "referenced",
-          "content_hash": "a2cc77fa42c7777e0d6e54d99f09dc0fc9610da573aaa81969c9c47c58c35985",
+          "content_hash": "f107459f351f09c04df4924c2e2a95621ddf7370309e4ca0defc140f0887200f",
           "package": "default"
         },
         {
@@ -4081,7 +4081,7 @@
           "source_location": "FrontEndApplicationLib/pyproject.toml",
           "handler_type": "static_asset",
           "disposition": "referenced",
-          "content_hash": "7c634e1b53d75861f1f9349426b8b295e65be491d6c37975e77be2b0f8d6f662",
+          "content_hash": "3469e4b5317ebeb2d05b1c7a30b07c03e2fd676f1a63d5d1c1f0518adc59d0d4",
           "package": "default"
         },
         {
@@ -4161,7 +4161,7 @@
           "source_location": "FrontEndApplicationLib/src/chathealthy_frontend_lib/mongo_utilities.py",
           "handler_type": "python_source",
           "disposition": "referenced",
-          "content_hash": "7550828c6f8c3bf8bb01bab1105757df2523c098c3accb633e9564e92029fc52",
+          "content_hash": "ddb5ceaa60d667539e4586c98f6e6bd873168a18fa6084f7d805548ca3fa205e",
           "package": "default"
         },
         {
@@ -4177,7 +4177,7 @@
           "source_location": "FrontEndApplicationLib/src/chathealthy_frontend_lib/runtime_data_collections.py",
           "handler_type": "python_source",
           "disposition": "referenced",
-          "content_hash": "20cb5b14b432c48527718e35f20ff1c3fe846bdbf216bf881c21d8556b4c5940",
+          "content_hash": "e5622be04abedc419bfab33b72224c321f1b515db125f1dfe54c241572c6ea76",
           "package": "default"
         },
         {
@@ -4209,7 +4209,7 @@
           "source_location": "architecture/DevOpsBuildDeployAndEnvironmentManagement/find_care_smoke_test.py",
           "handler_type": "python_test",
           "disposition": "referenced",
-          "content_hash": "e73a9ec5a77287b7978922f16ed4f35b9beb2b6d65dbdf397f4a30d09669f5fd",
+          "content_hash": "c49368f8036298a985e551c8269f99855bf2104d3b52e77b41eabd9bdc0588b2",
           "package": "default"
         },
         {
@@ -4446,7 +4446,7 @@
           "source_location": "FrontEndApplicationLib/pyproject.toml",
           "handler_type": "static_asset",
           "disposition": "referenced",
-          "content_hash": "7c634e1b53d75861f1f9349426b8b295e65be491d6c37975e77be2b0f8d6f662",
+          "content_hash": "3469e4b5317ebeb2d05b1c7a30b07c03e2fd676f1a63d5d1c1f0518adc59d0d4",
           "package": "default"
         },
         {
@@ -4526,7 +4526,7 @@
           "source_location": "FrontEndApplicationLib/src/chathealthy_frontend_lib/mongo_utilities.py",
           "handler_type": "python_source",
           "disposition": "referenced",
-          "content_hash": "7550828c6f8c3bf8bb01bab1105757df2523c098c3accb633e9564e92029fc52",
+          "content_hash": "ddb5ceaa60d667539e4586c98f6e6bd873168a18fa6084f7d805548ca3fa205e",
           "package": "default"
         },
         {
@@ -4542,7 +4542,7 @@
           "source_location": "FrontEndApplicationLib/src/chathealthy_frontend_lib/runtime_data_collections.py",
           "handler_type": "python_source",
           "disposition": "referenced",
-          "content_hash": "20cb5b14b432c48527718e35f20ff1c3fe846bdbf216bf881c21d8556b4c5940",
+          "content_hash": "e5622be04abedc419bfab33b72224c321f1b515db125f1dfe54c241572c6ea76",
           "package": "default"
         },
         {
@@ -4655,7 +4655,7 @@
           "source_location": "evaluateCare/Code/app.py",
           "handler_type": "python_source",
           "disposition": "referenced",
-          "content_hash": "e24c380ed90d5fbea3701e781069bb997f6386c9986903be0d10f362c48eea26",
+          "content_hash": "5674bbe22f4dfb5ede90a1aa0c5983afe9154deb9798075b3bcc6df737411b8f",
           "package": "default"
         },
         {
@@ -4687,7 +4687,7 @@
           "source_location": "evaluateCare/Code/healthcheck/health_endpoint.py",
           "handler_type": "python_source",
           "disposition": "referenced",
-          "content_hash": "61443eb0e5cc9386ad3456186074b45c1b0daf8e69e6a87703f664debf4af4eb",
+          "content_hash": "14c3385e2f32d6a99a93399befeb66c42d6760c72ce730ee3f608c5b1c607b25",
           "package": "default"
         },
         {
@@ -4835,7 +4835,7 @@
           "source_location": "FrontEndApplicationLib/pyproject.toml",
           "handler_type": "static_asset",
           "disposition": "referenced",
-          "content_hash": "7c634e1b53d75861f1f9349426b8b295e65be491d6c37975e77be2b0f8d6f662",
+          "content_hash": "3469e4b5317ebeb2d05b1c7a30b07c03e2fd676f1a63d5d1c1f0518adc59d0d4",
           "package": "default"
         },
         {
@@ -4915,7 +4915,7 @@
           "source_location": "FrontEndApplicationLib/src/chathealthy_frontend_lib/mongo_utilities.py",
           "handler_type": "python_source",
           "disposition": "referenced",
-          "content_hash": "7550828c6f8c3bf8bb01bab1105757df2523c098c3accb633e9564e92029fc52",
+          "content_hash": "ddb5ceaa60d667539e4586c98f6e6bd873168a18fa6084f7d805548ca3fa205e",
           "package": "default"
         },
         {
@@ -4931,7 +4931,7 @@
           "source_location": "FrontEndApplicationLib/src/chathealthy_frontend_lib/runtime_data_collections.py",
           "handler_type": "python_source",
           "disposition": "referenced",
-          "content_hash": "20cb5b14b432c48527718e35f20ff1c3fe846bdbf216bf881c21d8556b4c5940",
+          "content_hash": "e5622be04abedc419bfab33b72224c321f1b515db125f1dfe54c241572c6ea76",
           "package": "default"
         },
         {
@@ -4995,7 +4995,7 @@
           "source_location": "sharedServices/Code/AuthorizationsAndAuthentications/authorizations_and_authentications_tool.py",
           "handler_type": "python_source",
           "disposition": "referenced",
-          "content_hash": "482b615e65ea5ed630ff07a648aa95a75ad73a0ad8129e9f478ffb8d577afc4e",
+          "content_hash": "51e85365a76402c70ebc870e1a0036c68ddb2803062f07679dbaf13833f5f1fb",
           "package": "default"
         },
         {
@@ -5264,7 +5264,7 @@
           "source_location": "sharedServices/Code/app.py",
           "handler_type": "python_source",
           "disposition": "referenced",
-          "content_hash": "e189c2d05480f9345997f58a3c855a75988177df2d2d834ba18869d136a52c1b",
+          "content_hash": "ad7f89ab31fd746f625c876051c713cc72fd50935424bcc702647cfa5cbd3a79",
           "package": "default"
         },
         {
@@ -5288,7 +5288,7 @@
           "source_location": "sharedServices/Code/healthcheck/health_endpoint.py",
           "handler_type": "python_source",
           "disposition": "referenced",
-          "content_hash": "ef2a97609ba1f831b71edd4b0b66695afe7de3edbe4e065e09d4e82a70829dd6",
+          "content_hash": "d01e4d5b835988f72e817bbc4562401518e36ae1ea6dcfb1eac9a145a04161ab",
           "package": "default"
         },
         {
@@ -5578,7 +5578,7 @@
           "source_location": "Website/schemas/ChatHealthyBuildPackageManifestSchema.json",
           "handler_type": "json",
           "disposition": "referenced",
-          "content_hash": "adc9b18a2f9fdf562cce4ebd1afe597a7cea1c7f2333c5e1ed9c99e486c0b18f",
+          "content_hash": "7ff4632fe55b6044e79a327f25d4e20f41b739b9e71e67cd7214e8bd8b361c74",
           "package": "default"
         },
         {
@@ -7357,12 +7357,159 @@
           "kind": "private_endpoint_service"
         }
       ]
+    },
+    {
+      "target_id": "target_host_local_devops",
+      "target_kind": "host_os_process",
+      "environments": [
+        {
+          "env_binding": "local",
+          "node_address": "localhost/devops"
+        }
+      ],
+      "files": [
+        {
+          "source_location": "architecture/EngineeringRuleEnforcement/code/chathealthy_enforcement_manager.py",
+          "feature_id": "EPIC-008-F-002",
+          "handler_type": "python_source",
+          "disposition": "referenced"
+        },
+        {
+          "source_location": "Code/Shared/ops/tools/boot_probe.py",
+          "feature_id": "EPIC-008-F-002",
+          "handler_type": "python_source",
+          "disposition": "referenced"
+        },
+        {
+          "source_location": "Code/Shared/ops/tools/capture_brain_hashes.py",
+          "feature_id": "EPIC-008-F-002",
+          "handler_type": "python_source",
+          "disposition": "referenced"
+        },
+        {
+          "source_location": "Code/Shared/ops/tools/chathealthy_devops_boot.py",
+          "feature_id": "EPIC-008-F-002",
+          "handler_type": "python_source",
+          "disposition": "referenced"
+        },
+        {
+          "source_location": "architecture/Conversation-logPipeline/conversation_log_writer.py",
+          "feature_id": "EPIC-008-F-013",
+          "handler_type": "python_source",
+          "disposition": "referenced"
+        },
+        {
+          "source_location": "architecture/EngineeringRuleEnforcement/code/block_legacy_path_worker.py",
+          "feature_id": "EPIC-008-F-002",
+          "handler_type": "python_source",
+          "disposition": "referenced"
+        },
+        {
+          "source_location": "architecture/EngineeringRuleEnforcement/code/commit_authorization_worker.py",
+          "feature_id": "EPIC-008-F-002",
+          "handler_type": "python_source",
+          "disposition": "referenced"
+        },
+        {
+          "source_location": "architecture/EngineeringRuleEnforcement/code/identity_approval_worker.py",
+          "feature_id": "EPIC-008-F-002",
+          "handler_type": "python_source",
+          "disposition": "referenced"
+        },
+        {
+          "source_location": "architecture/EngineeringRuleEnforcement/code/scan_deliberate_raises_enforcement_worker.py",
+          "feature_id": "EPIC-008-F-002",
+          "handler_type": "python_source",
+          "disposition": "referenced"
+        },
+        {
+          "source_location": "architecture/EngineeringRuleEnforcement/code/scan_entrypoint_uniqueness_worker.py",
+          "feature_id": "EPIC-008-F-002",
+          "handler_type": "python_source",
+          "disposition": "referenced"
+        },
+        {
+          "source_location": "architecture/EngineeringRuleEnforcement/code/scan_files_enforcement_worker.py",
+          "feature_id": "EPIC-008-F-002",
+          "handler_type": "python_source",
+          "disposition": "referenced"
+        },
+        {
+          "source_location": "architecture/EngineeringRuleEnforcement/code/scan_mongo_client_direct_access_worker.py",
+          "feature_id": "EPIC-008-F-002",
+          "handler_type": "python_source",
+          "disposition": "referenced"
+        },
+        {
+          "source_location": "architecture/EngineeringRuleEnforcement/code/scan_separation_of_concerns_worker.py",
+          "feature_id": "EPIC-008-F-002",
+          "handler_type": "python_source",
+          "disposition": "referenced"
+        },
+        {
+          "source_location": "architecture/EngineeringRuleEnforcement/code/scan_uniform_logging_worker.py",
+          "feature_id": "EPIC-008-F-002",
+          "handler_type": "python_source",
+          "disposition": "referenced"
+        },
+        {
+          "source_location": "architecture/Conversation-logPipeline/conversation_log_drain.py",
+          "feature_id": "EPIC-008-F-013",
+          "handler_type": "python_source",
+          "disposition": "referenced"
+        },
+        {
+          "source_location": "architecture/Conversation-logPipeline/conversation_log_record.py",
+          "feature_id": "EPIC-008-F-013",
+          "handler_type": "python_source",
+          "disposition": "referenced"
+        },
+        {
+          "source_location": "architecture/Conversation-logPipeline/conversation_log_sweep.py",
+          "feature_id": "EPIC-008-F-013",
+          "handler_type": "python_source",
+          "disposition": "referenced"
+        },
+        {
+          "source_location": "architecture/Conversation-logPipeline/conversation_log_alarm.py",
+          "feature_id": "EPIC-008-F-013",
+          "handler_type": "python_source",
+          "disposition": "referenced"
+        },
+        {
+          "source_location": "architecture/Conversation-logPipeline/Worker.cs",
+          "feature_id": "EPIC-008-F-013",
+          "handler_type": "dotnet_source",
+          "disposition": "referenced"
+        },
+        {
+          "source_location": "architecture/Conversation-logPipeline/ChatHealthyLogService.csproj",
+          "feature_id": "EPIC-008-F-013",
+          "handler_type": "dotnet_project",
+          "disposition": "referenced"
+        },
+        {
+          "source_location": "architecture/Conversation-logPipeline/conversation_log_classifier.py",
+          "feature_id": "EPIC-008-F-013",
+          "handler_type": "python_source",
+          "disposition": "referenced"
+        }
+      ],
+      "secrets": {
+        "CHATHEALTHY_PROJECT_ROOT": "local_env",
+        "CH_LOG_DB": "local_env",
+        "KEY_VAULT_URI": "local_env",
+        "AZURE_TENANT_ID": "local_env",
+        "AZURE_CLIENT_ID": "local_env",
+        "AZURE_CLIENT_SECRET": "local_env",
+        "OPENAI_API_KEY": "local_env"
+      }
     }
   ],
   "firm": {
     "git_identity": {
       "name": "SkipSnow",
-      "email": "skip.snow@gmail.com"
+      "email": "skip@chathealthy.ai"
     }
   },
   "IdentityCatalog": [

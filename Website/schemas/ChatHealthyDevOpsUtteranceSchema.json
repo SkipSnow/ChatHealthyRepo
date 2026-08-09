@@ -1,0 +1,122 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://dev.chathealthy.ai/schemas/ChatHealthyDevOpsUtteranceSchema.json",
+  "title": "ChatHealthy DevOps Utterance",
+  "description": "One utterance in the conversation archive: what was said, by whom, when, and how it is classified. The archive is business data, not a log. Time is carried twice on purpose -- `timestamp` is a native date for indexing and ordering, `timestamp_pacific` is a Pacific 12-hour rendering for reading. Governs ClaudeCodeUtterances.utterances and realizes EPIC-008-F-013: capture (S-001), purge (S-002), categorize (S-003). Classification enumerations are seeded from the operator's examples on 2026-08-08 and are expected to change; a classifier MUST reject any value absent from them.",
+  "type": "object",
+  "required": [
+    "timestamp",
+    "role",
+    "content"
+  ],
+  "properties": {
+    "_id": {
+      "description": "MongoDB document identifier. Assigned by the database, never by the writer."
+    },
+    "timestamp": {
+      "description": "When the utterance was MADE, as a native database date (BSON date, a UTC instant). This is the indexed, sortable field: comparing instants means ordering is correct through daylight-saving transitions. For captured utterances it comes from the spool filename, stamped the instant the hook fired; for ported records, from the ObjectId creation time. Not a string -- it has no JSON Schema type."
+    },
+    "role": {
+      "description": "The speaker's PART in the exchange, not their identity. 'service' and 'agent' appear only on records written by an earlier archival job.",
+      "type": "string",
+      "enum": [
+        "user",
+        "assistant",
+        "system",
+        "service",
+        "agent",
+        "unknown"
+      ]
+    },
+    "content": {
+      "description": "What was said, verbatim. MUST NOT be summarised, paraphrased, answered or replaced. The only permitted alteration is the removal of a credential, secret or expletive, which leaves a marker in its place.",
+      "type": "string"
+    },
+    "tone": {
+      "description": "How it was said -- manner of delivery, never the act underneath. Assigned at ingest by the Gemini classifier. Absent means the classifier was unavailable when the record was archived; that is the signal a later pass uses to find unclassified records. Values are those observed across 38,876 archived utterances, hand-audited at 98/100 agreement.",
+      "type": "string",
+      "enum": [
+        "matter_of_fact",
+        "expository",
+        "terse",
+        "deferential",
+        "emphatic",
+        "tentative",
+        "appreciative",
+        "exasperated",
+        "candid",
+        "wry",
+        "unclassified"
+      ]
+    },
+    "utterance_class": {
+      "description": "What it was doing -- the act, never the manner. Independent of tone: a reprimand delivered calmly is still a reprimand. Assigned at ingest by the Gemini classifier. Values are those observed across 38,876 archived utterances, hand-audited at 90/100 agreement.",
+      "type": "string",
+      "enum": [
+        "report",
+        "inquiry",
+        "source_material",
+        "directive",
+        "acknowledgement",
+        "authorization",
+        "correction",
+        "declination",
+        "requirement",
+        "reprimand",
+        "architecture",
+        "apology",
+        "unclassified"
+      ]
+    },
+    "classified_at": {
+      "description": "When classification was performed. Pacific, 24-hour. Its absence is how the daily pass finds work, so it MUST be written only after both tone and utterance_class are set.",
+      "type": "string",
+      "pattern": "^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}$"
+    },
+    "classifier_version": {
+      "description": "Which revision of this schema the classification was made against. The enumerations change; without this a value assigned under an older revision cannot be told from a current one.",
+      "type": "integer",
+      "minimum": 1
+    },
+    "utterance": {
+      "description": "Legacy field on 1,331 records written by an earlier archival job. Not produced by the current pipeline."
+    },
+    "_archived_at": {
+      "description": "Legacy field from an earlier archival job. Not produced by the current pipeline."
+    },
+    "_archived_by_job": {
+      "description": "Legacy field from an earlier archival job. Written as both string and integer. Not produced by the current pipeline."
+    },
+    "action": {
+      "description": "Legacy field on 29 records from an earlier archival job.",
+      "type": "string"
+    },
+    "outcome": {
+      "description": "Legacy field on 29 records from an earlier archival job.",
+      "type": "string"
+    },
+    "counts": {
+      "description": "Legacy field on a handful of records from an earlier archival job."
+    },
+    "jobId": {
+      "description": "Legacy field on a handful of records from an earlier archival job. Written as both string and integer."
+    },
+    "preservePastTime": {
+      "description": "Legacy field on a handful of records from an earlier archival job."
+    },
+    "timestamp_pacific": {
+      "description": "The same instant rendered for reading: Pacific time, 12-hour, YYYY-MM-DD H:MM:SS AM/PM. Display only. It MUST NOT be sorted or indexed on -- a 12-hour clock does not order lexically.",
+      "type": "string",
+      "pattern": "^[0-9]{4}-[0-9]{2}-[0-9]{2} ([1-9]|1[0-2]):[0-9]{2}:[0-9]{2} (AM|PM)$"
+    },
+    "archived_at": {
+      "description": "When the record reached the archive, as a native database date. The difference between this and `timestamp` is archiving latency."
+    },
+    "user": {
+      "description": "WHO the human is. An identifier for the person who spoke, not their part in the exchange. Present only on utterances made by a human; absent on Claude's and on service utterances. One operator today, more later.",
+      "type": "string",
+      "minLength": 1
+    }
+  },
+  "additionalProperties": false
+}

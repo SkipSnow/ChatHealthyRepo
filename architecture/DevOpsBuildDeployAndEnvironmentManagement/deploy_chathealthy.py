@@ -20,7 +20,7 @@ with a fix-it message naming the stale fact:
                       [non-local envs only; local builds source from working
                       tree, not HEAD, so SHA drift does not invalidate]
   (b) env           — manifest.env must equal --env
-  (c) build counter — manifest.build must equal admin.Versions.latest.build
+  (c) build counter — manifest.build must equal pipelineAdmin.Versions.latest.build
                       [non-local envs only; --env local does not bump and
                       the counter relationship is not load-bearing]
 
@@ -98,9 +98,10 @@ def _latest_admin_build() -> int | None:
     if not conn:
         return None
     try:
-        latest = MongoClient(conn, serverSelectionTimeoutMS=10000)["admin"]["Versions"].find_one(
-            sort=[("from", -1)]
-        )
+        from chathealthy_frontend_lib.mongo_utilities import ChatHealthyMongoUtilities
+        latest = (ChatHealthyMongoUtilities()
+                  .getConnection("DevOpsUser", "admin")
+                  ["pipelineAdmin"]["Versions"].find_one(sort=[("from", -1)]))
     except Exception:
         return None
     if latest is None:

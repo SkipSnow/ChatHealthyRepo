@@ -49,7 +49,7 @@ from chathealthy_frontend_lib.exceptions import ChatHealthyException
 # All pipeline metadata lives in one database. This runbook ships to Azure
 # Automation standalone, so it carries the constant rather than importing
 # pipeline_db, which is not deployed alongside it.
-METADATA_DB = "Pipelines"
+PIPELINE_ADMIN_DB = "pipelineAdmin"
 
 
 
@@ -299,7 +299,7 @@ def _read_pipeline_config(mongo) -> dict:
     """LLD §2.6 step 2: read chathealthyfrontend.pipeline.config for
     pipeline_name='provider'. Returns config dict or empty dict if the
     document doesn't exist yet (first run)."""
-    coll = mongo[METADATA_DB]["pipeline.config"]
+    coll = mongo[PIPELINE_ADMIN_DB]["pipeline.config"]
     doc = coll.find_one({"pipeline_name": PIPELINE_NAME, "env": ENV_PREFIX}) or {}
     return doc
 
@@ -338,7 +338,7 @@ def _acquire_pipeline_lock(
     once. Guards against wedging the pipeline forever on a crash."""
     from datetime import datetime, timedelta, timezone
     from pymongo.errors import DuplicateKeyError
-    coll = mongo[METADATA_DB]["cluster_lifecycle"]
+    coll = mongo[PIPELINE_ADMIN_DB]["cluster_lifecycle"]
     now = datetime.now(timezone.utc)
     doc = {
         "_id": _pipeline_lock_id(pipeline_name),
@@ -373,7 +373,7 @@ def _release_pipeline_lock(mongo, pipeline_name: str, run_id: str) -> None:
     """Release the per-pipeline lock iff we own it (matched by run_id).
     Idempotent: safe to call in a finally block even if we never
     acquired (a different run_id owns the lock now -> no-op)."""
-    coll = mongo[METADATA_DB]["cluster_lifecycle"]
+    coll = mongo[PIPELINE_ADMIN_DB]["cluster_lifecycle"]
     coll.delete_one({"_id": _pipeline_lock_id(pipeline_name), "run_id": run_id})
 
 
@@ -393,7 +393,7 @@ def _create_reservation(mongo, run_id: str, vm_name: str) -> None:
     reservation_reaper reaps expiry_at < now if Controller never gets
     that far. TTL is 10 hours (outer safety envelope, not a startup
     timeout)."""
-    coll = mongo[METADATA_DB]["cluster_lifecycle"]
+    coll = mongo[PIPELINE_ADMIN_DB]["cluster_lifecycle"]
     now = datetime.datetime.utcnow()
     expiry = now + datetime.timedelta(hours=RESERVATION_TTL_HOURS)
     coll.replace_one(
@@ -416,7 +416,7 @@ def _create_reservation(mongo, run_id: str, vm_name: str) -> None:
 
 def _cancel_reservation(mongo, run_id: str) -> None:
     """Delete the reservation for a specific run_id. Idempotent."""
-    coll = mongo[METADATA_DB]["cluster_lifecycle"]
+    coll = mongo[PIPELINE_ADMIN_DB]["cluster_lifecycle"]
     coll.delete_one({"_id": run_id})
 
 
@@ -484,7 +484,7 @@ def _write_run_manifest(mongo, run_id: str, load_mode: str,
                         state_scope, invocation_mode: str,
                         config: dict) -> None:
     """LLD §2.6 step 3: fresh manifest in chathealthyfrontend.pipeline.runs."""
-    coll = mongo[METADATA_DB]["pipeline.runs"]
+    coll = mongo[PIPELINE_ADMIN_DB]["pipeline.runs"]
     manifest = {
         "run_id": run_id,
         "pipeline_name": PIPELINE_NAME,

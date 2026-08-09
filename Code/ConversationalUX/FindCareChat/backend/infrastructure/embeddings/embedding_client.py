@@ -2,7 +2,7 @@
 # Licensed under the FindCare Evaluation License (FEL-1.0).
 #
 # EmbeddingClient — centralized AI embedding and query expansion.
-# Source: OpenAI (embeddings), Anthropic Haiku (query expansion)
+# Source: OpenAI (embeddings and query expansion)
 
 import json
 from chathealthy_frontend_lib import ChatHealthyLoggingService
@@ -57,11 +57,10 @@ class EmbeddingClient:
         ).data[0].embedding
 
     def expand_query_terms(self, query: str) -> list[str]:
-        """AI query expansion via Claude Haiku. Returns keyword stems."""
+        """AI query expansion via gpt-4.1-mini. Returns keyword stems."""
         try:
-            client = Anthropic(api_key=os.getenv("ANTHROPIC_API_KEY"))
-            response = client.messages.create(
-                model="claude-haiku-4-5-20251001",
+            response = self._get_oai().chat.completions.create(
+                model="gpt-4.1-mini",
                 max_tokens=128,
                 messages=[{"role": "user", "content": (
                     "You are helping search a medical provider taxonomy database. "
@@ -75,7 +74,7 @@ class EmbeddingClient:
                     f"Query: {query}"
                 )}],
             )
-            raw = response.content[0].text.strip() if response.content else ""
+            raw = (response.choices[0].message.content or "").strip()
             return json.loads(raw) if raw else []
         except Exception as exc:
             # Mode 1 (REQ-B-008): query expansion is OPTIONAL — caller

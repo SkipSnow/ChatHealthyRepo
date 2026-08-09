@@ -35,11 +35,11 @@ from .exceptions import ChatHealthyException
 from .mongo_utilities import ChatHealthyMongoUtilities
 from .logging_service import set_mongo_log_identity
 
-# The front-end services act as pipelineEditor, including when they write
+# The front-end services act as frontendUser, including when they write
 # their own logs. The Mongo log handler refuses to build without this, and
 # this module is imported by every service that resolves a data collection,
 # which makes it the front-end equivalent of pipeline_db.
-set_mongo_log_identity("pipelineEditor")
+set_mongo_log_identity("frontendUser")
 
 
 _CONFIG_DB = "ChatHealthyConfig"
@@ -79,7 +79,7 @@ def _read_build_info() -> dict:
 
 def _mongo_client() -> MongoClient:
     # Config lives in ChatHealthyConfig on the admin target.
-    return ChatHealthyMongoUtilities().getConnection("pipelineEditor", "admin")
+    return ChatHealthyMongoUtilities().getConnection("frontendUser", "frontEnd")
 
 
 def _read_env_doc(env: str) -> dict:

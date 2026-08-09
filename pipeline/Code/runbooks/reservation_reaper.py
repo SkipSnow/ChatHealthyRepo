@@ -52,7 +52,7 @@ from datetime import datetime, timezone, timedelta
 import requests
 from requests.auth import HTTPDigestAuth
 from pymongo import MongoClient
-from pipeline_db import METADATA_DB
+from pipeline_db import PIPELINE_ADMIN_DB
 
 try:
     import automationassets
@@ -105,7 +105,7 @@ WEBJOBS_STORAGE  = os.environ.get("AZURE_WEBJOBS_STORAGE", "")
 SPARKPOST_KEY    = os.environ.get("SPARKMAIL_API_KEY", "")
 EMAIL_FROM       = os.environ.get("NOTIFICATION_FROM_EMAIL", "Skip.Snow@mail.chatHealthy.ai")
 EMAIL_TO         = os.environ.get("NOTIFICATION_TO_EMAIL", "Skip@chatHealthy.ai")
-DB_NAME          = "admin"
+DB_NAME          = PIPELINE_ADMIN_DB
 COLLECTION       = "cluster_lifecycle"
 ATLAS_BASE       = f"https://cloud.mongodb.com/api/atlas/v2/groups/{ATLAS_PROJECT}"
 ATLAS_CLUSTER_URL= f"{ATLAS_BASE}/clusters/{CLUSTER_NAME}"
@@ -447,8 +447,8 @@ def _main():
     # Uses pipelineEditor identity to access frontend cluster resources
     client = ChatHealthyMongoUtilities().getConnection("pipelineEditor", "admin")
     coll = client[DB_NAME][COLLECTION]
-    log_coll = client["Pipelines"][f"Log_{ENV_PREFIX}"]
-    runs_coll = client[METADATA_DB]["pipeline.runs"]
+    log_coll = client[PIPELINE_ADMIN_DB][f"Log_{ENV_PREFIX}"]
+    runs_coll = client[PIPELINE_ADMIN_DB]["pipeline.runs"]
     reservations = list(coll.find({}))
     log.info("Loaded %d cluster_lifecycle rows from %s.%s",
              len(reservations), DB_NAME, COLLECTION)

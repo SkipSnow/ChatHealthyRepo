@@ -81,11 +81,11 @@ def bootstrap_certs_from_env():
 
 
 
-# This service acts as pipelineEditor, including when it writes its own
+# This service acts as frontendUser, including when it writes its own
 # logs. The Mongo log handler refuses to build without an identity, and
 # nothing else in this process sets one.
 from chathealthy_frontend_lib.logging_service import set_mongo_log_identity
-set_mongo_log_identity("pipelineEditor")
+set_mongo_log_identity("frontendUser")
 bootstrap_certs_from_env()
 
 app = FastAPI(title="ChatHealthy.ai EvaluateCare", version="0.1.4")
