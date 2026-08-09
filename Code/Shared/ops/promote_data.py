@@ -85,7 +85,9 @@ def promote_data(from_env: str, to_env: str, dry_run: bool = False):
         elapsed = time.time() - start
         log.info("  Done: %s docs in %.1f s", f"{copied:,}", elapsed)
 
-    # Per Rule-063 + BUG-001: build is global (admin.Versions),
+    # Per BUG-001: build is global, in admin.Versions, bumped at build time
+    # (see DeploymentArchitectureDesignAndMigrationPlanPhase_v14.docx section 2.1 build_chathealthy.py).
+    #
     # not per-env. Data promotion does not touch build/version/framework.
     # Log the current global build for the operator's audit trail.
     current_record = client["admin"]["Versions"].find_one(sort=[("from", -1)])

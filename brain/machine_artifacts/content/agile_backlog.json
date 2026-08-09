@@ -18126,14 +18126,16 @@
             {
               "feature_id": "EPIC-008-F-013",
               "orphan": false,
-              "name": "Conversation-log Pipeline (Claude Code hooks -> Kafka -> MongoDB)",
+              "name": "Conversation Archive",
               "status": "in_progress",
-              "description": "DevOps feature that owns the end-to-end pipeline by which every Claude Code and Claude utterance is recorded. Each UserPromptSubmit and Stop hook events are persisted to long-term storage in the Mongo Db. The pipeline has three runtime components: (a) a hook-driven publisher worker that POSTs the raw hook payload to a local producer sidecar, (b) the producer sidecar HTTP service on 127.0.0.1:8100 that forwards to the conversation_log Kafka topic, and (c) a consumer that drains the topic and persists each message to MongoDB ClaudeCodeLog.conversation_log_archive. Rule-001 in engineering_rules.json is the runtime enforcement vehicle for the publisher leg of this feature.",
+              "description": "Every operator utterance and every Claude response is recorded as business data in the conversation archive. Capture never delays the interaction and never loses an utterance because something downstream is unavailable, except as an extreme defence. Credentials, secrets and offensive language are removed before anything is archived. Content that never reaches the archive is not kept indefinitely, and the archive is re-examined as knowledge of credentials grows. Every utterance is classified so the archive can be reasoned about. The document shape is governed by https://dev.chathealthy.ai/schemas/ChatHealthyDevOpsUtteranceSchema.json",
               "priority": "HIGH",
               "realized_by": [
-                "architecture/EngineeringRuleEnforcement/code/conversation_log_publisher_worker.py",
-                "Code/Shared/ops/ChatHealthyLogService/",
-                "Code/Shared/ops/kafka/conversation_log_consumer.py",
+                "architecture/Conversation-logPipeline/conversation_log_writer.py",
+                "architecture/Conversation-logPipeline/conversation_log_drain.py",
+                "architecture/Conversation-logPipeline/conversation_log_record.py",
+                "architecture/Conversation-logPipeline/Worker.cs",
+                "Website/schemas/ChatHealthyDevOpsUtteranceSchema.json",
                 "brain/machine_artifacts/content/engineering_rules.json#Rule-001"
               ],
               "approval": "approved",
@@ -18143,56 +18145,18 @@
                   {
                     "story_id": "EPIC-008-F-013-S-001",
                     "orphan": false,
-                    "name": "Publisher leg - hook-driven POST to local sidecar with browser-popup failure signaling",
-                    "description": "Per-hook-event publication of the raw payload from Claude Code's UserPromptSubmit and Stop hooks to the local producer sidecar at http://127.0.0.1:8100/produce. On sidecar unreachability the publisher MUST signal the operator visibly via a fullscreen browser warning page so the operator is never silently disconnected from the archive. This story is the implementation home for the three Rule-001 statements; Rule-001 itself is the engineering-rules vehicle that wires the worker into the hook framework.",
+                    "name": "Capture utterances",
+                    "description": "Every operator utterance and every Claude response is captured and lands in the conversation archive, verbatim, correctly attributed, and carrying the time it was made. Capture must never make the operator wait and must never lose an utterance because something downstream is unavailable. Credentials must not reach the archive.",
                     "size": "M",
                     "status": "in_progress",
                     "approval": "approved",
                     "requirements": {
                       "requirement": [
                         {
-                          "req_id": "EPIC-008-F-013-S-001-REQ-T-001",
-                          "orphan": false,
-                          "name": "UserPromptSubmit hook publishes raw payload to local producer sidecar",
-                          "requirement": "On every Claude Code UserPromptSubmit hook event, the conversation-log publisher worker MUST read the raw hook payload from stdin and POST the unmodified JSON body to http://127.0.0.1:8100/produce with Content-Type: application/json and a request header X-Hook-Event identifying the hook event name. The POST MUST complete within the hook's configured timeout (15 seconds per Rule-001-ENF-001). A 2xx response from the sidecar is the success criterion; the worker MUST exit 0 on success.",
-                          "priority": "must-have",
-                          "status": "in_progress",
-                          "depends_on": [],
-                          "approval": "approved",
-                          "tests": {
-                            "test": [
-                              {
-                                "orphan": true,
-                                "test_type": "ORPHAN",
-                                "file": "ORPHAN"
-                              }
-                            ]
-                          }
-                        },
-                        {
-                          "req_id": "EPIC-008-F-013-S-001-REQ-T-002",
-                          "orphan": false,
-                          "name": "Stop hook publishes raw payload to local producer sidecar",
-                          "requirement": "On every Claude Code Stop hook event, the conversation-log publisher worker MUST read the raw hook payload from stdin and POST the unmodified JSON body to http://127.0.0.1:8100/produce with Content-Type: application/json and X-Hook-Event identifying the hook event name. The POST MUST complete within the hook's configured timeout (15 seconds per Rule-001-ENF-002). A 2xx response is the success criterion; the worker MUST exit 0 on success.",
-                          "priority": "must-have",
-                          "status": "in_progress",
-                          "depends_on": [],
-                          "approval": "approved",
-                          "tests": {
-                            "test": [
-                              {
-                                "orphan": true,
-                                "test_type": "ORPHAN",
-                                "file": "ORPHAN"
-                              }
-                            ]
-                          }
-                        },
-                        {
                           "req_id": "EPIC-008-F-013-S-001-REQ-B-001",
                           "orphan": false,
-                          "name": "Sidecar-unreachable failure shows fullscreen browser warning page to the operator",
-                          "requirement": "If the POST to http://127.0.0.1:8100/produce fails for any reason (connection refused, timeout, non-2xx response, OSError), the worker MUST write a viewport-filling HTML failure page to a temp-directory file and launch the operator's default browser pointed at that file. The page MUST state in unmistakable language that the conversation-log pipeline is DOWN, that Claude Code interactions are NOT being persisted, and that the operator must restart the producer sidecar. The worker MUST exit non-zero on this path so the failure surfaces in the hook's telemetry.",
+                          "name": "Operator is told when capture fails",
+                          "requirement": "If an utterance cannot be captured, the operator MUST be shown an unmistakable full-screen warning stating that the utterance was NOT recorded. Capture failure MUST NOT be silent.",
                           "priority": "must-have",
                           "status": "in_progress",
                           "depends_on": [],
@@ -18208,12 +18172,240 @@
                           }
                         },
                         {
-                          "req_id": "EPIC-008-F-013-S-001-REQ-T-003",
+                          "req_id": "EPIC-008-F-013-S-001-REQ-B-002",
                           "orphan": false,
-                          "name": "Publisher worker is wired via engineering_rules.json (Rule-001), not directly in settings.json",
-                          "requirement": "The conversation_log_publisher_worker.py worker MUST be invoked via the V19 engineering-rules enforcement architecture: Rule-001 declares two enforcement entries (Rule-001-ENF-001 for UserPromptSubmit, Rule-001-ENF-002 for Stop) whose executable_path points at the worker. .claude/settings.json registers the UserPromptSubmit and Stop hook commands as chathealthy_enforcement_manager.py --hook <hook> only. The settings.json file MUST NOT call the worker directly, and the worker MUST NOT be invoked by any legacy dispatch path (governance_matrix.json or chathealthy_devops_boot.py's removed conversation_log_worker class).",
+                          "name": "Every utterance is recorded",
+                          "requirement": "Every operator utterance and every Claude response MUST be recorded in the conversation archive.",
+                          "priority": "must-have",
+                          "status": "done",
+                          "depends_on": [],
+                          "approval": "approved",
+                          "tests": {
+                            "test": [
+                              {
+                                "orphan": true,
+                                "test_type": "ORPHAN",
+                                "file": "ORPHAN"
+                              }
+                            ]
+                          }
+                        },
+                        {
+                          "req_id": "EPIC-008-F-013-S-001-REQ-B-003",
+                          "orphan": false,
+                          "name": "Capture does not delay the operator",
+                          "requirement": "Capturing an utterance MUST NOT delay the interaction. No work depending on a remote service may occur before the turn completes.",
+                          "priority": "must-have",
+                          "status": "done",
+                          "depends_on": [],
+                          "approval": "approved",
+                          "tests": {
+                            "test": [
+                              {
+                                "orphan": true,
+                                "test_type": "ORPHAN",
+                                "file": "ORPHAN"
+                              }
+                            ]
+                          }
+                        },
+                        {
+                          "req_id": "EPIC-008-F-013-S-001-REQ-B-004",
+                          "orphan": false,
+                          "name": "No utterance is lost while the archive is unreachable",
+                          "requirement": "No utterance MUST be lost while the conversation archive is unreachable. Captured content MUST be retained until the archive confirms it has been stored, except as an extreme defensive measure to protect disk space or other resources.",
+                          "priority": "must-have",
+                          "status": "done",
+                          "depends_on": [],
+                          "approval": "approved",
+                          "tests": {
+                            "test": [
+                              {
+                                "orphan": true,
+                                "test_type": "ORPHAN",
+                                "file": "ORPHAN"
+                              }
+                            ]
+                          }
+                        },
+                        {
+                          "req_id": "EPIC-008-F-013-S-001-REQ-B-005",
+                          "orphan": false,
+                          "name": "No credential, secret or offensive language is stored",
+                          "requirement": "No credential, secret or offensive language CAN be stored in the conversation archive.",
                           "priority": "must-have",
                           "status": "in_progress",
+                          "depends_on": [],
+                          "approval": "approved",
+                          "tests": {
+                            "test": [
+                              {
+                                "orphan": true,
+                                "test_type": "ORPHAN",
+                                "file": "ORPHAN"
+                              }
+                            ]
+                          }
+                        },
+                        {
+                          "req_id": "EPIC-008-F-013-S-001-REQ-B-006",
+                          "orphan": false,
+                          "name": "Utterances are recorded verbatim",
+                          "requirement": "An utterance MUST be recorded exactly as it was made. It MUST NOT be summarised, paraphrased, answered, or replaced by any other text. Only the removal of a credential, secret or item of offensive language may alter it.",
+                          "priority": "must-have",
+                          "status": "done",
+                          "depends_on": [],
+                          "approval": "approved",
+                          "tests": {
+                            "test": [
+                              {
+                                "orphan": true,
+                                "test_type": "ORPHAN",
+                                "file": "ORPHAN"
+                              }
+                            ]
+                          }
+                        },
+                        {
+                          "req_id": "EPIC-008-F-013-S-001-REQ-B-007",
+                          "orphan": false,
+                          "name": "Utterances are correctly attributed",
+                          "requirement": "Every recorded utterance MUST be attributed to the party that made it. An utterance MUST NOT be attributed to the wrong party.",
+                          "priority": "must-have",
+                          "status": "in_progress",
+                          "depends_on": [],
+                          "approval": "approved",
+                          "tests": {
+                            "test": [
+                              {
+                                "orphan": true,
+                                "test_type": "ORPHAN",
+                                "file": "ORPHAN"
+                              }
+                            ]
+                          }
+                        },
+                        {
+                          "req_id": "EPIC-008-F-013-S-001-REQ-B-008",
+                          "orphan": false,
+                          "name": "Utterances carry the time they were made",
+                          "requirement": "Every recorded utterance MUST carry the time the utterance was made, which MUST be distinguishable from the time it reached the archive.",
+                          "priority": "must-have",
+                          "status": "done",
+                          "depends_on": [],
+                          "approval": "approved",
+                          "tests": {
+                            "test": [
+                              {
+                                "orphan": true,
+                                "test_type": "ORPHAN",
+                                "file": "ORPHAN"
+                              }
+                            ]
+                          }
+                        },
+                        {
+                          "req_id": "EPIC-008-F-013-S-001-REQ-B-009",
+                          "orphan": false,
+                          "name": "Concurrent utterances are all recorded",
+                          "requirement": "Utterances made concurrently MUST all be recorded. No utterance may be lost, overwritten, or merged with another because two occurred at the same moment.",
+                          "priority": "must-have",
+                          "status": "done",
+                          "depends_on": [],
+                          "approval": "approved",
+                          "tests": {
+                            "test": [
+                              {
+                                "orphan": true,
+                                "test_type": "ORPHAN",
+                                "file": "ORPHAN"
+                              }
+                            ]
+                          }
+                        },
+                        {
+                          "req_id": "EPIC-008-F-013-S-001-REQ-B-010",
+                          "orphan": false,
+                          "name": "A removed credential is identified",
+                          "requirement": "Where a credential is removed from an utterance, the archive MUST identify which credential was removed by stipulating the key of the key/value pair associated with the credential or secret.",
+                          "priority": "must-have",
+                          "status": "done",
+                          "depends_on": [],
+                          "approval": "approved",
+                          "tests": {
+                            "test": [
+                              {
+                                "orphan": true,
+                                "test_type": "ORPHAN",
+                                "file": "ORPHAN"
+                              }
+                            ]
+                          }
+                        },
+                        {
+                          "req_id": "EPIC-008-F-013-S-001-REQ-B-011",
+                          "orphan": false,
+                          "name": "Offensive language is redacted",
+                          "requirement": "When the human operator swears, the curse word or words MUST be replaced with the phrase 'Expletive redacted'.",
+                          "priority": "must-have",
+                          "status": "not_started",
+                          "depends_on": [],
+                          "approval": "approved",
+                          "tests": {
+                            "test": [
+                              {
+                                "orphan": true,
+                                "test_type": "ORPHAN",
+                                "file": "ORPHAN"
+                              }
+                            ]
+                          }
+                        },
+                        {
+                          "req_id": "EPIC-008-F-013-S-001-REQ-B-012",
+                          "orphan": false,
+                          "name": "Every utterance carries the speaker role",
+                          "requirement": "Every recorded utterance MUST carry the speaker's part in the exchange, which MUST be distinct from the identity of the speaker.",
+                          "priority": "must-have",
+                          "status": "done",
+                          "depends_on": [],
+                          "approval": "approved",
+                          "tests": {
+                            "test": [
+                              {
+                                "orphan": true,
+                                "test_type": "ORPHAN",
+                                "file": "ORPHAN"
+                              }
+                            ]
+                          }
+                        },
+                        {
+                          "req_id": "EPIC-008-F-013-S-001-REQ-B-013",
+                          "orphan": false,
+                          "name": "Every human utterance identifies the person",
+                          "requirement": "Every recorded utterance made by a human MUST identify that person. The archive MUST support more than one person.",
+                          "priority": "must-have",
+                          "status": "in_progress",
+                          "depends_on": [],
+                          "approval": "approved",
+                          "tests": {
+                            "test": [
+                              {
+                                "orphan": true,
+                                "test_type": "ORPHAN",
+                                "file": "ORPHAN"
+                              }
+                            ]
+                          }
+                        },
+                        {
+                          "req_id": "EPIC-008-F-013-S-001-REQ-B-014",
+                          "orphan": false,
+                          "name": "The time an utterance reached the archive is recorded",
+                          "requirement": "Every recorded utterance MUST carry the time it reached the archive, so that archiving latency is measurable.",
+                          "priority": "must-have",
+                          "status": "done",
                           "depends_on": [],
                           "approval": "approved",
                           "tests": {
@@ -18232,18 +18424,18 @@
                   {
                     "story_id": "EPIC-008-F-013-S-002",
                     "orphan": false,
-                    "name": "Producer sidecar - local HTTP service on 127.0.0.1:8100 forwarding to Kafka topic",
-                    "description": "The local producer sidecar is an HTTP service bound to 127.0.0.1:8100 that accepts POST /produce, treats the request body as an opaque JSON payload, and forwards it to the conversation_log Kafka topic. The sidecar isolates the publisher worker from Kafka client configuration, transport credentials, and broker addressing - the worker speaks plain HTTP and the sidecar speaks Kafka. Implementation lives at Code/Shared/ops/ChatHealthyLogService/.",
-                    "size": "M",
+                    "name": "Purge",
+                    "description": "Captured content that never reaches the archive is not kept indefinitely, its loss is visible, and the archive is re-examined against current knowledge of credentials so that a secret recorded before it was known does not remain.",
+                    "size": "S",
                     "status": "in_progress",
                     "approval": "approved",
                     "requirements": {
                       "requirement": [
                         {
-                          "req_id": "EPIC-008-F-013-S-002-REQ-T-001",
+                          "req_id": "EPIC-008-F-013-S-002-REQ-B-001",
                           "orphan": false,
-                          "name": "Sidecar binds only to loopback at 127.0.0.1:8100 and accepts POST /produce",
-                          "requirement": "The producer sidecar MUST bind only to 127.0.0.1 (loopback) on TCP port 8100 and MUST NOT bind to any externally-routable interface. It MUST accept HTTP POST on path /produce with Content-Type: application/json, treating the request body as an opaque JSON payload to be forwarded unchanged to the conversation_log Kafka topic. It MUST respond with HTTP 2xx on successful produce and HTTP 5xx (or connection refusal) on any failure to forward.",
+                          "name": "Unarchived content is deleted after 24 hours",
+                          "requirement": "Captured content that has not reached the conversation archive within 24 hours MUST be deleted.",
                           "priority": "must-have",
                           "status": "in_progress",
                           "depends_on": [],
@@ -18259,10 +18451,48 @@
                           }
                         },
                         {
-                          "req_id": "EPIC-008-F-013-S-002-REQ-T-002",
+                          "req_id": "EPIC-008-F-013-S-002-REQ-B-002",
                           "orphan": false,
-                          "name": "Sidecar forwards the request body unchanged to the conversation_log Kafka topic",
-                          "requirement": "The producer sidecar MUST publish the request body to the Kafka topic named 'conversation_log' without modification. The sidecar MUST NOT add, remove, reorder, or otherwise mutate any fields of the JSON payload. The hook event identifier carried in the X-Hook-Event request header MAY be propagated as a Kafka message header but MUST NOT be merged into the payload body.",
+                          "name": "Archive is re-scrubbed against current credential knowledge",
+                          "requirement": "The conversation archive MUST be re-scrubbed against current knowledge of credentials, so that a credential recorded before it was known is removed once it is known.",
+                          "priority": "must-have",
+                          "status": "in_progress",
+                          "depends_on": [],
+                          "approval": "approved",
+                          "tests": {
+                            "test": [
+                              {
+                                "orphan": true,
+                                "test_type": "ORPHAN",
+                                "file": "ORPHAN"
+                              }
+                            ]
+                          }
+                        },
+                        {
+                          "req_id": "EPIC-008-F-013-S-002-REQ-B-003",
+                          "orphan": false,
+                          "name": "Content still eligible for archiving is not deleted",
+                          "requirement": "Captured content that has not yet reached its deletion age MUST NOT be deleted, however many attempts to archive it have failed.",
+                          "priority": "must-have",
+                          "status": "in_progress",
+                          "depends_on": [],
+                          "approval": "approved",
+                          "tests": {
+                            "test": [
+                              {
+                                "orphan": true,
+                                "test_type": "ORPHAN",
+                                "file": "ORPHAN"
+                              }
+                            ]
+                          }
+                        },
+                        {
+                          "req_id": "EPIC-008-F-013-S-002-REQ-B-004",
+                          "orphan": false,
+                          "name": "Deletion is recorded",
+                          "requirement": "When captured content is deleted before reaching the archive, the loss MUST be recorded so that it is known to have occurred and how much was lost.",
                           "priority": "must-have",
                           "status": "in_progress",
                           "depends_on": [],
@@ -18283,18 +18513,56 @@
                   {
                     "story_id": "EPIC-008-F-013-S-003",
                     "orphan": false,
-                    "name": "Consumer leg - drain conversation_log topic to MongoDB ClaudeCodeLog.conversation_log_archive",
-                    "description": "The conversation_log consumer drains the conversation_log Kafka topic and persists each message as one document to MongoDB cluster ClaudeCodeLog, collection conversation_log_archive. The consumer is the durability boundary for the pipeline - once a message is committed to the archive collection, it is considered persisted for forensic and operator-review purposes.",
+                    "name": "Categorize",
+                    "description": "All utterances must be categorized with metadata.",
                     "size": "M",
                     "status": "in_progress",
                     "approval": "approved",
                     "requirements": {
                       "requirement": [
                         {
-                          "req_id": "EPIC-008-F-013-S-003-REQ-T-001",
+                          "req_id": "EPIC-008-F-013-S-003-REQ-B-001",
                           "orphan": false,
-                          "name": "Consumer persists each Kafka message as one document in conversation_log_archive",
-                          "requirement": "The conversation_log consumer MUST consume the conversation_log Kafka topic and insert each message as exactly one document into MongoDB collection ClaudeCodeLog.conversation_log_archive. The consumer MUST NOT drop, merge, or batch-rewrite messages. It MUST acknowledge each Kafka offset only after the MongoDB insert returns success so an at-least-once delivery property holds across consumer restarts.",
+                          "name": "Each utterance carries an orderable time",
+                          "requirement": "Each utterance MUST carry the time it was made in a form the database can index and order chronologically, so that ordering is correct across daylight-saving transitions.",
+                          "priority": "must-have",
+                          "status": "done",
+                          "depends_on": [],
+                          "approval": "approved",
+                          "tests": {
+                            "test": [
+                              {
+                                "orphan": true,
+                                "test_type": "ORPHAN",
+                                "file": "ORPHAN"
+                              }
+                            ]
+                          }
+                        },
+                        {
+                          "req_id": "EPIC-008-F-013-S-003-REQ-B-002",
+                          "orphan": false,
+                          "name": "Each utterance carries a human-readable time",
+                          "requirement": "Each utterance MUST carry its time rendered for reading, in Pacific time on a 12-hour clock. This rendering MUST NOT be used for ordering.",
+                          "priority": "must-have",
+                          "status": "done",
+                          "depends_on": [],
+                          "approval": "approved",
+                          "tests": {
+                            "test": [
+                              {
+                                "orphan": true,
+                                "test_type": "ORPHAN",
+                                "file": "ORPHAN"
+                              }
+                            ]
+                          }
+                        },
+                        {
+                          "req_id": "EPIC-008-F-013-S-003-REQ-B-003",
+                          "orphan": false,
+                          "name": "Each utterance speaker is identified",
+                          "requirement": "Each utterance is from some human user who MUST be identified, or from Claude Code.",
                           "priority": "must-have",
                           "status": "in_progress",
                           "depends_on": [],
@@ -18310,10 +18578,48 @@
                           }
                         },
                         {
-                          "req_id": "EPIC-008-F-013-S-003-REQ-T-002",
+                          "req_id": "EPIC-008-F-013-S-003-REQ-B-004",
                           "orphan": false,
-                          "name": "Consumer transforms malformed Kafka messages so every utterance lands in conversation_log_archive",
-                          "requirement": "The conversation_log consumer MUST treat every Kafka message as durable and MUST NOT reject or discard a message because the payload is malformed. For each message consumed from the conversation_log topic, the consumer MUST produce exactly one document in MongoDB collection ClaudeCodeLog.conversation_log_archive. When the payload is not valid JSON, when required fields (for example actor or content) are missing, when bytes are not valid UTF-8, or when content is not a string, the consumer MUST wrap, coerce, or annotate the record so that an insert_many call against the archive collection succeeds. The transformed document MUST carry a cleanup-description field that names the transformation applied (for example raw-bytes-wrapped, json-parse-failed, actor-defaulted, content-coerced-to-string). Legibility of the utterance MUST be degraded as little as possible by the transformation; loss of the utterance is forbidden. When a record fails to be written for any reason an operational response is demanded. And Rule-002 statement #5 brings this failure to the attention of a human operator.",
+                          "name": "Tone is classified",
+                          "requirement": "Every utterance MUST be classified by tone, using a value from the approved enumeration. No utterance MAY remain without a tone.",
+                          "priority": "must-have",
+                          "status": "not_started",
+                          "depends_on": [],
+                          "approval": "approved",
+                          "tests": {
+                            "test": [
+                              {
+                                "orphan": true,
+                                "test_type": "ORPHAN",
+                                "file": "ORPHAN"
+                              }
+                            ]
+                          }
+                        },
+                        {
+                          "req_id": "EPIC-008-F-013-S-003-REQ-B-005",
+                          "orphan": false,
+                          "name": "Utterance class is classified",
+                          "requirement": "Every utterance MUST be classified by what it was doing, using a value from the approved enumeration. No utterance MAY remain without an utterance class.",
+                          "priority": "must-have",
+                          "status": "not_started",
+                          "depends_on": [],
+                          "approval": "approved",
+                          "tests": {
+                            "test": [
+                              {
+                                "orphan": true,
+                                "test_type": "ORPHAN",
+                                "file": "ORPHAN"
+                              }
+                            ]
+                          }
+                        },
+                        {
+                          "req_id": "EPIC-008-F-013-S-003-REQ-B-006",
+                          "orphan": false,
+                          "name": "Classification values come from a normative schema",
+                          "requirement": "The permitted values for tone and utterance class MUST be defined in a normative JSON schema. A classification MUST NOT use a value absent from that schema.",
                           "priority": "must-have",
                           "status": "in_progress",
                           "depends_on": [],
@@ -18329,31 +18635,12 @@
                           }
                         },
                         {
-                          "req_id": "EPIC-008-F-013-S-003-REQ-T-003",
+                          "req_id": "EPIC-008-F-013-S-003-REQ-B-007",
                           "orphan": false,
-                          "name": "Consumer redacts credentials with model-based redaction; retries on failure; stores unredacted on final failure with a pointer to the error file",
-                          "requirement": "Before inserting a record into ClaudeCodeLog.conversation_log_archive, the conversation_log consumer MUST submit the content field to a model-based credentials-redaction step (not regex). The redaction step MUST replace API keys, passwords, connection strings, tokens, secrets, and credentials with the literal marker [Sensitive content redacted] and MUST leave all other text exactly as-is. The redaction engine MUST be an LLM call (currently gpt-4.1-mini). The LLM system prompt MUST include the project's Code/.env file as a non-exhaustive reference (the sensitive term might not be in .env). The LLM user prompt MUST include the last 5 utterances prior to the current utterance, queried from ClaudeCodeLog.conversation_log_archive by descending timestamp_utc, so the model can contextualize what a secret might be. The consumer MUST retry the LLM call up to 3 attempts with exponential backoff (1s, 2s). After 3 attempts have all failed, the consumer MUST store the ORIGINAL unredacted content (durability of REQ-T-001 takes precedence over redaction success). On final failure, the consumer MUST append one JSONL line of the form {\"timestamp_utc\": \"...\", \"mongo_id\": \"<inserted_id>\", \"error\": \"<terse cause>\"} to the consumer error file at %TEMP%/chathealthy_consumer_errors.log, capturing the ObjectId returned by the Mongo insert so the failed record can be located operationally.",
+                          "name": "The archive conforms to its schema",
+                          "requirement": "Every record in the conversation archive MUST validate against the normative schema that governs it.",
                           "priority": "must-have",
-                          "status": "in_progress",
-                          "depends_on": [],
-                          "approval": "approved",
-                          "tests": {
-                            "test": [
-                              {
-                                "orphan": true,
-                                "test_type": "ORPHAN",
-                                "file": "ORPHAN"
-                              }
-                            ]
-                          }
-                        },
-                        {
-                          "req_id": "EPIC-008-F-013-S-003-REQ-T-004",
-                          "orphan": false,
-                          "name": "Consumer redacts profanity in content via model-based redaction with fail-open fallback",
-                          "requirement": "Before inserting a record into ClaudeCodeLog.conversation_log_archive, the conversation_log consumer MUST submit the content field to a model-based profanity-redaction step (not regex). The redaction step MUST replace profanity and vulgar language with the literal marker [expletive deleted] and MUST leave all other text exactly as-is. The redaction engine MUST be an LLM call (currently gpt-4.1-mini). The redaction MUST be a single attempt with no retries. If the redaction call fails or returns an error, the consumer MUST fall back to storing the unredacted content rather than dropping the message; the durability obligation of REQ-T-001 takes precedence over redaction success. Profanity redaction MUST run AFTER credentials redaction, so that if credentials redaction substituted any markers, profanity redaction operates on the already-credentials-handled content.",
-                          "priority": "must-have",
-                          "status": "in_progress",
+                          "status": "done",
                           "depends_on": [],
                           "approval": "approved",
                           "tests": {

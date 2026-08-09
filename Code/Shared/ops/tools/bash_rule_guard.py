@@ -87,7 +87,6 @@ BASH_ALLOWED = [
     r"create_hf_space\.py",
     r"delete_hf_space\.py",
     r"kill_zombies\.py",
-    r"bump_build\.py",
     # Timeout wrapper
     r"^timeout\s+\d+\s+python\s+-c",
     # Background task output reading

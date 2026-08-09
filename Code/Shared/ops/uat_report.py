@@ -90,7 +90,7 @@ def build_uat_welcome(get_db_fn=None) -> str:
     db = get_db_fn() if get_db_fn else None
     build = "?"
     if db:
-        # Per Rule-063 + BUG-001: read from canonical
+        # Per BUG-001: read from canonical
         # admin.Versions (latest record), not the legacy per-env build_counter.
         try:
             record = db["admin"]["Versions"].find_one(sort=[("from", -1)])

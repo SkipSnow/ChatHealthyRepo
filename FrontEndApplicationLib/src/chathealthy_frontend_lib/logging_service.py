@@ -113,7 +113,7 @@ def bind_user_object_to_log(user_object: Any) -> None:
 # writing to a closed stderr during teardown is just as unwanted as it is in
 # Mongo. No trailing dots: records logged under the bare name "pymongo" slip
 # past a "pymongo." prefix.
-_NOISE_PREFIXES = ("pymongo", "azure", "urllib3", "msal")
+_NOISE_PREFIXES = ("pymongo", "azure", "urllib3", "msal", "httpcore", "httpx", "openai")
 
 
 def _noise_filter(r: logging.LogRecord) -> bool:
@@ -134,6 +134,11 @@ _mongo_log_identity: Optional[str] = None
 # component writes to this single collection and distinguishes itself by the
 # env, component and job_id FIELDS on each record.
 LOG_COLLECTION = "Log"
+# The log database is a DEPLOYED fact, read from the environment. There is no
+# argument and no setter: a caller that could choose its own log destination
+# could quietly write the record somewhere nobody reads, and the loss would be
+# invisible. Absent or unreachable is fatal, never a fallback.
+LOG_DB_ENV_VAR = "CH_LOG_DB"
 
 
 def set_mongo_log_identity(identity: str) -> None:
@@ -208,6 +213,19 @@ class _MongoLogHandler(logging.Handler):
         super().__init__()
         self._env = env
         self._target = target
+        # Deployed fact. No argument, no default: if the deployment did not
+        # say where logs go, this process must not start pretending it logged.
+        self._log_db = os.environ.get(LOG_DB_ENV_VAR, "").strip()
+        if not self._log_db:
+            raise ChatHealthyException(
+                mode="log_db_not_configured",
+                component="ChatHealthyLoggingService",
+                message=(
+                    f"{LOG_DB_ENV_VAR} is not set. The log database is a deployed "
+                    "fact and has no default; a process that cannot name its log "
+                    "destination MUST NOT run."
+                ),
+            )
         self._coll = None  # lazy - connect on first emit
         self._lock = threading.Lock()
         # Re-entrancy guard: any log records produced by code we call
@@ -220,6 +238,36 @@ class _MongoLogHandler(logging.Handler):
         # azure.core.pipeline.policies.http_logging_policy noise which
         # would otherwise flood Log_dev with per-HTTP-request docs.
         self.addFilter(_noise_filter)
+        self._prove_writable()
+
+    def _prove_writable(self) -> None:
+        """Connect and write one real record, now, at construction.
+
+        A log handler that cannot write is worse than no handler: the process
+        runs, believes it is logging, and leaves no trace of what it did. So
+        the write is proven at startup rather than discovered later. Uses the
+        normal emit path so the probe record conforms to the same schema as
+        every other record. Failure raises; the caller treats it as fatal.
+        """
+        try:
+            self.emit(logging.LogRecord(
+                name="ChatHealthyLoggingService", level=logging.INFO,
+                pathname=__file__, lineno=0,
+                msg="log handler initialised: db=%s target=%s env=%s",
+                args=(self._log_db, self._target, self._env),
+                exc_info=None,
+            ))
+        except Exception as exc:
+            raise ChatHealthyException(
+                mode="log_db_unwritable",
+                component="ChatHealthyLoggingService",
+                message=(
+                    f"Cannot write to log database {self._log_db!r}: "
+                    f"{type(exc).__name__}: {exc}. A process that cannot record "
+                    "what it does MUST NOT run."
+                ),
+                exception=exc,
+            ) from exc
 
     def _get_coll(self):
         if self._coll is None:
@@ -242,7 +290,7 @@ class _MongoLogHandler(logging.Handler):
                     # A per-env collection duplicates the env field and makes
                     # "what happened during run X" unanswerable across
                     # components.
-                    self._coll = raw_client["Pipelines"][LOG_COLLECTION]
+                    self._coll = raw_client[self._log_db][LOG_COLLECTION]
         return self._coll
 
     def emit(self, record: logging.LogRecord) -> None:
@@ -464,6 +512,14 @@ class ChatHealthyLoggingService:
                     component="ChatHealthyLoggingService",
                 )
             kw["exc_info"] = (type(exc), exc, exc.__traceback__)
+        # if_not_debug_log means "this record is only interesting when
+        # debugging" (EPIC-008-F-002-S-009-REQ-B-008, Mode 1: expected,
+        # recovered from, user sees nothing). It was accepted by every log
+        # method, threaded down here, and never read -- so 73 call sites that
+        # believed they were quiet have been emitting at INFO in production.
+        # Demoting to DEBUG is what makes the flag mean what it says.
+        if if_not_debug_log and level > logging.DEBUG:
+            level = logging.DEBUG
         kw.setdefault("stacklevel", 3)
         logging.getLogger().log(level, msg, *args, **kw)
 

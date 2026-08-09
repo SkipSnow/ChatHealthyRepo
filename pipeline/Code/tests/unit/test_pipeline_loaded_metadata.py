@@ -18,7 +18,7 @@ import pytest
 # All pipeline metadata lives in one database. This runbook ships to Azure
 # Automation standalone, so it carries the constant rather than importing
 # pipeline_db, which is not deployed alongside it.
-METADATA_DB = "Pipelines"
+PIPELINE_ADMIN_DB = "pipelineAdmin"
 
 
 
@@ -73,7 +73,7 @@ def test_should_skip_reads_row_count_from_registry_public_data_db():
     reg = _registry(pipeline, public_data_db="PublicHealthData")
 
     # Prior successful load metadata on the frontend cluster.
-    frontend[METADATA_DB]["pipeline.loaded_metadata"].insert_one({
+    frontend[PIPELINE_ADMIN_DB]["pipeline.loaded_metadata"].insert_one({
         "_id": "SpecialtyMetaData_v_3",
         "source_hash": "abc123",
         "operationally_fit": True,
@@ -103,7 +103,7 @@ def test_should_skip_forces_reload_when_registry_db_row_count_drifts():
     frontend = mongomock.MongoClient()
     reg = _registry(pipeline, public_data_db="PublicHealthData")
 
-    frontend[METADATA_DB]["pipeline.loaded_metadata"].insert_one({
+    frontend[PIPELINE_ADMIN_DB]["pipeline.loaded_metadata"].insert_one({
         "_id": "SpecialtyMetaData_v_3",
         "source_hash": "abc123",
         "operationally_fit": True,
@@ -132,7 +132,7 @@ def test_should_skip_forces_reload_when_collection_absent_on_registry_db():
     frontend = mongomock.MongoClient()
     reg = _registry(pipeline, public_data_db="PublicHealthData")
 
-    frontend[METADATA_DB]["pipeline.loaded_metadata"].insert_one({
+    frontend[PIPELINE_ADMIN_DB]["pipeline.loaded_metadata"].insert_one({
         "_id": "SpecialtyMetaData_v_3",
         "source_hash": "abc123",
         "operationally_fit": True,

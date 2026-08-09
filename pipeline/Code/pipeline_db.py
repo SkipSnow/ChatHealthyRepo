@@ -79,7 +79,7 @@ def get_db(env_prefix: str = None):
 # counters, fatal records, load state -- lives in this one database and nowhere
 # else. Physical pipeline DATA (provider collections, staging) is separate and
 # lives on the pipelines target.
-METADATA_DB = "Pipelines"
+PIPELINE_ADMIN_DB = "pipelineAdmin"
 
 
 def get_metadata_db():
@@ -89,4 +89,4 @@ def get_metadata_db():
     be readable while the data factory is asleep -- notably so that "factory
     unreachable" can itself be reported.
     """
-    return get_mongo("admin")[METADATA_DB]
+    return get_mongo("admin")[PIPELINE_ADMIN_DB]

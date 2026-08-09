@@ -88,7 +88,7 @@ def get_db():
     try:
         if db_manager is None:
             db_manager = ChatHealthyMongoUtilities()
-        return db_manager.getConnection("pipelineEditor", "frontEnd")
+        return db_manager.getConnection("frontendUser", "frontEnd")
     except Exception as e:
         # Mode 1 (REQ-B-008): recoverable — caller's next call will retry
         # via the same lazy-init path. log.info + default if_not_debug_log
@@ -298,7 +298,7 @@ async def fatal(request: Request, exc: Exception):
 # transient runtime blips; only the startup probe is mandatory-loud.
 if mongo_frontend_str:
     _startup_db_probe = ChatHealthyMongoUtilities()
-    _startup_db_probe.getConnection("pipelineEditor", "frontEnd").admin.command("ping")
+    _startup_db_probe.getConnection("frontendUser", "frontEnd").admin.command("ping")
     log.info("FindCare backend Mongo startup probe: ping OK")
 else:
     log.critical(

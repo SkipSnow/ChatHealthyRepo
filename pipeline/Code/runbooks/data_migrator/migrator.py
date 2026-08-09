@@ -66,7 +66,7 @@ from datetime import datetime, timezone
 import requests
 from pymongo import MongoClient, InsertOne
 from requests.auth import HTTPDigestAuth
-from pipeline_db import METADATA_DB
+from pipeline_db import PIPELINE_ADMIN_DB
 
 try:
     import automationassets
@@ -301,7 +301,7 @@ def _frontend_admin_coll():
     # Lifecycle records are operational, and must be readable while the
     # source factory is asleep -- which is exactly when this job consults them.
     fe = ChatHealthyMongoUtilities().getConnection("dataTransferAgent", "admin")
-    return fe[METADATA_DB]["cluster_lifecycle"]
+    return fe[PIPELINE_ADMIN_DB]["cluster_lifecycle"]
 
 
 def _reserve_source(cluster_name: str, job_id: str, duration_minutes: int) -> None:

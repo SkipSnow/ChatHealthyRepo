@@ -12,7 +12,7 @@ Package layout:
 Only the current build lives on disk; localBuild/ is gitignored. The
 build_number comes from admin.Versions.latest.builds[env=dev].build on
 the front-end cluster (auto-incremented on every non-deploy commit by
-Rule-063) and is stamped into manifest.json. No secret VALUES are
+see DeploymentArchitectureDesignAndMigrationPlanPhase_v14.docx section 2.1 build_chathealthy.py) and is stamped into manifest.json. No secret VALUES are
 written into any file in the package; only names+stores appear in
 manifest.json. local_deploy reads from this tree.
 

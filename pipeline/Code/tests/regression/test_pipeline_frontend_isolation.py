@@ -67,7 +67,7 @@ def test_pipeline_user_can_write_to_pipeline_cluster_coord_db(pipeline_uri):
     from pymongo import MongoClient
     c = MongoClient(pipeline_uri, serverSelectionTimeoutMS=8000)
     test_id = f"iso_test_{uuid.uuid4().hex[:8]}"
-    coll = c["Pipelines"]["_isolation_test"]
+    coll = c["pipelineAdmin"]["_isolation_test"]
     r = coll.insert_one({
         "_id": test_id,
         "created_at": datetime.datetime.utcnow().isoformat(),

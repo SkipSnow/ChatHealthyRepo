@@ -53,7 +53,7 @@ import urllib.request
 # All pipeline metadata lives in one database. This runbook ships to Azure
 # Automation standalone, so it carries the constant rather than importing
 # pipeline_db, which is not deployed alongside it.
-METADATA_DB = "Pipelines"
+PIPELINE_ADMIN_DB = "pipelineAdmin"
 
 
 
@@ -489,7 +489,7 @@ def _reservation_still_live(mongo, run_id: str) -> bool:
     reservation was reaped; err safe by returning False so subsequent
     manifest/heartbeat/grace checks decide."""
     now = datetime.datetime.utcnow()
-    coll = mongo[METADATA_DB]["cluster_lifecycle"]
+    coll = mongo[PIPELINE_ADMIN_DB]["cluster_lifecycle"]
     r = coll.find_one({"_id": run_id})
     if not r:
         return False
@@ -507,7 +507,7 @@ def _reservation_still_live(mongo, run_id: str) -> bool:
 
 
 def _run_manifest(mongo, run_id: str) -> dict | None:
-    return mongo[METADATA_DB]["pipeline.runs"].find_one(
+    return mongo[PIPELINE_ADMIN_DB]["pipeline.runs"].find_one(
         {"run_id": run_id}
     )
 

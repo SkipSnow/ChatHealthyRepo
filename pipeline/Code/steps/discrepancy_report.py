@@ -25,7 +25,7 @@ from chathealthy_frontend_lib.logging_service import (
 from chathealthy_frontend_lib.exceptions import ChatHealthyException
 from chathealthy_frontend_lib.mongo_utilities import ChatHealthyMongoUtilities
 
-from pipeline_db import METADATA_DB
+from pipeline_db import PIPELINE_ADMIN_DB
 
 # All discrepancy metadata lives in one collection in one database.
 DISCREPANCIES_COLLECTION = "pipeline.discrepancy_reports"
@@ -139,7 +139,7 @@ class DiscrepancyReport:
                 mode="config_error",
                 message=(
                     f"no {PIPELINE_CONFIG_COLLECTION} document for "
-                    f"{self.pipeline_name!r} in {METADATA_DB}"
+                    f"{self.pipeline_name!r} in {PIPELINE_ADMIN_DB}"
                 ),
                 component="DiscrepancyReport",
             )
@@ -238,7 +238,7 @@ class DiscrepancyReport:
                 level_enum = discrepancy_level
 
             disc_dict = self._build_discrepancy_dict(level_enum, explanation, source_line, npi, field)
-            discs_coll = self.mongo_connection[METADATA_DB][DISCREPANCIES_COLLECTION]
+            discs_coll = self.mongo_connection[PIPELINE_ADMIN_DB][DISCREPANCIES_COLLECTION]
             discs_coll.insert_one(disc_dict)
             return True
         except ChatHealthyException as exc:
@@ -256,7 +256,7 @@ class DiscrepancyReport:
         try:
             if not self.mongo_connection:
                 return -1
-            counters_coll = self.mongo_connection[METADATA_DB][RUN_COUNTERS_COLLECTION]
+            counters_coll = self.mongo_connection[PIPELINE_ADMIN_DB][RUN_COUNTERS_COLLECTION]
             result = counters_coll.find_one_and_update(
                 {"run_id": self.run_id},
                 {"$inc": {"warning_count": 1}},
@@ -279,7 +279,7 @@ class DiscrepancyReport:
         try:
             if not self.mongo_connection:
                 return -1
-            counters_coll = self.mongo_connection[METADATA_DB][RUN_COUNTERS_COLLECTION]
+            counters_coll = self.mongo_connection[PIPELINE_ADMIN_DB][RUN_COUNTERS_COLLECTION]
             result = counters_coll.find_one_and_update(
                 {"run_id": self.run_id},
                 {"$inc": {"error_count": 1}},
@@ -302,7 +302,7 @@ class DiscrepancyReport:
         try:
             if not self.mongo_connection:
                 return {"warning_count": 0, "error_count": 0}
-            counters_coll = self.mongo_connection[METADATA_DB][RUN_COUNTERS_COLLECTION]
+            counters_coll = self.mongo_connection[PIPELINE_ADMIN_DB][RUN_COUNTERS_COLLECTION]
             result = counters_coll.find_one({"run_id": self.run_id})
             if not result:
                 return {"warning_count": 0, "error_count": 0}
@@ -328,7 +328,7 @@ class DiscrepancyReport:
             if not self.mongo_connection:
                 return False
 
-            reports_coll = self.mongo_connection[METADATA_DB][DISCREPANCIES_COLLECTION]
+            reports_coll = self.mongo_connection[PIPELINE_ADMIN_DB][DISCREPANCIES_COLLECTION]
             all_reports = list(reports_coll.find({"run_id": self.run_id}))
 
             if not all_reports:
@@ -361,7 +361,7 @@ class DiscrepancyReport:
             end_time = datetime.now(timezone.utc).isoformat()
             # Count actual warning/error documents from MongoDB - must query every time
             discs_coll_name = DISCREPANCIES_COLLECTION
-            discs_coll = self.mongo_connection[METADATA_DB][discs_coll_name]
+            discs_coll = self.mongo_connection[PIPELINE_ADMIN_DB][discs_coll_name]
             warning_count = discs_coll.count_documents({"run_id": self.run_id, "level": "warning"})
             error_count = discs_coll.count_documents({"run_id": self.run_id, "level": "error"})
             manifest = {
@@ -493,7 +493,7 @@ class DiscrepancyReport:
             if not self.mongo_connection:
                 return False
 
-            reports_coll = self.mongo_connection[METADATA_DB][DISCREPANCIES_COLLECTION]
+            reports_coll = self.mongo_connection[PIPELINE_ADMIN_DB][DISCREPANCIES_COLLECTION]
             warning_doc = {
                 "run_id": self.run_id,
                 "job_name": job_name,
@@ -551,7 +551,7 @@ class DiscrepancyReport:
             if not self.mongo_connection:
                 return False
 
-            reports_coll = self.mongo_connection[METADATA_DB][DISCREPANCIES_COLLECTION]
+            reports_coll = self.mongo_connection[PIPELINE_ADMIN_DB][DISCREPANCIES_COLLECTION]
             error_doc = {
                 "run_id": self.run_id,
                 "job_name": job_name,
@@ -614,7 +614,7 @@ def fatal_error(
 
         # Query for actual warning/error counts from discrepancy_reports collection
         discs_coll_name = DISCREPANCIES_COLLECTION
-        discs_coll = report.mongo_connection[METADATA_DB][discs_coll_name]
+        discs_coll = report.mongo_connection[PIPELINE_ADMIN_DB][discs_coll_name]
 
         warning_count = discs_coll.count_documents({"run_id": report.run_id, "level": "warning"})
         error_count = discs_coll.count_documents({"run_id": report.run_id, "level": "error"})
@@ -647,7 +647,7 @@ def fatal_error(
         )
 
         # Write fatal error document
-        reports_coll = report.mongo_connection[METADATA_DB][DISCREPANCIES_COLLECTION]
+        reports_coll = report.mongo_connection[PIPELINE_ADMIN_DB][DISCREPANCIES_COLLECTION]
         fatal_doc = {
             "run_id": report.run_id,
             "job_name": report.pipeline_name,
@@ -736,7 +736,7 @@ def createWarning(
         if not report.mongo_connection:
             return False
 
-        reports_coll = report.mongo_connection[METADATA_DB][DISCREPANCIES_COLLECTION]
+        reports_coll = report.mongo_connection[PIPELINE_ADMIN_DB][DISCREPANCIES_COLLECTION]
         warning_doc = {
             "run_id": report.run_id,
             "job_name": job_name,
@@ -786,7 +786,7 @@ def CreateNonFatalError(
         if not report.mongo_connection:
             return False
 
-        reports_coll = report.mongo_connection[METADATA_DB][DISCREPANCIES_COLLECTION]
+        reports_coll = report.mongo_connection[PIPELINE_ADMIN_DB][DISCREPANCIES_COLLECTION]
         error_doc = {
             "run_id": report.run_id,
             "job_name": job_name,
@@ -864,7 +864,7 @@ def emit_discrepancy_report(
         report.mongo_connection = pipeline_mongo
 
         # Count discrepancies
-        discrepancies_coll = pipeline_mongo[METADATA_DB][DISCREPANCIES_COLLECTION]
+        discrepancies_coll = pipeline_mongo[PIPELINE_ADMIN_DB][DISCREPANCIES_COLLECTION]
         total = discrepancies_coll.count_documents({"run_id": run_id})
 
         # Send email if operator email is set

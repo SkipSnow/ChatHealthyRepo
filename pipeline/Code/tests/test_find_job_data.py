@@ -15,7 +15,7 @@ def test_find_job_data():
     assert client, "Could not get pipeline MongoDB connection"
     try:
         # Look in Pipelines metadata database
-        db = client["Pipelines"]
+        db = client["pipelineAdmin"]
 
         print(f"\n✓ Checking Pipelines metadata database...")
 

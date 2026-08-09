@@ -16,6 +16,11 @@ StepContext whose config["partition"] carries the PART_* values.
 from __future__ import annotations
 from chathealthy_frontend_lib.logging_service import ChatHealthyLoggingService
 from chathealthy_frontend_lib.exceptions import ChatHealthyException
+from pipeline_fatal_recorder import is_log_db_fatal
+from pipeline_db import PIPELINE_ADMIN_DB, get_frontend_mongo
+
+# Distinct from a step failure: the logging substrate never came up.
+EXIT_LOG_DB_FATAL = 78
 
 import argparse
 import os
@@ -71,26 +76,62 @@ def main(argv: list[str] | None = None) -> int:
     if not ns.step:
         raise ChatHealthyException(mode="value_error", message="worker_runner: --step or PIPELINE_STEP env var required")
 
-    load_pipeline_env()
+    # Every exit path reports to the Controller. A Worker NEVER declares a run
+    # fatal -- it states what happened to its own work item and stops. The
+    # Controller reads these and decides. The report is in a finally because
+    # the failure that matters most (the logging substrate refusing to start)
+    # can happen before the step ever runs, and a silently dead subprocess is
+    # the one outcome the Controller cannot act on.
+    status, reason, detail = "failed", "worker_died_without_reporting", ""
+    try:
+        load_pipeline_env()
 
-    args = PipelineArgs(
-        states=_states_list(ns.states),
-        env_prefix=ns.env_prefix,
-        run_id=ns.run_id,
-    )
-    manifest = RunManifest.new("provider", args)
-    partition = _partition_from_env()
+        args = PipelineArgs(
+            states=_states_list(ns.states),
+            env_prefix=ns.env_prefix,
+            run_id=ns.run_id,
+        )
+        manifest = RunManifest.new("provider", args)
+        partition = _partition_from_env()
 
-    ctx = StepContext(
-        args=args,
-        manifest=manifest,
-        config={"partition": partition},
-        mongo_client=get_mongo(),
-        blob_client=get_blob_service(),
-    )
-    runner = get_runner(ns.step)
-    result = runner(ctx)
-    return 0
+        ctx = StepContext(
+            args=args,
+            manifest=manifest,
+            config={"partition": partition},
+            mongo_client=get_mongo(),
+            blob_client=get_blob_service(),
+        )
+        runner = get_runner(ns.step)
+        result = runner(ctx)
+        status, reason, detail = "succeeded", "", ""
+        return 0
+    except ChatHealthyException as exc:
+        reason = f"log_db_fatal:{exc.mode}" if is_log_db_fatal(exc) else str(exc.mode)
+        detail = str(exc)[:500]
+        if is_log_db_fatal(exc):
+            return EXIT_LOG_DB_FATAL
+        raise
+    except Exception as exc:
+        reason, detail = type(exc).__name__, str(exc)[:500]
+        raise
+    finally:
+        _report_to_controller(ns.run_id, ns.step, status, reason, detail)
+
+
+def _report_to_controller(run_id, step, status: str, reason: str, detail: str) -> None:
+    """State this work item's outcome where the Controller reads it.
+
+    Never raises. The Worker is already on its way out; an exception here
+    would replace the real reason with this function's own failure.
+    """
+    try:
+        wi = get_frontend_mongo()[PIPELINE_ADMIN_DB]["pipeline.work_items"]
+        wi.update_one(
+            {"run_id": run_id, "step": step or os.environ.get("PIPELINE_STEP")},
+            {"$set": {"status": status, "reason": reason, "detail": detail}},
+        )
+    except Exception:
+        pass
 
 
 if __name__ == "__main__":

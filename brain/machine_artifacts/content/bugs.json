@@ -147,6 +147,51 @@
         "Replace the wholesale subtree-copy mechanism with an explicit per-target file list driven by deployment_architecture.json. The build stages only what the manifest enumerates for that target.",
         "Implement, then bring this bug to closed."
       ]
+    },
+    {
+      "bugid": "BUG-003",
+      "title": "Eleven LLM call sites bypass the pydantic-ai facade and call vendor SDKs directly",
+      "description": "ChatHealthy has an LLM facade at FrontEndApplicationLib/src/chathealthy_frontend_lib/llm.py, built on pydantic-ai. Eight files route through it: utterance_manager.py, find_specialists.py, nucc_llm.py, geo_extractor.py, chathealthy_tool.py, other_identifier_phrases_engine.py, app.py, and llm.py itself.\n\nEleven other call sites bypass it, constructing vendor SDK clients directly and calling client.messages.create (Anthropic) or client.chat.completions.create (OpenAI).\n\nCONSEQUENCES:\n(1) The model is a hardcoded literal at each site, so changing models is an eleven-place edit rather than one config change.\n(2) The llm_unavailable ChatHealthyException mode introduced with the facade does not apply, so each site invents its own failure handling.\n(3) Vendor choice is made per call site rather than architecturally.\n(4) There is no single place to add retry, timeout, cost accounting, or model pinning.\n\nTHE ELEVEN SITES: FindCare/SpecialtyFilter/filter.py:122 and :206 (OpenAI); Code/ConversationalUX/FindCareChat/backend/app.py:949 and :979 (OpenAI); Code/ConversationalUX/FindCareChat/backend/domain/find_care/homeopathic_resolver.py:135 (Anthropic); Code/ConversationalUX/FindCareChat/backend/domain/shared/consent/consent_service.py:41 and :75 (Anthropic); Code/ConversationalUX/FindCareChat/backend/domain/shared/safety/safety_service.py:69 (OpenAI); Code/ConversationalUX/FindCareChat/backend/infrastructure/embeddings/embedding_client.py:62 (OpenAI); Code/Shared/llm_client.py:123 and :185 (both).",
+      "environments": [
+        "local",
+        "dev",
+        "qa",
+        "prod"
+      ],
+      "status": "new",
+      "severity": "medium",
+      "req_id": "ORPHAN",
+      "story_id": "ORPHAN",
+      "test_id": "",
+      "discovery_date": "2026-08-07",
+      "due_date": "",
+      "reproduction": "grep -rn \"messages\\.create\\|chat\\.completions\\.create\" --include=*.py sharedServices FindCare evaluateCare Code FrontEndApplicationLib | grep -v /build/ | grep -v /tests/ -- returns the eleven call sites listed in the description.",
+      "orphan": true,
+      "next_action": [
+        "Close these gaps as per priorities."
+      ]
+    },
+    {
+      "bugid": "BUG-007",
+      "title": "MongoFailure not properly handled by pipelines",
+      "description": "The Controller has no retry policy for a lost MongoDB connection, so a transient outage ends a multi-hour run on the first failure. It then records the fatal reason to MongoDB, which is the resource that just became unavailable, so the run dies with no recorded cause. The DiscrepancyReport MUST survive a Mongo outage, which is always a fatal error.",
+      "environments": [
+        "dev",
+        "qa",
+        "prod"
+      ],
+      "status": "deferred",
+      "severity": "low",
+      "req_id": "ORPHAN",
+      "story_id": "ORPHAN",
+      "test_id": "",
+      "discovery_date": "2026-08-08",
+      "due_date": "",
+      "reproduction": "1. Start a pipeline run. 2. Make the Atlas cluster briefly unreachable to the Controller. 3. Observe the run terminates on the first exception with no retry, and the fatal reason is absent from pipelineAdmin because the quiesce write also failed.",
+      "orphan": true,
+      "next_action": [
+        "Design and implement a solution."
+      ]
     }
   ]
 }

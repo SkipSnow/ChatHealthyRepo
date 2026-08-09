@@ -60,7 +60,7 @@ class HealthEndpoint:
         if self.uri:
             try:
                 from chathealthy_frontend_lib.mongo_utilities import ChatHealthyMongoUtilities
-                client = ChatHealthyMongoUtilities().getConnection("pipelineEditor", "frontEnd")
+                client = ChatHealthyMongoUtilities().getConnection("frontendUser", "frontEnd")
                 mongo_doc = client["admin"]["Versions"].find_one(sort=[("from", -1)]) or {}
                 db_status = "connected"
             except Exception as exc:

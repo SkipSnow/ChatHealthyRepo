@@ -1,0 +1,24 @@
+{
+  "$schema": "https://dev.chathealthy.ai/schemas/ChatHealthyLogServiceConfigSchema.json",
+  "_comment": [
+    "Configuration for ChatHealthyLogService itself. NOT appsettings.json:",
+    "that file is the .NET host's own logging configuration and belongs to the",
+    "framework. This file holds our settings, and ships in the build beside the",
+    "service binary so the deployed configuration is an artifact rather than an",
+    "environment variable someone set by hand.",
+    "",
+    "Edit this file and restart the service. Nothing else needs to change."
+  ],
+  "drain": {
+    "_comment": [
+      "logLevel   INFO for start, stop and anomalies only. DEBUG adds every",
+      "           pass, connection and sweep step.",
+      "logDirectory  Relative to the service binary. 'log' puts the file in a",
+      "           log/ folder of the deployment directory. Never Mongo: the",
+      "           drain's identity cannot write the log database, and a log",
+      "           worth reading does not belong in a collection."
+    ],
+    "logLevel": "INFO",
+    "logDirectory": "log"
+  }
+}

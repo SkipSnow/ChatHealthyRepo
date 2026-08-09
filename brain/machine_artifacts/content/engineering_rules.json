@@ -4,23 +4,23 @@
     "rule": [
       {
         "id": "Rule-001",
-        "name": "Persist Claude conversation events to Kafka",
-        "description": "Every UserPromptSubmit and Stop hook event MUST publish the raw hook payload to the conversation_log Kafka topic via the local producer sidecar so the consumer can persist the conversation between Claude Code and the Cursor user using Claude Code. This rule implements the publish leg of EPIC-008-F-003-S-002.",
+        "name": "Persist Claude conversation events to the local spool",
+        "description": "Every UserPromptSubmit and Stop hook event MUST write its raw payload to the local spool, from which a drain ships it to MongoDB. The hook does no network I/O: it copies bytes to disk and exits, so no remote outage can slow or fail an utterance. The spool is the queue -- durable, with an explicit ack (the file is deleted only after MongoDB confirms the write). Kafka and the HTTP producer sidecar were removed on 2026-08-07: they were two additional components that could be down, and both were, while adding nothing the local filesystem does not already provide for a single workstation. This rule implements the capture leg of EPIC-008-F-013-S-001.",
         "rule_statements": {
           "rule_statement": [
             {
               "statement_number": 1,
-              "statement_body": "On every UserPromptSubmit hook event, the raw hook payload MUST be POSTed to http://127.0.0.1:8100/produce within the hook timeout.",
+              "statement_body": "On every UserPromptSubmit hook event, the raw hook payload MUST be written to the spool at C:\tmp\\ChatHealthySpool as write-<guid>-<time_ns>.txt and then renamed in place to read-<guid>-<time_ns>.txt. The rename is what makes the file visible only once complete. The payload MUST NOT be parsed, and the writer MUST NOT open a network connection.",
               "req_id": "EPIC-008-F-013-S-001-REQ-T-001"
             },
             {
               "statement_number": 2,
-              "statement_body": "On every Stop hook event, the raw hook payload MUST be POSTed to http://127.0.0.1:8100/produce within the hook timeout.",
+              "statement_body": "On every Stop hook event, the raw hook payload MUST be written to the spool by the same mechanism as statement 1.",
               "req_id": "EPIC-008-F-013-S-001-REQ-T-002"
             },
             {
               "statement_number": 3,
-              "statement_body": "If the sidecar is unreachable, a browser must be invoked and a web page must be popped up filling the entire user screen telling the user that there is a problem.",
+              "statement_body": "If the spool cannot be written, a browser MUST be invoked and a viewport-filling page displayed telling the operator the utterance was NOT recorded. Failure to write the spool is the only condition under which an utterance is lost.",
               "req_id": "EPIC-008-F-013-S-001-REQ-B-001"
             }
           ]
@@ -30,18 +30,18 @@
             {
               "enforcement_id": "Rule-001-ENF-001",
               "hook": "UserPromptSubmit",
-              "executable_path": "architecture/Conversation-logPipeline/conversation_log_publisher_worker.py",
+              "executable_path": "architecture/Conversation-logPipeline/conversation_log_writer.py",
               "requires_lock": false,
               "scopes": [],
-              "timeout": 15
+              "timeout": 10
             },
             {
               "enforcement_id": "Rule-001-ENF-002",
               "hook": "Stop",
-              "executable_path": "architecture/Conversation-logPipeline/conversation_log_publisher_worker.py",
+              "executable_path": "architecture/Conversation-logPipeline/conversation_log_writer.py",
               "requires_lock": false,
               "scopes": [],
-              "timeout": 15
+              "timeout": 10
             }
           ]
         }
@@ -54,7 +54,7 @@
           "rule_statement": [
             {
               "statement_number": 1,
-              "statement_body": "On SessionStart and PostCompact, the boot MUST read the 170 most recent utterance documents from MongoDB ClaudeCodeLog.conversation_log_archive, trim each document to {actor, content}, order newest-to-oldest, and emit them as part of the hook's additionalContext so Claude resumes with recent conversation context. If the MongoDB read fails, the boot MUST fail open \u2014 log the failure and continue with remaining duties.",
+              "statement_body": "On SessionStart and PostCompact, the boot MUST read the 170 most recent utterance documents from MongoDB ClaudeCodeLog.conversation_log_archive, trim each document to {actor, content}, order newest-to-oldest, and emit them as part of the hook's additionalContext so Claude resumes with recent conversation context. If the MongoDB read fails, the boot MUST fail open — log the failure and continue with remaining duties.",
               "req_id": "EPIC-008-F-002-S-007-REQ-T-002"
             },
             {
@@ -219,7 +219,7 @@
       {
         "id": "Rule-005",
         "name": "Uniform logging discipline",
-        "description": "Realizes EPIC-008-F-002-S-011 REQs B-002, B-007 (typed exc), and B-010. Four independent AST checks: (a) outside the canonical surface, logging.basicConfig/getLogger and print() are forbidden; (b) the exc= argument passed to any ChatHealthyLoggingService log method MUST be a ChatHealthyException; (c) any function whose body raises a ChatHealthyException MUST NOT call any ChatHealthyLoggingService log method in the same function body; (d) outside the canonical surface, the stdlib `logging` module MUST NOT be imported in any form (`import logging`, `import logging as <alias>`, or `from logging import \u2026`).",
+        "description": "Realizes EPIC-008-F-002-S-011 REQs B-002, B-007 (typed exc), and B-010. Four independent AST checks: (a) outside the canonical surface, logging.basicConfig/getLogger and print() are forbidden; (b) the exc= argument passed to any ChatHealthyLoggingService log method MUST be a ChatHealthyException; (c) any function whose body raises a ChatHealthyException MUST NOT call any ChatHealthyLoggingService log method in the same function body; (d) outside the canonical surface, the stdlib `logging` module MUST NOT be imported in any form (`import logging`, `import logging as <alias>`, or `from logging import …`).",
         "rule_statements": {
           "rule_statement": [
             {
@@ -239,7 +239,7 @@
             },
             {
               "statement_number": 4,
-              "statement_body": "A pre-commit gate MUST scan staged Python files via AST and reject any commit that introduces a NEW import of the stdlib `logging` module outside FrontEndApplicationLib/src/chathealthy_frontend_lib/logging_service.py. Forbidden forms: `import logging`, `import logging as <alias>`, and `from logging import \u2026`. Scope and exclusions match statement 1.",
+              "statement_body": "A pre-commit gate MUST scan staged Python files via AST and reject any commit that introduces a NEW import of the stdlib `logging` module outside FrontEndApplicationLib/src/chathealthy_frontend_lib/logging_service.py. Forbidden forms: `import logging`, `import logging as <alias>`, and `from logging import …`. Scope and exclusions match statement 1.",
               "req_id": "EPIC-008-F-002-S-011-REQ-B-002"
             }
           ]
@@ -626,7 +626,7 @@
       {
         "id": "Rule-066",
         "name": "Build/deploy/promote entry-point uniqueness",
-        "description": "Enforces the unified contract from build_deploy_promote_plan v3: the repository has exactly three operator-facing or CI-facing Python entry points for the build/deploy/promote chain \u2014 build_chathealthy.py, deploy_chathealthy.py, and promote_chathealthy.py. The legacy four-script set (local_build, local_deploy, remote_build, remote_deploy) and the never-existed local_publish are forbidden. All other Python files at the top level of architecture/DevOpsBuildDeployAndEnvironmentManagement/ are imported-only helpers and must NOT carry an `if __name__ == \"__main__\":` block. The pre-commit hook scans every staged path under that directory and rejects on any forbidden name or any disallowed entry-point block.",
+        "description": "Enforces the unified contract from build_deploy_promote_plan v3: the repository has exactly three operator-facing or CI-facing Python entry points for the build/deploy/promote chain — build_chathealthy.py, deploy_chathealthy.py, and promote_chathealthy.py. The legacy four-script set (local_build, local_deploy, remote_build, remote_deploy) and the never-existed local_publish are forbidden. All other Python files at the top level of architecture/DevOpsBuildDeployAndEnvironmentManagement/ are imported-only helpers and must NOT carry an `if __name__ == \"__main__\":` block. The pre-commit hook scans every staged path under that directory and rejects on any forbidden name or any disallowed entry-point block.",
         "rule_statements": {
           "rule_statement": [
             {

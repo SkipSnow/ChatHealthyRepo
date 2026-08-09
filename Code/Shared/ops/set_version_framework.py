@@ -2,20 +2,17 @@
 # Licensed under the FindCare Evaluation License (FEL-1.0).
 """Human-driven update of version and/or framework in admin.Versions.
 
-Per BUG-001 and Rule-063: build is auto-incremented on every
-non-deploy commit. version and framework are set ONLY by humans, only at
+Per BUG-001: build is global, in admin.Versions, and is bumped at build time
+(see DeploymentArchitectureDesignAndMigrationPlanPhase_v14.docx section 2.1 build_chathealthy.py).
+version and framework are set ONLY by humans, only at
 prod UAT sign-off. Claude invokes this routine when the operator authorizes
 a version or framework update.
 
-Pattern matches the post-commit bump:
+Pattern matches the build-time bump in build_chathealthy.py:
     1. Read latest admin.Versions record.
     2. Insert a new record with the supplied version and/or framework, the
        previous `builds` array copied forward unchanged (per-env build slots
        are not touched by this routine), and a fresh `from` timestamp.
-    3. POST {build, version, framework} to the conversation-log producer's
-       /version_bump endpoint so its in-memory static updates. The `build`
-       in that payload is the dev slot, since the producer's static is a
-       single scalar.
 
 Usage:
     python set_version_framework.py --version 0.5.0
@@ -31,6 +28,7 @@ import os
 import sys
 from datetime import datetime, timezone
 
+from chathealthy_frontend_lib.exceptions import ChatHealthyException
 from dotenv import load_dotenv
 from pymongo import MongoClient
 
@@ -39,9 +37,6 @@ load_dotenv(os.path.join(os.path.dirname(__file__), "..", "..", ".env"))
 logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(message)s")
 log = logging.getLogger("set_version_framework")
 
-PRODUCER_URL = os.environ.get(
-    "CONVERSATION_LOG_PRODUCER_URL", "http://127.0.0.1:8100"
-)
 PUSH_TIMEOUT_SECONDS = 5
 
 
@@ -67,7 +62,10 @@ def set_version_framework(version: str | None, framework: str | None) -> dict:
     Returns the inserted record dict (builds, version, framework, from).
     """
     if version is None and framework is None:
-        raise ValueError("must supply at least one of version, framework")
+        raise ChatHealthyException(
+            mode="value_error",
+            component="SetVersionFramework",
+            message="must supply at least one of version, framework")
 
     conn = os.getenv("MONGO_FRONTEND_connectionString")
     if not conn:
@@ -78,16 +76,19 @@ def set_version_framework(version: str | None, framework: str | None) -> dict:
     coll = client["admin"]["Versions"]
     latest = coll.find_one(sort=[("from", -1)])
     if latest is None:
-        raise RuntimeError(
-            "admin.Versions has no records. Run seed_versions_collection.py first."
-        )
+        raise ChatHealthyException(
+            mode="versions_collection_empty",
+            component="SetVersionFramework",
+            message="admin.Versions has no records. Run "
+                    "seed_versions_collection.py first.")
 
     carried_builds = _carry_forward_builds(latest.get("builds", []))
     if not carried_builds:
-        raise RuntimeError(
-            "latest admin.Versions record has no per-env builds array; "
-            "run migrate_versions_to_per_env.py first."
-        )
+        raise ChatHealthyException(
+            mode="versions_record_missing_builds",
+            component="SetVersionFramework",
+            message="latest admin.Versions record has no per-env builds "
+                    "array; run migrate_versions_to_per_env.py first.")
 
     record = {
         "builds": carried_builds,  # preserved
@@ -101,37 +102,6 @@ def set_version_framework(version: str | None, framework: str | None) -> dict:
     return record
 
 
-def push_to_producer(record: dict) -> None:
-    """POST {build, version, framework} to the producer's /version_bump.
-
-    The `build` sent is the dev slot, since the producer maintains a single
-    scalar build in its in-memory static (reader-side concern).
-    """
-    try:
-        import requests
-
-        dev_build = next(
-            (int(b["build"]) for b in record.get("builds", []) if b.get("env") == "dev"),
-            None,
-        )
-        payload = {
-            "build": dev_build,
-            "version": record["version"],
-            "framework": record["framework"],
-        }
-        resp = requests.post(
-            f"{PRODUCER_URL}/version_bump",
-            json=payload,
-            timeout=PUSH_TIMEOUT_SECONDS,
-        )
-        if resp.status_code == 200:
-            log.info("Pushed to producer at %s", PRODUCER_URL)
-        else:
-            log.warning("/version_bump returned %d: %s",
-                        resp.status_code, resp.text[:200])
-    except Exception as exc:
-        log.warning("push to producer failed (non-fatal): %s: %s",
-                    type(exc).__name__, exc)
 
 
 def main():
@@ -146,7 +116,6 @@ def main():
         parser.error("must supply at least one of --version, --framework")
 
     record = set_version_framework(args.version, args.framework)
-    push_to_producer(record)
 
 
 if __name__ == "__main__":

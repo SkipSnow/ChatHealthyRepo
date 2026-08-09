@@ -75,7 +75,7 @@ import requests
 
 from source_url_discovery import find_latest_data_url
 from throttle_semaphore import RateLimitedGate
-from pipeline_db import METADATA_DB
+from pipeline_db import PIPELINE_ADMIN_DB
 
 _log = ChatHealthyLoggingService()
 
@@ -549,7 +549,7 @@ def _persist_versions_to_manifest(
     if mongo is None:
         return
     try:
-        coll = mongo[METADATA_DB]["pipeline.runs"]
+        coll = mongo[PIPELINE_ADMIN_DB]["pipeline.runs"]
         coll.update_one(
             {"run_id": run_id},
             {"$set": {"source_versions": source_versions, "updated_at": _now_iso()}},

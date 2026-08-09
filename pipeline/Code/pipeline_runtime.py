@@ -14,7 +14,7 @@ from typing import Any
 
 from pipeline_config import load_pipeline_config
 from pipeline_dataset_registry import PipelineDatasetRegistry
-from pipeline_db import get_frontend_mongo, get_mongo, METADATA_DB
+from pipeline_db import get_frontend_mongo, get_mongo, PIPELINE_ADMIN_DB
 from staging_loader import staging_collection_name, staging_db_name
 
 
@@ -189,4 +189,4 @@ class PipelineRuntime:
         return self.discrepancies_coll
 
     def reservations_collection(self):
-        return self.frontend[METADATA_DB]["cluster_lifecycle"]
+        return self.frontend[PIPELINE_ADMIN_DB]["cluster_lifecycle"]

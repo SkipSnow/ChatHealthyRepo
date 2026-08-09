@@ -308,7 +308,7 @@ class PromptSystemMaker:
 
     # ------------------------------------------------------------------
     # Build number — from MongoDB
-    # Per Rule-063 + BUG-001: canonical source is the latest
+    # Per BUG-001: canonical source is the latest
     # record in admin.Versions (single global collection). env_prefix is
     # ignored; kept in the signature for backward compatibility.
     # ------------------------------------------------------------------

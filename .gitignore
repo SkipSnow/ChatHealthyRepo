@@ -14,6 +14,9 @@ SourcePropriataryData/
 ~*
 *.tmp
 *.bak
+# timestamped backups: *.bak alone does not match .bak-20260808-143034,
+# which is how four .env copies with live secrets reached the index.
+*.bak-*
 
 *.ipynb
 

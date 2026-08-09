@@ -1022,7 +1022,7 @@ def main():
 
     H(doc, "8.3 findCare/backend/Dockerfile", level=2)
     P(doc, "Build context stays the repo root (per V11 EPIC-008-F-004-S-002-"
-           "REQ-T-001 + BUG-003 #1). COPY paths shift from Code/* to "
+           "REQ-T-001). COPY paths shift from Code/* to "
            "findCare/* and shared/*. The findCare/specialty_filter/ subtree "
            "joins the COPY list so the runtime backend sees the filter Python "
            "module and CSS file.")

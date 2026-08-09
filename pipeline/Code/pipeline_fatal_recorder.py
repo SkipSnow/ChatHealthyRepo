@@ -29,8 +29,18 @@ from chathealthy_frontend_lib.logging_service import ChatHealthyLoggingService
 
 _log = ChatHealthyLoggingService()
 
-FATAL_DISCREPANCIES_DB = "Pipelines"
+FATAL_DISCREPANCIES_DB = "pipelineAdmin"
 FATAL_DISCREPANCIES_COLL = "pipeline.discrepancies"
+
+
+# A process that cannot name or reach its log database has no way to record
+# what it did. It is not allowed to continue and call the run a success.
+LOG_DB_FATAL_MODES = frozenset({"log_db_not_configured", "log_db_unwritable"})
+
+
+def is_log_db_fatal(exc: BaseException) -> bool:
+    """True when exc is the logging substrate refusing to start."""
+    return getattr(exc, "mode", None) in LOG_DB_FATAL_MODES
 
 
 def record_fatal_discrepancy(

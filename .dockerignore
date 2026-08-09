@@ -1,6 +1,6 @@
 # Repo-root .dockerignore
 #
-# Per V11 EPIC-008-F-004 S-002-REQ-T-001 + BUG-003 #1, local backend Docker
+# Per V11 EPIC-008-F-004 S-002-REQ-T-001, local backend Docker
 # builds use the REPO ROOT as the build context (so Dockerfiles can COPY
 # sibling-tree paths like Code/Shared/, Code/evaluate_care/, brain/, etc.).
 # Without this file, Docker would ship the entire 250+ MB tree to the daemon
