@@ -83,38 +83,41 @@ def _resolve_build_sha(repo_root: Path) -> str:
     ).stdout.strip()
 
 
+# The build counter, defined once and imported by build_chathealthy.
+# Not admin: Atlas refuses writes to admin through any custom role, so a
+# counter living there can never be bumped by an identity we are able to
+# define -- it only worked while atlasAdmin accounts existed.
+VERSIONS_DB = "pipelineAdmin"
+VERSIONS_COLLECTION = "Versions"
+
+
+def _versions_collection():
+    """The build counter, as DevOpsUser.
+
+    Building is a devops act. This read used to go through
+    MONGO_FRONTEND_connectionString, the application's credential, which is
+    how making a build succeed turned into widening the front end's grants.
+    """
+    lib_src = _find_repo_root(Path(__file__)) / "FrontEndApplicationLib" / "src"
+    if str(lib_src) not in sys.path:
+        sys.path.insert(0, str(lib_src))
+    from chathealthy_frontend_lib.mongo_utilities import ChatHealthyMongoUtilities
+    return (ChatHealthyMongoUtilities()
+            .getConnection("DevOpsUser", "admin")[VERSIONS_DB][VERSIONS_COLLECTION])
+
+
 def _read_dev_build_number() -> int:
-    """Read the current build counter from admin.Versions on the
-    front-end cluster. One global counter shared across envs per the
-    build_deploy_promote_plan v3 (§3); per-env slots removed."""
-    from dotenv import load_dotenv
-    from pymongo import MongoClient
-
-    repo_root = _find_repo_root(Path(__file__))
-    # Canonical env source per operator directive 2026-08-04: the .env
-    # materialized into <repo>/build/.env at the start of every build.
-    # If that isn't there yet (e.g. called outside a build), fall back
-    # to the working-tree .env at <repo>/.env — the operator's own copy.
-    build_env = repo_root / "build" / ".env"
-    working_tree_env = repo_root / ".env"
-    for candidate in (build_env, working_tree_env):
-        if candidate.is_file():
-            load_dotenv(candidate)
-            break
-
-    conn = os.getenv("MONGO_FRONTEND_connectionString")
-    if not conn:
-        sys.exit(
-            "ERROR: MONGO_FRONTEND_connectionString not found in "
-            f"{build_env} or {working_tree_env}."
-        )
-    coll = MongoClient(conn, serverSelectionTimeoutMS=10000)["admin"]["Versions"]
-    latest = coll.find_one(sort=[("from", -1)])
+    """Read the current build counter. One global counter shared across
+    envs per the build_deploy_promote_plan v3 (§3); per-env slots removed."""
+    latest = _versions_collection().find_one(sort=[("from", -1)])
     if latest is None:
-        sys.exit("ERROR: admin.Versions has no records.")
+        sys.exit(f"ERROR: {VERSIONS_DB}.{VERSIONS_COLLECTION} has no records.")
     build = latest.get("build")
     if build is None:
-        sys.exit("ERROR: admin.Versions latest record has no 'build' field.")
+        sys.exit(
+            f"ERROR: {VERSIONS_DB}.{VERSIONS_COLLECTION} latest record has "
+            f"no 'build' field."
+        )
     return int(build)
 
 
@@ -840,6 +843,77 @@ def _augment_manifest_for_aca(
     )
 
 
+def _build_host_os_process(repo_root: Path, target: TargetRecord, build_dir: Path) -> None:
+    """Stage a target that runs as a process on the host OS.
+
+    The layout beneath build_dir mirrors the repository, because for this
+    target kind the layout IS the contract. The enforcement manager derives
+    its root from its own location (parents[3]), so a manager staged at
+    architecture/EngineeringRuleEnforcement/code/ resolves every worker
+    beneath it with no path rewriting anywhere. Flatten the tree and that
+    property is gone.
+
+    A dotnet_project in the file list is published rather than copied. The
+    service executes build/publish/ChatHealthyLogService.exe; `dotnet build`
+    writes bin/, which is why building repeatedly once changed nothing the
+    service ran.
+    """
+    if build_dir.exists():
+        shutil.rmtree(build_dir, ignore_errors=True)
+    build_dir.mkdir(parents=True)
+
+    projects = [f for f in target.files if f.handler_type == "dotnet_project"]
+    if len(projects) > 1:
+        sys.exit(
+            f"ERROR: host_os_process target {target.target_id!r} declares "
+            f"{len(projects)} dotnet_project files; at most one is supported."
+        )
+
+    staged = 0
+    for f in target.files:
+        if f.handler_type == "dotnet_project":
+            continue
+        src = repo_root / f.source_location
+        if not src.is_file():
+            sys.exit(
+                f"ERROR: missing source file {f.source_location!r} for "
+                f"target {target.target_id!r}."
+            )
+        dst = build_dir / f.source_location
+        dst.parent.mkdir(parents=True, exist_ok=True)
+        shutil.copy2(src, dst)
+        staged += 1
+    _step(f"  staged {staged} file(s), repository layout mirrored")
+
+    if not projects:
+        return
+
+    proj_rel = projects[0].source_location
+    proj_src = repo_root / proj_rel
+    if not proj_src.is_file():
+        sys.exit(f"ERROR: missing dotnet project {proj_rel!r}.")
+    publish_dir = build_dir / Path(proj_rel).parent / "build" / "publish"
+    _step(f"  dotnet publish {Path(proj_rel).name} -> {publish_dir.relative_to(build_dir)}")
+    result = subprocess.run(
+        ["dotnet", "publish", str(proj_src), "-c", "Release",
+         "-o", str(publish_dir), "--nologo", "-v", "quiet"],
+        capture_output=True, text=True,
+    )
+    if result.returncode != 0:
+        sys.exit(
+            f"ERROR: dotnet publish failed for {proj_rel!r} "
+            f"(exit {result.returncode}):\n{result.stdout}\n{result.stderr}"
+        )
+    exe = publish_dir / (Path(proj_rel).stem + ".exe")
+    if not exe.is_file():
+        sys.exit(
+            f"ERROR: dotnet publish produced no {exe.name} in {publish_dir}. "
+            f"The service cannot start from a publish output that has no "
+            f"executable."
+        )
+    _step(f"  published {exe.name} ({exe.stat().st_size / 1024.0:.1f} KB)")
+
+
 def _build_one(repo_root: Path, target: TargetRecord, build_n: int, build_sha: str, build_root_rel: Path | None = None, env: str = "local") -> Path:
     build_dir = _target_build_dir(repo_root, build_n, target.target_id, build_root_rel)
     _step(f"=== {target.target_kind} {target.target_id} -> {build_dir} ===")
@@ -853,6 +927,8 @@ def _build_one(repo_root: Path, target: TargetRecord, build_n: int, build_sha: s
         _build_azure_container_app(repo_root, target, build_dir)
     elif target.target_kind == "azure_automation_runbook":
         _build_azure_automation_runbook(repo_root, target, build_dir)
+    elif target.target_kind == "host_os_process":
+        _build_host_os_process(repo_root, target, build_dir)
     elif target.target_kind in (
         "atlas",
         "azure_resource_group",
@@ -888,6 +964,7 @@ def _build_one(repo_root: Path, target: TargetRecord, build_n: int, build_sha: s
 
 
 _BUILDABLE_KINDS = (
+    "host_os_process",
     "cloudflare_pages_project",
     "hf_space",
     "azure_function_app",
@@ -940,6 +1017,8 @@ def _select_targets(coll: DeploymentCollection, target_arg: str) -> list[TargetR
         return [t for t in coll if t.target_kind == "azure_container_app"]
     if target_arg in ("automation", "azure_automation_runbook"):
         return [t for t in coll if t.target_kind == "azure_automation_runbook"]
+    if target_arg in ("host", "host_os_process"):
+        return [t for t in coll if t.target_kind == "host_os_process"]
     for t in coll:
         if t.target_id == target_arg:
             return [t]

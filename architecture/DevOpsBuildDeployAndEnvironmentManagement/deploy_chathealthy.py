@@ -234,6 +234,37 @@ def _run_tests(env: str, tests: list[str]) -> int:
     return subprocess.run(cmd, env=env_dict).returncode
 
 
+def _is_local_manifest_target(repo_root: Path, target_arg: str) -> bool:
+    """True when --target names a manifest target that binds to env local.
+
+    Group selectors ('all', 'pipeline', 'cloudflare', ...) are never local
+    manifest targets: those mean the stack, and the stack is LocalStandUp's.
+    """
+    import json
+    brain = (repo_root / "brain" / "machine_artifacts" / "content"
+             / "deployment_architecture.json")
+    if not brain.is_file():
+        return False
+    doc = json.loads(brain.read_text(encoding="utf-8"))
+
+    def walk(o):
+        if isinstance(o, dict):
+            if "target_id" in o and "environments" in o:
+                yield o
+            for v in o.values():
+                yield from walk(v)
+        elif isinstance(o, list):
+            for v in o:
+                yield from walk(v)
+
+    for rec in walk(doc):
+        if rec.get("target_id") != target_arg:
+            continue
+        return any(e.get("env_binding") == "local"
+                   for e in rec.get("environments") or [])
+    return False
+
+
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(
         description="Deploy per-target packages: --env local stands up the local "
@@ -297,12 +328,15 @@ def main(argv: list[str] | None = None) -> int:
 
     _enforce_env_branch_check(repo_root, args.env)
 
-    if args.env == "local":
+    if args.env == "local" and not _is_local_manifest_target(repo_root, args.target):
         # LocalStandUp owns the local stack lifecycle (Docker containers
         # + host-OS Website wrapper). It does not consume per-target
-        # manifests; deployment_architecture.json's HF Space targets are
-        # cloud-bound and not env_binding=local. Skip the per-target
-        # staleness gate for local.
+        # manifests, so it runs only when --target does not name one.
+        #
+        # It used to run for every --env local invocation regardless of
+        # --target, on the premise that no manifest target binds to local.
+        # host_os_process targets do, and standing up the whole stack to
+        # install one of them is not what was asked for.
         rc = LocalStandUp().run()
     else:
         target_ids = _collect_target_ids_for_env(repo_root, args.env, args.target)

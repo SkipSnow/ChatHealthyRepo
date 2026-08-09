@@ -2604,12 +2604,70 @@ def deploy_one(
         return deploy_azure_automation_runbook(
             build_dir, target, env, resolver, repo_root, coll,
         )
+    if target_kind == "host_os_process":
+        return deploy_host_os_process(repo_root, build_dir, target, env)
     raise RuntimeError(
         f"target_kind {target_kind!r} not supported in local_deploy."
     )
 
 
+def deploy_host_os_process(
+    repo_root: Path,
+    build_dir: Path,
+    target: TargetRecord,
+    env: str,
+) -> str:
+    """Install a host-OS process target into deploy/<name>/ under the repo.
+
+    Staged inside the repository on purpose. The enforcement manager derives
+    its root from its own location, so a tree that mirrors the repository
+    beneath deploy/ resolves every worker with no path rewriting; and
+    EPIC-008-F-002-S-002 makes the repository the deployment substrate, so a
+    copy under a separate root would contradict it.
+
+    The service binary is not replaced while the service is running: Windows
+    holds the exe open, so the copy would fail halfway and leave a partial
+    install. Stop the service first; this refuses rather than corrupting.
+    """
+    if not build_dir.is_dir():
+        sys.exit(f"ERROR: build dir missing: {build_dir}")
+    dest = repo_root / "deploy" / target.target_id.replace("target_host_local_", "")
+
+    exe_name = "ChatHealthyLogService.exe"
+    running = [p for p in dest.rglob(exe_name) if _file_is_locked(p)]
+    if running:
+        sys.exit(
+            f"ERROR: {exe_name} is locked at {running[0]}, which means the "
+            f"service is still running. Stop ChatHealthyLogService and deploy "
+            f"again; overwriting a running binary leaves a partial install."
+        )
+
+    if dest.exists():
+        shutil.rmtree(dest)
+    shutil.copytree(build_dir, dest)
+    (dest / "log").mkdir(exist_ok=True)
+
+    staged = sum(1 for p in dest.rglob("*") if p.is_file())
+    step(f"  installed {staged} file(s) -> {dest.relative_to(repo_root).as_posix()}")
+    exe = next(iter(dest.rglob(exe_name)), None)
+    if exe is not None:
+        step(f"  service binary: {exe.relative_to(repo_root).as_posix()}")
+        step("  the installed service still points at its existing binary path; "
+             "repointing it is an operator action, not a deploy side effect")
+    return target.target_id
+
+
+def _file_is_locked(path: Path) -> bool:
+    """True when another process holds the file open for execution."""
+    try:
+        with open(path, "ab"):
+            return False
+    except OSError:
+        return True
+
+
 DEPLOYABLE_KINDS = (
+    "host_os_process",
     "cloudflare_pages_project",
     "hf_space",
     "azure_function_app",
@@ -2690,6 +2748,11 @@ def select_target_ids(coll: DeploymentCollection, target_arg: str) -> list[tuple
         return [
             (t.target_id, t.target_kind) for t in coll
             if t.target_kind == "azure_automation_runbook"
+        ]
+    if target_arg in ("host", "host_os_process"):
+        return [
+            (t.target_id, t.target_kind) for t in coll
+            if t.target_kind == "host_os_process"
         ]
     for t in coll:
         if t.target_id == target_arg:
