@@ -169,10 +169,19 @@
                   "items": {
                     "type": "object",
                     "additionalProperties": true,
-                    "required": ["package_id", "kind"],
+                    "required": [
+                      "package_id",
+                      "kind"
+                    ],
                     "properties": {
-                      "package_id": { "type": "string", "minLength": 1 },
-                      "kind": { "type": "string", "minLength": 1 }
+                      "package_id": {
+                        "type": "string",
+                        "minLength": 1
+                      },
+                      "kind": {
+                        "type": "string",
+                        "minLength": 1
+                      }
                     }
                   }
                 },
@@ -1259,7 +1268,7 @@
                 },
                 "handler_type": {
                   "type": "string",
-                  "description": "Closed taxonomy of software handlers that process a file. Source-of-truth for this controlled vocabulary: this schema document itself. Values classify the file's processing class only.",
+                  "description": "Closed taxonomy of software handlers that process a file. Source-of-truth for this controlled vocabulary: this schema document itself. Values classify the file's processing class only. dotnet_source and dotnet_project cover the .NET supervisor shipped with the conversation-log target; calling a .cs file a static_asset misstates what it is.",
                   "enum": [
                     "python_source",
                     "python_test",
@@ -1271,7 +1280,9 @@
                     "markdown",
                     "json",
                     "static_asset",
-                    "cert_or_key"
+                    "cert_or_key",
+                    "dotnet_source",
+                    "dotnet_project"
                   ]
                 },
                 "disposition": {
@@ -1604,7 +1615,10 @@
             "items": {
               "type": "object",
               "additionalProperties": false,
-              "required": ["object_id", "role"],
+              "required": [
+                "object_id",
+                "role"
+              ],
               "properties": {
                 "object_id": {
                   "type": "string",
