@@ -98,3 +98,11 @@ architecture/DevOpsBuildDeployAndEnvironmentManagement/localBuild/
 
 architecture/EngineeringRuleEnforcement/ArchitectureDesignAndAuditDocs/commit_authorization.log
 architecture/EngineeringRuleEnforcement/ArchitectureDesignAndAuditDocs/llm_classify_shell_invocation.cache.json
+
+# Deploy staging. Derived from the authored sources by
+# deploy_chathealthy.py, the same way build/ is. Nothing runs from
+# here yet: the enforcement registry still points at the authored
+# paths, so this tree is currently inert. If the registry is ever
+# repointed at deploy/, whether this tree gets committed becomes a
+# real question -- a fresh clone would need it to exist.
+deploy/

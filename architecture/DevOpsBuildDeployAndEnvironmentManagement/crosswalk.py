@@ -229,36 +229,26 @@ class Crosswalk:
     def check_no_secret_values(
         coll: DeploymentCollection, env_values: set[str]
     ) -> list[str]:
+        # env_values is already the authority: SecretsResolver returns the
+        # values of the keys declared under `# Secrets` in .env, and nothing
+        # else. Every one of them is scanned.
+        #
+        # There was a filter here that dropped needles whose VALUE looked
+        # like a public label -- identifier-shaped, uniformly cased, not
+        # leading with a digit. It could not work, because what a secret is
+        # cannot be read off its bytes. On our own data it was wrong in both
+        # directions at once: it dropped ATLAS_PRIVATE_KEY, a real
+        # credential, for beginning with a letter, while failing to drop the
+        # Azure subscription id it was added to suppress, which begins with
+        # a digit. For a GUID the whole test reduced to the first hex
+        # character. The declaration decides; the value never does.
+        #
+        # It existed because seven identifiers were misfiled as secrets, and
+        # this suppressed the resulting false rejects. They are now declared
+        # `# SecretSafe`, which is the fix the filter was standing in for.
         out: list[str] = []
         sentinel_min = 6
-        candidates: set[str] = set()
-        for v in env_values:
-            if not v or len(v) < sentinel_min:
-                continue
-            # Identifier-shaped tokens that are uniformly cased (all
-            # uppercase OR all lowercase) and use only alnum + underscore
-            # + hyphen are public labels — variable names, DNS labels,
-            # container names. Opaque secrets typically mix case or
-            # contain non-identifier characters. Filter to fire on
-            # secret-shaped payloads only.
-            ident_chars = v.replace("_", "").replace("-", "")
-            if ident_chars.isalnum() and not v[0].isdigit() and (
-                v.lower() == v or v.upper() == v
-            ):
-                continue
-            # Public-format values (URLs, semver, email) are addresses by
-            # construction; the spec's leak intent is opaque secret bytes.
-            # Source code references the addresses directly; the values in
-            # `.env` exist to centralize the value, not to hide it.
-            if "://" in v:
-                continue
-            if "@" in v and "." in v.split("@", 1)[1]:
-                continue
-            if v[:1].lower() == "v" and all(
-                c.isdigit() or c == "." for c in v[1:]
-            ):
-                continue
-            candidates.add(v)
+        candidates = {v for v in env_values if v and len(v) >= sentinel_min}
         if not candidates:
             return out
         for record in coll:

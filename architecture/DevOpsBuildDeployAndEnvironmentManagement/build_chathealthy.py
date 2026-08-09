@@ -43,6 +43,9 @@ from _build_chain import (  # noqa: E402
     _build_one,
     _find_repo_root,
     _read_dev_build_number,
+    _versions_collection,
+    VERSIONS_DB,
+    VERSIONS_COLLECTION,
     _resolve_build_sha,
     _select_targets,
     _step,
@@ -57,12 +60,6 @@ from _build_chain import (  # noqa: E402
 VALID_ENVS = ("local", "dev", "qa", "prod")
 _ENV_BRANCH = {"local": "dev", "dev": "dev", "qa": "qa", "prod": "main"}
 
-
-# The build counter. Not admin: Atlas forbids writes there through a
-# custom role, so a counter in admin can never be bumped by an identity
-# we are able to define.
-VERSIONS_DB = "pipelineAdmin"
-VERSIONS_COLLECTION = "Versions"
 
 def _materialize_env_file(env: str, canonical_repo: Path, build_dir: Path) -> Path:
     """Write the .env this build/deploy will use to <build_dir>/.env,
@@ -87,6 +84,13 @@ def _materialize_env_file(env: str, canonical_repo: Path, build_dir: Path) -> Pa
             sys.exit(f"ERROR: --env local requires {src}; not found.")
         shutil.copy2(src, dst)
         _step(f"materialised {dst} from working-tree .env")
+        # Same as the cloud branch below: the materialised file is the .env
+        # this build uses, so it belongs in the environment. Without this,
+        # --env local copied the file and then ran with none of it loaded,
+        # and anything reading KEY_VAULT_URI failed on a build whose .env
+        # was sitting right there.
+        from dotenv import load_dotenv
+        load_dotenv(dst, override=False)
         return dst
     # cloud env: pull env-file from KV, decode gz:<base64>, write to dst.
     import base64, gzip
