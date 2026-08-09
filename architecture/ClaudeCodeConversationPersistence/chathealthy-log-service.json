@@ -1,7 +1,7 @@
 {
   "$schema": "https://dev.chathealthy.ai/schemas/ChatHealthyLogServiceConfigSchema.json",
   "_comment": [
-    "Configuration for ChatHealthyLogService itself. NOT appsettings.json:",
+    "Configuration for ClaudeCodeConversationPersistenceService itself. NOT appsettings.json:",
     "that file is the .NET host's own logging configuration and belongs to the",
     "framework. This file holds our settings, and ships in the build beside the",
     "service binary so the deployed configuration is an artifact rather than an",

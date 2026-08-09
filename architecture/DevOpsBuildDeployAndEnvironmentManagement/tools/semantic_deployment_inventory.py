@@ -277,7 +277,7 @@ def workstation_ship_globs() -> list[str]:
     return [
         "architecture/DevOpsBuildDeployAndEnvironmentManagement/**",
         "architecture/EngineeringRuleEnforcement/**",
-        "architecture/Conversation-logPipeline/**",
+        "architecture/ClaudeCodeConversationPersistence/**",
         "architecture/FindCare/**",
         "architecture/CommonFrontEndFeatures/**",
         "architecture/Testing/**",
@@ -642,7 +642,7 @@ def build_target_specs(tracked: set[str]) -> dict[str, TargetAnalysisSpec]:
             path_roots=[
                 "architecture/DevOpsBuildDeployAndEnvironmentManagement",
                 "architecture/EngineeringRuleEnforcement/code",
-                "architecture/Conversation-logPipeline",
+                "architecture/ClaudeCodeConversationPersistence",
                 "Code/Shared/ops/tools",
                 "Code/Shared",
             ],

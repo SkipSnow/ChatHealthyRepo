@@ -8,7 +8,7 @@
             "type": "process",
             "args": [
                 "build",
-                "${workspaceFolder}/architecture/Conversation-logPipeline/ChatHealthyLogService.csproj",
+                "${workspaceFolder}/architecture/ClaudeCodeConversationPersistence/ClaudeCodeConversationPersistenceService.csproj",
                 "/property:GenerateFullPaths=true",
                 "/consoleloggerparameters:NoSummary;ForceNoAlign"
             ],
@@ -20,7 +20,7 @@
             "type": "process",
             "args": [
                 "publish",
-                "${workspaceFolder}/architecture/Conversation-logPipeline/ChatHealthyLogService.csproj",
+                "${workspaceFolder}/architecture/ClaudeCodeConversationPersistence/ClaudeCodeConversationPersistenceService.csproj",
                 "/property:GenerateFullPaths=true",
                 "/consoleloggerparameters:NoSummary;ForceNoAlign"
             ],
@@ -34,7 +34,7 @@
                 "watch",
                 "run",
                 "--project",
-                "${workspaceFolder}/architecture/Conversation-logPipeline/ChatHealthyLogService.csproj"
+                "${workspaceFolder}/architecture/ClaudeCodeConversationPersistence/ClaudeCodeConversationPersistenceService.csproj"
             ],
             "problemMatcher": "$msCompile"
         }

@@ -2633,12 +2633,23 @@ def deploy_host_os_process(
         sys.exit(f"ERROR: build dir missing: {build_dir}")
     dest = repo_root / "deploy" / target.target_id.replace("target_host_local_", "")
 
-    exe_name = "ChatHealthyLogService.exe"
+    # Derived from the declared dotnet_project, never spelled out here: the
+    # exe is named after the project, so a rename that touches one and not
+    # the other is not expressible.
+    projects = [f for f in target.files if f.handler_type == "dotnet_project"]
+    exe_name = (Path(projects[0].source_location).stem + ".exe") if projects else None
+    if exe_name is None:
+        if dest.exists():
+            shutil.rmtree(dest)
+        shutil.copytree(build_dir, dest)
+        step(f"  installed {sum(1 for p in dest.rglob('*') if p.is_file())} file(s) "
+             f"-> {dest.relative_to(repo_root).as_posix()}")
+        return target.target_id
     running = [p for p in dest.rglob(exe_name) if _file_is_locked(p)]
     if running:
         sys.exit(
             f"ERROR: {exe_name} is locked at {running[0]}, which means the "
-            f"service is still running. Stop ChatHealthyLogService and deploy "
+            f"service is still running. Stop ClaudeCodeConversationPersistenceService and deploy "
             f"again; overwriting a running binary leaves a partial install."
         )
 

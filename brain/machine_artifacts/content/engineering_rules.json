@@ -30,7 +30,7 @@
             {
               "enforcement_id": "Rule-001-ENF-001",
               "hook": "UserPromptSubmit",
-              "executable_path": "architecture/Conversation-logPipeline/conversation_log_writer.py",
+              "executable_path": "architecture/ClaudeCodeConversationPersistence/conversation_log_writer.py",
               "requires_lock": false,
               "scopes": [],
               "timeout": 10
@@ -38,7 +38,7 @@
             {
               "enforcement_id": "Rule-001-ENF-002",
               "hook": "Stop",
-              "executable_path": "architecture/Conversation-logPipeline/conversation_log_writer.py",
+              "executable_path": "architecture/ClaudeCodeConversationPersistence/conversation_log_writer.py",
               "requires_lock": false,
               "scopes": [],
               "timeout": 10
@@ -450,9 +450,9 @@
                     ".claude/settings.json",
                     ".claude/settings.local.json",
                     "pipeline/Code/host.json",
-                    "architecture/Conversation-logPipeline/appsettings.json",
-                    "architecture/Conversation-logPipeline/appsettings.Development.json",
-                    "architecture/Conversation-logPipeline/Properties/launchSettings.json",
+                    "architecture/ClaudeCodeConversationPersistence/appsettings.json",
+                    "architecture/ClaudeCodeConversationPersistence/appsettings.Development.json",
+                    "architecture/ClaudeCodeConversationPersistence/Properties/launchSettings.json",
                     "FindCare/architectureAndDesign/EPIC-006-F-025-baseline-record-NPI-1003199654.json"
                   ]
                 ],

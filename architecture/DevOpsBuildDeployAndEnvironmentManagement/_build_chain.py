@@ -854,7 +854,7 @@ def _build_host_os_process(repo_root: Path, target: TargetRecord, build_dir: Pat
     property is gone.
 
     A dotnet_project in the file list is published rather than copied. The
-    service executes build/publish/ChatHealthyLogService.exe; `dotnet build`
+    service executes build/publish/ClaudeCodeConversationPersistenceService.exe; `dotnet build`
     writes bin/, which is why building repeatedly once changed nothing the
     service ran.
     """

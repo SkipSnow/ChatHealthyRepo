@@ -11750,7 +11750,7 @@
                   {
                     "story_id": "EPIC-008-F-002-S-008",
                     "name": "Rule-001 - Persist Claude conversation events to Kafka",
-                    "description": "Catalog entry. Semantic requirements live at EPIC-008-F-013-S-001 (Publisher leg) - REQ-T-001 (UserPromptSubmit publish), REQ-T-002 (Stop publish), REQ-B-001 (sidecar-unreachable fullscreen browser warning). Worker: architecture/Conversation-logPipeline/conversation_log_publisher_worker.py.",
+                    "description": "Catalog entry. Semantic requirements live at EPIC-008-F-013-S-001 (Publisher leg) - REQ-T-001 (UserPromptSubmit publish), REQ-T-002 (Stop publish), REQ-B-001 (sidecar-unreachable fullscreen browser warning). Worker: architecture/ClaudeCodeConversationPersistence/conversation_log_publisher_worker.py.",
                     "size": "S",
                     "status": "in_progress",
                     "approval": "approved",
@@ -18131,10 +18131,10 @@
               "description": "Every operator utterance and every Claude response is recorded as business data in the conversation archive. Capture never delays the interaction and never loses an utterance because something downstream is unavailable, except as an extreme defence. Credentials, secrets and offensive language are removed before anything is archived. Content that never reaches the archive is not kept indefinitely, and the archive is re-examined as knowledge of credentials grows. Every utterance is classified so the archive can be reasoned about. The document shape is governed by https://dev.chathealthy.ai/schemas/ChatHealthyDevOpsUtteranceSchema.json",
               "priority": "HIGH",
               "realized_by": [
-                "architecture/Conversation-logPipeline/conversation_log_writer.py",
-                "architecture/Conversation-logPipeline/conversation_log_drain.py",
-                "architecture/Conversation-logPipeline/conversation_log_record.py",
-                "architecture/Conversation-logPipeline/Worker.cs",
+                "architecture/ClaudeCodeConversationPersistence/conversation_log_writer.py",
+                "architecture/ClaudeCodeConversationPersistence/conversation_log_drain.py",
+                "architecture/ClaudeCodeConversationPersistence/conversation_log_record.py",
+                "architecture/ClaudeCodeConversationPersistence/Worker.cs",
                 "Website/schemas/ChatHealthyDevOpsUtteranceSchema.json",
                 "brain/machine_artifacts/content/engineering_rules.json#Rule-001"
               ],

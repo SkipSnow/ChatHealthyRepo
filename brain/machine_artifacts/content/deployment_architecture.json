@@ -7393,7 +7393,7 @@
           "disposition": "referenced"
         },
         {
-          "source_location": "architecture/Conversation-logPipeline/conversation_log_writer.py",
+          "source_location": "architecture/ClaudeCodeConversationPersistence/conversation_log_writer.py",
           "feature_id": "EPIC-008-F-013",
           "handler_type": "python_source",
           "disposition": "referenced"
@@ -7453,61 +7453,61 @@
           "disposition": "referenced"
         },
         {
-          "source_location": "architecture/Conversation-logPipeline/conversation_log_drain.py",
+          "source_location": "architecture/ClaudeCodeConversationPersistence/conversation_log_drain.py",
           "feature_id": "EPIC-008-F-013",
           "handler_type": "python_source",
           "disposition": "referenced"
         },
         {
-          "source_location": "architecture/Conversation-logPipeline/conversation_log_record.py",
+          "source_location": "architecture/ClaudeCodeConversationPersistence/conversation_log_record.py",
           "feature_id": "EPIC-008-F-013",
           "handler_type": "python_source",
           "disposition": "referenced"
         },
         {
-          "source_location": "architecture/Conversation-logPipeline/conversation_log_sweep.py",
+          "source_location": "architecture/ClaudeCodeConversationPersistence/conversation_log_sweep.py",
           "feature_id": "EPIC-008-F-013",
           "handler_type": "python_source",
           "disposition": "referenced"
         },
         {
-          "source_location": "architecture/Conversation-logPipeline/conversation_log_alarm.py",
+          "source_location": "architecture/ClaudeCodeConversationPersistence/conversation_log_alarm.py",
           "feature_id": "EPIC-008-F-013",
           "handler_type": "python_source",
           "disposition": "referenced"
         },
         {
-          "source_location": "architecture/Conversation-logPipeline/Worker.cs",
+          "source_location": "architecture/ClaudeCodeConversationPersistence/Worker.cs",
           "feature_id": "EPIC-008-F-013",
           "handler_type": "dotnet_source",
           "disposition": "referenced"
         },
         {
-          "source_location": "architecture/Conversation-logPipeline/ChatHealthyLogService.csproj",
+          "source_location": "architecture/ClaudeCodeConversationPersistence/ClaudeCodeConversationPersistenceService.csproj",
           "feature_id": "EPIC-008-F-013",
           "handler_type": "dotnet_project",
           "disposition": "referenced"
         },
         {
-          "source_location": "architecture/Conversation-logPipeline/conversation_log_classifier.py",
+          "source_location": "architecture/ClaudeCodeConversationPersistence/conversation_log_classifier.py",
           "feature_id": "EPIC-008-F-013",
           "handler_type": "python_source",
           "disposition": "referenced"
         },
         {
-          "source_location": "architecture/Conversation-logPipeline/Program.cs",
+          "source_location": "architecture/ClaudeCodeConversationPersistence/Program.cs",
           "feature_id": "EPIC-008-F-002",
           "handler_type": "dotnet_source",
           "disposition": "referenced"
         },
         {
-          "source_location": "architecture/Conversation-logPipeline/appsettings.json",
+          "source_location": "architecture/ClaudeCodeConversationPersistence/appsettings.json",
           "feature_id": "EPIC-008-F-002",
           "handler_type": "json",
           "disposition": "referenced"
         },
         {
-          "source_location": "architecture/Conversation-logPipeline/chathealthy-log-service.json",
+          "source_location": "architecture/ClaudeCodeConversationPersistence/chathealthy-log-service.json",
           "feature_id": "EPIC-008-F-002",
           "handler_type": "json",
           "disposition": "referenced"
