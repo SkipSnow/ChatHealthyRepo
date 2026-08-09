@@ -878,7 +878,11 @@
       ],
       "secrets": {
         "EVALCARE_SIGNING_KEY_B64": "local_env",
-        "HF_TOKEN": "local_env"
+        "HF_TOKEN": "local_env",
+        "KEY_VAULT_URI": "local_env",
+        "AZURE_TENANT_ID": "local_env",
+        "AZURE_CLIENT_ID": "local_env",
+        "AZURE_CLIENT_SECRET": "local_env"
       },
       "entitlements": [
         {
@@ -2300,7 +2304,11 @@
         "NOTIFICATION_FROM_EMAIL": "local_env",
         "NOTIFICATION_TO_EMAIL": "local_env",
         "OPENAI_API_KEY": "local_env",
-        "SPARKMAIL_API_KEY": "local_env"
+        "SPARKMAIL_API_KEY": "local_env",
+        "KEY_VAULT_URI": "local_env",
+        "AZURE_TENANT_ID": "local_env",
+        "AZURE_CLIENT_ID": "local_env",
+        "AZURE_CLIENT_SECRET": "local_env"
       },
       "entitlements": [
         {
@@ -2957,7 +2965,11 @@
         "GEMINI_API_KEY": "local_env",
         "GOOGLE_API_KEY": "local_env",
         "OPENAI_API_KEY": "local_env",
-        "ANTHROPIC_API_KEY": "local_env"
+        "ANTHROPIC_API_KEY": "local_env",
+        "KEY_VAULT_URI": "local_env",
+        "AZURE_TENANT_ID": "local_env",
+        "AZURE_CLIENT_ID": "local_env",
+        "AZURE_CLIENT_SECRET": "local_env"
       },
       "entitlements": [
         {
