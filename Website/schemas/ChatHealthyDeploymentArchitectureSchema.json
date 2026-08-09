@@ -1230,6 +1230,47 @@
                       }
                     }
                   ]
+                },
+                "windows_service": {
+                  "description": "Windows service registration for a host_os_process target. Present when the process is supervised by the Windows service manager rather than run by hand. The deploy creates or updates this definition and never starts it: installing a service and running one are different acts, and only the service manager does the second.",
+                  "type": "object",
+                  "required": [
+                    "service_name",
+                    "display_name",
+                    "binary",
+                    "start_mode"
+                  ],
+                  "additionalProperties": false,
+                  "properties": {
+                    "service_name": {
+                      "description": "The name the service manager knows it by. This is the name used to start, stop and query it, and it is distinct from the executable's filename -- a divergence between the two is how one component ended up with three names.",
+                      "type": "string",
+                      "minLength": 1
+                    },
+                    "display_name": {
+                      "description": "The human-readable name shown in services.msc.",
+                      "type": "string",
+                      "minLength": 1
+                    },
+                    "binary": {
+                      "description": "Path to the executable, relative to the deployed target root. Relative because the deploy root is chosen by the deploy, not by the manifest; an absolute path here would pin the manifest to one workstation's layout.",
+                      "type": "string",
+                      "minLength": 1
+                    },
+                    "start_mode": {
+                      "description": "How the service manager starts it. Automatic means at boot.",
+                      "type": "string",
+                      "enum": [
+                        "Automatic",
+                        "Manual",
+                        "Disabled"
+                      ]
+                    },
+                    "account": {
+                      "description": "The account the service runs as. Omitted means LocalSystem.",
+                      "type": "string"
+                    }
+                  }
                 }
               }
             }

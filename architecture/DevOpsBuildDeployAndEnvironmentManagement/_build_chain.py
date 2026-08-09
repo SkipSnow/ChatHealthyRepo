@@ -83,42 +83,12 @@ def _resolve_build_sha(repo_root: Path) -> str:
     ).stdout.strip()
 
 
-# The build counter, defined once and imported by build_chathealthy.
-# Not admin: Atlas refuses writes to admin through any custom role, so a
-# counter living there can never be bumped by an identity we are able to
-# define -- it only worked while atlasAdmin accounts existed.
-VERSIONS_DB = "pipelineAdmin"
-VERSIONS_COLLECTION = "Versions"
-
-
-def _versions_collection():
-    """The build counter, as DevOpsUser.
-
-    Building is a devops act. This read used to go through
-    MONGO_FRONTEND_connectionString, the application's credential, which is
-    how making a build succeed turned into widening the front end's grants.
-    """
-    lib_src = _find_repo_root(Path(__file__)) / "FrontEndApplicationLib" / "src"
-    if str(lib_src) not in sys.path:
-        sys.path.insert(0, str(lib_src))
-    from chathealthy_frontend_lib.mongo_utilities import ChatHealthyMongoUtilities
-    return (ChatHealthyMongoUtilities()
-            .getConnection("DevOpsUser", "admin")[VERSIONS_DB][VERSIONS_COLLECTION])
-
-
-def _read_dev_build_number() -> int:
-    """Read the current build counter. One global counter shared across
-    envs per the build_deploy_promote_plan v3 (§3); per-env slots removed."""
-    latest = _versions_collection().find_one(sort=[("from", -1)])
-    if latest is None:
-        sys.exit(f"ERROR: {VERSIONS_DB}.{VERSIONS_COLLECTION} has no records.")
-    build = latest.get("build")
-    if build is None:
-        sys.exit(
-            f"ERROR: {VERSIONS_DB}.{VERSIONS_COLLECTION} latest record has "
-            f"no 'build' field."
-        )
-    return int(build)
+from version_counter import (  # noqa: E402
+    VERSIONS_DB,
+    VERSIONS_COLLECTION,
+    versions_collection as _versions_collection,
+    read_build_number as _read_dev_build_number,
+)
 
 
 def _target_build_dir(repo_root: Path, build_n: int, target_id: str, build_root_rel: Path | None = None) -> Path:
