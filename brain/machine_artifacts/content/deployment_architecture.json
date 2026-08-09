@@ -882,7 +882,8 @@
         "KEY_VAULT_URI": "local_env",
         "FRONTENDUSER_AZURE_TENANT_ID": "local_env",
         "FRONTENDUSER_AZURE_CLIENT_ID": "local_env",
-        "FRONTENDUSER_AZURE_CLIENT_SECRET": "local_env"
+        "FRONTENDUSER_AZURE_CLIENT_SECRET": "local_env",
+        "EVALCARE_SIGNING_KEY_PEM": "rename_from:EVALCARE_SIGNING_KEY_B64"
       },
       "entitlements": [
         {
@@ -909,7 +910,6 @@
         "FINDCARE_CERT_PEM": "local_cert_file:Code/Shared/ops/certs/findcare.crt",
         "SHARED_CERT_PEM": "local_cert_file:Code/Shared/ops/certs/shared.crt",
         "EVALCARE_CERT_PEM": "local_cert_file:Code/Shared/ops/certs/evalcare.crt",
-        "EVALCARE_SIGNING_KEY_PEM": "rename_from:EVALCARE_SIGNING_KEY_B64",
         "CH_LOG_LEVEL": "local_env"
       }
     },
@@ -2308,7 +2308,8 @@
         "KEY_VAULT_URI": "local_env",
         "FRONTENDUSER_AZURE_TENANT_ID": "local_env",
         "FRONTENDUSER_AZURE_CLIENT_ID": "local_env",
-        "FRONTENDUSER_AZURE_CLIENT_SECRET": "local_env"
+        "FRONTENDUSER_AZURE_CLIENT_SECRET": "local_env",
+        "FINDCARE_SIGNING_KEY_PEM": "rename_from:FINDCARE_SIGNING_KEY_B64"
       },
       "entitlements": [
         {
@@ -2349,7 +2350,6 @@
         "FINDCARE_CERT_PEM": "local_cert_file:Code/Shared/ops/certs/findcare.crt",
         "SHARED_CERT_PEM": "local_cert_file:Code/Shared/ops/certs/shared.crt",
         "EVALCARE_CERT_PEM": "local_cert_file:Code/Shared/ops/certs/evalcare.crt",
-        "FINDCARE_SIGNING_KEY_PEM": "rename_from:FINDCARE_SIGNING_KEY_B64",
         "CH_LOG_LEVEL": "local_env"
       }
     },
@@ -2969,7 +2969,8 @@
         "KEY_VAULT_URI": "local_env",
         "FRONTENDUSER_AZURE_TENANT_ID": "local_env",
         "FRONTENDUSER_AZURE_CLIENT_ID": "local_env",
-        "FRONTENDUSER_AZURE_CLIENT_SECRET": "local_env"
+        "FRONTENDUSER_AZURE_CLIENT_SECRET": "local_env",
+        "SHARED_SIGNING_KEY_PEM": "rename_from:SHARED_SIGNING_KEY_B64"
       },
       "entitlements": [
         {
@@ -3012,7 +3013,6 @@
         "FINDCARE_CERT_PEM": "local_cert_file:Code/Shared/ops/certs/findcare.crt",
         "SHARED_CERT_PEM": "local_cert_file:Code/Shared/ops/certs/shared.crt",
         "EVALCARE_CERT_PEM": "local_cert_file:Code/Shared/ops/certs/evalcare.crt",
-        "SHARED_SIGNING_KEY_PEM": "rename_from:SHARED_SIGNING_KEY_B64",
         "CH_LOG_LEVEL": "local_env"
       }
     },
@@ -4396,7 +4396,8 @@
         "NOTIFICATION_FROM_EMAIL": "local_env",
         "NOTIFICATION_TO_EMAIL": "local_env",
         "OPENAI_API_KEY": "local_env",
-        "SPARKMAIL_API_KEY": "local_env"
+        "SPARKMAIL_API_KEY": "local_env",
+        "FINDCARE_SIGNING_KEY_PEM": "rename_from:FINDCARE_SIGNING_KEY_B64"
       },
       "variables": {
         "ENV_PREFIX": "local_env",
@@ -4406,7 +4407,6 @@
         "FINDCARE_CERT_PEM": "local_cert_file:Code/Shared/ops/certs/findcare.crt",
         "SHARED_CERT_PEM": "local_cert_file:Code/Shared/ops/certs/shared.crt",
         "EVALCARE_CERT_PEM": "local_cert_file:Code/Shared/ops/certs/evalcare.crt",
-        "FINDCARE_SIGNING_KEY_PEM": "rename_from:FINDCARE_SIGNING_KEY_B64",
         "CH_LOG_LEVEL": "local_env"
       }
     },
@@ -4729,7 +4729,8 @@
       ],
       "secrets": {
         "EVALCARE_SIGNING_KEY_B64": "local_env",
-        "HF_TOKEN": "local_env"
+        "HF_TOKEN": "local_env",
+        "EVALCARE_SIGNING_KEY_PEM": "rename_from:EVALCARE_SIGNING_KEY_B64"
       },
       "variables": {
         "ENV_PREFIX": "local_env",
@@ -4739,7 +4740,6 @@
         "FINDCARE_CERT_PEM": "local_cert_file:Code/Shared/ops/certs/findcare.crt",
         "SHARED_CERT_PEM": "local_cert_file:Code/Shared/ops/certs/shared.crt",
         "EVALCARE_CERT_PEM": "local_cert_file:Code/Shared/ops/certs/evalcare.crt",
-        "EVALCARE_SIGNING_KEY_PEM": "rename_from:EVALCARE_SIGNING_KEY_B64",
         "CH_LOG_LEVEL": "local_env"
       }
     },
@@ -5336,7 +5336,8 @@
         "GEMINI_API_KEY": "local_env",
         "GOOGLE_API_KEY": "local_env",
         "OPENAI_API_KEY": "local_env",
-        "ANTHROPIC_API_KEY": "local_env"
+        "ANTHROPIC_API_KEY": "local_env",
+        "SHARED_SIGNING_KEY_PEM": "rename_from:SHARED_SIGNING_KEY_B64"
       },
       "variables": {
         "ENV_PREFIX": "local_env",
@@ -5346,7 +5347,6 @@
         "FINDCARE_CERT_PEM": "local_cert_file:Code/Shared/ops/certs/findcare.crt",
         "SHARED_CERT_PEM": "local_cert_file:Code/Shared/ops/certs/shared.crt",
         "EVALCARE_CERT_PEM": "local_cert_file:Code/Shared/ops/certs/evalcare.crt",
-        "SHARED_SIGNING_KEY_PEM": "rename_from:SHARED_SIGNING_KEY_B64",
         "CH_LOG_LEVEL": "local_env"
       }
     },
