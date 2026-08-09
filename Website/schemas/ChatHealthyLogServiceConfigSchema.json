@@ -1,0 +1,39 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://dev.chathealthy.ai/schemas/ChatHealthyLogServiceConfigSchema.json",
+  "title": "ChatHealthy Log Service Configuration",
+  "description": "Configuration for ChatHealthyLogService, the Windows service that supervises the conversation-log drain. Ships in the build beside the service binary, so the deployed configuration is an artifact rather than an environment variable set by hand. Deliberately separate from appsettings.json, which is the .NET host's own logging configuration and belongs to the framework: mixing the two makes it unclear which settings are ours and which are Microsoft's. The service reads this at startup and passes the values to the drain process it spawns, so a change takes effect on service restart and on nothing else.",
+  "type": "object",
+  "required": ["drain"],
+  "properties": {
+    "_comment": {
+      "description": "Free-text notes for whoever edits this file. Ignored by the service.",
+      "type": ["string", "array"],
+      "items": { "type": "string" }
+    },
+    "drain": {
+      "description": "Settings the service applies to the drain process it spawns. The drain never reads this file itself; the service passes these as environment variables on the child, so the drain's behaviour is a deployed fact rather than something inherited from whatever the service account happens to have set.",
+      "type": "object",
+      "required": ["logLevel", "logDirectory"],
+      "properties": {
+        "_comment": {
+          "description": "Free-text notes. Ignored by the service.",
+          "type": ["string", "array"],
+          "items": { "type": "string" }
+        },
+        "logLevel": {
+          "description": "INFO emits start, stop and anomalies only. DEBUG adds every pass, connection and sweep step. Set on the child as CH_LOG_LEVEL. Anything else is rejected rather than silently treated as INFO, because a typo that quietly disables debugging is worse than a service that refuses to start.",
+          "type": "string",
+          "enum": ["DEBUG", "INFO", "WARNING", "ERROR", "CRITICAL"]
+        },
+        "logDirectory": {
+          "description": "Where the drain writes its log, relative to the service binary. 'log' puts the file in a log/ folder of the deployment directory, beside this file. Set on the child as CH_LOG_DESTINATION. Never a MongoDB destination: the drain's identity can write the utterance archive and nothing else, and a log worth reading does not belong in a collection.",
+          "type": "string",
+          "minLength": 1
+        }
+      },
+      "additionalProperties": false
+    }
+  },
+  "additionalProperties": false
+}
