@@ -347,6 +347,23 @@ class ChatHealthyMongoUtilities:
     def _fetch_identity_cert(self, identity: str) -> str:
         """Return the identity's cert+key PEM from Key Vault. Raises, never logs.
 
+        Two logins happen to reach a collection, and they are different
+        services with different credentials. This is the first: Azure Key
+        Vault, to obtain the certificate. Mongo is the second, authenticated
+        with that certificate.
+
+        The Azure credential is named after the identity it fetches --
+        `frontendUser` reads FRONTENDUSER_AZURE_*. No second argument: the
+        Azure identity is not free to differ from the Mongo one, and a
+        parameter that must always equal another parameter is a parameter
+        that will eventually not. A host therefore holds exactly the vault
+        credentials for the identities it is entitled to use, and one that
+        is not entitled simply has no key and fails closed.
+
+        This is what a single ambient AZURE_* credential cost: it served
+        every identity, so the workstation's credential could read the front
+        end's certificate and the front end's could read the pipeline's.
+
         Key Vault is a REST API and this is two HTTPS calls: a client-credentials
         token, then the secret. The Azure SDK does exactly this and costs tens of
         megabytes per image to do it.
@@ -358,15 +375,19 @@ class ChatHealthyMongoUtilities:
                 message="KEY_VAULT_URI not set",
                 component="ChatHealthyMongoUtilities",
             )
+        prefix = identity.strip().upper()
+        keys = (f"{prefix}_AZURE_TENANT_ID",
+                f"{prefix}_AZURE_CLIENT_ID",
+                f"{prefix}_AZURE_CLIENT_SECRET")
         try:
-            tenant = os.environ["AZURE_TENANT_ID"].strip()
-            client_id = os.environ["AZURE_CLIENT_ID"].strip()
-            client_secret = os.environ["AZURE_CLIENT_SECRET"].strip()
+            tenant = os.environ[keys[0]].strip()
+            client_id = os.environ[keys[1]].strip()
+            client_secret = os.environ[keys[2]].strip()
         except KeyError as exc:
             raise ChatHealthyException(
                 mode="vault_unreachable",
-                message=f"AZURE_TENANT_ID, AZURE_CLIENT_ID and AZURE_CLIENT_SECRET "
-                        f"are required; {exc} missing",
+                message=f"{', '.join(keys)} are required to fetch the "
+                        f"certificate for {identity!r}; {exc} missing",
                 component="ChatHealthyMongoUtilities",
             ) from exc
 
