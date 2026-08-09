@@ -132,26 +132,22 @@ def _write_hf_build_info(workspace: Path, target_id: str, env: str) -> None:
     # v3 §3). Same source build_chathealthy.py uses for image tagging;
     # baking it here keeps image tag, build_info.json, /health, and banner
     # all in lock-step by construction.
-    from dotenv import load_dotenv
-    from pymongo import MongoClient
-    repo_root = Path(__file__).resolve().parent.parent.parent
-    load_dotenv(repo_root / "Code" / ".env")
-    conn = os.getenv("MONGO_FRONTEND_connectionString")
-    if not conn:
-        sys.exit("ERROR: MONGO_FRONTEND_connectionString not set in env or Code/.env")
-    latest = MongoClient(conn, serverSelectionTimeoutMS=10000)["admin"]["Versions"].find_one(
-        sort=[("from", -1)]
-    )
-    if latest is None:
-        sys.exit("ERROR: admin.Versions has no records.")
+    from version_counter import VERSIONS_COLLECTION, VERSIONS_DB, latest_record
+    latest = latest_record()
     build_n = latest.get("build")
     if build_n is None:
-        sys.exit("ERROR: admin.Versions latest record has no 'build' field.")
+        sys.exit(
+            f"ERROR: {VERSIONS_DB}.{VERSIONS_COLLECTION} latest record has "
+            f"no 'build' field."
+        )
     build_n = int(build_n)
     version_str = latest.get("version")
     framework_str = latest.get("framework")
     if not version_str:
-        sys.exit("ERROR: admin.Versions latest record has no 'version' field.")
+        sys.exit(
+            f"ERROR: {VERSIONS_DB}.{VERSIONS_COLLECTION} latest record has "
+            f"no 'version' field."
+        )
     commit = subprocess.run(
         ["git", "rev-parse", "--short", "HEAD"],
         capture_output=True, text=True, check=True,

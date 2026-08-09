@@ -2628,10 +2628,31 @@ def deploy_host_os_process(
     The service binary is not replaced while the service is running: Windows
     holds the exe open, so the copy would fail halfway and leave a partial
     install. Stop the service first; this refuses rather than corrupting.
+
+    When the env binding declares a windows_service, the deploy REGISTERS it
+    -- creating or repointing the service definition -- and does not start
+    it. Installing a service and running one are different acts; the service
+    manager does the second.
+
+    Registration needs elevation, so an unelevated run of a target that
+    declares a service is refused up front rather than copying the files and
+    reporting success. A deploy that leaves the OS not knowing about the
+    service has not deployed it.
     """
     if not build_dir.is_dir():
         sys.exit(f"ERROR: build dir missing: {build_dir}")
     dest = repo_root / "deploy" / target.target_id.replace("target_host_local_", "")
+
+    svc = next((e.windows_service for e in target.environments
+                if e.env_binding == env and e.windows_service), None)
+    if svc and not _is_elevated():
+        sys.exit(
+            f"ERROR: {target.target_id} declares windows_service "
+            f"{svc['service_name']!r}, and registering a service requires "
+            f"an elevated process. Re-run this deploy from an elevated "
+            f"shell. Refusing to stage the files and report success while "
+            f"leaving the service unregistered."
+        )
 
     # Derived from the declared dotnet_project, never spelled out here: the
     # exe is named after the project, so a rename that touches one and not
@@ -2660,12 +2681,62 @@ def deploy_host_os_process(
 
     staged = sum(1 for p in dest.rglob("*") if p.is_file())
     step(f"  installed {staged} file(s) -> {dest.relative_to(repo_root).as_posix()}")
-    exe = next(iter(dest.rglob(exe_name)), None)
-    if exe is not None:
-        step(f"  service binary: {exe.relative_to(repo_root).as_posix()}")
-        step("  the installed service still points at its existing binary path; "
-             "repointing it is an operator action, not a deploy side effect")
+    if svc:
+        _register_windows_service(dest, svc)
     return target.target_id
+
+
+def _is_elevated() -> bool:
+    if sys.platform != "win32":
+        return False
+    import ctypes
+    try:
+        return bool(ctypes.windll.shell32.IsUserAnAdmin())
+    except Exception:
+        return False
+
+
+def _sc(*args: str) -> subprocess.CompletedProcess:
+    return subprocess.run(["sc.exe", *args], capture_output=True, text=True,
+                          creationflags=creation_flags())
+
+
+def _register_windows_service(dest: Path, svc: dict) -> None:
+    """Create or repoint the service definition. Never starts it.
+
+    Idempotent by construction: an existing service is repointed with
+    `sc config` rather than deleted and recreated, so its identity and any
+    manual configuration survive a redeploy.
+    """
+    name = svc["service_name"]
+    binary = (dest / svc["binary"]).resolve()
+    if not binary.is_file():
+        sys.exit(
+            f"ERROR: windows_service {name!r} declares binary "
+            f"{svc['binary']!r}, which is not present at {binary} after "
+            f"staging. The build did not produce it."
+        )
+    start = {"Automatic": "auto", "Manual": "demand", "Disabled": "disabled"}[
+        svc["start_mode"]]
+    account = svc.get("account") or "LocalSystem"
+
+    exists = _sc("query", name).returncode == 0
+    if exists:
+        r = _sc("config", name, f"binPath= {binary}", f"start= {start}",
+                f"obj= {account}", f"DisplayName= {svc['display_name']}")
+        verb = "repointed"
+    else:
+        r = _sc("create", name, f"binPath= {binary}", f"start= {start}",
+                f"obj= {account}", f"DisplayName= {svc['display_name']}")
+        verb = "registered"
+    if r.returncode != 0:
+        sys.exit(
+            f"ERROR: sc {'config' if exists else 'create'} {name} failed "
+            f"(rc={r.returncode}): {(r.stdout + r.stderr).strip()[:400]}"
+        )
+    step(f"  {verb} service {name} -> {binary}")
+    step(f"  start_mode={svc['start_mode']} account={account}; NOT started -- "
+         f"starting is the service manager's job, not the deploy's")
 
 
 def _file_is_locked(path: Path) -> bool:
@@ -3240,17 +3311,15 @@ class LocalDeploy:
     def _write_build_info(self, build_ctx_abs: Path, container_name: str) -> Path:
         cflags = creation_flags()
         from dotenv import load_dotenv
-        from pymongo import MongoClient
+        from version_counter import VERSIONS_COLLECTION, VERSIONS_DB, latest_record
         load_dotenv(self.repo_root / ".env")
-        conn = os.environ.get("MONGO_FRONTEND_connectionString")
-        if not conn:
-            sys.exit("ERROR: MONGO_FRONTEND_connectionString not set; cannot read local build counter.")
-        latest = MongoClient(conn, serverSelectionTimeoutMS=10000)["admin"]["Versions"].find_one(sort=[("from", -1)])
-        if not latest:
-            sys.exit("ERROR: admin.Versions has no records.")
+        latest = latest_record()
         build_num = latest.get("build")
         if build_num is None:
-            sys.exit("ERROR: admin.Versions latest record has no 'build' field.")
+            sys.exit(
+                f"ERROR: {VERSIONS_DB}.{VERSIONS_COLLECTION} latest record "
+                f"has no 'build' field."
+            )
         build_num = int(build_num)
         version_str = latest.get("version")
         framework_str = latest.get("framework")

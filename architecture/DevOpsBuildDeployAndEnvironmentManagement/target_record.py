@@ -38,6 +38,9 @@ class EnvironmentBinding:
     identity: dict | None = None
     huggingface_space: dict | None = None
     cloudflare_pages: dict | None = None
+    # Windows service registration for a host_os_process target.
+    # Present when the service manager supervises the process.
+    windows_service: dict | None = None
     cloudflare_firewall_rules: list | None = None
     branch: str | None = None
     # Consolidated Atlas sub-block: project + cluster + accepted_access +
@@ -75,6 +78,7 @@ class EnvironmentBinding:
             "identity",
             "huggingface_space",
             "cloudflare_pages",
+            "windows_service",
             "cloudflare_firewall_rules",
             "branch",
             "atlas",
@@ -106,6 +110,7 @@ class EnvironmentBinding:
             identity=d.get("identity"),
             huggingface_space=d.get("huggingface_space"),
             cloudflare_pages=d.get("cloudflare_pages"),
+            windows_service=d.get("windows_service"),
             cloudflare_firewall_rules=d.get("cloudflare_firewall_rules"),
             branch=d.get("branch"),
             atlas=d.get("atlas"),
