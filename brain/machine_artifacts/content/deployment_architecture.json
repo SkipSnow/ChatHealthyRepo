@@ -390,7 +390,7 @@
           "source_location": "Website/schemas/ChatHealthyDeploymentArchitectureSchema.json",
           "handler_type": "json",
           "disposition": "referenced",
-          "content_hash": "3a45e11af1bdec2f00b0c0e62cc1af479971d18b8d0f97047cc945c84f4c3b1e",
+          "content_hash": "c5ad7402c1895833b7b61bfbd0e02197417cbf7e590e5324e318cc3282adbf7a",
           "package": "json_schemas"
         },
         {
@@ -5594,7 +5594,7 @@
           "source_location": "Website/schemas/ChatHealthyDeploymentArchitectureSchema.json",
           "handler_type": "json",
           "disposition": "referenced",
-          "content_hash": "3a45e11af1bdec2f00b0c0e62cc1af479971d18b8d0f97047cc945c84f4c3b1e",
+          "content_hash": "c5ad7402c1895833b7b61bfbd0e02197417cbf7e590e5324e318cc3282adbf7a",
           "package": "default"
         },
         {
@@ -7364,7 +7364,13 @@
       "environments": [
         {
           "env_binding": "local",
-          "node_address": "localhost/devops"
+          "node_address": "localhost/devops",
+          "windows_service": {
+            "service_name": "ClaudeCodeConversationPersistenceService",
+            "display_name": "Claude Code Conversation Persistence",
+            "binary": "architecture/ClaudeCodeConversationPersistence/build/publish/ClaudeCodeConversationPersistenceService.exe",
+            "start_mode": "Automatic"
+          }
         }
       ],
       "files": [

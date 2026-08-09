@@ -2720,15 +2720,14 @@ def _register_windows_service(dest: Path, svc: dict) -> None:
         svc["start_mode"]]
     account = svc.get("account") or "LocalSystem"
 
+    # sc.exe takes each `key=` and its value as SEPARATE argv tokens. Passing
+    # "start= auto" as one argument yields "Invalid start= field", because the
+    # whole string arrives as the option name.
+    fields = ["binPath=", str(binary), "start=", start,
+              "obj=", account, "DisplayName=", svc["display_name"]]
     exists = _sc("query", name).returncode == 0
-    if exists:
-        r = _sc("config", name, f"binPath= {binary}", f"start= {start}",
-                f"obj= {account}", f"DisplayName= {svc['display_name']}")
-        verb = "repointed"
-    else:
-        r = _sc("create", name, f"binPath= {binary}", f"start= {start}",
-                f"obj= {account}", f"DisplayName= {svc['display_name']}")
-        verb = "registered"
+    verb = "repointed" if exists else "registered"
+    r = _sc("config" if exists else "create", name, *fields)
     if r.returncode != 0:
         sys.exit(
             f"ERROR: sc {'config' if exists else 'create'} {name} failed "
