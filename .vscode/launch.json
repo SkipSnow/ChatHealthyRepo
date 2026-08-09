@@ -7,9 +7,9 @@
             "type": "coreclr",
             "request": "launch",
             "preLaunchTask": "build",
-            "program": "${workspaceFolder}/architecture/Conversation-logPipeline/bin/Debug/net10.0/ChatHealthyLogService.dll",
+            "program": "${workspaceFolder}/architecture/ClaudeCodeConversationPersistence/bin/Debug/net10.0/ClaudeCodeConversationPersistenceService.dll",
             "args": [],
-            "cwd": "${workspaceFolder}/architecture/Conversation-logPipeline",
+            "cwd": "${workspaceFolder}/architecture/ClaudeCodeConversationPersistence",
             "console": "internalConsole",
             "stopAtEntry": false
         },

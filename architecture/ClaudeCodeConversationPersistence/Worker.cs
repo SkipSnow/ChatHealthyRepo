@@ -23,7 +23,7 @@
 using System.Diagnostics;
 using System.Text.Json;
 
-namespace ChatHealthyLogService;
+namespace ClaudeCodeConversationPersistenceService;
 
 public class Worker(
     ILogger<Worker> logger,
@@ -33,7 +33,7 @@ public class Worker(
     // Project root comes from the environment; no fallback. A hardcoded
     // absolute path is forbidden.
     private const string RepoRootEnvVar = "CHATHEALTHY_PROJECT_ROOT";
-    private const string DrainScript = @"architecture\Conversation-logPipeline\conversation_log_drain.py";
+    private const string DrainScript = @"architecture\ClaudeCodeConversationPersistence\conversation_log_drain.py";
 
     // Hard-coded, and identical to conversation_log_writer.py. One location,
     // no environment to get wrong.

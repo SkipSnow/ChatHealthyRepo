@@ -139,7 +139,7 @@ NEW_LOCAL_TARGETS: list[TargetSpec] = [
 
 WORKSTATION_PREFIXES = (
     "architecture/DevOpsBuildDeployAndEnvironmentManagement/",
-    "architecture/Conversation-logPipeline/",
+    "architecture/ClaudeCodeConversationPersistence/",
     "brain/machine_artifacts/content/",
     "Code/Shared/ops/tools/",
     "Code/Shared/ops/certs/",

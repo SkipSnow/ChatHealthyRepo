@@ -102,7 +102,7 @@ RUNTIME_ENTRIES: dict[str, list[str]] = {
 WORKSTATION_PACKAGE_PREFIXES: tuple[str, ...] = (
     "architecture/DevOpsBuildDeployAndEnvironmentManagement/",
     "architecture/EngineeringRuleEnforcement/",
-    "architecture/Conversation-logPipeline/",
+    "architecture/ClaudeCodeConversationPersistence/",
     "architecture/FindCare/",
     "architecture/CommonFrontEndFeatures/",
     "architecture/Testing/",
@@ -149,7 +149,7 @@ RUNTIME_ROOTS: dict[str, list[str]] = {
     "target_host_local_workstation": [
         "architecture/DevOpsBuildDeployAndEnvironmentManagement",
         "architecture/EngineeringRuleEnforcement/code",
-        "architecture/Conversation-logPipeline",
+        "architecture/ClaudeCodeConversationPersistence",
         "Code/Shared",
         "pipeline",
     ],
