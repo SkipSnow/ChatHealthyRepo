@@ -46,6 +46,50 @@
           }
         }
       }
+    },
+    "SourceQualifier": {
+      "description": "Where a deploy obtains this entry's VALUE. Never the value itself: a manifest that carries values is a manifest that leaks them.\n\nOne grammar governs both `secrets` and `variables`, because the deploy resolves them with the same function. They differ only in how the value is delivered -- a secret is masked at the destination, a variable is not. That is a property of the VALUE, not of where it came from, which is why the same grammar has to describe both. While `variables` accepted any string and `secrets` accepted only a store name, the only way to express a computed value was to declare it a variable -- and a private key went out in the clear as a Space variable for exactly that reason.",
+      "oneOf": [
+        {
+          "description": "A named store the deploy reads the value from.",
+          "type": "string",
+          "enum": [
+            "local_env",
+            "gha_secret",
+            "hf_space_secret",
+            "cloudflare_env",
+            "azure_function_app_setting",
+            "azure_automation_variable",
+            "azure_automation_webhook",
+            "azure_key_vault"
+          ]
+        },
+        {
+          "description": "The environment being deployed to (local|dev|qa|prod).",
+          "type": "string",
+          "const": "env_name"
+        },
+        {
+          "description": "A literal, for non-sensitive values with no store.",
+          "type": "string",
+          "pattern": "^literal:.+$"
+        },
+        {
+          "description": "Base64 of a repository file. Public certificates only -- private key material belongs in a store, never in the repository.",
+          "type": "string",
+          "pattern": "^local_cert_file:[A-Za-z0-9_./-]+$"
+        },
+        {
+          "description": "The resolved URL of a co-deployed peer target.",
+          "type": "string",
+          "pattern": "^peer_url:target_[A-Za-z0-9_]+$"
+        },
+        {
+          "description": "The resolved value of another entry on this target, delivered under this name. The sibling may live in either block.",
+          "type": "string",
+          "pattern": "^rename_from:[A-Za-z0-9_]+$"
+        }
+      ]
     }
   },
   "required": [
@@ -1447,26 +1491,14 @@
             "type": "object",
             "description": "Secret / environment key declarations for this TARGET. Map of key NAME -> store id. The same keys apply across every env_binding of this target; per-env VALUES come from the bound store via SecretsResolver. The deploy script reads this inventory and configures the target's runtime env surface (FA app settings, Automation Variables, HF Space secrets, Cloudflare env, etc.). Values themselves NEVER appear in this JSON — only names + store ids. Each target enumerates ITS OWN full key list; no inheritance, no shared base, no implicit defaults. Per EPIC-008-F-012-S-001-REQ-B-009. The 'azure_automation_webhook' store names a key whose value is the webhook URL of another target (an azure_automation_runbook) — the runbook target's deploy step mints/reuses the webhook and pushes the URL directly onto this target's runtime env surface, and the THIS target's deploy resolver MUST skip entries carrying this store (they are set by the upstream runbook deploy, not by reading any local store).",
             "additionalProperties": {
-              "type": "string",
-              "enum": [
-                "local_env",
-                "gha_secret",
-                "hf_space_secret",
-                "cloudflare_env",
-                "azure_function_app_setting",
-                "azure_automation_variable",
-                "azure_automation_webhook",
-                "azure_key_vault"
-              ]
+              "$ref": "#/$defs/SourceQualifier"
             }
           },
           "variables": {
             "type": "object",
             "description": "Deploy-computed VARIABLES (not secrets) for this TARGET, e.g. HF Space variables, runtime env values derived from cluster topology. Map of name -> source_qualifier string. Source-qualifier syntax: 'env_name' (value is the env binding name like dev/qa/prod), 'local_cert_file:<repo-relative-path>' (value is base64 of the file content), 'peer_url:<target_id>' (value is the peer target's HF Space URL resolved at deploy time), 'rename_from:<other_entry_name>' (value is the resolved value of another entry in this target's secrets or variables, pushed under THIS name). The deploy script dispatches on the qualifier prefix — zero target-specific knowledge lives in the deploy code. Moved here from hardcoded per-target maps inside local_deploy.py.",
             "additionalProperties": {
-              "type": "string",
-              "minLength": 1,
-              "maxLength": 256
+              "$ref": "#/$defs/SourceQualifier"
             }
           },
           "huggingface_source_set": {
