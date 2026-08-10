@@ -464,7 +464,8 @@ def _compute_hf_space_url_for_build(repo_root: Path, hf_target_id: str, env: str
     return f"https://{org.lower()}-{base.replace('_', '-').lower()}.hf.space"
 
 
-def _substitute_hf_urls_in_index_html(repo_root: Path, build_dir: Path, env: str, build_n: int) -> None:
+def _substitute_hf_urls_in_index_html(repo_root: Path, build_dir: Path, env: str,
+                                      build_n: int, declared_indexes: int) -> None:
     """Substitute __HF_URL_*__ placeholders in every index.html under
     build_dir with the per-build HF Space URLs computed for this env/build_n.
 
@@ -478,12 +479,20 @@ def _substitute_hf_urls_in_index_html(repo_root: Path, build_dir: Path, env: str
         for ph, tid in _HF_URL_PLACEHOLDERS.items()
     }
     indexes = list(build_dir.rglob("index.html"))
-    if not indexes:
+    if len(indexes) != declared_indexes:
         raise _ch_exc()(
             mode="runtime_error",
             component="_build_chain",
-            message=f"_substitute_hf_urls_in_index_html: no index.html found under "
-            f"{build_dir}; Cloudflare Pages target must ship at least one.")
+            message=f"_substitute_hf_urls_in_index_html: the selected package(s) "
+            f"declare {declared_indexes} index.html file(s) and {len(indexes)} "
+            f"were staged under {build_dir}. The build must produce exactly what "
+            f"the manifest declares.")
+    if not indexes:
+        # The selected package declares no page, so there is nothing to
+        # substitute. This is not a shortfall: a schemas-only build ships
+        # JSON and no HTML, and the count check above already proved that
+        # is what the manifest says.
+        return
     for idx in indexes:
         text = idx.read_text(encoding="utf-8")
         # A page that carries NONE of the __HF_URL_*__ placeholders is a
@@ -563,7 +572,17 @@ def _build_cloudflare(repo_root: Path, target: TargetRecord, build_dir: Path,
         if ch_fonts_inliner.inline_into(html, snippet):
             inlined += 1
     _step(f"  CH_FONTS inlined in {inlined} pages")
-    _substitute_hf_urls_in_index_html(repo_root, build_dir, env, build_n)
+    declared_indexes = sum(
+        1
+        for pid, entries in _files_by_package(target).items()
+        if selection is None or pid in selection
+        for d in entries
+        if d["source_location"].replace("\\", "/").endswith("/index.html")
+        or d["source_location"] == "index.html"
+    )
+    _substitute_hf_urls_in_index_html(
+        repo_root, build_dir, env, build_n, declared_indexes
+    )
     # Managed bytes are written by _materialize_managed_files after this
     # returns, and that one is package-aware. Materializing here as well
     # wrote the managed Dockerfile at the target root, creating a directory

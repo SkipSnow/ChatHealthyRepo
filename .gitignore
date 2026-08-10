@@ -120,3 +120,4 @@ deploy/
 .claude/agent-memory-local
 .claude/first-run
 .claude/assistant-daemon-state.json
+architecture/EngineeringRuleEnforcement/tests/_cold_start_seconds.txt
