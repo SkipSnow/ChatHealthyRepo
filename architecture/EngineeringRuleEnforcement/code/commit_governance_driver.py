@@ -40,6 +40,7 @@ for _d in Path(__file__).resolve().parents:
         break
 
 from chathealthy_frontend_lib.logging_service import ChatHealthyLoggingService
+from baseline_walk import baseline_files
 
 _CH_LOG = ChatHealthyLoggingService()
 
@@ -99,6 +100,7 @@ class DriverError(Exception):
 class CommitGovernanceDriver:
     def __init__(self, handed_list: list[str] | None = None) -> None:
         self.handed_list = handed_list
+        self.escalated = False
         self.files: list[str] = []
         self.results: list[dict[str, Any]] = []
 
@@ -127,8 +129,27 @@ class CommitGovernanceDriver:
         """
         if self.handed_list is not None:
             return self.handed_list
+
         listed = self._git("diff", "--cached", "--name-only", "--diff-filter=ACMR")
-        return [line for line in listed.splitlines() if line.strip()]
+        staged = [line for line in listed.splitlines() if line.strip()]
+
+        # A commit that changes the rules changes what EVERY file must
+        # satisfy, and git has no idea that happened. Scoped to the staged
+        # set, a new or tightened enforcement would land having been tested
+        # against the rules file itself and nothing else -- every other file
+        # in the baseline would first meet it at some later promote, or
+        # never. So a rules change escalates to the whole baseline.
+        rules_rel = ENGINEERING_RULES_PATH.relative_to(PROJECT_ROOT).as_posix()
+        if rules_rel in staged:
+            _CH_LOG.info(
+                f"[driver] {rules_rel} is in this commit; governing the entire "
+                f"baseline, because a rule change alters what every file must "
+                f"satisfy"
+            )
+            self.escalated = True
+            return baseline_files(PROJECT_ROOT)
+
+        return staged
 
     # ── subordinates ────────────────────────────────────────────────────────
     def subordinates(self) -> list[dict[str, Any]]:
@@ -246,7 +267,8 @@ class CommitGovernanceDriver:
 
         entry = {
             "timestamp": datetime.now(timezone.utc).isoformat(),
-            "scope": "handed" if self.handed_list is not None else "staged",
+            "scope": ("handed" if self.handed_list is not None else
+             "rules-change-escalated" if self.escalated else "staged"),
             "files_examined": len(self.files),
             "verdict": verdict,
             "passed": passed,
@@ -285,9 +307,40 @@ class CommitGovernanceDriver:
             _CH_LOG.error(f"[driver] {exc}")
             return EXIT_DRIVER_ERROR
 
-        if not self.files:
-            _CH_LOG.error("[driver] nothing is staged; there is no commit to govern")
+        # The gate must exist before anything is allowed to pass through it,
+        # including a commit with no file content. This check comes FIRST:
+        # putting the empty-file case ahead of it let a rules file with no
+        # pre-commit enforcement return 0 -- the exact silent pass the check
+        # exists to prevent.
+        if not subs:
+            _CH_LOG.error(
+                f"[driver] {RULE_ID} declares no {SUBORDINATE_HOOK} enforcement. "
+                f"Nothing would be checked, so nothing can be certified."
+            )
             return EXIT_DRIVER_ERROR
+
+        if not self.files:
+            if self.handed_list is not None:
+                # Promote hands down the whole baseline -- every file, every
+                # time, so a newly added enforcement catches files that have
+                # not changed in months. An empty handed list means the walk
+                # that built it failed, and governing nothing while believing
+                # the baseline was checked is the worst outcome available.
+                _CH_LOG.error(
+                    "[driver] handed an empty list. A promote governs the "
+                    "entire baseline, so an empty list is a broken walk, not "
+                    "a clean tree."
+                )
+                return EXIT_DRIVER_ERROR
+            # A staged set can legitimately be empty: an empty commit carries
+            # no file content, so there is nothing for the checks to read.
+            # The gate itself was proved to exist above.
+            _CH_LOG.info(
+                f"[driver] no file content in this commit; "
+                f"{len(subs)} enforcement(s) declared"
+            )
+            self._record([], EXIT_OK)
+            return EXIT_OK
 
         self.results = self.dispatch(subs)
         verdict = self.aggregate([r["exit_code"] for r in self.results])
