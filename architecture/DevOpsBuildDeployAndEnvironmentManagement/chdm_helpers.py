@@ -108,7 +108,7 @@ def _cflags() -> int:
 
 
 def _step(msg: str) -> None:
-    _CH_LOG.info(f"[chdm] {msg}", flush=True)
+    _CH_LOG.info(f"[chdm] {msg}")
 
 
 def _az(args: list[str], *, capture_json: bool = False) -> dict | str:

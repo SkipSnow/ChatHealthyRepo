@@ -161,7 +161,7 @@ def _hf_peer_url_for_build(target_id: str, env: str, build_n: int) -> str:
 
 # ── Step notice helper ─────────────────────────────────────────────────
 def _step(msg: str) -> None:
-    _CH_LOG.info(f"[hf_helpers] {msg}", flush=True)
+    _CH_LOG.info(f"[hf_helpers] {msg}")
 
 
 # ── build_info.json baked into each HF Space ──────────────────────────

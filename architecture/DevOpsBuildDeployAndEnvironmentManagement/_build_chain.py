@@ -77,7 +77,7 @@ def _ch_exc():
 
 
 def _step(msg: str) -> None:
-    _CH_LOG.info(f"[local_build] {msg}", flush=True)
+    _CH_LOG.info(f"[local_build] {msg}")
 
 
 def _find_repo_root(start: Path) -> Path:

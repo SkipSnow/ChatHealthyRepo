@@ -129,7 +129,7 @@ def _cflags() -> int:
 
 
 def _step(msg: str) -> None:
-    _CH_LOG.info(f"[aca] {msg}", flush=True)
+    _CH_LOG.info(f"[aca] {msg}")
 
 
 def aca_render_dockerfile() -> str:
