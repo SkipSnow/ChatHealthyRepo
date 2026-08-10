@@ -48,7 +48,7 @@ def _cflags() -> int:
 
 
 def step(msg: str) -> None:
-    _CH_LOG.info(f"[pipeline_azure] {msg}", flush=True)
+    _CH_LOG.info(f"[pipeline_azure] {msg}")
 
 
 _AZ_ERROR_DIR = Path(tempfile.gettempdir()) / "pipeline_azure_deploy_errors"

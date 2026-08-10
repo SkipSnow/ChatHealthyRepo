@@ -237,7 +237,7 @@ def walk_json_files(root: Path) -> list[Path]:
 def main(argv: list[str]) -> int:
     root = Path(argv[1]).resolve() if len(argv) > 1 else BRAIN_CONTENT
     if not root.is_dir():
-        _CH_LOG.info(f"ERROR: {root} is not a directory", file=sys.stderr)
+        _CH_LOG.info(f"ERROR: {root} is not a directory")
         return 2
 
     files = walk_json_files(root)

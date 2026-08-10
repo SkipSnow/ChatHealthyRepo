@@ -276,7 +276,7 @@ AZURE_REQUIREMENTS_ZIP_PATH = "requirements.txt"
 
 
 def step(msg: str) -> None:
-    _CH_LOG.info(f"[local_deploy] {msg}", flush=True)
+    _CH_LOG.info(f"[local_deploy] {msg}")
 
 
 def creation_flags() -> int:
@@ -3537,7 +3537,7 @@ class LocalDeploy:
     # REQ-B-005 — step notices
     def _step_notice(self, msg: str) -> None:
         line = f"[STEP {self.env}] {msg}"
-        _CH_LOG.info(line, flush=True)
+        _CH_LOG.info(line)
         self.results["steps"].append({
             "ts": datetime.now(timezone.utc).isoformat(),
             "msg": msg,
@@ -4067,7 +4067,7 @@ class LocalDeploy:
             "\n  Tear-down is the operator's call — never automatic."
             "\n=========================================="
         )
-        _CH_LOG.info(banner, flush=True)
+        _CH_LOG.info(banner)
         sys.stderr.write(banner + "\n")
 
     # REQ-T-006 — structured deploy output

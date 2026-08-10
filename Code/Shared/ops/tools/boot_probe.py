@@ -97,11 +97,10 @@ def main() -> int:
         with open(LOG_PATH, "a", encoding="utf-8") as f:
             f.write(json.dumps(entry, default=str) + "\n")
     except Exception as e:
-        _CH_LOG.info(f"PROBE: log write failed: {e}", file=sys.stderr)
+        _CH_LOG.info(f"PROBE: log write failed: {e}")
 
     # Stderr visibility test — shows up in hook debug output
-    _CH_LOG.info(f"PROBE[{args.event}] fired at {now} pid={os.getpid()} brain_ok={brain_read_ok}",
-          file=sys.stderr)
+    _CH_LOG.info(f"PROBE[{args.event}] fired at {now} pid={os.getpid()} brain_ok={brain_read_ok}")
 
     # Stdout visibility test — additionalContext is shown to Claude.
     # Only SessionStart emits it; UserPromptSubmit stays silent to avoid
