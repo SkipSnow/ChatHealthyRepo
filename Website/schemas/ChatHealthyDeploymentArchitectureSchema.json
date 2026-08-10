@@ -43,6 +43,10 @@
             "description": "Optional authority/scope descriptor (e.g. specific database name, specific NIC range) if the operation itself is not sufficiently self-scoping.",
             "minLength": 1,
             "maxLength": 256
+          },
+          "identity_package": {
+            "type": "string",
+            "description": "package_id inside the referenced target that owns this identity. Required when target_id_ref/identity_target_id names a target whose identities are packages (e.g. target_entra_identities)."
           }
         }
       }
@@ -212,7 +216,7 @@
                   "description": "Packages deployed TO this target (host). Each entry declares one deliverable that lands on the host declared by this env_binding. Universal shape across all target_kinds: a `package_id` for identity, a `kind` discriminating the package type (e.g., runbook, job, secret, blob_container, subnet), and a kind-specific config carried under a key matching `kind`. Dispatch iterates packages and switches on `kind` to select the per-package handler; the host target is deployed once and its packages are then deployed into it.",
                   "items": {
                     "type": "object",
-                    "additionalProperties": true,
+                    "additionalProperties": false,
                     "required": [
                       "package_id",
                       "kind"
@@ -224,7 +228,31 @@
                       },
                       "kind": {
                         "type": "string",
-                        "minLength": 1
+                        "enum": [
+                          "file_set",
+                          "runbook",
+                          "static_files",
+                          "managed_identity",
+                          "secret_from_file",
+                          "docker_image",
+                          "job"
+                        ],
+                        "description": "What this package deploys."
+                      },
+                      "config": {
+                        "type": "object",
+                        "description": "Per-kind deploy configuration. Shape is decided by `kind` and read by that kind's deploy handler."
+                      },
+                      "files": {
+                        "type": "array",
+                        "description": "Files composing this package, when the package carries its own file list rather than tagging the target's files[] with its package_id.",
+                        "items": {
+                          "type": "object"
+                        }
+                      },
+                      "secrets": {
+                        "type": "object",
+                        "description": "Secret NAME -> store qualifier for this package. Values never appear here."
                       }
                     }
                   }
@@ -1775,6 +1803,10 @@
               "maxLength": 256
             },
             "uniqueItems": true
+          },
+          "identity_package": {
+            "type": "string",
+            "description": "package_id inside the referenced target that owns this identity. Required when target_id_ref/identity_target_id names a target whose identities are packages (e.g. target_entra_identities)."
           }
         }
       }
