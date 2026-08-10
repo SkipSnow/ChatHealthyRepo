@@ -494,10 +494,20 @@ def _promote_local_to_dev(repo_root: Path, label: str | None = None) -> int:
         _CH_LOG.info(f"[promote] governance FAILED (exit {rc}) — nothing committed")
         return rc
 
+    # An empty commit is not a baseline advance. Promote used to pass
+    # --allow-empty so a no-op still fired the gates, but the gates have
+    # already run above over the whole walked baseline -- and the commit
+    # driver refuses an empty staged set on purpose, because a scan of
+    # nothing cannot certify anything. So a clean tree is a no-op that
+    # says so.
+    if not _run_git(["diff", "--cached", "--name-only"], repo_root).stdout.strip():
+        _CH_LOG.info("[promote] baseline already at HEAD; nothing to commit")
+        return 0
+
     auto = f"promote local -> dev ({datetime.now(timezone.utc).isoformat()})"
     message = (label + chr(10) + chr(10) + auto) if label else auto
     _CH_LOG.info(f"[promote] commit: {message.splitlines()[0]}")
-    rc = subprocess.run(["git", "commit", "--allow-empty", "-m", message],
+    rc = subprocess.run(["git", "commit", "-m", message],
                         cwd=str(repo_root)).returncode
     if rc != 0:
         _CH_LOG.info(f"[promote] commit refused (exit {rc}); nothing pushed")
