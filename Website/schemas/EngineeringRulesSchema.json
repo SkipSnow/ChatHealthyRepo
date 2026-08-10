@@ -99,6 +99,7 @@
                       "type": "object",
                       "required": [
                         "enforcement_id",
+                        "title",
                         "hook",
                         "executable_path",
                         "requires_lock"
@@ -108,6 +109,12 @@
                           "type": "string",
                           "pattern": "^Rule-\\d{3}-ENF-\\d{3}$",
                           "description": "<rule_id>-ENF-NNN, e.g. Rule-065-ENF-006."
+                        },
+                        "title": {
+                          "type": "string",
+                          "minLength": 8,
+                          "maxLength": 120,
+                          "description": "Plain-language name for what this enforcement enforces, as it appears in the commit-governance log and in any violation report. Names the thing being enforced, not the mechanism enforcing it."
                         },
                         "hook": {
                           "type": "string",
