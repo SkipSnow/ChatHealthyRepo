@@ -56,6 +56,13 @@ for _ch_d in _ch_pl.Path(__file__).resolve().parents:
         if str(_ch_lib) not in _ch_sys.path:
             _ch_sys.path.insert(0, str(_ch_lib))
         break
+# The chain materialises the application .env, which sets
+# CH_LOG_DESTINATION=mongo and CH_LOG_DB=pipelineAdmin. Those are the
+# deployed application's facts, not this tool's: devops tooling runs on
+# a workstation and its log is the operator's terminal. Inheriting them
+# made a build depend on a Mongo write it has no grant for.
+import os as _ch_os
+_ch_os.environ["CH_LOG_DESTINATION"] = "stderr"
 from chathealthy_frontend_lib.logging_service import ChatHealthyLoggingService
 _CH_LOG = ChatHealthyLoggingService()
 
@@ -337,6 +344,14 @@ def main(argv: list[str] | None = None) -> int:
     )
     args = parser.parse_args(argv)
     repo_root = _repo_root()
+    # hf_helpers refuses to load the manifest until it is told which tree to
+    # read it from -- it will not resolve that from __file__, because during a
+    # cloud BUILD that would read the workstation's uncommitted deployment
+    # facts. Only the build ever set it, so every HF deploy raised. A deploy
+    # runs on the workstation against build output, and the manifest it needs
+    # is this repository's.
+    import hf_helpers as _hf
+    _hf.set_build_source(repo_root)
 
     # EPIC-008-F-012: reject any attempt to combine the
     # 'pipeline' selector with another target value. Comma-separated

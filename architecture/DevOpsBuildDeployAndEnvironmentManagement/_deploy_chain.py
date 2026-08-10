@@ -70,6 +70,13 @@ for _ch_d in _ch_pl.Path(__file__).resolve().parents:
         if str(_ch_lib) not in _ch_sys.path:
             _ch_sys.path.insert(0, str(_ch_lib))
         break
+# The chain materialises the application .env, which sets
+# CH_LOG_DESTINATION=mongo and CH_LOG_DB=pipelineAdmin. Those are the
+# deployed application's facts, not this tool's: devops tooling runs on
+# a workstation and its log is the operator's terminal. Inheriting them
+# made a build depend on a Mongo write it has no grant for.
+import os as _ch_os
+_ch_os.environ["CH_LOG_DESTINATION"] = "stderr"
 from chathealthy_frontend_lib.logging_service import ChatHealthyLoggingService
 _CH_LOG = ChatHealthyLoggingService()
 
@@ -2927,7 +2934,14 @@ def deploy_one(
     if target_kind == "cloudflare_pages_project":
         return deploy_cloudflare(build_dir, env, resolver, target)
     if target_kind == "hf_space":
-        return deploy_hf_space(repo_root, build_dir, build_n, target_id, env, resolver, target)
+        # The docker build context is the PACKAGE directory, not the target
+        # directory. A target holds one directory per package it declares and
+        # the build writes the Space's context -- Dockerfile included -- into
+        # the package's. Pointing docker at the target root handed it a
+        # directory containing only 'service_runtime/', so every HF deploy
+        # died on "failed to read dockerfile: open Dockerfile: no such file".
+        return deploy_hf_space(repo_root, _package_dir(repo_root, target_id),
+                               build_n, target_id, env, resolver, target)
     if target_kind == "azure_function_app":
         return deploy_azure_function_app(build_dir, target, env, resolver, coll)
     if target_kind == "azure_container_app":
