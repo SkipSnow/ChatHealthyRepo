@@ -470,15 +470,30 @@ def _build_body(args, repo_root: Path, canonical_repo: Path, canonical_build_dir
     # actually assembled (temp worktree for dev|qa|prod; already the
     # canonical location for local).
     if repo_root != canonical_repo:
+        # Copy back one PACKAGE at a time, never the target directory. The
+        # target directory holds every package the target declares, and the
+        # temp tree has content only for the ones this build named -- so
+        # replacing the target wholesale deleted the last build of every
+        # sibling. A site assembled from all its packages then had only the
+        # one just built, and a single-package deploy could never produce a
+        # complete tree.
+        selected = {p.strip() for p in args.package.split(",") if p.strip()}
         exported: list[Path] = []
-        for pkg in built:
-            rel = pkg.relative_to(repo_root / "build")
-            dst = canonical_build_dir / rel
-            if dst.exists():
-                shutil.rmtree(dst, ignore_errors=True)
-            dst.parent.mkdir(parents=True, exist_ok=True)
-            shutil.copytree(pkg, dst)
-            exported.append(dst)
+        for tgt in built:
+            rel = tgt.relative_to(repo_root / "build")
+            dst_target = canonical_build_dir / rel
+            dst_target.mkdir(parents=True, exist_ok=True)
+            for child in sorted(tgt.iterdir()):
+                if child.is_dir() and child.name not in selected:
+                    continue
+                dst = dst_target / child.name
+                if dst.exists():
+                    shutil.rmtree(dst, ignore_errors=True) if dst.is_dir() else dst.unlink()
+                if child.is_dir():
+                    shutil.copytree(child, dst)
+                else:
+                    shutil.copy2(child, dst)
+            exported.append(dst_target)
         built = exported
 
     _step(f"built {len(built)} package(s) (env={args.env}, build={build_n}):")

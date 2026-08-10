@@ -389,12 +389,30 @@ class CommitAuthorizationWorker(EnforcementWorker):
         server_thread.start()
 
         url = f"http://127.0.0.1:{port}/prompt"
+        # open_new RETURNS whether it managed to open anything, and that
+        # return value used to be discarded -- so a browser that never
+        # appeared was indistinguishable from one that did, and the operator
+        # was left waiting on a prompt that was not on their screen until the
+        # gate timed out and refused the commit. On Windows the shell's own
+        # opener succeeds in contexts where webbrowser's handler does not, so
+        # it is tried second, and a failure of both is said out loud.
+        opened = False
         try:
-            webbrowser.open_new(url)
-        except Exception:
-            # Best-effort. If the browser open fails, the user can still
-            # navigate manually — but the URL is on stderr below.
-            pass
+            opened = bool(webbrowser.open_new(url))
+        except Exception as exc:
+            sys.stdout.write(f"\nbrowser open failed: {exc}\n")
+        if not opened and hasattr(os, "startfile"):
+            try:
+                os.startfile(url)  # noqa: S606 - the Windows shell opener
+                opened = True
+            except Exception as exc:
+                sys.stdout.write(f"\nshell open failed: {exc}\n")
+        if not opened:
+            sys.stdout.write(
+                "\nNO BROWSER OPENED. The approval page is only reachable at "
+                "the URL below; without a click there the commit is refused "
+                "when the gate times out.\n"
+            )
         # Always also write the URL to stderr so the user can paste it if
         # the auto-open didn't land in front of them.
         sys.stdout.write(f"\nAuthorization requested at: {url}\n")
