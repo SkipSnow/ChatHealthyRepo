@@ -316,28 +316,7 @@
                   "_scan_uniform_logging",
                   "excluded_exact",
                   [
-                    "FrontEndApplicationLib/src/chathealthy_frontend_lib/logging_service.py",
-                    "architecture/DevOpsBuildDeployAndEnvironmentManagement/promote_chathealthy.py",
-                    "Code/Shared/ops/migrate_versions_to_per_env.py",
-                    "Code/Shared/ops/promote_build.py",
-                    "Code/Shared/ops/promote_data.py",
-                    "Code/Shared/ops/seed_versions_collection.py",
-                    "Code/Shared/ops/set_version_framework.py",
-                    "Code/Shared/ops/tools/boot_probe.py",
-                    "Code/Shared/ops/tools/chathealthy_devops_boot.py",
-                    "Code/Shared/ops/tools/conversation_log_agent.py",
-                    "Code/Shared/ops/uat_report.py",
-                    "architecture/DevOpsBuildDeployAndEnvironmentManagement/_build_chain.py",
-                    "architecture/DevOpsBuildDeployAndEnvironmentManagement/_deploy_chain.py",
-                    "architecture/DevOpsBuildDeployAndEnvironmentManagement/aca_helpers.py",
-                    "architecture/DevOpsBuildDeployAndEnvironmentManagement/bell_ringer.py",
-                    "architecture/DevOpsBuildDeployAndEnvironmentManagement/build_chathealthy.py",
-                    "architecture/DevOpsBuildDeployAndEnvironmentManagement/chdm_helpers.py",
-                    "architecture/DevOpsBuildDeployAndEnvironmentManagement/crosswalk.py",
-                    "architecture/DevOpsBuildDeployAndEnvironmentManagement/deploy_chathealthy.py",
-                    "architecture/DevOpsBuildDeployAndEnvironmentManagement/hf_helpers.py",
-                    "architecture/DevOpsBuildDeployAndEnvironmentManagement/pipeline_azure_deploy.py",
-                    "brain/enforcement_code/validate_all_json.py"
+                    "FrontEndApplicationLib/src/chathealthy_frontend_lib/logging_service.py"
                   ]
                 ]
               ],
@@ -391,10 +370,7 @@
                     "architecture/ClaudeCodeConversationPersistence/appsettings.json",
                     "architecture/ClaudeCodeConversationPersistence/appsettings.Development.json",
                     "architecture/ClaudeCodeConversationPersistence/Properties/launchSettings.json",
-                    "FindCare/architectureAndDesign/EPIC-006-F-025-baseline-record-NPI-1003199654.json",
-                    "Code/ConversationalUX/ChatHealthyWhoAmIChat/me/findcare-code-package.json",
-                    "pipeline/Code/tests/fixtures/nppes_individual_wy.json",
-                    "pipeline/Code/tests/fixtures/nppes_org_vt.json"
+                    "FindCare/architectureAndDesign/EPIC-006-F-025-baseline-record-NPI-1003199654.json"
                   ]
                 ],
                 [
@@ -539,7 +515,8 @@
                   [
                     "Code/ConversationalUX/FindCareChat/frontend/src/components/WelcomeWidget.tsx",
                     "architecture/EngineeringRuleEnforcement/tests/fixtures/separation_of_concerns/react_persistence/approved_welcome.tsx",
-                    "architecture/EngineeringRuleEnforcement/tests/fixtures/separation_of_concerns/react_persistence/violation.tsx"
+                    "architecture/EngineeringRuleEnforcement/tests/fixtures/separation_of_concerns/react_persistence/violation.tsx",
+                    "Website/functions/auth/google/[[path]].ts"
                   ]
                 ],
                 [

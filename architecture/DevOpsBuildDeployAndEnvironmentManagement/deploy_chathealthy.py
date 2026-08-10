@@ -49,6 +49,16 @@ from cert_placement import (  # noqa: E402
     LONG_LIVED_IDENTITIES,
 )
 
+import sys as _ch_sys, pathlib as _ch_pl
+for _ch_d in _ch_pl.Path(__file__).resolve().parents:
+    if (_ch_d / ".git").exists():
+        _ch_lib = _ch_d / "FrontEndApplicationLib" / "src"
+        if str(_ch_lib) not in _ch_sys.path:
+            _ch_sys.path.insert(0, str(_ch_lib))
+        break
+from chathealthy_frontend_lib.logging_service import ChatHealthyLoggingService
+_CH_LOG = ChatHealthyLoggingService()
+
 
 VALID_ENVS = ("local", "dev", "qa", "prod")
 _ENV_BRANCH = {"local": "dev", "dev": "dev", "qa": "qa", "prod": "main"}
@@ -239,7 +249,7 @@ def _run_tests(env: str, tests: list[str]) -> int:
     for name in tests:
         path = test_map.get(name)
         if not path:
-            print(f"WARN: unknown test {name!r}; skipping")
+            _CH_LOG.info(f"WARN: unknown test {name!r}; skipping")
             continue
         test_paths.append(path)
     if not test_paths:
@@ -247,7 +257,7 @@ def _run_tests(env: str, tests: list[str]) -> int:
     cmd = ["python", "-m", "pytest"] + test_paths + ["-v"]
     env_dict = dict(os.environ)
     env_dict["SMOKE_TEST_ENV"] = env
-    print(f"[deploy] running tests: {tests} against env={env}")
+    _CH_LOG.info(f"[deploy] running tests: {tests} against env={env}")
     return subprocess.run(cmd, env=env_dict).returncode
 
 
@@ -416,7 +426,7 @@ def main(argv: list[str] | None = None) -> int:
                     f"under --target={args.target!r}"
                 )
             target_ids = filtered
-            print(
+            _CH_LOG.info(
                 f"[local_deploy] --package filter: {len(target_ids)} targets "
                 f"remain (packages selected: {sorted(pkg_selection)})"
             )

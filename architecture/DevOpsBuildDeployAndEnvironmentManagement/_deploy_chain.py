@@ -63,6 +63,16 @@ from record_loader import RecordLoader
 from secrets_resolver import SecretsResolver
 from target_record import DeploymentCollection, TargetRecord
 
+import sys as _ch_sys, pathlib as _ch_pl
+for _ch_d in _ch_pl.Path(__file__).resolve().parents:
+    if (_ch_d / ".git").exists():
+        _ch_lib = _ch_d / "FrontEndApplicationLib" / "src"
+        if str(_ch_lib) not in _ch_sys.path:
+            _ch_sys.path.insert(0, str(_ch_lib))
+        break
+from chathealthy_frontend_lib.logging_service import ChatHealthyLoggingService
+_CH_LOG = ChatHealthyLoggingService()
+
 
 # Canonical build output root (operator directive 2026-08-04): every
 # build writes to <repo>/build/<target_id>/<package_id>/; every deploy
@@ -266,7 +276,7 @@ AZURE_REQUIREMENTS_ZIP_PATH = "requirements.txt"
 
 
 def step(msg: str) -> None:
-    print(f"[local_deploy] {msg}", flush=True)
+    _CH_LOG.info(f"[local_deploy] {msg}", flush=True)
 
 
 def creation_flags() -> int:
@@ -3527,7 +3537,7 @@ class LocalDeploy:
     # REQ-B-005 — step notices
     def _step_notice(self, msg: str) -> None:
         line = f"[STEP {self.env}] {msg}"
-        print(line, flush=True)
+        _CH_LOG.info(line, flush=True)
         self.results["steps"].append({
             "ts": datetime.now(timezone.utc).isoformat(),
             "msg": msg,
@@ -4057,7 +4067,7 @@ class LocalDeploy:
             "\n  Tear-down is the operator's call — never automatic."
             "\n=========================================="
         )
-        print(banner, flush=True)
+        _CH_LOG.info(banner, flush=True)
         sys.stderr.write(banner + "\n")
 
     # REQ-T-006 — structured deploy output

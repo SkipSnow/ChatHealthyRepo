@@ -5,14 +5,23 @@
 # Agent function for conversation log archival.
 
 import json
-import logging
+
 import os
 import uuid
 from datetime import datetime, timezone, timedelta
 from pathlib import Path
 from pymongo.errors import DuplicateKeyError, PyMongoError
 
-_log = logging.getLogger("ChatHealthyClaudeLogManagementAnthropicAgent")
+import sys as _ch_sys, pathlib as _ch_pl
+for _ch_d in _ch_pl.Path(__file__).resolve().parents:
+    if (_ch_d / ".git").exists():
+        _ch_lib = _ch_d / "FrontEndApplicationLib" / "src"
+        if str(_ch_lib) not in _ch_sys.path:
+            _ch_sys.path.insert(0, str(_ch_lib))
+        break
+from chathealthy_frontend_lib.logging_service import ChatHealthyLoggingService
+
+_log = ChatHealthyLoggingService()
 
 MONGO_DB = "ClaudeCodeUtterances"
 MONGO_COLLECTION = "conversation_log_archive"

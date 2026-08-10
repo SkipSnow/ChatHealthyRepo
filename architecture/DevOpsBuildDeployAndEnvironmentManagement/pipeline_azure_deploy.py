@@ -28,6 +28,16 @@ from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
 
+import sys as _ch_sys, pathlib as _ch_pl
+for _ch_d in _ch_pl.Path(__file__).resolve().parents:
+    if (_ch_d / ".git").exists():
+        _ch_lib = _ch_d / "FrontEndApplicationLib" / "src"
+        if str(_ch_lib) not in _ch_sys.path:
+            _ch_sys.path.insert(0, str(_ch_lib))
+        break
+from chathealthy_frontend_lib.logging_service import ChatHealthyLoggingService
+_CH_LOG = ChatHealthyLoggingService()
+
 
 ATLAS_API_BASE = "https://cloud.mongodb.com/api/atlas/v2"
 ATLAS_API_ACCEPT = "application/vnd.atlas.2023-01-01+json"
@@ -38,7 +48,7 @@ def _cflags() -> int:
 
 
 def step(msg: str) -> None:
-    print(f"[pipeline_azure] {msg}", flush=True)
+    _CH_LOG.info(f"[pipeline_azure] {msg}", flush=True)
 
 
 _AZ_ERROR_DIR = Path(tempfile.gettempdir()) / "pipeline_azure_deploy_errors"

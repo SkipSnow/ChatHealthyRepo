@@ -31,6 +31,16 @@ import sys
 import time
 import urllib.request
 
+import sys as _ch_sys, pathlib as _ch_pl
+for _ch_d in _ch_pl.Path(__file__).resolve().parents:
+    if (_ch_d / ".git").exists():
+        _ch_lib = _ch_d / "FrontEndApplicationLib" / "src"
+        if str(_ch_lib) not in _ch_sys.path:
+            _ch_sys.path.insert(0, str(_ch_lib))
+        break
+from chathealthy_frontend_lib.logging_service import ChatHealthyLoggingService
+_CH_LOG = ChatHealthyLoggingService()
+
 
 # Shared-infra facts (VNet, subnet, hybrid worker group, SSH key
 # filename, Azure REST API versions) all live in the AA target's
@@ -98,7 +108,7 @@ def _cflags() -> int:
 
 
 def _step(msg: str) -> None:
-    print(f"[chdm] {msg}", flush=True)
+    _CH_LOG.info(f"[chdm] {msg}", flush=True)
 
 
 def _az(args: list[str], *, capture_json: bool = False) -> dict | str:

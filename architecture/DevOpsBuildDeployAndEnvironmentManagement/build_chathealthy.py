@@ -58,6 +58,16 @@ from _build_chain import (
     SecretsResolver,
 )
 
+import sys as _ch_sys, pathlib as _ch_pl
+for _ch_d in _ch_pl.Path(__file__).resolve().parents:
+    if (_ch_d / ".git").exists():
+        _ch_lib = _ch_d / "FrontEndApplicationLib" / "src"
+        if str(_ch_lib) not in _ch_sys.path:
+            _ch_sys.path.insert(0, str(_ch_lib))
+        break
+from chathealthy_frontend_lib.logging_service import ChatHealthyLoggingService
+_CH_LOG = ChatHealthyLoggingService()
+
 
 VALID_ENVS = ("local", "dev", "qa", "prod")
 _ENV_BRANCH = {"local": "dev", "dev": "dev", "qa": "qa", "prod": "main"}
@@ -148,7 +158,7 @@ def _get_build_source(canonical_repo: Path, env: str) -> Path:
     _run_git(["fetch", "origin", branch], canonical_repo, "fetch")
     import tempfile
     src = Path(tempfile.mkdtemp(prefix=f"build_{env}_{branch}_"))
-    print(f"[build] materialising origin/{branch} at {src}")
+    _CH_LOG.info(f"[build] materialising origin/{branch} at {src}")
     _run_git(
         ["worktree", "add", "--detach", "--force", str(src), f"origin/{branch}"],
         canonical_repo, "worktree add",

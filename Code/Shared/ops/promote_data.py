@@ -9,7 +9,7 @@
 #   python promote_data.py --from dev --to qa --dry-run
 
 import argparse
-import logging
+
 import os
 import sys
 import time
@@ -17,10 +17,19 @@ import time
 from dotenv import load_dotenv
 from pymongo import MongoClient
 
+import sys as _ch_sys, pathlib as _ch_pl
+for _ch_d in _ch_pl.Path(__file__).resolve().parents:
+    if (_ch_d / ".git").exists():
+        _ch_lib = _ch_d / "FrontEndApplicationLib" / "src"
+        if str(_ch_lib) not in _ch_sys.path:
+            _ch_sys.path.insert(0, str(_ch_lib))
+        break
+from chathealthy_frontend_lib.logging_service import ChatHealthyLoggingService
+
 load_dotenv(os.path.join(os.path.dirname(__file__), "..", "..", ".env"))
 
-logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(message)s")
-log = logging.getLogger("promote_data")
+
+log = ChatHealthyLoggingService()
 
 BATCH_SIZE = 5000
 

@@ -70,13 +70,13 @@ def f006_catalog():
 
 @pytest.fixture
 def nppes_individual_row():
-    with open(FIXTURES / "nppes_individual_wy.json", encoding="utf-8") as f:
+    with open(FIXTURES / "nppes_individual_wy.jsonfixture", encoding="utf-8") as f:
         return json.load(f)
 
 
 @pytest.fixture
 def nppes_org_row():
-    with open(FIXTURES / "nppes_org_vt.json", encoding="utf-8") as f:
+    with open(FIXTURES / "nppes_org_vt.jsonfixture", encoding="utf-8") as f:
         return json.load(f)
 
 

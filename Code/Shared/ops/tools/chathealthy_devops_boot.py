@@ -11,11 +11,20 @@ confirmation; the real payload lands via the @-import mechanism.
 from __future__ import annotations
 
 import json
-import logging
+
 import os
 import sys
 import tempfile
 from pathlib import Path
+
+import sys as _ch_sys, pathlib as _ch_pl
+for _ch_d in _ch_pl.Path(__file__).resolve().parents:
+    if (_ch_d / ".git").exists():
+        _ch_lib = _ch_d / "FrontEndApplicationLib" / "src"
+        if str(_ch_lib) not in _ch_sys.path:
+            _ch_sys.path.insert(0, str(_ch_lib))
+        break
+from chathealthy_frontend_lib.logging_service import ChatHealthyLoggingService
 
 try:
     from dotenv import load_dotenv
@@ -23,11 +32,8 @@ try:
 except ImportError:
     pass
 
-_log = logging.getLogger("devops_boot")
-logging.basicConfig(
-    level=logging.INFO,
-    format="%(asctime)s %(levelname)s %(name)s - %(message)s",
-)
+_log = ChatHealthyLoggingService()
+
 
 PROJECT_ROOT = Path(__file__).resolve().parents[4]
 BRAIN_DIR = PROJECT_ROOT / "brain" / "machine_artifacts" / "content"
