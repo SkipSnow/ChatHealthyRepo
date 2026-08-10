@@ -48,16 +48,27 @@ class NotificationClient:
             _log.info("notification SMS (no-op) to=%s body=%s meta=%s",
                       to, body[:120], meta)
             return {"channel": "sms", "status": "noop", "to": to}
-        sid = os.environ.get("TWILIO_ACCOUNT_SID", "").strip()
-        tok = os.environ.get("TWILIO_AUTH_TOKEN", "").strip()
+        account_sid = os.environ.get("TWILIO_ACCOUNT_SID", "").strip()
+        api_key_sid = os.environ.get("TWILIO_API_KEY_SID", "").strip()
+        api_key_secret = os.environ.get("TWILIO_API_KEY_SECRET", "").strip()
+        # Twilio supports two auth patterns. Prefer API-key pair (more
+        # granular + revocable independently); fall back to legacy
+        # Account SID + Auth Token. URL always uses Account SID.
+        if api_key_sid and api_key_secret:
+            auth_username, auth_password = api_key_sid, api_key_secret
+        else:
+            auth_username = account_sid
+            auth_password = os.environ.get("TWILIO_AUTH_TOKEN", "").strip()
         frm = os.environ.get("TWILIO_FROM_NUMBER", "").strip()
-        if not (sid and tok and frm):
-            _log.warning("TWILIO_ENABLED but SID/TOKEN/FROM missing; SMS skipped to=%s", to)
+        if not (account_sid and auth_username and auth_password and frm):
+            _log.warning(
+                "TWILIO_ENABLED but ACCOUNT_SID/auth/FROM missing; SMS skipped to=%s", to,
+            )
             return {"channel": "sms", "status": "misconfigured", "to": to}
         try:
             r = requests.post(
-                f"https://api.twilio.com/2010-04-01/Accounts/{sid}/Messages.json",
-                auth=(sid, tok),
+                f"https://api.twilio.com/2010-04-01/Accounts/{account_sid}/Messages.json",
+                auth=(auth_username, auth_password),
                 data={"From": frm, "To": to, "Body": body},
                 timeout=15,
             )

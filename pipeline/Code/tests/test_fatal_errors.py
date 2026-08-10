@@ -9,6 +9,14 @@ import uuid
 sys.path.insert(0, "FrontEndApplicationLib/src")
 
 from steps.discrepancy_report import DiscrepancyReport, fatal_error
+import sys as _sys, pathlib as _pl
+for _d in _pl.Path(__file__).resolve().parents:
+    if (_d / '.git').exists():
+        _lib = _d / 'FrontEndApplicationLib' / 'src'
+        if str(_lib) not in _sys.path:
+            _sys.path.insert(0, str(_lib))
+        break
+from chathealthy_frontend_lib.exceptions import ChatHealthyException
 
 
 def test_email_send_with_warnings_and_errors():
@@ -99,4 +107,7 @@ def test_email_send_with_warnings_and_errors():
         )
 
     except Exception as e:
-        raise AssertionError(f"Test failed with exception: {type(e).__name__}: {e}") from e
+        raise ChatHealthyException(
+            mode="assertion_failed",
+            component="test_fatal_errors",
+            message=f"Test failed with exception: {type(e).__name__}: {e}") from e
