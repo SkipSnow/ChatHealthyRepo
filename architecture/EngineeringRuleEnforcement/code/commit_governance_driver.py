@@ -39,6 +39,13 @@ for _d in Path(__file__).resolve().parents:
             sys.path.insert(0, str(_lib))
         break
 
+# The chain materialises the application .env, which sets
+# CH_LOG_DESTINATION=mongo and CH_LOG_DB=pipelineAdmin. Those are the
+# deployed application's facts, not this tool's: devops tooling runs on
+# a workstation and its log is the operator's terminal. Inheriting them
+# made a build depend on a Mongo write it has no grant for.
+import os as _ch_os
+_ch_os.environ["CH_LOG_DESTINATION"] = "stderr"
 from chathealthy_frontend_lib.logging_service import ChatHealthyLoggingService
 from baseline_walk import baseline_files
 
