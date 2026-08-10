@@ -24,8 +24,11 @@ array back, both mutations MUST survive.
 Under the pre-fix code the test fails (clobber). Under the NPI-atomic
 fix the test passes (single owner per NPI; concurrent-write scenario
 cannot occur by design). The test also serves as a live-Mongo behavior
-check: it uses a real MongoDB collection (mongomock) and asserts what
-Mongo's $set semantics actually deliver under the buggy pattern.
+check: it runs against a real MongoDB collection and asserts what
+Mongo's $set semantics actually deliver under the buggy pattern. That is
+why it must be a real server — the whole claim is about what the server
+does when two writers race, and an in-process fake races differently or
+not at all.
 """
 
 from __future__ import annotations
@@ -36,7 +39,7 @@ from pathlib import Path
 
 import pytest
 
-_FIXTURE_PATH = Path(__file__).parent.parent / "fixtures" / "provider_1962405589.json"
+_FIXTURE_PATH = Path(__file__).parent.parent / "fixtures" / "provider_1962405589.jsonfixture"
 
 
 @pytest.fixture
@@ -47,11 +50,14 @@ def npi_1962405589_doc():
 
 
 @pytest.fixture
-def mongo_coll():
-    """In-memory Mongo collection via mongomock."""
-    mongomock = pytest.importorskip("mongomock")
-    client = mongomock.MongoClient()
-    return client["test_db"]["providers"]
+def mongo_coll(scratch_mongo):
+    """A real, disposable providers collection.
+
+    scratch_mongo connects through the canonical utility as DevOpsUser
+    and drops the collection when the test ends.
+    """
+    _db, collection = scratch_mongo
+    return collection("providers")
 
 
 def _full_array_writer(coll, npi: str, array_field: str, mutation_fn) -> None:

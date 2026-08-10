@@ -14,7 +14,6 @@ from __future__ import annotations
 
 import json
 import os
-import re
 from datetime import datetime, timezone
 from pathlib import Path
 
@@ -69,7 +68,8 @@ REDACTION_MODEL = "gpt-4.1-mini"
 
 # Our own markers are masked before the model sees them, so it cannot rewrite
 # one and destroy the key attribution.
-_MARKER_PATTERN = re.compile(r"\[Sensitive content redacted[^\]]*\]")
+_MARKER_OPEN = "[Sensitive content redacted"
+_MARKER_CLOSE = "]"
 _MASK_TOKEN = "<<R{index}>>"
 
 _secret_cache: list[str] | None = None
@@ -77,16 +77,105 @@ _secret_cache_mtime: float | None = None
 
 # Vendor-specific credential shapes, for secrets never in .env. Narrow on
 # purpose: a loose pattern would shred ordinary prose.
-_SECRET_PATTERNS = [
-    re.compile(r"sk-[A-Za-z0-9_-]{20,}"),                      # OpenAI
-    re.compile(r"sk-ant-[A-Za-z0-9_-]{20,}"),                  # Anthropic
-    re.compile(r"gh[pousr]_[A-Za-z0-9]{30,}"),                 # GitHub
-    re.compile(r"hf_[A-Za-z0-9]{30,}"),                        # HuggingFace
-    re.compile(r"AKIA[0-9A-Z]{16}"),                         # AWS
-    re.compile(r"xox[baprs]-[A-Za-z0-9-]{10,}"),               # Slack
-    re.compile(r"mongodb(?:\+srv)?://[^:\s]+:[^@\s]+@"),         # Mongo with creds
-    re.compile(r"-----BEGIN [A-Z ]*PRIVATE KEY-----[\s\S]*?-----END [A-Z ]*PRIVATE KEY-----"),
+_ALNUM = frozenset(
+    "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789"
+)
+_ALNUM_DASH_US = _ALNUM | frozenset("-_")
+_ALNUM_DASH = _ALNUM | frozenset("-")
+_UPPER_DIGIT = frozenset("ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789")
+
+# (prefix, permitted body characters, minimum body length, vendor).
+# A credential is a fixed prefix followed by a run of characters from a known
+# set, of at least a known length. Written out rather than encoded in a
+# pattern language, because this decides whether a credential reaches the
+# archive and the reader should not have to parse a regex to check it.
+_SECRET_SHAPES = [
+    ("sk-ant-", _ALNUM_DASH_US, 20, "Anthropic"),
+    ("sk-", _ALNUM_DASH_US, 20, "OpenAI"),
+    ("hf_", _ALNUM, 30, "HuggingFace"),
+    ("AKIA", _UPPER_DIGIT, 16, "AWS"),
 ]
+
+# GitHub issues several prefixes that differ only in one letter.
+_SECRET_SHAPES += [
+    (f"gh{c}_", _ALNUM, 30, "GitHub") for c in "pousr"
+]
+# Slack likewise.
+_SECRET_SHAPES += [
+    (f"xox{c}-", _ALNUM_DASH, 10, "Slack") for c in "baprs"
+]
+
+_PEM_OPEN = "-----BEGIN "
+_PEM_CLOSE_TAIL = "PRIVATE KEY-----"
+_MONGO_SCHEMES = ("mongodb://", "mongodb+srv://")
+
+
+def _run_length(text: str, start: int, allowed: frozenset) -> int:
+    """How many characters from `allowed` run consecutively from `start`."""
+    i = start
+    while i < len(text) and text[i] in allowed:
+        i += 1
+    return i - start
+
+
+def _find_shaped_secrets(content: str) -> list[tuple[int, int]]:
+    """Spans of text that have the shape of a vendor credential."""
+    spans: list[tuple[int, int]] = []
+    for prefix, allowed, minimum, _vendor in _SECRET_SHAPES:
+        at = content.find(prefix)
+        while at != -1:
+            body = _run_length(content, at + len(prefix), allowed)
+            if body >= minimum:
+                spans.append((at, at + len(prefix) + body))
+            at = content.find(prefix, at + 1)
+    return spans
+
+
+def _find_pem_blocks(content: str) -> list[tuple[int, int]]:
+    """Spans covering whole PEM private-key blocks, delimiters included."""
+    spans: list[tuple[int, int]] = []
+    at = content.find(_PEM_OPEN)
+    while at != -1:
+        header_end = content.find("-----", at + len(_PEM_OPEN))
+        if header_end == -1:
+            break
+        if content[at:header_end].endswith("PRIVATE KEY"):
+            close = content.find(_PEM_CLOSE_TAIL, header_end)
+            if close != -1:
+                end = content.find("-----", close + len(_PEM_CLOSE_TAIL) - 5)
+                spans.append((at, close + len(_PEM_CLOSE_TAIL)))
+        at = content.find(_PEM_OPEN, at + 1)
+    return spans
+
+
+def _find_credentialled_mongo_uris(content: str) -> list[tuple[int, int]]:
+    """Spans covering a Mongo URI that carries a password."""
+    spans: list[tuple[int, int]] = []
+    for scheme in _MONGO_SCHEMES:
+        at = content.find(scheme)
+        while at != -1:
+            body_start = at + len(scheme)
+            at_sign = content.find("@", body_start)
+            colon = content.find(":", body_start)
+            if at_sign != -1 and colon != -1 and colon < at_sign:
+                between = content[body_start:at_sign]
+                if not any(ch.isspace() for ch in between):
+                    spans.append((at, at_sign + 1))
+            at = content.find(scheme, at + 1)
+    return spans
+
+
+def _replace_spans(content: str, spans: list[tuple[int, int]], with_text: str) -> str:
+    """Replace non-overlapping spans, longest first, right to left."""
+    if not spans:
+        return content
+    chosen: list[tuple[int, int]] = []
+    for start, end in sorted(spans, key=lambda s: (s[1] - s[0]), reverse=True):
+        if all(end <= a or start >= b for a, b in chosen):
+            chosen.append((start, end))
+    for start, end in sorted(chosen, reverse=True):
+        content = content[:start] + with_text + content[end:]
+    return content
 
 
 def _parse_hook_payload(raw_bytes: bytes) -> dict:
@@ -176,14 +265,29 @@ def redact_secret_shapes(content: str) -> str:
     Deliberately narrow. A pattern that fires on ordinary prose destroys the
     archive, so each of these matches a vendor-specific format.
     """
-    for pattern in _SECRET_PATTERNS:
-        content = pattern.sub(REDACTED_NO_KEY, content)
-    return content
+    spans = (_find_shaped_secrets(content)
+             + _find_pem_blocks(content)
+             + _find_credentialled_mongo_uris(content))
+    return _replace_spans(content, spans, REDACTED_NO_KEY)
 
 
 
 
 
+
+
+
+def _find_markers(content: str) -> list[str]:
+    """Our own redaction markers, found by their literal delimiters."""
+    out: list[str] = []
+    at = content.find(_MARKER_OPEN)
+    while at != -1:
+        close = content.find(_MARKER_CLOSE, at + len(_MARKER_OPEN))
+        if close == -1:
+            break
+        out.append(content[at:close + 1])
+        at = content.find(_MARKER_OPEN, close + 1)
+    return out
 
 def _mask_markers(content: str) -> tuple[str, list[str]]:
     """Replace our own redaction markers with opaque tokens.
@@ -192,7 +296,7 @@ def _mask_markers(content: str) -> tuple[str, list[str]]:
     "(key=OPENAI_API_KEY)" previously came back as "(key unavailable)", losing
     the attribution that makes a leak actionable.
     """
-    markers = _MARKER_PATTERN.findall(content)
+    markers = _find_markers(content)
     for index, marker in enumerate(markers):
         content = content.replace(marker, _MASK_TOKEN.format(index=index), 1)
     return content, markers

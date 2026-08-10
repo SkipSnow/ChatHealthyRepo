@@ -198,16 +198,16 @@ def _credential_grants_prescribing(credential_text: str | None) -> bool:
 
 
 def _stamp_taxonomy_status(doc: dict, catalog: dict) -> None:
-    """Stamp `status` on doc['taxonomies'][i] ONLY for the 0.001% of
-    codes that are not normal NUCC-backed. Absent = normal (default);
-    'Supplemented' = code exists in F-105 as an operational supplement
-    (also stamps grouping/classification/specialization/definition from
-    the F-105 supplement entry); 'Missing' = code is in neither current
-    NUCC nor F-105.
+    """Stamp `status` on doc['taxonomies'][i] ONLY for codes that are not
+    normal NUCC-backed. Absent = normal (default); 'Supplemented' = code
+    exists in F-105 as an operational supplement (F-105 is the single
+    source of truth for its metadata -- provider records do NOT duplicate
+    grouping/classification/specialization/definition); 'Missing' = code
+    is in neither current NUCC nor F-105.
 
-    Ceremonial bytes matter across 9.25M records -- normal records
-    stay untouched so downstream serialization is unchanged for them.
-    See NUCC_SpecialtyCodeDataDiscrepancyManagement.docx."""
+    Ceremonial bytes matter across 9.25M records -- normal records stay
+    untouched, supplemented records add exactly one field (status). See
+    NUCC_SpecialtyCodeDataDiscrepancyManagement.docx."""
     for tax in doc.get("taxonomies") or []:
         code = (tax.get("code") or "").strip()
         if not code:

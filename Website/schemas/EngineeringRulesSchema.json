@@ -107,7 +107,7 @@
                         "enforcement_id": {
                           "type": "string",
                           "pattern": "^Rule-\\d{3}-ENF-\\d{3}$",
-                          "description": "<rule_id>-ENF-NNN, e.g. Rule-008-ENF-001."
+                          "description": "<rule_id>-ENF-NNN, e.g. Rule-065-ENF-006."
                         },
                         "hook": {
                           "type": "string",

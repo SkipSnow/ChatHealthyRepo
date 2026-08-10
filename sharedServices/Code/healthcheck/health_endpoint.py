@@ -17,7 +17,7 @@ BUILD_INFO_PATH = "/app/build_info.json"
 def read_build_info() -> dict | None:
     """Return the build_info.json baked into the image at build time, or
     None if the file is absent (older image; caller falls back to the
-    admin.Versions read for back-compat)."""
+    frontEndAdmin.BuildVersions read for back-compat)."""
     p = Path(BUILD_INFO_PATH)
     if not p.is_file():
         return None
@@ -43,7 +43,7 @@ class HealthEndpoint:
     Source priority for build/version/framework:
       1. /app/build_info.json (baked at image build time — the truth about
          what's running)
-      2. admin.Versions latest doc (legacy fallback for older images)
+      2. frontEndAdmin.BuildVersions latest doc (legacy fallback for older images)
 
     The db reachability check still runs so the db status field is honest.
     """
@@ -61,7 +61,7 @@ class HealthEndpoint:
             try:
                 from chathealthy_frontend_lib.mongo_utilities import ChatHealthyMongoUtilities
                 client = ChatHealthyMongoUtilities().getConnection("frontendUser", "frontEnd")
-                mongo_doc = client["admin"]["Versions"].find_one(sort=[("from", -1)]) or {}
+                mongo_doc = client["frontEndAdmin"]["BuildVersions"].find_one(sort=[("from", -1)]) or {}
                 db_status = "connected"
             except Exception as exc:
                 # Mode 2 (REQ-B-008): Mongo read failed during /health
@@ -101,5 +101,5 @@ class HealthEndpoint:
             "build": mongo_doc.get("build"),
             "git_number": mongo_doc.get("git_number"),
             "version": mongo_doc.get("version"),
-            "source": "admin.Versions",
+            "source": "frontEndAdmin.BuildVersions",
         }

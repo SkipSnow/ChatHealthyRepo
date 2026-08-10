@@ -24,6 +24,15 @@ import pytest
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
 
 from pipeline_worker_base import PipelineWorkerBase
+import sys as _sys, pathlib as _pl
+for _d in _pl.Path(__file__).resolve().parents:
+    if (_d / '.git').exists():
+        _lib = _d / 'FrontEndApplicationLib' / 'src'
+        if str(_lib) not in _sys.path:
+            _sys.path.insert(0, str(_lib))
+        break
+from chathealthy_frontend_lib.exceptions import ChatHealthyException
+from azure.core.exceptions import AzureError
 
 
 # ── Test double ───────────────────────────────────────────────────────────────
@@ -66,7 +75,10 @@ class _Worker(PipelineWorkerBase):
 
     def _pipeline_process(self):
         if self._current == self.FAIL_SENTINEL:
-            raise ValueError(f"Bad item: {self._current}")
+            raise ChatHealthyException(
+                mode="value_error",
+                component="test_pipeline_worker_base",
+                message=f"Bad item: {self._current}")
 
     def _pipeline_row_key(self):
         return str(self._current)
@@ -219,10 +231,9 @@ def test_abends_on_first_row_error():
 
 
 def test_error_still_logged_when_fail_on_row_error(caplog):
-    import logging
     w = _Worker({"fail_on_row_error": True}, [_Worker.FAIL_SENTINEL])
     with pytest.raises(ValueError):
-        with caplog.at_level(logging.ERROR):
+        with caplog.at_level("ERROR"):
             w.pipeline_execute()
     assert any("Row error" in r.message for r in caplog.records)
 
@@ -247,7 +258,7 @@ def test_on_job_failure_called_on_abend():
 def test_fatal_open_error_calls_on_job_failure_and_close():
     class FailOpen(_Worker):
         def _pipeline_open(self):
-            raise RuntimeError("blob unavailable")
+            raise AzureError("blob unavailable")
 
     w = FailOpen({}, [])
     with pytest.raises(RuntimeError, match="blob unavailable"):

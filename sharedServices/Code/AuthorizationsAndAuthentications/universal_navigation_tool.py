@@ -86,6 +86,21 @@ MAX_DISPATCH_HOPS = 3
 # Request / Response contracts
 # ────────────────────────────────────────────────────────────────────
 
+
+def _ch_exc():
+    """ChatHealthyException without assuming the library is installed.
+    These modules run as bare scripts in the devops chain."""
+    import sys as _s, pathlib as _p
+    for _d in _p.Path(__file__).resolve().parents:
+        if (_d / ".git").exists():
+            _l = _d / "FrontEndApplicationLib" / "src"
+            if str(_l) not in _s.path:
+                _s.path.insert(0, str(_l))
+            break
+    from chathealthy_frontend_lib.exceptions import ChatHealthyException
+    return ChatHealthyException
+
+
 class Request(BaseModel):
     """Op + opaque payload. The router picks a handler by `op`."""
     op: str = Field(default="boot")
@@ -418,10 +433,11 @@ class UniversalNavigationTool(ChatHealthyTool):
         for _hop in range(MAX_DISPATCH_HOPS):
             document = deps.user_object.intent
             if document is None:
-                raise RuntimeError(
-                    "UR compliance: UtteranceManager returned without setting "
-                    "user_object.intent"
-                )
+                raise _ch_exc()(
+            mode="runtime_error",
+            component="universal_navigation_tool",
+            message="UR compliance: UtteranceManager returned without setting "
+                    "user_object.intent")
 
             target_action = document.target_action
             if target_action == last_target_action:
@@ -441,10 +457,11 @@ class UniversalNavigationTool(ChatHealthyTool):
             await self._dispatch_target_action(deps, document, target_action)
             last_target_action = target_action
         else:
-            raise RuntimeError(
-                f"UR dispatch exceeded {MAX_DISPATCH_HOPS} hops; last "
-                f"target_action={last_target_action!r}"
-            )
+            raise _ch_exc()(
+            mode="runtime_error",
+            component="universal_navigation_tool",
+            message=f"UR dispatch exceeded {MAX_DISPATCH_HOPS} hops; last "
+                f"target_action={last_target_action!r}")
 
         return Response(
             kind="utterance",
@@ -924,21 +941,24 @@ class UniversalNavigationTool(ChatHealthyTool):
             (i for i in document.intents if i.name == target_action), None,
         )
         if target_intent_entry is None:
-            raise RuntimeError(
-                f"UR compliance: target_action {target_action!r} has no matching "
-                f"entry in intents[] (names={[i.name for i in document.intents]})"
-            )
+            raise _ch_exc()(
+            mode="runtime_error",
+            component="universal_navigation_tool",
+            message=f"UR compliance: target_action {target_action!r} has no matching "
+                f"entry in intents[] (names={[i.name for i in document.intents]})")
         for arg in target_intent_entry.arguments:
             if arg.required and not arg.value:
-                raise RuntimeError(
-                    f"UR compliance: required argument {arg.name!r} for target_action "
-                    f"{target_action!r} has empty value"
-                )
+                raise _ch_exc()(
+            mode="runtime_error",
+            component="universal_navigation_tool",
+            message=f"UR compliance: required argument {arg.name!r} for target_action "
+                    f"{target_action!r} has empty value")
             if arg.type == "boolean" and arg.value not in ("true", "false"):
-                raise RuntimeError(
-                    f"UR compliance: boolean argument {arg.name!r} has value "
-                    f"{arg.value!r}, must be 'true' or 'false'"
-                )
+                raise _ch_exc()(
+            mode="runtime_error",
+            component="universal_navigation_tool",
+            message=f"UR compliance: boolean argument {arg.name!r} has value "
+                    f"{arg.value!r}, must be 'true' or 'false'")
             if arg.type in ("object", "array"):
                 try:
                     json.loads(arg.value)
@@ -955,17 +975,19 @@ class UniversalNavigationTool(ChatHealthyTool):
                 (a for a in target_intent_entry.arguments if a.name == "geography"), None,
             )
             if geo_arg is None:
-                raise RuntimeError(
-                    "UR compliance: findAProvider missing geography argument"
-                )
+                raise _ch_exc()(
+            mode="runtime_error",
+            component="universal_navigation_tool",
+            message="UR compliance: findAProvider missing geography argument")
             geo = json.loads(geo_arg.value)
             zip_code = (geo.get("zip") or "").strip()
             state = (geo.get("state") or "").strip()
             if not zip_code and not state:
-                raise RuntimeError(
-                    "UR compliance: findAProvider geography insufficient — needs "
-                    "zip OR state (city/county without state are not enough)"
-                )
+                raise _ch_exc()(
+            mode="runtime_error",
+            component="universal_navigation_tool",
+            message="UR compliance: findAProvider geography insufficient — needs "
+                    "zip OR state (city/county without state are not enough)")
 
     async def _dispatch_llm_unavailable_dialogue(
         self, deps: AgentDeps, exc: ChatHealthyException,
@@ -1146,9 +1168,10 @@ class UniversalNavigationTool(ChatHealthyTool):
                 # canonical final event with full payload.
 
         else:
-            raise RuntimeError(
-                f"UR compliance: out-of-catalog target_action {target_action!r}"
-            )
+            raise _ch_exc()(
+            mode="runtime_error",
+            component="universal_navigation_tool",
+            message=f"UR compliance: out-of-catalog target_action {target_action!r}")
 
     async def _run_or_cache_specialty_filter(self, deps: AgentDeps, complaint: str) -> list[dict]:
         """REQ-B-002 + REQ-B-003 + FindCare-UR REQ-B-001.
@@ -1247,10 +1270,11 @@ class UniversalNavigationTool(ChatHealthyTool):
         """
         # 1. Wire-intent validation (gateway concern).
         if gate_req.intent is not None and gate_req.intent not in KNOWN_WIRE_INTENTS:
-            raise ValueError(
-                f"/gate: unknown intent {gate_req.intent!r}; expected one of "
-                f"{sorted(KNOWN_WIRE_INTENTS)} or absent"
-            )
+            raise _ch_exc()(
+            mode="value_error",
+            component="universal_navigation_tool",
+            message=f"/gate: unknown intent {gate_req.intent!r}; expected one of "
+                f"{sorted(KNOWN_WIRE_INTENTS)} or absent")
 
         # 2. Mongo handle + AuthnDeps.
         mongo_frontend = authn.get_mongo_frontend()

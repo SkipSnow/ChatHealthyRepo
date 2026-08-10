@@ -39,7 +39,9 @@ from pathlib import Path
 # imported from local_build.py for now. They migrate in step 5.7.
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 from preflight_undefined_names import scan as _scan_undefined_names  # noqa: E402
-from _build_chain import (  # noqa: E402
+from _build_chain import (
+    _declared_packages,  # noqa: E402
+    materialize_build_structure,
     _build_one,
     _find_repo_root,
     _read_dev_build_number,
@@ -305,21 +307,40 @@ def main(argv: list[str] | None = None) -> int:
              "whether the admin.Versions counter is bumped.",
     )
     parser.add_argument(
-        "--target", default="all",
-        help="'all' | 'cloudflare' | 'hf' | 'azure' | 'aca' | a specific target_id. "
-             "Defaults to 'all'.",
+        "--target", required=True,
+        help="Comma-separated target_id list. There is no 'all': every build "
+             "names the destinations it is building. Group selectors "
+             "('cloudflare' | 'hf' | 'azure' | 'aca' | 'pipeline' | 'host') "
+             "remain for kind-wide work and still require --package.",
+    )
+    parser.add_argument(
+        "--package", required=True,
+        help="Comma-separated package_id list. A build states which "
+             "capabilities inside those targets it is producing; there is no "
+             "'every package' shortcut.",
     )
     args = parser.parse_args(argv)
 
     canonical_repo = _find_repo_root(Path(__file__))
 
-    # Purge the canonical build output dir. Every build starts from a
-    # clean slate; there is no residual state from a prior invocation.
+    # Schema validation is the first thing that happens. It used to run
+    # after _refresh_content_hashes had already written to the manifest,
+    # so the document being validated was one the build had modified.
+    RecordLoader.validate_architecture(canonical_repo)
+
+    # The build output root persists; each build empties only the package
+    # directories it was asked to produce (_prepare_build_tree). Purging
+    # the whole tree here made every build a full build in effect: a
+    # targeted build left every package it did not name empty, so the next
+    # deploy of one of those would have shipped nothing.
     canonical_build_dir = canonical_repo / "build"
-    if canonical_build_dir.exists():
-        shutil.rmtree(canonical_build_dir, ignore_errors=True)
     canonical_build_dir.mkdir(parents=True, exist_ok=True)
-    _step(f"purged and recreated {canonical_build_dir}")
+    _n_targets, _n_packages = materialize_build_structure(
+        canonical_repo / "brain" / "machine_artifacts" / "content"
+        / "deployment_architecture.json",
+        canonical_build_dir,
+    )
+    _step(f"build structure: {_n_targets} target(s), {_n_packages} package(s)")
 
     # Materialise .env into <repo>/build/.env: working tree for --env
     # local, KV for --env dev|qa|prod. Downstream build code reads env
@@ -330,6 +351,11 @@ def main(argv: list[str] | None = None) -> int:
     #   local           -> the working tree
     #   dev | qa | prod -> a temp checkout of origin/<branch>
     repo_root = _get_build_source(canonical_repo, args.env)
+    # Everything downstream reads the manifest from the SAME place the code
+    # comes from. For a cloud build that is origin/<branch>, never the
+    # workstation.
+    import hf_helpers as _rd
+    _rd.set_build_source(repo_root)
     _step(f"repo_root={repo_root} env={args.env} target={args.target}")
 
     try:
@@ -344,7 +370,6 @@ def _build_body(args, repo_root: Path, canonical_repo: Path, canonical_build_dir
     _step(f"HEAD={build_sha}")
 
     brain_path = repo_root / "brain" / "machine_artifacts" / "content" / "deployment_architecture.json"
-    backlog_schema = repo_root / "Website" / "schemas" / "ChatHealthyAgileBacklogSchema.json"
     backlog_path = repo_root / "brain" / "machine_artifacts" / "content" / "agile_backlog.json"
     # .env comes from the canonical build dir (materialized at build
     # start: working tree for --env local, KV for --env dev|qa|prod).
@@ -364,11 +389,15 @@ def _build_body(args, repo_root: Path, canonical_repo: Path, canonical_build_dir
     # part of the canonical build entry point (Rule-066).
     _refresh_content_hashes(brain_path, repo_root)
 
-    backlog = AgileBacklogLoader(schema_uri=backlog_schema).load(backlog_path)
+    backlog = AgileBacklogLoader().load(backlog_path)
     # Scope schema validation to the single target being built when a
     # specific target_id was requested. For kind aliases ('cloudflare',
     # 'hf', 'azure', 'aca') and 'all', validate the whole envelope.
-    load_filter = args.target if args.target.startswith("target_") else None
+    # A comma-separated list names several targets; the loader filters to
+    # one, so validate the whole envelope in that case.
+    load_filter = (args.target
+                   if args.target.startswith("target_")
+                   and "," not in args.target else None)
     coll: DeploymentCollection = RecordLoader().load_collection(
         brain_path, target_id_filter=load_filter,
     )
@@ -408,9 +437,31 @@ def _build_body(args, repo_root: Path, canonical_repo: Path, canonical_build_dir
     if not targets:
         sys.exit(f"ERROR: no targets matched --target={args.target!r}")
 
+    packages_wanted = {p.strip() for p in args.package.split(",") if p.strip()}
+    if not packages_wanted:
+        sys.exit("ERROR: --package must name at least one package_id.")
+    known = {p for t in targets for p in _declared_packages(t)}
+    unknown = sorted(packages_wanted - known)
+    if unknown:
+        sys.exit(
+            f"ERROR: --package={sorted(unknown)} not declared by "
+            f"--target={args.target!r}. Declared: {sorted(known)}"
+        )
+    _step(f"building packages {sorted(packages_wanted)} "
+          f"across {len(targets)} target(s)")
+
+    from version_counter import record_package_build
+
     built: list[Path] = []
     for t in targets:
-        package_dir = _build_one(repo_root, t, build_n, build_sha, env=args.env)
+        package_dir = _build_one(repo_root, t, build_n, build_sha,
+                                 env=args.env, packages_wanted=packages_wanted)
+        # The build has happened; record which packages this build produced.
+        # A package not named keeps the build it already held, which is what
+        # gives each package a lifecycle of its own on one shared sequence.
+        for pid in sorted(packages_wanted & set(_declared_packages(t))):
+            record_package_build(t.target_id, pid, build_n, args.env, build_sha)
+            _step(f"  recorded {t.target_id}/{pid} build={build_n}")
         _stamp_env_on_manifest(package_dir, args.env, build_sha, build_n)
         built.append(package_dir)
 
@@ -436,20 +487,36 @@ def _build_body(args, repo_root: Path, canonical_repo: Path, canonical_build_dir
     return 0
 
 
-def _stamp_env_on_manifest(package_dir: Path, env: str, git_head_sha: str, build_n: int) -> None:
-    """Per-build_deploy_promote_plan v3 §C.1, stamp env + git_head_sha +
-    build on manifest.json so the deploy's staleness gate (§C.4) reads
-    them back. _build_one already writes manifest.json with build_number
-    and other facts; we patch in the deploy-gate fields."""
-    manifest_path = package_dir / "manifest.json"
-    if not manifest_path.is_file():
-        return
-    data = json.loads(manifest_path.read_text(encoding="utf-8"))
-    data["env"] = env
-    data["git_head_sha"] = git_head_sha
-    data["build"] = build_n
-    data["built_at"] = datetime.now(timezone.utc).isoformat()
-    manifest_path.write_text(json.dumps(data, indent=2) + "\n", encoding="utf-8")
+def _stamp_env_on_manifest(target_dir: Path, env: str, git_head_sha: str,
+                           build_n: int) -> None:
+    """Stamp the deploy-gate facts onto every package's build.json.
+
+    These are build facts -- which env this was built for, from which
+    commit, as which build -- and they belong to the package, because a
+    selective build produces some packages and leaves others at whatever
+    they already were.
+
+    This wrote to manifest.json, a per-target copy of the deployment
+    manifest that no longer exists. It silently did nothing once that file
+    went away, so packages carried no env and the deploy rejected them as
+    'built for env None'.
+    """
+    stamped = 0
+    for stamp_path in sorted(target_dir.glob("*/build.json")):
+        data = json.loads(stamp_path.read_text(encoding="utf-8"))
+        data["env"] = env
+        data["git_head_sha"] = git_head_sha
+        data["build"] = build_n
+        data["built_at"] = datetime.now(timezone.utc).isoformat()
+        stamp_path.write_text(
+            json.dumps(data, indent=2) + "\n", encoding="utf-8"
+        )
+        stamped += 1
+    if not stamped:
+        sys.exit(
+            f"ERROR: no package build.json under {target_dir}; the build "
+            f"produced no package to stamp."
+        )
 
 
 if __name__ == "__main__":

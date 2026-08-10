@@ -1,4 +1,4 @@
-"""Rule-065 branch gate — EPIC-008-F-012-S-001-REQ-B-013.
+"""Rule-065 branch gate — EPIC-008-F-012.
 
 Commits are permitted only on `dev`. qa and prod receive code through
 promote_chathealthy.py, never through a commit.
@@ -23,6 +23,17 @@ import pytest
 import commit_authorization_worker as caw
 from commit_authorization_worker import CommitAuthorizationWorker
 from enforcement_worker import EXIT_OK, EXIT_VIOLATIONS_FOUND
+
+import sys as _sys, pathlib as _pl
+for _d in _pl.Path(__file__).resolve().parents:
+    if (_d / ".git").exists():
+        _lib = _d / "FrontEndApplicationLib" / "src"
+        if str(_lib) not in _sys.path:
+            _sys.path.insert(0, str(_lib))
+        break
+from chathealthy_frontend_lib.logging_service import ChatHealthyLoggingService
+
+_CH_LOG = ChatHealthyLoggingService()
 
 ENFORCEMENT_ID = "Rule-065-ENF-001"
 REPO_ROOT = Path(__file__).resolve().parents[3]
@@ -203,16 +214,16 @@ def test_interactive_commit_to_qa_is_refused_after_authorization(tmp_path):
     (repo / random_name).write_text(uuid.uuid4().hex + "\n", encoding="utf-8")
     _git(repo, "add", random_name)
 
-    print(f"\n[interactive] branch=qa  staged file={random_name}")
-    print("[interactive] APPROVE on the page that opens; the commit must still fail.")
+    _CH_LOG.info(f"\n[interactive] branch=qa  staged file={random_name}")
+    _CH_LOG.info("[interactive] APPROVE on the page that opens; the commit must still fail.")
 
     result = subprocess.run(
         ["git", "-c", "user.email=t@t", "-c", "user.name=t", "commit", "-m", "should not land"],
         cwd=str(repo), capture_output=True, text=True, timeout=900,
     )
-    print("[interactive] git exit:", result.returncode)
-    print(result.stdout)
-    print(result.stderr)
+    _CH_LOG.info("[interactive] git exit:", result.returncode)
+    _CH_LOG.info(result.stdout)
+    _CH_LOG.info(result.stderr)
     combined = result.stdout + result.stderr
 
     assert marker.exists(), "the pre-commit hook never ran"

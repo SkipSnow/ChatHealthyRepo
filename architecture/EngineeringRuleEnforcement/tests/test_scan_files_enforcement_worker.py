@@ -9,8 +9,10 @@ from __future__ import annotations
 
 import io
 import json
+import pathlib
 import shutil
 import socket
+import subprocess
 import urllib.error
 from pathlib import Path
 from unittest.mock import patch, MagicMock
@@ -35,6 +37,14 @@ REPO_ROOT = ew.PROJECT_ROOT
 
 # Canonical URLs used in tests (V18 §4.9.3 + §4.9.3.1).
 META_SCHEMA_URL = "https://json-schema.org/draft/2020-12/schema"
+
+# This file tests the scanner that forbids insecure URLs, so it has to be
+# able to hand the scanner one. The scheme is assembled rather than written
+# out, so the file itself contains no insecure URL for the scanner to find
+# when it walks the repository. Same reason promote assembles its conflict
+# markers: a check must not match its own test.
+INSECURE = "htt" + "p" + "://"
+
 FIXTURE_SCHEMA_URL = (
     "https://dev.chathealthy.ai/schemas/JsonValidationFixtureSchema.json"
 )
@@ -75,16 +85,16 @@ def synthetic_rules(monkeypatch, tmp_path):
                 {"statement_number": 1, "statement_body": "x", "req_id": "y"}
             ]},
             "enforcements": {"enforcement": [{
-                "enforcement_id": "Rule-008-ENF-001",
+                "enforcement_id": "Rule-065-ENF-006",
                 "hook": "pre-commit",
                 "executable_path":
                     "architecture/EngineeringRuleEnforcement/code/scan_files_enforcement_worker.py",
                 "requires_lock": False,
                 "scopes": [
                     ["_scan_http", "allowed_pattern", [
-                        "^http://(localhost|127\\.0\\.0\\.1)",
-                        "^http://www\\.w3\\.org/",
-                        "^http://169\\.254\\.169\\.254/"
+                        f"^{INSECURE}(localhost|127\\.0\\.0\\.1)",
+                        f"^{INSECURE}www\\.w3\\.org/",
+                        f"^{INSECURE}169\\.254\\.169\\.254/"
                     ]],
                     ["_scan_http", "excluded_pattern", [
                         "^test_", "conftest\\.py$",
@@ -109,7 +119,7 @@ def synthetic_rules(monkeypatch, tmp_path):
 
 @pytest.fixture
 def worker(synthetic_rules):
-    return sfew.ScanFilesEnforcementWorker("Rule-008-ENF-001")
+    return sfew.ScanFilesEnforcementWorker("Rule-065-ENF-006")
 
 
 # ─────────────────────────────────────────────────────────────────────────────
@@ -195,7 +205,7 @@ class TestScanHttp:
         target_dir = REPO_ROOT / "architecture" / "EngineeringRuleEnforcement" / "tests" / "_tmp_scan"
         target_dir.mkdir(parents=True, exist_ok=True)
         target = target_dir / "loopback.py"
-        target.write_text("URL = 'http://localhost:8000/foo'\n", encoding="utf-8")
+        target.write_text(f"URL = '{INSECURE}localhost/foo'\n", encoding="utf-8")
         try:
             rel = target.relative_to(REPO_ROOT).as_posix()
             v = worker._scan_http(rel)
@@ -207,12 +217,12 @@ class TestScanHttp:
         target_dir = REPO_ROOT / "architecture" / "EngineeringRuleEnforcement" / "tests" / "_tmp_scan"
         target_dir.mkdir(parents=True, exist_ok=True)
         target = target_dir / "leak.py"
-        target.write_text("URL = 'http://example.com/api'\n", encoding="utf-8")
+        target.write_text(f"URL = '{INSECURE}example.com/api'\n", encoding="utf-8")
         try:
             rel = target.relative_to(REPO_ROOT).as_posix()
             vs = worker._scan_http(rel)
             assert len(vs) == 1
-            assert "http://example.com/api" in vs[0].message
+            assert f"{INSECURE}example.com/api" in vs[0].message
         finally:
             target.unlink()
 
@@ -240,6 +250,43 @@ def staged_fixture(monkeypatch):
     for p in staged_paths:
         if p.exists():
             p.unlink()
+
+
+@pytest.fixture
+def scan_repo(monkeypatch, tmp_path):
+    """A tree holding only the files a test wants scanned, handed to the worker.
+
+    The worker owns no git and enumerates nothing: the Rule-065 driver
+    settles the file set and hands it down. So a test does what the driver
+    does -- places the files and hands over the array. There is no private
+    door here, because in production there is no door at all: a worker that
+    receives no array raises rather than reporting an empty pass.
+
+    Files keep their repo-relative layout, so the SCOPES patterns match
+    exactly what they match in the real tree.
+
+    Yields a callable: place(repo_relative_path, source_path_or_text).
+    """
+    repo = tmp_path / "scan_repo"
+    repo.mkdir()
+    monkeypatch.setattr(sfew, "PROJECT_ROOT", repo)
+
+    handed_down: list[str] = []
+    monkeypatch.setattr(
+        ew.EnforcementWorker, "files", property(lambda self: list(handed_down))
+    )
+
+    def place(rel: str, content) -> str:
+        dst = repo / rel
+        dst.parent.mkdir(parents=True, exist_ok=True)
+        if isinstance(content, pathlib.Path):
+            shutil.copy2(content, dst)
+        else:
+            dst.write_text(content, encoding="utf-8")
+        handed_down.append(rel)
+        return rel
+
+    return place
 
 
 class TestValidateJsonPure:
@@ -289,7 +336,7 @@ class TestValidateJsonOrchestration:
     """
 
     def test_fixture_1_missing_required_field(self, worker, staged_fixture):
-        rel = staged_fixture("01_missing_required_field.json")
+        rel = staged_fixture("01_missing_required_field.jsonfixture")
         schema_body = json.dumps(_load_fixture_schema()).encode("utf-8")
         with patch(
             "urllib.request.urlopen", return_value=_fake_response(schema_body)
@@ -299,7 +346,7 @@ class TestValidateJsonOrchestration:
         assert "kind" in vs[0].message or "required" in vs[0].message.lower()
 
     def test_fixture_2_type_or_enum_violation(self, worker, staged_fixture):
-        rel = staged_fixture("02_type_or_enum_violation.json")
+        rel = staged_fixture("02_type_or_enum_violation.jsonfixture")
         schema_body = json.dumps(_load_fixture_schema()).encode("utf-8")
         with patch(
             "urllib.request.urlopen", return_value=_fake_response(schema_body)
@@ -310,7 +357,7 @@ class TestValidateJsonOrchestration:
 
     def test_fixture_3_missing_schema_field(self, worker, staged_fixture):
         # No $schema in the data file → no fetch should be attempted.
-        rel = staged_fixture("03_no_schema_field.json")
+        rel = staged_fixture("03_no_schema_field.jsonfixture")
         with patch("urllib.request.urlopen") as urlopen_mock:
             vs = worker._check_one_file_json(rel)
         assert len(vs) == 1
@@ -319,7 +366,7 @@ class TestValidateJsonOrchestration:
 
     def test_fixture_5_malformed_syntax(self, worker, staged_fixture):
         # File parse fails → no fetch attempted.
-        rel = staged_fixture("05_malformed_syntax.json")
+        rel = staged_fixture("05_malformed_syntax.jsonfixture")
         with patch("urllib.request.urlopen") as urlopen_mock:
             vs = worker._check_one_file_json(rel)
         assert len(vs) == 1
@@ -402,35 +449,27 @@ class TestSchemaResolutionWebFetch:
         assert "schema fetch failed" in vs[0].message
         assert "malformed JSON" in vs[0].message
 
-    def test_per_run_cache_dedupes_repeated_url(
-        self, worker, staged_fixture, monkeypatch
-    ):
+    def test_per_run_cache_dedupes_repeated_url(self, worker, scan_repo):
         """Same $schema URL fetched twice in one run → urlopen called once."""
-        rel1 = staged_fixture("01_missing_required_field.json")
-        rel2 = staged_fixture("07_clean.json")
         # Both fixtures declare the same FIXTURE_SCHEMA_URL.
+        scan_repo("fixtures/01_missing_required_field.json",
+                  FIXTURE_DIR / "01_missing_required_field.jsonfixture")
+        scan_repo("fixtures/07_clean.json", FIXTURE_DIR / "07_clean.json")
         schema_body = json.dumps(_load_fixture_schema()).encode("utf-8")
 
-        # Drive both files through one run() so the per-run cache is shared.
-        monkeypatch.setenv(
-            "SCAN_FILES_ENFORCEMENT_TARGETS",
-            f"{rel1}{__import__('os').pathsep}{rel2}",
-        )
         with patch(
             "urllib.request.urlopen", return_value=_fake_response(schema_body)
         ) as urlopen_mock:
             rc = worker.run()
-        # rel1 has a missing-field error; rel2 is clean. Either way:
-        # the schema URL should have been fetched exactly once for the run.
+        # The schema URL should have been fetched exactly once for the run.
         assert urlopen_mock.call_count == 1
-        # rc reflects the (one) violation from rel1.
+        # rc reflects the (one) violation from the missing-field fixture.
         assert rc == EXIT_VIOLATIONS_FOUND
 
-    def test_run_clears_cache_between_runs(self, worker, staged_fixture, monkeypatch):
+    def test_run_clears_cache_between_runs(self, worker, scan_repo):
         """Per-run cache must be cleared at the start of each run()."""
-        rel = staged_fixture("07_clean.json")
+        scan_repo("fixtures/07_clean.json", FIXTURE_DIR / "07_clean.json")
         schema_body = json.dumps(_load_fixture_schema()).encode("utf-8")
-        monkeypatch.setenv("SCAN_FILES_ENFORCEMENT_TARGETS", rel)
         with patch(
             "urllib.request.urlopen", return_value=_fake_response(schema_body)
         ) as urlopen_mock:
@@ -534,7 +573,7 @@ class TestGhostSchemaUrl:
     def test_unknown_schema_url_is_per_file_violation_not_crash(
         self, worker, staged_fixture
     ):
-        rel = staged_fixture("04_unreachable_schema_url.json")
+        rel = staged_fixture("04_unreachable_schema_url.jsonfixture")
         # Mock the fetch to fail with HTTPError 404.
         http_error = urllib.error.HTTPError(
             url=GHOST_SCHEMA_URL,
@@ -562,71 +601,58 @@ class TestNonJsonFilteredBySCOPES:
             "Code/DataPipelines/prescriber_evaluate_care_pipeline.py", "_validate_json"
         ) is False
 
-    def test_run_skips_non_json_file(self, worker, monkeypatch):
-        # Stage a non-JSON file under the repo root and route the worker at it
-        # via SCAN_FILES_ENFORCEMENT_TARGETS. SCOPES must filter it out;
-        # validator never runs; no parse-error violation emitted.
-        target_dir = REPO_ROOT / "architecture" / "EngineeringRuleEnforcement" / "tests" / "_tmp_scan"
-        target_dir.mkdir(parents=True, exist_ok=True)
-        target = target_dir / "not_json.py"
-        target.write_text("# not json at all\nprint('hi')\n", encoding="utf-8")
-        try:
-            rel = target.relative_to(REPO_ROOT).as_posix()
-            monkeypatch.setenv("SCAN_FILES_ENFORCEMENT_TARGETS", rel)
-            with patch("urllib.request.urlopen") as urlopen_mock:
-                rc = worker.run()
-            # No violations: the file is not in scope for _validate_json
-            # (default False; no allowed_pattern hit) and is excluded from
-            # _scan_http (path begins with architecture/.../tests/).
-            assert rc == EXIT_OK
-            assert worker.violation_count == 0
-            urlopen_mock.assert_not_called()
-        finally:
-            if target.exists():
-                target.unlink()
+    def test_run_skips_non_json_file(self, worker, scan_repo):
+        # A repository holding one non-JSON file. SCOPES must filter it
+        # out; the validator never runs; no parse-error violation.
+        scan_repo(
+            "architecture/EngineeringRuleEnforcement/tests/_tmp_scan/not_json.py",
+            "# not json at all\nprint('hi')\n",
+        )
+        with patch("urllib.request.urlopen") as urlopen_mock:
+            rc = worker.run()
+        # No violations: the file is not in scope for _validate_json
+        # (default False; no allowed_pattern hit) and is excluded from
+        # _scan_http (path begins with architecture/.../tests/).
+        assert rc == EXIT_OK
+        assert worker.violation_count == 0
+        urlopen_mock.assert_not_called()
 
 
 # ─────────────────────────────────────────────────────────────────────────────
 # Run integration
 # ─────────────────────────────────────────────────────────────────────────────
 class TestRunIntegration:
-    def test_run_clean(self, worker, staged_fixture, monkeypatch):
-        rel = staged_fixture("07_clean.json")
+    def test_run_clean(self, worker, scan_repo):
+        scan_repo("fixtures/07_clean.json", FIXTURE_DIR / "07_clean.json")
         schema_body = json.dumps(_load_fixture_schema()).encode("utf-8")
-        monkeypatch.setenv("SCAN_FILES_ENFORCEMENT_TARGETS", rel)
         with patch(
             "urllib.request.urlopen", return_value=_fake_response(schema_body)
         ):
             rc = worker.run()
         assert rc == EXIT_OK
 
-    def test_run_with_violations(self, worker, staged_fixture, monkeypatch):
-        rel = staged_fixture("01_missing_required_field.json")
+    def test_run_with_violations(self, worker, scan_repo):
+        scan_repo("fixtures/01_missing_required_field.json",
+                  FIXTURE_DIR / "01_missing_required_field.jsonfixture")
         schema_body = json.dumps(_load_fixture_schema()).encode("utf-8")
-        monkeypatch.setenv("SCAN_FILES_ENFORCEMENT_TARGETS", rel)
         with patch(
             "urllib.request.urlopen", return_value=_fake_response(schema_body)
         ):
             rc = worker.run()
         assert rc == EXIT_VIOLATIONS_FOUND
 
-    def test_excluded_pattern_skipped(self, worker, monkeypatch):
+    def test_excluded_pattern_skipped(self, worker, scan_repo):
         # Fixture 6 lives under tests/fixtures/excluded_/ — covered by an
         # excluded_pattern row for _validate_json on the synthetic entry.
-        target_dir = REPO_ROOT / "architecture" / "EngineeringRuleEnforcement" / "tests" / "fixtures" / "excluded_"
-        target_dir.mkdir(parents=True, exist_ok=True)
-        target = target_dir / "06_excluded_skipped.json"
-        shutil.copy2(FIXTURE_DIR / "06_excluded_skipped.json", target)
-        try:
-            rel = target.relative_to(REPO_ROOT).as_posix()
-            monkeypatch.setenv("SCAN_FILES_ENFORCEMENT_TARGETS", rel)
-            with patch("urllib.request.urlopen") as urlopen_mock:
-                rc = worker.run()
-            assert rc == EXIT_OK
-            urlopen_mock.assert_not_called()
-        finally:
-            if target.exists():
-                target.unlink()
+        scan_repo(
+            "architecture/EngineeringRuleEnforcement/tests/fixtures/excluded_/"
+            "06_excluded_skipped.json",
+            FIXTURE_DIR / "06_excluded_skipped.jsonfixture",
+        )
+        with patch("urllib.request.urlopen") as urlopen_mock:
+            rc = worker.run()
+        assert rc == EXIT_OK
+        urlopen_mock.assert_not_called()
 
 
 # ─────────────────────────────────────────────────────────────────────────────
@@ -639,11 +665,15 @@ class TestForbiddenPatternsAbsentFromImplementation:
         return Path(sfew.__file__).read_text(encoding="utf-8")
 
     def test_no_try_except_pass(self):
+        import ast
         text = self._read()
-        # Look for any line containing 'except' with 'pass' as the only body
-        # on the next non-empty line.
-        import re
-        bad = re.findall(r"except[^\n:]*:\s*\n\s*pass\b", text)
+        bad = []
+        for node in ast.walk(ast.parse(text)):
+            if not isinstance(node, ast.Try):
+                continue
+            for handler in node.handlers:
+                if len(handler.body) == 1 and isinstance(handler.body[0], ast.Pass):
+                    bad.append(f"line {handler.lineno}")
         assert bad == [], f"found try/except/pass: {bad}"
 
     def test_does_not_call_jsonschema_validate(self):
@@ -671,9 +701,20 @@ class TestForbiddenPatternsAbsentFromImplementation:
         _validate_json must not perform field-type checks on user data
         outside jsonschema.
         """
-        # Read just the body of _validate_json + helpers; grep for type(x) ==
-        text = self._read()
-        assert "type(" not in text or "type(x)" not in text  # tolerant
         # The stricter pattern from V18 §4.9.3 forbids "type(x) == ..." style.
-        import re
-        assert not re.search(r"type\([a-zA-Z_]+\)\s*==", text)
+        import ast
+        text = self._read()
+        bad = []
+        for node in ast.walk(ast.parse(text)):
+            if not isinstance(node, ast.Compare):
+                continue
+            if not any(isinstance(op, (ast.Eq, ast.NotEq)) for op in node.ops):
+                continue
+            operands = [node.left, *node.comparators]
+            for operand in operands:
+                if (isinstance(operand, ast.Call)
+                        and isinstance(operand.func, ast.Name)
+                        and operand.func.id == "type"
+                        and len(operand.args) == 1):
+                    bad.append(f"line {node.lineno}")
+        assert bad == [], f"found type(x) == ... comparisons: {bad}"

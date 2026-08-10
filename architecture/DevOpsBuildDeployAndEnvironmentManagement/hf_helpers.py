@@ -26,18 +26,53 @@ from pathlib import Path
 from builder import _EXCLUDE_DIRS, _EXCLUDE_FILE_NAMES, _EXCLUDE_FILE_SUFFIXES
 from target_record import TargetRecord
 import ch_fonts_inliner
+def _ch_exc():
+    """ChatHealthyException without assuming the library is installed.
+    These modules run as bare scripts in the devops chain."""
+    import sys as _s, pathlib as _p
+    for _d in _p.Path(__file__).resolve().parents:
+        if (_d / ".git").exists():
+            _l = _d / "FrontEndApplicationLib" / "src"
+            if str(_l) not in _s.path:
+                _s.path.insert(0, str(_l))
+            break
+    from chathealthy_frontend_lib.exceptions import ChatHealthyException
+    return ChatHealthyException
+
 
 
 # ── HF Space identifiers from the manifest ─────────────────────────────
 # Each HF target's environments[<env>].huggingface_space.space carries the
 # fully-qualified 'org/name' Space identifier for that env_binding. The
-# manifest is the source of truth (EPIC-008-F-012-S-001-REQ-B-008/B-009);
+# manifest is the source of truth (EPIC-008-F-012/B-009);
 # no org/base/prefix rule lives in code anymore.
+
+# Set by the build to the directory it is building FROM. For --env
+# dev|qa|prod that is a temp worktree of origin/<branch>; for --env local
+# it is the working tree. Never resolved from __file__: this module lives
+# on the workstation, so __file__ always points at the local tree, and a
+# cloud build would read local, uncommitted deployment facts while
+# packaging committed code. The local system is a sandbox for local only.
+_BUILD_SOURCE: Path | None = None
+
+
+def set_build_source(path: Path) -> None:
+    _load_manifest.cache_clear()
+    global _BUILD_SOURCE
+    _BUILD_SOURCE = Path(path)
+
 
 @functools.lru_cache(maxsize=1)
 def _load_manifest() -> dict:
-    repo_root = Path(__file__).resolve().parents[2]
-    manifest = repo_root / "brain" / "machine_artifacts" / "content" / "deployment_architecture.json"
+    if _BUILD_SOURCE is None:
+        raise _ch_exc()(
+            mode="runtime_error",
+            component="hf_helpers",
+            message="build source not set; call set_build_source() with the "
+                    "directory the build is reading from before loading the "
+                    "manifest. Resolving it from __file__ would read the "
+                    "workstation's manifest during a cloud build.")
+    manifest = _BUILD_SOURCE / "brain" / "machine_artifacts" / "content" / "deployment_architecture.json"
     return json.loads(manifest.read_text(encoding="utf-8"))
 
 
@@ -55,14 +90,16 @@ def _hf_space_qualified(target_id: str, env: str) -> str:
                 continue
             hs = env_entry.get("huggingface_space")
             if not hs or "space" not in hs:
-                raise RuntimeError(
-                    f"manifest target {target_id!r} env_binding {env!r} "
-                    f"has no huggingface_space.space — populate it before deploy."
-                )
+                raise _ch_exc()(
+            mode="runtime_error",
+            component="hf_helpers",
+            message=f"manifest target {target_id!r} env_binding {env!r} "
+                    f"has no huggingface_space.space — populate it before deploy.")
             return hs["space"]
-    raise RuntimeError(
-        f"manifest has no target {target_id!r} with env_binding {env!r}."
-    )
+    raise _ch_exc()(
+            mode="runtime_error",
+            component="hf_helpers",
+            message=f"manifest has no target {target_id!r} with env_binding {env!r}.")
 
 
 def _hf_org(target_id: str, env: str) -> str:
@@ -88,10 +125,11 @@ def _hf_default_org() -> str:
             hs = env_entry.get("huggingface_space")
             if hs and "space" in hs:
                 return hs["space"].split("/", 1)[0]
-    raise RuntimeError(
-        "no hf_space target with a populated huggingface_space.space "
-        "in the manifest — cannot infer operator HF org."
-    )
+    raise _ch_exc()(
+            mode="runtime_error",
+            component="hf_helpers",
+            message="no hf_space target with a populated huggingface_space.space "
+        "in the manifest — cannot infer operator HF org.")
 
 
 def _hf_peer_url(target_id: str, env: str) -> str:
@@ -401,17 +439,21 @@ def _source_set_for(target_id: str) -> list[tuple[str, str | None]]:
             continue
         raw = rec.get("huggingface_source_set")
         if not raw:
-            raise RuntimeError(
-                f"manifest target {target_id!r} has no huggingface_source_set "
-                f"declared — populate it before deploy."
-            )
+            raise _ch_exc()(
+            mode="runtime_error",
+            component="hf_helpers",
+            message=f"manifest target {target_id!r} has no huggingface_source_set "
+                f"declared — populate it before deploy.")
         out: list[tuple[str, str | None]] = []
         for entry in raw:
             src = entry["src"]
             dst = entry.get("dst")
             out.append((src, dst))
         return out
-    raise RuntimeError(f"manifest has no target {target_id!r}.")
+    raise _ch_exc()(
+            mode="runtime_error",
+            component="hf_helpers",
+            message=f"manifest has no target {target_id!r}.")
 
 
 def _findcare_source_set(repo_root: Path) -> list[tuple[str, str | None]]:
@@ -486,7 +528,10 @@ def _build_react_frontend(repo_root: Path, env: str) -> None:
         if not dist_index.is_file():
             raise FileNotFoundError(f"vite produced no {dist_index}")
         if not ch_fonts_inliner.inline_into(dist_index):
-            raise RuntimeError(f"CH_FONTS marker not found in {dist_index}")
+            raise _ch_exc()(
+            mode="runtime_error",
+            component="hf_helpers",
+            message=f"CH_FONTS marker not found in {dist_index}")
     finally:
         if vite_copy.is_file():
             vite_copy.unlink()

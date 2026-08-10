@@ -117,7 +117,7 @@ class CommitAuthorizationWorker(EnforcementWorker):
         if authorized != EXIT_OK:
             return authorized
 
-        if self.hook == "pre-commit":
+        if self.hook in ("commit-msg", "pre-commit"):
             branch = self._current_branch()
             if branch != _COMMIT_BRANCH:
                 return self._deny_wrong_branch(action, branch)
@@ -312,7 +312,6 @@ class CommitAuthorizationWorker(EnforcementWorker):
             ".reject{background:#dc2626;color:#fff}</style></head>"
             "<body>"
             f"<h1>Authorize {action}?</h1>"
-            f"<p>Token: <code>{token}</code></p>"
             f"<button class=approve id=btn_approve type=button>APPROVE</button>"
             f"<button class=reject id=btn_reject type=button>REJECT</button>"
             f"<input type=hidden id=human_click value=\"false\">"
@@ -428,13 +427,19 @@ class CommitAuthorizationWorker(EnforcementWorker):
 
     # ────────────────────────────────────────────────────────────────────────
     def _action_for_hook(self, hook: str) -> str:
-        if hook == "pre-commit":
+        # commit-msg, not pre-commit: git runs commit-msg only after
+        # pre-commit exits clean, so the prompt appears after every check
+        # has finished and passed. Asking the operator to authorize a
+        # commit that cannot proceed is the thing that ordering prevents,
+        # and git provides the ordering -- the manager needs to know
+        # nothing about which enforcement prompts.
+        if hook in ("commit-msg", "pre-commit"):
             return "commit"
         if hook == "pre-push":
             return "push"
         raise WorkerInternalError(
             f"CommitAuthorizationWorker bound to unsupported hook {hook!r}; "
-            f"expected pre-commit or pre-push"
+            f"expected commit-msg, pre-commit or pre-push"
         )
 
     def _reject(self, action: str, reason: str) -> None:

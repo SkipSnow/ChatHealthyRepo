@@ -10,6 +10,17 @@ Usage:
 import os
 from dotenv import load_dotenv
 
+import sys as _sys, pathlib as _pl
+for _d in _pl.Path(__file__).resolve().parents:
+    if (_d / ".git").exists():
+        _lib = _d / "FrontEndApplicationLib" / "src"
+        if str(_lib) not in _sys.path:
+            _sys.path.insert(0, str(_lib))
+        break
+from chathealthy_frontend_lib.logging_service import ChatHealthyLoggingService
+
+_CH_LOG = ChatHealthyLoggingService()
+
 load_dotenv(os.path.join(os.path.dirname(__file__), '../../.env'))
 
 from azure.identity import DefaultAzureCredential
@@ -20,7 +31,7 @@ def cleanup_test_artifacts():
     """Delete all test CA artifacts from vault."""
     vault_url = os.environ.get("AZURE_KEYVAULT_URL")
     if not vault_url:
-        print("ERROR: AZURE_KEYVAULT_URL not set in .env")
+        _CH_LOG.info("ERROR: AZURE_KEYVAULT_URL not set in .env")
         return False
 
     credential = DefaultAzureCredential()
@@ -49,13 +60,13 @@ def cleanup_test_artifacts():
             try:
                 # Delete the secret
                 client.begin_delete_secret(secret_name)
-                print(f"✓ Deleted: {secret_name}")
+                _CH_LOG.info(f"✓ Deleted: {secret_name}")
                 deleted_count += 1
             except Exception as e:
-                print(f"✗ Failed to delete {secret_name}: {e}")
+                _CH_LOG.info(f"✗ Failed to delete {secret_name}: {e}")
                 error_count += 1
 
-    print(f"\nCleanup complete: {deleted_count} secrets deleted, {error_count} errors")
+    _CH_LOG.info(f"\nCleanup complete: {deleted_count} secrets deleted, {error_count} errors")
     return error_count == 0
 
 

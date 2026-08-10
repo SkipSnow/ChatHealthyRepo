@@ -8,7 +8,7 @@ Enforces four independent checks from EPIC-003-F-005:
       log method MUST be a ChatHealthyException (or a name bound by an
       `except ChatHealthyException as <name>:` clause).
   (c) REQ-B-010 — any function/method whose body contains a
-      `raise ChatHealthyException(...)` may not call any
+      `raise _ch_exception()(...)` may not call any
       ChatHealthyLoggingService log method in the same function body.
   (d) REQ-B-002 (import-form) — outside the canonical surface, no file may
       `import logging`, `import logging as <alias>`, or `from logging import …`.
@@ -44,6 +44,20 @@ LOG_METHODS = frozenset({
     "debug", "info", "warning", "error", "critical", "exception",
 })
 
+
+
+def _ch_exception():
+    """ChatHealthyException, resolved without assuming the library is on the
+    path. Enforcement workers are spawned as bare scripts by the manager."""
+    import sys as _sys, pathlib as _pl
+    for _p in _pl.Path(__file__).resolve().parents:
+        if (_p / ".git").exists():
+            _lib = _p / "FrontEndApplicationLib" / "src"
+            if str(_lib) not in _sys.path:
+                _sys.path.insert(0, str(_lib))
+            break
+    from chathealthy_frontend_lib.exceptions import ChatHealthyException
+    return ChatHealthyException
 
 def is_stdlib_logging_call(node: ast.Call) -> str | None:
     """Return the forbidden name when node is logging.basicConfig() /
@@ -94,12 +108,12 @@ def is_log_method_call(node: ast.Call) -> bool:
 
 
 def raises_chathealthy_exception(node: ast.Raise) -> bool:
-    """True when node is `raise ChatHealthyException(...)` (with or without
+    """True when node is `raise _ch_exception()(...)` (with or without
     a bound exception name)."""
     exc = node.exc
     if exc is None:
         return False
-    # `raise ChatHealthyException(...)`
+    # `raise _ch_exception()(...)`
     if isinstance(exc, ast.Call) and isinstance(exc.func, ast.Name)\
             and exc.func.id == "ChatHealthyException":
         return True
@@ -275,25 +289,12 @@ class ScanUniformLoggingEnforcementWorker(EnforcementWorker):
         self.violation_count: int = 0
 
     def _staged_files(self) -> list[str]:
-        override = os.environ.get("SCAN_FILES_ENFORCEMENT_TARGETS")
-        if override is not None:
-            return [p for p in override.split(os.pathsep)
-                    if p and p.endswith(".py")]
-        if self.hook != "pre-commit":
-            return []
-        completed = subprocess.run(
-            ["git", "diff", "--cached", "--name-only", "--diff-filter=ACMR"],
-            cwd=str(PROJECT_ROOT),
-            capture_output=True,
-            text=True,
-            check=False,
-        )
-        if completed.returncode != 0:
-            return []
-        return [
-            line for line in completed.stdout.splitlines()
-            if line.strip() and line.endswith(".py")
-        ]
+        """The file array the Rule-065 driver handed down.
+
+        This worker owns no git knowledge. What a commit answers for is one
+        decision, and the driver makes it once for every subordinate.
+        """
+        return self.files
 
     def run(self) -> int:
         any_violations = False
@@ -332,5 +333,5 @@ class ScanUniformLoggingEnforcementWorker(EnforcementWorker):
 
 
 if __name__ == "__main__":
-    enforcement_id = sys.argv[1] if len(sys.argv) > 1 else "Rule-005-ENF-001"
+    enforcement_id = sys.argv[1] if len(sys.argv) > 1 else "Rule-065-ENF-004"
     sys.exit(ScanUniformLoggingEnforcementWorker(enforcement_id).run())

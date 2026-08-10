@@ -17,7 +17,7 @@ import unittest
 
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
 from dotenv import load_dotenv
-# Walk up to find Code/.env
+# Walk up to find repo-root .env
 _test_dir = os.path.dirname(os.path.abspath(__file__))
 _env_path = os.path.join(_test_dir, "..", "..", "..", "..", ".env")
 load_dotenv(_env_path, override=True)

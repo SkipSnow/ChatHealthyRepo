@@ -50,7 +50,7 @@ def get_blob_service() -> BlobServiceClient:
     AZURE_STORAGE_CONNECTION_STRING carries.
 
     Reads PIPELINE_STORAGE_CONNECTION_STRING from env. Deploy chain
-    populates it from Code/.env into KV and hydrates it into the
+    populates it from .env into KV and hydrates it into the
     Controller container via bootstrap._load_all_secrets_into_env; the
     Runbook receives the same value via its Automation Variables and
     passes it to the Controller container via docker -e."""
@@ -69,7 +69,7 @@ def get_blob_service() -> BlobServiceClient:
                     "which points at the front-end storage account "
                     "(findcarestorage) and caused every pipeline fetch to upload "
                     "to the WRONG account. Set PIPELINE_STORAGE_CONNECTION_STRING "
-                    "in Code/.env and re-deploy."
+                    "in .env and re-deploy."
                 ),
                 component="pipeline.blob_client",
             )

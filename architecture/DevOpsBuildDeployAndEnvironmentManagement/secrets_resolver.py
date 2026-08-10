@@ -30,6 +30,21 @@ _STORE_AZURE_AA: str = "azure_automation_variable"
 _STORE_AZURE_AA_WEBHOOK: str = "azure_automation_webhook"
 
 
+
+def _ch_exc():
+    """ChatHealthyException without assuming the library is installed.
+    These modules run as bare scripts in the devops chain."""
+    import sys as _s, pathlib as _p
+    for _d in _p.Path(__file__).resolve().parents:
+        if (_d / ".git").exists():
+            _l = _d / "FrontEndApplicationLib" / "src"
+            if str(_l) not in _s.path:
+                _s.path.insert(0, str(_l))
+            break
+    from chathealthy_frontend_lib.exceptions import ChatHealthyException
+    return ChatHealthyException
+
+
 class SecretsResolver:
     """Resolve a bound secret to a value via the single bound store.
 
@@ -56,7 +71,7 @@ class SecretsResolver:
     ) -> "SecretsResolver":
         """Build bindings by reading per-target `secrets` declarations.
 
-        Per EPIC-008-F-012-S-001-REQ-B-009: bindings dict MUST be
+        Per EPIC-008-F-012: bindings dict MUST be
         constructed by reading per-target key declarations from the
         manifest. Each TargetRecord enumerates its own keys; each
         (name, env_binding) pair in any target maps to that target's
@@ -85,11 +100,12 @@ class SecretsResolver:
                         key = (name, env)
                         existing = bindings.get(key)
                         if existing is not None and existing != store_id:
-                            raise ValueError(
-                                f"binding conflict for {key!r}: "
+                            raise _ch_exc()(
+            mode="value_error",
+            component="secrets_resolver",
+            message=f"binding conflict for {key!r}: "
                                 f"target {record.target_id!r} declares "
-                                f"{store_id!r}, prior target declared {existing!r}"
-                            )
+                                f"{store_id!r}, prior target declared {existing!r}")
                         bindings[key] = store_id
         return cls(bindings=bindings, env_file=env_file)
 
@@ -97,21 +113,24 @@ class SecretsResolver:
         key = (name, env)
         store = self._bindings.get(key)
         if store is None:
-            raise KeyError(
-                f"no binding registered for secret {name!r} in env {env!r}"
-            )
+            raise _ch_exc()(
+            mode="key_error",
+            component="secrets_resolver",
+            message=f"no binding registered for secret {name!r} in env {env!r}")
         if store == _STORE_LOCAL_ENV:
             if self._env_file is None:
-                raise RuntimeError(
-                    f"binding {key!r} maps to {_STORE_LOCAL_ENV!r} "
-                    "but no env_file was provided at construction"
-                )
+                raise _ch_exc()(
+            mode="runtime_error",
+            component="secrets_resolver",
+            message=f"binding {key!r} maps to {_STORE_LOCAL_ENV!r} "
+                    "but no env_file was provided at construction")
             if self._env_cache is None:
                 self._env_cache = self._read_env_file(self._env_file)
             if name not in self._env_cache:
-                raise KeyError(
-                    f"secret {name!r} not present in {self._env_file}"
-                )
+                raise _ch_exc()(
+            mode="key_error",
+            component="secrets_resolver",
+            message=f"secret {name!r} not present in {self._env_file}")
             return self._env_cache[name]
         if store == _STORE_HF_SPACE:
             self._read_hf_space_secrets(env)
@@ -122,23 +141,25 @@ class SecretsResolver:
         if store == _STORE_AZURE_AA:
             self._read_azure_automation_variables(env)
         if store == _STORE_AZURE_AA_WEBHOOK:
-            raise RuntimeError(
-                f"binding {key!r} maps to {_STORE_AZURE_AA_WEBHOOK!r}; "
+            raise _ch_exc()(
+            mode="runtime_error",
+            component="secrets_resolver",
+            message=f"binding {key!r} maps to {_STORE_AZURE_AA_WEBHOOK!r}; "
                 f"this store is NEVER resolved through SecretsResolver. "
                 f"The upstream azure_automation_runbook target's deploy "
                 f"step mints/reuses the webhook and pushes the URL onto "
                 f"the consumer target via UPSERT. The consumer's own "
                 f"deploy handler MUST skip secrets[] entries carrying "
-                f"this store before calling resolve()."
-            )
-        raise RuntimeError(
-            f"binding {key!r} maps to unknown store {store!r}; no fallback"
-        )
+                f"this store before calling resolve().")
+        raise _ch_exc()(
+            mode="runtime_error",
+            component="secrets_resolver",
+            message=f"binding {key!r} maps to unknown store {store!r}; no fallback")
 
     def env_values_for_leak_check(self, env_file: Path) -> set[str]:
         """Return the set of secret VALUES the leak-check must guard.
 
-        Per EPIC-008-F-012-S-001-REQ-B-009 the `.env` is organized into
+        Per EPIC-008-F-012 the `.env` is organized into
         two top-level sections, `# Secrets` and `# SecretSafe`. Only
         values whose key falls under `# Secrets` enter the needle set;
         SecretSafe values (URLs, model names, identifiers, booleans) are
@@ -191,12 +212,13 @@ class SecretsResolver:
                     val = val.split("#", 1)[0].rstrip()
                 result[key] = val
         if not result:
-            raise RuntimeError(
-                f"{path}: `# Secrets` section missing or empty. "
+            raise _ch_exc()(
+            mode="runtime_error",
+            component="secrets_resolver",
+            message=f"{path}: `# Secrets` section missing or empty. "
                 "REQ-T-057 requires every key under exactly one of "
                 "`# Secrets` or `# SecretSafe`, and the leak-check "
-                "needle set cannot be empty."
-            )
+                "needle set cannot be empty.")
         return result
 
     @staticmethod

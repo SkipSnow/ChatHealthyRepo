@@ -10,7 +10,7 @@ the image and invokes this module:
     python control_runner.py --run-id ... --env-prefix ...
 
 The Runbook has already written a fresh run manifest to
-chathealthyfrontend.pipeline.runs with status=pending_vm_provision.
+chathealthypipelines.pipeline.runs with status=pending_vm_provision.
 This process:
   1. Reads the manifest via Mongo Atlas Private Endpoint (X.509 identity
      from the Controller's F-003 cert, fetched from KV via the VM's MI).
@@ -228,11 +228,12 @@ def main(argv: list[str] | None = None) -> int:
     exit_code = 1
     final_status = "failed"
 
-    # Controller heartbeat: writes chathealthyfrontend.pipeline.runs
+    # Controller heartbeat: writes chathealthypipelines.pipeline.runs
     # controller_heartbeat_at every 60s in a daemon thread. Watchdog
     # reads this to detect Controller-dead-without-quiesce (see LLD
     # §3.1.2 step 3). Thread dies with the process; the daemon flag
     # ensures it does not keep Controller alive past its own exit.
+    # Operator directive 2026-08-03: coord on pipeline cluster only.
     import threading  # noqa: PLC0415
     _hb_stop = threading.Event()
     _RENEWAL_HOURS = 2  # each heartbeat pushes expiry_at 2h into the future
@@ -457,7 +458,7 @@ def _quiesce_mongo_state(run_id: str, final_status: str, *,
     try:
         mongo = ChatHealthyMongoUtilities().getConnection("pipelineEditor", "admin")
     except Exception as exc:
-        _log.error("quiesce: unable to open front-cluster Mongo run_id=%s err=%s",
+        _log.error("quiesce: unable to open pipeline-cluster Mongo run_id=%s err=%s",
                    run_id, str(exc)[:500])
         return
     try:

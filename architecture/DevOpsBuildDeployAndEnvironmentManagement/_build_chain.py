@@ -21,7 +21,7 @@ usage:
     python local_build.py --target cloudflare
     python local_build.py --target target_cloudflare_pages_website
 
-Per EPIC-008-F-012-S-001.
+Per EPIC-008-F-012.
 """
 from __future__ import annotations
 
@@ -61,6 +61,21 @@ _BUILD_ROOT_REL = Path("build")
 REMOTE_BUILD_ROOT_REL = Path("architecture/DevOpsBuildDeployAndEnvironmentManagement/remoteBuild")
 
 
+
+def _ch_exc():
+    """ChatHealthyException without assuming the library is installed.
+    These modules run as bare scripts in the devops chain."""
+    import sys as _s, pathlib as _p
+    for _d in _p.Path(__file__).resolve().parents:
+        if (_d / ".git").exists():
+            _l = _d / "FrontEndApplicationLib" / "src"
+            if str(_l) not in _s.path:
+                _s.path.insert(0, str(_l))
+            break
+    from chathealthy_frontend_lib.exceptions import ChatHealthyException
+    return ChatHealthyException
+
+
 def _step(msg: str) -> None:
     print(f"[local_build] {msg}", flush=True)
 
@@ -71,7 +86,10 @@ def _find_repo_root(start: Path) -> Path:
         if (p / ".git").exists():
             return p
         p = p.parent
-    raise RuntimeError(f"no .git found walking up from {start}")
+    raise _ch_exc()(
+            mode="runtime_error",
+            component="_build_chain",
+            message=f"no .git found walking up from {start}")
 
 
 def _resolve_build_sha(repo_root: Path) -> str:
@@ -96,38 +114,281 @@ def _target_build_dir(repo_root: Path, build_n: int, target_id: str, build_root_
     return repo_root / root / target_id
 
 
+def _declared_packages(target: TargetRecord) -> list[str]:
+    """Package ids this target declares, across every env binding.
+
+    A package is a logical set of capabilities and is therefore a property
+    of the target, not of the environment it happens to be deployed to.
+    The schema nests packages[] under environments[]; reading the union
+    across bindings recovers the target-level truth.
+    """
+    seen: list[str] = []
+    for eb in target.environments:
+        for pkg in (eb.packages or []):
+            pid = pkg.get("package_id")
+            if pid and pid not in seen:
+                seen.append(pid)
+    for f in target.files:
+        pid = getattr(f, "package", None)
+        if pid and pid not in seen:
+            seen.append(pid)
+    return seen
+
+
+def _package_build_dir(target_build_dir: Path, package_id: str) -> Path:
+    return target_build_dir / package_id
+
+
+def _files_by_package(target: TargetRecord) -> dict[str, list[dict]]:
+    """Every declared file grouped by the package that owns it.
+
+    The manifest states this two ways and both are authoritative: a file
+    may sit in the target's files[] carrying a `package` tag, or nested
+    inside environments[].packages[].files[]. Reading only one of them is
+    why ten runbook packages looked empty.
+    """
+    out: dict[str, list[dict]] = {}
+    for f in target.files:
+        pid = getattr(f, "package", None)
+        if pid:
+            out.setdefault(pid, []).append(f.to_dict())
+    for eb in target.environments:
+        for pkg in (eb.packages or []):
+            pid = pkg.get("package_id")
+            if not pid:
+                continue
+            bucket = out.setdefault(pid, [])
+            known = {d["source_location"] for d in bucket}
+            for d in (pkg.get("files") or []):
+                if d.get("source_location") not in known:
+                    bucket.append(d)
+    return out
+
+
+def _stage_packages(repo_root: Path, target: TargetRecord,
+                    target_dir: Path, selection: set[str] | None = None) -> None:
+    """Stage each declared package into its own directory.
+
+    Inside a package directory a file sits at its repo-relative
+    source_location, so a path in the build tree reads straight back to
+    the manifest entry that put it there, and back again.
+
+    A file declared but absent from disk is a hard stop: the manifest
+    promised bytes the build cannot produce.
+    """
+    grouped = {k: v for k, v in _files_by_package(target).items()
+               if selection is None or k in selection}
+    staged = 0
+    missing: list[str] = []
+    for pid, entries in grouped.items():
+        pkg_dir = _package_build_dir(target_dir, pid)
+        for d in entries:
+            if d.get("disposition") == "managed":
+                continue  # written from the manifest by the materializer
+            rel = d["source_location"]
+            src = repo_root / rel
+            if not src.is_file():
+                missing.append(rel)
+                continue
+            dst = pkg_dir / rel
+            dst.parent.mkdir(parents=True, exist_ok=True)
+            shutil.copy2(src, dst)
+            staged += 1
+    if missing:
+        raise _ch_exc()(
+            mode="runtime_error",
+            component="_build_chain",
+            message=f"{target.target_id}: {len(missing)} declared file(s) "
+                    f"absent from disk: {sorted(missing)[:5]}")
+    _step(f"  staged {staged} declared file(s) across "
+          f"{len(grouped)} package(s)")
+
+
+def materialize_build_structure(manifest_path: Path, build_root: Path) -> tuple[int, int]:
+    """Create the full declared build tree: every target, every package.
+
+    The build tree is meant to be a readable map of the deployment
+    architecture, so every target the manifest declares has a directory
+    and every package inside it has one too -- whether or not this
+    invocation produces content for it. An empty package directory is a
+    true statement: that capability is declared and not currently built.
+
+    Content is never touched here; only structure is added. Directories
+    for targets or packages the manifest no longer declares are removed,
+    so the tree cannot drift from the manifest.
+    """
+    doc = json.loads(manifest_path.read_text(encoding="utf-8"))
+    declared: dict[str, list[str]] = {}
+    for rec in doc.get("DeploymentTargetRecord", []):
+        tid = rec.get("target_id")
+        if not tid:
+            continue
+        pkgs: list[str] = []
+        for eb in rec.get("environments", []) or []:
+            for pkg in (eb.get("packages") or []):
+                pid = pkg.get("package_id")
+                if pid and pid not in pkgs:
+                    pkgs.append(pid)
+        for f in rec.get("files", []) or []:
+            pid = f.get("package")
+            if pid and pid not in pkgs:
+                pkgs.append(pid)
+        declared[tid] = pkgs
+
+    build_root.mkdir(parents=True, exist_ok=True)
+    for tid, pkgs in declared.items():
+        tdir = build_root / tid
+        tdir.mkdir(parents=True, exist_ok=True)
+        for pid in pkgs:
+            (tdir / pid).mkdir(parents=True, exist_ok=True)
+
+    # Prune anything the manifest no longer declares.
+    for child in build_root.iterdir():
+        if not child.is_dir():
+            continue
+        if child.name not in declared:
+            shutil.rmtree(child, ignore_errors=True)
+            _step(f"  pruned undeclared target dir {child.name}")
+            continue
+        keep = set(declared[child.name]) | {"manifest.json", "_publish"}
+        for sub in child.iterdir():
+            if sub.name in keep:
+                continue
+            if sub.is_dir():
+                shutil.rmtree(sub, ignore_errors=True)
+            else:
+                sub.unlink()
+    return len(declared), sum(len(v) for v in declared.values())
+
+
+def _prepare_build_tree(target: TargetRecord, build_dir: Path,
+                        selection: set[str] | None = None) -> list[str]:
+    """Empty every package directory, leaving the directory structure.
+
+    Each build deletes all content; the shape stays. An empty package
+    directory on disk is a visible statement that the manifest declares a
+    capability the build produced nothing for -- which is a finding, not
+    something to hide by removing the directory.
+    """
+    declared = _declared_packages(target)
+    packages = list(declared)
+    if selection is not None:
+        chosen = [p for p in packages if p in selection]
+        if packages and not chosen:
+            raise _ch_exc()(
+            mode="value_error",
+            component="_build_chain",
+            message=f"target {target.target_id!r} declares "
+                    f"{packages} but none was selected; name the package(s) "
+                    "you intend to build")
+        packages = chosen
+    if not packages and target.files:
+        raise _ch_exc()(
+            mode="runtime_error",
+            component="_build_chain",
+            message=f"target {target.target_id!r} has {len(target.files)} "
+                    "declared file(s) but no package; every file must name "
+                    "the capability it serves")
+    # A target with no packages and no files is provisioned, not built --
+    # a resource group, a vnet, a managed identity. Its build output is the
+    # manifest alone, and inventing an empty package to fill the tree would
+    # be ceremony.
+    build_dir.mkdir(parents=True, exist_ok=True)
+    # The structure is every package the target declares, whether or not
+    # this build produces it. Only the SELECTED packages are emptied --
+    # emptying the rest would make each targeted build destroy the output
+    # of the last one, so deploying a package you did not just rebuild
+    # would ship an empty directory.
+    for pid in declared:
+        pkg_dir = _package_build_dir(build_dir, pid)
+        pkg_dir.mkdir(parents=True, exist_ok=True)
+        if pid not in packages:
+            continue
+        for child in pkg_dir.iterdir():
+            if child.is_dir():
+                shutil.rmtree(child, ignore_errors=True)
+            else:
+                child.unlink()
+    # Anything at the target root that is no longer a declared package or
+    # the target's own manifest is residue from a previous structure.
+    for child in build_dir.iterdir():
+        if child.name in declared or child.name == "manifest.json":
+            continue
+        if child.is_dir():
+            shutil.rmtree(child, ignore_errors=True)
+        else:
+            child.unlink()
+    return packages
+
+
+ARCHITECTURE_REL = Path("brain/machine_artifacts/content/deployment_architecture.json")
+
+
+def _architecture_path(anywhere_under_repo: Path) -> Path:
+    """Locate deployment_architecture.json from any path inside the repo."""
+    for d in [anywhere_under_repo, *anywhere_under_repo.parents]:
+        cand = d / ARCHITECTURE_REL
+        if cand.is_file():
+            return cand
+    raise _ch_exc()(
+            mode="runtime_error",
+            component="_build_chain",
+            message=f"deployment_architecture.json not found above "
+                    f"{anywhere_under_repo}")
+
+
+def architecture_digest(path: Path) -> str:
+    """sha256 of the manifest, CRLF-normalised so Windows and Linux agree."""
+    import hashlib
+    raw = path.read_bytes().replace(b"\r\n", b"\n")
+    return hashlib.sha256(raw).hexdigest()
+
+
+def _architecture_digest(path: Path) -> str:
+    return architecture_digest(path)
+
+
 def _write_manifest_snapshot(
     build_dir: Path,
     target: TargetRecord,
     build_n: int,
     build_sha: str,
+    packages: list[str] | None = None,
 ) -> None:
     """Write the target's slice of deployment_architecture.json into the
     build dir, augmented with build_number + build_sha. Embedded file
     bytes are stripped from `files[]` (they're materialized to disk in
     the same build_dir; carrying them in the manifest would double them).
     """
-    files_lean: list[dict] = []
-    for f in target.files:
-        d = f.to_dict()
-        d.pop("embedded_content", None)
-        d.pop("layout", None)
-        files_lean.append(d)
-    snapshot: dict = {
-        "$schema": "https://dev.chathealthy.ai/schemas/ChatHealthyBuildPackageManifestSchema.json",
+    # Deployment content lives in deployment_architecture.json and nowhere
+    # else. This file used to be a copy of the target's slice of it --
+    # 24KB for the automation account -- which is a second copy of the
+    # truth that can drift from the first. What the build legitimately
+    # knows and the manifest cannot is which build this is, so that is all
+    # this records, plus the digest of the manifest it was built from. The
+    # deploy re-reads the manifest and refuses if the digest moved.
+    arch = _architecture_path(build_dir)
+    stamp: dict = {
         "build_number": build_n,
         "build_sha": build_sha,
         "target_id": target.target_id,
-        "target_kind": target.target_kind,
-        "environments": [e.to_dict() for e in target.environments],
-        "files": files_lean,
+        "architecture_sha256": _architecture_digest(arch),
     }
-    if target.secrets:
-        snapshot["secrets"] = dict(target.secrets)
-    (build_dir / "manifest.json").write_text(
-        json.dumps(snapshot, indent=2, ensure_ascii=False) + "\n",
-        encoding="utf-8",
-    )
+    for pid in packages:
+        pkg_stamp = dict(stamp)
+        pkg_stamp["package_id"] = pid
+        (_package_build_dir(build_dir, pid) / "build.json").write_text(
+            json.dumps(pkg_stamp, indent=2, ensure_ascii=False) + "\n",
+            encoding="utf-8",
+        )
+    if not packages:
+        (build_dir / "build.json").write_text(
+            json.dumps(stamp, indent=2, ensure_ascii=False) + "\n",
+            encoding="utf-8",
+        )
+    stale = build_dir / "manifest.json"
+    if stale.is_file():
+        stale.unlink()
 
 
 def _apply_dependency_pins(repo_root: Path, build_dir: Path) -> None:
@@ -218,10 +479,11 @@ def _substitute_hf_urls_in_index_html(repo_root: Path, build_dir: Path, env: str
     }
     indexes = list(build_dir.rglob("index.html"))
     if not indexes:
-        raise RuntimeError(
-            f"_substitute_hf_urls_in_index_html: no index.html found under "
-            f"{build_dir}; Cloudflare Pages target must ship at least one."
-        )
+        raise _ch_exc()(
+            mode="runtime_error",
+            component="_build_chain",
+            message=f"_substitute_hf_urls_in_index_html: no index.html found under "
+            f"{build_dir}; Cloudflare Pages target must ship at least one.")
     for idx in indexes:
         text = idx.read_text(encoding="utf-8")
         # A page that carries NONE of the __HF_URL_*__ placeholders is a
@@ -233,8 +495,10 @@ def _substitute_hf_urls_in_index_html(repo_root: Path, build_dir: Path, env: str
         present = [p for p in _HF_URL_PLACEHOLDERS if p in text]
         if present and len(present) < len(_HF_URL_PLACEHOLDERS):
             missing = sorted(set(_HF_URL_PLACEHOLDERS) - set(present))
-            raise RuntimeError(
-                f"_substitute_hf_urls_in_index_html: {idx.relative_to(build_dir)} "
+            raise _ch_exc()(
+                mode="runtime_error",
+                component="_build_chain",
+                message=f"_substitute_hf_urls_in_index_html: {idx.relative_to(build_dir)} "
                 f"is participating in HF-URL substitution (found {sorted(present)}) "
                 f"but is missing {missing!r}. Every participating index.html MUST "
                 f"contain every __HF_URL_*__ placeholder verbatim. If a "
@@ -249,29 +513,50 @@ def _substitute_hf_urls_in_index_html(repo_root: Path, build_dir: Path, env: str
         final = idx.read_text(encoding="utf-8")
         for placeholder in _HF_URL_PLACEHOLDERS:
             if placeholder in final:
-                raise RuntimeError(
-                    f"_substitute_hf_urls_in_index_html: {idx.relative_to(build_dir)} "
-                    f"still contains {placeholder!r} after substitution; build aborted."
-                )
+                raise _ch_exc()(
+            mode="runtime_error",
+            component="_build_chain",
+            message=f"_substitute_hf_urls_in_index_html: {idx.relative_to(build_dir)} "
+                    f"still contains {placeholder!r} after substitution; build aborted.")
         # Post-substitution URL-presence check applies only if the page
         # participated in substitution.
         if present:
             for url in targets_for_placeholder.values():
                 if url not in final:
-                    raise RuntimeError(
-                        f"_substitute_hf_urls_in_index_html: {idx.relative_to(build_dir)} "
-                        f"missing expected URL {url!r} after substitution; build aborted."
-                    )
+                    raise _ch_exc()(
+            mode="runtime_error",
+            component="_build_chain",
+            message=f"_substitute_hf_urls_in_index_html: {idx.relative_to(build_dir)} "
+                        f"missing expected URL {url!r} after substitution; build aborted.")
+
+
+_PACKAGE_ROUTING_KINDS = (
+    "host_os_process",
+    "cloudflare_pages_project",
+    "azure_automation_account",
+    "azure_container_registry",
+    "azure_key_vault",
+    "entra_directory",
+)
 
 
 def _build_cloudflare(repo_root: Path, target: TargetRecord, build_dir: Path,
-                     env: str, build_n: int) -> None:
-    """Stage Website/ into build_dir, inline fonts, substitute per-build HF
-    Space URLs, materialize managed bytes."""
-    if build_dir.exists():
-        shutil.rmtree(build_dir, ignore_errors=True)
-    build_dir.mkdir(parents=True)
-    rd._copy_tree(repo_root, build_dir, "Website", ".")
+                     env: str, build_n: int,
+                     selection: set[str] | None = None) -> None:
+    """Stage each declared package into its own directory under build_dir.
+
+    build_dir here is the TARGET directory, not a package directory: this
+    target declares several packages and each file names the one it belongs
+    to. Inside a package directory a file sits at its repo-relative
+    source_location, so the build tree reads back to the manifest without a
+    lookup table.
+
+    Files present under Website/ but declared by no package are NOT staged.
+    That is the point of driving from the manifest: an undeclared file is
+    one nobody claimed, and shipping it anyway is how the build acquired
+    bytes no runtime path uses.
+    """
+    _stage_packages(repo_root, target, build_dir, selection)
     snippet = ch_fonts_inliner.read_snippet()
     inlined = 0
     for html in build_dir.rglob("*.html"):
@@ -279,7 +564,10 @@ def _build_cloudflare(repo_root: Path, target: TargetRecord, build_dir: Path,
             inlined += 1
     _step(f"  CH_FONTS inlined in {inlined} pages")
     _substitute_hf_urls_in_index_html(repo_root, build_dir, env, build_n)
-    Extractor().materialize(target, build_dir)
+    # Managed bytes are written by _materialize_managed_files after this
+    # returns, and that one is package-aware. Materializing here as well
+    # wrote the managed Dockerfile at the target root, creating a directory
+    # named after its source path that no package declares.
 
 
 def _build_hf_space(repo_root: Path, target: TargetRecord, build_dir: Path) -> None:
@@ -291,9 +579,7 @@ def _build_hf_space(repo_root: Path, target: TargetRecord, build_dir: Path) -> N
     target; deploy does the install procedure (docker build/push, HF API,
     git push to Space repo).
     """
-    if build_dir.exists():
-        shutil.rmtree(build_dir, ignore_errors=True)
-    build_dir.mkdir(parents=True)
+    build_dir.mkdir(parents=True, exist_ok=True)
 
     target_id = target.target_id
     if target_id == "target_hf_space_findcare_backend":
@@ -306,7 +592,10 @@ def _build_hf_space(repo_root: Path, target: TargetRecord, build_dir: Path) -> N
     elif target_id == "target_hf_space_shared_services":
         source_set = rd._sharedservices_source_set(repo_root)
     else:
-        raise RuntimeError(f"unknown hf_space target {target_id!r}")
+        raise _ch_exc()(
+            mode="runtime_error",
+            component="_build_chain",
+            message=f"unknown hf_space target {target_id!r}")
 
     for src_rel, dst_rel in source_set:
         _step(f"  stage  {src_rel} -> {dst_rel}")
@@ -398,9 +687,7 @@ def _build_azure_function_app(repo_root: Path, target: TargetRecord, build_dir: 
     generated into the zip at build time so the source manifest stays a
     single file per the Gateway directive.
     """
-    if build_dir.exists():
-        shutil.rmtree(build_dir, ignore_errors=True)
-    build_dir.mkdir(parents=True)
+    build_dir.mkdir(parents=True, exist_ok=True)
     zip_path = build_dir / "deploy.zip"
     _step(f"  building deploy.zip from {len(target.files)} JSON-declared files")
     arcnames_written: set[str] = set()
@@ -561,7 +848,6 @@ def _inline_chathealthy_lib_if_used(repo_root: Path, runbook_path: Path) -> None
     # Preamble must come AFTER any `from __future__` line (Python
     # requires __future__ imports first) and AFTER the module docstring
     # if present.
-    import re as _re_mod
     fut_m = _re_mod.search(r"^from __future__ import [^\n]+\n", body, _re_mod.MULTILINE)
     if fut_m:
         pos = fut_m.end()
@@ -572,6 +858,65 @@ def _inline_chathealthy_lib_if_used(repo_root: Path, runbook_path: Path) -> None
     runbook_path.write_text(new_body, encoding="utf-8")
     new_kb = runbook_path.stat().st_size / 1024.0
     _step(f"  inlined chathealthy_frontend_lib -> {runbook_path.name} ({new_kb:.1f} KB)")
+
+
+def _runbook_packages(target: TargetRecord) -> list[tuple[str, dict]]:
+    """(package_id, package) for every runbook package on this target."""
+    out: list[tuple[str, dict]] = []
+    seen: set[str] = set()
+    for eb in target.environments:
+        for pkg in (eb.packages or []):
+            pid = pkg.get("package_id")
+            if pkg.get("kind") == "runbook" and pid and pid not in seen:
+                seen.add(pid)
+                out.append((pid, pkg))
+    return out
+
+
+def _build_automation_account(repo_root: Path, target: TargetRecord,
+                              target_dir: Path,
+                              selection: set[str] | None = None) -> None:
+    """Build each runbook package of the Automation Account.
+
+    One destination, many capabilities. Each runbook package produces
+    `<package_id>/runbook.py` -- the stable filename the deploy handler
+    looks for -- with the shared library inlined, because an Automation
+    runbook is a single file with no import path.
+    """
+    packages = [(pid, pkg) for pid, pkg in _runbook_packages(target)
+                if selection is None or pid in selection]
+    if not packages:
+        _step("  no runbook packages declared")
+        return
+    for pid, pkg in packages:
+        files = pkg.get("files") or []
+        if len(files) != 1:
+            sys.exit(
+                f"ERROR: runbook package {pid!r} on {target.target_id!r} "
+                f"MUST declare exactly one source file; got {len(files)}."
+            )
+        src_rel = files[0]["source_location"]
+        if not src_rel.endswith(".py"):
+            sys.exit(
+                f"ERROR: runbook package {pid!r} source MUST be a Python "
+                f"file; got {src_rel!r}."
+            )
+        src_path = repo_root / src_rel
+        if not src_path.is_file():
+            sys.exit(
+                f"ERROR: runbook source {src_rel!r} not present on disk "
+                f"for package {pid!r}."
+            )
+        pkg_dir = _package_build_dir(target_dir, pid)
+        pkg_dir.mkdir(parents=True, exist_ok=True)
+        dst = pkg_dir / "runbook.py"
+        shutil.copyfile(src_path, dst)
+        _step(f"  {pid}: staged runbook.py ({dst.stat().st_size / 1024.0:.1f} KB)")
+        _inline_chathealthy_lib_if_used(repo_root, dst)
+        if pid == "change_db_version":
+            _emit_change_db_version_target_url_registry(repo_root, pkg_dir)
+        if pid in ("ca_bootstrap", "ca_endpoint"):
+            _inline_ca_helpers(repo_root, pkg_dir)
 
 
 def _build_azure_automation_runbook(repo_root: Path, target: TargetRecord, build_dir: Path) -> None:
@@ -586,9 +931,7 @@ def _build_azure_automation_runbook(repo_root: Path, target: TargetRecord, build
     binding into the Automation Account as an Automation Variable
     before pushing the runbook content.
     """
-    if build_dir.exists():
-        shutil.rmtree(build_dir, ignore_errors=True)
-    build_dir.mkdir(parents=True)
+    build_dir.mkdir(parents=True, exist_ok=True)
     if len(target.files) != 1:
         sys.exit(
             f"ERROR: azure_automation_runbook target {target.target_id!r} "
@@ -747,9 +1090,7 @@ def _build_azure_container_app(repo_root: Path, target: TargetRecord, build_dir:
     The Dockerfile's COPY pulls from app/pipeline/Code/ so the Functions
     runtime sees function_app.py + host.json at /home/site/wwwroot/.
     """
-    if build_dir.exists():
-        shutil.rmtree(build_dir, ignore_errors=True)
-    build_dir.mkdir(parents=True)
+    build_dir.mkdir(parents=True, exist_ok=True)
     app_root = build_dir / "app"
     _step(f"  staging {len(target.files)} JSON-declared files into {app_root}")
     for f in target.files:
@@ -828,9 +1169,7 @@ def _build_host_os_process(repo_root: Path, target: TargetRecord, build_dir: Pat
     writes bin/, which is why building repeatedly once changed nothing the
     service ran.
     """
-    if build_dir.exists():
-        shutil.rmtree(build_dir, ignore_errors=True)
-    build_dir.mkdir(parents=True)
+    build_dir.mkdir(parents=True, exist_ok=True)
 
     projects = [f for f in target.files if f.handler_type == "dotnet_project"]
     if len(projects) > 1:
@@ -838,6 +1177,24 @@ def _build_host_os_process(repo_root: Path, target: TargetRecord, build_dir: Pat
             f"ERROR: host_os_process target {target.target_id!r} declares "
             f"{len(projects)} dotnet_project files; at most one is supported."
         )
+
+    # build_dir is the package directory when this target declares one
+    # package, and the target directory when it declares several. In the
+    # multi-package case each file lands under the package that owns it,
+    # and the repository layout is mirrored inside that package -- the
+    # enforcement manager resolves its workers relative to its own
+    # location, so the relative shape has to survive the split.
+    multi = len(_declared_packages(target)) > 1
+
+    def _root_for(f) -> Path:
+        if not multi:
+            return build_dir
+        if not getattr(f, "package", None):
+            sys.exit(
+                f"ERROR: {target.target_id!r} routes by package but "
+                f"{f.source_location!r} names none."
+            )
+        return _package_build_dir(build_dir, f.package)
 
     staged = 0
     for f in target.files:
@@ -849,7 +1206,7 @@ def _build_host_os_process(repo_root: Path, target: TargetRecord, build_dir: Pat
                 f"ERROR: missing source file {f.source_location!r} for "
                 f"target {target.target_id!r}."
             )
-        dst = build_dir / f.source_location
+        dst = _root_for(f) / f.source_location
         dst.parent.mkdir(parents=True, exist_ok=True)
         shutil.copy2(src, dst)
         staged += 1
@@ -862,7 +1219,8 @@ def _build_host_os_process(repo_root: Path, target: TargetRecord, build_dir: Pat
     proj_src = repo_root / proj_rel
     if not proj_src.is_file():
         sys.exit(f"ERROR: missing dotnet project {proj_rel!r}.")
-    publish_dir = build_dir / Path(proj_rel).parent / "build" / "publish"
+    publish_dir = (_root_for(projects[0]) / Path(proj_rel).parent
+                   / "build" / "publish")
     _step(f"  dotnet publish {Path(proj_rel).name} -> {publish_dir.relative_to(build_dir)}")
     result = subprocess.run(
         ["dotnet", "publish", str(proj_src), "-c", "Release",
@@ -884,11 +1242,86 @@ def _build_host_os_process(repo_root: Path, target: TargetRecord, build_dir: Pat
     _step(f"  published {exe.name} ({exe.stat().st_size / 1024.0:.1f} KB)")
 
 
-def _build_one(repo_root: Path, target: TargetRecord, build_n: int, build_sha: str, build_root_rel: Path | None = None, env: str = "local") -> Path:
-    build_dir = _target_build_dir(repo_root, build_n, target.target_id, build_root_rel)
-    _step(f"=== {target.target_kind} {target.target_id} -> {build_dir} ===")
+
+def _materialize_managed_files(target: TargetRecord, build_dir: Path,
+                               target_dir: Path | None = None,
+                               selection: set[str] | None = None) -> None:
+    """Write every managed file's bytes from the manifest into the build.
+
+    A managed file's content belongs to deployment_architecture.json -- a
+    Dockerfile is rendered from its layout array, not read from a copy in
+    the source tree. Keeping a second copy on disk coupled the business
+    tree to the build tree, which is the thing the manifest exists to
+    decouple, and let the two drift with the disk copy being the one people
+    edit and the manifest copy being the one that ships.
+
+    `target_dir` is passed when the target routes files by package; each
+    managed file is then written under its own package rather than into a
+    single flat context.
+    """
+    for f in target.files:
+        if f.disposition != "managed":
+            continue
+        if selection is not None and getattr(f, "package", None) not in selection:
+            continue
+        content = f.embedded_content
+        if content is None:
+            sys.exit(
+                f"ERROR: managed file {f.source_location!r} on target "
+                f"{target.target_id!r} has no embedded_content; the manifest "
+                f"owns these bytes and there is nothing to write."
+            )
+        if target_dir is not None:
+            if not f.package:
+                sys.exit(
+                    f"ERROR: managed file {f.source_location!r} on target "
+                    f"{target.target_id!r} names no package."
+                )
+            context_root = _package_build_dir(target_dir, f.package)
+        else:
+            context_root = build_dir
+        dst = context_root / f.source_location
+        dst.parent.mkdir(parents=True, exist_ok=True)
+        dst.write_text(content, encoding="utf-8")
+        # Docker needs it at the context root too.
+        if dst.name == "Dockerfile" and dst.parent != context_root:
+            (context_root / "Dockerfile").write_text(content, encoding="utf-8")
+        _step(f"  materialised managed {f.source_location}")
+
+
+def _build_one(repo_root: Path, target: TargetRecord, build_n: int, build_sha: str, build_root_rel: Path | None = None, env: str = "local", packages_wanted: set[str] | None = None) -> Path:
+    target_dir = _target_build_dir(repo_root, build_n, target.target_id, build_root_rel)
+    packages = _prepare_build_tree(target, target_dir, packages_wanted)
+    selected = set(packages)
+    _step(f"=== {target.target_kind} {target.target_id} -> {target_dir} "
+          f"[{', '.join(packages)}] ===")
+    # Staging writes into the package directory. A single-package target
+    # stages wholly into it. A multi-package target must route each file by
+    # its own package tag -- picking the first declared package would put
+    # bytes under a capability name that does not describe them, which is
+    # the untraceability this structure exists to remove.
+    # Routing keys off what the target DECLARES, not what this build
+    # selected. Deciding on the selection meant building one package of a
+    # multi-package target took the single-package path and nested the
+    # files a level too deep.
+    declared_all = _declared_packages(target)
+    if not declared_all:
+        build_dir = target_dir
+    elif len(declared_all) == 1:
+        build_dir = _package_build_dir(target_dir, declared_all[0])
+    elif target.target_kind in _PACKAGE_ROUTING_KINDS:
+        build_dir = target_dir
+    else:
+        raise _ch_exc()(
+            mode="runtime_error",
+            component="_build_chain",
+            message=f"target {target.target_id!r} declares {len(declared_all)} "
+                    f"packages ({', '.join(declared_all)}) but target_kind "
+                    f"{target.target_kind!r} has no package-routing stager; "
+                    "staging would have to guess which package owns which "
+                    "bytes")
     if target.target_kind == "cloudflare_pages_project":
-        _build_cloudflare(repo_root, target, build_dir, env, build_n)
+        _build_cloudflare(repo_root, target, build_dir, env, build_n, selected)
     elif target.target_kind == "hf_space":
         _build_hf_space(repo_root, target, build_dir)
     elif target.target_kind == "azure_function_app":
@@ -899,6 +1332,8 @@ def _build_one(repo_root: Path, target: TargetRecord, build_n: int, build_sha: s
         _build_azure_automation_runbook(repo_root, target, build_dir)
     elif target.target_kind == "host_os_process":
         _build_host_os_process(repo_root, target, build_dir)
+    elif target.target_kind == "azure_automation_account":
+        _build_automation_account(repo_root, target, target_dir, selected)
     elif target.target_kind in (
         "atlas",
         "azure_resource_group",
@@ -906,31 +1341,38 @@ def _build_one(repo_root: Path, target: TargetRecord, build_n: int, build_sha: s
         "azure_storage_account",
         "azure_vnet",
         "identity",
+        "entra_directory",
         "azure_container_registry",
         "azure_container_apps_environment",
         "azure_container_app_job",
-        "azure_automation_account",
     ):
         # F-012: shell / identity / ACR / ACA Env / Job definition packages
         # are manifests only (deploy owns Azure create; jobs build images
         # at deploy via az acr build from dockerfile path in the target).
-        if build_dir.exists():
-            shutil.rmtree(build_dir, ignore_errors=True)
-        build_dir.mkdir(parents=True)
-        for f in target.files:
-            src = repo_root / f.source_location
-            if not src.is_file():
-                sys.exit(f"ERROR: missing source file {f.source_location}")
-            dst = build_dir / Path(f.source_location).name
-            shutil.copy2(src, dst)
+        # _prepare_build_tree has already emptied the package directory;
+        # removing it here would delete the declared structure.
+        _stage_packages(repo_root, target, target_dir, selected)
     else:
-        raise RuntimeError(
-            f"target_kind {target.target_kind!r} not supported in local_build."
-        )
-    _write_manifest_snapshot(build_dir, target, build_n, build_sha)
+        raise _ch_exc()(
+            mode="runtime_error",
+            component="_build_chain",
+            message=f"target_kind {target.target_kind!r} not supported in local_build.")
+    routes = (target.target_kind in _PACKAGE_ROUTING_KINDS
+              and len(declared_all) > 1)
+    _materialize_managed_files(target, build_dir,
+                               target_dir if routes else None, selected)
+    # The manifest describes the TARGET, so it sits at the target root
+    # above the package directories, not inside one of them.
+    _write_manifest_snapshot(target_dir, target, build_n, build_sha,
+                            packages)
     if target.target_kind == "azure_container_app":
-        _augment_manifest_for_aca(build_dir, target, build_n)
-    return build_dir
+        _augment_manifest_for_aca(target_dir, target, build_n)
+    # Return the TARGET directory, not the package directory. manifest.json
+    # lives at the target root, and the caller stamps env/sha onto it; when
+    # this returned the package directory the stamp was written next to a
+    # manifest that was not there, leaving env unset on every
+    # single-package target.
+    return target_dir
 
 
 _BUILDABLE_KINDS = (
@@ -946,10 +1388,12 @@ _BUILDABLE_KINDS = (
     "azure_storage_account",
     "azure_vnet",
     "identity",
+    "entra_directory",
     "azure_container_registry",
     "azure_container_apps_environment",
     "azure_container_app_job",
     "azure_automation_account",
+    "docker_local_container",
 )
 
 _PIPELINE_BUILD_KINDS = (
@@ -959,6 +1403,7 @@ _PIPELINE_BUILD_KINDS = (
     "azure_storage_account",
     "azure_vnet",
     "identity",
+    "entra_directory",
     "azure_container_registry",
     "azure_container_apps_environment",
     "azure_container_app_job",
@@ -968,8 +1413,19 @@ _PIPELINE_BUILD_KINDS = (
 
 
 def _select_targets(coll: DeploymentCollection, target_arg: str) -> list[TargetRecord]:
-    if target_arg == "all":
-        return [t for t in coll if t.target_kind in ("cloudflare_pages_project", "hf_space")]
+    # No 'all'. Every build names its destinations. A comma-separated list
+    # of target_ids is the normal form; the kind selectors below remain for
+    # genuinely kind-wide work.
+    if "," in target_arg:
+        wanted = [p.strip() for p in target_arg.split(",") if p.strip()]
+        by_id = {t.target_id: t for t in coll}
+        unknown = [w for w in wanted if w not in by_id]
+        if unknown:
+            raise _ch_exc()(
+            mode="value_error",
+            component="_build_chain",
+            message=f"unknown target_id(s): {unknown}")
+        return [by_id[w] for w in wanted]
     if target_arg == "pipeline":
         return [t for t in coll if t.target_kind in _PIPELINE_BUILD_KINDS]
     if target_arg in ("cloudflare", "cloudflare_pages_project"):

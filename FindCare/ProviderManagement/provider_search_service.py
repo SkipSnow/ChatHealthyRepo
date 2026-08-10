@@ -218,8 +218,10 @@ class FindCareService:
         for p in docs:
             etc = p.get("entity_type_code")
             if etc != "1":
-                raise RuntimeError(
-                    "REQ-T-005 violation: non-individual provider returned by /search "
+                raise ChatHealthyException(
+                    mode="compliance_violation",
+                    component="provider_search_service",
+                    message="REQ-T-005 violation: non-individual provider returned by /search "
                     f"(npi={p.get('npi')!r}, entity_type_code={etc!r}). "
                     "Data-integrity bug — fail-hard per spec."
                 )

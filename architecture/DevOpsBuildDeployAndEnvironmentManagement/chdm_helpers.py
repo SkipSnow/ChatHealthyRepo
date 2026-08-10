@@ -40,6 +40,21 @@ import urllib.request
 _AA_TARGET_ID = "target_azure_automation_account_chathealthyjobmanager"
 
 
+
+def _ch_exc():
+    """ChatHealthyException without assuming the library is installed.
+    These modules run as bare scripts in the devops chain."""
+    import sys as _s, pathlib as _p
+    for _d in _p.Path(__file__).resolve().parents:
+        if (_d / ".git").exists():
+            _l = _d / "FrontEndApplicationLib" / "src"
+            if str(_l) not in _s.path:
+                _s.path.insert(0, str(_l))
+            break
+    from chathealthy_frontend_lib.exceptions import ChatHealthyException
+    return ChatHealthyException
+
+
 def _load_aa_facts() -> dict:
     """Return the AA shared-infra facts from the manifest's
     target_azure_automation_account_chathealthyjobmanager
@@ -289,11 +304,12 @@ def _pypi_universal_wheel_url(package: str, version: str) -> str:
         fn = entry.get("filename", "")
         if entry.get("packagetype") == "bdist_wheel" and fn.endswith("-py3-none-any.whl"):
             return entry["url"]
-    raise RuntimeError(
-        f"PyPI has no py3-none-any wheel for {package}=={version}. "
+    raise _ch_exc()(
+            mode="runtime_error",
+            component="chdm_helpers",
+            message=f"PyPI has no py3-none-any wheel for {package}=={version}. "
         f"Either pin a pure-Python version, or extend the deploy to pick "
-        f"a runtime-compatible cp<N>-cp<N>-manylinux*.whl."
-    )
+        f"a runtime-compatible cp<N>-cp<N>-manylinux*.whl.")
 
 
 def _aa_python3_packages_list(aa_rg: str, aa: str) -> dict[str, dict]:
@@ -362,14 +378,16 @@ def _aa_python3_package_install(aa_rg: str, aa: str, name: str, version: str, wh
             return
         if state == "Failed":
             err = (cur or {}).get("error") or "(no error message)"
-            raise RuntimeError(
-                f"AA Python3 package install FAILED for {name}=={version}: {err}"
-            )
+            raise _ch_exc()(
+            mode="runtime_error",
+            component="chdm_helpers",
+            message=f"AA Python3 package install FAILED for {name}=={version}: {err}")
         time.sleep(10)
-    raise RuntimeError(
-        f"AA Python3 package install for {name}=={version} did not "
-        f"reach a terminal state within 5min (last={state})"
-    )
+    raise _ch_exc()(
+            mode="runtime_error",
+            component="chdm_helpers",
+            message=f"AA Python3 package install for {name}=={version} did not "
+        f"reach a terminal state within 5min (last={state})")
 
 
 def chdm_ensure_aa_python3_packages(aa_rg: str, aa: str) -> None:

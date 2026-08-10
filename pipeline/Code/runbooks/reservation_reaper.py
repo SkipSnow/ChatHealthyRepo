@@ -83,9 +83,9 @@ os.environ.setdefault("CH_COMPONENT", "reservation-reaper")
 os.environ.setdefault("CH_LOG_DESTINATION", "stderr,mongo")
 try:
     from chathealthy_frontend_lib.pipeline_boot import srv_to_direct_uri as _srv_to_direct
-    _mongo_uri = os.environ.get("MONGO_FRONTEND_connectionString", "")
+    _mongo_uri = os.environ.get("MONGO_connectionString", "")
     if _mongo_uri.startswith("mongodb+srv://"):
-        os.environ["MONGO_FRONTEND_connectionString"] = _srv_to_direct(_mongo_uri)
+        os.environ["MONGO_connectionString"] = _srv_to_direct(_mongo_uri)
 except Exception as _bootstrap_exc:  # noqa: BLE001
     sys.stderr.write(
         f"reservation_reaper: SRV bypass failed "
@@ -94,7 +94,8 @@ except Exception as _bootstrap_exc:  # noqa: BLE001
     )
     os.environ["CH_LOG_DESTINATION"] = "stderr"
 CLUSTER_NAME     = os.environ.get("PIPELINE_CLUSTER", "ChatHealthyDataPipelines")
-MONGO_URI        = os.environ["MONGO_FRONTEND_connectionString"]
+# Operator directive 2026-08-03: all coord on pipeline cluster.
+MONGO_URI        = os.environ["MONGO_connectionString"]
 ATLAS_PUB        = os.environ["ATLAS_PUBLIC_KEY"]
 ATLAS_PRIV       = os.environ["ATLAS_PRIVATE_KEY"]
 ATLAS_PROJECT    = os.environ["ATLAS_PROJECT_ID"]

@@ -24,7 +24,7 @@ from pathlib import Path
 # Shared-fact loaders. Every per-target ACA fact (location, Dockerfile
 # base image, placeholder image, Netherite EH topology) lives in the ACA
 # target's environments[<env>].azure_container_app block in
-# deployment_architecture.json (EPIC-008-F-012-S-001-REQ-B-008). No
+# deployment_architecture.json (EPIC-008-F-012). No
 # module-level constants for any of these.
 #
 # Multi-target support (F-012 v7 §5 Control + Worker Job definitions):

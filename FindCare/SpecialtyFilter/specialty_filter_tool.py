@@ -33,6 +33,21 @@ FINDCARE_INTERNAL_URL_ENV = "FINDCARE_INTERNAL_URL"
 FINDCARE_INTERNAL_URL_DEFAULT = "https://ch-findcare:7860"
 
 
+
+def _ch_exc():
+    """ChatHealthyException without assuming the library is installed.
+    These modules run as bare scripts in the devops chain."""
+    import sys as _s, pathlib as _p
+    for _d in _p.Path(__file__).resolve().parents:
+        if (_d / ".git").exists():
+            _l = _d / "FrontEndApplicationLib" / "src"
+            if str(_l) not in _s.path:
+                _s.path.insert(0, str(_l))
+            break
+    from chathealthy_frontend_lib.exceptions import ChatHealthyException
+    return ChatHealthyException
+
+
 class Request(BaseModel):
     """The natural-language complaint UM extracted from the user's utterance.
     Required and non-empty; SpecialtyFilter does not source from any other
@@ -73,10 +88,11 @@ class SpecialtyFilterTool(ChatHealthyTool):
     async def run(self, deps: AgentDeps, request: "Request") -> "Response":
         text = (request.query or "").strip()
         if not text:
-            raise ValueError(
-                "SpecialtyFilter requires a non-empty Request.query; UR "
-                "must pass the UM-extracted complaint phrase."
-            )
+            raise _ch_exc()(
+            mode="value_error",
+            component="specialty_filter_tool",
+            message="SpecialtyFilter requires a non-empty Request.query; UR "
+                "must pass the UM-extracted complaint phrase.")
 
         url = findcare_url() + "/classify"
         try:

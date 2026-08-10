@@ -122,13 +122,36 @@ class Crosswalk:
     def check_file_drift(
         coll: DeploymentCollection, repo_root: Path
     ) -> list[str]:
-        """disposition='managed' → byte-equality with disk.
-        disposition='referenced' → presence-on-disk only.
+        """disposition='managed' → bytes live in the manifest, MUST NOT be
+        on disk. disposition='referenced' → presence-on-disk plus hash.
+
+        These two dispositions used to be checked the same way, which made
+        the model self-contradictory: Rule-008 requires a managed file to be
+        absent from the source tree, and this check rejected any declared
+        file that was absent. Deleting the duplicate satisfied the rule and
+        broke the build; keeping it satisfied the build and broke the rule.
         """
         out: list[str] = []
         for record in coll:
             for f in record.files:
                 abs_path = repo_root / f.source_location
+                if f.disposition == "managed":
+                    # The manifest is the source. A copy on disk is a second
+                    # copy that drifts, and the one people edit is not the
+                    # one that ships.
+                    if abs_path.is_file():
+                        out.append(
+                            f"REJECT — managed file {f.source_location!r} in "
+                            f"record {record.target_id!r} also exists on disk; "
+                            f"its bytes belong to the manifest alone"
+                        )
+                    elif not (f.embedded_content or "").strip():
+                        out.append(
+                            f"REJECT — managed file {f.source_location!r} in "
+                            f"record {record.target_id!r} has no embedded_content; "
+                            f"nothing would be written at build time"
+                        )
+                    continue
                 if not abs_path.is_file():
                     out.append(
                         f"REJECT — source_location {f.source_location!r} "

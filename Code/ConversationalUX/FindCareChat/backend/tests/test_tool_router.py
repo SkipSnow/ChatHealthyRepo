@@ -11,6 +11,14 @@ import unittest
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
 
 from application.tool_router import ToolRouter
+import sys as _sys, pathlib as _pl
+for _d in _pl.Path(__file__).resolve().parents:
+    if (_d / '.git').exists():
+        _lib = _d / 'FrontEndApplicationLib' / 'src'
+        if str(_lib) not in _sys.path:
+            _sys.path.insert(0, str(_lib))
+        break
+from chathealthy_frontend_lib.exceptions import ChatHealthyException
 
 
 def _mock_tool(**kwargs):
@@ -18,7 +26,10 @@ def _mock_tool(**kwargs):
 
 
 def _failing_tool(**kwargs):
-    raise ValueError("intentional failure")
+    raise ChatHealthyException(
+        mode="runtime_error",
+        component="test_tool_router",
+        message="intentional failure")
 
 
 class TestToolRouter(unittest.TestCase):

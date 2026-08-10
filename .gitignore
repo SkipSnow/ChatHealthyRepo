@@ -1,4 +1,7 @@
 .env
+*.env          # any name ENDING .env, not just a file named .env.
+               # c<U+F03A>CHATHealthyLLC.env reached 5da7817d because
+               # `.env` and `**/.env` match the NAME .env only.
 code/.env
 Code/.env
 **/.env
@@ -106,3 +109,14 @@ architecture/EngineeringRuleEnforcement/ArchitectureDesignAndAuditDocs/llm_class
 # repointed at deploy/, whether this tree gets committed becomes a
 # real question -- a fresh clone would need it to exist.
 deploy/
+
+# Claude Code tool state — moved here from .git/info/exclude so the
+# ignore list is in the repository and reviewable (2026-08-10).
+.claude/scheduled_tasks.json
+.claude/routines/.state/
+.claude/checkpoints/
+.claude/mailbox/
+.claude/agent-registry.json
+.claude/agent-memory-local
+.claude/first-run
+.claude/assistant-daemon-state.json

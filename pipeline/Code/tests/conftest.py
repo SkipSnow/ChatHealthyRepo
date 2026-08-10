@@ -8,6 +8,7 @@ from __future__ import annotations
 import json
 import os
 import sys
+import uuid
 from pathlib import Path
 
 # The chathealthy_frontend_lib package lives in a peer directory and is
@@ -62,7 +63,7 @@ FIXTURES = Path(__file__).resolve().parent / "fixtures"
 
 @pytest.fixture
 def f006_catalog():
-    with open(FIXTURES / "f006_catalog.json", encoding="utf-8") as f:
+    with open(FIXTURES / "f006_catalog.jsonfixture", encoding="utf-8") as f:
         rows = json.load(f)
     return {str(r.get("Code") or r.get("code")): r for r in rows}
 
@@ -77,6 +78,54 @@ def nppes_individual_row():
 def nppes_org_row():
     with open(FIXTURES / "nppes_org_vt.json", encoding="utf-8") as f:
         return json.load(f)
+
+
+# The one database DevOpsUser holds readWrite on. Scratch collections
+# live here because that grant already exists — a test does not get to
+# invent a permission for its own convenience, and no new namespace is
+# created on any cluster to run one.
+SCRATCH_DB = "frontEndAdmin"
+SCRATCH_PREFIX = "chathealthy_test_scratch_"
+
+
+@pytest.fixture
+def scratch_mongo():
+    """A real MongoDB database and disposable, uniquely-named collections.
+
+    The rule is absolute: tests reach MongoDB through the canonical
+    utility as DevOpsUser, presenting the certificate that IS the
+    credential. A fake in-memory Mongo proves nothing about the
+    behaviours these tests assert — what the server does to an array
+    under a concurrent $set, what renameCollection means — and it
+    exercises no part of the identity model.
+
+    Isolation is by collection name. Every collection this hands out
+    carries a prefix and a fresh uuid, so it cannot collide with a
+    production collection, and every one is dropped afterwards whether
+    the test passed or failed.
+
+    Yields (database, collection_factory). The factory takes a short
+    label and returns a real collection.
+    """
+    from chathealthy_frontend_lib.mongo_utilities import ChatHealthyMongoUtilities
+
+    client = ChatHealthyMongoUtilities().getConnection("DevOpsUser", "pipelines")
+    db = client[SCRATCH_DB]
+    run_prefix = f"{SCRATCH_PREFIX}{uuid.uuid4().hex}_"
+
+    def collection(label: str):
+        return db[f"{run_prefix}{label}"]
+
+    try:
+        yield db, collection
+    finally:
+        # Drop by prefix, not by what was handed out. Code under test
+        # derives further names from the ones it is given — a version
+        # suffix, a staging twin — and every one of those carries the
+        # run prefix, so this is what actually leaves the cluster clean.
+        for name in db.list_collection_names():
+            if name.startswith(run_prefix):
+                db.drop_collection(name)
 
 
 @pytest.fixture

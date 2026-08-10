@@ -21,6 +21,17 @@ from pathlib import Path
 
 import pytest
 
+import sys as _sys, pathlib as _pl
+for _d in _pl.Path(__file__).resolve().parents:
+    if (_d / ".git").exists():
+        _lib = _d / "FrontEndApplicationLib" / "src"
+        if str(_lib) not in _sys.path:
+            _sys.path.insert(0, str(_lib))
+        break
+from chathealthy_frontend_lib.logging_service import ChatHealthyLoggingService
+
+_CH_LOG = ChatHealthyLoggingService()
+
 _REPO_ROOT = Path(__file__).resolve().parents[4]
 sys.path.insert(0, str(_REPO_ROOT / "pipeline" / "Code"))
 from pipeline_env import load_pipeline_env  # noqa: E402
@@ -59,4 +70,4 @@ def test_runbook_trigger_accepts_dual_state(integration_enabled):
     with urllib.request.urlopen(req, timeout=30) as r:
         assert r.status == 202, f"webhook returned {r.status}, expected 202"
         response_body = r.read().decode("utf-8")
-        print(f"[runbook_trigger] states={_STATE_SCOPE} status={r.status} body={response_body!r}")
+        _CH_LOG.info(f"[runbook_trigger] states={_STATE_SCOPE} status={r.status} body={response_body!r}")

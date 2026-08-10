@@ -31,12 +31,13 @@ class TestExitCodeConstants:
         assert ChatHealthyEnforcementManager.DEFAULT_TIMEOUT_SECONDS == 30
 
     def test_hooks_count(self):
-        # 4 Git + 6 Claude Code = 10
-        assert len(ChatHealthyEnforcementManager.HOOKS) == 10
+        # 4 Git + 8 Claude Code = 12
+        assert len(ChatHealthyEnforcementManager.HOOKS) == 12
         for hook in [
             "pre-commit", "commit-msg", "post-commit", "pre-push",
             "SessionStart", "UserPromptSubmit", "PreToolUse",
             "Stop", "SessionEnd", "InstructionsLoaded",
+            "PreCompact", "PostCompact",
         ]:
             assert hook in ChatHealthyEnforcementManager.HOOKS
 
@@ -48,8 +49,20 @@ class TestAggregationPrecedence:
         m = ChatHealthyEnforcementManager("pre-commit")
         return m._aggregate(codes)
 
-    def test_empty_returns_ok(self):
-        assert self._agg([]) == 0
+    def test_empty_fails_on_a_gating_hook(self):
+        """Nothing ran, so nothing can be certified compliant.
+
+        This used to return OK. On pre-commit that is a silent pass: a
+        rules file that yielded no enforcements, or a hook nothing is
+        wired to, reported success and the commit proceeded with nothing
+        having been checked.
+        """
+        assert self._agg([]) == ChatHealthyEnforcementManager.EXIT_MANAGER_ERROR
+
+    def test_empty_returns_ok_on_a_non_gating_hook(self):
+        """Non-gating hooks legitimately have no enforcements."""
+        m = ChatHealthyEnforcementManager("post-commit")
+        assert m._aggregate([]) == 0
 
     def test_all_ok(self):
         assert self._agg([0, 0, 0]) == 0
@@ -274,9 +287,15 @@ class TestLockAcquisition:
 # ─────────────────────────────────────────────────────────────────────────────
 class TestRunEndToEnd:
     def test_unhooked_event_returns_ok(self):
-        # No enforcement entries are wired to commit-msg in V1, so the
-        # manager should sail through with EXIT_OK.
-        m = ChatHealthyEnforcementManager("commit-msg")
+        # A hook nothing is wired to sails through with EXIT_OK. This used
+        # to name commit-msg, which now carries the two enforcements that
+        # prompt the operator -- git runs commit-msg only after pre-commit
+        # exits clean, so that is where the prompt belongs.
+        #
+        # post-commit is genuinely unwired, and it is not a gating hook, so
+        # an empty enforcement list is a legitimate pass rather than a scan
+        # that examined nothing.
+        m = ChatHealthyEnforcementManager("post-commit")
         rc = m.run()
         assert rc == ChatHealthyEnforcementManager.EXIT_OK
 

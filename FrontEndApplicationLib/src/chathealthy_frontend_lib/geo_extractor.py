@@ -12,6 +12,8 @@ returned fields are enough to make a query. This module only extracts.
 """
 from __future__ import annotations
 
+from .exceptions import ChatHealthyException
+
 import os
 from typing import Optional
 
@@ -88,9 +90,10 @@ def _get_agent() -> Agent:
     global _agent
     if _agent is None:
         if not os.getenv("GEMINI_API_KEY"):
-            raise RuntimeError(
-                "GEMINI_API_KEY not set; required for geo_extractor."
-            )
+            raise ChatHealthyException(
+            mode="runtime_error",
+            component="geo_extractor",
+            message="GEMINI_API_KEY not set; required for geo_extractor.")
         _agent = Agent(
             _MODEL_ID,
             output_type=LocationOutput,

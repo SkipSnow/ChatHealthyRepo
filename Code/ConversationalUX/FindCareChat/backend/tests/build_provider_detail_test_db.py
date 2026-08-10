@@ -22,6 +22,42 @@ from __future__ import annotations
 import json
 import os
 from pathlib import Path
+import sys as _sys, pathlib as _pl
+
+import sys as _sys, pathlib as _pl
+for _d in _pl.Path(__file__).resolve().parents:
+    if (_d / ".git").exists():
+        _lib = _d / "FrontEndApplicationLib" / "src"
+        if str(_lib) not in _sys.path:
+            _sys.path.insert(0, str(_lib))
+        break
+from chathealthy_frontend_lib.logging_service import ChatHealthyLoggingService
+
+_CH_LOG = ChatHealthyLoggingService()
+
+
+# Rule-004: one place in this file obtains a connection, and it goes through
+# the canonical utility. The certificate is the credential; there is no
+# connection string here and no fallback. Raises if the identity cannot
+# connect, which is the point -- a test that quietly connects as something
+# else proves nothing about production.
+def _ch_connection():
+    import sys as _sys, pathlib as _pl
+    for _d in _pl.Path(__file__).resolve().parents:
+        if (_d / ".git").exists():
+            _lib = _d / "FrontEndApplicationLib" / "src"
+            if str(_lib) not in _sys.path:
+                _sys.path.insert(0, str(_lib))
+            break
+    from chathealthy_frontend_lib.mongo_utilities import ChatHealthyMongoUtilities
+    return ChatHealthyMongoUtilities().getConnection("DevOpsUser", 'frontEnd')
+for _d in _pl.Path(__file__).resolve().parents:
+    if (_d / '.git').exists():
+        _lib = _d / 'FrontEndApplicationLib' / 'src'
+        if str(_lib) not in _sys.path:
+            _sys.path.insert(0, str(_lib))
+        break
+from chathealthy_frontend_lib.exceptions import ChatHealthyException
 
 
 TEST_DB = "PublicHealthData_test"
@@ -43,22 +79,26 @@ def _mongo_uri() -> str:
     for line in env_path.read_text(encoding="utf-8").splitlines():
         if line.startswith("MONGO_FRONTEND_connectionString="):
             return line.split("=", 1)[1].strip()
-    raise RuntimeError("MONGO_FRONTEND_connectionString not found")
+    raise ChatHealthyException(
+        mode="configuration_missing",
+        component="build_provider_detail_test_db",
+        message="MONGO_FRONTEND_connectionString not found")
 
 
 def _primary_practice_zip(record: dict) -> str:
     for a in record.get("addresses", []):
         if a.get("address_type") == "practice" and a.get("zip"):
             return a["zip"]
-    raise RuntimeError(
-        f"baseline record {record.get('npi')} has no practice address"
-    )
+    raise ChatHealthyException(
+        mode="value_error",
+        component="build_provider_detail_test_db",
+        message=f"baseline record {record.get('npi')} has no practice address")
 
 
 def build() -> int:
     """Build the test slice. Returns the count of records copied."""
     from pymongo import MongoClient
-    c = MongoClient(_mongo_uri())
+    c = _ch_connection()
     live = c["PublicHealthData"]["provider_v03"]
     test = c[TEST_DB][TEST_COLL]
 
@@ -87,7 +127,7 @@ def teardown() -> None:
     """Drop the test collection. (FrontEndUser does not have
     dropDatabase rights; per-collection drop works.)"""
     from pymongo import MongoClient
-    c = MongoClient(_mongo_uri())
+    c = _ch_connection()
     c[TEST_DB][TEST_COLL].drop()
 
 
@@ -98,7 +138,7 @@ def restore_baseline_record_to_v03() -> None:
     from the operator-run restore script — never from production
     code."""
     from pymongo import MongoClient
-    c = MongoClient(_mongo_uri())
+    c = _ch_connection()
     baseline = json.loads(_BASELINE_PATH.read_text(encoding="utf-8"))
     coll = c["PublicHealthData"]["provider_v03"]
     coll.replace_one({"npi": TEST_NPI}, baseline, upsert=True)
@@ -109,13 +149,13 @@ if __name__ == "__main__":
     cmd = sys.argv[1] if len(sys.argv) > 1 else "build"
     if cmd == "build":
         n = build()
-        print(f"test slice built at {TEST_DB}.{TEST_COLL}: {n} records")
+        _CH_LOG.info(f"test slice built at {TEST_DB}.{TEST_COLL}: {n} records")
     elif cmd == "teardown":
         teardown()
-        print(f"test database {TEST_DB} dropped")
+        _CH_LOG.info(f"test database {TEST_DB} dropped")
     elif cmd == "restore":
         restore_baseline_record_to_v03()
-        print(f"NPI {TEST_NPI} restored to baseline in provider_v03")
+        _CH_LOG.info(f"NPI {TEST_NPI} restored to baseline in provider_v03")
     else:
-        print(f"unknown command: {cmd}")
+        _CH_LOG.info(f"unknown command: {cmd}")
         sys.exit(1)

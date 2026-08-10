@@ -11,7 +11,6 @@ REQ-B-009.
 """
 from __future__ import annotations
 
-import logging
 import os
 from pathlib import Path
 
@@ -21,13 +20,14 @@ from chathealthy_frontend_lib import ChatHealthyLoggingService
 from chathealthy_frontend_lib.exceptions import ChatHealthyException
 
 
+# (method on the service, level name the emitted record carries)
 LEVELS = [
-    ("debug",     logging.DEBUG),
-    ("info",      logging.INFO),
-    ("warning",   logging.WARNING),
-    ("error",     logging.ERROR),
-    ("critical",  logging.CRITICAL),
-    ("exception", logging.ERROR),
+    ("debug",     "DEBUG"),
+    ("info",      "INFO"),
+    ("warning",   "WARNING"),
+    ("error",     "ERROR"),
+    ("critical",  "CRITICAL"),
+    ("exception", "ERROR"),
 ]
 
 
@@ -40,18 +40,13 @@ def file_log(tmp_path, monkeypatch):
     monkeypatch.setenv("CH_COMPONENT", "test_logging_service_levels")
 
     import chathealthy_frontend_lib.logging_service as svc
-    svc._bound_destination = None
+    svc._bound_destinations = None
     svc._bound_level = None
 
     log_path = tmp_path / "test_logging_service_levels.log"
     yield log_path
 
-    for h in list(logging.getLogger().handlers):
-        try:
-            h.close()
-        finally:
-            logging.getLogger().removeHandler(h)
-    svc._bound_destination = None
+    svc._bound_destinations = None
     svc._bound_level = None
 
 
@@ -60,11 +55,9 @@ def test_level_emits_at_correct_level(file_log, method_name, expected_level):
     log = ChatHealthyLoggingService()
     method = getattr(log, method_name)
     method("hello from %s", method_name, if_not_debug_log=True)
-    for h in logging.getLogger().handlers:
-        h.flush()
     body = file_log.read_text(encoding="utf-8")
     assert f"hello from {method_name}" in body
-    assert logging.getLevelName(expected_level) in body
+    assert expected_level in body
 
 
 @pytest.mark.parametrize("method_name,expected_level", LEVELS)
@@ -77,8 +70,6 @@ def test_level_accepts_typed_exc(file_log, method_name, expected_level):
         component="TestComponent",
     )
     method("level-%s with exc", method_name, exc=che, if_not_debug_log=True)
-    for h in logging.getLogger().handlers:
-        h.flush()
     body = file_log.read_text(encoding="utf-8")
     assert f"level-{method_name} with exc" in body
     assert "ChatHealthyException(mode='test_mode'" in body
@@ -106,26 +97,33 @@ def test_level_gated_when_not_forced_and_level_above_debug(
     monkeypatch.setenv("CH_COMPONENT", "gated_test")
 
     import chathealthy_frontend_lib.logging_service as svc
-    svc._bound_destination = None
+    svc._bound_destinations = None
     svc._bound_level = None
 
     log_path = tmp_path / "gated_test.log"
     log = ChatHealthyLoggingService()
     method = getattr(log, method_name)
     method("gated-%s", method_name)
-    for h in logging.getLogger().handlers:
-        h.flush()
 
     body = log_path.read_text(encoding="utf-8") if log_path.exists() else ""
     assert f"gated-{method_name}" not in body
 
-    for h in list(logging.getLogger().handlers):
-        try:
-            h.close()
-        finally:
-            logging.getLogger().removeHandler(h)
-    svc._bound_destination = None
+    svc._bound_destinations = None
     svc._bound_level = None
+
+
+def _raise_marker() -> None:
+    """Raise, and only raise.
+
+    Rule-005 statement 3: a function that raises MUST NOT also log — the
+    catcher logs, not the thrower. Keeping the raise here is what lets the
+    test below catch it and log, which is the shape the rule describes and
+    the shape the .exception() path is for.
+    """
+    raise ChatHealthyException(
+        mode="test_mode",
+        message="active-exception-marker",
+        component="test_logging_service_levels")
 
 
 def test_exception_method_attaches_active_exception_without_exc_kwarg(file_log):
@@ -134,13 +132,11 @@ def test_exception_method_attaches_active_exception_without_exc_kwarg(file_log):
     operational alongside the typed exc= path."""
     log = ChatHealthyLoggingService()
     try:
-        raise ValueError("active-exception-marker")
-    except ValueError:
+        _raise_marker()
+    except ChatHealthyException:
         log.exception("caught: %s", "active-exception-marker", if_not_debug_log=True)
-    for h in logging.getLogger().handlers:
-        h.flush()
     body = file_log.read_text(encoding="utf-8")
     assert "caught: active-exception-marker" in body
-    assert "ValueError" in body
+    assert "ChatHealthyException" in body
     assert "active-exception-marker" in body
 

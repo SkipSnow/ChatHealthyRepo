@@ -1,7 +1,7 @@
 # Copyright (c) 2026 ChatHealthy.ai LLC. All rights reserved.
 # Licensed under the FindCare Evaluation License (FEL-1.0).
 
-"""Load Code/.env for local pipeline runs."""
+"""Load .env for local pipeline runs."""
 
 from __future__ import annotations
 from chathealthy_frontend_lib.exceptions import ChatHealthyException
@@ -10,12 +10,12 @@ import os
 from pathlib import Path
 
 _REPO_ROOT = Path(__file__).resolve().parents[2]
-_ENV_FILE = _REPO_ROOT / "Code" / ".env"
+_ENV_FILE = _REPO_ROOT / ".env"
 _LOADED = False
 
 
 def load_pipeline_env() -> Path | None:
-    """Load Code/.env into os.environ (setdefault — never overrides existing)."""
+    """Load .env into os.environ (setdefault — never overrides existing)."""
     global _LOADED
     if _LOADED:
         return _ENV_FILE if _ENV_FILE.is_file() else None

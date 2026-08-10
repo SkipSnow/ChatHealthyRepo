@@ -9,6 +9,54 @@ import os
 import pytest
 from playwright.sync_api import sync_playwright, expect
 
+import sys as _sys, pathlib as _pl
+
+
+for _d in _pl.Path(__file__).resolve().parents:
+    if (_d / ".git").exists():
+        _lib = _d / "FrontEndApplicationLib" / "src"
+        if str(_lib) not in _sys.path:
+            _sys.path.insert(0, str(_lib))
+        break
+from chathealthy_frontend_lib.logging_service import ChatHealthyLoggingService
+
+_CH_LOG = ChatHealthyLoggingService()
+
+
+_DIGITS = frozenset("0123456789")
+_LABEL_SEPARATORS = frozenset(': \t\r\n')
+
+
+def _labelled_digit_runs(text, label, length):
+    """Digit runs of `length` that follow `label` and any separators."""
+    out = []
+    at = text.find(label)
+    while at != -1:
+        k = at + len(label)
+        while k < len(text) and text[k] in _LABEL_SEPARATORS:
+            k += 1
+        j = k
+        while j < len(text) and text[j] in _DIGITS:
+            j += 1
+        if j - k == length:
+            out.append(text[k:j])
+        at = text.find(label, at + 1)
+    return out
+
+
+def _nct_ids(text):
+    """Clinical-trial identifiers: NCT followed by digits."""
+    out = []
+    at = text.find("NCT")
+    while at != -1:
+        j = at + 3
+        while j < len(text) and text[j].isdigit():
+            j += 1
+        if j > at + 3:
+            out.append(text[at:j])
+        at = text.find("NCT", at + 1)
+    return out
+
 
 BASE_URL = os.environ.get("SMOKE_TEST_BASE_URL", "https://localhost/")
 
@@ -22,8 +70,8 @@ def page():
             ignore_https_errors=True,
         )
         pg = ctx.new_page()
-        pg.on("console", lambda m: print(f"[CONSOLE {m.type}] {m.text}"))
-        pg.on("pageerror", lambda e: print(f"[PAGE ERROR] {e}"))
+        pg.on("console", lambda m: _CH_LOG.info(f"[CONSOLE {m.type}] {m.text}"))
+        pg.on("pageerror", lambda e: _CH_LOG.info(f"[PAGE ERROR] {e}"))
         yield pg
         ctx.close()
         browser.close()
@@ -144,9 +192,9 @@ class TestStep09ProvidersStreamIntoMainWindow:
             "() => /NPI:\\s*\\d{10}/.test(document.querySelector('#frame_MainWindow')?.innerText || '')",
             timeout=60_000,
         )
-        import re
         text = page.locator('#frame_MainWindow').inner_text()
-        assert re.findall(r"NPI:\s*\d{10}", text), f"No NPI numbers in MainWindow: {text[:300]}"
+        assert _labelled_digit_runs(text, "NPI", 10), \
+            f"No NPI numbers in MainWindow: {text[:300]}"
 
 
 class TestStep10ProviderDetailIntoRightPanel:
@@ -336,9 +384,8 @@ class TestStep16ClinicalTrialsThreeFrames:
             "() => /NCT\\d+/.test(document.querySelector('#frame_MainWindow')?.innerText || '')",
             timeout=60_000,
         )
-        import re
         mw = page.locator('#frame_MainWindow').inner_text()
-        assert re.findall(r"NCT\d+", mw), f"No NCT id in MainWindow: {mw[:300]}"
+        assert _nct_ids(mw), f"No NCT id in MainWindow: {mw[:300]}"
         # LeftPanel + RightPanel get the trial chrome too (per ClinicalTrialsWidget design).
         assert len(page.locator('#frame_LeftPanel').inner_text()) > 0
         assert len(page.locator('#frame_RightPanel').inner_text()) > 0

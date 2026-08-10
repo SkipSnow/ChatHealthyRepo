@@ -38,10 +38,25 @@ CLAUDE_HOOKS = (
     "InstructionsLoaded",
 )
 MANAGER_FILE = "chathealthy_enforcement_manager.py"
+DRIVER_FILE = "commit_governance_driver.py"
+
+# pre-commit is Rule-065's own gate, and its driver owns the git knowledge --
+# it settles what the commit answers for and hands that array to every
+# subordinate enforcer. The hook therefore invokes the driver rather than the
+# manager, and takes no --hook argument: there is only one thing it does.
+DRIVEN_HOOKS = {"pre-commit"}
+
+
+def _expected_invocation(hook):
+    if hook in DRIVEN_HOOKS:
+        return DRIVER_FILE
+    return f"{MANAGER_FILE} --hook {hook}"
 
 
 def _wired(body, hook):
-    """Body invokes chathealthy_enforcement_manager.py with `--hook <hook>`."""
+    """Body invokes the component that owns this hook."""
+    if hook in DRIVEN_HOOKS:
+        return DRIVER_FILE in body
     return MANAGER_FILE in body and f"--hook {hook}" in body
 
 
@@ -83,7 +98,7 @@ def _claude_hook_wired(hook):
 @pytest.mark.parametrize("hook", GIT_HOOKS)
 def test_git_hook_wired(hook, hooks_with_enforcements):
     wired, hook_path = _git_hook_wired(hook)
-    expected = f"{MANAGER_FILE} --hook {hook}"
+    expected = _expected_invocation(hook)
     if hook in hooks_with_enforcements:
         assert wired, (
             f"HARD: hook '{hook}' carries an enforcement in engineering_rules.json but "
@@ -101,7 +116,7 @@ def test_git_hook_wired(hook, hooks_with_enforcements):
 @pytest.mark.parametrize("hook", CLAUDE_HOOKS)
 def test_claude_hook_wired(hook, hooks_with_enforcements):
     wired, settings_path = _claude_hook_wired(hook)
-    expected = f"{MANAGER_FILE} --hook {hook}"
+    expected = _expected_invocation(hook)
     if hook in hooks_with_enforcements:
         assert wired, (
             f"HARD: hook '{hook}' carries an enforcement in engineering_rules.json but "

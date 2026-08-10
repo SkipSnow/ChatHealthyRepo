@@ -39,6 +39,21 @@ _VENDOR_KEYS = {
 }
 
 
+
+def _ch_exc():
+    """ChatHealthyException without assuming the library is installed.
+    These modules run as bare scripts in the devops chain."""
+    import sys as _s, pathlib as _p
+    for _d in _p.Path(__file__).resolve().parents:
+        if (_d / ".git").exists():
+            _l = _d / "FrontEndApplicationLib" / "src"
+            if str(_l) not in _s.path:
+                _s.path.insert(0, str(_l))
+            break
+    from chathealthy_frontend_lib.exceptions import ChatHealthyException
+    return ChatHealthyException
+
+
 def _anthropic_to_openai_tools(tools: list) -> list:
     """Convert Anthropic tool format to OpenAI format."""
     converted = []
@@ -99,7 +114,10 @@ def _get_api_key(vendor: str) -> str:
     env_var = _VENDOR_KEYS.get(vendor, "OPENAI_API_KEY")
     key = os.environ.get(env_var, "")
     if not key:
-        raise ValueError(f"API key not found: {env_var}")
+        raise _ch_exc()(
+            mode="value_error",
+            component="llm_client",
+            message=f"API key not found: {env_var}")
     return key
 
 

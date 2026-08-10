@@ -18,6 +18,23 @@ import json
 import ssl
 import urllib.request
 
+
+# Rule-004: one place in this file obtains a connection, and it goes through
+# the canonical utility. The certificate is the credential; there is no
+# connection string here and no fallback. Raises if the identity cannot
+# connect, which is the point -- a test that quietly connects as something
+# else proves nothing about production.
+def _ch_connection():
+    import sys as _sys, pathlib as _pl
+    for _d in _pl.Path(__file__).resolve().parents:
+        if (_d / ".git").exists():
+            _lib = _d / "FrontEndApplicationLib" / "src"
+            if str(_lib) not in _sys.path:
+                _sys.path.insert(0, str(_lib))
+            break
+    from chathealthy_frontend_lib.mongo_utilities import ChatHealthyMongoUtilities
+    return ChatHealthyMongoUtilities().getConnection("DevOpsUser", 'frontEnd')
+
 SHARED_URL = "https://localhost:8002"
 
 
@@ -48,8 +65,7 @@ def test_claim_oauth_result_pop_and_clear():
     from dotenv import load_dotenv
     from pymongo import MongoClient
     load_dotenv("Code/.env")
-    client = MongoClient(os.environ["MONGO_FRONTEND_connectionString"],
-                         serverSelectionTimeoutMS=10000)
+    client = _ch_connection()
     coll = client["Users"]["sessions"]
     try:
         # Seed a session via op=boot, then plant a pending_oauth_result.

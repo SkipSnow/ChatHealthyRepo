@@ -7,7 +7,6 @@
 # Usage: pytest test_https_security.py -v
 
 import os
-import re
 import subprocess
 import pytest
 
@@ -306,67 +305,6 @@ class TestClientSecurityCheck:
 
 # ── EPIC-002-F-001-S-012-REQ-B-004: No HTTP URLs in production code ────────────────
 
-class TestScanHTTP:
-    """EPIC-008-F-002-S-012-REQ-T-001: scan_http.py standalone scanner tests."""
-
-    SCANNER = os.path.join(BASE_DIR, "Code", "Shared", "ops", "tools", "scan_http.py")
-
-    def test_scan_all_clean(self):
-        """--all scan finds zero violations in production code."""
-        import subprocess
-        result = subprocess.run(["python", self.SCANNER, "--all"],
-            capture_output=True, text=True, timeout=30, cwd=BASE_DIR)
-        assert result.returncode == 0, f"--all scan should pass:\n{result.stdout}"
-
-    def test_scan_staged_runs(self):
-        """--staged mode runs without error."""
-        import subprocess
-        result = subprocess.run(["python", self.SCANNER, "--staged"],
-            capture_output=True, text=True, timeout=10, cwd=BASE_DIR)
-        assert result.returncode == 0
-
-    def test_scan_no_args_shows_usage(self):
-        """No arguments shows usage and exits 2."""
-        import subprocess
-        result = subprocess.run(["python", self.SCANNER],
-            capture_output=True, text=True, timeout=10, cwd=BASE_DIR)
-        assert result.returncode == 2
-        assert "Usage" in result.stdout
-
-    def test_scan_dir_without_recurse_dies(self):
-        """Directory without --recurse exits 2."""
-        import subprocess
-        result = subprocess.run(["python", self.SCANNER, "Code/Shared"],
-            capture_output=True, text=True, timeout=10, cwd=BASE_DIR)
-        assert result.returncode == 2
-        assert "FATAL" in result.stdout
-
-    def test_scan_file_with_recurse_dies(self):
-        """File with --recurse exits 2."""
-        import subprocess
-        result = subprocess.run(["python", self.SCANNER, "Code/Shared/llm_client.py", "--recurse"],
-            capture_output=True, text=True, timeout=10, cwd=BASE_DIR)
-        assert result.returncode == 2
-        assert "FATAL" in result.stdout
-
-    def test_scan_nonexistent_dies(self):
-        """Nonexistent path exits 2."""
-        import subprocess
-        result = subprocess.run(["python", self.SCANNER, "does_not_exist.py"],
-            capture_output=True, text=True, timeout=10, cwd=BASE_DIR)
-        assert result.returncode == 2
-        assert "FATAL" in result.stdout
-
-    def test_scan_dir_with_recurse_works(self):
-        """Directory with --recurse scans successfully."""
-        import subprocess
-        result = subprocess.run(["python", self.SCANNER, "Code/Shared/ux", "--recurse"],
-            capture_output=True, text=True, timeout=10, cwd=BASE_DIR)
-        assert result.returncode == 0
-
-
-# ── EPIC-002-F-001-S-012-REQ-B-005: 426 body must include status code ─────────────
-
 class Test426BodyIncludesStatusCode:
     """EPIC-002-F-001-S-012-REQ-B-005: Every HTTP 426 response on every server in every
     environment must include '426' in the response body text."""
@@ -462,14 +400,20 @@ class TestNoHTTPInCode:
         "Website/index.html",
     ]
 
-    EXCLUDE_PATTERNS = [
-        r"test_",           # Test files can use HTTP for testing
-        r"conftest",        # Test config
-        r"__pycache__",
-        r"node_modules",
-        r"\.pyc$",
-        r"conversation_log",
+    EXCLUDE_SUBSTRINGS = [
+        "test_",            # Test files can use HTTP for testing
+        "conftest",         # Test config
+        "__pycache__",
+        "node_modules",
+        "conversation_log",
     ]
+
+    EXCLUDE_SUFFIXES = [".pyc"]
+
+    @classmethod
+    def _is_excluded(cls, candidate: str) -> bool:
+        return (any(s in candidate for s in cls.EXCLUDE_SUBSTRINGS)
+                or candidate.endswith(tuple(cls.EXCLUDE_SUFFIXES)))
 
     # Allowed exceptions with justification
     ALLOWED_EXCEPTIONS = {
@@ -488,10 +432,10 @@ class TestNoHTTPInCode:
                     for fname in files:
                         if not fname.endswith((".py", ".tsx", ".ts", ".html", ".json")):
                             continue
-                        if any(re.search(p, fname) for p in self.EXCLUDE_PATTERNS):
+                        if self._is_excluded(fname):
                             continue
                         fpath = os.path.join(root, fname)
-                        if any(re.search(p, fpath) for p in self.EXCLUDE_PATTERNS):
+                        if self._is_excluded(fpath):
                             continue
                         self._scan_file(fpath, violations)
 

@@ -13,6 +13,7 @@ over HTTPS. A filesystem fallback is forbidden. Network failure raises.
 from __future__ import annotations
 
 import json
+import sys
 import urllib.error
 import urllib.request
 from pathlib import Path
@@ -21,9 +22,39 @@ import jsonschema
 
 from target_record import DeploymentCollection, TargetRecord
 
+import sys as _sys, pathlib as _pl
+for _d in _pl.Path(__file__).resolve().parents:
+    if (_d / ".git").exists():
+        _lib = _d / "FrontEndApplicationLib" / "src"
+        if str(_lib) not in _sys.path:
+            _sys.path.insert(0, str(_lib))
+        break
+from chathealthy_frontend_lib.logging_service import ChatHealthyLoggingService
+
+_CH_LOG = ChatHealthyLoggingService()
+
+ARCHITECTURE_REL = Path(
+    "brain/machine_artifacts/content/deployment_architecture.json"
+)
+
 SCHEMA_URL: str = (
     "https://dev.chathealthy.ai/schemas/ChatHealthyDeploymentArchitectureSchema.json"
 )
+
+
+
+def _ch_exc():
+    """ChatHealthyException without assuming the library is installed.
+    These modules run as bare scripts in the devops chain."""
+    import sys as _s, pathlib as _p
+    for _d in _p.Path(__file__).resolve().parents:
+        if (_d / ".git").exists():
+            _l = _d / "FrontEndApplicationLib" / "src"
+            if str(_l) not in _s.path:
+                _s.path.insert(0, str(_l))
+            break
+    from chathealthy_frontend_lib.exceptions import ChatHealthyException
+    return ChatHealthyException
 
 
 class RecordLoader:
@@ -47,32 +78,112 @@ class RecordLoader:
 
     def __init__(self, schema_url: str = SCHEMA_URL, *, timeout: float = 10.0) -> None:
         self.schema_url: str = schema_url
-        import os as _os
-        local_override = _os.environ.get("CHATHEALTHY_LOCAL_SCHEMA_PATH", "").strip()
-        if local_override:
-            # Operator-set escape hatch: load schema from a local file
-            # instead of the URL. Used when the URL is temporarily stale
-            # relative to the local working tree (e.g., schema change
-            # not yet deployed to Cloudflare Pages).
-            with open(local_override, "r", encoding="utf-8") as f:
-                self._schema = json.load(f)
-        else:
-            req = urllib.request.Request(
-                schema_url, headers={"User-Agent": self._BROWSER_UA}
-            )
-            try:
-                with urllib.request.urlopen(req, timeout=timeout) as resp:
-                    if resp.status != 200:
-                        raise RuntimeError(
-                            f"schema URL {schema_url} returned HTTP {resp.status}"
-                        )
-                    self._schema = json.loads(resp.read().decode("utf-8"))
-            except urllib.error.URLError as exc:
-                raise RuntimeError(
-                    f"cannot fetch deployment-architecture schema from {schema_url}: "
-                    f"{type(exc).__name__}: {exc}. No local fallback allowed."
-                ) from exc
+        # The published schema is the only schema. There was an environment
+        # variable here that loaded one off the local filesystem instead,
+        # for use "when the URL is temporarily stale relative to the working
+        # tree" -- which is precisely the situation the schema-change
+        # sequence exists to prevent, and precisely when it must not be
+        # skipped. It made every gate it touched optional: a manifest that
+        # only the local file accepted validated clean, and the build
+        # reported success against a schema nothing else in the firm had.
+        # A schema change ships before the change that needs it. There is
+        # no path around that.
+        req = urllib.request.Request(
+            schema_url, headers={"User-Agent": self._BROWSER_UA}
+        )
+        try:
+            with urllib.request.urlopen(req, timeout=timeout) as resp:
+                if resp.status != 200:
+                    raise _ch_exc()(
+            mode="runtime_error",
+            component="record_loader",
+            message=f"schema URL {schema_url} returned HTTP {resp.status}")
+                self._schema = json.loads(resp.read().decode("utf-8"))
+        except urllib.error.URLError as exc:
+            raise _ch_exc()(
+            mode="runtime_error",
+            component="record_loader",
+            message=f"cannot fetch deployment-architecture schema from {schema_url}: "
+                    f"{type(exc).__name__}: {exc}. No local fallback allowed.") from exc
         self._validator = jsonschema.Draft202012Validator(self._schema)
+
+    def _rebind_to_declared_schema(self, doc: dict, source: Path) -> None:
+        """Point this loader at the schema the document names."""
+        declared = doc.get("$schema")
+        if not declared:
+            raise _ch_exc()(
+            mode="value_error",
+            component="record_loader",
+            message=f"{source} declares no $schema; a document that does not "
+                    "name the schema it satisfies cannot be validated")
+        if declared == self.schema_url and self._schema is not None:
+            return
+        req = urllib.request.Request(
+            declared, headers={"User-Agent": self._BROWSER_UA}
+        )
+        try:
+            with urllib.request.urlopen(req, timeout=10.0) as resp:
+                if resp.status != 200:
+                    raise _ch_exc()(
+            mode="runtime_error",
+            component="record_loader",
+            message=f"schema URL {declared} returned HTTP {resp.status}")
+                self._schema = json.loads(resp.read().decode("utf-8"))
+        except urllib.error.URLError as exc:
+            raise _ch_exc()(
+            mode="runtime_error",
+            component="record_loader",
+            message=f"cannot fetch schema from {declared}: "
+                    f"{type(exc).__name__}: {exc}. No local fallback allowed.") from exc
+        self.schema_url = declared
+        self._validator = jsonschema.Draft202012Validator(self._schema)
+
+    @classmethod
+    def validate_architecture(cls, repo_root: Path) -> None:
+        """Validate the whole manifest against the published schema. Abend.
+
+        Runs before anything else in both build and deploy, and before any
+        step that writes to the manifest -- the build used to refresh
+        content hashes into the file and validate the result, so the thing
+        being checked was already something the build had changed.
+
+        No partial pass: one error stops the run. A manifest that does not
+        satisfy the published schema is not a manifest anything should be
+        built from or deployed from.
+        """
+        path = repo_root / ARCHITECTURE_REL
+        if not path.is_file():
+            _CH_LOG.error(f"ABEND: {path} not found.")
+            raise SystemExit(2)
+        doc = json.loads(path.read_text(encoding="utf-8"))
+        # The document names the schema it claims to satisfy. Validate
+        # against that, not against a URL held in this module -- a constant
+        # here can silently disagree with what the file declares, and then
+        # the check passes against a schema the document never claimed.
+        declared = doc.get("$schema")
+        if not declared:
+            _CH_LOG.error(f"ABEND: {path} declares no $schema. A document that does "
+                f"not name the schema it satisfies cannot be validated.")
+            raise SystemExit(2)
+        loader = cls(declared)
+        errors = sorted(
+            loader._validator.iter_errors(doc),
+            key=lambda e: list(map(str, e.absolute_path)),
+        )
+        if errors:
+            _CH_LOG.error(f"ABEND: deployment_architecture.json fails the published "
+                f"schema at {loader.schema_url}\n"
+                f"       {len(errors)} error(s):")
+            for err in errors[:20]:
+                where = "/".join(str(p) for p in err.absolute_path) or "<root>"
+                _CH_LOG.error(f"         {where}: {err.message}")
+            if len(errors) > 20:
+                _CH_LOG.error(f"         ... and {len(errors) - 20} more")
+            _CH_LOG.error("       A schema change ships before the manifest change "
+                "that needs it.")
+            raise SystemExit(2)
+        _CH_LOG.info(f"[schema] deployment_architecture.json validates against "
+              f"{loader.schema_url}")
 
     def _validate(self, doc: dict) -> None:
         errors = sorted(
@@ -82,7 +193,10 @@ class RecordLoader:
             joined = "; ".join(
                 f"{list(e.path)}: {e.message}" for e in errors[:5]
             )
-            raise ValueError(f"TargetRecord failed schema validation: {joined}")
+            raise _ch_exc()(
+            mode="value_error",
+            component="record_loader",
+            message=f"TargetRecord failed schema validation: {joined}")
 
     def load(self, path: Path) -> TargetRecord:
         if not path.is_file():
@@ -90,9 +204,10 @@ class RecordLoader:
         with path.open("r", encoding="utf-8") as f:
             doc = json.load(f)
         if not isinstance(doc, dict):
-            raise TypeError(
-                f"TargetRecord JSON at {path} must be an object, got {type(doc).__name__}"
-            )
+            raise _ch_exc()(
+            mode="type_error",
+            component="record_loader",
+            message=f"TargetRecord JSON at {path} must be an object, got {type(doc).__name__}")
         self._validate(doc)
         return TargetRecord.from_dict(doc)
 
@@ -127,21 +242,30 @@ class RecordLoader:
         # field; on import to MongoDB the envelope dissolves and each
         # entry in `DeploymentTargetRecord[]` becomes one document.
         if not isinstance(data, dict):
-            raise TypeError(
-                f"{p} must contain a JSON object envelope with a "
-                f"'DeploymentTargetRecord' array, got {type(data).__name__}"
-            )
+            raise _ch_exc()(
+            mode="type_error",
+            component="record_loader",
+            message=f"{p} must contain a JSON object envelope with a "
+                f"'DeploymentTargetRecord' array, got {type(data).__name__}")
+        # Validate against the schema THIS document names, not the module
+        # constant the loader was constructed with. They are the same string
+        # today, which is exactly why the difference goes unnoticed: a
+        # document that declared something else would still be checked
+        # against the constant and would pass a schema it never claimed.
+        self._rebind_to_declared_schema(data, p)
         records = data.get("DeploymentTargetRecord")
         if not isinstance(records, list):
-            raise TypeError(
-                f"{p} 'DeploymentTargetRecord' field must be a JSON array of "
-                f"TargetRecord objects, got {type(records).__name__}"
-            )
+            raise _ch_exc()(
+            mode="type_error",
+            component="record_loader",
+            message=f"{p} 'DeploymentTargetRecord' field must be a JSON array of "
+                f"TargetRecord objects, got {type(records).__name__}")
         if not records:
-            raise ValueError(
-                f"{p} DeploymentTargetRecord array is empty; the deployment "
-                f"record collection has no entries. This is a hard reject."
-            )
+            raise _ch_exc()(
+            mode="value_error",
+            component="record_loader",
+            message=f"{p} DeploymentTargetRecord array is empty; the deployment "
+                f"record collection has no entries. This is a hard reject.")
         # Validate. If target_id_filter is set, keep only errors that
         # apply to the envelope root or to that specific target index.
         if target_id_filter is None:
@@ -153,10 +277,11 @@ class RecordLoader:
                     target_idx = i
                     break
             if target_idx is None:
-                raise ValueError(
-                    f"target_id_filter={target_id_filter!r} not present in the "
-                    f"DeploymentTargetRecord[] array"
-                )
+                raise _ch_exc()(
+            mode="value_error",
+            component="record_loader",
+            message=f"target_id_filter={target_id_filter!r} not present in the "
+                    f"DeploymentTargetRecord[] array")
             self._validate_scoped_to_target(data, target_idx)
         # Use DeploymentCollection.from_list so package expansion is
         # applied consistently.
@@ -193,4 +318,7 @@ class RecordLoader:
             joined = "; ".join(
                 f"{list(e.absolute_path)}: {e.message}" for e in kept[:5]
             )
-            raise ValueError(f"TargetRecord failed schema validation: {joined}")
+            raise _ch_exc()(
+            mode="value_error",
+            component="record_loader",
+            message=f"TargetRecord failed schema validation: {joined}")

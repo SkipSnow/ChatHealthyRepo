@@ -4,8 +4,8 @@ Invoked by the Controller via subprocess.Popen:
 
     python -m pipeline_worker <step_name> --replica <i> --run-id <run_id>
 
-Contract (v32 §4.3.4):
-  1. Atomically claim ONE work-item from chathealthyfrontend.pipeline.work_items
+Contract (v32 §4.3.4, revised 2026-08-03 to move coord off frontend cluster):
+  1. Atomically claim ONE work-item from chathealthypipelines.pipeline.work_items
      via findOneAndUpdate on
        {run_id, step, status: "pending"}
      sorted by created_at ASC. Two Workers never claim the same document.
@@ -31,7 +31,7 @@ import threading
 import time
 import traceback
 
-from pipeline_db import get_frontend_mongo, get_mongo
+from pipeline_db import get_mongo
 from blob_client import get_blob_service
 from step_context import PipelineArgs, RunManifest, StepContext, StepTransition
 from steps import get_runner
@@ -40,7 +40,9 @@ _log = ChatHealthyLoggingService()
 
 HEARTBEAT_INTERVAL_S = 120     # v32 §4.3.4
 WORK_ITEMS_COLLECTION = "pipeline.work_items"
-FRONTEND_DB = "chathealthyfrontend"
+# Operator directive 2026-08-03: coordination lives on the pipeline cluster;
+# frontend cluster gets zero pipeline writes.
+COORD_DB = "chathealthypipelines"
 
 
 # ─────────────────────────────────────────────────────────────────────────────
@@ -75,10 +77,9 @@ def _reconstruct_step_context(payload: dict, mongo, blob) -> StepContext:
     # Rehydrate manifest fields the Worker's step reads (source_versions,
     # metrics, completed_steps) from the live pipeline.runs doc so per-step
     # decisions that depend on earlier steps' state work identically to
-    # inline execution. LLD v36 §4.3.4: pipeline.runs lives on the FRONT-END
-    # cluster; get_mongo() returns the pipeline cluster (paused between runs).
-    coord = get_frontend_mongo()
-    live = coord[FRONTEND_DB]["pipeline.runs"].find_one({"run_id": payload["run_id"]})
+    # inline execution. Coord (pipeline.runs) lives on the pipeline cluster.
+    coord = get_mongo()
+    live = coord[COORD_DB]["pipeline.runs"].find_one({"run_id": payload["run_id"]})
     if live:
         manifest.source_versions = live.get("source_versions") or {}
         manifest.metrics = live.get("metrics") or {}
@@ -133,8 +134,8 @@ def _dispatch(step: str, payload: dict) -> dict:
             else:
                 set_ops[f"metrics.{k}"] = v
         if set_ops:
-            # pipeline.runs is on the FRONT-END cluster (see LLD v36 §4.3.4).
-            get_frontend_mongo()[FRONTEND_DB]["pipeline.runs"].update_one(
+            # pipeline.runs lives on the pipeline cluster.
+            get_mongo()[COORD_DB]["pipeline.runs"].update_one(
                 {"run_id": payload["run_id"]},
                 {"$set": set_ops},
             )
@@ -145,7 +146,7 @@ def _dispatch(step: str, payload: dict) -> dict:
 # Claim primitive — atomic findOneAndUpdate per v32 §4.3.4
 # ─────────────────────────────────────────────────────────────────────────────
 def _claim_work_item(mongo, run_id: str, step: str, worker_pid: int) -> dict | None:
-    coll = mongo[FRONTEND_DB][WORK_ITEMS_COLLECTION]
+    coll = mongo[COORD_DB][WORK_ITEMS_COLLECTION]
     now = datetime.datetime.utcnow()
     return coll.find_one_and_update(
         {"run_id": run_id, "step": step, "status": "pending"},
@@ -161,7 +162,7 @@ def _claim_work_item(mongo, run_id: str, step: str, worker_pid: int) -> dict | N
 
 
 def _write_heartbeat(mongo, item_id) -> None:
-    coll = mongo[FRONTEND_DB][WORK_ITEMS_COLLECTION]
+    coll = mongo[COORD_DB][WORK_ITEMS_COLLECTION]
     coll.update_one(
         {"_id": item_id},
         {"$set": {"heartbeat_at": datetime.datetime.utcnow()}},
@@ -169,7 +170,7 @@ def _write_heartbeat(mongo, item_id) -> None:
 
 
 def _mark_done(mongo, item_id, output: dict) -> None:
-    coll = mongo[FRONTEND_DB][WORK_ITEMS_COLLECTION]
+    coll = mongo[COORD_DB][WORK_ITEMS_COLLECTION]
     coll.update_one(
         {"_id": item_id},
         {"$set": {
@@ -181,7 +182,7 @@ def _mark_done(mongo, item_id, output: dict) -> None:
 
 
 def _mark_failed(mongo, item_id, error: dict) -> None:
-    coll = mongo[FRONTEND_DB][WORK_ITEMS_COLLECTION]
+    coll = mongo[COORD_DB][WORK_ITEMS_COLLECTION]
     coll.update_one(
         {"_id": item_id},
         {"$set": {
@@ -237,10 +238,8 @@ def main(argv: list[str] | None = None) -> int:
         _log.error("pipeline_worker: --run-id or RUN_ID env is required")
         return 2
 
-    # LLD v36 §4.3.4: work_items lives on the FRONT-END cluster (always-on).
-    # Step handlers still see the pipeline-cluster client via ctx.mongo_client
-    # (rehydrated inside _dispatch).
-    coord = get_frontend_mongo()
+    # Operator directive 2026-08-03: work_items lives on the pipeline cluster.
+    coord = get_mongo()
     worker_pid = os.getpid()
 
     item = _claim_work_item(coord, ns.run_id, ns.step, worker_pid)

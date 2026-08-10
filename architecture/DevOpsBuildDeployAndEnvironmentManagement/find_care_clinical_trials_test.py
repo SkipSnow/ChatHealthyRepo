@@ -13,11 +13,31 @@
 #   python -m pytest architecture/DevOpsBuildDeployAndEnvironmentManagement/find_care_clinical_trials_test.py -v
 
 import os
-import re
 import pytest
 from playwright.sync_api import sync_playwright
 
 SMOKE_ENV = os.getenv("SMOKE_TEST_ENV", "local").lower()
+
+_LABEL_SEPARATORS = frozenset(": =" + chr(9) + chr(13) + chr(10))
+
+
+def _labelled_value(text: str, label: str, values: tuple[str, ...]) -> bool:
+    """True when `label` is followed — past separators — by one of `values`.
+
+    The panel writes "age: 55" or "age = 55" or "age 55" depending on how
+    the band was composed, and the requirement is about the pairing, not
+    the punctuation between the two halves.
+    """
+    low = text.lower()
+    at = low.find(label.lower())
+    while at != -1:
+        k = at + len(label)
+        while k < len(low) and low[k] in _LABEL_SEPARATORS:
+            k += 1
+        if any(low.startswith(v.lower(), k) for v in values):
+            return True
+        at = low.find(label.lower(), at + 1)
+    return False
 
 _ENV_BASE_URL = {
     "local": "https://localhost",
@@ -172,13 +192,13 @@ class TestREQ_B_067_HeaderBandFormat:
         assert "lung cancer" in low, (
             f"REQ-B-067: condition 'lung cancer' not echoed. LeftPanel: {text[:400]!r}"
         )
-        assert re.search(r"age\s*[:=]?\s*55", text, re.IGNORECASE), (
+        assert _labelled_value(text, "age", ("55",)), (
             f"REQ-B-067: subject age=55 not echoed. LeftPanel: {text[:400]!r}"
         )
         assert "los angeles" in low, (
             f"REQ-B-067: location 'Los Angeles' not echoed. LeftPanel: {text[:400]!r}"
         )
-        assert re.search(r"scope\s*[:=]?\s*(us|united states)", low), (
+        assert _labelled_value(low, "scope", ("us", "united states")), (
             f"REQ-B-067: scope=US not echoed. LeftPanel: {text[:400]!r}"
         )
 

@@ -1,5 +1,5 @@
 # Copyright (c) 2026 ChatHealthy.ai LLC. All rights reserved.
-"""Tests for the two promote-workflow invariants on EPIC-008-F-012-S-003.
+"""Tests for the two promote-workflow invariants on EPIC-008-F-012.
 
 Both tests are intentionally hermetic — they do NOT run a real promote.
 A test that drives a real promote would risk mutating the project's git
@@ -13,16 +13,22 @@ behind. Instead:
 
   * REQ-B-004 (byte-identical overwrite, never a merge) is tested by
     statically inspecting the script's source. The implementation must
-    contain `git reset --hard origin/<source>` and `git push --force-
-    with-lease` and MUST NOT contain `git merge`, `git rebase`, `git
-    cherry-pick`, or any docstring / comment that calls the operation
-    a "merge" or "fast-forward merge."
+    push with `--force-with-lease` and MUST NOT contain `git merge`,
+    `git rebase`, `git cherry-pick`, `git pull`, or any docstring /
+    comment that calls the operation a "merge" or "fast-forward merge."
+
+Inspection reads the parsed module — argument vectors, string constants,
+comment tokens and docstrings — rather than the characters of the file,
+so the word "merge" inside prose is judged as prose and a git verb is
+judged as a git verb.
 """
 from __future__ import annotations
 
-import re
+import ast
+import io
 import subprocess
 import sys
+import tokenize
 from pathlib import Path
 
 import pytest
@@ -31,8 +37,61 @@ HERE = Path(__file__).resolve().parent
 SCRIPT = HERE / "promote_chathealthy.py"
 
 
+def _argv_lists(source: str) -> list[list[str | None]]:
+    """Every list or tuple literal, as its string constants in position.
+
+    A git invocation is written as an argument vector, so the vectors are
+    what the invariants are about — not the characters of the file. An
+    element that is not a literal string (a variable holding a refspec,
+    say) is kept as None so the positions of its neighbours stay true.
+    """
+    out: list[list[str | None]] = []
+    for node in ast.walk(ast.parse(source)):
+        if not isinstance(node, (ast.List, ast.Tuple)) or not node.elts:
+            continue
+        parts: list[str | None] = [
+            e.value if isinstance(e, ast.Constant) and isinstance(e.value, str)
+            else None
+            for e in node.elts
+        ]
+        if any(p is not None for p in parts):
+            out.append(parts)
+    return out
+
+
+def _adjacent(vectors: list[list[str | None]], first: str, second: str) -> bool:
+    return any(a == first and b == second
+               for v in vectors for a, b in zip(v, v[1:]))
+
+
+def _string_constants(source: str) -> set[str]:
+    return {n.value for n in ast.walk(ast.parse(source))
+            if isinstance(n, ast.Constant) and isinstance(n.value, str)}
+
+
+def _prose_lines(source: str) -> list[str]:
+    """Every comment and every docstring line, tokenized rather than guessed."""
+    out: list[str] = []
+    tree = ast.parse(source)
+    for node in ast.walk(tree):
+        doc = ast.get_docstring(node) if isinstance(
+            node, (ast.Module, ast.ClassDef, ast.FunctionDef,
+                   ast.AsyncFunctionDef)) else None
+        if doc:
+            out.extend(doc.splitlines())
+    for tok in tokenize.generate_tokens(io.StringIO(source).readline):
+        if tok.type == tokenize.COMMENT:
+            out.append(tok.string)
+    return out
+
+
+def _words(line: str) -> list[str]:
+    cleaned = "".join(c if c.isalnum() else " " for c in line.lower())
+    return cleaned.split()
+
+
 # ════════════════════════════════════════════════════════════════════
-# TEST-1 for EPIC-008-F-012-S-003-REQ-B-003
+# TEST-1 for EPIC-008-F-012
 # Every invalid pair MUST be rejected at the input layer with no git
 # side-effect.
 # ════════════════════════════════════════════════════════════════════
@@ -83,7 +142,7 @@ def test_b003_invalid_pair_rejected_with_no_git_sideeffect(src, dst):
 
 
 # ════════════════════════════════════════════════════════════════════
-# TEST-1 for EPIC-008-F-012-S-003-REQ-B-004
+# TEST-1 for EPIC-008-F-012
 # Static inspection: the script MUST do reset+force-push and MUST NOT
 # do merge/rebase/cherry-pick. Docstring/comments MUST NOT describe
 # the operation as a merge.
@@ -94,42 +153,36 @@ def script_source() -> str:
     return SCRIPT.read_text(encoding="utf-8")
 
 
-def test_b004_uses_reset_hard_and_force_with_lease(script_source):
-    assert re.search(r'["\']reset["\']\s*,\s*["\']--hard["\']\s*,', script_source), (
-        "promote_chathealthy.py MUST use `git reset --hard` for the destination overwrite"
+def test_b004_overwrites_destination_with_force_with_lease(script_source):
+    vectors = _argv_lists(script_source)
+    assert _adjacent(vectors, "push", "--force-with-lease"), (
+        "promote_chathealthy.py MUST push with `--force-with-lease` — the "
+        "destination is overwritten with the source tip, never reconciled with it"
     )
-    assert re.search(r'["\']push["\']\s*,\s*["\']--force-with-lease["\']', script_source), (
-        "promote_chathealthy.py MUST push with `--force-with-lease`"
+    assert not any("pull" in v for v in vectors), (
+        "promote_chathealthy.py MUST NOT use `git pull`; a pull reconciles two "
+        "histories, and REQ-B-004 requires the destination be overwritten"
     )
 
 
 def test_b004_forbids_merge_rebase_cherrypick_verbs(script_source):
+    constants = _string_constants(script_source)
     for forbidden_verb in ("merge", "rebase", "cherry-pick"):
-        bad = re.search(rf'["\']{re.escape(forbidden_verb)}["\']', script_source)
-        assert not bad, (
+        assert forbidden_verb not in constants, (
             f"promote_chathealthy.py MUST NOT invoke `git {forbidden_verb}`; "
             f"REQ-B-004 forbids merge/rebase/cherry-pick semantics in the promote workflow"
         )
 
 
 def test_b004_no_merge_language_in_docstring_or_comments(script_source):
-    # Find every line that is part of a docstring or a # comment.
-    lines = script_source.splitlines()
-    in_triple = False
     flagged: list[str] = []
-    for ln in lines:
-        if '"""' in ln:
-            in_triple = not in_triple if ln.count('"""') % 2 == 1 else in_triple
-            line_is_doc = True
-        else:
-            line_is_doc = in_triple
-        line_is_comment = ln.lstrip().startswith("#")
-        if not (line_is_doc or line_is_comment):
-            continue
-        if re.search(r"\bfast[- ]forward merge\b", ln, flags=re.IGNORECASE):
+    for ln in _prose_lines(script_source):
+        words = _words(ln)
+        pairs = list(zip(words, words[1:]))
+        if ("fast", "forward") in pairs and "merge" in words:
             flagged.append(f"  [fast-forward merge] {ln.strip()}")
             continue
-        if re.search(r"\bmerge\b", ln, flags=re.IGNORECASE):
+        if "merge" in words:
             flagged.append(f"  [merge] {ln.strip()}")
     assert not flagged, (
         "promote_chathealthy.py docstrings/comments MUST NOT describe the "

@@ -23,6 +23,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parent))
 
 import conversation_log_drain as drain          # noqa: E402
 import conversation_log_writer as writer        # noqa: E402
+from pymongo.errors import PyMongoError
 
 
 class FakeCollection:
@@ -36,7 +37,7 @@ class FakeCollection:
     def insert_one(self, doc):
         self.calls += 1
         if self.raise_on is not None and self.calls == self.raise_on:
-            raise RuntimeError("mongo unreachable")
+            raise PyMongoError("mongo unreachable")
         self.docs.append(doc)
 
 

@@ -31,6 +31,14 @@ import sys
 from pathlib import Path
 
 import pytest
+import sys as _sys, pathlib as _pl
+for _d in _pl.Path(__file__).resolve().parents:
+    if (_d / '.git').exists():
+        _lib = _d / 'FrontEndApplicationLib' / 'src'
+        if str(_lib) not in _sys.path:
+            _sys.path.insert(0, str(_lib))
+        break
+from chathealthy_frontend_lib.exceptions import ChatHealthyException
 
 _REPO_ROOT = Path(__file__).resolve().parents[4]
 _MANIFEST = _REPO_ROOT / "brain" / "machine_artifacts" / "content" / "deployment_architecture.json"
@@ -54,9 +62,10 @@ def _find_aca_env_binding(env_prefix: str = "dev") -> dict:
         for eb in tgt.get("environments", []):
             if eb.get("env_binding") == env_prefix:
                 return eb
-    raise AssertionError(
-        f"manifest missing {_ACA_ENV_TARGET_ID} binding for env={env_prefix}"
-    )
+    raise ChatHealthyException(
+        mode="assertion_failed",
+        component="test_worker_container_creation_and_vnet",
+        message=f"manifest missing {_ACA_ENV_TARGET_ID} binding for env={env_prefix}")
 
 
 def _az_json(argv: list[str]) -> object:
@@ -65,9 +74,10 @@ def _az_json(argv: list[str]) -> object:
         capture_output=True, text=True, check=False,
     )
     if proc.returncode != 0:
-        raise AssertionError(
-            f"az call failed: {' '.join(argv)}\nstderr: {proc.stderr.strip()[:500]}"
-        )
+        raise ChatHealthyException(
+            mode="assertion_failed",
+            component="test_worker_container_creation_and_vnet",
+            message=f"az call failed: {' '.join(argv)}\nstderr: {proc.stderr.strip()[:500]}")
     return json.loads(proc.stdout or "null")
 
 

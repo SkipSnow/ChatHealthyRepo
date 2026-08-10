@@ -1,10 +1,10 @@
 # Copyright (c) 2026 ChatHealthy.ai LLC. All rights reserved.
 # Licensed under the FindCare Evaluation License (FEL-1.0).
 #
-# One-shot migration: scalar `build` -> per-env `builds` array on admin.Versions.
+# One-shot migration: scalar `build` -> per-env `builds` array on frontEndAdmin.BuildVersions.
 #
-# Reads the latest admin.Versions record in the front-end cluster's admin DB
-# (admin.Versions). If the record already has a `builds` array, exits 0 with
+# Reads the latest frontEndAdmin.BuildVersions record in the front-end cluster's admin DB
+# (frontEndAdmin.BuildVersions). If the record already has a `builds` array, exits 0 with
 # a notice (idempotent). Otherwise:
 #   * carries the scalar `build: int` value into all three env slots
 #     [{"env": "dev", "build": N}, {"env": "qa", "build": N}, {"env": "prod", "build": N}]
@@ -36,6 +36,29 @@ log = logging.getLogger("migrate_versions_to_per_env")
 ENV_ORDER = ("local", "dev", "qa", "prod")
 
 
+
+def _devops_connection():
+    """The DevOps identity, by certificate. Rule-004: no MongoClient here.
+
+    Operator tooling authenticates as DevOpsUser like everything else in the
+    devops chain. It used to open a MongoClient on a SCRAM connection string,
+    which is a fourth credential outside the three-identity model and outside
+    Rule-004's scan scope, so nothing caught it.
+    """
+    import sys as _sys, pathlib as _pl
+    _src = _pl.Path(__file__).resolve()
+    for _p in _src.parents:
+        if (_p / ".git").exists():
+            _lib = _p / "FrontEndApplicationLib" / "src"
+            if str(_lib) not in _sys.path:
+                _sys.path.insert(0, str(_lib))
+            from dotenv import load_dotenv as _ld
+            _ld(_p / ".env", override=False)
+            break
+    from chathealthy_frontend_lib.mongo_utilities import ChatHealthyMongoUtilities
+    return ChatHealthyMongoUtilities().getConnection("DevOpsUser", "admin")
+
+
 def _looks_like_builds_array(value) -> bool:
     if not isinstance(value, list) or not value:
         return False
@@ -53,19 +76,19 @@ def main() -> int:
         log.error("MONGO_FRONTEND_connectionString not set in environment")
         return 1
 
-    client = MongoClient(conn, serverSelectionTimeoutMS=10000)
-    coll = client["admin"]["Versions"]
+    client = _devops_connection()
+    coll = client["frontEndAdmin"]["BuildVersions"]
 
     latest = coll.find_one(sort=[("from", -1)])
     if latest is None:
-        log.error("admin.Versions has no records; run seed_versions_collection.py first")
+        log.error("frontEndAdmin.BuildVersions has no records; run seed_versions_collection.py first")
         return 1
 
     if _looks_like_builds_array(latest.get("builds")):
         present = {entry["env"] for entry in latest["builds"]}
         missing = [e for e in ENV_ORDER if e not in present]
         if not missing:
-            log.info("admin.Versions latest record already has all required slots; "
+            log.info("frontEndAdmin.BuildVersions latest record already has all required slots; "
                      "nothing to migrate. _id=%s builds=%s",
                      latest.get("_id"), latest.get("builds"))
             return 0

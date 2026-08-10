@@ -10,7 +10,7 @@ from chathealthy_frontend_lib.logging_service import ChatHealthyLoggingService
 from cluster_lifecycle_manager import ClusterLifecycleManager
 from ensure_provider_indexes_activity import ensure_provider_indexes_fn
 from pipeline_config import ensure_pipeline_config
-from pipeline_db import get_frontend_mongo, get_mongo
+from pipeline_db import get_mongo
 
 _log = ChatHealthyLoggingService()
 
@@ -74,12 +74,13 @@ def _safety_cleanup(mongo, scoped_states: list[str]) -> dict:
 
 
 def execute(ctx) -> dict:
-    cfg = ensure_pipeline_config(get_frontend_mongo(), ctx.env_prefix)
+    # Operator directive 2026-08-03: coord on pipeline cluster only.
+    cfg = ensure_pipeline_config(get_mongo(), ctx.env_prefix)
     ctx.config.setdefault("dataset_versions", cfg.get("dataset_versions", {}))
     ctx.config.setdefault("source_freshness", cfg.get("source_freshness", []))
     cluster = ctx.config.get("pipeline_cluster", "ChatHealthyDataPipelines")
     duration = int(ctx.args.expected_duration_minutes)
-    ops = ClusterLifecycleManager(get_db_fn=get_frontend_mongo)
+    ops = ClusterLifecycleManager(get_db_fn=get_mongo)
     ops.wake(cluster, job_id=ctx.run_id)
     reservation = ops.reserve(
         cluster_name=cluster,

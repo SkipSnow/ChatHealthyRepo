@@ -168,6 +168,6 @@ class TestBuildTestWelcome:
         from main import _build_test_welcome
         result = _build_test_welcome()
         # Feature rows start with |  N | where N is a number
-        import re
-        data_rows = re.findall(r"\|\s*\d+\s*\|", result)
+        data_rows = [cell for cell in result.split("|")
+                     if cell.strip().isdigit()]
         assert len(data_rows) >= 1, "UAT table must contain numbered feature rows"

@@ -23,6 +23,17 @@ from pathlib import Path
 import pytest
 from playwright.sync_api import sync_playwright
 
+import sys as _sys, pathlib as _pl
+for _d in _pl.Path(__file__).resolve().parents:
+    if (_d / ".git").exists():
+        _lib = _d / "FrontEndApplicationLib" / "src"
+        if str(_lib) not in _sys.path:
+            _sys.path.insert(0, str(_lib))
+        break
+from chathealthy_frontend_lib.logging_service import ChatHealthyLoggingService
+
+_CH_LOG = ChatHealthyLoggingService()
+
 
 BASE_URL = os.environ.get("BASE_URL", "https://localhost/")
 SEARCH_QUERY = "find me a bone doc in DE"
@@ -41,7 +52,7 @@ SHOTS_DIR.mkdir(parents=True, exist_ok=True)
 def _shot(page, n: int, name: str):
     path = SHOTS_DIR / f"{n:02d}_{name}.png"
     page.screenshot(path=str(path), full_page=True)
-    print(f"  saved {path.name}")
+    _CH_LOG.info(f"  saved {path.name}")
 
 
 def test_iphone_16_pro_full_flow():
@@ -57,9 +68,9 @@ def test_iphone_16_pro_full_flow():
         browser = p.chromium.launch(headless=not HEADED, slow_mo=SLOW_MO)
         ctx = browser.new_context(ignore_https_errors=True, **ios_profile)
         page = ctx.new_page()
-        print(f"\nWalkthrough target: {BASE_URL}")
-        print(f"Viewport: {IPHONE_16_PRO_VIEWPORT}")
-        print(f"Output: {SHOTS_DIR}")
+        _CH_LOG.info(f"\nWalkthrough target: {BASE_URL}")
+        _CH_LOG.info(f"Viewport: {IPHONE_16_PRO_VIEWPORT}")
+        _CH_LOG.info(f"Output: {SHOTS_DIR}")
 
         # ── 01: landing page (welcome) ───────────────────────────
         page.goto(BASE_URL, wait_until="networkidle")
@@ -87,7 +98,7 @@ def test_iphone_16_pro_full_flow():
             chat.locator("[data-testid='available-providers']").wait_for(timeout=45000)
         except Exception:
             _shot(page, 5, "providers_FAILED_TO_LOAD")
-            print("FAIL: providers did not load")
+            _CH_LOG.info("FAIL: providers did not load")
             browser.close()
             raise
         page.wait_for_timeout(800)
@@ -99,7 +110,7 @@ def test_iphone_16_pro_full_flow():
         fab = page.locator("#mobileFilterReopen")
         fab_present = fab.count() > 0
         fab_visible = fab_present and fab.is_visible()
-        print(f"  Filter FAB: present={fab_present} visible={fab_visible}")
+        _CH_LOG.info(f"  Filter FAB: present={fab_present} visible={fab_visible}")
         if fab_visible:
             fab.click(); page.wait_for_timeout(800)
             _shot(page, 6, "filter_overlay_opened_via_FAB")
@@ -110,7 +121,7 @@ def test_iphone_16_pro_full_flow():
         filt = next((f for f in page.frames if "mode=filter" in (f.url or "")), None)
         if filt is None:
             _shot(page, 7, "no_filter_iframe_FAIL")
-            print("FAIL: filter sub-iframe not present")
+            _CH_LOG.info("FAIL: filter sub-iframe not present")
         else:
             try:
                 filt.locator("[data-testid='specialty-filter']").wait_for(timeout=8000)
@@ -122,7 +133,7 @@ def test_iphone_16_pro_full_flow():
                 _shot(page, 8, "after_apply_filter_back_to_providers")
             except Exception as e:
                 _shot(page, 7, "filter_interact_FAIL")
-                print(f"FAIL filter interaction: {e}")
+                _CH_LOG.info(f"FAIL filter interaction: {e}")
 
         # ── 07: select a provider ────────────────────────────────
         try:
@@ -135,7 +146,7 @@ def test_iphone_16_pro_full_flow():
                 _shot(page, 9, "no_select_arrow_FAIL")
         except Exception as e:
             _shot(page, 9, "select_FAIL")
-            print(f"FAIL select: {e}")
+            _CH_LOG.info(f"FAIL select: {e}")
 
         # ── 08: scroll the available providers list ──────────────
         try:
@@ -145,7 +156,7 @@ def test_iphone_16_pro_full_flow():
             page.wait_for_timeout(400)
             _shot(page, 10, "providers_scrolled")
         except Exception as e:
-            print(f"scroll error: {e}")
+            _CH_LOG.info(f"scroll error: {e}")
 
         # ── 09: scroll page-level (parent) ───────────────────────
         page.evaluate("window.scrollTo(0, 200)")
@@ -162,4 +173,4 @@ def test_iphone_16_pro_full_flow():
             _shot(page, 12, "no_eval_button_FAIL")
 
         browser.close()
-        print(f"\nWalkthrough complete. Screenshots: {SHOTS_DIR}")
+        _CH_LOG.info(f"\nWalkthrough complete. Screenshots: {SHOTS_DIR}")
