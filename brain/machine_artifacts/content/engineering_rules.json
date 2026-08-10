@@ -29,6 +29,7 @@
           "enforcement": [
             {
               "enforcement_id": "Rule-001-ENF-001",
+              "title": "Persist every operator utterance to the local spool",
               "hook": "UserPromptSubmit",
               "executable_path": "architecture/ClaudeCodeConversationPersistence/conversation_log_writer.py",
               "requires_lock": false,
@@ -37,6 +38,7 @@
             },
             {
               "enforcement_id": "Rule-001-ENF-002",
+              "title": "Persist every Claude response to the local spool",
               "hook": "Stop",
               "executable_path": "architecture/ClaudeCodeConversationPersistence/conversation_log_writer.py",
               "requires_lock": false,
@@ -83,6 +85,7 @@
           "enforcement": [
             {
               "enforcement_id": "Rule-002-ENF-001",
+              "title": "Boot the session on SessionStart",
               "hook": "SessionStart",
               "executable_path": "Code/Shared/ops/tools/chathealthy_devops_boot.py",
               "requires_lock": false,
@@ -91,6 +94,7 @@
             },
             {
               "enforcement_id": "Rule-002-ENF-002",
+              "title": "Boot the session again after a context compaction",
               "hook": "PostCompact",
               "executable_path": "Code/Shared/ops/tools/chathealthy_devops_boot.py",
               "requires_lock": false,
@@ -204,6 +208,7 @@
           "enforcement": [
             {
               "enforcement_id": "Rule-065-ENF-001",
+              "title": "No commit without explicit human authorization",
               "hook": "commit-msg",
               "executable_path": "architecture/EngineeringRuleEnforcement/code/commit_authorization_worker.py",
               "requires_lock": false,
@@ -212,6 +217,7 @@
             },
             {
               "enforcement_id": "Rule-065-ENF-002",
+              "title": "Deliberate raises use ChatHealthyException",
               "hook": "pre-commit",
               "executable_path": "architecture/EngineeringRuleEnforcement/code/scan_deliberate_raises_enforcement_worker.py",
               "requires_lock": false,
@@ -242,6 +248,7 @@
             },
             {
               "enforcement_id": "Rule-065-ENF-003",
+              "title": "MongoDB access only through the canonical utility",
               "hook": "pre-commit",
               "executable_path": "architecture/EngineeringRuleEnforcement/code/scan_mongo_client_direct_access_worker.py",
               "requires_lock": false,
@@ -279,6 +286,7 @@
             },
             {
               "enforcement_id": "Rule-065-ENF-004",
+              "title": "Logging goes through ChatHealthyLoggingService",
               "hook": "pre-commit",
               "executable_path": "architecture/EngineeringRuleEnforcement/code/scan_uniform_logging_worker.py",
               "requires_lock": false,
@@ -337,6 +345,7 @@
             },
             {
               "enforcement_id": "Rule-065-ENF-005",
+              "title": "Identity and role-grant changes require operator approval",
               "hook": "commit-msg",
               "executable_path": "architecture/EngineeringRuleEnforcement/code/identity_approval_worker.py",
               "requires_lock": false,
@@ -345,6 +354,7 @@
             },
             {
               "enforcement_id": "Rule-065-ENF-006",
+              "title": "Every committed file is architecturally compliant",
               "hook": "pre-commit",
               "executable_path": "architecture/EngineeringRuleEnforcement/code/scan_files_enforcement_worker.py",
               "requires_lock": false,
@@ -465,6 +475,7 @@
             },
             {
               "enforcement_id": "Rule-065-ENF-007",
+              "title": "Display, plumbing and logic stay separate",
               "hook": "pre-commit",
               "executable_path": "architecture/EngineeringRuleEnforcement/code/scan_separation_of_concerns_worker.py",
               "requires_lock": false,
@@ -566,6 +577,7 @@
             },
             {
               "enforcement_id": "Rule-065-ENF-008",
+              "title": "Exactly three build, deploy and promote entry points",
               "hook": "pre-commit",
               "executable_path": "architecture/EngineeringRuleEnforcement/code/scan_entrypoint_uniqueness_worker.py",
               "requires_lock": false,
