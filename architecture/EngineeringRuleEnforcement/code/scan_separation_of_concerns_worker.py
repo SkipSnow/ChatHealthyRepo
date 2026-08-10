@@ -107,6 +107,20 @@ class _InlineScriptCollector(HTMLParser):
             self._buf.append(data)
 
 
+
+def _ch_exception():
+    """ChatHealthyException, resolved without assuming the library is on the
+    path. Enforcement workers are spawned as bare scripts by the manager."""
+    import sys as _sys, pathlib as _pl
+    for _p in _pl.Path(__file__).resolve().parents:
+        if (_p / ".git").exists():
+            _lib = _p / "FrontEndApplicationLib" / "src"
+            if str(_lib) not in _sys.path:
+                _sys.path.insert(0, str(_lib))
+            break
+    from chathealthy_frontend_lib.exceptions import ChatHealthyException
+    return ChatHealthyException
+
 def _strip_js_comments(source: str) -> str:
     """Replace JS line comments (// ...) and block comments (/* ... */)
     with spaces, preserving newlines so line numbers in the stripped
@@ -208,21 +222,12 @@ class ScanSeparationOfConcernsWorker(EnforcementWorker):
         self.violation_count: int = 0
 
     def _staged_files(self) -> list[str]:
-        override = os.environ.get("SCAN_FILES_ENFORCEMENT_TARGETS")
-        if override is not None:
-            return [p for p in override.split(os.pathsep) if p]
-        if self.hook != "pre-commit":
-            return []
-        completed = subprocess.run(
-            ["git", "diff", "--cached", "--name-only", "--diff-filter=ACMR"],
-            cwd=str(PROJECT_ROOT),
-            capture_output=True,
-            text=True,
-            check=False,
-        )
-        if completed.returncode != 0:
-            return []
-        return [line for line in completed.stdout.splitlines() if line.strip()]
+        """The file array the Rule-065 driver handed down.
+
+        This worker owns no git knowledge. What a commit answers for is one
+        decision, and the driver makes it once for every subordinate.
+        """
+        return self.files
 
     def run(self) -> int:
         any_violations = False
@@ -303,5 +308,5 @@ class ScanSeparationOfConcernsWorker(EnforcementWorker):
 
 
 if __name__ == "__main__":
-    enforcement_id = sys.argv[1] if len(sys.argv) > 1 else "Rule-009-ENF-001"
+    enforcement_id = sys.argv[1] if len(sys.argv) > 1 else "Rule-065-ENF-007"
     sys.exit(ScanSeparationOfConcernsWorker(enforcement_id).run())

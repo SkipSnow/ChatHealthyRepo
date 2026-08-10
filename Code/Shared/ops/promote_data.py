@@ -31,13 +31,36 @@ PROMOTE_COLLECTIONS = [
 ]
 
 
+
+def _devops_connection():
+    """The DevOps identity, by certificate. Rule-004: no MongoClient here.
+
+    Operator tooling authenticates as DevOpsUser like everything else in the
+    devops chain. It used to open a MongoClient on a SCRAM connection string,
+    which is a fourth credential outside the three-identity model and outside
+    Rule-004's scan scope, so nothing caught it.
+    """
+    import sys as _sys, pathlib as _pl
+    _src = _pl.Path(__file__).resolve()
+    for _p in _src.parents:
+        if (_p / ".git").exists():
+            _lib = _p / "FrontEndApplicationLib" / "src"
+            if str(_lib) not in _sys.path:
+                _sys.path.insert(0, str(_lib))
+            from dotenv import load_dotenv as _ld
+            _ld(_p / ".env", override=False)
+            break
+    from chathealthy_frontend_lib.mongo_utilities import ChatHealthyMongoUtilities
+    return ChatHealthyMongoUtilities().getConnection("DevOpsUser", "admin")
+
+
 def promote_data(from_env: str, to_env: str, dry_run: bool = False):
     conn = os.getenv("MONGO_FRONTEND_connectionString")
     if not conn:
         log.error("MONGO_FRONTEND_connectionString not set")
         sys.exit(1)
 
-    client = MongoClient(conn, serverSelectionTimeoutMS=30000)
+    client = _devops_connection()
 
     for db_suffix, coll_name in PROMOTE_COLLECTIONS:
         src_db = f"{from_env}_{db_suffix}"
@@ -85,14 +108,14 @@ def promote_data(from_env: str, to_env: str, dry_run: bool = False):
         elapsed = time.time() - start
         log.info("  Done: %s docs in %.1f s", f"{copied:,}", elapsed)
 
-    # Per BUG-001: build is global, in admin.Versions, bumped at build time
+    # Per BUG-001: build is global, in frontEndAdmin.BuildVersions, bumped at build time
     # (see DeploymentArchitectureDesignAndMigrationPlanPhase_v14.docx section 2.1 build_chathealthy.py).
     #
     # not per-env. Data promotion does not touch build/version/framework.
     # Log the current global build for the operator's audit trail.
-    current_record = client["admin"]["Versions"].find_one(sort=[("from", -1)])
+    current_record = client["frontEndAdmin"]["BuildVersions"].find_one(sort=[("from", -1)])
     current_build = current_record["build"] if current_record else "unknown"
-    log.info("Current global build: %s (admin.Versions latest record)", current_build)
+    log.info("Current global build: %s (frontEndAdmin.BuildVersions latest record)", current_build)
 
     log.info("PROMOTE COMPLETE: %s -> %s", from_env, to_env)
 

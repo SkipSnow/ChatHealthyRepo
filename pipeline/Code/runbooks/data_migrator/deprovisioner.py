@@ -204,11 +204,12 @@ def _main():
             step_fn()
         except Exception as exc:
             pass
-    log.info(json.dumps({"deprovisioner_status": "ok", "job_id": job_id, "vm_name": vm_name}))
+    return {"deprovisioner_status": "ok", "job_id": job_id, "vm_name": vm_name}
 
 
 try:
-    _main()
+    _status = _main()
+    log.info(json.dumps(_status))
     sys.exit(0)
 except Exception:
     tb = traceback.format_exc()

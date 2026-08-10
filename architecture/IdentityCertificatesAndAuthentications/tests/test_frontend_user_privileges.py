@@ -27,6 +27,23 @@ from dotenv import load_dotenv
 from pymongo import MongoClient
 from pymongo.errors import OperationFailure
 
+
+# Rule-004: one place in this file obtains a connection, and it goes through
+# the canonical utility. The certificate is the credential; there is no
+# connection string here and no fallback. Raises if the identity cannot
+# connect, which is the point -- a test that quietly connects as something
+# else proves nothing about production.
+def _ch_connection():
+    import sys as _sys, pathlib as _pl
+    for _d in _pl.Path(__file__).resolve().parents:
+        if (_d / ".git").exists():
+            _lib = _d / "FrontEndApplicationLib" / "src"
+            if str(_lib) not in _sys.path:
+                _sys.path.insert(0, str(_lib))
+            break
+    from chathealthy_frontend_lib.mongo_utilities import ChatHealthyMongoUtilities
+    return ChatHealthyMongoUtilities().getConnection("DevOpsUser", 'frontEnd')
+
 ALLOW = "ALLOW"
 DENY = "DENY"
 
@@ -73,14 +90,7 @@ def client():
         pytest.skip("MONGO_FRONTEND_connectionString not set")
     # retryWrites off: an unauthorised write is retried by default, which turns
     # every DENY probe into a multi-second wait for a verdict already known.
-    c = MongoClient(
-        uri,
-        serverSelectionTimeoutMS=8000,
-        connectTimeoutMS=8000,
-        socketTimeoutMS=8000,
-        retryWrites=False,
-        retryReads=False,
-    )
+    c = _ch_connection()
     yield c
     c.close()
 

@@ -1,8 +1,8 @@
-"""Seed the admin.Versions collection with the first record.
+"""Seed the frontEndAdmin.BuildVersions collection with the first record.
 
 One-shot. Reads the current latest values from
 brain/machine_artifacts/content/version.json and writes a single record to
-admin.Versions on the front-end MongoDB cluster.
+frontEndAdmin.BuildVersions on the front-end MongoDB cluster.
 
 Schema of the record:
     {
@@ -40,6 +40,29 @@ logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(mess
 log = logging.getLogger("seed_versions")
 
 VERSION_JSON = REPO_ROOT / "brain" / "machine_artifacts" / "content" / "version.json"
+
+
+
+def _devops_connection():
+    """The DevOps identity, by certificate. Rule-004: no MongoClient here.
+
+    Operator tooling authenticates as DevOpsUser like everything else in the
+    devops chain. It used to open a MongoClient on a SCRAM connection string,
+    which is a fourth credential outside the three-identity model and outside
+    Rule-004's scan scope, so nothing caught it.
+    """
+    import sys as _sys, pathlib as _pl
+    _src = _pl.Path(__file__).resolve()
+    for _p in _src.parents:
+        if (_p / ".git").exists():
+            _lib = _p / "FrontEndApplicationLib" / "src"
+            if str(_lib) not in _sys.path:
+                _sys.path.insert(0, str(_lib))
+            from dotenv import load_dotenv as _ld
+            _ld(_p / ".env", override=False)
+            break
+    from chathealthy_frontend_lib.mongo_utilities import ChatHealthyMongoUtilities
+    return ChatHealthyMongoUtilities().getConnection("DevOpsUser", "admin")
 
 
 def extract_seed_values():
@@ -87,12 +110,12 @@ def main():
     log.info("Seed values from version.json: build=%d version=%s framework=%s",
              build, version, framework)
 
-    client = MongoClient(conn, serverSelectionTimeoutMS=10000)
-    coll = client["admin"]["Versions"]
+    client = _devops_connection()
+    coll = client["frontEndAdmin"]["BuildVersions"]
 
     existing = coll.count_documents({})
     if existing:
-        log.error("admin.Versions already has %d document(s) — refusing to "
+        log.error("frontEndAdmin.BuildVersions already has %d document(s) — refusing to "
                   "seed. Manual intervention required if you intended to "
                   "reseed.", existing)
         sys.exit(2)
@@ -108,7 +131,7 @@ def main():
         "from": datetime.now(timezone.utc).isoformat(),
     }
     result = coll.insert_one(record)
-    log.info("Seeded admin.Versions with _id=%s: %s", result.inserted_id, record)
+    log.info("Seeded frontEndAdmin.BuildVersions with _id=%s: %s", result.inserted_id, record)
 
 
 if __name__ == "__main__":

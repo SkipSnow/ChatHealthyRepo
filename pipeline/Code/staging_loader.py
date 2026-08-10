@@ -351,6 +351,70 @@ def _drop_prior_state_scoped_rows(coll, source_name: str, states: tuple[str, ...
     return int(res.deleted_count or 0)
 
 
+# Reference sources are non-partitioned reference tables (NUCC taxonomy,
+# NPPES pl_pfile secondary practice locations, Census ZCTA-to-County
+# crosswalk, USDA RUCC classification, ChatHealthy F-105 catalog). Each
+# load MUST replace the collection wholesale -- there is no run-scoped
+# retention. Prior to this fix, prior runs stacked (BUG surfaced 2026-08-01:
+# StagingNucc_v_3 held 30,022 rows across ~34 pipeline fires instead of
+# the ~883-row NUCC taxonomy each run should contain).
+_REFERENCE_SOURCE_NAMES = frozenset({
+    "nucc", "pl_pfile", "census_zcta_county", "usda_rucc", "specialty_catalog",
+})
+
+
+def _drop_prior_reference_rows(coll, source_name: str) -> int:
+    """Wholesale drain of a reference-source staging collection before
+    the fresh load. Returns delete count."""
+    if source_name not in _REFERENCE_SOURCE_NAMES:
+        return 0
+    res = coll.delete_many({})
+    return int(res.deleted_count or 0)
+
+
+def _stream_sha256(local_path: str) -> str:
+    """Streaming SHA256 of the downloaded source file. Used for skip-if-
+    content-unchanged (BUG surfaced 2026-08-01: reference-source loads
+    always re-fetched + re-parsed + re-inserted even when content had
+    not changed since the prior load)."""
+    import hashlib
+    h = hashlib.sha256()
+    with open(local_path, "rb") as f:
+        for chunk in iter(lambda: f.read(1 << 16), b""):
+            h.update(chunk)
+    return h.hexdigest()
+
+
+_SOURCE_HASH_DB = "admin"
+_SOURCE_HASH_COLL = "staging_source_hashes"
+
+
+def _prior_content_hash(mongo, coll_name: str) -> str | None:
+    """Read the previously-loaded content hash for the given staging
+    collection. Returns None if no record exists."""
+    if mongo is None:
+        return None
+    row = mongo[_SOURCE_HASH_DB][_SOURCE_HASH_COLL].find_one({"_id": coll_name})
+    return (row or {}).get("content_hash")
+
+
+def _record_content_hash(mongo, coll_name: str, content_hash: str, row_count: int) -> None:
+    """Upsert the freshly-loaded content hash so the next run can skip
+    reload if the source hasn't changed."""
+    if mongo is None:
+        return
+    mongo[_SOURCE_HASH_DB][_SOURCE_HASH_COLL].replace_one(
+        {"_id": coll_name},
+        {
+            "_id": coll_name,
+            "content_hash": content_hash,
+            "row_count": row_count,
+            "loaded_at": _now_iso(),
+        },
+        upsert=True,
+    )
+
+
 def _load_one_source(
     *,
     source_name: str,
@@ -394,6 +458,42 @@ def _load_one_source(
     container_name = spec["blob_container"]
     blob_name = spec["blob_path"]
     local_path = _download_blob_to_tempfile(blob, container_name, blob_name)
+
+    # Skip-if-content-unchanged for reference sources (bug fix 2026-08-01).
+    # If the downloaded source hash matches what we loaded last time AND
+    # the collection is non-empty, skip drain + reload entirely. Only
+    # applies to reference sources on full loads.
+    if source_name in _REFERENCE_SOURCE_NAMES and not incremental:
+        current_hash = _stream_sha256(local_path)
+        prior_hash = _prior_content_hash(mongo, coll_name)
+        existing_row_count = coll.count_documents({})
+        if prior_hash == current_hash and existing_row_count > 0:
+            _log.info(
+                "staging_loader[%s]: source content unchanged (sha256=%s, %d rows already loaded) -- skipping reload",
+                source_name, current_hash[:16], existing_row_count,
+            )
+            try:
+                import os
+                os.unlink(local_path)
+            except OSError:
+                pass
+            return {
+                "source_name": source_name,
+                "collection": coll_name,
+                "inserted": 0,
+                "skipped_reason": "content_unchanged",
+                "content_hash": current_hash,
+                "existing_row_count": existing_row_count,
+                "deleted_prior_rows_for_run": deleted_current_run,
+                "deleted_prior_rows_for_states": deleted_state_scoped,
+                "skipped_out_of_scope_rows": 0,
+                "row_count": existing_row_count,
+            }
+        # Content changed (or first load) -> drain wholesale before reload.
+        deleted_reference = _drop_prior_reference_rows(coll, source_name)
+    else:
+        current_hash = None
+        deleted_reference = 0
 
     npi_hint = NPPES_NPI_COLUMN_CANDIDATES if source_name in ("nppes_npi", "pl_pfile") else None
 

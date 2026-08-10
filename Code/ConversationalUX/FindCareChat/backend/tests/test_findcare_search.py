@@ -11,9 +11,65 @@
 #   pytest test_findcare_search.py -v
 
 import os
-import re
 import pytest
 from playwright.sync_api import sync_playwright, Page
+
+
+_DIGITS = frozenset("0123456789")
+
+
+def _digit_runs(text: str, length: int) -> list[str]:
+    """Every maximal run of digits of exactly `length` characters."""
+    out: list[str] = []
+    i = 0
+    while i < len(text):
+        if text[i] in _DIGITS:
+            j = i
+            while j < len(text) and text[j] in _DIGITS:
+                j += 1
+            if j - i == length:
+                out.append(text[i:j])
+            i = j
+        else:
+            i += 1
+    return out
+
+
+def _labelled_digit_runs(text: str, label: str, length: int) -> list[str]:
+    """Digit runs of `length` that follow `label` and optional separators."""
+    out: list[str] = []
+    at = text.find(label)
+    while at != -1:
+        k = at + len(label)
+        while k < len(text) and text[k] in ": \t\r\n":
+            k += 1
+        j = k
+        while j < len(text) and text[j] in _DIGITS:
+            j += 1
+        if j - k == length:
+            out.append(text[k:j])
+        at = text.find(label, at + 1)
+    return out
+
+
+def _phone_numbers(text: str) -> list[str]:
+    """Runs that look like a US phone number: 3 digits, 3 digits, 4 digits,
+    separated by nothing, a space, a dot, a dash, or wrapped parentheses."""
+    seps = frozenset("-. ()")
+    out: list[str] = []
+    digits: list[str] = []
+    span: list[str] = []
+    for ch in text + " ":
+        if ch.isdigit():
+            digits.append(ch)
+            span.append(ch)
+        elif ch in seps and digits:
+            span.append(ch)
+        else:
+            if len(digits) == 10:
+                out.append("".join(span).strip())
+            digits, span = [], []
+    return out
 
 BASE_URL = os.getenv("TEST_BASE_URL", "https://localhost")
 CHAT_TIMEOUT = 120_000
@@ -103,9 +159,9 @@ class TestProviderResultFields:
         """Results include NPI numbers."""
         frame = search_page["frame"]
         body_text = frame.locator("body").inner_text()
-        npis = re.findall(r"NPI[:\s]+(\d{10})", body_text)
+        npis = _labelled_digit_runs(body_text, "NPI", 10)
         if not npis:
-            npis = re.findall(r"\b\d{10}\b", body_text)
+            npis = _digit_runs(body_text, 10)
         assert len(npis) >= 1, f"No NPI numbers found. Text: {body_text[-500:]}"
 
     def test_results_contain_provider_name(self, search_page):
@@ -129,7 +185,7 @@ class TestProviderResultFields:
         """Results include phone numbers."""
         frame = search_page["frame"]
         body_text = frame.locator("body").inner_text()
-        phones = re.findall(r"\(?\d{3}\)?[-.\s]?\d{3}[-.\s]?\d{4}", body_text)
+        phones = _phone_numbers(body_text)
         assert len(phones) >= 1, f"No phone numbers found. Text: {body_text[:500]}"
 
 

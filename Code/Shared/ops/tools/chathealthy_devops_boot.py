@@ -34,25 +34,42 @@ BRAIN_DIR = PROJECT_ROOT / "brain" / "machine_artifacts" / "content"
 TEST_OUTPUT_DIR = PROJECT_ROOT / "_oneshots" / "test_output"
 
 CONVERSATION_LOAD_COUNT = 170
-MONGO_DB = "ClaudeCodeLog"
-MONGO_COLLECTION = "conversation_log_archive"
+MONGO_DB = "ClaudeCodeUtterances"
+MONGO_COLLECTION = "utterances"
 
 ERROR_LOG_PATH = Path(tempfile.gettempdir()) / "chathealthy_consumer_errors.log"
 ERROR_LOG_SEMAPHORE = Path(tempfile.gettempdir()) / "chathealthy_last_boot_error_line.txt"
 
 
+def _devops_connection():
+    """The DevOps identity, by certificate. Rule-004: no MongoClient here."""
+    import sys as _sys, pathlib as _pl
+    for _p in _pl.Path(__file__).resolve().parents:
+        if (_p / ".git").exists():
+            _lib = _p / "FrontEndApplicationLib" / "src"
+            if str(_lib) not in _sys.path:
+                _sys.path.insert(0, str(_lib))
+            # Hook subprocesses inherit almost nothing, so the vault
+            # coordinates have to come from the file rather than the
+            # ambient environment.
+            from dotenv import load_dotenv as _ld
+            _ld(_p / ".env", override=False)
+            break
+    from chathealthy_frontend_lib.mongo_utilities import ChatHealthyMongoUtilities
+    return ChatHealthyMongoUtilities().getConnection("DevOpsUser", "admin")
+
+
 def load_recent_utterances(n: int = CONVERSATION_LOAD_COUNT) -> list[dict]:
-    conn_str = os.environ.get("MONGO_FRONTEND_connectionString", "")
-    if not conn_str:
-        _log.warning("MONGO_FRONTEND_connectionString not set - skipping conversation load")
-        return []
+    # No credential check here. Authentication is the certificate the
+    # DevOps identity fetches from the vault; gating on the presence of an
+    # unrelated SCRAM connection string meant the boot silently skipped the
+    # conversation load whenever that variable was absent from the process.
     try:
-        from pymongo import MongoClient
-        client = MongoClient(conn_str, serverSelectionTimeoutMS=5000)
+        client = _devops_connection()
         coll = client[MONGO_DB][MONGO_COLLECTION]
         cursor = (
-            coll.find({}, {"actor": 1, "content": 1, "_id": 0})
-                .sort("timestamp_utc", -1)
+            coll.find({}, {"role": 1, "content": 1, "_id": 0})
+                .sort("timestamp", -1)
                 .limit(n)
         )
         utterances = list(cursor)
@@ -68,7 +85,8 @@ def write_utterances_file(utterances: list[dict]) -> Path:
     out = TEST_OUTPUT_DIR / "recent_utterances.json"
     out.write_text(
         json.dumps(
-            [{"actor": u["actor"], "content": u["content"]} for u in utterances],
+            [{"actor": u.get("role") or u.get("actor"), "content": u["content"]}
+             for u in utterances],
             ensure_ascii=False, indent=2,
         ),
         encoding="utf-8",

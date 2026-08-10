@@ -545,7 +545,7 @@ def _purge_prior_run_transients(blob, container_name: str, current_run_id: str) 
 def _persist_versions_to_manifest(
     mongo, *, run_id: str, source_versions: dict[str, str]
 ) -> None:
-    """Write source_versions block to chathealthyfrontend.pipeline.runs (LLD §3.6)."""
+    """Write source_versions block to chathealthypipelines.pipeline.runs (LLD §3.6)."""
     if mongo is None:
         return
     try:

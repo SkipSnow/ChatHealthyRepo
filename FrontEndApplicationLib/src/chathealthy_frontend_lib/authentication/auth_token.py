@@ -2,6 +2,8 @@
 # Licensed under the FindCare Evaluation License (FEL-1.0).
 
 from ..exceptions import ChatHealthyException
+
+from ..exceptions import ChatHealthyException
 from ..logging_service import ChatHealthyLoggingService
 from typing import Any, Optional
 
@@ -19,9 +21,10 @@ log = ChatHealthyLoggingService()
 class AuthToken:
     def __init__(self, session_token: SessionToken, origin: str):
         if not isinstance(session_token, SessionToken):
-            raise TypeError(
-                f"AuthToken requires a SessionToken, got {type(session_token).__name__}"
-            )
+            raise ChatHealthyException(
+            mode="type_error",
+            component="auth_token",
+            message=f"AuthToken requires a SessionToken, got {type(session_token).__name__}")
         self._st = session_token
         self._origin = origin
 

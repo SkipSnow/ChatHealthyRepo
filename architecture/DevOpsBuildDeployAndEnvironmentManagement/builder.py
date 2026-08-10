@@ -30,7 +30,6 @@ from __future__ import annotations
 
 import base64
 import hashlib
-import re as _re
 from pathlib import Path
 from typing import Iterable
 
@@ -98,6 +97,21 @@ _EXCLUDE_FILE_SUFFIXES: frozenset[str] = frozenset({
 })
 
 
+
+def _ch_exc():
+    """ChatHealthyException without assuming the library is installed.
+    These modules run as bare scripts in the devops chain."""
+    import sys as _s, pathlib as _p
+    for _d in _p.Path(__file__).resolve().parents:
+        if (_d / ".git").exists():
+            _l = _d / "FrontEndApplicationLib" / "src"
+            if str(_l) not in _s.path:
+                _s.path.insert(0, str(_l))
+            break
+    from chathealthy_frontend_lib.exceptions import ChatHealthyException
+    return ChatHealthyException
+
+
 def _classify_handler(rel_posix: str, name: str) -> str:
     """Map a file to one of the schema's closed handler_type enums."""
     if name == "Dockerfile":
@@ -135,17 +149,29 @@ def _render_dockerfile(layout: list) -> str:
     Comments are not preserved by V1 encoding; layout is the spec.
     """
     if not isinstance(layout, list):
-        raise TypeError(f"Dockerfile layout must be a list, got {type(layout).__name__}")
+        raise _ch_exc()(
+            mode="type_error",
+            component="builder",
+            message=f"Dockerfile layout must be a list, got {type(layout).__name__}")
     lines: list[str] = []
     for step in layout:
         if not isinstance(step, dict):
-            raise TypeError(f"Dockerfile layout step must be a dict, got {step!r}")
+            raise _ch_exc()(
+            mode="type_error",
+            component="builder",
+            message=f"Dockerfile layout step must be a dict, got {step!r}")
         inst = step.get("instruction")
         args = step.get("args", [])
         if not isinstance(inst, str):
-            raise ValueError(f"Dockerfile step missing instruction: {step!r}")
+            raise _ch_exc()(
+            mode="value_error",
+            component="builder",
+            message=f"Dockerfile step missing instruction: {step!r}")
         if not isinstance(args, list):
-            raise TypeError(f"Dockerfile step args must be a list: {step!r}")
+            raise _ch_exc()(
+            mode="type_error",
+            component="builder",
+            message=f"Dockerfile step args must be a list: {step!r}")
         if inst == "BLANK":
             lines.append("")
             continue
@@ -278,12 +304,13 @@ class Builder:
             if handler in _MANAGED_HANDLER_TYPES:
                 layout = self._prior_layouts.get(rel)
                 if layout is None:
-                    raise RuntimeError(
-                        f"Builder: managed {handler} {rel!r} has no layout in "
+                    raise _ch_exc()(
+            mode="runtime_error",
+            component="builder",
+            message=f"Builder: managed {handler} {rel!r} has no layout in "
                         f"the prior brain artifact. Layout is the operator-"
                         f"authored source of truth; run _oneshots/encode_layouts.py "
-                        f"to bootstrap a layout from the current disk file."
-                    )
+                        f"to bootstrap a layout from the current disk file.")
                 embedded = _render_dockerfile(layout)  # type: ignore[arg-type]
             else:
                 embedded = _read_managed_content(abs_path)

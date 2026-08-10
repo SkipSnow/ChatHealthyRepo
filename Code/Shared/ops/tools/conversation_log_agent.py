@@ -7,24 +7,56 @@
 import json
 import logging
 import os
-import re
 import uuid
 from datetime import datetime, timezone, timedelta
 from pathlib import Path
-
-from pymongo import MongoClient
 from pymongo.errors import DuplicateKeyError, PyMongoError
 
 _log = logging.getLogger("ChatHealthyClaudeLogManagementAnthropicAgent")
 
-MONGO_DB = "ClaudeCodeLog"
+MONGO_DB = "ClaudeCodeUtterances"
 MONGO_COLLECTION = "conversation_log_archive"
 
 REPO_ROOT = Path(os.environ['CHATHEALTHY_PROJECT_ROOT'])
 
-CH_GUID_PATTERN = re.compile(
-    r"^CH-[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-4[0-9a-fA-F]{3}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$"
-)
+_HEX = frozenset("0123456789abcdefABCDEF")
+
+# CH-xxxxxxxx-xxxx-4xxx-xxxx-xxxxxxxxxxxx: our prefix followed by a version-4
+# UUID. Six dash-separated parts of fixed length, the fourth beginning with
+# the version digit. Spelled out rather than encoded in a pattern, so the
+# shape being accepted is legible without reading a regex.
+_CH_GUID_PART_LENGTHS = (8, 4, 4, 4, 12)
+
+
+def is_ch_guid(value: str) -> bool:
+    """True when `value` is one of our CH-prefixed version-4 GUIDs."""
+    parts = value.split("-")
+    if len(parts) != 6 or parts[0] != "CH":
+        return False
+    body = parts[1:]
+    if [len(p) for p in body] != list(_CH_GUID_PART_LENGTHS):
+        return False
+    if body[2][0] != "4":
+        return False
+    return all(ch in _HEX for part in body for ch in part)
+
+
+def _devops_connection():
+    """The DevOps identity, by certificate. Rule-004: no MongoClient here."""
+    import sys as _sys, pathlib as _pl
+    for _p in _pl.Path(__file__).resolve().parents:
+        if (_p / ".git").exists():
+            _lib = _p / "FrontEndApplicationLib" / "src"
+            if str(_lib) not in _sys.path:
+                _sys.path.insert(0, str(_lib))
+            # Hook subprocesses inherit almost nothing, so the vault
+            # coordinates have to come from the file rather than the
+            # ambient environment.
+            from dotenv import load_dotenv as _ld
+            _ld(_p / ".env", override=False)
+            break
+    from chathealthy_frontend_lib.mongo_utilities import ChatHealthyMongoUtilities
+    return ChatHealthyMongoUtilities().getConnection("DevOpsUser", "admin")
 
 
 def process_conversation_log(logContent, bearerToken, mongoConnectionString,
@@ -45,7 +77,7 @@ def process_conversation_log(logContent, bearerToken, mongoConnectionString,
     _log.info("Job %s started", job_id)
 
     # ── T003: Validate bearerToken ──────────────────────────────────────
-    if not bearerToken or not CH_GUID_PATTERN.match(str(bearerToken)):
+    if not bearerToken or not is_ch_guid(str(bearerToken)):
         _log.warning("Job %s: 401 — invalid bearerToken", job_id)
         return {"status": 401, "error": "Unauthorized", "jobId": job_id}
 
@@ -158,7 +190,7 @@ def _write_to_mongodb(utterances, mongo_conn, job_id):
     last_written_ts = None
 
     try:
-        client = MongoClient(mongo_conn, serverSelectionTimeoutMS=10000)
+        client = _devops_connection()
         db = client[MONGO_DB]
 
         # Ensure collection and indexes exist
@@ -235,7 +267,7 @@ def _write_to_mongodb(utterances, mongo_conn, job_id):
 
 def _query_retained(mongo_conn, cutoff):
     try:
-        client = MongoClient(mongo_conn, serverSelectionTimeoutMS=10000)
+        client = _devops_connection()
         db = client[MONGO_DB]
         col = db[MONGO_COLLECTION]
 

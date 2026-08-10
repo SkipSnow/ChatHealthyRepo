@@ -10,8 +10,6 @@ Run from the repo root:
     pip install pytest-playwright && playwright install chromium
     python -m pytest Website/tests/test_website.py -v
 """
-import re
-
 import pytest
 from playwright.sync_api import Page, expect
 
@@ -23,13 +21,13 @@ PANEL_TITLE = "#legalPanelTitle"
 PANEL_FRAME = "#legalPanelFrame"
 PANEL_CLOSE = ".legal-panel-close"
 
-OPEN_CLASS = re.compile(r"\bopen\b")
+OPEN_CLASS = "open"
 
 
 def open_panel(page: Page, label: str):
     """Click the first button matching label (nav takes priority over footer)."""
     page.get_by_role("button", name=label).first.click()
-    expect(page.locator(PANEL)).to_have_class(OPEN_CLASS)
+    expect(page.locator(PANEL)).to_contain_class(OPEN_CLASS)
 
 
 # ── Fixtures ─────────────────────────────────────────────────────────────────
@@ -60,14 +58,14 @@ def test_terms_panel_opens(home: Page):
 def test_panel_footer_privacy_opens(home: Page):
     """Footer Privacy Policy button also opens the panel."""
     home.get_by_role("button", name="Privacy Policy").last.click()
-    expect(home.locator(PANEL)).to_have_class(OPEN_CLASS)
+    expect(home.locator(PANEL)).to_contain_class(OPEN_CLASS)
     expect(home.locator(PANEL_TITLE)).to_have_text("Privacy Policy")
 
 
 def test_panel_footer_terms_opens(home: Page):
     """Footer Terms of Use button also opens the panel."""
     home.get_by_role("button", name="Terms of Use").last.click()
-    expect(home.locator(PANEL)).to_have_class(OPEN_CLASS)
+    expect(home.locator(PANEL)).to_contain_class(OPEN_CLASS)
     expect(home.locator(PANEL_TITLE)).to_have_text("Terms of Use")
 
 
@@ -77,14 +75,14 @@ def test_panel_closes_with_x_button(home: Page):
     """Clicking the × button removes the open class."""
     open_panel(home, "Privacy Policy")
     home.locator(PANEL_CLOSE).click()
-    expect(home.locator(PANEL)).not_to_have_class(OPEN_CLASS)
+    expect(home.locator(PANEL)).not_to_contain_class(OPEN_CLASS)
 
 
 def test_panel_closes_with_escape(home: Page):
     """Pressing Escape removes the open class."""
     open_panel(home, "Terms of Use")
     home.keyboard.press("Escape")
-    expect(home.locator(PANEL)).not_to_have_class(OPEN_CLASS)
+    expect(home.locator(PANEL)).not_to_contain_class(OPEN_CLASS)
 
 
 def test_panel_src_cleared_after_close(home: Page):
@@ -110,16 +108,16 @@ def test_contact_button_shows_tip(home: Page):
     """Contact button in footer shows contact info tooltip on click."""
     contact_btn = home.locator(".footer-links button[data-tip]").first
     contact_btn.click()
-    expect(contact_btn).to_have_class(re.compile(r"\bshow-tip\b"))
+    expect(contact_btn).to_contain_class("show-tip")
 
 
 def test_contact_tip_dismissed_on_outside_click(home: Page):
     """Clicking outside the Contact button removes its tooltip."""
     contact_btn = home.locator(".footer-links button[data-tip]").first
     contact_btn.click()
-    expect(contact_btn).to_have_class(re.compile(r"\bshow-tip\b"))
+    expect(contact_btn).to_contain_class("show-tip")
     home.locator("header").click()
-    expect(contact_btn).not_to_have_class(re.compile(r"\bshow-tip\b"))
+    expect(contact_btn).not_to_contain_class("show-tip")
 
 
 def test_about_button_removed(home: Page):
@@ -173,7 +171,7 @@ def test_privacy_close_button_visible_in_panel(home: Page):
 def test_terms_close_button_visible_in_panel(home: Page):
     """Terms page shows close button at the bottom when in the panel."""
     home.evaluate("openPanel('terms.html', 'Terms of Use')")
-    expect(home.locator(PANEL)).to_have_class(OPEN_CLASS)
+    expect(home.locator(PANEL)).to_contain_class(OPEN_CLASS)
     expect(home.frame_locator("#legalPanelFrame").locator(".action-bar-bottom .close-btn")).to_be_visible()
 
 
@@ -183,7 +181,7 @@ def test_privacy_bottom_close_button_closes_panel(home: Page):
     frame = home.frame_locator("#legalPanelFrame")
     frame.locator(".action-bar-bottom .close-btn").scroll_into_view_if_needed()
     frame.locator(".action-bar-bottom .close-btn").click()
-    expect(home.locator(PANEL)).not_to_have_class(OPEN_CLASS)
+    expect(home.locator(PANEL)).not_to_contain_class(OPEN_CLASS)
 
 
 def test_privacy_print_button_present(home: Page):
@@ -195,7 +193,7 @@ def test_privacy_print_button_present(home: Page):
 def test_terms_print_button_present(home: Page):
     """Terms page has a print button at the bottom."""
     home.evaluate("openPanel('terms.html', 'Terms of Use')")
-    expect(home.locator(PANEL)).to_have_class(OPEN_CLASS)
+    expect(home.locator(PANEL)).to_contain_class(OPEN_CLASS)
     expect(home.frame_locator("#legalPanelFrame").locator(".action-bar-bottom .print-btn")).to_be_visible()
 
 
@@ -237,7 +235,7 @@ def test_architecture_logo_targets_top(page: Page, base_url: str):
 def test_architecture_panel_opens_from_footer(home: Page):
     """Architecture button in footer opens the panel with correct title and src."""
     home.locator(".footer-links button", has_text="Architecture").click()
-    expect(home.locator(PANEL)).to_have_class(OPEN_CLASS)
+    expect(home.locator(PANEL)).to_contain_class(OPEN_CLASS)
     expect(home.locator(PANEL_TITLE)).to_have_text("Architecture")
     expect(home.locator(PANEL_FRAME)).to_have_attribute("src", "architecture.html")
 
@@ -364,7 +362,7 @@ def test_mobile_header_nav_hidden(mobile: Page):
 def test_mobile_hamburger_opens_drawer(mobile: Page):
     """Tapping hamburger opens the mobile nav drawer."""
     mobile.locator("#menuToggle").click()
-    expect(mobile.locator("#mobileNav")).to_have_class(re.compile(r"\bopen\b"))
+    expect(mobile.locator("#mobileNav")).to_contain_class("open")
 
 
 def test_mobile_panel_full_width(mobile: Page):

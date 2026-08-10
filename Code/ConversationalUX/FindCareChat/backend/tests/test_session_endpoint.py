@@ -15,6 +15,14 @@ import shutil
 
 import pytest
 import requests
+import sys as _sys, pathlib as _pl
+for _d in _pl.Path(__file__).resolve().parents:
+    if (_d / '.git').exists():
+        _lib = _d / 'FrontEndApplicationLib' / 'src'
+        if str(_lib) not in _sys.path:
+            _sys.path.insert(0, str(_lib))
+        break
+from chathealthy_frontend_lib.exceptions import ChatHealthyException
 
 
 _BASE_DIR = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "..", "..", "..", ".."))
@@ -37,7 +45,10 @@ def _config(origin: str):
             (os.path.join(_CERTS_DIR, "shared.crt"),
              os.path.join(_CERTS_DIR, "shared.key")),
         )
-    raise ValueError(f"unknown origin {origin!r}")
+    raise ChatHealthyException(
+        mode="value_error",
+        component="test_session_endpoint",
+        message=f"unknown origin {origin!r}")
 
 
 def _server_key_path(origin: str) -> str:

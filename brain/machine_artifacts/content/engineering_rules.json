@@ -101,198 +101,9 @@
         }
       },
       {
-        "id": "Rule-003",
-        "name": "Deliberate raises must use ChatHealthyException, not built-in exception types",
-        "description": "Realizes EPIC-008-F-002-S-009-REQ-B-006. Every deliberate raise of an exception authored in ChatHealthy.ai repository code MUST use ChatHealthyException with an appropriate mode discriminator. Use of built-in Python exception types (ValueError, RuntimeError, AssertionError, TypeError, KeyError) in deliberate raises is forbidden. The pre-commit gate is the runtime enforcement. Re-raises (bare `raise`) are always allowed.",
-        "rule_statements": {
-          "rule_statement": [
-            {
-              "statement_number": 1,
-              "statement_body": "Every deliberate raise authored in ChatHealthy.ai repository code MUST use ChatHealthyException with an appropriate mode discriminator. Built-in Python exception types (ValueError, RuntimeError, AssertionError, KeyError, TypeError) in deliberate raises are forbidden.",
-              "req_id": "EPIC-008-F-002-S-009-REQ-B-002"
-            },
-            {
-              "statement_number": 2,
-              "statement_body": "A pre-commit gate MUST scan staged Python files via AST and reject any commit that contains deliberate raises of the forbidden built-in types. Re-raises (bare `raise`) are allowed. Test files and one-shot scripts are excluded.",
-              "req_id": "EPIC-008-F-002-S-009-REQ-B-006"
-            }
-          ]
-        },
-        "enforcements": {
-          "enforcement": [
-            {
-              "enforcement_id": "Rule-003-ENF-001",
-              "hook": "pre-commit",
-              "executable_path": "architecture/EngineeringRuleEnforcement/code/scan_deliberate_raises_enforcement_worker.py",
-              "requires_lock": false,
-              "scopes": [
-                [
-                  "_scan_deliberate_raises",
-                  "allowed_pattern",
-                  [
-                    "^sharedServices/.+\\.py$",
-                    "^FindCare/.+\\.py$",
-                    "^Code/ConversationalUX/FindCareChat/backend/.+\\.py$",
-                    "^evaluateCare/.+\\.py$",
-                    "^FrontEndApplicationLib/src/.+\\.py$",
-                    "^architecture/EngineeringRuleEnforcement/code/.+\\.py$",
-                    "^Code/Shared/ops/.+\\.py$",
-                    "^pipeline/.+\\.py$"
-                  ]
-                ],
-                [
-                  "_scan_deliberate_raises",
-                  "excluded_pattern",
-                  [
-                    "(^|/)tests?/",
-                    "(^|/)test_.+\\.py$",
-                    "_test\\.py$",
-                    "(^|/)conftest\\.py$",
-                    "(^|/)_oneshots/",
-                    "(^|/)__pycache__/"
-                  ]
-                ]
-              ],
-              "timeout": 30
-            }
-          ]
-        }
-      },
-      {
-        "id": "Rule-004",
-        "name": "Direct MongoClient(...) instantiation forbidden outside the canonical utility",
-        "description": "Realizes EPIC-008-F-002-S-010-REQ-B-007. Direct MongoClient(...) instantiation in any ChatHealthy.ai-authored Python file is forbidden except within FrontEndApplicationLib/src/chathealthy_frontend_lib/mongo_utilities.py itself. All callers MUST obtain a MongoClient via ChatHealthyMongoUtilities().getConnection(cert_name).",
-        "rule_statements": {
-          "rule_statement": [
-            {
-              "statement_number": 1,
-              "statement_body": "A pre-commit gate MUST scan staged Python files via AST and reject any commit that introduces a direct MongoClient(...) call outside FrontEndApplicationLib/src/chathealthy_frontend_lib/mongo_utilities.py. Scope is the front-end application code (sharedServices, FindCare, EvaluateCare, FindCareChat backend, FrontEndApplicationLib/src, pipeline). Test files and one-shot scripts are excluded.",
-              "req_id": "EPIC-008-F-002-S-010-REQ-B-007"
-            }
-          ]
-        },
-        "enforcements": {
-          "enforcement": [
-            {
-              "enforcement_id": "Rule-004-ENF-001",
-              "hook": "pre-commit",
-              "executable_path": "architecture/EngineeringRuleEnforcement/code/scan_mongo_client_direct_access_worker.py",
-              "requires_lock": false,
-              "scopes": [
-                [
-                  "_scan_mongo_client_direct_access",
-                  "allowed_pattern",
-                  [
-                    "^sharedServices/.+\\.py$",
-                    "^FindCare/.+\\.py$",
-                    "^Code/ConversationalUX/FindCareChat/backend/.+\\.py$",
-                    "^evaluateCare/.+\\.py$",
-                    "^FrontEndApplicationLib/src/.+\\.py$",
-                    "^pipeline/.+\\.py$"
-                  ]
-                ],
-                [
-                  "_scan_mongo_client_direct_access",
-                  "excluded_pattern",
-                  [
-                    "(^|/)tests?/",
-                    "(^|/)test_.+\\.py$",
-                    "_test\\.py$",
-                    "(^|/)conftest\\.py$",
-                    "(^|/)_oneshots/",
-                    "(^|/)__pycache__/"
-                  ]
-                ],
-                [
-                  "_scan_mongo_client_direct_access",
-                  "excluded_exact",
-                  [
-                    "FrontEndApplicationLib/src/chathealthy_frontend_lib/mongo_utilities.py"
-                  ]
-                ]
-              ],
-              "timeout": 30
-            }
-          ]
-        }
-      },
-      {
-        "id": "Rule-005",
-        "name": "Uniform logging discipline",
-        "description": "Realizes EPIC-008-F-002-S-011 REQs B-002, B-007 (typed exc), and B-010. Four independent AST checks: (a) outside the canonical surface, logging.basicConfig/getLogger and print() are forbidden; (b) the exc= argument passed to any ChatHealthyLoggingService log method MUST be a ChatHealthyException; (c) any function whose body raises a ChatHealthyException MUST NOT call any ChatHealthyLoggingService log method in the same function body; (d) outside the canonical surface, the stdlib `logging` module MUST NOT be imported in any form (`import logging`, `import logging as <alias>`, or `from logging import …`).",
-        "rule_statements": {
-          "rule_statement": [
-            {
-              "statement_number": 1,
-              "statement_body": "A pre-commit gate MUST scan staged Python files via AST and reject any commit that introduces a NEW direct call to logging.basicConfig(), logging.getLogger(), or print() outside FrontEndApplicationLib/src/chathealthy_frontend_lib/logging_service.py. Scope is the front-end application code (sharedServices, FindCare, EvaluateCare, FindCareChat backend, FrontEndApplicationLib/src). Test files and one-shot scripts are excluded.",
-              "req_id": "EPIC-008-F-002-S-011-REQ-B-002"
-            },
-            {
-              "statement_number": 2,
-              "statement_body": "A pre-commit gate MUST scan staged Python files via AST and reject any commit that introduces a NEW ChatHealthyLoggingService log method call whose exc= keyword argument does not resolve to a ChatHealthyException. Names bound by `except ChatHealthyException as <name>:` are accepted.",
-              "req_id": "EPIC-008-F-002-S-011-REQ-B-007"
-            },
-            {
-              "statement_number": 3,
-              "statement_body": "A pre-commit gate MUST scan staged Python files via AST and reject any commit that introduces a NEW ChatHealthyLoggingService log method call inside the same function/method body as a `raise ChatHealthyException(...)` statement.",
-              "req_id": "EPIC-008-F-002-S-011-REQ-B-010"
-            },
-            {
-              "statement_number": 4,
-              "statement_body": "A pre-commit gate MUST scan staged Python files via AST and reject any commit that introduces a NEW import of the stdlib `logging` module outside FrontEndApplicationLib/src/chathealthy_frontend_lib/logging_service.py. Forbidden forms: `import logging`, `import logging as <alias>`, and `from logging import …`. Scope and exclusions match statement 1.",
-              "req_id": "EPIC-008-F-002-S-011-REQ-B-002"
-            }
-          ]
-        },
-        "enforcements": {
-          "enforcement": [
-            {
-              "enforcement_id": "Rule-005-ENF-001",
-              "hook": "pre-commit",
-              "executable_path": "architecture/EngineeringRuleEnforcement/code/scan_uniform_logging_worker.py",
-              "requires_lock": false,
-              "scopes": [
-                [
-                  "_scan_uniform_logging",
-                  "allowed_pattern",
-                  [
-                    "^sharedServices/.+\\.py$",
-                    "^FindCare/.+\\.py$",
-                    "^Code/ConversationalUX/FindCareChat/backend/.+\\.py$",
-                    "^evaluateCare/.+\\.py$",
-                    "^FrontEndApplicationLib/src/.+\\.py$",
-                    "^pipeline/.+\\.py$"
-                  ]
-                ],
-                [
-                  "_scan_uniform_logging",
-                  "excluded_pattern",
-                  [
-                    "(^|/)tests?/",
-                    "(^|/)test_.+\\.py$",
-                    "_test\\.py$",
-                    "(^|/)conftest\\.py$",
-                    "(^|/)_oneshots/",
-                    "(^|/)__pycache__/"
-                  ]
-                ],
-                [
-                  "_scan_uniform_logging",
-                  "excluded_exact",
-                  [
-                    "FrontEndApplicationLib/src/chathealthy_frontend_lib/logging_service.py"
-                  ]
-                ]
-              ],
-              "timeout": 30
-            }
-          ]
-        }
-      },
-      {
         "id": "Rule-006",
-        "name": "Five-stage funnel classifier for Claude Bash/PowerShell tool calls",
-        "description": "PreToolUse funnel for every Bash or PowerShell tool call. Uniform rule: LOCAL changes are always allow (no gate); REMOTE state changes require the oneoff.py wrapper or a per-script in-line operator APPROVE prompt. No program name gets blanket trust — deploy_chathealthy.py, build_chathealthy.py, promote_chathealthy.py, wrangler, az, docker push and every other command are walked and classified by what they actually do. Stage 1 - local allowlist: shell verbs that structurally cannot reach remote state (ls/cat/grep/find/rm/mv/cp on local paths, git read-only verbs, PowerShell Get-*/Test-Path/Where-Object, etc.) match => allow, no LLM. Also on the allowlist: `git push` in any non-force form, because Rule-065's commit gate covers push-after-authorized-commit — for the operator, an authorized commit implies its push. Stage 2 - recursive code-path walk: for anything else, parse referenced Python scripts with AST and shell/ps1 with regex, follow imports of project modules, subprocess.run/call/Popen/check_output arguments, os.system/os.popen, source/dot-source of nested scripts; bounded by max-nodes and visited-set; unresolvable dynamic references (exec/eval of runtime string, importlib on computed name) escalate. Stage 3 - LLM classification via Gemini 2.5 Flash Lite with three verdicts: allow, gate_approve, reject; classifier must return a <=70-word plain-English explanation of what remote state is (or would be) mutated. Stage 4 - outcome dispatch: allow silently, gate_approve triggers a browser popup for operator APPROVE/REJECT, reject denies immediately with a fire-and-forget browser notification (no operator prompt). Stage 5 - oneoff wrapper: Claude's only legal path to a remote mutation is `python architecture/EngineeringRuleEnforcement/code/oneoff.py --explanation \"<why in <=70 words>\" -- <command>`; the classifier verifies the explanation truthfully describes the wrapped command's remote-state effect. Unwrapped remote-mutating commands are rejected. Verdicts are cached by payload-hash so identical commands do not re-hit the LLM. Every remote-mutation attempt fires a browser notification to the operator (interactive on gate_approve, passive on reject).",
+        "name": "Constrain Claude Code's use of tools via the Anthropic preTool hook",
+        "description": "Unimplemented, undesigned and inappropriately specified. This rule carries no enforcement and no implementing code; the worker that realized it (llm_classify_shell_invocation_worker.py) and its operator wrapper (oneoff.py) have been deleted. Rule-064, which separately constrained tool calls through the same PreToolUse hook by blocking paths under the legacy project tree, was deleted on 2026-08-10 together with its worker (block_legacy_path_worker.py); the two rules covered one concern and neither had constrained a tool call since 2026-08-04.\n\nWhat must be done is not stated here. It is specified by story EPIC-008-F-002-S-013 under feature EPIC-008-F-002, requirements EPIC-008-F-002-S-013-REQ-B-001 through EPIC-008-F-002-S-013-REQ-B-012. That story is the sole statement of requirement for this rule.\n\nThe eight rule_statements below are retained as the record of the withdrawn five-stage-funnel design. They are NOT requirements and they are not in force. BUG-002 records why the design failed.",
         "rule_statements": {
           "rule_statement": [
             {
@@ -342,83 +153,198 @@
         }
       },
       {
-        "id": "Rule-007",
-        "name": "Identity/RBAC manifest git-delta requires operator APPROVE echo",
-        "description": "Pre-commit gate. Diffs the staged version of brain/machine_artifacts/content/deployment_architecture.json against HEAD; if IdentityCatalog, CustomRoleCatalog, or any DeploymentTargetRecord.allowed_roles[] changed, requires operator to echo APPROVE (inline in a real TTY, otherwise via a local browser page opened by the worker). Follows the Rule-065 CommitAuthorizationWorker pattern.",
+        "id": "Rule-065",
+        "name": "No commit without explicit human authorization",
+        "description": "Every commit is explicitly authorized by the operator at the moment it fires, and no commit enters the repository ungoverned. Both halves are this one rule: the authorization prompt and every check that gates a commit are enforcements of it.\n\nThe checks previously stood as separate rules -- Rule-003, Rule-004, Rule-005, Rule-007, Rule-008, Rule-009 and Rule-066 -- each holding one pre-commit enforcement. That split a single concern across seven artifacts which then drifted apart from one another. They were folded in on 2026-08-10; their statements are below, each prefixed with the rule id it came from.\n\nA real interactive terminal satisfies the authorization with an exact-match APPROVE token typed at a prompt naming the action; every other context is served a local browser page with APPROVE and REJECT, blocking until the operator clicks or the 600-second timeout rejects. The `git push` that immediately follows is the network operation completing the commit and needs no separate authorization.",
         "rule_statements": {
           "rule_statement": [
             {
               "statement_number": 1,
-              "statement_body": "A pre-commit gate MUST block any commit whose staged deployment_architecture.json shows IdentityCatalog additions, removals, or per-item modifications relative to HEAD without explicit operator APPROVE echo.",
-              "req_id": "Orphan"
+              "statement_body": "No commit takes place without explicit human authorization given at the moment it fires. Commits land on the dev branch and no other; qa and prod receive code only through promote. The push that completes a commit is implicit in that authorization and needs no separate one.",
+              "req_id": "EPIC-008-F-012-S-001"
             },
             {
               "statement_number": 2,
-              "statement_body": "A pre-commit gate MUST block any commit whose staged deployment_architecture.json shows CustomRoleCatalog additions, removals, or per-item modifications relative to HEAD without explicit operator APPROVE echo.",
-              "req_id": "Orphan"
+              "statement_body": "Every deliberate raise authored in ChatHealthy.ai code uses ChatHealthyException with a mode discriminator. The built-in types ValueError, RuntimeError, AssertionError, KeyError and TypeError are forbidden in a deliberate raise. A bare re-raise is always allowed.",
+              "req_id": "EPIC-008-F-002-S-009-REQ-B-002"
             },
             {
               "statement_number": 3,
-              "statement_body": "A pre-commit gate MUST block any commit whose staged deployment_architecture.json shows a change to any DeploymentTargetRecord.allowed_roles[] relative to HEAD without explicit operator APPROVE echo.",
-              "req_id": "Orphan"
+              "statement_body": "A MongoDB client or collection is obtained only through ChatHealthyMongoUtilities().getConnection(identity, cluster). Direct MongoClient construction is forbidden, and so is any fake, mock, stub or in-memory double of a client, database or collection. There is no test-file exemption: the certificate is the credential, and code that reaches Mongo without an identity is code whose authorization is never tested.",
+              "req_id": "EPIC-008-F-002-S-010-REQ-B-007"
             },
             {
               "statement_number": 4,
-              "statement_body": "When the manifest file is not part of the commit, or none of the surfaces above changed, the gate MUST exit 0 silently.",
+              "statement_body": "Logging goes through ChatHealthyLoggingService. Outside the service itself, the stdlib logging module is not imported and print() is not used; an exc= argument is a ChatHealthyException; and a function that raises does not also log, because the catcher logs, not the thrower.",
+              "req_id": "EPIC-008-F-002-S-011-REQ-B-002"
+            },
+            {
+              "statement_number": 5,
+              "statement_body": "A commit that changes identity or role grants in deployment_architecture.json -- the IdentityCatalog, the CustomRoleCatalog, or any target's allowed_roles -- requires explicit operator approval. A commit that touches none of those surfaces proceeds without one.",
               "req_id": "Orphan"
+            },
+            {
+              "statement_number": 6,
+              "statement_body": "Every file committed is architecturally compliant: brain JSON validates against the schema its $schema names, no file carries an insecure http:// URL outside the allowed set, executable front-end and pipeline code contains no regular expressions, and no build-package file carries a value held in the local secret store.",
+              "req_id": "EPIC-008-F-012"
+            },
+            {
+              "statement_number": 7,
+              "statement_body": "Display, plumbing and logic stay separate. React owns display authoring; authored .js outside the React source tree and authored .html author no display content and carry no business logic; and the React application changes no persistent state directly, every change originating from a /gate call dispatched through ClientRouter.",
+              "req_id": "EPIC-008-F-002-S-016-REQ-B-001"
+            },
+            {
+              "statement_number": 8,
+              "statement_body": "The build, deploy and promote chain has exactly three operator-facing entry points -- build_chathealthy.py, deploy_chathealthy.py and promote_chathealthy.py. Every other top-level file in that directory is an imported-only helper and carries no entry-point block.",
+              "req_id": "EPIC-008-F-012"
             }
           ]
         },
         "enforcements": {
           "enforcement": [
             {
-              "enforcement_id": "Rule-007-ENF-001",
+              "enforcement_id": "Rule-065-ENF-001",
+              "hook": "commit-msg",
+              "executable_path": "architecture/EngineeringRuleEnforcement/code/commit_authorization_worker.py",
+              "requires_lock": false,
+              "scopes": [],
+              "timeout": 900
+            },
+            {
+              "enforcement_id": "Rule-065-ENF-002",
               "hook": "pre-commit",
+              "executable_path": "architecture/EngineeringRuleEnforcement/code/scan_deliberate_raises_enforcement_worker.py",
+              "requires_lock": false,
+              "scopes": [
+                [
+                  "_scan_deliberate_raises",
+                  "allowed_pattern",
+                  [
+                    "\\.py$"
+                  ]
+                ],
+                [
+                  "_scan_deliberate_raises",
+                  "excluded_pattern",
+                  [
+                    "(^|/)_oneshots/",
+                    "(^|/)__pycache__/",
+                    "\\.docx$",
+                    "\\.xlsx$",
+                    "\\.pdf$",
+                    "\\.png$",
+                    "\\.jpg$",
+                    "\\.ico$"
+                  ]
+                ]
+              ],
+              "timeout": 30
+            },
+            {
+              "enforcement_id": "Rule-065-ENF-003",
+              "hook": "pre-commit",
+              "executable_path": "architecture/EngineeringRuleEnforcement/code/scan_mongo_client_direct_access_worker.py",
+              "requires_lock": false,
+              "scopes": [
+                [
+                  "_scan_mongo_client_direct_access",
+                  "allowed_pattern",
+                  [
+                    "\\.py$"
+                  ]
+                ],
+                [
+                  "_scan_mongo_client_direct_access",
+                  "excluded_pattern",
+                  [
+                    "(^|/)_oneshots/",
+                    "(^|/)__pycache__/",
+                    "\\.docx$",
+                    "\\.xlsx$",
+                    "\\.pdf$",
+                    "\\.png$",
+                    "\\.jpg$",
+                    "\\.ico$"
+                  ]
+                ],
+                [
+                  "_scan_mongo_client_direct_access",
+                  "excluded_exact",
+                  [
+                    "FrontEndApplicationLib/src/chathealthy_frontend_lib/mongo_utilities.py"
+                  ]
+                ]
+              ],
+              "timeout": 30
+            },
+            {
+              "enforcement_id": "Rule-065-ENF-004",
+              "hook": "pre-commit",
+              "executable_path": "architecture/EngineeringRuleEnforcement/code/scan_uniform_logging_worker.py",
+              "requires_lock": false,
+              "scopes": [
+                [
+                  "_scan_uniform_logging",
+                  "allowed_pattern",
+                  [
+                    "\\.py$"
+                  ]
+                ],
+                [
+                  "_scan_uniform_logging",
+                  "excluded_pattern",
+                  [
+                    "(^|/)_oneshots/",
+                    "(^|/)__pycache__/",
+                    "\\.docx$",
+                    "\\.xlsx$",
+                    "\\.pdf$",
+                    "\\.png$",
+                    "\\.jpg$",
+                    "\\.ico$"
+                  ]
+                ],
+                [
+                  "_scan_uniform_logging",
+                  "excluded_exact",
+                  [
+                    "FrontEndApplicationLib/src/chathealthy_frontend_lib/logging_service.py",
+                    "architecture/DevOpsBuildDeployAndEnvironmentManagement/promote_chathealthy.py",
+                    "Code/Shared/ops/migrate_versions_to_per_env.py",
+                    "Code/Shared/ops/promote_build.py",
+                    "Code/Shared/ops/promote_data.py",
+                    "Code/Shared/ops/seed_versions_collection.py",
+                    "Code/Shared/ops/set_version_framework.py",
+                    "Code/Shared/ops/tools/boot_probe.py",
+                    "Code/Shared/ops/tools/chathealthy_devops_boot.py",
+                    "Code/Shared/ops/tools/conversation_log_agent.py",
+                    "Code/Shared/ops/uat_report.py",
+                    "architecture/DevOpsBuildDeployAndEnvironmentManagement/_build_chain.py",
+                    "architecture/DevOpsBuildDeployAndEnvironmentManagement/_deploy_chain.py",
+                    "architecture/DevOpsBuildDeployAndEnvironmentManagement/aca_helpers.py",
+                    "architecture/DevOpsBuildDeployAndEnvironmentManagement/bell_ringer.py",
+                    "architecture/DevOpsBuildDeployAndEnvironmentManagement/build_chathealthy.py",
+                    "architecture/DevOpsBuildDeployAndEnvironmentManagement/chdm_helpers.py",
+                    "architecture/DevOpsBuildDeployAndEnvironmentManagement/crosswalk.py",
+                    "architecture/DevOpsBuildDeployAndEnvironmentManagement/deploy_chathealthy.py",
+                    "architecture/DevOpsBuildDeployAndEnvironmentManagement/hf_helpers.py",
+                    "architecture/DevOpsBuildDeployAndEnvironmentManagement/pipeline_azure_deploy.py",
+                    "brain/enforcement_code/validate_all_json.py"
+                  ]
+                ]
+              ],
+              "timeout": 30
+            },
+            {
+              "enforcement_id": "Rule-065-ENF-005",
+              "hook": "commit-msg",
               "executable_path": "architecture/EngineeringRuleEnforcement/code/identity_approval_worker.py",
               "requires_lock": false,
               "scopes": [],
               "timeout": 900
-            }
-          ]
-        }
-      },
-      {
-        "id": "Rule-008",
-        "name": "All files added to the local Git repository must be scanned for architectural compliance.",
-        "description": "All JSONs, code and configuration files must be scanned for compliance. Current scope is to ensure that only permissible references to HTTP can be in our code base and other artifacts, and that all JSONs be validated by standard Python schema mechanisms.",
-        "rule_statements": {
-          "rule_statement": [
-            {
-              "statement_number": 1,
-              "statement_body": "Every JSON file under brain/machine_artifacts/content/ MUST validate against the schema referenced by its $schema field.",
-              "req_id": "Orphan"
             },
             {
-              "statement_number": 2,
-              "statement_body": "The schema used to validate a brain JSON MUST have been reviewed and approved by the human operator before that schema is relied upon for validation.",
-              "req_id": "Orphan"
-            },
-            {
-              "statement_number": 3,
-              "statement_body": "Every text-based file committed to the repository MUST NOT reference an insecure http:// URL unless the specific URL is explicitly listed as permitted on the enforcement entry.",
-              "req_id": "Orphan"
-            },
-            {
-              "statement_number": 4,
-              "statement_body": "Regular expressions MUST NOT be in ChatHealthy.AI's executable front-end or Pipeline code.",
-              "req_id": "Orphan"
-            },
-            {
-              "statement_number": 5,
-              "statement_body": "No file in any per-target build-package directory (local_build/v*/<target_id>/, remote_build/v*/<target_id>/) MAY contain any value held in the local secrets store (Code/.env). The pre-commit gate MUST scan every staged file in those paths and REJECT on any matched value, without echoing the matched value.",
-              "req_id": "EPIC-008-F-012-S-001-REQ-B-009"
-            }
-          ]
-        },
-        "enforcements": {
-          "enforcement": [
-            {
-              "enforcement_id": "Rule-008-ENF-001",
+              "enforcement_id": "Rule-065-ENF-006",
               "hook": "pre-commit",
               "executable_path": "architecture/EngineeringRuleEnforcement/code/scan_files_enforcement_worker.py",
               "requires_lock": false,
@@ -436,37 +362,41 @@
                   "_scan_http",
                   "excluded_pattern",
                   [
-                    "^test_",
-                    "conftest\\.py$",
-                    "^brain/BusinessArtifacts/",
-                    "^architecture/EngineeringRuleEnforcement/tests/"
+                    "\\.docx$",
+                    "\\.xlsx$",
+                    "\\.pdf$",
+                    "\\.png$",
+                    "\\.jpg$",
+                    "\\.ico$"
                   ]
                 ],
                 [
                   "_validate_json",
                   "excluded_exact",
                   [
-                    "package-lock.json",
+                    "Code/ConversationalUX/FindCareChat/frontend/package-lock.json",
                     ".claude/settings.json",
                     ".claude/settings.local.json",
                     "pipeline/Code/host.json",
                     "architecture/ClaudeCodeConversationPersistence/appsettings.json",
                     "architecture/ClaudeCodeConversationPersistence/appsettings.Development.json",
                     "architecture/ClaudeCodeConversationPersistence/Properties/launchSettings.json",
-                    "FindCare/architectureAndDesign/EPIC-006-F-025-baseline-record-NPI-1003199654.json"
+                    "FindCare/architectureAndDesign/EPIC-006-F-025-baseline-record-NPI-1003199654.json",
+                    "Code/ConversationalUX/ChatHealthyWhoAmIChat/me/findcare-code-package.json",
+                    "pipeline/Code/tests/fixtures/nppes_individual_wy.json",
+                    "pipeline/Code/tests/fixtures/nppes_org_vt.json"
                   ]
                 ],
                 [
                   "_validate_json",
                   "excluded_pattern",
                   [
-                    "^tests/fixtures/",
-                    "^pipeline/Code/tests/fixtures/",
-                    "^architecture/EngineeringRuleEnforcement/tests/fixtures/",
-                    "^Website/schemas/standard/",
-                    "^Website/Data/",
-                    "^evaluateCare/APICatalogue/",
-                    "^sharedServices/APICatalogue/"
+                    "\\.docx$",
+                    "\\.xlsx$",
+                    "\\.pdf$",
+                    "\\.png$",
+                    "\\.jpg$",
+                    "\\.ico$"
                   ]
                 ],
                 [
@@ -479,9 +409,7 @@
                 [
                   "_scan_http",
                   "excluded_pattern",
-                  [
-                    "^Website/schemas/standard/"
-                  ]
+                  []
                 ],
                 [
                   "_scan_http",
@@ -497,13 +425,7 @@
                   "_block_regular_expressions_in_executable_code",
                   "allowed_pattern",
                   [
-                    "^Code/ConversationalUX/FindCareChat/backend/.*\\.py$",
-                    "^Code/ConversationalUX/FindCareChat/frontend/src/.*\\.(ts|tsx|js|jsx)$",
-                    "^Code/DataPipelines/.*\\.py$",
-                    "^evaluateCare/Code/.*\\.py$",
-                    "^sharedServices/Code/.*\\.py$",
-                    "^FrontEndApplicationLib/src/.*\\.py$",
-                    "^Website/[^/]+\\.(html|js)$"
+                    "\\.(py|ts|tsx|js|jsx)$"
                   ]
                 ],
                 [
@@ -511,197 +433,38 @@
                   "excluded_exact",
                   [
                     "architecture/EngineeringRuleEnforcement/code/scan_files_enforcement_worker.py",
-                    "architecture/EngineeringRuleEnforcement/code/scan_separation_of_concerns_worker.py"
+                    "architecture/EngineeringRuleEnforcement/code/scan_separation_of_concerns_worker.py",
+                    "architecture/EngineeringRuleEnforcement/code/enforcement_worker.py"
                   ]
                 ],
                 [
                   "_block_regular_expressions_in_executable_code",
                   "excluded_pattern",
                   [
-                    "(^|/)tests/",
-                    "(^|/)test_.*\\.py$",
-                    "_test\\.py$",
-                    "(^|/)conftest\\.py$",
                     "(^|/)_oneshots/",
                     "(^|/)__pycache__/",
                     "(^|/)node_modules/",
-                    "(^|/)dist/"
+                    "(^|/)dist/",
+                    "\\.docx$",
+                    "\\.xlsx$",
+                    "\\.pdf$",
+                    "\\.png$",
+                    "\\.jpg$",
+                    "\\.ico$"
                   ]
                 ],
                 [
                   "_scan_no_secret_values",
                   "allowed_pattern",
                   [
-                    "^architecture/DevOpsBuildDeployAndEnvironmentManagement/localBuild/",
-                    "^architecture/DevOpsBuildDeployAndEnvironmentManagement/remoteBuild/"
+                    ".+"
                   ]
                 ]
               ],
               "timeout": 60
-            }
-          ]
-        }
-      },
-      {
-        "id": "Rule-064",
-        "name": "Block tool actions targeting the legacy c:\\chatHealthy tree",
-        "description": "All Claude tool actions (Bash commands, Write, Edit, NotebookEdit) that reference the legacy `{CHATHEALTHY_PROJECT_ROOT}` or `c:\\chatHealthy\\Resources` tree are denied at the Claude Code permission layer (PreToolUse). Triggered after a Claude session (or code Claude wrote) was found to have recreated the deleted legacy directory tree on 2026-05-02 17:27 UTC and written `{CHATHEALTHY_PROJECT_ROOT}/code/LoadDB.ipynb` 85 minutes after Skip deleted the directory at 16:02:20 UTC. The current project lives at `c:\\CHATHealthyLLC` and that root must never be left.",
-        "rule_statements": {
-          "rule_statement": [
-            {
-              "statement_number": 1,
-              "statement_body": "Bash command containing the substring `{CHATHEALTHY_PROJECT_ROOT}` or `{CHATHEALTHY_PROJECT_ROOT}` (case-insensitive) MUST be denied at PreToolUse.",
-              "req_id": "EPIC-008-F-002-S-013-REQ-B-001"
             },
             {
-              "statement_number": 2,
-              "statement_body": "Bash command containing the substring `c:/chatHealthy/Resources` or `c:\\chatHealthy\\Resources` (case-insensitive) MUST be denied at PreToolUse.",
-              "req_id": "EPIC-008-F-002-S-013-REQ-B-002"
-            },
-            {
-              "statement_number": 3,
-              "statement_body": "Bash command targeting any path under `c:\\chatHealthy\\` other than `c:\\CHATHealthyLLC\\` (case-insensitive) MUST be denied at PreToolUse.",
-              "req_id": "EPIC-008-F-002-S-013-REQ-B-003"
-            },
-            {
-              "statement_number": 4,
-              "statement_body": "Write tool with `file_path` containing the substring `{CHATHEALTHY_PROJECT_ROOT}` or `{CHATHEALTHY_PROJECT_ROOT}` (case-insensitive) MUST be denied at PreToolUse.",
-              "req_id": "EPIC-008-F-002-S-013-REQ-B-004"
-            },
-            {
-              "statement_number": 5,
-              "statement_body": "Write tool with `file_path` containing the substring `c:/chatHealthy/Resources` or `c:\\chatHealthy\\Resources` (case-insensitive) MUST be denied at PreToolUse.",
-              "req_id": "EPIC-008-F-002-S-013-REQ-B-005"
-            },
-            {
-              "statement_number": 6,
-              "statement_body": "Write tool with `file_path` under `c:\\chatHealthy\\` other than `c:\\CHATHealthyLLC\\` (case-insensitive) MUST be denied at PreToolUse.",
-              "req_id": "EPIC-008-F-002-S-013-REQ-B-006"
-            },
-            {
-              "statement_number": 7,
-              "statement_body": "Write tool with `content` containing the substring `{CHATHEALTHY_PROJECT_ROOT}` or `{CHATHEALTHY_PROJECT_ROOT}` (case-insensitive) MUST be denied at PreToolUse.",
-              "req_id": "EPIC-008-F-002-S-013-REQ-B-007"
-            },
-            {
-              "statement_number": 8,
-              "statement_body": "Edit tool with `file_path` containing the substring `{CHATHEALTHY_PROJECT_ROOT}` or `{CHATHEALTHY_PROJECT_ROOT}` (case-insensitive) MUST be denied at PreToolUse.",
-              "req_id": "EPIC-008-F-002-S-013-REQ-B-008"
-            },
-            {
-              "statement_number": 9,
-              "statement_body": "Edit tool with `file_path` containing the substring `c:/chatHealthy/Resources` or `c:\\chatHealthy\\Resources` (case-insensitive) MUST be denied at PreToolUse.",
-              "req_id": "EPIC-008-F-002-S-013-REQ-B-009"
-            },
-            {
-              "statement_number": 10,
-              "statement_body": "Edit tool with `new_string` containing the substring `{CHATHEALTHY_PROJECT_ROOT}` or `{CHATHEALTHY_PROJECT_ROOT}` (case-insensitive) MUST be denied at PreToolUse.",
-              "req_id": "EPIC-008-F-002-S-013-REQ-B-010"
-            },
-            {
-              "statement_number": 11,
-              "statement_body": "NotebookEdit tool with `notebook_path` under `c:\\chatHealthy\\` other than `c:\\CHATHealthyLLC\\` (case-insensitive) MUST be denied at PreToolUse.",
-              "req_id": "EPIC-008-F-002-S-013-REQ-B-011"
-            },
-            {
-              "statement_number": 12,
-              "statement_body": "Maintenance obligation: if the legacy tree is renamed, removed, or relocated in the future, the patterns in block_legacy_path_worker.py and the corresponding statements above MUST be updated. Skip will track this explicitly; this statement exists to make the maintenance contract visible.",
-              "req_id": "EPIC-008-F-002-S-013-REQ-B-012"
-            }
-          ]
-        },
-        "enforcements": {
-          "enforcement": [
-            {
-              "enforcement_id": "Rule-064-ENF-001",
-              "hook": "PreToolUse",
-              "executable_path": "architecture/EngineeringRuleEnforcement/code/block_legacy_path_worker.py",
-              "requires_lock": false,
-              "scopes": [],
-              "timeout": 5
-            }
-          ]
-        }
-      },
-      {
-        "id": "Rule-066",
-        "name": "Build/deploy/promote entry-point uniqueness",
-        "description": "Enforces the unified contract from build_deploy_promote_plan v3: the repository has exactly three operator-facing or CI-facing Python entry points for the build/deploy/promote chain — build_chathealthy.py, deploy_chathealthy.py, and promote_chathealthy.py. The legacy four-script set (local_build, local_deploy, remote_build, remote_deploy) and the never-existed local_publish are forbidden. All other Python files at the top level of architecture/DevOpsBuildDeployAndEnvironmentManagement/ are imported-only helpers and must NOT carry an `if __name__ == \"__main__\":` block. The pre-commit hook scans every staged path under that directory and rejects on any forbidden name or any disallowed entry-point block.",
-        "rule_statements": {
-          "rule_statement": [
-            {
-              "statement_number": 1,
-              "statement_body": "The repository MUST NOT contain any committed file at the top level of architecture/DevOpsBuildDeployAndEnvironmentManagement/ named one of: local_build.py, local_deploy.py, remote_build.py, remote_deploy.py, local_publish.py. The only top-level entry points permitted are build_chathealthy.py, deploy_chathealthy.py, promote_chathealthy.py. Any other top-level Python file MUST NOT contain an `if __name__ == \"__main__\":` block (it must be an imported-only helper module).",
-              "req_id": "EPIC-008-F-012-S-001-REQ-B-007"
-            }
-          ]
-        },
-        "enforcements": {
-          "enforcement": [
-            {
-              "enforcement_id": "Rule-066-ENF-001",
-              "hook": "pre-commit",
-              "executable_path": "architecture/EngineeringRuleEnforcement/code/scan_entrypoint_uniqueness_worker.py",
-              "requires_lock": false,
-              "scopes": [],
-              "timeout": 10
-            }
-          ]
-        }
-      },
-      {
-        "id": "Rule-065",
-        "name": "No commit without explicit human authorization",
-        "description": "Every `git commit` MUST be explicitly authorized by the human operator at the moment it fires. The commit covers any file in the ChatHealthy repository that is not gitignored. The `git push` that immediately follows is the network operation completing the commit and is implicit in the commit's authorization; no separate authorization is required to push a freshly authorized commit. A real interactive terminal satisfies this with an exact-match APPROVE token typed at a prompt naming the action; every other context (agent sessions, IDE integrations, headless shells) is served a local browser page with APPROVE and REJECT, blocking until the operator clicks or the 600-second timeout rejects. Deploy authorization is out of scope for this rule and is not enforced today.",
-        "rule_statements": {
-          "rule_statement": [
-            {
-              "statement_number": 1,
-              "statement_body": "No commit CAN take place without explicit human authorization. A commit to the code repository can be for any file in the ChatHealthy repository that is not gitignored. A push is implicit with a commit; even though it is a separate command, it does not require a separate authorization event. This requirement shall be enforced as part of ChatHealthy's rule enforcements.",
-              "req_id": "EPIC-008-F-012-S-001-REQ-B-007"
-            }
-          ]
-        },
-        "enforcements": {
-          "enforcement": [
-            {
-              "enforcement_id": "Rule-065-ENF-001",
-              "hook": "pre-commit",
-              "executable_path": "architecture/EngineeringRuleEnforcement/code/commit_authorization_worker.py",
-              "requires_lock": false,
-              "scopes": [],
-              "timeout": 900
-            }
-          ]
-        }
-      },
-      {
-        "id": "Rule-009",
-        "name": "Separation of concerns between React display, plumbing JS/HTML, and Python tools",
-        "description": "Realizes EPIC-008-F-002-S-016-REQ-B-001/B-002/B-003. Three independent deterministic checks enforce the front-end architectural separation: (a) authored non-React .js and .html MUST NOT author display content; (b) React .ts/.tsx MUST NOT change persistent state directly; (c) authored non-React .js and .html MUST NOT carry business logic. All three checks use structural parsing (stdlib html.parser for .html, tree-sitter or equivalent for .js/.ts/.tsx) plus regex on parsed string contents; the worker is added to Rule-008's _block_regular_expressions_in_executable_code excluded_exact list. Per EPIC-008-F-002-S-016-REQ-B-004, no LLM call appears in the pre-commit path.",
-        "rule_statements": {
-          "rule_statement": [
-            {
-              "statement_number": 1,
-              "statement_body": "Authored .js files outside the React application source tree (Code/ConversationalUX/FindCareChat/frontend/src/) and authored .html files MUST NOT author display content. Display content authoring includes assignments to innerHTML, outerHTML, textContent, or innerText; programmatic construction of DOM nodes carrying visible text or styles; and emitting template literals containing HTML markup. Couriering an opaque content string handed in via postMessage and assigning it to a named frame is permitted via the excluded_exact list.",
-              "req_id": "EPIC-008-F-002-S-016-REQ-B-001"
-            },
-            {
-              "statement_number": 2,
-              "statement_body": "The React application MUST NOT change persistent state directly. All persistence changes MUST originate from a /gate call dispatched through ClientRouter. Forbidden in React source: writes to localStorage, sessionStorage, indexedDB, or document.cookie; any fetch, XMLHttpRequest, or navigator.sendBeacon call that does not resolve to the canonical ClientRouter.getStreamedPayloads / ClientRouter.getFullPayload / router:makeCall postMessage path. Approved out-of-band reads are permitted via the excluded_exact list.",
-              "req_id": "EPIC-008-F-002-S-016-REQ-B-002"
-            },
-            {
-              "statement_number": 3,
-              "statement_body": "Authored .js files outside the React source tree and authored .html files MUST NOT carry business logic. Business logic is identified by branching on, or directly reading/writing, domain-vocabulary fields (provider, specialty, NPI, NUCC, clinical_trial, evaluation, user_object) on any payload or DOM value.",
-              "req_id": "EPIC-008-F-002-S-016-REQ-B-003"
-            }
-          ]
-        },
-        "enforcements": {
-          "enforcement": [
-            {
-              "enforcement_id": "Rule-009-ENF-001",
+              "enforcement_id": "Rule-065-ENF-007",
               "hook": "pre-commit",
               "executable_path": "architecture/EngineeringRuleEnforcement/code/scan_separation_of_concerns_worker.py",
               "requires_lock": false,
@@ -710,70 +473,104 @@
                   "_scan_display_authoring",
                   "allowed_pattern",
                   [
-                    "^Website/.+\\.js$",
-                    "^Website/.+\\.html$"
+                    "\\.(js|html)$"
                   ]
                 ],
                 [
                   "_scan_display_authoring",
                   "excluded_pattern",
                   [
-                    "^Website/schemas/",
                     "(^|/)dist/",
                     "(^|/)node_modules/",
-                    "(^|/)_oneshots/"
+                    "(^|/)_oneshots/",
+                    "\\.docx$",
+                    "\\.xlsx$",
+                    "\\.pdf$",
+                    "\\.png$",
+                    "\\.jpg$",
+                    "\\.ico$"
                   ]
                 ],
                 [
                   "_scan_display_authoring",
                   "excluded_exact",
                   [
-                    "Website/ClientRouter.js"
+                    "Website/ClientRouter.js",
+                    "architecture/EngineeringRuleEnforcement/tests/fixtures/separation_of_concerns/display_authoring/courier_clientrouter.js",
+                    "architecture/EngineeringRuleEnforcement/tests/fixtures/separation_of_concerns/display_authoring/violation.html",
+                    "architecture/EngineeringRuleEnforcement/tests/fixtures/separation_of_concerns/display_authoring/violation.js"
                   ]
                 ],
                 [
                   "_scan_react_persistence",
                   "allowed_pattern",
                   [
-                    "^Code/ConversationalUX/FindCareChat/frontend/src/.+\\.(ts|tsx)$"
+                    "\\.(ts|tsx)$"
                   ]
                 ],
                 [
                   "_scan_react_persistence",
                   "excluded_pattern",
                   [
-                    "(^|/)tests?/",
                     "(^|/)dist/",
-                    "(^|/)_oneshots/"
+                    "(^|/)_oneshots/",
+                    "\\.docx$",
+                    "\\.xlsx$",
+                    "\\.pdf$",
+                    "\\.png$",
+                    "\\.jpg$",
+                    "\\.ico$"
                   ]
                 ],
                 [
                   "_scan_react_persistence",
                   "excluded_exact",
                   [
-                    "Code/ConversationalUX/FindCareChat/frontend/src/components/WelcomeWidget.tsx"
+                    "Code/ConversationalUX/FindCareChat/frontend/src/components/WelcomeWidget.tsx",
+                    "architecture/EngineeringRuleEnforcement/tests/fixtures/separation_of_concerns/react_persistence/approved_welcome.tsx",
+                    "architecture/EngineeringRuleEnforcement/tests/fixtures/separation_of_concerns/react_persistence/violation.tsx"
                   ]
                 ],
                 [
                   "_scan_business_logic",
                   "allowed_pattern",
                   [
-                    "^Website/.+\\.js$",
-                    "^Website/.+\\.html$"
+                    "\\.(js|html)$"
                   ]
                 ],
                 [
                   "_scan_business_logic",
                   "excluded_pattern",
                   [
-                    "^Website/schemas/",
                     "(^|/)dist/",
                     "(^|/)node_modules/",
-                    "(^|/)_oneshots/"
+                    "(^|/)_oneshots/",
+                    "\\.docx$",
+                    "\\.xlsx$",
+                    "\\.pdf$",
+                    "\\.png$",
+                    "\\.jpg$",
+                    "\\.ico$"
+                  ]
+                ],
+                [
+                  "_scan_business_logic",
+                  "excluded_exact",
+                  [
+                    "architecture/EngineeringRuleEnforcement/tests/fixtures/separation_of_concerns/business_logic/violation.html",
+                    "architecture/EngineeringRuleEnforcement/tests/fixtures/separation_of_concerns/business_logic/violation.js"
                   ]
                 ]
               ],
               "timeout": 120
+            },
+            {
+              "enforcement_id": "Rule-065-ENF-008",
+              "hook": "pre-commit",
+              "executable_path": "architecture/EngineeringRuleEnforcement/code/scan_entrypoint_uniqueness_worker.py",
+              "requires_lock": false,
+              "scopes": [],
+              "timeout": 10
             }
           ]
         }

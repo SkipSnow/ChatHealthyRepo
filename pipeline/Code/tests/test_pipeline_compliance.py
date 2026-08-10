@@ -12,11 +12,24 @@
 #
 # Run: pytest Code/DataPipelines/tests/test_pipeline_compliance.py -v
 
+import ast
+import io
 import os
-import re
 import sys
+import tokenize
 
 import pytest
+
+import sys as _sys, pathlib as _pl
+for _d in _pl.Path(__file__).resolve().parents:
+    if (_d / ".git").exists():
+        _lib = _d / "FrontEndApplicationLib" / "src"
+        if str(_lib) not in _sys.path:
+            _sys.path.insert(0, str(_lib))
+        break
+from chathealthy_frontend_lib.logging_service import ChatHealthyLoggingService
+
+_CH_LOG = ChatHealthyLoggingService()
 
 PIPELINE_DIR = os.path.join(os.path.dirname(__file__), "..")
 PIPELINE_FILES = []
@@ -29,6 +42,70 @@ for f in os.listdir(PIPELINE_DIR):
 def _read(path):
     with open(path, encoding="utf-8", errors="replace") as f:
         return f.read()
+
+
+# ---------------------------------------------------------------------------
+# Source inspection.
+#
+# Every check below asks a question about what the pipeline code DOES —
+# whether it calls requests.get with streaming on, whether it accumulates
+# a download into a variable, whether a URL is written into a manager. So
+# each one reads the parsed module rather than its characters: a call is a
+# call, a string constant is a string constant, and a mention inside a
+# comment is not mistaken for either.
+# ---------------------------------------------------------------------------
+
+def _parse(source, path):
+    try:
+        return ast.parse(source)
+    except SyntaxError as exc:
+        pytest.fail(f"{os.path.basename(path)} does not parse: {exc}")
+
+
+def _calls(tree, dotted):
+    """Every Call node whose target is the given dotted name."""
+    want = dotted.split(".")
+    out = []
+    for node in ast.walk(tree):
+        if not isinstance(node, ast.Call):
+            continue
+        parts = []
+        target = node.func
+        while isinstance(target, ast.Attribute):
+            parts.append(target.attr)
+            target = target.value
+        if isinstance(target, ast.Name):
+            parts.append(target.id)
+        if list(reversed(parts)) == want:
+            out.append(node)
+    return out
+
+
+def _keyword(call, name):
+    for kw in call.keywords:
+        if kw.arg == name:
+            return kw.value
+    return None
+
+
+def _string_constants(tree):
+    return [n.value for n in ast.walk(tree)
+            if isinstance(n, ast.Constant) and isinstance(n.value, str)]
+
+
+def _comment_words(source):
+    """Lower-cased word lists, one per comment token."""
+    out = []
+    try:
+        tokens = list(tokenize.generate_tokens(io.StringIO(source).readline))
+    except (tokenize.TokenError, IndentationError):
+        return out
+    for tok in tokens:
+        if tok.type != tokenize.COMMENT:
+            continue
+        cleaned = "".join(c if c.isalnum() else " " for c in tok.string.lower())
+        out.append(cleaned.split())
+    return out
 
 
 # ===========================================================================
@@ -54,11 +131,16 @@ class TestNoRawDownloads:
             if name in self.ALLOWED_FILES:
                 continue
             source = _read(path)
-            # Find requests.get with large file indicators
-            if re.search(r'requests\.get\(.*stream\s*=\s*True', source):
-                violations.append(f"{name}: streaming download with requests.get — must use DataFetcherBase")
-            if re.search(r'requests\.get\(.*timeout\s*=\s*[3-9]\d\d', source):
-                violations.append(f"{name}: long-timeout download with requests.get — must use DataFetcherBase")
+            for call in _calls(_parse(source, path), "requests.get"):
+                stream = _keyword(call, "stream")
+                if isinstance(stream, ast.Constant) and stream.value is True:
+                    violations.append(f"{name}:{call.lineno}: streaming download with requests.get — must use DataFetcherBase")
+                timeout = _keyword(call, "timeout")
+                if (isinstance(timeout, ast.Constant)
+                        and isinstance(timeout.value, (int, float))
+                        and not isinstance(timeout.value, bool)
+                        and timeout.value >= 300):
+                    violations.append(f"{name}:{call.lineno}: long-timeout download with requests.get — must use DataFetcherBase")
         assert len(violations) == 0, (
             f"v4-001D violations — raw downloads found:\n" + "\n".join(f"  {v}" for v in violations)
         )
@@ -79,10 +161,19 @@ class TestNoFullFileInMemory:
             name = os.path.basename(path)
             source = _read(path)
             lines = source.split("\n")
+            tree = _parse(source, path)
+
+            # Accumulating bytes: content += chunk
+            for node in ast.walk(tree):
+                if (isinstance(node, ast.AugAssign)
+                        and isinstance(node.op, ast.Add)
+                        and isinstance(node.target, ast.Name)
+                        and node.target.id == "content"
+                        and isinstance(node.value, ast.Name)
+                        and node.value.id == "chunk"):
+                    violations.append(f"{name}:{node.lineno}: accumulating chunks into memory (content += chunk)")
+
             for i, line in enumerate(lines, 1):
-                # Accumulating bytes: content += chunk or content = content + chunk
-                if re.search(r'content\s*\+=\s*chunk', line):
-                    violations.append(f"{name}:{i}: accumulating chunks into memory (content += chunk)")
                 # .readall() on blob downloads
                 if '.readall()' in line and 'test' not in name.lower():
                     # Allow readall on small files (config, etc) but flag on data files
@@ -99,8 +190,9 @@ class TestNoFullFileInMemory:
         for path in PIPELINE_FILES:
             name = os.path.basename(path)
             source = _read(path)
-            # Pattern: content.decode or text = content.decode
-            if re.search(r'content\.decode\(', source) and 'test' not in name.lower():
+            if 'test' in name.lower():
+                continue
+            if _calls(_parse(source, path), "content.decode"):
                 # Check context — is this a large file?
                 if any(kw in source.lower() for kw in ['part_d', 'npi_', 'prescrib']):
                     violations.append(f"{name}: decoding entire file content — must stream per line")
@@ -129,7 +221,11 @@ class TestBlobStorageRequired:
         for path in managers:
             name = os.path.basename(path)
             source = _read(path)
-            urls = re.findall(r'https?://(?:data\.cms\.gov|download\.cms\.gov|oig\.hhs\.gov|sam\.gov)[^\s\'"]+', source)
+            hosts = ("data.cms.gov", "download.cms.gov", "oig.hhs.gov", "sam.gov")
+            prefixes = tuple(f"{scheme}://{host}"
+                             for scheme in ("https", "http") for host in hosts)
+            urls = [s for s in _string_constants(_parse(source, path))
+                    if s.startswith(prefixes)]
             for url in urls:
                 violations.append(f"{name}: hardcoded download URL '{url[:60]}...' — must be in DataFetcherBase subclass")
         assert len(violations) == 0, (
@@ -167,7 +263,7 @@ class TestPipelineStages:
         # This is a heuristic — manual review needed for edge cases
         # Just warn, don't fail
         if violations:
-            print(f"\n  DR-022 WARNINGS: {violations}")
+            _CH_LOG.info(f"\n  DR-022 WARNINGS: {violations}")
 
 
 # ===========================================================================
@@ -196,7 +292,8 @@ class TestCloudExecution:
             name = os.path.basename(path)
             source = _read(path)
             # Check for hardcoded dev_ database names
-            hardcoded = re.findall(r'["\']dev_PublicHealthData["\']', source)
+            hardcoded = [s for s in _string_constants(_parse(source, path))
+                         if s == "dev_PublicHealthData"]
             if hardcoded:
                 violations.append(f"{name}: hardcoded 'dev_PublicHealthData' — must use ENV_PREFIX")
         assert len(violations) == 0, (
@@ -226,7 +323,7 @@ class TestFanOutRequired:
             if "for state in" in source and "fan_out" not in source and "activity_list" not in source:
                 # Check if there's a documented fan-in justification
                 if "v4-001F" not in source and "fan-in" not in source.lower():
-                    print(f"\n  WARNING: {name} may process states serially without fan-out (v4-001F)")
+                    _CH_LOG.info(f"\n  WARNING: {name} may process states serially without fan-out (v4-001F)")
 
     def test_fan_in_has_justification(self):
         """Any fan-in (single process) must cite v4-001F in a comment."""
@@ -234,13 +331,23 @@ class TestFanOutRequired:
         for path in PIPELINE_FILES:
             name = os.path.basename(path)
             source = _read(path)
-            # Look for patterns that suggest fan-in without justification
-            if re.search(r'#.*fan.?in|#.*single.?process|#.*aggregate.*all', source, re.IGNORECASE):
-                if "v4-001F" not in source:
-                    violations.append(f"{name}: fan-in pattern without v4-001F citation")
+            # A comment that describes fan-in, a single process, or
+            # aggregating everything, without the citation that justifies it.
+            adjacent_phrases = (("fan", "in"), ("single", "process"))
+            flagged = False
+            for words in _comment_words(source):
+                pairs = set(zip(words, words[1:]))
+                if any(p in pairs for p in adjacent_phrases):
+                    flagged = True
+                    break
+                if "aggregate" in words and "all" in words[words.index("aggregate"):]:
+                    flagged = True
+                    break
+            if flagged and "v4-001F" not in source:
+                violations.append(f"{name}: fan-in pattern without v4-001F citation")
         # This is advisory — just report
         if violations:
-            print(f"\n  Fan-in without citation: {violations}")
+            _CH_LOG.info(f"\n  Fan-in without citation: {violations}")
 
 
 class TestParityRequirements:

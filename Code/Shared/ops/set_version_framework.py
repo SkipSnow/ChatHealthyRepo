@@ -1,15 +1,15 @@
 # Copyright (c) 2026 ChatHealthy.ai LLC. All rights reserved.
 # Licensed under the FindCare Evaluation License (FEL-1.0).
-"""Human-driven update of version and/or framework in admin.Versions.
+"""Human-driven update of version and/or framework in frontEndAdmin.BuildVersions.
 
-Per BUG-001: build is global, in admin.Versions, and is bumped at build time
+Per BUG-001: build is global, in frontEndAdmin.BuildVersions, and is bumped at build time
 (see DeploymentArchitectureDesignAndMigrationPlanPhase_v14.docx section 2.1 build_chathealthy.py).
 version and framework are set ONLY by humans, only at
 prod UAT sign-off. Claude invokes this routine when the operator authorizes
 a version or framework update.
 
 Pattern matches the build-time bump in build_chathealthy.py:
-    1. Read latest admin.Versions record.
+    1. Read latest frontEndAdmin.BuildVersions record.
     2. Insert a new record with the supplied version and/or framework, the
        previous `builds` array copied forward unchanged (per-env build slots
        are not touched by this routine), and a fresh `from` timestamp.
@@ -43,6 +43,29 @@ PUSH_TIMEOUT_SECONDS = 5
 VALID_ENVS = ("local", "dev", "qa", "prod")
 
 
+
+def _devops_connection():
+    """The DevOps identity, by certificate. Rule-004: no MongoClient here.
+
+    Operator tooling authenticates as DevOpsUser like everything else in the
+    devops chain. It used to open a MongoClient on a SCRAM connection string,
+    which is a fourth credential outside the three-identity model and outside
+    Rule-004's scan scope, so nothing caught it.
+    """
+    import sys as _sys, pathlib as _pl
+    _src = _pl.Path(__file__).resolve()
+    for _p in _src.parents:
+        if (_p / ".git").exists():
+            _lib = _p / "FrontEndApplicationLib" / "src"
+            if str(_lib) not in _sys.path:
+                _sys.path.insert(0, str(_lib))
+            from dotenv import load_dotenv as _ld
+            _ld(_p / ".env", override=False)
+            break
+    from chathealthy_frontend_lib.mongo_utilities import ChatHealthyMongoUtilities
+    return ChatHealthyMongoUtilities().getConnection("DevOpsUser", "admin")
+
+
 def _carry_forward_builds(builds_array):
     """Return the input builds array filtered + ordered. No values change."""
     by_env = {}
@@ -54,7 +77,7 @@ def _carry_forward_builds(builds_array):
 
 
 def set_version_framework(version: str | None, framework: str | None) -> dict:
-    """Insert a new admin.Versions record with the supplied changes.
+    """Insert a new frontEndAdmin.BuildVersions record with the supplied changes.
 
     The `builds` array is copied forward unchanged from the latest record;
     this routine only updates version and/or framework.
@@ -72,14 +95,14 @@ def set_version_framework(version: str | None, framework: str | None) -> dict:
         log.error("MONGO_FRONTEND_connectionString not set")
         sys.exit(1)
 
-    client = MongoClient(conn, serverSelectionTimeoutMS=10000)
-    coll = client["admin"]["Versions"]
+    client = _devops_connection()
+    coll = client["frontEndAdmin"]["BuildVersions"]
     latest = coll.find_one(sort=[("from", -1)])
     if latest is None:
         raise ChatHealthyException(
             mode="versions_collection_empty",
             component="SetVersionFramework",
-            message="admin.Versions has no records. Run "
+            message="frontEndAdmin.BuildVersions has no records. Run "
                     "seed_versions_collection.py first.")
 
     carried_builds = _carry_forward_builds(latest.get("builds", []))
@@ -87,7 +110,7 @@ def set_version_framework(version: str | None, framework: str | None) -> dict:
         raise ChatHealthyException(
             mode="versions_record_missing_builds",
             component="SetVersionFramework",
-            message="latest admin.Versions record has no per-env builds "
+            message="latest frontEndAdmin.BuildVersions record has no per-env builds "
                     "array; run migrate_versions_to_per_env.py first.")
 
     record = {
@@ -106,7 +129,7 @@ def set_version_framework(version: str | None, framework: str | None) -> dict:
 
 def main():
     parser = argparse.ArgumentParser(
-        description="Update version and/or framework in admin.Versions"
+        description="Update version and/or framework in frontEndAdmin.BuildVersions"
     )
     parser.add_argument("--version", help="New version ID (e.g., 0.5.0)")
     parser.add_argument("--framework", help="New framework ID (e.g., 0.2.0)")

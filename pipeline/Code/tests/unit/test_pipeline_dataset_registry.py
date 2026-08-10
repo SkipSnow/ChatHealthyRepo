@@ -18,47 +18,43 @@ from pipeline_dataset_registry import (
 
 
 # ---------------------------------------------------------------------------
-# fake mongo (captures inserts into Pipelines.pipeline.discrepancies)
+# Real mongo, scratch collection.
+#
+# This used to be a hand-rolled fake that captured inserts into a database
+# it called "Pipelines". The recorder writes to "pipelineAdmin", and has
+# since that database was renamed, so the fake captured nothing and every
+# invariant assertion that read it failed. A fake cannot go stale loudly:
+# it just silently stops matching the thing it stands in for.
+#
+# So the registry gets a real client through the canonical utility and the
+# recorder's destination is redirected to a scratch collection that is
+# dropped afterwards.
 # ---------------------------------------------------------------------------
 
 
-class _FakeColl:
-    def __init__(self):
-        self.docs: list[dict] = []
-
-    def insert_one(self, doc: dict):
-        self.docs.append(dict(doc))
-
-
-class _FakeDb:
-    def __init__(self):
-        self.colls: dict[str, _FakeColl] = {}
-
-    def __getitem__(self, name):
-        return self.colls.setdefault(name, _FakeColl())
-
-
-class _FakeMongo:
-    def __init__(self):
-        self.dbs: dict[str, _FakeDb] = {}
-
-    def __getitem__(self, name):
-        return self.dbs.setdefault(name, _FakeDb())
-
-    @property
-    def discrepancies(self):
-        db = self.dbs.get("Pipelines")
-        if db is None:
-            return []
-        coll = db.colls.get("pipeline.discrepancies")
-        if coll is None:
-            return []
-        return coll.docs
-
-
 @pytest.fixture
-def fake_mongo():
-    return _FakeMongo()
+def fake_mongo(monkeypatch, scratch_mongo):
+    """A real client whose fatal-discrepancy writes land in scratch.
+
+    The name is kept because every test in this file takes it as a
+    parameter; what it yields is no longer a fake.
+    """
+    import pipeline_fatal_recorder
+
+    db, collection = scratch_mongo
+    coll = collection("fatal_discrepancies")
+    monkeypatch.setattr(pipeline_fatal_recorder, "FATAL_DISCREPANCIES_DB", db.name)
+    monkeypatch.setattr(pipeline_fatal_recorder, "FATAL_DISCREPANCIES_COLL", coll.name)
+    return db.client
+
+
+def _discrepancies(mongo) -> list[dict]:
+    """Every fatal-discrepancy row the recorder wrote during this test."""
+    import pipeline_fatal_recorder
+    return list(
+        mongo[pipeline_fatal_recorder.FATAL_DISCREPANCIES_DB]
+             [pipeline_fatal_recorder.FATAL_DISCREPANCIES_COLL].find({})
+    )
 
 
 # ---------------------------------------------------------------------------
@@ -119,7 +115,7 @@ def test_valid_config_constructs(fake_mongo):
     names = [e.source_name for e in reg.entries()]
     assert names == ["nppes_npi", "pl_pfile", "nucc", "smd", "provider"]
     # No fatals recorded on the happy path.
-    assert fake_mongo.discrepancies == []
+    assert _discrepancies(fake_mongo) == []
 
 
 def test_topological_order_puts_derived_after_sources(fake_mongo):
@@ -148,7 +144,7 @@ def test_invariant_1_duplicate_source_name(fake_mongo):
     assert "nucc" in str(ei.value)
     # fatal recorded before raise
     assert any(d["reason"] == "fatal_dataset_registry_duplicate_source_name"
-               for d in fake_mongo.discrepancies)
+               for d in _discrepancies(fake_mongo))
 
 
 # ---------------------------------------------------------------------------
@@ -163,7 +159,7 @@ def test_invariant_2_duplicate_staging_name(fake_mongo):
         PipelineDatasetRegistry(cfg, 3, fake_mongo)
     assert ei.value.mode == "dataset_registry_duplicate_staging_name"
     assert any(d["reason"] == "fatal_dataset_registry_duplicate_staging_name"
-               for d in fake_mongo.discrepancies)
+               for d in _discrepancies(fake_mongo))
 
 
 # ---------------------------------------------------------------------------
@@ -178,7 +174,7 @@ def test_invariant_3_duplicate_public_data_name(fake_mongo):
         PipelineDatasetRegistry(cfg, 3, fake_mongo)
     assert ei.value.mode == "dataset_registry_duplicate_public_data_name"
     assert any(d["reason"] == "fatal_dataset_registry_duplicate_public_data_name"
-               for d in fake_mongo.discrepancies)
+               for d in _discrepancies(fake_mongo))
 
 
 # ---------------------------------------------------------------------------
@@ -194,7 +190,7 @@ def test_invariant_4_bundle_zero_fetchers(fake_mongo):
         PipelineDatasetRegistry(cfg, 3, fake_mongo)
     assert ei.value.mode == "dataset_registry_bundle_fetch_count"
     assert any(d["reason"] == "fatal_dataset_registry_bundle_fetch_count"
-               for d in fake_mongo.discrepancies)
+               for d in _discrepancies(fake_mongo))
 
 
 def test_invariant_4_bundle_multiple_fetchers(fake_mongo):
@@ -218,7 +214,7 @@ def test_invariant_5_dangling_dependency(fake_mongo):
     assert ei.value.mode == "dataset_registry_dangling_dependency"
     assert "ghost_source" in str(ei.value)
     assert any(d["reason"] == "fatal_dataset_registry_dangling_dependency"
-               for d in fake_mongo.discrepancies)
+               for d in _discrepancies(fake_mongo))
 
 
 # ---------------------------------------------------------------------------
@@ -243,7 +239,7 @@ def test_invariant_6_dependency_cycle(fake_mongo):
     assert "nucc" in msg and "smd" in msg
     assert "->" in msg
     assert any(d["reason"] == "fatal_dataset_registry_dependency_cycle"
-               for d in fake_mongo.discrepancies)
+               for d in _discrepancies(fake_mongo))
 
 
 def test_invariant_6_self_cycle(fake_mongo):

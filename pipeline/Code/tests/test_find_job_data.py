@@ -2,6 +2,17 @@
 import os
 import sys
 
+import sys as _sys, pathlib as _pl
+for _d in _pl.Path(__file__).resolve().parents:
+    if (_d / ".git").exists():
+        _lib = _d / "FrontEndApplicationLib" / "src"
+        if str(_lib) not in _sys.path:
+            _sys.path.insert(0, str(_lib))
+        break
+from chathealthy_frontend_lib.logging_service import ChatHealthyLoggingService
+
+_CH_LOG = ChatHealthyLoggingService()
+
 sys.path.insert(0, "FrontEndApplicationLib/src")
 from chathealthy_frontend_lib.mongo_utilities import ChatHealthyMongoUtilities
 
@@ -17,26 +28,26 @@ def test_find_job_data():
         # Look in Pipelines metadata database
         db = client["pipelineAdmin"]
 
-        print(f"\n✓ Checking Pipelines metadata database...")
+        _CH_LOG.info(f"\n✓ Checking Pipelines metadata database...")
 
         # Look for pipeline.discrepancy_reports collection
         if "pipeline.discrepancy_reports" in db.list_collection_names():
             coll = db["pipeline.discrepancy_reports"]
             count = coll.count_documents({})
-            print(f"✓ Found pipeline.discrepancies: {count} total documents")
+            _CH_LOG.info(f"✓ Found pipeline.discrepancies: {count} total documents")
 
             # Find test data
             test_docs = list(coll.find({"source": "ProviderPipelineOnDemand"}).limit(5))
             if test_docs:
-                print(f"✓ Found {len(test_docs)} documents from ProviderPipelineOnDemand:")
+                _CH_LOG.info(f"✓ Found {len(test_docs)} documents from ProviderPipelineOnDemand:")
                 for doc in test_docs:
-                    print(f"    - {doc.get('level', 'unknown').upper()}: {doc.get('details', '')[:50]}...")
-                print(f"\n✅ SUCCESS: Test data found in database!")
+                    _CH_LOG.info(f"    - {doc.get('level', 'unknown').upper()}: {doc.get('details', '')[:50]}...")
+                _CH_LOG.info(f"\n✅ SUCCESS: Test data found in database!")
             else:
-                print("✗ No ProviderPipelineOnDemand data found")
+                _CH_LOG.info("✗ No ProviderPipelineOnDemand data found")
         else:
-            print("✗ pipeline.discrepancies collection not found")
-            print(f"  Available collections: {db.list_collection_names()}")
+            _CH_LOG.info("✗ pipeline.discrepancies collection not found")
+            _CH_LOG.info(f"  Available collections: {db.list_collection_names()}")
 
         assert True
 

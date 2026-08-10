@@ -23,12 +23,13 @@ _log = ChatHealthyLoggingService()
 def _nucc_lookup(rt: PipelineRuntime) -> dict[str, dict]:
     """Return code -> SMD row for every published specialty.
 
-    v42 §5.2.9 Pass B: reads PipeLine cluster's fully-published
-    PublicData.SpecialtyMetaData_v_{data_version}, which the ordered
-    step list guarantees is complete before this function is called
-    (publish_smd_and_embed is a transitive prerequisite of
-    normalize_npi_per_state_fanout). Includes both native NUCC codes
-    and F-105 supplements (e.g. 246ZS0400X).
+    v42 §5.2.9 Pass B: reads the pipeline cluster's fully-published SMD
+    collection, resolved from the registry's `smd` entry rather than
+    named here, which the ordered step list guarantees is complete
+    before this function is called (publish_smd_and_embed is a
+    transitive prerequisite of normalize_npi_per_state_fanout).
+    Includes both native NUCC codes and F-105 supplements (e.g.
+    246ZS0400X).
 
     Pipeline-cluster read only. Pipelines never touch the front-end
     cluster (operator directive 2026-08-02).
@@ -38,7 +39,10 @@ def _nucc_lookup(rt: PipelineRuntime) -> dict[str, dict]:
     the caller (build_provider_record) untouched, wrap the flat SMD row
     in the {'raw': {...}} shape build_provider_record expects.
     """
-    smd = rt.mongo["PublicHealthData"][f"SpecialtyMetaData_v_{rt.data_version}"]
+    smd_entry = rt.registry.by_source_name("smd")
+    smd = rt.mongo[smd_entry.public_data_db][
+        rt.registry.public_data_collection_name("smd")
+    ]
     out: dict[str, dict] = {}
     for row in smd.find({}):
         code = row.get("Code") or row.get("code")

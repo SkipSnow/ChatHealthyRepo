@@ -475,22 +475,6 @@
             ],
             "description": "Which authority attests this specific code on this provider. CMS_NPPES for `reported` elements; NUCC for `canonical_derived` elements."
           },
-          "grouping": {
-            "type": "string",
-            "description": "NUCC grouping (or proprietary equivalent when reference_status != current_reference). REQUIRED when reference_status != current_reference."
-          },
-          "classification": {
-            "type": "string",
-            "description": "NUCC classification (or proprietary equivalent when reference_status != current_reference)."
-          },
-          "specialization": {
-            "type": "string",
-            "description": "NUCC specialization (or proprietary equivalent when reference_status != current_reference)."
-          },
-          "definition": {
-            "type": "string",
-            "description": "NUCC definition (or proprietary equivalent when reference_status != current_reference)."
-          },
           "related_taxonomy": {
             "type": "object",
             "additionalProperties": false,

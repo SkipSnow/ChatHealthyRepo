@@ -805,7 +805,7 @@ BUILD_INFO_PATH = "/app/build_info.json"
 
 def read_build_info():
     """Baked-at-build-time build/version/framework. Returns None if the
-    file is absent (older image); caller falls back to admin.Versions."""
+    file is absent (older image); caller falls back to frontEndAdmin.BuildVersions."""
     from pathlib import Path
     p = Path(BUILD_INFO_PATH)
     if not p.is_file():
@@ -832,7 +832,7 @@ def health():
     Source priority for build/version/framework:
       1. /app/build_info.json — baked at image build time, truthful about
          what's actually running.
-      2. admin.Versions latest doc — legacy fallback for older images.
+      2. frontEndAdmin.BuildVersions latest doc — legacy fallback for older images.
     """
     env_label = ENV_PREFIX if os.getenv("SPACE_ID") else "local"
     idx_check = check_indexes()
@@ -847,7 +847,7 @@ def health():
     mongo_doc = {}
     if db is not None:
         try:
-            mongo_doc = db["admin"]["Versions"].find_one(sort=[("from", -1)]) or {}
+            mongo_doc = db["frontEndAdmin"]["BuildVersions"].find_one(sort=[("from", -1)]) or {}
         except Exception as _exc:
             # Mode 2 (REQ-B-008): Mongo read for /health version info failed;
             # endpoint still returns a body but version fields are empty.
@@ -872,7 +872,7 @@ def health():
         _build = mongo_doc.get("build")
         _version_str = mongo_doc.get("version")
         _git_number = mongo_doc.get("git_number")
-        _source = "admin.Versions"
+        _source = "frontEndAdmin.BuildVersions"
 
     db_status = "connected" if db is not None and _version_error is None else (
         "unavailable" if db is None else "unreachable")

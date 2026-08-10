@@ -36,6 +36,20 @@ _FORBIDDEN: frozenset[str] = frozenset({
 })
 
 
+
+def _ch_exception():
+    """ChatHealthyException, resolved without assuming the library is on the
+    path. Enforcement workers are spawned as bare scripts by the manager."""
+    import sys as _sys, pathlib as _pl
+    for _p in _pl.Path(__file__).resolve().parents:
+        if (_p / ".git").exists():
+            _lib = _p / "FrontEndApplicationLib" / "src"
+            if str(_lib) not in _sys.path:
+                _sys.path.insert(0, str(_lib))
+            break
+    from chathealthy_frontend_lib.exceptions import ChatHealthyException
+    return ChatHealthyException
+
 def _is_forbidden_raise(node: ast.Raise) -> str | None:
     """If node raises a Call on a forbidden built-in name, return that
     name; else None. Bare `raise` (no expression) returns None."""
@@ -79,28 +93,12 @@ class ScanDeliberateRaisesEnforcementWorker(EnforcementWorker):
         self.violation_count: int = 0
 
     def _staged_files(self) -> list[str]:
-        """Repo-relative .py paths staged for this pre-commit. Supports
-        override via SCAN_FILES_ENFORCEMENT_TARGETS for tests."""
-        import os
-        override = os.environ.get("SCAN_FILES_ENFORCEMENT_TARGETS")
-        if override is not None:
-            return [p for p in override.split(os.pathsep)
-                    if p and p.endswith(".py")]
-        if self.hook != "pre-commit":
-            return []
-        completed = subprocess.run(
-            ["git", "diff", "--cached", "--name-only", "--diff-filter=ACMR"],
-            cwd=str(PROJECT_ROOT),
-            capture_output=True,
-            text=True,
-            check=False,
-        )
-        if completed.returncode != 0:
-            return []
-        return [
-            line for line in completed.stdout.splitlines()
-            if line.strip() and line.endswith(".py")
-        ]
+        """The file array the Rule-065 driver handed down.
+
+        This worker owns no git knowledge. What a commit answers for is one
+        decision, and the driver makes it once for every subordinate.
+        """
+        return self.files
 
     def run(self) -> int:
         any_violations = False
@@ -143,5 +141,5 @@ class ScanDeliberateRaisesEnforcementWorker(EnforcementWorker):
 
 
 if __name__ == "__main__":
-    enforcement_id = sys.argv[1] if len(sys.argv) > 1 else "Rule-003-ENF-001"
+    enforcement_id = sys.argv[1] if len(sys.argv) > 1 else "Rule-065-ENF-002"
     sys.exit(ScanDeliberateRaisesEnforcementWorker(enforcement_id).run())

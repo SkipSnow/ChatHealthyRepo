@@ -24,6 +24,17 @@ import urllib.request
 
 import pytest
 
+import sys as _sys, pathlib as _pl
+for _d in _pl.Path(__file__).resolve().parents:
+    if (_d / ".git").exists():
+        _lib = _d / "FrontEndApplicationLib" / "src"
+        if str(_lib) not in _sys.path:
+            _sys.path.insert(0, str(_lib))
+        break
+from chathealthy_frontend_lib.logging_service import ChatHealthyLoggingService
+
+_CH_LOG = ChatHealthyLoggingService()
+
 _KV_BY_ENV = {
     "dev": "kv-chpipeline-dev",
     "qa": "kv-chpipeline-qa",
@@ -92,8 +103,8 @@ def test_fire_provider_pipeline() -> None:
         url, method="POST", data=body,
         headers={"Content-Type": "application/json"},
     )
-    print(f"[fire_provider_pipeline] POST env={env} payload={payload}")
+    _CH_LOG.info(f"[fire_provider_pipeline] POST env={env} payload={payload}")
     with urllib.request.urlopen(req, timeout=30) as r:
         assert r.status == 202, f"expected HTTP 202, got {r.status}"
         resp = r.read().decode("utf-8")
-        print(f"[fire_provider_pipeline] HTTP 202 response={resp}")
+        _CH_LOG.info(f"[fire_provider_pipeline] HTTP 202 response={resp}")

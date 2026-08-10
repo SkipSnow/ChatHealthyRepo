@@ -111,7 +111,7 @@
     "firm": {
       "type": "object",
       "additionalProperties": false,
-      "description": "Org-level facts that apply to every deploy this collection drives. Source-of-truth for identity-like values that deploy scripts otherwise tend to hardcode. Per EPIC-008-F-012-S-001-REQ-B-008/B-009.",
+      "description": "Org-level facts that apply to every deploy this collection drives. Source-of-truth for identity-like values that deploy scripts otherwise tend to hardcode. Per EPIC-008-F-012/B-009.",
       "properties": {
         "git_identity": {
           "type": "object",
@@ -1517,7 +1517,7 @@
           },
           "secrets": {
             "type": "object",
-            "description": "Secret / environment key declarations for this TARGET. Map of key NAME -> store id. The same keys apply across every env_binding of this target; per-env VALUES come from the bound store via SecretsResolver. The deploy script reads this inventory and configures the target's runtime env surface (FA app settings, Automation Variables, HF Space secrets, Cloudflare env, etc.). Values themselves NEVER appear in this JSON — only names + store ids. Each target enumerates ITS OWN full key list; no inheritance, no shared base, no implicit defaults. Per EPIC-008-F-012-S-001-REQ-B-009. The 'azure_automation_webhook' store names a key whose value is the webhook URL of another target (an azure_automation_runbook) — the runbook target's deploy step mints/reuses the webhook and pushes the URL directly onto this target's runtime env surface, and the THIS target's deploy resolver MUST skip entries carrying this store (they are set by the upstream runbook deploy, not by reading any local store).",
+            "description": "Secret / environment key declarations for this TARGET. Map of key NAME -> store id. The same keys apply across every env_binding of this target; per-env VALUES come from the bound store via SecretsResolver. The deploy script reads this inventory and configures the target's runtime env surface (FA app settings, Automation Variables, HF Space secrets, Cloudflare env, etc.). Values themselves NEVER appear in this JSON — only names + store ids. Each target enumerates ITS OWN full key list; no inheritance, no shared base, no implicit defaults. Per EPIC-008-F-012. The 'azure_automation_webhook' store names a key whose value is the webhook URL of another target (an azure_automation_runbook) — the runbook target's deploy step mints/reuses the webhook and pushes the URL directly onto this target's runtime env surface, and the THIS target's deploy resolver MUST skip entries carrying this store (they are set by the upstream runbook deploy, not by reading any local store).",
             "additionalProperties": {
               "$ref": "#/$defs/SourceQualifier"
             }
@@ -1554,7 +1554,7 @@
           },
           "entitlements": {
             "type": "array",
-            "description": "Roles, role assignments, memberships, and access grants this TARGET requires. Not secrets — values live entirely in this JSON, never in any .env or external store. The deploy procedure reads this inventory and provisions every entitlement it lists; a ground-up build produces a runtime with exactly these entitlements and no others. Per EPIC-008-F-012-S-001-REQ-B-009.",
+            "description": "Roles, role assignments, memberships, and access grants this TARGET requires. Not secrets — values live entirely in this JSON, never in any .env or external store. The deploy procedure reads this inventory and provisions every entitlement it lists; a ground-up build produces a runtime with exactly these entitlements and no others. Per EPIC-008-F-012.",
             "items": {
               "oneOf": [
                 {

@@ -133,7 +133,7 @@
       "status": "new",
       "severity": "high",
       "req_id": "ORPHAN",
-      "story_id": "EPIC-008-F-012-S-001",
+      "story_id": "EPIC-008-F-012",
       "test_id": "",
       "test_success_criteria": [
         "Every file present in a target's build context is reached by a runtime code path on that target. No file present in a build context is unused by the runtime that target hosts."
@@ -143,7 +143,7 @@
       "reproduction": "1. Run local_build --target findcare. 2. Inspect the build_dir's Code/Shared/ops/ subdirectory; observe every file currently in repo Code/Shared/ops/ (minus standard excludes) is present. 3. Grep the FindCare backend (Code/ConversationalUX/FindCareChat/backend/, FindCare/, FrontEndApplicationLib/) for imports of any module under Code/Shared/ops/. Observe: zero hits. The files are dead bytes shipped to HF on every deploy.",
       "orphan": false,
       "next_action": [
-        "Author a new REQ on EPIC-008-F-012-S-001 capturing the bidirectional exact-truth contract for files per target — analog to REQ-B-008 (env vars) and REQ-B-009 (entitlements). Re-link this bug's req_id when the REQ exists.",
+        "Author a new REQ on EPIC-008-F-012 capturing the bidirectional exact-truth contract for files per target — analog to REQ-B-008 (env vars) and REQ-B-009 (entitlements). Re-link this bug's req_id when the REQ exists.",
         "Replace the wholesale subtree-copy mechanism with an explicit per-target file list driven by deployment_architecture.json. The build stages only what the manifest enumerates for that target.",
         "Implement, then bring this bug to closed."
       ]

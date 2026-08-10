@@ -4,10 +4,15 @@
 """Unit tests for v42 §5.2.8a: publish_smd_and_embed + specialty embed
 composer + _nucc_lookup flip to read published SMD + orchestrator DAG.
 
-Every test uses mongomock for the cluster surfaces and a fake OpenAI
-client so no network egress happens. The stubs are the minimum surface
-each production entry point actually touches; anything the production
-code does not read is left off.
+Cluster surfaces are real: the tests reach MongoDB through the canonical
+utility as DevOpsUser and work in scratch collections carrying a per-run
+uuid, dropped afterwards. OpenAI is the one thing stood in for, because
+embedding text is a paid external call and none of these assertions are
+about what the vector contains.
+
+The collection and database names the code resolves are redirected to
+those scratch names, which is what keeps a test run out of production
+data while leaving every MongoDB behaviour under test genuine.
 """
 
 from __future__ import annotations
@@ -16,23 +21,37 @@ import os
 from dataclasses import dataclass
 from typing import Any
 
-import mongomock
 import pytest
 
-# All pipeline metadata lives in one database. This runbook ships to Azure
-# Automation standalone, so it carries the constant rather than importing
-# pipeline_db, which is not deployed alongside it.
-PIPELINE_ADMIN_DB = "pipelineAdmin"
+
+def _scratch_config(db_name: str, prefix: str) -> dict:
+    """A dataset_versions[] config resolving to scratch collections.
+
+    Staging and loaded share a database because renameCollection is a
+    same-database operation — the constraint the production layout is
+    built around.
+    """
+    def entry(source_name: str, staging_base: str, public_base: str) -> dict:
+        return {
+            "source_name": source_name,
+            "fetch": {"source_url": f"https://example.com/{source_name}.csv"},
+            "file_format": "csv",
+            "staging_name": f"{db_name}.{prefix}{staging_base}",
+            "public_data_name": f"{db_name}.{prefix}{public_base}",
+        }
+
+    # Same base names production uses, so the step resolves the same
+    # entries; only the database and the uuid prefix differ.
+    return {
+        "dataset_versions": [
+            entry("nucc", "StagingNucc", "Nucc"),
+            entry("smd", "SpecialtyMetaData_staging", "SpecialtyMetaData"),
+        ],
+    }
 
 
-
-def _test_registry(pipeline_mongo):
-    """Load the real brain-file dev-env config and hand it to the registry.
-    Keeps test-side collection lookups coupled to dataset_versions[] just
-    like production; brain JSON is the single source of truth."""
-    from pipeline_config import load_pipeline_config
+def _test_registry(pipeline_mongo, cfg):
     from pipeline_dataset_registry import PipelineDatasetRegistry
-    cfg = load_pipeline_config(env_prefix="dev")
     return PipelineDatasetRegistry(cfg, 3, pipeline_mongo)
 
 
@@ -104,34 +123,15 @@ class _FakeOpenAIClient:
         self.embeddings = _FakeEmbeddings(dim)
 
 
-def _mongomock_safe_bulk_write(coll, ops, ordered=False):
-    """Adapter around mongomock 4.3.0's incompatibility with pymongo 4.x's
-    UpdateOne — the modern UpdateOne carries a `sort` kwarg mongomock's
-    BulkOperationBuilder doesn't accept. In production Atlas + real
-    pymongo work fine; the shim only exists so tests can run offline.
-    Iterates each op as an individual update_one call and returns a
-    minimal result surface (modified_count) the caller consumes.
-    """
-    modified = 0
-    for op in ops:
-        # pymongo UpdateOne stores its filter/update on _filter/_doc.
-        filt = getattr(op, "_filter", None)
-        update = getattr(op, "_doc", None)
-        if filt is None or update is None:
-            continue
-        res = coll.update_one(filt, update, upsert=False)
-        modified += (res.modified_count or 0)
-
-    class _R:
-        pass
-    r = _R()
-    r.modified_count = modified
-    r.inserted_count = 0
-    return r
-
-
 @pytest.fixture
 def fake_openai(monkeypatch):
+    """Stand in for the embedding provider only.
+
+    The vector's contents are not what any of these tests assert, and a
+    real call is billed per token. Everything downstream of it — the
+    bulk write, the update, the collection state — runs against the real
+    server.
+    """
     client = _FakeOpenAIClient()
 
     def _fake_build(api_key):
@@ -139,40 +139,30 @@ def fake_openai(monkeypatch):
 
     monkeypatch.setattr("embedding_engine._build_openai_client", _fake_build)
     monkeypatch.setenv("OPENAI_API_KEY", "sk-test-key")
-
-    # Route _process_batch's bulk_write through the mongomock-safe shim.
-    import embedding_engine as _ee
-    orig_process = _ee._process_batch
-
-    def _patched_process(*, client, coll, batch):
-        # Shim only the mongomock case; real pymongo collections pass
-        # through untouched. mongomock collections have no `database` attr
-        # of the pymongo shape; check for the mongomock module in the type.
-        if "mongomock" in type(coll).__module__:
-            orig_bulk = coll.bulk_write
-            coll.bulk_write = lambda ops, ordered=False: _mongomock_safe_bulk_write(coll, ops, ordered)
-            try:
-                return orig_process(client=client, coll=coll, batch=batch)
-            finally:
-                coll.bulk_write = orig_bulk
-        return orig_process(client=client, coll=coll, batch=batch)
-
-    monkeypatch.setattr(_ee, "_process_batch", _patched_process)
     return client
 
 
+@pytest.fixture
+def specialty_staging(scratch_mongo):
+    """A real, disposable staging collection plus its dotted name."""
+    db, collection = scratch_mongo
+    coll = collection("SpecialtyMetaData_staging_v_3")
+    return coll, f"{db.name}.{coll.name}"
+
+
 @pytest.mark.unit
-def test_generate_specialty_embeddings_writes_vector_and_metadata(fake_openai):
+def test_generate_specialty_embeddings_writes_vector_and_metadata(
+    fake_openai, specialty_staging,
+):
     from embedding_engine import generate_specialty_embeddings, CANONICAL_MODEL, CANONICAL_DIM
-    client = mongomock.MongoClient()
-    coll = client["PublicStaging"]["SpecialtyMetaData_staging_v_3"]
+    coll, dotted = specialty_staging
     coll.insert_many([
         {"Code": "207W00000X", "Display Name": "Ophthalmology"},
         {"Code": "246ZS0400X", "Display Name": "Surgical Technologist", "is_supplemented": True},
     ])
     summary = generate_specialty_embeddings(
-        {"specialty_collection": "PublicStaging.SpecialtyMetaData_staging_v_3"},
-        mongo=client,
+        {"specialty_collection": dotted},
+        mongo=coll.database.client,
     )
     assert summary["candidate_count"] == 2
     assert summary["updated_count"] == 2
@@ -187,10 +177,11 @@ def test_generate_specialty_embeddings_writes_vector_and_metadata(fake_openai):
 
 
 @pytest.mark.unit
-def test_generate_specialty_embeddings_skips_already_embedded(fake_openai):
+def test_generate_specialty_embeddings_skips_already_embedded(
+    fake_openai, specialty_staging,
+):
     from embedding_engine import generate_specialty_embeddings, CANONICAL_MODEL, CANONICAL_DIM
-    client = mongomock.MongoClient()
-    coll = client["PublicStaging"]["SpecialtyMetaData_staging_v_3"]
+    coll, dotted = specialty_staging
     coll.insert_one({
         "Code": "207W00000X",
         "Display Name": "Ophthalmology",
@@ -199,8 +190,8 @@ def test_generate_specialty_embeddings_skips_already_embedded(fake_openai):
     })
     coll.insert_one({"Code": "246ZS0400X", "Display Name": "Surgical Technologist"})
     summary = generate_specialty_embeddings(
-        {"specialty_collection": "PublicStaging.SpecialtyMetaData_staging_v_3"},
-        mongo=client,
+        {"specialty_collection": dotted},
+        mongo=coll.database.client,
     )
     # Only the un-embedded row is a candidate; the pre-embedded one is skipped.
     assert summary["candidate_count"] == 1
@@ -208,14 +199,15 @@ def test_generate_specialty_embeddings_skips_already_embedded(fake_openai):
 
 
 @pytest.mark.unit
-def test_generate_specialty_embeddings_skips_rows_with_no_composable_text(fake_openai):
+def test_generate_specialty_embeddings_skips_rows_with_no_composable_text(
+    fake_openai, specialty_staging,
+):
     from embedding_engine import generate_specialty_embeddings
-    client = mongomock.MongoClient()
-    coll = client["PublicStaging"]["SpecialtyMetaData_staging_v_3"]
+    coll, dotted = specialty_staging
     coll.insert_one({"Code": "ZZZ0000000X"})  # no Display Name / etc.
     summary = generate_specialty_embeddings(
-        {"specialty_collection": "PublicStaging.SpecialtyMetaData_staging_v_3"},
-        mongo=client,
+        {"specialty_collection": dotted},
+        mongo=coll.database.client,
     )
     assert summary["candidate_count"] == 0
     assert summary["updated_count"] == 0
@@ -238,10 +230,11 @@ class _FakeManifest:
 class _FakeCtx:
     """Minimal StepContext double publish_smd_and_embed.execute reads
     through PipelineRuntime(ctx). PipelineRuntime pulls: mongo_client,
-    frontend (via get_frontend_mongo), env_prefix, run_id, data_version.
+    env_prefix, run_id, data_version. Post-2026-08-03 there is no
+    separate frontend mongo -- coord lives on the pipeline cluster.
     """
 
-    def __init__(self, mongo, frontend):
+    def __init__(self, mongo, frontend=None):
         self.mongo_client = mongo
         self.blob_client = None
         self.notification_client = None
@@ -253,57 +246,83 @@ class _FakeCtx:
         self.manifest = _FakeManifest()
         self.env_prefix = "dev"
         self.run_id = "run-abc"
-        # tests patch pipeline_db.get_frontend_mongo to return `frontend`,
-        # so we retain a handle so tests can assert on frontend state.
+        # `frontend` retained for backward-compat with tests still passing
+        # a second arg; NOT used at runtime.
         self._frontend = frontend
 
 
 @pytest.fixture
-def fake_clusters(monkeypatch):
-    """Two independent mongomock clients + shim for admin.command
-    (mongomock doesn't implement it). The shim only recognises the
-    renameCollection command with cross-DB source/target and simulates
-    it via a raw doc copy + drop, matching what MongoDB does server-side.
+def clusters(monkeypatch, scratch_mongo):
+    """A real cluster with every destination redirected to scratch names.
+
+    renameCollection is performed by the server, so what the swap does to
+    the collections is observed rather than simulated. The previous
+    simulation of it was written against a fake that does not implement
+    the command at all.
+
+    The frontend handle is a connection to the actual frontend cluster,
+    not a second handle on the pipeline one, so the assertion that
+    pipelines never migrate to frontend is checked against the cluster
+    it is a claim about.
+
+    Yields (client, scratch_db, frontend_db, cfg, names).
     """
-    pipeline = mongomock.MongoClient()
-    frontend = mongomock.MongoClient()
+    from chathealthy_frontend_lib.mongo_utilities import ChatHealthyMongoUtilities
 
-    def _fake_admin_command(cmd, *args, **kwargs):
-        if isinstance(cmd, dict) and "renameCollection" in cmd:
-            src = cmd["renameCollection"]
-            dst = cmd["to"]
-            drop_target = bool(cmd.get("dropTarget", False))
-            src_db, src_coll = src.split(".", 1)
-            dst_db, dst_coll = dst.split(".", 1)
-            src_c = pipeline[src_db][src_coll]
-            dst_c = pipeline[dst_db][dst_coll]
-            if drop_target:
-                pipeline[dst_db].drop_collection(dst_coll)
-            for doc in src_c.find({}):
-                dst_c.insert_one(doc)
-            pipeline[src_db].drop_collection(src_coll)
-            return {"ok": 1}
-        raise NotImplementedError(f"fake admin.command does not handle {cmd!r}")
+    import pipeline_loaded_metadata
+    import pipeline_runtime
 
-    pipeline.admin.command = _fake_admin_command
-    monkeypatch.setattr("pipeline_runtime.get_frontend_mongo", lambda: frontend)
-    monkeypatch.setattr("pipeline_runtime.get_mongo", lambda: pipeline)
-    return pipeline, frontend
+    db, collection = scratch_mongo
+    client = db.client
+    prefix = collection("").name  # the run's unique prefix
+    cfg = _scratch_config(db.name, prefix)
+
+    frontend = ChatHealthyMongoUtilities().getConnection("DevOpsUser", "frontEnd")
+    frontend_db = frontend[db.name]
+
+    discrepancies = frontend_db[f"{prefix}discrepancies"]
+    monkeypatch.setattr(
+        pipeline_runtime.PipelineRuntime, "discrepancies_coll",
+        property(lambda self: discrepancies),
+    )
+    monkeypatch.setattr(pipeline_runtime, "get_frontend_mongo", lambda: frontend)
+    monkeypatch.setattr(pipeline_runtime, "get_mongo", lambda: client)
+    monkeypatch.setattr(pipeline_runtime, "load_pipeline_config", lambda **kw: cfg)
+    monkeypatch.setattr(pipeline_loaded_metadata, "_METADATA_DB", db.name)
+    monkeypatch.setattr(pipeline_loaded_metadata, "_METADATA_COLL",
+                        collection("loaded_metadata").name)
+
+    names = {
+        "db": db.name,
+        "prefix": prefix,
+        "live": f"{prefix}SpecialtyMetaData_v_3",
+        "staging": f"{prefix}SpecialtyMetaData_staging_v_3",
+        "discrepancies": discrepancies.name,
+        "live_dotted": f"{db.name}.{prefix}SpecialtyMetaData_v_3",
+    }
+    try:
+        yield client, db, frontend_db, cfg, names
+    finally:
+        # The frontend cluster should hold nothing from this run; drop
+        # anything that appeared so a failure does not leave residue.
+        for name in frontend_db.list_collection_names():
+            if name.startswith(prefix):
+                frontend_db.drop_collection(name)
 
 
 @pytest.mark.unit
-def test_publish_smd_and_embed_end_to_end(fake_openai, fake_clusters, monkeypatch):
+def test_publish_smd_and_embed_end_to_end(fake_openai, clusters, monkeypatch):
     from staging_loader import staging_collection_name, staging_db_name
     from steps.publish_smd_and_embed import execute
     from embedding_engine import CANONICAL_MODEL, CANONICAL_DIM
 
-    pipeline, frontend = fake_clusters
+    pipeline, db, frontend_db, cfg, names = clusters
     # Seed the NUCC staging collection on the pipeline cluster (v42:
     # normalize_nucc's output). Names come through the registry so the
     # test stays coupled to dataset_versions[] rather than hardcoding
-    # PublicStaging + StagingNucc_v_3 in two places. Mix a native NUCC
-    # row + one F-105 supplement row.
-    reg = _test_registry(pipeline)
+    # the collection names in two places. Mix a native NUCC row + one
+    # F-105 supplement row.
+    reg = _test_registry(pipeline, cfg)
     src = pipeline[staging_db_name(reg, "nucc")][staging_collection_name(reg, "nucc")]
     src.insert_many([
         {
@@ -345,32 +364,30 @@ def test_publish_smd_and_embed_end_to_end(fake_openai, fake_clusters, monkeypatc
     # different set of docs so we can prove the atomic swap DROPPED live
     # and REPLACED it with the staging contents — never a merge, never
     # a leftover.
-    live = pipeline["PublicHealthData"]["SpecialtyMetaData_v_3"]
+    live = db[names["live"]]
     live.insert_many([
         {"Code": "OLD1111111X", "Display Name": "Old row 1"},
         {"Code": "OLD2222222X", "Display Name": "Old row 2"},
     ])
 
-    ctx = _FakeCtx(pipeline, frontend)
+    ctx = _FakeCtx(pipeline, frontend_db.client)
     summary = execute(ctx)
 
     assert summary["rows_copied"] == 2  # stale run_id filtered out
     assert summary["embed_candidates"] == 2
     assert summary["embed_updated"] == 2
     assert summary["embed_failed"] == 0
-    assert summary["smd_collection"] == "PublicHealthData.SpecialtyMetaData_v_3"
+    assert summary["smd_collection"] == f"{names['db']}.{names['live']}"
 
-    # Post-swap: live collection on PIPELINE cluster holds the two
-    # staged rows, each embedded.
-    live_after = pipeline["PublicHealthData"]["SpecialtyMetaData_v_3"]
-    published = list(live_after.find({}))
+    # Post-swap: live collection holds the two staged rows, each embedded.
+    published = list(db[names["live"]].find({}))
     codes = sorted(r.get("Code") for r in published)
     assert codes == ["207W00000X", "246ZS0400X"]  # old rows gone, stale run gone
     for row in published:
         assert row["embedding_model"] == CANONICAL_MODEL
         assert len(row["embedding"]) == CANONICAL_DIM
     # Staging collection was renamed away — must no longer exist.
-    assert "SpecialtyMetaData_staging_v_3" not in pipeline["PublicHealthData"].list_collection_names()
+    assert names["staging"] not in db.list_collection_names()
     # Pipeline-only fields stripped; run_id kept per operator rule 2026-08-02
     # so each SpecialtyMetaData row carries the run_id that loaded it, matching
     # the run_id on the _loaded_metadata doc for that collection.
@@ -378,19 +395,20 @@ def test_publish_smd_and_embed_end_to_end(fake_openai, fake_clusters, monkeypatc
         assert "_source_row_index" not in row
         assert "raw" not in row
         assert row.get("run_id") == "run-abc"
-    # FRONTEND cluster MUST remain untouched — pipelines never migrate.
-    assert "SpecialtyMetaData_v_3" not in frontend["dev_PublicHealthData"].list_collection_names()
-    assert "SpecialtyMetaData" not in frontend["dev_PublicHealthData"].list_collection_names()
-    assert "SpecialtyMetaData_staging" not in frontend["dev_PublicHealthData"].list_collection_names()
+    # The FRONTEND cluster MUST remain untouched — pipelines never
+    # migrate. Checked against the frontend cluster itself.
+    on_frontend = frontend_db.list_collection_names()
+    assert names["live"] not in on_frontend
+    assert names["staging"] not in on_frontend
 
 
 @pytest.mark.unit
-def test_publish_smd_and_embed_bails_when_openai_key_missing(fake_clusters, monkeypatch):
+def test_publish_smd_and_embed_bails_when_openai_key_missing(clusters, monkeypatch):
     from chathealthy_frontend_lib.exceptions import ChatHealthyException
     from steps.publish_smd_and_embed import execute
     monkeypatch.delenv("OPENAI_API_KEY", raising=False)
-    pipeline, frontend = fake_clusters
-    ctx = _FakeCtx(pipeline, frontend)
+    pipeline, _db, frontend_db, _cfg, _names = clusters
+    ctx = _FakeCtx(pipeline, frontend_db.client)
     with pytest.raises(ChatHealthyException) as exc_info:
         execute(ctx)
     assert "OPENAI_API_KEY" in str(exc_info.value)
@@ -398,7 +416,7 @@ def test_publish_smd_and_embed_bails_when_openai_key_missing(fake_clusters, monk
 
 @pytest.mark.unit
 def test_publish_smd_and_embed_records_discrepancies_when_embed_fails(
-    fake_openai, fake_clusters, monkeypatch,
+    fake_openai, clusters, monkeypatch,
 ):
     """Operator directive 2026-08-02: embed failure is a non-fatal
     error. Publish MUST still atomic-swap so SMD is usable for lookups,
@@ -408,17 +426,28 @@ def test_publish_smd_and_embed_records_discrepancies_when_embed_fails(
     from staging_loader import staging_collection_name, staging_db_name
     from steps.publish_smd_and_embed import execute
 
-    # Make every OpenAI embed call raise (simulates HTTP 429 insufficient_quota)
+    # Make every OpenAI embed call fail the way the provider fails when
+    # the account is out of credit: an HTTP 429 from the OpenAI client,
+    # not a generic built-in.
+    import httpx
+    import openai
+
     import embedding_engine as _ee
     orig_embed_batch = _ee._embed_batch
 
     def _explode(client, texts):
-        raise RuntimeError("insufficient_quota: You have no credits remaining")
+        request = httpx.Request("POST", "https://api.openai.com/v1/embeddings")
+        response = httpx.Response(429, request=request)
+        raise openai.RateLimitError(
+            "insufficient_quota: You have no credits remaining",
+            response=response,
+            body=None,
+        )
 
     monkeypatch.setattr(_ee, "_embed_batch", _explode)
 
-    pipeline, frontend = fake_clusters
-    reg = _test_registry(pipeline)
+    pipeline, db, frontend_db, cfg, names = clusters
+    reg = _test_registry(pipeline, cfg)
     src = pipeline[staging_db_name(reg, "nucc")][staging_collection_name(reg, "nucc")]
     src.insert_many([
         {"run_id": "run-abc", "Code": "207W00000X", "code": "207W00000X",
@@ -428,12 +457,12 @@ def test_publish_smd_and_embed_records_discrepancies_when_embed_fails(
          "Display Name": "Surgical Technologist", "is_supplemented": True,
          "raw": {"Code": "246ZS0400X"}},
     ])
-    ctx = _FakeCtx(pipeline, frontend)
+    ctx = _FakeCtx(pipeline, frontend_db.client)
     summary = execute(ctx)
 
     # Atomic swap MUST have fired on PIPELINE cluster: SMD_v_3 holds
     # the two rows.
-    live = pipeline["PublicHealthData"]["SpecialtyMetaData_v_3"]
+    live = db[names["live"]]
     codes = sorted(r.get("Code") for r in live.find({}))
     assert codes == ["207W00000X", "246ZS0400X"]
 
@@ -447,12 +476,13 @@ def test_publish_smd_and_embed_records_discrepancies_when_embed_fails(
     assert summary["embed_failed"] == 2
     assert summary["embed_unembedded_rows"] == 2
 
-    # FRONTEND cluster MUST remain untouched.
-    assert "SpecialtyMetaData" not in frontend["dev_PublicHealthData"].list_collection_names()
-    assert "SpecialtyMetaData_v_3" not in frontend["dev_PublicHealthData"].list_collection_names()
+    # FRONTEND cluster MUST remain untouched by the SMD collections.
+    on_frontend = frontend_db.list_collection_names()
+    assert names["live"] not in on_frontend
+    assert names["staging"] not in on_frontend
 
     # ONE discrepancy per un-embedded row, reason prefixed 'error_'.
-    disc = frontend[PIPELINE_ADMIN_DB]["pipeline.discrepancies"]
+    disc = frontend_db[names["discrepancies"]]
     rows = list(disc.find({"reason": "error_specialty_embedding_failed"}))
     assert len(rows) == 2
     disc_codes = sorted(r["detail"]["code"] for r in rows)
@@ -471,20 +501,20 @@ def test_publish_smd_and_embed_records_discrepancies_when_embed_fails(
 
 
 @pytest.mark.unit
-def test_nucc_lookup_reads_from_published_smd(fake_clusters):
+def test_nucc_lookup_reads_from_published_smd(clusters):
     from pipeline_runtime import PipelineRuntime
     from provider_normalize_engine import _nucc_lookup
 
-    pipeline, frontend = fake_clusters
-    # SMD lives on the PIPELINE cluster's PublicHealthData.SpecialtyMetaData_v_N
-    # per operator directive 2026-08-02 (pipelines never touch frontend).
-    smd = pipeline["PublicHealthData"]["SpecialtyMetaData_v_3"]
+    pipeline, db, frontend_db, _cfg, names = clusters
+    # SMD lives on the PIPELINE cluster per operator directive 2026-08-02
+    # (pipelines never touch frontend); the registry resolves the name.
+    smd = db[names["live"]]
     smd.insert_many([
         {"Code": "207W00000X", "Display Name": "Ophthalmology"},
         {"Code": "246ZS0400X", "Display Name": "Surgical Technologist"},
     ])
 
-    ctx = _FakeCtx(pipeline, frontend)
+    ctx = _FakeCtx(pipeline, frontend_db.client)
     rt = PipelineRuntime(ctx)
     out = _nucc_lookup(rt)
     assert set(out.keys()) == {"207W00000X", "246ZS0400X"}

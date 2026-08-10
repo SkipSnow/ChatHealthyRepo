@@ -9,7 +9,8 @@ from chathealthy_frontend_lib.exceptions import ChatHealthyException
 import os
 from datetime import datetime, timedelta, timezone
 
-WORK_ITEMS_DB = "chathealthyfrontend"
+# Operator directive 2026-08-03: coord lives on the pipeline cluster.
+WORK_ITEMS_DB = "chathealthypipelines"
 WORK_ITEMS_COLL = "pipeline.work_items"
 
 

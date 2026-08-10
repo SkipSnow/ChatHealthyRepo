@@ -19,6 +19,34 @@ from pathlib import Path
 
 from dotenv import load_dotenv
 
+import sys as _sys, pathlib as _pl
+for _d in _pl.Path(__file__).resolve().parents:
+    if (_d / ".git").exists():
+        _lib = _d / "FrontEndApplicationLib" / "src"
+        if str(_lib) not in _sys.path:
+            _sys.path.insert(0, str(_lib))
+        break
+from chathealthy_frontend_lib.logging_service import ChatHealthyLoggingService
+
+_CH_LOG = ChatHealthyLoggingService()
+
+
+# Rule-004: one place in this file obtains a connection, and it goes through
+# the canonical utility. The certificate is the credential; there is no
+# connection string here and no fallback. Raises if the identity cannot
+# connect, which is the point -- a test that quietly connects as something
+# else proves nothing about production.
+def _ch_connection():
+    import sys as _sys, pathlib as _pl
+    for _d in _pl.Path(__file__).resolve().parents:
+        if (_d / ".git").exists():
+            _lib = _d / "FrontEndApplicationLib" / "src"
+            if str(_lib) not in _sys.path:
+                _sys.path.insert(0, str(_lib))
+            break
+    from chathealthy_frontend_lib.mongo_utilities import ChatHealthyMongoUtilities
+    return ChatHealthyMongoUtilities().getConnection("DevOpsUser", 'frontEnd')
+
 load_dotenv(Path(__file__).parent.parent.parent / ".env")
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
@@ -55,7 +83,7 @@ def execute_command(raw: dict) -> dict:
         if not conn:
             return {"error": f"No connection string for: {raw.get('connection')}"}
         try:
-            c = MongoClient(conn, serverSelectionTimeoutMS=10000)
+            c = _ch_connection()
             c[raw.get("database", "admin")][raw.get("collection", "write_test")].insert_one({"test": True})
             c.close()
             return {"write_result": "WRITE_SUCCEEDED — NOT READ ONLY"}
@@ -69,7 +97,7 @@ def execute_command(raw: dict) -> dict:
         if not conn:
             return {"error": f"No connection string for: {raw.get('connection')}"}
         try:
-            c = MongoClient(conn, serverSelectionTimeoutMS=15000)
+            c = _ch_connection()
             docs = list(c[raw.get("database", "admin")][raw.get("collection", "")].find(
                 raw.get("query", {}), limit=min(raw.get("limit", 5), 10)))
             for d in docs:
@@ -361,10 +389,10 @@ def generate_pdf(report: dict, output_path: str):
 
 
 def main():
-    print("=" * 60)
-    print("GPT Reader SIT — GPT Drives, Claude Executes")
-    print(f"Max iterations: {MAX_ITERATIONS}")
-    print("=" * 60)
+    _CH_LOG.info("=" * 60)
+    _CH_LOG.info("GPT Reader SIT — GPT Drives, Claude Executes")
+    _CH_LOG.info(f"Max iterations: {MAX_ITERATIONS}")
+    _CH_LOG.info("=" * 60)
 
     requirements = _read_design_requirements()
     governance = _read_governance()
@@ -384,7 +412,7 @@ def main():
 
     while iteration < MAX_ITERATIONS:
         iteration += 1
-        print(f"\n--- Iteration {iteration}/{MAX_ITERATIONS} ---")
+        _CH_LOG.info(f"\n--- Iteration {iteration}/{MAX_ITERATIONS} ---")
 
         gpt_text, tin, tout = call_gpt(messages)
         total_in += tin
@@ -403,12 +431,12 @@ def main():
             continue
 
         action = command.get("action", "")
-        print(f"  Action: {action}")
+        _CH_LOG.info(f"  Action: {action}")
 
         # Check for report submission
         if action == "submit_report" or "report" in command and "results" in command.get("report", {}):
             report = command.get("report", command)
-            print("  >> Report submitted!")
+            _CH_LOG.info("  >> Report submitted!")
             break
 
         # Execute
@@ -417,11 +445,11 @@ def main():
 
         if result.get("done"):
             report = result.get("report", {})
-            print("  >> Report submitted!")
+            _CH_LOG.info("  >> Report submitted!")
             break
 
         result_summary = json.dumps(result, default=str)[:300]
-        print(f"  Result: {result_summary}")
+        _CH_LOG.info(f"  Result: {result_summary}")
 
         # Circuit breaker — detect stuck loop
         current_http = result.get("http_status")
@@ -479,27 +507,27 @@ def main():
     test_output.mkdir(exist_ok=True)
     json_path = test_output / "gpt_sit_report.json"
     json_path.write_text(json.dumps(report, indent=2, default=str, ensure_ascii=False), encoding="utf-8")
-    print(f"\nJSON: {json_path}")
+    _CH_LOG.info(f"\nJSON: {json_path}")
 
     pdf_path = test_output / "gpt_sit_report.pdf"
     generate_pdf(report, str(pdf_path))
-    print(f"PDF: {pdf_path}")
+    _CH_LOG.info(f"PDF: {pdf_path}")
 
     # Print summary
     s = report.get("summary", {})
-    print(f"\n{'=' * 60}")
-    print(f"VERDICT: {report.get('overall_verdict', '?')}")
-    print(f"Iterations: {iteration}/{MAX_ITERATIONS}  |  Tokens: {total_in:,} in / {total_out:,} out")
-    print(f"Pass: {s.get('pass', '?')}  Fail: {s.get('fail', '?')}  Not Testable: {s.get('not_testable', '?')}")
+    _CH_LOG.info(f"\n{'=' * 60}")
+    _CH_LOG.info(f"VERDICT: {report.get('overall_verdict', '?')}")
+    _CH_LOG.info(f"Iterations: {iteration}/{MAX_ITERATIONS}  |  Tokens: {total_in:,} in / {total_out:,} out")
+    _CH_LOG.info(f"Pass: {s.get('pass', '?')}  Fail: {s.get('fail', '?')}  Not Testable: {s.get('not_testable', '?')}")
 
     for r in report.get("results", []):
-        print(f"  [{r.get('verdict', '?'):13s}] {r.get('requirement_id', '?')}")
+        _CH_LOG.info(f"  [{r.get('verdict', '?'):13s}] {r.get('requirement_id', '?')}")
 
     bugs = report.get("bugs", [])
     if bugs:
-        print(f"\nBUGS ({len(bugs)}):")
+        _CH_LOG.info(f"\nBUGS ({len(bugs)}):")
         for b in bugs:
-            print(f"  [{b.get('severity', '?')}] {b.get('bug_id', '?')}: {b.get('title', '?')}")
+            _CH_LOG.info(f"  [{b.get('severity', '?')}] {b.get('bug_id', '?')}: {b.get('title', '?')}")
 
     return report
 

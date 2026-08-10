@@ -251,16 +251,17 @@ def _main():
     provisioner_aa_job_id = _start_runbook_fire_and_forget(
         sub, rg, aa, _PROVISIONER_RUNBOOK, payload, run_on=None,
     )
-    log.info(json.dumps({
+    return {
         "orchestrator_status": "ok",
         "job_id": job_id,
         "vm_name": vm_name,
         "provisioner_aa_job_id": provisioner_aa_job_id,
-    }))
+    }
 
 
 try:
-    _main()
+    _status = _main()
+    log.info(json.dumps(_status))
     sys.exit(0)
 except Exception:
     tb = traceback.format_exc()

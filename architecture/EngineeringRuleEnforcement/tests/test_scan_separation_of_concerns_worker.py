@@ -12,6 +12,9 @@ Coverage:
 from __future__ import annotations
 
 import os
+import shutil
+import subprocess
+import tempfile
 from pathlib import Path
 from unittest.mock import patch
 
@@ -34,7 +37,7 @@ def _make_worker(scopes_by_check=None, hook="pre-commit"):
     """Build a worker with no real engineering_rules.json read - feed
     scopes directly as the (function_name, scope_type, terms) triples
     list the base class expects."""
-    worker = soc.ScanSeparationOfConcernsWorker("Rule-009-ENF-001")
+    worker = soc.ScanSeparationOfConcernsWorker("Rule-065-ENF-007")
     worker.hook = hook
     triples: list[tuple[str, str, list[str]]] = []
     if scopes_by_check:
@@ -47,13 +50,33 @@ def _make_worker(scopes_by_check=None, hook="pre-commit"):
     return worker
 
 
+def _scanned_path(fixture_rel: str) -> str:
+    """The repo-relative path a fixture is enumerated under by _stage.
+
+    Scope terms have to be written in the same terms the worker sees, and
+    what it sees is `git ls-files` output — repo-relative, never absolute.
+    """
+    return f"fixtures/{fixture_rel}"
+
+
 def _stage(worker, *fixture_rel_paths):
-    """Point the worker at fixture file paths via the env override."""
-    abs_paths = [str(FIXTURE_DIR / rel) for rel in fixture_rel_paths]
-    with patch.dict(os.environ, {
-        "SCAN_FILES_ENFORCEMENT_TARGETS": os.pathsep.join(abs_paths),
-    }):
-        rc = worker.run()
+    """Place these fixtures and hand the worker the array, as the driver does.
+
+    The worker owns no git and enumerates nothing — the Rule-065 driver
+    settles the file set once and hands the same array to every subordinate.
+    A test stands in for the driver: place the files, hand over the list.
+    """
+    handed_down = [_scanned_path(rel) for rel in fixture_rel_paths]
+    with tempfile.TemporaryDirectory() as tmp:
+        repo = Path(tmp) / "scan_repo"
+        repo.mkdir()
+        for rel in fixture_rel_paths:
+            dst = repo / _scanned_path(rel)
+            dst.parent.mkdir(parents=True, exist_ok=True)
+            shutil.copy2(FIXTURE_DIR / rel, dst)
+        worker._files = handed_down
+        with patch.object(soc, "PROJECT_ROOT", repo):
+            rc = worker.run()
     return rc, worker.emitted
 
 
@@ -104,7 +127,7 @@ class TestB001DisplayAuthoring:
         worker = _make_worker({
             "_scan_display_authoring": {
                 "allowed_pattern": [r"courier_clientrouter\.js$"],
-                "excluded_exact":  [str(FIXTURE_DIR / rel)],
+                "excluded_exact":  [_scanned_path(rel)],
             },
         })
         rc, hits = _stage(worker, rel)
@@ -144,7 +167,7 @@ class TestB002ReactPersistence:
         worker = _make_worker({
             "_scan_react_persistence": {
                 "allowed_pattern": [r"approved_welcome\.tsx$"],
-                "excluded_exact":  [str(FIXTURE_DIR / rel)],
+                "excluded_exact":  [_scanned_path(rel)],
             },
         })
         rc, hits = _stage(worker, rel)

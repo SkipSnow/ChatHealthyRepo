@@ -57,7 +57,7 @@ PIPELINE_ADMIN_DB = "pipelineAdmin"
 # CH_LOG_DESTINATION drives log output to stderr (AA captures stderr into
 # the ARM job exception field, which is the only surface operators can
 # read on a failed run) and CH_SPACE_NAME + ENV_PREFIX satisfy the Mongo
-# handler prerequisite so it wires as soon as MONGO_FRONTEND_connectionString
+# handler prerequisite so it wires as soon as MONGO_connectionString
 # gets published from the KV fetch further down.
 os.environ.setdefault("CH_LOG_DESTINATION", "stderr,mongo")
 os.environ.setdefault("CH_SPACE_NAME", "runbook")
@@ -211,7 +211,7 @@ def _get_mongo_conn_string() -> str:
     coordination (serialization guard, pipeline.runs manifest, pipeline.config
     read) lives on the ALWAYS-UP front cluster, not the pipeline cluster
     which is paused-by-default between runs (Skip 2026-07-18)."""
-    name = os.environ.get("MONGO_SECRET_NAME", "MONGO-FRONTEND-connectionString")
+    name = os.environ.get("MONGO_SECRET_NAME", "MONGO-connectionString")
     tok = _get_token("https://vault.azure.net")
     url = f"{KEY_VAULT_URI.rstrip('/')}/secrets/{name}?api-version=7.4"
     req = urllib.request.Request(url, headers={"Authorization": f"Bearer {tok}"})
@@ -995,7 +995,7 @@ def main() -> int:
     # a MongoClient. Without this, log() -> CHLS -> mongo_utilities ->
     # MongoClient(srv_uri) -> pymongo's SRV resolver fails and the
     # runbook crashes on the very first log call.
-    os.environ["MONGO_FRONTEND_connectionString"] = _srv_to_direct_mongo_uri(
+    os.environ["MONGO_connectionString"] = _srv_to_direct_mongo_uri(
         _get_mongo_conn_string()
     )
 
@@ -1101,7 +1101,7 @@ def main() -> int:
                     "pipelineEditor", "frontEnd"
                 )
                 mongo.admin.command("ping")
-            log("mongo_connected", cluster="chathealthyfrontend")
+            log("mongo_connected", cluster="chathealthydatapipelines")
             # Same-pipeline mutual exclusion. Atomic acquire on
             # _id="pipeline_lock:<pipeline_name>". Only blocks fires
             # for the SAME pipeline_name -- different pipelines and

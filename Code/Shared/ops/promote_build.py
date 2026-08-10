@@ -43,6 +43,29 @@ BRANCH_MAP = {
 ENV_ORDER = ("local", "dev", "qa", "prod")
 
 
+
+def _devops_connection():
+    """The DevOps identity, by certificate. Rule-004: no MongoClient here.
+
+    Operator tooling authenticates as DevOpsUser like everything else in the
+    devops chain. It used to open a MongoClient on a SCRAM connection string,
+    which is a fourth credential outside the three-identity model and outside
+    Rule-004's scan scope, so nothing caught it.
+    """
+    import sys as _sys, pathlib as _pl
+    _src = _pl.Path(__file__).resolve()
+    for _p in _src.parents:
+        if (_p / ".git").exists():
+            _lib = _p / "FrontEndApplicationLib" / "src"
+            if str(_lib) not in _sys.path:
+                _sys.path.insert(0, str(_lib))
+            from dotenv import load_dotenv as _ld
+            _ld(_p / ".env", override=False)
+            break
+    from chathealthy_frontend_lib.mongo_utilities import ChatHealthyMongoUtilities
+    return ChatHealthyMongoUtilities().getConnection("DevOpsUser", "admin")
+
+
 def _builds_to_map(builds_array):
     out = {}
     for entry in builds_array or []:
@@ -66,18 +89,18 @@ def promote(from_env: str, to_env: str, confirm_prod: bool = False, dry_run: boo
         log.error("MONGO_FRONTEND_connectionString not set")
         sys.exit(1)
 
-    client = MongoClient(conn, serverSelectionTimeoutMS=10000)
-    coll = client["admin"]["Versions"]
+    client = _devops_connection()
+    coll = client["frontEndAdmin"]["BuildVersions"]
 
     latest = coll.find_one(sort=[("from", -1)])
     if latest is None:
-        log.error("admin.Versions has no records — seed first")
+        log.error("frontEndAdmin.BuildVersions has no records — seed first")
         sys.exit(1)
 
     builds_map = _builds_to_map(latest.get("builds", []))
     for required in ENV_ORDER:
         if required not in builds_map:
-            log.error("latest admin.Versions record is missing the %r slot; "
+            log.error("latest frontEndAdmin.BuildVersions record is missing the %r slot; "
                       "run migrate_versions_to_per_env.py first", required)
             sys.exit(1)
 
@@ -96,7 +119,7 @@ def promote(from_env: str, to_env: str, confirm_prod: bool = False, dry_run: boo
     if dry_run:
         log.info("DRY RUN — no changes made")
         log.info("  Would merge %s -> %s", BRANCH_MAP[from_env], BRANCH_MAP[to_env])
-        log.info("  Would set admin.Versions %r slot to %d (was %d)",
+        log.info("  Would set frontEndAdmin.BuildVersions %r slot to %d (was %d)",
                  to_env, source_build, target_build_before)
         return
 
@@ -111,7 +134,7 @@ def promote(from_env: str, to_env: str, confirm_prod: bool = False, dry_run: boo
         "from": datetime.datetime.now(datetime.timezone.utc).isoformat(),
     }
     coll.insert_one(record)
-    log.info("Wrote new admin.Versions record: builds=%s", new_builds)
+    log.info("Wrote new frontEndAdmin.BuildVersions record: builds=%s", new_builds)
 
     # Branch merge instructions
     src_branch = BRANCH_MAP[from_env]

@@ -16,6 +16,7 @@ return codes by the precedence in TR-2, exits with the worst.
 from __future__ import annotations
 
 import argparse
+import concurrent.futures
 import json
 import os
 import subprocess
@@ -25,6 +26,17 @@ from pathlib import Path
 from typing import Any
 
 from filelock import FileLock, Timeout as FileLockTimeout
+
+import sys as _sys, pathlib as _pl
+for _d in _pl.Path(__file__).resolve().parents:
+    if (_d / ".git").exists():
+        _lib = _d / "FrontEndApplicationLib" / "src"
+        if str(_lib) not in _sys.path:
+            _sys.path.insert(0, str(_lib))
+        break
+from chathealthy_frontend_lib.logging_service import ChatHealthyLoggingService
+
+_CH_LOG = ChatHealthyLoggingService()
 
 
 # ─────────────────────────────────────────────────────────────────────────────
@@ -111,14 +123,35 @@ class ChatHealthyEnforcementManager:
         enforcements = self._filter_enforcements(rules, self.hook_name)
 
         if not enforcements:
-            return self.EXIT_OK
+            return self._aggregate([])
 
-        exit_codes: list[int] = []
-        for enforcement in enforcements:
-            code = self._spawn_worker(enforcement)
-            exit_codes.append(code)
+        return self._aggregate(self._dispatch(enforcements))
 
-        return self._aggregate(exit_codes)
+    def _dispatch(self, enforcements: list[dict[str, Any]]) -> list[int]:
+        """Run these enforcements and return their exit codes.
+
+        Every worker is its own operating-system subprocess and shares no
+        state with its siblings, so an enforcement that declares
+        requires_lock = False runs unguarded -- concurrently with the
+        others. Running them one after another made the gate cost the sum
+        of eight workers when it need only cost the slowest.
+
+        An enforcement that declares requires_lock = True still serializes:
+        _spawn_worker takes the lock around its own subprocess.run, so a
+        lock-taking worker waits for its peers on the same key whether or
+        not anything else is in flight.
+
+        Order of return does not matter -- _aggregate takes the worst code,
+        not the first.
+        """
+        if not enforcements:
+            return []
+        if len(enforcements) == 1:
+            return [self._spawn_worker(enforcements[0])]
+        with concurrent.futures.ThreadPoolExecutor(
+            max_workers=len(enforcements)
+        ) as pool:
+            return list(pool.map(self._spawn_worker, enforcements))
 
     # ────────────────────────────────────────────────────────────────────────
     # Load + filter
@@ -224,28 +257,19 @@ class ChatHealthyEnforcementManager:
                 )
             except subprocess.TimeoutExpired as exc:
                 # Manager-owned hard kill on timeout (V19 §4.3.2).
-                print(
-                    f"[manager] timeout {enforcement_id}: exceeded "
-                    f"{timeout_value}s",
-                    file=sys.stderr,
-                )
+                _CH_LOG.error(f"[manager] timeout {enforcement_id}: exceeded "
+                    f"{timeout_value}s")
                 if exc.stderr:
                     stderr_text = (
                         exc.stderr.decode("utf-8", errors="replace")
                         if isinstance(exc.stderr, (bytes, bytearray))
                         else str(exc.stderr)
                     )
-                    print(
-                        f"[manager] worker stderr (timeout): {stderr_text}",
-                        file=sys.stderr,
-                    )
+                    _CH_LOG.error(f"[manager] worker stderr (timeout): {stderr_text}")
                 return self.EXIT_WORKER_TIMEOUT
             except OSError as exc:
                 # Spawn failure path (TR-2).
-                print(
-                    f"[manager] spawn-failure {enforcement_id}: {exc}",
-                    file=sys.stderr,
-                )
+                _CH_LOG.error(f"[manager] spawn-failure {enforcement_id}: {exc}")
                 return self.EXIT_WORKER_SPAWN_FAILURE
         finally:
             if lock_handle is not None:
@@ -262,10 +286,7 @@ class ChatHealthyEnforcementManager:
         # Capture worker stderr on abnormal exit (warning #4): never silently
         # drop it.
         if worker_rc >= 2 and completed.stderr:
-            print(
-                f"[manager] worker stderr ({enforcement_id}, rc={worker_rc}):",
-                file=sys.stderr,
-            )
+            _CH_LOG.error(f"[manager] worker stderr ({enforcement_id}, rc={worker_rc}):")
             sys.stderr.write(completed.stderr)
             if not completed.stderr.endswith("\n"):
                 sys.stderr.write("\n")
@@ -284,9 +305,30 @@ class ChatHealthyEnforcementManager:
     # ────────────────────────────────────────────────────────────────────────
     # Aggregation
     # ────────────────────────────────────────────────────────────────────────
+    # Hooks that gate an irreversible act. On these, dispatching nothing is
+    # not a pass -- it means the registry yielded no enforcement, and the
+    # act would proceed ungoverned.
+    # pre-commit only. A push carries no separate authorization -- publishing
+    # an authorized commit is part of that commit -- so pre-push legitimately
+    # dispatches nothing and must not be failed for it. Including it here
+    # refused every push in the repository, promote's own included.
+    _GATING_HOOKS = ("pre-commit",)
+
     def _aggregate(self, exit_codes: list[int]) -> int:
-        """Apply precedence 2 > 3 > 5 > 4 > 1 > 0. Empty → 0 (V19 Table 3 row 15)."""
+        """Apply precedence 2 > 3 > 5 > 4 > 1 > 0.
+
+        Empty used to mean 0. On a gating hook that is a silent pass: a
+        rules file that failed to yield enforcements, or a hook nothing is
+        wired to, reported success and the commit proceeded with nothing
+        having been checked. Non-gating hooks legitimately have no
+        enforcements and still return 0.
+        """
         if not exit_codes:
+            if self.hook_name in self._GATING_HOOKS:
+                _CH_LOG.info(f'{{"kind": "violation", "hook": "{self.hook_name}", '
+                    f'"message": "no enforcement ran for this hook; nothing '
+                    f'was checked, so nothing can be certified compliant"}}')
+                return self.EXIT_MANAGER_ERROR
             return self.EXIT_OK
         for rank in self._PRECEDENCE:
             if rank in exit_codes:
@@ -315,7 +357,7 @@ def main(argv: list[str] | None = None) -> int:
     try:
         manager = ChatHealthyEnforcementManager(args.hook)
     except ValueError as exc:
-        print(f"[manager] {exc}", file=sys.stderr)
+        _CH_LOG.error(f"[manager] {exc}")
         return ChatHealthyEnforcementManager.EXIT_MANAGER_ERROR
 
     return manager.run()

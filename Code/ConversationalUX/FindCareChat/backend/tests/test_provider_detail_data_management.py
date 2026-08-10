@@ -18,6 +18,23 @@ from pathlib import Path
 import pytest
 
 
+# Rule-004: one place in this file obtains a connection, and it goes through
+# the canonical utility. The certificate is the credential; there is no
+# connection string here and no fallback. Raises if the identity cannot
+# connect, which is the point -- a test that quietly connects as something
+# else proves nothing about production.
+def _ch_connection():
+    import sys as _sys, pathlib as _pl
+    for _d in _pl.Path(__file__).resolve().parents:
+        if (_d / ".git").exists():
+            _lib = _d / "FrontEndApplicationLib" / "src"
+            if str(_lib) not in _sys.path:
+                _sys.path.insert(0, str(_lib))
+            break
+    from chathealthy_frontend_lib.mongo_utilities import ChatHealthyMongoUtilities
+    return ChatHealthyMongoUtilities().getConnection("DevOpsUser", 'frontEnd')
+
+
 # Make the backend package importable for the sync module.
 _BACKEND = Path(__file__).resolve().parents[1]
 if str(_BACKEND) not in sys.path:
@@ -35,12 +52,25 @@ from build_provider_detail_test_db import (
 )
 
 
+import sys as _sys, pathlib as _pl
+for _d in _pl.Path(__file__).resolve().parents:
+    if (_d / '.git').exists():
+        _lib = _d / 'FrontEndApplicationLib' / 'src'
+        if str(_lib) not in _sys.path:
+            _sys.path.insert(0, str(_lib))
+        break
+from chathealthy_frontend_lib.exceptions import ChatHealthyException
+
+
 def _load_mongo_uri() -> str:
     env_path = Path(__file__).resolve().parents[5] / "Code" / ".env"
     for line in env_path.read_text(encoding="utf-8").splitlines():
         if line.startswith("MONGO_FRONTEND_connectionString="):
             return line.split("=", 1)[1].strip()
-    raise RuntimeError("MONGO_FRONTEND_connectionString not found in .env")
+    raise ChatHealthyException(
+        mode="configuration_missing",
+        component="test_provider_detail_data_management",
+        message="MONGO_FRONTEND_connectionString not found in .env")
 
 
 @pytest.fixture(scope="module")
@@ -51,7 +81,7 @@ def test_coll():
     except ImportError:
         pytest.skip("pymongo not installed")
     _build_test_db()
-    client = MongoClient(_load_mongo_uri())
+    client = _ch_connection()
     yield client[TEST_DB][TEST_COLL]
     _teardown_test_db()
 

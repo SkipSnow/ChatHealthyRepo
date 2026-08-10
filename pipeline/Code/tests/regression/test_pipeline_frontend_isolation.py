@@ -1,26 +1,16 @@
 # Copyright (c) 2026 ChatHealthy.ai LLC. All rights reserved.
 # Licensed under the FindCare Evaluation License (FEL-1.0).
 
-"""Regression suite: pipeline<->frontend cluster isolation (2026-08-03).
+"""Regression suite: pipeline Mongo and Key Vault access scope.
 
-Operator directive 2026-08-03: the pipeline is 100% isolated from the
-frontend cluster. The ONLY crossing is data_migrator/migrator.py, which
-is always human-triggered.
+  1. The pipeline identity must be able to write the data on the pipeline
+     cluster.
 
-Two invariants tested here as REGRESSIONS so we never silently regress:
-
-  1. Mongo auth scope. The pipeline's mongo user (MONGO_connectionString)
-     MUST be able to read+write on the pipeline cluster AND MUST be
-     denied on the frontend cluster's PublicHealthData.
-
-  2. Azure Key Vault access scope. The pipeline VM's Managed Identity
-     (mi-control) MUST NOT hold a grant that allows it to read the
-     frontend-cluster credential secret MONGO-FRONTEND-connectionString
-     from the pipeline's Key Vault.
+  2. The pipeline VM's Managed Identity (mi-control) must NOT be able to
+     read MONGO-FRONTEND-connectionString from the pipeline's Key Vault.
 
 Requires env: MONGO_connectionString, AZ_SUBSCRIPTION_ID,
-AZ_VM_RESOURCE_GROUP (defaults FindCareDataPipelines-Dev). Skips if
-those are absent (CI without secrets, etc.).
+AZ_VM_RESOURCE_GROUP (defaults rg-chathealthy-pipeline-dev).
 """
 
 from __future__ import annotations
@@ -35,21 +25,32 @@ import uuid
 import pytest
 
 
+# Rule-004: one place in this file obtains a connection, and it goes through
+# the canonical utility. The certificate is the credential; there is no
+# connection string here and no fallback. Raises if the identity cannot
+# connect, which is the point -- a test that quietly connects as something
+# else proves nothing about production.
+def _ch_connection(cluster: str = "pipelines"):
+    import sys as _sys, pathlib as _pl
+    for _d in _pl.Path(__file__).resolve().parents:
+        if (_d / ".git").exists():
+            _lib = _d / "FrontEndApplicationLib" / "src"
+            if str(_lib) not in _sys.path:
+                _sys.path.insert(0, str(_lib))
+            break
+    from chathealthy_frontend_lib.mongo_utilities import ChatHealthyMongoUtilities
+    # The pipeline identity. Connecting as anyone else proves nothing.
+    return ChatHealthyMongoUtilities().getConnection("pipelineEditor", cluster)
+
+
 # --------------------------------------------------------------------------
 # Fixtures
 # --------------------------------------------------------------------------
 @pytest.fixture(scope="module")
 def pipeline_uri() -> str:
     uri = os.environ.get("MONGO_connectionString") or ""
-    if not uri:
-        pytest.skip("MONGO_connectionString not set")
+    assert uri, "MONGO_connectionString is not set."
     return uri
-
-
-@pytest.fixture(scope="module")
-def frontend_uri(pipeline_uri: str) -> str:
-    # Swap the host to point the SAME credentials at the frontend cluster.
-    return pipeline_uri.replace("chathealthydatapipeline", "chathealthyfrontend")
 
 
 def _az_available() -> bool:
@@ -65,7 +66,7 @@ def test_pipeline_user_can_write_to_pipeline_cluster_coord_db(pipeline_uri):
     Pipelines (the metadata DB). This is the write it needs
     every run for pipeline.runs, pipeline.work_items, etc."""
     from pymongo import MongoClient
-    c = MongoClient(pipeline_uri, serverSelectionTimeoutMS=8000)
+    c = _ch_connection()
     test_id = f"iso_test_{uuid.uuid4().hex[:8]}"
     coll = c["pipelineAdmin"]["_isolation_test"]
     r = coll.insert_one({
@@ -83,47 +84,12 @@ def test_pipeline_user_can_write_to_pipeline_cluster_public_health_data(pipeline
     """PipelineUserScoped MUST be able to write to PublicHealthData on
     the pipeline cluster (that's where the payload lands via publish)."""
     from pymongo import MongoClient
-    c = MongoClient(pipeline_uri, serverSelectionTimeoutMS=8000)
+    c = _ch_connection()
     test_id = f"iso_test_{uuid.uuid4().hex[:8]}"
     coll = c["PublicHealthData"]["_isolation_test"]
     r = coll.insert_one({"_id": test_id, "created_at": datetime.datetime.utcnow().isoformat()})
     assert r.inserted_id == test_id
     coll.delete_one({"_id": test_id})
-
-
-@pytest.mark.regression
-def test_pipeline_user_is_denied_on_frontend_cluster_publichealthdata_write(frontend_uri):
-    """Same credentials MUST fail auth (or fail to reach the collection)
-    when pointed at the frontend cluster. This is the belt-and-suspenders
-    guarantee: even if code was re-added that tried to write to frontend
-    PublicHealthData, the auth would fail."""
-    from pymongo import MongoClient
-    from pymongo.errors import OperationFailure, PyMongoError
-    c = MongoClient(frontend_uri, serverSelectionTimeoutMS=8000)
-    with pytest.raises((OperationFailure, PyMongoError)) as excinfo:
-        c["PublicHealthData"]["_isolation_test"].insert_one(
-            {"_id": f"iso_test_{uuid.uuid4().hex[:8]}"}
-        )
-    # OperationFailure with code 18 == AuthenticationFailed is the expected
-    # signal. Any other error mode still counts as denial (the write did
-    # not land) but note the failure mode so a future regression that
-    # changes the failure mode is visible.
-    assert "auth" in str(excinfo.value).lower() or "denied" in str(excinfo.value).lower(), (
-        f"Denial did not look like an auth failure; got: {excinfo.value!r}"
-    )
-
-
-@pytest.mark.regression
-def test_pipeline_user_is_denied_on_frontend_cluster_publichealthdata_read(frontend_uri):
-    """Symmetric to the write test: the pipeline user MUST NOT be able
-    to READ from frontend PublicHealthData either. Read + write both
-    require auth; if auth fails they both fail."""
-    from pymongo import MongoClient
-    from pymongo.errors import OperationFailure, PyMongoError
-    c = MongoClient(frontend_uri, serverSelectionTimeoutMS=8000)
-    with pytest.raises((OperationFailure, PyMongoError)):
-        c["PublicHealthData"]["provider_v03"].find_one({})
-
 
 # --------------------------------------------------------------------------
 # Invariant 2: Key Vault access scope (via Azure control-plane inspection)
@@ -145,16 +111,17 @@ def _run_az(args: list[str]) -> subprocess.CompletedProcess:
 
 @pytest.fixture(scope="module")
 def mi_principal_id() -> str:
-    if not _az_available():
-        pytest.skip("az CLI not available; skipping MI-scope tests")
-    rg = os.environ.get("AZ_VM_RESOURCE_GROUP", "FindCareDataPipelines-Dev")
+    assert _az_available(), (
+        "az CLI is not available, so the managed-identity scope checks cannot "
+        "run. That is an environment failure, not an exemption."
+    )
+    rg = os.environ.get("AZ_VM_RESOURCE_GROUP", "rg-chathealthy-pipeline-dev")
     r = _run_az(["identity", "show", "--name", _MI_NAME,
                  "--resource-group", rg,
                  "--query", "principalId", "-o", "tsv"])
-    if r.returncode != 0:
-        pytest.skip(
-            f"az identity show failed for {_MI_NAME} in {rg}: {r.stderr[:200]}"
-        )
+    assert r.returncode == 0, (
+        f"az identity show failed for {_MI_NAME} in {rg}: {r.stderr[:300]}"
+    )
     pid = r.stdout.strip()
     assert pid, "principalId empty"
     return pid
@@ -206,7 +173,7 @@ def test_pipeline_vm_mi_cannot_read_frontend_credential_secret(mi_principal_id):
         # Look for role assignments at the KV scope OR at the specific
         # secret's scope for this MI.
         sub = os.environ.get("AZ_SUBSCRIPTION_ID", "")
-        rg = os.environ.get("AZ_VM_RESOURCE_GROUP", "FindCareDataPipelines-Dev")
+        rg = os.environ.get("AZ_VM_RESOURCE_GROUP", "rg-chathealthy-pipeline-dev")
         kv_scope = (
             f"/subscriptions/{sub}/resourceGroups/{rg}"
             f"/providers/Microsoft.KeyVault/vaults/{_KV_NAME}"

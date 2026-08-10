@@ -42,6 +42,21 @@ CAND_FLOOR = 0.55
 UNLICENSED_GROUPS = {"Other Service Providers", "Student, Health Care"}
 
 
+
+def _ch_exc():
+    """ChatHealthyException without assuming the library is installed.
+    These modules run as bare scripts in the devops chain."""
+    import sys as _s, pathlib as _p
+    for _d in _p.Path(__file__).resolve().parents:
+        if (_d / ".git").exists():
+            _l = _d / "FrontEndApplicationLib" / "src"
+            if str(_l) not in _s.path:
+                _s.path.insert(0, str(_l))
+            break
+    from chathealthy_frontend_lib.exceptions import ChatHealthyException
+    return ChatHealthyException
+
+
 def load_prompt_text(record_id: str) -> str:
     """Read prompts.json once and pull the system_prompt for `record_id`."""
     with PROMPTS_JSON_PATH.open(encoding="utf-8") as f:
@@ -49,7 +64,10 @@ def load_prompt_text(record_id: str) -> str:
     for r in d.get("records", []):
         if r.get("_record_id") == record_id:
             return r.get("system_prompt", "")
-    raise KeyError(f"prompts.json: no record with _record_id={record_id!r}")
+    raise _ch_exc()(
+            mode="key_error",
+            component="filter",
+            message=f"prompts.json: no record with _record_id={record_id!r}")
 
 
 class SpecialtyFilter:
@@ -97,7 +115,10 @@ class SpecialtyFilter:
         if self._oai is None:
             api_key = os.environ.get("OPENAI_API_KEY", "")
             if not api_key:
-                raise RuntimeError("OPENAI_API_KEY missing from environment")
+                raise _ch_exc()(
+            mode="runtime_error",
+            component="filter",
+            message="OPENAI_API_KEY missing from environment")
             from openai import OpenAI
             self._oai = OpenAI(api_key=api_key)
         return self._oai
@@ -128,10 +149,11 @@ class SpecialtyFilter:
         )
         text = (r.choices[0].message.content or "").strip()
         if not text:
-            raise RuntimeError(
-                f"normalize step returned empty text from model "
-                f"{self._normalize_model!r} for query {raw_query!r}"
-            )
+            raise _ch_exc()(
+            mode="runtime_error",
+            component="filter",
+            message=f"normalize step returned empty text from model "
+                f"{self._normalize_model!r} for query {raw_query!r}")
         log.info("normalize: %r -> %r", raw_query, text)
         return text
 
@@ -141,11 +163,12 @@ class SpecialtyFilter:
         injected embedding function returns no vector (no fallback)."""
         qvec = self._get_vector(text)
         if not qvec:
-            raise RuntimeError(
-                "embedding step returned no vector — upstream embedding "
+            raise _ch_exc()(
+            mode="runtime_error",
+            component="filter",
+            message="embedding step returned no vector — upstream embedding "
                 "client failed (see container logs for the OpenAI/HTTP "
-                "error). This is fatal per REQ-T-001 (no fallback)."
-            )
+                "error). This is fatal per REQ-T-001 (no fallback).")
         return qvec
 
     def vector_search(self, qvec: list[float]) -> list[dict]:

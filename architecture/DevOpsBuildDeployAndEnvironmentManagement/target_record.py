@@ -16,9 +16,23 @@ from __future__ import annotations
 
 from dataclasses import dataclass, field
 from typing import Iterator
+def _ch_exc():
+    """ChatHealthyException without assuming the library is installed.
+    These modules run as bare scripts in the devops chain."""
+    import sys as _s, pathlib as _p
+    for _d in _p.Path(__file__).resolve().parents:
+        if (_d / ".git").exists():
+            _l = _d / "FrontEndApplicationLib" / "src"
+            if str(_l) not in _s.path:
+                _s.path.insert(0, str(_l))
+            break
+    from chathealthy_frontend_lib.exceptions import ChatHealthyException
+    return ChatHealthyException
+
 
 
 @dataclass(slots=True)
+
 class EnvironmentBinding:
     """One environment binding for a TargetRecord."""
 
@@ -147,6 +161,12 @@ class FileComposition:
     # the disk content still hashes to this value, catching cases
     # where on-disk content drifts from the committed/JSON state.
     content_hash: str | None = None
+    # package: the package_id this file belongs to. A package is a logical
+    # set of capabilities; the build stages each package into its own
+    # subdirectory so a file's path in the build tree names the capability
+    # it serves. Dropping this on load is what made the build unable to
+    # honour the packages the manifest declares.
+    package: str | None = None
 
     def to_dict(self) -> dict[str, object]:
         out: dict[str, object] = {
@@ -155,40 +175,47 @@ class FileComposition:
             "handler_type": self.handler_type,
             "disposition": self.disposition,
         }
+        if self.package:
+            out["package"] = self.package
         if self.disposition == "managed":
             if self.embedded_content is None:
-                raise ValueError(
-                    f"FileComposition {self.source_location!r}: disposition="
-                    f"'managed' requires embedded_content"
-                )
+                raise _ch_exc()(
+            mode="value_error",
+            component="target_record",
+            message=f"FileComposition {self.source_location!r}: disposition="
+                    f"'managed' requires embedded_content")
             out["embedded_content"] = self.embedded_content
             if self.handler_type == "dockerfile":
                 if self.layout is None:
-                    raise ValueError(
-                        f"FileComposition {self.source_location!r}: "
-                        f"managed {self.handler_type} requires layout"
-                    )
+                    raise _ch_exc()(
+            mode="value_error",
+            component="target_record",
+            message=f"FileComposition {self.source_location!r}: "
+                        f"managed {self.handler_type} requires layout")
                 out["layout"] = self.layout
             elif self.layout is not None:
                 out["layout"] = self.layout
         elif self.disposition == "referenced":
             if self.embedded_content is not None:
-                raise ValueError(
-                    f"FileComposition {self.source_location!r}: disposition="
-                    f"'referenced' forbids embedded_content"
-                )
+                raise _ch_exc()(
+            mode="value_error",
+            component="target_record",
+            message=f"FileComposition {self.source_location!r}: disposition="
+                    f"'referenced' forbids embedded_content")
             if self.layout is not None:
-                raise ValueError(
-                    f"FileComposition {self.source_location!r}: disposition="
-                    f"'referenced' forbids layout"
-                )
+                raise _ch_exc()(
+            mode="value_error",
+            component="target_record",
+            message=f"FileComposition {self.source_location!r}: disposition="
+                    f"'referenced' forbids layout")
             if self.content_hash is not None:
                 out["content_hash"] = self.content_hash
         else:
-            raise ValueError(
-                f"FileComposition {self.source_location!r}: unknown "
-                f"disposition {self.disposition!r}"
-            )
+            raise _ch_exc()(
+            mode="value_error",
+            component="target_record",
+            message=f"FileComposition {self.source_location!r}: unknown "
+                f"disposition {self.disposition!r}")
         return out
 
     @classmethod
@@ -201,6 +228,7 @@ class FileComposition:
             embedded_content=d.get("embedded_content"),  # type: ignore[arg-type]
             layout=d.get("layout"),
             content_hash=d.get("content_hash"),  # type: ignore[arg-type]
+            package=d.get("package"),  # type: ignore[arg-type]
         )
 
 
@@ -283,7 +311,10 @@ class TargetRecord:
         envs_raw = d["environments"]
         files_raw = d["files"]
         if not isinstance(envs_raw, list) or not isinstance(files_raw, list):
-            raise TypeError("environments and files must be lists")
+            raise _ch_exc()(
+            mode="type_error",
+            component="target_record",
+            message="environments and files must be lists")
         return cls(
             target_id=str(d["target_id"]),
             target_kind=str(d["target_kind"]),
@@ -322,9 +353,10 @@ class DeploymentCollection:
     def add(self, record: TargetRecord) -> None:
         for existing in self.records:
             if existing.target_id == record.target_id:
-                raise ValueError(
-                    f"target_id collision: {record.target_id!r} already in collection"
-                )
+                raise _ch_exc()(
+            mode="value_error",
+            component="target_record",
+            message=f"target_id collision: {record.target_id!r} already in collection")
         self.records.append(record)
 
     def by_target_id(self, target_id: str) -> TargetRecord | None:
@@ -351,15 +383,19 @@ class DeploymentCollection:
         # still dispatches per target_kind sees the packages as individual
         # targets. Each synthetic target has a `parent_target_id` field
         # linking it back to its host. The parent target is retained.
+        # Runbook packages are NOT expanded into targets. There is one
+        # destination -- the Automation Account -- and ten capabilities
+        # inside it, so ten synthetic targets described one place ten
+        # times and staged every runbook's bytes twice. The build and the
+        # deploy read the packages directly; _synth_runbook_package
+        # remains as the function that derives a package's azure_automation
+        # block, which is what it was always really doing.
         expanded: list[dict[str, object]] = []
         for d in data:
             expanded.append(d)
             for eb in d.get("environments", []) or []:
                 for pkg in eb.get("packages", []) or []:
-                    kind = pkg.get("kind", "")
-                    if kind == "runbook":
-                        expanded.append(_synth_runbook_package(d, eb, pkg))
-                    elif kind == "job":
+                    if pkg.get("kind", "") == "job":
                         expanded.append(_synth_job_package(d, eb, pkg))
         coll = cls()
         for d in expanded:

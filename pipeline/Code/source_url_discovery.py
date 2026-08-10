@@ -19,7 +19,6 @@ import json
 
 import os
 import random
-import re
 import socket
 import time
 import urllib.error
@@ -38,7 +37,16 @@ _GEMINI_ENDPOINT = (
 )
 _PAGE_HTML_CHARS = 32_000  # cap the html we send to the agent
 _LLM_TIMEOUT_S = 60
-_VALID_URL_RE = re.compile(r"^https?://[^\s'\"<>]+$")
+_URL_FORBIDDEN = frozenset(" \t\r\n'\"<>")
+
+
+def _is_valid_url(value: str) -> bool:
+    """http:// or https:// followed by at least one permitted character."""
+    for scheme in ("https://", "http://"):
+        if value.startswith(scheme):
+            rest = value[len(scheme):]
+            return bool(rest) and not any(c in _URL_FORBIDDEN for c in rest)
+    return False
 
 _MAX_ATTEMPTS = 3
 _BACKOFF_SECONDS = (2.0, 8.0, 32.0)
@@ -208,7 +216,7 @@ def _extract_url(source_name: str, parsed: dict, page_url: str) -> str:
     got_url = got_url_raw.strip().strip("`<>\"' \t\n")
     if not got_url.startswith("http"):
         got_url = urljoin(page_url, got_url)
-    if not _VALID_URL_RE.match(got_url):
+    if not _is_valid_url(got_url):
         raise _RetryableDiscoveryError(
             f"agent returned unusable URL: {got_url!r}"
         )

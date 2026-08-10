@@ -58,6 +58,14 @@ from __future__ import annotations
 
 import os
 import time
+import sys as _sys, pathlib as _pl
+for _d in _pl.Path(__file__).resolve().parents:
+    if (_d / '.git').exists():
+        _lib = _d / 'FrontEndApplicationLib' / 'src'
+        if str(_lib) not in _sys.path:
+            _sys.path.insert(0, str(_lib))
+        break
+from chathealthy_frontend_lib.exceptions import ChatHealthyException
 
 import pytest
 from playwright.sync_api import expect, sync_playwright
@@ -95,7 +103,10 @@ def _chat_frame(page):
             if ":7860" in f.url or "hf.space" in f.url:
                 return f
         page.wait_for_timeout(250)
-    raise AssertionError(f"Chat iframe not found. Frames: {[f.url for f in page.frames]}")
+    raise ChatHealthyException(
+        mode="assertion_failed",
+        component="findcare_ur_um_regression_test",
+        message=f"Chat iframe not found. Frames: {[f.url for f in page.frames]}")
 
 
 def _wait_for_stream_closed(chat_frame, timeout_ms: int = STREAM_CLOSED_TIMEOUT_MS) -> None:

@@ -11,6 +11,8 @@ import pytest
 
 from chathealthy_frontend_lib.exceptions import ChatHealthyException
 
+from pymongo.errors import PyMongoError
+
 from pipeline_fatal_recorder import (
     FATAL_DISCREPANCIES_COLL,
     FATAL_DISCREPANCIES_DB,
@@ -28,7 +30,7 @@ class _CapturingColl:
 
 class _RaisingColl:
     def insert_one(self, doc):
-        raise RuntimeError("pipeline cluster unreachable")
+        raise PyMongoError("pipeline cluster unreachable")
 
 
 class _Db:

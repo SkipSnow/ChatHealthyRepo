@@ -57,15 +57,35 @@ class ScanEntrypointUniquenessWorker(EnforcementWorker):
                 return parent
         return here.parents[3]
 
+    _DEPLOY_DIR = "architecture/DevOpsBuildDeployAndEnvironmentManagement"
+
+    def _candidates(self) -> list[Path]:
+        """Top-level .py files of the deploy directory, out of the driver's array.
+
+        This worker owns no git knowledge either. It used to walk the
+        directory on disk, which answers a different question than the one a
+        commit asks: the disk holds files the commit does not publish, and a
+        commit publishes files by path rather than by whatever happens to be
+        sitting in a directory.
+        """
+        repo_root = self._repo_root()
+        out: list[Path] = []
+        for rel in self.files:
+            posix = rel.replace("\\", "/")
+            if not posix.startswith(f"{self._DEPLOY_DIR}/"):
+                continue
+            remainder = posix[len(self._DEPLOY_DIR) + 1:]
+            if "/" in remainder or not remainder.endswith(".py"):
+                continue
+            out.append(repo_root / posix)
+        return sorted(out)
+
     def run(self) -> int:
         repo_root = self._repo_root()
-        deploy_dir = repo_root / "architecture" / "DevOpsBuildDeployAndEnvironmentManagement"
-        if not deploy_dir.is_dir():
-            return EXIT_OK
 
         any_violations = False
-        for child in sorted(deploy_dir.iterdir()):
-            if not child.is_file() or child.suffix != ".py":
+        for child in self._candidates():
+            if not child.is_file():
                 continue
             self.files_scanned += 1
             name = child.name
@@ -113,5 +133,5 @@ class ScanEntrypointUniquenessWorker(EnforcementWorker):
 
 if __name__ == "__main__":
     import sys
-    enforcement_id = sys.argv[1] if len(sys.argv) > 1 else "Rule-066-ENF-001"
+    enforcement_id = sys.argv[1] if len(sys.argv) > 1 else "Rule-065-ENF-008"
     sys.exit(ScanEntrypointUniquenessWorker(enforcement_id).run())

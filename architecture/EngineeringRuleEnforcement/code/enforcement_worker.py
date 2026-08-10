@@ -31,6 +31,17 @@ import time
 from pathlib import Path
 from typing import Any
 
+import sys as _sys, pathlib as _pl
+for _d in _pl.Path(__file__).resolve().parents:
+    if (_d / ".git").exists():
+        _lib = _d / "FrontEndApplicationLib" / "src"
+        if str(_lib) not in _sys.path:
+            _sys.path.insert(0, str(_lib))
+        break
+from chathealthy_frontend_lib.logging_service import ChatHealthyLoggingService
+
+_CH_LOG = ChatHealthyLoggingService()
+
 
 # ─────────────────────────────────────────────────────────────────────────────
 # Repository root (repo>/architecture/EngineeringRuleEnforcement/code/<this>)
@@ -57,6 +68,21 @@ SCOPE_LIST_TYPES: tuple[str, ...] = (
     "excluded_exact",
     "excluded_pattern",
 )
+
+
+
+def _ch_exc():
+    """ChatHealthyException without assuming the library is installed.
+    These modules run as bare scripts in the devops chain."""
+    import sys as _s, pathlib as _p
+    for _d in _p.Path(__file__).resolve().parents:
+        if (_d / ".git").exists():
+            _l = _d / "FrontEndApplicationLib" / "src"
+            if str(_l) not in _s.path:
+                _s.path.insert(0, str(_l))
+            break
+    from chathealthy_frontend_lib.exceptions import ChatHealthyException
+    return ChatHealthyException
 
 
 class WorkerInternalError(Exception):
@@ -86,7 +112,10 @@ class ViolationRecord:
         severity: str = "error",
     ) -> None:
         if severity not in ("info", "warn", "error"):
-            raise ValueError(f"severity must be info|warn|error, got {severity!r}")
+            raise _ch_exc()(
+            mode="value_error",
+            component="enforcement_worker",
+            message=f"severity must be info|warn|error, got {severity!r}")
         self.enforcement_id = enforcement_id
         self.rule_id = rule_id
         self.resource = resource
@@ -128,8 +157,37 @@ class EnforcementWorker(abc.ABC):
         self.rule_id: str = self.entry.get("rule_id", "")
         self.hook: str = self.entry.get("hook", "")
         self.scopes: list[list[Any]] = self._load_scopes()
+        self._files: list[str] | None = None
         # Validate that every function_name in scopes is a real method.
         self._validate_scope_function_names()
+
+    # ────────────────────────────────────────────────────────────────────────
+    # The file array, handed down by the driver
+    # ────────────────────────────────────────────────────────────────────────
+    @property
+    def files(self) -> list[str]:
+        """The file set the driver handed this worker, on stdin.
+
+        A subordinate enforcer does not decide what a commit answers for and
+        knows nothing about git. The driver settles the file set once and
+        hands the same array to every worker, so all of them examine exactly
+        the same commit and one answer cannot drift from another.
+
+        There is no fallback. A worker that receives no array has not been
+        told what to examine, and a scan of nothing that reports clean is
+        worse than no scan at all -- so it is an internal error, not an
+        empty pass.
+        """
+        if self._files is None:
+            raw = "" if sys.stdin is None or sys.stdin.isatty() else sys.stdin.read()
+            if not raw.strip():
+                raise WorkerInternalError(
+                    f"{self.enforcement_id}: no file array on stdin. A "
+                    f"subordinate enforcer is handed its file set by the "
+                    f"Rule-065 driver and never determines one itself."
+                )
+            self._files = [line for line in raw.splitlines() if line.strip()]
+        return self._files
 
     # ────────────────────────────────────────────────────────────────────────
     # Load
@@ -289,10 +347,7 @@ class EnforcementWorker(abc.ABC):
         """
         argv_list = list(sys.argv[1:] if argv is None else argv)
         if len(argv_list) != 1:
-            print(
-                f"[worker] usage: {cls.__name__} <enforcement_id>",
-                file=sys.stderr,
-            )
+            _CH_LOG.error(f"[worker] usage: {cls.__name__} <enforcement_id>")
             return EXIT_WORKER_ERROR
 
         enforcement_id = argv_list[0]
@@ -300,7 +355,7 @@ class EnforcementWorker(abc.ABC):
         try:
             worker = cls(enforcement_id)
         except WorkerInternalError as exc:
-            print(f"[worker] internal-error: {exc}", file=sys.stderr)
+            _CH_LOG.error(f"[worker] internal-error: {exc}")
             return EXIT_WORKER_INTERNAL_ERROR
 
         start_ns = time.perf_counter_ns()
@@ -320,13 +375,13 @@ class EnforcementWorker(abc.ABC):
             files_scanned = getattr(worker, "files_scanned", files_scanned)
             violation_count = getattr(worker, "violation_count", violation_count)
         except WorkerInternalError as exc:
-            print(f"[worker] internal-error: {exc}", file=sys.stderr)
+            _CH_LOG.error(f"[worker] internal-error: {exc}")
             rc = EXIT_WORKER_INTERNAL_ERROR
         except Exception as exc:  # noqa: BLE001 — TR-2 trap: convert to exit 2
             # V19 Table 4 row 6: trap any uncaught exception → exit 2.
             # We re-raise the message to stderr so it isn't lost; the manager
             # captures stderr per warning #4.
-            print(f"[worker] uncaught: {type(exc).__name__}: {exc}", file=sys.stderr)
+            _CH_LOG.error(f"[worker] uncaught: {type(exc).__name__}: {exc}")
             rc = EXIT_WORKER_ERROR
         finally:
             duration_ms = (time.perf_counter_ns() - start_ns) // 1_000_000

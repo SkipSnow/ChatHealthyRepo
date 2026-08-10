@@ -19,6 +19,34 @@ import os
 import sys
 import pytest
 
+import sys as _sys, pathlib as _pl
+for _d in _pl.Path(__file__).resolve().parents:
+    if (_d / ".git").exists():
+        _lib = _d / "FrontEndApplicationLib" / "src"
+        if str(_lib) not in _sys.path:
+            _sys.path.insert(0, str(_lib))
+        break
+from chathealthy_frontend_lib.logging_service import ChatHealthyLoggingService
+
+_CH_LOG = ChatHealthyLoggingService()
+
+
+# Rule-004: one place in this file obtains a connection, and it goes through
+# the canonical utility. The certificate is the credential; there is no
+# connection string here and no fallback. Raises if the identity cannot
+# connect, which is the point -- a test that quietly connects as something
+# else proves nothing about production.
+def _ch_connection():
+    import sys as _sys, pathlib as _pl
+    for _d in _pl.Path(__file__).resolve().parents:
+        if (_d / ".git").exists():
+            _lib = _d / "FrontEndApplicationLib" / "src"
+            if str(_lib) not in _sys.path:
+                _sys.path.insert(0, str(_lib))
+            break
+    from chathealthy_frontend_lib.mongo_utilities import ChatHealthyMongoUtilities
+    return ChatHealthyMongoUtilities().getConnection("DevOpsUser", 'frontEnd')
+
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
 
 _ENV = os.environ.get("ENV_PREFIX", "dev")
@@ -36,7 +64,7 @@ def _get_connection_string():
 @pytest.fixture(scope="module")
 def specialty_coll():
     from pymongo import MongoClient
-    client = MongoClient(_get_connection_string())
+    client = _ch_connection()
     return client[_DB_NAME]["SpecialtyMetaData"]
 
 
@@ -58,7 +86,7 @@ class TestSpecialtyCompleteness:
         """Must have 800+ NUCC specialty codes."""
         count = specialty_coll.count_documents({})
         assert count >= 800, f"Only {count} specialties, expected 800+"
-        print(f"\n  Total specialties: {count}")
+        _CH_LOG.info(f"\n  Total specialties: {count}")
 
     def test_all_have_can_prescribe(self, all_specialties):
         """Every specialty must have can_prescribe flag (EPIC-006-F-010-S-004-REQ-T-001)."""
@@ -107,7 +135,7 @@ class TestPrescriberClassification:
         assert 200 <= count <= 500, (
             f"Prescriber count {count} outside expected range 200-500"
         )
-        print(f"\n  Prescribers: {count}")
+        _CH_LOG.info(f"\n  Prescribers: {count}")
 
     def test_homeopathic_count_reasonable(self, all_specialties):
         """Between 5-50 specialties should be homeopathic."""
@@ -116,7 +144,7 @@ class TestPrescriberClassification:
         assert 5 <= count <= 50, (
             f"Homeopathic count {count} outside expected range 5-50"
         )
-        print(f"\n  Homeopathic: {count}")
+        _CH_LOG.info(f"\n  Homeopathic: {count}")
 
     def test_physicians_can_prescribe(self, specialty_coll):
         """All physician specialties (207*, 208*) must be can_prescribe=True."""
@@ -185,9 +213,9 @@ class TestFilterCoexistence:
         """Some specialties can be both prescriber AND homeopathic (e.g., naturopath in some states)."""
         both = [s for s in all_specialties if s.get("can_prescribe") and s.get("homeopathic")]
         # It's valid to have 0 overlap or some overlap — just report
-        print(f"\n  Both prescriber + homeopathic: {len(both)}")
+        _CH_LOG.info(f"\n  Both prescriber + homeopathic: {len(both)}")
         for s in both[:5]:
-            print(f"    {s.get('Code')}: {s.get('Display Name')}")
+            _CH_LOG.info(f"    {s.get('Code')}: {s.get('Display Name')}")
 
     def test_neither_prescriber_nor_homeopathic(self, all_specialties):
         """Some specialties are neither (e.g., PT, social worker)."""
@@ -196,7 +224,7 @@ class TestFilterCoexistence:
         assert len(neither) > 100, (
             f"Only {len(neither)} specialties are neither prescriber nor homeopathic — expected 100+"
         )
-        print(f"\n  Neither prescriber nor homeopathic: {len(neither)}")
+        _CH_LOG.info(f"\n  Neither prescriber nor homeopathic: {len(neither)}")
 
 
 # ===========================================================================
@@ -213,7 +241,7 @@ class TestCrosswalkOnProviders:
                               os.environ.get("MONGO_FRONTEND_connectionString"))
         if not conn:
             pytest.skip("No frontend connection")
-        client = MongoClient(conn)
+        client = _ch_connection()
         return client[_DB_NAME]["providers"]
 
     def test_providers_have_can_prescribe(self, providers_coll):
@@ -223,5 +251,5 @@ class TestCrosswalkOnProviders:
         if total == 0:
             pytest.skip("No DE providers on frontend")
         rate = has / total
-        print(f"\n  DE providers with can_prescribe: {has}/{total} ({rate:.0%})")
+        _CH_LOG.info(f"\n  DE providers with can_prescribe: {has}/{total} ({rate:.0%})")
         assert rate > 0.90, f"Only {rate:.0%} of DE providers have can_prescribe flag"

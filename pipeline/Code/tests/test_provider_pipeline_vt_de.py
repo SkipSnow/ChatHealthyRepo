@@ -9,6 +9,17 @@ import sys
 import shutil
 import urllib.request
 
+import sys as _sys, pathlib as _pl
+for _d in _pl.Path(__file__).resolve().parents:
+    if (_d / ".git").exists():
+        _lib = _d / "FrontEndApplicationLib" / "src"
+        if str(_lib) not in _sys.path:
+            _sys.path.insert(0, str(_lib))
+        break
+from chathealthy_frontend_lib.logging_service import ChatHealthyLoggingService
+
+_CH_LOG = ChatHealthyLoggingService()
+
 _AZ = shutil.which("az")
 
 
@@ -32,8 +43,8 @@ def main():
         "state_scope": ["VT", "DE"],
         "load_mode": "full",
     }).encode("utf-8")
-    print(f"POST -> {url[:80]}...")
-    print(f"body -> {body.decode('utf-8')}")
+    _CH_LOG.info(f"POST -> {url[:80]}...")
+    _CH_LOG.info(f"body -> {body.decode('utf-8')}")
     req = urllib.request.Request(
         url,
         method="POST",
@@ -44,12 +55,12 @@ def main():
         with urllib.request.urlopen(req, timeout=30) as r:
             code = r.status
             resp = r.read().decode("utf-8", errors="replace")[:2000]
-            print(f"HTTP {code}")
-            print(resp)
+            _CH_LOG.info(f"HTTP {code}")
+            _CH_LOG.info(resp)
     except urllib.error.HTTPError as exc:
-        print(f"HTTP {exc.code} {exc.reason}")
+        _CH_LOG.info(f"HTTP {exc.code} {exc.reason}")
         try:
-            print(exc.read().decode("utf-8", errors="replace")[:2000])
+            _CH_LOG.info(exc.read().decode("utf-8", errors="replace")[:2000])
         except Exception:
             pass
         sys.exit(1)

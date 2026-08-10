@@ -20,6 +20,15 @@ from enforcement_worker import (
     EXIT_WORKER_INTERNAL_ERROR,
 )
 
+import sys as _sys, pathlib as _pl
+for _d in _pl.Path(__file__).resolve().parents:
+    if (_d / '.git').exists():
+        _lib = _d / 'FrontEndApplicationLib' / 'src'
+        if str(_lib) not in _sys.path:
+            _sys.path.insert(0, str(_lib))
+        break
+from chathealthy_frontend_lib.exceptions import ChatHealthyException
+
 
 # A tiny concrete subclass for exercising the base class.
 class _DummyWorker(EnforcementWorker):
@@ -85,8 +94,12 @@ class TestViolationRecord:
         }
 
     def test_invalid_severity_rejected(self):
-        with pytest.raises(ValueError):
+        # Rule-003: deliberate raises are ChatHealthyException, not a
+        # built-in. The rejection itself is unchanged.
+        from chathealthy_frontend_lib.exceptions import ChatHealthyException
+        with pytest.raises(ChatHealthyException) as exc:
             ViolationRecord("a", "b", "c", "d", "fatal")
+        assert "severity must be" in str(exc.value)
 
 
 class TestScopeListTypes:
@@ -214,7 +227,10 @@ class TestMainExitCodes:
     def test_uncaught_exception_returns_two(self, fake_entry):
         class _BoomWorker(_DummyWorker):
             def run(self):
-                raise RuntimeError("boom")
+                raise ChatHealthyException(
+                    mode="runtime_error",
+                    component="test_enforcement_worker",
+                    message="boom")
         rc = _BoomWorker.main(["Rule-999-ENF-001"])
         assert rc == EXIT_WORKER_ERROR
 

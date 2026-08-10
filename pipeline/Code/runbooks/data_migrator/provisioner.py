@@ -542,7 +542,7 @@ def _main():
         except Exception as cleanup_exc:
             pass
         raise
-    log.info(json.dumps({
+    return {
         "provisioner_status": "ok",
         "job_id": job_id,
         "vm_name": vm_name,
@@ -552,11 +552,12 @@ def _main():
         "role_assignment_guid": role_assignment_guid,
         "hybrid_worker_group": _HYBRID_WORKER_GROUP,
         "migrator_aa_job_id": migrator_aa_job_id,
-    }))
+    }
 
 
 try:
-    _main()
+    _status = _main()
+    log.info(json.dumps(_status))
     sys.exit(0)
 except Exception:
     tb = traceback.format_exc()

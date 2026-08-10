@@ -10,6 +10,17 @@ from chathealthy_frontend_lib.logging_service import ChatHealthyLoggingService, 
 from chathealthy_frontend_lib.exceptions import ChatHealthyException
 from chathealthy_frontend_lib.mongo_utilities import ChatHealthyMongoUtilities
 
+import sys as _sys, pathlib as _pl
+for _d in _pl.Path(__file__).resolve().parents:
+    if (_d / ".git").exists():
+        _lib = _d / "FrontEndApplicationLib" / "src"
+        if str(_lib) not in _sys.path:
+            _sys.path.insert(0, str(_lib))
+        break
+from chathealthy_frontend_lib.logging_service import ChatHealthyLoggingService
+
+_CH_LOG = ChatHealthyLoggingService()
+
 
 def test_mongo_logging_requires_identity():
     """Test: enabling mongo logging without setting identity raises exception."""
@@ -29,7 +40,7 @@ def test_mongo_logging_requires_identity():
         assert False, "Should have raised ChatHealthyException"
     except ChatHealthyException as e:
         assert e.mode == "mongo_log_identity_not_set"
-        print("✓ Correctly requires identity before mongo logging")
+        _CH_LOG.info("✓ Correctly requires identity before mongo logging")
 
 
 def test_mongo_logging_and_verify():
@@ -63,10 +74,10 @@ def test_mongo_logging_and_verify():
     assert test_id in found["formatted"]
 
     coll.delete_one({"_id": found["_id"]})
-    print("✓ Successfully logged to mongo and verified in database")
+    _CH_LOG.info("✓ Successfully logged to mongo and verified in database")
 
 
 if __name__ == "__main__":
     test_mongo_logging_requires_identity()
     test_mongo_logging_and_verify()
-    print("\n✓ All mongo logging tests passed")
+    _CH_LOG.info("\n✓ All mongo logging tests passed")

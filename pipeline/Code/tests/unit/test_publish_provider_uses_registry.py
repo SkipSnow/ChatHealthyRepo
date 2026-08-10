@@ -9,18 +9,18 @@ brain/machine_artifacts/content/pipeline_config.json) rather than any
 hardcoded string. If a config drift shifts provider's staging_name or
 public_data_name in the brain JSON, publish_provider MUST follow it.
 
-Approach: intercept the mongo cluster's admin.command and capture the
-renameCollection args; assert both source and target strings compose
-the registry's resolved (staging_db.staging_coll, public_data_db.
-public_data_coll) exactly, versioned with the data_version the
-runtime carries.
+Approach: run the step against a real cluster, with the registry
+pointed at scratch collections carrying a per-run uuid. A hardcoded
+name could coincidentally match a production one; it cannot
+coincidentally match a uuid. The assertions read where the data
+actually landed, so they cover both the names the step resolved and
+what the server did with them.
 """
 
 from __future__ import annotations
 
 from dataclasses import dataclass
 
-import mongomock
 import pytest
 
 
@@ -60,37 +60,55 @@ class _Ctx:
         self._frontend = frontend
 
 
-def _registry(pipeline_mongo, data_version=3):
-    from pipeline_config import load_pipeline_config
+def _registry(pipeline_mongo, cfg, data_version=3):
     from pipeline_dataset_registry import PipelineDatasetRegistry
-    return PipelineDatasetRegistry(
-        load_pipeline_config(env_prefix="dev"), data_version, pipeline_mongo,
-    )
+    return PipelineDatasetRegistry(cfg, data_version, pipeline_mongo)
 
 
 @pytest.fixture
-def clusters(monkeypatch):
-    pipeline = mongomock.MongoClient()
-    frontend = mongomock.MongoClient()
-    captured: dict = {}
+def clusters(monkeypatch, scratch_mongo):
+    """A real cluster and scratch collections.
 
-    def _fake_admin(cmd, *args, **kwargs):
-        if isinstance(cmd, dict) and "renameCollection" in cmd:
-            captured["cmd"] = dict(cmd)
-            src_db, src_coll = cmd["renameCollection"].split(".", 1)
-            dst_db, dst_coll = cmd["to"].split(".", 1)
-            if cmd.get("dropTarget"):
-                pipeline[dst_db].drop_collection(dst_coll)
-            for doc in pipeline[src_db][src_coll].find({}):
-                pipeline[dst_db][dst_coll].insert_one(doc)
-            pipeline[src_db].drop_collection(src_coll)
-            return {"ok": 1}
-        raise NotImplementedError(f"fake admin.command does not handle {cmd!r}")
+    Three things are redirected, all of them names: the dataset config
+    the runtime loads, and the database and collection mark_loaded
+    writes its metadata into. Nothing about MongoDB is stood in for —
+    the server performs the rename, applies the upsert, and enforces the
+    identity that reached it. Redirecting the destinations is what keeps
+    a test run out of production data.
 
-    pipeline.admin.command = _fake_admin
-    monkeypatch.setattr("pipeline_runtime.get_frontend_mongo", lambda: frontend)
-    monkeypatch.setattr("pipeline_runtime.get_mongo", lambda: pipeline)
-    return pipeline, frontend, captured
+    The registry names both collections in one database because
+    renameCollection is a same-database operation — the constraint the
+    production layout is built around.
+    """
+    db, collection = scratch_mongo
+    pipeline = db.client
+    frontend = db.client
+
+    staging = collection("provider_staging")
+    public = collection("provider_loaded")
+    cfg = {
+        "dataset_versions": [
+            {
+                "source_name": "provider",
+                "fetch": {"source_url": "https://example.com/provider.csv"},
+                "file_format": "csv",
+                "staging_name": f"{db.name}.{staging.name}",
+                "public_data_name": f"{db.name}.{public.name}",
+            },
+        ],
+    }
+
+    import pipeline_loaded_metadata
+    import pipeline_runtime
+
+    monkeypatch.setattr(pipeline_runtime, "get_frontend_mongo", lambda: frontend)
+    monkeypatch.setattr(pipeline_runtime, "get_mongo", lambda: pipeline)
+    monkeypatch.setattr(pipeline_runtime, "load_pipeline_config", lambda **kw: cfg)
+    monkeypatch.setattr(pipeline_loaded_metadata, "_METADATA_DB", db.name)
+    monkeypatch.setattr(pipeline_loaded_metadata, "_METADATA_COLL",
+                        collection("loaded_metadata").name)
+
+    return pipeline, frontend, cfg
 
 
 @pytest.mark.unit
@@ -99,27 +117,32 @@ def test_publish_provider_uses_registry_resolved_names(clusters):
     staging_db.staging_coll_v_N to public_data_db.public_data_coll_v_N."""
     from steps.publish_provider import execute
 
-    pipeline, frontend, captured = clusters
-    reg = _registry(pipeline, data_version=3)
+    pipeline, frontend, cfg = clusters
+    reg = _registry(pipeline, cfg, data_version=3)
     provider_entry = reg.by_source_name("provider")
     expected_src = f"{provider_entry.staging_db}.{reg.staging_collection_name('provider')}"
     expected_dst = f"{provider_entry.public_data_db}.{reg.public_data_collection_name('provider')}"
 
+    src_db, src_coll = expected_src.split(".", 1)
+    dst_db, dst_coll = expected_dst.split(".", 1)
+
     # Seed one row into the resolved staging collection so the count +
     # rename have something to operate on.
-    src_db, src_coll = expected_src.split(".", 1)
     pipeline[src_db][src_coll].insert_one({"npi": "1234567890", "run_id": "run-provider-registry"})
+    # And a prior loaded collection at the destination, so dropTarget has
+    # something to drop. Asserting the sentinel is gone afterwards proves
+    # what dropTarget did, where reading it back off the command string
+    # would only prove it was asked for.
+    pipeline[dst_db][dst_coll].insert_one({"npi": "0000000000", "sentinel": "prior-fire"})
 
     ctx = _Ctx(pipeline, frontend)
     summary = execute(ctx)
 
-    assert captured["cmd"]["renameCollection"] == expected_src
-    assert captured["cmd"]["to"] == expected_dst
-    assert captured["cmd"]["dropTarget"] is True
-    # Post-rename: loaded collection resolved from the registry holds the
-    # seeded row; staging has been drained.
-    dst_db, dst_coll = expected_dst.split(".", 1)
-    assert pipeline[dst_db][dst_coll].count_documents({}) == 1
+    # The rename landed exactly where the registry said, carrying the
+    # staged row and nothing from the prior fire.
+    loaded = list(pipeline[dst_db][dst_coll].find({}))
+    assert len(loaded) == 1
+    assert loaded[0]["npi"] == "1234567890"
     assert src_coll not in pipeline[src_db].list_collection_names()
     assert summary["publichealthdata_collection_name"] == reg.public_data_collection_name("provider")
     assert summary["staging_collection_name"] == reg.staging_collection_name("provider")
@@ -133,7 +156,7 @@ def test_publish_provider_bails_when_staging_absent(clusters):
     from chathealthy_frontend_lib.exceptions import ChatHealthyException
     from steps.publish_provider import execute
 
-    pipeline, frontend, _captured = clusters
+    pipeline, frontend, _cfg = clusters
     ctx = _Ctx(pipeline, frontend)
     with pytest.raises(ChatHealthyException) as exc:
         execute(ctx)

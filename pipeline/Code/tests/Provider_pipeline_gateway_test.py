@@ -13,6 +13,17 @@ from pathlib import Path
 
 import requests
 
+import sys as _sys, pathlib as _pl
+for _d in _pl.Path(__file__).resolve().parents:
+    if (_d / ".git").exists():
+        _lib = _d / "FrontEndApplicationLib" / "src"
+        if str(_lib) not in _sys.path:
+            _sys.path.insert(0, str(_lib))
+        break
+from chathealthy_frontend_lib.logging_service import ChatHealthyLoggingService
+
+_CH_LOG = ChatHealthyLoggingService()
+
 GATEWAY_URL = (
     "https://chathealthydatapipelinesgatewayfunctionapp.azurewebsites.net"
     "/api/Router"
@@ -81,4 +92,4 @@ def test_b_full_payload_returns_202() -> None:
     data = resp.json()
     instance_id = data.get("id")
     assert instance_id, f"202 response missing 'id': {data}"
-    print(f"\nJOB ID: {instance_id}")
+    _CH_LOG.info(f"\nJOB ID: {instance_id}")

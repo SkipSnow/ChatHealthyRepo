@@ -10,6 +10,23 @@ import sys
 import pytest
 import requests
 
+
+# Rule-004: one place in this file obtains a connection, and it goes through
+# the canonical utility. The certificate is the credential; there is no
+# connection string here and no fallback. Raises if the identity cannot
+# connect, which is the point -- a test that quietly connects as something
+# else proves nothing about production.
+def _ch_connection():
+    import sys as _sys, pathlib as _pl
+    for _d in _pl.Path(__file__).resolve().parents:
+        if (_d / ".git").exists():
+            _lib = _d / "FrontEndApplicationLib" / "src"
+            if str(_lib) not in _sys.path:
+                _sys.path.insert(0, str(_lib))
+            break
+    from chathealthy_frontend_lib.mongo_utilities import ChatHealthyMongoUtilities
+    return ChatHealthyMongoUtilities().getConnection("DevOpsUser", 'frontEnd')
+
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
 
 BASE = os.getenv("TEST_API_URL", "http://localhost")
@@ -28,7 +45,7 @@ def get_latest_recorded_question():
     load_dotenv(os.path.join(os.path.dirname(__file__), "..", "..", "..", "..", ".env"))
     from pymongo import MongoClient
     conn = os.getenv("MONGO_FRONTEND_connectionString")
-    client = MongoClient(conn)
+    client = _ch_connection()
     col = client["dev_AboutUs"]["AboutSkip"]
     record = col.find_one(sort=[("datetime", -1)])
     return record.get("question", "") if record else ""

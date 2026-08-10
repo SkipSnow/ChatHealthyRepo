@@ -8,7 +8,6 @@ from chathealthy_frontend_lib.logging_service import ChatHealthyLoggingService
 
 import hashlib
 
-import re
 from typing import Any
 
 _log = ChatHealthyLoggingService()
@@ -22,7 +21,15 @@ def checksum_sha256_bytes(data: bytes) -> str:
 
 
 def _safe_segment(value: str) -> str:
-    return re.sub(r"[^\w.\-]+", "_", value.replace("/", "_").replace("\\", "_"))
+    cleaned = value.replace("/", "_").replace("\\", "_")
+    out: list[str] = []
+    for ch in cleaned:
+        keep = ch.isalnum() or ch == "_" or ch in ".-"
+        if keep:
+            out.append(ch)
+        elif not out or out[-1] != "_":
+            out.append("_")
+    return "".join(out)
 
 
 def archive_source_blob_path(

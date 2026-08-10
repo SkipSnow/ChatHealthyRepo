@@ -9,7 +9,6 @@
 # SDT-LOCAL-003: start_local.bat one-click startup
 
 import os
-import re
 import ast
 import pytest
 

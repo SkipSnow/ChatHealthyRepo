@@ -37,6 +37,7 @@ import os
 import re
 import socket
 import sys
+import subprocess
 import urllib.error
 import urllib.request
 from pathlib import Path
@@ -75,7 +76,7 @@ _HTTP_URL_RE = re.compile(r"http://[^\s\"'<>,()]+")
 
 # Rule-008 statement #4: regex API usage detection patterns. File-selection
 # (which files this method scans) lives in the scope array on
-# Rule-008-ENF-001. The detection patterns are content-only.
+# Rule-065-ENF-006. The detection patterns are content-only.
 _PY_REGEX_HITS = (
     r"^\s*import\s+re\b",
     r"^\s*from\s+re\s+import\b",
@@ -256,7 +257,7 @@ class ScanFilesEnforcementWorker(EnforcementWorker):
     ) -> list[ViolationRecord]:
         """Block regex API usage in production-executable code.
 
-        File-selection lives in the scope array on Rule-008-ENF-001. This
+        File-selection lives in the scope array on Rule-065-ENF-006. This
         method only does content detection on whatever files the base
         class passes through. A file with violations is rejected and
         run() must skip downstream checks for that file.
@@ -296,40 +297,13 @@ class ScanFilesEnforcementWorker(EnforcementWorker):
     # Resource enumeration
     # ────────────────────────────────────────────────────────────────────────
     def _staged_files(self) -> list[str]:
-        """Return repo-relative paths of files for this hook to scan.
+        """The file array the Rule-065 driver handed down.
 
-        On pre-commit: the staged files (`git diff --cached --name-only ...`).
-        On any other hook the scan target list is the empty list — workers
-        for those hooks will populate it via their own enumeration. For V1
-        the worker is wired only to pre-commit per V19 §4.9.
-
-        For tests, the SCAN_FILES_ENFORCEMENT_TARGETS environment variable
-        can override the list directly with a path-separator-joined string.
+        This worker owns no git knowledge. What a commit answers for is one
+        decision, and the driver makes it once for every subordinate.
         """
-        import os
-        import subprocess
+        return self.files
 
-        override = os.environ.get("SCAN_FILES_ENFORCEMENT_TARGETS")
-        if override is not None:
-            return [p for p in override.split(os.pathsep) if p]
-
-        if self.hook != "pre-commit":
-            return []
-
-        completed = subprocess.run(
-            ["git", "diff", "--cached", "--name-only", "--diff-filter=ACMR"],
-            cwd=str(PROJECT_ROOT),
-            capture_output=True,
-            text=True,
-            check=False,
-        )
-        if completed.returncode != 0:
-            return []
-        return [line for line in completed.stdout.splitlines() if line.strip()]
-
-    # ────────────────────────────────────────────────────────────────────────
-    # _scan_http  (V19 Table 9 row 3 / TR-11)
-    # ────────────────────────────────────────────────────────────────────────
     def _scan_http(self, file_path: str) -> list[ViolationRecord]:
         """Regex-scan for http://; emit a violation for each URL not allowed.
 
@@ -444,7 +418,7 @@ class ScanFilesEnforcementWorker(EnforcementWorker):
     def _scan_no_secret_values(self, file_path: str) -> list[ViolationRecord]:
         """Reject if the staged file contains any value from the local .env.
 
-        Per EPIC-008-F-012-S-001-REQ-B-009: no file in any per-target build-
+        Per EPIC-008-F-012: no file in any per-target build-
         package directory may contain a literal secret VALUE. The check
         loads every value from Code/.env via SecretsResolver's leak-check
         helper, then substring-matches against the file's text bytes.
@@ -452,7 +426,7 @@ class ScanFilesEnforcementWorker(EnforcementWorker):
         or echoed in the message.
 
         File-selection (which paths this method scans) lives in the scope
-        array on Rule-008-ENF-001. This method only does content matching
+        array on Rule-065-ENF-006. This method only does content matching
         on whatever files the base class passes through.
         """
         absolute_path = (PROJECT_ROOT / file_path).resolve()
@@ -706,6 +680,20 @@ class ScanFilesEnforcementWorker(EnforcementWorker):
             severity="error",
         )
 
+
+
+def _ch_exception():
+    """ChatHealthyException, resolved without assuming the library is on the
+    path. Enforcement workers are spawned as bare scripts by the manager."""
+    import sys as _sys, pathlib as _pl
+    for _p in _pl.Path(__file__).resolve().parents:
+        if (_p / ".git").exists():
+            _lib = _p / "FrontEndApplicationLib" / "src"
+            if str(_lib) not in _sys.path:
+                _sys.path.insert(0, str(_lib))
+            break
+    from chathealthy_frontend_lib.exceptions import ChatHealthyException
+    return ChatHealthyException
 
 def main(argv: list[str] | None = None) -> int:
     return ScanFilesEnforcementWorker.main(argv)

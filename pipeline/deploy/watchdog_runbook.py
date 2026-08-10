@@ -244,12 +244,13 @@ def _legacy_blob_log_unused(event: str, **fields):
 
 
 # -----------------------------------------------------------------------------
-# Mongo helpers (front-end cluster only -- always-up)
+# Mongo helpers -- pipeline cluster (operator directive 2026-08-03: coord
+# lives on pipeline cluster; frontend cluster is off-limits to pipeline).
 # -----------------------------------------------------------------------------
 def _get_mongo_conn_string() -> str:
-    """Fetch MONGO_FRONTEND_connectionString from Key Vault via MI."""
+    """Fetch MONGO_connectionString from Key Vault via MI."""
     tok = _get_token("https://vault.azure.net")
-    url = f"{KEY_VAULT_URI}secrets/MONGO-FRONTEND-connectionString?api-version=7.4"
+    url = f"{KEY_VAULT_URI}secrets/MONGO-connectionString?api-version=7.4"
     req = urllib.request.Request(
         url, headers={"Authorization": f"Bearer {tok}"}
     )

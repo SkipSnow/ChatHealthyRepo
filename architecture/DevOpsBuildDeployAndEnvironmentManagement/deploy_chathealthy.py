@@ -20,7 +20,7 @@ with a fix-it message naming the stale fact:
                       [non-local envs only; local builds source from working
                       tree, not HEAD, so SHA drift does not invalidate]
   (b) env           — manifest.env must equal --env
-  (c) build counter — manifest.build must equal pipelineAdmin.Versions.latest.build
+  (c) build counter — manifest.build must equal frontEndAdmin.BuildVersions.latest.build
                       [non-local envs only; --env local does not bump and
                       the counter relationship is not load-bearing]
 
@@ -54,12 +54,30 @@ VALID_ENVS = ("local", "dev", "qa", "prod")
 _ENV_BRANCH = {"local": "dev", "dev": "dev", "qa": "qa", "prod": "main"}
 
 
+def _chathealthy_exception():
+    """ChatHealthyException, imported without assuming the library is on the
+    path. These scripts run as bare entry points before any package setup."""
+    import sys as _sys, pathlib as _pl
+    for _p in _pl.Path(__file__).resolve().parents:
+        if (_p / ".git").exists():
+            _lib = _p / "FrontEndApplicationLib" / "src"
+            if str(_lib) not in _sys.path:
+                _sys.path.insert(0, str(_lib))
+            break
+    from chathealthy_frontend_lib.exceptions import ChatHealthyException
+    return ChatHealthyException
+
+
 def _repo_root() -> Path:
     cur = Path(__file__).resolve()
     for p in (cur, *cur.parents):
         if (p / ".git").is_dir() or (p / ".env").is_file():
             return p
-    raise RuntimeError("repo root not found")
+    raise _chathealthy_exception()(
+        mode="repo_root_not_found",
+        component="DeployChatHealthy",
+        message="repo root not found walking up from "
+                f"{Path(__file__).resolve()}")
 
 
 def _current_branch(repo_root: Path) -> str:
@@ -101,7 +119,7 @@ def _latest_admin_build() -> int | None:
         from chathealthy_frontend_lib.mongo_utilities import ChatHealthyMongoUtilities
         latest = (ChatHealthyMongoUtilities()
                   .getConnection("DevOpsUser", "admin")
-                  ["pipelineAdmin"]["Versions"].find_one(sort=[("from", -1)]))
+                  ["frontEndAdmin"]["BuildVersions"].find_one(sort=[("from", -1)]))
     except Exception:
         return None
     if latest is None:
@@ -117,13 +135,11 @@ def _staleness_gate(repo_root: Path, env: str, target_ids: list[str]) -> None:
     latest_build = _latest_admin_build() if env != "local" else None
 
     for target_id in target_ids:
-        manifest_path = repo_root / BUILD_ROOT_REL / target_id / "manifest.json"
-        if not manifest_path.is_file():
-            sys.exit(
-                f"ERROR: no fresh build for {target_id} env {env}; "
-                f"run build_chathealthy.py --env {env} first"
-            )
-        data = json.loads(manifest_path.read_text(encoding="utf-8"))
+        from _deploy_chain import _target_packages, package_build_facts
+        pkgs = _target_packages(repo_root, target_id)
+        if not pkgs:
+            continue  # provisioned target: no bytes, nothing to stale-check
+        data = package_build_facts(repo_root, target_id, pkgs[0])
 
         manifest_env = data.get("env")
         if manifest_env != env:
@@ -148,7 +164,7 @@ def _staleness_gate(repo_root: Path, env: str, target_ids: list[str]) -> None:
             if manifest_build is not None and int(manifest_build) != int(latest_build):
                 sys.exit(
                     f"ERROR: build_number {manifest_build} is older than "
-                    f"admin.Versions latest {latest_build} for env {env} "
+                    f"frontEndAdmin.BuildVersions latest {latest_build} for env {env} "
                     f"(target={target_id}); rebuild"
                 )
 
@@ -160,7 +176,9 @@ def _collect_target_ids_for_env(repo_root: Path, env: str, target_arg: str) -> l
     from target_record import DeploymentCollection
     from record_loader import RecordLoader
     brain_path = repo_root / "brain" / "machine_artifacts" / "content" / "deployment_architecture.json"
-    load_filter = target_arg if target_arg.startswith("target_") else None
+    load_filter = (target_arg
+                   if target_arg.startswith("target_")
+                   and "," not in target_arg else None)
     coll: DeploymentCollection = RecordLoader().load_collection(
         brain_path, target_id_filter=load_filter,
     )
@@ -214,7 +232,6 @@ def _run_tests(env: str, tests: list[str]) -> int:
     if not tests:
         return 0
     test_map = {
-        "find_care_smoke": "architecture/DevOpsBuildDeployAndEnvironmentManagement/find_care_smoke_test.py",
         "ur_um_regression": "architecture/DevOpsBuildDeployAndEnvironmentManagement/findcare_ur_um_regression_test.py",
         "fire_provider_pipeline": "architecture/DevOpsBuildDeployAndEnvironmentManagement/fire_provider_pipeline_test.py",
     }
@@ -234,12 +251,23 @@ def _run_tests(env: str, tests: list[str]) -> int:
     return subprocess.run(cmd, env=env_dict).returncode
 
 
-def _is_local_manifest_target(repo_root: Path, target_arg: str) -> bool:
-    """True when --target names a manifest target that binds to env local.
+_LOCAL_STACK_KINDS = ("hf_space", "cloudflare_pages_project")
 
-    Group selectors ('all', 'pipeline', 'cloudflare', ...) are never local
-    manifest targets: those mean the stack, and the stack is LocalStandUp's.
+
+def _is_local_manifest_target(repo_root: Path, target_arg: str) -> bool:
+    """True when --target names a target that env local installs directly.
+
+    The application services and the website are stood up as containers by
+    LocalStandUp; a host_os_process target is installed from its manifest.
+
+    This used to mean "names a target that binds to local", which was
+    right while only host_os_process targets bound to local. Merging the
+    docker_local twins into the real targets gave the application targets
+    a local binding too, so naming one of them sent it down the cloud
+    deploy path and it failed looking for a git branch.
     """
+    if "," in target_arg:
+        return False
     import json
     brain = (repo_root / "brain" / "machine_artifacts" / "content"
              / "deployment_architecture.json")
@@ -260,6 +288,8 @@ def _is_local_manifest_target(repo_root: Path, target_arg: str) -> bool:
     for rec in walk(doc):
         if rec.get("target_id") != target_arg:
             continue
+        if rec.get("target_kind") in _LOCAL_STACK_KINDS:
+            return False        # LocalStandUp owns these
         return any(e.get("env_binding") == "local"
                    for e in rec.get("environments") or [])
     return False
@@ -279,7 +309,7 @@ def main(argv: list[str] | None = None) -> int:
              "--package MUST be explicitly enumerated — no shortcut for "
              "'all packages' exists on purpose. If you want to deploy "
              "every runbook under a group, name every package. "
-             "EPIC-008-F-012-S-001-REQ-B-012: 'pipeline' MUST NOT be "
+             "EPIC-008-F-012: 'pipeline' MUST NOT be "
              "combined with other target values.",
     )
     parser.add_argument(
@@ -293,12 +323,12 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument(
         "--tests", default="",
         help="Comma-separated list of test names to run after deploy "
-             "(e.g. 'find_care_smoke,ur_um_regression'). Empty by default.",
+             "(e.g. 'ur_um_regression'). Empty by default.",
     )
     args = parser.parse_args(argv)
     repo_root = _repo_root()
 
-    # EPIC-008-F-012-S-001-REQ-B-012: reject any attempt to combine the
+    # EPIC-008-F-012: reject any attempt to combine the
     # 'pipeline' selector with another target value. Comma-separated
     # multi-target strings are the only shape this rule needs to block —
     # a single specific target_id (like 'target_atlas_pipeline') is
@@ -308,7 +338,7 @@ def main(argv: list[str] | None = None) -> int:
         sys.exit(
             "ERROR: --target=pipeline MUST be the sole target. Pipeline "
             "deploys are independent of front-end deploys "
-            "(EPIC-008-F-012-S-001-REQ-B-012)."
+            "(EPIC-008-F-012)."
         )
 
     # Force explicit --package enumeration when --target is a group name.
@@ -316,15 +346,29 @@ def main(argv: list[str] | None = None) -> int:
     # package being deployed. No blanket 'all packages under this group'
     # shortcut exists — the friction is the feature. Prevents accidental
     # 10-runbook shotgun deploys when a single package was intended.
-    _GROUP_TARGETS = frozenset({"pipeline", "cloudflare", "hf", "azure", "aca", "all"})
-    if args.target in _GROUP_TARGETS and not args.package.strip():
+    # 'all' is gone from both build and deploy. Every deploy names the
+    # destinations and the capabilities inside them; a selector meaning
+    # "everything" is what turned every change into a whole-estate deploy.
+    if args.target.strip() == "all":
         sys.exit(
-            f"ERROR: --target={args.target!r} is a group selector. "
-            f"--package MUST be explicitly enumerated (comma-separated). "
-            f"No 'all packages' shortcut exists — name every package you "
-            f"intend to deploy. Example: --target pipeline --package "
-            f"provider_pipeline"
+            "ERROR: --target='all' no longer exists. Name the target_id(s) "
+            "(comma-separated) and the package(s) you intend to deploy."
         )
+    _GROUP_TARGETS = frozenset({"pipeline", "cloudflare", "hf", "azure", "aca"})
+    if not args.package.strip():
+        sys.exit(
+            f"ERROR: --package MUST be explicitly enumerated "
+            f"(comma-separated) for every deploy. No 'all packages' "
+            f"shortcut exists — name every package you intend to deploy. "
+            f"Example: --target target_hf_space_findcare_backend "
+            f"--package service_runtime"
+        )
+
+    # Nothing is deployed from a manifest that does not satisfy the
+    # published schema. The deploy validated only inside one selection
+    # helper, so whether it happened depended on which path ran.
+    from record_loader import RecordLoader as _RL
+    _RL.validate_architecture(repo_root)
 
     _enforce_env_branch_check(repo_root, args.env)
 
@@ -384,7 +428,12 @@ def main(argv: list[str] | None = None) -> int:
         # to end; without this, run_cloud_deploy re-enumerates via
         # select_target_ids and iterates every synth per-package target
         # regardless of --package, doing far more work than requested.
-        rc = run_cloud_deploy(args.env, args.target, explicit_target_ids=target_ids)
+        # pkg_selection also reaches the Automation Account handler, which
+        # owns the runbook packages directly now that each runbook is a
+        # package rather than its own synthetic target.
+        rc = run_cloud_deploy(args.env, args.target,
+                              explicit_target_ids=target_ids,
+                              package_selection=pkg_selection or None)
 
     if rc == 0:
         tests = [t.strip() for t in args.tests.split(",") if t.strip()]

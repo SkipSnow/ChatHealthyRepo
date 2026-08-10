@@ -21,6 +21,21 @@ from target_record import DeploymentCollection, FileComposition, TargetRecord
 _BASE64_PREFIX: str = "__base64__:"
 
 
+
+def _ch_exc():
+    """ChatHealthyException without assuming the library is installed.
+    These modules run as bare scripts in the devops chain."""
+    import sys as _s, pathlib as _p
+    for _d in _p.Path(__file__).resolve().parents:
+        if (_d / ".git").exists():
+            _l = _d / "FrontEndApplicationLib" / "src"
+            if str(_l) not in _s.path:
+                _s.path.insert(0, str(_l))
+            break
+    from chathealthy_frontend_lib.exceptions import ChatHealthyException
+    return ChatHealthyException
+
+
 class Extractor:
     def materialize(self, record: TargetRecord, repo_root: Path) -> None:
         for f in record.files:
@@ -40,9 +55,10 @@ class Extractor:
         if f.disposition != "managed":
             return
         if f.embedded_content is None:
-            raise ValueError(
-                f"managed file {f.source_location!r} missing embedded_content"
-            )
+            raise _ch_exc()(
+            mode="value_error",
+            component="extractor",
+            message=f"managed file {f.source_location!r} missing embedded_content")
         out_path = repo_root / f.source_location
         out_path.parent.mkdir(parents=True, exist_ok=True)
         if f.embedded_content.startswith(_BASE64_PREFIX):

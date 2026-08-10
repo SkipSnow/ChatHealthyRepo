@@ -10,7 +10,7 @@ parallel; Controller returns when all are done.
 
 Every Worker reads the URL for its assigned source from a plain env var
 propagated through the standard deploy chain (declared in
-deployment_architecture.json, sourced from Code/.env, pushed to KV +
+deployment_architecture.json, sourced from .env, pushed to KV +
 Automation Variable, hydrated into the Controller container which passes
 it to each Worker subprocess via env inheritance):
 

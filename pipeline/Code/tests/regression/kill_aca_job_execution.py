@@ -24,6 +24,17 @@ from pathlib import Path
 
 import pytest
 
+import sys as _sys, pathlib as _pl
+for _d in _pl.Path(__file__).resolve().parents:
+    if (_d / ".git").exists():
+        _lib = _d / "FrontEndApplicationLib" / "src"
+        if str(_lib) not in _sys.path:
+            _sys.path.insert(0, str(_lib))
+        break
+from chathealthy_frontend_lib.logging_service import ChatHealthyLoggingService
+
+_CH_LOG = ChatHealthyLoggingService()
+
 _REPO_ROOT = Path(__file__).resolve().parents[4]
 sys.path.insert(0, str(_REPO_ROOT / "pipeline" / "Code"))
 from pipeline_env import load_pipeline_env  # noqa: E402
@@ -89,11 +100,11 @@ def test_kill_aca_job_execution():
 
     exec_doc = _execution_show(job_name, execution_name)
     status = (exec_doc.get("properties") or {}).get("status", "")
-    print(f"[kill] job={job_name} execution={execution_name} current_status={status!r}")
+    _CH_LOG.info(f"[kill] job={job_name} execution={execution_name} current_status={status!r}")
     if status in _TERMINAL_STATUSES:
-        print(f"[kill] execution already terminal ({status}); no-op")
+        _CH_LOG.info(f"[kill] execution already terminal ({status}); no-op")
         return
 
     http_status = _execution_stop(job_name, execution_name)
     assert http_status in (200, 202), f"stop returned {http_status}, expected 200 or 202"
-    print(f"[kill] stop accepted (HTTP {http_status}); execution transitioning to Stopped")
+    _CH_LOG.info(f"[kill] stop accepted (HTTP {http_status}); execution transitioning to Stopped")

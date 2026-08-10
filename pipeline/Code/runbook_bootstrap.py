@@ -25,6 +25,21 @@ from azure.keyvault.secrets import SecretClient
 _materialized_paths: list[Path] = []
 
 
+
+def _ch_exc():
+    """ChatHealthyException without assuming the library is installed.
+    These modules run as bare scripts in the devops chain."""
+    import sys as _s, pathlib as _p
+    for _d in _p.Path(__file__).resolve().parents:
+        if (_d / ".git").exists():
+            _l = _d / "FrontEndApplicationLib" / "src"
+            if str(_l) not in _s.path:
+                _s.path.insert(0, str(_l))
+            break
+    from chathealthy_frontend_lib.exceptions import ChatHealthyException
+    return ChatHealthyException
+
+
 def _cleanup_on_exit() -> None:
     """Clean up temp files on process exit."""
     for p in _materialized_paths:
@@ -78,30 +93,34 @@ def materialize_certs_and_set_env(
     if not vault_uri:
         vault_uri = os.environ.get("KEY_VAULT_URI", "").strip()
         if not vault_uri:
-            raise ValueError(
-                "vault_uri not provided and KEY_VAULT_URI env var not set"
-            )
+            raise _ch_exc()(
+            mode="value_error",
+            component="runbook_bootstrap",
+            message="vault_uri not provided and KEY_VAULT_URI env var not set")
 
     try:
         cred = DefaultAzureCredential()
         client = SecretClient(vault_url=vault_uri, credential=cred)
     except Exception as exc:
-        raise ValueError(
-            f"Failed to create SecretClient for {vault_uri}: {exc}"
-        ) from exc
+        raise _ch_exc()(
+            mode="value_error",
+            component="runbook_bootstrap",
+            message=f"Failed to create SecretClient for {vault_uri}: {exc}") from exc
 
     try:
         cert_pem = client.get_secret(cert_secret).value or ""
         key_pem = client.get_secret(key_secret).value or ""
     except Exception as exc:
-        raise ValueError(
-            f"Failed to fetch secrets {cert_secret}/{key_secret} from KV: {exc}"
-        ) from exc
+        raise _ch_exc()(
+            mode="value_error",
+            component="runbook_bootstrap",
+            message=f"Failed to fetch secrets {cert_secret}/{key_secret} from KV: {exc}") from exc
 
     if not cert_pem or not key_pem:
-        raise ValueError(
-            f"KV secrets {cert_secret} or {key_secret} are empty"
-        )
+        raise _ch_exc()(
+            mode="value_error",
+            component="runbook_bootstrap",
+            message=f"KV secrets {cert_secret} or {key_secret} are empty")
 
     cert_path = _write_secure_file(cert_pem.encode("utf-8"), "_cert.pem")
     key_path = _write_secure_file(key_pem.encode("utf-8"), "_key.pem")

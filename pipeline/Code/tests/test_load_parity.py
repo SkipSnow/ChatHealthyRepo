@@ -12,15 +12,42 @@
 
 import csv
 import io
-import logging
 import os
 import sys
 
 import pytest
 
+import sys as _sys, pathlib as _pl
+for _d in _pl.Path(__file__).resolve().parents:
+    if (_d / ".git").exists():
+        _lib = _d / "FrontEndApplicationLib" / "src"
+        if str(_lib) not in _sys.path:
+            _sys.path.insert(0, str(_lib))
+        break
+from chathealthy_frontend_lib.logging_service import ChatHealthyLoggingService
+
+_CH_LOG = ChatHealthyLoggingService()
+
+
+# Rule-004: one place in this file obtains a connection, and it goes through
+# the canonical utility. The certificate is the credential; there is no
+# connection string here and no fallback. Raises if the identity cannot
+# connect, which is the point -- a test that quietly connects as something
+# else proves nothing about production.
+def _ch_connection():
+    import sys as _sys, pathlib as _pl
+    for _d in _pl.Path(__file__).resolve().parents:
+        if (_d / ".git").exists():
+            _lib = _d / "FrontEndApplicationLib" / "src"
+            if str(_lib) not in _sys.path:
+                _sys.path.insert(0, str(_lib))
+            break
+    from chathealthy_frontend_lib.mongo_utilities import ChatHealthyMongoUtilities
+    return ChatHealthyMongoUtilities().getConnection("DevOpsUser", 'pipelines')
+
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
 
-_log = logging.getLogger("test_load_parity")
+_log = ChatHealthyLoggingService()
 
 
 def _get_pipeline_connection():
@@ -41,7 +68,7 @@ def _get_blob_service():
 def pipeline_providers():
     """Connect to pipeline cluster providers collection."""
     from pymongo import MongoClient
-    client = MongoClient(_get_pipeline_connection())
+    client = _ch_connection()
     return client[f"{os.environ.get('ENV_PREFIX', 'dev')}_PublicHealthData"]["providers"]
 
 
@@ -150,7 +177,7 @@ class TestLoadParity:
                     f"db={m['db']:,} "
                     f"missing={m['missing']:,}\n"
                 )
-            print(report)
+            _CH_LOG.info(report)
 
         assert len(mismatches) == 0, (
             f"{len(mismatches)} states have source/DB mismatch: "
@@ -165,8 +192,8 @@ class TestLoadParity:
     def test_db_has_loaded_states(self, db_state_counts):
         """DB must have at least one state loaded."""
         assert len(db_state_counts) > 0, "No states found in pipeline DB"
-        print(f"\n  States in DB: {sorted(db_state_counts.keys())}")
+        _CH_LOG.info(f"\n  States in DB: {sorted(db_state_counts.keys())}")
         for state, count in sorted(db_state_counts.items()):
-            print(f"    {state}: {count:,}")
+            _CH_LOG.info(f"    {state}: {count:,}")
 
 

@@ -15,9 +15,45 @@
 # DR-019: Tests run against the full parent page, not individual components.
 
 import os
-import re
 import pytest
 from playwright.sync_api import sync_playwright, Page
+
+
+_DIGITS = frozenset("0123456789")
+
+
+def _digit_runs(text: str, length: int) -> list[str]:
+    """Every maximal run of digits of exactly `length` characters."""
+    out: list[str] = []
+    i = 0
+    while i < len(text):
+        if text[i] in _DIGITS:
+            j = i
+            while j < len(text) and text[j] in _DIGITS:
+                j += 1
+            if j - i == length:
+                out.append(text[i:j])
+            i = j
+        else:
+            i += 1
+    return out
+
+
+def _labelled_digit_runs(text: str, label: str, length: int) -> list[str]:
+    """Digit runs of `length` that follow `label` and optional separators."""
+    out: list[str] = []
+    at = text.find(label)
+    while at != -1:
+        k = at + len(label)
+        while k < len(text) and text[k] in ": \t\r\n":
+            k += 1
+        j = k
+        while j < len(text) and text[j] in _DIGITS:
+            j += 1
+        if j - k == length:
+            out.append(text[k:j])
+        at = text.find(label, at + 1)
+    return out
 
 BASE_URL = os.getenv("TEST_BASE_URL", "https://localhost")
 CHAT_TIMEOUT = 120_000
@@ -156,10 +192,10 @@ class TestProviderSearch:
         frame = shared_page["frame"]
         body_text = frame.locator("body").inner_text()
         # NPI format: "NPI: 1234567890" — look for the label + number pattern
-        npis = re.findall(r"NPI[:\s]+(\d{10})", body_text)
+        npis = _labelled_digit_runs(body_text, "NPI", 10)
         if not npis:
             # Fallback: any 10-digit number
-            npis = re.findall(r"\b\d{10}\b", body_text)
+            npis = _digit_runs(body_text, 10)
         assert len(npis) >= 1, f"Expected NPI numbers. Text sample: {body_text[-500:]}"
 
     def test_results_mention_de(self, shared_page):
@@ -262,7 +298,7 @@ class TestEvaluateCareHandoff:
         _screenshot(page, "09_right_panel_providers")
 
         has_content = "EvaluateCare" in right_text or \
-            bool(re.findall(r"\b\d{10}\b", right_text)) or \
+            bool(_digit_runs(right_text, 10)) or \
             any(w in right_text for w in ["Dr.", "MD", "DO", "DPM", "NPI", "provider"])
         assert has_content, f"Right panel should show providers. Text: {right_text[:400]}"
 

@@ -3,8 +3,6 @@
 
 from __future__ import annotations
 
-from unittest.mock import patch
-
 from step_context import PipelineArgs, RunManifest, StepContext
 from pipeline_runtime import PipelineRuntime
 
@@ -23,8 +21,10 @@ class _Mongo:
         return None
 
 
-@patch("pipeline_runtime.get_frontend_mongo", return_value=_Mongo())
-def test_partition_filter_state(_mock_frontend):
+def test_partition_filter_state():
+    # Operator directive 2026-08-03: PipelineRuntime no longer opens a
+    # frontend-mongo connection; all coord lives on the pipeline cluster
+    # via ctx.mongo_client. No monkeypatch needed.
     args = PipelineArgs(states=["WY"], env_prefix="dev", data_version=3)
     manifest = RunManifest(run_id="r1", pipeline_name="provider", env_prefix="dev")
     ctx = StepContext(args=args, manifest=manifest, config={}, mongo_client=_Mongo(), blob_client=None)

@@ -10,11 +10,19 @@
 # Changed: extracted from main.py inline strings
 
 import json
-import logging
 import os
 from pathlib import Path
 
-_log = logging.getLogger("findcare.system_manufacturing")
+import sys as _sys, pathlib as _pl
+for _d in _pl.Path(__file__).resolve().parents:
+    if (_d / ".git").exists():
+        _lib = _d / "FrontEndApplicationLib" / "src"
+        if str(_lib) not in _sys.path:
+            _sys.path.insert(0, str(_lib))
+        break
+from chathealthy_frontend_lib.logging_service import ChatHealthyLoggingService
+
+_log = ChatHealthyLoggingService()
 
 
 class PromptSystemMaker:
@@ -309,17 +317,17 @@ class PromptSystemMaker:
     # ------------------------------------------------------------------
     # Build number — from MongoDB
     # Per BUG-001: canonical source is the latest
-    # record in admin.Versions (single global collection). env_prefix is
+    # record in frontEndAdmin.BuildVersions (single global collection). env_prefix is
     # ignored; kept in the signature for backward compatibility.
     # ------------------------------------------------------------------
     @staticmethod
     def get_build_number(get_db_fn, env_prefix: str) -> str:
-        """Read latest build number from admin.Versions. Read once at startup."""
+        """Read latest build number from frontEndAdmin.BuildVersions. Read once at startup."""
         try:
             db = get_db_fn()
             if db is None:
                 return "?"
-            record = db["admin"]["Versions"].find_one(sort=[("from", -1)])
+            record = db["frontEndAdmin"]["BuildVersions"].find_one(sort=[("from", -1)])
             return str(record["build"]) if record else "0"
         except Exception:
             return "?"

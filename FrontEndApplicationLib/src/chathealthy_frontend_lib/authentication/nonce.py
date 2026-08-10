@@ -3,6 +3,8 @@
 
 from datetime import datetime, timezone
 
+from ..exceptions import ChatHealthyException
+
 
 class Nonce:
     STAMP_SIZE = 17
@@ -40,6 +42,12 @@ class Nonce:
     @classmethod
     def _validate(cls, field: str) -> None:
         if len(field) != cls.SIZE:
-            raise ValueError(f"nonce length {len(field)} != {cls.SIZE}")
+            raise ChatHealthyException(
+            mode="value_error",
+            component="nonce",
+            message=f"nonce length {len(field)} != {cls.SIZE}")
         if field[cls.STAMP_SIZE] != cls.SEPARATOR:
-            raise ValueError(f"missing '{cls.SEPARATOR}' separator at byte {cls.STAMP_SIZE}")
+            raise ChatHealthyException(
+            mode="value_error",
+            component="nonce",
+            message=f"missing '{cls.SEPARATOR}' separator at byte {cls.STAMP_SIZE}")

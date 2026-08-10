@@ -137,7 +137,7 @@ def _ensure_kv_secrets_from_file_packages(target, env: str, vault_name: str) -> 
     uploaded via `az keyvault secret set --file`. Uses `--encoding base64` so
     line endings + special chars survive round-trip.
 
-    Per the operator directive: Code/.env is the sole intentional source that
+    Per the operator directive: .env is the sole intentional source that
     is gitignored. Rule-006's scope entry declares this exemption.
     """
     for eb in target.environments:
@@ -499,17 +499,23 @@ def _create_reserved_nic_pool(
         )
 
 
-def ensure_managed_identity(target, env: str) -> str:
-    block = _env_block(target, env, "identity")
+def ensure_managed_identity_from_config(block: dict, owner: str,
+                                        label: str) -> str:
+    """Provision one user-assigned managed identity from its config block.
+
+    A managed identity is an Entra directory object, so the identities of
+    the estate are packages inside one Entra target rather than a target
+    each. `owner` and `label` name the target and package for diagnostics.
+    """
     if block.get("identity_class") not in ("managed_identity", "azure_managed_identity"):
         sys.exit(
-            f"ERROR: identity target {target.target_id!r} identity_class "
+            f"ERROR: {owner}/{label} identity_class "
             f"{block.get('identity_class')!r} not supported for pipeline MI provision"
         )
     name = block["name"]
     rg = block["resource_group"]
     location = "eastus2"
-    step(f"ensure managed identity {name}")
+    step(f"ensure managed identity {name} ({owner}/{label})")
     show = _az(
         ["identity", "show", "--name", name, "--resource-group", rg],
         check=False,
@@ -524,6 +530,12 @@ def ensure_managed_identity(target, env: str) -> str:
             ]
         )
     return name
+
+
+def ensure_managed_identity(target, env: str) -> str:
+    return ensure_managed_identity_from_config(
+        _env_block(target, env, "identity"), target.target_id, env,
+    )
 
 
 def ensure_pipeline_automation_identity(
@@ -1273,17 +1285,16 @@ def _azure_to_atlas_region(region: str) -> str:
 
 
 def _atlas_load_credentials() -> tuple[str, str, str]:
-    """Read Atlas Admin API service-account credentials from Code/.env.
+    """Read Atlas Admin API service-account credentials from .env.
 
     Returns (client_id, client_secret, project_id). Fails hard if any
     is missing. Credentials are NOT declared in the manifest — the
     Atlas project we deploy to is identified by ATLAS_PROJECT_ID from
-    Code/.env, and the service-account credentials (client id/secret)
-    that authenticate the deploy are also read directly from Code/.env.
+    .env, and the service-account credentials (client id/secret)
+    that authenticate the deploy are also read directly from .env.
     """
     from dotenv import load_dotenv
     repo_root = Path(__file__).resolve().parents[2]
-    load_dotenv(repo_root / "Code" / ".env")
     load_dotenv(repo_root / ".env")
     client_id = os.environ.get("Mong_serviceAccount_ClientID", "")
     client_secret = os.environ.get("Mong_serviceAccount_ClientSecret", "")
@@ -1295,7 +1306,7 @@ def _atlas_load_credentials() -> tuple[str, str, str]:
     }.items() if not v]
     if missing:
         sys.exit(
-            f"ERROR: Atlas deploy credentials missing from Code/.env: {missing}"
+            f"ERROR: Atlas deploy credentials missing from .env: {missing}"
         )
     return client_id, client_secret, project_id
 

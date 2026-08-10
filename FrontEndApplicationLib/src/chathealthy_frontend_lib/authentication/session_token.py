@@ -2,6 +2,8 @@
 # Licensed under the FindCare Evaluation License (FEL-1.0).
 
 import base64
+
+from ..exceptions import ChatHealthyException
 import os
 from datetime import datetime, timezone
 from typing import Optional
@@ -65,10 +67,11 @@ SERVICE_TO_CERT_NAME = {
 
 def cert_basename(origin: str) -> str:
     if origin not in SERVICE_TO_CERT_NAME:
-        raise ValueError(
-            f"Invalid token origin {origin!r}; "
-            f"must be one of {sorted(SERVICE_TO_CERT_NAME)}."
-        )
+        raise ChatHealthyException(
+            mode="value_error",
+            component="session_token",
+            message=f"Invalid token origin {origin!r}; "
+            f"must be one of {sorted(SERVICE_TO_CERT_NAME)}.")
     return SERVICE_TO_CERT_NAME[origin]
 
 
@@ -83,21 +86,26 @@ class SessionToken(BaseModel):
 
     def get_auth_token(self) -> str:
         if len(self.token) < TOKEN_SIZE:
-            raise ValueError(
-                f"token length {len(self.token)} < {TOKEN_SIZE}; cannot extract GUID"
-            )
+            raise ChatHealthyException(
+            mode="value_error",
+            component="session_token",
+            message=f"token length {len(self.token)} < {TOKEN_SIZE}; cannot extract GUID")
         return self.token[GUID_OFFSET:]
 
     def get_nonce(self) -> str:
         if len(self.token) < GUID_OFFSET:
-            raise ValueError(
-                f"token length {len(self.token)} < {GUID_OFFSET}; cannot extract nonce"
-            )
+            raise ChatHealthyException(
+            mode="value_error",
+            component="session_token",
+            message=f"token length {len(self.token)} < {GUID_OFFSET}; cannot extract nonce")
         return self.token[NONCE_OFFSET:GUID_OFFSET]
 
     def put_nonce(self, origin: str) -> None:
         if len(self.token) < TOKEN_SIZE or not self.token.startswith(TOKEN_PREFIX):
-            raise ValueError(f"malformed token; cannot restamp: {self.token!r}")
+            raise ChatHealthyException(
+            mode="value_error",
+            component="session_token",
+            message=f"malformed token; cannot restamp: {self.token!r}")
         guid = self.get_auth_token()
         new_nonce_field = Nonce.restamp(self.get_nonce())
         original_stamp = Nonce.original_stamp(new_nonce_field)
@@ -123,15 +131,30 @@ class SessionToken(BaseModel):
 
     def verify(self, expected_origin: str) -> bool:
         if not self.signed:
-            raise ValueError(f"verify: signed == {self.signed!r}")
+            raise ChatHealthyException(
+            mode="value_error",
+            component="session_token",
+            message=f"verify: signed == {self.signed!r}")
         if self.origin != expected_origin:
-            raise ValueError(f"verify: origin={self.origin!r} expected={expected_origin!r}")
+            raise ChatHealthyException(
+            mode="value_error",
+            component="session_token",
+            message=f"verify: origin={self.origin!r} expected={expected_origin!r}")
         if not self.token:
-            raise ValueError("verify: empty token")
+            raise ChatHealthyException(
+            mode="value_error",
+            component="session_token",
+            message="verify: empty token")
         if not self.signature:
-            raise ValueError("verify: empty signature")
+            raise ChatHealthyException(
+            mode="value_error",
+            component="session_token",
+            message="verify: empty signature")
         if len(self.token) < TOKEN_SIZE:
-            raise ValueError(f"verify: token length {len(self.token)} < {TOKEN_SIZE}")
+            raise ChatHealthyException(
+            mode="value_error",
+            component="session_token",
+            message=f"verify: token length {len(self.token)} < {TOKEN_SIZE}")
 
         nonce_field = self.get_nonce()
         original_stamp = Nonce.original_stamp(nonce_field)
@@ -157,23 +180,14 @@ class SessionToken(BaseModel):
         try:
             sig_bytes = base64.b64decode(self.signature)
         except Exception as exc:
-            raise ValueError(
-                f"verify: signature is not valid base64: {type(exc).__name__}: {exc}"
-            ) from exc
+            raise ChatHealthyException(
+            mode="value_error",
+            component="session_token",
+            message=f"verify: signature is not valid base64: {type(exc).__name__}: {exc}") from exc
 
         try:
             public_key.verify(sig_bytes, payload, padding.PKCS1v15(), hashes.SHA256())
-        except InvalidSignature as exc:
-            log.warning(
-                "verify: InvalidSignature for origin=%s cert=%s",
-                self.origin, cert_path,
-                exc=ChatHealthyException(
-                 mode="session_token_invalid_signature",
-                 message=f"verify: InvalidSignature for origin={self.origin} cert={cert_path}",
-                 component="SessionToken",
-                 exception=exc,
-             ), if_not_debug_log=True,
-            )
+        except InvalidSignature:
             return False
         except Exception as exc:
             raise TokenInfraError(

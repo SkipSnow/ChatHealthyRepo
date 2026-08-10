@@ -2,6 +2,17 @@
 import os
 import sys
 
+import sys as _sys, pathlib as _pl
+for _d in _pl.Path(__file__).resolve().parents:
+    if (_d / ".git").exists():
+        _lib = _d / "FrontEndApplicationLib" / "src"
+        if str(_lib) not in _sys.path:
+            _sys.path.insert(0, str(_lib))
+        break
+from chathealthy_frontend_lib.logging_service import ChatHealthyLoggingService
+
+_CH_LOG = ChatHealthyLoggingService()
+
 sys.path.insert(0, "FrontEndApplicationLib/src")
 from chathealthy_frontend_lib.mongo_utilities import ChatHealthyMongoUtilities
 
@@ -20,25 +31,25 @@ def test_check_database_for_evidence():
         # List all collections
         collections = sorted(db.list_collection_names())
 
-        print(f"\n✓ Connected to metadata database: Pipelines")
-        print(f"✓ Total collections: {len(collections)}")
+        _CH_LOG.info(f"\n✓ Connected to metadata database: Pipelines")
+        _CH_LOG.info(f"✓ Total collections: {len(collections)}")
 
         # Look for discrepancy-related collections
         discrepancy_colls = [c for c in collections if any(x in c.lower() for x in ['discrepancy', 'warning', 'error', 'report'])]
         if discrepancy_colls:
-            print(f"✓ Found {len(discrepancy_colls)} relevant collections:")
+            _CH_LOG.info(f"✓ Found {len(discrepancy_colls)} relevant collections:")
             for coll_name in discrepancy_colls:
                 coll = db[coll_name]
                 count = coll.count_documents({})
-                print(f"    - {coll_name}: {count} documents")
+                _CH_LOG.info(f"    - {coll_name}: {count} documents")
 
                 # Show sample
                 sample = coll.find_one()
                 if sample:
-                    print(f"      Sample doc: {str(sample)[:80]}...")
+                    _CH_LOG.info(f"      Sample doc: {str(sample)[:80]}...")
         else:
-            print(f"Note: No discrepancy/warning/error collections found")
-            print(f"All collections: {collections[:10]}...")
+            _CH_LOG.info(f"Note: No discrepancy/warning/error collections found")
+            _CH_LOG.info(f"All collections: {collections[:10]}...")
 
         # Success
         assert True, "Database connectivity verified"

@@ -26,6 +26,34 @@ import certifi
 import pytest
 from pymongo import MongoClient
 
+import sys as _sys, pathlib as _pl
+for _d in _pl.Path(__file__).resolve().parents:
+    if (_d / ".git").exists():
+        _lib = _d / "FrontEndApplicationLib" / "src"
+        if str(_lib) not in _sys.path:
+            _sys.path.insert(0, str(_lib))
+        break
+from chathealthy_frontend_lib.logging_service import ChatHealthyLoggingService
+
+_CH_LOG = ChatHealthyLoggingService()
+
+
+# Rule-004: one place in this file obtains a connection, and it goes through
+# the canonical utility. The certificate is the credential; there is no
+# connection string here and no fallback. Raises if the identity cannot
+# connect, which is the point -- a test that quietly connects as something
+# else proves nothing about production.
+def _ch_connection():
+    import sys as _sys, pathlib as _pl
+    for _d in _pl.Path(__file__).resolve().parents:
+        if (_d / ".git").exists():
+            _lib = _d / "FrontEndApplicationLib" / "src"
+            if str(_lib) not in _sys.path:
+                _sys.path.insert(0, str(_lib))
+            break
+    from chathealthy_frontend_lib.mongo_utilities import ChatHealthyMongoUtilities
+    return ChatHealthyMongoUtilities().getConnection("DevOpsUser", 'pipelines')
+
 _REPO_ROOT = Path(__file__).resolve().parents[4]
 sys.path.insert(0, str(_REPO_ROOT / "pipeline" / "Code"))
 from pipeline_env import load_pipeline_env  # noqa: E402
@@ -42,11 +70,7 @@ def _mongo_client() -> MongoClient:
     uri = os.environ.get("MONGO_FRONTEND_connectionString")
     if not uri:
         pytest.fail("MONGO_FRONTEND_connectionString not set")
-    return MongoClient(
-        uri,
-        tlsCAFile=certifi.where(),
-        serverSelectionTimeoutMS=15000,
-    )
+    return _ch_connection()
 
 
 def test_release_all_pipeline_state():
@@ -55,23 +79,19 @@ def test_release_all_pipeline_state():
 
     client = _mongo_client()
 
-    print("[release] before: pipeline.runs status=running for provider:",
-          file=sys.stderr, flush=True)
+    _CH_LOG.error("[release] before: pipeline.runs status=running for provider:")
     for r in client[PIPELINE_ADMIN_DB]["pipeline.runs"].find(
         {"pipeline_name": "provider", "status": "running"},
         {"run_id": 1, "started_at": 1},
     ).limit(20):
-        print(f"  {r.get('run_id')} started={r.get('started_at')}",
-              file=sys.stderr, flush=True)
+        _CH_LOG.error(f"  {r.get('run_id')} started={r.get('started_at')}")
 
-    print("[release] before: cluster_lifecycle for pipeline cluster:",
-          file=sys.stderr, flush=True)
+    _CH_LOG.error("[release] before: cluster_lifecycle for pipeline cluster:")
     for r in client[PIPELINE_ADMIN_DB]["cluster_lifecycle"].find(
         {"cluster_name": _PIPELINE_CLUSTER_NAME},
     ).limit(20):
-        print(f"  _id={r.get('_id')} status={r.get('status')} "
-              f"requester={r.get('requester')}",
-              file=sys.stderr, flush=True)
+        _CH_LOG.error(f"  _id={r.get('_id')} status={r.get('status')} "
+              f"requester={r.get('requester')}")
 
     aborted_iso = datetime.datetime.utcnow().isoformat()
     abort_result = client[PIPELINE_ADMIN_DB]["pipeline.runs"].update_many(
@@ -81,15 +101,13 @@ def test_release_all_pipeline_state():
             "aborted_at": aborted_iso,
         }},
     )
-    print(f"[release] aborted runs: matched={abort_result.matched_count} "
-          f"modified={abort_result.modified_count}",
-          file=sys.stderr, flush=True)
+    _CH_LOG.error(f"[release] aborted runs: matched={abort_result.matched_count} "
+          f"modified={abort_result.modified_count}")
 
     delete_result = client[PIPELINE_ADMIN_DB]["cluster_lifecycle"].delete_many(
         {"cluster_name": _PIPELINE_CLUSTER_NAME},
     )
-    print(f"[release] cleared reservations: deleted={delete_result.deleted_count}",
-          file=sys.stderr, flush=True)
+    _CH_LOG.error(f"[release] cleared reservations: deleted={delete_result.deleted_count}")
 
     # Post-condition assertions.
     still_running = client[PIPELINE_ADMIN_DB]["pipeline.runs"].count_documents(
@@ -105,4 +123,4 @@ def test_release_all_pipeline_state():
         f"expected zero pipeline cluster reservations after release, "
         f"got {still_reserved}"
     )
-    print("[release] verified clean slate", file=sys.stderr, flush=True)
+    _CH_LOG.error("[release] verified clean slate")
