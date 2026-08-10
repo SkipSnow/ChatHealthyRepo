@@ -20,7 +20,7 @@
 #   1 = environment / preconditions wrong
 #   2 = unexpected data shape in the latest record
 
-import logging
+
 import os
 import sys
 from datetime import datetime, timezone
@@ -28,10 +28,19 @@ from datetime import datetime, timezone
 from dotenv import load_dotenv
 from pymongo import MongoClient
 
+import sys as _ch_sys, pathlib as _ch_pl
+for _ch_d in _ch_pl.Path(__file__).resolve().parents:
+    if (_ch_d / ".git").exists():
+        _ch_lib = _ch_d / "FrontEndApplicationLib" / "src"
+        if str(_ch_lib) not in _ch_sys.path:
+            _ch_sys.path.insert(0, str(_ch_lib))
+        break
+from chathealthy_frontend_lib.logging_service import ChatHealthyLoggingService
+
 load_dotenv(os.path.join(os.path.dirname(__file__), "..", "..", ".env"))
 
-logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(message)s")
-log = logging.getLogger("migrate_versions_to_per_env")
+
+log = ChatHealthyLoggingService()
 
 ENV_ORDER = ("local", "dev", "qa", "prod")
 

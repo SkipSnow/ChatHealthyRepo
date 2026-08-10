@@ -32,6 +32,16 @@ import urllib.error
 from pathlib import Path
 from typing import Any
 
+import sys as _ch_sys, pathlib as _ch_pl
+for _ch_d in _ch_pl.Path(__file__).resolve().parents:
+    if (_ch_d / ".git").exists():
+        _ch_lib = _ch_d / "FrontEndApplicationLib" / "src"
+        if str(_ch_lib) not in _ch_sys.path:
+            _ch_sys.path.insert(0, str(_ch_lib))
+        break
+from chathealthy_frontend_lib.logging_service import ChatHealthyLoggingService
+_CH_LOG = ChatHealthyLoggingService()
+
 REPO_ROOT = Path(__file__).resolve().parents[2]
 BRAIN_CONTENT = REPO_ROOT / "brain" / "machine_artifacts" / "content"
 REPORT_PATH = REPO_ROOT / "_oneshots/test_output" / "validate_all_json_report.json"
@@ -227,7 +237,7 @@ def walk_json_files(root: Path) -> list[Path]:
 def main(argv: list[str]) -> int:
     root = Path(argv[1]).resolve() if len(argv) > 1 else BRAIN_CONTENT
     if not root.is_dir():
-        print(f"ERROR: {root} is not a directory", file=sys.stderr)
+        _CH_LOG.info(f"ERROR: {root} is not a directory", file=sys.stderr)
         return 2
 
     files = walk_json_files(root)
@@ -244,19 +254,19 @@ def main(argv: list[str]) -> int:
     )]
 
     # Print per-file report so every error is visible in the console
-    print(f"Validating {len(files)} JSON file(s) under {root}")
-    print("=" * 90)
+    _CH_LOG.info(f"Validating {len(files)} JSON file(s) under {root}")
+    _CH_LOG.info("=" * 90)
     for r in results:
         if r["status"] == "PASS":
             continue  # don't spam PASS lines
         if r["status"] in ("SKIPPED_META_SCHEMA", "SKIPPED_NOT_OBJECT"):
             continue
-        print(f"{r['status']:22} {r['file']}")
+        _CH_LOG.info(f"{r['status']:22} {r['file']}")
         for e in r["errors"]:
-            print(f"  {e}")
-    print("=" * 90)
-    print("Summary: " + ", ".join(f"{k}={v}" for k, v in sorted(summary.items())))
-    print(f"Failures: {len(failures)}")
+            _CH_LOG.info(f"  {e}")
+    _CH_LOG.info("=" * 90)
+    _CH_LOG.info("Summary: " + ", ".join(f"{k}={v}" for k, v in sorted(summary.items())))
+    _CH_LOG.info(f"Failures: {len(failures)}")
 
     # Write machine-readable report
     REPORT_PATH.parent.mkdir(parents=True, exist_ok=True)
@@ -268,7 +278,7 @@ def main(argv: list[str]) -> int:
     }
     REPORT_PATH.write_text(json.dumps(report, indent=2, ensure_ascii=False) + "\n",
                            encoding="utf-8")
-    print(f"Report: {REPORT_PATH}")
+    _CH_LOG.info(f"Report: {REPORT_PATH}")
 
     return 1 if failures else 0
 

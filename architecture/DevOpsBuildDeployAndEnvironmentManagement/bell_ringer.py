@@ -12,7 +12,7 @@
 
 from __future__ import annotations
 
-import logging
+
 import os
 import subprocess
 import sys
@@ -20,7 +20,17 @@ import threading
 import time
 from datetime import datetime, timezone
 
-log = logging.getLogger("bell_ringer")
+import sys as _ch_sys, pathlib as _ch_pl
+for _ch_d in _ch_pl.Path(__file__).resolve().parents:
+    if (_ch_d / ".git").exists():
+        _ch_lib = _ch_d / "FrontEndApplicationLib" / "src"
+        if str(_ch_lib) not in _ch_sys.path:
+            _ch_sys.path.insert(0, str(_ch_lib))
+        break
+from chathealthy_frontend_lib.logging_service import ChatHealthyLoggingService
+_CH_LOG = ChatHealthyLoggingService()
+
+log = ChatHealthyLoggingService()
 
 
 class BellRinger:
@@ -216,7 +226,7 @@ def main() -> int:
         except KeyboardInterrupt:
             ringer.stop()
     else:
-        print(f"Unknown pattern: {pattern!r}. Use once|twice|thrice|fatal.",
+        _CH_LOG.info(f"Unknown pattern: {pattern!r}. Use once|twice|thrice|fatal.",
               file=sys.stderr)
         return 2
     return 0

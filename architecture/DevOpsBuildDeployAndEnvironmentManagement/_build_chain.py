@@ -77,7 +77,7 @@ def _ch_exc():
 
 
 def _step(msg: str) -> None:
-    print(f"[local_build] {msg}", flush=True)
+    _CH_LOG.info(f"[local_build] {msg}", flush=True)
 
 
 def _find_repo_root(start: Path) -> Path:
@@ -107,6 +107,16 @@ from version_counter import (  # noqa: E402
     versions_collection as _versions_collection,
     read_build_number as _read_dev_build_number,
 )
+
+import sys as _ch_sys, pathlib as _ch_pl
+for _ch_d in _ch_pl.Path(__file__).resolve().parents:
+    if (_ch_d / ".git").exists():
+        _ch_lib = _ch_d / "FrontEndApplicationLib" / "src"
+        if str(_ch_lib) not in _ch_sys.path:
+            _ch_sys.path.insert(0, str(_ch_lib))
+        break
+from chathealthy_frontend_lib.logging_service import ChatHealthyLoggingService
+_CH_LOG = ChatHealthyLoggingService()
 
 
 def _target_build_dir(repo_root: Path, build_n: int, target_id: str, build_root_rel: Path | None = None) -> Path:

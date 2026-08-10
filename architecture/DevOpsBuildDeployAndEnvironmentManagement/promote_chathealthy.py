@@ -36,10 +36,19 @@ import sys
 from datetime import datetime, timezone
 from pathlib import Path
 
+import sys as _ch_sys, pathlib as _ch_pl
+for _ch_d in _ch_pl.Path(__file__).resolve().parents:
+    if (_ch_d / ".git").exists():
+        _ch_lib = _ch_d / "FrontEndApplicationLib" / "src"
+        if str(_ch_lib) not in _ch_sys.path:
+            _ch_sys.path.insert(0, str(_ch_lib))
+        break
+from chathealthy_frontend_lib.logging_service import ChatHealthyLoggingService
+_CH_LOG = ChatHealthyLoggingService()
+
 
 _ADJACENT_PAIRS = (("local", "dev"), ("dev", "qa"), ("qa", "prod"))
 _ENV_TO_BRANCH = {"dev": "dev", "qa": "qa", "prod": "main"}
-
 
 
 def _ch_exc():
@@ -73,89 +82,431 @@ def _run_git(args: list[str], repo_root: Path, check: bool = True) -> subprocess
     )
 
 
-def _current_branch(repo_root: Path) -> str:
-    return _run_git(["symbolic-ref", "--short", "HEAD"], repo_root).stdout.strip()
+def _apply_every_stash(repo_root: Path) -> None:
+    """Empty the stash stack. After a promote attempt nothing is stashed.
+
+    Stashed work is work that has never been committed and never been
+    scanned. A promote that refused on stashes would leave it parked
+    forever; a promote that ignored them would produce a baseline missing
+    it. So the promote brings it back and the commit carries it.
+
+    A conflicting pop is the case that used to stop the promote, and it
+    stopped it in the worst possible state: git writes the conflict into
+    the working tree AND keeps the stash entry, so the same work sat both
+    half-applied and still parked. The stack never emptied.
+
+    So a conflict is now carried rather than refused. What git wrote is
+    kept, the unmerged index entries are marked resolved so the next pop
+    can run, and the entry is dropped. A stash that cannot be applied at
+    all is dropped too: what cannot be unstashed is obliterated, because a
+    stash that survives a promote makes the baseline a lie.
+
+    This function empties the stack and does nothing else. It does not
+    judge what the tree looks like afterwards and nothing downstream is
+    conditioned on it. If the result does not build, the baseline still
+    records the tree truthfully, which is the whole job. What it costs is
+    written to PROMOTE_STASH_REPORT.md, because a promote runs unattended
+    and its effect on the data has to be legible after the fact.
+    """
+    conflicted: list[str] = []
+    discarded: list[str] = []
+    while True:
+        listed = _run_git(["stash", "list"], repo_root).stdout.strip()
+        if not listed:
+            break
+        entries = listed.splitlines()
+        top = entries[0]
+        _CH_LOG.info(f"[promote] popping {len(entries)} remaining stash(es); next: {top}")
+        popped = _run_git(["stash", "pop"], repo_root, check=False)
+        if popped.returncode == 0:
+            _CH_LOG.info(f"[promote]   applied: {top}")
+            continue
+        # A failed pop is one of two events. Either it CONFLICTED, in which
+        # case git wrote the content into the tree and left unmerged paths
+        # behind, or it REFUSED and wrote nothing. The entry is dropped
+        # either way: the requirement is that a promote attempt leaves
+        # nothing stashed, and a stash that cannot be applied is exactly the
+        # thing that would otherwise sit there forever making the baseline a
+        # lie. What cannot be unstashed is obliterated.
+        unmerged = _run_git(
+            ["diff", "--name-only", "--diff-filter=U"], repo_root,
+        ).stdout.strip()
+        _run_git(["add", "-A"], repo_root)
+        dropped = _run_git(["stash", "drop"], repo_root, check=False)
+        if dropped.returncode != 0:
+            sys.exit(
+                f"ERROR: promote stopped — could not drop {top}. The stash "
+                f"stack cannot be emptied, so no promote is possible.\n"
+                f"{dropped.stdout}\n{dropped.stderr}"
+            )
+        if unmerged:
+            conflicted.append(top)
+            _CH_LOG.info(f"[promote]   CONFLICTED — entry dropped, content left in "
+                  f"the working tree between conflict markers: {top}")
+        else:
+            discarded.append(top)
+            _CH_LOG.info(f"[promote]   UNAPPLIABLE — entry dropped, content NOT in "
+                  f"the tree: {top}")
+            _CH_LOG.info(f"[promote]     {popped.stderr.strip()[:200]}")
+
+    if conflicted or discarded:
+        _write_stash_report(repo_root, conflicted, discarded)
+
+    remaining = _run_git(["stash", "list"], repo_root).stdout.strip()
+    if remaining:
+        sys.exit(
+            "ERROR: promote stopped — the stash stack is not empty after "
+            "applying every stash. After a promote attempt there can be no "
+            f"stashed files.\n{remaining}"
+        )
+    _CH_LOG.info("[promote] stash stack empty")
 
 
+def _write_stash_report(repo_root: Path, conflicted: list[str],
+                        discarded: list[str]) -> None:
+    """Record what emptying the stack cost.
+
+    A promote runs unattended, so anything it does to the data has to be
+    legible afterwards without having watched it. A conflicted stash left
+    markers in the tree; an unappliable one was dropped with its content
+    never reaching the tree at all. Both are recoverable while git still
+    holds the dropped commits, so the report carries the recovery command
+    and the object ids it applies to.
+    """
+    report = repo_root / "PROMOTE_STASH_REPORT.md"
+    unreachable = _run_git(
+        ["fsck", "--unreachable", "--no-reflogs"], repo_root, check=False,
+    ).stdout
+
+    lines = [
+        "# Promote stash report",
+        "",
+        f"Emptying the stash stack changed the working tree. "
+        f"{len(conflicted)} stash(es) conflicted and {len(discarded)} could "
+        f"not be applied at all.",
+        "",
+    ]
+    if conflicted:
+        lines += [
+            "## Conflicted — content IS in the working tree, between markers",
+            "",
+        ]
+        lines += [f"- {c}" for c in conflicted]
+        lines += ["", "Resolve the markers before the promote can proceed.", ""]
+    if discarded:
+        lines += [
+            "## Unappliable — content is NOT in the working tree",
+            "",
+            "These could not be applied and were dropped so the stack could "
+            "empty. Their content is in no file.",
+            "",
+        ]
+        lines += [f"- {d}" for d in discarded]
+        lines += [""]
+
+    lines += [
+        "## Recovery",
+        "",
+        "A dropped stash survives as an unreachable commit until git prunes "
+        "it. To list them:",
+        "",
+        "    git fsck --unreachable --no-reflogs",
+        "",
+        "and to inspect or restore one:",
+        "",
+        "    git show <sha>",
+        "    git stash apply <sha>",
+        "",
+        f"Unreachable objects at the time of this promote: "
+        f"{len(unreachable.splitlines())} entries.",
+        "",
+    ]
+    report.write_text("\n".join(lines), encoding="utf-8")
+    _CH_LOG.info(f"[promote] stash report written: {report}")
 
 
+def _require_capturable_tree(repo_root: Path) -> None:
+    """Refuse unless the entire working tree can be captured.
+
+    A promote is a git baseline: the whole tree, at one commit, recoverable.
+    A baseline that silently omits files is not a baseline, so every
+    mechanism that can hide a file from `git add -A` is a hard stop, not a
+    warning. Each of these makes files invisible to BOTH `add -A` and
+    `status --porcelain`, so nothing downstream would notice the gap.
+    """
+    _apply_every_stash(repo_root)
+
+    problems: list[str] = []
+
+    exclude = repo_root / ".git" / "info" / "exclude"
+    if exclude.is_file():
+        patterns = [
+            l.strip() for l in exclude.read_text(encoding="utf-8").splitlines()
+            if l.strip() and not l.strip().startswith("#")
+        ]
+        if patterns:
+            problems.append(
+                f"{len(patterns)} pattern(s) in .git/info/exclude — a local "
+                f"ignore list that is not in the repository, so no one can "
+                f"review what it hides:\n"
+                + "\n".join(f"      {p}" for p in patterns)
+            )
+
+    marked = [
+        line for line in _run_git(["ls-files", "-v"], repo_root).stdout.splitlines()
+        if line and line[0].islower()
+    ]
+    if marked:
+        problems.append(
+            f"{len(marked)} file(s) marked skip-worktree/assume-unchanged — "
+            f"their changes are invisible to add -A and to status:\n"
+            + "\n".join(f"      {m}" for m in marked[:20])
+        )
+
+    sparse = _run_git(["config", "core.sparseCheckout"], repo_root, check=False)
+    if sparse.stdout.strip().lower() == "true":
+        problems.append(
+            "sparse-checkout is enabled — part of the tree is not present "
+            "locally and cannot be committed."
+        )
+
+    submodules = repo_root / ".gitmodules"
+    if submodules.is_file():
+        problems.append(
+            ".gitmodules present — submodule content is not carried by the "
+            "parent's add -A."
+        )
+
+    if problems:
+        sys.exit(
+            "ERROR: promote refused — the working tree cannot be captured "
+            "completely.\n\n"
+            + "\n\n".join(f"  - {p}" for p in problems)
+            + "\n\nA promote is a git baseline: the whole tree at one commit. "
+              "Clear every item above, then promote."
+        )
 
 
+def _require_everything_staged(repo_root: Path) -> None:
+    """After `git add -A`, nothing may remain unstaged or untracked.
+
+    Verifies the claim `git add -A` makes rather than trusting it. Anything
+    still reported by `git status --porcelain` after staging is a file the
+    commit would not carry -- and therefore a file the full-repository scan
+    would certify without it ever reaching the branch.
+    """
+    untracked = [l for l in _run_git(
+        ["ls-files", "--others", "--exclude-standard"], repo_root
+    ).stdout.splitlines() if l.strip()]
+
+    unstaged = [l for l in _run_git(
+        ["diff", "--name-only"], repo_root
+    ).stdout.splitlines() if l.strip()]
+
+    residue = [
+        line for line in _run_git(["status", "--porcelain"], repo_root).stdout.splitlines()
+        if line and not line.startswith(("A ", "M ", "D ", "R ", "C "))
+    ]
+
+    if untracked or unstaged or residue:
+        detail = []
+        if untracked:
+            detail.append(f"  {len(untracked)} untracked file(s) not in the index:\n"
+                          + "\n".join(f"      {u}" for u in untracked[:20]))
+        if unstaged:
+            detail.append(f"  {len(unstaged)} file(s) with unstaged changes:\n"
+                          + "\n".join(f"      {u}" for u in unstaged[:20]))
+        if residue:
+            detail.append("  working-tree residue after staging:\n"
+                          + "\n".join(f"      {r}" for r in residue[:20]))
+        sys.exit(
+            "ERROR: promote refused — the index does not contain the whole "
+            "working tree, so the commit would not be a complete baseline. "
+            "NO COMMIT HAS BEEN MADE.\n\n"
+            + "\n\n".join(detail)
+        )
+
+    in_index = len([l for l in _run_git(["ls-files"], repo_root).stdout.splitlines() if l])
+    _CH_LOG.info(f"[promote] index verified complete: {in_index} file(s) will be "
+          f"committed; working tree holds nothing else")
 
 
+def _require_tree_fully_committed(repo_root: Path) -> None:
+    """After the commit, the working tree and HEAD must be identical.
+
+    A commit is a snapshot of the whole tree, so unchanged files need no
+    staging -- they are already in the index and the new commit points at
+    them. What has to be proved is that nothing was left OUT: any residue
+    in `git status --porcelain` after committing is a file the baseline
+    does not contain.
+
+    Also compares the file count in HEAD against the index, which catches
+    a path present in one and not the other.
+    """
+    def _undo_and_exit(reason: str) -> None:
+        undone = _run_git(["reset", "--soft", "HEAD~1"], repo_root, check=False)
+        rolled = (
+            "The commit has been rolled back (`reset --soft HEAD~1`); your "
+            "changes are intact and staged."
+            if undone.returncode == 0 else
+            f"WARNING: the rollback also failed (rc={undone.returncode}): "
+            f"{undone.stderr.strip()[:200]}. An incomplete baseline commit is "
+            f"still at HEAD and must be removed by hand."
+        )
+        sys.exit(
+            f"ERROR: promote produced an incomplete baseline — {reason}\n\n"
+            f"Nothing was pushed. {rolled}"
+        )
+
+    residue = [l for l in _run_git(["status", "--porcelain"], repo_root)
+               .stdout.splitlines() if l.strip()]
+    if residue:
+        _undo_and_exit(
+            "the working tree still differs from HEAD after committing:\n"
+            + "\n".join(f"  {l}" for l in residue)
+        )
+    in_head = len([l for l in _run_git(
+        ["ls-tree", "-r", "--name-only", "HEAD"], repo_root).stdout.splitlines() if l])
+    in_index = len([l for l in _run_git(
+        ["ls-files"], repo_root).stdout.splitlines() if l])
+    if in_head != in_index:
+        _undo_and_exit(
+            f"HEAD holds {in_head} file(s) but the index holds {in_index}."
+        )
+    _CH_LOG.info(f"[promote] baseline verified: {in_head} file(s) committed, "
+          f"working tree identical to HEAD")
 
 
+def _walk_the_tree(root: Path) -> list[str]:
+    """Every file under the project root that git is not told to ignore.
+
+    A promote publishes the whole baseline, so the whole baseline has to
+    be answered for. `git diff --cached` cannot do that: a file identical
+    to HEAD produces no diff entry, so it is carried into the commit
+    having been examined by nothing. That is how a promote came to
+    publish 697 files while the gate had looked at 7.
+
+    So the list is built from the disk rather than from the index --
+    walked, not asked for. git is consulted for one thing only, which is
+    the one thing it is authoritative about: which paths the ignore rules
+    exclude.
+
+    Ignored DIRECTORIES are pruned rather than descended and discarded.
+    Walking into node_modules, build and .venv to throw the results away
+    cost 52,197 stat calls to keep 695 files.
+    """
+    found: list[str] = []
+    pruned = 0
+
+    for dirpath, dirnames, filenames in os.walk(root):
+        here = Path(dirpath)
+        dirnames[:] = [d for d in dirnames if d != ".git"]
+
+        if dirnames:
+            candidates = [
+                (here / d).relative_to(root).as_posix() for d in dirnames
+            ]
+            ignored_dirs = _ignored(candidates, root)
+            keep = [
+                d for d in dirnames
+                if (here / d).relative_to(root).as_posix() not in ignored_dirs
+            ]
+            pruned += len(dirnames) - len(keep)
+            dirnames[:] = keep
+
+        for name in filenames:
+            found.append((here / name).relative_to(root).as_posix())
+
+    ignored_files = _ignored(found, root)
+    kept = [f for f in found if f not in ignored_files]
+    _CH_LOG.info(
+        f"[promote] walked {root.name}: {len(kept)} file(s) in the baseline "
+        f"({len(found)} walked, {len(ignored_files)} ignored, "
+        f"{pruned} ignored director(ies) pruned)"
+    )
+    return kept
 
 
+def _ignored(paths: list[str], root: Path) -> set[str]:
+    """Which of these paths the ignore rules exclude. One call.
+
+    -z both ways. Newline-separated I/O cannot survive this: git quotes
+    any path holding an unusual byte, and Windows line endings leave a
+    stray CR on every path, so nothing an ignore rule matched compared
+    equal to what was walked.
+    """
+    if not paths:
+        return set()
+    proc = subprocess.run(
+        ["git", "check-ignore", "-z", "--stdin"],
+        cwd=str(root), input=chr(0).join(paths),
+        capture_output=True, text=True, check=False,
+        # Git-for-Windows maps characters illegal in a Windows filename
+        # into the private-use area -- a ':' becomes U+F03A -- so a path
+        # can carry a character the console codepage cannot encode.
+        encoding="utf-8", errors="surrogateescape",
+    )
+    if proc.returncode not in (0, 1):
+        sys.exit(
+            f"git check-ignore failed (rc={proc.returncode}): "
+            f"{proc.stderr.strip()[:300]}"
+        )
+    return {p for p in proc.stdout.split(chr(0)) if p}
 
 
 def _promote_local_to_dev(repo_root: Path, label: str | None = None) -> int:
-    """Hand the whole thing to the Rule-065 driver.
+    """Build an accurate list of what the baseline contains, stage it, and
+    hand off to commit.
 
-    A promote from local is a commit of the entire working tree, and every
-    step of making one -- emptying the stash permanently, proving the tree
-    can be captured at all, staging it, governing it, committing it,
-    pushing it, and proving the baseline is complete -- is the driver's.
-    Promote states the operation and the label; it owns no git.
+    A promote from local captures the whole working tree, so promote owns
+    the working tree: emptying the stash permanently, proving the tree can
+    be captured at all, staging it, and walking the project root to build
+    the list of what the baseline actually holds. `git diff --cached`
+    cannot produce that list -- a file identical to HEAD makes no diff
+    entry and would ride into the commit examined by nothing.
 
-    It runs no tests. A promote used to run the pipeline unit and
-    regression suites, which put assertions about Azure resource groups,
-    managed-identity role assignments and worker containers in front of a
-    git baseline capture -- none of which is in the baseline, and none of
-    which a promote can affect. What a commit must satisfy is stated in
-    the engineering rules and enforced by the driver's subordinates.
-
-    Optional `label` becomes the commit-message subject line. The generated
-    `promote local -> dev (<ts>)` line follows as the body, and survives
-    every downstream branch advance because those move a pointer to this
-    same commit.
+    Governance is not promote's. The list goes to the Rule-065 commit
+    driver, which answers only for what it is handed. Promote runs no tests
+    and deploys nothing.
     """
-    auto = f"promote local -> dev ({datetime.now(timezone.utc).isoformat()})"
-    driver = (
-        repo_root / "architecture" / "EngineeringRuleEnforcement" / "code"
-        / "commit_governance_driver.py"
-    )
-    message = "\n\n".join([label, auto]) if label else auto
-    return subprocess.run(
-        [sys.executable, str(driver), "--entire-tree", "--message", message],
-        cwd=str(repo_root),
+    # Nothing may hide from the capture. Empties the stash stack for good.
+    _require_capturable_tree(repo_root)
+
+    _run_git(["add", "-A"], repo_root)
+    deleted = [l for l in _run_git(
+        ["diff", "--cached", "--name-only", "--diff-filter=D"], repo_root
+    ).stdout.splitlines() if l.strip()]
+    if deleted:
+        _CH_LOG.info(f"[promote] {len(deleted)} deletion(s) staged; a deleted "
+                     f"file is committed, not scanned")
+    _require_everything_staged(repo_root)
+
+    files = _walk_the_tree(repo_root)
+
+    driver = (repo_root / "architecture" / "EngineeringRuleEnforcement"
+              / "code" / "commit_governance_driver.py")
+    rc = subprocess.run(
+        [sys.executable, str(driver), "--files-from", "-"],
+        input=chr(10).join(files), cwd=str(repo_root),
+        text=True, encoding="utf-8", errors="surrogateescape",
     ).returncode
+    if rc != 0:
+        _CH_LOG.info(f"[promote] governance FAILED (exit {rc}) — nothing committed")
+        return rc
 
+    auto = f"promote local -> dev ({datetime.now(timezone.utc).isoformat()})"
+    message = (label + chr(10) + chr(10) + auto) if label else auto
+    _CH_LOG.info(f"[promote] commit: {message.splitlines()[0]}")
+    rc = subprocess.run(["git", "commit", "--allow-empty", "-m", message],
+                        cwd=str(repo_root)).returncode
+    if rc != 0:
+        _CH_LOG.info(f"[promote] commit refused (exit {rc}); nothing pushed")
+        return rc
 
-def _sync_env_to_kv(repo_root: Path) -> int:
-    """Upload <repo>/.env to kv-chpipeline-dev/env-file using the
-    project's gz:<base64> encoding. Returns 0 on success, non-zero on
-    failure."""
-    import base64, gzip, os, shutil, tempfile
-    env_src = repo_root / ".env"
-    if not env_src.is_file():
-        print(f"[promote] WARNING: {env_src} not found; skipping KV sync")
-        return 0
-    plaintext = env_src.read_bytes()
-    payload = "gz:" + base64.b64encode(gzip.compress(plaintext)).decode("ascii")
-    fd, path = tempfile.mkstemp(suffix=".txt")
-    try:
-        with os.fdopen(fd, "w", encoding="ascii") as f:
-            f.write(payload)
-        az = shutil.which("az") or "az"
-        r = subprocess.run(
-            [az, "keyvault", "secret", "set",
-             "--vault-name", "kv-chpipeline-dev", "--name", "env-file",
-             "--file", path, "-o", "tsv", "--query", "id"],
-            capture_output=True, text=True, shell=False,
-        )
-        if r.returncode != 0:
-            print(f"[promote] KV sync FAILED: {r.stderr.strip()[:300]}")
-            return r.returncode
-        print(f"[promote] KV sync OK: kv-chpipeline-dev/env-file "
-              f"({len(plaintext)} plaintext bytes)")
-        return 0
-    finally:
-        try:
-            os.remove(path)
-        except OSError:
-            pass
-
+    _require_tree_fully_committed(repo_root)
+    _CH_LOG.info("[promote] push origin dev")
+    return subprocess.run(["git", "push", "origin", "dev"],
+                          cwd=str(repo_root)).returncode
 
 def _promote_branch_to_branch(repo_root: Path, source_env: str, target_env: str) -> int:
     """Fully automated: fetch, then push origin/<source> to <target> on
@@ -167,7 +518,7 @@ def _promote_branch_to_branch(repo_root: Path, source_env: str, target_env: str)
     source_branch = _ENV_TO_BRANCH[source_env]
     target_branch = _ENV_TO_BRANCH[target_env]
 
-    print("[promote] fetch origin")
+    _CH_LOG.info("[promote] fetch origin")
     _run_git(["fetch", "origin"], repo_root)
 
     # Push origin/<source> tip to remote's <target> branch without a
@@ -177,13 +528,13 @@ def _promote_branch_to_branch(repo_root: Path, source_env: str, target_env: str)
     # (byte-identical overwrite of target with source's tip, guarded
     # against concurrent-writer surprises).
     refspec = f"refs/remotes/origin/{source_branch}:refs/heads/{target_branch}"
-    print(f"[promote] push --force-with-lease origin {refspec}")
+    _CH_LOG.info(f"[promote] push --force-with-lease origin {refspec}")
     result = subprocess.run(
         ["git", "push", "--force-with-lease", "origin", refspec],
         cwd=str(repo_root),
     )
     if result.returncode != 0:
-        print(f"[promote] push FAILED — origin {target_branch} unchanged")
+        _CH_LOG.info(f"[promote] push FAILED — origin {target_branch} unchanged")
         return result.returncode
 
     # Refresh the local remote-tracking ref for the target so subsequent

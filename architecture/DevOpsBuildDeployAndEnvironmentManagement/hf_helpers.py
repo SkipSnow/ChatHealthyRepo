@@ -26,6 +26,16 @@ from pathlib import Path
 from builder import _EXCLUDE_DIRS, _EXCLUDE_FILE_NAMES, _EXCLUDE_FILE_SUFFIXES
 from target_record import TargetRecord
 import ch_fonts_inliner
+
+import sys as _ch_sys, pathlib as _ch_pl
+for _ch_d in _ch_pl.Path(__file__).resolve().parents:
+    if (_ch_d / ".git").exists():
+        _ch_lib = _ch_d / "FrontEndApplicationLib" / "src"
+        if str(_ch_lib) not in _ch_sys.path:
+            _ch_sys.path.insert(0, str(_ch_lib))
+        break
+from chathealthy_frontend_lib.logging_service import ChatHealthyLoggingService
+_CH_LOG = ChatHealthyLoggingService()
 def _ch_exc():
     """ChatHealthyException without assuming the library is installed.
     These modules run as bare scripts in the devops chain."""
@@ -151,7 +161,7 @@ def _hf_peer_url_for_build(target_id: str, env: str, build_n: int) -> str:
 
 # ── Step notice helper ─────────────────────────────────────────────────
 def _step(msg: str) -> None:
-    print(f"[hf_helpers] {msg}", flush=True)
+    _CH_LOG.info(f"[hf_helpers] {msg}", flush=True)
 
 
 # ── build_info.json baked into each HF Space ──────────────────────────

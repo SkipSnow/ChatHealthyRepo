@@ -16,6 +16,16 @@ import tempfile
 from datetime import datetime, timezone
 from pathlib import Path
 
+import sys as _ch_sys, pathlib as _ch_pl
+for _ch_d in _ch_pl.Path(__file__).resolve().parents:
+    if (_ch_d / ".git").exists():
+        _ch_lib = _ch_d / "FrontEndApplicationLib" / "src"
+        if str(_ch_lib) not in _ch_sys.path:
+            _ch_sys.path.insert(0, str(_ch_lib))
+        break
+from chathealthy_frontend_lib.logging_service import ChatHealthyLoggingService
+_CH_LOG = ChatHealthyLoggingService()
+
 LOG_PATH = Path(tempfile.gettempdir()) / "chathealthy_boot_probe.log"
 BRAIN_DIR = Path(__file__).resolve().parents[4] / "brain" / "machine_artifacts" / "content"
 
@@ -87,10 +97,10 @@ def main() -> int:
         with open(LOG_PATH, "a", encoding="utf-8") as f:
             f.write(json.dumps(entry, default=str) + "\n")
     except Exception as e:
-        print(f"PROBE: log write failed: {e}", file=sys.stderr)
+        _CH_LOG.info(f"PROBE: log write failed: {e}", file=sys.stderr)
 
     # Stderr visibility test — shows up in hook debug output
-    print(f"PROBE[{args.event}] fired at {now} pid={os.getpid()} brain_ok={brain_read_ok}",
+    _CH_LOG.info(f"PROBE[{args.event}] fired at {now} pid={os.getpid()} brain_ok={brain_read_ok}",
           file=sys.stderr)
 
     # Stdout visibility test — additionalContext is shown to Claude.

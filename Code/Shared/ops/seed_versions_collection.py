@@ -24,7 +24,7 @@ Authorization: BUG-001 step "Seed routine".
 Implements the canonical-collection direction approved 2026-05-01.
 """
 import json
-import logging
+
 import os
 import sys
 from datetime import datetime, timezone
@@ -33,11 +33,20 @@ from pathlib import Path
 from dotenv import load_dotenv
 from pymongo import MongoClient
 
+import sys as _ch_sys, pathlib as _ch_pl
+for _ch_d in _ch_pl.Path(__file__).resolve().parents:
+    if (_ch_d / ".git").exists():
+        _ch_lib = _ch_d / "FrontEndApplicationLib" / "src"
+        if str(_ch_lib) not in _ch_sys.path:
+            _ch_sys.path.insert(0, str(_ch_lib))
+        break
+from chathealthy_frontend_lib.logging_service import ChatHealthyLoggingService
+
 REPO_ROOT = Path(__file__).resolve().parents[3]
 load_dotenv(REPO_ROOT / "Code" / ".env")
 
-logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(message)s")
-log = logging.getLogger("seed_versions")
+
+log = ChatHealthyLoggingService()
 
 VERSION_JSON = REPO_ROOT / "brain" / "machine_artifacts" / "content" / "version.json"
 

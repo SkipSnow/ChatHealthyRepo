@@ -23,19 +23,28 @@ At least one of --version or --framework MUST be supplied.
 """
 
 import argparse
-import logging
+
 import os
 import sys
 from datetime import datetime, timezone
 
+import sys as _ch_sys, pathlib as _ch_pl
+for _ch_d in _ch_pl.Path(__file__).resolve().parents:
+    if (_ch_d / ".git").exists():
+        _ch_lib = _ch_d / "FrontEndApplicationLib" / "src"
+        if str(_ch_lib) not in _ch_sys.path:
+            _ch_sys.path.insert(0, str(_ch_lib))
+        break
+from chathealthy_frontend_lib.logging_service import ChatHealthyLoggingService
 from chathealthy_frontend_lib.exceptions import ChatHealthyException
 from dotenv import load_dotenv
 from pymongo import MongoClient
 
+
 load_dotenv(os.path.join(os.path.dirname(__file__), "..", "..", ".env"))
 
-logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(message)s")
-log = logging.getLogger("set_version_framework")
+
+log = ChatHealthyLoggingService()
 
 PUSH_TIMEOUT_SECONDS = 5
 
@@ -92,8 +101,10 @@ def set_version_framework(version: str | None, framework: str | None) -> dict:
 
     conn = os.getenv("MONGO_FRONTEND_connectionString")
     if not conn:
-        log.error("MONGO_FRONTEND_connectionString not set")
-        sys.exit(1)
+        raise ChatHealthyException(
+            mode="value_error",
+            component="SetVersionFramework",
+            message="MONGO_FRONTEND_connectionString not set")
 
     client = _devops_connection()
     coll = client["frontEndAdmin"]["BuildVersions"]
@@ -120,8 +131,6 @@ def set_version_framework(version: str | None, framework: str | None) -> dict:
         "from": datetime.now(timezone.utc).isoformat(),
     }
     coll.insert_one(record)
-    log.info("Inserted: builds=%s version=%s framework=%s",
-             record["builds"], record["version"], record["framework"])
     return record
 
 
@@ -139,6 +148,8 @@ def main():
         parser.error("must supply at least one of --version, --framework")
 
     record = set_version_framework(args.version, args.framework)
+    log.info("Inserted: builds=%s version=%s framework=%s",
+             record["builds"], record["version"], record["framework"])
 
 
 if __name__ == "__main__":

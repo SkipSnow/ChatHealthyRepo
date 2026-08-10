@@ -19,6 +19,16 @@ from agile_backlog import AgileBacklog
 from record_loader import SCHEMA_URL
 from target_record import DeploymentCollection, TargetRecord
 
+import sys as _ch_sys, pathlib as _ch_pl
+for _ch_d in _ch_pl.Path(__file__).resolve().parents:
+    if (_ch_d / ".git").exists():
+        _ch_lib = _ch_d / "FrontEndApplicationLib" / "src"
+        if str(_ch_lib) not in _ch_sys.path:
+            _ch_sys.path.insert(0, str(_ch_lib))
+        break
+from chathealthy_frontend_lib.logging_service import ChatHealthyLoggingService
+_CH_LOG = ChatHealthyLoggingService()
+
 
 @dataclass(slots=True)
 class CrosswalkReport:
@@ -231,7 +241,7 @@ class Crosswalk:
                 # skip on the screen and know why the deploy proceeded.
                 if (disk_bytes.replace(b"\r\n", b"\n")
                         == embedded_bytes.replace(b"\r\n", b"\n")):
-                    print(
+                    _CH_LOG.info(
                         f"[crosswalk] SKIP byte-equality on "
                         f"{f.source_location!r} (record {record.target_id!r}): "
                         f"line-ending-only difference "

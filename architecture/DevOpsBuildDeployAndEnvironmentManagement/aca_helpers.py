@@ -20,6 +20,16 @@ import sys
 import time
 from pathlib import Path
 
+import sys as _ch_sys, pathlib as _ch_pl
+for _ch_d in _ch_pl.Path(__file__).resolve().parents:
+    if (_ch_d / ".git").exists():
+        _ch_lib = _ch_d / "FrontEndApplicationLib" / "src"
+        if str(_ch_lib) not in _ch_sys.path:
+            _ch_sys.path.insert(0, str(_ch_lib))
+        break
+from chathealthy_frontend_lib.logging_service import ChatHealthyLoggingService
+_CH_LOG = ChatHealthyLoggingService()
+
 
 # Shared-fact loaders. Every per-target ACA fact (location, Dockerfile
 # base image, placeholder image, Netherite EH topology) lives in the ACA
@@ -119,7 +129,7 @@ def _cflags() -> int:
 
 
 def _step(msg: str) -> None:
-    print(f"[aca] {msg}", flush=True)
+    _CH_LOG.info(f"[aca] {msg}", flush=True)
 
 
 def aca_render_dockerfile() -> str:
