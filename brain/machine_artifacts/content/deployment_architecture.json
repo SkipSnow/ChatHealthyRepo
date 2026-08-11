@@ -4716,6 +4716,55 @@
       "secrets": {}
     },
     {
+      "target_id": "target_identity_pipeline_editor",
+      "target_kind": "identity",
+      "provisioning": "deploy_provisioned",
+      "promote_chain_bound": false,
+      "allowed_roles": [
+        "Key Vault Secrets User",
+        "AcrPull",
+        "Storage Blob Data Contributor",
+        "Virtual Machine Contributor",
+        "Network Contributor",
+        "Managed Identity Operator"
+      ],
+      "environments": [
+        {
+          "env_binding": "dev",
+          "node_address": "pipelineEditor",
+          "identity": {
+            "identity_class": "managed_identity",
+            "name": "pipelineEditor",
+            "resource_group": "rg-chathealthy-pipeline-dev"
+          }
+        }
+      ],
+      "files": [],
+      "secrets": {}
+    },
+    {
+      "target_id": "target_identity_devops_user",
+      "target_kind": "identity",
+      "provisioning": "deploy_provisioned",
+      "promote_chain_bound": false,
+      "allowed_roles": [
+        "Key Vault Secrets User"
+      ],
+      "environments": [
+        {
+          "env_binding": "dev",
+          "node_address": "DevOpsUser",
+          "identity": {
+            "identity_class": "managed_identity",
+            "name": "DevOpsUser",
+            "resource_group": "rg-chathealthy-pipeline-dev"
+          }
+        }
+      ],
+      "files": [],
+      "secrets": {}
+    },
+    {
       "target_id": "target_azure_container_registry_pipeline",
       "target_kind": "azure_container_registry",
       "provisioning": "deploy_provisioned",
