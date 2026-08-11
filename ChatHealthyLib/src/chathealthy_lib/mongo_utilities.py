@@ -344,38 +344,44 @@ class ChatHealthyMongoUtilities:
             )
         return response.json()["value"]
 
-    def _fetch_identity_cert(self, identity: str) -> str:
-        """Return the identity's cert+key PEM from Key Vault. Raises, never logs.
+    def _azure_token(self, identity: str) -> str:
+        """An Azure token for Key Vault, as this identity.
 
-        Two logins happen to reach a collection, and they are different
-        services with different credentials. This is the first: Azure Key
-        Vault, to obtain the certificate. Mongo is the second, authenticated
-        with that certificate.
+        On Azure compute the identity IS the credential: the instance
+        metadata endpoint issues a token for the managed identity attached
+        to the host, and there is no secret to hold, ship or rotate. That
+        is the model, and it is what bootstrap.py already uses through
+        DefaultAzureCredential.
 
-        The Azure credential is named after the identity it fetches --
-        `frontendUser` reads FRONTENDUSER_AZURE_*. No second argument: the
-        Azure identity is not free to differ from the Mongo one, and a
-        parameter that must always equal another parameter is a parameter
-        that will eventually not. A host therefore holds exactly the vault
-        credentials for the identities it is entitled to use, and one that
-        is not entitled simply has no key and fails closed.
-
-        This is what a single ambient AZURE_* credential cost: it served
-        every identity, so the workstation's credential could read the front
-        end's certificate and the front end's could read the pipeline's.
-
-        Key Vault is a REST API and this is two HTTPS calls: a client-credentials
-        token, then the secret. The Azure SDK does exactly this and costs tens of
-        megabytes per image to do it.
+        Off Azure there is no metadata endpoint, so the identity presents a
+        client secret named after itself. That path is unchanged.
         """
-        vault_uri = os.environ.get("KEY_VAULT_URI", "").strip()
-        if not vault_uri:
-            raise ChatHealthyException(
-                mode="vault_unreachable",
-                message="KEY_VAULT_URI not set",
-                component="ChatHealthyMongoUtilities",
-            )
         prefix = identity.strip().upper()
+        endpoint = os.environ.get("IDENTITY_ENDPOINT") or os.environ.get("MSI_ENDPOINT")
+        if endpoint:
+            header = os.environ.get("IDENTITY_HEADER") or os.environ.get("MSI_SECRET", "")
+            params = {
+                "api-version": "2019-08-01",
+                "resource": "https://vault.azure.net",
+            }
+            client_id = os.environ.get(f"{prefix}_AZURE_CLIENT_ID", "").strip()
+            if client_id:
+                params["client_id"] = client_id
+            response = httpx.get(
+                endpoint,
+                params=params,
+                headers={"X-IDENTITY-HEADER": header, "Metadata": "true"},
+                timeout=15,
+            )
+            if response.status_code != 200:
+                raise ChatHealthyException(
+                    mode="vault_unreachable",
+                    message=f"managed-identity token request for {identity!r} "
+                            f"returned {response.status_code}",
+                    component="ChatHealthyMongoUtilities",
+                )
+            return response.json()["access_token"]
+
         keys = (f"{prefix}_AZURE_TENANT_ID",
                 f"{prefix}_AZURE_CLIENT_ID",
                 f"{prefix}_AZURE_CLIENT_SECRET")
@@ -407,7 +413,40 @@ class ChatHealthyMongoUtilities:
                 message=f"Azure token request returned {token_response.status_code}",
                 component="ChatHealthyMongoUtilities",
             )
-        token = token_response.json()["access_token"]
+        return token_response.json()["access_token"]
+
+    def _fetch_identity_cert(self, identity: str) -> str:
+        """Return the identity's cert+key PEM from Key Vault. Raises, never logs.
+
+        Two logins happen to reach a collection, and they are different
+        services with different credentials. This is the first: Azure Key
+        Vault, to obtain the certificate. Mongo is the second, authenticated
+        with that certificate.
+
+        The Azure credential is named after the identity it fetches --
+        `frontendUser` reads FRONTENDUSER_AZURE_*. No second argument: the
+        Azure identity is not free to differ from the Mongo one, and a
+        parameter that must always equal another parameter is a parameter
+        that will eventually not. A host therefore holds exactly the vault
+        credentials for the identities it is entitled to use, and one that
+        is not entitled simply has no key and fails closed.
+
+        This is what a single ambient AZURE_* credential cost: it served
+        every identity, so the workstation's credential could read the front
+        end's certificate and the front end's could read the pipeline's.
+
+        Key Vault is a REST API and this is two HTTPS calls: a client-credentials
+        token, then the secret. The Azure SDK does exactly this and costs tens of
+        megabytes per image to do it.
+        """
+        vault_uri = os.environ.get("KEY_VAULT_URI", "").strip()
+        if not vault_uri:
+            raise ChatHealthyException(
+                mode="vault_unreachable",
+                message="KEY_VAULT_URI not set",
+                component="ChatHealthyMongoUtilities",
+            )
+        token = self._azure_token(identity)
 
         try:
             cert = self._vault_secret(vault_uri, token, _VAULT_CERT_KEY.format(identity=identity))
