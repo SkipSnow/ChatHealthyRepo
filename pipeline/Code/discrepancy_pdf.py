@@ -22,7 +22,7 @@ Datetime format: M/D/YYYY H:MM AM/PM PST (operator preference).
 """
 
 from __future__ import annotations
-from chathealthy_frontend_lib.logging_service import ChatHealthyLoggingService
+from chathealthy_lib.logging_service import ChatHealthyLoggingService
 
 import io
 from datetime import datetime, timezone, timedelta

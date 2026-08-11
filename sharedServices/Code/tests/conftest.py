@@ -14,7 +14,7 @@ from pathlib import Path
 
 _REPO_ROOT = Path(__file__).resolve().parents[3]
 _SHARED_CODE = _REPO_ROOT / "sharedServices" / "Code"
-_FRONTEND_LIB = _REPO_ROOT / "FrontEndApplicationLib" / "src"
+_FRONTEND_LIB = _REPO_ROOT / "ChatHealthyLib" / "src"
 _FINDCARE = _REPO_ROOT / "FindCare"
 
 for p in (str(_SHARED_CODE), str(_FRONTEND_LIB), str(_FINDCARE)):

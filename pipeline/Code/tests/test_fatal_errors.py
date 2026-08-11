@@ -6,17 +6,17 @@ import os
 import sys
 import uuid
 
-sys.path.insert(0, "FrontEndApplicationLib/src")
+sys.path.insert(0, "ChatHealthyLib/src")
 
 from steps.discrepancy_report import DiscrepancyReport, fatal_error
 import sys as _sys, pathlib as _pl
 for _d in _pl.Path(__file__).resolve().parents:
     if (_d / '.git').exists():
-        _lib = _d / 'FrontEndApplicationLib' / 'src'
+        _lib = _d / 'ChatHealthyLib' / 'src'
         if str(_lib) not in _sys.path:
             _sys.path.insert(0, str(_lib))
         break
-from chathealthy_frontend_lib.exceptions import ChatHealthyException
+from chathealthy_lib.exceptions import ChatHealthyException
 
 
 def test_email_send_with_warnings_and_errors():

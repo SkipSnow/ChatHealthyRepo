@@ -22,8 +22,8 @@ import time
 import hmac
 import base64
 import hashlib
-from chathealthy_frontend_lib import ChatHealthyLoggingService
-from chathealthy_frontend_lib.exceptions import ChatHealthyException
+from chathealthy_lib import ChatHealthyLoggingService
+from chathealthy_lib.exceptions import ChatHealthyException
 import secrets
 from typing import Optional
 from urllib.parse import urlencode
@@ -172,8 +172,8 @@ async def _invoke_oauth_login_tool(
     from authentication.authorizations_and_authentications_tool import (
         get_mongo_frontend,
     )
-    from chathealthy_frontend_lib.authentication.agent_deps import AgentDeps
-    from chathealthy_frontend_lib.authentication.user_object import UserObject
+    from chathealthy_lib.authentication.agent_deps import AgentDeps
+    from chathealthy_lib.authentication.user_object import UserObject
     from datetime import datetime, timezone, timedelta
 
     deps = AgentDeps(

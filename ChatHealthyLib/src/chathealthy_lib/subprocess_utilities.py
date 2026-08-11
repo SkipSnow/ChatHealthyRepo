@@ -37,7 +37,7 @@ def _require_posix_for_fork() -> None:
                 "on Windows. Use an in-process runner for local Windows "
                 "dev instead."
             ),
-            component="chathealthy_frontend_lib.subprocess_utilities",
+            component="chathealthy_lib.subprocess_utilities",
         )
 
 

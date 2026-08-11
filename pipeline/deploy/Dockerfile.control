@@ -21,8 +21,8 @@ COPY pipeline/Code/requirements-pipeline.txt /app/pipeline/Code/
 RUN pip install --no-cache-dir -r requirements-pipeline.txt \
     && pip install --no-cache-dir azure-identity azure-keyvault-secrets
 
-COPY FrontEndApplicationLib /app/FrontEndApplicationLib
-RUN pip install --no-cache-dir /app/FrontEndApplicationLib
+COPY ChatHealthyLib /app/ChatHealthyLib
+RUN pip install --no-cache-dir /app/ChatHealthyLib
 
 COPY pipeline/Code /app/pipeline/Code/
 

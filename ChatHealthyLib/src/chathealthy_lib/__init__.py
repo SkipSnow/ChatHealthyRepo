@@ -1,4 +1,4 @@
-"""chathealthy-frontend-lib — shared Python code for ChatHealthy.ai front-end services.
+"""chathealthy-lib — shared Python code for ChatHealthy.ai front-end services.
 
 EPIC-003 — owned by the front-end-library team.
 """

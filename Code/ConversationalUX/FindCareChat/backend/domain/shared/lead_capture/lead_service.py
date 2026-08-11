@@ -7,8 +7,8 @@
 #
 # Design: ARCH-001, shared infrastructure
 
-from chathealthy_frontend_lib import ChatHealthyLoggingService
-from chathealthy_frontend_lib.exceptions import ChatHealthyException
+from chathealthy_lib import ChatHealthyLoggingService
+from chathealthy_lib.exceptions import ChatHealthyException
 from datetime import datetime
 
 from domain.shared.consent.consent_service import ConsentService

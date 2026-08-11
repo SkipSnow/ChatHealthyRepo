@@ -25,7 +25,7 @@ Single path:
   - exec argv[1] with argv[2:] as forwarded args.
 """
 from __future__ import annotations
-from chathealthy_frontend_lib.logging_service import ChatHealthyLoggingService
+from chathealthy_lib.logging_service import ChatHealthyLoggingService
 
 import atexit
 import os
@@ -41,7 +41,7 @@ from azure.keyvault.secrets import SecretClient
 import blob_logger
 import chathealthy_ca
 from PipelineServices.observability_gate import ObservabilityGate
-from chathealthy_frontend_lib.exceptions import ChatHealthyException
+from chathealthy_lib.exceptions import ChatHealthyException
 
 
 # Environment inputs the deploy step provides on every container.

@@ -1,4 +1,4 @@
-from chathealthy_frontend_lib.logging_service import ChatHealthyLoggingService
+from chathealthy_lib.logging_service import ChatHealthyLoggingService
 # Copyright (c) 2026 ChatHealthy.ai LLC. All rights reserved.
 # Licensed under the FindCare Evaluation License (FEL-1.0).
 #
@@ -22,7 +22,7 @@ CMS_PARTD_DATASET_UUID = "9552739e-3d05-4c1b-8eff-ecabf391e2e5"
 CMS_PARTD_RESOURCES_URL = f"https://data.cms.gov/data-api/v1/dataset-resources/{CMS_PARTD_DATASET_UUID}"
 
 def _bail_no_csv_discovered():
-    from chathealthy_frontend_lib.exceptions import ChatHealthyException
+    from chathealthy_lib.exceptions import ChatHealthyException
     raise ChatHealthyException(
         mode="cms_partd_discovery_no_csv",
         message=(

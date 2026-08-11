@@ -4,9 +4,9 @@
 import os
 import traceback
 
-from chathealthy_frontend_lib import ChatHealthyLoggingService
-from chathealthy_frontend_lib.authentication import AuthToken, SessionToken
-from chathealthy_frontend_lib.exceptions import ChatHealthyException
+from chathealthy_lib import ChatHealthyLoggingService
+from chathealthy_lib.authentication import AuthToken, SessionToken
+from chathealthy_lib.exceptions import ChatHealthyException
 
 log = ChatHealthyLoggingService()
 

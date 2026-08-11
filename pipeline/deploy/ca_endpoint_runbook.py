@@ -32,7 +32,7 @@ it in its own memory or (for long-lived deploy-time provisioning) the
 deployer places it into KV under the target node's secret path.
 """
 from __future__ import annotations
-from chathealthy_frontend_lib.logging_service import ChatHealthyLoggingService
+from chathealthy_lib.logging_service import ChatHealthyLoggingService
 
 import datetime
 import json
@@ -69,7 +69,7 @@ os.environ.setdefault("CH_COMPONENT", "ca-endpoint")
 os.environ.setdefault("ENV_PREFIX",
                       os.environ.get("AUTOMATION_ENV_PREFIX", "dev"))
 try:
-    from chathealthy_frontend_lib.pipeline_boot import bootstrap_aa_mongo_logging as _boot
+    from chathealthy_lib.pipeline_boot import bootstrap_aa_mongo_logging as _boot
     _boot(
         kv_uri=os.environ.get(
             "KEY_VAULT_URI", "https://kv-chpipeline-dev.vault.azure.net/",

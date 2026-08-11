@@ -15,7 +15,7 @@ to KV + Automation Variable, hydrated into the Controller container).
 No fallbacks. Missing env, HTTP error, or empty result raises.
 """
 from __future__ import annotations
-from chathealthy_frontend_lib.exceptions import ChatHealthyException
+from chathealthy_lib.exceptions import ChatHealthyException
 
 import json
 import os

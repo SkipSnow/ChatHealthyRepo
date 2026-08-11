@@ -52,7 +52,7 @@ from cert_placement import (  # noqa: E402
 import sys as _ch_sys, pathlib as _ch_pl
 for _ch_d in _ch_pl.Path(__file__).resolve().parents:
     if (_ch_d / ".git").exists():
-        _ch_lib = _ch_d / "FrontEndApplicationLib" / "src"
+        _ch_lib = _ch_d / "ChatHealthyLib" / "src"
         if str(_ch_lib) not in _ch_sys.path:
             _ch_sys.path.insert(0, str(_ch_lib))
         break
@@ -63,7 +63,7 @@ for _ch_d in _ch_pl.Path(__file__).resolve().parents:
 # made a build depend on a Mongo write it has no grant for.
 import os as _ch_os
 _ch_os.environ["CH_LOG_DESTINATION"] = "stderr"
-from chathealthy_frontend_lib.logging_service import ChatHealthyLoggingService
+from chathealthy_lib.logging_service import ChatHealthyLoggingService
 _CH_LOG = ChatHealthyLoggingService()
 
 
@@ -77,11 +77,11 @@ def _chathealthy_exception():
     import sys as _sys, pathlib as _pl
     for _p in _pl.Path(__file__).resolve().parents:
         if (_p / ".git").exists():
-            _lib = _p / "FrontEndApplicationLib" / "src"
+            _lib = _p / "ChatHealthyLib" / "src"
             if str(_lib) not in _sys.path:
                 _sys.path.insert(0, str(_lib))
             break
-    from chathealthy_frontend_lib.exceptions import ChatHealthyException
+    from chathealthy_lib.exceptions import ChatHealthyException
     return ChatHealthyException
 
 
@@ -133,7 +133,7 @@ def _latest_admin_build() -> int | None:
     if not conn:
         return None
     try:
-        from chathealthy_frontend_lib.mongo_utilities import ChatHealthyMongoUtilities
+        from chathealthy_lib.mongo_utilities import ChatHealthyMongoUtilities
         latest = (ChatHealthyMongoUtilities()
                   .getConnection("DevOpsUser", "admin")
                   ["frontEndAdmin"]["BuildVersions"].find_one(sort=[("from", -1)]))

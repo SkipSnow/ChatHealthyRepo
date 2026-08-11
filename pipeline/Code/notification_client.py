@@ -23,7 +23,7 @@ from typing import Any
 
 import requests
 
-from chathealthy_frontend_lib.logging_service import ChatHealthyLoggingService
+from chathealthy_lib.logging_service import ChatHealthyLoggingService
 
 _log = ChatHealthyLoggingService()
 

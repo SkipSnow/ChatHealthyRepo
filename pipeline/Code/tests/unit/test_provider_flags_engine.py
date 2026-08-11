@@ -13,7 +13,7 @@ from __future__ import annotations
 
 import pytest
 
-from chathealthy_frontend_lib.exceptions import ChatHealthyException
+from chathealthy_lib.exceptions import ChatHealthyException
 
 from provider_flags_engine import (
     _credential_grants_prescribing,

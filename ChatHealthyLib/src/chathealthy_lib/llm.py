@@ -5,7 +5,7 @@ ChatHealthy retry policy and converts transient HTTP failures into
 ChatHealthyException(mode='llm_unavailable').
 
 Realizes EPIC-008-F-002-S-009-REQ-B-007. See
-FrontEndApplicationLib/architectureAndDesign/
+ChatHealthyLib/architectureAndDesign/
 EPIC-003-F-003-Manage-Errors-design-v3.docx §5 for the contract.
 
 Test-only failure injection: when the environment variable

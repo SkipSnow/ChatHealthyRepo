@@ -10,7 +10,7 @@ PublicStaging.OtherIdentifierPhrases.
 """
 
 from __future__ import annotations
-from chathealthy_frontend_lib.logging_service import ChatHealthyLoggingService
+from chathealthy_lib.logging_service import ChatHealthyLoggingService
 
 from other_identifier_phrases_engine import harvest_other_identifier_phrases
 

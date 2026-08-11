@@ -24,13 +24,13 @@ from datetime import datetime
 from typing import Any, Callable, Optional
 from zoneinfo import ZoneInfo
 
-from chathealthy_frontend_lib.authentication.user_object import (
+from chathealthy_lib.authentication.user_object import (
     Action,
     UserObject,
     Utterance,
 )
-from chathealthy_frontend_lib import ChatHealthyLoggingService
-from chathealthy_frontend_lib.authentication.session_token import SessionToken
+from chathealthy_lib import ChatHealthyLoggingService
+from chathealthy_lib.authentication.session_token import SessionToken
 
 
 StreamSink = Callable[[dict[str, Any]], None]

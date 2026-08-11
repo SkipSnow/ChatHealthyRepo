@@ -28,9 +28,9 @@ from typing import Annotated, Literal, Optional, Union, get_origin
 
 from pydantic import BaseModel, Field
 
-from chathealthy_frontend_lib.authentication.session_token import SessionToken
+from chathealthy_lib.authentication.session_token import SessionToken
 
-from chathealthy_frontend_lib.authentication.intent_document import IntentDocument
+from chathealthy_lib.authentication.intent_document import IntentDocument
 
 
 class MergeRole(Enum):
@@ -265,5 +265,5 @@ class UserObject(BaseModel):
     def persist_user_state(self, text: str) -> None:
         """Append the typed user text to the session conversation history
         as a person utterance with the next sequence number."""
-        from chathealthy_frontend_lib.authentication.agent_deps import append_person_utterance
+        from chathealthy_lib.authentication.agent_deps import append_person_utterance
         append_person_utterance(self, text)

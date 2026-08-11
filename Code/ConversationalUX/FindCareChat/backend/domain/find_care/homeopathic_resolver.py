@@ -12,8 +12,8 @@
 # Only strictly and loosely compliant specialties are added to the filter.
 # RISK-002 accepted: AI makes contextual classification decision.
 
-from chathealthy_frontend_lib import ChatHealthyLoggingService
-from chathealthy_frontend_lib.exceptions import ChatHealthyException
+from chathealthy_lib import ChatHealthyLoggingService
+from chathealthy_lib.exceptions import ChatHealthyException
 import os
 
 log = ChatHealthyLoggingService()

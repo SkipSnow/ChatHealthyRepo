@@ -4,8 +4,8 @@
 # DebugLogger — persists chat call metadata to MongoDB for debugging.
 # Source: {ENV_PREFIX}_Debug.chat_calls
 
-from chathealthy_frontend_lib import ChatHealthyLoggingService
-from chathealthy_frontend_lib.exceptions import ChatHealthyException
+from chathealthy_lib import ChatHealthyLoggingService
+from chathealthy_lib.exceptions import ChatHealthyException
 from datetime import datetime, timezone
 from typing import Optional
 

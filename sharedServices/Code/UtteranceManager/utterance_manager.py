@@ -15,18 +15,18 @@ from __future__ import annotations
 
 import asyncio
 import json
-from chathealthy_frontend_lib import ChatHealthyLoggingService
-from chathealthy_frontend_lib.exceptions import ChatHealthyException
+from chathealthy_lib import ChatHealthyLoggingService
+from chathealthy_lib.exceptions import ChatHealthyException
 from typing import Any, Literal, Optional
 
 from pydantic import BaseModel, Field
 from pydantic_ai import Agent
 
-from chathealthy_frontend_lib.authentication.agent_deps import AgentDeps
-from chathealthy_frontend_lib.authentication.chathealthy_tool import ChatHealthyTool
-from chathealthy_frontend_lib import run_llm
+from chathealthy_lib.authentication.agent_deps import AgentDeps
+from chathealthy_lib.authentication.chathealthy_tool import ChatHealthyTool
+from chathealthy_lib import run_llm
 
-from chathealthy_frontend_lib.authentication.intent_document import (
+from chathealthy_lib.authentication.intent_document import (
     Argument,
     IntentCloseConnection200,
     IntentDocument,
@@ -1197,7 +1197,7 @@ def build_find_clinical_trials_intent(
     sex: Optional[str] = None,
     geographic_scope: Optional[str] = None,
 ) -> "IntentFindClinicalTrials":
-    from chathealthy_frontend_lib.authentication.intent_document import IntentFindClinicalTrials
+    from chathealthy_lib.authentication.intent_document import IntentFindClinicalTrials
     args = [Argument(name="complaint", value=complaint, type="string", required=True)]
     if user_location:
         args.append(Argument(
@@ -1242,7 +1242,7 @@ def build_safety_lockout_intent(lockout_reason: str) -> "IntentSafetyLockout":
     LockoutTool writes it onto the {env}_Safety.emergency_incidents row
     and renders the user-facing prose from the verbatim trigger
     utterance, not from this label."""
-    from chathealthy_frontend_lib.authentication.intent_document import IntentSafetyLockout
+    from chathealthy_lib.authentication.intent_document import IntentSafetyLockout
     label = (lockout_reason or "").strip() or "immediate medical attention"
     return IntentSafetyLockout(
         name="safetyLockout",
@@ -1353,7 +1353,7 @@ class UtteranceManagerTool(ChatHealthyTool):
             target_action="closeConnection200",
             user_message=fallback,
         )
-        from chathealthy_frontend_lib.authentication.agent_deps import append_system_utterance
+        from chathealthy_lib.authentication.agent_deps import append_system_utterance
         deps.stream({"kind": "prompt", "data": {"text": fallback}})
         append_system_utterance(deps.user_object, fallback)
         # No tool painted MainWindow this turn — direct the client to
@@ -1402,7 +1402,7 @@ class UtteranceManagerTool(ChatHealthyTool):
 
         # Stream + persist the manufactured prose, same shape as the
         # interpret path's user_message handling.
-        from chathealthy_frontend_lib.authentication.agent_deps import append_system_utterance
+        from chathealthy_lib.authentication.agent_deps import append_system_utterance
         deps.stream({"kind": "prompt", "data": {"text": user_message}})
         append_system_utterance(deps.user_object, user_message)
         # Manufacture path always closes without a tool paint — direct the
@@ -1587,7 +1587,7 @@ class UtteranceManagerTool(ChatHealthyTool):
         # transcript UM hands itself on the NEXT turn, which is what
         # gives a follow-up "yes" its referent.
         if new_doc.user_message:
-            from chathealthy_frontend_lib.authentication.agent_deps import append_system_utterance
+            from chathealthy_lib.authentication.agent_deps import append_system_utterance
             data: dict[str, Any] = {"text": new_doc.user_message}
             if llm_result.corrections:
                 data["corrections"] = [

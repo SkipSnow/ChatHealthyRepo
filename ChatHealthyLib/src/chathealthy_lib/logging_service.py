@@ -479,7 +479,7 @@ def _ensure_configured() -> None:
 class ChatHealthyLoggingService:
     """Canonical logger. Constructor takes zero arguments.
 
-    See FrontEndApplicationLib/architectureAndDesign/
+    See ChatHealthyLib/architectureAndDesign/
         EPIC-003-F-005-Manage-Logging-design-v9.docx.
     """
 

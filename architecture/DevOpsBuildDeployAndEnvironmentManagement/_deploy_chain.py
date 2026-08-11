@@ -66,7 +66,7 @@ from target_record import DeploymentCollection, TargetRecord
 import sys as _ch_sys, pathlib as _ch_pl
 for _ch_d in _ch_pl.Path(__file__).resolve().parents:
     if (_ch_d / ".git").exists():
-        _ch_lib = _ch_d / "FrontEndApplicationLib" / "src"
+        _ch_lib = _ch_d / "ChatHealthyLib" / "src"
         if str(_ch_lib) not in _ch_sys.path:
             _ch_sys.path.insert(0, str(_ch_lib))
         break
@@ -77,7 +77,7 @@ for _ch_d in _ch_pl.Path(__file__).resolve().parents:
 # made a build depend on a Mongo write it has no grant for.
 import os as _ch_os
 _ch_os.environ["CH_LOG_DESTINATION"] = "stderr"
-from chathealthy_frontend_lib.logging_service import ChatHealthyLoggingService
+from chathealthy_lib.logging_service import ChatHealthyLoggingService
 _CH_LOG = ChatHealthyLoggingService()
 
 
@@ -235,11 +235,11 @@ def _ch_exc():
     import sys as _s, pathlib as _p
     for _d in _p.Path(__file__).resolve().parents:
         if (_d / ".git").exists():
-            _l = _d / "FrontEndApplicationLib" / "src"
+            _l = _d / "ChatHealthyLib" / "src"
             if str(_l) not in _s.path:
                 _s.path.insert(0, str(_l))
             break
-    from chathealthy_frontend_lib.exceptions import ChatHealthyException
+    from chathealthy_lib.exceptions import ChatHealthyException
     return ChatHealthyException
 
 
@@ -1654,7 +1654,7 @@ def az_automation_poll_job_to_terminal(
 
     Default 600s (10 min) accommodates the AA Python 3 sandbox cold-start
     envelope: sandbox spin-up + python_packages install + our runbook
-    module load (chathealthy_frontend_lib inlined bootstrap +
+    module load (chathealthy_lib inlined bootstrap +
     ChatHealthyLoggingService instantiation) can take up to 5 min end-
     to-end on a cold AA before the runbook's own logic runs. Empirically
     600s was too tight for the ChatHealthyDataMigrator {Provisioner,
@@ -3693,7 +3693,7 @@ class LocalDeploy:
     def _build_backend_containers(self) -> None:
         """V11 S-002-REQ-T-001 docker build for the 3 backends."""
         import shutil as _shutil
-        frontend_lib_src = self.repo_root / "FrontEndApplicationLib"
+        frontend_lib_src = self.repo_root / "ChatHealthyLib"
         auth_src = self.repo_root / "sharedServices" / "Code" / "AuthorizationsAndAuthentications"
         specialty_filter_src = self.repo_root / "FindCare" / "SpecialtyFilter"
         clinical_trials_src = self.repo_root / "FindCare" / "ClinicalTrials"
@@ -3718,7 +3718,7 @@ class LocalDeploy:
             build_ctx_abs = pkg
             staged_lib = None
             if build_ctx_rel != ".":
-                staged_lib = build_ctx_abs / "FrontEndApplicationLib"
+                staged_lib = build_ctx_abs / "ChatHealthyLib"
                 if staged_lib.exists():
                     _shutil.rmtree(staged_lib)
                 _shutil.copytree(frontend_lib_src, staged_lib,

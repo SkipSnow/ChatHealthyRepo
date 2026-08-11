@@ -40,8 +40,8 @@ Environment (Automation Variables, exposed via os.environ at runtime):
   NOTIFICATION_FROM_EMAIL         - sender address (R3)
   NOTIFICATION_TO_EMAIL           - recipient address (R3)
 """
-from chathealthy_frontend_lib.logging_service import ChatHealthyLoggingService
-from chathealthy_frontend_lib.mongo_utilities import ChatHealthyMongoUtilities
+from chathealthy_lib.logging_service import ChatHealthyLoggingService
+from chathealthy_lib.mongo_utilities import ChatHealthyMongoUtilities
 import os
 import sys
 import json
@@ -82,7 +82,7 @@ os.environ.setdefault("CH_SPACE_NAME", "reservation-reaper")
 os.environ.setdefault("CH_COMPONENT", "reservation-reaper")
 os.environ.setdefault("CH_LOG_DESTINATION", "stderr,mongo")
 try:
-    from chathealthy_frontend_lib.pipeline_boot import srv_to_direct_uri as _srv_to_direct
+    from chathealthy_lib.pipeline_boot import srv_to_direct_uri as _srv_to_direct
     _mongo_uri = os.environ.get("MONGO_connectionString", "")
     if _mongo_uri.startswith("mongodb+srv://"):
         os.environ["MONGO_connectionString"] = _srv_to_direct(_mongo_uri)

@@ -8,7 +8,7 @@
 
 import asyncio
 import json
-from chathealthy_frontend_lib import ChatHealthyLoggingService
+from chathealthy_lib import ChatHealthyLoggingService
 import os
 import sys
 import traceback
@@ -54,8 +54,8 @@ load_dotenv(override=True)
 
 # Shared utilities
 sys.path.insert(0, os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "..", "..", "Shared"))
-from chathealthy_frontend_lib.mongo_utilities import ChatHealthyMongoUtilities
-from chathealthy_frontend_lib.exceptions import ChatHealthyException
+from chathealthy_lib.mongo_utilities import ChatHealthyMongoUtilities
+from chathealthy_lib.exceptions import ChatHealthyException
 from prompt_system_maker import PromptSystemMaker
 
 # ---------------------------------------------------------------------------
@@ -264,7 +264,7 @@ import time as time_mod
 
 app = FastAPI(title="ChatHealthy FindCare API")
 
-from chathealthy_frontend_lib.runtime_data_collections import (
+from chathealthy_lib.runtime_data_collections import (
     providers_coll,
     specialty_meta_coll,
     bind_from_manifest as bind_data_collections,
@@ -416,7 +416,7 @@ def startup_security_verification():
     cryptography primitives can parse them."""
     bootstrap_certs_from_env()
     try:
-        from chathealthy_frontend_lib.authentication.session_token import cert_basename
+        from chathealthy_lib.authentication.session_token import cert_basename
         from cryptography.hazmat.primitives import serialization
         from cryptography.x509 import load_pem_x509_certificate
     except ImportError as _imp:
@@ -902,7 +902,7 @@ def health():
         return JSONResponse(status_code=503, content=result)
     return result
 
-from chathealthy_frontend_lib.authentication import (
+from chathealthy_lib.authentication import (
     AuthToken, SessionRestampRequest, SessionToken, VerifyTokenResponse,
 )
 

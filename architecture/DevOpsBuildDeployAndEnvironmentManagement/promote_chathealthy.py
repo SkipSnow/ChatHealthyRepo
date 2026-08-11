@@ -39,7 +39,7 @@ from pathlib import Path
 import sys as _ch_sys, pathlib as _ch_pl
 for _ch_d in _ch_pl.Path(__file__).resolve().parents:
     if (_ch_d / ".git").exists():
-        _ch_lib = _ch_d / "FrontEndApplicationLib" / "src"
+        _ch_lib = _ch_d / "ChatHealthyLib" / "src"
         if str(_ch_lib) not in _ch_sys.path:
             _ch_sys.path.insert(0, str(_ch_lib))
         break
@@ -50,7 +50,7 @@ for _ch_d in _ch_pl.Path(__file__).resolve().parents:
 # made a build depend on a Mongo write it has no grant for.
 import os as _ch_os
 _ch_os.environ["CH_LOG_DESTINATION"] = "stderr"
-from chathealthy_frontend_lib.logging_service import ChatHealthyLoggingService
+from chathealthy_lib.logging_service import ChatHealthyLoggingService
 sys.path.insert(0, str(_ch_d / 'architecture' / 'EngineeringRuleEnforcement' / 'code'))
 from baseline_walk import baseline_files
 _CH_LOG = ChatHealthyLoggingService()
@@ -66,11 +66,11 @@ def _ch_exc():
     import sys as _s, pathlib as _p
     for _d in _p.Path(__file__).resolve().parents:
         if (_d / ".git").exists():
-            _l = _d / "FrontEndApplicationLib" / "src"
+            _l = _d / "ChatHealthyLib" / "src"
             if str(_l) not in _s.path:
                 _s.path.insert(0, str(_l))
             break
-    from chathealthy_frontend_lib.exceptions import ChatHealthyException
+    from chathealthy_lib.exceptions import ChatHealthyException
     return ChatHealthyException
 
 

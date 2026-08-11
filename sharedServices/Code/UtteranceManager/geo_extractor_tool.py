@@ -8,22 +8,22 @@ Thin ChatHealthyTool subclass that:
   * returns a Response carrying state / county / city / zip.
 
 The actual extraction lives in
-``chathealthy_frontend_lib.geo_extractor.extract_location`` so any
+``chathealthy_lib.geo_extractor.extract_location`` so any
 ChatHealthy component can call the same function without crossing a
 service boundary.
 """
 from __future__ import annotations
 
 import asyncio
-from chathealthy_frontend_lib import ChatHealthyLoggingService
-from chathealthy_frontend_lib.exceptions import ChatHealthyException
+from chathealthy_lib import ChatHealthyLoggingService
+from chathealthy_lib.exceptions import ChatHealthyException
 from typing import Optional
 
 from pydantic import BaseModel
 
-from chathealthy_frontend_lib.authentication.agent_deps import AgentDeps
-from chathealthy_frontend_lib.authentication.chathealthy_tool import ChatHealthyTool
-from chathealthy_frontend_lib.geo_extractor import extract_location
+from chathealthy_lib.authentication.agent_deps import AgentDeps
+from chathealthy_lib.authentication.chathealthy_tool import ChatHealthyTool
+from chathealthy_lib.geo_extractor import extract_location
 
 log = ChatHealthyLoggingService()
 

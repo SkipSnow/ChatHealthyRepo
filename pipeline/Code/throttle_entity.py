@@ -20,7 +20,7 @@ Operations:
   reset                               - clean-environment hygiene
 """
 from __future__ import annotations
-from chathealthy_frontend_lib.exceptions import ChatHealthyException
+from chathealthy_lib.exceptions import ChatHealthyException
 
 import json
 import time

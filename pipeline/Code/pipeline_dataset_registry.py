@@ -26,8 +26,8 @@ from __future__ import annotations
 from dataclasses import dataclass
 from typing import Optional
 
-from chathealthy_frontend_lib.exceptions import ChatHealthyException
-from chathealthy_frontend_lib.logging_service import ChatHealthyLoggingService
+from chathealthy_lib.exceptions import ChatHealthyException
+from chathealthy_lib.logging_service import ChatHealthyLoggingService
 
 from pipeline_fatal_recorder import record_fatal_discrepancy
 

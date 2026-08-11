@@ -61,7 +61,7 @@ from _build_chain import (
 import sys as _ch_sys, pathlib as _ch_pl
 for _ch_d in _ch_pl.Path(__file__).resolve().parents:
     if (_ch_d / ".git").exists():
-        _ch_lib = _ch_d / "FrontEndApplicationLib" / "src"
+        _ch_lib = _ch_d / "ChatHealthyLib" / "src"
         if str(_ch_lib) not in _ch_sys.path:
             _ch_sys.path.insert(0, str(_ch_lib))
         break
@@ -72,7 +72,7 @@ for _ch_d in _ch_pl.Path(__file__).resolve().parents:
 # made a build depend on a Mongo write it has no grant for.
 import os as _ch_os
 _ch_os.environ["CH_LOG_DESTINATION"] = "stderr"
-from chathealthy_frontend_lib.logging_service import ChatHealthyLoggingService
+from chathealthy_lib.logging_service import ChatHealthyLoggingService
 _CH_LOG = ChatHealthyLoggingService()
 
 
@@ -243,8 +243,8 @@ def _bump_build_counter(env: str) -> int:
     # writes to admin through any custom role.
     # The shared library is not pip-installed in the workstation venv; every
     # repo script reaches it by path.
-    sys.path.insert(0, str(repo_root / "FrontEndApplicationLib" / "src"))
-    from chathealthy_frontend_lib.mongo_utilities import ChatHealthyMongoUtilities
+    sys.path.insert(0, str(repo_root / "ChatHealthyLib" / "src"))
+    from chathealthy_lib.mongo_utilities import ChatHealthyMongoUtilities
     coll = (ChatHealthyMongoUtilities()
             .getConnection("DevOpsUser", "admin")[VERSIONS_DB][VERSIONS_COLLECTION])
     latest = coll.find_one(sort=[("from", -1)])

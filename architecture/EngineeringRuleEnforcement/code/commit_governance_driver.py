@@ -34,7 +34,7 @@ from typing import Any
 for _d in Path(__file__).resolve().parents:
     if (_d / ".git").exists():
         PROJECT_ROOT = _d
-        _lib = _d / "FrontEndApplicationLib" / "src"
+        _lib = _d / "ChatHealthyLib" / "src"
         if str(_lib) not in sys.path:
             sys.path.insert(0, str(_lib))
         break
@@ -46,7 +46,7 @@ for _d in Path(__file__).resolve().parents:
 # made a build depend on a Mongo write it has no grant for.
 import os as _ch_os
 _ch_os.environ["CH_LOG_DESTINATION"] = "stderr"
-from chathealthy_frontend_lib.logging_service import ChatHealthyLoggingService
+from chathealthy_lib.logging_service import ChatHealthyLoggingService
 from baseline_walk import baseline_files
 
 _CH_LOG = ChatHealthyLoggingService()

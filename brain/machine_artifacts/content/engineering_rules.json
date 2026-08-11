@@ -278,7 +278,7 @@
                   "_scan_mongo_client_direct_access",
                   "excluded_exact",
                   [
-                    "FrontEndApplicationLib/src/chathealthy_frontend_lib/mongo_utilities.py"
+                    "ChatHealthyLib/src/chathealthy_lib/mongo_utilities.py"
                   ]
                 ]
               ],
@@ -316,7 +316,7 @@
                   "_scan_uniform_logging",
                   "excluded_exact",
                   [
-                    "FrontEndApplicationLib/src/chathealthy_frontend_lib/logging_service.py"
+                    "ChatHealthyLib/src/chathealthy_lib/logging_service.py"
                   ]
                 ]
               ],

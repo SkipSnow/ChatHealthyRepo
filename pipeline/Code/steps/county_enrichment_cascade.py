@@ -7,7 +7,7 @@ Bridges StepContext to county_cascade_engine.run_county_cascade().
 """
 
 from __future__ import annotations
-from chathealthy_frontend_lib.logging_service import ChatHealthyLoggingService
+from chathealthy_lib.logging_service import ChatHealthyLoggingService
 
 
 from county_cascade_engine import run_county_cascade

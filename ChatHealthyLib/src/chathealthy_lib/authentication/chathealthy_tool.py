@@ -22,8 +22,8 @@ from typing import ClassVar, Type
 
 from pydantic import BaseModel
 
-from chathealthy_frontend_lib import ChatHealthyLoggingService
-from chathealthy_frontend_lib.exceptions import ChatHealthyException
+from chathealthy_lib import ChatHealthyLoggingService
+from chathealthy_lib.exceptions import ChatHealthyException
 
 log = ChatHealthyLoggingService()
 
@@ -54,7 +54,7 @@ class ChatHealthyTool(ABC):
         method.
         """
         result = await self.run(deps, request)
-        from chathealthy_frontend_lib.authentication.agent_deps import append_action
+        from chathealthy_lib.authentication.agent_deps import append_action
         try:
             args_dump = (
                 request.model_dump(exclude_none=True) if request is not None else {}

@@ -23,8 +23,8 @@ from pydantic import BaseModel, Field
 from pydantic_ai import Agent
 from pymongo.collection import Collection
 
-from chathealthy_frontend_lib import run_llm_sync
-from chathealthy_frontend_lib.exceptions import ChatHealthyException
+from chathealthy_lib import run_llm_sync
+from chathealthy_lib.exceptions import ChatHealthyException
 
 
 # ── Pydantic I/O contracts ────────────────────────────────────────────

@@ -8,8 +8,8 @@
 #
 # Design: ARCH-001, business component: EvaluateCareQuality
 
-from chathealthy_frontend_lib import ChatHealthyLoggingService
-from chathealthy_frontend_lib.exceptions import ChatHealthyException
+from chathealthy_lib import ChatHealthyLoggingService
+from chathealthy_lib.exceptions import ChatHealthyException
 import os
 
 import requests

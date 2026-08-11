@@ -1,9 +1,9 @@
 # Copyright (c) 2026 ChatHealthy.ai LLC. All rights reserved.
-"""Unit tests for chathealthy_frontend_lib.llm.run_llm / run_llm_sync.
+"""Unit tests for chathealthy_lib.llm.run_llm / run_llm_sync.
 
 Realizes verification for EPIC-008-F-002-S-009-REQ-B-007.
 
-Run from FrontEndApplicationLib/ with:
+Run from ChatHealthyLib/ with:
     PYTHONPATH=src python -m pytest tests/test_llm_facade.py -v
 """
 from __future__ import annotations
@@ -17,12 +17,12 @@ from unittest.mock import AsyncMock, MagicMock
 import httpx
 import pytest
 
-from chathealthy_frontend_lib import (
+from chathealthy_lib import (
     ChatHealthyException,
     run_llm,
     run_llm_sync,
 )
-from chathealthy_frontend_lib import llm as llm_mod
+from chathealthy_lib import llm as llm_mod
 
 
 @pytest.fixture(autouse=True)

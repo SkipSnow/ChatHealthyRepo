@@ -24,11 +24,11 @@ import jwt
 from jwt import PyJWKClient, PyJWKClientError
 from pydantic import BaseModel, Field
 
-from chathealthy_frontend_lib import ChatHealthyLoggingService
-from chathealthy_frontend_lib.exceptions import ChatHealthyException
+from chathealthy_lib import ChatHealthyLoggingService
+from chathealthy_lib.exceptions import ChatHealthyException
 
-from chathealthy_frontend_lib.authentication.agent_deps import AgentDeps
-from chathealthy_frontend_lib.authentication.chathealthy_tool import ChatHealthyTool
+from chathealthy_lib.authentication.agent_deps import AgentDeps
+from chathealthy_lib.authentication.chathealthy_tool import ChatHealthyTool
 from authentication.google_oauth_endpoint import (
     GOOGLE_AUTHZ_URL,
     build_state,
@@ -237,8 +237,8 @@ async def _exchange_and_verify(code: str, server_env: str) -> dict:
 def _persist_login(
     sessions_coll, users_coll, claims: dict, session_guid: str,
 ) -> tuple[str, Optional[str]]:
-    from chathealthy_frontend_lib.authentication.user_object import UserObject, OAuthIdentity
-    from chathealthy_frontend_lib.authentication.agent_deps import append_action
+    from chathealthy_lib.authentication.user_object import UserObject, OAuthIdentity
+    from chathealthy_lib.authentication.agent_deps import append_action
     email = claims["email"]
     sub = claims["sub"]
     identity_provider = "Google"

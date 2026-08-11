@@ -25,8 +25,8 @@ Environment (Automation Variables):
                                       it as the Bearer credential for /admin/swap.
 """
 from __future__ import annotations
-from chathealthy_frontend_lib.logging_service import ChatHealthyLoggingService
-from chathealthy_frontend_lib.exceptions import ChatHealthyException
+from chathealthy_lib.logging_service import ChatHealthyLoggingService
+from chathealthy_lib.exceptions import ChatHealthyException
 
 import json
 import os
@@ -65,7 +65,7 @@ os.environ.setdefault("ENV_PREFIX",
                       os.environ.get("AUTOMATION_ENV_PREFIX", "dev"))
 os.environ.setdefault("CH_LOG_DESTINATION", "stderr,mongo")
 try:
-    from chathealthy_frontend_lib.pipeline_boot import srv_to_direct_uri as _srv_to_direct
+    from chathealthy_lib.pipeline_boot import srv_to_direct_uri as _srv_to_direct
     _mongo_uri = os.environ.get("MONGO_FRONTEND_connectionString", "")
     if _mongo_uri.startswith("mongodb+srv://"):
         os.environ["MONGO_FRONTEND_connectionString"] = _srv_to_direct(_mongo_uri)
@@ -224,7 +224,7 @@ def main() -> int:
     uri = os.environ.get("MONGO_FRONTEND_connectionString")
     if not uri:
         sys.exit("ERROR: MONGO_FRONTEND_connectionString not set.")
-    from chathealthy_frontend_lib.mongo_utilities import ChatHealthyMongoUtilities
+    from chathealthy_lib.mongo_utilities import ChatHealthyMongoUtilities
     client = ChatHealthyMongoUtilities().getConnection("pipelineEditor", "admin")
     doc = client[_CONFIG_DB][_CONFIG_COLL].find_one({"env": env})
     client.close()

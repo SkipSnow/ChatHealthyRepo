@@ -13,13 +13,13 @@
 # `specialty_filter_system_prompt`) per S-002-T-001 / T-005.
 
 import json
-from chathealthy_frontend_lib import ChatHealthyLoggingService
-from chathealthy_frontend_lib.exceptions import ChatHealthyException
+from chathealthy_lib import ChatHealthyLoggingService
+from chathealthy_lib.exceptions import ChatHealthyException
 import os
 from pathlib import Path
 from typing import Optional
 
-from chathealthy_frontend_lib.runtime_data_collections import specialty_meta_coll
+from chathealthy_lib.runtime_data_collections import specialty_meta_coll
 
 # Resolve project root from this file's location:
 #   FindCare/SpecialtyFilter/filter.py
@@ -49,11 +49,11 @@ def _ch_exc():
     import sys as _s, pathlib as _p
     for _d in _p.Path(__file__).resolve().parents:
         if (_d / ".git").exists():
-            _l = _d / "FrontEndApplicationLib" / "src"
+            _l = _d / "ChatHealthyLib" / "src"
             if str(_l) not in _s.path:
                 _s.path.insert(0, str(_l))
             break
-    from chathealthy_frontend_lib.exceptions import ChatHealthyException
+    from chathealthy_lib.exceptions import ChatHealthyException
     return ChatHealthyException
 
 

@@ -21,7 +21,7 @@ preserved as-is — it predates state scoping and does not interact with the
 multi-field predicate.
 """
 from __future__ import annotations
-from chathealthy_frontend_lib.exceptions import ChatHealthyException
+from chathealthy_lib.exceptions import ChatHealthyException
 
 ALL_STATES_SENTINEL = "ALL"
 

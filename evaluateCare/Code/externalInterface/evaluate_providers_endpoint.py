@@ -1,12 +1,12 @@
 # Copyright (c) 2026 ChatHealthy.ai LLC. All rights reserved.
 # Licensed under the FindCare Evaluation License (FEL-1.0).
 
-from chathealthy_frontend_lib import ChatHealthyLoggingService
-from chathealthy_frontend_lib.exceptions import ChatHealthyException
+from chathealthy_lib import ChatHealthyLoggingService
+from chathealthy_lib.exceptions import ChatHealthyException
 from fastapi import HTTPException
 from pydantic import BaseModel, Field
 
-from chathealthy_frontend_lib.authentication import (
+from chathealthy_lib.authentication import (
     AuthToken,
     SessionToken,
     SessionTokenVerification,

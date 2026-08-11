@@ -14,8 +14,8 @@ from typing import Literal, Optional
 
 from pydantic import BaseModel, Field
 
-from chathealthy_frontend_lib.authentication.agent_deps import AgentDeps
-from chathealthy_frontend_lib.authentication.chathealthy_tool import ChatHealthyTool
+from chathealthy_lib.authentication.agent_deps import AgentDeps
+from chathealthy_lib.authentication.chathealthy_tool import ChatHealthyTool
 
 
 MAX_SELECTED = 5

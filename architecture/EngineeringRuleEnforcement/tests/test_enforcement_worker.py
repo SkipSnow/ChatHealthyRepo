@@ -23,11 +23,11 @@ from enforcement_worker import (
 import sys as _sys, pathlib as _pl
 for _d in _pl.Path(__file__).resolve().parents:
     if (_d / '.git').exists():
-        _lib = _d / 'FrontEndApplicationLib' / 'src'
+        _lib = _d / 'ChatHealthyLib' / 'src'
         if str(_lib) not in _sys.path:
             _sys.path.insert(0, str(_lib))
         break
-from chathealthy_frontend_lib.exceptions import ChatHealthyException
+from chathealthy_lib.exceptions import ChatHealthyException
 
 
 # A tiny concrete subclass for exercising the base class.
@@ -96,7 +96,7 @@ class TestViolationRecord:
     def test_invalid_severity_rejected(self):
         # Rule-003: deliberate raises are ChatHealthyException, not a
         # built-in. The rejection itself is unchanged.
-        from chathealthy_frontend_lib.exceptions import ChatHealthyException
+        from chathealthy_lib.exceptions import ChatHealthyException
         with pytest.raises(ChatHealthyException) as exc:
             ViolationRecord("a", "b", "c", "d", "fatal")
         assert "severity must be" in str(exc.value)

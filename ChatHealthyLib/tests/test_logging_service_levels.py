@@ -16,8 +16,8 @@ from pathlib import Path
 
 import pytest
 
-from chathealthy_frontend_lib import ChatHealthyLoggingService
-from chathealthy_frontend_lib.exceptions import ChatHealthyException
+from chathealthy_lib import ChatHealthyLoggingService
+from chathealthy_lib.exceptions import ChatHealthyException
 
 
 # (method on the service, level name the emitted record carries)
@@ -39,7 +39,7 @@ def file_log(tmp_path, monkeypatch):
     monkeypatch.setenv("CH_LOG_DESTINATION", str(tmp_path))
     monkeypatch.setenv("CH_COMPONENT", "test_logging_service_levels")
 
-    import chathealthy_frontend_lib.logging_service as svc
+    import chathealthy_lib.logging_service as svc
     svc._bound_destinations = None
     svc._bound_level = None
 
@@ -96,7 +96,7 @@ def test_level_gated_when_not_forced_and_level_above_debug(
     monkeypatch.setenv("CH_LOG_DESTINATION", str(tmp_path))
     monkeypatch.setenv("CH_COMPONENT", "gated_test")
 
-    import chathealthy_frontend_lib.logging_service as svc
+    import chathealthy_lib.logging_service as svc
     svc._bound_destinations = None
     svc._bound_level = None
 

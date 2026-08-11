@@ -18,7 +18,7 @@ no skip/limit cost, no need to recompute byte boundaries.
 """
 
 from __future__ import annotations
-from chathealthy_frontend_lib.logging_service import ChatHealthyLoggingService
+from chathealthy_lib.logging_service import ChatHealthyLoggingService
 
 
 import os
@@ -41,7 +41,7 @@ _mongo: MongoClient | None = None
 
 
 def _get_mongo_client() -> MongoClient:
-    from chathealthy_frontend_lib.mongo_utilities import ChatHealthyMongoUtilities
+    from chathealthy_lib.mongo_utilities import ChatHealthyMongoUtilities
     return ChatHealthyMongoUtilities().getConnection("pipelineEditor", "frontEnd")
 
 

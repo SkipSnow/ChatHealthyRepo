@@ -43,11 +43,11 @@ def _ch_exception():
     import sys as _sys, pathlib as _pl
     for _p in _pl.Path(__file__).resolve().parents:
         if (_p / ".git").exists():
-            _lib = _p / "FrontEndApplicationLib" / "src"
+            _lib = _p / "ChatHealthyLib" / "src"
             if str(_lib) not in _sys.path:
                 _sys.path.insert(0, str(_lib))
             break
-    from chathealthy_frontend_lib.exceptions import ChatHealthyException
+    from chathealthy_lib.exceptions import ChatHealthyException
     return ChatHealthyException
 
 def _is_forbidden_raise(node: ast.Raise) -> str | None:

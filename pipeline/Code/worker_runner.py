@@ -14,8 +14,8 @@ StepContext whose config["partition"] carries the PART_* values.
 """
 
 from __future__ import annotations
-from chathealthy_frontend_lib.logging_service import ChatHealthyLoggingService
-from chathealthy_frontend_lib.exceptions import ChatHealthyException
+from chathealthy_lib.logging_service import ChatHealthyLoggingService
+from chathealthy_lib.exceptions import ChatHealthyException
 from pipeline_fatal_recorder import is_log_db_fatal
 from pipeline_db import PIPELINE_ADMIN_DB, get_frontend_mongo
 

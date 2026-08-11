@@ -30,7 +30,7 @@ from __future__ import annotations
 
 import asyncio
 import json as json
-from chathealthy_frontend_lib import ChatHealthyLoggingService
+from chathealthy_lib import ChatHealthyLoggingService
 import os
 from dataclasses import dataclass, field
 from datetime import datetime, timedelta, timezone
@@ -38,19 +38,19 @@ from typing import Any, AsyncIterator, Literal, Optional, Union
 
 from pydantic import BaseModel, Field
 
-from chathealthy_frontend_lib.authentication.agent_deps import (
+from chathealthy_lib.authentication.agent_deps import (
     AgentDeps,
     AuthnDeps,
     append_action,
 )
-from chathealthy_frontend_lib.authentication.chathealthy_tool import ChatHealthyTool
+from chathealthy_lib.authentication.chathealthy_tool import ChatHealthyTool
 from authentication import (
     authorizations_and_authentications_tool as authn,
     evalcare_splash_tool,
     provider_detail_tool,
 )
-from chathealthy_frontend_lib.authentication.user_object import UserObject
-from chathealthy_frontend_lib import ChatHealthyException
+from chathealthy_lib.authentication.user_object import UserObject
+from chathealthy_lib import ChatHealthyException
 from UtteranceManager import utterance_manager
 
 log = ChatHealthyLoggingService()
@@ -93,11 +93,11 @@ def _ch_exc():
     import sys as _s, pathlib as _p
     for _d in _p.Path(__file__).resolve().parents:
         if (_d / ".git").exists():
-            _l = _d / "FrontEndApplicationLib" / "src"
+            _l = _d / "ChatHealthyLib" / "src"
             if str(_l) not in _s.path:
                 _s.path.insert(0, str(_l))
             break
-    from chathealthy_frontend_lib.exceptions import ChatHealthyException
+    from chathealthy_lib.exceptions import ChatHealthyException
     return ChatHealthyException
 
 
@@ -513,7 +513,7 @@ class UniversalNavigationTool(ChatHealthyTool):
           loop chains to CloseConnection200Tool.
         """
         import json as json
-        from chathealthy_frontend_lib.authentication.intent_document import (
+        from chathealthy_lib.authentication.intent_document import (
             Argument, IntentDocument, IntentSpecialtySearch, IntentFindAProvider,
         )
 
@@ -716,7 +716,7 @@ class UniversalNavigationTool(ChatHealthyTool):
         Argument objects ready to be re-emitted on a refreshed entry.
         Filters out any prior selected_nucc_codes — Apply Filter
         regenerates that on every click."""
-        from chathealthy_frontend_lib.authentication.intent_document import Argument
+        from chathealthy_lib.authentication.intent_document import Argument
         out: list = []
         if prior_entry is None:
             return out
@@ -740,7 +740,7 @@ class UniversalNavigationTool(ChatHealthyTool):
         panel renders, and the complaint did not change so the universe
         does not change."""
         import json as json
-        from chathealthy_frontend_lib.authentication.intent_document import (
+        from chathealthy_lib.authentication.intent_document import (
             Argument, IntentDocument, IntentFindAProvider, IntentSpecialtySearch,
         )
         prior_spec = next(
@@ -807,7 +807,7 @@ class UniversalNavigationTool(ChatHealthyTool):
         change. The next-turn interpret path will see selected_nucc_codes
         and ProviderSearch will use it as its filter."""
         import json as json
-        from chathealthy_frontend_lib.authentication.intent_document import (
+        from chathealthy_lib.authentication.intent_document import (
             Argument, IntentDocument, IntentFindAProvider, IntentSpecialtySearch,
         )
         prior_spec = next(
@@ -901,7 +901,7 @@ class UniversalNavigationTool(ChatHealthyTool):
             return
         if record is None:
             return
-        from chathealthy_frontend_lib.authentication.user_object import Lockout
+        from chathealthy_lib.authentication.user_object import Lockout
         expires_str = record.get("expires_at") or ""
         try:
             expires_at = datetime.fromisoformat(expires_str)
@@ -1187,7 +1187,7 @@ class UniversalNavigationTool(ChatHealthyTool):
         Returns the list of {code, name, score, ...} dicts.
         """
         import json as json
-        from chathealthy_frontend_lib.authentication.intent_document import Argument
+        from chathealthy_lib.authentication.intent_document import Argument
 
         document = deps.user_object.intent
         if document is None:
@@ -1246,7 +1246,7 @@ class UniversalNavigationTool(ChatHealthyTool):
                 }))
             else:
                 new_intents.append(entry)
-        from chathealthy_frontend_lib.authentication.intent_document import IntentDocument as _IntentDocument
+        from chathealthy_lib.authentication.intent_document import IntentDocument as _IntentDocument
         deps.user_object.intent = _IntentDocument(
             target_action=document.target_action,
             intents=new_intents,
@@ -1361,7 +1361,7 @@ class UniversalNavigationTool(ChatHealthyTool):
         # downstream tools + middleware request-end log) carries
         # session_guid + user_action=true automatically. The developer
         # never harvests the GUID.
-        from chathealthy_frontend_lib.logging_service import bind_user_object_to_log
+        from chathealthy_lib.logging_service import bind_user_object_to_log
         bind_user_object_to_log(user_object)
 
         # Stamp client IP onto user_object at the HTTP boundary so tools

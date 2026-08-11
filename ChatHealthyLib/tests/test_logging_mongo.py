@@ -6,18 +6,18 @@ from __future__ import annotations
 
 import os
 import uuid
-from chathealthy_frontend_lib.logging_service import ChatHealthyLoggingService, set_mongo_log_identity
-from chathealthy_frontend_lib.exceptions import ChatHealthyException
-from chathealthy_frontend_lib.mongo_utilities import ChatHealthyMongoUtilities
+from chathealthy_lib.logging_service import ChatHealthyLoggingService, set_mongo_log_identity
+from chathealthy_lib.exceptions import ChatHealthyException
+from chathealthy_lib.mongo_utilities import ChatHealthyMongoUtilities
 
 import sys as _sys, pathlib as _pl
 for _d in _pl.Path(__file__).resolve().parents:
     if (_d / ".git").exists():
-        _lib = _d / "FrontEndApplicationLib" / "src"
+        _lib = _d / "ChatHealthyLib" / "src"
         if str(_lib) not in _sys.path:
             _sys.path.insert(0, str(_lib))
         break
-from chathealthy_frontend_lib.logging_service import ChatHealthyLoggingService
+from chathealthy_lib.logging_service import ChatHealthyLoggingService
 
 _CH_LOG = ChatHealthyLoggingService()
 
@@ -29,7 +29,7 @@ def test_mongo_logging_requires_identity():
     os.environ["ENV_PREFIX"] = "dev"
     os.environ["CH_SPACE_NAME"] = "test_component"
 
-    import chathealthy_frontend_lib.logging_service as svc
+    import chathealthy_lib.logging_service as svc
     svc._bound_destinations = None
     svc._bound_level = None
     svc._mongo_log_identity = None
@@ -50,7 +50,7 @@ def test_mongo_logging_and_verify():
     os.environ["ENV_PREFIX"] = "dev"
     os.environ["CH_SPACE_NAME"] = "test_component"
 
-    import chathealthy_frontend_lib.logging_service as svc
+    import chathealthy_lib.logging_service as svc
     svc._bound_destinations = None
     svc._bound_level = None
     svc._mongo_log_identity = None

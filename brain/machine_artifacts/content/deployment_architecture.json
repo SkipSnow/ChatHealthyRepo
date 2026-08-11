@@ -769,7 +769,7 @@
         },
         {
           "feature_id": "EPIC-008-F-012",
-          "source_location": "FrontEndApplicationLib/pyproject.toml",
+          "source_location": "ChatHealthyLib/pyproject.toml",
           "handler_type": "static_asset",
           "disposition": "referenced",
           "content_hash": "3469e4b5317ebeb2d05b1c7a30b07c03e2fd676f1a63d5d1c1f0518adc59d0d4",
@@ -777,7 +777,7 @@
         },
         {
           "feature_id": "EPIC-008-F-012",
-          "source_location": "FrontEndApplicationLib/src/chathealthy_frontend_lib/__init__.py",
+          "source_location": "ChatHealthyLib/src/chathealthy_lib/__init__.py",
           "handler_type": "python_source",
           "disposition": "referenced",
           "content_hash": "a5b452a7dcff6284533d608ac711e6a62e4c3fc2d23ee2302683cf82514092ea",
@@ -785,7 +785,7 @@
         },
         {
           "feature_id": "EPIC-008-F-012",
-          "source_location": "FrontEndApplicationLib/src/chathealthy_frontend_lib/authentication/__init__.py",
+          "source_location": "ChatHealthyLib/src/chathealthy_lib/authentication/__init__.py",
           "handler_type": "python_source",
           "disposition": "referenced",
           "content_hash": "edd3fb01c35e99b0388d815fa0fe859d98ebe013d3a5036d3333d0ad1a2d8f6c",
@@ -793,7 +793,7 @@
         },
         {
           "feature_id": "EPIC-008-F-012",
-          "source_location": "FrontEndApplicationLib/src/chathealthy_frontend_lib/authentication/auth_token.py",
+          "source_location": "ChatHealthyLib/src/chathealthy_lib/authentication/auth_token.py",
           "handler_type": "python_source",
           "disposition": "referenced",
           "content_hash": "9c4fe085b2906dbb0641b35e74203b17fcbe25daab74da896c4916f08148eae4",
@@ -801,7 +801,7 @@
         },
         {
           "feature_id": "EPIC-008-F-012",
-          "source_location": "FrontEndApplicationLib/src/chathealthy_frontend_lib/authentication/nonce.py",
+          "source_location": "ChatHealthyLib/src/chathealthy_lib/authentication/nonce.py",
           "handler_type": "python_source",
           "disposition": "referenced",
           "content_hash": "8ddf1f54cda9695eac5749cc50f14a8903a4ceac3ec907e15137a163bd9a09b8",
@@ -809,7 +809,7 @@
         },
         {
           "feature_id": "EPIC-008-F-012",
-          "source_location": "FrontEndApplicationLib/src/chathealthy_frontend_lib/authentication/session_token.py",
+          "source_location": "ChatHealthyLib/src/chathealthy_lib/authentication/session_token.py",
           "handler_type": "python_source",
           "disposition": "referenced",
           "content_hash": "c9ebb1b6dacbf7addcdeb33acf9fa55e39f689f59cbea489246e47e00339378e",
@@ -817,7 +817,7 @@
         },
         {
           "feature_id": "EPIC-008-F-012",
-          "source_location": "FrontEndApplicationLib/src/chathealthy_frontend_lib/exceptions.py",
+          "source_location": "ChatHealthyLib/src/chathealthy_lib/exceptions.py",
           "handler_type": "python_source",
           "disposition": "referenced",
           "content_hash": "8775cac576e1035b7f41d4915494b8fa4a62b6a4beb60132f73a60e444765e4c",
@@ -825,7 +825,7 @@
         },
         {
           "feature_id": "EPIC-008-F-012",
-          "source_location": "FrontEndApplicationLib/src/chathealthy_frontend_lib/geo_extractor.py",
+          "source_location": "ChatHealthyLib/src/chathealthy_lib/geo_extractor.py",
           "handler_type": "python_source",
           "disposition": "referenced",
           "content_hash": "ed4d636cddbea3e707062d10b3f405cd9d82630b3f8993a6887f5ec1ea39fd8b",
@@ -833,7 +833,7 @@
         },
         {
           "feature_id": "EPIC-008-F-012",
-          "source_location": "FrontEndApplicationLib/src/chathealthy_frontend_lib/llm.py",
+          "source_location": "ChatHealthyLib/src/chathealthy_lib/llm.py",
           "handler_type": "python_source",
           "disposition": "referenced",
           "content_hash": "d8b69912ed74923c943b5fdb7c26ccf592f7864d5c1748076668b407f8e1f1b7",
@@ -841,7 +841,7 @@
         },
         {
           "feature_id": "EPIC-008-F-012",
-          "source_location": "FrontEndApplicationLib/src/chathealthy_frontend_lib/logging_service.py",
+          "source_location": "ChatHealthyLib/src/chathealthy_lib/logging_service.py",
           "handler_type": "python_source",
           "disposition": "referenced",
           "content_hash": "817bde9a8591ad432fc70749225ddffe951df47435a66161419804edf6fbeb0e",
@@ -849,7 +849,7 @@
         },
         {
           "feature_id": "EPIC-008-F-012",
-          "source_location": "FrontEndApplicationLib/src/chathealthy_frontend_lib/mongo_utilities.py",
+          "source_location": "ChatHealthyLib/src/chathealthy_lib/mongo_utilities.py",
           "handler_type": "python_source",
           "disposition": "referenced",
           "content_hash": "495b4f6b426cbef90e4cee694312e412cc939b73b3164de9358fcd3532ea025b",
@@ -857,7 +857,7 @@
         },
         {
           "feature_id": "EPIC-008-F-012",
-          "source_location": "FrontEndApplicationLib/src/chathealthy_frontend_lib/provider_embedding.py",
+          "source_location": "ChatHealthyLib/src/chathealthy_lib/provider_embedding.py",
           "handler_type": "python_source",
           "disposition": "referenced",
           "content_hash": "a709963eabfdce0c2b8503018c51e0d03bee2cf92c8b173783e7cf00e62189c8",
@@ -865,7 +865,7 @@
         },
         {
           "feature_id": "EPIC-008-F-012",
-          "source_location": "FrontEndApplicationLib/src/chathealthy_frontend_lib/runtime_data_collections.py",
+          "source_location": "ChatHealthyLib/src/chathealthy_lib/runtime_data_collections.py",
           "handler_type": "python_source",
           "disposition": "referenced",
           "content_hash": "e5622be04abedc419bfab33b72224c321f1b515db125f1dfe54c241572c6ea76",
@@ -873,7 +873,7 @@
         },
         {
           "feature_id": "EPIC-008-F-012",
-          "source_location": "FrontEndApplicationLib/src/chathealthy_frontend_lib/user/__init__.py",
+          "source_location": "ChatHealthyLib/src/chathealthy_lib/user/__init__.py",
           "handler_type": "python_source",
           "disposition": "referenced",
           "content_hash": "81f195df829e1bc1b6abf67738c2baf0f3cb574637c6f9fd3aeefc0e73f8b8fe",
@@ -881,7 +881,7 @@
         },
         {
           "feature_id": "EPIC-008-F-012",
-          "source_location": "FrontEndApplicationLib/tests/test_llm_facade.py",
+          "source_location": "ChatHealthyLib/tests/test_llm_facade.py",
           "handler_type": "python_test",
           "disposition": "referenced",
           "content_hash": "7b4896d81b8e7c356c31e0e65c74a9a8917cbd8af2ed91681082236599082f8a",
@@ -889,7 +889,7 @@
         },
         {
           "feature_id": "EPIC-008-F-012",
-          "source_location": "FrontEndApplicationLib/tests/test_logging_service_levels.py",
+          "source_location": "ChatHealthyLib/tests/test_logging_service_levels.py",
           "handler_type": "python_test",
           "disposition": "referenced",
           "content_hash": "d64de59ef2f50b316857aa7a555af5cf8609a5b9590b7024e856aad6dc76b41b",
@@ -927,11 +927,11 @@
             },
             {
               "instruction": "COPY",
-              "args": "FrontEndApplicationLib /app/FrontEndApplicationLib"
+              "args": "ChatHealthyLib /app/ChatHealthyLib"
             },
             {
               "instruction": "RUN",
-              "args": "pip install --no-cache-dir /app/FrontEndApplicationLib"
+              "args": "pip install --no-cache-dir /app/ChatHealthyLib"
             },
             {
               "instruction": "COPY",
@@ -973,7 +973,7 @@
               ]
             }
           ],
-          "embedded_content": "\nFROM python:3.12-slim\n\nWORKDIR /app\n\nCOPY requirements.txt /app/requirements.txt\nRUN pip install --no-cache-dir -r /app/requirements.txt\n\nCOPY FrontEndApplicationLib /app/FrontEndApplicationLib\nRUN pip install --no-cache-dir /app/FrontEndApplicationLib\n\nCOPY build_info.json    /app/build_info.json\nCOPY app.py             /app/app.py\nCOPY healthcheck        /app/healthcheck\nCOPY displayChrome      /app/displayChrome\nCOPY security           /app/security\nCOPY externalInterface  /app/externalInterface\n\nENV PORT=7860     CERTS_DIR=/certs     SSL_CERTFILE=/certs/evalcare.crt SSL_KEYFILE=/certs/evalcare.key\nEXPOSE 7860\nCMD [\"python\", \"app.py\"]\n",
+          "embedded_content": "\nFROM python:3.12-slim\n\nWORKDIR /app\n\nCOPY requirements.txt /app/requirements.txt\nRUN pip install --no-cache-dir -r /app/requirements.txt\n\nCOPY ChatHealthyLib /app/ChatHealthyLib\nRUN pip install --no-cache-dir /app/ChatHealthyLib\n\nCOPY build_info.json    /app/build_info.json\nCOPY app.py             /app/app.py\nCOPY healthcheck        /app/healthcheck\nCOPY displayChrome      /app/displayChrome\nCOPY security           /app/security\nCOPY externalInterface  /app/externalInterface\n\nENV PORT=7860     CERTS_DIR=/certs     SSL_CERTFILE=/certs/evalcare.crt SSL_KEYFILE=/certs/evalcare.key\nEXPOSE 7860\nCMD [\"python\", \"app.py\"]\n",
           "package": "service_runtime"
         },
         {
@@ -1064,7 +1064,7 @@
           "dst": "."
         },
         {
-          "src": "FrontEndApplicationLib"
+          "src": "ChatHealthyLib"
         }
       ],
       "variables": {
@@ -1988,11 +1988,11 @@
             },
             {
               "instruction": "COPY",
-              "args": "FrontEndApplicationLib /app/FrontEndApplicationLib"
+              "args": "ChatHealthyLib /app/ChatHealthyLib"
             },
             {
               "instruction": "RUN",
-              "args": "pip install --no-cache-dir /app/FrontEndApplicationLib"
+              "args": "pip install --no-cache-dir /app/ChatHealthyLib"
             },
             {
               "instruction": "COPY",
@@ -2018,7 +2018,7 @@
               ]
             }
           ],
-          "embedded_content": "\nFROM python:3.12-slim\n\nWORKDIR /app\nCOPY DevOps/FindCareBackend/requirements.txt /app/requirements.txt\nRUN pip install --no-cache-dir -r /app/requirements.txt\n\nCOPY Code/ConversationalUX/FindCareChat/backend /app/Code/ConversationalUX/FindCareChat/backend\nCOPY Code/Shared /app/Code/Shared\nCOPY Code/ConversationalUX/ChatHealthyWhoAmIChat/me /app/Code/ConversationalUX/ChatHealthyWhoAmIChat/me\nCOPY brain /app/brain\nCOPY FindCare /app/FindCare\nCOPY FrontEndApplicationLib /app/FrontEndApplicationLib\nRUN pip install --no-cache-dir /app/FrontEndApplicationLib\n\nCOPY build_info.json /app/build_info.json\n\nWORKDIR /app/Code/ConversationalUX/FindCareChat/backend\nENV PORT=7860     SSL_CERTFILE=/certs/findcare.crt SSL_KEYFILE=/certs/findcare.key\nEXPOSE 7860\nCMD [\"python\", \"app.py\"]\n",
+          "embedded_content": "\nFROM python:3.12-slim\n\nWORKDIR /app\nCOPY DevOps/FindCareBackend/requirements.txt /app/requirements.txt\nRUN pip install --no-cache-dir -r /app/requirements.txt\n\nCOPY Code/ConversationalUX/FindCareChat/backend /app/Code/ConversationalUX/FindCareChat/backend\nCOPY Code/Shared /app/Code/Shared\nCOPY Code/ConversationalUX/ChatHealthyWhoAmIChat/me /app/Code/ConversationalUX/ChatHealthyWhoAmIChat/me\nCOPY brain /app/brain\nCOPY FindCare /app/FindCare\nCOPY ChatHealthyLib /app/ChatHealthyLib\nRUN pip install --no-cache-dir /app/ChatHealthyLib\n\nCOPY build_info.json /app/build_info.json\n\nWORKDIR /app/Code/ConversationalUX/FindCareChat/backend\nENV PORT=7860     SSL_CERTFILE=/certs/findcare.crt SSL_KEYFILE=/certs/findcare.key\nEXPOSE 7860\nCMD [\"python\", \"app.py\"]\n",
           "package": "service_runtime"
         },
         {
@@ -2199,7 +2199,7 @@
         },
         {
           "feature_id": "EPIC-008-F-012",
-          "source_location": "FrontEndApplicationLib/pyproject.toml",
+          "source_location": "ChatHealthyLib/pyproject.toml",
           "handler_type": "static_asset",
           "disposition": "referenced",
           "content_hash": "3469e4b5317ebeb2d05b1c7a30b07c03e2fd676f1a63d5d1c1f0518adc59d0d4",
@@ -2207,7 +2207,7 @@
         },
         {
           "feature_id": "EPIC-008-F-012",
-          "source_location": "FrontEndApplicationLib/src/chathealthy_frontend_lib/__init__.py",
+          "source_location": "ChatHealthyLib/src/chathealthy_lib/__init__.py",
           "handler_type": "python_source",
           "disposition": "referenced",
           "content_hash": "a5b452a7dcff6284533d608ac711e6a62e4c3fc2d23ee2302683cf82514092ea",
@@ -2215,7 +2215,7 @@
         },
         {
           "feature_id": "EPIC-008-F-012",
-          "source_location": "FrontEndApplicationLib/src/chathealthy_frontend_lib/authentication/__init__.py",
+          "source_location": "ChatHealthyLib/src/chathealthy_lib/authentication/__init__.py",
           "handler_type": "python_source",
           "disposition": "referenced",
           "content_hash": "edd3fb01c35e99b0388d815fa0fe859d98ebe013d3a5036d3333d0ad1a2d8f6c",
@@ -2223,7 +2223,7 @@
         },
         {
           "feature_id": "EPIC-008-F-012",
-          "source_location": "FrontEndApplicationLib/src/chathealthy_frontend_lib/authentication/auth_token.py",
+          "source_location": "ChatHealthyLib/src/chathealthy_lib/authentication/auth_token.py",
           "handler_type": "python_source",
           "disposition": "referenced",
           "content_hash": "9c4fe085b2906dbb0641b35e74203b17fcbe25daab74da896c4916f08148eae4",
@@ -2231,7 +2231,7 @@
         },
         {
           "feature_id": "EPIC-008-F-012",
-          "source_location": "FrontEndApplicationLib/src/chathealthy_frontend_lib/authentication/nonce.py",
+          "source_location": "ChatHealthyLib/src/chathealthy_lib/authentication/nonce.py",
           "handler_type": "python_source",
           "disposition": "referenced",
           "content_hash": "8ddf1f54cda9695eac5749cc50f14a8903a4ceac3ec907e15137a163bd9a09b8",
@@ -2239,7 +2239,7 @@
         },
         {
           "feature_id": "EPIC-008-F-012",
-          "source_location": "FrontEndApplicationLib/src/chathealthy_frontend_lib/authentication/session_token.py",
+          "source_location": "ChatHealthyLib/src/chathealthy_lib/authentication/session_token.py",
           "handler_type": "python_source",
           "disposition": "referenced",
           "content_hash": "c9ebb1b6dacbf7addcdeb33acf9fa55e39f689f59cbea489246e47e00339378e",
@@ -2247,7 +2247,7 @@
         },
         {
           "feature_id": "EPIC-008-F-012",
-          "source_location": "FrontEndApplicationLib/src/chathealthy_frontend_lib/exceptions.py",
+          "source_location": "ChatHealthyLib/src/chathealthy_lib/exceptions.py",
           "handler_type": "python_source",
           "disposition": "referenced",
           "content_hash": "8775cac576e1035b7f41d4915494b8fa4a62b6a4beb60132f73a60e444765e4c",
@@ -2255,7 +2255,7 @@
         },
         {
           "feature_id": "EPIC-008-F-012",
-          "source_location": "FrontEndApplicationLib/src/chathealthy_frontend_lib/geo_extractor.py",
+          "source_location": "ChatHealthyLib/src/chathealthy_lib/geo_extractor.py",
           "handler_type": "python_source",
           "disposition": "referenced",
           "content_hash": "ed4d636cddbea3e707062d10b3f405cd9d82630b3f8993a6887f5ec1ea39fd8b",
@@ -2263,7 +2263,7 @@
         },
         {
           "feature_id": "EPIC-008-F-012",
-          "source_location": "FrontEndApplicationLib/src/chathealthy_frontend_lib/llm.py",
+          "source_location": "ChatHealthyLib/src/chathealthy_lib/llm.py",
           "handler_type": "python_source",
           "disposition": "referenced",
           "content_hash": "d8b69912ed74923c943b5fdb7c26ccf592f7864d5c1748076668b407f8e1f1b7",
@@ -2271,7 +2271,7 @@
         },
         {
           "feature_id": "EPIC-008-F-012",
-          "source_location": "FrontEndApplicationLib/src/chathealthy_frontend_lib/logging_service.py",
+          "source_location": "ChatHealthyLib/src/chathealthy_lib/logging_service.py",
           "handler_type": "python_source",
           "disposition": "referenced",
           "content_hash": "817bde9a8591ad432fc70749225ddffe951df47435a66161419804edf6fbeb0e",
@@ -2279,7 +2279,7 @@
         },
         {
           "feature_id": "EPIC-008-F-012",
-          "source_location": "FrontEndApplicationLib/src/chathealthy_frontend_lib/mongo_utilities.py",
+          "source_location": "ChatHealthyLib/src/chathealthy_lib/mongo_utilities.py",
           "handler_type": "python_source",
           "disposition": "referenced",
           "content_hash": "495b4f6b426cbef90e4cee694312e412cc939b73b3164de9358fcd3532ea025b",
@@ -2287,7 +2287,7 @@
         },
         {
           "feature_id": "EPIC-008-F-012",
-          "source_location": "FrontEndApplicationLib/src/chathealthy_frontend_lib/provider_embedding.py",
+          "source_location": "ChatHealthyLib/src/chathealthy_lib/provider_embedding.py",
           "handler_type": "python_source",
           "disposition": "referenced",
           "content_hash": "a709963eabfdce0c2b8503018c51e0d03bee2cf92c8b173783e7cf00e62189c8",
@@ -2295,7 +2295,7 @@
         },
         {
           "feature_id": "EPIC-008-F-012",
-          "source_location": "FrontEndApplicationLib/src/chathealthy_frontend_lib/runtime_data_collections.py",
+          "source_location": "ChatHealthyLib/src/chathealthy_lib/runtime_data_collections.py",
           "handler_type": "python_source",
           "disposition": "referenced",
           "content_hash": "e5622be04abedc419bfab33b72224c321f1b515db125f1dfe54c241572c6ea76",
@@ -2303,7 +2303,7 @@
         },
         {
           "feature_id": "EPIC-008-F-012",
-          "source_location": "FrontEndApplicationLib/src/chathealthy_frontend_lib/user/__init__.py",
+          "source_location": "ChatHealthyLib/src/chathealthy_lib/user/__init__.py",
           "handler_type": "python_source",
           "disposition": "referenced",
           "content_hash": "81f195df829e1bc1b6abf67738c2baf0f3cb574637c6f9fd3aeefc0e73f8b8fe",
@@ -2311,7 +2311,7 @@
         },
         {
           "feature_id": "EPIC-008-F-012",
-          "source_location": "FrontEndApplicationLib/tests/test_llm_facade.py",
+          "source_location": "ChatHealthyLib/tests/test_llm_facade.py",
           "handler_type": "python_test",
           "disposition": "referenced",
           "content_hash": "7b4896d81b8e7c356c31e0e65c74a9a8917cbd8af2ed91681082236599082f8a",
@@ -2319,7 +2319,7 @@
         },
         {
           "feature_id": "EPIC-008-F-012",
-          "source_location": "FrontEndApplicationLib/tests/test_logging_service_levels.py",
+          "source_location": "ChatHealthyLib/tests/test_logging_service_levels.py",
           "handler_type": "python_test",
           "disposition": "referenced",
           "content_hash": "d64de59ef2f50b316857aa7a555af5cf8609a5b9590b7024e856aad6dc76b41b",
@@ -2526,7 +2526,7 @@
           "src": "Code/ConversationalUX/ChatHealthyWhoAmIChat/me"
         },
         {
-          "src": "FrontEndApplicationLib"
+          "src": "ChatHealthyLib"
         },
         {
           "src": "FindCare"
@@ -2694,7 +2694,7 @@
         },
         {
           "feature_id": "EPIC-008-F-012",
-          "source_location": "FrontEndApplicationLib/pyproject.toml",
+          "source_location": "ChatHealthyLib/pyproject.toml",
           "handler_type": "static_asset",
           "disposition": "referenced",
           "content_hash": "3469e4b5317ebeb2d05b1c7a30b07c03e2fd676f1a63d5d1c1f0518adc59d0d4",
@@ -2702,7 +2702,7 @@
         },
         {
           "feature_id": "EPIC-008-F-012",
-          "source_location": "FrontEndApplicationLib/src/chathealthy_frontend_lib/__init__.py",
+          "source_location": "ChatHealthyLib/src/chathealthy_lib/__init__.py",
           "handler_type": "python_source",
           "disposition": "referenced",
           "content_hash": "a5b452a7dcff6284533d608ac711e6a62e4c3fc2d23ee2302683cf82514092ea",
@@ -2710,7 +2710,7 @@
         },
         {
           "feature_id": "EPIC-008-F-012",
-          "source_location": "FrontEndApplicationLib/src/chathealthy_frontend_lib/authentication/__init__.py",
+          "source_location": "ChatHealthyLib/src/chathealthy_lib/authentication/__init__.py",
           "handler_type": "python_source",
           "disposition": "referenced",
           "content_hash": "edd3fb01c35e99b0388d815fa0fe859d98ebe013d3a5036d3333d0ad1a2d8f6c",
@@ -2718,7 +2718,7 @@
         },
         {
           "feature_id": "EPIC-008-F-012",
-          "source_location": "FrontEndApplicationLib/src/chathealthy_frontend_lib/authentication/auth_token.py",
+          "source_location": "ChatHealthyLib/src/chathealthy_lib/authentication/auth_token.py",
           "handler_type": "python_source",
           "disposition": "referenced",
           "content_hash": "9c4fe085b2906dbb0641b35e74203b17fcbe25daab74da896c4916f08148eae4",
@@ -2726,7 +2726,7 @@
         },
         {
           "feature_id": "EPIC-008-F-012",
-          "source_location": "FrontEndApplicationLib/src/chathealthy_frontend_lib/authentication/nonce.py",
+          "source_location": "ChatHealthyLib/src/chathealthy_lib/authentication/nonce.py",
           "handler_type": "python_source",
           "disposition": "referenced",
           "content_hash": "8ddf1f54cda9695eac5749cc50f14a8903a4ceac3ec907e15137a163bd9a09b8",
@@ -2734,7 +2734,7 @@
         },
         {
           "feature_id": "EPIC-008-F-012",
-          "source_location": "FrontEndApplicationLib/src/chathealthy_frontend_lib/authentication/session_token.py",
+          "source_location": "ChatHealthyLib/src/chathealthy_lib/authentication/session_token.py",
           "handler_type": "python_source",
           "disposition": "referenced",
           "content_hash": "c9ebb1b6dacbf7addcdeb33acf9fa55e39f689f59cbea489246e47e00339378e",
@@ -2742,7 +2742,7 @@
         },
         {
           "feature_id": "EPIC-008-F-012",
-          "source_location": "FrontEndApplicationLib/src/chathealthy_frontend_lib/exceptions.py",
+          "source_location": "ChatHealthyLib/src/chathealthy_lib/exceptions.py",
           "handler_type": "python_source",
           "disposition": "referenced",
           "content_hash": "8775cac576e1035b7f41d4915494b8fa4a62b6a4beb60132f73a60e444765e4c",
@@ -2750,7 +2750,7 @@
         },
         {
           "feature_id": "EPIC-008-F-012",
-          "source_location": "FrontEndApplicationLib/src/chathealthy_frontend_lib/geo_extractor.py",
+          "source_location": "ChatHealthyLib/src/chathealthy_lib/geo_extractor.py",
           "handler_type": "python_source",
           "disposition": "referenced",
           "content_hash": "ed4d636cddbea3e707062d10b3f405cd9d82630b3f8993a6887f5ec1ea39fd8b",
@@ -2758,7 +2758,7 @@
         },
         {
           "feature_id": "EPIC-008-F-012",
-          "source_location": "FrontEndApplicationLib/src/chathealthy_frontend_lib/llm.py",
+          "source_location": "ChatHealthyLib/src/chathealthy_lib/llm.py",
           "handler_type": "python_source",
           "disposition": "referenced",
           "content_hash": "d8b69912ed74923c943b5fdb7c26ccf592f7864d5c1748076668b407f8e1f1b7",
@@ -2766,7 +2766,7 @@
         },
         {
           "feature_id": "EPIC-008-F-012",
-          "source_location": "FrontEndApplicationLib/src/chathealthy_frontend_lib/logging_service.py",
+          "source_location": "ChatHealthyLib/src/chathealthy_lib/logging_service.py",
           "handler_type": "python_source",
           "disposition": "referenced",
           "content_hash": "817bde9a8591ad432fc70749225ddffe951df47435a66161419804edf6fbeb0e",
@@ -2774,7 +2774,7 @@
         },
         {
           "feature_id": "EPIC-008-F-012",
-          "source_location": "FrontEndApplicationLib/src/chathealthy_frontend_lib/mongo_utilities.py",
+          "source_location": "ChatHealthyLib/src/chathealthy_lib/mongo_utilities.py",
           "handler_type": "python_source",
           "disposition": "referenced",
           "content_hash": "495b4f6b426cbef90e4cee694312e412cc939b73b3164de9358fcd3532ea025b",
@@ -2782,7 +2782,7 @@
         },
         {
           "feature_id": "EPIC-008-F-012",
-          "source_location": "FrontEndApplicationLib/src/chathealthy_frontend_lib/provider_embedding.py",
+          "source_location": "ChatHealthyLib/src/chathealthy_lib/provider_embedding.py",
           "handler_type": "python_source",
           "disposition": "referenced",
           "content_hash": "a709963eabfdce0c2b8503018c51e0d03bee2cf92c8b173783e7cf00e62189c8",
@@ -2790,7 +2790,7 @@
         },
         {
           "feature_id": "EPIC-008-F-012",
-          "source_location": "FrontEndApplicationLib/src/chathealthy_frontend_lib/runtime_data_collections.py",
+          "source_location": "ChatHealthyLib/src/chathealthy_lib/runtime_data_collections.py",
           "handler_type": "python_source",
           "disposition": "referenced",
           "content_hash": "e5622be04abedc419bfab33b72224c321f1b515db125f1dfe54c241572c6ea76",
@@ -2798,7 +2798,7 @@
         },
         {
           "feature_id": "EPIC-008-F-012",
-          "source_location": "FrontEndApplicationLib/src/chathealthy_frontend_lib/user/__init__.py",
+          "source_location": "ChatHealthyLib/src/chathealthy_lib/user/__init__.py",
           "handler_type": "python_source",
           "disposition": "referenced",
           "content_hash": "81f195df829e1bc1b6abf67738c2baf0f3cb574637c6f9fd3aeefc0e73f8b8fe",
@@ -2806,7 +2806,7 @@
         },
         {
           "feature_id": "EPIC-008-F-012",
-          "source_location": "FrontEndApplicationLib/tests/test_llm_facade.py",
+          "source_location": "ChatHealthyLib/tests/test_llm_facade.py",
           "handler_type": "python_test",
           "disposition": "referenced",
           "content_hash": "7b4896d81b8e7c356c31e0e65c74a9a8917cbd8af2ed91681082236599082f8a",
@@ -2814,7 +2814,7 @@
         },
         {
           "feature_id": "EPIC-008-F-012",
-          "source_location": "FrontEndApplicationLib/tests/test_logging_service_levels.py",
+          "source_location": "ChatHealthyLib/tests/test_logging_service_levels.py",
           "handler_type": "python_test",
           "disposition": "referenced",
           "content_hash": "d64de59ef2f50b316857aa7a555af5cf8609a5b9590b7024e856aad6dc76b41b",
@@ -2964,11 +2964,11 @@
             },
             {
               "instruction": "COPY",
-              "args": "FrontEndApplicationLib /app/FrontEndApplicationLib"
+              "args": "ChatHealthyLib /app/ChatHealthyLib"
             },
             {
               "instruction": "RUN",
-              "args": "pip install --no-cache-dir /app/FrontEndApplicationLib"
+              "args": "pip install --no-cache-dir /app/ChatHealthyLib"
             },
             {
               "instruction": "COPY",
@@ -3046,7 +3046,7 @@
               ]
             }
           ],
-          "embedded_content": "\nFROM python:3.12-slim\n\nWORKDIR /app\n\nCOPY requirements.txt /app/requirements.txt\nRUN pip install --no-cache-dir -r /app/requirements.txt\n\nCOPY FrontEndApplicationLib /app/FrontEndApplicationLib\nRUN pip install --no-cache-dir /app/FrontEndApplicationLib\n\nCOPY build_info.json    /app/build_info.json\nCOPY app.py             /app/app.py\nCOPY healthcheck        /app/healthcheck\nCOPY displayChrome      /app/displayChrome\nCOPY authentication     /app/authentication\nCOPY SpecialtyFilter    /app/SpecialtyFilter\nCOPY AboutChatHealthy  /app/AboutChatHealthy\nCOPY externalInterface  /app/externalInterface\nCOPY secretsManager     /app/secretsManager\nCOPY UtteranceManager  /app/UtteranceManager\nCOPY NonsenseTool  /app/NonsenseTool\nCOPY CloseConnection200Tool  /app/CloseConnection200Tool\nCOPY LockoutTool  /app/LockoutTool\nCOPY ProviderSelection  /app/ProviderSelection\nCOPY ClinicalTrialSelection  /app/ClinicalTrialSelection\n\nENV PORT=7860     CERTS_DIR=/certs     SSL_CERTFILE=/certs/shared.crt SSL_KEYFILE=/certs/shared.key\nEXPOSE 7860\nCMD [\"python\", \"app.py\"]\n",
+          "embedded_content": "\nFROM python:3.12-slim\n\nWORKDIR /app\n\nCOPY requirements.txt /app/requirements.txt\nRUN pip install --no-cache-dir -r /app/requirements.txt\n\nCOPY ChatHealthyLib /app/ChatHealthyLib\nRUN pip install --no-cache-dir /app/ChatHealthyLib\n\nCOPY build_info.json    /app/build_info.json\nCOPY app.py             /app/app.py\nCOPY healthcheck        /app/healthcheck\nCOPY displayChrome      /app/displayChrome\nCOPY authentication     /app/authentication\nCOPY SpecialtyFilter    /app/SpecialtyFilter\nCOPY AboutChatHealthy  /app/AboutChatHealthy\nCOPY externalInterface  /app/externalInterface\nCOPY secretsManager     /app/secretsManager\nCOPY UtteranceManager  /app/UtteranceManager\nCOPY NonsenseTool  /app/NonsenseTool\nCOPY CloseConnection200Tool  /app/CloseConnection200Tool\nCOPY LockoutTool  /app/LockoutTool\nCOPY ProviderSelection  /app/ProviderSelection\nCOPY ClinicalTrialSelection  /app/ClinicalTrialSelection\n\nENV PORT=7860     CERTS_DIR=/certs     SSL_CERTFILE=/certs/shared.crt SSL_KEYFILE=/certs/shared.key\nEXPOSE 7860\nCMD [\"python\", \"app.py\"]\n",
           "package": "service_runtime"
         },
         {
@@ -3207,7 +3207,7 @@
           "dst": "."
         },
         {
-          "src": "FrontEndApplicationLib"
+          "src": "ChatHealthyLib"
         },
         {
           "src": "sharedServices/Code/AuthorizationsAndAuthentications",
@@ -4758,7 +4758,7 @@
                 "build_context": ".",
                 "role": "pipeline_vm_image",
                 "container_libraries": [
-                  "FrontEndApplicationLib"
+                  "ChatHealthyLib"
                 ]
               }
             }

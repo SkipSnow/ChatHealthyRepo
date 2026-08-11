@@ -125,9 +125,9 @@ os.environ.setdefault("CH_LOG_DESTINATION", str(LOG_DIR))
 os.environ.setdefault("CH_COMPONENT", "conversation_log_writer")
 os.environ.setdefault("CH_SPACE_NAME", "conversation-log-writer")
 
-sys.path.insert(0, str(Path(__file__).resolve().parents[2] / "FrontEndApplicationLib" / "src"))
-from chathealthy_frontend_lib.exceptions import ChatHealthyException  # noqa: E402
-from chathealthy_frontend_lib.logging_service import ChatHealthyLoggingService  # noqa: E402
+sys.path.insert(0, str(Path(__file__).resolve().parents[2] / "ChatHealthyLib" / "src"))
+from chathealthy_lib.exceptions import ChatHealthyException  # noqa: E402
+from chathealthy_lib.logging_service import ChatHealthyLoggingService  # noqa: E402
 
 _log_service = ChatHealthyLoggingService()
 

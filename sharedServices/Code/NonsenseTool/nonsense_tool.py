@@ -12,15 +12,15 @@ CloseConnection200Tool on the next dispatch hop.
 from __future__ import annotations
 
 import asyncio
-from chathealthy_frontend_lib import ChatHealthyLoggingService
+from chathealthy_lib import ChatHealthyLoggingService
 
 from pydantic import BaseModel
 
-from chathealthy_frontend_lib.authentication.agent_deps import AgentDeps
-from chathealthy_frontend_lib.authentication.chathealthy_tool import ChatHealthyTool
-from chathealthy_frontend_lib.authentication.user_object import SillyQuestionCounts
+from chathealthy_lib.authentication.agent_deps import AgentDeps
+from chathealthy_lib.authentication.chathealthy_tool import ChatHealthyTool
+from chathealthy_lib.authentication.user_object import SillyQuestionCounts
 
-from chathealthy_frontend_lib.authentication.intent_document import (
+from chathealthy_lib.authentication.intent_document import (
     Argument,
     IntentCloseConnection200,
     IntentDocument,

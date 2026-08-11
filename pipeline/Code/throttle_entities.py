@@ -39,7 +39,7 @@ peek()  -> dict
     Return the bucket's current state for diagnostics.
 """
 from __future__ import annotations
-from chathealthy_frontend_lib.exceptions import ChatHealthyException
+from chathealthy_lib.exceptions import ChatHealthyException
 
 import time
 

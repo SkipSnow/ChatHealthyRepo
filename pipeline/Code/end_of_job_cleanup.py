@@ -22,7 +22,7 @@ already decided; cleanup is opportunistic. Every failure is logged with
 enough detail (instance id, path, exception) for post-mortem.
 """
 from __future__ import annotations
-from chathealthy_frontend_lib.logging_service import ChatHealthyLoggingService
+from chathealthy_lib.logging_service import ChatHealthyLoggingService
 
 import json
 

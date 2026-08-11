@@ -1,4 +1,4 @@
-from chathealthy_frontend_lib.logging_service import ChatHealthyLoggingService
+from chathealthy_lib.logging_service import ChatHealthyLoggingService
 # Copyright (c) 2026 ChatHealthy.ai LLC. All rights reserved.
 # Licensed under the FindCare Evaluation License (FEL-1.0).
 #
@@ -113,7 +113,7 @@ Rules:
 # ── OIG LEIE Loader ───────────────────────────────────────────────────────
 
 def _bail_oig_empty(container, blob_name):
-    from chathealthy_frontend_lib.exceptions import ChatHealthyException
+    from chathealthy_lib.exceptions import ChatHealthyException
     raise ChatHealthyException(
         mode="oig_leie_empty",
         message="OIG LEIE loaded zero excluded NPIs -- upstream file/blob is empty or malformed.",
@@ -151,7 +151,7 @@ def _load_oig_exclusions(blob_name="oig_leie_latest.csv", container="provider-da
 
 def _require_states(states, env_prefix):
     if not states:
-        from chathealthy_frontend_lib.exceptions import ChatHealthyException
+        from chathealthy_lib.exceptions import ChatHealthyException
         raise ChatHealthyException(
             mode="prescriber_enrichment_missing_states",
             message=(
@@ -165,7 +165,7 @@ def _require_states(states, env_prefix):
 
 
 def _bail_sam_empty(container, blob_name):
-    from chathealthy_frontend_lib.exceptions import ChatHealthyException
+    from chathealthy_lib.exceptions import ChatHealthyException
     raise ChatHealthyException(
         mode="sam_exclusion_empty",
         message="SAM exclusion loaded zero NPIs -- upstream file/blob is empty or malformed.",

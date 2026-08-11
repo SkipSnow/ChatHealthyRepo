@@ -4,7 +4,7 @@
 """Mongo work_items claim protocol — LLD v22 §2.4."""
 
 from __future__ import annotations
-from chathealthy_frontend_lib.exceptions import ChatHealthyException
+from chathealthy_lib.exceptions import ChatHealthyException
 
 import os
 from datetime import datetime, timedelta, timezone

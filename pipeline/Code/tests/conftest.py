@@ -11,12 +11,12 @@ import sys
 import uuid
 from pathlib import Path
 
-# The chathealthy_frontend_lib package lives in a peer directory and is
+# The chathealthy_lib package lives in a peer directory and is
 # not pip-installed for the pipeline runtime; tests need it on sys.path
 # so imports of ChatHealthyLoggingService / ChatHealthyException /
 # ChatHealthyMongoUtilities resolve during collection.
 _REPO_ROOT = Path(__file__).resolve().parents[3]
-_LIB_SRC = _REPO_ROOT / "FrontEndApplicationLib" / "src"
+_LIB_SRC = _REPO_ROOT / "ChatHealthyLib" / "src"
 if _LIB_SRC.is_dir() and str(_LIB_SRC) not in sys.path:
     sys.path.insert(0, str(_LIB_SRC))
 # Pipeline runtime modules live at pipeline/Code and are imported by
@@ -107,7 +107,7 @@ def scratch_mongo():
     Yields (database, collection_factory). The factory takes a short
     label and returns a real collection.
     """
-    from chathealthy_frontend_lib.mongo_utilities import ChatHealthyMongoUtilities
+    from chathealthy_lib.mongo_utilities import ChatHealthyMongoUtilities
 
     client = ChatHealthyMongoUtilities().getConnection("DevOpsUser", "pipelines")
     db = client[SCRATCH_DB]

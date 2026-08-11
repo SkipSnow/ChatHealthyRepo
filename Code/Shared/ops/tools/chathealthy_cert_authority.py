@@ -23,8 +23,8 @@ from azure.identity import DefaultAzureCredential
 from azure.keyvault.secrets import SecretClient
 
 import sys
-sys.path.insert(0, "FrontEndApplicationLib/src")
-from chathealthy_frontend_lib.exceptions import ChatHealthyException
+sys.path.insert(0, "ChatHealthyLib/src")
+from chathealthy_lib.exceptions import ChatHealthyException
 
 
 class ChatHealthyCertificateAuthority:

@@ -21,8 +21,8 @@
 # entrance) by keeping all client traffic on /gate.
 
 import base64
-from chathealthy_frontend_lib import ChatHealthyLoggingService
-from chathealthy_frontend_lib.exceptions import ChatHealthyException
+from chathealthy_lib import ChatHealthyLoggingService
+from chathealthy_lib.exceptions import ChatHealthyException
 import os
 import sys
 import tempfile
@@ -94,7 +94,7 @@ def bootstrap_certs_from_env():
 # This service acts as frontendUser, including when it writes its own
 # logs. The Mongo log handler refuses to build without an identity, and
 # nothing else in this process sets one.
-from chathealthy_frontend_lib.logging_service import set_mongo_log_identity
+from chathealthy_lib.logging_service import set_mongo_log_identity
 set_mongo_log_identity("frontendUser")
 bootstrap_certs_from_env()
 
@@ -138,7 +138,7 @@ app.add_middleware(
 from healthcheck.health_endpoint import HealthEndpoint
 from displayChrome.transfer_to_findcare_endpoint import TransferToFindCareEndpoint
 from secretsManager.secrets_endpoint import SecretsEndpoint
-from chathealthy_frontend_lib.authentication import (
+from chathealthy_lib.authentication import (
     AuthToken, SessionRestampRequest, SessionToken, VerifyTokenResponse,
 )
 from authentication.mintable_auth_token import MintableAuthToken

@@ -4,7 +4,7 @@
 """prepare_infrastructure — wake Atlas, reserve cluster, ensure indexes."""
 
 from __future__ import annotations
-from chathealthy_frontend_lib.logging_service import ChatHealthyLoggingService
+from chathealthy_lib.logging_service import ChatHealthyLoggingService
 
 
 from cluster_lifecycle_manager import ClusterLifecycleManager
@@ -42,7 +42,7 @@ def _safety_cleanup(mongo, scoped_states: list[str]) -> dict:
         # cross-fire collection when caller passed empty state scope. That
         # kills work for OTHER in-flight fires. Caller MUST pass an
         # explicit state scope; otherwise refuse to touch anything.
-        from chathealthy_frontend_lib.exceptions import ChatHealthyException
+        from chathealthy_lib.exceptions import ChatHealthyException
         raise ChatHealthyException(
             mode="prepare_infrastructure_missing_state_scope",
             message=(

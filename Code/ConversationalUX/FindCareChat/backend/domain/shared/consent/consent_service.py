@@ -9,8 +9,8 @@
 # Design: ARCH-001, shared infrastructure (bounded context)
 
 import json
-from chathealthy_frontend_lib import ChatHealthyLoggingService
-from chathealthy_frontend_lib.exceptions import ChatHealthyException
+from chathealthy_lib import ChatHealthyLoggingService
+from chathealthy_lib.exceptions import ChatHealthyException
 import os
 
 log = ChatHealthyLoggingService()

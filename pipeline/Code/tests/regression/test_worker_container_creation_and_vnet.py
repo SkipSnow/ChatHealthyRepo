@@ -34,11 +34,11 @@ import pytest
 import sys as _sys, pathlib as _pl
 for _d in _pl.Path(__file__).resolve().parents:
     if (_d / '.git').exists():
-        _lib = _d / 'FrontEndApplicationLib' / 'src'
+        _lib = _d / 'ChatHealthyLib' / 'src'
         if str(_lib) not in _sys.path:
             _sys.path.insert(0, str(_lib))
         break
-from chathealthy_frontend_lib.exceptions import ChatHealthyException
+from chathealthy_lib.exceptions import ChatHealthyException
 
 _REPO_ROOT = Path(__file__).resolve().parents[4]
 _MANIFEST = _REPO_ROOT / "brain" / "machine_artifacts" / "content" / "deployment_architecture.json"

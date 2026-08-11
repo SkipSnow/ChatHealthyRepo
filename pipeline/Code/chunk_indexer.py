@@ -18,7 +18,7 @@ NPPES dissemination CSV does not include embedded newlines in quoted
 fields — every \\n marks end-of-record. The naive byte-level scan is safe.
 """
 from __future__ import annotations
-from chathealthy_frontend_lib.logging_service import ChatHealthyLoggingService
+from chathealthy_lib.logging_service import ChatHealthyLoggingService
 
 import json
 

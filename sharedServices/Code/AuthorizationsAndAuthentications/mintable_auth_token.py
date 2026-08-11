@@ -2,7 +2,7 @@
 # Licensed under the FindCare Evaluation License (FEL-1.0).
 
 import base64
-from chathealthy_frontend_lib import ChatHealthyLoggingService
+from chathealthy_lib import ChatHealthyLoggingService
 import os
 import uuid
 from datetime import datetime, timezone
@@ -10,9 +10,9 @@ from datetime import datetime, timezone
 from cryptography.hazmat.primitives import hashes, serialization
 from cryptography.hazmat.primitives.asymmetric import padding
 
-from chathealthy_frontend_lib.authentication.auth_token import AuthToken
-from chathealthy_frontend_lib.authentication.nonce import Nonce
-from chathealthy_frontend_lib.authentication.session_token import (
+from chathealthy_lib.authentication.auth_token import AuthToken
+from chathealthy_lib.authentication.nonce import Nonce
+from chathealthy_lib.authentication.session_token import (
     CERTS_DIR,
     SessionToken,
     cert_basename,

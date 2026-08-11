@@ -58,7 +58,7 @@ def get_blob_service() -> BlobServiceClient:
     if _blob_service is None:
         conn = os.environ.get("PIPELINE_STORAGE_CONNECTION_STRING", "").strip()
         if not conn:
-            from chathealthy_frontend_lib.exceptions import ChatHealthyException  # noqa: PLC0415
+            from chathealthy_lib.exceptions import ChatHealthyException  # noqa: PLC0415
             raise ChatHealthyException(
                 mode="runtime_error",
                 message=(

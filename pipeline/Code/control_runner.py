@@ -40,8 +40,8 @@ os.environ.setdefault("CH_LOG_DESTINATION", "stderr,mongo")
 os.environ.setdefault("CH_SPACE_NAME", "controller")
 os.environ.setdefault("CH_COMPONENT", "provider_pipeline_control")
 
-from chathealthy_frontend_lib.logging_service import ChatHealthyLoggingService
-from chathealthy_frontend_lib.exceptions import ChatHealthyException
+from chathealthy_lib.logging_service import ChatHealthyLoggingService
+from chathealthy_lib.exceptions import ChatHealthyException
 
 import argparse
 import datetime
@@ -49,7 +49,7 @@ import json
 import subprocess
 import sys
 
-from chathealthy_frontend_lib.mongo_utilities import ChatHealthyMongoUtilities
+from chathealthy_lib.mongo_utilities import ChatHealthyMongoUtilities
 
 from blob_client import get_blob_service
 from pipeline_db import get_mongo, PIPELINE_ADMIN_DB

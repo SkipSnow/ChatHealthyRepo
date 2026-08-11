@@ -8,8 +8,8 @@ Deployed runs provision ephemeral ACA jobs per stage when ACA_JOB_DEPLOY=1.
 """
 
 from __future__ import annotations
-from chathealthy_frontend_lib.logging_service import ChatHealthyLoggingService
-from chathealthy_frontend_lib.exceptions import ChatHealthyException
+from chathealthy_lib.logging_service import ChatHealthyLoggingService
+from chathealthy_lib.exceptions import ChatHealthyException
 
 import json
 

@@ -27,11 +27,11 @@ from enforcement_worker import EXIT_OK, EXIT_VIOLATIONS_FOUND
 import sys as _sys, pathlib as _pl
 for _d in _pl.Path(__file__).resolve().parents:
     if (_d / ".git").exists():
-        _lib = _d / "FrontEndApplicationLib" / "src"
+        _lib = _d / "ChatHealthyLib" / "src"
         if str(_lib) not in _sys.path:
             _sys.path.insert(0, str(_lib))
         break
-from chathealthy_frontend_lib.logging_service import ChatHealthyLoggingService
+from chathealthy_lib.logging_service import ChatHealthyLoggingService
 
 _CH_LOG = ChatHealthyLoggingService()
 
