@@ -884,16 +884,41 @@ def _inline_chathealthy_lib_if_used(repo_root: Path, runbook_path: Path) -> None
     # Preamble must come AFTER any `from __future__` line (Python
     # requires __future__ imports first) and AFTER the module docstring
     # if present.
-    fut_m = _re_mod.search(r"^from __future__ import [^\n]+\n", body, _re_mod.MULTILINE)
-    if fut_m:
-        pos = fut_m.end()
-    else:
-        doc_m = _re_mod.match(r'\s*("""(?:[^"\\]|\\.|"(?!""))*""")\s*\n', body)
-        pos = doc_m.end() if doc_m else 0
+    pos = _preamble_insert_point(body)
     new_body = body[:pos] + preamble + body[pos:]
     runbook_path.write_text(new_body, encoding="utf-8")
     new_kb = runbook_path.stat().st_size / 1024.0
     _step(f"  inlined chathealthy_frontend_lib -> {runbook_path.name} ({new_kb:.1f} KB)")
+
+
+def _preamble_insert_point(body: str) -> int:
+    """Where the inlined-library preamble may legally begin.
+
+    After any `from __future__` line, because Python requires those first,
+    and otherwise after a leading module docstring.
+
+    This was two regular expressions until the no-regex rule reached this
+    file. The import was deleted to clear the scan and both call sites were
+    left behind, so every Automation Account build died on
+    `NameError: _re_mod`. Scanning around a rule instead of satisfying it
+    broke the pipeline build outright.
+    """
+    lines = body.splitlines(keepends=True)
+    for i, line in enumerate(lines):
+        if line.startswith("from __future__ import "):
+            return sum(len(x) for x in lines[:i + 1])
+
+    idx = 0
+    while idx < len(body) and body[idx] in " \t\r\n":
+        idx += 1
+    for quote in (chr(34) * 3, chr(39) * 3):
+        if body.startswith(quote, idx):
+            close = body.find(quote, idx + 3)
+            if close == -1:
+                return 0
+            after = body.find("\n", close + 3)
+            return len(body) if after == -1 else after + 1
+    return 0
 
 
 def _runbook_packages(target: TargetRecord) -> list[tuple[str, dict]]:
