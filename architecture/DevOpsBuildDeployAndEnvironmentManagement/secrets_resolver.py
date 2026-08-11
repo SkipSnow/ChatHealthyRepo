@@ -37,11 +37,11 @@ def _ch_exc():
     import sys as _s, pathlib as _p
     for _d in _p.Path(__file__).resolve().parents:
         if (_d / ".git").exists():
-            _l = _d / "FrontEndApplicationLib" / "src"
+            _l = _d / "ChatHealthyLib" / "src"
             if str(_l) not in _s.path:
                 _s.path.insert(0, str(_l))
             break
-    from chathealthy_frontend_lib.exceptions import ChatHealthyException
+    from chathealthy_lib.exceptions import ChatHealthyException
     return ChatHealthyException
 
 

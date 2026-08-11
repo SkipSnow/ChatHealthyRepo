@@ -30,9 +30,9 @@ Backward compatibility:
     first op handled after this code lands. The migration is idempotent.
 """
 from __future__ import annotations
-from chathealthy_frontend_lib.logging_service import ChatHealthyLoggingService
-from chathealthy_frontend_lib.mongo_utilities import ChatHealthyMongoUtilities
-from chathealthy_frontend_lib.exceptions import ChatHealthyException
+from chathealthy_lib.logging_service import ChatHealthyLoggingService
+from chathealthy_lib.mongo_utilities import ChatHealthyMongoUtilities
+from chathealthy_lib.exceptions import ChatHealthyException
 
 import json
 

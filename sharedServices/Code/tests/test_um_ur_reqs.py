@@ -14,8 +14,8 @@ from unittest.mock import patch, AsyncMock
 
 import pytest
 
-from chathealthy_frontend_lib.authentication.agent_deps import AgentDeps
-from chathealthy_frontend_lib.authentication.user_object import (
+from chathealthy_lib.authentication.agent_deps import AgentDeps
+from chathealthy_lib.authentication.user_object import (
     Action,
     SessionConversationHistory,
     UserObject,
@@ -23,7 +23,7 @@ from chathealthy_frontend_lib.authentication.user_object import (
 )
 
 from UtteranceManager import utterance_manager as um
-from chathealthy_frontend_lib.authentication.intent_document import (
+from chathealthy_lib.authentication.intent_document import (
     Argument,
     IntentDocument,
     IntentFindAProvider,

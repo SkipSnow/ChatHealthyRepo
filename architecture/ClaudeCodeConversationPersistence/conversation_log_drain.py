@@ -29,10 +29,10 @@ _HERE = Path(__file__).resolve().parent
 _REPO_ROOT = _HERE.parents[1]
 
 sys.path.insert(0, str(_HERE))
-# chathealthy-frontend-lib is not pip-installed in the workstation venv; every
+# chathealthy-lib is not pip-installed in the workstation venv; every
 # repo script reaches it by path. The service runs as LocalSystem with no
 # working directory of ours, so this cannot be left to the caller.
-sys.path.insert(0, str(_REPO_ROOT / "FrontEndApplicationLib" / "src"))
+sys.path.insert(0, str(_REPO_ROOT / "ChatHealthyLib" / "src"))
 
 # CHLS binds its destination on first use. stderr only: this process's
 # identity is DevOpsUser, which can write ClaudeCodeUtterances and nothing
@@ -42,8 +42,8 @@ os.environ.setdefault("CH_LOG_DESTINATION", "stderr")
 os.environ.setdefault("CH_SPACE_NAME", "conversation-log-drain")
 os.environ.setdefault("CH_COMPONENT", "conversation_log_drain")
 
-from chathealthy_frontend_lib.exceptions import ChatHealthyException  # noqa: E402
-from chathealthy_frontend_lib.logging_service import ChatHealthyLoggingService  # noqa: E402
+from chathealthy_lib.exceptions import ChatHealthyException  # noqa: E402
+from chathealthy_lib.logging_service import ChatHealthyLoggingService  # noqa: E402
 
 import conversation_log_record as record  # noqa: E402
 from conversation_log_writer import READ_PREFIX, SUFFIX, WRITE_PREFIX, spool_dir  # noqa: E402
@@ -323,7 +323,7 @@ def run_drain() -> int:
     # No connection string. The identity's certificate is the credential, and
     # there is no fallback: if the certificate cannot be obtained this raises
     # rather than reaching for a shared one.
-    from chathealthy_frontend_lib.mongo_utilities import ChatHealthyMongoUtilities
+    from chathealthy_lib.mongo_utilities import ChatHealthyMongoUtilities
 
     _log(f"starting identity={IDENTITY} cluster={CLUSTER} "
          f"target={MONGO_DB}.{MONGO_COLLECTION} poll={POLL_SECONDS}s")

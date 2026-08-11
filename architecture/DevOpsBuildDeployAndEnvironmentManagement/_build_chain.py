@@ -68,11 +68,11 @@ def _ch_exc():
     import sys as _s, pathlib as _p
     for _d in _p.Path(__file__).resolve().parents:
         if (_d / ".git").exists():
-            _l = _d / "FrontEndApplicationLib" / "src"
+            _l = _d / "ChatHealthyLib" / "src"
             if str(_l) not in _s.path:
                 _s.path.insert(0, str(_l))
             break
-    from chathealthy_frontend_lib.exceptions import ChatHealthyException
+    from chathealthy_lib.exceptions import ChatHealthyException
     return ChatHealthyException
 
 
@@ -111,7 +111,7 @@ from version_counter import (  # noqa: E402
 import sys as _ch_sys, pathlib as _ch_pl
 for _ch_d in _ch_pl.Path(__file__).resolve().parents:
     if (_ch_d / ".git").exists():
-        _ch_lib = _ch_d / "FrontEndApplicationLib" / "src"
+        _ch_lib = _ch_d / "ChatHealthyLib" / "src"
         if str(_ch_lib) not in _ch_sys.path:
             _ch_sys.path.insert(0, str(_ch_lib))
         break
@@ -122,7 +122,7 @@ for _ch_d in _ch_pl.Path(__file__).resolve().parents:
 # made a build depend on a Mongo write it has no grant for.
 import os as _ch_os
 _ch_os.environ["CH_LOG_DESTINATION"] = "stderr"
-from chathealthy_frontend_lib.logging_service import ChatHealthyLoggingService
+from chathealthy_lib.logging_service import ChatHealthyLoggingService
 _CH_LOG = ChatHealthyLoggingService()
 
 
@@ -815,8 +815,8 @@ _ACA_REQUIREMENTS_SRC = "pipeline/Code/requirements-pipeline.txt"
 _ACA_STAGE_REQUIREMENTS_NAME = "requirements.txt"
 
 
-# Modules of chathealthy_frontend_lib we inline into AA runbook files so
-# the sandbox can `from chathealthy_frontend_lib.X import Y` without a
+# Modules of chathealthy_lib we inline into AA runbook files so
+# the sandbox can `from chathealthy_lib.X import Y` without a
 # separately-installed package. Every byte in the assembled preamble is
 # derived from the corresponding source file committed to git; the
 # assembly happens deterministically at build time.
@@ -829,26 +829,26 @@ _INLINE_LIB_MODULES = (
 
 
 def _inline_chathealthy_lib_if_used(repo_root: Path, runbook_path: Path) -> None:
-    """If the staged runbook has any `from chathealthy_frontend_lib...`
+    """If the staged runbook has any `from chathealthy_lib...`
     import, prepend a self-contained bootstrap block that installs the
     library's modules into sys.modules at runtime. Source bytes for each
     inlined module are read at build time from
-    FrontEndApplicationLib/src/chathealthy_frontend_lib/<mod>.py — the
+    ChatHealthyLib/src/chathealthy_lib/<mod>.py — the
     same git-committed source the Docker image installs at pip time.
     No external hosting, no wheel; the runbook file shipped to Azure
     Automation contains every byte required for the imports to resolve."""
     body = runbook_path.read_text(encoding="utf-8")
-    if "chathealthy_frontend_lib" not in body:
+    if "chathealthy_lib" not in body:
         return
 
     import base64 as _b64_mod
-    lib_src_root = repo_root / "FrontEndApplicationLib" / "src" / "chathealthy_frontend_lib"
+    lib_src_root = repo_root / "ChatHealthyLib" / "src" / "chathealthy_lib"
     installs: list[str] = []
     for mod in _INLINE_LIB_MODULES:
         mod_path = lib_src_root / f"{mod}.py"
         if not mod_path.is_file():
             sys.exit(
-                f"ERROR: cannot inline chathealthy_frontend_lib for runbook "
+                f"ERROR: cannot inline chathealthy_lib for runbook "
                 f"{runbook_path.name}: source file {mod_path} is missing."
             )
         src_bytes = mod_path.read_bytes()
@@ -856,27 +856,27 @@ def _inline_chathealthy_lib_if_used(repo_root: Path, runbook_path: Path) -> None
         installs.append(f'_install("{mod}", "{encoded}")')
 
     preamble_lines = [
-        "# --- BEGIN inlined chathealthy_frontend_lib (built from git commit at build time) ---",
+        "# --- BEGIN inlined chathealthy_lib (built from git commit at build time) ---",
         "# Bytes below are base64-encoded copies of",
-        "# FrontEndApplicationLib/src/chathealthy_frontend_lib/{exceptions,mongo_utilities,logging_service,pipeline_boot}.py",
+        "# ChatHealthyLib/src/chathealthy_lib/{exceptions,mongo_utilities,logging_service,pipeline_boot}.py",
         "# assembled by _build_chain.py:_inline_chathealthy_lib_if_used.",
         "import base64 as _b64, sys as _sys, types as _types",
-        "_pkg = _types.ModuleType('chathealthy_frontend_lib')",
+        "_pkg = _types.ModuleType('chathealthy_lib')",
         "_pkg.__path__ = []",
-        "_sys.modules['chathealthy_frontend_lib'] = _pkg",
+        "_sys.modules['chathealthy_lib'] = _pkg",
         "",
         "def _install(_name, _src_b64):",
-        "    _mod = _types.ModuleType('chathealthy_frontend_lib.' + _name)",
-        "    _mod.__package__ = 'chathealthy_frontend_lib'",
-        "    _sys.modules['chathealthy_frontend_lib.' + _name] = _mod",
+        "    _mod = _types.ModuleType('chathealthy_lib.' + _name)",
+        "    _mod.__package__ = 'chathealthy_lib'",
+        "    _sys.modules['chathealthy_lib.' + _name] = _mod",
         "    _src = _b64.b64decode(_src_b64).decode('utf-8')",
-        "    exec(compile(_src, '<inlined:chathealthy_frontend_lib.' + _name + '>', 'exec'), _mod.__dict__)",
+        "    exec(compile(_src, '<inlined:chathealthy_lib.' + _name + '>', 'exec'), _mod.__dict__)",
         "    setattr(_pkg, _name, _mod)",
         "",
         *installs,
         "",
         "del _install, _pkg, _b64, _sys, _types",
-        "# --- END inlined chathealthy_frontend_lib ---",
+        "# --- END inlined chathealthy_lib ---",
         "",
     ]
     preamble = "\n".join(preamble_lines)
@@ -888,7 +888,7 @@ def _inline_chathealthy_lib_if_used(repo_root: Path, runbook_path: Path) -> None
     new_body = body[:pos] + preamble + body[pos:]
     runbook_path.write_text(new_body, encoding="utf-8")
     new_kb = runbook_path.stat().st_size / 1024.0
-    _step(f"  inlined chathealthy_frontend_lib -> {runbook_path.name} ({new_kb:.1f} KB)")
+    _step(f"  inlined chathealthy_lib -> {runbook_path.name} ({new_kb:.1f} KB)")
 
 
 def _preamble_insert_point(body: str) -> int:

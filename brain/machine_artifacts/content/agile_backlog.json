@@ -4946,7 +4946,7 @@
         "name": "ChatHealthy FrontEnd libary",
         "type": "operational",
         "status": "in_progress",
-        "description": "Shared Python library distributed as the pip package `chathealthy-frontend-lib` (repo root: `FrontEndApplicationLib/`). Owns the code consumed in common by ChatHealthy.ai's front-end-facing services (FindCare, EvaluateCare, SharedServices) and the wrapper. Scope is FRONT-END application code only â€” devops, data pipelines, and analytics are explicitly out of scope. Operating-model intent: a separate team with its own P&L manages this library; consumers depend on it via versioned releases (`pip install chathealthy-frontend-lib==X.Y.Z`) following standard industry convention for shared libraries, including the boundary that the package mints no auth tokens â€” auth-token MANUFACTURE belongs 100% to SharedServices; only auth-token MANAGEMENT (verification, parsing, nonce advancement) is shared and lives here.",
+        "description": "Shared Python library distributed as the pip package `chathealthy-lib` (repo root: `ChatHealthyLib/`). Owns the code consumed in common by ChatHealthy.ai's front-end-facing services (FindCare, EvaluateCare, SharedServices) and the wrapper. Scope is FRONT-END application code only â€” devops, data pipelines, and analytics are explicitly out of scope. Operating-model intent: a separate team with its own P&L manages this library; consumers depend on it via versioned releases (`pip install chathealthy-lib==X.Y.Z`) following standard industry convention for shared libraries, including the boundary that the package mints no auth tokens â€” auth-token MANUFACTURE belongs 100% to SharedServices; only auth-token MANAGEMENT (verification, parsing, nonce advancement) is shared and lives here.",
         "approval": "approved",
         "features": {
           "feature": [
@@ -4954,13 +4954,13 @@
               "feature_id": "EPIC-003-F-001",
               "orphan": false,
               "name": "Shared front-end UX widget library",
-              "description": "Distribution mechanism + source-of-truth for the display-only UX widgets currently inlined in Website/index.html and the FindCare React iframe. Includes the chFatalError full-screen overlay, the non-prod env banner, the non-prod security panel (right-side rightSecurity panel), and any future widget shared by more than one front-end consumer. The library carries NO business logic â€” peer selection, mutual-auth pairing, service routing, ownership state, and any other biz-logic concerns are explicitly excluded and live in the backend per the no-biz-logic-on-client rule. Distribution channel TBD (npm package, CDN-hosted versioned bundle, or repo-internal copy at deploy time) â€” to be decided as part of the first story under this feature. Owned by the same EPIC-003 team that owns chathealthy-frontend-lib (Python).",
+              "description": "Distribution mechanism + source-of-truth for the display-only UX widgets currently inlined in Website/index.html and the FindCare React iframe. Includes the chFatalError full-screen overlay, the non-prod env banner, the non-prod security panel (right-side rightSecurity panel), and any future widget shared by more than one front-end consumer. The library carries NO business logic â€” peer selection, mutual-auth pairing, service routing, ownership state, and any other biz-logic concerns are explicitly excluded and live in the backend per the no-biz-logic-on-client rule. Distribution channel TBD (npm package, CDN-hosted versioned bundle, or repo-internal copy at deploy time) â€” to be decided as part of the first story under this feature. Owned by the same EPIC-003 team that owns chathealthy-lib (Python).",
               "priority": "must-have",
               "status": "not_started",
               "approval": "approved",
               "due_date": "2026-06-01",
               "realized_by": [
-                "FrontEndApplicationLib/widgets/ (planned)",
+                "ChatHealthyLib/widgets/ (planned)",
                 "Website/index.html (consumer)",
                 "Code/ConversationalUX/FindCareChat/frontend/ (consumer)"
               ],
@@ -4999,7 +4999,7 @@
               },
               "due_date": "2026-06-12",
               "realized_by": [
-                "FrontEndApplicationLib/"
+                "ChatHealthyLib/"
               ]
             },
             {
@@ -5009,7 +5009,7 @@
               "description": "All database client instantiation from any ChatHealthy.ai service routes through a single shared library utility that owns connection lifecycle, service identity (appname), timeout policy, and connection-related logging.",
               "priority": "must-have",
               "realized_by": [
-                "FrontEndApplicationLib/src/chathealthy_frontend_lib/mongo_utilities.py"
+                "ChatHealthyLib/src/chathealthy_lib/mongo_utilities.py"
               ],
               "due_date": "2026-06-13",
               "status": "done",
@@ -5025,7 +5025,7 @@
               "description": "All ChatHealthy.ai code MUST log through one library.",
               "priority": "must-have",
               "realized_by": [
-                "FrontEndApplicationLib/src/chathealthy_frontend_lib/logging_service.py"
+                "ChatHealthyLib/src/chathealthy_lib/logging_service.py"
               ],
               "due_date": "2026-06-13",
               "status": "not_started",
@@ -11763,7 +11763,7 @@
                     "story_id": "EPIC-008-F-002-S-009",
                     "orphan": false,
                     "name": "Rule-003 - Deliberate raises must use ChatHealthyException",
-                    "description": "Establishes the foundational rule and the implementation that realizes it. Defines ChatHealthyException in chathealthy-frontend-lib, specifies the constructor contract (mode discriminator + message for logging + context dict), mandates the substitution at every existing deliberate-raise site in our authored code, and adds a pre-commit gate that rejects new raises of forbidden built-in exception types in our modules. The first mode the substrate uses is llm_unavailable, introduced by the LLM facade with context {provider, call_site, attempts}. Additional modes (compliance violations, geography insufficient, db unreachable, rate limited, etc.) land as the operator approves their definitions; the substrate accepts them without code change at the catch sites.",
+                    "description": "Establishes the foundational rule and the implementation that realizes it. Defines ChatHealthyException in chathealthy-lib, specifies the constructor contract (mode discriminator + message for logging + context dict), mandates the substitution at every existing deliberate-raise site in our authored code, and adds a pre-commit gate that rejects new raises of forbidden built-in exception types in our modules. The first mode the substrate uses is llm_unavailable, introduced by the LLM facade with context {provider, call_site, attempts}. Additional modes (compliance violations, geography insufficient, db unreachable, rate limited, etc.) land as the operator approves their definitions; the substrate accepts them without code change at the catch sites.",
                     "size": "M",
                     "status": "in_progress",
                     "approval": "approved",
@@ -11773,7 +11773,7 @@
                           "req_id": "EPIC-008-F-002-S-009-REQ-B-001",
                           "orphan": false,
                           "name": "ChatHealthyException class definition",
-                          "requirement": "The chathealthy-frontend-lib package MUST define a class ChatHealthyException that inherits from the standard library Exception. The constructor signature is (mode: str, message: str, **context). Message is used for logging, and not for end user communications. Context is a dict; its keys vary by mode. The instance exposes attributes mode (str), message (str), context (dict), and exception (Exception â€” the original wrapped exception, when ChatHealthyException is being raised as a boundary conversion of an external library exception; None when this is an originating raise from our own code). The class lives at a stable import path within the package so every consumer service can import it.",
+                          "requirement": "The chathealthy-lib package MUST define a class ChatHealthyException that inherits from the standard library Exception. The constructor signature is (mode: str, message: str, **context). Message is used for logging, and not for end user communications. Context is a dict; its keys vary by mode. The instance exposes attributes mode (str), message (str), context (dict), and exception (Exception â€” the original wrapped exception, when ChatHealthyException is being raised as a boundary conversion of an external library exception; None when this is an originating raise from our own code). The class lives at a stable import path within the package so every consumer service can import it.",
                           "priority": "must-have",
                           "status": "in_progress",
                           "approval": "approved",
@@ -11864,7 +11864,7 @@
                           "req_id": "EPIC-008-F-002-S-009-REQ-B-005",
                           "orphan": false,
                           "name": "Mode taxonomy lives in the feature's design doc",
-                          "requirement": "The set of valid modes is documented in the feature's architecture design doc under FrontEndApplicationLib/architectureAndDesign/. Adding a new mode is a design-doc edit that the operator approves, not a code-only change. Code that raises with an undocumented mode MAY be rejected by a future enforcement gate (out of scope for this story).",
+                          "requirement": "The set of valid modes is documented in the feature's architecture design doc under ChatHealthyLib/architectureAndDesign/. Adding a new mode is a design-doc edit that the operator approves, not a code-only change. Code that raises with an undocumented mode MAY be rejected by a future enforcement gate (out of scope for this story).",
                           "priority": "must-have",
                           "status": "in_progress",
                           "approval": "approved",
@@ -11883,7 +11883,7 @@
                           "req_id": "EPIC-008-F-002-S-009-REQ-B-006",
                           "orphan": false,
                           "name": "Pre-commit gate forbids deliberate raises of built-in types",
-                          "requirement": "A new engineering rule (Rule-NNN, operator picks the number) MUST gate pre-commit. The worker scans every staged Python file under ChatHealthy.ai's authored directories (sharedServices/, FindCare/, evaluateCare/, Code/, FrontEndApplicationLib/, architecture/) and rejects any line matching a deliberate raise of ValueError, RuntimeError, AssertionError, KeyError, TypeError. Exempted: re-raises with no expression, test files asserting expected behavior, and external-library calls that we do not author. Any violation found — new or legacy — is rejected. No carve-outs for historical code.",
+                          "requirement": "A new engineering rule (Rule-NNN, operator picks the number) MUST gate pre-commit. The worker scans every staged Python file under ChatHealthy.ai's authored directories (sharedServices/, FindCare/, evaluateCare/, Code/, ChatHealthyLib/, architecture/) and rejects any line matching a deliberate raise of ValueError, RuntimeError, AssertionError, KeyError, TypeError. Exempted: re-raises with no expression, test files asserting expected behavior, and external-library calls that we do not author. Any violation found — new or legacy — is rejected. No carve-outs for historical code.",
                           "priority": "must-have",
                           "status": "in_progress",
                           "approval": "approved",
@@ -11911,7 +11911,7 @@
                           "req_id": "EPIC-008-F-002-S-009-REQ-B-007",
                           "orphan": false,
                           "name": "LLM facade boundary defines the first concrete mode llm_unavailable",
-                          "requirement": "The LLM call facade in chathealthy-frontend-lib catches transient HTTP errors (httpx.RemoteProtocolError, httpx.ConnectError, httpx.ReadTimeout, httpx.WriteTimeout, httpx.PoolTimeout) from the underlying pydantic-ai Agent.run call and, after the retry policy is exhausted, raises ChatHealthyException(mode='llm_unavailable', provider=<str>, call_site=<str>, attempts=<int>). UR catches this exception in _handle_utterance and re-dispatches to UM as a manufacture-trigger Request whose manufacture_utterance_reason carries the same context, so UM authors a user-facing message via the existing manufacture pattern. If the manufacture call itself raises ChatHealthyException, that exception propagates to UR's outermost catch and the existing fatal path fires; the operator sees the failure via telemetry and the user sees chFatalError. This three-rung ladder (transient blip covered by retry, sustained-recoverable covered by manufacture dialogue, truly-down covered by fatal) is the substrate.",
+                          "requirement": "The LLM call facade in chathealthy-lib catches transient HTTP errors (httpx.RemoteProtocolError, httpx.ConnectError, httpx.ReadTimeout, httpx.WriteTimeout, httpx.PoolTimeout) from the underlying pydantic-ai Agent.run call and, after the retry policy is exhausted, raises ChatHealthyException(mode='llm_unavailable', provider=<str>, call_site=<str>, attempts=<int>). UR catches this exception in _handle_utterance and re-dispatches to UM as a manufacture-trigger Request whose manufacture_utterance_reason carries the same context, so UM authors a user-facing message via the existing manufacture pattern. If the manufacture call itself raises ChatHealthyException, that exception propagates to UR's outermost catch and the existing fatal path fires; the operator sees the failure via telemetry and the user sees chFatalError. This three-rung ladder (transient blip covered by retry, sustained-recoverable covered by manufacture dialogue, truly-down covered by fatal) is the substrate.",
                           "priority": "must-have",
                           "status": "in_progress",
                           "approval": "approved",
@@ -11959,13 +11959,13 @@
                                 "test_id": "EPIC-008-F-002-S-009-REQ-B-008-TEST-1",
                                 "test_type": "unit",
                                 "orphan": false,
-                                "file": "FrontEndApplicationLib/tests/test_llm_facade.py"
+                                "file": "ChatHealthyLib/tests/test_llm_facade.py"
                               },
                               {
                                 "test_id": "EPIC-008-F-002-S-009-REQ-B-008-TEST-2",
                                 "test_type": "unit",
                                 "orphan": false,
-                                "file": "FrontEndApplicationLib/tests/test_logging_service_levels.py"
+                                "file": "ChatHealthyLib/tests/test_logging_service_levels.py"
                               }
                             ]
                           }
@@ -11977,7 +11977,7 @@
                     "story_id": "EPIC-008-F-002-S-010",
                     "orphan": false,
                     "name": "Rule-004 - Direct MongoClient instantiation forbidden outside the canonical utility",
-                    "description": "ChatHealthyMongoUtilities (lives at FrontEndApplicationLib/src/chathealthy_frontend_lib/mongo_utilities.py) is the canonical entry point for obtaining a MongoClient. Every live service path uses it. Direct MongoClient(...) instantiation outside the utility itself is forbidden and enforced at pre-commit via Rule-004.",
+                    "description": "ChatHealthyMongoUtilities (lives at ChatHealthyLib/src/chathealthy_lib/mongo_utilities.py) is the canonical entry point for obtaining a MongoClient. Every live service path uses it. Direct MongoClient(...) instantiation outside the utility itself is forbidden and enforced at pre-commit via Rule-004.",
                     "size": "S",
                     "status": "done",
                     "approval": "approved",
@@ -11987,7 +11987,7 @@
                           "req_id": "EPIC-008-F-002-S-010-REQ-B-001",
                           "orphan": false,
                           "name": "Canonical Mongo client provider exists",
-                          "requirement": "A class named ChatHealthyMongoUtilities MUST exist at FrontEndApplicationLib/src/chathealthy_frontend_lib/mongo_utilities.py and serve as the canonical Mongo client provider for every ChatHealthy.ai service.",
+                          "requirement": "A class named ChatHealthyMongoUtilities MUST exist at ChatHealthyLib/src/chathealthy_lib/mongo_utilities.py and serve as the canonical Mongo client provider for every ChatHealthy.ai service.",
                           "priority": "must-have",
                           "status": "done",
                           "approval": "approved",
@@ -12107,7 +12107,7 @@
                           "req_id": "EPIC-008-F-002-S-010-REQ-B-007",
                           "orphan": false,
                           "name": "Direct MongoClient instantiation forbidden outside the utility",
-                          "requirement": "Direct MongoClient(...) instantiation in any ChatHealthy.ai-authored Python file is forbidden except within FrontEndApplicationLib/src/chathealthy_frontend_lib/mongo_utilities.py itself.",
+                          "requirement": "Direct MongoClient(...) instantiation in any ChatHealthy.ai-authored Python file is forbidden except within ChatHealthyLib/src/chathealthy_lib/mongo_utilities.py itself.",
                           "priority": "must-have",
                           "status": "done",
                           "approval": "approved",
@@ -12163,7 +12163,7 @@
                                 "test_id": "EPIC-008-F-002-S-010-REQ-B-009-TEST-1",
                                 "orphan": false,
                                 "test_type": "unit",
-                                "file": "FrontEndApplicationLib/tests/test_mongo_utilities_batch_size.py"
+                                "file": "ChatHealthyLib/tests/test_mongo_utilities_batch_size.py"
                               }
                             ]
                           }
@@ -12172,7 +12172,7 @@
                           "req_id": "EPIC-008-F-002-S-010-REQ-B-010",
                           "orphan": false,
                           "name": "Mongo utility library has no cluster or workload knowledge",
-                          "requirement": "The chathealthy_frontend_lib mongo utility MUST have zero references to any Mongo cluster facts.",
+                          "requirement": "The chathealthy_lib mongo utility MUST have zero references to any Mongo cluster facts.",
                           "priority": "must-have",
                           "status": "not_started",
                           "approval": "approved",
@@ -12195,7 +12195,7 @@
                     "story_id": "EPIC-008-F-002-S-011",
                     "orphan": false,
                     "name": "Rule-005 - Uniform logging discipline",
-                    "description": "Every ChatHealthy.ai Python file MUST get its logger from ChatHealthyLoggingService in chathealthy_frontend_lib. ChatHealthyLoggingService uses Python's logging module. logging.basicConfig(), logging.getLogger(), and print() MUST NOT appear in ChatHealthy.ai code. Pre-commit Rule-005 MUST enforce this.",
+                    "description": "Every ChatHealthy.ai Python file MUST get its logger from ChatHealthyLoggingService in chathealthy_lib. ChatHealthyLoggingService uses Python's logging module. logging.basicConfig(), logging.getLogger(), and print() MUST NOT appear in ChatHealthy.ai code. Pre-commit Rule-005 MUST enforce this.",
                     "size": "S",
                     "status": "not_started",
                     "approval": "approved",
@@ -12205,7 +12205,7 @@
                           "req_id": "EPIC-008-F-002-S-011-REQ-B-001",
                           "orphan": false,
                           "name": "ChatHealthyLoggingService is the only place loggers come from",
-                          "requirement": "ChatHealthyLoggingService MUST exist in chathealthy_frontend_lib. Every ChatHealthy.ai Python file MUST get its logger from it.",
+                          "requirement": "ChatHealthyLoggingService MUST exist in chathealthy_lib. Every ChatHealthy.ai Python file MUST get its logger from it.",
                           "priority": "must-have",
                           "status": "not_started",
                           "approval": "approved",
@@ -12360,7 +12360,7 @@
                               "reason": "ChatHealthyException class and contract (Manage Errors story)."
                             },
                             {
-                              "story_id": "FrontEndApplicationLib/architectureAndDesign/EPIC-003-F-003-Manage-Errors-design-v5.docx",
+                              "story_id": "ChatHealthyLib/architectureAndDesign/EPIC-003-F-003-Manage-Errors-design-v5.docx",
                               "reason": "Exception rendering policy lives in the Manage Errors design."
                             },
                             {

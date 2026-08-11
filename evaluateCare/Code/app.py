@@ -10,8 +10,8 @@ import sys
 import time
 import base64
 import tempfile
-from chathealthy_frontend_lib import ChatHealthyLoggingService
-from chathealthy_frontend_lib.exceptions import ChatHealthyException
+from chathealthy_lib import ChatHealthyLoggingService
+from chathealthy_lib.exceptions import ChatHealthyException
 
 from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
@@ -84,7 +84,7 @@ def bootstrap_certs_from_env():
 # This service acts as frontendUser, including when it writes its own
 # logs. The Mongo log handler refuses to build without an identity, and
 # nothing else in this process sets one.
-from chathealthy_frontend_lib.logging_service import set_mongo_log_identity
+from chathealthy_lib.logging_service import set_mongo_log_identity
 set_mongo_log_identity("frontendUser")
 bootstrap_certs_from_env()
 
@@ -148,7 +148,7 @@ from externalInterface.evaluate_providers_endpoint import (
     EvaluateProvidersRequest,
     EvaluateProvidersResponse,
 )
-from chathealthy_frontend_lib.authentication import (
+from chathealthy_lib.authentication import (
     AuthToken, SessionRestampRequest, SessionToken, VerifyTokenResponse,
 )
 

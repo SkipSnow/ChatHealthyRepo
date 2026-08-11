@@ -11,8 +11,8 @@ LLD-v23 canonical step name to the module file when the two differ.
 """
 
 from __future__ import annotations
-from chathealthy_frontend_lib.logging_service import ChatHealthyLoggingService
-from chathealthy_frontend_lib.exceptions import ChatHealthyException
+from chathealthy_lib.logging_service import ChatHealthyLoggingService
+from chathealthy_lib.exceptions import ChatHealthyException
 
 import importlib
 

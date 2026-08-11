@@ -10,12 +10,12 @@
 # UAT Features: 1 (Provider Search), 2 (Specialty Identification)
 # Design: ARCH-001, business component: FindCare
 
-from chathealthy_frontend_lib import ChatHealthyLoggingService
-from chathealthy_frontend_lib.exceptions import ChatHealthyException
+from chathealthy_lib import ChatHealthyLoggingService
+from chathealthy_lib.exceptions import ChatHealthyException
 import os
 from typing import Optional
 
-from chathealthy_frontend_lib.runtime_data_collections import providers_coll, specialty_meta_coll
+from chathealthy_lib.runtime_data_collections import providers_coll, specialty_meta_coll
 
 log = ChatHealthyLoggingService()
 

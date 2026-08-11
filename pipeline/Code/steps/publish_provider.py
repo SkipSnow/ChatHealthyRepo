@@ -31,7 +31,7 @@ from __future__ import annotations
 
 import os
 
-from chathealthy_frontend_lib.exceptions import ChatHealthyException
+from chathealthy_lib.exceptions import ChatHealthyException
 
 from pipeline_loaded_metadata import mark_loaded
 from pipeline_runtime import PipelineRuntime

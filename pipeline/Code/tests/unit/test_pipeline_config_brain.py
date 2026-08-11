@@ -15,7 +15,7 @@ from pathlib import Path
 
 import pytest
 
-from chathealthy_frontend_lib.exceptions import ChatHealthyException
+from chathealthy_lib.exceptions import ChatHealthyException
 
 import pipeline_config as pc
 

@@ -14,8 +14,8 @@ from pydantic_ai import Agent
 from pydantic_ai.models.anthropic import AnthropicModel
 from pydantic_ai.providers.anthropic import AnthropicProvider
 
-from chathealthy_frontend_lib import ChatHealthyLoggingService
-from chathealthy_frontend_lib.exceptions import ChatHealthyException
+from chathealthy_lib import ChatHealthyLoggingService
+from chathealthy_lib.exceptions import ChatHealthyException
 
 log = ChatHealthyLoggingService()
 

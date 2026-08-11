@@ -20,7 +20,7 @@ from pymongo import MongoClient
 import sys as _ch_sys, pathlib as _ch_pl
 for _ch_d in _ch_pl.Path(__file__).resolve().parents:
     if (_ch_d / ".git").exists():
-        _ch_lib = _ch_d / "FrontEndApplicationLib" / "src"
+        _ch_lib = _ch_d / "ChatHealthyLib" / "src"
         if str(_ch_lib) not in _ch_sys.path:
             _ch_sys.path.insert(0, str(_ch_lib))
         break
@@ -31,7 +31,7 @@ for _ch_d in _ch_pl.Path(__file__).resolve().parents:
 # made a build depend on a Mongo write it has no grant for.
 import os as _ch_os
 _ch_os.environ["CH_LOG_DESTINATION"] = "stderr"
-from chathealthy_frontend_lib.logging_service import ChatHealthyLoggingService
+from chathealthy_lib.logging_service import ChatHealthyLoggingService
 
 load_dotenv(os.path.join(os.path.dirname(__file__), "..", "..", ".env"))
 
@@ -60,13 +60,13 @@ def _devops_connection():
     _src = _pl.Path(__file__).resolve()
     for _p in _src.parents:
         if (_p / ".git").exists():
-            _lib = _p / "FrontEndApplicationLib" / "src"
+            _lib = _p / "ChatHealthyLib" / "src"
             if str(_lib) not in _sys.path:
                 _sys.path.insert(0, str(_lib))
             from dotenv import load_dotenv as _ld
             _ld(_p / ".env", override=False)
             break
-    from chathealthy_frontend_lib.mongo_utilities import ChatHealthyMongoUtilities
+    from chathealthy_lib.mongo_utilities import ChatHealthyMongoUtilities
     return ChatHealthyMongoUtilities().getConnection("DevOpsUser", "admin")
 
 

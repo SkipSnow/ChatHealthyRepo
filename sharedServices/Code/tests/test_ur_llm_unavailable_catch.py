@@ -9,7 +9,7 @@ manufacture trigger carrying the system_llm_unavailable gesture. The
 user sees the manufactured prose; no fatal overlay.
 
 Run from sharedServices/Code:
-    PYTHONPATH=.;../../FrontEndApplicationLib/src python -m pytest \\
+    PYTHONPATH=.;../../ChatHealthyLib/src python -m pytest \\
         tests/test_ur_llm_unavailable_catch.py -v
 """
 from __future__ import annotations
@@ -20,7 +20,7 @@ from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
 
-from chathealthy_frontend_lib import ChatHealthyException
+from chathealthy_lib import ChatHealthyException
 
 
 def _make_deps():

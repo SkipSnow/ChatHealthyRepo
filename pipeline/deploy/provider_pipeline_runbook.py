@@ -42,9 +42,9 @@ for _pkg in _REQUIRED_PACKAGES:
     except ImportError:
         subprocess.check_call([sys.executable, "-m", "pip", "install", "-q", _pkg])
 
-from chathealthy_frontend_lib.logging_service import ChatHealthyLoggingService
-from chathealthy_frontend_lib.mongo_utilities import ChatHealthyMongoUtilities
-from chathealthy_frontend_lib.exceptions import ChatHealthyException
+from chathealthy_lib.logging_service import ChatHealthyLoggingService
+from chathealthy_lib.mongo_utilities import ChatHealthyMongoUtilities
+from chathealthy_lib.exceptions import ChatHealthyException
 
 # All pipeline metadata lives in one database. This runbook ships to Azure
 # Automation standalone, so it carries the constant rather than importing

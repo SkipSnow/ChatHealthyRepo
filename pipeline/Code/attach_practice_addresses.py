@@ -30,8 +30,8 @@ sequentially and issued one Atlas find_one + one update_one per row
 """
 
 from __future__ import annotations
-from chathealthy_frontend_lib.logging_service import ChatHealthyLoggingService
-from chathealthy_frontend_lib.exceptions import ChatHealthyException
+from chathealthy_lib.logging_service import ChatHealthyLoggingService
+from chathealthy_lib.exceptions import ChatHealthyException
 
 
 from pymongo import UpdateOne

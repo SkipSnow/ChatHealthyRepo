@@ -26,19 +26,19 @@ typed Request. The gateway decides the intent; the tool executes it.
 """
 from __future__ import annotations
 
-from chathealthy_frontend_lib import ChatHealthyLoggingService
-from chathealthy_frontend_lib.exceptions import ChatHealthyException
+from chathealthy_lib import ChatHealthyLoggingService
+from chathealthy_lib.exceptions import ChatHealthyException
 import os
 from datetime import datetime, timedelta, timezone
 from typing import Any, Literal, Optional
 
 from pydantic import BaseModel
 
-from chathealthy_frontend_lib.authentication.agent_deps import AuthnDeps
-from chathealthy_frontend_lib.authentication.chathealthy_tool import ChatHealthyTool
+from chathealthy_lib.authentication.agent_deps import AuthnDeps
+from chathealthy_lib.authentication.chathealthy_tool import ChatHealthyTool
 from authentication.mintable_auth_token import MintableAuthToken
-from chathealthy_frontend_lib.authentication.user_object import UserObject
-from chathealthy_frontend_lib.authentication.session_token import SessionToken
+from chathealthy_lib.authentication.user_object import UserObject
+from chathealthy_lib.authentication.session_token import SessionToken
 
 log = ChatHealthyLoggingService()
 
@@ -125,7 +125,7 @@ def manufacture_session(user_object: UserObject, server_env: str) -> UserObject:
     Action #1 of every new session is the on_load marker, appended
     here so every session has a deterministic anchor in the actions
     bucket (Skip 2026-06-10)."""
-    from chathealthy_frontend_lib.authentication.agent_deps import append_action
+    from chathealthy_lib.authentication.agent_deps import append_action
     now = datetime.now(timezone.utc)
     minted = MintableAuthToken.manufacture(server_env=server_env)
     user_object.current_session_token = auth_token_to_session_token(minted)
@@ -239,5 +239,5 @@ TOOL = AuthorizationsAndAuthenticationsTool()
 
 def get_mongo_frontend():
     """Front-end cluster client (Users.sessions + Users.users) via the canonical utility."""
-    from chathealthy_frontend_lib.mongo_utilities import ChatHealthyMongoUtilities
+    from chathealthy_lib.mongo_utilities import ChatHealthyMongoUtilities
     return ChatHealthyMongoUtilities().getConnection("frontendUser", "frontEnd")

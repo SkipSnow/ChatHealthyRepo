@@ -1,4 +1,4 @@
-from chathealthy_frontend_lib.logging_service import ChatHealthyLoggingService
+from chathealthy_lib.logging_service import ChatHealthyLoggingService
 # Copyright (c) 2026 ChatHealthy.ai LLC. All rights reserved.
 # Licensed under the FindCare Evaluation License (FEL-1.0).
 #
@@ -17,7 +17,7 @@ _log = ChatHealthyLoggingService()
 
 
 def _bail_no_state_column(header):
-    from chathealthy_frontend_lib.exceptions import ChatHealthyException
+    from chathealthy_lib.exceptions import ChatHealthyException
     raise ChatHealthyException(
         mode="count_providers_by_state_no_state_column",
         message=(

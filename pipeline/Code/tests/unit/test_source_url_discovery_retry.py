@@ -18,7 +18,7 @@ import urllib.error
 
 import pytest
 
-from chathealthy_frontend_lib.exceptions import ChatHealthyException
+from chathealthy_lib.exceptions import ChatHealthyException
 
 import source_url_discovery
 

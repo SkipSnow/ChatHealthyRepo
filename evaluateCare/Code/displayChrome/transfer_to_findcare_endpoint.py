@@ -1,7 +1,7 @@
 # Copyright (c) 2026 ChatHealthy.ai LLC. All rights reserved.
 # Licensed under the FindCare Evaluation License (FEL-1.0).
 
-from chathealthy_frontend_lib import ChatHealthyLoggingService
+from chathealthy_lib import ChatHealthyLoggingService
 
 
 class TransferToFindCareEndpoint:

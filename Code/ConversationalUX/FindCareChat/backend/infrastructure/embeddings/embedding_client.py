@@ -5,8 +5,8 @@
 # Source: OpenAI (embeddings and query expansion)
 
 import json
-from chathealthy_frontend_lib import ChatHealthyLoggingService
-from chathealthy_frontend_lib.exceptions import ChatHealthyException
+from chathealthy_lib import ChatHealthyLoggingService
+from chathealthy_lib.exceptions import ChatHealthyException
 import os
 from typing import Optional
 

@@ -2,7 +2,7 @@
 
 Enforces EPIC-008-F-002-S-010-REQ-B-007: direct MongoClient(...) instantiation
 is forbidden in any ChatHealthy.ai-authored Python file except within
-FrontEndApplicationLib/src/chathealthy_frontend_lib/mongo_utilities.py.
+ChatHealthyLib/src/chathealthy_lib/mongo_utilities.py.
 
 All MongoDB connections MUST use ChatHealthyMongoUtilities().getConnection(cert_name).
 
@@ -41,11 +41,11 @@ def _ch_exception():
     import sys as _sys, pathlib as _pl
     for _p in _pl.Path(__file__).resolve().parents:
         if (_p / ".git").exists():
-            _lib = _p / "FrontEndApplicationLib" / "src"
+            _lib = _p / "ChatHealthyLib" / "src"
             if str(_lib) not in _sys.path:
                 _sys.path.insert(0, str(_lib))
             break
-    from chathealthy_frontend_lib.exceptions import ChatHealthyException
+    from chathealthy_lib.exceptions import ChatHealthyException
     return ChatHealthyException
 
 # Packages that stand in for a real MongoDB client. A double presents no
@@ -181,8 +181,8 @@ class ScanMongoClientDirectAccessEnforcementWorker(EnforcementWorker):
                 rule_id="Rule-004",
                 resource=f"{file_path}:{lineno}",
                 message=(
-                    f"{what} — forbidden outside FrontEndApplicationLib/src/"
-                    f"chathealthy_frontend_lib/mongo_utilities.py per "
+                    f"{what} — forbidden outside ChatHealthyLib/src/"
+                    f"chathealthy_lib/mongo_utilities.py per "
                     f"EPIC-008-F-002-S-010-REQ-B-007. A client obtained any "
                     f"other way presents no certificate, so it matches no "
                     f"$external user and carries no role: the code's "

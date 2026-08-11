@@ -153,7 +153,7 @@ def test_publish_provider_bails_when_staging_absent(clusters):
     """If the registry-resolved staging collection does not exist on
     the pipeline cluster, publish_provider raises the well-named
     publish_provider_staging_missing exception -- no silent no-op."""
-    from chathealthy_frontend_lib.exceptions import ChatHealthyException
+    from chathealthy_lib.exceptions import ChatHealthyException
     from steps.publish_provider import execute
 
     pipeline, frontend, _cfg = clusters

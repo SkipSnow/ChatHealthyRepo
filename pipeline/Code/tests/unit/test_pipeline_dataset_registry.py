@@ -9,7 +9,7 @@ import copy
 
 import pytest
 
-from chathealthy_frontend_lib.exceptions import ChatHealthyException
+from chathealthy_lib.exceptions import ChatHealthyException
 
 from pipeline_dataset_registry import (
     DatasetEntry,

@@ -27,8 +27,8 @@ Environment (Automation Variables):
     AZ_AUTOMATION_ACCOUNT - ChatHealthyJobManager.
 """
 from __future__ import annotations
-from chathealthy_frontend_lib.logging_service import ChatHealthyLoggingService
-from chathealthy_frontend_lib.exceptions import ChatHealthyException
+from chathealthy_lib.logging_service import ChatHealthyLoggingService
+from chathealthy_lib.exceptions import ChatHealthyException
 
 import base64
 import json
@@ -61,7 +61,7 @@ os.environ.setdefault("CH_COMPONENT", "data-migrator-orchestrator")
 os.environ.setdefault("ENV_PREFIX",
                       os.environ.get("AUTOMATION_ENV_PREFIX", "dev"))
 try:
-    from chathealthy_frontend_lib.pipeline_boot import bootstrap_aa_mongo_logging as _boot
+    from chathealthy_lib.pipeline_boot import bootstrap_aa_mongo_logging as _boot
     _boot(
         kv_uri=os.environ.get(
             "KEY_VAULT_URI", "https://kv-chpipeline-dev.vault.azure.net/",

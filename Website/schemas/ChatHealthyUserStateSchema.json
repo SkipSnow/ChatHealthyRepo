@@ -27,7 +27,7 @@
       "properties": {
         "current_session_token": {
           "type": "object",
-          "description": "Signed wire-envelope security token, restamped on every gate call (new NONCE each time). Shape mirrors chathealthy_frontend_lib.authentication.session_token.SessionToken.",
+          "description": "Signed wire-envelope security token, restamped on every gate call (new NONCE each time). Shape mirrors chathealthy_lib.authentication.session_token.SessionToken.",
           "required": ["origin", "token", "signature", "created_at", "signed", "server_env"],
           "properties": {
             "origin":     { "type": "string" },

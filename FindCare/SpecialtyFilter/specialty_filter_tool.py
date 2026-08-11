@@ -15,16 +15,16 @@ Canonical *_tool.py exports: TOOL_NAME, Request, Response, run().
 """
 from __future__ import annotations
 
-from chathealthy_frontend_lib import ChatHealthyLoggingService
-from chathealthy_frontend_lib.exceptions import ChatHealthyException
+from chathealthy_lib import ChatHealthyLoggingService
+from chathealthy_lib.exceptions import ChatHealthyException
 import os
 from typing import Optional
 
 import httpx
 from pydantic import BaseModel, Field
 
-from chathealthy_frontend_lib.authentication.agent_deps import AgentDeps
-from chathealthy_frontend_lib.authentication.chathealthy_tool import ChatHealthyTool
+from chathealthy_lib.authentication.agent_deps import AgentDeps
+from chathealthy_lib.authentication.chathealthy_tool import ChatHealthyTool
 
 log = ChatHealthyLoggingService()
 
@@ -40,11 +40,11 @@ def _ch_exc():
     import sys as _s, pathlib as _p
     for _d in _p.Path(__file__).resolve().parents:
         if (_d / ".git").exists():
-            _l = _d / "FrontEndApplicationLib" / "src"
+            _l = _d / "ChatHealthyLib" / "src"
             if str(_l) not in _s.path:
                 _s.path.insert(0, str(_l))
             break
-    from chathealthy_frontend_lib.exceptions import ChatHealthyException
+    from chathealthy_lib.exceptions import ChatHealthyException
     return ChatHealthyException
 
 

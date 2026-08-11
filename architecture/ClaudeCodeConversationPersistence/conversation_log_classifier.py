@@ -22,8 +22,8 @@ from pydantic_ai import Agent
 from pydantic_ai.models.gemini import GeminiModel
 from pydantic_ai.providers.google_gla import GoogleGLAProvider
 
-from chathealthy_frontend_lib.exceptions import ChatHealthyException
-from chathealthy_frontend_lib.llm import run_llm_sync
+from chathealthy_lib.exceptions import ChatHealthyException
+from chathealthy_lib.llm import run_llm_sync
 
 CLASSIFIER_MODEL_NAME = "gemini-2.5-flash-lite"
 CLASSIFIER_VERSION = 1

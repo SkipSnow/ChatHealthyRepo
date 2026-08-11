@@ -31,8 +31,8 @@ instead — its structured LLM output includes a version_identifier field
 the freshness_gate can compare exactly like this probe's return value.
 """
 from __future__ import annotations
-from chathealthy_frontend_lib.logging_service import ChatHealthyLoggingService
-from chathealthy_frontend_lib.exceptions import ChatHealthyException
+from chathealthy_lib.logging_service import ChatHealthyLoggingService
+from chathealthy_lib.exceptions import ChatHealthyException
 
 import os
 from typing import Optional

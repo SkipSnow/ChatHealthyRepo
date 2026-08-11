@@ -11,7 +11,7 @@ import zipfile
 
 import pytest
 
-from chathealthy_frontend_lib.exceptions import ChatHealthyException
+from chathealthy_lib.exceptions import ChatHealthyException
 
 from generic_pipeline_executor import GenericPipelineExecutor
 from pipeline_dataset_registry import PipelineDatasetRegistry

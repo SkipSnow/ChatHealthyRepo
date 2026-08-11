@@ -1,4 +1,4 @@
-from chathealthy_frontend_lib.logging_service import ChatHealthyLoggingService
+from chathealthy_lib.logging_service import ChatHealthyLoggingService
 # Copyright © 2026 ChatHealthy.ai LLC. All rights reserved.
 # Licensed under the FindCare Evaluation License (FEL-1.0).
 #
@@ -68,7 +68,7 @@ _base_mongo = None  # lazy singleton — avoids import at module load when Mongo
 def _get_base_mongo_client():
     if not os.environ.get("MONGO_HOST"):
         return None
-    from chathealthy_frontend_lib.mongo_utilities import ChatHealthyMongoUtilities
+    from chathealthy_lib.mongo_utilities import ChatHealthyMongoUtilities
     return ChatHealthyMongoUtilities().getConnection("pipelineEditor", "admin")
 
 

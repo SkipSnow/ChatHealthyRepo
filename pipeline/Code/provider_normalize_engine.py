@@ -4,13 +4,13 @@
 """Normalize staging NPPES rows into providers_v<N> — LLD §4.8."""
 
 from __future__ import annotations
-from chathealthy_frontend_lib.logging_service import ChatHealthyLoggingService
+from chathealthy_lib.logging_service import ChatHealthyLoggingService
 
 
 from typing import Any
 
 import pymongo
-from chathealthy_frontend_lib.exceptions import ChatHealthyException
+from chathealthy_lib.exceptions import ChatHealthyException
 from pymongo import ReplaceOne
 
 from pipeline_runtime import PipelineRuntime

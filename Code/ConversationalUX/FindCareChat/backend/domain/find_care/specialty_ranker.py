@@ -10,7 +10,7 @@
 # Cardiology first. Same list, different order.
 
 import json
-from chathealthy_frontend_lib import ChatHealthyLoggingService
+from chathealthy_lib import ChatHealthyLoggingService
 import os
 
 from openai import OpenAI

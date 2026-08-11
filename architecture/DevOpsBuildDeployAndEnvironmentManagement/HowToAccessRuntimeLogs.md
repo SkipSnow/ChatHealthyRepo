@@ -14,7 +14,7 @@ has to re-discover this on each 503.
 
 ## 1. Where the log is written (inside the container)
 
-`FrontEndApplicationLib/src/chathealthy_frontend_lib/logging_service.py`:
+`ChatHealthyLib/src/chathealthy_lib/logging_service.py`:
 
 ```python
 dest = os.environ.get("CH_LOG_DESTINATION", "./logs")

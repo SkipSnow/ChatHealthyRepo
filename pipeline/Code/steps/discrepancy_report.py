@@ -16,14 +16,14 @@ from enum import Enum
 
 from azure.identity import DefaultAzureCredential
 from azure.keyvault.secrets import SecretClient
-from chathealthy_frontend_lib.logging_service import (
+from chathealthy_lib.logging_service import (
     ChatHealthyLoggingService,
     set_data_version,
     set_fatal_error,
     set_run_id,
 )
-from chathealthy_frontend_lib.exceptions import ChatHealthyException
-from chathealthy_frontend_lib.mongo_utilities import ChatHealthyMongoUtilities
+from chathealthy_lib.exceptions import ChatHealthyException
+from chathealthy_lib.mongo_utilities import ChatHealthyMongoUtilities
 
 from pipeline_db import PIPELINE_ADMIN_DB
 

@@ -1,5 +1,5 @@
-from chathealthy_frontend_lib.logging_service import ChatHealthyLoggingService
-from chathealthy_frontend_lib.exceptions import ChatHealthyException
+from chathealthy_lib.logging_service import ChatHealthyLoggingService
+from chathealthy_lib.exceptions import ChatHealthyException
 # Copyright © 2026 ChatHealthy.ai LLC. All rights reserved.
 # Licensed under the FindCare Evaluation License (FEL-1.0).
 #
@@ -93,7 +93,7 @@ def check_mongo_health(config: dict = None) -> dict:
     Returns {"status": "ok"} if the cluster is reachable and has a primary.
     """
     try:
-        from chathealthy_frontend_lib.mongo_utilities import ChatHealthyMongoUtilities
+        from chathealthy_lib.mongo_utilities import ChatHealthyMongoUtilities
         client = ChatHealthyMongoUtilities().getConnection("pipelineEditor", "pipelines")
         client.admin.command("ping")
         client.close()

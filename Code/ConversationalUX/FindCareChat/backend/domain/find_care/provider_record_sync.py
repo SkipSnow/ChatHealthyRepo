@@ -24,8 +24,8 @@ production handler injects the runtime-bound collection.
 from __future__ import annotations
 
 import datetime as dt
-from chathealthy_frontend_lib import ChatHealthyLoggingService
-from chathealthy_frontend_lib.exceptions import ChatHealthyException
+from chathealthy_lib import ChatHealthyLoggingService
+from chathealthy_lib.exceptions import ChatHealthyException
 import os
 from copy import deepcopy
 from typing import Any
@@ -484,11 +484,11 @@ def build_embedding_text(record: dict) -> str:
     """The embedding input. Single source of truth for both the embed call and
     the diff check that gates whether re-embedding is needed.
 
-    Delegates to chathealthy_frontend_lib.provider_embedding so the front-end
+    Delegates to chathealthy_lib.provider_embedding so the front-end
     re-embed produces byte-identical text to what the pipeline produced when
     the record was first embedded — same record yields same vector on both
     sides."""
-    from chathealthy_frontend_lib.provider_embedding import project, render
+    from chathealthy_lib.provider_embedding import project, render
     return render(project(record))
 
 

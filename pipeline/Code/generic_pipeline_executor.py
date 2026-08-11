@@ -43,8 +43,8 @@ import zipfile
 from datetime import datetime, timezone
 from typing import Optional
 
-from chathealthy_frontend_lib.exceptions import ChatHealthyException
-from chathealthy_frontend_lib.logging_service import ChatHealthyLoggingService
+from chathealthy_lib.exceptions import ChatHealthyException
+from chathealthy_lib.logging_service import ChatHealthyLoggingService
 
 from pipeline_dataset_registry import DatasetEntry, PipelineDatasetRegistry
 from pipeline_fatal_recorder import record_fatal_discrepancy

@@ -15,11 +15,11 @@ from typing import Optional
 
 from pydantic import BaseModel, Field
 
-from chathealthy_frontend_lib import ChatHealthyLoggingService
-from chathealthy_frontend_lib.exceptions import ChatHealthyException
+from chathealthy_lib import ChatHealthyLoggingService
+from chathealthy_lib.exceptions import ChatHealthyException
 
-from chathealthy_frontend_lib.authentication.agent_deps import AgentDeps
-from chathealthy_frontend_lib.authentication.chathealthy_tool import ChatHealthyTool
+from chathealthy_lib.authentication.agent_deps import AgentDeps
+from chathealthy_lib.authentication.chathealthy_tool import ChatHealthyTool
 
 log = ChatHealthyLoggingService()
 

@@ -9,7 +9,7 @@ import datetime
 
 import pytest
 
-from chathealthy_frontend_lib.exceptions import ChatHealthyException
+from chathealthy_lib.exceptions import ChatHealthyException
 
 from pymongo.errors import PyMongoError
 

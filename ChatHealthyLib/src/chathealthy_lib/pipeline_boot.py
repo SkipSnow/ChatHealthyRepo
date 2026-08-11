@@ -16,7 +16,7 @@ constructs a MongoClient with it.
 
 Usage from a runbook:
 
-    from chathealthy_frontend_lib.pipeline_boot import bootstrap_aa_mongo_logging
+    from chathealthy_lib.pipeline_boot import bootstrap_aa_mongo_logging
 
     def main() -> int:
         bootstrap_aa_mongo_logging(
@@ -133,7 +133,7 @@ def srv_to_direct_uri(srv_uri: str) -> str:
         if len(parts) >= 4:
             hosts.append(f"{parts[3].rstrip('.')}:{parts[2]}")
     if not hosts:
-        from chathealthy_frontend_lib.exceptions import ChatHealthyException  # noqa: PLC0415
+        from chathealthy_lib.exceptions import ChatHealthyException  # noqa: PLC0415
         raise ChatHealthyException(
             mode="doh_srv_lookup_no_hosts",
             message=f"DoH SRV lookup returned no hosts for {host_only}",

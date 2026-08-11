@@ -28,11 +28,11 @@ def _ch_connection():
     import sys as _sys, pathlib as _pl
     for _d in _pl.Path(__file__).resolve().parents:
         if (_d / ".git").exists():
-            _lib = _d / "FrontEndApplicationLib" / "src"
+            _lib = _d / "ChatHealthyLib" / "src"
             if str(_lib) not in _sys.path:
                 _sys.path.insert(0, str(_lib))
             break
-    from chathealthy_frontend_lib.mongo_utilities import ChatHealthyMongoUtilities
+    from chathealthy_lib.mongo_utilities import ChatHealthyMongoUtilities
     return ChatHealthyMongoUtilities().getConnection("DevOpsUser", 'frontEnd')
 
 SHARED_URL = "https://localhost:8002"

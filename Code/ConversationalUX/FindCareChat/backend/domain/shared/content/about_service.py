@@ -5,7 +5,7 @@
 #
 # Design: ARCH-001, shared infrastructure
 
-from chathealthy_frontend_lib import ChatHealthyLoggingService
+from chathealthy_lib import ChatHealthyLoggingService
 
 log = ChatHealthyLoggingService()
 

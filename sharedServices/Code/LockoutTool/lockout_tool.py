@@ -39,18 +39,18 @@ exact match after `text.strip().lower()`. No env var; no .env entry.
 from __future__ import annotations
 
 import asyncio
-from chathealthy_frontend_lib import ChatHealthyLoggingService
-from chathealthy_frontend_lib.exceptions import ChatHealthyException
+from chathealthy_lib import ChatHealthyLoggingService
+from chathealthy_lib.exceptions import ChatHealthyException
 import os
 from datetime import datetime, timedelta, timezone
 
 from pydantic import BaseModel
 
-from chathealthy_frontend_lib.authentication.agent_deps import AgentDeps, append_system_utterance
-from chathealthy_frontend_lib.authentication.chathealthy_tool import ChatHealthyTool
-from chathealthy_frontend_lib.authentication.user_object import Lockout
+from chathealthy_lib.authentication.agent_deps import AgentDeps, append_system_utterance
+from chathealthy_lib.authentication.chathealthy_tool import ChatHealthyTool
+from chathealthy_lib.authentication.user_object import Lockout
 
-from chathealthy_frontend_lib.authentication.intent_document import (
+from chathealthy_lib.authentication.intent_document import (
     Argument,
     IntentCloseConnection200,
     IntentDocument,

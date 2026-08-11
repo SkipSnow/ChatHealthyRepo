@@ -39,7 +39,7 @@ Every event is logged to the pipeline-logs blob container in our
 datalake. Instrumentation is the Watchdog's sole visibility surface.
 """
 from __future__ import annotations
-from chathealthy_frontend_lib.mongo_utilities import ChatHealthyMongoUtilities
+from chathealthy_lib.mongo_utilities import ChatHealthyMongoUtilities
 
 import datetime
 import json
@@ -163,7 +163,7 @@ def _get_token(resource: str, client_id: str | None = None) -> str:
 # so downstream queries on component='watchdog' surface every event
 # together with control, worker, runbook, and reaper events.
 # -----------------------------------------------------------------------------
-from chathealthy_frontend_lib.logging_service import ChatHealthyLoggingService  # noqa: PLC0415, E402
+from chathealthy_lib.logging_service import ChatHealthyLoggingService  # noqa: PLC0415, E402
 
 # Lazily instantiate CHLS on first log() call so bootstrap_aa_mongo_logging
 # has already run inside main() by then and CH_LOG_DESTINATION=stderr,mongo
@@ -624,7 +624,7 @@ def main() -> int:
     # MONGO_FRONTEND from KV, applies SRV->direct URI conversion (AA
     # sandbox cannot resolve _mongodb._tcp SRVs), and sets CHLS env so
     # every subsequent log() call also writes to Log_{env}.
-    from chathealthy_frontend_lib.pipeline_boot import bootstrap_aa_mongo_logging  # noqa: PLC0415
+    from chathealthy_lib.pipeline_boot import bootstrap_aa_mongo_logging  # noqa: PLC0415
     try:
         bootstrap_aa_mongo_logging(
             kv_uri=KEY_VAULT_URI,

@@ -48,7 +48,7 @@ from __future__ import annotations
 
 import os
 
-from chathealthy_frontend_lib.exceptions import ChatHealthyException
+from chathealthy_lib.exceptions import ChatHealthyException
 
 from embedding_engine import generate_specialty_embeddings
 from pipeline_loaded_metadata import mark_loaded, should_skip

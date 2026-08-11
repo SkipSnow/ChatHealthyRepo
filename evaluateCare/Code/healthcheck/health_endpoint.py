@@ -2,8 +2,8 @@
 # Licensed under the FindCare Evaluation License (FEL-1.0).
 
 import json
-from chathealthy_frontend_lib import ChatHealthyLoggingService
-from chathealthy_frontend_lib.exceptions import ChatHealthyException
+from chathealthy_lib import ChatHealthyLoggingService
+from chathealthy_lib.exceptions import ChatHealthyException
 import os
 from pathlib import Path
 
@@ -59,7 +59,7 @@ class HealthEndpoint:
         mongo_doc: dict = {}
         if self.uri:
             try:
-                from chathealthy_frontend_lib.mongo_utilities import ChatHealthyMongoUtilities
+                from chathealthy_lib.mongo_utilities import ChatHealthyMongoUtilities
                 client = ChatHealthyMongoUtilities().getConnection("frontendUser", "frontEnd")
                 mongo_doc = client["frontEndAdmin"]["BuildVersions"].find_one(sort=[("from", -1)]) or {}
                 db_status = "connected"

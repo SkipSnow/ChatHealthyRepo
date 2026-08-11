@@ -31,7 +31,7 @@ from typing import Any
 import sys as _ch_sys, pathlib as _ch_pl
 for _ch_d in _ch_pl.Path(__file__).resolve().parents:
     if (_ch_d / ".git").exists():
-        _ch_lib = _ch_d / "FrontEndApplicationLib" / "src"
+        _ch_lib = _ch_d / "ChatHealthyLib" / "src"
         if str(_ch_lib) not in _ch_sys.path:
             _ch_sys.path.insert(0, str(_ch_lib))
         break
@@ -42,7 +42,7 @@ for _ch_d in _ch_pl.Path(__file__).resolve().parents:
 # made a build depend on a Mongo write it has no grant for.
 import os as _ch_os
 _ch_os.environ["CH_LOG_DESTINATION"] = "stderr"
-from chathealthy_frontend_lib.logging_service import ChatHealthyLoggingService
+from chathealthy_lib.logging_service import ChatHealthyLoggingService
 _CH_LOG = ChatHealthyLoggingService()
 
 
@@ -793,7 +793,7 @@ def _acr_docker_build_loop(packages, name: str, rg: str) -> None:
         # after this lands has no benefit (no prior cache metadata on
         # the existing image); every deploy AFTER that reuses layers
         # for anything upstream of the invalidating COPY. Typical:
-        # base + pip install + FrontEndApplicationLib COPY stay cached
+        # base + pip install + ChatHealthyLib COPY stay cached
         # (~90% of image size); only the final pipeline/Code COPY
         # re-runs on Python source changes. Cuts ACR build from
         # ~5min to ~30-60s when only Python source changed.
@@ -1061,7 +1061,7 @@ def build_and_push_job_image(
             "not set; bake_ca_chain_into_images must run before ACA job image "
             "builds (F-003 §7)."
         )
-    # Dockerfiles COPY pipeline/Code + FrontEndApplicationLib from repo-root context.
+    # Dockerfiles COPY pipeline/Code + ChatHealthyLib from repo-root context.
     context = repo_root
     image = f"{registry_name}.azurecr.io/{image_repository}:{tag}"
     # Idempotent: many ACA jobs share prov-control / prov-worker tags.

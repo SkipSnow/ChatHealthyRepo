@@ -39,7 +39,7 @@ Per Skip 2026-05-28: indexes are built by the software, not the operator.
 No external prerequisite. No manual side-action.
 """
 from __future__ import annotations
-from chathealthy_frontend_lib.logging_service import ChatHealthyLoggingService
+from chathealthy_lib.logging_service import ChatHealthyLoggingService
 
 
 import os
@@ -115,7 +115,7 @@ def _providers_collection_and_client(provider_collection: str | None) -> tuple:
     db_name, coll_name = fqn.split(".", 1)
     # serverSelectionTimeoutMS is short so each ping fails fast and the
     # _wait_for_cluster_ready poll loop drives the cadence.
-    from chathealthy_frontend_lib.mongo_utilities import ChatHealthyMongoUtilities
+    from chathealthy_lib.mongo_utilities import ChatHealthyMongoUtilities
     client = ChatHealthyMongoUtilities().getConnection("pipelineEditor", "frontEnd")
     return client[db_name][coll_name], client
 

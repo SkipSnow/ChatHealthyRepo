@@ -12,10 +12,10 @@ if os.path.exists(env_file):
     load_dotenv(env_file)
 
 # Add paths for imports
-sys.path.insert(0, os.path.join(repo_root, "FrontEndApplicationLib", "src"))
+sys.path.insert(0, os.path.join(repo_root, "ChatHealthyLib", "src"))
 sys.path.insert(0, os.path.join(repo_root, "pipeline", "Code"))
 
-from chathealthy_frontend_lib.logging_service import ChatHealthyLoggingService
+from chathealthy_lib.logging_service import ChatHealthyLoggingService
 
 from pipeline_db import get_metadata_db, PIPELINE_ADMIN_DB
 

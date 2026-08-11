@@ -39,9 +39,9 @@ from pymongo import ASCENDING
 load_dotenv(Path(__file__).parent.parent.parent.parent / ".env", override=True)
 
 sys.path.insert(0, str(Path(__file__).parent.parent))
-sys.path.insert(0, str(Path(__file__).parent.parent.parent.parent / "FrontEndApplicationLib" / "src"))
+sys.path.insert(0, str(Path(__file__).parent.parent.parent.parent / "ChatHealthyLib" / "src"))
 
-from chathealthy_frontend_lib.mongo_utilities import ChatHealthyMongoUtilities  # noqa: E402
+from chathealthy_lib.mongo_utilities import ChatHealthyMongoUtilities  # noqa: E402
 from staging_loader import _drop_prior_state_scoped_rows  # noqa: E402
 
 

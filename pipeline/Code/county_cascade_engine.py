@@ -47,7 +47,7 @@ Public entry point: `run_county_cascade(config, mongo, blob)`.
 """
 
 from __future__ import annotations
-from chathealthy_frontend_lib.logging_service import ChatHealthyLoggingService
+from chathealthy_lib.logging_service import ChatHealthyLoggingService
 
 
 import csv

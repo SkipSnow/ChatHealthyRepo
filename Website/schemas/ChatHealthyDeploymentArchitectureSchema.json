@@ -790,7 +790,7 @@
                     },
                     "container_libraries": {
                       "type": "array",
-                      "description": "Repo-relative source directories to COPY into the docker build context and pip-install inside the image. Each entry names a shared-lib source tree (e.g. 'FrontEndApplicationLib'). The Dockerfile MUST have a matching COPY <path> /app/<path> and RUN pip install line for every listed entry; deploy chain uses this list to know which repo subtrees to stage.",
+                      "description": "Repo-relative source directories to COPY into the docker build context and pip-install inside the image. Each entry names a shared-lib source tree (e.g. 'ChatHealthyLib'). The Dockerfile MUST have a matching COPY <path> /app/<path> and RUN pip install line for every listed entry; deploy chain uses this list to know which repo subtrees to stage.",
                       "items": {
                         "type": "string",
                         "pattern": "^[A-Za-z0-9_./-]+$"

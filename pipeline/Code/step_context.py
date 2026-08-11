@@ -4,7 +4,7 @@
 """StepContext and run manifest models for LLD v22 orchestration."""
 
 from __future__ import annotations
-from chathealthy_frontend_lib.exceptions import ChatHealthyException
+from chathealthy_lib.exceptions import ChatHealthyException
 
 import uuid
 from dataclasses import dataclass, field

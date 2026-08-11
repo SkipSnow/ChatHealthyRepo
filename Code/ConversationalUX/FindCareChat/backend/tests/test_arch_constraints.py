@@ -16,11 +16,11 @@ import pytest
 import sys as _sys, pathlib as _pl
 for _d in _pl.Path(__file__).resolve().parents:
     if (_d / ".git").exists():
-        _lib = _d / "FrontEndApplicationLib" / "src"
+        _lib = _d / "ChatHealthyLib" / "src"
         if str(_lib) not in _sys.path:
             _sys.path.insert(0, str(_lib))
         break
-from chathealthy_frontend_lib.logging_service import ChatHealthyLoggingService
+from chathealthy_lib.logging_service import ChatHealthyLoggingService
 
 _CH_LOG = ChatHealthyLoggingService()
 
@@ -34,11 +34,11 @@ def _ch_connection():
     import sys as _sys, pathlib as _pl
     for _d in _pl.Path(__file__).resolve().parents:
         if (_d / ".git").exists():
-            _lib = _d / "FrontEndApplicationLib" / "src"
+            _lib = _d / "ChatHealthyLib" / "src"
             if str(_lib) not in _sys.path:
                 _sys.path.insert(0, str(_lib))
             break
-    from chathealthy_frontend_lib.mongo_utilities import ChatHealthyMongoUtilities
+    from chathealthy_lib.mongo_utilities import ChatHealthyMongoUtilities
     return ChatHealthyMongoUtilities().getConnection("DevOpsUser", 'frontEnd')
 
 REPO_ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "..", "..", "..", ".."))
@@ -235,7 +235,7 @@ def _iter_in_scope_py_files(repo_root):
         Path(repo_root) / "Code" / "DataPipelines",
         Path(repo_root) / "evaluateCare" / "Code",
         Path(repo_root) / "sharedServices" / "Code",
-        Path(repo_root) / "FrontEndApplicationLib" / "src",
+        Path(repo_root) / "ChatHealthyLib" / "src",
     ]
     excluded_substrings = (
         "/tests/",

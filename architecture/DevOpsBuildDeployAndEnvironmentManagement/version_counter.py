@@ -41,7 +41,7 @@ def _repo_root() -> Path:
         if (p / ".git").exists():
             return p
         p = p.parent
-    from chathealthy_frontend_lib.exceptions import ChatHealthyException
+    from chathealthy_lib.exceptions import ChatHealthyException
     raise ChatHealthyException(
         mode="repo_root_not_found",
         component="VersionCounter",
@@ -50,10 +50,10 @@ def _repo_root() -> Path:
 
 def versions_collection():
     """The Versions collection, as DevOpsUser."""
-    lib_src = _repo_root() / "FrontEndApplicationLib" / "src"
+    lib_src = _repo_root() / "ChatHealthyLib" / "src"
     if str(lib_src) not in sys.path:
         sys.path.insert(0, str(lib_src))
-    from chathealthy_frontend_lib.mongo_utilities import ChatHealthyMongoUtilities
+    from chathealthy_lib.mongo_utilities import ChatHealthyMongoUtilities
     return (ChatHealthyMongoUtilities()
             .getConnection("DevOpsUser", "admin")[VERSIONS_DB][VERSIONS_COLLECTION])
 
@@ -98,10 +98,10 @@ def package_builds_collection():
     Append-only, like the other frontEndAdmin records: a row per build of a
     package, and the newest row is what that package currently holds.
     """
-    lib_src = _repo_root() / "FrontEndApplicationLib" / "src"
+    lib_src = _repo_root() / "ChatHealthyLib" / "src"
     if str(lib_src) not in sys.path:
         sys.path.insert(0, str(lib_src))
-    from chathealthy_frontend_lib.mongo_utilities import ChatHealthyMongoUtilities
+    from chathealthy_lib.mongo_utilities import ChatHealthyMongoUtilities
     return (ChatHealthyMongoUtilities()
             .getConnection("DevOpsUser", "admin")
             [VERSIONS_DB][PACKAGE_BUILDS_COLLECTION])

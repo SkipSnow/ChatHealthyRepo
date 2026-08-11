@@ -4,7 +4,7 @@
 """Upload frozen integration snapshots to pipeline-sources-test/{snapshot_id}/ — LLD §9.3."""
 
 from __future__ import annotations
-from chathealthy_frontend_lib.logging_service import ChatHealthyLoggingService
+from chathealthy_lib.logging_service import ChatHealthyLoggingService
 
 import argparse
 import json

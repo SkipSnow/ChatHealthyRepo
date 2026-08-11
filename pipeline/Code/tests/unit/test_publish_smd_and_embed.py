@@ -267,7 +267,7 @@ def clusters(monkeypatch, scratch_mongo):
 
     Yields (client, scratch_db, frontend_db, cfg, names).
     """
-    from chathealthy_frontend_lib.mongo_utilities import ChatHealthyMongoUtilities
+    from chathealthy_lib.mongo_utilities import ChatHealthyMongoUtilities
 
     import pipeline_loaded_metadata
     import pipeline_runtime
@@ -404,7 +404,7 @@ def test_publish_smd_and_embed_end_to_end(fake_openai, clusters, monkeypatch):
 
 @pytest.mark.unit
 def test_publish_smd_and_embed_bails_when_openai_key_missing(clusters, monkeypatch):
-    from chathealthy_frontend_lib.exceptions import ChatHealthyException
+    from chathealthy_lib.exceptions import ChatHealthyException
     from steps.publish_smd_and_embed import execute
     monkeypatch.delenv("OPENAI_API_KEY", raising=False)
     pipeline, _db, frontend_db, _cfg, _names = clusters

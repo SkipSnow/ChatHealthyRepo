@@ -19,7 +19,7 @@ Local runs invoke this same module (Controller may spawn Workers locally
 for smoke testing).
 """
 from __future__ import annotations
-from chathealthy_frontend_lib.logging_service import ChatHealthyLoggingService
+from chathealthy_lib.logging_service import ChatHealthyLoggingService
 
 import argparse
 import datetime

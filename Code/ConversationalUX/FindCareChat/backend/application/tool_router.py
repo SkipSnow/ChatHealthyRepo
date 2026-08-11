@@ -10,8 +10,8 @@
 # Design: ARCH-001 Phase 1
 
 import json
-from chathealthy_frontend_lib import ChatHealthyLoggingService
-from chathealthy_frontend_lib.exceptions import ChatHealthyException
+from chathealthy_lib import ChatHealthyLoggingService
+from chathealthy_lib.exceptions import ChatHealthyException
 
 log = ChatHealthyLoggingService()
 
