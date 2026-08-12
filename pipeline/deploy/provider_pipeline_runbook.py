@@ -88,10 +88,11 @@ VM_VNET = os.environ.get(
     "AUTOMATION_VM_VNET",
     "vnet-chathealthy-pipeline-dev",
 )
-VM_MI_NAME = os.environ.get(
-    "AUTOMATION_VM_MI_NAME",
-    "mi-control",   # user-assigned MI attached to the Pipeline Run VM
-)
+# Which vault secrets the run host is declared to read. Names are not
+# secrets, so they travel in the clear; bootstrap fetches exactly this list
+# and fails on any it cannot read, so a host can be granted precisely these
+# and nothing else.
+PIPELINE_SECRET_NAMES = os.environ.get("PIPELINE_SECRET_NAMES", "")
 VM_ACR = os.environ.get(
     "AUTOMATION_VM_ACR",
     "chpipelinedevacr",
@@ -431,11 +432,12 @@ def _cloud_init_user_data(run_id: str, load_mode: str, state_scope,
     """Return the base64-encoded cloud-init user_data blob for the VM.
 
     The VM boots this cloud-init:
-      1. Log in to ACR via the attached user-assigned MI
-      2. Pull the pipeline image
-      3. Run Controller with per-run env vars
-      4. On Controller exit, the container ends; the finally-block in
+      1. Log in as pipelineEditor and pull the image from ACR
+      2. Run Controller with per-run env vars, as pipelineEditor
+      3. On Controller exit, the container ends; the finally-block in
          Controller fires `az vm delete` on this VM.
+
+    pipelineEditor is the identity throughout: the host has none of its own.
     """
     import base64
     # Note: `state_scope` may be a list; serialize to JSON so Controller
@@ -471,8 +473,12 @@ runcmd:
     # Install Azure CLI via the Microsoft install script (Ubuntu 24.04 stock
     # has no az CLI; MI-based ACR login below needs it).
     curl -sL https://aka.ms/InstallAzureCLIDeb | bash
-    # Login to ACR via the attached user-assigned MI (mi-control).
-    az login --identity --allow-no-subscriptions
+    # Log in as pipelineEditor. The host carries no identity of its own.
+    az login --service-principal \\
+      --username '{PIPELINE_EDITOR_CLIENT_ID}' \\
+      --password '{PIPELINE_EDITOR_SECRET}' \\
+      --tenant '{PIPELINE_EDITOR_TENANT}'
+    az account set --subscription '{SUBSCRIPTION_ID}'
     az acr login --name {VM_ACR}
     # Pull the pipeline image.
     docker pull {image_ref}
@@ -515,6 +521,10 @@ runcmd:
       -e AZURE_RESOURCE_GROUP='{RESOURCE_GROUP}' \\
       -e AZURE_SUBSCRIPTION_ID='{SUBSCRIPTION_ID}' \\
       -e AZURE_VM_NAME='{vm_name_for_farewell}' \\
+      -e AZURE_TENANT_ID='{PIPELINE_EDITOR_TENANT}' \\
+      -e AZURE_CLIENT_ID='{PIPELINE_EDITOR_CLIENT_ID}' \\
+      -e AZURE_CLIENT_SECRET='{PIPELINE_EDITOR_SECRET}' \\
+      -e PIPELINE_SECRET_NAMES='{PIPELINE_SECRET_NAMES}' \\
       {image_ref}
     DOCKER_EXIT=$?
     echo "chpipeline: docker run exit=$DOCKER_EXIT $(date -u +%FT%TZ)"
@@ -562,11 +572,6 @@ def _provision_vm(run_id: str, load_mode: str, state_scope,
         f"/providers/Microsoft.Network/virtualNetworks/{VM_VNET}"
         f"/subnets/{VM_SUBNET}"
     )
-    mi_id = (
-        f"/subscriptions/{SUBSCRIPTION_ID}"
-        f"/resourceGroups/{RESOURCE_GROUP}"
-        f"/providers/Microsoft.ManagedIdentity/userAssignedIdentities/{VM_MI_NAME}"
-    )
     # NIC creation is inline via ARM template style -- for a minimum viable
     # implementation, create the NIC in the same PUT chain.
     nic_name = f"{vm_name}-nic"
@@ -612,10 +617,12 @@ def _provision_vm(run_id: str, load_mode: str, state_scope,
             "pipeline_name": PIPELINE_NAME,
             "env": ENV_PREFIX,
         },
-        "identity": {
-            "type": "UserAssigned",
-            "userAssignedIdentities": {mi_id: {}},
-        },
+        # No identity is attached. pipelineEditor is an application
+        # registration, not a managed identity, so Azure cannot hang it on a
+        # virtual machine -- it proves itself with its credentials, which
+        # cloud-init and the container present. The run host therefore holds
+        # no identity of its own, nothing is minted per run, and there is no
+        # grant to revoke when the host dies.
         "properties": {
             "hardwareProfile": {"vmSize": VM_SIZE},
             "storageProfile": {
