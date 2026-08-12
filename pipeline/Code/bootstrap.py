@@ -35,7 +35,7 @@ import tempfile
 from pathlib import Path
 from typing import Iterable, Optional, Tuple
 
-from azure.identity import ManagedIdentityCredential
+from azure.identity import ClientSecretCredential, ManagedIdentityCredential
 from azure.keyvault.secrets import SecretClient
 
 import blob_logger
@@ -73,17 +73,39 @@ PIPELINE_IDENTITY = "pipelineEditor"
 def _pipeline_credential():
     """The credential this node opens the vault with.
 
-    The identity is attached to the machine, so the platform issues the token
-    and nothing is stored, passed or written down. AZURE_CLIENT_ID selects
-    which attached identity to ask for when the host carries a user-assigned
-    one; a client id names an identity and is not a credential.
+    The mechanism follows what the identity IS. pipelineEditor is an
+    application registration and proves itself with its client secret; a
+    managed identity is proven by the machine it is attached to.
 
-    There is deliberately no secret-based path. A node that cannot obtain a
-    token from its own machine does not start, because the alternative is a
-    credential travelling with the deployment.
+    This asked the instance metadata endpoint unconditionally. The run host
+    stopped carrying a managed identity when pipelineEditor became the runtime
+    identity, so every container died on its first vault call with
+    "ManagedIdentityCredential authentication unavailable, no response from
+    the IMDS endpoint" -- before it could log, before it could write a
+    heartbeat, before it could say anything at all. Its own credentials were
+    in the environment, unread.
     """
-    client_id = os.environ.get("AZURE_CLIENT_ID", "").strip()
-    return (ManagedIdentityCredential(client_id=client_id) if client_id
+    tenant = os.environ.get(f"{PIPELINE_IDENTITY.upper()}_AZURE_TENANT_ID", "").strip()
+    client_id = os.environ.get(f"{PIPELINE_IDENTITY.upper()}_AZURE_CLIENT_ID", "").strip()
+    secret = os.environ.get(f"{PIPELINE_IDENTITY.upper()}_AZURE_CLIENT_SECRET", "").strip()
+    if secret:
+        if not (tenant and client_id):
+            _emit(
+                f"FATAL: {PIPELINE_IDENTITY} has a client secret but is missing "
+                f"tenant or client id; cannot open the vault as anyone."
+            )
+            raise ChatHealthyException(
+                mode="identity_credential_incomplete",
+                component="PipelineBootstrap",
+                message=(f"{PIPELINE_IDENTITY}: client secret present, "
+                         f"tenant={bool(tenant)} client_id={bool(client_id)}"))
+        _emit(f"vault credential: {PIPELINE_IDENTITY} client secret")
+        return ClientSecretCredential(
+            tenant_id=tenant, client_id=client_id, client_secret=secret)
+    mi_client_id = os.environ.get("AZURE_CLIENT_ID", "").strip()
+    _emit(f"vault credential: managed identity"
+          f"{' (' + mi_client_id + ')' if mi_client_id else ''}")
+    return (ManagedIdentityCredential(client_id=mi_client_id) if mi_client_id
             else ManagedIdentityCredential())
 
 
@@ -119,8 +141,23 @@ def _write_secure_file(data: bytes, suffix: str) -> Path:
 
 _materialized_paths: list[Path] = []
 
+# Set by whatever spawns detached children that keep using this node's
+# materialised credential. Workers are double-forked and reparented to init,
+# so they outlive the Controller; deleting the certificate on the Controller's
+# way out takes their credential with it, and they fail one by one with no
+# way to say why. Nothing is deleted while that flag stands.
+ENV_DETACHED_CHILDREN = "CHATHEALTHY_DETACHED_CHILDREN"
+
 
 def _cleanup_materialized() -> None:
+    if os.environ.get(ENV_DETACHED_CHILDREN, "").strip():
+        _emit(
+            f"materialised credentials left in place: "
+            f"{os.environ.get(ENV_DETACHED_CHILDREN)} detached child process(es) "
+            f"still hold them. The host is torn down at run end, which is what "
+            f"removes them."
+        )
+        return
     for p in _materialized_paths:
         try:
             if p.exists():
@@ -318,20 +355,46 @@ def main() -> int:
 
     atexit.register(_cleanup_materialized)
 
+    # What this container was handed, before anything can fail on it. Names
+    # and presence only -- never a value. Every container that died today
+    # died before it could say which of these was missing, and each cost a
+    # deploy cycle to guess at.
+    _emit("bootstrap: begin")
+    _emit(
+        "bootstrap: environment | "
+        f"node={os.environ.get(ENV_NODE_IDENTITY, '<unset>')!r} "
+        f"env_prefix={os.environ.get('ENV_PREFIX', '<unset>')!r} "
+        f"run_id={os.environ.get('RUN_ID', '<unset>')!r} "
+        f"data_version={os.environ.get('DATA_VERSION', '<unset>')!r} "
+        f"load_mode={os.environ.get('LOAD_MODE', '<unset>')!r} "
+        f"state_scope={os.environ.get('STATE_SCOPE', '<unset>')!r}"
+    )
+    _emit(
+        "bootstrap: credentials | "
+        f"vault_uri_set={bool(os.environ.get(ENV_KEY_VAULT_URI, '').strip())} "
+        f"pipelineEditor_tenant={bool(os.environ.get('PIPELINEEDITOR_AZURE_TENANT_ID', '').strip())} "
+        f"pipelineEditor_client_id={bool(os.environ.get('PIPELINEEDITOR_AZURE_CLIENT_ID', '').strip())} "
+        f"pipelineEditor_secret={bool(os.environ.get('PIPELINEEDITOR_AZURE_CLIENT_SECRET', '').strip())} "
+        f"declared_secret_count={len([n for n in os.environ.get(ENV_SECRET_NAMES, '').split(',') if n.strip()])} "
+        f"ch_log_db={os.environ.get('CH_LOG_DB', '<unset>')!r}"
+    )
+
     node_identity = _resolve_node_identity()
     _emit(f"node identity: {node_identity}")
 
-    # The vault is opened with the identity attached to this machine: nothing
-    # is seeded, so there is no credential in the deployment, in the boot data
-    # or on disk. The certificate fetched here is what authenticates to Mongo.
+    # The vault is opened as pipelineEditor, which proves itself with its
+    # client secret. The certificate fetched here is what authenticates to
+    # Mongo; the secret opens the vault and nothing else.
     vault_uri = _resolve_vault_uri()
     cred = _pipeline_credential()
     client = SecretClient(vault_url=vault_uri, credential=cred)
     _emit(f"KV client bound to {vault_uri}")
     cert_path, key_path = _seed_read_long_lived_cert(client, node_identity)
+    _emit(f"identity certificate materialised for {node_identity}")
     n = _load_all_secrets_into_env(client)
     _emit(f"loaded {n} non-cert secrets into env")
     ca_path = _materialize_ca_chain(client=client)
+    _emit("CA chain ready; handing off to the entry point")
 
     os.environ[ENV_CERT_PATH] = str(cert_path)
     os.environ[ENV_KEY_PATH] = str(key_path)
