@@ -664,6 +664,11 @@
         "CLOUDFLARE_ACCOUNT_ID": "local_env",
         "CLOUDFLARE_PIPELINE_AUTH_HEADER": "local_env"
       },
+      "secret_descriptions": {
+        "CLOUDFLARE_ACCOUNT_ID": "The Cloudflare account the website belongs to",
+        "CLOUDFLARE_API_TOKEN": "Cloudflare token for publishing the website",
+        "CLOUDFLARE_PIPELINE_AUTH_HEADER": "Header authorising calls to the Cloudflare worker"
+      },
       "entitlements": [
         {
           "kind": "cloudflare_api_token_scope",
@@ -1048,7 +1053,22 @@
         "FRONTENDUSER_AZURE_TENANT_ID": "local_env",
         "FRONTENDUSER_AZURE_CLIENT_ID": "local_env",
         "FRONTENDUSER_AZURE_CLIENT_SECRET": "local_env",
-        "EVALCARE_SIGNING_KEY_PEM": "rename_from:EVALCARE_SIGNING_KEY_B64"
+        "EVALCARE_SIGNING_KEY_PEM": "rename_from:EVALCARE_SIGNING_KEY_B64",
+        "PIPELINEEDITOR_AZURE_TENANT_ID": "local_env",
+        "PIPELINEEDITOR_AZURE_CLIENT_ID": "local_env",
+        "PIPELINEEDITOR_AZURE_CLIENT_SECRET": "local_env"
+      },
+      "secret_descriptions": {
+        "EVALCARE_SIGNING_KEY_B64": "The EvaluateCare signing key, encoded for transport",
+        "EVALCARE_SIGNING_KEY_PEM": "Key EvaluateCare signs its session tokens with",
+        "FRONTENDUSER_AZURE_CLIENT_ID": "Identifies frontendUser to Azure",
+        "FRONTENDUSER_AZURE_CLIENT_SECRET": "Proves frontendUser to Azure",
+        "FRONTENDUSER_AZURE_TENANT_ID": "The directory frontendUser belongs to",
+        "HF_TOKEN": "Hugging Face token for publishing to a Space",
+        "KEY_VAULT_URI": "Address of the key vault holding every credential",
+        "PIPELINEEDITOR_AZURE_CLIENT_ID": "Identifies pipelineEditor to Azure",
+        "PIPELINEEDITOR_AZURE_CLIENT_SECRET": "Proves pipelineEditor to Azure",
+        "PIPELINEEDITOR_AZURE_TENANT_ID": "The directory pipelineEditor belongs to"
       },
       "entitlements": [
         {
@@ -2502,7 +2522,31 @@
         "FRONTENDUSER_AZURE_TENANT_ID": "local_env",
         "FRONTENDUSER_AZURE_CLIENT_ID": "local_env",
         "FRONTENDUSER_AZURE_CLIENT_SECRET": "local_env",
-        "FINDCARE_SIGNING_KEY_PEM": "rename_from:FINDCARE_SIGNING_KEY_B64"
+        "FINDCARE_SIGNING_KEY_PEM": "rename_from:FINDCARE_SIGNING_KEY_B64",
+        "PIPELINEEDITOR_AZURE_TENANT_ID": "local_env",
+        "PIPELINEEDITOR_AZURE_CLIENT_ID": "local_env",
+        "PIPELINEEDITOR_AZURE_CLIENT_SECRET": "local_env"
+      },
+      "secret_descriptions": {
+        "ADMIN_UNLOCK_KEY": "Releases a user locked out by the safety check",
+        "ANTHROPIC_API_KEY": "Anthropic API key for language model calls",
+        "API_TOKEN_MAP": "Which token each calling service must present",
+        "FINDCARE_SIGNING_KEY_B64": "The FindCare signing key, encoded for transport",
+        "FINDCARE_SIGNING_KEY_PEM": "Key FindCare signs its session tokens with",
+        "FRONTENDUSER_AZURE_CLIENT_ID": "Identifies frontendUser to Azure",
+        "FRONTENDUSER_AZURE_CLIENT_SECRET": "Proves frontendUser to Azure",
+        "FRONTENDUSER_AZURE_TENANT_ID": "The directory frontendUser belongs to",
+        "GEMINI_API_KEY": "Google Gemini API key for language model calls",
+        "GOOGLE_API_KEY": "Google API key for geocoding provider addresses",
+        "HF_TOKEN": "Hugging Face token for publishing to a Space",
+        "KEY_VAULT_URI": "Address of the key vault holding every credential",
+        "NOTIFICATION_FROM_EMAIL": "Address notification email is sent from",
+        "NOTIFICATION_TO_EMAIL": "Address notification email is sent to",
+        "OPENAI_API_KEY": "OpenAI API key for language model and embedding calls",
+        "PIPELINEEDITOR_AZURE_CLIENT_ID": "Identifies pipelineEditor to Azure",
+        "PIPELINEEDITOR_AZURE_CLIENT_SECRET": "Proves pipelineEditor to Azure",
+        "PIPELINEEDITOR_AZURE_TENANT_ID": "The directory pipelineEditor belongs to",
+        "SPARKMAIL_API_KEY": "SparkPost key for sending notification email"
       },
       "entitlements": [
         {
@@ -3191,7 +3235,28 @@
         "FRONTENDUSER_AZURE_TENANT_ID": "local_env",
         "FRONTENDUSER_AZURE_CLIENT_ID": "local_env",
         "FRONTENDUSER_AZURE_CLIENT_SECRET": "local_env",
-        "SHARED_SIGNING_KEY_PEM": "rename_from:SHARED_SIGNING_KEY_B64"
+        "SHARED_SIGNING_KEY_PEM": "rename_from:SHARED_SIGNING_KEY_B64",
+        "PIPELINEEDITOR_AZURE_TENANT_ID": "local_env",
+        "PIPELINEEDITOR_AZURE_CLIENT_ID": "local_env",
+        "PIPELINEEDITOR_AZURE_CLIENT_SECRET": "local_env"
+      },
+      "secret_descriptions": {
+        "ANTHROPIC_API_KEY": "Anthropic API key for language model calls",
+        "FRONTENDUSER_AZURE_CLIENT_ID": "Identifies frontendUser to Azure",
+        "FRONTENDUSER_AZURE_CLIENT_SECRET": "Proves frontendUser to Azure",
+        "FRONTENDUSER_AZURE_TENANT_ID": "The directory frontendUser belongs to",
+        "GEMINI_API_KEY": "Google Gemini API key for language model calls",
+        "GOOGLE_API_KEY": "Google API key for geocoding provider addresses",
+        "GOOGLE_OAUTH_CLIENT_ID": "Identifies ChatHealthy to Google when a user signs in",
+        "GOOGLE_OAUTH_CLIENT_SECRET": "Proves ChatHealthy to Google when a user signs in",
+        "HF_TOKEN": "Hugging Face token for publishing to a Space",
+        "KEY_VAULT_URI": "Address of the key vault holding every credential",
+        "OPENAI_API_KEY": "OpenAI API key for language model and embedding calls",
+        "PIPELINEEDITOR_AZURE_CLIENT_ID": "Identifies pipelineEditor to Azure",
+        "PIPELINEEDITOR_AZURE_CLIENT_SECRET": "Proves pipelineEditor to Azure",
+        "PIPELINEEDITOR_AZURE_TENANT_ID": "The directory pipelineEditor belongs to",
+        "SHARED_SIGNING_KEY_B64": "The SharedServices signing key, encoded for transport",
+        "SHARED_SIGNING_KEY_PEM": "Key SharedServices signs its session tokens with"
       },
       "entitlements": [
         {
@@ -3738,6 +3803,25 @@
         "HF_TOKEN": "local_env",
         "ANTHROPIC_API_KEY": "local_env"
       },
+      "secret_descriptions": {
+        "ANTHROPIC_API_KEY": "Anthropic API key for language model calls",
+        "AZ_VM_ADMIN_SSH_PRIVATE_KEY_B64": "Private key used to reach the pipeline run host",
+        "CHATHEALTHY_PROJECT_ROOT": "Where the project tree sits on the workstation",
+        "CLOUDFLARE_ACCOUNT_ID": "The Cloudflare account the website belongs to",
+        "CLOUDFLARE_API_TOKEN": "Cloudflare token for publishing the website",
+        "ENV_PREFIX": "Which environment this component is running as",
+        "EVALCARE_URL": "Where EvaluateCare answers",
+        "GITHUB_ACTIONS": "Marks that the code is running in a build pipeline",
+        "GITHUB_SHA": "The commit the running build was made from",
+        "HF_TOKEN": "Hugging Face token for publishing to a Space",
+        "PUSHOVER_TOKEN": "Pushover application token for operator alerts",
+        "PUSHOVER_USER": "Pushover recipient key for operator alerts",
+        "SHARED_SERVICES_URL": "Where SharedServices answers",
+        "SMOKE_TEST_ENV": "Which environment the smoke test runs against",
+        "SMOKE_TEST_URL": "Address the smoke test calls",
+        "SPACE_ID": "Which Hugging Face Space this component runs in",
+        "WEBSITE_SITE_NAME": "Name Azure gives the running function app"
+      },
       "variables": {
         "CHATHEALTHY_PROJECT_ROOT": "local_env",
         "ENV_PREFIX": "local_env"
@@ -3960,6 +4044,21 @@
         "SMOKE_TEST_URL": "local_env",
         "SPACE_ID": "local_env",
         "WEBSITE_SITE_NAME": "local_env"
+      },
+      "secret_descriptions": {
+        "AZ_VM_ADMIN_SSH_PRIVATE_KEY_B64": "Private key used to reach the pipeline run host",
+        "CHATHEALTHY_PROJECT_ROOT": "Where the project tree sits on the workstation",
+        "ENV_PREFIX": "Which environment this component is running as",
+        "EVALCARE_URL": "Where EvaluateCare answers",
+        "GITHUB_ACTIONS": "Marks that the code is running in a build pipeline",
+        "GITHUB_SHA": "The commit the running build was made from",
+        "PUSHOVER_TOKEN": "Pushover application token for operator alerts",
+        "PUSHOVER_USER": "Pushover recipient key for operator alerts",
+        "SHARED_SERVICES_URL": "Where SharedServices answers",
+        "SMOKE_TEST_ENV": "Which environment the smoke test runs against",
+        "SMOKE_TEST_URL": "Address the smoke test calls",
+        "SPACE_ID": "Which Hugging Face Space this component runs in",
+        "WEBSITE_SITE_NAME": "Name Azure gives the running function app"
       }
     },
     {
@@ -4019,6 +4118,32 @@
                 "IDENTITY_ENDPOINT": "local_env",
                 "IDENTITY_HEADER": "local_env"
               },
+              "secret_descriptions": {
+                "ACTIVITY_WINDOW_MINUTES": "How long a cluster may idle before it is paused",
+                "ATLAS_PRIVATE_KEY": "MongoDB Atlas administrative API private key",
+                "ATLAS_PROJECT_ID": "The Atlas project the clusters belong to",
+                "ATLAS_PUBLIC_KEY": "MongoDB Atlas administrative API public key",
+                "AUTOMATION_JOB_ID": "Identifies the running automation job to itself",
+                "AZUREPS_HOST_ENVIRONMENT": "Marks that the code is running inside automation",
+                "AZURE_WEBJOBS_STORAGE": "Storage the function app keeps its own state in",
+                "AZ_AUTOMATION_ACCOUNT": "The automation account that runs scheduled work",
+                "AZ_AUTOMATION_RESOURCE_GROUP": "The resource group the automation account is in",
+                "AZ_RESOURCE_GROUP": "The resource group resources are created in",
+                "AZ_SUBSCRIPTION_ID": "The Azure subscription resources are created in",
+                "AZ_VM_ADMIN_SSH_PUBKEY": "Public key permitted to reach the pipeline run host",
+                "AZ_VM_ADMIN_USERNAME": "Administrative account on the pipeline run host",
+                "AZ_VM_LOCATION": "Region the pipeline run host is created in",
+                "AZ_VM_RESOURCE_GROUP": "Resource group the pipeline run host is created in",
+                "AZ_VM_SIZE": "Size of the machine the pipeline run is given",
+                "AZ_VM_SUBNET_ID": "Network the pipeline run host is attached to",
+                "ENV_PREFIX": "Which environment this component is running as",
+                "IDENTITY_ENDPOINT": "Where Azure compute hands out its identity token",
+                "IDENTITY_HEADER": "Header proving the identity token request is genuine",
+                "NOTIFICATION_FROM_EMAIL": "Address notification email is sent from",
+                "NOTIFICATION_TO_EMAIL": "Address notification email is sent to",
+                "PIPELINE_CLUSTER": "Name of the Atlas cluster the pipeline writes to",
+                "SPARKMAIL_API_KEY": "SparkPost key for sending notification email"
+              },
               "config": {
                 "runbook_name": "ReservationReaper",
                 "schedule_names": [
@@ -4062,6 +4187,9 @@
               "secrets": {
                 "API_TOKEN_MAP": "local_env"
               },
+              "secret_descriptions": {
+                "API_TOKEN_MAP": "Which token each calling service must present"
+              },
               "config": {
                 "runbook_name": "ChangeDBVersion",
                 "schedule_names": [],
@@ -4102,7 +4230,21 @@
                 "ATLAS_PROJECT_ID": "local_env",
                 "AZURE_STORAGE_CONNECTION_STRING": "local_env",
                 "KEY_VAULT_URI": "local_env",
-                "AZ_VM_ADMIN_SSH_PUBKEY": "local_env"
+                "AZ_VM_ADMIN_SSH_PUBKEY": "local_env",
+                "PIPELINEEDITOR_AZURE_TENANT_ID": "local_env",
+                "PIPELINEEDITOR_AZURE_CLIENT_ID": "local_env",
+                "PIPELINEEDITOR_AZURE_CLIENT_SECRET": "local_env"
+              },
+              "secret_descriptions": {
+                "ATLAS_PRIVATE_KEY": "MongoDB Atlas administrative API private key",
+                "ATLAS_PROJECT_ID": "The Atlas project the clusters belong to",
+                "ATLAS_PUBLIC_KEY": "MongoDB Atlas administrative API public key",
+                "AZURE_STORAGE_CONNECTION_STRING": "Connection string for the general storage account",
+                "AZ_VM_ADMIN_SSH_PUBKEY": "Public key permitted to reach the pipeline run host",
+                "KEY_VAULT_URI": "Address of the key vault holding every credential",
+                "PIPELINEEDITOR_AZURE_CLIENT_ID": "Identifies pipelineEditor to Azure",
+                "PIPELINEEDITOR_AZURE_CLIENT_SECRET": "Proves pipelineEditor to Azure",
+                "PIPELINEEDITOR_AZURE_TENANT_ID": "The directory pipelineEditor belongs to"
               },
               "config": {
                 "runbook_name": "ProviderPipelineRunbook",
@@ -4145,7 +4287,17 @@
               ],
               "secrets": {
                 "KEY_VAULT_URI": "local_env",
-                "AUTOMATION_ENV_PREFIX": "local_env"
+                "AUTOMATION_ENV_PREFIX": "local_env",
+                "PIPELINEEDITOR_AZURE_TENANT_ID": "local_env",
+                "PIPELINEEDITOR_AZURE_CLIENT_ID": "local_env",
+                "PIPELINEEDITOR_AZURE_CLIENT_SECRET": "local_env"
+              },
+              "secret_descriptions": {
+                "AUTOMATION_ENV_PREFIX": "Which environment the automation job is running for",
+                "KEY_VAULT_URI": "Address of the key vault holding every credential",
+                "PIPELINEEDITOR_AZURE_CLIENT_ID": "Identifies pipelineEditor to Azure",
+                "PIPELINEEDITOR_AZURE_CLIENT_SECRET": "Proves pipelineEditor to Azure",
+                "PIPELINEEDITOR_AZURE_TENANT_ID": "The directory pipelineEditor belongs to"
               },
               "config": {
                 "runbook_name": "CaBootstrapRunbook",
@@ -4187,7 +4339,17 @@
               ],
               "secrets": {
                 "KEY_VAULT_URI": "local_env",
-                "AUTOMATION_ENV_PREFIX": "local_env"
+                "AUTOMATION_ENV_PREFIX": "local_env",
+                "PIPELINEEDITOR_AZURE_TENANT_ID": "local_env",
+                "PIPELINEEDITOR_AZURE_CLIENT_ID": "local_env",
+                "PIPELINEEDITOR_AZURE_CLIENT_SECRET": "local_env"
+              },
+              "secret_descriptions": {
+                "AUTOMATION_ENV_PREFIX": "Which environment the automation job is running for",
+                "KEY_VAULT_URI": "Address of the key vault holding every credential",
+                "PIPELINEEDITOR_AZURE_CLIENT_ID": "Identifies pipelineEditor to Azure",
+                "PIPELINEEDITOR_AZURE_CLIENT_SECRET": "Proves pipelineEditor to Azure",
+                "PIPELINEEDITOR_AZURE_TENANT_ID": "The directory pipelineEditor belongs to"
               },
               "config": {
                 "runbook_name": "CaEndpointRunbook",
@@ -4236,7 +4398,24 @@
                 "ATLAS_PROJECT_ID": "local_env",
                 "KEY_VAULT_URI": "local_env",
                 "AUTOMATION_ENV_PREFIX": "local_env",
-                "MONGOCLUSTER_MIGRATOR_ORCHESTRATOR_WEBHOOK_URL": "local_env"
+                "MONGOCLUSTER_MIGRATOR_ORCHESTRATOR_WEBHOOK_URL": "local_env",
+                "PIPELINEEDITOR_AZURE_TENANT_ID": "local_env",
+                "PIPELINEEDITOR_AZURE_CLIENT_ID": "local_env",
+                "PIPELINEEDITOR_AZURE_CLIENT_SECRET": "local_env"
+              },
+              "secret_descriptions": {
+                "ATLAS_PRIVATE_KEY": "MongoDB Atlas administrative API private key",
+                "ATLAS_PROJECT_ID": "The Atlas project the clusters belong to",
+                "ATLAS_PUBLIC_KEY": "MongoDB Atlas administrative API public key",
+                "AUTOMATION_ENV_PREFIX": "Which environment the automation job is running for",
+                "AZ_AUTOMATION_ACCOUNT": "The automation account that runs scheduled work",
+                "AZ_RESOURCE_GROUP": "The resource group resources are created in",
+                "AZ_SUBSCRIPTION_ID": "The Azure subscription resources are created in",
+                "KEY_VAULT_URI": "Address of the key vault holding every credential",
+                "MONGOCLUSTER_MIGRATOR_ORCHESTRATOR_WEBHOOK_URL": "Webhook that starts a data migration",
+                "PIPELINEEDITOR_AZURE_CLIENT_ID": "Identifies pipelineEditor to Azure",
+                "PIPELINEEDITOR_AZURE_CLIENT_SECRET": "Proves pipelineEditor to Azure",
+                "PIPELINEEDITOR_AZURE_TENANT_ID": "The directory pipelineEditor belongs to"
               },
               "config": {
                 "runbook_name": "ChatHealthyDataMigratorOrchestrator",
@@ -4287,7 +4466,26 @@
                 "AZ_AUTOMATION_RESOURCE_GROUP": "local_env",
                 "AZ_AUTOMATION_ACCOUNT": "local_env",
                 "KEY_VAULT_URI": "local_env",
-                "AUTOMATION_ENV_PREFIX": "local_env"
+                "AUTOMATION_ENV_PREFIX": "local_env",
+                "PIPELINEEDITOR_AZURE_TENANT_ID": "local_env",
+                "PIPELINEEDITOR_AZURE_CLIENT_ID": "local_env",
+                "PIPELINEEDITOR_AZURE_CLIENT_SECRET": "local_env"
+              },
+              "secret_descriptions": {
+                "AUTOMATION_ENV_PREFIX": "Which environment the automation job is running for",
+                "AZ_AUTOMATION_ACCOUNT": "The automation account that runs scheduled work",
+                "AZ_AUTOMATION_RESOURCE_GROUP": "The resource group the automation account is in",
+                "AZ_SUBSCRIPTION_ID": "The Azure subscription resources are created in",
+                "AZ_VM_ADMIN_SSH_PUBKEY": "Public key permitted to reach the pipeline run host",
+                "AZ_VM_ADMIN_USERNAME": "Administrative account on the pipeline run host",
+                "AZ_VM_LOCATION": "Region the pipeline run host is created in",
+                "AZ_VM_RESOURCE_GROUP": "Resource group the pipeline run host is created in",
+                "AZ_VM_SIZE": "Size of the machine the pipeline run is given",
+                "AZ_VM_SUBNET_ID": "Network the pipeline run host is attached to",
+                "KEY_VAULT_URI": "Address of the key vault holding every credential",
+                "PIPELINEEDITOR_AZURE_CLIENT_ID": "Identifies pipelineEditor to Azure",
+                "PIPELINEEDITOR_AZURE_CLIENT_SECRET": "Proves pipelineEditor to Azure",
+                "PIPELINEEDITOR_AZURE_TENANT_ID": "The directory pipelineEditor belongs to"
               },
               "config": {
                 "runbook_name": "ChatHealthyDataMigratorProvisioner",
@@ -4335,7 +4533,23 @@
                 "AZ_AUTOMATION_RESOURCE_GROUP": "local_env",
                 "AZ_AUTOMATION_ACCOUNT": "local_env",
                 "KEY_VAULT_URI": "local_env",
-                "AUTOMATION_ENV_PREFIX": "local_env"
+                "AUTOMATION_ENV_PREFIX": "local_env",
+                "PIPELINEEDITOR_AZURE_TENANT_ID": "local_env",
+                "PIPELINEEDITOR_AZURE_CLIENT_ID": "local_env",
+                "PIPELINEEDITOR_AZURE_CLIENT_SECRET": "local_env"
+              },
+              "secret_descriptions": {
+                "ATLAS_PRIVATE_KEY": "MongoDB Atlas administrative API private key",
+                "ATLAS_PROJECT_ID": "The Atlas project the clusters belong to",
+                "ATLAS_PUBLIC_KEY": "MongoDB Atlas administrative API public key",
+                "AUTOMATION_ENV_PREFIX": "Which environment the automation job is running for",
+                "AZ_AUTOMATION_ACCOUNT": "The automation account that runs scheduled work",
+                "AZ_AUTOMATION_RESOURCE_GROUP": "The resource group the automation account is in",
+                "AZ_SUBSCRIPTION_ID": "The Azure subscription resources are created in",
+                "KEY_VAULT_URI": "Address of the key vault holding every credential",
+                "PIPELINEEDITOR_AZURE_CLIENT_ID": "Identifies pipelineEditor to Azure",
+                "PIPELINEEDITOR_AZURE_CLIENT_SECRET": "Proves pipelineEditor to Azure",
+                "PIPELINEEDITOR_AZURE_TENANT_ID": "The directory pipelineEditor belongs to"
               },
               "config": {
                 "runbook_name": "ChatHealthyDataMigrator",
@@ -4381,7 +4595,21 @@
                 "AZ_AUTOMATION_RESOURCE_GROUP": "local_env",
                 "AZ_AUTOMATION_ACCOUNT": "local_env",
                 "KEY_VAULT_URI": "local_env",
-                "AUTOMATION_ENV_PREFIX": "local_env"
+                "AUTOMATION_ENV_PREFIX": "local_env",
+                "PIPELINEEDITOR_AZURE_TENANT_ID": "local_env",
+                "PIPELINEEDITOR_AZURE_CLIENT_ID": "local_env",
+                "PIPELINEEDITOR_AZURE_CLIENT_SECRET": "local_env"
+              },
+              "secret_descriptions": {
+                "AUTOMATION_ENV_PREFIX": "Which environment the automation job is running for",
+                "AZ_AUTOMATION_ACCOUNT": "The automation account that runs scheduled work",
+                "AZ_AUTOMATION_RESOURCE_GROUP": "The resource group the automation account is in",
+                "AZ_SUBSCRIPTION_ID": "The Azure subscription resources are created in",
+                "AZ_VM_RESOURCE_GROUP": "Resource group the pipeline run host is created in",
+                "KEY_VAULT_URI": "Address of the key vault holding every credential",
+                "PIPELINEEDITOR_AZURE_CLIENT_ID": "Identifies pipelineEditor to Azure",
+                "PIPELINEEDITOR_AZURE_CLIENT_SECRET": "Proves pipelineEditor to Azure",
+                "PIPELINEEDITOR_AZURE_TENANT_ID": "The directory pipelineEditor belongs to"
               },
               "config": {
                 "runbook_name": "ChatHealthyDataMigratorDeprovisioner",
@@ -4427,7 +4655,21 @@
                 "KEY_VAULT_URI": "local_env",
                 "AUTOMATION_ENV_PREFIX": "local_env",
                 "AUTOMATION_SUBSCRIPTION_ID": "local_env",
-                "AUTOMATION_RESOURCE_GROUP": "local_env"
+                "AUTOMATION_RESOURCE_GROUP": "local_env",
+                "PIPELINEEDITOR_AZURE_TENANT_ID": "local_env",
+                "PIPELINEEDITOR_AZURE_CLIENT_ID": "local_env",
+                "PIPELINEEDITOR_AZURE_CLIENT_SECRET": "local_env"
+              },
+              "secret_descriptions": {
+                "AUTOMATION_ENV_PREFIX": "Which environment the automation job is running for",
+                "AUTOMATION_RESOURCE_GROUP": "The resource group the automation account is in",
+                "AUTOMATION_SUBSCRIPTION_ID": "The subscription the automation account is in",
+                "IDENTITY_ENDPOINT": "Where Azure compute hands out its identity token",
+                "IDENTITY_HEADER": "Header proving the identity token request is genuine",
+                "KEY_VAULT_URI": "Address of the key vault holding every credential",
+                "PIPELINEEDITOR_AZURE_CLIENT_ID": "Identifies pipelineEditor to Azure",
+                "PIPELINEEDITOR_AZURE_CLIENT_SECRET": "Proves pipelineEditor to Azure",
+                "PIPELINEEDITOR_AZURE_TENANT_ID": "The directory pipelineEditor belongs to"
               },
               "config": {
                 "runbook_name": "WatchdogRunbook",
@@ -4461,22 +4703,23 @@
       ],
       "files": [],
       "secrets": {},
+      "secret_descriptions": {},
       "entitlements": [
         {
           "kind": "azure_rbac_role_assignment",
-          "principal": "ChatHealthyJobManager user-assigned managed identity mi-runbook",
+          "principal": "pipelineEditor",
           "role": "Virtual Machine Contributor",
           "scope": "/subscriptions/<subscription-id>/resourceGroups/<vm_rg>"
         },
         {
           "kind": "azure_rbac_role_assignment",
-          "principal": "ChatHealthyJobManager user-assigned managed identity mi-runbook",
+          "principal": "pipelineEditor",
           "role": "Network Contributor",
           "scope": "/subscriptions/<subscription-id>/resourceGroups/<vm_rg>"
         },
         {
           "kind": "azure_rbac_role_assignment",
-          "principal": "ChatHealthyJobManager user-assigned managed identity mi-runbook",
+          "principal": "pipelineEditor",
           "role": "Contributor",
           "scope": "/subscriptions/7a17eec1-c477-4c7c-b1c1-d0662ce7a1ee/resourceGroups/rg-chathealthy-pipeline-dev/providers/Microsoft.Automation/automationAccounts/ChatHealthyJobManager"
         },
@@ -4509,7 +4752,8 @@
         }
       ],
       "files": [],
-      "secrets": {}
+      "secrets": {},
+      "secret_descriptions": {}
     },
     {
       "target_id": "target_azure_key_vault_pipeline",
@@ -4556,7 +4800,55 @@
         "SOURCE_URL_CENSUS_ZCTA_COUNTY": "local_env",
         "SOURCE_URL_USDA_RUCC": "local_env",
         "SPECIALTY_CLASSIFICATION_CATALOG_URL": "local_env",
-        "CLOUDFLARE_PIPELINE_AUTH_HEADER": "local_env"
+        "CLOUDFLARE_PIPELINE_AUTH_HEADER": "local_env",
+        "PIPELINEEDITOR_AZURE_TENANT_ID": "local_env",
+        "PIPELINEEDITOR_AZURE_CLIENT_ID": "local_env",
+        "PIPELINEEDITOR_AZURE_CLIENT_SECRET": "local_env"
+      },
+      "secret_descriptions": {
+        "ANTHROPIC_API_KEY": "Anthropic API key for language model calls",
+        "ATLAS_PRIVATE_KEY": "MongoDB Atlas administrative API private key",
+        "ATLAS_PROJECT_ID": "The Atlas project the clusters belong to",
+        "ATLAS_PUBLIC_KEY": "MongoDB Atlas administrative API public key",
+        "AZURE_STORAGE_CONNECTION_STRING": "Connection string for the general storage account",
+        "CLOUDFLARE_PIPELINE_AUTH_HEADER": "Header authorising calls to the Cloudflare worker",
+        "GEMINI_API_KEY": "Google Gemini API key for language model calls",
+        "GOOGLE_MAPS_API_KEY": "Google Maps key for geocoding provider addresses",
+        "KEY_VAULT_URI": "Address of the key vault holding every credential",
+        "NOTIFICATION_FROM_EMAIL": "Address notification email is sent from",
+        "NOTIFICATION_TO_EMAIL": "Address notification email is sent to",
+        "PIPELINEEDITOR_AZURE_CLIENT_ID": "Identifies pipelineEditor to Azure",
+        "PIPELINEEDITOR_AZURE_CLIENT_SECRET": "Proves pipelineEditor to Azure",
+        "PIPELINEEDITOR_AZURE_TENANT_ID": "The directory pipelineEditor belongs to",
+        "PIPELINE_STORAGE_CONNECTION_STRING": "Connection string for the pipeline storage account",
+        "SOURCE_URL_CENSUS_ZCTA_COUNTY": "Where census postcode-to-county data is downloaded from",
+        "SOURCE_URL_NPPES_NPI": "Where the national provider registry is downloaded from",
+        "SOURCE_URL_NUCC": "Where the provider taxonomy is downloaded from",
+        "SOURCE_URL_USDA_RUCC": "Where the rural-urban county codes are downloaded from",
+        "SPARKMAIL_API_KEY": "SparkPost key for sending notification email",
+        "SPECIALTY_CLASSIFICATION_CATALOG_URL": "Where the specialty catalogue is published",
+        "DEVOPSUSER-PASSWORD": "Password for the DevOpsUser MongoDB account",
+        "PROVIDER-PIPELINE-WEBHOOK-URL": "Webhook that starts a provider pipeline run",
+        "ca-bootstrap-complete": "Marker recording that the authority was initialised",
+        "ca-intermediate-cert": "Public intermediate certificate of the authority",
+        "ca-intermediate-privatekey": "Signing key of the intermediate authority",
+        "ca-root-cert": "Public root certificate of the ChatHealthy authority",
+        "ca-root-privatekey": "Signing key of the root authority; issues every certificate",
+        "cert-DevOpsUser": "Certificate identifying DevOpsUser to MongoDB",
+        "cert-frontendUser": "Certificate identifying frontendUser to MongoDB",
+        "cert-pipelineEditor": "Certificate identifying pipelineEditor to MongoDB",
+        "certs-pipeline-control": "Superseded control certificate; no longer read",
+        "certs-pipeline-control-key": "Superseded control private key; no longer read",
+        "certs-pipeline-runbook": "Superseded runbook certificate; no longer read",
+        "certs-pipeline-runbook-key": "Superseded runbook private key; no longer read",
+        "env-file": "Materialised environment file used to stand up locally",
+        "key-DevOpsUser": "Private key paired with cert-DevOpsUser",
+        "key-frontendUser": "Private key paired with cert-frontendUser",
+        "key-pipelineEditor": "Private key paired with cert-pipelineEditor",
+        "mongo-ca-cert": "Authority certificate used to verify the MongoDB server",
+        "mongo-client-cert-key-pipelineEditor": "Superseded pipelineEditor certificate and key",
+        "mongo-client-cert-pipelineEditor": "Superseded pipelineEditor client certificate",
+        "mongo-client-key-pipelineEditor": "Superseded pipelineEditor client key"
       },
       "allowed_roles": [
         "Key Vault Secrets Officer",
@@ -4617,6 +4909,7 @@
       ],
       "files": [],
       "secrets": {},
+      "secret_descriptions": {},
       "allowed_roles": [
         "Storage Blob Data Contributor"
       ]
@@ -4672,48 +4965,8 @@
         }
       ],
       "files": [],
-      "secrets": {}
-    },
-    {
-      "target_id": "target_identity_mi_control",
-      "target_kind": "identity",
-      "provisioning": "deploy_provisioned",
-      "promote_chain_bound": false,
-      "allowed_roles": [
-        "Managed Identity Operator"
-      ],
-      "environments": [
-        {
-          "env_binding": "dev",
-          "node_address": "mi-control",
-          "identity": {
-            "identity_class": "managed_identity",
-            "name": "mi-control",
-            "resource_group": "rg-chathealthy-pipeline-dev"
-          }
-        }
-      ],
-      "files": [],
-      "secrets": {}
-    },
-    {
-      "target_id": "target_identity_mi_runbook",
-      "target_kind": "identity",
-      "provisioning": "deploy_provisioned",
-      "promote_chain_bound": false,
-      "environments": [
-        {
-          "env_binding": "dev",
-          "node_address": "mi-runbook",
-          "identity": {
-            "identity_class": "managed_identity",
-            "name": "mi-runbook",
-            "resource_group": "rg-chathealthy-pipeline-dev"
-          }
-        }
-      ],
-      "files": [],
-      "secrets": {}
+      "secrets": {},
+      "secret_descriptions": {}
     },
     {
       "target_id": "target_identity_pipeline_editor",
@@ -4740,7 +4993,8 @@
         }
       ],
       "files": [],
-      "secrets": {}
+      "secrets": {},
+      "secret_descriptions": {}
     },
     {
       "target_id": "target_identity_devops_user",
@@ -4762,7 +5016,8 @@
         }
       ],
       "files": [],
-      "secrets": {}
+      "secrets": {},
+      "secret_descriptions": {}
     },
     {
       "target_id": "target_azure_container_registry_pipeline",
@@ -4801,6 +5056,7 @@
                 }
               ],
               "secrets": {},
+              "secret_descriptions": {},
               "config": {
                 "image_repository": "pipeline-control",
                 "dockerfile": "pipeline/deploy/Dockerfile.control",
@@ -4816,6 +5072,7 @@
       ],
       "files": [],
       "secrets": {},
+      "secret_descriptions": {},
       "allowed_roles": [
         "AcrPush",
         "AcrPull"
@@ -5074,7 +5331,22 @@
         "AZURE_TENANT_ID": "local_env",
         "AZURE_CLIENT_ID": "local_env",
         "AZURE_CLIENT_SECRET": "local_env",
-        "OPENAI_API_KEY": "local_env"
+        "OPENAI_API_KEY": "local_env",
+        "PIPELINEEDITOR_AZURE_TENANT_ID": "local_env",
+        "PIPELINEEDITOR_AZURE_CLIENT_ID": "local_env",
+        "PIPELINEEDITOR_AZURE_CLIENT_SECRET": "local_env"
+      },
+      "secret_descriptions": {
+        "AZURE_CLIENT_ID": "Identifies the acting principal to Azure",
+        "AZURE_CLIENT_SECRET": "Proves the acting principal to Azure",
+        "AZURE_TENANT_ID": "The Entra directory the principal belongs to",
+        "CHATHEALTHY_PROJECT_ROOT": "Where the project tree sits on the workstation",
+        "CH_LOG_DB": "Database that runtime logs are written to",
+        "KEY_VAULT_URI": "Address of the key vault holding every credential",
+        "OPENAI_API_KEY": "OpenAI API key for language model and embedding calls",
+        "PIPELINEEDITOR_AZURE_CLIENT_ID": "Identifies pipelineEditor to Azure",
+        "PIPELINEEDITOR_AZURE_CLIENT_SECRET": "Proves pipelineEditor to Azure",
+        "PIPELINEEDITOR_AZURE_TENANT_ID": "The directory pipelineEditor belongs to"
       }
     }
   ],
