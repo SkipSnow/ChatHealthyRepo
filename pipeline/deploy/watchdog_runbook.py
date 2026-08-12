@@ -50,12 +50,35 @@ import traceback
 import urllib.error
 import urllib.request
 
+# Breadcrumbs to stderr from the first line. Everything below can fail
+# before the Mongo handler exists, and when it does stderr is the only
+# surface that survives -- it lands in the Automation job record. The
+# watchdog spent the afternoon failing on every tick with nothing in the
+# log to say so.
+sys.stderr.write("watchdog: module import begin\n")
+
 # All pipeline metadata lives in one database. This runbook ships to Azure
 # Automation standalone, so it carries the constant rather than importing
 # pipeline_db, which is not deployed alongside it.
 PIPELINE_ADMIN_DB = "pipelineAdmin"
 
-
+# Automation Variables are not in os.environ in the sandbox; each is asked
+# for by name. CH_LOG_DB in particular, because the log handler refuses to
+# start without it, and the identity's credential, because the library
+# resolves it from the environment by identity name.
+for _k in ("CH_LOG_DB", "CH_LOG_LEVEL", "AUTOMATION_ENV_PREFIX",
+           "AUTOMATION_SUBSCRIPTION_ID", "AUTOMATION_RESOURCE_GROUP",
+           "KEY_VAULT_URI",
+           "PIPELINEEDITOR_AZURE_TENANT_ID",
+           "PIPELINEEDITOR_AZURE_CLIENT_ID",
+           "PIPELINEEDITOR_AZURE_CLIENT_SECRET"):
+    try:
+        import automationassets  # only present in the Automation sandbox
+        _v = automationassets.get_automation_variable(_k)
+        if _v:
+            os.environ[_k] = str(_v)
+    except Exception:
+        pass
 
 # CHLS env prerequisites for AA sandbox visibility. Set before any log()
 # call so log output flows to stderr (captured by AA). Mongo destination
@@ -65,6 +88,11 @@ os.environ.setdefault("CH_SPACE_NAME", "watchdog")
 os.environ.setdefault("ENV_PREFIX",
                       os.environ.get("AUTOMATION_ENV_PREFIX", "dev"))
 os.environ.setdefault("CH_COMPONENT", "watchdog")
+sys.stderr.write(
+    f"watchdog: env hydrated; CH_LOG_DB={os.environ.get('CH_LOG_DB', '<unset>')!r} "
+    f"ENV_PREFIX={os.environ.get('ENV_PREFIX', '<unset>')!r} "
+    f"identity_secret_present={bool(os.environ.get('PIPELINEEDITOR_AZURE_CLIENT_SECRET'))}\n"
+)
 
 
 SUBSCRIPTION_ID = os.environ.get(

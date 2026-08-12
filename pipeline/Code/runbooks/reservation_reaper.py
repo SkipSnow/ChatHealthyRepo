@@ -34,7 +34,7 @@ Environment (Automation Variables, exposed via os.environ at runtime):
   AZ_SUBSCRIPTION_ID              - Azure subscription hosting the Automation Account (R2)
   AZ_RESOURCE_GROUP               - RG hosting ChatHealthyJobManager (R2)
   AZ_AUTOMATION_ACCOUNT           - "ChatHealthyJobManager" (R2)
-  AZURE_WEBJOBS_STORAGE           - Function App runtime storage account connection string (R3)
+  AZURE_STORAGE_CONNECTION_STRING - storage account holding the failure-state blob (R3)
   SPARKMAIL_API_KEY               - SparkPost API key (R3)
   NOTIFICATION_FROM_EMAIL         - sender address (R3)
   NOTIFICATION_TO_EMAIL           - recipient address (R3)
@@ -51,16 +51,40 @@ from datetime import datetime, timezone, timedelta
 import requests
 from requests.auth import HTTPDigestAuth
 from pymongo import MongoClient
-from pipeline_db import PIPELINE_ADMIN_DB
+
+# Breadcrumbs to stderr from the first line. Everything below this can fail
+# before the Mongo handler exists -- an import, a missing variable, a
+# credential -- and when it does, stderr is the only surface that survives.
+# It lands in the Automation job record either way.
+sys.stderr.write("reaper: module import begin\n")
+
+# This runbook ships to Azure Automation on its own, so it carries the
+# constant rather than importing pipeline_db, which is not deployed beside
+# it. That import is what killed every 15-minute tick with
+# ModuleNotFoundError, before the runbook could say anything at all.
+PIPELINE_ADMIN_DB = "pipelineAdmin"
+
+# pipeline_db was also where the logging identity got named. Naming it here
+# is not optional: without it the handler raises mongo_log_identity_not_set
+# on the first log() call.
+from chathealthy_lib.logging_service import set_mongo_log_identity  # noqa: E402
+set_mongo_log_identity("pipelineEditor")
 
 try:
     import automationassets
     for k in ("ATLAS_PUBLIC_KEY", "ATLAS_PRIVATE_KEY",
               "ATLAS_PROJECT_ID", "ENV_PREFIX", "PIPELINE_CLUSTER",
-              "ACTIVITY_WINDOW_MINUTES",
+              "ACTIVITY_WINDOW_MINUTES", "CH_LOG_DB",
+              "AZURE_STORAGE_CONNECTION_STRING",
               "AZ_SUBSCRIPTION_ID", "AZ_RESOURCE_GROUP", "AZ_AUTOMATION_ACCOUNT",
-              "AZURE_WEBJOBS_STORAGE", "SPARKMAIL_API_KEY",
-              "NOTIFICATION_FROM_EMAIL", "NOTIFICATION_TO_EMAIL"):
+              "SPARKMAIL_API_KEY",
+              "NOTIFICATION_FROM_EMAIL", "NOTIFICATION_TO_EMAIL",
+              # The library resolves a credential by identity name; without
+              # these in the environment it looks for a managed identity the
+              # Automation Account does not have.
+              "PIPELINEEDITOR_AZURE_TENANT_ID",
+              "PIPELINEEDITOR_AZURE_CLIENT_ID",
+              "PIPELINEEDITOR_AZURE_CLIENT_SECRET"):
         try:
             os.environ[k] = str(automationassets.get_automation_variable(k))
         except Exception:
@@ -76,6 +100,11 @@ ENV_PREFIX       = os.environ.get("ENV_PREFIX", "dev")
 os.environ.setdefault("CH_SPACE_NAME", "reservation-reaper")
 os.environ.setdefault("CH_COMPONENT", "reservation-reaper")
 os.environ.setdefault("CH_LOG_DESTINATION", "stderr,mongo")
+sys.stderr.write(
+    f"reaper: env hydrated; CH_LOG_DB={os.environ.get('CH_LOG_DB', '<unset>')!r} "
+    f"ENV_PREFIX={os.environ.get('ENV_PREFIX', '<unset>')!r} "
+    f"identity_secret_present={bool(os.environ.get('PIPELINEEDITOR_AZURE_CLIENT_SECRET'))}\n"
+)
 CLUSTER_NAME     = os.environ.get("PIPELINE_CLUSTER", "ChatHealthyDataPipelines")
 # Operator directive 2026-08-03: all coord on pipeline cluster.
 ATLAS_PUB        = os.environ["ATLAS_PUBLIC_KEY"]
@@ -84,7 +113,7 @@ ATLAS_PROJECT    = os.environ["ATLAS_PROJECT_ID"]
 AZ_SUB           = os.environ.get("AZ_SUBSCRIPTION_ID", "")
 AZ_RG            = os.environ.get("AZ_RESOURCE_GROUP", "")
 AZ_AA            = os.environ.get("AZ_AUTOMATION_ACCOUNT", "ChatHealthyJobManager")
-WEBJOBS_STORAGE  = os.environ.get("AZURE_WEBJOBS_STORAGE", "")
+WEBJOBS_STORAGE  = os.environ.get("AZURE_STORAGE_CONNECTION_STRING", "")
 SPARKPOST_KEY    = os.environ.get("SPARKMAIL_API_KEY", "")
 EMAIL_FROM       = os.environ.get("NOTIFICATION_FROM_EMAIL", "Skip.Snow@mail.chatHealthy.ai")
 EMAIL_TO         = os.environ.get("NOTIFICATION_TO_EMAIL", "Skip@chatHealthy.ai")
@@ -119,6 +148,13 @@ def _pst_now_iso():
 
 def _blob_client():
     if not WEBJOBS_STORAGE:
+        # Said out loud rather than returned as a quiet None. Without this
+        # the failure-state blob simply stops being written and the streak
+        # email stops arriving, with nothing anywhere saying why.
+        log.warning(
+            "R3: no storage connection in the environment; failure-state "
+            "tracking is OFF and the streak email will not be sent"
+        )
         return None
     try:
         from azure.storage.blob import BlobServiceClient
