@@ -1358,10 +1358,10 @@ def _parse_schedule_from_name(name: str) -> dict | None:
     name = name.strip()
     from datetime import datetime, timedelta, timezone
     # Recurring interval form
-    m = _SCHEDULE_NAME_RE.match(name)
-    if m:
-        n = int(m.group(1))
-        unit = m.group(2).lower()
+    interval = _parse_interval_schedule(name)
+    if interval:
+        n = int(interval[0])
+        unit = interval[1]
         # Azure Automation requires startTime > NOW + 5min (strict).
         # 10-min offset gives safe margin for clock skew.
         start = (datetime.now(timezone.utc) + timedelta(minutes=10)).strftime(
@@ -1381,9 +1381,8 @@ def _parse_schedule_from_name(name: str) -> dict | None:
             }
         }
     # Daily-at-fixed-time UTC form (HHMM)
-    m = _SCHEDULE_DAILY_UTC_RE.match(name)
-    if m:
-        hhmm = m.group(1)
+    hhmm = _parse_daily_utc_schedule(name)
+    if hhmm:
         hh, mm = int(hhmm[:2]), int(hhmm[2:])
         now = datetime.now(timezone.utc)
         target_today = now.replace(hour=hh, minute=mm, second=0, microsecond=0)

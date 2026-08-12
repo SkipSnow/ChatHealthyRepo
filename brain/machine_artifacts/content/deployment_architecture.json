@@ -4730,7 +4730,7 @@
               "config": {
                 "runbook_name": "EntitlementReport",
                 "schedule_names": [
-                  "SCH-EntitlementReport-Daily-0400PT"
+                  "SCH-EntitlementReport-1200UTC"
                 ],
                 "python_packages": [
                   {
