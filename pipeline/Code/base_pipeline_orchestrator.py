@@ -274,9 +274,21 @@ class BasePipelineOrchestrator:
                 env=env,
             )
             worker_pids.append(pid)
+        # Declared in THIS process's environment, not the child's: it is
+        # bootstrap's atexit here that would otherwise unlink the identity
+        # certificate these detached children authenticate with. They are
+        # reparented to init and outlive us; their credential must not be
+        # deleted on our way out.
+        os.environ["CHATHEALTHY_DETACHED_CHILDREN"] = str(
+            len(worker_pids)
+            + int(os.environ.get("CHATHEALTHY_DETACHED_CHILDREN", "0") or 0)
+        )
         _log.info(
-            "orchestrator spawned step=%s workers=%d worker_py=%s pids=%s",
+            "orchestrator spawned step=%s workers=%d worker_py=%s pids=%s "
+            "detached_children_total=%s cert=%s",
             spec.name, max_parallel, worker_py, worker_pids,
+            os.environ["CHATHEALTHY_DETACHED_CHILDREN"],
+            os.environ.get("CHATHEALTHY_CERT_PATH", "<unset>"),
         )
 
         # 3. Wait for terminal state on every work_item. Poll every 5s.
