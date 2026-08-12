@@ -1018,6 +1018,16 @@ def _build_automation_account(repo_root: Path, target: TargetRecord,
         _step(f"  {pid}: staged runbook.py ({dst.stat().st_size / 1024.0:.1f} KB)")
         _inline_chathealthy_lib_if_used(repo_root, dst)
         _inline_secret_descriptions_if_used(repo_root, dst)
+
+        # A runbook that will not compile cannot be discovered in Azure: the
+        # job fails minutes later with a SyntaxError from a file nobody has
+        # in front of them. Both inliners rewrite the file, so the check
+        # belongs here, after the last one.
+        try:
+            compile(dst.read_text(encoding="utf-8"), str(dst), "exec")
+        except SyntaxError as exc:
+            sys.exit(f"ERROR: staged runbook {dst.name} does not compile after "
+                     f"inlining: line {exc.lineno}: {exc.msg}")
         if pid == "change_db_version":
             _emit_change_db_version_target_url_registry(repo_root, pkg_dir)
         if pid in ("ca_bootstrap", "ca_endpoint"):
