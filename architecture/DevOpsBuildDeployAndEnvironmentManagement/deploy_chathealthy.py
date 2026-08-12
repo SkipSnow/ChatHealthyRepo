@@ -126,9 +126,6 @@ def _latest_admin_build() -> int | None:
     from pymongo import MongoClient
 
     load_dotenv(_repo_root() / ".env")
-    conn = os.getenv("MONGO_FRONTEND_connectionString")
-    if not conn:
-        return None
     try:
         from chathealthy_lib.mongo_utilities import ChatHealthyMongoUtilities
         latest = (ChatHealthyMongoUtilities()

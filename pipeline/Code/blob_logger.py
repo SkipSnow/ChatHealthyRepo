@@ -10,7 +10,6 @@ it for job-stream visibility.
 
 install() is now a bare no-op that preserves the bootstrap.py callsite.
 It MUST NOT touch CHLS: bootstrap calls install() BEFORE it loads the
-KV secrets that populate MONGO_FRONTEND_connectionString / CH_SPACE_NAME
 into os.environ. Firing CHLS here would race the observability gate on
 those env bindings and abort bootstrap before the abort itself can log.
 """
