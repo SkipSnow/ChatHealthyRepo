@@ -50,6 +50,23 @@ from chathealthy_lib.logging_service import (
 from chathealthy_lib.mongo_utilities import ChatHealthyMongoUtilities
 from chathealthy_lib.exceptions import ChatHealthyException
 
+# Automation Variables are not in os.environ in the AA sandbox; each one has
+# to be asked for by name. Everything this module reads at import time is
+# hydrated here, before any of it is read -- CH_LOG_DB in particular, because
+# the log handler refuses to start without it and the first log() call
+# happens a few lines below.
+for _k in ("CH_LOG_DB", "CH_LOG_LEVEL", "PIPELINE_SECRET_NAMES",
+           "KEY_VAULT_URI", "AUTOMATION_ENV_PREFIX",
+           "AUTOMATION_SUBSCRIPTION_ID", "AUTOMATION_RESOURCE_GROUP",
+           "ATLAS_PROJECT_ID", "AZ_VM_ADMIN_SSH_PUBKEY"):
+    try:
+        import automationassets  # only present in the Automation sandbox
+        _v = automationassets.get_automation_variable(_k)
+        if _v:
+            os.environ[_k] = str(_v)
+    except Exception:
+        pass
+
 # Whose certificate the log handler connects with. This runbook carries the
 # PIPELINE_ADMIN_DB constant rather than importing pipeline_db, which is where
 # every other pipeline module picks this up -- so without this line the first
@@ -103,6 +120,9 @@ VM_VNET = os.environ.get(
 # and fails on any it cannot read, so a host can be granted precisely these
 # and nothing else.
 PIPELINE_SECRET_NAMES = os.environ.get("PIPELINE_SECRET_NAMES", "")
+# The log database is a deployed fact with no default: a process that cannot
+# name its log destination must not run, on the host or in the container.
+CH_LOG_DB = os.environ.get("CH_LOG_DB", "")
 VM_ACR = os.environ.get(
     "AUTOMATION_VM_ACR",
     "chpipelinedevacr",
@@ -516,6 +536,7 @@ runcmd:
       -e CH_SPACE_NAME='control' \\
       -e CH_LOG_DESTINATION='stderr,mongo' \\
       -e CH_LOG_LEVEL='DEBUG' \\
+      -e CH_LOG_DB='{CH_LOG_DB}' \\
       -e CH_COMPONENT='provider_pipeline_control' \\
       -e PIPELINE_LOG_ACCOUNT_URL='https://stchpipelinedev.blob.core.windows.net' \\
       -e RUN_ID='{run_id}' \\
