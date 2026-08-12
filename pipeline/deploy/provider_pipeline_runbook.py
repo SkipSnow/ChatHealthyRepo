@@ -1270,8 +1270,27 @@ def main() -> int:
                 error_type=type(exc).__name__,
                 error_msg=str(exc),
                 traceback=traceback.format_exc()[-2000:])
-            _runbook_error_teardown(mongo, run_id, vm_name_for_teardown,
-                                    reservation_created, vm_provisioned)
+            # A host that exists is the only witness to what went wrong on it.
+            # Tearing it down here is right when the PUT failed and there is
+            # nothing to look at; it is exactly wrong when the host came up and
+            # the Controller inside it is what failed -- which is the case
+            # every time this wait times out. Leave it standing; the watchdog
+            # reaps hosts nobody claims.
+            host_is_witness = isinstance(exc, ChatHealthyException) and getattr(
+                exc, "mode", "") in (
+                    "controller_never_checked_in",
+                    "run_host_disappeared",
+                    "run_host_state_unreadable",
+                )
+            if host_is_witness:
+                log("run_host_left_standing_for_inspection",
+                    run_id=run_id, vm_name=vm_name_for_teardown,
+                    mode=getattr(exc, "mode", ""),
+                    reason="the failure is on the host; deleting it destroys "
+                           "the only account of what happened")
+            else:
+                _runbook_error_teardown(mongo, run_id, vm_name_for_teardown,
+                                        reservation_created, vm_provisioned)
             return 1
 
         log("runbook_exit", run_id=run_id)
