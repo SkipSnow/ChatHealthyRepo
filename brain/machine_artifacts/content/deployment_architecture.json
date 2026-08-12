@@ -4102,30 +4102,21 @@
                 "AZ_SUBSCRIPTION_ID": "local_env",
                 "AZ_RESOURCE_GROUP": "local_env",
                 "AZ_AUTOMATION_ACCOUNT": "local_env",
-                "AZURE_WEBJOBS_STORAGE": "local_env",
                 "SPARKMAIL_API_KEY": "local_env",
                 "NOTIFICATION_FROM_EMAIL": "local_env",
                 "NOTIFICATION_TO_EMAIL": "local_env",
-                "AUTOMATION_JOB_ID": "local_env",
-                "AZUREPS_HOST_ENVIRONMENT": "local_env",
                 "AZ_AUTOMATION_RESOURCE_GROUP": "local_env",
                 "AZ_VM_ADMIN_SSH_PUBKEY": "local_env",
                 "AZ_VM_ADMIN_USERNAME": "local_env",
                 "AZ_VM_LOCATION": "local_env",
                 "AZ_VM_RESOURCE_GROUP": "local_env",
-                "AZ_VM_SIZE": "local_env",
-                "AZ_VM_SUBNET_ID": "local_env",
-                "IDENTITY_ENDPOINT": "local_env",
-                "IDENTITY_HEADER": "local_env"
+                "AZ_VM_SIZE": "local_env"
               },
               "secret_descriptions": {
                 "ACTIVITY_WINDOW_MINUTES": "How long a cluster may idle before it is paused",
                 "ATLAS_PRIVATE_KEY": "MongoDB Atlas administrative API private key",
                 "ATLAS_PROJECT_ID": "The Atlas project the clusters belong to",
                 "ATLAS_PUBLIC_KEY": "MongoDB Atlas administrative API public key",
-                "AUTOMATION_JOB_ID": "Identifies the running automation job to itself",
-                "AZUREPS_HOST_ENVIRONMENT": "Marks that the code is running inside automation",
-                "AZURE_WEBJOBS_STORAGE": "Storage the function app keeps its own state in",
                 "AZ_AUTOMATION_ACCOUNT": "The automation account that runs scheduled work",
                 "AZ_AUTOMATION_RESOURCE_GROUP": "The resource group the automation account is in",
                 "AZ_RESOURCE_GROUP": "The resource group resources are created in",
@@ -4135,10 +4126,7 @@
                 "AZ_VM_LOCATION": "Region the pipeline run host is created in",
                 "AZ_VM_RESOURCE_GROUP": "Resource group the pipeline run host is created in",
                 "AZ_VM_SIZE": "Size of the machine the pipeline run is given",
-                "AZ_VM_SUBNET_ID": "Network the pipeline run host is attached to",
                 "ENV_PREFIX": "Which environment this component is running as",
-                "IDENTITY_ENDPOINT": "Where Azure compute hands out its identity token",
-                "IDENTITY_HEADER": "Header proving the identity token request is genuine",
                 "NOTIFICATION_FROM_EMAIL": "Address notification email is sent from",
                 "NOTIFICATION_TO_EMAIL": "Address notification email is sent to",
                 "PIPELINE_CLUSTER": "Name of the Atlas cluster the pipeline writes to",
@@ -4233,7 +4221,8 @@
                 "AZ_VM_ADMIN_SSH_PUBKEY": "local_env",
                 "PIPELINEEDITOR_AZURE_TENANT_ID": "local_env",
                 "PIPELINEEDITOR_AZURE_CLIENT_ID": "local_env",
-                "PIPELINEEDITOR_AZURE_CLIENT_SECRET": "local_env"
+                "PIPELINEEDITOR_AZURE_CLIENT_SECRET": "local_env",
+                "PIPELINE_SECRET_NAMES": "local_env"
               },
               "secret_descriptions": {
                 "ATLAS_PRIVATE_KEY": "MongoDB Atlas administrative API private key",
@@ -4244,7 +4233,8 @@
                 "KEY_VAULT_URI": "Address of the key vault holding every credential",
                 "PIPELINEEDITOR_AZURE_CLIENT_ID": "Identifies pipelineEditor to Azure",
                 "PIPELINEEDITOR_AZURE_CLIENT_SECRET": "Proves pipelineEditor to Azure",
-                "PIPELINEEDITOR_AZURE_TENANT_ID": "The directory pipelineEditor belongs to"
+                "PIPELINEEDITOR_AZURE_TENANT_ID": "The directory pipelineEditor belongs to",
+                "PIPELINE_SECRET_NAMES": "Which vault secrets the pipeline run host is permitted to read"
               },
               "config": {
                 "runbook_name": "ProviderPipelineRunbook",
@@ -4460,7 +4450,6 @@
                 "AZ_VM_RESOURCE_GROUP": "local_env",
                 "AZ_VM_LOCATION": "local_env",
                 "AZ_VM_SIZE": "local_env",
-                "AZ_VM_SUBNET_ID": "local_env",
                 "AZ_VM_ADMIN_USERNAME": "local_env",
                 "AZ_VM_ADMIN_SSH_PUBKEY": "local_env",
                 "AZ_AUTOMATION_RESOURCE_GROUP": "local_env",
@@ -4481,7 +4470,6 @@
                 "AZ_VM_LOCATION": "Region the pipeline run host is created in",
                 "AZ_VM_RESOURCE_GROUP": "Resource group the pipeline run host is created in",
                 "AZ_VM_SIZE": "Size of the machine the pipeline run is given",
-                "AZ_VM_SUBNET_ID": "Network the pipeline run host is attached to",
                 "KEY_VAULT_URI": "Address of the key vault holding every credential",
                 "PIPELINEEDITOR_AZURE_CLIENT_ID": "Identifies pipelineEditor to Azure",
                 "PIPELINEEDITOR_AZURE_CLIENT_SECRET": "Proves pipelineEditor to Azure",
@@ -4650,8 +4638,6 @@
                 }
               ],
               "secrets": {
-                "IDENTITY_ENDPOINT": "local_env",
-                "IDENTITY_HEADER": "local_env",
                 "KEY_VAULT_URI": "local_env",
                 "AUTOMATION_ENV_PREFIX": "local_env",
                 "AUTOMATION_SUBSCRIPTION_ID": "local_env",
@@ -4664,8 +4650,6 @@
                 "AUTOMATION_ENV_PREFIX": "Which environment the automation job is running for",
                 "AUTOMATION_RESOURCE_GROUP": "The resource group the automation account is in",
                 "AUTOMATION_SUBSCRIPTION_ID": "The subscription the automation account is in",
-                "IDENTITY_ENDPOINT": "Where Azure compute hands out its identity token",
-                "IDENTITY_HEADER": "Header proving the identity token request is genuine",
                 "KEY_VAULT_URI": "Address of the key vault holding every credential",
                 "PIPELINEEDITOR_AZURE_CLIENT_ID": "Identifies pipelineEditor to Azure",
                 "PIPELINEEDITOR_AZURE_CLIENT_SECRET": "Proves pipelineEditor to Azure",
@@ -4783,10 +4767,42 @@
       ],
       "files": [],
       "secrets": {
-        "ENTITLEMENT_REPORT_TO_EMAIL": "local_env"
+        "ENTITLEMENT_REPORT_TO_EMAIL": "local_env",
+        "AZ_VM_ADMIN_SSH_PUBKEY": "local_env",
+        "AZ_VM_ADMIN_USERNAME": "local_env",
+        "AZ_VM_LOCATION": "local_env",
+        "AZ_VM_RESOURCE_GROUP": "local_env",
+        "AZ_VM_SIZE": "local_env",
+        "AZ_AUTOMATION_ACCOUNT": "local_env",
+        "AZ_AUTOMATION_RESOURCE_GROUP": "local_env",
+        "AZ_RESOURCE_GROUP": "local_env",
+        "AZ_SUBSCRIPTION_ID": "local_env",
+        "ENV_PREFIX": "local_env",
+        "ACTIVITY_WINDOW_MINUTES": "local_env",
+        "PIPELINE_CLUSTER": "local_env",
+        "AUTOMATION_ENV_PREFIX": "local_env",
+        "AUTOMATION_RESOURCE_GROUP": "local_env",
+        "AUTOMATION_SUBSCRIPTION_ID": "local_env",
+        "PIPELINE_SECRET_NAMES": "local_env"
       },
       "secret_descriptions": {
-        "ENTITLEMENT_REPORT_TO_EMAIL": "Who the daily entitlement report is sent to"
+        "ENTITLEMENT_REPORT_TO_EMAIL": "Who the daily entitlement report is sent to",
+        "AZ_VM_ADMIN_SSH_PUBKEY": "Public key permitted to reach the pipeline run host",
+        "AZ_VM_ADMIN_USERNAME": "Admin account name on the pipeline run host",
+        "AZ_VM_LOCATION": "Azure region the pipeline run host is created in",
+        "AZ_VM_RESOURCE_GROUP": "Resource group the pipeline run host is created in",
+        "AZ_VM_SIZE": "Virtual machine size of the pipeline run host",
+        "AZ_AUTOMATION_ACCOUNT": "Automation Account that runs the runbooks",
+        "AZ_AUTOMATION_RESOURCE_GROUP": "Resource group holding the Automation Account",
+        "AZ_RESOURCE_GROUP": "Resource group holding the pipeline estate",
+        "AZ_SUBSCRIPTION_ID": "Subscription the pipeline estate lives in",
+        "ENV_PREFIX": "Which environment a run belongs to",
+        "ACTIVITY_WINDOW_MINUTES": "How long a cluster may idle before it is paused",
+        "PIPELINE_CLUSTER": "Atlas cluster the pipeline coordinates on",
+        "AUTOMATION_ENV_PREFIX": "Environment the Automation Account runs as",
+        "AUTOMATION_RESOURCE_GROUP": "Resource group the runbooks address",
+        "AUTOMATION_SUBSCRIPTION_ID": "Subscription the runbooks address",
+        "PIPELINE_SECRET_NAMES": "Which vault secrets the pipeline run host is permitted to read"
       },
       "entitlements": [
         {
