@@ -706,22 +706,69 @@ def _acr_docker_build_loop(packages, name: str, rg: str) -> None:
         # (~90% of image size); only the final pipeline/Code COPY
         # re-runs on Python source changes. Cuts ACR build from
         # ~5min to ~30-60s when only Python source changed.
-        _az(
-            [
-                "acr", "build",
-                "--registry", name,
-                "--resource-group", rg,
-                "--image", f"{repo}:latest",
-                "--image", f"{repo}:{content_tag}",
-                "--file", dockerfile,
-                "--build-arg", "BUILDKIT_INLINE_CACHE=1",
-                "--build-arg", f"CHATHEALTHY_CA_ROOT_B64={ca_root_b64}",
-                "--build-arg", f"CHATHEALTHY_CA_INTERMEDIATE_B64={ca_int_b64}",
-                "--no-logs",
-                build_context,
-            ]
+        # Built here and pushed, rather than handed to ACR Tasks to build
+        # server-side. `az acr build` needs listBuildSourceUploadUrl, which
+        # lives in Contributor on the registry; the deploy identity holds
+        # AcrPush, which is exactly the right to put an image there and
+        # nothing more. Building locally keeps it that way.
+        _acr_build_and_push(
+            registry=name,
+            repo=repo,
+            tags=("latest", content_tag),
+            dockerfile=dockerfile,
+            build_context=build_context,
+            build_args={
+                "BUILDKIT_INLINE_CACHE": "1",
+                "CHATHEALTHY_CA_ROOT_B64": ca_root_b64,
+                "CHATHEALTHY_CA_INTERMEDIATE_B64": ca_int_b64,
+            },
         )
     return name
+
+
+def _acr_build_and_push(
+    registry: str,
+    repo: str,
+    tags: tuple[str, ...],
+    dockerfile: str,
+    build_context: str,
+    build_args: dict[str, str],
+) -> None:
+    """Build the image on this machine and push every tag to the registry.
+
+    Authentication is `az acr login`, which mints a registry token from the
+    signed-in identity -- no admin username or password, and no rights beyond
+    AcrPush.
+    """
+    _az(["acr", "login", "--name", registry])
+    refs = [f"{registry}.azurecr.io/{repo}:{t}" for t in tags]
+    cmd = ["docker", "build", "--file", dockerfile]
+    for k, v in build_args.items():
+        cmd += ["--build-arg", f"{k}={v}"]
+    for ref in refs:
+        cmd += ["--tag", ref]
+    cmd.append(build_context)
+    env = os.environ.copy()
+    env["DOCKER_BUILDKIT"] = "1"
+    step(f"docker build {refs[0]}")
+    r = subprocess.run(cmd, env=env, creationflags=_cflags(),
+                       capture_output=True, text=True,
+                       encoding='utf-8', errors='replace')
+    if r.returncode != 0:
+        sys.exit(
+            f"ERROR: docker build failed (exit {r.returncode})\n"
+            f"  stderr: {(r.stderr or '').strip()[-2000:]}"
+        )
+    for ref in refs:
+        step(f"docker push {ref}")
+        r = subprocess.run(["docker", "push", ref],
+                           creationflags=_cflags(),
+                           capture_output=True, text=True)
+        if r.returncode != 0:
+            sys.exit(
+                f"ERROR: docker push {ref} failed (exit {r.returncode})\n"
+                f"  stderr: {(r.stderr or '').strip()[-2000:]}"
+            )
 
 
 def _dockerfile_context_hash(dockerfile_path: str, build_context: str) -> str:
