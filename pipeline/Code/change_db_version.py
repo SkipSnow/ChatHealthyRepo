@@ -54,8 +54,11 @@ try:
 except ImportError:
     pass
 
-# Logging destination. The Mongo handler connects through the library
-# with a certificate; there is no URI to prepare.
+# Logging destination. The Mongo handler connects through the library with a
+# certificate; there is no URI to prepare. The identity must be named before
+# the first log() call or the handler raises mongo_log_identity_not_set.
+from chathealthy_lib.logging_service import set_mongo_log_identity  # noqa: E402
+set_mongo_log_identity("pipelineEditor")
 os.environ.setdefault("CH_SPACE_NAME", "change-db-version")
 os.environ.setdefault("CH_COMPONENT", "change-db-version")
 os.environ.setdefault("ENV_PREFIX",

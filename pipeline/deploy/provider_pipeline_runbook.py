@@ -43,9 +43,19 @@ for _pkg in _REQUIRED_PACKAGES:
     except ImportError:
         subprocess.check_call([sys.executable, "-m", "pip", "install", "-q", _pkg])
 
-from chathealthy_lib.logging_service import ChatHealthyLoggingService
+from chathealthy_lib.logging_service import (
+    ChatHealthyLoggingService,
+    set_mongo_log_identity,
+)
 from chathealthy_lib.mongo_utilities import ChatHealthyMongoUtilities
 from chathealthy_lib.exceptions import ChatHealthyException
+
+# Whose certificate the log handler connects with. This runbook carries the
+# PIPELINE_ADMIN_DB constant rather than importing pipeline_db, which is where
+# every other pipeline module picks this up -- so without this line the first
+# log() call raises mongo_log_identity_not_set and the runbook dies before it
+# has said anything.
+set_mongo_log_identity("pipelineEditor")
 
 # All pipeline metadata lives in one database. This runbook ships to Azure
 # Automation standalone, so it carries the constant rather than importing
