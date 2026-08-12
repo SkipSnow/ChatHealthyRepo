@@ -527,11 +527,19 @@ class ChatHealthyMongoUtilities:
             f"mongodb+srv://{host}/?authSource=%24external"
             "&authMechanism=MONGODB-X509&retryWrites=true&w=majority"
         )
+        # Name the trust store rather than inherit whatever the host has.
+        # Atlas presents a chain the Azure Automation sandbox's own store
+        # cannot verify -- every connection there failed with "unable to get
+        # local issuer certificate" -- while a developer workstation verifies
+        # it fine. certifi is the same bundle on both, so the handshake does
+        # not depend on where the code happens to be running.
+        import certifi  # noqa: PLC0415
         try:
             client = MongoClient(
                 uri,
                 tls=True,
                 tlsCertificateKeyFile=cert_path,
+                tlsCAFile=certifi.where(),
                 serverSelectionTimeoutMS=10000,
             )
             client.admin.command("ping")
