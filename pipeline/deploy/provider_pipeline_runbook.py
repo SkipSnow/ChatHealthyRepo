@@ -1326,6 +1326,18 @@ def _mail_discrepancy_report(subject: str, body: str) -> bool:
         "content": {"from": from_email, "subject": subject, "text": body},
         "recipients": [{"address": {"email": to_email}}],
     }
+    # The same trust store problem that stops Mongo stops this: the sandbox
+    # cannot verify SparkPost's chain either, and the report died at TLS
+    # having been written but never sent. certifi is the bundle we ship, so
+    # the post does not depend on the host's own store.
+    ctx = None
+    try:
+        import ssl  # noqa: PLC0415
+        import certifi  # noqa: PLC0415
+        ctx = ssl.create_default_context(cafile=certifi.where())
+    except BaseException:  # noqa: BLE001
+        ctx = None
+
     last = ""
     for attempt in (1, 2, 3):
         try:
@@ -1336,7 +1348,7 @@ def _mail_discrepancy_report(subject: str, body: str) -> bool:
                 headers={"Authorization": api_key,
                          "Content-Type": "application/json"},
             )
-            with urllib.request.urlopen(req, timeout=20) as r:
+            with urllib.request.urlopen(req, timeout=20, context=ctx) as r:
                 r.read()
             sys.stderr.write(
                 f"provider_pipeline_runbook: discrepancy report posted "
