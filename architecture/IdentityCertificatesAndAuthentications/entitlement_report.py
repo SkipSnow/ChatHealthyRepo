@@ -47,6 +47,25 @@ from reportlab.platypus import (  # noqa: E402
 
 _LOG = ChatHealthyLoggingService()
 
+# Azure Automation keeps a runbook's settings as Automation Variables, which are
+# not environment variables until the runbook asks for them. Outside Automation
+# the import fails and the environment already holds what is needed.
+try:
+    import automationassets  # type: ignore[import-not-found]
+
+    for _k in ("PIPELINEEDITOR_AZURE_TENANT_ID",
+               "PIPELINEEDITOR_AZURE_CLIENT_ID",
+               "PIPELINEEDITOR_AZURE_CLIENT_SECRET",
+               "SPARKMAIL_API_KEY",
+               "NOTIFICATION_FROM_EMAIL",
+               "ENTITLEMENT_REPORT_TO_EMAIL"):
+        try:
+            _ch_os.environ[_k] = str(automationassets.get_automation_variable(_k))
+        except Exception:                                       # noqa: BLE001
+            pass
+except ImportError:
+    pass
+
 SUBSCRIPTION_ID = "7a17eec1-c477-4c7c-b1c1-d0662ce7a1ee"
 SUBSCRIPTION_NAME = "PipeLineServices"
 ARM = "https://management.azure.com"
