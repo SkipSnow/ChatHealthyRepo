@@ -867,7 +867,8 @@ def _inline_secret_descriptions_if_used(repo_root: Path, runbook_path: Path) -> 
         "# --- END inlined secret descriptions ---",
         "", "",
     ])
-    runbook_path.write_text(preamble + body, encoding="utf-8")
+    pos = _preamble_insert_point(body)
+    runbook_path.write_text(body[:pos] + preamble + body[pos:], encoding="utf-8")
 
 
 def _inline_chathealthy_lib_if_used(repo_root: Path, runbook_path: Path) -> None:
