@@ -4,10 +4,10 @@ Parse the payload, work out who spoke and what they said, redact credentials
 and profanity, return the document. No transport: this reads no queue, opens no
 spool, and writes to no database.
 
-Credentials are removed deterministically: known .env values by exact match,
-then a narrow set of vendor credential shapes. Profanity is removed by a model,
-because that set is open and mutates -- see redact_profanity() for why matching
-cannot do it.
+Credentials are removed deterministically and by exact match: every value .env
+declares secret, and nothing else. This file recognises no credential on sight.
+Profanity is removed by a model, because that set is open and mutates -- see
+redact_profanity() for why matching cannot do it.
 """
 
 from __future__ import annotations
@@ -26,39 +26,37 @@ ENV_FILE_PATH = REPO_ROOT / ".env"
 OPERATOR = os.environ.get("CHATHEALTHY_OPERATOR", "").strip()
 
 # Naming the key makes a leak actionable -- you know which credential to rotate
-# without the value ever being stored. Caught by shape rather than by name,
-# there is no key to report and we say so.
+# without the value ever being stored.
 REDACTED_KEY = "[Sensitive content redacted (key={key})]"
-REDACTED_NO_KEY = "[Sensitive content redacted (key unavailable)]"
 
-# Below this, a .env value is a port number or a flag, not a secret.
-MIN_SECRET_LENGTH = 12
-
-# .env holds configuration as well as credentials. Redacting every value in it
-# would replace collection names, URLs and email addresses across thousands of
-# documents -- destroying the archive to protect nothing. Only values whose KEY
-# names a credential are redacted.
-SECRET_KEY_MARKERS = (
-    "KEY", "SECRET", "TOKEN", "PASSWORD", "PASSWD", "CREDENTIAL",
-    "CONNECTIONSTRING", "SID", "WEBHOOK", "AUTH",
-)
-# Keys that match a marker but are public identifiers, not credentials.
-NON_SECRET_KEYS = frozenset({
-    "AZURE_KEYVAULT_URL", "KEY_VAULT_URI", "AZ_VM_ADMIN_SSH_PUBKEY",
-    "CLOUDFLARE_ACCOUNT_ID", "AZURE_SUBSCRIPTION_ID", "AZ_SUBSCRIPTION_ID",
-    "SPECIALTY_COLLECTION", "AZURE_STORAGE_CONTAINER",
-})
+# Which values are secret is declared by .env itself, per
+# EPIC-008-F-012-S-001-REQ-T-057: two top-level sections, `# Secrets` and
+# `# SecretSafe`, and demoting a key out of the first requires an operator-
+# echoed token. Every value under `# Secrets` is redacted and nothing else is.
+#
+# The code decides nothing, and names nothing. It used to: nine words that had
+# to appear in a key name, plus a twelve-character floor. Both were guesses made
+# once, and the file outgrew them -- seven keys declared secret there reached the
+# archive in the clear regardless, because their names did not carry one of the
+# nine words. Naming a key here is the same mistake in smaller print.
+SECTION_SECRETS = "secrets"
+SECTION_SECRET_SAFE = "secretsafe"
+# Anything before the first header, so a key added above one is guarded rather
+# than exposed. Same default the file states for a new key.
+SECTION_DEFAULT = SECTION_SECRETS
 
 
-def _is_secret_key(key: str) -> bool:
-    """True when the KEY names a credential rather than configuration."""
-    upper = key.upper()
-    if upper in NON_SECRET_KEYS:
-        return False
-    return any(marker in upper for marker in SECRET_KEY_MARKERS)
+def _section_header(line: str) -> str | None:
+    """The top-level section a comment line opens, or None.
 
+    A sub-section (`## ...`) opens nothing: it annotates within whichever
+    top-level section is in force.
+    """
+    if not line.startswith("#") or line.startswith("##"):
+        return None
+    name = line.lstrip("#").strip().lower().replace(" ", "")
+    return name if name in (SECTION_SECRETS, SECTION_SECRET_SAFE) else None
 
-MIN_CONTENT_LENGTH = 5
 
 # Redaction only removes. Output longer than this multiple of the input means
 # the model added commentary of its own.
@@ -74,108 +72,6 @@ _MASK_TOKEN = "<<R{index}>>"
 
 _secret_cache: list[str] | None = None
 _secret_cache_mtime: float | None = None
-
-# Vendor-specific credential shapes, for secrets never in .env. Narrow on
-# purpose: a loose pattern would shred ordinary prose.
-_ALNUM = frozenset(
-    "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789"
-)
-_ALNUM_DASH_US = _ALNUM | frozenset("-_")
-_ALNUM_DASH = _ALNUM | frozenset("-")
-_UPPER_DIGIT = frozenset("ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789")
-
-# (prefix, permitted body characters, minimum body length, vendor).
-# A credential is a fixed prefix followed by a run of characters from a known
-# set, of at least a known length. Written out rather than encoded in a
-# pattern language, because this decides whether a credential reaches the
-# archive and the reader should not have to parse a regex to check it.
-_SECRET_SHAPES = [
-    ("sk-ant-", _ALNUM_DASH_US, 20, "Anthropic"),
-    ("sk-", _ALNUM_DASH_US, 20, "OpenAI"),
-    ("hf_", _ALNUM, 30, "HuggingFace"),
-    ("AKIA", _UPPER_DIGIT, 16, "AWS"),
-]
-
-# GitHub issues several prefixes that differ only in one letter.
-_SECRET_SHAPES += [
-    (f"gh{c}_", _ALNUM, 30, "GitHub") for c in "pousr"
-]
-# Slack likewise.
-_SECRET_SHAPES += [
-    (f"xox{c}-", _ALNUM_DASH, 10, "Slack") for c in "baprs"
-]
-
-_PEM_OPEN = "-----BEGIN "
-_PEM_CLOSE_TAIL = "PRIVATE KEY-----"
-_MONGO_SCHEMES = ("mongodb://", "mongodb+srv://")
-
-
-def _run_length(text: str, start: int, allowed: frozenset) -> int:
-    """How many characters from `allowed` run consecutively from `start`."""
-    i = start
-    while i < len(text) and text[i] in allowed:
-        i += 1
-    return i - start
-
-
-def _find_shaped_secrets(content: str) -> list[tuple[int, int]]:
-    """Spans of text that have the shape of a vendor credential."""
-    spans: list[tuple[int, int]] = []
-    for prefix, allowed, minimum, _vendor in _SECRET_SHAPES:
-        at = content.find(prefix)
-        while at != -1:
-            body = _run_length(content, at + len(prefix), allowed)
-            if body >= minimum:
-                spans.append((at, at + len(prefix) + body))
-            at = content.find(prefix, at + 1)
-    return spans
-
-
-def _find_pem_blocks(content: str) -> list[tuple[int, int]]:
-    """Spans covering whole PEM private-key blocks, delimiters included."""
-    spans: list[tuple[int, int]] = []
-    at = content.find(_PEM_OPEN)
-    while at != -1:
-        header_end = content.find("-----", at + len(_PEM_OPEN))
-        if header_end == -1:
-            break
-        if content[at:header_end].endswith("PRIVATE KEY"):
-            close = content.find(_PEM_CLOSE_TAIL, header_end)
-            if close != -1:
-                end = content.find("-----", close + len(_PEM_CLOSE_TAIL) - 5)
-                spans.append((at, close + len(_PEM_CLOSE_TAIL)))
-        at = content.find(_PEM_OPEN, at + 1)
-    return spans
-
-
-def _find_credentialled_mongo_uris(content: str) -> list[tuple[int, int]]:
-    """Spans covering a Mongo URI that carries a password."""
-    spans: list[tuple[int, int]] = []
-    for scheme in _MONGO_SCHEMES:
-        at = content.find(scheme)
-        while at != -1:
-            body_start = at + len(scheme)
-            at_sign = content.find("@", body_start)
-            colon = content.find(":", body_start)
-            if at_sign != -1 and colon != -1 and colon < at_sign:
-                between = content[body_start:at_sign]
-                if not any(ch.isspace() for ch in between):
-                    spans.append((at, at_sign + 1))
-            at = content.find(scheme, at + 1)
-    return spans
-
-
-def _replace_spans(content: str, spans: list[tuple[int, int]], with_text: str) -> str:
-    """Replace non-overlapping spans, longest first, right to left."""
-    if not spans:
-        return content
-    chosen: list[tuple[int, int]] = []
-    for start, end in sorted(spans, key=lambda s: (s[1] - s[0]), reverse=True):
-        if all(end <= a or start >= b for a, b in chosen):
-            chosen.append((start, end))
-    for start, end in sorted(chosen, reverse=True):
-        content = content[:start] + with_text + content[end:]
-    return content
 
 
 def _parse_hook_payload(raw_bytes: bytes) -> dict:
@@ -221,7 +117,7 @@ def refresh_secrets_if_changed() -> bool:
 
 
 def _secret_values() -> list[tuple[str, str]]:
-    """Every .env secret as (value, key), longest value first.
+    """Every value declared under `# Secrets` as (value, key), longest first.
 
     Longest-first matters: redacting a short value that is a substring of a
     longer one would leave the tail of the longer secret in the text.
@@ -233,19 +129,24 @@ def _secret_values() -> list[tuple[str, str]]:
     global _secret_cache
     if _secret_cache is None:
         by_value: dict[str, str] = {}
+        section = SECTION_DEFAULT
         if ENV_FILE_PATH.exists():
             for line in ENV_FILE_PATH.read_text(encoding="utf-8", errors="replace").splitlines():
                 line = line.strip()
-                if not line or line.startswith("#") or "=" not in line:
+                if not line:
+                    continue
+                if line.startswith("#"):
+                    section = _section_header(line) or section
+                    continue
+                if "=" not in line or section != SECTION_SECRETS:
                     continue
                 key, _, value = line.partition("=")
                 key = key.strip()
                 value = value.strip().strip('"').strip("'")
-                # Short values are words, ports, flags -- redacting them would
-                # shred ordinary prose.
-                if (len(value) >= MIN_SECRET_LENGTH
-                        and _is_secret_key(key)
-                        and value not in by_value):
+                # An empty value is not a value: `"" in content` is true of
+                # every document, and redacting it would replace the whole
+                # archive. It is the only declared secret not taken.
+                if value and value not in by_value:
                     by_value[value] = key
         _secret_cache = sorted(by_value.items(), key=lambda kv: len(kv[0]), reverse=True)
     return _secret_cache
@@ -257,19 +158,6 @@ def redact_known_secrets(content: str) -> str:
         if value in content:
             content = content.replace(value, REDACTED_KEY.format(key=key))
     return content
-
-
-def redact_secret_shapes(content: str) -> str:
-    """Catch credentials that were never in .env, by shape.
-
-    Deliberately narrow. A pattern that fires on ordinary prose destroys the
-    archive, so each of these matches a vendor-specific format.
-    """
-    spans = (_find_shaped_secrets(content)
-             + _find_pem_blocks(content)
-             + _find_credentialled_mongo_uris(content))
-    return _replace_spans(content, spans, REDACTED_NO_KEY)
-
 
 
 
@@ -327,7 +215,7 @@ def redact_profanity(content: str, oai_client) -> str:
     text is kept, because losing the utterance is worse than a surviving swear
     word.
     """
-    if not content or len(content) < MIN_CONTENT_LENGTH or not oai_client:
+    if not content or not oai_client:
         return content
 
     masked, markers = _mask_markers(content)
@@ -370,18 +258,20 @@ def redact_profanity(content: str, oai_client) -> str:
 
 
 def redact(content: str, oai_client=None) -> str:
-    """Known .env values, then vendor shapes, then profanity.
+    """Declared .env secrets, then profanity.
 
-    Order matters. The deterministic passes run first so the model never sees a
+    Order matters. The deterministic pass runs first so the model never sees a
     credential we already hold, which is what makes it safe to call without
     handing it .env.
 
-    KNOWN GAP: a credential that is neither in .env nor matches a vendor shape
-    is archived in clear text. The profanity call is not asked to catch those --
-    asking one model call to do two jobs is how it started rewriting markers.
+    A credential that .env does not declare is archived in clear text, and is
+    removed by the nightly archive sweep once it is declared. Nothing here
+    guesses at what a credential looks like: the catalogue of vendor prefixes
+    that used to sit in this file was a list written once, and the credentials
+    it missed were archived in the clear for months while it looked like
+    coverage.
     """
-    content = redact_secret_shapes(redact_known_secrets(content))
-    return redact_profanity(content, oai_client)
+    return redact_profanity(redact_known_secrets(content), oai_client)
 
 
 def _assistant_text(transcript_path: str) -> str:
