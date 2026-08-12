@@ -24,6 +24,11 @@ import json
 import sys
 from pathlib import Path
 
+# On a workstation the repository is present and the library is imported from
+# it. Inside Azure Automation there is no git tree: the library is inlined into
+# the runbook and _root stays None, which the manifest reader treats as "the
+# deployment architecture is not reachable from here".
+_root: Path | None = None
 for _d in Path(__file__).resolve().parents:
     if (_d / ".git").exists():
         _root = _d
@@ -213,6 +218,8 @@ def _credential() -> _Credential:
     v = {k: _ch_os.environ.get(k, "") for k in keys}
     if not all(v.values()):
         try:
+            if _root is None:
+                raise ImportError
             from dotenv import dotenv_values
             local = dotenv_values(_root / ".env")
             v = {k: (v[k] or (local.get(k) or "")) for k in keys}
@@ -308,6 +315,8 @@ def _secret_descriptions() -> dict[str, str]:
     The manifest is the source of truth. A secret the manifest does not
     describe renders with its name alone rather than with a guess.
     """
+    if _root is None:
+        return {}
     manifest = _root / "brain" / "machine_artifacts" / "content" / "deployment_architecture.json"
     try:
         doc = json.loads(manifest.read_text(encoding="utf-8"))
