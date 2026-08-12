@@ -15,7 +15,6 @@ Environment variables:
     SPARKMAIL_API_KEY          SparkPost API key
     NOTIFICATION_FROM_EMAIL    Verified sender (Skip.Snow@mail.chatHealthy.ai)
     NOTIFICATION_TO_EMAIL      Admin recipient
-    MONGO_connectionString     MongoDB Atlas connection string
 """
 
 

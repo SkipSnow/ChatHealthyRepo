@@ -25,7 +25,6 @@ in the heartbeat window -- same signal that would tell an operator
 status=failed reason=controller_never_started_or_died.
 
 Environment (Automation Variables, exposed via os.environ at runtime):
-  MONGO_FRONTEND_connectionString - front-end (always-on) cluster MongoDB URI
   ATLAS_PUBLIC_KEY                - Atlas API public key
   ATLAS_PRIVATE_KEY               - Atlas API private key
   ATLAS_PROJECT_ID                - Atlas group/project ID
@@ -56,7 +55,7 @@ from pipeline_db import PIPELINE_ADMIN_DB
 
 try:
     import automationassets
-    for k in ("MONGO_FRONTEND_connectionString", "ATLAS_PUBLIC_KEY", "ATLAS_PRIVATE_KEY",
+    for k in ("ATLAS_PUBLIC_KEY", "ATLAS_PRIVATE_KEY",
               "ATLAS_PROJECT_ID", "ENV_PREFIX", "PIPELINE_CLUSTER",
               "ACTIVITY_WINDOW_MINUTES",
               "AZ_SUBSCRIPTION_ID", "AZ_RESOURCE_GROUP", "AZ_AUTOMATION_ACCOUNT",
@@ -74,7 +73,6 @@ ENV_PREFIX       = os.environ.get("ENV_PREFIX", "dev")
 
 # CHLS env setup + SRV-bypass MUST happen before the module-level
 # ChatHealthyLoggingService() singleton is instantiated on line ~85. The
-# reservation_reaper already receives MONGO_FRONTEND_connectionString via
 # automationassets, but it arrives in mongodb+srv:// form; AA Python 3
 # sandbox cannot resolve _mongodb._tcp SRV records so we translate to the
 # non-SRV direct URI before pymongo touches it.
@@ -83,9 +81,6 @@ os.environ.setdefault("CH_COMPONENT", "reservation-reaper")
 os.environ.setdefault("CH_LOG_DESTINATION", "stderr,mongo")
 try:
     from chathealthy_lib.pipeline_boot import srv_to_direct_uri as _srv_to_direct
-    _mongo_uri = os.environ.get("MONGO_connectionString", "")
-    if _mongo_uri.startswith("mongodb+srv://"):
-        os.environ["MONGO_connectionString"] = _srv_to_direct(_mongo_uri)
 except Exception as _bootstrap_exc:  # noqa: BLE001
     sys.stderr.write(
         f"reservation_reaper: SRV bypass failed "
@@ -95,7 +90,6 @@ except Exception as _bootstrap_exc:  # noqa: BLE001
     os.environ["CH_LOG_DESTINATION"] = "stderr"
 CLUSTER_NAME     = os.environ.get("PIPELINE_CLUSTER", "ChatHealthyDataPipelines")
 # Operator directive 2026-08-03: all coord on pipeline cluster.
-MONGO_URI        = os.environ["MONGO_connectionString"]
 ATLAS_PUB        = os.environ["ATLAS_PUBLIC_KEY"]
 ATLAS_PRIV       = os.environ["ATLAS_PRIVATE_KEY"]
 ATLAS_PROJECT    = os.environ["ATLAS_PROJECT_ID"]

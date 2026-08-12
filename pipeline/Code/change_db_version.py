@@ -20,7 +20,6 @@ Input payload (JSON-encoded `payload` parameter, read via sys.argv[1]):
     { "job_id": "<gateway-minted>" }
 
 Environment (Automation Variables):
-    MONGO_FRONTEND_connectionString - front-end cluster (read ChatHealthyConfig.DBVersions).
     API_TOKEN_MAP                   - JSON map; this runbook uses any token from
                                       it as the Bearer credential for /admin/swap.
 """
@@ -47,7 +46,6 @@ try:
     import automationassets  # type: ignore[import-not-found]
     for _k in (
         "API_TOKEN_MAP",
-        "MONGO_FRONTEND_connectionString",
     ):
         try:
             os.environ[_k] = str(automationassets.get_automation_variable(_k))
@@ -56,26 +54,13 @@ try:
 except ImportError:
     pass
 
-# CHLS Mongo destination + SRV bypass. Every runbook logs to
-# Pipelines.Log_<env>; this configuration makes the ChatHealthyLoggingService
-# singleton (line ~108) wire the Mongo handler on first log call.
+# Logging destination. The Mongo handler connects through the library
+# with a certificate; there is no URI to prepare.
 os.environ.setdefault("CH_SPACE_NAME", "change-db-version")
 os.environ.setdefault("CH_COMPONENT", "change-db-version")
 os.environ.setdefault("ENV_PREFIX",
                       os.environ.get("AUTOMATION_ENV_PREFIX", "dev"))
 os.environ.setdefault("CH_LOG_DESTINATION", "stderr,mongo")
-try:
-    from chathealthy_lib.pipeline_boot import srv_to_direct_uri as _srv_to_direct
-    _mongo_uri = os.environ.get("MONGO_FRONTEND_connectionString", "")
-    if _mongo_uri.startswith("mongodb+srv://"):
-        os.environ["MONGO_FRONTEND_connectionString"] = _srv_to_direct(_mongo_uri)
-except Exception as _bootstrap_exc:  # noqa: BLE001
-    sys.stderr.write(
-        f"change_db_version: SRV bypass failed "
-        f"({type(_bootstrap_exc).__name__}: {_bootstrap_exc}); "
-        "falling back to stderr-only logging.\n"
-    )
-    os.environ["CH_LOG_DESTINATION"] = "stderr"
 
 # Atlas SRV connection strings (mongodb+srv://...) require dnspython
 # SRV resolution. The AA Python3 sandbox's system DNS does not answer
@@ -221,9 +206,6 @@ def main() -> int:
     _log(f"loaded target URL registry: {len(registry)} target(s)")
     token = _bearer_token()
 
-    uri = os.environ.get("MONGO_FRONTEND_connectionString")
-    if not uri:
-        sys.exit("ERROR: MONGO_FRONTEND_connectionString not set.")
     from chathealthy_lib.mongo_utilities import ChatHealthyMongoUtilities
     client = ChatHealthyMongoUtilities().getConnection("pipelineEditor", "admin")
     doc = client[_CONFIG_DB][_CONFIG_COLL].find_one({"env": env})
