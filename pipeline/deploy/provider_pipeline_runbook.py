@@ -58,7 +58,9 @@ from chathealthy_lib.exceptions import ChatHealthyException
 for _k in ("CH_LOG_DB", "CH_LOG_LEVEL", "PIPELINE_SECRET_NAMES",
            "KEY_VAULT_URI", "AUTOMATION_ENV_PREFIX",
            "AUTOMATION_SUBSCRIPTION_ID", "AUTOMATION_RESOURCE_GROUP",
-           "ATLAS_PROJECT_ID", "AZ_VM_ADMIN_SSH_PUBKEY"):
+           "ATLAS_PROJECT_ID", "AZ_VM_ADMIN_SSH_PUBKEY",
+           "SPARKMAIL_API_KEY", "NOTIFICATION_FROM_EMAIL",
+           "NOTIFICATION_TO_EMAIL"):
     try:
         import automationassets  # only present in the Automation sandbox
         _v = automationassets.get_automation_variable(_k)
@@ -584,6 +586,83 @@ def _get_ssh_pubkey() -> str:
         return os.environ.get("AZ_VM_ADMIN_SSH_PUBKEY", "")
 
 
+# How long the runbook waits for the host to come up and the Controller to
+# report itself. Azure Automation's fair-share cap is three hours; a run host
+# that has not booted, pulled its image and started the Controller inside
+# twenty minutes is not slow, it is broken. Both bounds are deliberately far
+# apart so the wait is a failure detector and never a fair-share risk.
+VM_READY_TIMEOUT_SECONDS = 300
+CONTROLLER_READY_TIMEOUT_SECONDS = 1200
+READY_POLL_SECONDS = 10
+
+
+def _await_run_host(run_id: str, vm_name: str, mongo) -> None:
+    """Block until the run host is up and its Controller has checked in.
+
+    Two waits, because they fail differently. ARM tells us whether the host
+    exists -- that answer comes from the control plane and needs no database.
+    The Controller's heartbeat on pipeline.runs tells us the container
+    actually started; nothing else does.
+
+    Raises on either timeout. The caller tears down and the abend report
+    goes out by mail, so a fire that produces no working host says so
+    instead of ending quietly.
+    """
+    tok = _get_token("https://management.azure.com/")
+    url = (
+        f"https://management.azure.com/subscriptions/{SUBSCRIPTION_ID}"
+        f"/resourceGroups/{RESOURCE_GROUP}/providers/Microsoft.Compute/"
+        f"virtualMachines/{vm_name}?api-version=2024-03-01"
+    )
+    deadline = time.time() + VM_READY_TIMEOUT_SECONDS
+    state = "unknown"
+    while time.time() < deadline:
+        req = urllib.request.Request(url, headers={"Authorization": f"Bearer {tok}"})
+        try:
+            with urllib.request.urlopen(req, timeout=30) as r:
+                state = ((json.loads(r.read().decode("utf-8") or "{}")
+                          .get("properties") or {}).get("provisioningState") or "unknown")
+        except Exception as exc:  # noqa: BLE001
+            state = f"query-failed: {type(exc).__name__}"
+        if state == "Succeeded":
+            log("run_host_provisioned", run_id=run_id, vm_name=vm_name)
+            break
+        if state == "Failed":
+            raise ChatHealthyException(
+                mode="run_host_provisioning_failed",
+                message=f"run host {vm_name} reached provisioningState=Failed",
+                component="provider_pipeline_runbook",
+                run_id=run_id,
+            )
+        time.sleep(READY_POLL_SECONDS)
+    else:
+        raise ChatHealthyException(
+            mode="run_host_never_provisioned",
+            message=(f"run host {vm_name} did not reach provisioningState="
+                     f"Succeeded within {VM_READY_TIMEOUT_SECONDS}s; last "
+                     f"state {state!r}"),
+            component="provider_pipeline_runbook",
+            run_id=run_id,
+        )
+
+    deadline = time.time() + CONTROLLER_READY_TIMEOUT_SECONDS
+    while time.time() < deadline:
+        doc = mongo[PIPELINE_ADMIN_DB]["pipeline.runs"].find_one(
+            {"run_id": run_id}, {"controller_heartbeat_at": 1}
+        ) or {}
+        if doc.get("controller_heartbeat_at"):
+            log("controller_checked_in", run_id=run_id, vm_name=vm_name)
+            return
+        time.sleep(READY_POLL_SECONDS)
+    raise ChatHealthyException(
+        mode="controller_never_checked_in",
+        message=(f"Controller on {vm_name} did not write a heartbeat within "
+                 f"{CONTROLLER_READY_TIMEOUT_SECONDS}s of the host coming up"),
+        component="provider_pipeline_runbook",
+        run_id=run_id,
+    )
+
+
 def _provision_vm(run_id: str, load_mode: str, state_scope,
                   invocation_mode: str, resume_from_step: str = "",
                   data_version: int = 0,
@@ -1083,7 +1162,13 @@ def main() -> int:
             )
             vm_id = ((result.get("vm") or {}).get("id")) if result.get("vm") else None
             vm_provisioned = True
-            # VM is up; Controller now owns lock release via its
+            # The PUT is accepted asynchronously, so "dispatched" is not
+            # "running". Wait here until the host is actually up and the
+            # Controller inside it has said so. The runbook used to exit at
+            # this line, which is why a fire that produced no VM produced no
+            # word either -- nothing was left alive to notice.
+            _await_run_host(run_id, vm_name_for_teardown, mongo)
+            # Controller is alive; it now owns lock release via its
             # _quiesce_mongo_state step. Runbook must NOT release.
             runbook_owns_lock_release = False
             log("vm_provision_dispatched_and_mongo_woke_in_parallel",
@@ -1157,5 +1242,89 @@ def main() -> int:
                 vm_name=vm_name_for_teardown)
 
 
+def _mail_discrepancy_report(subject: str, body: str) -> None:
+    """Post a discrepancy report to the mail server directly.
+
+    Deliberately uses nothing but urllib and the Automation Variables this
+    runbook already holds. It exists for the failures that stop the run
+    before it can report itself -- most of them failures of logging, which
+    is to say of the database this report would otherwise be written to.
+    A report that depended on either could not describe their loss.
+
+    Silent on its own failure: this is the last thing that runs, and there
+    is nothing left to tell.
+    """
+    api_key = os.environ.get("SPARKMAIL_API_KEY", "").strip()
+    from_email = os.environ.get("NOTIFICATION_FROM_EMAIL", "").strip()
+    to_email = os.environ.get("NOTIFICATION_TO_EMAIL", "").strip()
+    if not (api_key and from_email and to_email):
+        sys.stderr.write(
+            "provider_pipeline_runbook: cannot mail the discrepancy report; "
+            "SPARKMAIL_API_KEY / NOTIFICATION_FROM_EMAIL / "
+            "NOTIFICATION_TO_EMAIL absent\n"
+        )
+        return
+    payload = {
+        "options": {"transactional": True},
+        "content": {"from": from_email, "subject": subject, "text": body},
+        "recipients": [{"address": {"email": to_email}}],
+    }
+    req = urllib.request.Request(
+        "https://api.sparkpost.com/api/v1/transmissions",
+        data=json.dumps(payload).encode("utf-8"),
+        method="POST",
+        headers={"Authorization": api_key, "Content-Type": "application/json"},
+    )
+    try:
+        with urllib.request.urlopen(req, timeout=20) as r:
+            r.read()
+        sys.stderr.write("provider_pipeline_runbook: discrepancy report mailed\n")
+    except Exception as exc:  # noqa: BLE001
+        sys.stderr.write(
+            f"provider_pipeline_runbook: mailing the discrepancy report "
+            f"failed: {type(exc).__name__}: {exc}\n"
+        )
+
+
+def _abend_report(exc: BaseException) -> None:
+    """The account of a run that ended before it could give one."""
+    when = datetime.datetime.now(datetime.timezone.utc).isoformat()
+    body = (
+        f"Provider pipeline fire ended without starting.\n"
+        f"\n"
+        f"  pipeline:   {PIPELINE_NAME}\n"
+        f"  env:        {ENV_PREFIX}\n"
+        f"  host:       {_HOSTNAME}\n"
+        f"  at:         {when}\n"
+        f"  reason:     {type(exc).__name__}: {exc}\n"
+        f"\n"
+        f"No run host was created and no work was done. If this reads as a\n"
+        f"logging or database failure, that is why this arrived by mail: the\n"
+        f"run could not write the record of its own end.\n"
+        f"\n"
+        f"{traceback.format_exc()[-3000:]}"
+    )
+    _mail_discrepancy_report(
+        f"Provider pipeline FAILED to start - {ENV_PREFIX} - {type(exc).__name__}",
+        body,
+    )
+
+
 if __name__ == "__main__":
-    sys.exit(main())
+    # Every exit from main() is reported, including the ones that get here
+    # because logging itself failed. Bare re-raise: the Automation job must
+    # still end Failed, and the exception must still reach its own record.
+    try:
+        _rc = main()
+    except BaseException as _exc:
+        _abend_report(_exc)
+        raise
+    if _rc != 0:
+        _abend_report(
+            ChatHealthyException(
+                mode="runbook_nonzero_exit",
+                message=f"provider_pipeline_runbook returned {_rc}",
+                component="provider_pipeline_runbook",
+            )
+        )
+    sys.exit(_rc)
