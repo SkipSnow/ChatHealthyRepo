@@ -1,0 +1,51 @@
+ABAC condition for the role assignment granting claudeCodeAgent the
+"ChatHealthy Agent" custom role at subscription scope.
+
+Assignment id: c3a02e42-34d3-47a8-85f9-e326276e09dd
+
+WHY THIS EXISTS
+The role definition withholds identity creation. That withholding means
+nothing while the holder can assign itself a different role carrying the same
+action. Three built-in roles carry
+Microsoft.ManagedIdentity/userAssignedIdentities/write:
+
+    Owner                         8e3af657-a8ff-443c-a75c-2fe8c4bcb635
+    Contributor                   b24988ac-6180-42a0-ab88-20f7382dd24c
+    Managed Identity Contributor  e40ec5ca-96e0-45a2-b4ff-59039f2c2b59
+
+Two more can hand out arbitrary roles and so reach those three in a second hop:
+
+    User Access Administrator     18d7d88d-d35e-4fb5-a5c3-7773c20a72d9
+    RBAC Administrator            f58310d9-a9f6-439a-9e8d-f62e7b41a168
+
+And the role itself is on the list:
+
+    ChatHealthy Agent             2408ded0-12e7-4678-bf0c-2dd7325f2d09
+
+That last entry is what makes the condition hold. Without it the holder deletes
+its own conditioned assignment and creates an unconditioned replacement. The
+condition therefore constrains DELETE as well as WRITE, so the assignment
+carrying it cannot be removed by the principal it governs.
+
+Every other role stays assignable and revocable, so provisioning and
+deprovisioning rights on existing identities is unaffected.
+
+HOW TO APPLY -- portal, on the existing assignment
+Subscription PipeLineServices -> Access control (IAM) -> Role assignments ->
+locate the ChatHealthy Agent row -> Condition column -> Add -> switch the
+editor to Code -> paste the expression below -> Save.
+
+It must be applied by an account that is not claudeCodeAgent. Adding it via
+Cloud Shell requires deleting and recreating the assignment, which
+claudeCodeAgent cannot do to itself once the condition is in place -- by
+design.
+
+CONDITION (version 2.0)
+
+((!(ActionMatches{'Microsoft.Authorization/roleAssignments/write'})) OR (@Request[Microsoft.Authorization/roleAssignments:RoleDefinitionId] ForAnyOfAllValues:GuidNotEquals {8e3af657-a8ff-443c-a75c-2fe8c4bcb635, b24988ac-6180-42a0-ab88-20f7382dd24c, e40ec5ca-96e0-45a2-b4ff-59039f2c2b59, 18d7d88d-d35e-4fb5-a5c3-7773c20a72d9, f58310d9-a9f6-439a-9e8d-f62e7b41a168, 2408ded0-12e7-4678-bf0c-2dd7325f2d09})) AND ((!(ActionMatches{'Microsoft.Authorization/roleAssignments/delete'})) OR (@Resource[Microsoft.Authorization/roleAssignments:RoleDefinitionId] ForAnyOfAllValues:GuidNotEquals {8e3af657-a8ff-443c-a75c-2fe8c4bcb635, b24988ac-6180-42a0-ab88-20f7382dd24c, e40ec5ca-96e0-45a2-b4ff-59039f2c2b59, 18d7d88d-d35e-4fb5-a5c3-7773c20a72d9, f58310d9-a9f6-439a-9e8d-f62e7b41a168, 2408ded0-12e7-4678-bf0c-2dd7325f2d09}))
+
+WHAT THIS DOES NOT COVER
+Attaching a system-assigned identity to a resource mints a service principal
+as a side effect of the resource write. No permission list or assignment
+condition reaches that. Closing it requires an Azure Policy denying identity
+on resource creation.

@@ -4697,6 +4697,58 @@
                 "automation_variables": [],
                 "node_address": "https://management.azure.com/subscriptions/7a17eec1-c477-4c7c-b1c1-d0662ce7a1ee/resourceGroups/rg-chathealthy-pipeline-dev/providers/Microsoft.Automation/automationAccounts/ChatHealthyJobManager/runbooks/WatchdogRunbook"
               }
+            },
+            {
+              "package_id": "entitlement_report",
+              "kind": "runbook",
+              "files": [
+                {
+                  "source_location": "architecture/IdentityCertificatesAndAuthentications/entitlement_report.py",
+                  "feature_id": "EPIC-002-F-003",
+                  "handler_type": "python_source",
+                  "disposition": "referenced",
+                  "content_hash": "4d9d565b09b021b7044f4092a64f7cb5061c5ca91de5708697b419a56fe322fa",
+                  "package": "entitlement_report"
+                }
+              ],
+              "secrets": {
+                "PIPELINEEDITOR_AZURE_TENANT_ID": "local_env",
+                "PIPELINEEDITOR_AZURE_CLIENT_ID": "local_env",
+                "PIPELINEEDITOR_AZURE_CLIENT_SECRET": "local_env",
+                "SPARKMAIL_API_KEY": "local_env",
+                "NOTIFICATION_FROM_EMAIL": "local_env",
+                "ENTITLEMENT_REPORT_TO_EMAIL": "local_env"
+              },
+              "secret_descriptions": {
+                "ENTITLEMENT_REPORT_TO_EMAIL": "Who the daily entitlement report is sent to",
+                "NOTIFICATION_FROM_EMAIL": "Address notification email is sent from",
+                "PIPELINEEDITOR_AZURE_CLIENT_ID": "Identifies pipelineEditor to Azure",
+                "PIPELINEEDITOR_AZURE_CLIENT_SECRET": "Proves pipelineEditor to Azure",
+                "PIPELINEEDITOR_AZURE_TENANT_ID": "The directory pipelineEditor belongs to",
+                "SPARKMAIL_API_KEY": "SparkPost key for sending notification email"
+              },
+              "config": {
+                "runbook_name": "EntitlementReport",
+                "schedule_names": [
+                  "SCH-EntitlementReport-Daily-0400PT"
+                ],
+                "python_packages": [
+                  {
+                    "name": "requests",
+                    "content_url": "https://files.pythonhosted.org/packages/f9/9b/335f9764261e915ed497fcdeb11df5dfd6f7bf257d4a6a2a686d80da4d54/requests-2.32.3-py3-none-any.whl"
+                  },
+                  {
+                    "name": "certifi",
+                    "content_url": "https://files.pythonhosted.org/packages/59/8c/57e832b7af6d7c5abe66eb3fbe3a3a32f4d11ea23a1aa7131371035be991/certifi-2026.5.20-py3-none-any.whl"
+                  },
+                  {
+                    "name": "reportlab",
+                    "content_url": "https://files.pythonhosted.org/packages/52/c8/aaf4e08679e7b1dc896ad30de0d0527f0fd55582c2e6deee4f2cc899bf9f/reportlab-4.4.3-py3-none-any.whl"
+                  }
+                ],
+                "automation_variables": [],
+                "node_address": "https://management.azure.com/subscriptions/7a17eec1-c477-4c7c-b1c1-d0662ce7a1ee/resourceGroups/rg-chathealthy-pipeline-dev/providers/Microsoft.Automation/automationAccounts/ChatHealthyJobManager/runbooks/EntitlementReport"
+              }
             }
           ]
         }
