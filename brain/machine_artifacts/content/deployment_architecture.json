@@ -4227,7 +4227,10 @@
                 "PIPELINEEDITOR_AZURE_CLIENT_ID": "local_env",
                 "PIPELINEEDITOR_AZURE_CLIENT_SECRET": "local_env",
                 "PIPELINE_SECRET_NAMES": "local_env",
-                "CH_LOG_DB": "local_env"
+                "CH_LOG_DB": "local_env",
+                "SPARKMAIL_API_KEY": "local_env",
+                "NOTIFICATION_FROM_EMAIL": "local_env",
+                "NOTIFICATION_TO_EMAIL": "local_env"
               },
               "secret_descriptions": {
                 "ATLAS_PRIVATE_KEY": "MongoDB Atlas administrative API private key",
@@ -4240,7 +4243,10 @@
                 "PIPELINEEDITOR_AZURE_CLIENT_SECRET": "Proves pipelineEditor to Azure",
                 "PIPELINEEDITOR_AZURE_TENANT_ID": "The directory pipelineEditor belongs to",
                 "PIPELINE_SECRET_NAMES": "Which vault secrets the pipeline run host is permitted to read",
-                "CH_LOG_DB": "Database the structured log records are written to"
+                "CH_LOG_DB": "Database the structured log records are written to",
+                "SPARKMAIL_API_KEY": "Proves ChatHealthy to the mail server",
+                "NOTIFICATION_FROM_EMAIL": "Address notification email is sent from",
+                "NOTIFICATION_TO_EMAIL": "Who pipeline failures are reported to"
               },
               "config": {
                 "runbook_name": "ProviderPipelineRunbook",
