@@ -370,7 +370,8 @@
                     "architecture/ClaudeCodeConversationPersistence/appsettings.json",
                     "architecture/ClaudeCodeConversationPersistence/appsettings.Development.json",
                     "architecture/ClaudeCodeConversationPersistence/Properties/launchSettings.json",
-                    "FindCare/architectureAndDesign/EPIC-006-F-025-baseline-record-NPI-1003199654.json"
+                    "FindCare/architectureAndDesign/EPIC-006-F-025-baseline-record-NPI-1003199654.json",
+                    "architecture/IdentityCertificatesAndAuthentications/claudeCodeAgent_entitlement_manager_role.json"
                   ]
                 ],
                 [
