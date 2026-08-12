@@ -37,18 +37,26 @@ import os
 def bootstrap_aa_mongo_logging(
     component_name: str,
     env_prefix: str | None = None,
+    identity: str = "pipelineEditor",
 ) -> None:
-    """Set the environment ChatHealthyLoggingService needs for Mongo logging.
+    """Prepare ChatHealthyLoggingService for Mongo logging in an AA runbook.
 
     MUST be called BEFORE the runbook's first log() call. Sets:
+      * the logging identity, whose certificate the handler connects with
       * CH_SPACE_NAME (component_name)
       * ENV_PREFIX (arg or AUTOMATION_ENV_PREFIX or 'dev')
       * CH_COMPONENT (component_name)
       * CH_LOG_DESTINATION ('stderr,mongo' if not already set)
 
-    No credential is fetched or placed. The handler authenticates with the
-    logging identity's certificate through ChatHealthyMongoUtilities.
+    Naming the identity is not optional: _build_mongo_handler raises
+    mongo_log_identity_not_set without it, and a runbook that turns Mongo
+    logging on and never names an identity dies on its first log() call.
+
+    No credential is fetched or placed. The handler authenticates with that
+    identity's certificate through ChatHealthyMongoUtilities.
     """
+    from .logging_service import set_mongo_log_identity  # noqa: PLC0415
+    set_mongo_log_identity(identity)
     resolved_env = (
         env_prefix
         or os.environ.get("AUTOMATION_ENV_PREFIX")
