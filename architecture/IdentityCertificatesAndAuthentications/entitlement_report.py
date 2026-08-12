@@ -315,6 +315,14 @@ def _secret_descriptions() -> dict[str, str]:
     The manifest is the source of truth. A secret the manifest does not
     describe renders with its name alone rather than with a guess.
     """
+    # Where the repository is not present, the build embeds the same map at
+    # CHATHEALTHY_SECRET_DESCRIPTIONS, read from the manifest at build time.
+    embedded = _ch_os.environ.get("CHATHEALTHY_SECRET_DESCRIPTIONS", "")
+    if embedded:
+        try:
+            return json.loads(embedded)
+        except ValueError as exc:
+            _LOG.info("embedded secret descriptions unreadable: %s", exc)
     if _root is None:
         return {}
     manifest = _root / "brain" / "machine_artifacts" / "content" / "deployment_architecture.json"

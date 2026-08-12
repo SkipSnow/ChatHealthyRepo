@@ -828,6 +828,48 @@ _INLINE_LIB_MODULES = (
 )
 
 
+def _inline_secret_descriptions_if_used(repo_root: Path, runbook_path: Path) -> None:
+    """Carry the secret descriptions into a runbook that renders them.
+
+    deployment_architecture.json is the source of truth and is not present
+    where a runbook runs, so a runbook that asks what a secret IS gets nothing
+    and prints bare names. The descriptions are read from the manifest at build
+    time and embedded, exactly as the library is: the file shipped to Azure
+    Automation contains every byte it needs.
+    """
+    body = runbook_path.read_text(encoding="utf-8")
+    if "CHATHEALTHY_SECRET_DESCRIPTIONS" not in body:
+        return
+    import base64 as _b64_mod
+    manifest = repo_root / "brain" / "machine_artifacts" / "content" / "deployment_architecture.json"
+    if not manifest.is_file():
+        sys.exit(f"ERROR: cannot inline secret descriptions for {runbook_path.name}: "
+                 f"{manifest} is missing.")
+    doc = json.loads(manifest.read_text(encoding="utf-8"))
+    merged: dict = {}
+    def _walk(node):
+        if isinstance(node, dict):
+            merged.update(node.get("secret_descriptions") or {})
+            for v in node.values():
+                _walk(v)
+        elif isinstance(node, list):
+            for v in node:
+                _walk(v)
+    _walk(doc)
+    encoded = _b64_mod.b64encode(
+        json.dumps(merged, sort_keys=True).encode("utf-8")).decode("ascii")
+    preamble = "\n".join([
+        "# --- BEGIN inlined secret descriptions (from deployment_architecture.json) ---",
+        "import base64 as _b64d, os as _osd",
+        f'_osd.environ["CHATHEALTHY_SECRET_DESCRIPTIONS"] = '
+        f'_b64d.b64decode("{encoded}").decode("utf-8")',
+        "del _b64d, _osd",
+        "# --- END inlined secret descriptions ---",
+        "", "",
+    ])
+    runbook_path.write_text(preamble + body, encoding="utf-8")
+
+
 def _inline_chathealthy_lib_if_used(repo_root: Path, runbook_path: Path) -> None:
     """If the staged runbook has any `from chathealthy_lib...`
     import, prepend a self-contained bootstrap block that installs the
@@ -974,6 +1016,7 @@ def _build_automation_account(repo_root: Path, target: TargetRecord,
         shutil.copyfile(src_path, dst)
         _step(f"  {pid}: staged runbook.py ({dst.stat().st_size / 1024.0:.1f} KB)")
         _inline_chathealthy_lib_if_used(repo_root, dst)
+        _inline_secret_descriptions_if_used(repo_root, dst)
         if pid == "change_db_version":
             _emit_change_db_version_target_url_registry(repo_root, pkg_dir)
         if pid in ("ca_bootstrap", "ca_endpoint"):
