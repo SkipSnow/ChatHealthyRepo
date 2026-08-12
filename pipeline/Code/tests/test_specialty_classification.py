@@ -12,7 +12,6 @@
 #   FINDCARE-PED-001: pediatric_applicability field (future)
 #   RISK-002: AI classification acceptance
 #
-# Requires: MONGO_READONLY_FRONTEND or MONGO_FRONTEND_connectionString env var
 # Run: pytest Code/DataPipelines/tests/test_specialty_classification.py -v -s
 
 import os
@@ -54,10 +53,6 @@ _DB_NAME = f"{_ENV}_PublicHealthData"
 
 
 def _get_connection_string():
-    for key in ("MONGO_READONLY_FRONTEND", "MONGO_FRONTEND_connectionString"):
-        val = os.environ.get(key)
-        if val:
-            return val
     pytest.skip("No frontend MongoDB connection string in env")
 
 
@@ -237,10 +232,6 @@ class TestCrosswalkOnProviders:
     @pytest.fixture(scope="class")
     def providers_coll(self):
         from pymongo import MongoClient
-        conn = os.environ.get("MONGO_READONLY_FRONTEND",
-                              os.environ.get("MONGO_FRONTEND_connectionString"))
-        if not conn:
-            pytest.skip("No frontend connection")
         client = _ch_connection()
         return client[_DB_NAME]["providers"]
 

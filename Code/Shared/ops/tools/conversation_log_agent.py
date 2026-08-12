@@ -75,14 +75,13 @@ def _devops_connection():
     return ChatHealthyMongoUtilities().getConnection("DevOpsUser", "admin")
 
 
-def process_conversation_log(logContent, bearerToken, mongoConnectionString,
+def process_conversation_log(logContent, bearerToken,
                              preservePastTime, schema):
     """ChatHealthyClaudeLogManagementAnthropicAgent entry point.
 
     T005: Arguments:
         logContent          - conversation_log.json content (dict or str)
         bearerToken         - CH_GUID authentication token
-        mongoConnectionString - MongoDB connection string
         preservePastTime    - PST datetime cutoff (str, ISO or custom format)
         schema              - conversation_log JSON schema (dict or str)
 
@@ -100,8 +99,6 @@ def process_conversation_log(logContent, bearerToken, mongoConnectionString,
     # ── T004: Validate required arguments ───────────────────────────────
     if not logContent:
         return {"status": 400, "error": "Bad Request", "field": "logContent", "jobId": job_id}
-    if not mongoConnectionString:
-        return {"status": 400, "error": "Bad Request", "field": "mongoConnectionString", "jobId": job_id}
     if not preservePastTime:
         return {"status": 400, "error": "Bad Request", "field": "preservePastTime", "jobId": job_id}
     if not schema:
@@ -136,10 +133,10 @@ def process_conversation_log(logContent, bearerToken, mongoConnectionString,
     _log.info("Job %s: %d utterances", job_id, original_count)
 
     # ── T006/T007/T008: Write ALL to MongoDB FIRST ─────────────────────
-    mongo_result = _write_to_mongodb(utterances, mongoConnectionString, job_id)
+    mongo_result = _write_to_mongodb(utterances, job_id)
 
     # ── T010: Query MongoDB for retained records ───────────────────────
-    retained_records = _query_retained(mongoConnectionString, cutoff)
+    retained_records = _query_retained(cutoff)
 
     # ── T011: Inject agent utterance ───────────────────────────────────
     pst_offset = timedelta(hours=-7)
@@ -200,7 +197,7 @@ def process_conversation_log(logContent, bearerToken, mongoConnectionString,
 
 # ── MongoDB write (T006/T007/T008) ─────────────────────────────────────
 
-def _write_to_mongodb(utterances, mongo_conn, job_id):
+def _write_to_mongodb(utterances, job_id):
     errors = []
     archived = 0
     last_written_ts = None
@@ -281,7 +278,7 @@ def _write_to_mongodb(utterances, mongo_conn, job_id):
 
 # ── MongoDB query for retained records (T010) ──────────────────────────
 
-def _query_retained(mongo_conn, cutoff):
+def _query_retained(cutoff):
     try:
         client = _devops_connection()
         db = client[MONGO_DB]

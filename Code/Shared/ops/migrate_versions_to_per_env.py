@@ -87,11 +87,6 @@ def _looks_like_builds_array(value) -> bool:
 
 
 def main() -> int:
-    conn = os.getenv("MONGO_FRONTEND_connectionString")
-    if not conn:
-        log.error("MONGO_FRONTEND_connectionString not set in environment")
-        return 1
-
     client = _devops_connection()
     coll = client["frontEndAdmin"]["BuildVersions"]
 

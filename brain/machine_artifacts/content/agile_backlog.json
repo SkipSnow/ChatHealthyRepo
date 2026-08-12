@@ -923,7 +923,7 @@
             },
             {
               "feature_id": "EPIC-002-F-003",
-              "name": "Manage ChatHealthy.ai 0 Trust implementation",
+              "name": "Manage ChatHealthy's 0 Trust security",
               "description": "End-to-end identity, certificate, and authentication rules for every entity that authenticates against ChatHealthy.ai: end users, operators, services, containers, pipeline components, external clients. The feature owns the ChatHealthy certificate authority, the session-token envelope carried between components, OAuth login for humans, the User State object, mutual authentication rules, and the identity registry that binds every authenticating actor to a canonical identity.",
               "priority": "must-have",
               "status": "in_progress",

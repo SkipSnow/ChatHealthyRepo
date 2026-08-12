@@ -9,13 +9,12 @@ has a non-null county.fips. Post-schema-reconciliation, addresses[] holds
 both practice and business entries (address_type discriminator); the
 underlying Mongo path `addresses.county.fips` matches either kind.
 
-The test reads MONGO_connectionString from the environment, defaults the
-collection to dev_PublicHealthData.providers, and is overridable by the
+The test defaults the collection to dev_PublicHealthData.providers and
+is overridable by the
 PROVIDER_COLLECTION env var so it can target test_providers,
 test_multiAddress_provider, providers_enriched, or any future per-env name
 without code change.
 
-Skipped if MONGO_connectionString is not set (e.g. CI without secrets).
 """
 
 import os
@@ -57,9 +56,6 @@ DEFAULT_COLLECTION = "dev_PublicHealthData.providers"
 
 def _connect():
     """Return the providers collection. Raises pytest.skip if no Mongo URI."""
-    conn = os.environ.get("MONGO_connectionString") or os.environ.get("MONGO_URI")
-    if not conn:
-        pytest.skip("MONGO_connectionString not set; skipping live SLA check")
     from pymongo import MongoClient
 
     coll_path = os.environ.get("PROVIDER_COLLECTION", DEFAULT_COLLECTION)

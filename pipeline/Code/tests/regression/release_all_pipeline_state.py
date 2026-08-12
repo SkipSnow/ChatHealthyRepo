@@ -67,9 +67,6 @@ _PIPELINE_CLUSTER_NAME = os.environ.get(
 
 def _mongo_client() -> MongoClient:
     load_pipeline_env()
-    uri = os.environ.get("MONGO_FRONTEND_connectionString")
-    if not uri:
-        pytest.fail("MONGO_FRONTEND_connectionString not set")
     return _ch_connection()
 
 

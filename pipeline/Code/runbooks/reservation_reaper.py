@@ -71,23 +71,11 @@ except ImportError:
 ACTIVITY_WINDOW  = int(os.environ.get("ACTIVITY_WINDOW_MINUTES", "30"))
 ENV_PREFIX       = os.environ.get("ENV_PREFIX", "dev")
 
-# CHLS env setup + SRV-bypass MUST happen before the module-level
-# ChatHealthyLoggingService() singleton is instantiated on line ~85. The
-# automationassets, but it arrives in mongodb+srv:// form; AA Python 3
-# sandbox cannot resolve _mongodb._tcp SRV records so we translate to the
-# non-SRV direct URI before pymongo touches it.
+# CHLS env setup MUST happen before the module-level
+# ChatHealthyLoggingService() singleton is instantiated below.
 os.environ.setdefault("CH_SPACE_NAME", "reservation-reaper")
 os.environ.setdefault("CH_COMPONENT", "reservation-reaper")
 os.environ.setdefault("CH_LOG_DESTINATION", "stderr,mongo")
-try:
-    from chathealthy_lib.pipeline_boot import srv_to_direct_uri as _srv_to_direct
-except Exception as _bootstrap_exc:  # noqa: BLE001
-    sys.stderr.write(
-        f"reservation_reaper: SRV bypass failed "
-        f"({type(_bootstrap_exc).__name__}: {_bootstrap_exc}); "
-        "falling back to stderr-only logging.\n"
-    )
-    os.environ["CH_LOG_DESTINATION"] = "stderr"
 CLUSTER_NAME     = os.environ.get("PIPELINE_CLUSTER", "ChatHealthyDataPipelines")
 # Operator directive 2026-08-03: all coord on pipeline cluster.
 ATLAS_PUB        = os.environ["ATLAS_PUBLIC_KEY"]

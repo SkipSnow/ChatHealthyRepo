@@ -51,13 +51,6 @@ from dotenv import load_dotenv
 load_dotenv(os.path.join(REPO_ROOT, "Code", ".env"))
 
 
-def _get_frontend_connection():
-    conn = os.environ.get("MONGO_FRONTEND_connectionString")
-    if not conn:
-        pytest.skip("MONGO_FRONTEND_connectionString not set")
-    return conn
-
-
 LAB_DB = "lab"
 LAB_COLLECTION = "test_vector_constraint"
 
@@ -69,7 +62,6 @@ class TestArchConstraintVectorIndex:
     @pytest.fixture(scope="class")
     def lab_collection(self):
         from pymongo import MongoClient
-        conn = _get_frontend_connection()
         client = _ch_connection()
         db = client[LAB_DB]
         coll = db[LAB_COLLECTION]
@@ -177,7 +169,6 @@ def test_canonical_embedding_model_data_side():
     """
     from pymongo import MongoClient
 
-    conn = _get_frontend_connection()
     client = _ch_connection()
     try:
         env = "dev"

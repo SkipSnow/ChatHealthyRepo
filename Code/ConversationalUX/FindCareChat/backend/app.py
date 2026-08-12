@@ -78,13 +78,10 @@ EMERGENCY_RESPONSE = (
 # ---------------------------------------------------------------------------
 # MongoDB
 # ---------------------------------------------------------------------------
-mongo_frontend_str = os.getenv("MONGO_FRONTEND_connectionString") or ""
 db_manager = None
 
 def get_db():
     global db_manager
-    if not mongo_frontend_str:
-        return None
     try:
         if db_manager is None:
             db_manager = ChatHealthyMongoUtilities()
@@ -296,21 +293,9 @@ async def fatal(request: Request, exc: Exception):
 # HF (or local docker) restarts, and the operator sees the restart loop
 # and reads the logs. Steady-state degraded mode in _get_db() remains for
 # transient runtime blips; only the startup probe is mandatory-loud.
-if mongo_frontend_str:
-    _startup_db_probe = ChatHealthyMongoUtilities()
-    _startup_db_probe.getConnection("frontendUser", "frontEnd").admin.command("ping")
-    log.info("FindCare backend Mongo startup probe: ping OK")
-else:
-    log.critical(
-        "MONGO_FRONTEND_connectionString is empty at FindCare backend "
-        "startup. The C# service (or local .env) is the supplier; check "
-        r"HKLM\SOFTWARE\ChatHealthy\Secrets on the host."
-    )
-    raise ChatHealthyException(
-        mode="config_error",
-        component="FindCareBackend",
-        message="MONGO_FRONTEND_connectionString not set at FindCare backend startup",
-    )
+_startup_db_probe = ChatHealthyMongoUtilities()
+_startup_db_probe.getConnection("frontendUser", "frontEnd").admin.command("ping")
+log.info("FindCare backend Mongo startup probe: ping OK")
 
 # EPIC-010-F-101-S-005 (Data version management): bind runtime data
 # collections from ChatHealthyConfig.DBVersions on startup, and mount the

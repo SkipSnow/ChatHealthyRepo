@@ -59,10 +59,6 @@ os.environ.setdefault("ENV_PREFIX",
 try:
     from chathealthy_lib.pipeline_boot import bootstrap_aa_mongo_logging as _boot
     _boot(
-        kv_uri=os.environ.get(
-            "KEY_VAULT_URI", "https://kv-chpipeline-dev.vault.azure.net/",
-        ),
-        secret_name="MONGO-FRONTEND-connectionString",
         component_name="data-migrator-deprovisioner",
         env_prefix=os.environ.get("AUTOMATION_ENV_PREFIX", "dev"),
     )

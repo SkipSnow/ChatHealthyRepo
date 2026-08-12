@@ -77,6 +77,55 @@ def _fake_root(node: ast.AST) -> str | None:
     return None
 
 
+# A MongoDB credential, in any of the forms it takes in this codebase. The
+# rule used to ask only how code connects; a connection string is authority to
+# reach the database held outside the model, and it opened the database for
+# anyone who found it whether or not any code used it.
+_URI_MARKERS = ("mongodb://", "mongodb+srv://")
+
+_TOKEN_CHARS = frozenset(
+    "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789_-")
+
+
+def _tokens(line: str) -> list[str]:
+    """Identifier-shaped runs in a line, split on anything else."""
+    out: list[str] = []
+    current: list[str] = []
+    for ch in line:
+        if ch in _TOKEN_CHARS:
+            current.append(ch)
+        elif current:
+            out.append("".join(current))
+            current = []
+    if current:
+        out.append("".join(current))
+    return out
+
+
+def _find_mongo_connection_strings(source: str) -> list[tuple[int, str]]:
+    """Lines carrying a MongoDB connection string, or reading one.
+
+    Two shapes: a literal URI, and a reference to a variable whose name says
+    it holds one. Comments count -- a comment naming the variable is how four
+    of these survived, by documenting a credential nobody noticed was still
+    provisioned.
+    """
+    found: list[tuple[int, str]] = []
+    for i, line in enumerate(source.splitlines(), start=1):
+        low = line.lower()
+        for marker in _URI_MARKERS:
+            if marker in low:
+                found.append((i, f"MongoDB connection string literal {marker!r}"))
+                break
+        else:
+            for token in _tokens(line):
+                flat = token.replace("_", "").replace("-", "").lower()
+                if flat.startswith("mongo") and flat.endswith("connectionstring"):
+                    found.append((i, f"reference to the connection string {token}"))
+                    break
+    return found
+
+
 def _find_mongo_client_calls(source: str) -> list[tuple[int, str]]:
     """Every place this file acquires a Mongo client other than via the
     utility, as (line, what). Raises SyntaxError on unparseable source; the
@@ -144,6 +193,11 @@ class ScanMongoClientDirectAccessEnforcementWorker(EnforcementWorker):
         any_violations = False
         for file_path in self._staged_files():
             self.files_scanned += 1
+            if self.is_in_scope(file_path, "_scan_mongo_connection_strings"):
+                for v in self._scan_mongo_connection_strings(file_path):
+                    self._emit_violation(v)
+                    self.violation_count += 1
+                    any_violations = True
             if not self.is_in_scope(file_path, "_scan_mongo_client_direct_access"):
                 continue
             for v in self._scan_mongo_client_direct_access(file_path):
@@ -151,6 +205,40 @@ class ScanMongoClientDirectAccessEnforcementWorker(EnforcementWorker):
                 self.violation_count += 1
                 any_violations = True
         return EXIT_VIOLATIONS_FOUND if any_violations else EXIT_OK
+
+    def _scan_mongo_connection_strings(self, file_path: str) -> list[ViolationRecord]:
+        """No file may carry a MongoDB connection string, or read one.
+
+        Every component reaches MongoDB with a certificate, through the
+        canonical utility. A connection string is a second credential for the
+        same database that no ChatHealthy code consumes and that anyone
+        holding can use, from anywhere, as nobody in particular.
+        """
+        absolute_path = (PROJECT_ROOT / file_path).resolve()
+        if not absolute_path.is_file():
+            return []
+        try:
+            source = absolute_path.read_text(encoding="utf-8")
+        except UnicodeDecodeError:
+            return []
+        violations: list[ViolationRecord] = []
+        for lineno, what in _find_mongo_connection_strings(source):
+            violations.append(ViolationRecord(
+                enforcement_id=self.enforcement_id,
+                rule_id="Rule-004",
+                resource=f"{file_path}:{lineno}",
+                message=(
+                    f"{what}. Every component authenticates to MongoDB with a "
+                    f"certificate obtained through ChatHealthyMongoUtilities; a "
+                    f"connection string is authority over the same database held "
+                    f"outside that model, usable by anyone who finds it and "
+                    f"attributable to no identity. Remove it, and remove the value "
+                    f"wherever it is provisioned."
+                ),
+                severity="error",
+            ))
+        return violations
+
 
     def _scan_mongo_client_direct_access(self, file_path: str) -> list[ViolationRecord]:
         absolute_path = (PROJECT_ROOT / file_path).resolve()

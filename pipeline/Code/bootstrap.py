@@ -35,7 +35,7 @@ import tempfile
 from pathlib import Path
 from typing import Iterable, Optional, Tuple
 
-from azure.identity import ClientSecretCredential
+from azure.identity import ManagedIdentityCredential
 from azure.keyvault.secrets import SecretClient
 
 import blob_logger
@@ -70,31 +70,21 @@ KV_CA_INTERMEDIATE_CHAIN = "ca-intermediate-cert"
 PIPELINE_IDENTITY = "pipelineEditor"
 
 
-def _pipeline_editor_credential():
-    """The credential the pipeline authenticates with, everywhere.
+def _pipeline_credential():
+    """The credential this node opens the vault with.
 
-    The three values are delivered to the job the same way every other secret
-    is. A node that cannot present pipelineEditor does not start: there is no
-    second identity to fall back to, because falling back to another identity
-    is precisely what this removes.
+    The identity is attached to the machine, so the platform issues the token
+    and nothing is stored, passed or written down. AZURE_CLIENT_ID selects
+    which attached identity to ask for when the host carries a user-assigned
+    one; a client id names an identity and is not a credential.
+
+    There is deliberately no secret-based path. A node that cannot obtain a
+    token from its own machine does not start, because the alternative is a
+    credential travelling with the deployment.
     """
-    keys = (f"{PIPELINE_IDENTITY.upper()}_AZURE_TENANT_ID",
-            f"{PIPELINE_IDENTITY.upper()}_AZURE_CLIENT_ID",
-            f"{PIPELINE_IDENTITY.upper()}_AZURE_CLIENT_SECRET")
-    missing = [k for k in keys if not os.environ.get(k)]
-    if missing:
-        _emit(f"FATAL: cannot authenticate as {PIPELINE_IDENTITY}; "
-              f"missing {', '.join(missing)}")
-        raise ChatHealthyException(
-            mode="azure_credential_missing",
-            component="PipelineBootstrap",
-            message=f"cannot authenticate as {PIPELINE_IDENTITY}: "
-                    f"{', '.join(missing)} absent from the environment",
-            context={"identity": PIPELINE_IDENTITY, "missing": missing})
-    return ClientSecretCredential(
-        tenant_id=os.environ[keys[0]],
-        client_id=os.environ[keys[1]],
-        client_secret=os.environ[keys[2]])
+    client_id = os.environ.get("AZURE_CLIENT_ID", "").strip()
+    return (ManagedIdentityCredential(client_id=client_id) if client_id
+            else ManagedIdentityCredential())
 
 
 def _kv_name_to_env_key(kv_name: str) -> str:
@@ -163,26 +153,49 @@ def _resolve_vault_uri() -> str:
     return vault_uri
 
 
+ENV_SECRET_NAMES = "PIPELINE_SECRET_NAMES"
+
+
 def _load_all_secrets_into_env(client: SecretClient) -> int:
-    """Enumerate every secret in the vault and hydrate as env vars using
-    the same dash->underscore mapping the existing pipeline code
-    expects. Cert / CA / key secrets are handled separately and excluded
-    here so their raw PEM never lands in os.environ."""
-    n = 0
-    # Key material never lands in os.environ: identity certs and keys, the
-    # superseded certs-* secrets, and every ca-* secret including the private
-    # keys this node has no grant to read.
-    exclude_prefixes = (
+    """Fetch the secrets this node is declared to need, and only those.
+
+    The names arrive in PIPELINE_SECRET_NAMES, comma-separated, placed there
+    by the deploy from what the manifest declares for this package. Names are
+    not secrets, so they travel freely.
+
+    This node used to enumerate the vault and take everything it found, which
+    required read over the whole vault -- including certificate-authority
+    private keys it has no business seeing. Fetching a declared list means the
+    node can be granted exactly those secrets and nothing else, so a
+    compromised run host yields only what that run legitimately used.
+
+    A node that cannot read a secret it was declared to need fails here rather
+    than starting without it and failing somewhere less obvious.
+    """
+    declared = [n.strip() for n in
+                os.environ.get(ENV_SECRET_NAMES, "").split(",") if n.strip()]
+    if not declared:
+        _emit(f"FATAL: {ENV_SECRET_NAMES} is empty; the deploy MUST declare "
+              f"which secrets this node reads.")
+        raise ChatHealthyException(
+            mode="pipeline_secret_names_absent",
+            component="PipelineBootstrap",
+            message=f"{ENV_SECRET_NAMES} absent or empty",
+            context={"node": os.environ.get(ENV_NODE_IDENTITY, "")})
+
+    # Key material never lands in os.environ: identity certificates and their
+    # keys are materialised as files, and certificate-authority material is
+    # never read by this node at all.
+    skip_prefixes = (
         KV_CERT_PREFIX, KV_KEY_PREFIX, KV_LEGACY_CERT_PREFIX, KV_CA_PREFIX,
     )
-    for props in client.list_properties_of_secrets():
-        name = props.name
-        if any(name.startswith(p) for p in exclude_prefixes):
+    n = 0
+    for name in declared:
+        if any(name.startswith(pre) for pre in skip_prefixes):
             continue
         s = client.get_secret(name)
         tag = (s.properties.tags or {}).get("env_key")
-        env_key = tag if tag else _kv_name_to_env_key(name)
-        os.environ[env_key] = s.value or ""
+        os.environ[tag if tag else _kv_name_to_env_key(name)] = s.value or ""
         n += 1
     return n
 
@@ -260,11 +273,10 @@ def main() -> int:
     blob_logger.install(pipeline_name)
 
     # Observability gate call is DEFERRED to after KV secret load below
-    # (Control path only). MONGO_FRONTEND_connectionString + CH_SPACE_NAME
-    # + ENV_PREFIX are only in os.environ AFTER _load_all_secrets_into_env
-    # populates them. Running the gate here would abend on
-    # mode='mongo_env_unset' with no useful signal about actual Mongo
-    # reachability.
+    # (Control path only). CH_SPACE_NAME + ENV_PREFIX are only in
+    # os.environ AFTER _load_all_secrets_into_env populates them. Running
+    # the gate here would abend on mode='mongo_env_unset' with no useful
+    # signal about actual Mongo reachability.
     import socket  # noqa: PLC0415
     import traceback  # noqa: PLC0415
 
@@ -280,9 +292,6 @@ def main() -> int:
                    os.environ.get('ENV_PREFIX', '<unset>'))
         chls.error("  env CH_SPACE_NAME:         %r",
                    os.environ.get('CH_SPACE_NAME', '<unset>'))
-        chls.error("  env MONGO_FRONTEND_conn:   %s",
-                   'set' if os.environ.get('MONGO_FRONTEND_connectionString')
-                   else '<UNSET>')
         chls.error("  mode:      %r", _obs_exc.mode)
         chls.error("  message:   %s", _obs_exc.message)
         chls.error("  server:    %r", _obs_exc.server)
@@ -312,11 +321,11 @@ def main() -> int:
     node_identity = _resolve_node_identity()
     _emit(f"node identity: {node_identity}")
 
-    # The pipeline runs as pipelineEditor, and opens the vault as itself. Its
-    # certificate is what authenticates to Mongo, so the identity that fetches
-    # the certificate and the identity that uses it are one and the same.
+    # The vault is opened with the identity attached to this machine: nothing
+    # is seeded, so there is no credential in the deployment, in the boot data
+    # or on disk. The certificate fetched here is what authenticates to Mongo.
     vault_uri = _resolve_vault_uri()
-    cred = _pipeline_editor_credential()
+    cred = _pipeline_credential()
     client = SecretClient(vault_url=vault_uri, credential=cred)
     _emit(f"KV client bound to {vault_uri}")
     cert_path, key_path = _seed_read_long_lived_cert(client, node_identity)
@@ -333,8 +342,8 @@ def main() -> int:
     )
 
     # Observability gate NOW: KV secrets have populated os.environ so
-    # MONGO_FRONTEND_connectionString (and CH_SPACE_NAME if declared)
-    # are present and the gate can prove Mongo + Storage connectivity.
+    # CH_SPACE_NAME (if declared) is present and the gate can prove
+    # Mongo + Storage connectivity.
     # Any failure -> dump detail to stderr and abend with exit 1 so
     # AA/ACA marks the container Failed.
     try:

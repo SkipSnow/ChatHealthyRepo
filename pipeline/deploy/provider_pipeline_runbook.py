@@ -31,6 +31,7 @@ import sys
 import subprocess
 import traceback
 import urllib.error
+import urllib.parse
 import urllib.request
 import uuid
 
@@ -57,8 +58,8 @@ PIPELINE_ADMIN_DB = "pipelineAdmin"
 # CH_LOG_DESTINATION drives log output to stderr (AA captures stderr into
 # the ARM job exception field, which is the only surface operators can
 # read on a failed run) and CH_SPACE_NAME + ENV_PREFIX satisfy the Mongo
-# handler prerequisite so it wires as soon as MONGO_connectionString
-# gets published from the KV fetch further down.
+# handler prerequisite, which is the whole of it -- the handler
+# authenticates with the logging identity's certificate.
 os.environ.setdefault("CH_LOG_DESTINATION", "stderr,mongo")
 os.environ.setdefault("CH_SPACE_NAME", "runbook")
 os.environ.setdefault("ENV_PREFIX",
@@ -131,53 +132,64 @@ _HOSTNAME = socket.gethostname()
 # ============================================================================
 # Managed-identity token acquisition
 # ============================================================================
-def _load_user_mi_client_id() -> str:
-    """Fetch the user-assigned MI's client_id from Automation Variable
-    AZURE_CLIENT_ID (populated by the deploy chain during AA identity
-    attach). Falls back to os.environ for non-Automation contexts.
-    Empty string if neither is available (system-MI attempt will then
-    fail with a clear Azure error)."""
-    try:
-        import automationassets  # only present in Automation sandbox
-        val = automationassets.get_automation_variable("AZURE_CLIENT_ID")
-        if val:
-            return str(val).strip()
-    except Exception:
-        pass
-    return os.environ.get("AZURE_CLIENT_ID", "").strip()
+def _pipeline_editor_credential() -> tuple[str, str, str]:
+    """The credential this runbook acts with: pipelineEditor, and nothing else.
+
+    The account previously carried a user-assigned managed identity and every
+    token came from IMDS. That identity was retired, so there is no ambient
+    identity to fall back to and none is wanted: a run either presents
+    pipelineEditor or it does not start.
+    """
+    keys = ("PIPELINEEDITOR_AZURE_TENANT_ID",
+            "PIPELINEEDITOR_AZURE_CLIENT_ID",
+            "PIPELINEEDITOR_AZURE_CLIENT_SECRET")
+    values = []
+    for k in keys:
+        v = ""
+        try:
+            import automationassets  # only present in the Automation sandbox
+            v = str(automationassets.get_automation_variable(k) or "").strip()
+        except Exception:
+            pass
+        values.append(v or os.environ.get(k, "").strip())
+    missing = [k for k, v in zip(keys, values) if not v]
+    if missing:
+        raise ChatHealthyException(
+            mode="identity_credential_absent",
+            message="cannot act as pipelineEditor: "
+                    + ", ".join(missing) + " absent",
+            component="provider_pipeline_runbook",
+            missing=",".join(missing),
+        )
+    return values[0], values[1], values[2]
 
 
-AZURE_CLIENT_ID = _load_user_mi_client_id()
+PIPELINE_EDITOR_TENANT, PIPELINE_EDITOR_CLIENT_ID, PIPELINE_EDITOR_SECRET = (
+    _pipeline_editor_credential())
+
+_TOKEN_CACHE: dict = {}
 
 
 def _get_token(resource: str, client_id: str | None = None) -> str:
-    """Fetch an OAuth2 token from IMDS for the given resource. Works in
-    both Azure Automation Runbook sandbox and any container/VM with
-    IMDS available.
+    """An OAuth2 token for `resource`, obtained as pipelineEditor.
 
-    F-003: the AA carries only a user-assigned managed identity
-    (mi-runbook). IMDS returns a system-MI token by default and Azure
-    responds `Managed System Identity not found!` because no system-MI
-    is attached. The user-assigned MI's client_id MUST be passed on
-    the token query to select it. AZURE_CLIENT_ID is set as an
-    Automation Variable by the deploy chain during AA identity attach."""
-    cid = client_id or AZURE_CLIENT_ID
-    identity_endpoint = os.environ.get("IDENTITY_ENDPOINT")
-    identity_header = os.environ.get("IDENTITY_HEADER")
-    if identity_endpoint and identity_header:
-        q = f"?resource={resource}&api-version=2019-08-01"
-        if cid:
-            q += f"&client_id={cid}"
-        url = f"{identity_endpoint}{q}"
-        req = urllib.request.Request(url, headers={"X-IDENTITY-HEADER": identity_header})
-    else:
-        q = f"?api-version=2018-02-01&resource={resource}"
-        if cid:
-            q += f"&client_id={cid}"
-        url = f"http://169.254.169.254/metadata/identity/oauth2/token{q}"
-        req = urllib.request.Request(url, headers={"Metadata": "true"})
-    with urllib.request.urlopen(req, timeout=15) as r:
-        return json.loads(r.read().decode("utf-8"))["access_token"]
+    client_id is accepted and ignored: it selected between managed identities
+    on IMDS, and there is only one identity now.
+    """
+    if resource in _TOKEN_CACHE:
+        return _TOKEN_CACHE[resource]
+    body = urllib.parse.urlencode({
+        "grant_type": "client_credentials",
+        "client_id": PIPELINE_EDITOR_CLIENT_ID,
+        "client_secret": PIPELINE_EDITOR_SECRET,
+        "scope": resource.rstrip("/") + "/.default",
+    }).encode("utf-8")
+    req = urllib.request.Request(
+        f"https://login.microsoftonline.com/{PIPELINE_EDITOR_TENANT}/oauth2/v2.0/token",
+        data=body, headers={"Content-Type": "application/x-www-form-urlencoded"})
+    with urllib.request.urlopen(req, timeout=30) as r:
+        _TOKEN_CACHE[resource] = json.loads(r.read().decode("utf-8"))["access_token"]
+    return _TOKEN_CACHE[resource]
 
 
 # ============================================================================
@@ -204,96 +216,6 @@ def log(event: str, **fields):
 
 
 # ============================================================================
-# Mongo config + run manifest -- reads Mongo conn string from Key Vault
-# ============================================================================
-def _get_mongo_conn_string() -> str:
-    """Fetch front-cluster connection string from Key Vault. Trigger-tier
-    coordination (serialization guard, pipeline.runs manifest, pipeline.config
-    read) lives on the ALWAYS-UP front cluster, not the pipeline cluster
-    which is paused-by-default between runs (Skip 2026-07-18)."""
-    name = os.environ.get("MONGO_SECRET_NAME", "MONGO-connectionString")
-    tok = _get_token("https://vault.azure.net")
-    url = f"{KEY_VAULT_URI.rstrip('/')}/secrets/{name}?api-version=7.4"
-    req = urllib.request.Request(url, headers={"Authorization": f"Bearer {tok}"})
-    with urllib.request.urlopen(req, timeout=15) as r:
-        return json.loads(r.read().decode("utf-8"))["value"]
-
-
-def _doh_ssl_context():
-    """SSL context for DoH -- uses certifi CA bundle if importable so the
-    Automation sandbox's stripped-down trust store doesn't reject
-    Cloudflare's cert chain."""
-    import ssl
-    try:
-        import certifi
-        return ssl.create_default_context(cafile=certifi.where())
-    except ImportError:
-        return ssl.create_default_context()
-
-
-def _doh_query(name: str, rtype: str) -> list:
-    """Query Cloudflare DNS-over-HTTPS for a single record type. Returns
-    the Answer list (each item is a dict with `data` and `type`). Used
-    to sidestep the Automation sandbox's broken outbound DNS resolver
-    for Atlas SRV/TXT lookups."""
-    url = f"https://cloudflare-dns.com/dns-query?name={name}&type={rtype}"
-    req = urllib.request.Request(
-        url, headers={"Accept": "application/dns-json"},
-    )
-    with urllib.request.urlopen(req, timeout=15, context=_doh_ssl_context()) as r:
-        return json.loads(r.read().decode("utf-8")).get("Answer", []) or []
-
-
-def _srv_to_direct_mongo_uri(srv_uri: str) -> str:
-    """Translate a mongodb+srv:// URI to its non-SRV mongodb:// equivalent
-    by resolving _mongodb._tcp.<host> SRV + <host> TXT via DNS-over-HTTPS,
-    then reassembling the URI with the resolved hostnames and TXT options
-    inline. Non-SRV inputs are returned unchanged."""
-    if not srv_uri.startswith("mongodb+srv://"):
-        return srv_uri
-    tail = srv_uri[len("mongodb+srv://"):]
-    if "@" in tail:
-        userinfo, rest = tail.split("@", 1)
-        userinfo = userinfo + "@"
-    else:
-        userinfo, rest = "", tail
-    host_and_query = rest.split("/", 1)
-    host_only = host_and_query[0]
-    trailing = "/" + host_and_query[1] if len(host_and_query) > 1 else ""
-    # SRV lookup for hosts:port
-    srv_answers = _doh_query(f"_mongodb._tcp.{host_only}", "SRV")
-    hosts = []
-    for a in srv_answers:
-        if a.get("type") != 33:  # SRV
-            continue
-        parts = a.get("data", "").strip().split()
-        if len(parts) >= 4:
-            port = parts[2]
-            target = parts[3].rstrip(".")
-            hosts.append(f"{target}:{port}")
-    if not hosts:
-        raise ChatHealthyException(mode="runtime_error", message=f"DoH SRV lookup returned no hosts for {host_only}")
-    # TXT lookup for connection options (Atlas ships tls/replicaSet/authSource)
-    txt_answers = _doh_query(host_only, "TXT")
-    txt_opts = ""
-    for a in txt_answers:
-        if a.get("type") != 16:  # TXT
-            continue
-        val = a.get("data", "").strip().strip('"')
-        if val:
-            txt_opts = val
-            break
-    # Assemble direct URI
-    base = "mongodb://" + userinfo + ",".join(hosts) + trailing
-    if txt_opts:
-        sep = "&" if ("?" in base) else "?"
-        base = base + sep + txt_opts
-    # Atlas SRV implies tls=true; enforce.
-    if "tls=" not in base and "ssl=" not in base:
-        sep = "&" if ("?" in base) else "?"
-        base = base + sep + "tls=true"
-    return base
-
 
 def _read_pipeline_config(mongo) -> dict:
     """LLD §2.6 step 2: read chathealthyfrontend.pipeline.config for
@@ -987,18 +909,6 @@ def _resolve_state_scope(raw):
 # Main
 # ============================================================================
 def main() -> int:
-    # Hoist Mongo secret fetch AND SRV-to-direct conversion to the top so
-    # CHLS's Mongo handler can wire on the first log() call below. The AA
-    # Python 3 sandbox cannot resolve `_mongodb._tcp.*` SRV records, so
-    # the SRV-form URI from KV MUST be converted to its non-SRV direct
-    # form here via DNS-over-HTTPS before any CHLS.info() call constructs
-    # a MongoClient. Without this, log() -> CHLS -> mongo_utilities ->
-    # MongoClient(srv_uri) -> pymongo's SRV resolver fails and the
-    # runbook crashes on the very first log call.
-    os.environ["MONGO_connectionString"] = _srv_to_direct_mongo_uri(
-        _get_mongo_conn_string()
-    )
-
     invocation_mode = INVOCATION_MODE
     webhook_body = _parse_webhook_input()
     if webhook_body:
@@ -1073,34 +983,13 @@ def main() -> int:
         # Config + manifest -- against the ALWAYS-UP front cluster.
         try:
             import pymongo  # provided by AA Python 3 package
-            conn = _get_mongo_conn_string()
-            log("mongo_secret_fetched", vault_uri=KEY_VAULT_URI)
-            _mongo_kwargs = {"serverSelectionTimeoutMS": 15000}
-            if _mongo_tls_ca:
-                _mongo_kwargs["tlsCAFile"] = _mongo_tls_ca
-            # Atlas SRV lookups fail from the Automation sandbox because its
-            # resolver cannot answer _mongodb._tcp.<domain> SRV queries. Try
-            # a direct connect first; on SRV failure, translate the URI to
-            # its non-SRV equivalent via DNS-over-HTTPS and retry.
-            # Route through ChatHealthyMongoUtilities. It reads the URI
-            # from an env var; publish the KV-fetched conn string under a
-            # stable name before instantiating. The SRV-bypass retry path
-            # publishes the direct-mode URI under the same name.
-            try:
-                os.environ["MONGO_FRONTEND_connectionString"] = conn
-                mongo = ChatHealthyMongoUtilities().getConnection(
-                    "pipelineEditor", "frontEnd"
-                )
-                mongo.admin.command("ping")
-            except Exception:
-                direct = _srv_to_direct_mongo_uri(conn)
-                log("mongo_srv_bypass_active",
-                    direct_hostcount=direct.count(",") + 1 if direct.startswith("mongodb://") else 0)
-                os.environ["MONGO_FRONTEND_connectionString"] = direct
-                mongo = ChatHealthyMongoUtilities().getConnection(
-                    "pipelineEditor", "frontEnd"
-                )
-                mongo.admin.command("ping")
+            # The utility builds the address from a fixed host map and
+            # authenticates with pipelineEditor's certificate, so there is
+            # no URI to publish and no SRV form to bypass.
+            mongo = ChatHealthyMongoUtilities().getConnection(
+                "pipelineEditor", "frontEnd"
+            )
+            mongo.admin.command("ping")
             log("mongo_connected", cluster="chathealthydatapipelines")
             # Same-pipeline mutual exclusion. Atomic acquire on
             # _id="pipeline_lock:<pipeline_name>". Only blocks fires

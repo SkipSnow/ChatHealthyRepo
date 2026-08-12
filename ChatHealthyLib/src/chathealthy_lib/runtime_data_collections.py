@@ -5,7 +5,7 @@ Each front-end runtime that consumes versioned data calls
 
   1. Reads target_id and env from build_info.json baked into the build.
   2. Reads ChatHealthyConfig.DBVersions.find_one({"env": env}) on the
-     ChatHealthyFrontEnd cluster via MONGO_FRONTEND_connectionString.
+     ChatHealthyFrontEnd cluster, reached through ChatHealthyMongoUtilities.
   3. Locates the targets[] entry whose deployment_target == target_id.
   4. Binds module-level statics for each collection_environment_name to
      its runtime_collection_name.

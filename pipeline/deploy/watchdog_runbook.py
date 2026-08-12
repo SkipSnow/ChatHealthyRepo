@@ -167,7 +167,7 @@ from chathealthy_lib.logging_service import ChatHealthyLoggingService  # noqa: P
 
 # Lazily instantiate CHLS on first log() call so bootstrap_aa_mongo_logging
 # has already run inside main() by then and CH_LOG_DESTINATION=stderr,mongo
-# + MONGO_FRONTEND_connectionString are set. CHLS reads env at
+# is set. CHLS reads env at
 # instantiation; setting env AFTER a stderr-only instantiation does NOT
 # re-wire the Mongo handler. Instantiating at module top was the reason
 # no Watchdog events reached Pipelines.Log_dev.
@@ -247,25 +247,7 @@ def _legacy_blob_log_unused(event: str, **fields):
 # Mongo helpers -- pipeline cluster (operator directive 2026-08-03: coord
 # lives on pipeline cluster; frontend cluster is off-limits to pipeline).
 # -----------------------------------------------------------------------------
-def _get_mongo_conn_string() -> str:
-    """Fetch MONGO_connectionString from Key Vault via MI."""
-    tok = _get_token("https://vault.azure.net")
-    url = f"{KEY_VAULT_URI}secrets/MONGO-connectionString?api-version=7.4"
-    req = urllib.request.Request(
-        url, headers={"Authorization": f"Bearer {tok}"}
-    )
-    with urllib.request.urlopen(req, timeout=15) as r:
-        return json.loads(r.read().decode("utf-8"))["value"]
-
-
 def _mongo_client():
-    import pymongo
-    try:
-        import certifi
-        ca = certifi.where()
-    except ImportError:
-        ca = None
-    _get_mongo_conn_string()  # Validate connection is possible; result not used
     return ChatHealthyMongoUtilities().getConnection("pipelineEditor", "admin")
 
 
@@ -627,8 +609,6 @@ def main() -> int:
     from chathealthy_lib.pipeline_boot import bootstrap_aa_mongo_logging  # noqa: PLC0415
     try:
         bootstrap_aa_mongo_logging(
-            kv_uri=KEY_VAULT_URI,
-            secret_name="MONGO-FRONTEND-connectionString",
             component_name="watchdog",
             env_prefix=ENV_PREFIX,
         )

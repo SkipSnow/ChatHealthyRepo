@@ -100,11 +100,6 @@ def promote(from_env: str, to_env: str, confirm_prod: bool = False, dry_run: boo
         log.error("REFUSED: promoting to prod requires --confirm-prod flag (GOV-007)")
         sys.exit(1)
 
-    conn = os.getenv("MONGO_FRONTEND_connectionString")
-    if not conn:
-        log.error("MONGO_FRONTEND_connectionString not set")
-        sys.exit(1)
-
     client = _devops_connection()
     coll = client["frontEndAdmin"]["BuildVersions"]
 

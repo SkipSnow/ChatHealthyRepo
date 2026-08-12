@@ -117,11 +117,6 @@ def extract_seed_values():
 
 
 def main():
-    conn = os.getenv("MONGO_FRONTEND_connectionString")
-    if not conn:
-        log.error("MONGO_FRONTEND_connectionString not set in environment")
-        sys.exit(1)
-
     build, version, framework = extract_seed_values()
     log.info("Seed values from version.json: build=%d version=%s framework=%s",
              build, version, framework)

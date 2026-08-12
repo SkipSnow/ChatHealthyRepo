@@ -62,11 +62,11 @@ os.environ.setdefault("ENV_PREFIX",
                       os.environ.get("AUTOMATION_ENV_PREFIX", "dev"))
 os.environ.setdefault("CH_LOG_DESTINATION", "stderr,mongo")
 
-# Atlas SRV connection strings (mongodb+srv://...) require dnspython
-# SRV resolution. The AA Python3 sandbox's system DNS does not answer
-# external SRV queries reliably, so explicitly point dnspython at
-# public resolvers. This is harmless in local/dev contexts (overrides
-# only the in-process resolver). Must run BEFORE pymongo is imported.
+# Atlas SRV addresses require dnspython to resolve them. The AA Python3
+# sandbox's system DNS does not answer external SRV queries reliably, so
+# explicitly point dnspython at public resolvers. This is harmless in
+# local/dev contexts (overrides only the in-process resolver). Must run
+# BEFORE pymongo is imported.
 try:
     import dns.resolver  # type: ignore[import-not-found]
     _r = dns.resolver.Resolver(configure=False)

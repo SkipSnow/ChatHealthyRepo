@@ -62,17 +62,6 @@ for _d in _pl.Path(__file__).resolve().parents:
 from chathealthy_lib.exceptions import ChatHealthyException
 
 
-def _load_mongo_uri() -> str:
-    env_path = Path(__file__).resolve().parents[5] / "Code" / ".env"
-    for line in env_path.read_text(encoding="utf-8").splitlines():
-        if line.startswith("MONGO_FRONTEND_connectionString="):
-            return line.split("=", 1)[1].strip()
-    raise ChatHealthyException(
-        mode="configuration_missing",
-        component="test_provider_detail_data_management",
-        message="MONGO_FRONTEND_connectionString not found in .env")
-
-
 @pytest.fixture(scope="module")
 def test_coll():
     """Build the test DB once per module run; drop it on teardown."""

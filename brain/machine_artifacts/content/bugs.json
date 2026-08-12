@@ -44,7 +44,7 @@
       "test_id": "Null",
       "discovery_date": "2026-08-01",
       "due_date": "2026-09-15",
-      "reproduction": "1. Open ChatHealthyLib/src/chathealthy_lib/mongo_utilities.py. 2. Grep for MONGO_FRONTEND_connectionString and MONGO_connectionString -- both appear as hardcoded literals.",
+      "reproduction": "1. Open ChatHealthyLib/src/chathealthy_lib/mongo_utilities.py. 2. Observe the ChatHealthy cluster environment-variable names written as hardcoded literals -- as default arguments, in equality branches, and in the timeout-default selector. The names themselves are not reproduced here: they name a database credential, which Rule-065-ENF-003 forbids any committed file to carry.",
       "orphan": false,
       "next_action": [
         "Design, document and implement solution."

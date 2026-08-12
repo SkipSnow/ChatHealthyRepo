@@ -7,7 +7,7 @@
 # cluster's providers collection. If any state is short, the test
 # fails and reports which states are missing records and how many.
 #
-# Requires: MONGO_connectionString (pipeline cluster) + AZURE_STORAGE_CONNECTION_STRING
+# Requires: AZURE_STORAGE_CONNECTION_STRING
 # Run: pytest Code/DataPipelines/tests/test_load_parity.py -v -s
 
 import csv
@@ -48,13 +48,6 @@ def _ch_connection():
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
 
 _log = ChatHealthyLoggingService()
-
-
-def _get_pipeline_connection():
-    val = os.environ.get("MONGO_connectionString")
-    if not val:
-        pytest.skip("No MONGO_connectionString (pipeline cluster) in env")
-    return val
 
 
 def _get_blob_service():
