@@ -25,7 +25,17 @@ Single path:
   - exec argv[1] with argv[2:] as forwarded args.
 """
 from __future__ import annotations
-from chathealthy_lib.logging_service import ChatHealthyLoggingService
+from chathealthy_lib.logging_service import (
+    ChatHealthyLoggingService,
+    set_mongo_log_identity,
+)
+
+# Whose certificate the log handler connects with. Every other pipeline module
+# picks this up by importing pipeline_db; bootstrap does not import it, so
+# without this line the first ChatHealthyLoggingService call raises
+# mongo_log_identity_not_set -- which is how the container died even after it
+# could reach the vault.
+set_mongo_log_identity("pipelineEditor")
 
 import atexit
 import os
