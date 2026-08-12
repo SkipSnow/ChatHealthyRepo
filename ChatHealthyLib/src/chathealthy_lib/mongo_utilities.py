@@ -347,17 +347,27 @@ class ChatHealthyMongoUtilities:
     def _azure_token(self, identity: str) -> str:
         """An Azure token for Key Vault, as this identity.
 
-        On Azure compute the identity IS the credential: the instance
-        metadata endpoint issues a token for the managed identity attached
-        to the host, and there is no secret to hold, ship or rotate. That
-        is the model, and it is what bootstrap.py already uses through
-        DefaultAzureCredential.
+        The mechanism follows what the identity IS, not what happens to be
+        in the environment. An identity that holds a client secret is an
+        application registration and proves itself with that secret. An
+        identity that holds none is a managed identity, proven by the host
+        it is attached to through the instance metadata endpoint.
 
-        Off Azure there is no metadata endpoint, so the identity presents a
-        client secret named after itself. That path is unchanged.
+        The choice used to be made by whether IDENTITY_ENDPOINT was set.
+        The Azure Automation sandbox sets that variable for every runbook,
+        whether or not the account has a managed identity, so every runbook
+        asked the metadata endpoint for a token as pipelineEditor -- an
+        application registration that no host carries -- and took a 400
+        with its own client secret sitting unread in the environment.
         """
         prefix = identity.strip().upper()
-        endpoint = os.environ.get("IDENTITY_ENDPOINT") or os.environ.get("MSI_ENDPOINT")
+        client_secret = os.environ.get(f"{prefix}_AZURE_CLIENT_SECRET", "").strip()
+        endpoint = (
+            ""
+            if client_secret
+            else (os.environ.get("IDENTITY_ENDPOINT")
+                  or os.environ.get("MSI_ENDPOINT"))
+        )
         if endpoint:
             header = os.environ.get("IDENTITY_HEADER") or os.environ.get("MSI_SECRET", "")
             params = {
