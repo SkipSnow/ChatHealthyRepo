@@ -4768,6 +4768,10 @@
                   {
                     "name": "idna",
                     "content_url": "https://files.pythonhosted.org/packages/76/c6/c88e154df9c4e1a2a66ccf0005a88dfb2650c1dffb6f5ce603dfbd452ce3/idna-3.10-py3-none-any.whl"
+                  },
+                  {
+                    "name": "pillow",
+                    "content_url": "https://files.pythonhosted.org/packages/c3/ba/c4c2a1411561cd9725979115e7450f1367b44997ae1ff29e5845bce92d52/Pillow-9.5.0-cp38-cp38-win_amd64.whl"
                   }
                 ],
                 "automation_variables": [],
