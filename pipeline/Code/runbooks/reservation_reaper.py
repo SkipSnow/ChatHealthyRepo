@@ -74,7 +74,7 @@ try:
     import automationassets
     for k in ("ATLAS_PUBLIC_KEY", "ATLAS_PRIVATE_KEY",
               "ATLAS_PROJECT_ID", "ENV_PREFIX", "PIPELINE_CLUSTER",
-              "ACTIVITY_WINDOW_MINUTES", "CH_LOG_DB",
+              "ACTIVITY_WINDOW_MINUTES", "CH_LOG_DB", "KEY_VAULT_URI",
               "AZURE_STORAGE_CONNECTION_STRING",
               "AZ_SUBSCRIPTION_ID", "AZ_RESOURCE_GROUP", "AZ_AUTOMATION_ACCOUNT",
               "SPARKMAIL_API_KEY",
