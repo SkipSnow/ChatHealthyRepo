@@ -252,7 +252,12 @@ class _MongoLogHandler(logging.Handler):
         try:
             self.emit(logging.LogRecord(
                 name="ChatHealthyLoggingService", level=logging.INFO,
-                pathname=__file__, lineno=0,
+                # Not __file__: the build inlines this module into every
+                # Automation runbook, and inlined code has no __file__. The
+                # probe raised NameError there, so a runbook proving it could
+                # log was the thing that stopped it running.
+                pathname=globals().get("__file__", "chathealthy_lib/logging_service.py"),
+                lineno=0,
                 msg="log handler initialised: db=%s target=%s env=%s",
                 args=(self._log_db, self._target, self._env),
                 exc_info=None,
