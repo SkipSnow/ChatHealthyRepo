@@ -4754,8 +4754,12 @@
         }
       ],
       "files": [],
-      "secrets": {},
-      "secret_descriptions": {},
+      "secrets": {
+        "ENTITLEMENT_REPORT_TO_EMAIL": "local_env"
+      },
+      "secret_descriptions": {
+        "ENTITLEMENT_REPORT_TO_EMAIL": "Who the daily entitlement report is sent to"
+      },
       "entitlements": [
         {
           "kind": "azure_rbac_role_assignment",

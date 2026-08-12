@@ -39,6 +39,7 @@ from pathlib import Path
 # imported from local_build.py for now. They migrate in step 5.7.
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 from preflight_undefined_names import scan as _scan_undefined_names  # noqa: E402
+from devops_identity import establish_azure_identity  # noqa: E402
 from _build_chain import (
     _declared_packages,  # noqa: E402
     materialize_build_structure,
@@ -343,6 +344,11 @@ def main(argv: list[str] | None = None) -> int:
              "'every package' shortcut.",
     )
     args = parser.parse_args(argv)
+
+    # The build acts as DevOpsUser, not as whoever is logged in at the
+    # terminal. Establishing it here governs every `az` subprocess the chain
+    # spawns downstream, at every call site.
+    establish_azure_identity("DevOpsUser")
 
     canonical_repo = _find_repo_root(Path(__file__))
 

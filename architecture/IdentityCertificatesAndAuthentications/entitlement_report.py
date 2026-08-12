@@ -592,7 +592,7 @@ def render_pdf(data: dict, out_path: Path) -> Path:
                 continue
             rows.append([
                 Paragraph(first["role"], cell),
-                Paragraph(f'{first["parent_scope"]} — '
+                Paragraph(f'{first["parent_scope"]} &mdash; '
                           f'{len(members)} individual secret'
                           f'{"s" if len(members) != 1 else ""}', cell),
                 "yes" if first["privileged"] else "",
@@ -601,7 +601,7 @@ def render_pdf(data: dict, out_path: Path) -> Path:
             ])
             for m in sorted(members, key=lambda x: x["secret"]):
                 d = descs.get(m["secret"], "")
-                text = (f'&nbsp;&nbsp;&bull;&nbsp; <b>{m["secret"]}</b> — {d}' if d
+                text = (f'&nbsp;&nbsp;&bull;&nbsp; <b>{m["secret"]}</b> &mdash; {d}' if d
                         else f'&nbsp;&nbsp;&bull;&nbsp; <b>{m["secret"]}</b>')
                 bullet_rows.append(len(rows))
                 rows.append(["", Paragraph(text, cell), "", "", ""])
@@ -651,7 +651,7 @@ def render_pdf(data: dict, out_path: Path) -> Path:
             if g["justification"]:
                 out.append(Spacer(1, 3))
                 out.append(Paragraph(
-                    f"<b>{g['role']} — recorded justification.</b> {g['justification']}", note))
+                    f"<b>{g['role']} &mdash; recorded justification.</b> {g['justification']}", note))
         for g in holder["grants"]:
             if not g["conditioned"]:
                 continue
