@@ -725,32 +725,63 @@ def render_pdf(data: dict, out_path: Path) -> Path:
 
 
 def send(pdf_path: Path, data: dict) -> dict:
-    from notification_client import NotificationClient
+    """Mail the report, with the PDF attached.
+
+    The transmission is posted directly rather than through the pipeline's
+    notification client: that module lives in the repository and is not
+    present where this runs. One POST, the same API, no shared dependency
+    between an audit control and operational alerting.
+    """
+    import base64
+
     to = _ch_os.environ.get("ENTITLEMENT_REPORT_TO_EMAIL", "").strip()
-    if not to:
+    api_key = _ch_os.environ.get("SPARKMAIL_API_KEY", "").strip()
+    sender = _ch_os.environ.get("NOTIFICATION_FROM_EMAIL", "noreply@chathealthy.ai").strip()
+    missing = [n for n, v in (("ENTITLEMENT_REPORT_TO_EMAIL", to),
+                              ("SPARKMAIL_API_KEY", api_key)) if not v]
+    if missing:
         raise _chathealthy_exception()(
             mode="notification_recipient_missing",
             component="EntitlementReport",
-            message="ENTITLEMENT_REPORT_TO_EMAIL is not set; the report has nowhere to go")
+            message=f"the report cannot be sent: {', '.join(missing)} absent",
+            context={"missing": missing})
+
     unapproved = [h for h in data["holders"] if not h["approved"]]
     stamp = data["generated"].strftime("%Y-%m-%d")
     verdict = ("no exceptions" if not unapproved
-               else f"{len(unapproved)} principal(s) outside the approved list")
-    subject = f"ChatHealthy access entitlement report {stamp} -- {verdict}"
+               else f"{len(unapproved)} principal(s) outside the approved register")
     body = (
         f"Access entitlement report for {stamp}.\n\n"
         f"Role assignments in force: {data['assignment_count']}\n"
-        f"Principals holding rights: {len(data['holders'])}\n"
-        f"Outside the approved list: {len(unapproved)}\n\n"
+        f"Identities holding rights: {len(data['holders'])}\n"
+        f"Outside the approved register: {len(unapproved)}\n\n"
         "The attached PDF states the control, the population and the exceptions, "
-        "and lists every role and scope held by every principal.\n"
+        "and lists every right held by every identity.\n"
     )
-    return NotificationClient().send_email(
-        to=to, subject=subject, body=body,
-        attachments=[{"filename": f"ChatHealthy-entitlements-{stamp}.pdf",
-                      "type": "application/pdf",
-                      "content": pdf_path.read_bytes()}],
-        log_context="entitlement_report")
+    payload = {
+        "content": {
+            "from": sender,
+            "subject": f"ChatHealthy access entitlement report {stamp} -- {verdict}",
+            "text": body,
+            "attachments": [{
+                "type": "application/pdf",
+                "name": f"ChatHealthy-entitlements-{stamp}.pdf",
+                "data": base64.b64encode(pdf_path.read_bytes()).decode("ascii"),
+            }],
+        },
+        "recipients": [{"address": to}],
+    }
+    r = requests.post(
+        "https://api.sparkpost.com/api/v1/transmissions",
+        headers={"Authorization": api_key, "Content-Type": "application/json"},
+        data=json.dumps(payload), timeout=120)
+    if r.status_code not in (200, 201):
+        raise _chathealthy_exception()(
+            mode="notification_send_failed",
+            component="EntitlementReport",
+            message=f"SparkPost returned {r.status_code}: {r.text[:300]}",
+            context={"status": r.status_code, "to": to})
+    return {"channel": "email", "status": "sent", "to": to}
 
 
 def main(argv: list[str] | None = None) -> int:
