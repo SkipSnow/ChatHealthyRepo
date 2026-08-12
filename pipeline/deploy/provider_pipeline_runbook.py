@@ -60,7 +60,17 @@ for _k in ("CH_LOG_DB", "CH_LOG_LEVEL", "PIPELINE_SECRET_NAMES",
            "AUTOMATION_SUBSCRIPTION_ID", "AUTOMATION_RESOURCE_GROUP",
            "ATLAS_PROJECT_ID", "AZ_VM_ADMIN_SSH_PUBKEY",
            "SPARKMAIL_API_KEY", "NOTIFICATION_FROM_EMAIL",
-           "NOTIFICATION_TO_EMAIL"):
+           "NOTIFICATION_TO_EMAIL",
+           # The identity this runbook acts as. These belong in the
+           # environment, not just in local variables: the library reads
+           # them from there to decide that pipelineEditor is an
+           # application registration and to present its credential.
+           # Without them it finds no secret, concludes it must be a
+           # managed identity, and asks a metadata endpoint the
+           # Automation Account has no identity behind.
+           "PIPELINEEDITOR_AZURE_TENANT_ID",
+           "PIPELINEEDITOR_AZURE_CLIENT_ID",
+           "PIPELINEEDITOR_AZURE_CLIENT_SECRET"):
     try:
         import automationassets  # only present in the Automation sandbox
         _v = automationassets.get_automation_variable(_k)
@@ -557,6 +567,9 @@ runcmd:
       -e AZURE_TENANT_ID='{PIPELINE_EDITOR_TENANT}' \\
       -e AZURE_CLIENT_ID='{PIPELINE_EDITOR_CLIENT_ID}' \\
       -e AZURE_CLIENT_SECRET='{PIPELINE_EDITOR_SECRET}' \\
+      -e PIPELINEEDITOR_AZURE_TENANT_ID='{PIPELINE_EDITOR_TENANT}' \\
+      -e PIPELINEEDITOR_AZURE_CLIENT_ID='{PIPELINE_EDITOR_CLIENT_ID}' \\
+      -e PIPELINEEDITOR_AZURE_CLIENT_SECRET='{PIPELINE_EDITOR_SECRET}' \\
       -e PIPELINE_SECRET_NAMES='{PIPELINE_SECRET_NAMES}' \\
       {image_ref}
     DOCKER_EXIT=$?
