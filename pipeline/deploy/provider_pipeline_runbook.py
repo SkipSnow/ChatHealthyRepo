@@ -618,12 +618,21 @@ def _await_run_host(run_id: str, vm_name: str, mongo) -> None:
     state = "unknown"
     while time.time() < deadline:
         req = urllib.request.Request(url, headers={"Authorization": f"Bearer {tok}"})
+        # A query that cannot be answered is not a host that is not ready
+        # yet. Polling through it would turn a misconfiguration into a
+        # five-minute silence and then a timeout naming the wrong cause.
         try:
             with urllib.request.urlopen(req, timeout=30) as r:
                 state = ((json.loads(r.read().decode("utf-8") or "{}")
                           .get("properties") or {}).get("provisioningState") or "unknown")
-        except Exception as exc:  # noqa: BLE001
-            state = f"query-failed: {type(exc).__name__}"
+        except Exception as exc:
+            raise ChatHealthyException(
+                mode="run_host_state_unreadable",
+                message=(f"cannot read provisioning state of {vm_name}: "
+                         f"{type(exc).__name__}: {exc}"),
+                component="provider_pipeline_runbook",
+                run_id=run_id,
+            ) from exc
         if state == "Succeeded":
             log("run_host_provisioned", run_id=run_id, vm_name=vm_name)
             break
@@ -647,6 +656,9 @@ def _await_run_host(run_id: str, vm_name: str, mongo) -> None:
 
     deadline = time.time() + CONTROLLER_READY_TIMEOUT_SECONDS
     while time.time() < deadline:
+        # Unreadable is not "not yet" here either. The manifest was written
+        # through this same connection minutes ago; if it cannot be read now
+        # the run has lost its coordination database and must stop.
         doc = mongo[PIPELINE_ADMIN_DB]["pipeline.runs"].find_one(
             {"run_id": run_id}, {"controller_heartbeat_at": 1}
         ) or {}
@@ -1242,72 +1254,118 @@ def main() -> int:
                 vm_name=vm_name_for_teardown)
 
 
-def _mail_discrepancy_report(subject: str, body: str) -> None:
-    """Post a discrepancy report to the mail server directly.
+def _safe(fn, default: str = "unavailable") -> str:
+    """Evaluate a field for the report, or say it could not be read.
 
-    Deliberately uses nothing but urllib and the Automation Variables this
-    runbook already holds. It exists for the failures that stop the run
-    before it can report itself -- most of them failures of logging, which
-    is to say of the database this report would otherwise be written to.
-    A report that depended on either could not describe their loss.
-
-    Silent on its own failure: this is the last thing that runs, and there
-    is nothing left to tell.
+    The report describes runs that broke early, so any value it wants may
+    be missing, unbound or itself raising. A field that cannot be read is
+    a line in the report, never a reason not to send one.
     """
-    api_key = os.environ.get("SPARKMAIL_API_KEY", "").strip()
-    from_email = os.environ.get("NOTIFICATION_FROM_EMAIL", "").strip()
-    to_email = os.environ.get("NOTIFICATION_TO_EMAIL", "").strip()
+    try:
+        v = fn()
+        return default if v is None else str(v)
+    except BaseException:  # noqa: BLE001
+        return default
+
+
+def _mail_discrepancy_report(subject: str, body: str) -> bool:
+    """Post a discrepancy report to the mail server. Returns whether it went.
+
+    Uses nothing but urllib and the Automation Variables this runbook already
+    holds -- no database, no logging service, no library import. Those are the
+    subsystems whose loss it exists to describe, and a report that depended on
+    them could not describe it.
+
+    Failing to reach the mail endpoint is the only failure this is permitted,
+    and it is the only one it has: everything else is caught and folded into
+    the message rather than allowed to stop it. Three attempts, because a
+    single refused connection is not evidence the endpoint is gone.
+    """
+    api_key = _safe(lambda: os.environ.get("SPARKMAIL_API_KEY", "").strip(), "")
+    from_email = _safe(lambda: os.environ.get("NOTIFICATION_FROM_EMAIL", "").strip(), "")
+    to_email = _safe(lambda: os.environ.get("NOTIFICATION_TO_EMAIL", "").strip(), "")
     if not (api_key and from_email and to_email):
         sys.stderr.write(
-            "provider_pipeline_runbook: cannot mail the discrepancy report; "
-            "SPARKMAIL_API_KEY / NOTIFICATION_FROM_EMAIL / "
-            "NOTIFICATION_TO_EMAIL absent\n"
+            "provider_pipeline_runbook: the discrepancy report cannot be "
+            "posted; SPARKMAIL_API_KEY / NOTIFICATION_FROM_EMAIL / "
+            "NOTIFICATION_TO_EMAIL are not all present. Report body follows.\n"
+            + body + "\n"
         )
-        return
+        return False
     payload = {
         "options": {"transactional": True},
         "content": {"from": from_email, "subject": subject, "text": body},
         "recipients": [{"address": {"email": to_email}}],
     }
-    req = urllib.request.Request(
-        "https://api.sparkpost.com/api/v1/transmissions",
-        data=json.dumps(payload).encode("utf-8"),
-        method="POST",
-        headers={"Authorization": api_key, "Content-Type": "application/json"},
+    last = ""
+    for attempt in (1, 2, 3):
+        try:
+            req = urllib.request.Request(
+                "https://api.sparkpost.com/api/v1/transmissions",
+                data=json.dumps(payload).encode("utf-8"),
+                method="POST",
+                headers={"Authorization": api_key,
+                         "Content-Type": "application/json"},
+            )
+            with urllib.request.urlopen(req, timeout=20) as r:
+                r.read()
+            sys.stderr.write(
+                f"provider_pipeline_runbook: discrepancy report posted "
+                f"(attempt {attempt})\n"
+            )
+            return True
+        except BaseException as exc:  # noqa: BLE001
+            last = f"{type(exc).__name__}: {exc}"
+            if attempt < 3:
+                try:
+                    time.sleep(3)
+                except BaseException:  # noqa: BLE001
+                    pass
+    # The one excuse. Everything the report would have said goes to stderr,
+    # which is what the Automation job records in its exception field.
+    sys.stderr.write(
+        f"provider_pipeline_runbook: could not post the discrepancy report "
+        f"after 3 attempts ({last}). Report body follows.\n" + body + "\n"
     )
-    try:
-        with urllib.request.urlopen(req, timeout=20) as r:
-            r.read()
-        sys.stderr.write("provider_pipeline_runbook: discrepancy report mailed\n")
-    except Exception as exc:  # noqa: BLE001
-        sys.stderr.write(
-            f"provider_pipeline_runbook: mailing the discrepancy report "
-            f"failed: {type(exc).__name__}: {exc}\n"
-        )
+    return False
 
 
 def _abend_report(exc: BaseException) -> None:
-    """The account of a run that ended before it could give one."""
-    when = datetime.datetime.now(datetime.timezone.utc).isoformat()
-    body = (
-        f"Provider pipeline fire ended without starting.\n"
-        f"\n"
-        f"  pipeline:   {PIPELINE_NAME}\n"
-        f"  env:        {ENV_PREFIX}\n"
-        f"  host:       {_HOSTNAME}\n"
-        f"  at:         {when}\n"
-        f"  reason:     {type(exc).__name__}: {exc}\n"
-        f"\n"
-        f"No run host was created and no work was done. If this reads as a\n"
-        f"logging or database failure, that is why this arrived by mail: the\n"
-        f"run could not write the record of its own end.\n"
-        f"\n"
-        f"{traceback.format_exc()[-3000:]}"
-    )
-    _mail_discrepancy_report(
-        f"Provider pipeline FAILED to start - {ENV_PREFIX} - {type(exc).__name__}",
-        body,
-    )
+    """The account of a run that ended before it could give one.
+
+    Every field is read defensively: this runs after arbitrary failure,
+    including failures early enough that module-level names were never
+    bound. Nothing here may raise -- the report is the last thing that
+    happens, and it happening is the point.
+    """
+    try:
+        reason = _safe(lambda: f"{type(exc).__name__}: {exc}")
+        env = _safe(lambda: ENV_PREFIX)
+        body = (
+            "Provider pipeline fire ended without starting.\n"
+            "\n"
+            f"  pipeline:   {_safe(lambda: PIPELINE_NAME)}\n"
+            f"  env:        {env}\n"
+            f"  host:       {_safe(lambda: _HOSTNAME)}\n"
+            f"  at:         {_safe(lambda: datetime.datetime.now(datetime.timezone.utc).isoformat())}\n"
+            f"  reason:     {reason}\n"
+            "\n"
+            "No run host was confirmed and no work was done. If this reads as\n"
+            "a logging or database failure, that is why it arrived by mail:\n"
+            "the run could not write the record of its own end.\n"
+            "\n"
+            f"{_safe(lambda: traceback.format_exc()[-3000:], '')}"
+        )
+        _mail_discrepancy_report(
+            f"Provider pipeline FAILED to start - {env} - "
+            f"{_safe(lambda: type(exc).__name__)}",
+            body,
+        )
+    except BaseException as inner:  # noqa: BLE001
+        sys.stderr.write(
+            f"provider_pipeline_runbook: the discrepancy report itself "
+            f"raised: {type(inner).__name__}: {inner}\n"
+        )
 
 
 if __name__ == "__main__":
@@ -1328,3 +1386,5 @@ if __name__ == "__main__":
             )
         )
     sys.exit(_rc)
+# Nothing follows. The reporter above is the last thing that runs, and the
+# only failure it is permitted is the mail endpoint being unreachable.
