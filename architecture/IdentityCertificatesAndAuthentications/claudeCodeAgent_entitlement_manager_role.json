@@ -1,0 +1,24 @@
+{
+  "properties": {
+    "roleName": "ChatHealthy Agent",
+    "description": "The role held by claudeCodeAgent. Everything Owner grants, including provisioning and deprovisioning rights on identities that already exist, minus the ability to create an identity. Creating an identity is reserved to skip@chathealthy.ai.",
+    "assignableScopes": [
+      "/subscriptions/7a17eec1-c477-4c7c-b1c1-d0662ce7a1ee"
+    ],
+    "permissions": [
+      {
+        "actions": [
+          "*"
+        ],
+        "notActions": [
+          "Microsoft.ManagedIdentity/userAssignedIdentities/write",
+          "Microsoft.ManagedIdentity/userAssignedIdentities/delete",
+          "Microsoft.Authorization/roleDefinitions/write",
+          "Microsoft.Authorization/roleDefinitions/delete"
+        ],
+        "dataActions": [],
+        "notDataActions": []
+      }
+    ]
+  }
+}
