@@ -43,11 +43,8 @@ from _deploy_chain import (  # noqa: E402
     run_cloud_deploy,
     BUILD_ROOT_REL,
 )
-from cert_placement import (  # noqa: E402
-    provision_long_lived_certs,
-    bake_ca_chain_into_images,
-    LONG_LIVED_IDENTITIES,
-)
+from devops_identity import establish_azure_identity  # noqa: E402
+from cert_placement import bake_ca_chain_into_images  # noqa: E402
 
 import sys as _ch_sys, pathlib as _ch_pl
 for _ch_d in _ch_pl.Path(__file__).resolve().parents:
@@ -235,11 +232,10 @@ def _provision_pipeline_certs(
             "target_azure_container_registry_pipeline. F-012 §7 cannot "
             "run without both."
         )
-    provision_long_lived_certs(
-        env=env,
-        kv_target=kv_target,
-        identities=LONG_LIVED_IDENTITIES,
-    )
+    # Certificate issuance and the vault grant/revoke that follows it are
+    # entitlement work, not deploy work, and belong to claudeCodeAgent. The
+    # deploy reads the two public CA certs and bakes the trust chain into
+    # the images; it mints nothing and grants nothing.
     bake_ca_chain_into_images(env=env, acr_target=acr_target)
 
 
@@ -343,6 +339,12 @@ def main(argv: list[str] | None = None) -> int:
              "(e.g. 'ur_um_regression'). Empty by default.",
     )
     args = parser.parse_args(argv)
+
+    # The deploy acts as DevOpsUser, not as whoever is logged in at the
+    # terminal. Establishing it here governs every `az` subprocess the chain
+    # spawns downstream, at every call site.
+    establish_azure_identity("DevOpsUser")
+
     repo_root = _repo_root()
     # hf_helpers refuses to load the manifest until it is told which tree to
     # read it from -- it will not resolve that from __file__, because during a

@@ -555,25 +555,23 @@ def ensure_managed_identity(target, env: str) -> str:
     )
 
 
-def ensure_pipeline_automation_identity(
+def ensure_pipeline_automation_account(
     *,
     rg: str,
     aa_name: str,
-    mi_name: str = "mi-runbook",
-    vault_name: str = "kv-chpipeline-dev",
-) -> str:
-    """Attach mi-runbook to the pipeline Automation Account and grant KV read.
+) -> None:
+    """Ensure the pipeline Automation Account exists.
 
-    F-003: only mi-runbook may read ca-intermediate-privatekey. The AA job
-    sandbox obtains tokens via the user-assigned identity attached here.
+    It carries no identity of its own. Each runbook authenticates as
+    pipelineEditor from the credential the deploy places on it, so the account
+    is a host and nothing more -- there is no identity attached here for a
+    runbook to inherit, and none to be granted anything.
     """
-    step(f"ensure AA {aa_name} uses user-assigned identity {mi_name}")
-    # v32 deploy_provisioned: create the AA if it doesn't exist.
-    aa_check = _az(
+    step(f"ensure automation account {aa_name}")
+    if _az(
         ["automation", "account", "show", "--name", aa_name, "--resource-group", rg],
         check=False,
-    )
-    if aa_check.returncode != 0:
+    ).returncode != 0:
         _az([
             "automation", "account", "create",
             "--name", aa_name,
@@ -581,95 +579,6 @@ def ensure_pipeline_automation_identity(
             "--location", "eastus2",
             "--sku", "Basic",
         ])
-    mi = _az_json(
-        ["identity", "show", "--name", mi_name, "--resource-group", rg]
-    )
-    if not mi or not mi.get("id"):
-        sys.exit(
-            f"ERROR: managed identity {mi_name!r} missing in {rg!r}; "
-            f"deploy target_identity_mi_runbook first"
-        )
-    mi_id = mi["id"]
-    mi_oid = mi["principalId"]
-    # Enable user-assigned identity on the AA (keep any system-assigned).
-    _az(
-        [
-            "automation", "account", "update",
-            "--name", aa_name,
-            "--resource-group", rg,
-            "--assign-identity",
-            "--user-assigned", mi_id,
-        ],
-        check=False,
-    )
-    # Prefer REST PUT identity block — CLI update flags vary by extension version.
-    sub = _az(
-        ["account", "show", "--query", "id", "-o", "tsv"]
-    ).stdout.strip()
-    aa_url = (
-        f"https://management.azure.com/subscriptions/{sub}"
-        f"/resourceGroups/{rg}"
-        f"/providers/Microsoft.Automation/automationAccounts/{aa_name}"
-        f"?api-version=2023-11-01"
-    )
-    body = {
-        "identity": {
-            "type": "UserAssigned",
-            "userAssignedIdentities": {mi_id: {}},
-        }
-    }
-    _az(
-        [
-            "rest", "--method", "patch", "--url", aa_url,
-            "--headers", "Content-Type=application/json",
-            "--body", json.dumps(body), "-o", "none",
-        ]
-    )
-    # Role assignments are applied at end of deploy by
-    # apply_identity_role_grants_from_manifest in _deploy_chain.py, which
-    # walks IdentityCatalog × target.allowed_roles intersection from the
-    # manifest. No role names appear in this function anymore.
-    step(f"AA {aa_name} identity={mi_name} attached (role grants applied post-deploy)")
-    # AA Python sandboxes need AZURE_CLIENT_ID for user-assigned IMDS.
-    client_id = mi.get("clientId") or ""
-    if client_id:
-        sub = _az(
-            ["account", "show", "--query", "id", "-o", "tsv"]
-        ).stdout.strip()
-        var_url = (
-            f"https://management.azure.com/subscriptions/{sub}"
-            f"/resourceGroups/{rg}"
-            f"/providers/Microsoft.Automation/automationAccounts/{aa_name}"
-            f"/variables/AZURE_CLIENT_ID?api-version=2023-11-01"
-        )
-        var_body = {
-            "properties": {
-                "value": json.dumps(client_id),
-                "isEncrypted": False,
-                "description": "mi-runbook client id for IMDS token requests",
-            }
-        }
-        import tempfile
-        with tempfile.NamedTemporaryFile(
-            "w", encoding="utf-8", suffix=".json", delete=False,
-        ) as tmp:
-            json.dump(var_body, tmp)
-            tmp_path = tmp.name
-        try:
-            _az(
-                [
-                    "rest", "--method", "put", "--url", var_url,
-                    "--headers", "Content-Type=application/json",
-                    "--body", f"@{tmp_path}", "-o", "none",
-                ]
-            )
-        finally:
-            try:
-                os.unlink(tmp_path)
-            except OSError:
-                pass
-        step(f"AA Automation Variable AZURE_CLIENT_ID={client_id}")
-    return mi_name
 
 
 def ensure_acr(target, env: str) -> str:
