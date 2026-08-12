@@ -253,7 +253,22 @@
                       "secrets": {
                         "type": "object",
                         "description": "Secret NAME -> store qualifier for this package. Values never appear here."
+                      },
+                      "secret_descriptions": {
+                        "type": "object",
+                        "description": "What each secret named in 'secrets' IS, in a few plain words. Map of key NAME -> description, using the same names 'secrets' uses. Required wherever 'secrets' is present: a credential nobody can describe is a credential nobody is accountable for. Values themselves NEVER appear in this JSON. A name may also be described here without appearing in 'secrets', because a vault holds material -- certificates, private keys, certificate-authority material -- that no target binds to an environment variable.",
+                        "additionalProperties": {
+                          "type": "string",
+                          "minLength": 3,
+                          "maxLength": 80,
+                          "description": "A few plain words: what the secret is, on one line of a report."
+                        }
                       }
+                    },
+                    "dependentRequired": {
+                      "secrets": [
+                        "secret_descriptions"
+                      ]
                     }
                   }
                 },
@@ -1522,6 +1537,16 @@
               "$ref": "#/$defs/SourceQualifier"
             }
           },
+          "secret_descriptions": {
+            "type": "object",
+            "description": "What each secret named in 'secrets' IS, in a few plain words. Map of key NAME -> description, using the same names 'secrets' uses. Required wherever 'secrets' is present: a credential nobody can describe is a credential nobody is accountable for. Values themselves NEVER appear in this JSON. A name may also be described here without appearing in 'secrets', because a vault holds material -- certificates, private keys, certificate-authority material -- that no target binds to an environment variable.",
+            "additionalProperties": {
+              "type": "string",
+              "minLength": 3,
+              "maxLength": 80,
+              "description": "A few plain words: what the secret is, on one line of a report."
+            }
+          },
           "variables": {
             "type": "object",
             "description": "Deploy-computed VARIABLES (not secrets) for this TARGET, e.g. HF Space variables, runtime env values derived from cluster topology. Map of name -> source_qualifier string. Source-qualifier syntax: 'env_name' (value is the env binding name like dev/qa/prod), 'local_cert_file:<repo-relative-path>' (value is base64 of the file content), 'peer_url:<target_id>' (value is the peer target's HF Space URL resolved at deploy time), 'rename_from:<other_entry_name>' (value is the resolved value of another entry in this target's secrets or variables, pushed under THIS name). The deploy script dispatches on the qualifier prefix — zero target-specific knowledge lives in the deploy code. Moved here from hardcoded per-target maps inside local_deploy.py.",
@@ -1760,6 +1785,11 @@
               }
             }
           }
+        },
+        "dependentRequired": {
+          "secrets": [
+            "secret_descriptions"
+          ]
         }
       }
     },
