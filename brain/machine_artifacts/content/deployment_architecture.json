@@ -4110,7 +4110,8 @@
                 "AZ_VM_ADMIN_USERNAME": "local_env",
                 "AZ_VM_LOCATION": "local_env",
                 "AZ_VM_RESOURCE_GROUP": "local_env",
-                "AZ_VM_SIZE": "local_env"
+                "AZ_VM_SIZE": "local_env",
+                "CH_LOG_DB": "local_env"
               },
               "secret_descriptions": {
                 "ACTIVITY_WINDOW_MINUTES": "How long a cluster may idle before it is paused",
@@ -4130,7 +4131,8 @@
                 "NOTIFICATION_FROM_EMAIL": "Address notification email is sent from",
                 "NOTIFICATION_TO_EMAIL": "Address notification email is sent to",
                 "PIPELINE_CLUSTER": "Name of the Atlas cluster the pipeline writes to",
-                "SPARKMAIL_API_KEY": "SparkPost key for sending notification email"
+                "SPARKMAIL_API_KEY": "SparkPost key for sending notification email",
+                "CH_LOG_DB": "Database the structured log records are written to"
               },
               "config": {
                 "runbook_name": "ReservationReaper",
@@ -4173,10 +4175,12 @@
                 }
               ],
               "secrets": {
-                "API_TOKEN_MAP": "local_env"
+                "API_TOKEN_MAP": "local_env",
+                "CH_LOG_DB": "local_env"
               },
               "secret_descriptions": {
-                "API_TOKEN_MAP": "Which token each calling service must present"
+                "API_TOKEN_MAP": "Which token each calling service must present",
+                "CH_LOG_DB": "Database the structured log records are written to"
               },
               "config": {
                 "runbook_name": "ChangeDBVersion",
@@ -4222,7 +4226,8 @@
                 "PIPELINEEDITOR_AZURE_TENANT_ID": "local_env",
                 "PIPELINEEDITOR_AZURE_CLIENT_ID": "local_env",
                 "PIPELINEEDITOR_AZURE_CLIENT_SECRET": "local_env",
-                "PIPELINE_SECRET_NAMES": "local_env"
+                "PIPELINE_SECRET_NAMES": "local_env",
+                "CH_LOG_DB": "local_env"
               },
               "secret_descriptions": {
                 "ATLAS_PRIVATE_KEY": "MongoDB Atlas administrative API private key",
@@ -4234,7 +4239,8 @@
                 "PIPELINEEDITOR_AZURE_CLIENT_ID": "Identifies pipelineEditor to Azure",
                 "PIPELINEEDITOR_AZURE_CLIENT_SECRET": "Proves pipelineEditor to Azure",
                 "PIPELINEEDITOR_AZURE_TENANT_ID": "The directory pipelineEditor belongs to",
-                "PIPELINE_SECRET_NAMES": "Which vault secrets the pipeline run host is permitted to read"
+                "PIPELINE_SECRET_NAMES": "Which vault secrets the pipeline run host is permitted to read",
+                "CH_LOG_DB": "Database the structured log records are written to"
               },
               "config": {
                 "runbook_name": "ProviderPipelineRunbook",
@@ -4280,14 +4286,16 @@
                 "AUTOMATION_ENV_PREFIX": "local_env",
                 "PIPELINEEDITOR_AZURE_TENANT_ID": "local_env",
                 "PIPELINEEDITOR_AZURE_CLIENT_ID": "local_env",
-                "PIPELINEEDITOR_AZURE_CLIENT_SECRET": "local_env"
+                "PIPELINEEDITOR_AZURE_CLIENT_SECRET": "local_env",
+                "CH_LOG_DB": "local_env"
               },
               "secret_descriptions": {
                 "AUTOMATION_ENV_PREFIX": "Which environment the automation job is running for",
                 "KEY_VAULT_URI": "Address of the key vault holding every credential",
                 "PIPELINEEDITOR_AZURE_CLIENT_ID": "Identifies pipelineEditor to Azure",
                 "PIPELINEEDITOR_AZURE_CLIENT_SECRET": "Proves pipelineEditor to Azure",
-                "PIPELINEEDITOR_AZURE_TENANT_ID": "The directory pipelineEditor belongs to"
+                "PIPELINEEDITOR_AZURE_TENANT_ID": "The directory pipelineEditor belongs to",
+                "CH_LOG_DB": "Database the structured log records are written to"
               },
               "config": {
                 "runbook_name": "CaBootstrapRunbook",
@@ -4332,14 +4340,16 @@
                 "AUTOMATION_ENV_PREFIX": "local_env",
                 "PIPELINEEDITOR_AZURE_TENANT_ID": "local_env",
                 "PIPELINEEDITOR_AZURE_CLIENT_ID": "local_env",
-                "PIPELINEEDITOR_AZURE_CLIENT_SECRET": "local_env"
+                "PIPELINEEDITOR_AZURE_CLIENT_SECRET": "local_env",
+                "CH_LOG_DB": "local_env"
               },
               "secret_descriptions": {
                 "AUTOMATION_ENV_PREFIX": "Which environment the automation job is running for",
                 "KEY_VAULT_URI": "Address of the key vault holding every credential",
                 "PIPELINEEDITOR_AZURE_CLIENT_ID": "Identifies pipelineEditor to Azure",
                 "PIPELINEEDITOR_AZURE_CLIENT_SECRET": "Proves pipelineEditor to Azure",
-                "PIPELINEEDITOR_AZURE_TENANT_ID": "The directory pipelineEditor belongs to"
+                "PIPELINEEDITOR_AZURE_TENANT_ID": "The directory pipelineEditor belongs to",
+                "CH_LOG_DB": "Database the structured log records are written to"
               },
               "config": {
                 "runbook_name": "CaEndpointRunbook",
@@ -4391,7 +4401,8 @@
                 "MONGOCLUSTER_MIGRATOR_ORCHESTRATOR_WEBHOOK_URL": "local_env",
                 "PIPELINEEDITOR_AZURE_TENANT_ID": "local_env",
                 "PIPELINEEDITOR_AZURE_CLIENT_ID": "local_env",
-                "PIPELINEEDITOR_AZURE_CLIENT_SECRET": "local_env"
+                "PIPELINEEDITOR_AZURE_CLIENT_SECRET": "local_env",
+                "CH_LOG_DB": "local_env"
               },
               "secret_descriptions": {
                 "ATLAS_PRIVATE_KEY": "MongoDB Atlas administrative API private key",
@@ -4405,7 +4416,8 @@
                 "MONGOCLUSTER_MIGRATOR_ORCHESTRATOR_WEBHOOK_URL": "Webhook that starts a data migration",
                 "PIPELINEEDITOR_AZURE_CLIENT_ID": "Identifies pipelineEditor to Azure",
                 "PIPELINEEDITOR_AZURE_CLIENT_SECRET": "Proves pipelineEditor to Azure",
-                "PIPELINEEDITOR_AZURE_TENANT_ID": "The directory pipelineEditor belongs to"
+                "PIPELINEEDITOR_AZURE_TENANT_ID": "The directory pipelineEditor belongs to",
+                "CH_LOG_DB": "Database the structured log records are written to"
               },
               "config": {
                 "runbook_name": "ChatHealthyDataMigratorOrchestrator",
@@ -4458,7 +4470,8 @@
                 "AUTOMATION_ENV_PREFIX": "local_env",
                 "PIPELINEEDITOR_AZURE_TENANT_ID": "local_env",
                 "PIPELINEEDITOR_AZURE_CLIENT_ID": "local_env",
-                "PIPELINEEDITOR_AZURE_CLIENT_SECRET": "local_env"
+                "PIPELINEEDITOR_AZURE_CLIENT_SECRET": "local_env",
+                "CH_LOG_DB": "local_env"
               },
               "secret_descriptions": {
                 "AUTOMATION_ENV_PREFIX": "Which environment the automation job is running for",
@@ -4473,7 +4486,8 @@
                 "KEY_VAULT_URI": "Address of the key vault holding every credential",
                 "PIPELINEEDITOR_AZURE_CLIENT_ID": "Identifies pipelineEditor to Azure",
                 "PIPELINEEDITOR_AZURE_CLIENT_SECRET": "Proves pipelineEditor to Azure",
-                "PIPELINEEDITOR_AZURE_TENANT_ID": "The directory pipelineEditor belongs to"
+                "PIPELINEEDITOR_AZURE_TENANT_ID": "The directory pipelineEditor belongs to",
+                "CH_LOG_DB": "Database the structured log records are written to"
               },
               "config": {
                 "runbook_name": "ChatHealthyDataMigratorProvisioner",
@@ -4524,7 +4538,8 @@
                 "AUTOMATION_ENV_PREFIX": "local_env",
                 "PIPELINEEDITOR_AZURE_TENANT_ID": "local_env",
                 "PIPELINEEDITOR_AZURE_CLIENT_ID": "local_env",
-                "PIPELINEEDITOR_AZURE_CLIENT_SECRET": "local_env"
+                "PIPELINEEDITOR_AZURE_CLIENT_SECRET": "local_env",
+                "CH_LOG_DB": "local_env"
               },
               "secret_descriptions": {
                 "ATLAS_PRIVATE_KEY": "MongoDB Atlas administrative API private key",
@@ -4537,7 +4552,8 @@
                 "KEY_VAULT_URI": "Address of the key vault holding every credential",
                 "PIPELINEEDITOR_AZURE_CLIENT_ID": "Identifies pipelineEditor to Azure",
                 "PIPELINEEDITOR_AZURE_CLIENT_SECRET": "Proves pipelineEditor to Azure",
-                "PIPELINEEDITOR_AZURE_TENANT_ID": "The directory pipelineEditor belongs to"
+                "PIPELINEEDITOR_AZURE_TENANT_ID": "The directory pipelineEditor belongs to",
+                "CH_LOG_DB": "Database the structured log records are written to"
               },
               "config": {
                 "runbook_name": "ChatHealthyDataMigrator",
@@ -4586,7 +4602,8 @@
                 "AUTOMATION_ENV_PREFIX": "local_env",
                 "PIPELINEEDITOR_AZURE_TENANT_ID": "local_env",
                 "PIPELINEEDITOR_AZURE_CLIENT_ID": "local_env",
-                "PIPELINEEDITOR_AZURE_CLIENT_SECRET": "local_env"
+                "PIPELINEEDITOR_AZURE_CLIENT_SECRET": "local_env",
+                "CH_LOG_DB": "local_env"
               },
               "secret_descriptions": {
                 "AUTOMATION_ENV_PREFIX": "Which environment the automation job is running for",
@@ -4597,7 +4614,8 @@
                 "KEY_VAULT_URI": "Address of the key vault holding every credential",
                 "PIPELINEEDITOR_AZURE_CLIENT_ID": "Identifies pipelineEditor to Azure",
                 "PIPELINEEDITOR_AZURE_CLIENT_SECRET": "Proves pipelineEditor to Azure",
-                "PIPELINEEDITOR_AZURE_TENANT_ID": "The directory pipelineEditor belongs to"
+                "PIPELINEEDITOR_AZURE_TENANT_ID": "The directory pipelineEditor belongs to",
+                "CH_LOG_DB": "Database the structured log records are written to"
               },
               "config": {
                 "runbook_name": "ChatHealthyDataMigratorDeprovisioner",
@@ -4644,7 +4662,8 @@
                 "AUTOMATION_RESOURCE_GROUP": "local_env",
                 "PIPELINEEDITOR_AZURE_TENANT_ID": "local_env",
                 "PIPELINEEDITOR_AZURE_CLIENT_ID": "local_env",
-                "PIPELINEEDITOR_AZURE_CLIENT_SECRET": "local_env"
+                "PIPELINEEDITOR_AZURE_CLIENT_SECRET": "local_env",
+                "CH_LOG_DB": "local_env"
               },
               "secret_descriptions": {
                 "AUTOMATION_ENV_PREFIX": "Which environment the automation job is running for",
@@ -4653,7 +4672,8 @@
                 "KEY_VAULT_URI": "Address of the key vault holding every credential",
                 "PIPELINEEDITOR_AZURE_CLIENT_ID": "Identifies pipelineEditor to Azure",
                 "PIPELINEEDITOR_AZURE_CLIENT_SECRET": "Proves pipelineEditor to Azure",
-                "PIPELINEEDITOR_AZURE_TENANT_ID": "The directory pipelineEditor belongs to"
+                "PIPELINEEDITOR_AZURE_TENANT_ID": "The directory pipelineEditor belongs to",
+                "CH_LOG_DB": "Database the structured log records are written to"
               },
               "config": {
                 "runbook_name": "WatchdogRunbook",
@@ -4701,7 +4721,8 @@
                 "PIPELINEEDITOR_AZURE_CLIENT_SECRET": "local_env",
                 "SPARKMAIL_API_KEY": "local_env",
                 "NOTIFICATION_FROM_EMAIL": "local_env",
-                "ENTITLEMENT_REPORT_TO_EMAIL": "local_env"
+                "ENTITLEMENT_REPORT_TO_EMAIL": "local_env",
+                "CH_LOG_DB": "local_env"
               },
               "secret_descriptions": {
                 "ENTITLEMENT_REPORT_TO_EMAIL": "Who the daily entitlement report is sent to",
@@ -4709,7 +4730,8 @@
                 "PIPELINEEDITOR_AZURE_CLIENT_ID": "Identifies pipelineEditor to Azure",
                 "PIPELINEEDITOR_AZURE_CLIENT_SECRET": "Proves pipelineEditor to Azure",
                 "PIPELINEEDITOR_AZURE_TENANT_ID": "The directory pipelineEditor belongs to",
-                "SPARKMAIL_API_KEY": "SparkPost key for sending notification email"
+                "SPARKMAIL_API_KEY": "SparkPost key for sending notification email",
+                "CH_LOG_DB": "Database the structured log records are written to"
               },
               "config": {
                 "runbook_name": "EntitlementReport",
@@ -4783,7 +4805,8 @@
         "AUTOMATION_ENV_PREFIX": "local_env",
         "AUTOMATION_RESOURCE_GROUP": "local_env",
         "AUTOMATION_SUBSCRIPTION_ID": "local_env",
-        "PIPELINE_SECRET_NAMES": "local_env"
+        "PIPELINE_SECRET_NAMES": "local_env",
+        "CH_LOG_DB": "local_env"
       },
       "secret_descriptions": {
         "ENTITLEMENT_REPORT_TO_EMAIL": "Who the daily entitlement report is sent to",
@@ -4802,7 +4825,8 @@
         "AUTOMATION_ENV_PREFIX": "Environment the Automation Account runs as",
         "AUTOMATION_RESOURCE_GROUP": "Resource group the runbooks address",
         "AUTOMATION_SUBSCRIPTION_ID": "Subscription the runbooks address",
-        "PIPELINE_SECRET_NAMES": "Which vault secrets the pipeline run host is permitted to read"
+        "PIPELINE_SECRET_NAMES": "Which vault secrets the pipeline run host is permitted to read",
+        "CH_LOG_DB": "Database the structured log records are written to"
       },
       "entitlements": [
         {
