@@ -592,13 +592,19 @@ runcmd:
     DOCKER_EXIT=$?
     echo "chpipeline: docker run exit=$DOCKER_EXIT $(date -u +%FT%TZ)"
     set -e
-    # Farewell VM delete. Fires regardless of docker exit code:
-    #   - Controller normal exit (0): its finally already dispatched delete;
-    #     this second DELETE 404s harmlessly.
-    #   - Controller aborted (non-zero): finally never ran; this is the
-    #     only VM-teardown path. Prevents idle VMs from accumulating.
-    echo "chpipeline: firing farewell az vm delete $(date -u +%FT%TZ)"
-    az vm delete --resource-group {RESOURCE_GROUP} --name {vm_name_for_farewell} --yes --no-wait || true
+    # Farewell VM delete, on success only. A Controller that exited non-zero
+    # left the reason in /var/log/chpipeline-cloud-init.log and in the
+    # container's own output, and deleting the host destroys both -- which is
+    # exactly what happened on the first host that ever came up: it died in
+    # seconds having logged nothing, and there was nothing left to read.
+    # The watchdog reaps hosts left behind, so this leaks nothing permanently;
+    # it trades a VM-hour for the ability to know why a run failed.
+    if [ "$DOCKER_EXIT" -eq 0 ]; then
+      echo "chpipeline: controller exited clean; firing farewell az vm delete $(date -u +%FT%TZ)"
+      az vm delete --resource-group {RESOURCE_GROUP} --name {vm_name_for_farewell} --yes --no-wait || true
+    else
+      echo "chpipeline: controller exited $DOCKER_EXIT; leaving {vm_name_for_farewell} up so the failure can be read. The watchdog will reap it."
+    fi
 """
     return base64.b64encode(yaml_body.encode("utf-8")).decode("ascii")
 
@@ -695,6 +701,23 @@ def _await_run_host(run_id: str, vm_name: str, mongo) -> None:
         if doc.get("controller_heartbeat_at"):
             log("controller_checked_in", run_id=run_id, vm_name=vm_name)
             return
+        # A host that has gone away is not a host still starting. Waiting out
+        # the full twenty minutes on a VM that no longer exists reports the
+        # wrong thing late; its disappearance is the answer.
+        req = urllib.request.Request(url, headers={"Authorization": f"Bearer {tok}"})
+        try:
+            with urllib.request.urlopen(req, timeout=30) as r:
+                r.read()
+        except urllib.error.HTTPError as exc:
+            if exc.code == 404:
+                raise ChatHealthyException(
+                    mode="run_host_disappeared",
+                    message=(f"run host {vm_name} no longer exists; the "
+                             f"Controller exited and cloud-init tore the host "
+                             f"down before it checked in"),
+                    component="provider_pipeline_runbook",
+                    run_id=run_id,
+                ) from exc
         time.sleep(READY_POLL_SECONDS)
     raise ChatHealthyException(
         mode="controller_never_checked_in",
