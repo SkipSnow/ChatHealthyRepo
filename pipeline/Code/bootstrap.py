@@ -35,7 +35,7 @@ import tempfile
 from pathlib import Path
 from typing import Iterable, Optional, Tuple
 
-from azure.identity import DefaultAzureCredential
+from azure.identity import ClientSecretCredential
 from azure.keyvault.secrets import SecretClient
 
 import blob_logger
@@ -53,12 +53,48 @@ ENV_CERT_PATH = "CHATHEALTHY_CERT_PATH"
 ENV_KEY_PATH = "CHATHEALTHY_KEY_PATH"
 ENV_CA_CHAIN_PATH = "CHATHEALTHY_CA_CHAIN_PATH"
 
-# KV path convention (F-003 §6.1). All pipeline identities share one
-# consolidated cert secret to avoid per-identity cert proliferation.
-KV_CERT_PREFIX = "certs-"           # certs-pipelineEditor (shared by all)
-KV_KEY_SUFFIX = "-key"              # certs-pipelineEditor-key
+# KV path convention. Identity certificates are pre-provisioned under the
+# canonical per-identity names the library uses (chathealthy_lib.mongo_utilities
+# _VAULT_CERT_KEY / _VAULT_PRIVATE_KEY), so the runtime and the library read the
+# same material. Nothing here mints: certificate issuance belongs to
+# claudeCodeAgent, and a node that cannot find its cert fails rather than
+# creating one.
+KV_CERT_PREFIX = "cert-"            # cert-pipelineEditor
+KV_KEY_PREFIX = "key-"              # key-pipelineEditor
+KV_CA_PREFIX = "ca-"                # every CA secret, public and private
+KV_LEGACY_CERT_PREFIX = "certs-"    # superseded certs-pipeline-* secrets
 KV_CA_PUBLIC = "ca-root-cert"
 KV_CA_INTERMEDIATE_CHAIN = "ca-intermediate-cert"
+
+
+PIPELINE_IDENTITY = "pipelineEditor"
+
+
+def _pipeline_editor_credential():
+    """The credential the pipeline authenticates with, everywhere.
+
+    The three values are delivered to the job the same way every other secret
+    is. A node that cannot present pipelineEditor does not start: there is no
+    second identity to fall back to, because falling back to another identity
+    is precisely what this removes.
+    """
+    keys = (f"{PIPELINE_IDENTITY.upper()}_AZURE_TENANT_ID",
+            f"{PIPELINE_IDENTITY.upper()}_AZURE_CLIENT_ID",
+            f"{PIPELINE_IDENTITY.upper()}_AZURE_CLIENT_SECRET")
+    missing = [k for k in keys if not os.environ.get(k)]
+    if missing:
+        _emit(f"FATAL: cannot authenticate as {PIPELINE_IDENTITY}; "
+              f"missing {', '.join(missing)}")
+        raise ChatHealthyException(
+            mode="azure_credential_missing",
+            component="PipelineBootstrap",
+            message=f"cannot authenticate as {PIPELINE_IDENTITY}: "
+                    f"{', '.join(missing)} absent from the environment",
+            context={"identity": PIPELINE_IDENTITY, "missing": missing})
+    return ClientSecretCredential(
+        tenant_id=os.environ[keys[0]],
+        client_id=os.environ[keys[1]],
+        client_secret=os.environ[keys[2]])
 
 
 def _kv_name_to_env_key(kv_name: str) -> str:
@@ -133,7 +169,12 @@ def _load_all_secrets_into_env(client: SecretClient) -> int:
     expects. Cert / CA / key secrets are handled separately and excluded
     here so their raw PEM never lands in os.environ."""
     n = 0
-    exclude_prefixes = (KV_CERT_PREFIX, KV_CA_PUBLIC, KV_CA_INTERMEDIATE_CHAIN)
+    # Key material never lands in os.environ: identity certs and keys, the
+    # superseded certs-* secrets, and every ca-* secret including the private
+    # keys this node has no grant to read.
+    exclude_prefixes = (
+        KV_CERT_PREFIX, KV_KEY_PREFIX, KV_LEGACY_CERT_PREFIX, KV_CA_PREFIX,
+    )
     for props in client.list_properties_of_secrets():
         name = props.name
         if any(name.startswith(p) for p in exclude_prefixes):
@@ -194,9 +235,9 @@ def _seed_read_long_lived_cert(
     its cert + key from KV under the consolidated path via its own MI.
     All pipeline identities (pipeline-runbook, pipeline-control) read from
     the same cert secret. Returns (cert_path, key_path)."""
-    # All pipeline identities share the consolidated "pipelineEditor" cert
+    # All pipeline identities run as pipelineEditor and read its cert.
     cert_secret = f"{KV_CERT_PREFIX}pipelineEditor"
-    key_secret = f"{cert_secret}{KV_KEY_SUFFIX}"
+    key_secret = f"{KV_KEY_PREFIX}pipelineEditor"
     _emit(f"seed-reading long-lived cert from KV: {cert_secret}")
     cert_pem = client.get_secret(cert_secret).value or ""
     key_pem = client.get_secret(key_secret).value or ""
@@ -271,10 +312,11 @@ def main() -> int:
     node_identity = _resolve_node_identity()
     _emit(f"node identity: {node_identity}")
 
-    # Unified path: all pipeline identities (long-lived and workers) seed-read
-    # pre-provisioned certs from KV. Load all secrets via the attached MI.
+    # The pipeline runs as pipelineEditor, and opens the vault as itself. Its
+    # certificate is what authenticates to Mongo, so the identity that fetches
+    # the certificate and the identity that uses it are one and the same.
     vault_uri = _resolve_vault_uri()
-    cred = DefaultAzureCredential()
+    cred = _pipeline_editor_credential()
     client = SecretClient(vault_url=vault_uri, credential=cred)
     _emit(f"KV client bound to {vault_uri}")
     cert_path, key_path = _seed_read_long_lived_cert(client, node_identity)

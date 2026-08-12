@@ -68,8 +68,8 @@ def _write_secure_file(data: bytes, suffix: str) -> Path:
 
 def materialize_certs_and_set_env(
     vault_uri: str | None = None,
-    cert_secret: str = "certs-pipelineEditor",
-    key_secret: str = "certs-pipelineEditor-key",
+    cert_secret: str = "cert-pipelineEditor",
+    key_secret: str = "key-pipelineEditor",
 ) -> None:
     """Fetch cert + key from Key Vault and set environment variables.
 
@@ -81,8 +81,8 @@ def materialize_certs_and_set_env(
     Args:
         vault_uri: Key Vault URI (e.g., https://kv-chpipeline-dev.vault.azure.net/).
                    If not provided, uses KEY_VAULT_URI env var.
-        cert_secret: KV secret name for the cert (default: "certs-pipelineEditor")
-        key_secret: KV secret name for the key (default: "certs-pipelineEditor-key")
+        cert_secret: KV secret name for the cert (default: "cert-pipelineEditor")
+        key_secret: KV secret name for the key (default: "key-pipelineEditor")
 
     Raises:
         ValueError: If vault_uri cannot be resolved or KV secrets are missing.

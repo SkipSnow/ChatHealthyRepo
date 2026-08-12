@@ -378,6 +378,72 @@ def _mark_redundant(grants: list[dict]) -> None:
                 break
 
 
+def _all_principals(token: str, credential) -> dict[str, dict]:
+    """Every principal that exists, whether or not it holds anything.
+
+    A principal can be brought into existence holding nothing -- creating a
+    virtual machine with a system-assigned identity mints one as a side effect
+    of the resource write. Such a principal appears in no role assignment, so a
+    report built from assignments alone cannot see it until somebody grants it
+    something. This enumerates existence rather than entitlement.
+
+    Managed identities and anything attached to a resource come from Azure
+    itself. Users and application registrations come from the directory, and
+    are absent when the reporting identity has no directory read -- which the
+    report then says rather than implying the list is complete.
+    """
+    found: dict[str, dict] = {}
+
+    for item in _get_all(
+            f"{ARM}/subscriptions/{SUBSCRIPTION_ID}/providers"
+            f"/Microsoft.ManagedIdentity/userAssignedIdentities?api-version=2023-01-31",
+            token):
+        pid = (item.get("properties") or {}).get("principalId")
+        if pid:
+            found[pid] = {"name": item.get("name", pid), "kind": "ManagedIdentity",
+                          "origin": "user-assigned identity"}
+
+    for res in _get_all(
+            f"{ARM}/subscriptions/{SUBSCRIPTION_ID}/resources"
+            f"?api-version=2021-04-01&$expand=identity", token):
+        ident = res.get("identity") or {}
+        pid = ident.get("principalId")
+        if pid and pid not in found:
+            found[pid] = {"name": f"{res.get('name', '?')} (system-assigned)",
+                          "kind": "ManagedIdentity",
+                          "origin": f"attached to {res.get('type', 'a resource')}"}
+        for uid in (ident.get("userAssignedIdentities") or {}):
+            upid = ((ident["userAssignedIdentities"][uid]) or {}).get("principalId")
+            if upid and upid not in found:
+                found[upid] = {"name": uid.rsplit("/", 1)[-1], "kind": "ManagedIdentity",
+                               "origin": "user-assigned identity"}
+
+    try:
+        gtoken = credential.get_token("https://graph.microsoft.com/.default").token
+    except Exception as exc:                                    # noqa: BLE001
+        _LOG.info("directory not enumerable: %s", exc)
+        return found
+    for kind, url in (("ServicePrincipal", f"{GRAPH}/servicePrincipals?$select=id,displayName,servicePrincipalType"),
+                      ("User", f"{GRAPH}/users?$select=id,displayName,userPrincipalName")):
+        page = url
+        while page:
+            r = requests.get(page, headers={"Authorization": f"Bearer {gtoken}"}, timeout=60)
+            if r.status_code != 200:
+                _LOG.info("directory enumeration of %s returned %s", kind, r.status_code)
+                break
+            payload = r.json()
+            for o in payload.get("value", []):
+                if o["id"] in found:
+                    continue
+                found[o["id"]] = {
+                    "name": o.get("displayName") or o.get("userPrincipalName") or o["id"],
+                    "kind": o.get("servicePrincipalType", kind),
+                    "origin": "directory",
+                }
+            page = payload.get("@odata.nextLink") or ""
+    return found
+
+
 def collect() -> dict:
     credential = _credential()
     token = credential.get_token(f"{ARM}/.default").token
@@ -391,6 +457,7 @@ def collect() -> dict:
     rows = _get_all(f"{ARM}/subscriptions/{SUBSCRIPTION_ID}/providers"
                     f"/Microsoft.Authorization/roleAssignments?api-version=2022-04-01", token)
 
+    existing = _all_principals(token, credential)
     oids = sorted({r["properties"]["principalId"] for r in rows})
     # ARM first -- managed identities resolve without any directory permission.
     # Graph then fills in users and app registrations, when permitted.
@@ -446,6 +513,21 @@ def collect() -> dict:
         holders.values(),
         key=lambda h: (h["approved"], -h["privileged_count"], h["name"] or h["object_id"]))
 
+    # Principals that exist and hold nothing. A report built from assignments
+    # alone cannot see these, and a principal minted quietly lands here.
+    rightless = []
+    for oid, meta in sorted(existing.items(), key=lambda kv: kv[1]["name"].lower()):
+        if oid in holders:
+            continue
+        approved = APPROVED.get(oid)
+        rightless.append({
+            "object_id": oid,
+            "name": approved[0] if approved else meta["name"],
+            "type": meta["kind"],
+            "origin": meta["origin"],
+            "approved": approved is not None,
+        })
+
     missing = [v[0] for k, v in APPROVED.items() if k not in holders]
 
     return {
@@ -454,6 +536,8 @@ def collect() -> dict:
         "assignment_count": len(rows),
         "names_resolved": bool(graph_names),
         "secret_descriptions": _secret_descriptions(),
+        "rightless": rightless,
+        "directory_enumerated": any(m["origin"] == "directory" for m in existing.values()),
         "role_text": {r: t for r, t in role_text.items()
                       if any(g["role"] == r for h in holders_list for g in h["grants"])},
         "approved_absent": missing,
@@ -719,6 +803,46 @@ def render_pdf(data: dict, out_path: Path) -> Path:
         story.append(Paragraph(
             "None. Every principal holding rights in this subscription appears in the approved "
             "register.", body))
+
+    rightless = data["rightless"]
+    story.append(Paragraph(
+        f"Principals that exist and hold no rights &nbsp;&middot;&nbsp; ({len(rightless)})", sec))
+    story.append(Paragraph(
+        "A principal can be brought into existence holding nothing: creating a virtual machine "
+        "with a system-assigned identity mints one as a side effect of the resource write. Such a "
+        "principal appears in no role assignment, so it is listed here by existence rather than "
+        "by entitlement. Anything unexpected in this list is a login nobody authorised, waiting "
+        "to be granted something.", body))
+    if not data["directory_enumerated"]:
+        story.append(Paragraph(
+            "This list covers managed identities and identities attached to resources. Users and "
+            "application registrations are absent: the reporting identity holds no Microsoft Graph "
+            "directory read, so the directory could not be enumerated. Granting Directory.Read.All "
+            "completes it.", note))
+        story.append(Spacer(1, 6))
+    if rightless:
+        rows = [["Principal", "Kind", "Where it came from", "In the register"]]
+        for e in rightless:
+            rows.append([Paragraph(e["name"], cell), e["type"],
+                         Paragraph(e["origin"], cell), "yes" if e["approved"] else ""])
+        t2 = Table(rows, colWidths=[3.0 * inch, 1.6 * inch, 3.6 * inch, 1.2 * inch],
+                   hAlign="LEFT", repeatRows=1)
+        st2 = [("BACKGROUND", (0, 0), (-1, 0), BAND),
+               ("FONTNAME", (0, 0), (-1, 0), "Helvetica-Bold"),
+               ("FONTSIZE", (0, 0), (-1, -1), 8),
+               ("LINEBELOW", (0, 0), (-1, -1), 0.25, RULE),
+               ("VALIGN", (0, 0), (-1, -1), "TOP"),
+               ("ALIGN", (3, 0), (3, -1), "CENTER"),
+               ("TOPPADDING", (0, 0), (-1, -1), 3),
+               ("BOTTOMPADDING", (0, 0), (-1, -1), 3)]
+        for i, e in enumerate(rightless, start=1):
+            if not e["approved"]:
+                st2.append(("TEXTCOLOR", (0, i), (0, i), FLAG))
+        t2.setStyle(TableStyle(st2))
+        story.append(t2)
+    else:
+        story.append(Paragraph(
+            "None. Every principal that exists also holds rights and is listed above.", body))
 
     story.append(PageBreak())
     story.append(Paragraph(
