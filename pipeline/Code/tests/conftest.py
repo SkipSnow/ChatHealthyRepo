@@ -28,7 +28,7 @@ if _PIPELINE_CODE.is_dir() and str(_PIPELINE_CODE) not in sys.path:
 
 # Load Code/.env before pytest collects any test module. Several
 # pipeline modules read cluster credentials (ATLAS_PUBLIC_KEY,
-# ATLAS_PRIVATE_KEY, ATLAS_PROJECT_ID, MONGO_connectionString) at
+# ATLAS_PRIVATE_KEY, ATLAS_PROJECT_ID) at
 # module-load time; a test file that imports them (directly or
 # transitively) fails collection with KeyError when the env isn't
 # populated. The promote test gate runs pytest in its own subprocess
@@ -46,12 +46,9 @@ if _ENV_FILE.is_file():
         # from the missing env var will still surface clearly.
         pass
 
-# ChatHealthyLoggingService gracefully skips the Mongo handler when any
-# of CH_SPACE_NAME / ENV_PREFIX / MONGO_FRONTEND_connectionString is
-# missing (one-shot stderr warning, then stderr/file only). Tests do NOT
-# set MONGO_FRONTEND_connectionString: a stub URI would make every log
-# call block on serverSelectionTimeoutMS during collection, since
-# `.info()` calls are no longer silently dropped in non-debug mode.
+# ChatHealthyLoggingService skips the Mongo handler when CH_SPACE_NAME
+# or ENV_PREFIX is missing (one-shot stderr warning, then stderr/file
+# only). Both are set below so log calls during collection stay local.
 os.environ.setdefault("CH_SPACE_NAME", "test-pipeline")
 os.environ.setdefault("ENV_PREFIX", "test")
 os.environ.setdefault("CH_LOG_DESTINATION", "stderr")

@@ -80,8 +80,8 @@ def _wait_for_cluster_ready(
 
     Sized to ride out Atlas paused->wake transitions (cluster goes
     through REPAIRING and replicas come online one at a time). The
-    function is a deterministic timer — no orchestration retries
-    needed and no Durable history churn.
+    function is a deterministic timer, so it needs no retry machinery
+    of its own.
     """
     deadline = time.time() + timeout_minutes * 60
     attempts = 0

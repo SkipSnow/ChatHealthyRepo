@@ -7,7 +7,7 @@ from chathealthy_lib.logging_service import ChatHealthyLoggingService
 
 import os
 import sys
-REQUIRED = ["ENV_PREFIX", "MONGO_connectionString"]
+REQUIRED = ["ENV_PREFIX"]
 missing = [k for k in REQUIRED if not os.environ.get(k)]
 if missing:
     ChatHealthyLoggingService().info("missing env:", missing)

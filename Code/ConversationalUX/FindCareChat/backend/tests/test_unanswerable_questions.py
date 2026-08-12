@@ -44,7 +44,6 @@ def get_latest_recorded_question():
     from dotenv import load_dotenv
     load_dotenv(os.path.join(os.path.dirname(__file__), "..", "..", "..", "..", ".env"))
     from pymongo import MongoClient
-    conn = os.getenv("MONGO_FRONTEND_connectionString")
     client = _ch_connection()
     col = client["dev_AboutUs"]["AboutSkip"]
     record = col.find_one(sort=[("datetime", -1)])

@@ -425,10 +425,10 @@ def _compute_destinations() -> tuple[str, ...]:
     if raw is None:
         # Default is stderr-only. Callers that need Mongo persistence
         # set CH_LOG_DESTINATION="stderr,mongo" explicitly AND ensure
-        # MONGO_FRONTEND_connectionString + CH_SPACE_NAME + ENV_PREFIX
-        # are set BEFORE their first log() call (per _build_mongo_handler's
-        # missing-env raise contract). AA runbooks that fetch the Mongo
-        # secret from KV must hoist that fetch to the top of main().
+        # CH_SPACE_NAME + ENV_PREFIX are set BEFORE their first log()
+        # call (per _build_mongo_handler's missing-env raise contract).
+        # No credential is among them: the handler connects with the
+        # logging identity's certificate.
         return ("stderr",)
     return tuple(t.strip() for t in raw.split(",") if t.strip())
 

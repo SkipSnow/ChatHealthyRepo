@@ -280,6 +280,42 @@
                   [
                     "ChatHealthyLib/src/chathealthy_lib/mongo_utilities.py"
                   ]
+                ],
+                [
+                  "_scan_mongo_connection_strings",
+                  "allowed_pattern",
+                  [
+                    "\\.py$",
+                    "\\.json$",
+                    "\\.env$",
+                    "\\.ps1$",
+                    "\\.sh$",
+                    "\\.yml$",
+                    "\\.yaml$"
+                  ]
+                ],
+                [
+                  "_scan_mongo_connection_strings",
+                  "excluded_pattern",
+                  [
+                    "(^|/)_oneshots/",
+                    "(^|/)__pycache__/",
+                    "(^|/)node_modules/",
+                    "\\.docx$",
+                    "\\.xlsx$",
+                    "\\.pdf$",
+                    "\\.png$",
+                    "\\.jpg$",
+                    "\\.ico$"
+                  ]
+                ],
+                [
+                  "_scan_mongo_connection_strings",
+                  "excluded_exact",
+                  [
+                    "ChatHealthyLib/src/chathealthy_lib/mongo_utilities.py",
+                    "architecture/EngineeringRuleEnforcement/code/scan_mongo_client_direct_access_worker.py"
+                  ]
                 ]
               ],
               "timeout": 30
@@ -371,7 +407,8 @@
                     "architecture/ClaudeCodeConversationPersistence/appsettings.Development.json",
                     "architecture/ClaudeCodeConversationPersistence/Properties/launchSettings.json",
                     "FindCare/architectureAndDesign/EPIC-006-F-025-baseline-record-NPI-1003199654.json",
-                    "architecture/IdentityCertificatesAndAuthentications/claudeCodeAgent_entitlement_manager_role.json"
+                    "architecture/IdentityCertificatesAndAuthentications/claudeCodeAgent_entitlement_manager_role.json",
+                    "architecture/IdentityCertificatesAndAuthentications/pipeline_run_host_granter_role.json"
                   ]
                 ],
                 [

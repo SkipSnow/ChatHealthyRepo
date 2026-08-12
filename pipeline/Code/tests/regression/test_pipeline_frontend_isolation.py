@@ -6,11 +6,9 @@
   1. The pipeline identity must be able to write the data on the pipeline
      cluster.
 
-  2. The pipeline VM's Managed Identity (mi-control) must NOT be able to
-     read MONGO-FRONTEND-connectionString from the pipeline's Key Vault.
-
-Requires env: MONGO_connectionString, AZ_SUBSCRIPTION_ID,
-AZ_VM_RESOURCE_GROUP (defaults rg-chathealthy-pipeline-dev).
+Requires env: AZ_SUBSCRIPTION_ID, AZ_VM_RESOURCE_GROUP (defaults
+rg-chathealthy-pipeline-dev). No credential: the pipeline identity's
+certificate is what the tests authenticate with.
 """
 
 from __future__ import annotations
@@ -44,22 +42,10 @@ def _ch_connection(cluster: str = "pipelines"):
 
 
 # --------------------------------------------------------------------------
-# Fixtures
-# --------------------------------------------------------------------------
-@pytest.fixture(scope="module")
-def pipeline_uri() -> str:
-    uri = os.environ.get("MONGO_connectionString") or ""
-    assert uri, "MONGO_connectionString is not set."
-    return uri
-
-
-
-
-# --------------------------------------------------------------------------
 # Invariant 1: Mongo auth scope
 # --------------------------------------------------------------------------
 @pytest.mark.regression
-def test_pipeline_user_can_write_to_pipeline_cluster_coord_db(pipeline_uri):
+def test_pipeline_user_can_write_to_pipeline_cluster_coord_db():
     """PipelineUserScoped MUST be able to insert+delete on
     Pipelines (the metadata DB). This is the write it needs
     every run for pipeline.runs, pipeline.work_items, etc."""
@@ -78,7 +64,7 @@ def test_pipeline_user_can_write_to_pipeline_cluster_coord_db(pipeline_uri):
 
 
 @pytest.mark.regression
-def test_pipeline_user_can_write_to_pipeline_cluster_public_health_data(pipeline_uri):
+def test_pipeline_user_can_write_to_pipeline_cluster_public_health_data():
     """PipelineUserScoped MUST be able to write to PublicHealthData on
     the pipeline cluster (that's where the payload lands via publish)."""
     from pymongo import MongoClient
@@ -88,18 +74,3 @@ def test_pipeline_user_can_write_to_pipeline_cluster_public_health_data(pipeline
     r = coll.insert_one({"_id": test_id, "created_at": datetime.datetime.utcnow().isoformat()})
     assert r.inserted_id == test_id
     coll.delete_one({"_id": test_id})
-
-# --------------------------------------------------------------------------
-# Invariant 2: Key Vault access scope (via Azure control-plane inspection)
-# --------------------------------------------------------------------------
-_MI_NAME = "mi-control"
-_KV_NAME = "kv-chpipeline-dev"
-_FORBIDDEN_SECRET = "MONGO-FRONTEND-connectionString"
-
-
-
-
-
-
-
-

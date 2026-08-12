@@ -733,9 +733,8 @@ def _aca_secret_name(env_var_name: str) -> str:
     """Map an env var name to an ACA-legal secret slot name.
 
     ACA enforces: lowercase, alphanumeric + dashes, must start and end
-    alphanumeric, max 20 chars. Many of our env vars (e.g.
-    MONGO_FRONTEND_connectionString = 31 chars after dash-substitution)
-    overrun the cap, so we truncate and strip trailing dashes. The
+    alphanumeric, max 20 chars. Many of our env var names overrun the cap
+    once dashes are substituted, so we truncate and strip trailing dashes. The
     env var name inside the container is unchanged; only the ACA-side
     secret slot uses the truncated form.
     """

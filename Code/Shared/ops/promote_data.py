@@ -71,11 +71,6 @@ def _devops_connection():
 
 
 def promote_data(from_env: str, to_env: str, dry_run: bool = False):
-    conn = os.getenv("MONGO_FRONTEND_connectionString")
-    if not conn:
-        log.error("MONGO_FRONTEND_connectionString not set")
-        sys.exit(1)
-
     client = _devops_connection()
 
     for db_suffix, coll_name in PROMOTE_COLLECTIONS:

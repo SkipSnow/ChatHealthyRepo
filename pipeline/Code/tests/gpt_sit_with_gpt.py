@@ -93,7 +93,7 @@ def execute_command(raw: dict) -> dict:
     # ── Direct MongoDB query (for audit, manifest verification) ──
     if action == "query_mongo_direct":
         from pymongo import MongoClient
-        conn = os.environ.get(raw.get("connection", "MONGO_FRONTEND_connectionString"), "")
+        conn = os.environ.get(raw.get("connection", "MONGO_READONLY_FRONTEND"), "")
         if not conn:
             return {"error": f"No connection string for: {raw.get('connection')}"}
         try:
@@ -206,7 +206,7 @@ def _build_system_prompt(governance: dict) -> str:
             "stale_snapshot": {"action": "ReadArtifact", "project_path": "brain/machine_artifacts/content/project_manifest.json", "manifest_snapshot_id": "snapshot_fake_stale"},
             "check_env": {"action": "check_env", "keys": ["MONGO_READONLY_FRONTEND", "MONGO_READONLY_PIPELINE"]},
             "write_test": {"action": "write_mongo_test", "connection": "MONGO_READONLY_FRONTEND", "database": "admin", "collection": "test"},
-            "direct_mongo": {"action": "query_mongo_direct", "connection": "MONGO_FRONTEND_connectionString", "database": "admin", "collection": "gpt_reader_audit", "query": {}, "limit": 3},
+            "direct_mongo": {"action": "query_mongo_direct", "connection": "MONGO_READONLY_FRONTEND", "database": "admin", "collection": "gpt_reader_audit", "query": {}, "limit": 3},
             "submit": {"action": "submit_report", "report": {"...structured report as specified in user prompt..."}}
         },
         "governance_policies": [p.get("id", "") + ": " + p.get("name", "") for p in governance.get("policies", [])],
@@ -273,7 +273,6 @@ def _build_initial_prompt(requirements: list) -> str:
     parts.extend([
         "",
         "## AVAILABLE CONNECTIONS",
-        "- MONGO_FRONTEND_connectionString — full access, FrontEnd cluster",
         "- MONGO_READONLY_FRONTEND — read-only user, FrontEnd cluster",
         "- MONGO_READONLY_PIPELINE — read-only user, Pipeline cluster",
         "",

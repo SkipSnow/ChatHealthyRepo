@@ -49,7 +49,6 @@ class HealthEndpoint:
     def __init__(self):
         self.log = ChatHealthyLoggingService()
         self.env_prefix = os.getenv("ENV_PREFIX", "dev")
-        self.uri = os.environ.get("MONGO_FRONTEND_connectionString")
 
     def __call__(self):
         baked = read_build_info()
@@ -57,23 +56,22 @@ class HealthEndpoint:
         # Db status — independent of where build info comes from.
         db_status = "unconfigured"
         mongo_doc: dict = {}
-        if self.uri:
-            try:
-                from chathealthy_lib.mongo_utilities import ChatHealthyMongoUtilities
-                client = ChatHealthyMongoUtilities().getConnection("frontendUser", "frontEnd")
-                mongo_doc = client["frontEndAdmin"]["BuildVersions"].find_one(sort=[("from", -1)]) or {}
-                db_status = "connected"
-            except Exception as e:
-                # Mode 2 (REQ-B-008): Mongo read failed during /health
-                # probe → db_status reported as "unreachable". Operator
-                # must know. (Also fixes typo `if_not_debuglog`.)
-                self.log.error("/health Mongo read failed: %s", e, exc=ChatHealthyException(
-                                                                      mode="health_mongo_read_failed",
-                                                                      message=f"/health Mongo read failed: {e}",
-                                                                      component="EvaluateCareHealth",
-                                                                      exception=e,
-                                                                  ), if_not_debug_log=True)
-                db_status = "unreachable"
+        try:
+            from chathealthy_lib.mongo_utilities import ChatHealthyMongoUtilities
+            client = ChatHealthyMongoUtilities().getConnection("frontendUser", "frontEnd")
+            mongo_doc = client["frontEndAdmin"]["BuildVersions"].find_one(sort=[("from", -1)]) or {}
+            db_status = "connected"
+        except Exception as e:
+            # Mode 2 (REQ-B-008): Mongo read failed during /health
+            # probe → db_status reported as "unreachable". Operator
+            # must know. (Also fixes typo `if_not_debuglog`.)
+            self.log.error("/health Mongo read failed: %s", e, exc=ChatHealthyException(
+                                                                  mode="health_mongo_read_failed",
+                                                                  message=f"/health Mongo read failed: {e}",
+                                                                  component="EvaluateCareHealth",
+                                                                  exception=e,
+                                                              ), if_not_debug_log=True)
+            db_status = "unreachable"
 
         if baked is not None:
             return {

@@ -85,9 +85,6 @@ DATABASES = [db for db, _, _ in EXPECTED]
 @pytest.fixture(scope="module")
 def client():
     load_dotenv()
-    uri = os.environ.get("MONGO_FRONTEND_connectionString", "").strip()
-    if not uri:
-        pytest.skip("MONGO_FRONTEND_connectionString not set")
     # retryWrites off: an unauthorised write is retried by default, which turns
     # every DENY probe into a multi-second wait for a verdict already known.
     c = _ch_connection()

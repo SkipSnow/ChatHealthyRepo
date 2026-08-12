@@ -59,8 +59,8 @@ def spawn_detached_worker(argv: list[str], env: dict) -> int:
         argv: exec-able command line. argv[0] is the executable; the
             os.execvpe() resolves it against PATH.
         env: environment dict passed verbatim to the child. Include
-            CH_LOG_DESTINATION and MONGO_FRONTEND_connectionString if
-            the child uses ChatHealthyLoggingService to write to Mongo.
+            CH_LOG_DESTINATION, CH_SPACE_NAME and ENV_PREFIX if the child
+            uses ChatHealthyLoggingService to write to Mongo.
 
     Raises:
         ChatHealthyException(mode="platform_unsupported") on Windows

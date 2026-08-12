@@ -131,7 +131,7 @@ def build_chunk_index(
 
 
 def build_chunk_index_activity_fn(config: dict) -> dict:
-    """Durable activity entry point."""
+    """Entry point for the chunk-index step."""
     container = config.get("blob_container", "provider-data")
     csv_blob_name = config["csv_path"]
     file_size = int(config["file_size"])

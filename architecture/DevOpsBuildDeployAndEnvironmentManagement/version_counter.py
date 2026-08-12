@@ -22,9 +22,9 @@ equivalent, and the version record is a front-end fact. Putting it in
 pipelineAdmin left admin.Versions behind as a stale second copy that the
 services kept reading; they were seven builds apart.
 
-And DevOpsUser, not the application's connection string. Building is a
-devops act, and routing it through MONGO_FRONTEND_connectionString is how
-making a build succeed turned into widening the front end's grants.
+And DevOpsUser, not the front end's identity. Building is a devops act, and
+routing it through the front end's credential is how making a build succeed
+turned into widening the front end's grants.
 """
 from __future__ import annotations
 

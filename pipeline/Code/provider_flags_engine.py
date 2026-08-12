@@ -42,6 +42,25 @@ from staging_loader import staging_collection_name, staging_db_name
 
 _log = ChatHealthyLoggingService()
 
+
+def _record_discrepancy(run_id: str, entry: dict) -> None:
+    """Record one unresolved taxonomy code encountered during a run.
+
+    This used to signal a Durable Functions entity named work_manager, which
+    no target has hosted since the Function App was retired -- so every
+    discrepancy raised here went nowhere. See LLD v42 sec. 6.9 Data Quality
+    and NUCC_SpecialtyCodeDataDiscrepancyManagement.docx for governance.
+    """
+    _log.warning(
+        "provider_flags discrepancy run_id=%s npi=%s reason=%s code=%s message=%s",
+        run_id,
+        entry.get("npi"),
+        entry.get("reason", "unresolved_taxonomy_code"),
+        entry.get("code"),
+        entry.get("message"),
+    )
+
+
 NPPES_DEACTIVATION_KEYS = (
     "NPI Deactivation Date",
     "npi_deactivation_date",
@@ -344,24 +363,8 @@ def apply_provider_flags(
     catalog = _load_catalog(mongo, data_version)
     registered = _load_registered_npis(mongo, registry)
 
-    # Discrepancy sink: every unresolved taxonomy code encountered inside
-    # this run gets forwarded to report_discrepancy() which persists it
-    # to the work_manager entity for the tail-of-run discrepancy report.
-    # See LLD v42 sec. 6.9 Data Quality and
-    # NUCC_SpecialtyCodeDataDiscrepancyManagement.docx for governance.
-    from discrepancy_reporter import report_discrepancy
-
     def _sink(entry: dict) -> None:
-        report_discrepancy(
-            load_id=run_id,
-            record_key=entry.get("npi"),
-            reason=entry.get("reason", "unresolved_taxonomy_code"),
-            ctx={
-                "code": entry.get("code"),
-                "message": entry.get("message"),
-                "step": "provider_flags_enrichment",
-            },
-        )
+        _record_discrepancy(run_id, entry)
 
     db_name, coll_name = provider_collection.split(".", 1)
     coll = mongo[db_name][coll_name]

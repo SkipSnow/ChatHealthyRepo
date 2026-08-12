@@ -1,0 +1,21 @@
+{
+  "properties": {
+    "roleName": "ChatHealthy Pipeline Run Host Granter",
+    "description": "Lets the pipeline give a run host read access to the secrets that host needs, and take it away again when the run ends. Held by pipelineEditor and assigned only at the scope of those secrets, so it can confer nothing anywhere else. Paired with a condition restricting it to a single role, it can grant read on a pipeline secret and nothing more -- an authority pipelineEditor effectively already has, since it can read those secrets itself.",
+    "assignableScopes": [
+      "/subscriptions/7a17eec1-c477-4c7c-b1c1-d0662ce7a1ee"
+    ],
+    "permissions": [
+      {
+        "actions": [
+          "Microsoft.Authorization/*/read",
+          "Microsoft.Authorization/roleAssignments/write",
+          "Microsoft.Authorization/roleAssignments/delete"
+        ],
+        "notActions": [],
+        "dataActions": [],
+        "notDataActions": []
+      }
+    ]
+  }
+}

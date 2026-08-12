@@ -7,59 +7,15 @@ from chathealthy_lib.logging_service import ChatHealthyLoggingService
 
 """DiscrepancyReporter — writes pipeline run results to admin.PipelineDiscrepancyReports
 and sends an email notification via SparkPost on completion.
-
-Also exposes report_discrepancy(load_id, record_key, reason, ctx) which signals
-the work_manager entity via the Durable Functions HTTP management API per the
-records-as-messages design (§3.8).
 """
 
-import json
-
 import os
-import urllib.parse
-import urllib.request
 from datetime import datetime, timezone
 
-from pymongo import MongoClient
 from sparkpost import SparkPost
 
 
-def report_discrepancy(load_id: str, record_key, reason: str, ctx: dict | None = None) -> None:
-    host = os.environ.get("WEBSITE_HOSTNAME")
-    code = os.environ.get("DURABLE_MGMT_CODE")
-    task_hub = os.environ.get("DURABLE_TASK_HUB") or "DevPipelineNetherite3"
-    connection = os.environ.get("DURABLE_TASK_CONNECTION") or "Storage"
-    if not host or not code:
-        ChatHealthyLoggingService().warning("report_discrepancy: management creds missing; skipping signal")
-        return
-    url = (
-        f"https://{host}/runtime/webhooks/durabletask/entities/work_manager/"
-        f"{urllib.parse.quote(load_id)}"
-        f"?taskHub={urllib.parse.quote(task_hub)}"
-        f"&connection={urllib.parse.quote(connection)}"
-        f"&code={urllib.parse.quote(code)}"
-        f"&op=report_discrepancy"
-    )
-    body = json.dumps({
-        "record_key": record_key,
-        "reason": reason,
-        "load_id": load_id,
-        "context": ctx or {},
-    }).encode("utf-8")
-    req = urllib.request.Request(
-        url, data=body, method="POST",
-        headers={"Content-Type": "application/json"},
-    )
-    try:
-        with urllib.request.urlopen(req, timeout=15) as r:
-            _ = r.read()
-    except Exception as exc:
-        ChatHealthyLoggingService().error("report_discrepancy signal failed: %s", exc)
-
-_mongo: MongoClient | None = None
-
-
-def _get_mongo_client() -> MongoClient:
+def _get_mongo_client():
     from chathealthy_lib.mongo_utilities import ChatHealthyMongoUtilities
     return ChatHealthyMongoUtilities().getConnection("pipelineEditor", "frontEnd")
 

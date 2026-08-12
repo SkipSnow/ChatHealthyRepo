@@ -74,17 +74,6 @@ _BASELINE_PATH = (
 )
 
 
-def _mongo_uri() -> str:
-    env_path = Path(__file__).resolve().parents[5] / "Code" / ".env"
-    for line in env_path.read_text(encoding="utf-8").splitlines():
-        if line.startswith("MONGO_FRONTEND_connectionString="):
-            return line.split("=", 1)[1].strip()
-    raise ChatHealthyException(
-        mode="configuration_missing",
-        component="build_provider_detail_test_db",
-        message="MONGO_FRONTEND_connectionString not found")
-
-
 def _primary_practice_zip(record: dict) -> str:
     for a in record.get("addresses", []):
         if a.get("address_type") == "practice" and a.get("zip"):

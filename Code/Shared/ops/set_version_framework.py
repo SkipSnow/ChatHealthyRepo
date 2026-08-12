@@ -106,13 +106,6 @@ def set_version_framework(version: str | None, framework: str | None) -> dict:
             component="SetVersionFramework",
             message="must supply at least one of version, framework")
 
-    conn = os.getenv("MONGO_FRONTEND_connectionString")
-    if not conn:
-        raise ChatHealthyException(
-            mode="value_error",
-            component="SetVersionFramework",
-            message="MONGO_FRONTEND_connectionString not set")
-
     client = _devops_connection()
     coll = client["frontEndAdmin"]["BuildVersions"]
     latest = coll.find_one(sort=[("from", -1)])

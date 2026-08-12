@@ -44,8 +44,6 @@ try:
     import automationassets
     for k in ("AZ_SUBSCRIPTION_ID", "AZ_RESOURCE_GROUP", "AZ_AUTOMATION_ACCOUNT",
               "ATLAS_PUBLIC_KEY", "ATLAS_PRIVATE_KEY", "ATLAS_PROJECT_ID",
-              "MONGO_CLUSTER_pipeline_connectionString",
-              "MONGO_CLUSTER_frontend_connectionString",
               "KEY_VAULT_URI", "AUTOMATION_ENV_PREFIX"):
         try:
             os.environ[k] = str(automationassets.get_automation_variable(k))
@@ -63,10 +61,6 @@ os.environ.setdefault("ENV_PREFIX",
 try:
     from chathealthy_lib.pipeline_boot import bootstrap_aa_mongo_logging as _boot
     _boot(
-        kv_uri=os.environ.get(
-            "KEY_VAULT_URI", "https://kv-chpipeline-dev.vault.azure.net/",
-        ),
-        secret_name="MONGO-FRONTEND-connectionString",
         component_name="data-migrator-orchestrator",
         env_prefix=os.environ.get("AUTOMATION_ENV_PREFIX", "dev"),
     )
