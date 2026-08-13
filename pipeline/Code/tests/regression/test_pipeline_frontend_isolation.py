@@ -65,12 +65,12 @@ def test_pipeline_user_can_write_to_pipeline_cluster_coord_db():
 
 @pytest.mark.regression
 def test_pipeline_user_can_write_to_pipeline_cluster_public_health_data():
-    """PipelineUserScoped MUST be able to write to PublicHealthData on
+    """PipelineUserScoped MUST be able to write to PipelinePublicHealthData on
     the pipeline cluster (that's where the payload lands via publish)."""
     from pymongo import MongoClient
     c = _ch_connection()
     test_id = f"iso_test_{uuid.uuid4().hex[:8]}"
-    coll = c["PublicHealthData"]["_isolation_test"]
+    coll = c["PipelinePublicHealthData"]["_isolation_test"]
     r = coll.insert_one({"_id": test_id, "created_at": datetime.datetime.utcnow().isoformat()})
     assert r.inserted_id == test_id
     coll.delete_one({"_id": test_id})

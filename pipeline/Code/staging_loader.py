@@ -19,7 +19,7 @@ Realizes:
   - EPIC-010-F-103-S-005          USDA RUCC classification workbook
 
 Target staging collections per LLD §6.4 (pipeline cluster
-`{env}_PublicHealthData`):
+`PipelinePublicHealthData`):
 
   pipeline_sources_nppes_npi
   pipeline_sources_pl_pfile

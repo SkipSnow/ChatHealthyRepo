@@ -48,7 +48,7 @@ def _registry_with_discovery(monkeypatch, discovered_url: str):
                 },
                 "file_format": "zip_containing_csv",
                 "staging_name": "PublicStaging.StagingIcd10Cm",
-                "public_data_name": "PublicHealthData.Icd10Cm",
+                "public_data_name": "PipelinePublicHealthData.Icd10Cm",
             },
         ],
     }

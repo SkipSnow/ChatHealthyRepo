@@ -19,7 +19,7 @@
           "archive_member": "npidata_pfile*.csv",
           "file_format": "csv",
           "staging_name": "PublicStaging.StagingProvider",
-          "public_data_name": "PublicHealthData.NppesNpi"
+          "public_data_name": "PipelinePublicHealthData.NppesNpi"
         },
         {
           "source_name": "pl_pfile",
@@ -27,7 +27,7 @@
           "archive_member": "pl_pfile*.csv",
           "file_format": "csv",
           "staging_name": "PublicStaging.StagingPlPfile",
-          "public_data_name": "PublicHealthData.PlPfile"
+          "public_data_name": "PipelinePublicHealthData.PlPfile"
         },
         {
           "source_name": "nucc",
@@ -39,7 +39,7 @@
           },
           "file_format": "csv",
           "staging_name": "PublicStaging.StagingNucc",
-          "public_data_name": "PublicHealthData.Nucc"
+          "public_data_name": "PipelinePublicHealthData.Nucc"
         },
         {
           "source_name": "census_zcta_county",
@@ -51,7 +51,7 @@
           },
           "file_format": "pipe_delimited",
           "staging_name": "PublicStaging.StagingCensusZctaCounty",
-          "public_data_name": "PublicHealthData.CensusZctaCounty"
+          "public_data_name": "PipelinePublicHealthData.CensusZctaCounty"
         },
         {
           "source_name": "usda_rucc",
@@ -63,7 +63,7 @@
           },
           "file_format": "xlsx",
           "staging_name": "PublicStaging.StagingUsdaRucc",
-          "public_data_name": "PublicHealthData.UsdaRucc"
+          "public_data_name": "PipelinePublicHealthData.UsdaRucc"
         },
         {
           "source_name": "specialty_catalog",
@@ -72,7 +72,7 @@
           },
           "file_format": "json",
           "staging_name": "PublicStaging.StagingSpecialtyCatalog",
-          "public_data_name": "PublicHealthData.SpecialtyCatalog"
+          "public_data_name": "PipelinePublicHealthData.SpecialtyCatalog"
         },
         {
           "source_name": "icd10_cm",
@@ -84,37 +84,66 @@
           },
           "file_format": "zip_containing_csv",
           "staging_name": "PublicStaging.StagingIcd10Cm",
-          "public_data_name": "PublicHealthData.Icd10Cm"
+          "public_data_name": "PipelinePublicHealthData.Icd10Cm"
         },
         {
           "source_name": "provider",
           "staging_name": "PublicStaging.Provider_staging",
-          "public_data_name": "PublicHealthData.Provider",
-          "depends_on": ["nppes_npi", "pl_pfile", "smd", "usda_rucc", "census_zcta_county"]
+          "public_data_name": "PipelinePublicHealthData.Provider",
+          "depends_on": [
+            "nppes_npi",
+            "pl_pfile",
+            "smd",
+            "usda_rucc",
+            "census_zcta_county"
+          ]
         },
         {
           "source_name": "smd",
           "staging_name": "PublicStaging.SpecialtyMetaData_staging",
-          "public_data_name": "PublicHealthData.SpecialtyMetaData",
-          "depends_on": ["nucc", "specialty_catalog"]
+          "public_data_name": "PipelinePublicHealthData.SpecialtyMetaData",
+          "depends_on": [
+            "nucc",
+            "specialty_catalog"
+          ]
         },
         {
           "source_name": "other_identifier_phrases",
           "staging_name": "PublicStaging.OtherIdentifierPhrases",
-          "public_data_name": "PublicHealthData.OtherIdentifierPhrases",
-          "depends_on": ["provider"]
+          "public_data_name": "PipelinePublicHealthData.OtherIdentifierPhrases",
+          "depends_on": [
+            "provider"
+          ]
         }
       ],
       "failure_thresholds": {
         "discrepancy_abort": 1000
       },
       "source_freshness": [
-        { "source_name": "nppes_npi",          "number_of_days": 30  },
-        { "source_name": "census_zcta_county", "number_of_days": 365 },
-        { "source_name": "usda_rucc",          "number_of_days": 365 },
-        { "source_name": "icd10_cm",           "number_of_days": 90  },
-        { "source_name": "nucc",               "number_of_days": 90  },
-        { "source_name": "specialty_catalog",  "always_refetch": true }
+        {
+          "source_name": "nppes_npi",
+          "number_of_days": 30
+        },
+        {
+          "source_name": "census_zcta_county",
+          "number_of_days": 365
+        },
+        {
+          "source_name": "usda_rucc",
+          "number_of_days": 365
+        },
+        {
+          "source_name": "icd10_cm",
+          "number_of_days": 90
+        },
+        {
+          "source_name": "nucc",
+          "number_of_days": 90
+        },
+        {
+          "source_name": "specialty_catalog",
+          "always_refetch": true
+        }
       ]
     },
     {
@@ -135,7 +164,7 @@
           "archive_member": "npidata_pfile*.csv",
           "file_format": "csv",
           "staging_name": "PublicStaging.StagingProvider",
-          "public_data_name": "PublicHealthData.NppesNpi"
+          "public_data_name": "PipelinePublicHealthData.NppesNpi"
         },
         {
           "source_name": "pl_pfile",
@@ -143,7 +172,7 @@
           "archive_member": "pl_pfile*.csv",
           "file_format": "csv",
           "staging_name": "PublicStaging.StagingPlPfile",
-          "public_data_name": "PublicHealthData.PlPfile"
+          "public_data_name": "PipelinePublicHealthData.PlPfile"
         },
         {
           "source_name": "nucc",
@@ -155,7 +184,7 @@
           },
           "file_format": "csv",
           "staging_name": "PublicStaging.StagingNucc",
-          "public_data_name": "PublicHealthData.Nucc"
+          "public_data_name": "PipelinePublicHealthData.Nucc"
         },
         {
           "source_name": "census_zcta_county",
@@ -167,7 +196,7 @@
           },
           "file_format": "pipe_delimited",
           "staging_name": "PublicStaging.StagingCensusZctaCounty",
-          "public_data_name": "PublicHealthData.CensusZctaCounty"
+          "public_data_name": "PipelinePublicHealthData.CensusZctaCounty"
         },
         {
           "source_name": "usda_rucc",
@@ -179,7 +208,7 @@
           },
           "file_format": "xlsx",
           "staging_name": "PublicStaging.StagingUsdaRucc",
-          "public_data_name": "PublicHealthData.UsdaRucc"
+          "public_data_name": "PipelinePublicHealthData.UsdaRucc"
         },
         {
           "source_name": "specialty_catalog",
@@ -188,7 +217,7 @@
           },
           "file_format": "json",
           "staging_name": "PublicStaging.StagingSpecialtyCatalog",
-          "public_data_name": "PublicHealthData.SpecialtyCatalog"
+          "public_data_name": "PipelinePublicHealthData.SpecialtyCatalog"
         },
         {
           "source_name": "icd10_cm",
@@ -200,37 +229,66 @@
           },
           "file_format": "zip_containing_csv",
           "staging_name": "PublicStaging.StagingIcd10Cm",
-          "public_data_name": "PublicHealthData.Icd10Cm"
+          "public_data_name": "PipelinePublicHealthData.Icd10Cm"
         },
         {
           "source_name": "provider",
           "staging_name": "PublicStaging.Provider_staging",
-          "public_data_name": "PublicHealthData.Provider",
-          "depends_on": ["nppes_npi", "pl_pfile", "smd", "usda_rucc", "census_zcta_county"]
+          "public_data_name": "PipelinePublicHealthData.Provider",
+          "depends_on": [
+            "nppes_npi",
+            "pl_pfile",
+            "smd",
+            "usda_rucc",
+            "census_zcta_county"
+          ]
         },
         {
           "source_name": "smd",
           "staging_name": "PublicStaging.SpecialtyMetaData_staging",
-          "public_data_name": "PublicHealthData.SpecialtyMetaData",
-          "depends_on": ["nucc", "specialty_catalog"]
+          "public_data_name": "PipelinePublicHealthData.SpecialtyMetaData",
+          "depends_on": [
+            "nucc",
+            "specialty_catalog"
+          ]
         },
         {
           "source_name": "other_identifier_phrases",
           "staging_name": "PublicStaging.OtherIdentifierPhrases",
-          "public_data_name": "PublicHealthData.OtherIdentifierPhrases",
-          "depends_on": ["provider"]
+          "public_data_name": "PipelinePublicHealthData.OtherIdentifierPhrases",
+          "depends_on": [
+            "provider"
+          ]
         }
       ],
       "failure_thresholds": {
         "discrepancy_abort": 1000
       },
       "source_freshness": [
-        { "source_name": "nppes_npi",          "number_of_days": 30  },
-        { "source_name": "census_zcta_county", "number_of_days": 365 },
-        { "source_name": "usda_rucc",          "number_of_days": 365 },
-        { "source_name": "icd10_cm",           "number_of_days": 90  },
-        { "source_name": "nucc",               "number_of_days": 90  },
-        { "source_name": "specialty_catalog",  "always_refetch": true }
+        {
+          "source_name": "nppes_npi",
+          "number_of_days": 30
+        },
+        {
+          "source_name": "census_zcta_county",
+          "number_of_days": 365
+        },
+        {
+          "source_name": "usda_rucc",
+          "number_of_days": 365
+        },
+        {
+          "source_name": "icd10_cm",
+          "number_of_days": 90
+        },
+        {
+          "source_name": "nucc",
+          "number_of_days": 90
+        },
+        {
+          "source_name": "specialty_catalog",
+          "always_refetch": true
+        }
       ]
     },
     {
@@ -251,7 +309,7 @@
           "archive_member": "npidata_pfile*.csv",
           "file_format": "csv",
           "staging_name": "PublicStaging.StagingProvider",
-          "public_data_name": "PublicHealthData.NppesNpi"
+          "public_data_name": "PipelinePublicHealthData.NppesNpi"
         },
         {
           "source_name": "pl_pfile",
@@ -259,7 +317,7 @@
           "archive_member": "pl_pfile*.csv",
           "file_format": "csv",
           "staging_name": "PublicStaging.StagingPlPfile",
-          "public_data_name": "PublicHealthData.PlPfile"
+          "public_data_name": "PipelinePublicHealthData.PlPfile"
         },
         {
           "source_name": "nucc",
@@ -271,7 +329,7 @@
           },
           "file_format": "csv",
           "staging_name": "PublicStaging.StagingNucc",
-          "public_data_name": "PublicHealthData.Nucc"
+          "public_data_name": "PipelinePublicHealthData.Nucc"
         },
         {
           "source_name": "census_zcta_county",
@@ -283,7 +341,7 @@
           },
           "file_format": "pipe_delimited",
           "staging_name": "PublicStaging.StagingCensusZctaCounty",
-          "public_data_name": "PublicHealthData.CensusZctaCounty"
+          "public_data_name": "PipelinePublicHealthData.CensusZctaCounty"
         },
         {
           "source_name": "usda_rucc",
@@ -295,7 +353,7 @@
           },
           "file_format": "xlsx",
           "staging_name": "PublicStaging.StagingUsdaRucc",
-          "public_data_name": "PublicHealthData.UsdaRucc"
+          "public_data_name": "PipelinePublicHealthData.UsdaRucc"
         },
         {
           "source_name": "specialty_catalog",
@@ -304,7 +362,7 @@
           },
           "file_format": "json",
           "staging_name": "PublicStaging.StagingSpecialtyCatalog",
-          "public_data_name": "PublicHealthData.SpecialtyCatalog"
+          "public_data_name": "PipelinePublicHealthData.SpecialtyCatalog"
         },
         {
           "source_name": "icd10_cm",
@@ -316,37 +374,66 @@
           },
           "file_format": "zip_containing_csv",
           "staging_name": "PublicStaging.StagingIcd10Cm",
-          "public_data_name": "PublicHealthData.Icd10Cm"
+          "public_data_name": "PipelinePublicHealthData.Icd10Cm"
         },
         {
           "source_name": "provider",
           "staging_name": "PublicStaging.Provider_staging",
-          "public_data_name": "PublicHealthData.Provider",
-          "depends_on": ["nppes_npi", "pl_pfile", "smd", "usda_rucc", "census_zcta_county"]
+          "public_data_name": "PipelinePublicHealthData.Provider",
+          "depends_on": [
+            "nppes_npi",
+            "pl_pfile",
+            "smd",
+            "usda_rucc",
+            "census_zcta_county"
+          ]
         },
         {
           "source_name": "smd",
           "staging_name": "PublicStaging.SpecialtyMetaData_staging",
-          "public_data_name": "PublicHealthData.SpecialtyMetaData",
-          "depends_on": ["nucc", "specialty_catalog"]
+          "public_data_name": "PipelinePublicHealthData.SpecialtyMetaData",
+          "depends_on": [
+            "nucc",
+            "specialty_catalog"
+          ]
         },
         {
           "source_name": "other_identifier_phrases",
           "staging_name": "PublicStaging.OtherIdentifierPhrases",
-          "public_data_name": "PublicHealthData.OtherIdentifierPhrases",
-          "depends_on": ["provider"]
+          "public_data_name": "PipelinePublicHealthData.OtherIdentifierPhrases",
+          "depends_on": [
+            "provider"
+          ]
         }
       ],
       "failure_thresholds": {
         "discrepancy_abort": 1000
       },
       "source_freshness": [
-        { "source_name": "nppes_npi",          "number_of_days": 30  },
-        { "source_name": "census_zcta_county", "number_of_days": 365 },
-        { "source_name": "usda_rucc",          "number_of_days": 365 },
-        { "source_name": "icd10_cm",           "number_of_days": 90  },
-        { "source_name": "nucc",               "number_of_days": 90  },
-        { "source_name": "specialty_catalog",  "always_refetch": true }
+        {
+          "source_name": "nppes_npi",
+          "number_of_days": 30
+        },
+        {
+          "source_name": "census_zcta_county",
+          "number_of_days": 365
+        },
+        {
+          "source_name": "usda_rucc",
+          "number_of_days": 365
+        },
+        {
+          "source_name": "icd10_cm",
+          "number_of_days": 90
+        },
+        {
+          "source_name": "nucc",
+          "number_of_days": 90
+        },
+        {
+          "source_name": "specialty_catalog",
+          "always_refetch": true
+        }
       ]
     }
   ]

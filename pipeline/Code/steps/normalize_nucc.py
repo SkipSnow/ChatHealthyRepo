@@ -46,7 +46,7 @@ def execute(ctx) -> dict:
     # Pass 1: enrich existing NUCC rows in place. Each row already carries
     # raw = {Code, Grouping, Classification, Specialization, Definition,
     # Notes, Display Name, Section} from the CSV load. Flatten those
-    # NUCC fields to the top level (matches PublicHealthData.SpecialtyMetaData
+    # NUCC fields to the top level (matches PipelinePublicHealthData.SpecialtyMetaData
     # production shape) and add the F-105 flags per LLD 8.4 / spec.
     update_ops: list[UpdateOne] = []
     staging_codes: set[str] = set()

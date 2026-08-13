@@ -163,7 +163,7 @@ def execute_command(raw: dict) -> dict:
     return {
         "error": "Could not parse your command.",
         "example_read": {"action": "ReadArtifact", "project_path": "brain/machine_artifacts/content/project_manifest.json"},
-        "example_query": {"action": "Query", "database": "dev_PublicHealthData", "collection": "SpecialtyMetaData", "query": {}, "limit": 5},
+        "example_query": {"action": "Query", "database": "PipelinePublicHealthData", "collection": "SpecialtyMetaData", "query": {}, "limit": 5},
         "example_auth_fail": {"action": "ReadArtifact", "project_path": "test", "token": "wrong-token"},
         "other_actions": ["check_env", "write_mongo_test", "query_mongo_direct", "submit_report"],
     }
@@ -199,7 +199,7 @@ def _build_system_prompt(governance: dict) -> str:
         ],
         "how_to_send_commands": {
             "read_artifact": {"action": "ReadArtifact", "project_path": "brain/machine_artifacts/content/project_manifest.json"},
-            "query": {"action": "Query", "database": "dev_PublicHealthData", "collection": "SpecialtyMetaData", "query": {}, "limit": 5},
+            "query": {"action": "Query", "database": "PipelinePublicHealthData", "collection": "SpecialtyMetaData", "query": {}, "limit": 5},
             "auth_test_bad_token": {"action": "ReadArtifact", "project_path": "test", "token": "wrong-token"},
             "auth_test_empty_token": {"action": "ReadArtifact", "project_path": "test", "token": ""},
             "path_traversal": {"action": "ReadArtifact", "project_path": "../../etc/passwd"},

@@ -49,7 +49,7 @@ def _ch_connection():
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
 
 _ENV = os.environ.get("ENV_PREFIX", "dev")
-_DB_NAME = f"{_ENV}_PublicHealthData"
+_DB_NAME = "PipelinePublicHealthData"
 
 
 def _get_connection_string():

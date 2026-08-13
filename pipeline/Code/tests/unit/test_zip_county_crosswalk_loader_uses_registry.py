@@ -50,7 +50,7 @@ def _registry_with_discovery(monkeypatch, discovered_url: str):
                 },
                 "file_format": "pipe_delimited",
                 "staging_name": "PublicStaging.StagingCensusZctaCounty",
-                "public_data_name": "PublicHealthData.CensusZctaCounty",
+                "public_data_name": "PipelinePublicHealthData.CensusZctaCounty",
             },
         ],
     }

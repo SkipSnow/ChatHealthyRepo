@@ -1,13 +1,13 @@
 # Copyright (c) 2026 ChatHealthy.ai LLC. All rights reserved.
 # Licensed under the FindCare Evaluation License (FEL-1.0).
 
-"""Universal load-state tracking for pipeline PublicHealthData collections.
+"""Universal load-state tracking for pipeline PipelinePublicHealthData collections.
 
 Operator rules 2026-08-02:
-  * Loaded = migrated from staging to PublicHealthData on the pipeline
+  * Loaded = migrated from staging to PipelinePublicHealthData on the pipeline
     cluster. Staging collections live in ChatHealthyDataPipelines.
     PublicStaging; loaded collections live in ChatHealthyDataPipelines.
-    PublicHealthData.
+    PipelinePublicHealthData.
   * All collections versioned with the right integer version number.
   * Versioning is part of the key: metadata _id = versioned collection
     name (e.g. "SpecialtyMetaData_v_3"). One metadata record per version.
@@ -21,7 +21,7 @@ Operator rules 2026-08-02:
   * A step SKIPS the load iff ALL of these are true:
       - source hash matches metadata.source_hash
       - metadata.operationally_fit is True
-      - the loaded PublicHealthData collection actually exists on the
+      - the loaded PipelinePublicHealthData collection actually exists on the
         pipeline cluster (parity check against physical presence)
       - metadata.row_count matches actual row count on the collection
   * Non-fatal errors -> mark loaded (operationally_fit=True), don't
@@ -29,10 +29,10 @@ Operator rules 2026-08-02:
   * Fatal errors -> don't write metadata -> absence signals the next
     fire to reload.
 
-Every pipeline step that produces a PublicHealthData collection uses
+Every pipeline step that produces a PipelinePublicHealthData collection uses
 this module: `should_skip()` at entry, `mark_loaded()` at exit.
 Callers pass BOTH mongo clients: `frontend` for the metadata coll
-(chathealthyfrontend), `pipeline` for the physical PublicHealthData
+(chathealthyfrontend), `pipeline` for the physical PipelinePublicHealthData
 collection presence + row-count checks.
 """
 
@@ -46,7 +46,7 @@ _METADATA_COLL = "pipeline.loaded_metadata"
 
 
 def read_metadata(frontend, publichealthdata_collection_name: str) -> dict | None:
-    """Return the load-metadata doc for the versioned PublicHealthData
+    """Return the load-metadata doc for the versioned PipelinePublicHealthData
     collection (e.g. 'SpecialtyMetaData_v_3'), or None if no prior
     successful load exists. Reads from the FRONTEND cluster."""
     return frontend[_METADATA_DB][_METADATA_COLL].find_one(
@@ -79,7 +79,7 @@ def should_skip(
       1. current_source_hash non-empty AND matches metadata.source_hash
          (metadata on frontend cluster)
       2. metadata.operationally_fit is True
-      3. the versioned PublicHealthData collection exists on the
+      3. the versioned PipelinePublicHealthData collection exists on the
          pipeline cluster (physical check, not metadata) -- the DB name
          comes from registry.by_source_name(source_name).public_data_db
       4. actual row count on that collection == metadata.row_count
@@ -103,7 +103,7 @@ def should_skip(
         pipeline_mongo, registry, source_name, publichealthdata_collection_name,
     ):
         return False, (
-            f"PublicHealthData collection {publichealthdata_collection_name!r} "
+            f"PipelinePublicHealthData collection {publichealthdata_collection_name!r} "
             f"does not exist on pipeline cluster"
         )
     entry = registry.by_source_name(source_name)
@@ -135,7 +135,7 @@ def mark_loaded(
     operationally_fit: bool = True,
     detail: dict | None = None,
 ) -> None:
-    """Upsert load metadata for the versioned PublicHealthData collection.
+    """Upsert load metadata for the versioned PipelinePublicHealthData collection.
     Writes to the FRONTEND cluster (chathealthyfrontend.pipeline.
     loaded_metadata). Called at the end of a step that produced the
     collection without a fatal error.

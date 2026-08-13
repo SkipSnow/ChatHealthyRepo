@@ -8,7 +8,7 @@ from chathealthy_lib.mongo_utilities import ChatHealthyMongoUtilities
 # Developed in collaboration with ChatGPT (OpenAI).
 
 """ZipCountyCrosswalkLoader -- loads US Census ZCTA-to-county relationship data
-into PublicHealthData.ZipCountyCrosswalk.
+into PipelinePublicHealthData.ZipCountyCrosswalk.
 
 Source: US Census Bureau ZCTA-to-county relationship file (2020 census).
 Each ZIP maps to one or more counties. We store all counties with their
@@ -74,7 +74,7 @@ class CrosswalkFetcher(DataFetcherBase):
     def blob_name(self) -> str:
         return "census_zcta_county_2020.txt"
 
-CROSSWALK_COLLECTION = "dev_PublicHealthData.ZipCountyCrosswalk"
+CROSSWALK_COLLECTION = "PipelinePublicHealthData.ZipCountyCrosswalk"
 SPLIT_THRESHOLD = 0.98
 
 

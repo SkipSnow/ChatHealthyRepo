@@ -49,7 +49,7 @@ class DiscrepancyReporter:
 
         # ── Enrichment stats from staging collection ──────────────────────────
         _env = config.get("env_prefix", os.environ.get("ENV_PREFIX", "dev"))
-        provider_collection = config.get("provider_collection", "PublicHealthData.providers")
+        provider_collection = config.get("provider_collection", "PipelinePublicHealthData.providers")
         db_name, coll_name = provider_collection.split(".", 1)
         staging_coll = _get_mongo_client()[db_name][coll_name]
 

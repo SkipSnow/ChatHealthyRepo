@@ -1,7 +1,7 @@
 # Copyright (c) 2026 ChatHealthy.ai LLC. All rights reserved.
 # Licensed under the FindCare Evaluation License (FEL-1.0).
 
-"""Publish StagingNucc -> PublicHealthData.SpecialtyMetaData_v_N + embeddings.
+"""Publish StagingNucc -> PipelinePublicHealthData.SpecialtyMetaData_v_N + embeddings.
 
 Realizes Provider Pipeline LLD v42 §5.2.8a. Runs after normalize_nucc.
 
@@ -14,23 +14,23 @@ pipeline -> frontend.
 Sequence inside execute():
 
   1. Copy every row from PublicStaging.StagingNucc_v_{data_version} into
-     PublicHealthData.SpecialtyMetaData_staging_v_{data_version} on the
+     PipelinePublicHealthData.SpecialtyMetaData_staging_v_{data_version} on the
      same (pipeline) cluster. Strips pipeline-only fields (_id, run_id,
      _source_row_index, raw).
   2. Generate a text-embedding-3-large embedding for every staged row
      (embedding_engine.generate_specialty_embeddings). Stamps embedding,
      embedding_model, embedding_generated_at on each doc.
   3. Atomic swap:
-        PublicHealthData.SpecialtyMetaData_staging_v_{n}
-         --> PublicHealthData.SpecialtyMetaData_v_{n}
+        PipelinePublicHealthData.SpecialtyMetaData_staging_v_{n}
+         --> PipelinePublicHealthData.SpecialtyMetaData_v_{n}
      via Collection.rename(new_name, dropTarget=True). Same-DB (renameCollection
      requires it). This IS the "loaded" transition per operator rule
-     2026-08-02: "loaded means migrated from staging to PublicHealthData
+     2026-08-02: "loaded means migrated from staging to PipelinePublicHealthData
      in the pipeline cluster." Non-fatal errors (like embed 429s) still
      mark the collection loaded; fatal errors block the rename so the
      next fire reloads.
 
-Post-swap: PublicHealthData.SpecialtyMetaData_v_{n} holds 884 rows (883
+Post-swap: PipelinePublicHealthData.SpecialtyMetaData_v_{n} holds 884 rows (883
 NUCC + F-105 supplements) each with an embedding vector (or discrepancy
 records for any rows the embed API dropped). The migrator, running on
 its own schedule, is responsible for shipping this to the front-end
@@ -39,7 +39,7 @@ cluster for user-facing $vectorSearch (EPIC-002-F-005-S-001-REQ-T-003).
 All collection names are version-suffixed (_v_N) per operator rule
 "all files must be versioned with the right version number."
 
-No polling, no locks, no retry; each PublicHealthData collection has
+No polling, no locks, no retry; each PipelinePublicHealthData collection has
 exactly one producing pipeline and cross-run collision is prevented
 upstream by the Atlas cluster reservation semaphore.
 """
@@ -98,7 +98,7 @@ def execute(ctx) -> dict:
     # Universal skip gate (pipeline_loaded_metadata.should_skip):
     #   * hash matches metadata.source_hash (metadata on frontend cluster)
     #   * metadata.operationally_fit is True
-    #   * loaded PublicHealthData collection exists on pipeline cluster
+    #   * loaded PipelinePublicHealthData collection exists on pipeline cluster
     #   * row count on collection == metadata.row_count
     # All four true -> no reload needed; return skip summary.
     skip, reason = should_skip(

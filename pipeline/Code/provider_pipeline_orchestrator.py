@@ -191,7 +191,7 @@ class ProviderPipelineOrchestrator(BasePipelineOrchestrator):
         StepSpec(
             # Operator directive 2026-08-02: consumers never observe
             # partially-enriched Provider records mid-pipeline. Every
-            # upstream write step targets PublicHealthData.
+            # upstream write step targets PipelinePublicHealthData.
             # Provider_staging_v_{data_version}; publish_provider does
             # the atomic renameCollection swap into Provider_v_{
             # data_version} and calls mark_loaded so consumers transition

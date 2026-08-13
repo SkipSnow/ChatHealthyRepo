@@ -43,7 +43,7 @@ TIMEOUT_MS = 120000
 #
 #   frontEnd   user-facing data      PublicHealthData, Users
 #   admin      operational records   ChatHealthyConfig, ClaudeCodeLog, Pipelines
-#   pipelines  pipeline data         pipelinePublicHealthData
+#   pipelines  pipeline data         PipelinePublicHealthData, PublicStaging
 #
 # The pipeline data factory is down by design most of the day, so anything
 # that must answer 24x7 belongs to admin, not pipelines.

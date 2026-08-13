@@ -10,7 +10,7 @@ Out of scope (handled elsewhere):
     operator inspects via /Status once /Status reports chain success.
 
 Payload: ALL business-addressed providers (no state restriction) from
-the pipeline cluster's dev_PublicHealthData.providers to the frontend
+the pipeline cluster's PipelinePublicHealthData.providers to the frontend
 cluster's PublicHealthData.provider_v02, partitioned per state. With
 the wildcard expansion on addresses.state under a business-only base
 filter, the migrator enumerates ~51 partitions (clean US state codes).
@@ -48,7 +48,7 @@ _GATEWAY_BASE = "https://chathealthydatapipelinesgatewayfunctionapp.azurewebsite
 _PAYLOAD = {
     "ChatHealthyTask": "MongoClusterMigrator",
     "source_cluster": "pipeline",
-    "source_database": "dev_PublicHealthData",
+    "source_database": "PipelinePublicHealthData",
     "source_collection": "providers",
     "destination_cluster": "frontend",
     "destination_database": "PublicHealthData",

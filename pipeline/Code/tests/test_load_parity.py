@@ -62,7 +62,7 @@ def pipeline_providers():
     """Connect to pipeline cluster providers collection."""
     from pymongo import MongoClient
     client = _ch_connection()
-    return client[f"{os.environ.get('ENV_PREFIX', 'dev')}_PublicHealthData"]["providers"]
+    return client["PipelinePublicHealthData"]["providers"]
 
 
 @pytest.fixture(scope="module")
