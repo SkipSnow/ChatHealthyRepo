@@ -29,7 +29,6 @@ import os
 import socket
 import sys
 import subprocess
-import time
 import traceback
 import urllib.error
 import urllib.parse
@@ -44,28 +43,12 @@ for _pkg in _REQUIRED_PACKAGES:
     except ImportError:
         subprocess.check_call([sys.executable, "-m", "pip", "install", "-q", _pkg])
 
-# Atlas addresses are SRV records, and the Automation sandbox's own resolver
-# does not answer external SRV queries -- every connection here died on
-# "All nameservers failed to answer the query _mongodb._tcp.<host> IN SRV".
-# Point dnspython at public resolvers instead. This MUST run before pymongo
-# is imported, which the library import below does, because pymongo binds the
-# default resolver at import time. Same fix change_db_version.py carries.
-try:
-    import dns.resolver  # type: ignore[import-not-found]
-    _r = dns.resolver.Resolver(configure=False)
-    _r.nameservers = ["8.8.8.8", "8.8.4.4", "1.1.1.1", "1.0.0.1"]
-    _r.timeout = 5
-    _r.lifetime = 10
-    dns.resolver.default_resolver = _r
-except ImportError:
-    pass
-
-from chathealthy_lib.logging_service import (  # noqa: E402
+from chathealthy_lib.logging_service import (
     ChatHealthyLoggingService,
     set_mongo_log_identity,
 )
-from chathealthy_lib.mongo_utilities import ChatHealthyMongoUtilities  # noqa: E402
-from chathealthy_lib.exceptions import ChatHealthyException  # noqa: E402
+from chathealthy_lib.mongo_utilities import ChatHealthyMongoUtilities
+from chathealthy_lib.exceptions import ChatHealthyException
 
 # Automation Variables are not in os.environ in the AA sandbox; each one has
 # to be asked for by name. Everything this module reads at import time is
@@ -75,19 +58,7 @@ from chathealthy_lib.exceptions import ChatHealthyException  # noqa: E402
 for _k in ("CH_LOG_DB", "CH_LOG_LEVEL", "PIPELINE_SECRET_NAMES",
            "KEY_VAULT_URI", "AUTOMATION_ENV_PREFIX",
            "AUTOMATION_SUBSCRIPTION_ID", "AUTOMATION_RESOURCE_GROUP",
-           "ATLAS_PROJECT_ID", "AZ_VM_ADMIN_SSH_PUBKEY",
-           "SPARKMAIL_API_KEY", "NOTIFICATION_FROM_EMAIL",
-           "NOTIFICATION_TO_EMAIL",
-           # The identity this runbook acts as. These belong in the
-           # environment, not just in local variables: the library reads
-           # them from there to decide that pipelineEditor is an
-           # application registration and to present its credential.
-           # Without them it finds no secret, concludes it must be a
-           # managed identity, and asks a metadata endpoint the
-           # Automation Account has no identity behind.
-           "PIPELINEEDITOR_AZURE_TENANT_ID",
-           "PIPELINEEDITOR_AZURE_CLIENT_ID",
-           "PIPELINEEDITOR_AZURE_CLIENT_SECRET"):
+           "ATLAS_PROJECT_ID", "AZ_VM_ADMIN_SSH_PUBKEY"):
     try:
         import automationassets  # only present in the Automation sandbox
         _v = automationassets.get_automation_variable(_k)
@@ -152,23 +123,6 @@ PIPELINE_SECRET_NAMES = os.environ.get("PIPELINE_SECRET_NAMES", "")
 # The log database is a deployed fact with no default: a process that cannot
 # name its log destination must not run, on the host or in the container.
 CH_LOG_DB = os.environ.get("CH_LOG_DB", "")
-
-# Recorded as the run proceeds so the discrepancy report can name the run and
-# the host even when it is reporting a failure that happened before either was
-# returned to the caller. A report that cannot say which run it is about is
-# not a report.
-_LAST_RUN_ID = ""
-_LAST_VM_NAME = ""
-_RUN_STARTED_UTC = ""
-# The last thing the fire got through, so the report names where it stopped
-# rather than only what the exception said.
-_LAST_STAGE = ""
-
-
-def _stage(name: str) -> None:
-    """Mark how far the fire has got. Read only by the discrepancy report."""
-    global _LAST_STAGE
-    _LAST_STAGE = name
 VM_ACR = os.environ.get(
     "AUTOMATION_VM_ACR",
     "chpipelinedevacr",
@@ -601,27 +555,18 @@ runcmd:
       -e AZURE_TENANT_ID='{PIPELINE_EDITOR_TENANT}' \\
       -e AZURE_CLIENT_ID='{PIPELINE_EDITOR_CLIENT_ID}' \\
       -e AZURE_CLIENT_SECRET='{PIPELINE_EDITOR_SECRET}' \\
-      -e PIPELINEEDITOR_AZURE_TENANT_ID='{PIPELINE_EDITOR_TENANT}' \\
-      -e PIPELINEEDITOR_AZURE_CLIENT_ID='{PIPELINE_EDITOR_CLIENT_ID}' \\
-      -e PIPELINEEDITOR_AZURE_CLIENT_SECRET='{PIPELINE_EDITOR_SECRET}' \\
       -e PIPELINE_SECRET_NAMES='{PIPELINE_SECRET_NAMES}' \\
       {image_ref}
     DOCKER_EXIT=$?
     echo "chpipeline: docker run exit=$DOCKER_EXIT $(date -u +%FT%TZ)"
     set -e
-    # Farewell VM delete, on success only. A Controller that exited non-zero
-    # left the reason in /var/log/chpipeline-cloud-init.log and in the
-    # container's own output, and deleting the host destroys both -- which is
-    # exactly what happened on the first host that ever came up: it died in
-    # seconds having logged nothing, and there was nothing left to read.
-    # The watchdog reaps hosts left behind, so this leaks nothing permanently;
-    # it trades a VM-hour for the ability to know why a run failed.
-    if [ "$DOCKER_EXIT" -eq 0 ]; then
-      echo "chpipeline: controller exited clean; firing farewell az vm delete $(date -u +%FT%TZ)"
-      az vm delete --resource-group {RESOURCE_GROUP} --name {vm_name_for_farewell} --yes --no-wait || true
-    else
-      echo "chpipeline: controller exited $DOCKER_EXIT; leaving {vm_name_for_farewell} up so the failure can be read. The watchdog will reap it."
-    fi
+    # Farewell VM delete. Fires regardless of docker exit code:
+    #   - Controller normal exit (0): its finally already dispatched delete;
+    #     this second DELETE 404s harmlessly.
+    #   - Controller aborted (non-zero): finally never ran; this is the
+    #     only VM-teardown path. Prevents idle VMs from accumulating.
+    echo "chpipeline: firing farewell az vm delete $(date -u +%FT%TZ)"
+    az vm delete --resource-group {RESOURCE_GROUP} --name {vm_name_for_farewell} --yes --no-wait || true
 """
     return base64.b64encode(yaml_body.encode("utf-8")).decode("ascii")
 
@@ -637,112 +582,6 @@ def _get_ssh_pubkey() -> str:
         return automationassets.get_automation_variable("AZ_VM_ADMIN_SSH_PUBKEY")
     except Exception:
         return os.environ.get("AZ_VM_ADMIN_SSH_PUBKEY", "")
-
-
-# How long the runbook waits for the host to come up and the Controller to
-# report itself. Azure Automation's fair-share cap is three hours; a run host
-# that has not booted, pulled its image and started the Controller inside
-# twenty minutes is not slow, it is broken. Both bounds are deliberately far
-# apart so the wait is a failure detector and never a fair-share risk.
-VM_READY_TIMEOUT_SECONDS = 300
-CONTROLLER_READY_TIMEOUT_SECONDS = 1200
-READY_POLL_SECONDS = 10
-
-
-def _await_run_host(run_id: str, vm_name: str, mongo) -> None:
-    """Block until the run host is up and its Controller has checked in.
-
-    Two waits, because they fail differently. ARM tells us whether the host
-    exists -- that answer comes from the control plane and needs no database.
-    The Controller's heartbeat on pipeline.runs tells us the container
-    actually started; nothing else does.
-
-    Raises on either timeout. The caller tears down and the abend report
-    goes out by mail, so a fire that produces no working host says so
-    instead of ending quietly.
-    """
-    tok = _get_token("https://management.azure.com/")
-    url = (
-        f"https://management.azure.com/subscriptions/{SUBSCRIPTION_ID}"
-        f"/resourceGroups/{RESOURCE_GROUP}/providers/Microsoft.Compute/"
-        f"virtualMachines/{vm_name}?api-version=2024-03-01"
-    )
-    deadline = time.time() + VM_READY_TIMEOUT_SECONDS
-    state = "unknown"
-    while time.time() < deadline:
-        req = urllib.request.Request(url, headers={"Authorization": f"Bearer {tok}"})
-        # A query that cannot be answered is not a host that is not ready
-        # yet. Polling through it would turn a misconfiguration into a
-        # five-minute silence and then a timeout naming the wrong cause.
-        try:
-            with urllib.request.urlopen(req, timeout=30) as r:
-                state = ((json.loads(r.read().decode("utf-8") or "{}")
-                          .get("properties") or {}).get("provisioningState") or "unknown")
-        except Exception as exc:
-            raise ChatHealthyException(
-                mode="run_host_state_unreadable",
-                message=(f"cannot read provisioning state of {vm_name}: "
-                         f"{type(exc).__name__}: {exc}"),
-                component="provider_pipeline_runbook",
-                run_id=run_id,
-            ) from exc
-        if state == "Succeeded":
-            log("run_host_provisioned", run_id=run_id, vm_name=vm_name)
-            break
-        if state == "Failed":
-            raise ChatHealthyException(
-                mode="run_host_provisioning_failed",
-                message=f"run host {vm_name} reached provisioningState=Failed",
-                component="provider_pipeline_runbook",
-                run_id=run_id,
-            )
-        time.sleep(READY_POLL_SECONDS)
-    else:
-        raise ChatHealthyException(
-            mode="run_host_never_provisioned",
-            message=(f"run host {vm_name} did not reach provisioningState="
-                     f"Succeeded within {VM_READY_TIMEOUT_SECONDS}s; last "
-                     f"state {state!r}"),
-            component="provider_pipeline_runbook",
-            run_id=run_id,
-        )
-
-    deadline = time.time() + CONTROLLER_READY_TIMEOUT_SECONDS
-    while time.time() < deadline:
-        # Unreadable is not "not yet" here either. The manifest was written
-        # through this same connection minutes ago; if it cannot be read now
-        # the run has lost its coordination database and must stop.
-        doc = mongo[PIPELINE_ADMIN_DB]["pipeline.runs"].find_one(
-            {"run_id": run_id}, {"controller_heartbeat_at": 1}
-        ) or {}
-        if doc.get("controller_heartbeat_at"):
-            log("controller_checked_in", run_id=run_id, vm_name=vm_name)
-            return
-        # A host that has gone away is not a host still starting. Waiting out
-        # the full twenty minutes on a VM that no longer exists reports the
-        # wrong thing late; its disappearance is the answer.
-        req = urllib.request.Request(url, headers={"Authorization": f"Bearer {tok}"})
-        try:
-            with urllib.request.urlopen(req, timeout=30) as r:
-                r.read()
-        except urllib.error.HTTPError as exc:
-            if exc.code == 404:
-                raise ChatHealthyException(
-                    mode="run_host_disappeared",
-                    message=(f"run host {vm_name} no longer exists; the "
-                             f"Controller exited and cloud-init tore the host "
-                             f"down before it checked in"),
-                    component="provider_pipeline_runbook",
-                    run_id=run_id,
-                ) from exc
-        time.sleep(READY_POLL_SECONDS)
-    raise ChatHealthyException(
-        mode="controller_never_checked_in",
-        message=(f"Controller on {vm_name} did not write a heartbeat within "
-                 f"{CONTROLLER_READY_TIMEOUT_SECONDS}s of the host coming up"),
-        component="provider_pipeline_runbook",
-        run_id=run_id,
-    )
 
 
 def _provision_vm(run_id: str, load_mode: str, state_scope,
@@ -1166,13 +1005,6 @@ def main() -> int:
     # reads os.environ.get('RUN_ID') at emit time.
     os.environ["RUN_ID"] = run_id
     log("run_id_generated", run_id=run_id)
-    _stage("run_id_generated")
-    global _RUN_STARTED_UTC
-    _RUN_STARTED_UTC = datetime.datetime.now(datetime.timezone.utc).isoformat()
-    # Held module-side so the discrepancy report can name this run even when
-    # it is reporting a failure that happened before anything returned.
-    global _LAST_RUN_ID
-    _LAST_RUN_ID = run_id
 
     # Sentinel for the finally block. When True this invocation is a
     # duplicate that lost the serialization race; the live run owns every
@@ -1244,8 +1076,6 @@ def main() -> int:
         reservation_created = False
         vm_provisioned = False
         vm_name_for_teardown = f"vm-chpipeline-{_reservation_short_id(run_id)}"
-        global _LAST_VM_NAME
-        _LAST_VM_NAME = vm_name_for_teardown
         try:
             result = _provision_vm_and_wake_mongo_in_parallel(
                 run_id, load_mode, state_scope, invocation_mode, resume_from_step,
@@ -1253,15 +1083,7 @@ def main() -> int:
             )
             vm_id = ((result.get("vm") or {}).get("id")) if result.get("vm") else None
             vm_provisioned = True
-            # The PUT is accepted asynchronously, so "dispatched" is not
-            # "running". Wait here until the host is actually up and the
-            # Controller inside it has said so. The runbook used to exit at
-            # this line, which is why a fire that produced no VM produced no
-            # word either -- nothing was left alive to notice.
-            _stage("awaiting_run_host")
-            _await_run_host(run_id, vm_name_for_teardown, mongo)
-            _stage("controller_checked_in")
-            # Controller is alive; it now owns lock release via its
+            # VM is up; Controller now owns lock release via its
             # _quiesce_mongo_state step. Runbook must NOT release.
             runbook_owns_lock_release = False
             log("vm_provision_dispatched_and_mongo_woke_in_parallel",
@@ -1272,7 +1094,6 @@ def main() -> int:
             # Written AFTER VM PUT succeeds so the reservation always
             # references a real VM. Controller inherits and cancels in
             # its finally; ReservationReaper cleans up if expiry_at hits.
-            _stage("reservation_created")
             _create_reservation(mongo, run_id, vm_name_for_teardown)
             reservation_created = True
             log("reservation_created",
@@ -1299,27 +1120,8 @@ def main() -> int:
                 error_type=type(exc).__name__,
                 error_msg=str(exc),
                 traceback=traceback.format_exc()[-2000:])
-            # A host that exists is the only witness to what went wrong on it.
-            # Tearing it down here is right when the PUT failed and there is
-            # nothing to look at; it is exactly wrong when the host came up and
-            # the Controller inside it is what failed -- which is the case
-            # every time this wait times out. Leave it standing; the watchdog
-            # reaps hosts nobody claims.
-            host_is_witness = isinstance(exc, ChatHealthyException) and getattr(
-                exc, "mode", "") in (
-                    "controller_never_checked_in",
-                    "run_host_disappeared",
-                    "run_host_state_unreadable",
-                )
-            if host_is_witness:
-                log("run_host_left_standing_for_inspection",
-                    run_id=run_id, vm_name=vm_name_for_teardown,
-                    mode=getattr(exc, "mode", ""),
-                    reason="the failure is on the host; deleting it destroys "
-                           "the only account of what happened")
-            else:
-                _runbook_error_teardown(mongo, run_id, vm_name_for_teardown,
-                                        reservation_created, vm_provisioned)
+            _runbook_error_teardown(mongo, run_id, vm_name_for_teardown,
+                                    reservation_created, vm_provisioned)
             return 1
 
         log("runbook_exit", run_id=run_id)
@@ -1355,231 +1157,5 @@ def main() -> int:
                 vm_name=vm_name_for_teardown)
 
 
-def _safe(fn, default: str = "unavailable") -> str:
-    """Evaluate a field for the report, or say it could not be read.
-
-    The report describes runs that broke early, so any value it wants may
-    be missing, unbound or itself raising. A field that cannot be read is
-    a line in the report, never a reason not to send one.
-    """
-    try:
-        v = fn()
-        return default if v is None else str(v)
-    except BaseException:  # noqa: BLE001
-        return default
-
-
-def _report_pdf(subject: str, body: str) -> str:
-    """The report as a base64 PDF, or empty string if one cannot be made.
-
-    A missing PDF must never stop the report going out -- the text carries
-    the same content -- so every failure here returns empty rather than
-    raising.
-    """
-    try:
-        import base64 as _b64  # noqa: PLC0415
-        import io  # noqa: PLC0415
-        from reportlab.lib.pagesizes import LETTER  # noqa: PLC0415
-        from reportlab.lib.units import inch  # noqa: PLC0415
-        from reportlab.pdfgen import canvas  # noqa: PLC0415
-
-        buf = io.BytesIO()
-        c = canvas.Canvas(buf, pagesize=LETTER)
-        width, height = LETTER
-        y = height - inch
-        c.setFont("Helvetica-Bold", 13)
-        c.drawString(inch, y, subject[:95])
-        y -= 0.32 * inch
-        c.setFont("Courier", 8.5)
-        for raw in body.splitlines():
-            for chunk in [raw[i:i + 105] for i in range(0, max(len(raw), 1), 105)]:
-                if y < inch:
-                    c.showPage()
-                    c.setFont("Courier", 8.5)
-                    y = height - inch
-                c.drawString(inch, y, chunk)
-                y -= 0.16 * inch
-        c.showPage()
-        c.save()
-        return _b64.b64encode(buf.getvalue()).decode("ascii")
-    except BaseException as exc:  # noqa: BLE001
-        sys.stderr.write(
-            f"provider_pipeline_runbook: no PDF attached "
-            f"({type(exc).__name__}: {exc}); the text report still goes\n"
-        )
-        return ""
-
-
-def _mail_discrepancy_report(subject: str, body: str) -> bool:
-    """Post a discrepancy report to the mail server. Returns whether it went.
-
-    Uses nothing but urllib and the Automation Variables this runbook already
-    holds -- no database, no logging service, no library import. Those are the
-    subsystems whose loss it exists to describe, and a report that depended on
-    them could not describe it.
-
-    Failing to reach the mail endpoint is the only failure this is permitted,
-    and it is the only one it has: everything else is caught and folded into
-    the message rather than allowed to stop it. Three attempts, because a
-    single refused connection is not evidence the endpoint is gone.
-    """
-    api_key = _safe(lambda: os.environ.get("SPARKMAIL_API_KEY", "").strip(), "")
-    from_email = _safe(lambda: os.environ.get("NOTIFICATION_FROM_EMAIL", "").strip(), "")
-    to_email = _safe(lambda: os.environ.get("NOTIFICATION_TO_EMAIL", "").strip(), "")
-    if not (api_key and from_email and to_email):
-        sys.stderr.write(
-            "provider_pipeline_runbook: the discrepancy report cannot be "
-            "posted; SPARKMAIL_API_KEY / NOTIFICATION_FROM_EMAIL / "
-            "NOTIFICATION_TO_EMAIL are not all present. Report body follows.\n"
-            + body + "\n"
-        )
-        return False
-    content = {"from": from_email, "subject": subject, "text": body}
-    pdf_b64 = _report_pdf(subject, body)
-    if pdf_b64:
-        content["attachments"] = [{
-            "type": "application/pdf",
-            "name": "provider-pipeline-discrepancy-report.pdf",
-            "data": pdf_b64,
-        }]
-    payload = {
-        "options": {"transactional": True},
-        "content": content,
-        "recipients": [{"address": {"email": to_email}}],
-    }
-    # The same trust store problem that stops Mongo stops this: the sandbox
-    # cannot verify SparkPost's chain either, and the report died at TLS
-    # having been written but never sent. certifi is the bundle we ship, so
-    # the post does not depend on the host's own store.
-    ctx = None
-    try:
-        import ssl  # noqa: PLC0415
-        import certifi  # noqa: PLC0415
-        ctx = ssl.create_default_context(cafile=certifi.where())
-    except BaseException:  # noqa: BLE001
-        ctx = None
-
-    last = ""
-    for attempt in (1, 2, 3):
-        try:
-            req = urllib.request.Request(
-                "https://api.sparkpost.com/api/v1/transmissions",
-                data=json.dumps(payload).encode("utf-8"),
-                method="POST",
-                headers={"Authorization": api_key,
-                         "Content-Type": "application/json"},
-            )
-            with urllib.request.urlopen(req, timeout=20, context=ctx) as r:
-                r.read()
-            sys.stderr.write(
-                f"provider_pipeline_runbook: discrepancy report posted "
-                f"(attempt {attempt})\n"
-            )
-            return True
-        except BaseException as exc:  # noqa: BLE001
-            last = f"{type(exc).__name__}: {exc}"
-            if attempt < 3:
-                try:
-                    time.sleep(3)
-                except BaseException:  # noqa: BLE001
-                    pass
-    # The one excuse. Everything the report would have said goes to stderr,
-    # which is what the Automation job records in its exception field.
-    sys.stderr.write(
-        f"provider_pipeline_runbook: could not post the discrepancy report "
-        f"after 3 attempts ({last}). Report body follows.\n" + body + "\n"
-    )
-    return False
-
-
-def _abend_report(exc: BaseException) -> None:
-    """The account of a run that ended before it could give one.
-
-    Every field is read defensively: this runs after arbitrary failure,
-    including failures early enough that module-level names were never
-    bound. Nothing here may raise -- the report is the last thing that
-    happens, and it happening is the point.
-    """
-    try:
-        reason = _safe(lambda: f"{type(exc).__name__}: {exc}")
-        env = _safe(lambda: ENV_PREFIX)
-        mode = _safe(lambda: getattr(exc, "mode", "") or "-", "-")
-        now = _safe(lambda: datetime.datetime.now(datetime.timezone.utc).isoformat())
-        # The field set steps/discrepancy_report.fatal_error() builds for its
-        # PDF, so a fire that dies in the trigger tier reports in the same
-        # shape as one that dies inside the pipeline. Counts the run never
-        # reached are "Unknown" -- never rendered as zero.
-        fields = [
-            ("run_id", _safe(lambda: os.environ.get("RUN_ID") or _LAST_RUN_ID or "Unknown", "Unknown")),
-            ("pipeline_name", _safe(lambda: PIPELINE_NAME)),
-            ("env", env),
-            ("run_started_utc", _safe(lambda: _RUN_STARTED_UTC or "Unknown", "Unknown")),
-            ("run_ended_utc", now),
-            ("fatal_reason", reason),
-            ("fatal_mode", mode),
-            ("failed_stage", _safe(lambda: _LAST_STAGE or "Unknown", "Unknown")),
-            ("records_100_percent_successfully_collected", "False"),
-            ("records_with_non_fatal_warnings", "Unknown"),
-            ("records_with_non_fatal_errors", "Unknown"),
-            ("rows_in_target", "Unknown"),
-            ("target_collection", "Unknown"),
-            ("total_rows", "Unknown"),
-            ("total_source_rows", "Unknown"),
-            ("warning_threshold", "Unknown"),
-            ("error_threshold", "Unknown"),
-            ("data_version", _safe(lambda: os.environ.get("DATA_VERSION") or "Unknown", "Unknown")),
-            ("load_mode", _safe(lambda: os.environ.get("LOAD_MODE") or "Unknown", "Unknown")),
-            ("state_scope", _safe(lambda: os.environ.get("STATE_SCOPE") or "Unknown", "Unknown")),
-            ("google_maps_enabled", _safe(lambda: os.environ.get("GOOGLE_MAPS_ENABLED") or "Unknown", "Unknown")),
-            ("invocation_mode", _safe(lambda: INVOCATION_MODE, "Unknown")),
-            ("run_host", _safe(lambda: _LAST_VM_NAME or "never created", "never created")),
-            ("runbook_host", _safe(lambda: _HOSTNAME)),
-            ("automation_account", _safe(lambda: os.environ.get("AZ_AUTOMATION_ACCOUNT") or "Unknown", "Unknown")),
-            ("resource_group", _safe(lambda: RESOURCE_GROUP)),
-            ("subscription_id", _safe(lambda: SUBSCRIPTION_ID)),
-            ("log_database", _safe(lambda: os.environ.get("CH_LOG_DB") or "Unknown", "Unknown")),
-            ("log_collection", _safe(lambda: f"Log_{ENV_PREFIX}", "Unknown")),
-        ]
-        width = max(len(k) for k, _ in fields)
-        table = "\n".join(f"  {k.ljust(width)}  {v}" for k, v in fields)
-        body = (
-            "PROVIDER PIPELINE - DISCREPANCY REPORT\n"
-            "job_status: FAIL (fatal)\n"
-            "\n"
-            f"{table}\n"
-            "\n"
-            "TRACEBACK\n"
-            f"{_safe(lambda: traceback.format_exc()[-3000:], 'Unavailable')}"
-        )
-        _mail_discrepancy_report(
-            f"Provider pipeline FAILED to start - {env} - "
-            f"{_safe(lambda: type(exc).__name__)}",
-            body,
-        )
-    except BaseException as inner:  # noqa: BLE001
-        sys.stderr.write(
-            f"provider_pipeline_runbook: the discrepancy report itself "
-            f"raised: {type(inner).__name__}: {inner}\n"
-        )
-
-
 if __name__ == "__main__":
-    # Every exit from main() is reported, including the ones that get here
-    # because logging itself failed. Bare re-raise: the Automation job must
-    # still end Failed, and the exception must still reach its own record.
-    try:
-        _rc = main()
-    except BaseException as _exc:
-        _abend_report(_exc)
-        raise
-    if _rc != 0:
-        _abend_report(
-            ChatHealthyException(
-                mode="runbook_nonzero_exit",
-                message=f"provider_pipeline_runbook returned {_rc}",
-                component="provider_pipeline_runbook",
-            )
-        )
-    sys.exit(_rc)
-# Nothing follows. The reporter above is the last thing that runs, and the
-# only failure it is permitted is the mail endpoint being unreachable.
+    sys.exit(main())

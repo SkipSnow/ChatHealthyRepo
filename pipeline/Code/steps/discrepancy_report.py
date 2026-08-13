@@ -107,13 +107,30 @@ class DiscrepancyReport:
         set_data_version(self.data_version)
         self.start_time = datetime.now(timezone.utc).isoformat()
         self.operator_email = self._get_operator_email_from_vault()
-        utilities = ChatHealthyMongoUtilities()
+        # The exception this report exists to deliver. Held here rather than
+        # fetched back out of Mongo, so the report is complete whether or not
+        # the database is reachable.
+        self.fatal_exception: ChatHealthyException | None = None
+        self.mongo_down = False
+
         # Discrepancy reports, run counters and pipeline config are all
         # metadata: admin target, reachable while the data factory is down.
-        self.mongo_connection = utilities.getConnection("pipelineEditor", "admin")
-        self.config = self._load_pipeline_config()
-        _log.info("discrepancy report opened: pipeline=%s source=%s",
-                  self.pipeline_name, self.source)
+        # "Down" is a state this object records and carries, never one it
+        # raises on: a database that cannot be reached must not stop the
+        # report that says so.
+        self.mongo_connection = None
+        self.config = {}
+        try:
+            self.mongo_connection = ChatHealthyMongoUtilities().getConnection(
+                "pipelineEditor", "admin")
+            self.config = self._load_pipeline_config()
+        except Exception as exc:  # noqa: BLE001 -- see above
+            self.mongo_down = True
+            self.mongo_down_reason = f"{type(exc).__name__}: {str(exc)[:200]}"
+            _log.warning("discrepancy report: metadata database unreachable (%s); "
+                         "the report proceeds without it", self.mongo_down_reason)
+        _log.info("discrepancy report opened: pipeline=%s source=%s mongo_down=%s",
+                  self.pipeline_name, self.source, self.mongo_down)
 
     def __del__(self) -> None:
         """The class has no finally of its own, so teardown lands here.
@@ -157,6 +174,70 @@ class DiscrepancyReport:
             return (secret.value or "").strip() if secret else None
         except Exception:
             return None
+
+    def fatal(self, exc: ChatHealthyException) -> bool:
+        """Report a fatal error the caller has constructed but not raised.
+
+        The caller may be inside an except block or at a bare failure site;
+        either way it builds the exception and hands it here rather than
+        throwing. Nothing about this path needs the database: the exception
+        already carries everything the report must say.
+
+        This has exactly two ways to fail, and both raise: the mail server
+        cannot be reached, and there is no valid address to send to.
+        """
+        self.fatal_exception = exc
+        self.fatal_error = True
+        set_fatal_error(True)
+        _log.error("FATAL %s: %s", self.pipeline_name, self._fatal_explanation(),
+                   extra={"fatal_error": True})
+        self._record_fatal_in_mongo()
+        return self._write_email()
+
+    def _fatal_explanation(self) -> str:
+        """One line naming what went fatal, from the exception in hand."""
+        exc = self.fatal_exception
+        if exc is None:
+            return "fatal error reported without an exception"
+        mode = getattr(exc, "mode", "") or ""
+        message = str(getattr(exc, "message", "") or exc)
+        return f"{mode}: {message}" if mode else message
+
+    def _record_fatal_in_mongo(self) -> None:
+        """Persist the fatal error when the database is there.
+
+        A failure here flags the database down and returns. It is not the
+        report's purpose to write to Mongo; it is the report's purpose to
+        reach the operator.
+        """
+        if self.mongo_down or self.mongo_connection is None:
+            return
+        try:
+            self.mongo_connection[PIPELINE_ADMIN_DB][DISCREPANCIES_COLLECTION].insert_one({
+                "run_id": self.run_id,
+                "job_name": self.pipeline_name,
+                "source": self.source,
+                "level": DiscrepancyDetail.FATAL.value,
+                "explanation": self._fatal_explanation(),
+            })
+        except Exception as exc:  # noqa: BLE001
+            self.mongo_down = True
+            self.mongo_down_reason = f"{type(exc).__name__}: {str(exc)[:200]}"
+            _log.warning("discrepancy report: could not persist the fatal error (%s); "
+                         "the report still goes out", self.mongo_down_reason)
+
+    def _counts(self) -> tuple:
+        """Warning and error counts, or Unknown when the database is down."""
+        if self.mongo_down or self.mongo_connection is None:
+            return "Unknown", "Unknown"
+        try:
+            coll = self.mongo_connection[PIPELINE_ADMIN_DB][DISCREPANCIES_COLLECTION]
+            return (coll.count_documents({"run_id": self.run_id, "level": "warning"}),
+                    coll.count_documents({"run_id": self.run_id, "level": "error"}))
+        except Exception as exc:  # noqa: BLE001
+            self.mongo_down = True
+            self.mongo_down_reason = f"{type(exc).__name__}: {str(exc)[:200]}"
+            return "Unknown", "Unknown"
 
     def _target_collection_name(self) -> str:
         """Short name of the collection this pipeline loads into. Never the
@@ -318,149 +399,134 @@ class DiscrepancyReport:
             return {"warning_count": 0, "error_count": 0}
 
     def _write_email(self) -> bool:
-        """Read all discrepancies from mongo, send email with fatal error in body and others in PDF.
+        """Send the fatal report. The only thing this method may not survive.
 
-        Returns:
-            True if email sent successfully, False otherwise.
+        Two failure modes, both raised:
+          1. the mail server cannot be reached
+          2. there is no valid address to send to
+
+        Everything else -- an unreachable database, absent counts, missing
+        prior discrepancies -- changes what the mail says, never whether it
+        is sent. The fatal error itself is held in memory, so a report can be
+        delivered by a process that has lost everything except its network.
         """
-        log = ChatHealthyLoggingService()
-        try:
-            if not self.mongo_connection:
-                return False
+        warning_count, error_count = self._counts()
 
-            reports_coll = self.mongo_connection[PIPELINE_ADMIN_DB][DISCREPANCIES_COLLECTION]
-            all_reports = list(reports_coll.find({"run_id": self.run_id}))
-
-            if not all_reports:
-                return False
-
-            # Separate by level: fatal, error, warning
-            fatal_reports = []
-            error_reports = []
-            warning_reports = []
-            for report in all_reports:
-                level = report.get("level", "").lower()
-                if level == "fatal":
-                    fatal_reports.append(report)
-                elif level == "error":
-                    error_reports.append(report)
-                elif level == "warning":
-                    warning_reports.append(report)
-
-            if not fatal_reports:
-                return False
-
-            # Send email with pixel-perfect PDF header reproduction
-            from notification_client import NotificationClient
-            from discrepancy_pdf import render_header_as_html
-
-            client = NotificationClient()
-            subject = f"Provider pipeline {self.run_id} - fatal"
-
-            # Build complete manifest for email and PDF
-            end_time = datetime.now(timezone.utc).isoformat()
-            # Count actual warning/error documents from MongoDB - must query every time
-            discs_coll_name = DISCREPANCIES_COLLECTION
-            discs_coll = self.mongo_connection[PIPELINE_ADMIN_DB][discs_coll_name]
-            warning_count = discs_coll.count_documents({"run_id": self.run_id, "level": "warning"})
-            error_count = discs_coll.count_documents({"run_id": self.run_id, "level": "error"})
-            manifest = {
-                "run_id": self.run_id,
-                "pipeline_name": self.pipeline_name,
-                "run_started_utc": self.start_time,
-                "run_ended_utc": end_time,
-                "fatal_reason": fatal_reports[0].get('explanation') if fatal_reports else "",
-                "records_100_percent_successfully_collected": False,
-                "records_with_non_fatal_warnings": warning_count,
-                "records_with_non_fatal_errors": error_count,
-                "rows_in_target": self._reported(self.rows_in_target),
-                "target_collection": self._target_collection_name(),
-                "total_rows": self._reported(self.total_rows),
-                "total_source_rows": self.total_source_rows,
-                "warning_threshold": self.config.get("warning_threshold", "Unknown"),
-                "error_threshold": self.config.get("error_threshold", "Unknown"),
-                "data_version": self._reported(self.data_version),
-            }
-
-            # Flatten all discrepancies for header rendering
-            all_discrepancies = fatal_reports + error_reports + warning_reports
-
-            # Email body is pixel-perfect HTML reproduction of PDF header
-            body = render_header_as_html(manifest, all_discrepancies)
-
-            # Build PDF with all issues (using same manifest as email header)
-            attachments = []
-            if fatal_reports or error_reports or warning_reports:
-                from discrepancy_pdf import build_discrepancy_pdf
-                pdf_content = build_discrepancy_pdf(manifest, all_discrepancies)
-                attachments.append({"filename": "discrepancies.pdf", "content": pdf_content})
-
-            # Send email
-            receivers = []
-            if self.operator_email and self.operator_email not in receivers:
-                receivers.append(self.operator_email)
-
-            # Fetch operator email from Azure Key Vault
+        # Prior discrepancies enrich the attachment. Their absence is not a
+        # reason to stay silent about a fatal error.
+        fatal_reports, error_reports, warning_reports = [], [], []
+        if not self.mongo_down and self.mongo_connection is not None:
             try:
-                from azure.keyvault.secrets import SecretClient
-                from azure.identity import DefaultAzureCredential
+                coll = self.mongo_connection[PIPELINE_ADMIN_DB][DISCREPANCIES_COLLECTION]
+                for row in coll.find({"run_id": self.run_id}):
+                    level = str(row.get("level", "")).lower()
+                    if level == "fatal":
+                        fatal_reports.append(row)
+                    elif level == "error":
+                        error_reports.append(row)
+                    elif level == "warning":
+                        warning_reports.append(row)
+            except Exception as exc:  # noqa: BLE001
+                self.mongo_down = True
+                self.mongo_down_reason = f"{type(exc).__name__}: {str(exc)[:200]}"
 
-                vault_uri = "https://kv-chpipeline-dev.vault.azure.net/"
-                credential = DefaultAzureCredential()
-                kv_client = SecretClient(vault_url=vault_uri, credential=credential)
-                email_secret = kv_client.get_secret("notification-to-email")
-                kv_operator = (email_secret.value or "").strip()
+        # The fatal error is known here whether or not it was ever written
+        # down, because the caller handed it over rather than storing it.
+        explanation = self._fatal_explanation()
+        if not fatal_reports:
+            fatal_reports = [{
+                "run_id": self.run_id,
+                "job_name": self.pipeline_name,
+                "source": self.source,
+                "level": DiscrepancyDetail.FATAL.value,
+                "explanation": explanation,
+            }]
 
-                if not kv_operator:
-                    raise ChatHealthyException(
-                        mode="config_error",
-                        message="notification-to-email secret in vault is empty",
-                        component="DiscrepancyReport",
-                    )
+        end_time = datetime.now(timezone.utc).isoformat()
+        manifest = {
+            "run_id": self.run_id,
+            "pipeline_name": self.pipeline_name,
+            "run_started_utc": self.start_time,
+            "run_ended_utc": end_time,
+            "fatal_reason": explanation,
+            "records_100_percent_successfully_collected": False,
+            "records_with_non_fatal_warnings": warning_count,
+            "records_with_non_fatal_errors": error_count,
+            "rows_in_target": self._reported(self.rows_in_target),
+            "target_collection": self._target_collection_name(),
+            "total_rows": self._reported(self.total_rows),
+            "total_source_rows": self._reported(self.total_source_rows),
+            "warning_threshold": self.config.get("warning_threshold", "Unknown"),
+            "error_threshold": self.config.get("error_threshold", "Unknown"),
+            "data_version": self._reported(self.data_version),
+        }
 
-                # Validate email format
-                if "@" not in kv_operator or not kv_operator.endswith((".com", ".ai", ".org", ".net", ".edu", ".gov")):
-                    raise ChatHealthyException(
-                        mode="config_error",
-                        message=f"notification-to-email from vault is malformed: {kv_operator}",
-                        component="DiscrepancyReport",
-                    )
-            except ChatHealthyException:
-                raise
-            except Exception as e:
-                raise ChatHealthyException(
-                    mode="vault_unreachable",
-                    message=f"Failed to fetch email from vault: {e}",
-                    component="DiscrepancyReport",
-                ) from e
+        # Rendering and PDF generation are library work on data already in
+        # hand. If they fail the deployment is broken, and that is caught in
+        # test rather than worked around here.
+        from notification_client import NotificationClient
+        from discrepancy_pdf import build_discrepancy_pdf, render_header_as_html
 
-            if kv_operator and kv_operator not in receivers:
-                receivers.append(kv_operator)
+        all_discrepancies = fatal_reports + error_reports + warning_reports
+        body = render_header_as_html(manifest, all_discrepancies)
+        attachments = [{
+            "filename": "discrepancies.pdf",
+            "content": build_discrepancy_pdf(manifest, all_discrepancies),
+        }]
 
-            if not receivers:
-                return False
+        recipient = self._resolve_recipient()
+        subject = f"Provider pipeline {self.run_id} - fatal"
+        log_context = (
+            f"warnings={warning_count} errors={error_count} "
+            f"mongo_down={self.mongo_down} "
+            f"data_version={self._reported(self.data_version)}"
+        )
 
-            # What the run measured, carried on the delivery record rather
-            # than a second record of its own -- the recipient would have been
-            # stated twice for no gain.
-            log_context = (
-                f"warnings={warning_count} errors={error_count} "
-                f"warning_threshold={self.config.get('warning_threshold', 'Unknown')} "
-                f"error_threshold={self.config.get('error_threshold', 'Unknown')} "
-                f"data_version={self._reported(self.data_version)}"
+        try:
+            NotificationClient().send_email(
+                recipient, subject, body,
+                attachments=attachments, log_context=log_context,
             )
+        except Exception as exc:  # noqa: BLE001 -- failure mode 1
+            raise ChatHealthyException(
+                mode="fatal_report_undeliverable",
+                message=(
+                    f"the fatal report for run {self.run_id} could not be posted "
+                    f"to the mail server: {type(exc).__name__}: {str(exc)[:200]}"
+                ),
+                component="DiscrepancyReport",
+                run_id=self.run_id,
+            ) from exc
+        return True
 
-            for addr in receivers:
-                if addr and "@" in addr:
-                    client.send_email(addr, subject, body,
-                                      attachments=attachments,
-                                      log_context=log_context)
+    def _resolve_recipient(self) -> str:
+        """The address to send to, or failure mode 2.
 
-            return True
-        except ChatHealthyException:
-            return False
-        except Exception:
-            return False
+        Every source is tried before giving up, and giving up is a raise --
+        a report with nowhere to go is not a report.
+        """
+        candidates = [
+            self.operator_email,
+            os.environ.get("NOTIFICATION_TO_EMAIL", ""),
+        ]
+        try:
+            candidates.append(self._get_operator_email_from_vault())
+        except Exception:  # noqa: BLE001 -- the vault is not a failure mode
+            pass
+        for candidate in candidates:
+            address = (candidate or "").strip()
+            if address and "@" in address and "." in address.rsplit("@", 1)[-1]:
+                return address
+        raise ChatHealthyException(
+            mode="fatal_report_no_recipient",
+            message=(
+                f"the fatal report for run {self.run_id} has no valid address to "
+                f"send to; tried the operator email, NOTIFICATION_TO_EMAIL and "
+                f"the vault"
+            ),
+            component="DiscrepancyReport",
+            run_id=self.run_id,
+        )
 
     def createWarning(
         self,
@@ -900,3 +966,47 @@ def emit_discrepancy_report(
     except Exception as exc:
         log.error("unexpected failure emitting discrepancy report: %s", exc)
         return {"total": 0, "pdf_bytes": 0, "error": str(exc)}
+
+
+def run_step(ctx) -> dict:
+    """Step 23 — report what this run found.
+
+    The registry resolves a step by looking for run_step or execute on the
+    module. Without one this module was skipped at import, the alias pointed
+    at a module that does not exist, and the step failed with "no runner
+    registered" after every other step had succeeded.
+    """
+    from pipeline_db import get_metadata_db
+
+    manifest = ctx.manifest
+    run_id = manifest.run_id
+    metadata_db = None
+    try:
+        metadata_db = get_metadata_db()
+    except Exception as exc:  # noqa: BLE001
+        _log.warning("discrepancy report: metadata database unreachable (%s); "
+                     "reporting from the manifest alone",
+                     f"{type(exc).__name__}: {str(exc)[:200]}")
+
+    manifest_doc = {
+        "run_id": run_id,
+        "pipeline_name": manifest.pipeline_name,
+        "status": manifest.status,
+        "state_scope": getattr(ctx.args, "state_scope", None) or getattr(ctx.args, "states", None),
+        "data_version": getattr(ctx.args, "data_version", None),
+        "completed_steps": sorted(manifest.completed_steps),
+    }
+    summary = emit_discrepancy_report(
+        metadata_db,
+        run_id=run_id,
+        manifest_status=manifest.status,
+        manifest_doc=manifest_doc,
+        config=ctx.config,
+    )
+    _log.info("discrepancy report: run_id=%s total=%s pdf_bytes=%s",
+              run_id, summary.get("total"), summary.get("pdf_bytes"))
+    return summary
+
+
+def execute(ctx) -> dict:
+    return run_step(ctx)
