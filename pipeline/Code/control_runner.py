@@ -564,7 +564,7 @@ def _quiesce_mongo_state(run_id: str, final_status: str, *,
 
         if pipeline_mongo:
             # Mongo is reachable - use normal emit_discrepancy_report path
-            from steps.discrepancy_report import emit_discrepancy_report  # noqa: PLC0415
+            from chathealthy_lib.discrepancy_report import emit_discrepancy_report  # noqa: PLC0415
             from pipeline_config import load_pipeline_config  # noqa: PLC0415
             env_prefix = os.environ.get("ENV_PREFIX", "dev")
             cfg = load_pipeline_config(mongo_client=None, env_prefix=env_prefix)

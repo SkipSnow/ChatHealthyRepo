@@ -33,9 +33,9 @@ def report_env(monkeypatch, scratch_mongo):
     Yields (client, discrepancies_collection, sent) where `sent` is the
     list of (addr, subject, body, attachments) the code tried to send.
     """
-    import discrepancy_pdf
-    import notification_client
-    import steps.discrepancy_report as dr
+    import chathealthy_lib.discrepancy_pdf as discrepancy_pdf
+    import chathealthy_lib.notification_client as notification_client
+    import chathealthy_lib.discrepancy_report as dr
 
     db, collection = scratch_mongo
     discrepancies = collection("discrepancies")
@@ -77,7 +77,7 @@ def _row(run_id: str, level: str = "warning", **extra) -> dict:
 
 @pytest.mark.unit
 def test_counts_only_the_requested_runs_discrepancies(report_env):
-    from steps.discrepancy_report import emit_discrepancy_report
+    from chathealthy_lib.discrepancy_report import emit_discrepancy_report
 
     client, discrepancies, _sent = report_env
     discrepancies.insert_many([
@@ -98,7 +98,7 @@ def test_counts_only_the_requested_runs_discrepancies(report_env):
 
 @pytest.mark.unit
 def test_fatal_explanation_reaches_the_email(report_env):
-    from steps.discrepancy_report import emit_discrepancy_report
+    from chathealthy_lib.discrepancy_report import emit_discrepancy_report
 
     client, discrepancies, sent = report_env
     discrepancies.insert_one(
@@ -124,7 +124,7 @@ def test_fatal_explanation_reaches_the_email(report_env):
 
 @pytest.mark.unit
 def test_no_email_when_the_run_recorded_no_fatal(report_env):
-    from steps.discrepancy_report import emit_discrepancy_report
+    from chathealthy_lib.discrepancy_report import emit_discrepancy_report
 
     client, discrepancies, sent = report_env
     discrepancies.insert_many([_row("R1"), _row("R1", level="error")])
@@ -141,7 +141,7 @@ def test_no_email_when_the_run_recorded_no_fatal(report_env):
 
 @pytest.mark.unit
 def test_no_email_when_the_run_has_no_discrepancies_at_all(report_env):
-    from steps.discrepancy_report import emit_discrepancy_report
+    from chathealthy_lib.discrepancy_report import emit_discrepancy_report
 
     client, _discrepancies, sent = report_env
     summary = emit_discrepancy_report(

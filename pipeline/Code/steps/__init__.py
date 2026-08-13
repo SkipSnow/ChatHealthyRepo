@@ -29,8 +29,14 @@ _MODULE_ALIASES: dict[str, str] = {
     "source_archival": "archive_sources",
     "load_f006_catalog": "load_nucc_classification_catalog",
     "add_secondary_practices": "attach_practice_addresses",
-    "discrepancy_and_notifications": "discrepancy_report",
     "county_enrichment": "county_enrichment_cascade",
+}
+
+
+# Steps whose implementation is shared by every pipeline and therefore lives
+# in chathealthy_lib rather than in this package.
+_LIB_STEP_MODULES: dict[str, str] = {
+    "discrepancy_and_notifications": "chathealthy_lib.discrepancy_report",
 }
 
 
@@ -42,6 +48,15 @@ def _resolve_runner(module: ModuleType) -> Callable | None:
     if callable(fn):
         return fn
     return None
+
+
+def _raise_missing_lib_runner(dotted: str) -> None:
+    """Raise-only helper: the catcher logs, not the thrower."""
+    raise ChatHealthyException(
+        mode="config_error",
+        message=f"{dotted} exposes neither run_step nor execute",
+        component="steps registry",
+    )
 
 
 def _build_registry() -> dict[str, Callable]:
@@ -77,6 +92,14 @@ def _build_registry() -> dict[str, Callable]:
     for lld_name, mod_name in _MODULE_ALIASES.items():
         if mod_name in module_runners:
             registry[lld_name] = module_runners[mod_name]
+
+    for lld_name, dotted in _LIB_STEP_MODULES.items():
+        module = importlib.import_module(dotted)
+        runner = _resolve_runner(module)
+        if runner is None:
+            _raise_missing_lib_runner(dotted)
+        registry[lld_name] = runner
+        registry[dotted.rsplit(".", 1)[-1]] = runner
 
     # For modules whose file name already matches the LLD name, the
     # entry from module_runners already covers the LLD lookup.

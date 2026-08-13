@@ -5,7 +5,7 @@ from __future__ import annotations
 
 import os
 
-from notification_client import NotificationClient, twilio_enabled
+from chathealthy_lib.notification_client import NotificationClient, twilio_enabled
 
 
 def test_twilio_disabled_by_default(monkeypatch):

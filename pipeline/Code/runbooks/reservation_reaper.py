@@ -19,10 +19,11 @@ Controller on run wrap; when the Controller never starts (e.g., VM
 cloud-init fails to install docker) or dies mid-run, the lock sits
 until its 12h TTL blocks every subsequent fire. On each tick the
 reaper checks every pipeline_lock past its startup grace and reaps
-the row when Pipelines.Log_{env} has no matching Controller heartbeat
-in the heartbeat window -- same signal that would tell an operator
-"Controller isn't there." Matching pipeline.runs doc is stamped
-status=failed reason=controller_never_started_or_died.
+the row when the run holds no live reservation. The reservation is
+what says a run is legitimately alive: a run makes one when it starts
+and cancels it in the Controller's finally when it ends. Matching
+pipeline.runs doc is stamped status=failed
+reason=controller_never_started_or_died.
 
 Environment (Automation Variables, exposed via os.environ at runtime):
   ATLAS_PIPELINE_PUBLIC_KEY       - Atlas API public key that may pause a cluster
@@ -356,32 +357,23 @@ def _r2_purge_old_job_records():
 # 3-5 minutes in a healthy fire; 8 min leaves headroom for slow days.
 PIPELINE_LOCK_STARTUP_GRACE_MIN = 8
 
-# Controller heartbeat window. ChatHealthyLoggingService writes to
-# Pipelines.Log_{env} on every info+ record; a live Controller produces
-# many per minute (pymongo pings, WI claims, heartbeats). Five minutes
-# of total silence on a run that is past its startup grace means the
-# Controller either never started or died. Reap.
-PIPELINE_LOCK_HEARTBEAT_MIN = 5
+# A run in one of these states is over; its lock is free whatever
+# its heartbeats say.
+_TERMINAL_RUN_STATUSES = {"succeeded", "failed", "aborted", "completed"}
 
 
-def _reap_stuck_pipeline_lock(coll, log_coll, runs_coll, row, now_aware):
-    """Reap a pipeline_lock row iff its Controller has been silent.
 
-    Two-signal test:
-      (a) row's acquired_at is at least PIPELINE_LOCK_STARTUP_GRACE_MIN
-          ago (VM boot + docker pull + Controller start should be done).
-      (b) Pipelines.Log_{env} has ZERO documents matching
-          {job_id: <row.run_id>, timeStamp: >= now - PIPELINE_LOCK_HEARTBEAT_MIN}.
+def _reap_stuck_pipeline_lock(coll, log_coll, runs_coll, work_items_coll,
+                              row, now_aware):
+    """Reap a pipeline_lock row iff its run holds no live reservation.
 
-    Both conditions must hold. If they do, the lock's owning Controller
-    never started or has died -- release the lock so the next fire can
-    proceed. Atomic delete_one filter includes both _id and run_id so
-    a concurrent legitimate release cannot race with us.
+    The reservation is what says a run is legitimately alive. A run makes one
+    when it starts and cancels it when it ends, so the lock lives and dies
+    with it.
 
-    Also deletes the matching legacy reservation row (whose _id equals
-    row.run_id) and stamps pipeline.runs status=failed with a reason.
-
-    Returns True iff this row was reaped.
+    A lock is reapable when acquired_at is at least
+    PIPELINE_LOCK_STARTUP_GRACE_MIN ago and either the run's status is
+    terminal or its reservation has expired or gone.
     """
     acquired_at = row.get("acquired_at")
     if isinstance(acquired_at, str):
@@ -399,22 +391,30 @@ def _reap_stuck_pipeline_lock(coll, log_coll, runs_coll, row, now_aware):
     run_id = row.get("run_id")
     if not run_id:
         return False
-    # Heartbeat probe: any log document for this run_id in the last
-    # PIPELINE_LOCK_HEARTBEAT_MIN minutes. limit=1 stops the count early
-    # for the common alive-Controller case (huge Log collection).
-    cutoff = now_aware - timedelta(minutes=PIPELINE_LOCK_HEARTBEAT_MIN)
-    recent_ct = log_coll.count_documents(
-        {"job_id": run_id, "timeStamp": {"$gte": cutoff}},
-        limit=1,
-    )
-    if recent_ct > 0:
-        return False  # Controller has emitted recent logs -> alive.
-    # Dead. Reap.
-    log.info(
-        "Reaping stuck pipeline_lock: _id=%s run_id=%s age_min=%.1f "
-        "(no logs in last %d min; Controller never started or died)",
-        row.get("_id"), run_id, age_min, PIPELINE_LOCK_HEARTBEAT_MIN,
-    )
+
+    run = runs_coll.find_one({"run_id": run_id})
+    if run and str(run.get("status", "")).lower() in _TERMINAL_RUN_STATUSES:
+        log.info("Reaping pipeline_lock for a finished run: run_id=%s status=%s",
+                 run_id, run.get("status"))
+    else:
+        expiry = (coll.find_one({"_id": run_id}) or {}).get("expiry_at")
+        if isinstance(expiry, str):
+            try:
+                expiry = datetime.fromisoformat(expiry)
+            except (ValueError, TypeError):
+                expiry = None
+        if expiry is not None:
+            if getattr(expiry, "tzinfo", None) is None:
+                expiry = expiry.replace(tzinfo=timezone.utc)
+            if expiry > now_aware:
+                return False  # The run holds a live reservation.
+        log.info(
+            "Reaping stuck pipeline_lock: _id=%s run_id=%s age_min=%.1f "
+            "status=%s reservation_expiry=%s",
+            row.get("_id"), run_id, age_min,
+            (run or {}).get("status"), expiry,
+        )
+
     # Atomic release: filter on _id AND run_id so a concurrent legitimate
     # release by the actual Controller cannot race with us.
     coll.delete_one({"_id": row["_id"], "run_id": run_id})
@@ -435,7 +435,6 @@ def _reap_stuck_pipeline_lock(coll, log_coll, runs_coll, row, now_aware):
         log.warning("Could not stamp pipeline.runs failure for %s: %r",
                     run_id, ex)
     return True
-
 
 def _r1_client_active_recently(auth, window_ms_start, window_ms_end):
     r = requests.get(
@@ -484,6 +483,7 @@ def _main():
     coll = client[DB_NAME][COLLECTION]
     log_coll = client[PIPELINE_ADMIN_DB][f"Log_{ENV_PREFIX}"]
     runs_coll = client[PIPELINE_ADMIN_DB]["pipeline.runs"]
+    work_items_coll = client[PIPELINE_ADMIN_DB]["pipeline.work_items"]
     reservations = list(coll.find({}))
     log.info("Loaded %d cluster_lifecycle rows from %s.%s",
              len(reservations), DB_NAME, COLLECTION)
@@ -497,7 +497,7 @@ def _main():
         #    2026-07-28 in commit 1384700d. Fields: _id="pipeline_lock:{name}",
         #    kind, pipeline_name, run_id, vm_name, acquired_at (ISO str),
         #    expires_at (ISO str). Released by Controller on run wrap OR
-        #    by this reaper on Controller-silence heartbeat (new below).
+        #    by this reaper when pipeline.runs says the run is not active.
         #  - legacy DB reservation -- the original shape. Fields: _id=run_id,
         #    expiry_at (naive datetime), status, requester. Released by
         #    wall-clock TTL only.
@@ -506,6 +506,7 @@ def _main():
         # every pipeline_lock row from reaping.
         if r.get("kind") == "pipeline_lock":
             if _reap_stuck_pipeline_lock(coll, log_coll, runs_coll,
+                                         work_items_coll,
                                          r, now_utc_aware):
                 reaped.append(r)
             else:

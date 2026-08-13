@@ -825,6 +825,9 @@ _INLINE_LIB_MODULES = (
     "logging_service",  # imports .exceptions eagerly; imports .mongo_utilities lazily inside _MongoLogHandler.emit
     "mongo_utilities",  # imports .exceptions AND .logging_service eagerly at module load; logging_service MUST be installed first
     "pipeline_boot",    # AA runbook Mongo-logging bootstrap: KV Mongo secret fetch + SRV->direct URI + CHLS env setup. Stdlib-only + optional certifi. Peer module; installed after logging_service/mongo_utilities so callers can compose.
+    "notification_client",  # imports .logging_service; requests. The one mail sender.
+    "discrepancy_pdf",      # imports .logging_service; reportlab (AA package). Renders the header table and the PDF.
+    "discrepancy_report",   # imports .exceptions/.logging_service/.mongo_utilities/.notification_client/.discrepancy_pdf; installed last. The one report every stage emits through, including a runbook-stage fatal.
 )
 
 

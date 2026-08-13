@@ -25,10 +25,13 @@ from chathealthy_lib.logging_service import (
 from chathealthy_lib.exceptions import ChatHealthyException
 from chathealthy_lib.mongo_utilities import ChatHealthyMongoUtilities
 
-from pipeline_db import PIPELINE_ADMIN_DB
+# Every pipeline reports through this one service, so its metadata home is
+# stated here and imported by the pipelines rather than restated by each.
+PIPELINE_ADMIN_DB = "pipelineAdmin"
 
 # All discrepancy metadata lives in one collection in one database.
 DISCREPANCIES_COLLECTION = "pipeline.discrepancy_reports"
+VALID_EMAIL_SUFFIXES = (".com", ".ai", ".org", ".net", ".edu", ".gov")
 RUN_COUNTERS_COLLECTION = "pipeline.run_counters"
 PIPELINE_CONFIG_COLLECTION = "PipelineConfig"
 
@@ -112,6 +115,12 @@ class DiscrepancyReport:
         # the database is reachable.
         self.fatal_exception: ChatHealthyException | None = None
         self.mongo_down = False
+        # What this process was told, kept where nothing outside it can fail.
+        # The database is authoritative while it answers; when it stops, these
+        # carry the run so no discrepancy and no count is lost from the report.
+        self._held: list[dict] = []
+        self._held_warnings = 0
+        self._held_errors = 0
 
         # Discrepancy reports, run counters and pipeline config are all
         # metadata: admin target, reachable while the data factory is down.
@@ -147,10 +156,8 @@ class DiscrepancyReport:
 
     def _load_pipeline_config(self) -> dict:
         """Load pipeline configuration from the metadata database."""
-        from pipeline_db import get_metadata_db
-        config = get_metadata_db()[PIPELINE_CONFIG_COLLECTION].find_one(
-            {"_id": self.pipeline_name}
-        )
+        config = self.mongo_connection[PIPELINE_ADMIN_DB][
+            PIPELINE_CONFIG_COLLECTION].find_one({"_id": self.pipeline_name})
         if not config:
             raise ChatHealthyException(
                 mode="config_error",
@@ -226,18 +233,43 @@ class DiscrepancyReport:
             _log.warning("discrepancy report: could not persist the fatal error (%s); "
                          "the report still goes out", self.mongo_down_reason)
 
+    def _hold_infrastructure_failure(self, what: str, reason: str) -> None:
+        """Put a failure of the reporting machinery into the report itself.
+
+        A database that will not take a discrepancy is a defect of the run and
+        belongs on the artifact beside the data defects. Held once per distinct
+        failure so a dead database produces one row rather than one per write.
+        """
+        explanation = f"{what}: {reason}"
+        for row in self._held:
+            if row.get("explanation") == explanation:
+                return
+        self._held.append(self._build_discrepancy_dict(
+            DiscrepancyDetail.ERROR, explanation, None, None, None))
+
+    @staticmethod
+    def _identity(row: dict) -> tuple:
+        """What makes a discrepancy the same discrepancy."""
+        return (str(row.get("level", "")).lower(), row.get("npi"),
+                row.get("source_line"), row.get("explanation"))
+
     def _counts(self) -> tuple:
-        """Warning and error counts, or Unknown when the database is down."""
-        if self.mongo_down or self.mongo_connection is None:
-            return "Unknown", "Unknown"
-        try:
-            coll = self.mongo_connection[PIPELINE_ADMIN_DB][DISCREPANCIES_COLLECTION]
-            return (coll.count_documents({"run_id": self.run_id, "level": "warning"}),
-                    coll.count_documents({"run_id": self.run_id, "level": "error"}))
-        except Exception as exc:  # noqa: BLE001
-            self.mongo_down = True
-            self.mongo_down_reason = f"{type(exc).__name__}: {str(exc)[:200]}"
-            return "Unknown", "Unknown"
+        """Warning and error counts.
+
+        The database counts the whole run across every worker. When it cannot
+        be reached, this process reports what it recorded itself, and says
+        Unknown only when it recorded nothing -- a count it does not have is
+        never rendered as zero.
+        """
+        if not (self.mongo_down or self.mongo_connection is None):
+            try:
+                coll = self.mongo_connection[PIPELINE_ADMIN_DB][DISCREPANCIES_COLLECTION]
+                return (coll.count_documents({"run_id": self.run_id, "level": "warning"}),
+                        coll.count_documents({"run_id": self.run_id, "level": "error"}))
+            except Exception as exc:  # noqa: BLE001
+                self.mongo_down = True
+                self.mongo_down_reason = f"{type(exc).__name__}: {str(exc)[:200]}"
+        return (self._held_warnings or "Unknown", self._held_errors or "Unknown")
 
     def _target_collection_name(self) -> str:
         """Short name of the collection this pipeline loads into. Never the
@@ -309,24 +341,28 @@ class DiscrepancyReport:
             True if written successfully, False otherwise.
         """
         log = ChatHealthyLoggingService()
-        try:
-            if not self.mongo_connection:
-                return False
+        level_enum = (DiscrepancyDetail(discrepancy_level)
+                      if isinstance(discrepancy_level, str) else discrepancy_level)
+        disc_dict = self._build_discrepancy_dict(
+            level_enum, explanation, source_line, npi, field)
+        # Held first. Whatever the database does next, the report can say this.
+        self._held.append(disc_dict)
 
-            if isinstance(discrepancy_level, str):
-                level_enum = DiscrepancyDetail(discrepancy_level)
-            else:
-                level_enum = discrepancy_level
-
-            disc_dict = self._build_discrepancy_dict(level_enum, explanation, source_line, npi, field)
-            discs_coll = self.mongo_connection[PIPELINE_ADMIN_DB][DISCREPANCIES_COLLECTION]
-            discs_coll.insert_one(disc_dict)
-            return True
-        except ChatHealthyException as exc:
-            log.error("could not write discrepancy: %s", exc, exc=exc)
+        if self.mongo_down or self.mongo_connection is None:
             return False
-        except Exception as exc:
-            log.error("could not write discrepancy: %s", exc)
+        try:
+            self.mongo_connection[PIPELINE_ADMIN_DB][
+                DISCREPANCIES_COLLECTION].insert_one(dict(disc_dict))
+            return True
+        except Exception as exc:  # noqa: BLE001
+            self.mongo_down = True
+            self.mongo_down_reason = f"{type(exc).__name__}: {str(exc)[:200]}"
+            self._hold_infrastructure_failure(
+                "the metadata database would not accept a discrepancy",
+                self.mongo_down_reason)
+            log.warning("discrepancy report: could not persist a %s (%s); "
+                        "it is held for the report",
+                        level_enum.value, self.mongo_down_reason)
             return False
 
     def increment_warning_count(self) -> int:
@@ -334,9 +370,10 @@ class DiscrepancyReport:
         Returns the new count after increment.
         """
         log = ChatHealthyLoggingService()
+        self._held_warnings += 1
+        if self.mongo_down or self.mongo_connection is None:
+            return self._held_warnings
         try:
-            if not self.mongo_connection:
-                return -1
             counters_coll = self.mongo_connection[PIPELINE_ADMIN_DB][RUN_COUNTERS_COLLECTION]
             result = counters_coll.find_one_and_update(
                 {"run_id": self.run_id},
@@ -344,22 +381,26 @@ class DiscrepancyReport:
                 upsert=True,
                 return_document=True,
             )
-            return result.get("warning_count", 0)
-        except ChatHealthyException as exc:
-            log.error("could not increment the run warning counter: %s", exc, exc=exc)
-            return -1
-        except Exception as exc:
-            log.error("could not increment the run warning counter: %s", exc)
-            return -1
+            return result.get("warning_count", self._held_warnings)
+        except Exception as exc:  # noqa: BLE001
+            self.mongo_down = True
+            self.mongo_down_reason = f"{type(exc).__name__}: {str(exc)[:200]}"
+            self._hold_infrastructure_failure(
+                "the metadata database would not increment the run warning counter",
+                self.mongo_down_reason)
+            log.warning("discrepancy report: could not increment the run warning "
+                        "counter (%s); counting in memory", self.mongo_down_reason)
+            return self._held_warnings
 
     def increment_error_count(self) -> int:
         """Atomically increment global error counter for this run_id.
         Returns the new count after increment.
         """
         log = ChatHealthyLoggingService()
+        self._held_errors += 1
+        if self.mongo_down or self.mongo_connection is None:
+            return self._held_errors
         try:
-            if not self.mongo_connection:
-                return -1
             counters_coll = self.mongo_connection[PIPELINE_ADMIN_DB][RUN_COUNTERS_COLLECTION]
             result = counters_coll.find_one_and_update(
                 {"run_id": self.run_id},
@@ -367,36 +408,45 @@ class DiscrepancyReport:
                 upsert=True,
                 return_document=True,
             )
-            return result.get("error_count", 0)
-        except ChatHealthyException as exc:
-            log.error("could not increment the run error counter: %s", exc, exc=exc)
-            return -1
-        except Exception as exc:
-            log.error("could not increment the run error counter: %s", exc)
-            return -1
+            return result.get("error_count", self._held_errors)
+        except Exception as exc:  # noqa: BLE001
+            self.mongo_down = True
+            self.mongo_down_reason = f"{type(exc).__name__}: {str(exc)[:200]}"
+            self._hold_infrastructure_failure(
+                "the metadata database would not increment the run error counter",
+                self.mongo_down_reason)
+            log.warning("discrepancy report: could not increment the run error "
+                        "counter (%s); counting in memory", self.mongo_down_reason)
+            return self._held_errors
 
     def get_counts(self) -> dict:
         """Get current warning and error counts for this run_id.
         Returns: {"warning_count": N, "error_count": M}
         """
         log = ChatHealthyLoggingService()
+        held = {"warning_count": self._held_warnings,
+                "error_count": self._held_errors}
+        if self.mongo_down or self.mongo_connection is None:
+            return held
         try:
-            if not self.mongo_connection:
-                return {"warning_count": 0, "error_count": 0}
             counters_coll = self.mongo_connection[PIPELINE_ADMIN_DB][RUN_COUNTERS_COLLECTION]
             result = counters_coll.find_one({"run_id": self.run_id})
             if not result:
-                return {"warning_count": 0, "error_count": 0}
+                return held
             return {
-                "warning_count": result.get("warning_count", 0),
-                "error_count": result.get("error_count", 0),
+                "warning_count": result.get("warning_count", self._held_warnings),
+                "error_count": result.get("error_count", self._held_errors),
             }
-        except ChatHealthyException as exc:
-            log.error("could not read the run counters: %s", exc, exc=exc)
-            return {"warning_count": 0, "error_count": 0}
-        except Exception as exc:
-            log.error("could not read the run counters: %s", exc)
-            return {"warning_count": 0, "error_count": 0}
+        except Exception as exc:  # noqa: BLE001
+            self.mongo_down = True
+            self.mongo_down_reason = f"{type(exc).__name__}: {str(exc)[:200]}"
+            self._hold_infrastructure_failure(
+                "the metadata database would not return the run counters",
+                self.mongo_down_reason)
+            log.warning("discrepancy report: could not read the run counters (%s); "
+                        "reporting what this process recorded",
+                        self.mongo_down_reason)
+            return held
 
     def _write_email(self) -> bool:
         """Send the fatal report. The only thing this method may not survive.
@@ -430,6 +480,22 @@ class DiscrepancyReport:
                 self.mongo_down = True
                 self.mongo_down_reason = f"{type(exc).__name__}: {str(exc)[:200]}"
 
+        # Anything this process was told but could not persist. Matched on the
+        # row itself so a discrepancy that did reach the database is not
+        # reported twice.
+        persisted = {self._identity(r) for r in
+                     fatal_reports + error_reports + warning_reports}
+        for row in self._held:
+            if self._identity(row) in persisted:
+                continue
+            level = str(row.get("level", "")).lower()
+            if level == "fatal":
+                fatal_reports.append(row)
+            elif level == "error":
+                error_reports.append(row)
+            elif level == "warning":
+                warning_reports.append(row)
+
         # The fatal error is known here whether or not it was ever written
         # down, because the caller handed it over rather than storing it.
         explanation = self._fatal_explanation()
@@ -455,7 +521,10 @@ class DiscrepancyReport:
             "rows_in_target": self._reported(self.rows_in_target),
             "target_collection": self._target_collection_name(),
             "total_rows": self._reported(self.total_rows),
-            "total_source_rows": self._reported(self.total_source_rows),
+            # Raw, never _reported: the header subtracts from this one to get
+            # "records 100% successfully collected", and states its own absence
+            # as Unknown when it is None.
+            "total_source_rows": self.total_source_rows,
             "warning_threshold": self.config.get("warning_threshold", "Unknown"),
             "error_threshold": self.config.get("error_threshold", "Unknown"),
             "data_version": self._reported(self.data_version),
@@ -464,8 +533,8 @@ class DiscrepancyReport:
         # Rendering and PDF generation are library work on data already in
         # hand. If they fail the deployment is broken, and that is caught in
         # test rather than worked around here.
-        from notification_client import NotificationClient
-        from discrepancy_pdf import build_discrepancy_pdf, render_header_as_html
+        from chathealthy_lib.notification_client import NotificationClient
+        from chathealthy_lib.discrepancy_pdf import build_discrepancy_pdf, render_header_as_html
 
         all_discrepancies = fatal_reports + error_reports + warning_reports
         body = render_header_as_html(manifest, all_discrepancies)
@@ -474,36 +543,46 @@ class DiscrepancyReport:
             "content": build_discrepancy_pdf(manifest, all_discrepancies),
         }]
 
-        recipient = self._resolve_recipient()
+        receivers = self._resolve_recipients()
         subject = f"Provider pipeline {self.run_id} - fatal"
         log_context = (
             f"warnings={warning_count} errors={error_count} "
+            f"warning_threshold={self.config.get('warning_threshold', 'Unknown')} "
+            f"error_threshold={self.config.get('error_threshold', 'Unknown')} "
             f"mongo_down={self.mongo_down} "
             f"data_version={self._reported(self.data_version)}"
         )
 
-        try:
-            NotificationClient().send_email(
-                recipient, subject, body,
-                attachments=attachments, log_context=log_context,
-            )
-        except Exception as exc:  # noqa: BLE001 -- failure mode 1
-            raise ChatHealthyException(
-                mode="fatal_report_undeliverable",
-                message=(
-                    f"the fatal report for run {self.run_id} could not be posted "
-                    f"to the mail server: {type(exc).__name__}: {str(exc)[:200]}"
-                ),
-                component="DiscrepancyReport",
-                run_id=self.run_id,
-            ) from exc
-        return True
+        client = NotificationClient()
+        delivered, last_failure = 0, None
+        for address in receivers:
+            try:
+                client.send_email(
+                    address, subject, body,
+                    attachments=attachments, log_context=log_context,
+                )
+                delivered += 1
+            except Exception as exc:  # noqa: BLE001 -- failure mode 1
+                last_failure = exc
+        if delivered:
+            return True
+        raise ChatHealthyException(
+            mode="fatal_report_undeliverable",
+            message=(
+                f"the fatal report for run {self.run_id} reached none of its "
+                f"{len(receivers)} recipients: "
+                f"{type(last_failure).__name__}: {str(last_failure)[:200]}"
+            ),
+            component="DiscrepancyReport",
+            run_id=self.run_id,
+        ) from last_failure
 
-    def _resolve_recipient(self) -> str:
-        """The address to send to, or failure mode 2.
+    def _resolve_recipients(self) -> list[str]:
+        """Every address the report goes to, or failure mode 2.
 
-        Every source is tried before giving up, and giving up is a raise --
-        a report with nowhere to go is not a report.
+        The design calls for a receiver list, so each source contributes and
+        the operator and the vault address both receive. Giving up on all of
+        them is a raise -- a report with nowhere to go is not a report.
         """
         candidates = [
             self.operator_email,
@@ -513,10 +592,15 @@ class DiscrepancyReport:
             candidates.append(self._get_operator_email_from_vault())
         except Exception:  # noqa: BLE001 -- the vault is not a failure mode
             pass
+        receivers: list[str] = []
         for candidate in candidates:
             address = (candidate or "").strip()
-            if address and "@" in address and "." in address.rsplit("@", 1)[-1]:
-                return address
+            if (address and "@" in address
+                    and address.endswith(VALID_EMAIL_SUFFIXES)
+                    and address not in receivers):
+                receivers.append(address)
+        if receivers:
+            return receivers
         raise ChatHealthyException(
             mode="fatal_report_no_recipient",
             message=(
@@ -906,10 +990,6 @@ def emit_discrepancy_report(
     log = ChatHealthyLoggingService()
 
     try:
-        if not pipeline_mongo:
-            log.error("metadata database unavailable; discrepancy email not sent")
-            return {"total": 0, "pdf_bytes": 0}
-
         # Create report instance with operator email
         report = DiscrepancyReport(
             run_id=run_id,
@@ -927,11 +1007,20 @@ def emit_discrepancy_report(
         elif not report.operator_email:
             report.operator_email = os.environ.get("NOTIFICATION_TO_EMAIL", "").strip()
 
-        report.mongo_connection = pipeline_mongo
+        # A caller may hand in its own connection; otherwise the report uses
+        # the one it opened for itself.
+        if pipeline_mongo is not None:
+            report.mongo_connection = pipeline_mongo
+            report.mongo_down = False
 
-        # Count discrepancies
-        discrepancies_coll = pipeline_mongo[PIPELINE_ADMIN_DB][DISCREPANCIES_COLLECTION]
-        total = discrepancies_coll.count_documents({"run_id": run_id})
+        total = 0
+        if not report.mongo_down and report.mongo_connection is not None:
+            try:
+                total = report.mongo_connection[PIPELINE_ADMIN_DB][
+                    DISCREPANCIES_COLLECTION].count_documents({"run_id": run_id})
+            except Exception as exc:  # noqa: BLE001
+                report.mongo_down = True
+                report.mongo_down_reason = f"{type(exc).__name__}: {str(exc)[:200]}"
 
         # Send email if operator email is set
         email_sent = False
@@ -969,25 +1058,13 @@ def emit_discrepancy_report(
 
 
 def run_step(ctx) -> dict:
-    """Step 23 — report what this run found.
+    """Step 23 -- report what this run found.
 
     The registry resolves a step by looking for run_step or execute on the
-    module. Without one this module was skipped at import, the alias pointed
-    at a module that does not exist, and the step failed with "no runner
-    registered" after every other step had succeeded.
+    module.
     """
-    from pipeline_db import get_metadata_db
-
     manifest = ctx.manifest
     run_id = manifest.run_id
-    metadata_db = None
-    try:
-        metadata_db = get_metadata_db()
-    except Exception as exc:  # noqa: BLE001
-        _log.warning("discrepancy report: metadata database unreachable (%s); "
-                     "reporting from the manifest alone",
-                     f"{type(exc).__name__}: {str(exc)[:200]}")
-
     manifest_doc = {
         "run_id": run_id,
         "pipeline_name": manifest.pipeline_name,
@@ -997,7 +1074,7 @@ def run_step(ctx) -> dict:
         "completed_steps": sorted(manifest.completed_steps),
     }
     summary = emit_discrepancy_report(
-        metadata_db,
+        None,
         run_id=run_id,
         manifest_status=manifest.status,
         manifest_doc=manifest_doc,

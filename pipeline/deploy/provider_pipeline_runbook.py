@@ -418,6 +418,30 @@ def _delete_vm_via_arm(vm_name: str) -> None:
         raise
 
 
+def _report_fatal(run_id: str, exc: ChatHealthyException) -> None:
+    """Send the discrepancy report for a failure that happened here.
+
+    A runbook-stage failure never reaches the VM, so this is the only chance
+    the run has to report itself. It reports through the same class every
+    other stage uses, so the operator receives one artifact in one form.
+    """
+    try:
+        from chathealthy_lib.discrepancy_report import DiscrepancyReport
+        DiscrepancyReport(
+            run_id=run_id,
+            env=os.environ.get("ENV_PREFIX", "dev"),
+            pipeline_name=PIPELINE_NAME,
+            source="ProviderPipelineRunbook",
+            data_version=(int(os.environ["DATA_VERSION"])
+                          if os.environ.get("DATA_VERSION", "").strip().isdigit()
+                          else None),
+        ).fatal(exc)
+        log("runbook_fatal_report_sent", run_id=run_id)
+    except Exception as report_exc:
+        log("runbook_fatal_report_failed",
+            run_id=run_id, error=str(report_exc)[:500])
+
+
 def _runbook_error_teardown(mongo, run_id: str, vm_name: str,
                             reservation_created: bool,
                             vm_provisioned: bool) -> None:
@@ -1141,6 +1165,11 @@ def main() -> int:
                 http_code=exc.code,
                 reason=exc.reason,
                 body=body)
+            _report_fatal(run_id, ChatHealthyException(
+                mode="vm_provision_failed",
+                message=f"VM provisioning returned HTTP {exc.code}: {exc.reason}",
+                component="ProviderPipelineRunbook",
+                run_id=run_id))
             _runbook_error_teardown(mongo, run_id, vm_name_for_teardown,
                                     reservation_created, vm_provisioned)
             return 1
@@ -1150,6 +1179,11 @@ def main() -> int:
                 error_type=type(exc).__name__,
                 error_msg=str(exc),
                 traceback=traceback.format_exc()[-2000:])
+            _report_fatal(run_id, ChatHealthyException(
+                mode="vm_provision_failed",
+                message=f"VM provisioning failed: {type(exc).__name__}: {exc}",
+                component="ProviderPipelineRunbook",
+                run_id=run_id))
             _runbook_error_teardown(mongo, run_id, vm_name_for_teardown,
                                     reservation_created, vm_provisioned)
             return 1
