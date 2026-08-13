@@ -3377,7 +3377,7 @@
         },
         {
           "feature_id": "EPIC-008-F-012",
-          "source_location": "pipeline/Code/discrepancy_pdf.py",
+          "source_location": "ChatHealthyLib/src/chathealthy_lib/discrepancy_pdf.py",
           "handler_type": "python_source",
           "disposition": "referenced",
           "content_hash": "942d92781cbf9060b2419bba72e99d5ce8a40d291d8b50525c7a16ed5660080d",
@@ -3409,7 +3409,7 @@
         },
         {
           "feature_id": "EPIC-008-F-012",
-          "source_location": "pipeline/Code/notification_client.py",
+          "source_location": "ChatHealthyLib/src/chathealthy_lib/notification_client.py",
           "handler_type": "python_source",
           "disposition": "referenced",
           "content_hash": "085d1467ed5f86f6b4295252b5660e5bdf53faeed1bef16f5d33e87caf127935",
@@ -3624,7 +3624,7 @@
           "package": "service_runtime"
         },
         {
-          "source_location": "pipeline/Code/steps/discrepancy_report.py",
+          "source_location": "ChatHealthyLib/src/chathealthy_lib/discrepancy_report.py",
           "feature_id": "EPIC-008-F-012",
           "handler_type": "python_source",
           "disposition": "referenced",
@@ -3956,7 +3956,7 @@
           "package": "service_runtime"
         },
         {
-          "source_location": "pipeline/Code/steps/discrepancy_report.py",
+          "source_location": "ChatHealthyLib/src/chathealthy_lib/discrepancy_report.py",
           "feature_id": "EPIC-008-F-012",
           "handler_type": "python_source",
           "disposition": "referenced",
