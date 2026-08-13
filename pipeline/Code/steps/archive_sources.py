@@ -11,7 +11,7 @@ from chathealthy_lib.exceptions import ChatHealthyException
 from datetime import datetime, timezone
 
 from blob_client import get_blob_service
-from pipeline_db import get_mongo, PIPELINE_ADMIN_DB
+from pipeline_db import get_mongo, get_metadata_db, PIPELINE_ADMIN_DB
 from pipeline_source_archival import archive_source_blob, duplicate_version_detected
 
 # Legacy fallback blob name for usda_rucc; retained as a literal after
@@ -81,7 +81,7 @@ def _source_container_or_raise(source_key: str, fetch_result: dict) -> str:
 
 
 def execute(ctx) -> dict:
-    registry = get_mongo()[PIPELINE_ADMIN_DB]["DataSourceRegistry"]
+    registry = get_metadata_db()["DataSourceRegistry"]
     now = datetime.now(timezone.utc)
     blob_service = ctx.blob_client or get_blob_service()
     fetch_results = ctx.manifest.metrics.get("fetch_results") or {}

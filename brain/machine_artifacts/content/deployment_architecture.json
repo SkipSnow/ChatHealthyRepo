@@ -4111,7 +4111,9 @@
                 "AZ_VM_LOCATION": "local_env",
                 "AZ_VM_RESOURCE_GROUP": "local_env",
                 "AZ_VM_SIZE": "local_env",
-                "CH_LOG_DB": "local_env"
+                "CH_LOG_DB": "local_env",
+                "ATLAS_PIPELINE_PUBLIC_KEY": "local_env",
+                "ATLAS_PIPELINE_PRIVATE_KEY": "local_env"
               },
               "secret_descriptions": {
                 "ACTIVITY_WINDOW_MINUTES": "How long a cluster may idle before it is paused",
@@ -4132,7 +4134,9 @@
                 "NOTIFICATION_TO_EMAIL": "Address notification email is sent to",
                 "PIPELINE_CLUSTER": "Name of the Atlas cluster the pipeline writes to",
                 "SPARKMAIL_API_KEY": "SparkPost key for sending notification email",
-                "CH_LOG_DB": "Database the structured log records are written to"
+                "CH_LOG_DB": "Database the structured log records are written to",
+                "ATLAS_PIPELINE_PUBLIC_KEY": "Atlas API public key that may pause and resume the pipeline cluster",
+                "ATLAS_PIPELINE_PRIVATE_KEY": "Atlas API private key that may pause and resume the pipeline cluster"
               },
               "config": {
                 "runbook_name": "ReservationReaper",
@@ -4230,7 +4234,9 @@
                 "CH_LOG_DB": "local_env",
                 "SPARKMAIL_API_KEY": "local_env",
                 "NOTIFICATION_FROM_EMAIL": "local_env",
-                "NOTIFICATION_TO_EMAIL": "local_env"
+                "NOTIFICATION_TO_EMAIL": "local_env",
+                "ATLAS_PIPELINE_PUBLIC_KEY": "local_env",
+                "ATLAS_PIPELINE_PRIVATE_KEY": "local_env"
               },
               "secret_descriptions": {
                 "ATLAS_PRIVATE_KEY": "MongoDB Atlas administrative API private key",
@@ -4246,7 +4252,9 @@
                 "CH_LOG_DB": "Database the structured log records are written to",
                 "SPARKMAIL_API_KEY": "Proves ChatHealthy to the mail server",
                 "NOTIFICATION_FROM_EMAIL": "Address notification email is sent from",
-                "NOTIFICATION_TO_EMAIL": "Who pipeline failures are reported to"
+                "NOTIFICATION_TO_EMAIL": "Who pipeline failures are reported to",
+                "ATLAS_PIPELINE_PUBLIC_KEY": "Atlas API public key that may pause and resume the pipeline cluster",
+                "ATLAS_PIPELINE_PRIVATE_KEY": "Atlas API private key that may pause and resume the pipeline cluster"
               },
               "config": {
                 "runbook_name": "ProviderPipelineRunbook",
@@ -4412,7 +4420,9 @@
                 "PIPELINEEDITOR_AZURE_TENANT_ID": "local_env",
                 "PIPELINEEDITOR_AZURE_CLIENT_ID": "local_env",
                 "PIPELINEEDITOR_AZURE_CLIENT_SECRET": "local_env",
-                "CH_LOG_DB": "local_env"
+                "CH_LOG_DB": "local_env",
+                "ATLAS_PIPELINE_PUBLIC_KEY": "local_env",
+                "ATLAS_PIPELINE_PRIVATE_KEY": "local_env"
               },
               "secret_descriptions": {
                 "ATLAS_PRIVATE_KEY": "MongoDB Atlas administrative API private key",
@@ -4427,7 +4437,9 @@
                 "PIPELINEEDITOR_AZURE_CLIENT_ID": "Identifies pipelineEditor to Azure",
                 "PIPELINEEDITOR_AZURE_CLIENT_SECRET": "Proves pipelineEditor to Azure",
                 "PIPELINEEDITOR_AZURE_TENANT_ID": "The directory pipelineEditor belongs to",
-                "CH_LOG_DB": "Database the structured log records are written to"
+                "CH_LOG_DB": "Database the structured log records are written to",
+                "ATLAS_PIPELINE_PUBLIC_KEY": "Atlas API public key that may pause and resume the pipeline cluster",
+                "ATLAS_PIPELINE_PRIVATE_KEY": "Atlas API private key that may pause and resume the pipeline cluster"
               },
               "config": {
                 "runbook_name": "ChatHealthyDataMigratorOrchestrator",
@@ -4549,7 +4561,9 @@
                 "PIPELINEEDITOR_AZURE_TENANT_ID": "local_env",
                 "PIPELINEEDITOR_AZURE_CLIENT_ID": "local_env",
                 "PIPELINEEDITOR_AZURE_CLIENT_SECRET": "local_env",
-                "CH_LOG_DB": "local_env"
+                "CH_LOG_DB": "local_env",
+                "ATLAS_PIPELINE_PUBLIC_KEY": "local_env",
+                "ATLAS_PIPELINE_PRIVATE_KEY": "local_env"
               },
               "secret_descriptions": {
                 "ATLAS_PRIVATE_KEY": "MongoDB Atlas administrative API private key",
@@ -4563,7 +4577,9 @@
                 "PIPELINEEDITOR_AZURE_CLIENT_ID": "Identifies pipelineEditor to Azure",
                 "PIPELINEEDITOR_AZURE_CLIENT_SECRET": "Proves pipelineEditor to Azure",
                 "PIPELINEEDITOR_AZURE_TENANT_ID": "The directory pipelineEditor belongs to",
-                "CH_LOG_DB": "Database the structured log records are written to"
+                "CH_LOG_DB": "Database the structured log records are written to",
+                "ATLAS_PIPELINE_PUBLIC_KEY": "Atlas API public key that may pause and resume the pipeline cluster",
+                "ATLAS_PIPELINE_PRIVATE_KEY": "Atlas API private key that may pause and resume the pipeline cluster"
               },
               "config": {
                 "runbook_name": "ChatHealthyDataMigrator",
@@ -4937,7 +4953,9 @@
         "CLOUDFLARE_PIPELINE_AUTH_HEADER": "local_env",
         "PIPELINEEDITOR_AZURE_TENANT_ID": "local_env",
         "PIPELINEEDITOR_AZURE_CLIENT_ID": "local_env",
-        "PIPELINEEDITOR_AZURE_CLIENT_SECRET": "local_env"
+        "PIPELINEEDITOR_AZURE_CLIENT_SECRET": "local_env",
+        "ATLAS_PIPELINE_PUBLIC_KEY": "local_env",
+        "ATLAS_PIPELINE_PRIVATE_KEY": "local_env"
       },
       "secret_descriptions": {
         "ANTHROPIC_API_KEY": "Anthropic API key for language model calls",
@@ -4982,7 +5000,9 @@
         "mongo-ca-cert": "Authority certificate used to verify the MongoDB server",
         "mongo-client-cert-key-pipelineEditor": "Superseded pipelineEditor certificate and key",
         "mongo-client-cert-pipelineEditor": "Superseded pipelineEditor client certificate",
-        "mongo-client-key-pipelineEditor": "Superseded pipelineEditor client key"
+        "mongo-client-key-pipelineEditor": "Superseded pipelineEditor client key",
+        "ATLAS_PIPELINE_PUBLIC_KEY": "Atlas API public key that may pause and resume the pipeline cluster",
+        "ATLAS_PIPELINE_PRIVATE_KEY": "Atlas API private key that may pause and resume the pipeline cluster"
       },
       "allowed_roles": [
         "Key Vault Secrets Officer",

@@ -908,19 +908,19 @@ def _atlas_resume_pipeline_cluster() -> dict:
     try:
         import automationassets  # only in AA sandbox
         atlas_project_id = automationassets.get_automation_variable("ATLAS_PROJECT_ID")
-        atlas_pub = automationassets.get_automation_variable("ATLAS_PUBLIC_KEY")
-        atlas_priv = automationassets.get_automation_variable("ATLAS_PRIVATE_KEY")
+        atlas_pub = automationassets.get_automation_variable("ATLAS_PIPELINE_PUBLIC_KEY")
+        atlas_priv = automationassets.get_automation_variable("ATLAS_PIPELINE_PRIVATE_KEY")
     except Exception:
         atlas_project_id = ATLAS_PROJECT_ID or os.environ.get("ATLAS_PROJECT_ID", "")
-        atlas_pub = os.environ.get("ATLAS_PUBLIC_KEY", "")
-        atlas_priv = os.environ.get("ATLAS_PRIVATE_KEY", "")
+        atlas_pub = os.environ.get("ATLAS_PIPELINE_PUBLIC_KEY", "")
+        atlas_priv = os.environ.get("ATLAS_PIPELINE_PRIVATE_KEY", "")
     missing = []
     if not atlas_project_id:
         missing.append("ATLAS_PROJECT_ID")
     if not atlas_pub:
-        missing.append("ATLAS_PUBLIC_KEY")
+        missing.append("ATLAS_PIPELINE_PUBLIC_KEY")
     if not atlas_priv:
-        missing.append("ATLAS_PRIVATE_KEY")
+        missing.append("ATLAS_PIPELINE_PRIVATE_KEY")
     if missing:
         raise ChatHealthyException(
             mode="atlas_resume_env_unset",
