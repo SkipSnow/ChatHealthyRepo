@@ -53,6 +53,30 @@ _log = ChatHealthyLoggingService()
 _HEARTBEAT_STALE_S = 300
 
 
+def _require_claimable(wi_coll, run_id: str, step: str, enqueued: int) -> int:
+    """Return the number of readable pending items, or raise.
+
+    No worker is spawned until every item it might claim is readable. A worker
+    looks once, by design; if it can start before its item is visible then that
+    single look can find nothing, the item stays pending forever, and the
+    Controller waits on a claim that will never come. Ordering removes the
+    possibility -- retrying in the worker would only have hidden it.
+    """
+    claimable = wi_coll.count_documents(
+        {"run_id": run_id, "step": step, "status": "pending"})
+    if claimable != enqueued:
+        raise ChatHealthyException(
+            mode="work_items_not_visible",
+            message=(
+                f"orchestrator: enqueued {enqueued} work item(s) for step "
+                f"{step!r} but only {claimable} are readable. Spawning workers "
+                f"now would strand the difference."
+            ),
+            step=step, run_id=run_id, enqueued=enqueued, readable=claimable,
+        )
+    return claimable
+
+
 def _utc_now_iso() -> str:
     return datetime.now(timezone.utc).isoformat()
 
@@ -230,9 +254,12 @@ class BasePipelineOrchestrator:
             }
             r = wi_coll.insert_one(doc)
             item_ids.append(r.inserted_id)
+
+        claimable = _require_claimable(wi_coll, run_id, spec.name, len(item_ids))
         _log.info(
-            "orchestrator dispatch step=%s partitions=%d work_items_enqueued=%d",
-            spec.name, len(partitions), len(item_ids),
+            "orchestrator dispatch step=%s partitions=%d work_items_enqueued=%d "
+            "claimable=%d",
+            spec.name, len(partitions), len(item_ids), claimable,
         )
 
         # 2. Spawn N Worker subprocesses. Cap concurrency at min(partitions,
