@@ -904,7 +904,7 @@ def _inline_chathealthy_lib_if_used(repo_root: Path, runbook_path: Path) -> None
     preamble_lines = [
         "# --- BEGIN inlined chathealthy_lib (built from git commit at build time) ---",
         "# Bytes below are base64-encoded copies of",
-        "# ChatHealthyLib/src/chathealthy_lib/{exceptions,mongo_utilities,logging_service,pipeline_boot}.py",
+        "# ChatHealthyLib/src/chathealthy_lib/{" + ",".join(_INLINE_LIB_MODULES) + "}.py",
         "# assembled by _build_chain.py:_inline_chathealthy_lib_if_used.",
         "import base64 as _b64, sys as _sys, types as _types",
         "_pkg = _types.ModuleType('chathealthy_lib')",
