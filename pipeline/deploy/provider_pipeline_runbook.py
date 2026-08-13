@@ -578,18 +578,25 @@ runcmd:
       -e AZURE_TENANT_ID='{PIPELINE_EDITOR_TENANT}' \\
       -e AZURE_CLIENT_ID='{PIPELINE_EDITOR_CLIENT_ID}' \\
       -e AZURE_CLIENT_SECRET='{PIPELINE_EDITOR_SECRET}' \\
+      -e PIPELINEEDITOR_AZURE_TENANT_ID='{PIPELINE_EDITOR_TENANT}' \\
+      -e PIPELINEEDITOR_AZURE_CLIENT_ID='{PIPELINE_EDITOR_CLIENT_ID}' \\
+      -e PIPELINEEDITOR_AZURE_CLIENT_SECRET='{PIPELINE_EDITOR_SECRET}' \\
       -e PIPELINE_SECRET_NAMES='{PIPELINE_SECRET_NAMES}' \\
       {image_ref}
     DOCKER_EXIT=$?
     echo "chpipeline: docker run exit=$DOCKER_EXIT $(date -u +%FT%TZ)"
     set -e
-    # Farewell VM delete. Fires regardless of docker exit code:
-    #   - Controller normal exit (0): its finally already dispatched delete;
-    #     this second DELETE 404s harmlessly.
-    #   - Controller aborted (non-zero): finally never ran; this is the
-    #     only VM-teardown path. Prevents idle VMs from accumulating.
-    echo "chpipeline: firing farewell az vm delete $(date -u +%FT%TZ)"
-    az vm delete --resource-group {RESOURCE_GROUP} --name {vm_name_for_farewell} --yes --no-wait || true
+    # Farewell VM delete, on success only. A Controller that exited non-zero
+    # left the reason in /var/log/chpipeline-cloud-init.log and in the
+    # container's own output, and deleting the host destroys both. The
+    # watchdog reaps what is left behind, so this trades a VM-hour for the
+    # ability to know why a run failed.
+    if [ "$DOCKER_EXIT" -eq 0 ]; then
+      echo "chpipeline: controller exited clean; firing farewell az vm delete $(date -u +%FT%TZ)"
+      az vm delete --resource-group {RESOURCE_GROUP} --name {vm_name_for_farewell} --yes --no-wait || true
+    else
+      echo "chpipeline: controller exited $DOCKER_EXIT; leaving {vm_name_for_farewell} up so the failure can be read. The watchdog will reap it."
+    fi
 """
     return base64.b64encode(yaml_body.encode("utf-8")).decode("ascii")
 
