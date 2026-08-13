@@ -25,8 +25,8 @@ in the heartbeat window -- same signal that would tell an operator
 status=failed reason=controller_never_started_or_died.
 
 Environment (Automation Variables, exposed via os.environ at runtime):
-  ATLAS_PUBLIC_KEY                - Atlas API public key
-  ATLAS_PRIVATE_KEY               - Atlas API private key
+  ATLAS_PIPELINE_PUBLIC_KEY       - Atlas API public key that may pause a cluster
+  ATLAS_PIPELINE_PRIVATE_KEY      - its private half
   ATLAS_PROJECT_ID                - Atlas group/project ID
   ENV_PREFIX                      - "dev" | "qa" | "prod"
   PIPELINE_CLUSTER                - Atlas cluster name (default ChatHealthyDataPipelines)
@@ -72,7 +72,7 @@ set_mongo_log_identity("pipelineEditor")
 
 try:
     import automationassets
-    for k in ("ATLAS_PUBLIC_KEY", "ATLAS_PRIVATE_KEY",
+    for k in ("ATLAS_PIPELINE_PUBLIC_KEY", "ATLAS_PIPELINE_PRIVATE_KEY",
               "ATLAS_PROJECT_ID", "ENV_PREFIX", "PIPELINE_CLUSTER",
               "ACTIVITY_WINDOW_MINUTES", "CH_LOG_DB", "KEY_VAULT_URI",
               "AZURE_STORAGE_CONNECTION_STRING",
@@ -107,8 +107,8 @@ sys.stderr.write(
 )
 CLUSTER_NAME     = os.environ.get("PIPELINE_CLUSTER", "ChatHealthyDataPipelines")
 # Operator directive 2026-08-03: all coord on pipeline cluster.
-ATLAS_PUB        = os.environ["ATLAS_PUBLIC_KEY"]
-ATLAS_PRIV       = os.environ["ATLAS_PRIVATE_KEY"]
+ATLAS_PUB        = os.environ["ATLAS_PIPELINE_PUBLIC_KEY"]
+ATLAS_PRIV       = os.environ["ATLAS_PIPELINE_PRIVATE_KEY"]
 ATLAS_PROJECT    = os.environ["ATLAS_PROJECT_ID"]
 AZ_SUB           = os.environ.get("AZ_SUBSCRIPTION_ID", "")
 AZ_RG            = os.environ.get("AZ_RESOURCE_GROUP", "")

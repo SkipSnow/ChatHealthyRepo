@@ -69,10 +69,27 @@ class ResourceReservation:
 # ── Atlas API Helpers ────────────────────────────────────────
 
 def _atlas_auth():
-    return HTTPDigestAuth(
-        os.environ.get("ATLAS_PUBLIC_KEY", ""),
-        os.environ.get("ATLAS_PRIVATE_KEY", ""),
-    )
+    """The pipeline's own Atlas key, never the operator's.
+
+    Resuming a paused cluster is a write, so this credential carries Project
+    Cluster Manager. It is deliberately separate from ATLAS_PUBLIC_KEY /
+    ATLAS_PRIVATE_KEY, which are read-only by design and must stay that way.
+    """
+    public = os.environ.get("ATLAS_PIPELINE_PUBLIC_KEY", "").strip()
+    private = os.environ.get("ATLAS_PIPELINE_PRIVATE_KEY", "").strip()
+    if not public or not private:
+        raise ChatHealthyException(
+            mode="atlas_pipeline_key_missing",
+            message=(
+                "cluster_lifecycle_manager: ATLAS_PIPELINE_PUBLIC_KEY and "
+                "ATLAS_PIPELINE_PRIVATE_KEY must both be present. The cluster "
+                "cannot be woken without a key that carries Project Cluster "
+                "Manager."
+            ),
+            public_key_present=bool(public),
+            private_key_present=bool(private),
+        )
+    return HTTPDigestAuth(public, private)
 
 def _atlas_group_id():
     return os.environ.get("ATLAS_PROJECT_ID", os.environ.get("ATLAS_GROUP_ID", ""))

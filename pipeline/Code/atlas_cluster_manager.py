@@ -1,4 +1,5 @@
 from chathealthy_lib.logging_service import ChatHealthyLoggingService
+from chathealthy_lib.exceptions import ChatHealthyException
 # Copyright © 2026 ChatHealthy.ai LLC. All rights reserved.
 # Licensed under the FindCare Evaluation License (FEL-1.0).
 #
@@ -33,8 +34,6 @@ load_dotenv(Path(__file__).parent.parent / ".env")
 log = ChatHealthyLoggingService()
 
 ATLAS_BASE    = "https://cloud.mongodb.com/api/atlas/v2"
-PUBLIC_KEY    = os.environ["ATLAS_PUBLIC_KEY"]
-PRIVATE_KEY   = os.environ["ATLAS_PRIVATE_KEY"]
 PROJECT_ID    = os.environ["ATLAS_PROJECT_ID"]
 
 # Tier config (per operator directive 2026-08-01)
@@ -52,7 +51,26 @@ TIMEOUT_MIN   = 30       # give up after this many minutes
 
 
 def _auth():
-    return HTTPDigestAuth(PUBLIC_KEY, PRIVATE_KEY)
+    """The pipeline's own Atlas key, read at call time rather than at import.
+
+    Scaling and pausing are writes, so this carries Project Cluster Manager.
+    ATLAS_PUBLIC_KEY / ATLAS_PRIVATE_KEY are read-only by design and are not
+    a fallback for it.
+    """
+    public = os.environ.get("ATLAS_PIPELINE_PUBLIC_KEY", "").strip()
+    private = os.environ.get("ATLAS_PIPELINE_PRIVATE_KEY", "").strip()
+    if not public or not private:
+        raise ChatHealthyException(
+            mode="atlas_pipeline_key_missing",
+            message=(
+                "atlas_cluster_manager: ATLAS_PIPELINE_PUBLIC_KEY and "
+                "ATLAS_PIPELINE_PRIVATE_KEY must both be present to change "
+                "cluster state."
+            ),
+            public_key_present=bool(public),
+            private_key_present=bool(private),
+        )
+    return HTTPDigestAuth(public, private)
 
 
 def _headers():

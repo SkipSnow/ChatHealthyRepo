@@ -417,8 +417,8 @@ def _pause_pipeline_cluster() -> None:
         _log.warning("quiesce: requests not available; cluster pause skipped")
         return
 
-    pub_key = os.environ.get("ATLAS_PUBLIC_KEY", "").strip()
-    priv_key = os.environ.get("ATLAS_PRIVATE_KEY", "").strip()
+    pub_key = os.environ.get("ATLAS_PIPELINE_PUBLIC_KEY", "").strip()
+    priv_key = os.environ.get("ATLAS_PIPELINE_PRIVATE_KEY", "").strip()
     project_id = os.environ.get("ATLAS_PROJECT_ID", "").strip()
     cluster_name = os.environ.get("PIPELINE_CLUSTER", "chathealthypipeline").strip()
 
