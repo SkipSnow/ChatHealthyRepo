@@ -48,13 +48,6 @@ WORK_ITEMS_COLLECTION = "pipeline.work_items"
 # timed out. Both sides must name the same place, so they name it once.
 COORD_DB = PIPELINE_ADMIN_DB
 
-# A worker races the enqueue that created its item, so it retries the claim
-# for a bounded window rather than concluding on one look that there is no
-# work. 30 x 2s covers the enqueue-to-spawn gap many times over and still
-# fails fast when a step genuinely has nothing left.
-CLAIM_ATTEMPTS = 30
-CLAIM_RETRY_SECONDS = 2
-
 
 # ─────────────────────────────────────────────────────────────────────────────
 # Step dispatch — via steps.get_runner(step_name).
@@ -254,21 +247,10 @@ def main(argv: list[str] | None = None) -> int:
     coord = get_frontend_mongo()
     worker_pid = os.getpid()
 
-    # The Controller enqueues the items and spawns the workers in the same
-    # instant, so a worker can reach the collection before its item is
-    # visible. Claiming once and giving up leaves that item pending forever
-    # while the Controller waits on it -- one partition of six sat unclaimed
-    # for fifteen minutes exactly this way. Keep asking for a bounded window.
-    item = None
-    for attempt in range(CLAIM_ATTEMPTS):
-        item = _claim_work_item(coord, ns.run_id, ns.step, worker_pid)
-        if item is not None:
-            if attempt:
-                _log.info("pipeline_worker: claimed on attempt %d run_id=%s step=%s",
-                          attempt + 1, ns.run_id, ns.step)
-            break
-        time.sleep(CLAIM_RETRY_SECONDS)
-
+    # One look, by design. The Controller does not spawn a worker until every
+    # item is readable, so a claim that finds nothing means the work is taken,
+    # not that it has yet to appear.
+    item = _claim_work_item(coord, ns.run_id, ns.step, worker_pid)
     if item is None:
         # Not "exiting cleanly" -- there is nothing clean about a worker the
         # Controller is waiting on finding no work. Say what was searched for
@@ -279,10 +261,10 @@ def main(argv: list[str] | None = None) -> int:
         unclaimed = coord[COORD_DB][WORK_ITEMS_COLLECTION].count_documents(
             {"run_id": ns.run_id, "step": ns.step, "status": "pending"})
         _log.warning(
-            "pipeline_worker: NO work-item claimed after %ds. run_id=%s step=%s "
+            "pipeline_worker: NO work-item claimed. run_id=%s step=%s "
             "db=%s coll=%s items_for_this_run=%d still_pending_for_this_step=%d. "
             "The Controller is waiting on a claim that will never come.",
-            CLAIM_ATTEMPTS * CLAIM_RETRY_SECONDS, ns.run_id, ns.step,
+            ns.run_id, ns.step,
             COORD_DB, WORK_ITEMS_COLLECTION, pending, unclaimed,
         )
         return 0
