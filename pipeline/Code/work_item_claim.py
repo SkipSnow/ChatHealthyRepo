@@ -9,8 +9,10 @@ from chathealthy_lib.exceptions import ChatHealthyException
 import os
 from datetime import datetime, timedelta, timezone
 
-# Operator directive 2026-08-03: coord lives on the pipeline cluster.
-WORK_ITEMS_DB = "chathealthypipelines"
+# Coordination is metadata, so it lives in pipelineAdmin on the front-end
+# cluster, which answers while the pipeline cluster sleeps. The old value was
+# a CLUSTER name used as a database name and no identity is granted on it.
+WORK_ITEMS_DB = "pipelineAdmin"
 WORK_ITEMS_COLL = "pipeline.work_items"
 
 
