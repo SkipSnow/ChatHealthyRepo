@@ -91,11 +91,15 @@ def _fire_farewell_vm_delete() -> None:
     # immediately; the current process can then exit cleanly. Once the
     # container process ends, cloud-init has nothing more to run.
     try:
+        # start_new_session reparents the child to init, which reaps it.
+        # Without it this Popen is never waited on -- `az` is a shell script,
+        # so it left an `sh` zombie parented to the Controller for the rest of
+        # the run. The delete still returns immediately; nothing here blocks.
         subprocess.Popen(
             ["az", "vm", "delete", "--yes", "--no-wait",
              "--resource-group", rg, "--name", vm_name],
             stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL,
-            close_fds=True,
+            close_fds=True, start_new_session=True,
         )
         _log.info("control_runner: fired az vm delete --no-wait for %s", vm_name)
     except FileNotFoundError:

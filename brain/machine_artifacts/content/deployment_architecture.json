@@ -4236,7 +4236,8 @@
                 "NOTIFICATION_FROM_EMAIL": "local_env",
                 "NOTIFICATION_TO_EMAIL": "local_env",
                 "ATLAS_PIPELINE_PUBLIC_KEY": "local_env",
-                "ATLAS_PIPELINE_PRIVATE_KEY": "local_env"
+                "ATLAS_PIPELINE_PRIVATE_KEY": "local_env",
+                "GEMINI_API_KEY": "local_env"
               },
               "secret_descriptions": {
                 "ATLAS_PRIVATE_KEY": "MongoDB Atlas administrative API private key",
@@ -4254,7 +4255,8 @@
                 "NOTIFICATION_FROM_EMAIL": "Address notification email is sent from",
                 "NOTIFICATION_TO_EMAIL": "Who pipeline failures are reported to",
                 "ATLAS_PIPELINE_PUBLIC_KEY": "Atlas API public key that may pause and resume the pipeline cluster",
-                "ATLAS_PIPELINE_PRIVATE_KEY": "Atlas API private key that may pause and resume the pipeline cluster"
+                "ATLAS_PIPELINE_PRIVATE_KEY": "Atlas API private key that may pause and resume the pipeline cluster",
+                "GEMINI_API_KEY": "Google Gemini key used to classify NPPES other-identifier phrases per state"
               },
               "config": {
                 "runbook_name": "ProviderPipelineRunbook",
@@ -4832,7 +4834,8 @@
         "AUTOMATION_RESOURCE_GROUP": "local_env",
         "AUTOMATION_SUBSCRIPTION_ID": "local_env",
         "PIPELINE_SECRET_NAMES": "local_env",
-        "CH_LOG_DB": "local_env"
+        "CH_LOG_DB": "local_env",
+        "GEMINI_API_KEY": "local_env"
       },
       "secret_descriptions": {
         "ENTITLEMENT_REPORT_TO_EMAIL": "Who the daily entitlement report is sent to",
@@ -4852,7 +4855,8 @@
         "AUTOMATION_RESOURCE_GROUP": "Resource group the runbooks address",
         "AUTOMATION_SUBSCRIPTION_ID": "Subscription the runbooks address",
         "PIPELINE_SECRET_NAMES": "Which vault secrets the pipeline run host is permitted to read",
-        "CH_LOG_DB": "Database the structured log records are written to"
+        "CH_LOG_DB": "Database the structured log records are written to",
+        "GEMINI_API_KEY": "Google Gemini key used to classify NPPES other-identifier phrases per state"
       },
       "entitlements": [
         {
