@@ -42,7 +42,8 @@ from typing import Any, Iterable
 from step_context import PipelineArgs, RunManifest, StepContext, StepTransition
 from step_spec import StepSpec
 from steps import get_runner
-from steps._partitions import county_partitions, state_partitions
+from steps._partitions import (county_partitions, state_entity_partitions,
+                               state_partitions)
 from pipeline_db import PIPELINE_ADMIN_DB
 
 _log = ChatHealthyLoggingService()
@@ -454,6 +455,8 @@ class BasePipelineOrchestrator:
         states = ctx.args.resolved_states()
         if key == "county_partition":
             return county_partitions(states)
+        if key == "state_entity":
+            return state_entity_partitions(states)
         return state_partitions(states)
 
     def _validate_prerequisites(self, steps: list[StepSpec]) -> None:
