@@ -462,11 +462,11 @@ def _derive_one_source(
         "freshness_decision": spec.get("freshness_decision", "fetch"),
         "derived_from": spec.get("derived_from"),
     }
-    if spec.get("freshness_decision") == "reuse":
-        result["skipped"] = True
-        result["reason"] = "freshness_reuse"
-        result["finished_at"] = _now_iso()
-        return result
+    # A reuse decision does NOT mean there is nothing to do here. The parent's
+    # result points at its archived zip on reuse exactly as it points at a
+    # freshly downloaded one, and this member still has to be extracted from it
+    # so load_staging_parallel has a blob to load. Returning skipped here left
+    # the loader with no coordinates and failed the run.
 
     local_path, sha256, size, entry_name = _extract_derived_source(
         source_name=source_name,
