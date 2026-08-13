@@ -14,8 +14,6 @@ import os
 from datetime import datetime, timezone
 from enum import Enum
 
-from azure.identity import DefaultAzureCredential
-from azure.keyvault.secrets import SecretClient
 from chathealthy_lib.logging_service import (
     ChatHealthyLoggingService,
     set_data_version,
@@ -170,8 +168,17 @@ class DiscrepancyReport:
         return config
 
     def _get_operator_email_from_vault(self) -> str | None:
-        """Fetch operator email from Key Vault."""
+        """Fetch operator email from Key Vault.
+
+        The Azure SDK is imported here rather than at module scope. This is the
+        only place the report uses it, and the report has to be importable
+        where the SDK is absent -- the Automation sandbox carries pymongo,
+        dnspython, certifi and reportlab, and nothing else.
+        """
         try:
+            from azure.identity import DefaultAzureCredential
+            from azure.keyvault.secrets import SecretClient
+
             vault_uri = os.environ.get("KEY_VAULT_URI", "").strip()
             if not vault_uri:
                 return None
