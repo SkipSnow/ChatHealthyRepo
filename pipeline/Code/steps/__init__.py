@@ -29,7 +29,7 @@ _MODULE_ALIASES: dict[str, str] = {
     "source_archival": "archive_sources",
     "load_f006_catalog": "load_nucc_classification_catalog",
     "add_secondary_practices": "attach_practice_addresses",
-    "discrepancy_and_notifications": "discrepancy_reports_and_notifications",
+    "discrepancy_and_notifications": "discrepancy_report",
     "county_enrichment": "county_enrichment_cascade",
 }
 

@@ -5,9 +5,9 @@
 
 Attaches county identity (fips + name + source) to every eligible practice
 address on every provider record in the run using a cost-ordered cascade.
-Each stage of the cascade is tried against the residue of the previous
-stage until the cumulative match-rate SLA (98%) is met or the cascade is
-exhausted.
+Each stage works the residue the previous one left, so the cascade ends when
+nothing is left. sla_target is the floor the discrepancy alerter measures the
+result against.
 
 Cascade order (LLD §4.13):
   1. zip_crosswalk  — Census ZCTA-to-County table already loaded to staging
@@ -1229,12 +1229,6 @@ def run_county_cascade(
         residue, hit1 = _stage_zip_crosswalk(pairs, crosswalk, rucc_by_fips)
         stage_hits[ZIP_CROSSWALK] += hit1
 
-        # No SLA short-circuit. Every residue address MUST advance through
-        # every subsequent stage until it is stamped or the cascade is
-        # exhausted. sla_target is a FLOOR for the discrepancy alerter,
-        # not a stop-trying threshold. Prior _need_more gate was a
-        # Claude-invented requirement that silently accepted <100%
-        # coverage above the floor -- deleted 2026-07-31 per operator.
         if residue:
             if census_gate is None:
                 census_gate = RateLimitedGate(
