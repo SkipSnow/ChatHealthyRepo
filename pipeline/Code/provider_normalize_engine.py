@@ -11,7 +11,7 @@ from typing import Any
 
 import pymongo
 from chathealthy_lib.exceptions import ChatHealthyException
-from pymongo import ReplaceOne
+from pymongo import ASCENDING, InsertOne, ReplaceOne
 
 from pipeline_runtime import PipelineRuntime
 from provider_record_builder import build_provider_record
@@ -73,6 +73,18 @@ def per_state_normalize(ctx, state: str) -> dict[str, Any]:
         raise ChatHealthyException(mode="value_error", message="per_state_normalize: state is required")
     nucc = _nucc_lookup(rt)
 
+    # The collection this partition writes must carry its own indexes before
+    # a single row lands. Creating them here, not in prepare_infrastructure,
+    # because this is where the collection's name is actually resolved --
+    # prepare ensured npi_1 on the name in pipeline.config and the writes went
+    # somewhere else, so 45,000 rows were written to a collection whose only
+    # index was _id_. create_index is idempotent.
+    rt.providers_coll.create_index([("npi", ASCENDING)], name="npi_1")
+    rt.providers_coll.create_index(
+        [("addresses.address_type", ASCENDING), ("addresses.state", ASCENDING)],
+        name="business_state_scan",
+    )
+
     # Full-mode drain: DELETE rows whose BUSINESS mailing address state
     # matches this partition. Preserves indexes (delete_many, not drop()).
     drained = 0
@@ -85,7 +97,7 @@ def per_state_normalize(ctx, state: str) -> dict[str, Any]:
     inserted = 0
     skipped_dup = 0
     violations = 0
-    ops: list[ReplaceOne] = []
+    ops: list = []
     batch_size = int(ctx.config.get("batch_limits", {}).get("normalize_batch_size", 1000))
 
     # Read only this state's staging rows. staging_load filters by
@@ -124,15 +136,22 @@ def per_state_normalize(ctx, state: str) -> dict[str, Any]:
                 )
                 continue
 
-            ops.append(ReplaceOne({"npi": npi}, doc, upsert=True))
+            # A full run has just drained this state, so no row can match:
+            # ReplaceOne would pay for a lookup that cannot succeed, once per
+            # record. Insert what we know is new; replace only when there may
+            # genuinely be something to replace.
+            ops.append(InsertOne(doc) if not ctx.args.incremental
+                       else ReplaceOne({"npi": npi}, doc, upsert=True))
             if len(ops) >= batch_size:
                 result = rt.providers_coll.bulk_write(ops, ordered=False)
-                inserted += result.upserted_count + result.modified_count
+                inserted += (result.inserted_count + result.upserted_count
+                             + result.modified_count)
                 ops = []
 
         if ops:
             result = rt.providers_coll.bulk_write(ops, ordered=False)
-            inserted += result.upserted_count + result.modified_count
+            inserted += (result.inserted_count + result.upserted_count
+                         + result.modified_count)
 
     return {
         "state": state,
