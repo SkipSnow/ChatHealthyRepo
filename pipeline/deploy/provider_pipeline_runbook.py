@@ -152,6 +152,23 @@ PIPELINE_SECRET_NAMES = os.environ.get("PIPELINE_SECRET_NAMES", "")
 # The log database is a deployed fact with no default: a process that cannot
 # name its log destination must not run, on the host or in the container.
 CH_LOG_DB = os.environ.get("CH_LOG_DB", "")
+
+# Recorded as the run proceeds so the discrepancy report can name the run and
+# the host even when it is reporting a failure that happened before either was
+# returned to the caller. A report that cannot say which run it is about is
+# not a report.
+_LAST_RUN_ID = ""
+_LAST_VM_NAME = ""
+_RUN_STARTED_UTC = ""
+# The last thing the fire got through, so the report names where it stopped
+# rather than only what the exception said.
+_LAST_STAGE = ""
+
+
+def _stage(name: str) -> None:
+    """Mark how far the fire has got. Read only by the discrepancy report."""
+    global _LAST_STAGE
+    _LAST_STAGE = name
 VM_ACR = os.environ.get(
     "AUTOMATION_VM_ACR",
     "chpipelinedevacr",
@@ -1149,6 +1166,13 @@ def main() -> int:
     # reads os.environ.get('RUN_ID') at emit time.
     os.environ["RUN_ID"] = run_id
     log("run_id_generated", run_id=run_id)
+    _stage("run_id_generated")
+    global _RUN_STARTED_UTC
+    _RUN_STARTED_UTC = datetime.datetime.now(datetime.timezone.utc).isoformat()
+    # Held module-side so the discrepancy report can name this run even when
+    # it is reporting a failure that happened before anything returned.
+    global _LAST_RUN_ID
+    _LAST_RUN_ID = run_id
 
     # Sentinel for the finally block. When True this invocation is a
     # duplicate that lost the serialization race; the live run owns every
@@ -1220,6 +1244,8 @@ def main() -> int:
         reservation_created = False
         vm_provisioned = False
         vm_name_for_teardown = f"vm-chpipeline-{_reservation_short_id(run_id)}"
+        global _LAST_VM_NAME
+        _LAST_VM_NAME = vm_name_for_teardown
         try:
             result = _provision_vm_and_wake_mongo_in_parallel(
                 run_id, load_mode, state_scope, invocation_mode, resume_from_step,
@@ -1232,7 +1258,9 @@ def main() -> int:
             # Controller inside it has said so. The runbook used to exit at
             # this line, which is why a fire that produced no VM produced no
             # word either -- nothing was left alive to notice.
+            _stage("awaiting_run_host")
             _await_run_host(run_id, vm_name_for_teardown, mongo)
+            _stage("controller_checked_in")
             # Controller is alive; it now owns lock release via its
             # _quiesce_mongo_state step. Runbook must NOT release.
             runbook_owns_lock_release = False
@@ -1244,6 +1272,7 @@ def main() -> int:
             # Written AFTER VM PUT succeeds so the reservation always
             # references a real VM. Controller inherits and cancels in
             # its finally; ReservationReaper cleans up if expiry_at hits.
+            _stage("reservation_created")
             _create_reservation(mongo, run_id, vm_name_for_teardown)
             reservation_created = True
             log("reservation_created",
@@ -1340,6 +1369,47 @@ def _safe(fn, default: str = "unavailable") -> str:
         return default
 
 
+def _report_pdf(subject: str, body: str) -> str:
+    """The report as a base64 PDF, or empty string if one cannot be made.
+
+    A missing PDF must never stop the report going out -- the text carries
+    the same content -- so every failure here returns empty rather than
+    raising.
+    """
+    try:
+        import base64 as _b64  # noqa: PLC0415
+        import io  # noqa: PLC0415
+        from reportlab.lib.pagesizes import LETTER  # noqa: PLC0415
+        from reportlab.lib.units import inch  # noqa: PLC0415
+        from reportlab.pdfgen import canvas  # noqa: PLC0415
+
+        buf = io.BytesIO()
+        c = canvas.Canvas(buf, pagesize=LETTER)
+        width, height = LETTER
+        y = height - inch
+        c.setFont("Helvetica-Bold", 13)
+        c.drawString(inch, y, subject[:95])
+        y -= 0.32 * inch
+        c.setFont("Courier", 8.5)
+        for raw in body.splitlines():
+            for chunk in [raw[i:i + 105] for i in range(0, max(len(raw), 1), 105)]:
+                if y < inch:
+                    c.showPage()
+                    c.setFont("Courier", 8.5)
+                    y = height - inch
+                c.drawString(inch, y, chunk)
+                y -= 0.16 * inch
+        c.showPage()
+        c.save()
+        return _b64.b64encode(buf.getvalue()).decode("ascii")
+    except BaseException as exc:  # noqa: BLE001
+        sys.stderr.write(
+            f"provider_pipeline_runbook: no PDF attached "
+            f"({type(exc).__name__}: {exc}); the text report still goes\n"
+        )
+        return ""
+
+
 def _mail_discrepancy_report(subject: str, body: str) -> bool:
     """Post a discrepancy report to the mail server. Returns whether it went.
 
@@ -1364,9 +1434,17 @@ def _mail_discrepancy_report(subject: str, body: str) -> bool:
             + body + "\n"
         )
         return False
+    content = {"from": from_email, "subject": subject, "text": body}
+    pdf_b64 = _report_pdf(subject, body)
+    if pdf_b64:
+        content["attachments"] = [{
+            "type": "application/pdf",
+            "name": "provider-pipeline-discrepancy-report.pdf",
+            "data": pdf_b64,
+        }]
     payload = {
         "options": {"transactional": True},
-        "content": {"from": from_email, "subject": subject, "text": body},
+        "content": content,
         "recipients": [{"address": {"email": to_email}}],
     }
     # The same trust store problem that stops Mongo stops this: the sandbox
@@ -1425,20 +1503,53 @@ def _abend_report(exc: BaseException) -> None:
     try:
         reason = _safe(lambda: f"{type(exc).__name__}: {exc}")
         env = _safe(lambda: ENV_PREFIX)
+        mode = _safe(lambda: getattr(exc, "mode", "") or "-", "-")
+        now = _safe(lambda: datetime.datetime.now(datetime.timezone.utc).isoformat())
+        # The field set steps/discrepancy_report.fatal_error() builds for its
+        # PDF, so a fire that dies in the trigger tier reports in the same
+        # shape as one that dies inside the pipeline. Counts the run never
+        # reached are "Unknown" -- never rendered as zero.
+        fields = [
+            ("run_id", _safe(lambda: os.environ.get("RUN_ID") or _LAST_RUN_ID or "Unknown", "Unknown")),
+            ("pipeline_name", _safe(lambda: PIPELINE_NAME)),
+            ("env", env),
+            ("run_started_utc", _safe(lambda: _RUN_STARTED_UTC or "Unknown", "Unknown")),
+            ("run_ended_utc", now),
+            ("fatal_reason", reason),
+            ("fatal_mode", mode),
+            ("failed_stage", _safe(lambda: _LAST_STAGE or "Unknown", "Unknown")),
+            ("records_100_percent_successfully_collected", "False"),
+            ("records_with_non_fatal_warnings", "Unknown"),
+            ("records_with_non_fatal_errors", "Unknown"),
+            ("rows_in_target", "Unknown"),
+            ("target_collection", "Unknown"),
+            ("total_rows", "Unknown"),
+            ("total_source_rows", "Unknown"),
+            ("warning_threshold", "Unknown"),
+            ("error_threshold", "Unknown"),
+            ("data_version", _safe(lambda: os.environ.get("DATA_VERSION") or "Unknown", "Unknown")),
+            ("load_mode", _safe(lambda: os.environ.get("LOAD_MODE") or "Unknown", "Unknown")),
+            ("state_scope", _safe(lambda: os.environ.get("STATE_SCOPE") or "Unknown", "Unknown")),
+            ("google_maps_enabled", _safe(lambda: os.environ.get("GOOGLE_MAPS_ENABLED") or "Unknown", "Unknown")),
+            ("invocation_mode", _safe(lambda: INVOCATION_MODE, "Unknown")),
+            ("run_host", _safe(lambda: _LAST_VM_NAME or "never created", "never created")),
+            ("runbook_host", _safe(lambda: _HOSTNAME)),
+            ("automation_account", _safe(lambda: os.environ.get("AZ_AUTOMATION_ACCOUNT") or "Unknown", "Unknown")),
+            ("resource_group", _safe(lambda: RESOURCE_GROUP)),
+            ("subscription_id", _safe(lambda: SUBSCRIPTION_ID)),
+            ("log_database", _safe(lambda: os.environ.get("CH_LOG_DB") or "Unknown", "Unknown")),
+            ("log_collection", _safe(lambda: f"Log_{ENV_PREFIX}", "Unknown")),
+        ]
+        width = max(len(k) for k, _ in fields)
+        table = "\n".join(f"  {k.ljust(width)}  {v}" for k, v in fields)
         body = (
-            "Provider pipeline fire ended without starting.\n"
+            "PROVIDER PIPELINE - DISCREPANCY REPORT\n"
+            "job_status: FAIL (fatal)\n"
             "\n"
-            f"  pipeline:   {_safe(lambda: PIPELINE_NAME)}\n"
-            f"  env:        {env}\n"
-            f"  host:       {_safe(lambda: _HOSTNAME)}\n"
-            f"  at:         {_safe(lambda: datetime.datetime.now(datetime.timezone.utc).isoformat())}\n"
-            f"  reason:     {reason}\n"
+            f"{table}\n"
             "\n"
-            "No run host was confirmed and no work was done. If this reads as\n"
-            "a logging or database failure, that is why it arrived by mail:\n"
-            "the run could not write the record of its own end.\n"
-            "\n"
-            f"{_safe(lambda: traceback.format_exc()[-3000:], '')}"
+            "TRACEBACK\n"
+            f"{_safe(lambda: traceback.format_exc()[-3000:], 'Unavailable')}"
         )
         _mail_discrepancy_report(
             f"Provider pipeline FAILED to start - {env} - "
