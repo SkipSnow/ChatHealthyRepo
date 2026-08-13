@@ -84,10 +84,18 @@ SEX_CODE_LABELS: dict[str, str] = {
 # carry 'Y' / 'N' / 'X' (or blank). Not to be confused with the taxonomy
 # primary switch (which is a per-slot column encoding a per-provider fact
 # and is handled explicitly in provider_record_builder).
+# NPPES Data Dissemination code values, Sole Proprietor Codes:
+#   Y = Yes, Entity Type 1 Provider (Individual) is a Sole Proprietor
+#   N = No,  Entity Type 1 Provider (Individual) is not a Sole Proprietor
+#   X = Not Answered  (rendered to users as "Unknown")
+# https://www.cms.gov/regulations-and-guidance/administrative-simplification
+#   /nationalprovidentstand/downloads/data_dissemination_file-code_values.pdf
+# X was labelled "Not Applicable" until 2026-08-13, which told 586 individuals
+# a question they had simply not answered did not apply to them.
 YES_NO_LABELS: dict[str, str] = {
     "Y": "Yes",
     "N": "No",
-    "X": "Not Applicable",
+    "X": "Unknown",
 }
 
 
