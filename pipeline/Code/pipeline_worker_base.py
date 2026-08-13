@@ -92,7 +92,7 @@ class PipelineWorkerBase(ABC):
     def _initialize_discrepancy_report(self, config: dict):
         """Initialize DiscrepancyReport if config provides required fields."""
         try:
-            from steps.discrepancy_report import DiscrepancyReport
+            from chathealthy_lib.discrepancy_report import DiscrepancyReport
             run_id = config.get("run_id")
             env = config.get("env", os.environ.get("ENV_PREFIX", "dev"))
             pipeline_name = config.get("job", "unknown")
@@ -170,7 +170,7 @@ class PipelineWorkerBase(ABC):
 
         # Check threshold
         if self._warning_threshold and warning_count >= self._warning_threshold:
-            from steps.discrepancy_report import fatal_error
+            from chathealthy_lib.discrepancy_report import fatal_error
             fatal_error(
                 self._discrepancy_report,
                 level="fatal",
@@ -217,7 +217,7 @@ class PipelineWorkerBase(ABC):
 
         # Check threshold
         if self._error_threshold and error_count >= self._error_threshold:
-            from steps.discrepancy_report import fatal_error
+            from chathealthy_lib.discrepancy_report import fatal_error
             fatal_error(
                 self._discrepancy_report,
                 level="fatal",
@@ -302,7 +302,7 @@ class PipelineWorkerBase(ABC):
                 )
                 # Check threshold
                 if self._error_threshold and error_count >= self._error_threshold:
-                    from steps.discrepancy_report import fatal_error
+                    from chathealthy_lib.discrepancy_report import fatal_error
                     fatal_error(
                         self._discrepancy_report,
                         level="fatal",

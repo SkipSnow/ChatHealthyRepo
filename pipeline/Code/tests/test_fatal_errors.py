@@ -8,7 +8,7 @@ import uuid
 
 sys.path.insert(0, "ChatHealthyLib/src")
 
-from steps.discrepancy_report import DiscrepancyReport, fatal_error
+from chathealthy_lib.discrepancy_report import DiscrepancyReport, fatal_error
 import sys as _sys, pathlib as _pl
 for _d in _pl.Path(__file__).resolve().parents:
     if (_d / '.git').exists():

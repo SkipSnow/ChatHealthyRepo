@@ -82,8 +82,9 @@ def get_db(env_prefix: str = None):
 # Every piece of pipeline metadata -- configuration, discrepancy reports, run
 # counters, fatal records, load state -- lives in this one database and nowhere
 # else. Physical pipeline DATA (provider collections, staging) is separate and
-# lives on the pipelines target.
-PIPELINE_ADMIN_DB = "pipelineAdmin"
+# lives on the pipelines target. Named once, by the report service every
+# pipeline shares.
+from chathealthy_lib.discrepancy_report import PIPELINE_ADMIN_DB  # noqa: F401
 
 
 def get_metadata_db():

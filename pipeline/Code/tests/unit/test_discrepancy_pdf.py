@@ -4,7 +4,7 @@
 
 from __future__ import annotations
 
-from discrepancy_pdf import build_discrepancy_pdf
+from chathealthy_lib.discrepancy_pdf import build_discrepancy_pdf
 def test_pdf_bytes():
     b = build_discrepancy_pdf({'run_id': 'r1', 'status': 'success', 'env': 'dev'}, [])
     assert isinstance(b, bytes) and len(b) > 0

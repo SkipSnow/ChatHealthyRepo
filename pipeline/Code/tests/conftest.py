@@ -20,7 +20,7 @@ _LIB_SRC = _REPO_ROOT / "ChatHealthyLib" / "src"
 if _LIB_SRC.is_dir() and str(_LIB_SRC) not in sys.path:
     sys.path.insert(0, str(_LIB_SRC))
 # Pipeline runtime modules live at pipeline/Code and are imported by
-# name (`from notification_client import ...`) rather than as a package.
+# name (`from chathealthy_lib.notification_client import ...`) rather than as a package.
 # Tests need that directory on sys.path so bare imports resolve.
 _PIPELINE_CODE = _REPO_ROOT / "pipeline" / "Code"
 if _PIPELINE_CODE.is_dir() and str(_PIPELINE_CODE) not in sys.path:
