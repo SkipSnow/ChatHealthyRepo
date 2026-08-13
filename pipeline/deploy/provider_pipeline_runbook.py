@@ -58,7 +58,14 @@ from chathealthy_lib.exceptions import ChatHealthyException
 for _k in ("CH_LOG_DB", "CH_LOG_LEVEL", "PIPELINE_SECRET_NAMES",
            "KEY_VAULT_URI", "AUTOMATION_ENV_PREFIX",
            "AUTOMATION_SUBSCRIPTION_ID", "AUTOMATION_RESOURCE_GROUP",
-           "ATLAS_PROJECT_ID", "AZ_VM_ADMIN_SSH_PUBKEY"):
+           "ATLAS_PROJECT_ID", "AZ_VM_ADMIN_SSH_PUBKEY",
+           # Without these three in os.environ the library finds no service
+           # principal and asks IMDS for a token as pipelineEditor. That
+           # managed identity was retired, so the request returns 400 and the
+           # runbook dies before it can log why.
+           "PIPELINEEDITOR_AZURE_TENANT_ID",
+           "PIPELINEEDITOR_AZURE_CLIENT_ID",
+           "PIPELINEEDITOR_AZURE_CLIENT_SECRET"):
     try:
         import automationassets  # only present in the Automation sandbox
         _v = automationassets.get_automation_variable(_k)
@@ -523,7 +530,7 @@ runcmd:
     mkdir -p /mnt/resource/pipeline-scratch
     chmod 1777 /mnt/resource/pipeline-scratch
     # Run Controller. Container is --rm so filesystem cleans up on exit.
-    # Controller's finally block fires `az vm delete` on AZURE_VM_NAME on
+    # Controller's finally block deletes AZURE_VM_NAME through ARM on
     # normal exit. But if Controller aborts BEFORE main() runs (e.g.,
     # bootstrap observability gate raises), no finally fires. The cloud-init
     # safety-net after docker run ALWAYS fires az vm delete, idempotent:

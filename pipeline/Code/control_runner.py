@@ -18,7 +18,7 @@ This process:
   3. Walks the STEPS list; spawns Workers as subprocesses.
   4. On terminal state (success/failed/aborted), quiesces:
      - Writes final manifest state
-     - Fires `az vm delete --no-wait` on the current VM (farewell script)
+     - Deletes the current VM through ARM
      - Exits — cloud-init container ends, VM is destroyed by ARM.
 
 Local runs (developer workstation) skip the VM-teardown step (they
@@ -61,51 +61,70 @@ _log = ChatHealthyLoggingService()
 
 
 def _fire_farewell_vm_delete() -> None:
-    """v32 §5.2.20 quiesce step 6: fire `az vm delete --no-wait` on the
-    current VM. ARM destroys the VM within 30-60s. Never blocks.
+    """Delete this run's VM through ARM, with the credential already in hand.
 
-    In local mode (PIPELINE_LOCAL_MODE=1) this is a no-op — nothing to
-    tear down.
+    This used to shell out to `az vm delete`, and the container has no Azure
+    CLI -- Dockerfile.control installs pip packages and nothing else. Every
+    call raised FileNotFoundError, logged a warning nobody read, and left a
+    32-core host running until a human noticed. One such host consumed the
+    regional quota and refused the next run outright.
 
-    The VM name is read from the AZURE_VM_NAME env var (set by cloud-init
-    at boot time from the metadata service) OR derived from the RUN_ID
-    (Runbook naming convention: vm-chpipeline-<run_id_short>).
+    ARM is reached directly instead: requests and azure-identity are both in
+    the image, and the identity is the same pipelineEditor service principal
+    the rest of the container authenticates with. The DELETE returns 202 and
+    ARM finishes asynchronously, so this never blocks the exit.
     """
     if os.environ.get("PIPELINE_LOCAL_MODE", "").strip() == "1":
-        _log.info("control_runner: local mode — skipping VM delete")
+        _log.info("control_runner: local mode, no host to delete")
         return
+
+    subscription = os.environ.get("AZURE_SUBSCRIPTION_ID", "").strip()
     rg = os.environ.get("AZURE_RESOURCE_GROUP", "").strip()
-    if not rg:
-        _log.warning("control_runner: AZURE_RESOURCE_GROUP not set — cannot fire VM delete")
-        return
-    # Prefer explicit env var; otherwise derive from RUN_ID
     vm_name = os.environ.get("AZURE_VM_NAME", "").strip()
     if not vm_name:
         run_id = os.environ.get("RUN_ID", "").strip()
-        if not run_id:
-            _log.warning("control_runner: neither AZURE_VM_NAME nor RUN_ID set — cannot fire VM delete")
-            return
-        short_id = run_id.split("-")[-1][:8] if "-" in run_id else run_id[:8]
-        vm_name = f"vm-chpipeline-{short_id}"
-    # Fire-and-forget: async delete via ARM. The `--no-wait` flag returns
-    # immediately; the current process can then exit cleanly. Once the
-    # container process ends, cloud-init has nothing more to run.
+        if run_id:
+            short = run_id.split("-")[-1][:8] if "-" in run_id else run_id[:8]
+            vm_name = f"vm-chpipeline-{short}"
+    missing = [n for n, v in (("AZURE_SUBSCRIPTION_ID", subscription),
+                              ("AZURE_RESOURCE_GROUP", rg),
+                              ("AZURE_VM_NAME/RUN_ID", vm_name)) if not v]
+    if missing:
+        _log.error("control_runner: cannot delete this host, %s absent; "
+                   "the watchdog must reap it", ", ".join(missing))
+        return
+
     try:
-        # start_new_session reparents the child to init, which reaps it.
-        # Without it this Popen is never waited on -- `az` is a shell script,
-        # so it left an `sh` zombie parented to the Controller for the rest of
-        # the run. The delete still returns immediately; nothing here blocks.
-        subprocess.Popen(
-            ["az", "vm", "delete", "--yes", "--no-wait",
-             "--resource-group", rg, "--name", vm_name],
-            stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL,
-            close_fds=True, start_new_session=True,
-        )
-        _log.info("control_runner: fired az vm delete --no-wait for %s", vm_name)
-    except FileNotFoundError:
-        _log.warning("control_runner: az CLI not on PATH; VM %s will be reaped by Watchdog", vm_name)
+        import requests  # noqa: PLC0415
+        from azure.identity import ClientSecretCredential, DefaultAzureCredential  # noqa: PLC0415
+
+        secret = os.environ.get("PIPELINEEDITOR_AZURE_CLIENT_SECRET", "").strip()
+        if secret:
+            credential = ClientSecretCredential(
+                tenant_id=os.environ["PIPELINEEDITOR_AZURE_TENANT_ID"],
+                client_id=os.environ["PIPELINEEDITOR_AZURE_CLIENT_ID"],
+                client_secret=secret,
+            )
+        else:
+            credential = DefaultAzureCredential()
+        token = credential.get_token("https://management.azure.com/.default").token
+        url = (f"https://management.azure.com/subscriptions/{subscription}"
+               f"/resourceGroups/{rg}/providers/Microsoft.Compute"
+               f"/virtualMachines/{vm_name}?api-version=2024-07-01"
+               f"&forceDeletion=true")
+        response = requests.delete(
+            url, headers={"Authorization": f"Bearer {token}"}, timeout=30)
+        if response.status_code in (200, 202, 204, 404):
+            _log.info("control_runner: host %s delete accepted (HTTP %d)",
+                      vm_name, response.status_code)
+        else:
+            _log.error("control_runner: host %s delete refused (HTTP %d: %s); "
+                       "the watchdog must reap it", vm_name,
+                       response.status_code, response.text[:200])
     except Exception as exc:  # noqa: BLE001
-        _log.warning("control_runner: farewell VM-delete failed for %s: %s (Watchdog will reap)", vm_name, exc)
+        _log.error("control_runner: host %s delete failed (%s: %s); "
+                   "the watchdog must reap it",
+                   vm_name, type(exc).__name__, str(exc)[:200])
 
 
 def _states_default_from_env() -> str:
