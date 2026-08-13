@@ -39,6 +39,22 @@ Every event is logged to the pipeline-logs blob container in our
 datalake. Instrumentation is the Watchdog's sole visibility surface.
 """
 from __future__ import annotations
+# Atlas addresses are SRV records, and the Automation sandbox's own resolver
+# does not answer external SRV queries -- every connection died on
+# "All nameservers failed to answer the query _mongodb._tcp.<host> IN SRV".
+# Point dnspython at public resolvers instead. This MUST run before pymongo is
+# imported, which the chathealthy_lib import below does, because pymongo binds
+# the default resolver at import time.
+try:
+    import dns.resolver  # type: ignore[import-not-found]
+    _r = dns.resolver.Resolver(configure=False)
+    _r.nameservers = ["8.8.8.8", "8.8.4.4", "1.1.1.1", "1.0.0.1"]
+    _r.timeout = 5
+    _r.lifetime = 10
+    dns.resolver.default_resolver = _r
+except ImportError:
+    pass
+
 from chathealthy_lib.mongo_utilities import ChatHealthyMongoUtilities
 
 import datetime
@@ -48,6 +64,7 @@ import socket
 import sys
 import traceback
 import urllib.error
+import urllib.parse
 import urllib.request
 
 # Breadcrumbs to stderr from the first line. Everything below can fail
@@ -160,6 +177,35 @@ AZURE_CLIENT_ID = _load_user_mi_client_id()
 
 
 def _get_token(resource: str, client_id: str | None = None) -> str:
+    """An ARM token for pipelineEditor.
+
+    The Automation Account carried a user-assigned managed identity and this
+    asked IMDS for every token. That identity was retired when the pipeline
+    moved to the pipelineEditor service principal, so every request failed and
+    the watchdog reaped nothing -- which is why a finished run's 32-core host
+    survived long enough to consume the regional quota.
+
+    The service principal is hydrated into the environment above; the managed
+    identity path is kept for any host that still has one.
+    """
+    tenant = os.environ.get("PIPELINEEDITOR_AZURE_TENANT_ID", "").strip()
+    app_id = os.environ.get("PIPELINEEDITOR_AZURE_CLIENT_ID", "").strip()
+    secret = os.environ.get("PIPELINEEDITOR_AZURE_CLIENT_SECRET", "").strip()
+    if tenant and app_id and secret:
+        body = urllib.parse.urlencode({
+            "grant_type": "client_credentials",
+            "client_id": app_id,
+            "client_secret": secret,
+            "scope": resource.rstrip("/") + "/.default",
+        }).encode("utf-8")
+        req = urllib.request.Request(
+            f"https://login.microsoftonline.com/{tenant}/oauth2/v2.0/token",
+            data=body,
+            headers={"Content-Type": "application/x-www-form-urlencoded"},
+        )
+        with urllib.request.urlopen(req, timeout=15) as r:
+            return json.loads(r.read().decode("utf-8"))["access_token"]
+
     cid = client_id or AZURE_CLIENT_ID
     identity_endpoint = os.environ.get("IDENTITY_ENDPOINT")
     identity_header = os.environ.get("IDENTITY_HEADER")
@@ -183,23 +229,7 @@ def _get_token(resource: str, client_id: str | None = None) -> str:
         return json.loads(r.read().decode("utf-8"))["access_token"]
 
 
-# -----------------------------------------------------------------------------
-# Logging - emit through ChatHealthyLoggingService so events land in the
-# Pipelines.Log_dev Mongo collection like every other component. The
-# runbook's public API here is `log(event: str, **fields)`; we serialize
-# {event, host, **fields} into a single JSON blob and route via _log.info
-# so downstream queries on component='watchdog' surface every event
-# together with control, worker, runbook, and reaper events.
-# -----------------------------------------------------------------------------
 from chathealthy_lib.logging_service import ChatHealthyLoggingService  # noqa: PLC0415, E402
-
-# Lazily instantiate CHLS on first log() call so bootstrap_aa_mongo_logging
-# has already run inside main() by then and CH_LOG_DESTINATION=stderr,mongo
-# is set. CHLS reads env at
-# instantiation; setting env AFTER a stderr-only instantiation does NOT
-# re-wire the Mongo handler. Instantiating at module top was the reason
-# no Watchdog events reached Pipelines.Log_dev.
-_log = None
 
 
 def log(event: str, **fields):
