@@ -43,6 +43,22 @@ for _pkg in _REQUIRED_PACKAGES:
     except ImportError:
         subprocess.check_call([sys.executable, "-m", "pip", "install", "-q", _pkg])
 
+# Atlas addresses are SRV records, and the Automation sandbox's own resolver
+# does not answer external SRV queries -- every connection died on
+# "All nameservers failed to answer the query _mongodb._tcp.<host> IN SRV".
+# Point dnspython at public resolvers instead. This MUST run before pymongo is
+# imported, which the chathealthy_lib import below does, because pymongo binds
+# the default resolver at import time.
+try:
+    import dns.resolver  # type: ignore[import-not-found]
+    _r = dns.resolver.Resolver(configure=False)
+    _r.nameservers = ["8.8.8.8", "8.8.4.4", "1.1.1.1", "1.0.0.1"]
+    _r.timeout = 5
+    _r.lifetime = 10
+    dns.resolver.default_resolver = _r
+except ImportError:
+    pass
+
 from chathealthy_lib.logging_service import (
     ChatHealthyLoggingService,
     set_mongo_log_identity,

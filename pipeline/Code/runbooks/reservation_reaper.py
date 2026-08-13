@@ -39,6 +39,22 @@ Environment (Automation Variables, exposed via os.environ at runtime):
   NOTIFICATION_FROM_EMAIL         - sender address (R3)
   NOTIFICATION_TO_EMAIL           - recipient address (R3)
 """
+# Atlas addresses are SRV records, and the Automation sandbox's own resolver
+# does not answer external SRV queries -- every connection died on
+# "All nameservers failed to answer the query _mongodb._tcp.<host> IN SRV".
+# Point dnspython at public resolvers instead. This MUST run before pymongo is
+# imported, which the chathealthy_lib import below does, because pymongo binds
+# the default resolver at import time.
+try:
+    import dns.resolver  # type: ignore[import-not-found]
+    _r = dns.resolver.Resolver(configure=False)
+    _r.nameservers = ["8.8.8.8", "8.8.4.4", "1.1.1.1", "1.0.0.1"]
+    _r.timeout = 5
+    _r.lifetime = 10
+    dns.resolver.default_resolver = _r
+except ImportError:
+    pass
+
 from chathealthy_lib.logging_service import ChatHealthyLoggingService
 from chathealthy_lib.mongo_utilities import ChatHealthyMongoUtilities
 import os
