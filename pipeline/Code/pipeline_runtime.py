@@ -30,7 +30,7 @@ _log = ChatHealthyLoggingService()
 #   the atomic renameCollection swap from the staging collection into the
 #   public_data collection.
 # * Load-state metadata for every loaded collection lives on the frontend
-#   cluster (chathealthyfrontend.pipeline.loaded_metadata).
+#   cluster (pipelineAdmin.pipeline.loaded_metadata).
 # The admin.command('renameCollection', ...) supports cross-DB rename, so
 # the atomic swap between the two DBs stays a single server-side op.
 REPORTS_CONTAINER_SUFFIX = "-pipeline-reports"
@@ -117,7 +117,7 @@ class PipelineRuntime:
         if os.environ.get("PIPELINE_TEST_MODE", "").lower() in ("1", "true", "yes"):
             from pipeline_test_config import TEST_DISCREPANCIES_COLL
             coll_name = TEST_DISCREPANCIES_COLL.split(".", 1)[-1]
-        return self.frontend["chathealthyfrontend"][coll_name]
+        return self.frontend[PIPELINE_ADMIN_DB][coll_name]
 
     @property
     def runs_coll(self):
@@ -125,7 +125,7 @@ class PipelineRuntime:
         if os.environ.get("PIPELINE_TEST_MODE", "").lower() in ("1", "true", "yes"):
             from pipeline_test_config import TEST_RUNS_COLL
             coll_name = TEST_RUNS_COLL.split(".", 1)[-1]
-        return self.frontend["chathealthyfrontend"][coll_name]
+        return self.frontend[PIPELINE_ADMIN_DB][coll_name]
 
     @property
     def reports_container(self) -> str:

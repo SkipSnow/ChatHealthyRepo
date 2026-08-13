@@ -12,7 +12,7 @@ Operator rules 2026-08-02:
   * Versioning is part of the key: metadata _id = versioned collection
     name (e.g. "SpecialtyMetaData_v_3"). One metadata record per version.
   * Load-state metadata lives on the FRONT-END cluster
-    (chathealthyfrontend.pipeline.loaded_metadata). Rationale: frontend
+    (pipelineAdmin.pipeline.loaded_metadata on the front-end cluster). Rationale: frontend
     cluster is always awake even when the pipeline cluster is paused
     between fires, so freshness lookups + skip decisions can happen
     before waking Atlas. Same placement pattern as every other
@@ -32,7 +32,7 @@ Operator rules 2026-08-02:
 Every pipeline step that produces a PipelinePublicHealthData collection uses
 this module: `should_skip()` at entry, `mark_loaded()` at exit.
 Callers pass BOTH mongo clients: `frontend` for the metadata coll
-(chathealthyfrontend), `pipeline` for the physical PipelinePublicHealthData
+(pipelineAdmin), `pipeline` for the physical PipelinePublicHealthData
 collection presence + row-count checks.
 """
 
@@ -41,7 +41,7 @@ from __future__ import annotations
 from datetime import datetime, timezone
 
 
-_METADATA_DB = "chathealthyfrontend"  # frontend cluster
+_METADATA_DB = "pipelineAdmin"  # metadata home, front-end cluster
 _METADATA_COLL = "pipeline.loaded_metadata"
 
 
@@ -136,7 +136,7 @@ def mark_loaded(
     detail: dict | None = None,
 ) -> None:
     """Upsert load metadata for the versioned PipelinePublicHealthData collection.
-    Writes to the FRONTEND cluster (chathealthyfrontend.pipeline.
+    Writes to the FRONTEND cluster (pipelineAdmin.pipeline.
     loaded_metadata). Called at the end of a step that produced the
     collection without a fatal error.
 

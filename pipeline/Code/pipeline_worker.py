@@ -5,7 +5,7 @@ Invoked by the Controller via subprocess.Popen:
     python -m pipeline_worker <step_name> --replica <i> --run-id <run_id>
 
 Contract (v32 §4.3.4, revised 2026-08-03 to move coord off frontend cluster):
-  1. Atomically claim ONE work-item from chathealthypipelines.pipeline.work_items
+  1. Atomically claim ONE work-item from pipelineAdmin.pipeline.work_items
      via findOneAndUpdate on
        {run_id, step, status: "pending"}
      sorted by created_at ASC. Two Workers never claim the same document.

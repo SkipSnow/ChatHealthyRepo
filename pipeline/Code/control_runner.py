@@ -10,7 +10,7 @@ the image and invokes this module:
     python control_runner.py --run-id ... --env-prefix ...
 
 The Runbook has already written a fresh run manifest to
-chathealthypipelines.pipeline.runs with status=pending_vm_provision.
+pipelineAdmin.pipeline.runs with status=pending_vm_provision.
 This process:
   1. Reads the manifest via Mongo Atlas Private Endpoint (X.509 identity
      from the Controller's F-003 cert, fetched from KV via the VM's MI).
@@ -228,7 +228,7 @@ def main(argv: list[str] | None = None) -> int:
     exit_code = 1
     final_status = "failed"
 
-    # Controller heartbeat: writes chathealthypipelines.pipeline.runs
+    # Controller heartbeat: writes pipelineAdmin.pipeline.runs
     # controller_heartbeat_at every 60s in a daemon thread. Watchdog
     # reads this to detect Controller-dead-without-quiesce (see LLD
     # §3.1.2 step 3). Thread dies with the process; the daemon flag
