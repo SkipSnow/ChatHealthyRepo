@@ -4,6 +4,8 @@
 """prepare_infrastructure — wake Atlas, reserve cluster, ensure indexes."""
 
 from __future__ import annotations
+
+import time
 from chathealthy_lib.logging_service import ChatHealthyLoggingService
 
 
@@ -74,28 +76,59 @@ def _safety_cleanup(mongo, scoped_states: list[str]) -> dict:
 
 
 def execute(ctx) -> dict:
+    # Every call below can block for minutes -- waking Atlas, reserving it,
+    # and an index check that waits out a paused cluster. Unbracketed, the
+    # worker went silent here for the whole wait and the Controller could
+    # only report "remaining=1". Each phase now says it started and what it
+    # cost, so a stall names itself.
     # Operator directive 2026-08-03: coord on pipeline cluster only.
+    _log.info("prepare_infrastructure: begin run_id=%s states=%s",
+              ctx.run_id, list(ctx.args.resolved_states() or []))
+    t0 = time.time()
     cfg = ensure_pipeline_config(get_mongo(), ctx.env_prefix)
+    _log.info("prepare_infrastructure: config read (%.1fs) sources=%d",
+              time.time() - t0, len(cfg.get("dataset_versions") or []))
     ctx.config.setdefault("dataset_versions", cfg.get("dataset_versions", {}))
     ctx.config.setdefault("source_freshness", cfg.get("source_freshness", []))
     cluster = ctx.config.get("pipeline_cluster", "ChatHealthyDataPipelines")
     duration = int(ctx.args.expected_duration_minutes)
     ops = ClusterLifecycleManager(get_db_fn=get_mongo)
+
+    t = time.time()
+    _log.info("prepare_infrastructure: waking cluster %s", cluster)
     ops.wake(cluster, job_id=ctx.run_id)
+    _log.info("prepare_infrastructure: cluster %s awake (%.1fs)",
+              cluster, time.time() - t)
+
+    t = time.time()
+    _log.info("prepare_infrastructure: reserving %s for %d minute(s)",
+              cluster, duration)
     reservation = ops.reserve(
         cluster_name=cluster,
         job_id=ctx.run_id,
         requester="provider_pipeline_lld",
         expected_duration_minutes=duration,
     )
+    _log.info("prepare_infrastructure: reserved (%.1fs)", time.time() - t)
+
+    t = time.time()
+    wait_minutes = int(ctx.config.get("cluster_wait_minutes", 20))
+    _log.info("prepare_infrastructure: ensuring indexes on %s "
+              "(waits up to %d minute(s) for the cluster)",
+              ctx.provider_collection, wait_minutes)
     idx = ensure_provider_indexes_fn({
         "provider_collection": ctx.provider_collection,
-        "cluster_wait_minutes": int(ctx.config.get("cluster_wait_minutes", 20)),
+        "cluster_wait_minutes": wait_minutes,
     })
+    _log.info("prepare_infrastructure: indexes ready (%.1fs)", time.time() - t)
+
+    t = time.time()
     cleanup = _safety_cleanup(
         ctx.mongo_client or get_mongo(),
         list(ctx.args.resolved_states() or []),
     )
+    _log.info("prepare_infrastructure: safety cleanup done (%.1fs); "
+              "step complete in %.1fs", time.time() - t, time.time() - t0)
     ctx.manifest.metrics["reservation"] = reservation
     ctx.manifest.metrics["safety_cleanup"] = cleanup
     return {"cluster_ready": True, "indexes": idx, "reservation": reservation, **cleanup}
