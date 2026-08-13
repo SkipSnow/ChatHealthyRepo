@@ -3688,38 +3688,6 @@
           "package": "service_runtime"
         },
         {
-          "source_location": "pipeline/Code/steps/type1_first_branch.py",
-          "feature_id": "EPIC-008-F-012",
-          "handler_type": "python_source",
-          "disposition": "referenced",
-          "content_hash": "5898d8a8c8dcb8113bfa1502f9c85fd5e422f9f6f564b739f10675642ddf0a53",
-          "package": "service_runtime"
-        },
-        {
-          "source_location": "pipeline/Code/steps/type1_second_branch.py",
-          "feature_id": "EPIC-008-F-012",
-          "handler_type": "python_source",
-          "disposition": "referenced",
-          "content_hash": "2a3627f91d0d6fa9bb7ee73c9ba567e60beb4143bca1781978cb6f678de5a4fa",
-          "package": "service_runtime"
-        },
-        {
-          "source_location": "pipeline/Code/steps/type2_first_branch.py",
-          "feature_id": "EPIC-008-F-012",
-          "handler_type": "python_source",
-          "disposition": "referenced",
-          "content_hash": "63ab3bc5b2cb8badfd4d9a47a9879941995e082d0370dad09eb9159e2f57d71a",
-          "package": "service_runtime"
-        },
-        {
-          "source_location": "pipeline/Code/steps/type2_second_branch.py",
-          "feature_id": "EPIC-008-F-012",
-          "handler_type": "python_source",
-          "disposition": "referenced",
-          "content_hash": "7f0112d37385c89495e5548e8beddfe0308e2b20d6e02898c26812d32a142fe9",
-          "package": "service_runtime"
-        },
-        {
           "feature_id": "EPIC-008-F-012",
           "source_location": "pipeline/Code/type1_first_branch.py",
           "handler_type": "python_source",
@@ -3781,6 +3749,20 @@
           "handler_type": "python_source",
           "disposition": "referenced",
           "content_hash": "c02fadfc8fdd1a5a6bb8814c2a4c758c784ff4151933b5a7987ddefa2ede3969",
+          "package": "service_runtime"
+        },
+        {
+          "source_location": "pipeline/Code/steps/entity_first_branch.py",
+          "feature_id": "EPIC-008-F-012",
+          "handler_type": "python_source",
+          "disposition": "referenced",
+          "package": "service_runtime"
+        },
+        {
+          "source_location": "pipeline/Code/steps/entity_second_branch.py",
+          "feature_id": "EPIC-008-F-012",
+          "handler_type": "python_source",
+          "disposition": "referenced",
           "package": "service_runtime"
         }
       ],
@@ -3958,43 +3940,11 @@
           "package": "service_runtime"
         },
         {
-          "source_location": "pipeline/Code/steps/type1_first_branch.py",
-          "feature_id": "EPIC-008-F-012",
-          "handler_type": "python_source",
-          "disposition": "referenced",
-          "content_hash": "5898d8a8c8dcb8113bfa1502f9c85fd5e422f9f6f564b739f10675642ddf0a53",
-          "package": "service_runtime"
-        },
-        {
-          "source_location": "pipeline/Code/steps/type2_first_branch.py",
-          "feature_id": "EPIC-008-F-012",
-          "handler_type": "python_source",
-          "disposition": "referenced",
-          "content_hash": "63ab3bc5b2cb8badfd4d9a47a9879941995e082d0370dad09eb9159e2f57d71a",
-          "package": "service_runtime"
-        },
-        {
           "source_location": "pipeline/Code/steps/license_address_repair.py",
           "feature_id": "EPIC-008-F-012",
           "handler_type": "python_source",
           "disposition": "referenced",
           "content_hash": "caeb5794b481e862abd4425e166857b4108c924a2f7fcb6e36adeb8e9704218a",
-          "package": "service_runtime"
-        },
-        {
-          "source_location": "pipeline/Code/steps/type1_second_branch.py",
-          "feature_id": "EPIC-008-F-012",
-          "handler_type": "python_source",
-          "disposition": "referenced",
-          "content_hash": "2a3627f91d0d6fa9bb7ee73c9ba567e60beb4143bca1781978cb6f678de5a4fa",
-          "package": "service_runtime"
-        },
-        {
-          "source_location": "pipeline/Code/steps/type2_second_branch.py",
-          "feature_id": "EPIC-008-F-012",
-          "handler_type": "python_source",
-          "disposition": "referenced",
-          "content_hash": "7f0112d37385c89495e5548e8beddfe0308e2b20d6e02898c26812d32a142fe9",
           "package": "service_runtime"
         },
         {
@@ -4027,6 +3977,20 @@
           "handler_type": "python_source",
           "disposition": "referenced",
           "content_hash": "25d8baf5af606aa922c3b6dc1d5edc1a25d0cd9c0f2f041b6770b10560ff85c8",
+          "package": "service_runtime"
+        },
+        {
+          "source_location": "pipeline/Code/steps/entity_first_branch.py",
+          "feature_id": "EPIC-008-F-012",
+          "handler_type": "python_source",
+          "disposition": "referenced",
+          "package": "service_runtime"
+        },
+        {
+          "source_location": "pipeline/Code/steps/entity_second_branch.py",
+          "feature_id": "EPIC-008-F-012",
+          "handler_type": "python_source",
+          "disposition": "referenced",
           "package": "service_runtime"
         }
       ],
