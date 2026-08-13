@@ -135,22 +135,21 @@ class ProviderPipelineOrchestrator(BasePipelineOrchestrator):
             partition_key="business_address_state",
         ),
         StepSpec(
-            name="type1_first_branch",
+            # LLD v45 sec 5.2.11: "fan-out to state x entity-type begins
+            # here". Type 1 and Type 2 are disjoint -- an NPI carries one
+            # Entity Type Code -- so they never write the same document and
+            # neither waits for the other. As two sequential steps they
+            # doubled the wall-clock of this phase; as one step partitioned
+            # by (state, entity_type) they run together.
+            name="entity_first_branch",
             prerequisites=["apply_other_identifier_classifications"],
             parallelism="process_pool",
-            aca_job_name="prov-type1-first-branch",
-            partition_key="business_address_state",
-        ),
-        StepSpec(
-            name="type2_first_branch",
-            prerequisites=["apply_other_identifier_classifications"],
-            parallelism="process_pool",
-            aca_job_name="prov-type2-first-branch",
-            partition_key="business_address_state",
+            aca_job_name="prov-entity-first-branch",
+            partition_key="state_entity",
         ),
         StepSpec(
             name="license_address_repair",
-            prerequisites=["type1_first_branch", "type2_first_branch"],
+            prerequisites=["entity_first_branch"],
             parallelism="process_pool",
             aca_job_name="prov-license-address-repair",
             partition_key="business_address_state",
@@ -169,22 +168,15 @@ class ProviderPipelineOrchestrator(BasePipelineOrchestrator):
             partition_key="county_partition",
         ),
         StepSpec(
-            name="type1_second_branch",
+            name="entity_second_branch",
             prerequisites=["county_enrichment"],
             parallelism="process_pool",
-            aca_job_name="prov-type1-second-branch",
-            partition_key="business_address_state",
-        ),
-        StepSpec(
-            name="type2_second_branch",
-            prerequisites=["county_enrichment"],
-            parallelism="process_pool",
-            aca_job_name="prov-type2-second-branch",
-            partition_key="business_address_state",
+            aca_job_name="prov-entity-second-branch",
+            partition_key="state_entity",
         ),
         StepSpec(
             name="post_load_reconciliation",
-            prerequisites=["type1_second_branch", "type2_second_branch"],
+            prerequisites=["entity_second_branch"],
             parallelism="serial",
             aca_job_name="prov-post-load-reconciliation",
         ),
