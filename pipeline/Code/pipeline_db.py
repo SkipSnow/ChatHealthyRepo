@@ -63,7 +63,11 @@ def get_frontend_mongo() -> MongoClient:
 
 
 def get_db(env_prefix: str = None):
-    """Get the PublicHealthData database.
+    """Get the PipelinePublicHealthData database on the pipelines cluster.
+
+    The pipeline's own published data. The name is deliberately distinct from
+    the front end's PublicHealthData so that no accessor mistake can put
+    pipeline output into the front-end application's database.
 
     Environments are separated by CLUSTER, not by database name. No database
     is named for an environment: there is no dev_, qa_ or prod_ prefix. The
@@ -72,7 +76,7 @@ def get_db(env_prefix: str = None):
     """
     env_prefix = env_prefix or os.environ.get("ENV_PREFIX", "dev")
     _validate_env(env_prefix)
-    return get_mongo("frontEnd")["PublicHealthData"]
+    return get_mongo("pipelines")["PipelinePublicHealthData"]
 
 
 # Every piece of pipeline metadata -- configuration, discrepancy reports, run

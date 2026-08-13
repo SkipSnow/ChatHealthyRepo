@@ -1,14 +1,14 @@
 # Copyright (c) 2026 ChatHealthy.ai LLC. All rights reserved.
 # Licensed under the FindCare Evaluation License (FEL-1.0).
 
-"""Publish PublicHealthData.Provider_staging_v_N -> Provider_v_N + mark loaded.
+"""Publish PipelinePublicHealthData.Provider_staging_v_N -> Provider_v_N + mark loaded.
 
 Operator directive 2026-08-02: consumers must never observe partially-
 enriched Provider records mid-pipeline. Every Provider write step targets
-PublicHealthData.Provider_staging_v_{data_version} throughout the run.
+PipelinePublicHealthData.Provider_staging_v_{data_version} throughout the run.
 This step is the atomic transition from prior-fire-complete to
 this-fire-complete: renameCollection(dropTarget=true) swaps the staging
-collection into PublicHealthData.Provider_v_{data_version}, and then
+collection into PipelinePublicHealthData.Provider_v_{data_version}, and then
 pipeline_loaded_metadata.mark_loaded records the load-state.
 
 Runs late in the DAG (after every Provider enrichment step and the
@@ -16,7 +16,7 @@ post_load_reconciliation gate), so the only way it fires is if every
 upstream Provider write step completed non-fatally.
 
 Same-DB requirement of renameCollection is why both staging + loaded
-live in PublicHealthData.
+live in PipelinePublicHealthData.
 
 State-scoped runs (state_scope != ALL) still write to staging as usual;
 the swap replaces the loaded collection wholesale with only the states

@@ -12,7 +12,7 @@ from chathealthy_lib.exceptions import ChatHealthyException
 Source: CMS ICD-10-CM Code Descriptions in Tabular Order (annual + mid-year updates).
 Uses DataFetcherBase ETag guard -- skips download if file is unchanged.
 
-Collection schema per document (PublicHealthData.ICD10Codes):
+Collection schema per document (PipelinePublicHealthData.ICD10Codes):
   code         : str   -- ICD-10-CM code (e.g. "A00.0")
   description  : str   -- full description
   short_desc   : str   -- abbreviated description (if available)
@@ -47,7 +47,7 @@ def _get_mongo_client() -> MongoClient:
     return _mongo
 
 _ENV_PREFIX = os.environ.get("ENV_PREFIX", "dev")
-ICD10_COLLECTION = "PublicHealthData.ICD10Codes"
+ICD10_COLLECTION = "PipelinePublicHealthData.ICD10Codes"
 
 
 class Icd10Fetcher(DataFetcherBase):

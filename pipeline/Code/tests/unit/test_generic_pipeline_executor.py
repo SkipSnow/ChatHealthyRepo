@@ -154,7 +154,7 @@ def _config_with_bundle() -> dict:
                 "archive_member": "npidata*.csv",
                 "file_format": "csv",
                 "staging_name": "PublicStaging.StagingNppes",
-                "public_data_name": "PublicHealthData.NppesNpi",
+                "public_data_name": "PipelinePublicHealthData.NppesNpi",
             },
             {
                 "source_name": "pl_pfile",
@@ -162,18 +162,18 @@ def _config_with_bundle() -> dict:
                 "archive_member": "pl_pfile*.csv",
                 "file_format": "csv",
                 "staging_name": "PublicStaging.StagingPl",
-                "public_data_name": "PublicHealthData.PlPfile",
+                "public_data_name": "PipelinePublicHealthData.PlPfile",
             },
             {
                 "source_name": "smd",
                 "staging_name": "PublicStaging.StagingSmd",
-                "public_data_name": "PublicHealthData.Smd",
+                "public_data_name": "PipelinePublicHealthData.Smd",
                 "depends_on": ["nppes_npi"],
             },
             {
                 "source_name": "provider",
                 "staging_name": "PublicStaging.StagingProvider",
-                "public_data_name": "PublicHealthData.Provider",
+                "public_data_name": "PipelinePublicHealthData.Provider",
                 "depends_on": ["nppes_npi", "pl_pfile", "smd"],
             },
         ],
@@ -324,7 +324,7 @@ def test_stage_and_publish_renames_stale_entries(fake_mongo, registry):
     rename_cmds = [c for c in fake_mongo.admin.commands if "renameCollection" in c]
     assert len(rename_cmds) == 1
     assert rename_cmds[0]["renameCollection"] == "PublicStaging.StagingSmd_v_3"
-    assert rename_cmds[0]["to"] == "PublicHealthData.Smd_v_3"
+    assert rename_cmds[0]["to"] == "PipelinePublicHealthData.Smd_v_3"
     assert rename_cmds[0]["dropTarget"] is True
     # Post-publish metadata marked fresh.
     fresh_meta = meta.find_one({"_id": "smd"})

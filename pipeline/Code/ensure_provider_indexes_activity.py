@@ -109,9 +109,7 @@ def _wait_for_cluster_ready(
 
 
 def _providers_collection_and_client(provider_collection: str | None) -> tuple:
-    fqn = provider_collection or (
-        f"{os.environ.get('ENV_PREFIX', 'dev')}_PublicHealthData.providers"
-    )
+    fqn = provider_collection or "PipelinePublicHealthData.providers"
     db_name, coll_name = fqn.split(".", 1)
     # serverSelectionTimeoutMS is short so each ping fails fast and the
     # _wait_for_cluster_ready poll loop drives the cadence.

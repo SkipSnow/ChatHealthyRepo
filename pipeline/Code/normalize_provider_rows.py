@@ -297,7 +297,7 @@ def normalize_provider_rows_worker_fn(config: dict) -> dict:
     """
     worker_id = config["worker_id"]
     provider_collection = config.get(
-        "provider_collection", "dev_PublicHealthData.providers"
+        "provider_collection", "PipelinePublicHealthData.providers"
     )
     batch_size = int(config.get("normalize_batch_size", 500))
 
@@ -367,7 +367,7 @@ def normalize_provider_rows_orchestrator_fn(context):
     cfg = context.get_input() or {}
 
     num_workers = int(cfg.get("num_workers", 100))
-    provider_collection = cfg.get("provider_collection", "dev_PublicHealthData.providers")
+    provider_collection = cfg.get("provider_collection", "PipelinePublicHealthData.providers")
     normalize_batch_size = int(cfg.get("normalize_batch_size", 500))
 
     worker_configs = [

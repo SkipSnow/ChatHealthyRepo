@@ -16,13 +16,11 @@ Stamps on every provider record in the run:
                                staging load and is not deactivated.
 
 Sourced from:
-  - Specialty catalog    {env}_PublicHealthData.SpecialtyMetaData on the
-                         front-end cluster. Published by normalize_nucc
+  - Specialty catalog    PipelinePublicHealthData.SpecialtyMetaData on the
+                         pipelines cluster. Published by normalize_nucc
                          (Provider Pipeline) with 883 NUCC codes + N F-105
                          supplements, all normalized to top-level Code /
                          can_prescribe / is_homeopathic / is_supplemented.
-                         Reads the SAME collection FindCare's specialty
-                         filter reads -- one source of truth.
   - NPPES NPI staging    PublicStaging.StagingProvider_v_{data_version}
 
 Discipline: no fallbacks. Any collection-empty, code-not-in-catalog,
@@ -79,16 +77,17 @@ def _load_catalog(mongo, data_version: int) -> dict[str, dict[str, bool]]:
     """Load the normalized specialty catalog into
     {code -> {can_prescribe, is_homeopathic, is_supplemented}}.
 
-    Reads from ChatHealthyDataPipelines.PublicHealthData.SpecialtyMetaData_v_
+    Reads from ChatHealthyDataPipelines.PipelinePublicHealthData.SpecialtyMetaData_v_
     {data_version} on the PIPELINE cluster (operator directive 2026-08-02:
     pipelines never read data collections from the front-end cluster; the
-    canonical PublicHealthData collection is produced by publish_smd_and_embed
-    on the pipeline cluster). Fields are at TOP LEVEL of every doc (Code /
-    can_prescribe / is_homeopathic / is_supplemented). Raises if collection
-    is empty or any row is missing an expected field -- no fallback."""
+    canonical PipelinePublicHealthData collection is produced by
+    publish_smd_and_embed on the pipeline cluster). Fields are at TOP LEVEL of
+    every doc (Code / can_prescribe / is_homeopathic / is_supplemented). Raises
+    if collection is empty or any row is missing an expected field -- no
+    fallback."""
     coll_name = f"SpecialtyMetaData_v_{data_version}"
-    coll = mongo["PublicHealthData"][coll_name]
-    coll_ref = f"PublicHealthData.{coll_name}"
+    coll = mongo["PipelinePublicHealthData"][coll_name]
+    coll_ref = f"PipelinePublicHealthData.{coll_name}"
     out: dict[str, dict[str, bool]] = {}
     for row in coll.find({}):
         code = row.get("Code") or row.get("code")
@@ -351,7 +350,7 @@ def apply_provider_flags(
             mode="mongo_client_required",
             message=(
                 "provider_flags_engine: pipeline-cluster Mongo client is "
-                "required to read PublicHealthData.SpecialtyMetaData_v_"
+                "required to read PipelinePublicHealthData.SpecialtyMetaData_v_"
                 "{data_version} (the loaded catalog produced by "
                 "publish_smd_and_embed). Caller must pass mongo= kwarg."
             ),

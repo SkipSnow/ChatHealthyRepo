@@ -72,7 +72,7 @@ def _baseline_config() -> dict:
                 "archive_member": "npidata_pfile*.csv",
                 "file_format": "csv",
                 "staging_name": "PublicStaging.StagingNppes",
-                "public_data_name": "PublicHealthData.NppesNpi",
+                "public_data_name": "PipelinePublicHealthData.NppesNpi",
             },
             {
                 "source_name": "pl_pfile",
@@ -80,25 +80,25 @@ def _baseline_config() -> dict:
                 "archive_member": "pl_pfile*.csv",
                 "file_format": "csv",
                 "staging_name": "PublicStaging.StagingPl",
-                "public_data_name": "PublicHealthData.PlPfile",
+                "public_data_name": "PipelinePublicHealthData.PlPfile",
             },
             {
                 "source_name": "nucc",
                 "fetch": {"source_url": "https://example.com/nucc.csv"},
                 "file_format": "csv",
                 "staging_name": "PublicStaging.StagingNucc",
-                "public_data_name": "PublicHealthData.Nucc",
+                "public_data_name": "PipelinePublicHealthData.Nucc",
             },
             {
                 "source_name": "smd",
                 "staging_name": "PublicStaging.StagingSmd",
-                "public_data_name": "PublicHealthData.Smd",
+                "public_data_name": "PipelinePublicHealthData.Smd",
                 "depends_on": ["nucc"],
             },
             {
                 "source_name": "provider",
                 "staging_name": "PublicStaging.StagingProvider",
-                "public_data_name": "PublicHealthData.Provider",
+                "public_data_name": "PipelinePublicHealthData.Provider",
                 "depends_on": ["nppes_npi", "pl_pfile", "smd"],
             },
         ],
@@ -136,7 +136,7 @@ def test_invariant_1_duplicate_source_name(fake_mongo):
     cfg = _baseline_config()
     dup = copy.deepcopy(cfg["dataset_versions"][2])
     dup["staging_name"] = "PublicStaging.OtherNucc"
-    dup["public_data_name"] = "PublicHealthData.OtherNucc"
+    dup["public_data_name"] = "PipelinePublicHealthData.OtherNucc"
     cfg["dataset_versions"].append(dup)
     with pytest.raises(ChatHealthyException) as ei:
         PipelineDatasetRegistry(cfg, 3, fake_mongo)
@@ -228,7 +228,7 @@ def test_invariant_6_dependency_cycle(fake_mongo):
     cfg["dataset_versions"][2] = {
         "source_name": "nucc",
         "staging_name": "PublicStaging.StagingNucc",
-        "public_data_name": "PublicHealthData.Nucc",
+        "public_data_name": "PipelinePublicHealthData.Nucc",
         "depends_on": ["smd"],
     }
     with pytest.raises(ChatHealthyException) as ei:
@@ -341,7 +341,7 @@ def test_resolve_source_url_discovery_calls_out(fake_mongo, monkeypatch):
         "fetch": {"source_url": {"page_url": "https://example.com/", "instructions": "Find X"}},
         "file_format": "csv",
         "staging_name": "PublicStaging.StagingNucc",
-        "public_data_name": "PublicHealthData.Nucc",
+        "public_data_name": "PipelinePublicHealthData.Nucc",
     }
     calls = {}
 

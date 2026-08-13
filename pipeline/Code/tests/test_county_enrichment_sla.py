@@ -9,7 +9,7 @@ has a non-null county.fips. Post-schema-reconciliation, addresses[] holds
 both practice and business entries (address_type discriminator); the
 underlying Mongo path `addresses.county.fips` matches either kind.
 
-The test defaults the collection to dev_PublicHealthData.providers and
+The test defaults the collection to PipelinePublicHealthData.providers and
 is overridable by the
 PROVIDER_COLLECTION env var so it can target test_providers,
 test_multiAddress_provider, providers_enriched, or any future per-env name
@@ -51,7 +51,7 @@ def _ch_connection():
 
 
 SLA_THRESHOLD = 0.97
-DEFAULT_COLLECTION = "dev_PublicHealthData.providers"
+DEFAULT_COLLECTION = "PipelinePublicHealthData.providers"
 
 
 def _connect():

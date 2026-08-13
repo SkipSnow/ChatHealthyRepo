@@ -622,7 +622,7 @@ def _main():
     _connection_string_for_cluster(dst_cluster)
     # The crossing: read the factory, write the front end, keep status in
     # admin. Three connections, one identity -- the only principal permitted
-    # to write PublicHealthData.
+    # to write PipelinePublicHealthData.
     src_client = ChatHealthyMongoUtilities().getConnection("dataTransferAgent", "pipelines")
     dst_client = ChatHealthyMongoUtilities().getConnection("dataTransferAgent", "frontEnd")
     pipeline_client = ChatHealthyMongoUtilities().getConnection("dataTransferAgent", "admin")

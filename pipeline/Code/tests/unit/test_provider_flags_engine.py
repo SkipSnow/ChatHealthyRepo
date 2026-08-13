@@ -169,12 +169,12 @@ class _FakeDB(dict):
 
 class _FakeFrontendMongo:
     """provider_flags_engine._load_catalog(mongo, data_version) reads from
-    PublicHealthData.SpecialtyMetaData_v_{data_version} on the PIPELINE
+    PipelinePublicHealthData.SpecialtyMetaData_v_{data_version} on the PIPELINE
     cluster (operator directive 2026-08-02: pipelines never read data
     collections from the front-end cluster). Kept the class name for
     diff readability; targets pipeline cluster now."""
     def __init__(self, coll_rows, data_version=3):
-        self._db_name = "PublicHealthData"
+        self._db_name = "PipelinePublicHealthData"
         self._coll_name = f"SpecialtyMetaData_v_{data_version}"
         self._db = _FakeDB()
         self._db[self._coll_name] = _FakeCollection(coll_rows)
