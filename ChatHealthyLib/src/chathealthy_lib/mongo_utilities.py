@@ -512,15 +512,27 @@ class ChatHealthyMongoUtilities:
             return cached
 
         cert_key_pem = self._fetch_identity_cert(identity)
+        # Per-process path, written whole then moved into place. Every worker
+        # sharing an identity used to write one filename, and `open(..., "w")`
+        # truncates: a process reading while another was mid-write got a
+        # certificate whose private key had not been written yet, and the
+        # handshake failed with "Private key doesn't match certificate". The
+        # pid removes the sharing; the atomic replace means a reader sees a
+        # whole file or none.
         cert_path = os.path.join(
-            tempfile.gettempdir(), f"mongo_{identity}_{cluster}.pem"
+            tempfile.gettempdir(),
+            f"mongo_{identity}_{cluster}_{os.getpid()}.pem",
         )
-        with open(cert_path, "w", encoding="utf-8") as handle:
+        staging_path = f"{cert_path}.partial"
+        with open(staging_path, "w", encoding="utf-8") as handle:
             handle.write(cert_key_pem)
+            handle.flush()
+            os.fsync(handle.fileno())
         try:
-            os.chmod(cert_path, 0o600)
+            os.chmod(staging_path, 0o600)
         except OSError:
             pass
+        os.replace(staging_path, cert_path)
 
         host = _TARGET_HOST[cluster]
         uri = (
