@@ -173,20 +173,29 @@ def _kv_grant_read(vault_name: str, principal_id: str, secret_name: str) -> None
     # Deploy prefers RBAC for pipeline vaults per F-003 §6.2.
     scope = _kv_secret_scope(vault_name, secret_name)
     r = subprocess.run(
-        ["az", "role", "assignment", "create",
-         "--assignee-object-id", principal_id,
-         "--assignee-principal-type", "ServicePrincipal",
-         "--role", "Key Vault Secrets User",
+        ["az", "role", "assignment", "list",
+         "--assignee", principal_id,
          "--scope", scope,
-         "-o", "none"],
+         "--query", "[?roleDefinitionName=='Key Vault Secrets User']",
+         "-o", "json"],
         capture_output=True, text=True,
         creationflags=_cflags(), shell=(sys.platform == "win32"),
     )
-    if r.returncode != 0 and "already exists" not in (r.stderr or "").lower():
+    held = False
+    if r.returncode == 0:
+        try:
+            held = bool(json.loads(r.stdout or "[]"))
+        except ValueError:
+            held = False
+    if not held:
+        # Granting per secret is how one identity came to hold read on 23 of
+        # them, ca-root-cert among them. A tool that hands out rights as a
+        # side effect of placing a file is how access accumulates that nobody
+        # decided to give.
         sys.exit(
-            f"ERROR: az role assignment create (Secrets User) failed for "
-            f"{secret_name} -> {principal_id} (exit {r.returncode})\n"
-            f"  stderr: {(r.stderr or '').strip()[:1500]}"
+            f"ERROR: {principal_id} does not hold 'Key Vault Secrets User' on "
+            f"{secret_name}.\n  Grant it at scope: {scope}\n"
+            f"  The deploy chain states what must be true; it does not write it."
         )
 
 
@@ -196,27 +205,34 @@ def _kv_revoke_deployer_read(
     secret_name: str,
 ) -> None:
     """F-003 §6.3: after the deployer writes the cert secret, its Get
-    permission on THAT specific secret is revoked. The deployer keeps
-    `Set` at vault scope for future rotations."""
+    permission on THAT specific secret must be revoked. The deployer keeps
+    `Set` at vault scope for future rotations.
+
+    The chain does not make that revocation. It changes an entitlement, and
+    entitlements are changed deliberately by an administrator, not as a side
+    effect of placing a file. What the chain does is say when the condition
+    is not met, so the outstanding read is visible rather than assumed gone.
+    """
     scope = _kv_secret_scope(vault_name, secret_name)
     r = subprocess.run(
-        ["az", "role", "assignment", "delete",
+        ["az", "role", "assignment", "list",
          "--assignee", deployer_object_id,
-         "--role", "Key Vault Secrets User",
          "--scope", scope,
-         "-o", "none"],
+         "--query", "[?roleDefinitionName=='Key Vault Secrets User']",
+         "-o", "json"],
         capture_output=True, text=True,
         creationflags=_cflags(), shell=(sys.platform == "win32"),
     )
-    # Non-fatal: if the assignment did not exist, revoke is a no-op.
-    err = (r.stderr or "").lower()
-    if r.returncode != 0 and (
-        "not found" not in err
-        and "no matched assignments" not in err
-    ):
+    still_held = False
+    if r.returncode == 0:
+        try:
+            still_held = bool(json.loads(r.stdout or "[]"))
+        except ValueError:
+            still_held = False
+    if still_held:
         _step(
-            f"WARN: revoke of deployer Get on {secret_name} returned "
-            f"{r.returncode}: {(r.stderr or '').strip()[:400]}"
+            f"WARN: the deployer still holds Get on {secret_name}. "
+            f"F-003 6.3 requires it revoked at scope:\n  {scope}"
         )
 
 

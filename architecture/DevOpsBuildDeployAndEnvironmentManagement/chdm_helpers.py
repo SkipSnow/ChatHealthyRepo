@@ -299,15 +299,15 @@ def chdm_ensure_role_assignment(principal_id: str, scope: str, role_name: str) -
     if existing:
         _step(f"  role '{role_name}' already assigned — no-op")
         return
-    _step(f"  role '{role_name}' missing — creating assignment")
-    _az([
-        "az", "role", "assignment", "create",
-        "--assignee", principal_id,
-        "--scope", scope,
-        "--role", role_name,
-        "-o", "none",
-    ])
-    _step(f"  role '{role_name}' assigned.")
+    # The check above already returns when the role is held. Reaching here
+    # means it is not, and this chain does not write role assignments: a tool
+    # that can grant can escalate privilege, and the identity it runs as
+    # cannot make assignments anyway.
+    raise _ch_exc()(
+        mode="config_error",
+        component="chdm_helpers",
+        message=(f"{principal_id} does not hold {role_name!r} at {scope}. "
+                 f"Grant it deliberately before running this."))
 
 
 def _pypi_universal_wheel_url(package: str, version: str) -> str:

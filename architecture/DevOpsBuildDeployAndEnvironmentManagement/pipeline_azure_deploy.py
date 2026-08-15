@@ -1183,20 +1183,28 @@ def ensure_aca_job(
             ],
             check=False,
         )
-    # Grant AcrPull to the job MI (idempotent-ish; ignore if exists).
+    # Confirm AcrPull on the job MI. The chain reads rather than grants.
     acr_id = _az(
         ["acr", "show", "--name", registry, "--query", "id", "-o", "tsv"]
     ).stdout.strip()
-    _az(
+    _acr_role = _az(
         [
-            "role", "assignment", "create",
-            "--assignee-object-id", mi["principalId"],
-            "--assignee-principal-type", "ServicePrincipal",
-            "--role", "AcrPull",
+            "role", "assignment", "list",
+            "--assignee", mi["principalId"],
             "--scope", acr_id,
+            "--query", "[?roleDefinitionName=='AcrPull']",
+            "-o", "json",
         ],
         check=False,
+        capture_output=True,
+        text=True,
     )
+    # The chain reads rather than grants. Without AcrPull the job cannot pull
+    # its image, so this is worth saying plainly rather than discovering at
+    # the first pull.
+    if not (getattr(_acr_role, "stdout", "") or "").strip().startswith("[{"):
+        step(f"WARNING: {mi['principalId']} does not hold AcrPull on the registry; "
+             f"grant it deliberately or the job cannot pull {image}")
     step(f"ACA job {job} ready image={image} mi_client={mi_client}")
     return job
 

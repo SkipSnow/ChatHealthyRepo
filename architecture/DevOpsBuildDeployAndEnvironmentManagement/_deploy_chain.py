@@ -1821,51 +1821,113 @@ def _resolve_target_azure_scope(target: TargetRecord, env: str) -> str:
     return ""
 
 
+def _raise_identity_absent(identity_id: str, why: str) -> None:
+    """Raise-only helper: the catcher logs, not the thrower."""
+    raise _ch_exc()(
+        mode="config_error",
+        component="deploy_chain",
+        message=(f"identity {identity_id!r} cannot be resolved: {why}. "
+                 f"The manifest names it, so something is expected to hold its "
+                 f"roles; granting nothing and continuing would leave the "
+                 f"manifest stating entitlements that do not exist."))
+
+
 def _resolve_identity_principal_id(coll: DeploymentCollection, identity: dict) -> str:
     """Return the Azure principal id (object id) for one IdentityCatalog
-    entry. Looks up the referenced target and reads its Azure identity
-    fields. Empty string on any resolution failure."""
+    entry.
+
+    A catalog entry names an identity the system relies on. If it cannot be
+    resolved, the deploy stops: silently skipping it grants nothing while
+    reporting success, which is how a manifest comes to state entitlements
+    that reality does not carry.
+    """
+    iid = identity.get("identity_id", "<unnamed>")
     cls = identity.get("identity_class", "")
     tgt_id = identity.get("target_id_ref", "")
     if not tgt_id:
-        return ""
+        _raise_identity_absent(iid, "it names no target_id_ref")
     tgt = coll.by_target_id(tgt_id)
     if tgt is None:
-        return ""
+        _raise_identity_absent(iid, f"target {tgt_id!r} is not in the manifest")
     eb = tgt.environments[0] if tgt.environments else None
     if eb is None or eb.identity is None:
-        return ""
+        _raise_identity_absent(iid, f"target {tgt_id!r} declares no identity")
     if cls == "managed_identity":
         name = eb.identity.get("name", "")
         rg = eb.identity.get("resource_group", "")
         if not name or not rg:
-            return ""
+            _raise_identity_absent(iid, "its name or resource group is missing")
         r = subprocess.run(
             ["az", "identity", "show", "--name", name, "--resource-group", rg, "-o", "json"],
             capture_output=True, text=True,
             creationflags=creation_flags(), shell=(sys.platform == "win32"),
         )
         if r.returncode != 0:
-            return ""
+            _raise_identity_absent(
+                iid, f"managed identity {name!r} does not exist in {rg!r}: "
+                     f"{(r.stderr or '').strip()[:200]}")
         try:
-            return json.loads(r.stdout or "{}").get("principalId", "") or ""
+            principal = json.loads(r.stdout or "{}").get("principalId", "") or ""
         except ValueError:
-            return ""
+            principal = ""
+        if not principal:
+            _raise_identity_absent(iid, f"{name!r} resolved to no principal id")
+        return principal
+    if cls == "service_principal":
+        # object_id is what a role assignment names, so it is used directly
+        # when present and confirmed against Entra rather than assumed.
+        object_id = eb.identity.get("object_id", "")
+        if object_id:
+            r = subprocess.run(
+                ["az", "ad", "sp", "show", "--id", object_id, "-o", "json"],
+                capture_output=True, text=True,
+                creationflags=creation_flags(), shell=(sys.platform == "win32"),
+            )
+            if r.returncode != 0:
+                _raise_identity_absent(
+                    iid, f"object id {object_id!r} is not a principal in this "
+                         f"tenant: {(r.stderr or '').strip()[:200]}")
+            return object_id
+        _raise_identity_absent(
+            iid, "no object_id is recorded; a client id is a secret-store value "
+                 "and is not committed to the manifest")
+        r = subprocess.run(
+            ["az", "ad", "sp", "show", "--id", app_id, "-o", "json"],
+            capture_output=True, text=True,
+            creationflags=creation_flags(), shell=(sys.platform == "win32"),
+        )
+        if r.returncode != 0:
+            _raise_identity_absent(
+                iid, f"service principal {app_id!r} does not exist: "
+                     f"{(r.stderr or '').strip()[:200]}")
+        try:
+            principal = json.loads(r.stdout or "{}").get("id", "") or ""
+        except ValueError:
+            principal = ""
+        if not principal:
+            _raise_identity_absent(iid, f"{app_id!r} resolved to no object id")
+        return principal
+    _raise_identity_absent(iid, f"identity_class {cls!r} is not one this chain resolves")
     return ""
 
 
 def apply_identity_role_grants_from_manifest(coll: DeploymentCollection, env: str) -> None:
-    """Iterate IdentityCatalog and grant every role in each identity's
-    roles[] on every target whose allowed_roles[] contains that role.
-    Purely data-driven from the manifest: no role names, no resource
-    names, no per-identity conditional logic appears in this function.
+    """Check that every role the manifest declares is actually held.
+
+    It grants nothing. A chain that can create role assignments can escalate
+    privilege, and the identity it runs as cannot make them anyway. What it
+    can do is refuse to deploy against a manifest whose entitlements are
+    fiction, which is what let a claim of Contributor on the automation
+    account sit unnoticed and ungranted.
+
+    Purely data-driven: no role names, no resource names, no per-identity
+    conditional logic appears here.
     """
-    step("applying identity role grants from manifest")
+    step("verifying identity role grants against the manifest")
+    missing: list = []
     for identity in coll.identity_catalog or []:
         iid = identity.get("identity_id", "")
         principal_id = _resolve_identity_principal_id(coll, identity)
-        if not principal_id:
-            continue
         roles = identity.get("roles", []) or []
         for role in roles:
             for target in coll:
@@ -1875,19 +1937,45 @@ def apply_identity_role_grants_from_manifest(coll: DeploymentCollection, env: st
                 scope = _resolve_target_azure_scope(target, env)
                 if not scope:
                     continue
-                r = subprocess.run(
-                    ["az", "role", "assignment", "create",
-                     "--assignee-object-id", principal_id,
-                     "--assignee-principal-type", "ServicePrincipal",
-                     "--role", role,
-                     "--scope", scope, "-o", "none"],
-                    capture_output=True, text=True,
-                    creationflags=creation_flags(), shell=(sys.platform == "win32"),
-                )
-                # role assignment create is idempotent-ish: dup returns non-zero
-                # but that's fine. Log the outcome.
-                verdict = "granted" if r.returncode == 0 else "skipped (exists or refused)"
-                step(f"  {iid}: {role} on {target.target_id} — {verdict}")
+                held = _role_is_held(principal_id, role, scope)
+                if held:
+                    step(f"  {iid}: {role} on {target.target_id} - held")
+                else:
+                    missing.append((iid, role, target.target_id, scope))
+                    step(f"  {iid}: {role} on {target.target_id} - MISSING")
+
+
+    if missing:
+        _raise_entitlements_missing(missing)
+
+
+def _role_is_held(principal_id: str, role: str, scope: str) -> bool:
+    """Does this principal actually hold this role at this scope?"""
+    r = subprocess.run(
+        ["az", "role", "assignment", "list",
+         "--assignee", principal_id, "--scope", scope,
+         "--include-inherited", "--query", f"[?roleDefinitionName=='{role}']",
+         "-o", "json"],
+        capture_output=True, text=True,
+        creationflags=creation_flags(), shell=(sys.platform == "win32"),
+    )
+    if r.returncode != 0:
+        return False
+    try:
+        return bool(json.loads(r.stdout or "[]"))
+    except ValueError:
+        return False
+
+
+def _raise_entitlements_missing(missing: list) -> None:
+    """Raise-only helper: the catcher logs, not the thrower."""
+    lines = "; ".join(f"{iid} needs {role} on {tid}" for iid, role, tid, _ in missing)
+    raise _ch_exc()(
+        mode="config_error",
+        component="deploy_chain",
+        message=(f"{len(missing)} entitlement(s) the manifest declares are not "
+                 f"held: {lines}. Grant them deliberately -- the chain states "
+                 f"what must be true and will not write it."))
 
 
 def apply_explicit_permissions_from_manifest(coll: DeploymentCollection, env: str) -> None:
@@ -1908,14 +1996,7 @@ def apply_explicit_permissions_from_manifest(coll: DeploymentCollection, env: st
             role = entry.get("role", "").strip()
             if not object_id or not role:
                 continue
-            r = subprocess.run(
-                ["az", "role", "assignment", "create",
-                 "--assignee-object-id", object_id,
-                 "--role", role,
-                 "--scope", scope, "-o", "none"],
-                capture_output=True, text=True,
-                creationflags=creation_flags(), shell=(sys.platform == "win32"),
-            )
+            r = None  # the chain does not grant; see _role_is_held
             if r.returncode == 0:
                 step(f"  {object_id[:8]}...: {role} on {target.target_id} — granted")
             else:

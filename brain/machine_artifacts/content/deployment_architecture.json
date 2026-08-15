@@ -4897,18 +4897,27 @@
         },
         {
           "kind": "azure_rbac_role_assignment",
-          "principal": "pipelineEditor",
-          "role": "Contributor",
+          "principal": "ChatHealthyJobManager system-assigned managed identity",
+          "role": "User Access Administrator",
           "scope": "/subscriptions/7a17eec1-c477-4c7c-b1c1-d0662ce7a1ee/resourceGroups/rg-chathealthy-pipeline-dev/providers/Microsoft.Automation/automationAccounts/ChatHealthyJobManager"
         },
         {
           "kind": "azure_rbac_role_assignment",
-          "principal": "ChatHealthyJobManager system-assigned managed identity",
-          "role": "User Access Administrator",
+          "principal": "pipelineEditor",
+          "role": "Automation Operator",
+          "scope": "/subscriptions/7a17eec1-c477-4c7c-b1c1-d0662ce7a1ee/resourceGroups/rg-chathealthy-pipeline-dev/providers/Microsoft.Automation/automationAccounts/ChatHealthyJobManager"
+        },
+        {
+          "kind": "azure_rbac_role_assignment",
+          "principal": "pipelineEditor",
+          "role": "Automation Operator",
           "scope": "/subscriptions/7a17eec1-c477-4c7c-b1c1-d0662ce7a1ee/resourceGroups/rg-chathealthy-pipeline-dev/providers/Microsoft.Automation/automationAccounts/ChatHealthyJobManager"
         }
       ],
-      "provisioning": "deploy_provisioned"
+      "provisioning": "deploy_provisioned",
+      "allowed_roles": [
+        "Automation Operator"
+      ]
     },
     {
       "target_id": "target_azure_resource_group_pipeline",
@@ -5153,24 +5162,23 @@
     {
       "target_id": "target_identity_pipeline_editor",
       "target_kind": "identity",
-      "provisioning": "deploy_provisioned",
+      "provisioning": "pre_existing",
       "promote_chain_bound": false,
       "allowed_roles": [
-        "Key Vault Secrets User",
-        "AcrPull",
-        "Storage Blob Data Contributor",
         "Virtual Machine Contributor",
         "Network Contributor",
-        "Managed Identity Operator"
+        "Reader",
+        "Key Vault Secrets User",
+        "Automation Operator"
       ],
       "environments": [
         {
           "env_binding": "dev",
           "node_address": "pipelineEditor",
           "identity": {
-            "identity_class": "managed_identity",
+            "identity_class": "service_principal",
             "name": "pipelineEditor",
-            "resource_group": "rg-chathealthy-pipeline-dev"
+            "object_id": "1dbcec4a-97ce-4ddb-ab8d-f4a55d5c37a1"
           }
         }
       ],
@@ -5181,19 +5189,20 @@
     {
       "target_id": "target_identity_devops_user",
       "target_kind": "identity",
-      "provisioning": "deploy_provisioned",
+      "provisioning": "pre_existing",
       "promote_chain_bound": false,
       "allowed_roles": [
-        "Key Vault Secrets User"
+        "Key Vault Secrets User",
+        "Key Vault Secrets Officer"
       ],
       "environments": [
         {
           "env_binding": "dev",
           "node_address": "DevOpsUser",
           "identity": {
-            "identity_class": "managed_identity",
+            "identity_class": "service_principal",
             "name": "DevOpsUser",
-            "resource_group": "rg-chathealthy-pipeline-dev"
+            "object_id": "8e6f61db-9d92-4f7a-a3db-8731a7518791"
           }
         }
       ],
@@ -5540,45 +5549,24 @@
   },
   "IdentityCatalog": [
     {
-      "identity_id": "identity_mi_runbook",
-      "identity_class": "managed_identity",
-      "target_id_ref": "target_identity_mi_runbook",
+      "identity_id": "identity_pipeline_editor",
+      "identity_class": "service_principal",
+      "target_id_ref": "target_identity_pipeline_editor",
       "roles": [
-        "Key Vault Secrets User",
-        "Automation Contributor",
-        "Storage Blob Data Contributor",
         "Virtual Machine Contributor",
         "Network Contributor",
-        "Managed Identity Operator"
+        "Reader",
+        "Key Vault Secrets User",
+        "Automation Operator"
       ]
     },
     {
-      "identity_id": "identity_mi_control",
-      "identity_class": "managed_identity",
-      "target_id_ref": "target_identity_mi_control",
+      "identity_id": "identity_devops_user",
+      "identity_class": "service_principal",
+      "target_id_ref": "target_identity_devops_user",
       "roles": [
         "Key Vault Secrets User",
-        "AcrPull",
-        "Contributor",
-        "Storage Blob Data Contributor",
-        "Virtual Machine Contributor"
-      ]
-    },
-    {
-      "identity_id": "identity_mi_worker",
-      "identity_class": "managed_identity",
-      "target_id_ref": "target_identity_mi_worker",
-      "roles": [
-        "Key Vault Secrets User",
-        "AcrPull",
-        "Storage Blob Data Contributor"
-      ]
-    },
-    {
-      "identity_id": "identity_claudecode_deployer",
-      "identity_class": "user",
-      "roles": [
-        "Owner"
+        "Key Vault Secrets Officer"
       ]
     }
   ],

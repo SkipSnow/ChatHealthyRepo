@@ -63,7 +63,13 @@ try:
     import automationassets
     for _k in ("AUTOMATION_SUBSCRIPTION_ID", "AUTOMATION_RESOURCE_GROUP",
                "AZ_AUTOMATION_ACCOUNT", "ENV_PREFIX", "CH_LOG_DB",
-               "KEY_VAULT_URI",
+               "KEY_VAULT_URI", "PIPELINE_CLUSTER",
+               # The VM this creates needs an admin name and a public key, and
+               # a VM PUT with an empty keyData is rejected outright. These
+               # were absent from this list, so the first run died on
+               # "linuxConfiguration.ssh.publicKeys.keyData is invalid".
+               "AZ_VM_ADMIN_USERNAME", "AZ_VM_ADMIN_SSH_PUBKEY",
+               "AZ_VM_LOCATION", "AZ_VM_RESOURCE_GROUP",
                "PIPELINEEDITOR_AZURE_TENANT_ID",
                "PIPELINEEDITOR_AZURE_CLIENT_ID",
                "PIPELINEEDITOR_AZURE_CLIENT_SECRET"):
@@ -344,6 +350,13 @@ class PipelineRegressionTest:
         self._created.append(("nic", nic))
         nic_id = body["id"]
 
+        admin_user = os.environ.get("AZ_VM_ADMIN_USERNAME", "").strip()
+        admin_key = os.environ.get("AZ_VM_ADMIN_SSH_PUBKEY", "").strip()
+        if not admin_user or not admin_key:
+            _raise_azure("virtual machine", vm_name, 0,
+                         {"error": "AZ_VM_ADMIN_USERNAME or AZ_VM_ADMIN_SSH_PUBKEY "
+                                   "is not set; a VM PUT with an empty key is "
+                                   "rejected by Azure"})
         code, body = self._arm(
             "PUT", f"/providers/Microsoft.Compute/virtualMachines/{vm_name}",
             {"location": LOCATION,
@@ -359,14 +372,13 @@ class PipelineRegressionTest:
                                 "deleteOption": "Delete"}},
                  "osProfile": {
                      "computerName": vm_name[:15],
-                     "adminUsername": os.environ.get("AZ_VM_ADMIN_USERNAME", "chadmin"),
+                     "adminUsername": admin_user,
                      "customData": self._cloud_init(run_id),
                      "linuxConfiguration": {
                          "disablePasswordAuthentication": True,
                          "ssh": {"publicKeys": [{
-                             "path": f"/home/{os.environ.get('AZ_VM_ADMIN_USERNAME', 'chadmin')}"
-                                     "/.ssh/authorized_keys",
-                             "keyData": os.environ.get("AZ_VM_ADMIN_SSH_PUBKEY", "")}]}}},
+                             "path": f"/home/{admin_user}/.ssh/authorized_keys",
+                             "keyData": admin_key}]}}},
                  "networkProfile": {"networkInterfaces": [
                      {"id": nic_id, "properties": {"deleteOption": "Delete"}}]}}})
         if code >= 400:
