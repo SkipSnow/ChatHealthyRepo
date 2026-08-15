@@ -108,7 +108,13 @@ architecture/EngineeringRuleEnforcement/ArchitectureDesignAndAuditDocs/llm_class
 # paths, so this tree is currently inert. If the registry is ever
 # repointed at deploy/, whether this tree gets committed becomes a
 # real question -- a fresh clone would need it to exist.
-deploy/
+#
+# Anchored. Unanchored, this matched every directory named deploy at
+# any depth, including pipeline/deploy, which is authored source and
+# holds the provider pipeline and Watchdog runbooks. The files already
+# tracked there were safe, but a new one would have been invisible to
+# git and would never have reached a build, which reads origin.
+/deploy/
 
 # Claude Code tool state — moved here from .git/info/exclude so the
 # ignore list is in the repository and reviewable (2026-08-10).
