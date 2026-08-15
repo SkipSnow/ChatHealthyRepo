@@ -15851,7 +15851,7 @@
               "feature_id": "EPIC-010-F-101",
               "orphan": false,
               "name": "Data Pipeline Infrastructure Requirements",
-              "status": "in_progress",
+              "status": "done",
               "description": "This feature specifies the requirements for ChatHealthy's data pipeline infrastructure. The purpose of the feature is to specify the common requirements allowing for data pipelines to be executed in the most possible cost effective manner, with robust reliability and observability.",
               "priority": "HIGH",
               "realized_by": [],
@@ -15863,7 +15863,7 @@
                     "name": "A reaper component MUST manage the Pipeline Cluster's uptime",
                     "description": "The pipeline cluster must not be running when nothing needs it.",
                     "size": "M",
-                    "status": "in_progress",
+                    "status": "done",
                     "approval": "approved",
                     "requirements": {
                       "requirement": [
@@ -15911,7 +15911,7 @@
                           "name": "An incomplete metadata correction says so",
                           "requirement": "When the Reaper cannot complete a correction pass, the pipeline job metadata MUST record that the pass was incomplete and what it did not reach, and MUST be distinguishable from a pass that completed having found nothing to correct.",
                           "priority": "must-have",
-                          "status": "not_started",
+                          "status": "done",
                           "depends_on": [],
                           "tests": {
                             "test": [
