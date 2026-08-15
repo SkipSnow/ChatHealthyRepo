@@ -342,29 +342,31 @@ class PipelineRegressionTest:
             "    say() { echo \"$(date -u +%Y-%m-%dT%H:%M:%SZ) $*\" >> $L; }\n"
             f"    say \"boot run_id={run_id}\"\n"
             "    say \"python3=$(command -v python3 || echo MISSING)\"\n"
-            # No setsid: it may fork, and then $! is its pid rather than the
-            # process it started. The pid recorded here becomes controller_pid
-            # in the metadata, and the components decide life and death by
-            # kill -0 on exactly that number, so it has to be the real one.
-            # Backgrounded children of cloud-init outlive it either way.
+            # setsid puts each process in its own session so runcmd returns
+            # at once. Without it one host of two hung in
+            # osProvisioningInProgress until Azure gave up: provisioning on
+            # these images is signalled by cloud-init finishing, so anything
+            # holding runcmd open fails the machine.
+            #
+            # setsid may fork, which makes $! its pid and not the pid of the
+            # process it started, so each process writes its own. The
+            # components ask kill -0 about that number.
             f"    export RUN_ID={run_id}\n"
-            f"    python3 -c 'import time; time.sleep({controller_seconds})' "
+            "    setsid python3 -c \"import os,time; "
+            "open('/var/log/chregtest.log','a')"
+            ".write(time.strftime('%Y-%m-%dT%H:%M:%SZ', time.gmtime()) + "
+            "' spawned controller pid=' + str(os.getpid()) + chr(10)); "
+            f"time.sleep({controller_seconds})\" "
             "--tag control_runner >/dev/null 2>&1 &\n"
-            "    say \"spawned controller pid=$!\"\n"
             "    unset RUN_ID\n"
-            "    python3 -c 'import time; time.sleep(7200)' "
+            "    setsid python3 -c \"import os,time; open('/var/log/chregtest.log','a').write(time.strftime('%Y-%m-%dT%H:%M:%SZ', time.gmtime()) + ' spawned worker pid=' + str(os.getpid()) + chr(10)); time.sleep(7200)\" "
             f"pipeline_worker --run-id {run_id} >/dev/null 2>&1 &\n"
-            "    say \"spawned worker pid=$!\"\n"
-            # One line, no escapes. Written with \\n it reached python3 -c as a
-            # literal backslash-n, died on a SyntaxError before forking, and
-            # left the host with no defunct process at all -- so the zombie
-            # assertions had nothing to find and could only ever have passed
-            # by accident.
-            "    python3 -c 'import os,time; os._exit(0) "
-            "if os.fork()==0 else time.sleep(7200)' "
+            # One statement, no escaped newline. Written with a backslash-n
+            # it reached python3 -c literally, died on a SyntaxError before
+            # forking, and left the host with no defunct process at all.
+            "    setsid python3 -c \"import os,time; open('/var/log/chregtest.log','a').write(time.strftime('%Y-%m-%dT%H:%M:%SZ', time.gmtime()) + ' spawned forker pid=' + str(os.getpid()) + chr(10)); os._exit(0) if os.fork()==0 else time.sleep(7200)\" "
             f"pipeline_worker --run-id {run_id} >/dev/null 2>&1 &\n"
-            "    say \"spawned forker pid=$!\"\n"
-            "    sleep 5\n"
+            "    sleep 6\n"
             "    say \"alive: $(ls -d /proc/[0-9]* | wc -l) procs\"\n"
             "    z=0\n"
             "    for d in /proc/[0-9]*; do\n"
@@ -374,6 +376,200 @@ class PipelineRegressionTest:
             "    say \"defunct: $z\"\n"
             "    say boot complete\n")
         return base64.b64encode(script.encode()).decode()
+
+    def _controller_pid(self, vm_name: str):
+        """The controller pid the host wrote down, or None."""
+        for line in self._host_logs.get(vm_name, []):
+            if "spawned controller pid=" in line:
+                tail = line.split("spawned controller pid=", 1)[1].strip()
+                digits = ""
+                for ch in tail:
+                    if ch.isdigit():
+                        digits += ch
+                    else:
+                        break
+                if digits:
+                    return int(digits)
+        return None
+
+    def _pid_alive(self, vm_name: str, pid) -> bool:
+        """kill -0, the same question the components ask."""
+        if pid is None:
+            return False
+        code, body = self._arm(
+            "POST",
+            f"/providers/Microsoft.Compute/virtualMachines/{vm_name}/runCommand",
+            {"commandId": "RunShellScript",
+             "script": [f"kill -0 {int(pid)} 2>/dev/null && echo RUNNING || echo GONE"]})
+        if code >= 400:
+            return False
+        for entry in body.get("value", []) or []:
+            if "RUNNING" in (entry.get("message") or ""):
+                return True
+        return False
+
+    def _host_log(self, vm_name: str) -> list:
+        """Read back what the host recorded about itself."""
+        code, body = self._arm(
+            "POST",
+            f"/providers/Microsoft.Compute/virtualMachines/{vm_name}/runCommand",
+            {"commandId": "RunShellScript",
+             "script": [f"cat {HOST_LOG} 2>/dev/null || echo 'NO HOST LOG'; "
+                        f"echo '-- cloud-init --'; "
+                        f"tail -n 15 /var/log/cloud-init-output.log 2>/dev/null"]})
+        if code >= 400:
+            return [f"could not read host log: HTTP {code}"]
+        lines = []
+        for entry in body.get("value", []) or []:
+            lines.extend((entry.get("message") or "").splitlines())
+        return [ln for ln in lines if ln.strip()]
+
+    def _log_host(self, vm_name: str) -> None:
+        """Put the host's own account of itself into the run's record."""
+        lines = self._host_log(vm_name)
+        self._host_logs[vm_name] = lines
+        for line in lines:
+            log.info("regression host %s | %s", vm_name, line)
+
+    # -- Azure ---------------------------------------------------------------
+    def _bearer(self) -> str:
+        if self._token:
+            return self._token
+        body = urllib.parse.urlencode({
+            "grant_type": "client_credentials",
+            "client_id": os.environ["PIPELINEEDITOR_AZURE_CLIENT_ID"],
+            "client_secret": os.environ["PIPELINEEDITOR_AZURE_CLIENT_SECRET"],
+            "scope": f"{ARM}/.default"}).encode()
+        req = urllib.request.Request(
+            "https://login.microsoftonline.com/"
+            f"{os.environ['PIPELINEEDITOR_AZURE_TENANT_ID']}/oauth2/v2.0/token",
+            data=body,
+            headers={"Content-Type": "application/x-www-form-urlencoded"})
+        with urllib.request.urlopen(req, timeout=20) as resp:
+            self._token = json.loads(resp.read().decode("utf-8"))["access_token"]
+        return self._token
+
+    def _arm(self, method, path, body=None, api="2024-03-01", timeout=180):
+        url = (f"{ARM}/subscriptions/{SUBSCRIPTION}/resourceGroups/"
+               f"{RESOURCE_GROUP}{path}?api-version={api}")
+        data = json.dumps(body).encode("utf-8") if body is not None else None
+        req = urllib.request.Request(
+            url, data=data, method=method,
+            headers={"Authorization": f"Bearer {self._bearer()}",
+                     "Content-Type": "application/json"})
+        try:
+            with urllib.request.urlopen(req, timeout=timeout) as resp:
+                raw = resp.read().decode("utf-8")
+                return resp.status, (json.loads(raw) if raw else {})
+        except urllib.error.HTTPError as exc:
+            try:
+                return exc.code, json.loads(exc.read().decode("utf-8"))
+            except Exception:  # noqa: BLE001
+                return exc.code, {}
+
+    def _create_vm(self, vm_name: str, run_id: str,
+                   controller_seconds: int = 7200) -> None:
+        nic = f"{vm_name}-nic"
+        subnet = (f"/subscriptions/{SUBSCRIPTION}/resourceGroups/{RESOURCE_GROUP}"
+                  f"/providers/Microsoft.Network/virtualNetworks/{VNET}"
+                  f"/subnets/{SUBNET}")
+        code, body = self._arm(
+            "PUT", f"/providers/Microsoft.Network/networkInterfaces/{nic}",
+            {"location": LOCATION,
+             "tags": {"purpose": MARKER},
+             "properties": {"ipConfigurations": [
+                 {"name": "ipcfg",
+                  "properties": {"subnet": {"id": subnet},
+                                 "privateIPAllocationMethod": "Dynamic"}}]}},
+            api="2023-09-01")
+        if code >= 400:
+            _raise_azure("network interface", nic, code, body)
+        self._created.append(("nic", nic))
+        nic_id = body["id"]
+
+        admin_user = os.environ.get("AZ_VM_ADMIN_USERNAME", "").strip()
+        admin_key = os.environ.get("AZ_VM_ADMIN_SSH_PUBKEY", "").strip()
+        if not admin_user or not admin_key:
+            _raise_azure("virtual machine", vm_name, 0,
+                         {"error": "AZ_VM_ADMIN_USERNAME or AZ_VM_ADMIN_SSH_PUBKEY "
+                                   "is not set; a VM PUT with an empty key is "
+                                   "rejected by Azure"})
+        code, body = self._arm(
+            "PUT", f"/providers/Microsoft.Compute/virtualMachines/{vm_name}",
+            {"location": LOCATION,
+             "tags": {"pipeline_run_id": run_id, "purpose": MARKER},
+             "properties": {
+                 "hardwareProfile": {"vmSize": VM_SIZE},
+                 "storageProfile": {
+                     "imageReference": {
+                         "publisher": "Canonical",
+                         "offer": "0001-com-ubuntu-server-jammy",
+                         "sku": "22_04-lts-gen2", "version": "latest"},
+                     "osDisk": {"createOption": "FromImage",
+                                "deleteOption": "Delete"}},
+                 "osProfile": {
+                     "computerName": vm_name[:15],
+                     "adminUsername": admin_user,
+                     "customData": self._cloud_init(run_id, controller_seconds),
+                     "linuxConfiguration": {
+                         "disablePasswordAuthentication": True,
+                         "ssh": {"publicKeys": [{
+                             "path": f"/home/{admin_user}/.ssh/authorized_keys",
+                             "keyData": admin_key}]}}},
+                 "networkProfile": {"networkInterfaces": [
+                     {"id": nic_id, "properties": {"deleteOption": "Delete"}}]}}})
+        if code >= 400:
+            _raise_azure("virtual machine", vm_name, code, body)
+        self._created.append(("vm", vm_name))
+        log.info("regression: created %s for %s", vm_name, run_id)
+
+    def _vm_state(self, vm_name: str) -> str:
+        """Provisioning and agent state, for the log."""
+        code, body = self._arm(
+            "GET",
+            f"/providers/Microsoft.Compute/virtualMachines/{vm_name}/instanceView")
+        if code >= 400:
+            return f"instanceView HTTP {code}"
+        power = ",".join(s.get("code", "") for s in body.get("statuses", []) or [])
+        agent = (body.get("vmAgent") or {}).get("statuses") or []
+        return f"{power} agent={agent[0].get('displayStatus') if agent else 'none'}"
+
+    def _wait_ready(self, vm_name: str, minutes: int = 8) -> bool:
+        """Ready means the host answers the call the test is about to make.
+
+        Reading readiness off the vmAgent status field cost a full 12-minute
+        wait and a failed run: the field carries code
+        'ProvisioningState/succeeded' and says 'Ready' only in displayStatus,
+        so the condition was unsatisfiable while both hosts were up. Running
+        the command settles it by observation, and the host is ready exactly
+        when the thing that needs it works.
+
+        Every attempt is logged. Silence for eight minutes is indistinguishable
+        from a hung run, and a host the platform is slow to bring up should say
+        so while it happens rather than only in the failure.
+        """
+        deadline = time.time() + minutes * 60
+        started = time.time()
+        attempt = 0
+        while time.time() < deadline:
+            attempt += 1
+            code, body = self._arm(
+                "POST",
+                f"/providers/Microsoft.Compute/virtualMachines/{vm_name}/runCommand",
+                {"commandId": "RunShellScript", "script": ["echo ready"]})
+            if code < 400:
+                for entry in body.get("value", []) or []:
+                    if "ready" in (entry.get("message") or ""):
+                        log.info("regression: %s answered after %ds (%d attempts)",
+                                 vm_name, int(time.time() - started), attempt)
+                        return True
+            log.info("regression: waiting on %s %ds/%ds -- run command HTTP %s, %s",
+                     vm_name, int(time.time() - started), minutes * 60, code,
+                     self._vm_state(vm_name))
+            time.sleep(15)
+        log.info("regression: %s never answered in %d minutes -- %s",
+                 vm_name, minutes, self._vm_state(vm_name))
+        return False
 
     def _controller_pid(self, vm_name: str):
         """The controller pid the host wrote down, or None."""
