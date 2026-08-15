@@ -397,7 +397,7 @@ class PipelineRegressionTest:
                 return 200, (body.get("properties") or {}).get("output") or body
             log.info("regression: %s run command %s %ds/%ds",
                      vm_name, state or "in progress", waited, minutes * 60)
-            time.sleep(5)
+            time.sleep(10)
         return 0, {"error": "run command did not finish"}
 
     def _absolute_get(self, url: str, timeout: int = 60):

@@ -72,6 +72,14 @@ class JobVerdict:
 # Update VM throttle bucket: twelve burst, four a minute, per VM.
 _RUN_COMMAND_TRIES = 8
 _RUN_COMMAND_BUSY_WAIT_SECONDS = 10
+# Fifteen minutes: the interval between scheduled ticks. A tick that polls the
+# full bound does overlap its successor, since it spends time getting there --
+# but only just, and only two can ever be in flight, which needs the second to
+# also run long. Azure's own limit is ninety minutes, which would hang a
+# scheduled reaper for an hour and a half. Observed completions are 10 to 20
+# seconds, so this bound is reached only by something genuinely wrong -- and it
+# says so rather than returning an unknown that leaves a dead run alone.
+_RUN_COMMAND_MAX_MINUTES = 15
 
 
 class ChatHealthyPipelineJobStatus:
@@ -467,7 +475,7 @@ done
             return {}
         return self._await_async(async_url)
 
-    def _await_async(self, url: str, minutes: int = 5) -> dict:
+    def _await_async(self, url: str, minutes: int = _RUN_COMMAND_MAX_MINUTES) -> dict:
         """Poll an accepted operation, by whichever protocol Azure gave us.
 
         Two exist, and this API documents the one that is easy to miss.
@@ -499,7 +507,15 @@ done
                 return body
             self._log.info("job status: run command %s %ds/%ds",
                            state or f"HTTP {code}", waited, minutes * 60)
-            time.sleep(5)
+            # Ten seconds. Operation polling draws on its own throttle bucket
+            # -- fifteen a minute refill, forty-five burst, per resource -- and
+            # the reaper and the Watchdog poll their own operations at the same
+            # time. A five-second poll is twelve a minute from one caller alone.
+            time.sleep(10)
+        # Azure's own maximum for a run command, not a number chosen here.
+        # A ceiling shorter than the operation invents a verdict: the caller
+        # gets nothing, reads it as unknown, and leaves a dead run alone --
+        # which is the failure this whole path exists to prevent.
         self._log.warning("job status: run command did not finish in %d minutes",
                           minutes)
         return {}

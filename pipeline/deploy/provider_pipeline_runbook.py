@@ -353,7 +353,11 @@ def _release_pipeline_lock(mongo, pipeline_name: str, run_id: str) -> None:
     coll.delete_one({"_id": _pipeline_lock_id(pipeline_name), "run_id": run_id})
 
 
-RESERVATION_TTL_HOURS = 10
+# A production run over every state outlives a ten-hour lease. The
+# reservation is what tells the reaper the run is legitimately alive;
+# when it lapses under a run that is still working, the reaper is right
+# to reap it and the run loses its cluster.
+RESERVATION_TTL_HOURS = 24
 
 
 def _reservation_short_id(run_id: str) -> str:
