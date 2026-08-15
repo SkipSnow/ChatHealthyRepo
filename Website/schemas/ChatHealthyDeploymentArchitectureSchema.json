@@ -1270,6 +1270,16 @@
                       "type": "string",
                       "minLength": 1,
                       "maxLength": 256
+                    },
+                    "app_id": {
+                      "type": "string",
+                      "description": "Entra application id. Identifies a service principal.",
+                      "pattern": "^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$"
+                    },
+                    "object_id": {
+                      "type": "string",
+                      "description": "Entra object id of the principal. What a role assignment names.",
+                      "pattern": "^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$"
                     }
                   },
                   "allOf": [
@@ -1277,7 +1287,7 @@
                       "if": {
                         "properties": {
                           "identity_class": {
-                            "const": "azure_managed_identity"
+                            "const": "managed_identity"
                           }
                         }
                       },
@@ -1291,14 +1301,13 @@
                       "if": {
                         "properties": {
                           "identity_class": {
-                            "const": "entra_user"
+                            "const": "user"
                           }
                         }
                       },
                       "then": {
                         "required": [
-                          "user_principal_name",
-                          "tenant_id"
+                          "user_principal_name"
                         ]
                       }
                     },
@@ -1306,13 +1315,13 @@
                       "if": {
                         "properties": {
                           "identity_class": {
-                            "const": "azure_service_principal"
+                            "const": "service_principal"
                           }
                         }
                       },
                       "then": {
                         "required": [
-                          "tenant_id"
+                          "object_id"
                         ]
                       }
                     }
