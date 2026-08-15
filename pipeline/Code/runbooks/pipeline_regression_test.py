@@ -149,8 +149,8 @@ class PipelineRegressionTest:
             # read as "this run is over" -- so the assertion that the live run
             # is spared would have failed while they behaved perfectly, and
             # argued for teaching them to leave dead runs alone.
-            self._create_vm(dead_vm, dead_run)
-            self._create_vm(live_vm, live_run)
+            self._create_vm(dead_vm, dead_run, controller_seconds=20)
+            self._create_vm(live_vm, live_run, controller_seconds=7200)
             dead_ready = self._wait_ready(dead_vm)
             live_ready = self._wait_ready(live_vm)
             for vm in (dead_vm, live_vm):
@@ -161,6 +161,33 @@ class PipelineRegressionTest:
                                       dead_ready and live_ready, detail))
             if not (dead_ready and live_ready):
                 return checks
+
+            # The pid the host actually got, written where the components
+            # look for it. Without it verdict() reads "no pid recorded" and
+            # answers RUNNING for everything, which is why no forgery this
+            # test made was ever eligible to be reaped.
+            for run, vm in ((dead_run, dead_vm), (live_run, live_vm)):
+                pid = self._controller_pid(vm)
+                if pid is None:
+                    checks.append(self._check(
+                        "the host recorded its controller pid", False,
+                        detail=f"{vm}: no pid line in the host log"))
+                    return checks
+                self._db["pipeline.runs"].update_one(
+                    {"run_id": run}, {"$set": {"controller_pid": pid}})
+                self._db["cluster_lifecycle"].update_one(
+                    {"_id": run}, {"$set": {"controller_pid": pid}})
+                log.info("regression: %s controller_pid=%s", run, pid)
+            checks.append(self._check("the host recorded its controller pid", True))
+
+            dead_pid_gone = not self._pid_alive(dead_vm, self._controller_pid(dead_vm))
+            checks.append(self._check(
+                "the dead run's controller has exited", dead_pid_gone,
+                detail=f"pid {self._controller_pid(dead_vm)} on {dead_vm}"))
+            live_pid_alive = self._pid_alive(live_vm, self._controller_pid(live_vm))
+            checks.append(self._check(
+                "the live run's controller is still up", live_pid_alive,
+                detail=f"pid {self._controller_pid(live_vm)} on {live_vm}"))
 
             seen = self._processes_on(dead_vm)
             checks.append(self._check(
@@ -287,8 +314,15 @@ class PipelineRegressionTest:
              "regression_test": True}, upsert=True)
         log.info("regression: metadata written dead=%s live=%s", dead_run, live_run)
 
-    def _cloud_init(self, run_id: str) -> str:
+    def _cloud_init(self, run_id: str, controller_seconds: int = 7200) -> str:
         """Processes that only pretend to be the pipeline's.
+
+        controller_seconds is what makes a run dead or alive. These components
+        decide by kill -0 on the recorded controller_pid, so a dead run is one
+        whose controller has exited while its workers and its defunct child
+        are still on the host. Nothing else expresses that: a stale heartbeat
+        does not, and the earlier forgery, which left a live controller on the
+        dead host, described a healthy run the components were right to spare.
 
         One carries its run id the way a Controller does, in the environment;
         one the way a worker does, in argv; and one forks a child that exits
@@ -308,22 +342,69 @@ class PipelineRegressionTest:
             "    say() { echo \"$(date -u +%Y-%m-%dT%H:%M:%SZ) $*\" >> $L; }\n"
             f"    say \"boot run_id={run_id}\"\n"
             "    say \"python3=$(command -v python3 || echo MISSING)\"\n"
+            # No setsid: it may fork, and then $! is its pid rather than the
+            # process it started. The pid recorded here becomes controller_pid
+            # in the metadata, and the components decide life and death by
+            # kill -0 on exactly that number, so it has to be the real one.
+            # Backgrounded children of cloud-init outlive it either way.
             f"    export RUN_ID={run_id}\n"
-            "    setsid python3 -c 'import time; time.sleep(7200)' "
-            "--tag control_runner &\n"
+            f"    python3 -c 'import time; time.sleep({controller_seconds})' "
+            "--tag control_runner >/dev/null 2>&1 &\n"
             "    say \"spawned controller pid=$!\"\n"
             "    unset RUN_ID\n"
-            "    setsid python3 -c 'import time; time.sleep(7200)' "
-            f"pipeline_worker --run-id {run_id} &\n"
+            "    python3 -c 'import time; time.sleep(7200)' "
+            f"pipeline_worker --run-id {run_id} >/dev/null 2>&1 &\n"
             "    say \"spawned worker pid=$!\"\n"
-            "    setsid python3 -c 'import os,time\\nif os.fork()==0: os._exit(0)\\n"
-            "time.sleep(7200)' "
-            f"pipeline_worker --run-id {run_id} &\n"
+            # One line, no escapes. Written with \\n it reached python3 -c as a
+            # literal backslash-n, died on a SyntaxError before forking, and
+            # left the host with no defunct process at all -- so the zombie
+            # assertions had nothing to find and could only ever have passed
+            # by accident.
+            "    python3 -c 'import os,time; os._exit(0) "
+            "if os.fork()==0 else time.sleep(7200)' "
+            f"pipeline_worker --run-id {run_id} >/dev/null 2>&1 &\n"
             "    say \"spawned forker pid=$!\"\n"
-            "    sleep 3\n"
-            "    say \"live now: $(ls -d /proc/[0-9]* | wc -l) procs\"\n"
+            "    sleep 5\n"
+            "    say \"alive: $(ls -d /proc/[0-9]* | wc -l) procs\"\n"
+            "    z=0\n"
+            "    for d in /proc/[0-9]*; do\n"
+            "      st=$(awk '{print $3}' $d/stat 2>/dev/null)\n"
+            "      [ \"$st\" = \"Z\" ] && z=$((z+1))\n"
+            "    done\n"
+            "    say \"defunct: $z\"\n"
             "    say boot complete\n")
         return base64.b64encode(script.encode()).decode()
+
+    def _controller_pid(self, vm_name: str):
+        """The controller pid the host wrote down, or None."""
+        for line in self._host_logs.get(vm_name, []):
+            if "spawned controller pid=" in line:
+                tail = line.split("spawned controller pid=", 1)[1].strip()
+                digits = ""
+                for ch in tail:
+                    if ch.isdigit():
+                        digits += ch
+                    else:
+                        break
+                if digits:
+                    return int(digits)
+        return None
+
+    def _pid_alive(self, vm_name: str, pid) -> bool:
+        """kill -0, the same question the components ask."""
+        if pid is None:
+            return False
+        code, body = self._arm(
+            "POST",
+            f"/providers/Microsoft.Compute/virtualMachines/{vm_name}/runCommand",
+            {"commandId": "RunShellScript",
+             "script": [f"kill -0 {int(pid)} 2>/dev/null && echo RUNNING || echo GONE"]})
+        if code >= 400:
+            return False
+        for entry in body.get("value", []) or []:
+            if "RUNNING" in (entry.get("message") or ""):
+                return True
+        return False
 
     def _host_log(self, vm_name: str) -> list:
         """Read back what the host recorded about itself."""
@@ -384,7 +465,8 @@ class PipelineRegressionTest:
             except Exception:  # noqa: BLE001
                 return exc.code, {}
 
-    def _create_vm(self, vm_name: str, run_id: str) -> None:
+    def _create_vm(self, vm_name: str, run_id: str,
+                   controller_seconds: int = 7200) -> None:
         nic = f"{vm_name}-nic"
         subnet = (f"/subscriptions/{SUBSCRIPTION}/resourceGroups/{RESOURCE_GROUP}"
                   f"/providers/Microsoft.Network/virtualNetworks/{VNET}"
@@ -426,7 +508,7 @@ class PipelineRegressionTest:
                  "osProfile": {
                      "computerName": vm_name[:15],
                      "adminUsername": admin_user,
-                     "customData": self._cloud_init(run_id),
+                     "customData": self._cloud_init(run_id, controller_seconds),
                      "linuxConfiguration": {
                          "disablePasswordAuthentication": True,
                          "ssh": {"publicKeys": [{
