@@ -17,6 +17,7 @@ from __future__ import annotations
 
 import json
 import os
+import time
 import urllib.error
 import urllib.parse
 import urllib.request
@@ -408,10 +409,51 @@ done
             return json.loads(resp.read().decode("utf-8"))
 
     def _post(self, url: str, payload: dict) -> dict:
+        """POST, and follow an accepted operation to its result.
+
+        runCommand is asynchronous: it answers 202 with an empty body and the
+        result is reached by polling the Azure-AsyncOperation URL from the
+        response headers. Returning the 202 body meant every run command this
+        service ever made came back empty, so _pid_running found neither
+        RUNNING nor GONE and answered None -- every verdict was UNKNOWN, no
+        controller was ever observed to have died, and the reaper and Watchdog
+        never acted on one. Reading the host was inert from the day it was
+        written.
+        """
         req = urllib.request.Request(
             url, data=json.dumps(payload).encode("utf-8"), method="POST",
             headers={"Authorization": f"Bearer {self._bearer()}",
                      "Content-Type": "application/json"})
         with urllib.request.urlopen(req, timeout=180) as resp:
             raw = resp.read().decode("utf-8")
-        return json.loads(raw) if raw else {}
+            status = resp.status
+            headers = dict(resp.headers)
+        if status != 202:
+            return json.loads(raw) if raw else {}
+        async_url = (headers.get("Azure-AsyncOperation")
+                     or headers.get("Location"))
+        if not async_url:
+            self._log.warning("job status: 202 with no async operation url")
+            return {}
+        return self._await_async(async_url)
+
+    def _await_async(self, url: str, minutes: int = 10) -> dict:
+        """Poll an accepted operation until it reaches a terminal state."""
+        deadline = time.time() + minutes * 60
+        started = time.time()
+        while time.time() < deadline:
+            body = self._get(url)
+            state = str(body.get("status") or "").lower()
+            waited = int(time.time() - started)
+            if state in ("succeeded", "failed", "canceled"):
+                self._log.info("job status: run command %s after %ds",
+                               state, waited)
+                if state != "succeeded":
+                    return {}
+                return (body.get("properties") or {}).get("output") or body
+            self._log.info("job status: run command %s %ds/%ds",
+                           state or "in progress", waited, minutes * 60)
+            time.sleep(5)
+        self._log.warning("job status: run command did not finish in %d minutes",
+                          minutes)
+        return {}
