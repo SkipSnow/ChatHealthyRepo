@@ -465,37 +465,6 @@ def _reap_stuck_pipeline_lock(coll, runs_coll, row, now_aware, status):
                     run_id, ex)
     return True
 
-def _r1_work_pending(client):
-    """Does any job still need the cluster?
-
-    Answered from pipelineAdmin, which the reaper already reads and which
-    pipelineEditor is entitled to. This replaced a call to the Atlas
-    dbAccessHistory endpoint, which needed a project-owner credential the
-    constrained key does not hold and answered a different question: it
-    reports connections, which include the reaper's own and any operator
-    tool, where the pause decision turns on demand.
-
-    A run or a work item that is not terminal is demand, whether or not
-    anything is connected at this instant -- a Controller between steps has
-    no open cursor and still needs the cluster to come back to.
-    """
-    db = client[PIPELINE_ADMIN_DB]
-    runs = db["pipeline.runs"].count_documents(
-        {"status": {"$nin": list(_TERMINAL_RUN_STATUSES)}}, limit=1)
-    if runs:
-        log.info("R1: a run is not terminal; the cluster is in use")
-        return True
-    items = db["pipeline.work_items"].count_documents(
-        {"status": {"$nin": list(_TERMINAL_ITEM_STATUSES)}}, limit=1)
-    if items:
-        log.info("R1: a work item is not terminal; the cluster is in use")
-        return True
-    return False
-
-
-_PASS = None
-
-
 def _main():
     now = datetime.now(timezone.utc)
 
@@ -583,19 +552,14 @@ def _main():
     # lower-precedence confirmatory signal that only runs once the queue is empty:
     # a run or work item still going without a reservation means a job lost its
     # reservation while alive, so hold the pause and say so.
-    should_pause = False
-    pause_reason = ""
+    # The reservation is the only signal. No live reservation means nothing
+    # has claimed the cluster, and it is paused -- whether or not something is
+    # connected to it, and whether or not a run thinks it is still going.
+    # A job that works without reserving is a job with a defect, and paying to
+    # keep a cluster warm for it teaches nobody anything.
+    should_pause = not live
+    pause_reason = "no_live_reservations" if should_pause else ""
     client_active = None
-    if not live:
-        client_active = _r1_work_pending(client)
-        if not client_active:
-            should_pause = True
-            pause_reason = "no_live_reservations"
-        else:
-            pause_reason = "no_reservations_but_work_pending"
-            log.warning("Pause withheld: no live reservation, but a run or "
-                        "work item is not terminal -- a job lost its "
-                        "reservation while still going")
 
     cluster_state = "UNKNOWN"
     paused = False
