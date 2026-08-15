@@ -56,6 +56,7 @@ except ImportError:
 
 from chathealthy_lib.logging_service import ChatHealthyLoggingService
 from chathealthy_lib.mongo_utilities import ChatHealthyMongoUtilities
+from chathealthy_lib.azure_host import ChatHealthyAzureHost
 import os
 import sys
 import json
@@ -91,6 +92,7 @@ try:
               "ATLAS_PROJECT_ID", "ENV_PREFIX", "PIPELINE_CLUSTER",
               "CH_LOG_DB", "KEY_VAULT_URI",
               "AZ_SUBSCRIPTION_ID", "AZ_RESOURCE_GROUP", "AZ_AUTOMATION_ACCOUNT",
+              "AZ_VM_RESOURCE_GROUP",
               "SPARKMAIL_API_KEY",
               "NOTIFICATION_FROM_EMAIL", "NOTIFICATION_TO_EMAIL",
               # The library resolves a credential by identity name; without
@@ -300,6 +302,28 @@ _TERMINAL_RUN_STATUSES = {"succeeded", "failed", "aborted", "completed"}
 _TERMINAL_ITEM_STATUSES = {"done", "succeeded", "failed", "complete", "completed"}
 
 
+def _host_is_dead(coll, run_id) -> bool:
+    """Has the run's host or Controller process gone?
+
+    A live reservation says only that nobody has waited long enough for it to
+    expire. This asks Azure what is true now. An unknown answer is not a death
+    -- an Azure that will not answer is no evidence a run has stopped -- so
+    only a definite verdict reaps.
+    """
+    reservation = coll.find_one({"_id": run_id}) or {}
+    vm_name = reservation.get("vm_name")
+    if not vm_name:
+        return False
+    verdict = ChatHealthyAzureHost().verdict(vm_name, reservation.get("controller_pid"))
+    if verdict.is_dead:
+        log.info("Run %s is over: %s", run_id, verdict.detail)
+        return True
+    if not verdict.is_known:
+        log.info("Run %s host state unknown (%s); leaving the reservation alone",
+                 run_id, verdict.detail)
+    return False
+
+
 def _reap_stuck_pipeline_lock(coll, runs_coll, row, now_aware):
     """Reap a pipeline_lock row iff its run holds no live reservation.
 
@@ -342,8 +366,8 @@ def _reap_stuck_pipeline_lock(coll, runs_coll, row, now_aware):
         if expiry is not None:
             if getattr(expiry, "tzinfo", None) is None:
                 expiry = expiry.replace(tzinfo=timezone.utc)
-            if expiry > now_aware:
-                return False  # The run holds a live reservation.
+            if expiry > now_aware and not _host_is_dead(coll, run_id):
+                return False  # The run holds a live reservation and is running.
         log.info(
             "Reaping stuck pipeline_lock: _id=%s run_id=%s age_min=%.1f "
             "status=%s reservation_expiry=%s",
