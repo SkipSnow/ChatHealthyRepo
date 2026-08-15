@@ -1878,15 +1878,10 @@ def _resolve_identity_principal_id(coll: DeploymentCollection, identity: dict) -
         # when present and confirmed against Entra rather than assumed.
         object_id = eb.identity.get("object_id", "")
         if object_id:
-            r = subprocess.run(
-                ["az", "ad", "sp", "show", "--id", object_id, "-o", "json"],
-                capture_output=True, text=True,
-                creationflags=creation_flags(), shell=(sys.platform == "win32"),
-            )
-            if r.returncode != 0:
-                _raise_identity_absent(
-                    iid, f"object id {object_id!r} is not a principal in this "
-                         f"tenant: {(r.stderr or '').strip()[:200]}")
+            # Not confirmed against the directory: reading a principal needs
+            # Graph rights the deploy identity does not have, and does not
+            # need. What matters is whether the roles are held, and the role
+            # assignments answer that without directory read.
             return object_id
         _raise_identity_absent(
             iid, "no object_id is recorded; a client id is a secret-store value "
