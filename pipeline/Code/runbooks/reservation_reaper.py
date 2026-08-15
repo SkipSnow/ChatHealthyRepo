@@ -93,6 +93,14 @@ try:
               "CH_LOG_DB", "KEY_VAULT_URI",
               "AZ_SUBSCRIPTION_ID", "AZ_RESOURCE_GROUP", "AZ_AUTOMATION_ACCOUNT",
               "AZ_VM_RESOURCE_GROUP",
+              # The names of the group the hosts are actually in. Without
+              # these the job-status library falls back to
+              # AZ_VM_RESOURCE_GROUP, which names a group that does not
+              # exist: every instanceView answered 404, every verdict came
+              # back unknown, and a run whose Controller had died was left
+              # running because its host could not be found. The Watchdog
+              # hydrates them; this did not.
+              "AUTOMATION_SUBSCRIPTION_ID", "AUTOMATION_RESOURCE_GROUP",
               "SPARKMAIL_API_KEY",
               "NOTIFICATION_FROM_EMAIL", "NOTIFICATION_TO_EMAIL",
               # The library resolves a credential by identity name; without
