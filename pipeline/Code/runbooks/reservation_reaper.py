@@ -473,12 +473,12 @@ def _main():
                        headers=ATLAS_HEADERS, timeout=15)
     pre_state = pre.json().get("stateName", "UNKNOWN")
     pre_paused = pre.json().get("paused", False)
-    if pre_state == "IDLE" and pre_paused:
-        msg = ("Reaper tick: reaped=0, live_remaining=0, work_pending=False, "
-               "cluster_state=PAUSED, paused=True, reason=already_paused")
-        log.info(msg)
-        ChatHealthyLoggingService().info(msg)
-        return None
+    # A paused cluster means there is nothing to pause. It does not mean there
+    # is nothing to correct: expired reservations, orphaned runs and stale
+    # locks are metadata, and they go on being wrong while the cluster is
+    # down. Returning here skipped every one of them, so a tick reading
+    # "already_paused" was a tick that did no work at all.
+    already_paused = pre_state == "IDLE" and pre_paused
 
     # Uses pipelineEditor identity to access frontend cluster resources
     client = ChatHealthyMongoUtilities().getConnection("pipelineEditor", "admin")
@@ -557,8 +557,9 @@ def _main():
     # connected to it, and whether or not a run thinks it is still going.
     # A job that works without reserving is a job with a defect, and paying to
     # keep a cluster warm for it teaches nobody anything.
-    should_pause = not live
-    pause_reason = "no_live_reservations" if should_pause else ""
+    should_pause = (not live) and not already_paused
+    pause_reason = ("no_live_reservations" if should_pause
+                    else "already_paused" if already_paused else "")
     client_active = None
 
     cluster_state = "UNKNOWN"
