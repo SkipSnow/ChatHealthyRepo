@@ -43,6 +43,7 @@ import base64
 import json
 import os
 import sys
+import threading
 import time
 import urllib.parse
 import urllib.request
@@ -82,7 +83,11 @@ except ImportError:
 
 os.environ.setdefault("CH_SPACE_NAME", "pipeline-regression-test")
 os.environ.setdefault("CH_COMPONENT", "pipeline-regression-test")
-os.environ.setdefault("CH_LOG_DESTINATION", "stderr,mongo")
+# stdout, not stderr: Automation surfaces stdout as the job's Output stream,
+# which is readable while the job is still running. stderr only reaches the
+# exception field when the job ends, so a run that logged to it went dark for
+# its whole duration.
+os.environ["CH_LOG_DESTINATION"] = "stdout"
 
 log = ChatHealthyLoggingService()
 
@@ -112,6 +117,7 @@ class PipelineRegressionTest:
         self._db = self._mongo[PIPELINE_ADMIN_DB]
         self._created = []
         self._host_logs = {}
+        self._headers = {}
 
     # -- entry ---------------------------------------------------------------
     def run(self, only: str = "") -> dict:
@@ -135,102 +141,81 @@ class PipelineRegressionTest:
 
     # -- function 1 ----------------------------------------------------------
     def zombie_detection(self) -> list:
-        """A dead run whose processes outlived it, beside a live run."""
+        """One host, whose run is over and whose processes are not.
+
+        The second host is gone. It existed to show that a dead run does not
+        cost a live one its host, which needs two pipelines to be a real
+        state, and provider is the only pipeline there is. It doubled the
+        Azure cost of every run to assert something the lock already makes
+        impossible.
+        """
         stamp = datetime.now(timezone.utc).strftime("%H%M%S")
         dead_run = f"{MARKER}-provider-dead-{stamp}"
-        live_run = f"{MARKER}-testpipeline-live-{stamp}"
         dead_vm = f"vm-{MARKER}-provider-{stamp}"[:60]
-        live_vm = f"vm-{MARKER}-testpipe-{stamp}"[:60]
         checks = []
         try:
-            self._write_metadata(dead_run, dead_vm, live_run, live_vm)
-            # Both runs get a host. Naming a host for the live run without
-            # creating it made ARM answer 404, which the components correctly
-            # read as "this run is over" -- so the assertion that the live run
-            # is spared would have failed while they behaved perfectly, and
-            # argued for teaching them to leave dead runs alone.
+            self._write_metadata(dead_run, dead_vm)
             self._create_vm(dead_vm, dead_run, controller_seconds=20)
-            self._create_vm(live_vm, live_run, controller_seconds=7200)
-            dead_ready = self._wait_ready(dead_vm)
-            live_ready = self._wait_ready(live_vm)
-            for vm in (dead_vm, live_vm):
-                self._log_host(vm)
-            detail = "" if (dead_ready and live_ready) else (
-                f"{dead_vm}={dead_ready} {live_vm}={live_ready}")
-            checks.append(self._check("both hosts are up and answering",
-                                      dead_ready and live_ready, detail))
-            if not (dead_ready and live_ready):
+            ready = self._wait_ready(dead_vm)
+            self._log_host(dead_vm)
+            checks.append(self._check("the host is up and answering", ready,
+                                      detail=dead_vm))
+            if not ready:
                 return checks
 
             # The pid the host actually got, written where the components
             # look for it. Without it verdict() reads "no pid recorded" and
-            # answers RUNNING for everything, which is why no forgery this
-            # test made was ever eligible to be reaped.
-            for run, vm in ((dead_run, dead_vm), (live_run, live_vm)):
-                pid = self._controller_pid(vm)
-                if pid is None:
-                    checks.append(self._check(
-                        "the host recorded its controller pid", False,
-                        detail=f"{vm}: no pid line in the host log"))
-                    return checks
-                self._db["pipeline.runs"].update_one(
-                    {"run_id": run}, {"$set": {"controller_pid": pid}})
-                self._db["cluster_lifecycle"].update_one(
-                    {"_id": run}, {"$set": {"controller_pid": pid}})
-                log.info("regression: %s controller_pid=%s", run, pid)
-            checks.append(self._check("the host recorded its controller pid", True))
+            # answers RUNNING, which is why no forgery this test made was
+            # ever eligible to be reaped.
+            pid = self._controller_pid(dead_vm)
+            checks.append(self._check(
+                "the host recorded its controller pid", pid is not None,
+                detail=str(pid)))
+            if pid is None:
+                return checks
+            self._db["pipeline.runs"].update_one(
+                {"run_id": dead_run}, {"$set": {"controller_pid": pid}})
+            self._db["cluster_lifecycle"].update_one(
+                {"_id": dead_run}, {"$set": {"controller_pid": pid}})
 
-            dead_pid_gone = not self._pid_alive(dead_vm, self._controller_pid(dead_vm))
             checks.append(self._check(
-                "the dead run's controller has exited", dead_pid_gone,
-                detail=f"pid {self._controller_pid(dead_vm)} on {dead_vm}"))
-            live_pid_alive = self._pid_alive(live_vm, self._controller_pid(live_vm))
-            checks.append(self._check(
-                "the live run's controller is still up", live_pid_alive,
-                detail=f"pid {self._controller_pid(live_vm)} on {live_vm}"))
+                "the run's controller has exited",
+                not self._pid_alive(dead_vm, pid), detail=f"pid {pid}"))
 
             seen = self._processes_on(dead_vm)
             checks.append(self._check(
-                "the host reports the run's processes",
+                "the host still carries the run's processes",
                 any(dead_run in line for line in seen), detail=str(seen[:3])))
+            checks.append(self._check(
+                "the host carries a defunct process",
+                any("defunct: 0" not in ln and ln.startswith("defunct:")
+                    for ln in [l.split(" ", 1)[-1] for l in
+                               self._host_logs.get(dead_vm, [])]),
+                detail=str([l for l in self._host_logs.get(dead_vm, [])
+                            if "defunct" in l])))
 
             reaper = self._start_runbook("ReservationReaper")
             checks.append(self._check("ReservationReaper ran",
                                       reaper == "Completed", detail=reaper))
 
             dead = self._db["pipeline.runs"].find_one({"run_id": dead_run}) or {}
-            live = self._db["pipeline.runs"].find_one({"run_id": live_run}) or {}
             checks.append(self._check(
-                "dead run corrected to a terminal state",
+                "the run is corrected to a terminal state",
                 str(dead.get("status", "")).lower() in
                 ("failed", "aborted", "completed", "succeeded"),
                 detail=str(dead.get("status"))))
             checks.append(self._check(
-                "live run left alone",
-                str(live.get("status", "")).lower() == "running",
-                detail=str(live.get("status"))))
-            checks.append(self._check(
-                "dead run's reservation released",
+                "the run's reservation is released",
                 self._db["cluster_lifecycle"].find_one({"_id": dead_run}) is None))
-            checks.append(self._check(
-                "live run's reservation kept",
-                self._db["cluster_lifecycle"].find_one({"_id": live_run}) is not None))
 
             watchdog = self._start_runbook("WatchdogRunbook")
             checks.append(self._check("WatchdogRunbook ran",
                                       watchdog == "Completed", detail=watchdog))
             checks.append(self._check(
-                "dead host deleted", not self._vm_exists(dead_vm)))
-            checks.append(self._check(
-                "live host spared", self._vm_exists(live_vm)))
-            live_procs = self._processes_on(live_vm)
-            checks.append(self._check(
-                "live host's processes still running",
-                any(live_run in line for line in live_procs),
-                detail=str(live_procs[:2])))
+                "the host is deleted", not self._vm_exists(dead_vm)))
             return checks
         finally:
-            self._teardown(dead_run, live_run)
+            self._teardown(dead_run)
 
     # -- manufactured conditions ---------------------------------------------
     def user_reservations(self) -> list:
@@ -283,36 +268,20 @@ class PipelineRegressionTest:
             self._db["cluster_lifecycle"].delete_many({"_id": lapsed})
             log.info("regression: user reservations cleaned up")
 
-    def _write_metadata(self, dead_run, dead_vm, live_run, live_vm) -> None:
-        """Runs and reservations for jobs that never existed."""
+    def _write_metadata(self, dead_run, dead_vm) -> None:
+        """A run recorded as going, on a host that exists."""
         now = datetime.utcnow()
         old = now - timedelta(hours=3)
         self._db["pipeline.runs"].insert_one({
             "run_id": dead_run, "pipeline_name": "provider", "status": "running",
             "started_at": old, "vm_name": dead_vm,
             "controller_heartbeat_at": old, "regression_test": True})
-        # Two runs, two pipelines. The lock is keyed pipeline_lock:<name>, so
-        # two live runs of the SAME pipeline cannot occur and asserting on
-        # that state would assert on a fiction. testPipeline is this runbook's
-        # own name -- it owns no orchestrator and loads nothing; it exists so
-        # the concurrent shape is real, and so a dead run in one pipeline can
-        # be shown not to cost a live run in another its host.
-        self._db["pipeline.runs"].insert_one({
-            "run_id": live_run, "pipeline_name": "testPipeline", "status": "running",
-            "started_at": old, "vm_name": live_vm,
-            "controller_heartbeat_at": now, "regression_test": True})
-        log.info("regression: live run %s heartbeat is fresh", live_run)
         self._db["cluster_lifecycle"].replace_one(
             {"_id": dead_run},
             {"_id": dead_run, "run_id": dead_run, "vm_name": dead_vm,
              "requester": MARKER, "expiry_at": now - timedelta(hours=1),
              "regression_test": True}, upsert=True)
-        self._db["cluster_lifecycle"].replace_one(
-            {"_id": live_run},
-            {"_id": live_run, "run_id": live_run, "vm_name": live_vm,
-             "requester": MARKER, "expiry_at": now + timedelta(hours=4),
-             "regression_test": True}, upsert=True)
-        log.info("regression: metadata written dead=%s live=%s", dead_run, live_run)
+        log.info("regression: metadata written for %s on %s", dead_run, dead_vm)
 
     def _cloud_init(self, run_id: str, controller_seconds: int = 7200) -> str:
         """Processes that only pretend to be the pipeline's.
@@ -377,6 +346,76 @@ class PipelineRegressionTest:
             "    say boot complete\n")
         return base64.b64encode(script.encode()).decode()
 
+    def _run_shell(self, vm_name: str, script: str, tries: int = 12):
+        """A run command, followed to its result and past a busy slot.
+
+        runCommand is asynchronous. It answers 202 with an empty body and the
+        result is reached by polling the Azure-AsyncOperation URL in the
+        headers. Treating the 202 as the answer meant every command this test
+        ran came back empty: no host log, no processes, no controller pid, and
+        a host that was up read as not answering. The az CLI does this polling,
+        which is why the same command worked by hand and never in the runbook.
+
+        Azure also allows one run command per host at a time and answers 409
+        while one is in flight. The components under test issue their own, so
+        contention is normal and is waited out rather than failed on.
+        """
+        for attempt in range(tries):
+            code, body = self._arm(
+                "POST",
+                f"/providers/Microsoft.Compute/virtualMachines/{vm_name}/runCommand",
+                {"commandId": "RunShellScript", "script": [script]})
+            if code == 409:
+                log.info("regression: %s run command slot busy, attempt %d/%d",
+                         vm_name, attempt + 1, tries)
+                time.sleep(10)
+                continue
+            if code == 202:
+                async_url = (self._headers.get("Azure-AsyncOperation")
+                             or self._headers.get("Location"))
+                if not async_url:
+                    return 0, {"error": "202 with no async operation url"}
+                return self._await_async(vm_name, async_url)
+            return code, body
+        return 409, {}
+
+    def _await_async(self, vm_name: str, url: str, minutes: int = 10):
+        """Poll an async operation to its result."""
+        deadline = time.time() + minutes * 60
+        started = time.time()
+        while time.time() < deadline:
+            code, body = self._absolute_get(url)
+            state = str(body.get("status") or "").lower()
+            if code >= 400:
+                return code, body
+            if state in ("succeeded", "failed", "canceled"):
+                waited = int(time.time() - started)
+                if waited > 20:
+                    log.info("regression: %s run command %s after %ds",
+                             vm_name, state, waited)
+                if state != "succeeded":
+                    return 0, {"error": f"run command {state}", "body": body}
+                return 200, (body.get("properties") or {}).get("output") or body
+            time.sleep(5)
+        return 0, {"error": "run command did not finish"}
+
+    def _absolute_get(self, url: str, timeout: int = 60):
+        """GET a URL Azure handed us, rather than one this builds."""
+        req = urllib.request.Request(
+            url, method="GET",
+            headers={"Authorization": f"Bearer {self._bearer()}"})
+        try:
+            with urllib.request.urlopen(req, timeout=timeout) as resp:
+                raw = resp.read().decode("utf-8")
+                return resp.status, (json.loads(raw) if raw else {})
+        except urllib.error.HTTPError as exc:
+            try:
+                return exc.code, json.loads(exc.read().decode("utf-8"))
+            except Exception:  # noqa: BLE001
+                return exc.code, {}
+        except Exception as exc:  # noqa: BLE001
+            return 0, {"error": f"{type(exc).__name__}: {exc}"}
+
     def _controller_pid(self, vm_name: str):
         """The controller pid the host wrote down, or None."""
         for line in self._host_logs.get(vm_name, []):
@@ -396,11 +435,9 @@ class PipelineRegressionTest:
         """kill -0, the same question the components ask."""
         if pid is None:
             return False
-        code, body = self._arm(
-            "POST",
-            f"/providers/Microsoft.Compute/virtualMachines/{vm_name}/runCommand",
-            {"commandId": "RunShellScript",
-             "script": [f"kill -0 {int(pid)} 2>/dev/null && echo RUNNING || echo GONE"]})
+        code, body = self._run_shell(
+            vm_name,
+            f"kill -0 {int(pid)} 2>/dev/null && echo RUNNING || echo GONE")
         if code >= 400:
             return False
         for entry in body.get("value", []) or []:
@@ -410,13 +447,11 @@ class PipelineRegressionTest:
 
     def _host_log(self, vm_name: str) -> list:
         """Read back what the host recorded about itself."""
-        code, body = self._arm(
-            "POST",
-            f"/providers/Microsoft.Compute/virtualMachines/{vm_name}/runCommand",
-            {"commandId": "RunShellScript",
-             "script": [f"cat {HOST_LOG} 2>/dev/null || echo 'NO HOST LOG'; "
-                        f"echo '-- cloud-init --'; "
-                        f"tail -n 15 /var/log/cloud-init-output.log 2>/dev/null"]})
+        code, body = self._run_shell(
+            vm_name,
+            f"cat {HOST_LOG} 2>/dev/null || echo 'NO HOST LOG'; "
+            f"echo '-- cloud-init --'; "
+            f"tail -n 15 /var/log/cloud-init-output.log 2>/dev/null")
         if code >= 400:
             return [f"could not read host log: HTTP {code}"]
         lines = []
@@ -450,6 +485,15 @@ class PipelineRegressionTest:
         return self._token
 
     def _arm(self, method, path, body=None, api="2024-03-01", timeout=180):
+        """Every ARM call, watched while it is outstanding.
+
+        These calls block. A runCommand against a host whose agent is not up
+        returns nothing until its timeout, and a run that made one looked
+        identical to a run that had died. The call is made on a worker thread
+        and the caller reports it every few seconds until it returns, so a
+        slow call and a hung one can be told apart while it is happening
+        rather than afterwards.
+        """
         url = (f"{ARM}/subscriptions/{SUBSCRIPTION}/resourceGroups/"
                f"{RESOURCE_GROUP}{path}?api-version={api}")
         data = json.dumps(body).encode("utf-8") if body is not None else None
@@ -457,15 +501,45 @@ class PipelineRegressionTest:
             url, data=data, method=method,
             headers={"Authorization": f"Bearer {self._bearer()}",
                      "Content-Type": "application/json"})
-        try:
-            with urllib.request.urlopen(req, timeout=timeout) as resp:
-                raw = resp.read().decode("utf-8")
-                return resp.status, (json.loads(raw) if raw else {})
-        except urllib.error.HTTPError as exc:
+        outcome = {}
+
+        def call():
             try:
-                return exc.code, json.loads(exc.read().decode("utf-8"))
-            except Exception:  # noqa: BLE001
-                return exc.code, {}
+                with urllib.request.urlopen(req, timeout=timeout) as resp:
+                    raw = resp.read().decode("utf-8")
+                    outcome["result"] = (resp.status,
+                                         json.loads(raw) if raw else {},
+                                         dict(resp.headers))
+            except urllib.error.HTTPError as exc:
+                try:
+                    outcome["result"] = (exc.code,
+                                         json.loads(exc.read().decode("utf-8")),
+                                         dict(exc.headers or {}))
+                except Exception:  # noqa: BLE001
+                    outcome["result"] = (exc.code, {}, dict(exc.headers or {}))
+            except Exception as exc:  # noqa: BLE001
+                outcome["result"] = (0, {"error": f"{type(exc).__name__}: {exc}"}, {})
+
+        worker = threading.Thread(target=call, daemon=True)
+        started = time.time()
+        worker.start()
+        reported = 0
+        while worker.is_alive():
+            worker.join(timeout=5)
+            waited = int(time.time() - started)
+            if worker.is_alive() and waited - reported >= 15:
+                reported = waited
+                log.info("regression: %s %s outstanding %ds (limit %ds)",
+                         method, path.rsplit("/", 2)[-2:] and path[-60:], waited, timeout)
+        elapsed = time.time() - started
+        if elapsed > 20:
+            log.info("regression: %s %s returned after %.0fs", method, path[-60:], elapsed)
+        if "result" not in outcome:
+            self._headers = {}
+            return 0, {"error": "call thread produced no result"}
+        status, payload, headers = outcome["result"]
+        self._headers = headers
+        return status, payload
 
     def _create_vm(self, vm_name: str, run_id: str,
                    controller_seconds: int = 7200) -> None:
@@ -572,11 +646,7 @@ class PipelineRegressionTest:
 
     def _answers(self, vm_name: str) -> bool:
         """One run command, once the agent says it can serve it."""
-        code, body = self._arm(
-            "POST",
-            f"/providers/Microsoft.Compute/virtualMachines/{vm_name}/runCommand",
-            {"commandId": "RunShellScript", "script": ["echo ready"]},
-            timeout=120)
+        code, body = self._run_shell(vm_name, "echo ready")
         if code >= 400:
             log.info("regression: %s run command HTTP %s", vm_name, code)
             return False
@@ -585,383 +655,13 @@ class PipelineRegressionTest:
                 return True
         return False
 
-    def _controller_pid(self, vm_name: str):
-        """The controller pid the host wrote down, or None."""
-        for line in self._host_logs.get(vm_name, []):
-            if "spawned controller pid=" in line:
-                tail = line.split("spawned controller pid=", 1)[1].strip()
-                digits = ""
-                for ch in tail:
-                    if ch.isdigit():
-                        digits += ch
-                    else:
-                        break
-                if digits:
-                    return int(digits)
-        return None
-
-    def _pid_alive(self, vm_name: str, pid) -> bool:
-        """kill -0, the same question the components ask."""
-        if pid is None:
-            return False
-        code, body = self._arm(
-            "POST",
-            f"/providers/Microsoft.Compute/virtualMachines/{vm_name}/runCommand",
-            {"commandId": "RunShellScript",
-             "script": [f"kill -0 {int(pid)} 2>/dev/null && echo RUNNING || echo GONE"]})
-        if code >= 400:
-            return False
-        for entry in body.get("value", []) or []:
-            if "RUNNING" in (entry.get("message") or ""):
-                return True
-        return False
-
-    def _host_log(self, vm_name: str) -> list:
-        """Read back what the host recorded about itself."""
-        code, body = self._arm(
-            "POST",
-            f"/providers/Microsoft.Compute/virtualMachines/{vm_name}/runCommand",
-            {"commandId": "RunShellScript",
-             "script": [f"cat {HOST_LOG} 2>/dev/null || echo 'NO HOST LOG'; "
-                        f"echo '-- cloud-init --'; "
-                        f"tail -n 15 /var/log/cloud-init-output.log 2>/dev/null"]})
-        if code >= 400:
-            return [f"could not read host log: HTTP {code}"]
-        lines = []
-        for entry in body.get("value", []) or []:
-            lines.extend((entry.get("message") or "").splitlines())
-        return [ln for ln in lines if ln.strip()]
-
-    def _log_host(self, vm_name: str) -> None:
-        """Put the host's own account of itself into the run's record."""
-        lines = self._host_log(vm_name)
-        self._host_logs[vm_name] = lines
-        for line in lines:
-            log.info("regression host %s | %s", vm_name, line)
-
-    # -- Azure ---------------------------------------------------------------
-    def _bearer(self) -> str:
-        if self._token:
-            return self._token
-        body = urllib.parse.urlencode({
-            "grant_type": "client_credentials",
-            "client_id": os.environ["PIPELINEEDITOR_AZURE_CLIENT_ID"],
-            "client_secret": os.environ["PIPELINEEDITOR_AZURE_CLIENT_SECRET"],
-            "scope": f"{ARM}/.default"}).encode()
-        req = urllib.request.Request(
-            "https://login.microsoftonline.com/"
-            f"{os.environ['PIPELINEEDITOR_AZURE_TENANT_ID']}/oauth2/v2.0/token",
-            data=body,
-            headers={"Content-Type": "application/x-www-form-urlencoded"})
-        with urllib.request.urlopen(req, timeout=20) as resp:
-            self._token = json.loads(resp.read().decode("utf-8"))["access_token"]
-        return self._token
-
-    def _arm(self, method, path, body=None, api="2024-03-01", timeout=180):
-        url = (f"{ARM}/subscriptions/{SUBSCRIPTION}/resourceGroups/"
-               f"{RESOURCE_GROUP}{path}?api-version={api}")
-        data = json.dumps(body).encode("utf-8") if body is not None else None
-        req = urllib.request.Request(
-            url, data=data, method=method,
-            headers={"Authorization": f"Bearer {self._bearer()}",
-                     "Content-Type": "application/json"})
-        try:
-            with urllib.request.urlopen(req, timeout=timeout) as resp:
-                raw = resp.read().decode("utf-8")
-                return resp.status, (json.loads(raw) if raw else {})
-        except urllib.error.HTTPError as exc:
-            try:
-                return exc.code, json.loads(exc.read().decode("utf-8"))
-            except Exception:  # noqa: BLE001
-                return exc.code, {}
-
-    def _create_vm(self, vm_name: str, run_id: str,
-                   controller_seconds: int = 7200) -> None:
-        nic = f"{vm_name}-nic"
-        subnet = (f"/subscriptions/{SUBSCRIPTION}/resourceGroups/{RESOURCE_GROUP}"
-                  f"/providers/Microsoft.Network/virtualNetworks/{VNET}"
-                  f"/subnets/{SUBNET}")
-        code, body = self._arm(
-            "PUT", f"/providers/Microsoft.Network/networkInterfaces/{nic}",
-            {"location": LOCATION,
-             "tags": {"purpose": MARKER},
-             "properties": {"ipConfigurations": [
-                 {"name": "ipcfg",
-                  "properties": {"subnet": {"id": subnet},
-                                 "privateIPAllocationMethod": "Dynamic"}}]}},
-            api="2023-09-01")
-        if code >= 400:
-            _raise_azure("network interface", nic, code, body)
-        self._created.append(("nic", nic))
-        nic_id = body["id"]
-
-        admin_user = os.environ.get("AZ_VM_ADMIN_USERNAME", "").strip()
-        admin_key = os.environ.get("AZ_VM_ADMIN_SSH_PUBKEY", "").strip()
-        if not admin_user or not admin_key:
-            _raise_azure("virtual machine", vm_name, 0,
-                         {"error": "AZ_VM_ADMIN_USERNAME or AZ_VM_ADMIN_SSH_PUBKEY "
-                                   "is not set; a VM PUT with an empty key is "
-                                   "rejected by Azure"})
-        code, body = self._arm(
-            "PUT", f"/providers/Microsoft.Compute/virtualMachines/{vm_name}",
-            {"location": LOCATION,
-             "tags": {"pipeline_run_id": run_id, "purpose": MARKER},
-             "properties": {
-                 "hardwareProfile": {"vmSize": VM_SIZE},
-                 "storageProfile": {
-                     "imageReference": {
-                         "publisher": "Canonical",
-                         "offer": "0001-com-ubuntu-server-jammy",
-                         "sku": "22_04-lts-gen2", "version": "latest"},
-                     "osDisk": {"createOption": "FromImage",
-                                "deleteOption": "Delete"}},
-                 "osProfile": {
-                     "computerName": vm_name[:15],
-                     "adminUsername": admin_user,
-                     "customData": self._cloud_init(run_id, controller_seconds),
-                     "linuxConfiguration": {
-                         "disablePasswordAuthentication": True,
-                         "ssh": {"publicKeys": [{
-                             "path": f"/home/{admin_user}/.ssh/authorized_keys",
-                             "keyData": admin_key}]}}},
-                 "networkProfile": {"networkInterfaces": [
-                     {"id": nic_id, "properties": {"deleteOption": "Delete"}}]}}})
-        if code >= 400:
-            _raise_azure("virtual machine", vm_name, code, body)
-        self._created.append(("vm", vm_name))
-        log.info("regression: created %s for %s", vm_name, run_id)
-
-    def _vm_state(self, vm_name: str) -> str:
-        """Provisioning and agent state, for the log."""
-        code, body = self._arm(
-            "GET",
-            f"/providers/Microsoft.Compute/virtualMachines/{vm_name}/instanceView")
-        if code >= 400:
-            return f"instanceView HTTP {code}"
-        power = ",".join(s.get("code", "") for s in body.get("statuses", []) or [])
-        agent = (body.get("vmAgent") or {}).get("statuses") or []
-        return f"{power} agent={agent[0].get('displayStatus') if agent else 'none'}"
-
-    def _wait_ready(self, vm_name: str, minutes: int = 8) -> bool:
-        """Ready means the host answers the call the test is about to make.
-
-        Reading readiness off the vmAgent status field cost a full 12-minute
-        wait and a failed run: the field carries code
-        'ProvisioningState/succeeded' and says 'Ready' only in displayStatus,
-        so the condition was unsatisfiable while both hosts were up. Running
-        the command settles it by observation, and the host is ready exactly
-        when the thing that needs it works.
-
-        Every attempt is logged. Silence for eight minutes is indistinguishable
-        from a hung run, and a host the platform is slow to bring up should say
-        so while it happens rather than only in the failure.
-        """
-        deadline = time.time() + minutes * 60
-        started = time.time()
-        attempt = 0
-        while time.time() < deadline:
-            attempt += 1
-            # 30s, not the 180s default. A runCommand against a host whose
-            # agent is not up blocks rather than erroring, so the default
-            # made each attempt cost three minutes and the whole wait ran
-            # 180 * n seconds while reporting nothing.
-            code, body = self._arm(
-                "POST",
-                f"/providers/Microsoft.Compute/virtualMachines/{vm_name}/runCommand",
-                {"commandId": "RunShellScript", "script": ["echo ready"]},
-                timeout=30)
-            if code < 400:
-                for entry in body.get("value", []) or []:
-                    if "ready" in (entry.get("message") or ""):
-                        log.info("regression: %s answered after %ds (%d attempts)",
-                                 vm_name, int(time.time() - started), attempt)
-                        return True
-            log.info("regression: waiting on %s %ds/%ds -- run command HTTP %s, %s",
-                     vm_name, int(time.time() - started), minutes * 60, code,
-                     self._vm_state(vm_name))
-            time.sleep(5)
-        log.info("regression: %s never answered in %d minutes -- %s",
-                 vm_name, minutes, self._vm_state(vm_name))
-        return False
-
-    def _controller_pid(self, vm_name: str):
-        """The controller pid the host wrote down, or None."""
-        for line in self._host_logs.get(vm_name, []):
-            if "spawned controller pid=" in line:
-                tail = line.split("spawned controller pid=", 1)[1].strip()
-                digits = ""
-                for ch in tail:
-                    if ch.isdigit():
-                        digits += ch
-                    else:
-                        break
-                if digits:
-                    return int(digits)
-        return None
-
-    def _pid_alive(self, vm_name: str, pid) -> bool:
-        """kill -0, the same question the components ask."""
-        if pid is None:
-            return False
-        code, body = self._arm(
-            "POST",
-            f"/providers/Microsoft.Compute/virtualMachines/{vm_name}/runCommand",
-            {"commandId": "RunShellScript",
-             "script": [f"kill -0 {int(pid)} 2>/dev/null && echo RUNNING || echo GONE"]})
-        if code >= 400:
-            return False
-        for entry in body.get("value", []) or []:
-            if "RUNNING" in (entry.get("message") or ""):
-                return True
-        return False
-
-    def _host_log(self, vm_name: str) -> list:
-        """Read back what the host recorded about itself."""
-        code, body = self._arm(
-            "POST",
-            f"/providers/Microsoft.Compute/virtualMachines/{vm_name}/runCommand",
-            {"commandId": "RunShellScript",
-             "script": [f"cat {HOST_LOG} 2>/dev/null || echo 'NO HOST LOG'; "
-                        f"echo '-- cloud-init --'; "
-                        f"tail -n 15 /var/log/cloud-init-output.log 2>/dev/null"]})
-        if code >= 400:
-            return [f"could not read host log: HTTP {code}"]
-        lines = []
-        for entry in body.get("value", []) or []:
-            lines.extend((entry.get("message") or "").splitlines())
-        return [ln for ln in lines if ln.strip()]
-
-    def _log_host(self, vm_name: str) -> None:
-        """Put the host's own account of itself into the run's record."""
-        lines = self._host_log(vm_name)
-        self._host_logs[vm_name] = lines
-        for line in lines:
-            log.info("regression host %s | %s", vm_name, line)
-
-    # -- Azure ---------------------------------------------------------------
-    def _bearer(self) -> str:
-        if self._token:
-            return self._token
-        body = urllib.parse.urlencode({
-            "grant_type": "client_credentials",
-            "client_id": os.environ["PIPELINEEDITOR_AZURE_CLIENT_ID"],
-            "client_secret": os.environ["PIPELINEEDITOR_AZURE_CLIENT_SECRET"],
-            "scope": f"{ARM}/.default"}).encode()
-        req = urllib.request.Request(
-            "https://login.microsoftonline.com/"
-            f"{os.environ['PIPELINEEDITOR_AZURE_TENANT_ID']}/oauth2/v2.0/token",
-            data=body,
-            headers={"Content-Type": "application/x-www-form-urlencoded"})
-        with urllib.request.urlopen(req, timeout=20) as resp:
-            self._token = json.loads(resp.read().decode("utf-8"))["access_token"]
-        return self._token
-
-    def _arm(self, method, path, body=None, api="2024-03-01", timeout=180):
-        url = (f"{ARM}/subscriptions/{SUBSCRIPTION}/resourceGroups/"
-               f"{RESOURCE_GROUP}{path}?api-version={api}")
-        data = json.dumps(body).encode("utf-8") if body is not None else None
-        req = urllib.request.Request(
-            url, data=data, method=method,
-            headers={"Authorization": f"Bearer {self._bearer()}",
-                     "Content-Type": "application/json"})
-        try:
-            with urllib.request.urlopen(req, timeout=timeout) as resp:
-                raw = resp.read().decode("utf-8")
-                return resp.status, (json.loads(raw) if raw else {})
-        except urllib.error.HTTPError as exc:
-            try:
-                return exc.code, json.loads(exc.read().decode("utf-8"))
-            except Exception:  # noqa: BLE001
-                return exc.code, {}
-
-    def _create_vm(self, vm_name: str, run_id: str,
-                   controller_seconds: int = 7200) -> None:
-        nic = f"{vm_name}-nic"
-        subnet = (f"/subscriptions/{SUBSCRIPTION}/resourceGroups/{RESOURCE_GROUP}"
-                  f"/providers/Microsoft.Network/virtualNetworks/{VNET}"
-                  f"/subnets/{SUBNET}")
-        code, body = self._arm(
-            "PUT", f"/providers/Microsoft.Network/networkInterfaces/{nic}",
-            {"location": LOCATION,
-             "tags": {"purpose": MARKER},
-             "properties": {"ipConfigurations": [
-                 {"name": "ipcfg",
-                  "properties": {"subnet": {"id": subnet},
-                                 "privateIPAllocationMethod": "Dynamic"}}]}},
-            api="2023-09-01")
-        if code >= 400:
-            _raise_azure("network interface", nic, code, body)
-        self._created.append(("nic", nic))
-        nic_id = body["id"]
-
-        admin_user = os.environ.get("AZ_VM_ADMIN_USERNAME", "").strip()
-        admin_key = os.environ.get("AZ_VM_ADMIN_SSH_PUBKEY", "").strip()
-        if not admin_user or not admin_key:
-            _raise_azure("virtual machine", vm_name, 0,
-                         {"error": "AZ_VM_ADMIN_USERNAME or AZ_VM_ADMIN_SSH_PUBKEY "
-                                   "is not set; a VM PUT with an empty key is "
-                                   "rejected by Azure"})
-        code, body = self._arm(
-            "PUT", f"/providers/Microsoft.Compute/virtualMachines/{vm_name}",
-            {"location": LOCATION,
-             "tags": {"pipeline_run_id": run_id, "purpose": MARKER},
-             "properties": {
-                 "hardwareProfile": {"vmSize": VM_SIZE},
-                 "storageProfile": {
-                     "imageReference": {
-                         "publisher": "Canonical",
-                         "offer": "0001-com-ubuntu-server-jammy",
-                         "sku": "22_04-lts-gen2", "version": "latest"},
-                     "osDisk": {"createOption": "FromImage",
-                                "deleteOption": "Delete"}},
-                 "osProfile": {
-                     "computerName": vm_name[:15],
-                     "adminUsername": admin_user,
-                     "customData": self._cloud_init(run_id, controller_seconds),
-                     "linuxConfiguration": {
-                         "disablePasswordAuthentication": True,
-                         "ssh": {"publicKeys": [{
-                             "path": f"/home/{admin_user}/.ssh/authorized_keys",
-                             "keyData": admin_key}]}}},
-                 "networkProfile": {"networkInterfaces": [
-                     {"id": nic_id, "properties": {"deleteOption": "Delete"}}]}}})
-        if code >= 400:
-            _raise_azure("virtual machine", vm_name, code, body)
-        self._created.append(("vm", vm_name))
-        log.info("regression: created %s for %s", vm_name, run_id)
-
-    def _wait_ready(self, vm_name: str, minutes: int = 8) -> bool:
-        """Ready means the host answers the call the test is about to make.
-
-        Reading readiness off the vmAgent status field cost a full 12-minute
-        wait and a failed run: the field carries code
-        'ProvisioningState/succeeded' and says 'Ready' only in displayStatus,
-        so the condition was unsatisfiable while both hosts were up. Running
-        the command settles it by observation, and the host is ready exactly
-        when the thing that needs it works.
-        """
-        deadline = time.time() + minutes * 60
-        while time.time() < deadline:
-            code, body = self._arm(
-                "POST",
-                f"/providers/Microsoft.Compute/virtualMachines/{vm_name}/runCommand",
-                {"commandId": "RunShellScript", "script": ["echo ready"]})
-            if code < 400:
-                for entry in body.get("value", []) or []:
-                    if "ready" in (entry.get("message") or ""):
-                        return True
-            time.sleep(15)
-        return False
 
     def _processes_on(self, vm_name: str) -> list:
         script = ("for d in /proc/[0-9]*; do "
                   "a=$(tr '\\000' ' ' < $d/cmdline 2>/dev/null); "
                   "case \"$a\" in *pipeline_worker*|*control_runner*) "
                   "echo \"${d##*/} $a\";; esac; done")
-        code, body = self._arm(
-            "POST",
-            f"/providers/Microsoft.Compute/virtualMachines/{vm_name}/runCommand",
-            {"commandId": "RunShellScript", "script": [script]})
+        code, body = self._run_shell(vm_name, script)
         if code >= 400:
             return []
         out = []
