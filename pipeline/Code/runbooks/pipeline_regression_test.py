@@ -105,7 +105,7 @@ class PipelineRegressionTest:
         self._db = self._mongo[PIPELINE_ADMIN_DB]
         self._created = []
 
-    # ── entry ───────────────────────────────────────────────────────────────
+    # -- entry ---------------------------------------------------------------
     def run(self, only: str = "") -> dict:
         functions = {"zombie_detection": self.zombie_detection}
         chosen = {k: v for k, v in functions.items() if not only or k == only}
@@ -124,7 +124,7 @@ class PipelineRegressionTest:
             self._record(name, results[name])
         return results
 
-    # ── function 1 ──────────────────────────────────────────────────────────
+    # -- function 1 ----------------------------------------------------------
     def zombie_detection(self) -> list:
         """A dead run whose processes outlived it, beside a live run."""
         stamp = datetime.now(timezone.utc).strftime("%H%M%S")
@@ -177,7 +177,7 @@ class PipelineRegressionTest:
         finally:
             self._teardown(dead_run, live_run)
 
-    # ── manufactured conditions ─────────────────────────────────────────────
+    # -- manufactured conditions ---------------------------------------------
     def _write_metadata(self, dead_run, dead_vm, live_run, live_vm) -> None:
         """Runs and reservations for jobs that never existed."""
         now = datetime.utcnow()
@@ -224,7 +224,7 @@ class PipelineRegressionTest:
             f"pipeline_worker --run-id {run_id} &\n")
         return base64.b64encode(script.encode()).decode()
 
-    # ── Azure ───────────────────────────────────────────────────────────────
+    # -- Azure ---------------------------------------------------------------
     def _bearer(self) -> str:
         if self._token:
             return self._token
@@ -371,7 +371,7 @@ class PipelineRegressionTest:
             time.sleep(15)
         return "timed_out"
 
-    # ── bookkeeping ─────────────────────────────────────────────────────────
+    # -- bookkeeping ---------------------------------------------------------
     @staticmethod
     def _check(name: str, passed: bool, detail: str = "") -> dict:
         log.info("regression check: %s -> %s %s", name,
