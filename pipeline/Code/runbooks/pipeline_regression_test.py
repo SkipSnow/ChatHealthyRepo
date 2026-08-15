@@ -386,16 +386,17 @@ class PipelineRegressionTest:
         while time.time() < deadline:
             code, body = self._absolute_get(url)
             state = str(body.get("status") or "").lower()
+            waited = int(time.time() - started)
             if code >= 400:
                 return code, body
             if state in ("succeeded", "failed", "canceled"):
-                waited = int(time.time() - started)
-                if waited > 20:
-                    log.info("regression: %s run command %s after %ds",
-                             vm_name, state, waited)
+                log.info("regression: %s run command %s after %ds",
+                         vm_name, state, waited)
                 if state != "succeeded":
                     return 0, {"error": f"run command {state}", "body": body}
                 return 200, (body.get("properties") or {}).get("output") or body
+            log.info("regression: %s run command %s %ds/%ds",
+                     vm_name, state or "in progress", waited, minutes * 60)
             time.sleep(5)
         return 0, {"error": "run command did not finish"}
 
@@ -685,16 +686,24 @@ class PipelineRegressionTest:
             api="2023-11-01")
         if code >= 400:
             return f"start_failed_{code}"
+        log.info("regression: started %s as job %s", runbook, job)
         deadline = time.time() + minutes * 60
+        started = time.time()
         while time.time() < deadline:
             code, body = self._arm(
                 "GET",
                 f"/providers/Microsoft.Automation/automationAccounts/"
                 f"{AUTOMATION_ACCOUNT}/jobs/{job}", api="2023-11-01")
             status = (body.get("properties") or {}).get("status", "")
+            waited = int(time.time() - started)
             if status in ("Completed", "Failed", "Stopped", "Suspended"):
-                log.info("regression: %s finished %s", runbook, status)
+                log.info("regression: %s finished %s after %ds",
+                         runbook, status, waited)
                 return status
+            # Every poll says so. This loop can wait fifteen minutes, and a
+            # silent one is indistinguishable from a run that has died.
+            log.info("regression: waiting on %s %ds/%ds -- %s",
+                     runbook, waited, minutes * 60, status or f"HTTP {code}")
             time.sleep(15)
         return "timed_out"
 
@@ -726,9 +735,12 @@ class PipelineRegressionTest:
             code, _ = self._arm("DELETE", path + name, api=api)
             log.info("regression: teardown %s %s -> %s", kind, name, code)
             if kind == "vm":
-                for _ in range(30):
+                for attempt in range(30):
                     if not self._vm_exists(name):
+                        log.info("regression: %s gone after %ds", name, attempt * 10)
                         break
+                    log.info("regression: waiting for %s to go %ds/300s",
+                             name, attempt * 10)
                     time.sleep(10)
         self._created = []
         for run_id in run_ids:
