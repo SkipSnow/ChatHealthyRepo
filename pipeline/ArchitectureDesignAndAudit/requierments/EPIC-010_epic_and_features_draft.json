@@ -18,15 +18,137 @@
             {
               "feature_id": "EPIC-010-F-101",
               "orphan": false,
-              "name": "DB & Pipeline Infrastructure Management",
+              "name": "Data Pipeline Infrastructure Requirements",
               "status": "not_started",
               "priority": "HIGH",
               "approval": "proposed",
               "due_date": "TBD",
               "realized_by": [],
-              "description": "Operational management of the substrate every pipeline run depends on. Covers: the reservation-gated pause/resume lifecycle of the pipeline Atlas cluster (chathealthydatapipeline) so the cluster is unpaused only while at least one live reservation exists and paused when none remain; the per-run ephemeral Pipeline Run VM lifecycle (provision one VM at run start, run the Controller and Workers on it, destroy it at run end) with zero persistent compute and zero idle cost between runs; the safety reapers that prevent runaway cost without killing live work — the Watchdog Runbook (orphaned-VM detection state machine keyed on reservation, terminal status, Controller heartbeat, VM power state, and missing manifest) and the ReservationReaper (reaps only reservations past their outer time envelope); the Azure Blob storage account and its two containers per environment (the content-hash-keyed source archive retained until superseded, and per-run transients); and the cluster tier / VM sizing configuration knobs. Realized by the reservation, VM, Watchdog, and storage mechanisms in the Provider Pipeline LLD v33 (sections 3.1.2, 3.1.3, 3.1.7-3.1.9, 4.2, 4.3.1, 5.2.2, 5.2.20).",
+              "description": "This feature specifies the requirements for ChatHealthy's data pipeline infrastructure. The purpose of the feature is to specify the common requirements allowing for data pipelines to be executed in the most possible cost effective manner, with robust reliability and observability.",
               "stories": {
-                "story": []
+                "story": [
+                  {
+                    "story_id": "EPIC-010-F-101-S-001",
+                    "orphan": false,
+                    "name": "A reaper component MUST manage the Pipeline Cluster's uptime",
+                    "status": "not_started",
+                    "approval": "proposed",
+                    "description": "The pipeline cluster must not be running when nothing needs it.",
+                    "size": "M",
+                    "requirements": {
+                      "requirement": [
+                        {
+                          "req_id": "EPIC-010-F-101-S-001-REQ-B-001",
+                          "orphan": false,
+                          "name": "A Reaper component external to any pipeline runs regularly",
+                          "requirement": "A component named Reaper MUST exist, MUST be external to every pipeline, and MUST run on a regular basis and at least once per hour, to realize these requirements and so guard against a failure in a pipeline job or an expired reservation made by an agent on behalf of itself or of a human user.",
+                          "priority": "must-have",
+                          "status": "not_started",
+                          "depends_on": [],
+                          "tests": {
+                            "test": [
+                              {
+                                "orphan": true,
+                                "test_type": "ORPHAN",
+                                "file": ""
+                              }
+                            ]
+                          },
+                          "approval": "proposed"
+                        },
+                        {
+                          "req_id": "EPIC-010-F-101-S-001-REQ-B-002",
+                          "orphan": false,
+                          "name": "The reaper corrects pipeline job metadata a failed job left wrong",
+                          "requirement": "When a pipeline job fails to leave its own metadata true, the Reaper MUST correct it, so that no job is recorded in a non-terminal state while it is not running and no lock or reservation is held on behalf of a job that is not running.",
+                          "priority": "must-have",
+                          "status": "not_started",
+                          "depends_on": [],
+                          "tests": {
+                            "test": [
+                              {
+                                "orphan": true,
+                                "test_type": "ORPHAN",
+                                "file": ""
+                              }
+                            ]
+                          },
+                          "approval": "proposed"
+                        },
+                        {
+                          "req_id": "EPIC-010-F-101-S-001-REQ-B-003",
+                          "orphan": false,
+                          "name": "An incomplete metadata correction says so",
+                          "requirement": "When the Reaper cannot complete a correction pass, the pipeline job metadata MUST record that the pass was incomplete and what it did not reach, and MUST be distinguishable from a pass that completed having found nothing to correct.",
+                          "priority": "must-have",
+                          "status": "not_started",
+                          "depends_on": [],
+                          "tests": {
+                            "test": [
+                              {
+                                "orphan": true,
+                                "test_type": "ORPHAN",
+                                "file": ""
+                              }
+                            ]
+                          },
+                          "approval": "proposed"
+                        }
+                      ]
+                    }
+                  },
+                  {
+                    "story_id": "EPIC-010-F-101-S-002",
+                    "orphan": false,
+                    "name": "A pipeline job MUST manage its own metadata and reservations",
+                    "status": "not_started",
+                    "approval": "proposed",
+                    "description": "A pipeline job leaves a true record of itself at all times.",
+                    "size": "M",
+                    "requirements": {
+                      "requirement": [
+                        {
+                          "req_id": "EPIC-010-F-101-S-002-REQ-B-001",
+                          "orphan": false,
+                          "name": "Every pipeline job reserves the cluster it uses",
+                          "requirement": "A pipeline job MUST hold a reservation for the pipeline cluster from before its first use of that cluster until after its last, and MUST release that reservation when it reaches a terminal state, including when it terminates by failing.",
+                          "priority": "must-have",
+                          "status": "not_started",
+                          "depends_on": [],
+                          "tests": {
+                            "test": [
+                              {
+                                "orphan": true,
+                                "test_type": "ORPHAN",
+                                "file": ""
+                              }
+                            ]
+                          },
+                          "approval": "proposed"
+                        },
+                        {
+                          "req_id": "EPIC-010-F-101-S-002-REQ-B-002",
+                          "orphan": false,
+                          "name": "Every pipeline job leaves its own metadata true",
+                          "requirement": "A pipeline job MUST record its own state as it changes, and on reaching a terminal state MUST leave no record of itself, and no lock it holds, saying it is still running.",
+                          "priority": "must-have",
+                          "status": "not_started",
+                          "depends_on": [],
+                          "tests": {
+                            "test": [
+                              {
+                                "orphan": true,
+                                "test_type": "ORPHAN",
+                                "file": ""
+                              }
+                            ]
+                          },
+                          "approval": "proposed"
+                        }
+                      ]
+                    }
+                  }
+                ]
               }
             },
             {
