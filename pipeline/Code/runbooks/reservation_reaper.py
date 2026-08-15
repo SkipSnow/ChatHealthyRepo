@@ -1,12 +1,12 @@
 """reservation_reaper.py - Azure Automation runbook (Python 3).
 
 Reaps overdue automated cluster_lifecycle reservations and pauses the
-Atlas pipeline cluster when no live reservations remain OR when no
-client has accessed the cluster in the activity window (R1). On each
-tick, deletes prior completed job records for this runbook to keep
-job-history size bounded (R2-refined). On uncaught exception writes
-to a failure-state blob and sends a SparkPost email on hourly streak
-(R3). On success deletes the failure-state blob.
+Atlas pipeline cluster when no live reservation remains and no run or
+work item is still going (R1). Both facts come from pipelineAdmin, so
+the pause decision needs nothing but the database. On uncaught exception writes
+to pipelineAdmin.pipeline.reaper_state, so an incomplete pass is visible
+where job metadata is read, and sends an email on an hourly streak. On
+success that record is cleared.
 
 Replaces the cluster_lifecycle_timer in pipeline/Code/function_app.py.
 Runs every 5 minutes on schedule SCH-Reaper-5min in the
@@ -31,11 +31,9 @@ Environment (Automation Variables, exposed via os.environ at runtime):
   ATLAS_PROJECT_ID                - Atlas group/project ID
   ENV_PREFIX                      - "dev" | "qa" | "prod"
   PIPELINE_CLUSTER                - Atlas cluster name (default ChatHealthyDataPipelines)
-  ACTIVITY_WINDOW_MINUTES         - int, default 30 (R1)
   AZ_SUBSCRIPTION_ID              - Azure subscription hosting the Automation Account (R2)
   AZ_RESOURCE_GROUP               - RG hosting ChatHealthyJobManager (R2)
   AZ_AUTOMATION_ACCOUNT           - "ChatHealthyJobManager" (R2)
-  AZURE_STORAGE_CONNECTION_STRING - storage account holding the failure-state blob (R3)
   SPARKMAIL_API_KEY               - SparkPost API key (R3)
   NOTIFICATION_FROM_EMAIL         - sender address (R3)
   NOTIFICATION_TO_EMAIL           - recipient address (R3)
@@ -91,8 +89,7 @@ try:
     import automationassets
     for k in ("ATLAS_PIPELINE_PUBLIC_KEY", "ATLAS_PIPELINE_PRIVATE_KEY",
               "ATLAS_PROJECT_ID", "ENV_PREFIX", "PIPELINE_CLUSTER",
-              "ACTIVITY_WINDOW_MINUTES", "CH_LOG_DB", "KEY_VAULT_URI",
-              "AZURE_STORAGE_CONNECTION_STRING",
+              "CH_LOG_DB", "KEY_VAULT_URI",
               "AZ_SUBSCRIPTION_ID", "AZ_RESOURCE_GROUP", "AZ_AUTOMATION_ACCOUNT",
               "SPARKMAIL_API_KEY",
               "NOTIFICATION_FROM_EMAIL", "NOTIFICATION_TO_EMAIL",
@@ -109,7 +106,6 @@ try:
 except ImportError:
     pass
 
-ACTIVITY_WINDOW  = int(os.environ.get("ACTIVITY_WINDOW_MINUTES", "30"))
 ENV_PREFIX       = os.environ.get("ENV_PREFIX", "dev")
 
 # CHLS env setup MUST happen before the module-level
@@ -130,7 +126,6 @@ ATLAS_PROJECT    = os.environ["ATLAS_PROJECT_ID"]
 AZ_SUB           = os.environ.get("AZ_SUBSCRIPTION_ID", "")
 AZ_RG            = os.environ.get("AZ_RESOURCE_GROUP", "")
 AZ_AA            = os.environ.get("AZ_AUTOMATION_ACCOUNT", "ChatHealthyJobManager")
-WEBJOBS_STORAGE  = os.environ.get("AZURE_STORAGE_CONNECTION_STRING", "")
 SPARKPOST_KEY    = os.environ.get("SPARKMAIL_API_KEY", "")
 EMAIL_FROM       = os.environ.get("NOTIFICATION_FROM_EMAIL", "Skip.Snow@mail.chatHealthy.ai")
 EMAIL_TO         = os.environ.get("NOTIFICATION_TO_EMAIL", "Skip@chatHealthy.ai")
@@ -143,8 +138,6 @@ ATLAS_HEADERS    = {
     "Accept": "application/vnd.atlas.2023-02-01+json",
 }
 REAPER_APPNAME   = "reservation_reaper"
-FAILURE_BLOB     = "reservation_reaper_failure.json"
-FAILURE_CONTAINER = "$root"
 
 log = ChatHealthyLoggingService()
 
@@ -163,62 +156,51 @@ def _pst_now_iso():
     return now_utc.astimezone(timezone(offset)).isoformat()
 
 
-def _blob_client():
-    if not WEBJOBS_STORAGE:
-        # Said out loud rather than returned as a quiet None. Without this
-        # the failure-state blob simply stops being written and the streak
-        # email stops arriving, with nothing anywhere saying why.
-        log.warning(
-            "R3: no storage connection in the environment; failure-state "
-            "tracking is OFF and the streak email will not be sent"
-        )
+REAPER_STATE_COLLECTION = "pipeline.reaper_state"
+REAPER_STATE_ID = "reservation_reaper"
+
+
+def _state_coll(client):
+    """The reaper's own state, beside the metadata it maintains.
+
+    A tick is a fresh process, so a failing streak has to survive between
+    runs. It lives in pipelineAdmin -- the database the reaper already opens
+    every tick -- rather than in a blob, which was a second store with its own
+    account, credential and SDK holding one fact, and which never once worked
+    in the Automation sandbox.
+    """
+    return client[PIPELINE_ADMIN_DB][REAPER_STATE_COLLECTION]
+
+
+def _read_failure_state(client):
+    if client is None:
         return None
     try:
-        from azure.storage.blob import BlobServiceClient
-        svc = BlobServiceClient.from_connection_string(WEBJOBS_STORAGE)
-        return svc.get_blob_client(container=FAILURE_CONTAINER, blob=FAILURE_BLOB)
+        return _state_coll(client).find_one({"_id": REAPER_STATE_ID})
     except Exception as ex:
-        log.warning("R3: blob client init failed: %r", ex)
+        log.warning("could not read reaper state: %r", ex)
         return None
 
 
-def _read_failure_state():
-    bc = _blob_client()
-    if bc is None:
-        return None
-    try:
-        data = bc.download_blob().readall()
-        return json.loads(data.decode("utf-8"))
-    except Exception as ex:
-        msg = str(ex).lower()
-        if "blobnotfound" in msg or "not found" in msg or "404" in msg:
-            return None
-        log.warning("R3: read failure-state blob raised: %r", ex)
-        return None
-
-
-def _write_failure_state(state):
-    bc = _blob_client()
-    if bc is None:
+def _write_failure_state(client, state):
+    if client is None:
         return
     try:
-        bc.upload_blob(json.dumps(state, indent=2).encode("utf-8"), overwrite=True)
+        state["_id"] = REAPER_STATE_ID
+        _state_coll(client).replace_one({"_id": REAPER_STATE_ID}, state, upsert=True)
     except Exception as ex:
-        log.warning("R3: write failure-state blob raised: %r", ex)
+        log.warning("could not write reaper state: %r", ex)
 
 
-def _delete_failure_state():
-    bc = _blob_client()
-    if bc is None:
+def _delete_failure_state(client):
+    """Called on the success path: no streak, nothing to say."""
+    if client is None:
         return
     try:
-        bc.delete_blob()
-        log.info("R3: failure-state blob deleted (success path)")
+        if _state_coll(client).delete_one({"_id": REAPER_STATE_ID}).deleted_count:
+            log.info("reaper state cleared (success path)")
     except Exception as ex:
-        msg = str(ex).lower()
-        if "blobnotfound" in msg or "not found" in msg or "404" in msg:
-            return
-        log.warning("R3: delete failure-state blob raised: %r", ex)
+        log.warning("could not clear reaper state: %r", ex)
 
 
 def _send_sparkpost_email(subject, body):
@@ -291,8 +273,9 @@ def _maybe_send_streak_email(state, latest_cause):
         state["emails_sent"] = emails
 
 
-def _record_failure(cause):
-    state = _read_failure_state() or {"emails_sent": [], "failures": []}
+def _record_failure(client, cause):
+    """Record an incomplete pass where a reader of job metadata will find it."""
+    state = _read_failure_state(client) or {"emails_sent": [], "failures": []}
     state.setdefault("emails_sent", [])
     state.setdefault("failures", [])
     state["failures"].append({
@@ -300,71 +283,10 @@ def _record_failure(cause):
         "failure_cause": cause[:2000],
     })
     _maybe_send_streak_email(state, cause)
-    _write_failure_state(state)
+    _write_failure_state(client, state)
 
 
-def _r2_purge_old_job_records():
-    if not (AZ_SUB and AZ_RG and AZ_AA):
-        log.info("R2: skipping job-history purge (Az env vars not set)")
-        return
-    try:
-        idr = os.environ.get("IDENTITY_ENDPOINT")
-        idh = os.environ.get("IDENTITY_HEADER")
-        if not idr or not idh:
-            log.info("R2: no MI endpoint; skipping purge")
-            return
-        tok = requests.get(
-            idr,
-            params={"resource": "https://management.azure.com/", "api-version": "2019-08-01"},
-            headers={"X-IDENTITY-HEADER": idh}, timeout=15,
-        ).json().get("access_token")
-        if not tok:
-            log.info("R2: MI token fetch returned no access_token; skipping purge")
-            return
-        h = {"Authorization": f"Bearer {tok}"}
-        base = (f"https://management.azure.com/subscriptions/{AZ_SUB}"
-                f"/resourceGroups/{AZ_RG}/providers/Microsoft.Automation"
-                f"/automationAccounts/{AZ_AA}/jobs")
-        r = requests.get(base,
-                         params={"api-version": "2023-11-01",
-                                 "$filter": "properties/runbook/name eq 'ReservationReaper'"},
-                         headers=h, timeout=30)
-        if r.status_code != 200:
-            log.warning("R2: list-jobs failed %s %s", r.status_code, r.text[:200])
-            return
-        my_job_id = os.environ.get("AZUREPS_HOST_ENVIRONMENT", "") or os.environ.get("AUTOMATION_JOB_ID", "")
-        purged = 0
-        for j in r.json().get("value", []):
-            jid = j.get("properties", {}).get("jobId") or j.get("name")
-            status = j.get("properties", {}).get("status")
-            if not jid or jid == my_job_id:
-                continue
-            if status not in ("Completed", "Failed", "Stopped", "Suspended"):
-                continue
-            d = requests.delete(f"{base}/{jid}",
-                                params={"api-version": "2023-11-01"},
-                                headers=h, timeout=15)
-            if d.status_code in (200, 204):
-                purged += 1
-        log.info("R2: purged %d prior ReservationReaper job records", purged)
-    except Exception as ex:
-        log.warning("R2: purge raised %r; continuing", ex)
-
-
-# Startup grace for pipeline_lock rows: how long we wait after
-# acquired_at before the "Controller silent" test is legitimate. VM
-# boot + apt + docker pull + Controller container start is typically
-# 3-5 minutes in a healthy fire; 8 min leaves headroom for slow days.
-PIPELINE_LOCK_STARTUP_GRACE_MIN = 8
-
-# A run in one of these states is over; its lock is free whatever
-# its heartbeats say.
-_TERMINAL_RUN_STATUSES = {"succeeded", "failed", "aborted", "completed"}
-
-
-
-def _reap_stuck_pipeline_lock(coll, log_coll, runs_coll, work_items_coll,
-                              row, now_aware):
+def _reap_stuck_pipeline_lock(coll, runs_coll, row, now_aware):
     """Reap a pipeline_lock row iff its run holds no live reservation.
 
     The reservation is what says a run is legitimately alive. A run makes one
@@ -436,35 +358,36 @@ def _reap_stuck_pipeline_lock(coll, log_coll, runs_coll, work_items_coll,
                     run_id, ex)
     return True
 
-def _r1_client_active_recently(auth, window_ms_start, window_ms_end):
-    r = requests.get(
-        f"{ATLAS_BASE}/dbAccessHistory/clusters/{CLUSTER_NAME}",
-        params={"start": window_ms_start, "end": window_ms_end,
-                "authResult": "true"},
-        auth=auth, headers=ATLAS_HEADERS, timeout=30,
-    )
-    if r.status_code != 200:
-        log.warning("R1: dbAccessHistory %s - treating as active (fail-safe NO pause)",
-                    r.status_code)
+def _r1_work_pending(client):
+    """Does any job still need the cluster?
+
+    Answered from pipelineAdmin, which the reaper already reads and which
+    pipelineEditor is entitled to. This replaced a call to the Atlas
+    dbAccessHistory endpoint, which needed a project-owner credential the
+    constrained key does not hold and answered a different question: it
+    reports connections, which include the reaper's own and any operator
+    tool, where the pause decision turns on demand.
+
+    A run or a work item that is not terminal is demand, whether or not
+    anything is connected at this instant -- a Controller between steps has
+    no open cursor and still needs the cluster to come back to.
+    """
+    db = client[PIPELINE_ADMIN_DB]
+    runs = db["pipeline.runs"].count_documents(
+        {"status": {"$nin": list(_TERMINAL_RUN_STATUSES)}}, limit=1)
+    if runs:
+        log.info("R1: a run is not terminal; the cluster is in use")
         return True
-    logs = r.json().get("accessLogs", []) or []
-    for entry in logs:
-        line = entry.get("logLine") or ""
-        if f'"name":"{REAPER_APPNAME}"' in line:
-            continue
-        if entry.get("authResult") is True:
-            log.info("R1: client active - %s @ %s",
-                     entry.get("username"), entry.get("timestamp"))
-            return True
+    items = db["pipeline.work_items"].count_documents(
+        {"status": {"$nin": list(_TERMINAL_ITEM_STATUSES)}}, limit=1)
+    if items:
+        log.info("R1: a work item is not terminal; the cluster is in use")
+        return True
     return False
 
 
 def _main():
     now = datetime.now(timezone.utc)
-    window_ms_start = int((now - timedelta(minutes=ACTIVITY_WINDOW)).timestamp() * 1000)
-    window_ms_end   = int(now.timestamp() * 1000)
-
-    _r2_purge_old_job_records()
 
     atlas_auth = HTTPDigestAuth(ATLAS_PUB, ATLAS_PRIV)
     pre = requests.get(ATLAS_CLUSTER_URL, auth=atlas_auth,
@@ -472,18 +395,16 @@ def _main():
     pre_state = pre.json().get("stateName", "UNKNOWN")
     pre_paused = pre.json().get("paused", False)
     if pre_state == "IDLE" and pre_paused:
-        msg = ("Reaper tick: reaped=0, live_remaining=0, client_active=False, "
+        msg = ("Reaper tick: reaped=0, live_remaining=0, work_pending=False, "
                "cluster_state=PAUSED, paused=True, reason=already_paused")
         log.info(msg)
         ChatHealthyLoggingService().info(msg)
-        return
+        return None
 
     # Uses pipelineEditor identity to access frontend cluster resources
     client = ChatHealthyMongoUtilities().getConnection("pipelineEditor", "admin")
     coll = client[DB_NAME][COLLECTION]
-    log_coll = client[PIPELINE_ADMIN_DB][f"Log_{ENV_PREFIX}"]
     runs_coll = client[PIPELINE_ADMIN_DB]["pipeline.runs"]
-    work_items_coll = client[PIPELINE_ADMIN_DB]["pipeline.work_items"]
     reservations = list(coll.find({}))
     log.info("Loaded %d cluster_lifecycle rows from %s.%s",
              len(reservations), DB_NAME, COLLECTION)
@@ -505,9 +426,7 @@ def _main():
         # missing expiry_at as "keep forever" and would silently protect
         # every pipeline_lock row from reaping.
         if r.get("kind") == "pipeline_lock":
-            if _reap_stuck_pipeline_lock(coll, log_coll, runs_coll,
-                                         work_items_coll,
-                                         r, now_utc_aware):
+            if _reap_stuck_pipeline_lock(coll, runs_coll, r, now_utc_aware):
                 reaped.append(r)
             else:
                 kept.append(r)
@@ -540,23 +459,23 @@ def _main():
     live = [r for r in kept if r.get("status", "active") == "active"]
 
     # Precedence: the reservation queue is the primary signal (REQ-B-001). While a
-    # live reservation exists the cluster stays up, full stop. dbAccessHistory is a
-    # lower-precedence confirmatory signal that only runs once the queue is empty;
-    # if something is still hitting the cluster despite no reservations, hold off on
-    # the pause and surface that as unaccounted use.
+    # live reservation exists the cluster stays up, full stop. The confirmatory signal is
+    # lower-precedence confirmatory signal that only runs once the queue is empty:
+    # a run or work item still going without a reservation means a job lost its
+    # reservation while alive, so hold the pause and say so.
     should_pause = False
     pause_reason = ""
     client_active = None
     if not live:
-        client_active = _r1_client_active_recently(
-            atlas_auth, window_ms_start, window_ms_end)
+        client_active = _r1_work_pending(client)
         if not client_active:
             should_pause = True
             pause_reason = "no_live_reservations"
         else:
-            pause_reason = "no_reservations_but_client_active"
-            log.warning("Pause withheld: no live reservations but cluster has "
-                        "recent client access; possible unaccounted use")
+            pause_reason = "no_reservations_but_work_pending"
+            log.warning("Pause withheld: no live reservation, but a run or "
+                        "work item is not terminal -- a job lost its "
+                        "reservation while still going")
 
     cluster_state = "UNKNOWN"
     paused = False
@@ -623,21 +542,27 @@ def _main():
                     pause_reason = f"{pause_reason}|atlas_rejected:{pause_failure_detail}"
 
     msg = (f"Reaper tick: reaped={len(reaped)}, live_remaining={len(live)}, "
-           f"client_active={client_active}, cluster_state={cluster_state}, "
+           f"work_pending={client_active}, cluster_state={cluster_state}, "
            f"paused={paused}, reason={pause_reason or 'none'}")
     log.info(msg)
     ChatHealthyLoggingService().info(msg)
+    return client
 
 
+_client = None
 try:
-    _main()
-    _delete_failure_state()
+    _client = _main()
+    _delete_failure_state(_client)
     sys.exit(0)
 except Exception:
     tb = traceback.format_exc()
     log.error("Reaper tick failed: %s", tb)
     try:
-        _record_failure(tb)
+        # The pass did not finish. Say so where job metadata is read; opening
+        # a connection here is the last resort when _main died before one.
+        if _client is None:
+            _client = ChatHealthyMongoUtilities().getConnection("pipelineEditor", "admin")
+        _record_failure(_client, tb)
     except Exception as inner:
-        log.error("R3: failure-state recording also failed: %r", inner)
+        log.error("recording the incomplete pass also failed: %r", inner)
     sys.exit(1)

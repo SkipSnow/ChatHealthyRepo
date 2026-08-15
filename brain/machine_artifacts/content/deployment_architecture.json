@@ -4792,7 +4792,6 @@
         "AZ_RESOURCE_GROUP": "local_env",
         "AZ_SUBSCRIPTION_ID": "local_env",
         "ENV_PREFIX": "local_env",
-        "ACTIVITY_WINDOW_MINUTES": "local_env",
         "PIPELINE_CLUSTER": "local_env",
         "AUTOMATION_ENV_PREFIX": "local_env",
         "AUTOMATION_RESOURCE_GROUP": "local_env",

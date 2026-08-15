@@ -15846,7 +15846,93 @@
         "approval": "approved",
         "orphan": false,
         "features": {
-          "feature": []
+          "feature": [
+            {
+              "feature_id": "EPIC-010-F-101",
+              "orphan": false,
+              "name": "Data Pipeline Infrastructure Requirements",
+              "status": "in_progress",
+              "description": "This feature specifies the requirements for ChatHealthy's data pipeline infrastructure. The purpose of the feature is to specify the common requirements allowing for data pipelines to be executed in the most possible cost effective manner, with robust reliability and observability.",
+              "priority": "HIGH",
+              "realized_by": [],
+              "stories": {
+                "story": [
+                  {
+                    "story_id": "EPIC-010-F-101-S-001",
+                    "orphan": false,
+                    "name": "A reaper component MUST manage the Pipeline Cluster's uptime",
+                    "description": "The pipeline cluster must not be running when nothing needs it.",
+                    "size": "M",
+                    "status": "in_progress",
+                    "approval": "approved",
+                    "requirements": {
+                      "requirement": [
+                        {
+                          "req_id": "EPIC-010-F-101-S-001-REQ-B-001",
+                          "orphan": false,
+                          "name": "A Reaper component external to any pipeline runs regularly",
+                          "requirement": "A component named Reaper MUST exist, MUST be external to every pipeline, and MUST run on a regular basis and at least once per hour, to realize these requirements and so guard against a failure in a pipeline job or an expired reservation made by an agent on behalf of itself or of a human user.",
+                          "priority": "must-have",
+                          "status": "done",
+                          "depends_on": [],
+                          "tests": {
+                            "test": [
+                              {
+                                "orphan": true,
+                                "test_type": "ORPHAN",
+                                "file": ""
+                              }
+                            ]
+                          },
+                          "approval": "approved"
+                        },
+                        {
+                          "req_id": "EPIC-010-F-101-S-001-REQ-B-002",
+                          "orphan": false,
+                          "name": "The reaper corrects pipeline job metadata a failed job left wrong",
+                          "requirement": "When a pipeline job fails to leave its own metadata true, the Reaper MUST correct it, so that no job is recorded in a non-terminal state while it is not running and no lock or reservation is held on behalf of a job that is not running.",
+                          "priority": "must-have",
+                          "status": "done",
+                          "depends_on": [],
+                          "tests": {
+                            "test": [
+                              {
+                                "orphan": true,
+                                "test_type": "ORPHAN",
+                                "file": ""
+                              }
+                            ]
+                          },
+                          "approval": "approved"
+                        },
+                        {
+                          "req_id": "EPIC-010-F-101-S-001-REQ-B-003",
+                          "orphan": false,
+                          "name": "An incomplete metadata correction says so",
+                          "requirement": "When the Reaper cannot complete a correction pass, the pipeline job metadata MUST record that the pass was incomplete and what it did not reach, and MUST be distinguishable from a pass that completed having found nothing to correct.",
+                          "priority": "must-have",
+                          "status": "not_started",
+                          "depends_on": [],
+                          "tests": {
+                            "test": [
+                              {
+                                "orphan": true,
+                                "test_type": "ORPHAN",
+                                "file": ""
+                              }
+                            ]
+                          },
+                          "approval": "approved"
+                        }
+                      ]
+                    }
+                  }
+                ]
+              },
+              "approval": "approved",
+              "due_date": ""
+            }
+          ]
         }
       }
     ]
