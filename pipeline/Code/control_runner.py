@@ -280,7 +280,13 @@ def main(argv: list[str] | None = None) -> int:
                 # controller_heartbeat_at on the manifest.
                 m[PIPELINE_ADMIN_DB]["cluster_lifecycle"].update_one(
                     {"_id": rid},
-                    {"$set": {"expiry_at": now + datetime.timedelta(hours=_RENEWAL_HOURS)}},
+                    {"$set": {
+                        "expiry_at": now + datetime.timedelta(hours=_RENEWAL_HOURS),
+                        # What the reaper asks Azure about. expiry_at says only
+                        # that nobody has waited long enough yet; this names the
+                        # process whose absence ends the run now.
+                        "controller_pid": os.getpid(),
+                    }},
                 )
             except Exception as exc:
                 _log.warning("controller heartbeat write failed run_id=%s err=%s",

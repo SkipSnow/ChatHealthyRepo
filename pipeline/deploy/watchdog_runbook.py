@@ -230,6 +230,7 @@ def _get_token(resource: str, client_id: str | None = None) -> str:
 
 
 from chathealthy_lib.logging_service import ChatHealthyLoggingService  # noqa: PLC0415, E402
+from chathealthy_lib.azure_host import ChatHealthyAzureHost  # noqa: E402
 
 
 def log(event: str, **fields):
@@ -345,21 +346,6 @@ def _list_pipeline_vms(tok: str) -> list[dict]:
         if "pipeline_run_id" in tags:
             out.append(vm)
     return out
-
-
-def _vm_power_state(vm_name: str, tok: str) -> str:
-    url = (f"https://management.azure.com/subscriptions/{SUBSCRIPTION_ID}"
-           f"/resourceGroups/{RESOURCE_GROUP}/providers/Microsoft.Compute/"
-           f"virtualMachines/{vm_name}/instanceView?api-version=2024-03-01")
-    try:
-        resp = _arm_get(url, tok)
-    except urllib.error.HTTPError as exc:
-        return f"unknown_http_{exc.code}"
-    for st in resp.get("statuses", []):
-        code = st.get("code", "")
-        if code.startswith("PowerState/"):
-            return code.split("/", 1)[1]
-    return "unknown"
 
 
 def _vm_disk_names(vm: dict) -> list[str]:
@@ -600,15 +586,21 @@ def _process_vm(vm: dict, mongo, tok: str) -> None:
             or (now - hb).total_seconds() > HEARTBEAT_STALE_MINUTES * 60
         )
         if stale:
-            power = _vm_power_state(vm_name, tok)
-            if power in ("deallocated", "stopped"):
-                abort = "controller_heartbeat_lost"
-            elif power == "running":
-                abort = "controller_process_dead"
-            else:
-                abort = f"controller_heartbeat_lost_power_{power}"
+            # A stale heartbeat is a reason to look, not a verdict. The host
+            # itself is asked whether the Controller process is gone; a VM
+            # that is still running it is a live run whose heartbeat thread
+            # is what failed, and deleting it would end the run.
+            reservation = mongo[PIPELINE_ADMIN_DB]["cluster_lifecycle"].find_one(
+                {"_id": run_id}) or {}
+            verdict = ChatHealthyAzureHost().verdict(
+                vm_name, reservation.get("controller_pid"))
+            if not verdict.is_dead:
+                log("stale_heartbeat_host_not_dead", vm=vm_name, run_id=run_id,
+                    verdict=verdict.state, detail=verdict.detail)
+                return
+            abort = f"controller_dead:{verdict.detail}"
             log("delete_stale_heartbeat", vm=vm_name, run_id=run_id,
-                power=power, abort_reason=abort)
+                abort_reason=abort)
             # Reaper only deletes the VM + orphaned NICs/disks. It does NOT
             # update pipeline.runs -- that's job metadata and stays untouched
             # per the reaper-infrastructure-only boundary. Next fire's
