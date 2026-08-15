@@ -95,6 +95,7 @@ VNET = os.environ.get("AZ_VNET_NAME", "vnet-chathealthy-pipeline-dev")
 SUBNET = os.environ.get("AZ_SUBNET_NAME", "snet-pipeline-compute")
 VM_SIZE = os.environ.get("REGRESSION_VM_SIZE", "Standard_D2als_v7")
 RESULTS_COLLECTION = "pipeline.regression_results"
+HOST_LOG = "/var/log/chregtest.log"
 
 # Every name this runbook creates carries this marker, so anything it leaves
 # behind is identifiable and removable without guessing.
@@ -110,6 +111,7 @@ class PipelineRegressionTest:
             "pipelineEditor", "admin")
         self._db = self._mongo[PIPELINE_ADMIN_DB]
         self._created = []
+        self._host_logs = {}
 
     # -- entry ---------------------------------------------------------------
     def run(self, only: str = "") -> dict:
@@ -149,9 +151,15 @@ class PipelineRegressionTest:
             # argued for teaching them to leave dead runs alone.
             self._create_vm(dead_vm, dead_run)
             self._create_vm(live_vm, live_run)
-            ready = self._wait_ready(dead_vm) and self._wait_ready(live_vm)
-            checks.append(self._check("both hosts are up and answering", ready))
-            if not ready:
+            dead_ready = self._wait_ready(dead_vm)
+            live_ready = self._wait_ready(live_vm)
+            for vm in (dead_vm, live_vm):
+                self._log_host(vm)
+            detail = "" if (dead_ready and live_ready) else (
+                f"{dead_vm}={dead_ready} {live_vm}={live_ready}")
+            checks.append(self._check("both hosts are up and answering",
+                                      dead_ready and live_ready, detail))
+            if not (dead_ready and live_ready):
                 return checks
 
             seen = self._processes_on(dead_vm)
@@ -285,21 +293,60 @@ class PipelineRegressionTest:
         One carries its run id the way a Controller does, in the environment;
         one the way a worker does, in argv; and one forks a child that exits
         unreaped, so the host carries a real defunct process too.
+
+        Each spawn is recorded on the host itself, with its pid, before any
+        component is asked about it. Without that record an empty process
+        list is ambiguous: it reads the same whether the watchdog killed
+        them or cloud-init never started them, and one of those is the
+        thing under test.
         """
         script = (
             "#cloud-config\n"
             "runcmd:\n"
             "  - |\n"
+            f"    L={HOST_LOG}\n"
+            "    say() { echo \"$(date -u +%Y-%m-%dT%H:%M:%SZ) $*\" >> $L; }\n"
+            f"    say \"boot run_id={run_id}\"\n"
+            "    say \"python3=$(command -v python3 || echo MISSING)\"\n"
             f"    export RUN_ID={run_id}\n"
             "    setsid python3 -c 'import time; time.sleep(7200)' "
             "--tag control_runner &\n"
+            "    say \"spawned controller pid=$!\"\n"
             "    unset RUN_ID\n"
             "    setsid python3 -c 'import time; time.sleep(7200)' "
             f"pipeline_worker --run-id {run_id} &\n"
+            "    say \"spawned worker pid=$!\"\n"
             "    setsid python3 -c 'import os,time\\nif os.fork()==0: os._exit(0)\\n"
             "time.sleep(7200)' "
-            f"pipeline_worker --run-id {run_id} &\n")
+            f"pipeline_worker --run-id {run_id} &\n"
+            "    say \"spawned forker pid=$!\"\n"
+            "    sleep 3\n"
+            "    say \"live now: $(ls -d /proc/[0-9]* | wc -l) procs\"\n"
+            "    say boot complete\n")
         return base64.b64encode(script.encode()).decode()
+
+    def _host_log(self, vm_name: str) -> list:
+        """Read back what the host recorded about itself."""
+        code, body = self._arm(
+            "POST",
+            f"/providers/Microsoft.Compute/virtualMachines/{vm_name}/runCommand",
+            {"commandId": "RunShellScript",
+             "script": [f"cat {HOST_LOG} 2>/dev/null || echo 'NO HOST LOG'; "
+                        f"echo '-- cloud-init --'; "
+                        f"tail -n 15 /var/log/cloud-init-output.log 2>/dev/null"]})
+        if code >= 400:
+            return [f"could not read host log: HTTP {code}"]
+        lines = []
+        for entry in body.get("value", []) or []:
+            lines.extend((entry.get("message") or "").splitlines())
+        return [ln for ln in lines if ln.strip()]
+
+    def _log_host(self, vm_name: str) -> None:
+        """Put the host's own account of itself into the run's record."""
+        lines = self._host_log(vm_name)
+        self._host_logs[vm_name] = lines
+        for line in lines:
+            log.info("regression host %s | %s", vm_name, line)
 
     # -- Azure ---------------------------------------------------------------
     def _bearer(self) -> str:
@@ -473,6 +520,7 @@ class PipelineRegressionTest:
                 "function": function,
                 "ran_at": datetime.now(timezone.utc),
                 "env": os.environ.get("ENV_PREFIX", "dev"),
+                "host_logs": self._host_logs,
                 **result})
         except Exception as exc:  # noqa: BLE001
             log.warning("regression: could not record result (%r)", exc)
