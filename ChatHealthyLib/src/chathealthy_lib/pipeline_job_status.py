@@ -68,6 +68,12 @@ class JobVerdict:
         return f"JobVerdict({self.state}, {self.detail!r})"
 
 
+# A host serves one run command at a time, and runCommand draws on the
+# Update VM throttle bucket: twelve burst, four a minute, per VM.
+_RUN_COMMAND_TRIES = 8
+_RUN_COMMAND_BUSY_WAIT_SECONDS = 10
+
+
 class ChatHealthyPipelineJobStatus:
     """Answers whether a pipeline job has failed.
 
@@ -420,14 +426,38 @@ done
         never acted on one. Reading the host was inert from the day it was
         written.
         """
-        req = urllib.request.Request(
-            url, data=json.dumps(payload).encode("utf-8"), method="POST",
-            headers={"Authorization": f"Bearer {self._bearer()}",
-                     "Content-Type": "application/json"})
-        with urllib.request.urlopen(req, timeout=180) as resp:
-            raw = resp.read().decode("utf-8")
-            status = resp.status
-            headers = dict(resp.headers)
+        # A host serves one run command at a time -- documented in the Run
+        # Command restrictions -- and runCommand draws on the Update VM
+        # throttle bucket, twelve burst and four a minute per VM. The reaper
+        # and the Watchdog both ask hosts questions, so they collide with each
+        # other and with anything else reading that host. Raising on a busy
+        # slot made the caller answer None, an unknown verdict leaves the run
+        # alone, and two components doing their job at once stopped either
+        # from doing it.
+        for attempt in range(_RUN_COMMAND_TRIES):
+            req = urllib.request.Request(
+                url, data=json.dumps(payload).encode("utf-8"), method="POST",
+                headers={"Authorization": f"Bearer {self._bearer()}",
+                         "Content-Type": "application/json"})
+            try:
+                with urllib.request.urlopen(req, timeout=180) as resp:
+                    raw = resp.read().decode("utf-8")
+                    status = resp.status
+                    headers = dict(resp.headers)
+                break
+            except urllib.error.HTTPError as exc:
+                if exc.code not in (409, 429) or attempt == _RUN_COMMAND_TRIES - 1:
+                    raise
+                wait = _RUN_COMMAND_BUSY_WAIT_SECONDS
+                if exc.code == 429:
+                    try:
+                        wait = max(wait, int((exc.headers or {}).get("Retry-After", 0)))
+                    except (TypeError, ValueError):
+                        pass
+                self._log.info(
+                    "job status: run command HTTP %d, waiting %ds (attempt %d of %d)",
+                    exc.code, wait, attempt + 1, _RUN_COMMAND_TRIES)
+                time.sleep(wait)
         if status != 202:
             return json.loads(raw) if raw else {}
         async_url = (headers.get("Azure-AsyncOperation")
@@ -437,23 +467,57 @@ done
             return {}
         return self._await_async(async_url)
 
-    def _await_async(self, url: str, minutes: int = 10) -> dict:
-        """Poll an accepted operation until it reaches a terminal state."""
+    def _await_async(self, url: str, minutes: int = 5) -> dict:
+        """Poll an accepted operation, by whichever protocol Azure gave us.
+
+        Two exist, and this API documents the one that is easy to miss.
+        Azure-AsyncOperation returns an envelope carrying a status field.
+        Location with monitor=true -- the only header the Run Command
+        reference documents -- answers 202 while the operation runs and 200
+        with the result body itself when it finishes, carrying no status field
+        at all. Recognising only the envelope means a Location response is
+        never seen as finished: the caller polls to its ceiling and returns
+        nothing, which reads exactly like a host that cannot be reached.
+        """
         deadline = time.time() + minutes * 60
         started = time.time()
         while time.time() < deadline:
-            body = self._get(url)
+            code, body = self._get_with_status(url)
             state = str(body.get("status") or "").lower()
             waited = int(time.time() - started)
+            if code >= 400:
+                self._log.warning("job status: polling operation returned %s", code)
+                return {}
             if state in ("succeeded", "failed", "canceled"):
                 self._log.info("job status: run command %s after %ds",
                                state, waited)
                 if state != "succeeded":
                     return {}
                 return (body.get("properties") or {}).get("output") or body
+            if code == 200 and not state:
+                self._log.info("job status: run command complete after %ds", waited)
+                return body
             self._log.info("job status: run command %s %ds/%ds",
-                           state or "in progress", waited, minutes * 60)
+                           state or f"HTTP {code}", waited, minutes * 60)
             time.sleep(5)
         self._log.warning("job status: run command did not finish in %d minutes",
                           minutes)
         return {}
+
+    def _get_with_status(self, url: str) -> tuple:
+        """A GET that reports its status code, for the 202-then-200 protocol."""
+        req = urllib.request.Request(
+            url, headers={"Authorization": f"Bearer {self._bearer()}"})
+        try:
+            with urllib.request.urlopen(req, timeout=30) as resp:
+                raw = resp.read().decode("utf-8")
+                return resp.status, (json.loads(raw) if raw else {})
+        except urllib.error.HTTPError as exc:
+            try:
+                return exc.code, json.loads(exc.read().decode("utf-8"))
+            except Exception:  # noqa: BLE001
+                return exc.code, {}
+        except Exception as exc:  # noqa: BLE001
+            self._log.warning("job status: polling operation failed (%s)",
+                              f"{type(exc).__name__}: {str(exc)[:120]}")
+            return 0, {}
