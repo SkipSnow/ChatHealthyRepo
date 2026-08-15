@@ -135,10 +135,10 @@ class PipelineRegressionTest:
     def zombie_detection(self) -> list:
         """A dead run whose processes outlived it, beside a live run."""
         stamp = datetime.now(timezone.utc).strftime("%H%M%S")
-        dead_run = f"{MARKER}-dead-{stamp}"
-        live_run = f"{MARKER}-live-{stamp}"
-        dead_vm = f"vm-{MARKER}-dead-{stamp}"[:60]
-        live_vm = f"vm-{MARKER}-live-{stamp}"[:60]
+        dead_run = f"{MARKER}-provider-dead-{stamp}"
+        live_run = f"{MARKER}-testpipeline-live-{stamp}"
+        dead_vm = f"vm-{MARKER}-provider-{stamp}"[:60]
+        live_vm = f"vm-{MARKER}-testpipe-{stamp}"[:60]
         checks = []
         try:
             self._write_metadata(dead_run, dead_vm, live_run, live_vm)
@@ -256,8 +256,14 @@ class PipelineRegressionTest:
             "run_id": dead_run, "pipeline_name": "provider", "status": "running",
             "started_at": old, "vm_name": dead_vm,
             "controller_heartbeat_at": old, "regression_test": True})
+        # Two runs, two pipelines. The lock is keyed pipeline_lock:<name>, so
+        # two live runs of the SAME pipeline cannot occur and asserting on
+        # that state would assert on a fiction. testPipeline is this runbook's
+        # own name -- it owns no orchestrator and loads nothing; it exists so
+        # the concurrent shape is real, and so a dead run in one pipeline can
+        # be shown not to cost a live run in another its host.
         self._db["pipeline.runs"].insert_one({
-            "run_id": live_run, "pipeline_name": "provider", "status": "running",
+            "run_id": live_run, "pipeline_name": "testPipeline", "status": "running",
             "started_at": old, "vm_name": live_vm,
             "controller_heartbeat_at": now, "regression_test": True})
         log.info("regression: live run %s heartbeat is fresh", live_run)
@@ -386,21 +392,27 @@ class PipelineRegressionTest:
         self._created.append(("vm", vm_name))
         log.info("regression: created %s for %s", vm_name, run_id)
 
-    def _wait_ready(self, vm_name: str, minutes: int = 12) -> bool:
+    def _wait_ready(self, vm_name: str, minutes: int = 8) -> bool:
+        """Ready means the host answers the call the test is about to make.
+
+        Reading readiness off the vmAgent status field cost a full 12-minute
+        wait and a failed run: the field carries code
+        'ProvisioningState/succeeded' and says 'Ready' only in displayStatus,
+        so the condition was unsatisfiable while both hosts were up. Running
+        the command settles it by observation, and the host is ready exactly
+        when the thing that needs it works.
+        """
         deadline = time.time() + minutes * 60
         while time.time() < deadline:
             code, body = self._arm(
-                "GET",
-                f"/providers/Microsoft.Compute/virtualMachines/{vm_name}/instanceView")
-            if code == 200:
-                running = any(s.get("code") == "PowerState/running"
-                              for s in body.get("statuses", []))
-                agent = any(a.get("code", "").endswith("Ready")
-                            for a in body.get("vmAgent", {}).get("statuses", []))
-                if running and agent:
-                    time.sleep(30)  # let cloud-init finish spawning
-                    return True
-            time.sleep(20)
+                "POST",
+                f"/providers/Microsoft.Compute/virtualMachines/{vm_name}/runCommand",
+                {"commandId": "RunShellScript", "script": ["echo ready"]})
+            if code < 400:
+                for entry in body.get("value", []) or []:
+                    if "ready" in (entry.get("message") or ""):
+                        return True
+            time.sleep(15)
         return False
 
     def _processes_on(self, vm_name: str) -> list:
