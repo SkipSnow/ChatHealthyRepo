@@ -230,7 +230,13 @@ def _get_token(resource: str, client_id: str | None = None) -> str:
 
 
 from chathealthy_lib.logging_service import ChatHealthyLoggingService  # noqa: PLC0415, E402
-from chathealthy_lib.azure_host import ChatHealthyAzureHost  # noqa: E402
+from chathealthy_lib.pipeline_job_status import ChatHealthyPipelineJobStatus  # noqa: E402
+
+
+# Bound before any call. log() assigns it on first use through `global _log`,
+# but nothing ever declared it at module scope, so the first call in every
+# tick raised NameError before it could say anything at all.
+_log = None
 
 
 def log(event: str, **fields):
@@ -549,6 +555,35 @@ def _run_manifest(mongo, run_id: str) -> dict | None:
 # their orphaned NICs + orphaned disks so infrastructure cost doesn't leak.
 
 
+def _kill_pids_on_host(vm_name: str, pids: list, tok: str) -> None:
+    """Terminate named processes on a host, then delete it.
+
+    TERM first so a Controller can run its finally and leave its metadata
+    true; KILL after for anything that ignores it. Best effort -- the VM
+    delete that follows ends them regardless, and this exists so a process
+    that outlived its run is stopped even if the delete is deferred.
+    """
+    if not pids:
+        return
+    listed = " ".join(str(int(p)) for p in pids)
+    script = (f"kill -TERM {listed} 2>/dev/null; sleep 5; "
+              f"kill -KILL {listed} 2>/dev/null; true")
+    url = (f"https://management.azure.com/subscriptions/{SUBSCRIPTION_ID}"
+           f"/resourceGroups/{RESOURCE_GROUP}/providers/Microsoft.Compute/"
+           f"virtualMachines/{vm_name}/runCommand?api-version=2024-03-01")
+    body = json.dumps({"commandId": "RunShellScript",
+                       "script": [script]}).encode("utf-8")
+    req = urllib.request.Request(
+        url, data=body, method="POST",
+        headers={"Authorization": f"Bearer {tok}",
+                 "Content-Type": "application/json"})
+    try:
+        with urllib.request.urlopen(req, timeout=180):
+            pass
+    except Exception as exc:
+        log("kill_pids_failed", vm=vm_name, error=str(exc)[:300])
+
+
 def _process_vm(vm: dict, mongo, tok: str) -> None:
     """Apply the 4-check state machine to a single VM."""
     vm_name = vm["name"]
@@ -590,15 +625,25 @@ def _process_vm(vm: dict, mongo, tok: str) -> None:
             # itself is asked whether the Controller process is gone; a VM
             # that is still running it is a live run whose heartbeat thread
             # is what failed, and deleting it would end the run.
-            reservation = mongo[PIPELINE_ADMIN_DB]["cluster_lifecycle"].find_one(
-                {"_id": run_id}) or {}
-            verdict = ChatHealthyAzureHost().verdict(
-                vm_name, reservation.get("controller_pid"))
-            if not verdict.is_dead:
-                log("stale_heartbeat_host_not_dead", vm=vm_name, run_id=run_id,
+            status = ChatHealthyPipelineJobStatus(mongo)
+            verdict = status.verdict(run_id)
+            if not verdict.has_stopped:
+                log("stale_heartbeat_job_not_failed", vm=vm_name, run_id=run_id,
                     verdict=verdict.state, detail=verdict.detail)
                 return
             abort = f"controller_dead:{verdict.detail}"
+            # Kill what the job left before the host goes, so a process that
+            # outlived its run is ended rather than merely losing its machine.
+            # The list comes from the host's own process table and every pid on
+            # it is mapped to a run that has failed; a live run sharing this
+            # host keeps its processes.
+            killable = status.killable_processes(vm_name)
+            if killable:
+                log("killing_orphaned_processes", vm=vm_name, run_id=run_id,
+                    pids=[k["pid"] for k in killable])
+                _kill_pids_on_host(vm_name, [k["pid"] for k in killable], tok)
+            elif killable is None:
+                log("host_would_not_report_processes", vm=vm_name, run_id=run_id)
             log("delete_stale_heartbeat", vm=vm_name, run_id=run_id,
                 abort_reason=abort)
             # Reaper only deletes the VM + orphaned NICs/disks. It does NOT

@@ -270,9 +270,16 @@ def main(argv: list[str] | None = None) -> int:
                     "pipelineEditor", "admin"
                 )
                 now = datetime.datetime.utcnow()
+                # The run's own record names the process running it, so the
+                # set of processes a run owns is knowable from the metadata
+                # alone. Without it a reader had to recover the run id from
+                # /proc/<pid>/environ on the host, which is only possible
+                # while the host still answers.
                 m[PIPELINE_ADMIN_DB]["pipeline.runs"].update_one(
                     {"run_id": rid},
-                    {"$set": {"controller_heartbeat_at": now}},
+                    {"$set": {"controller_heartbeat_at": now,
+                              "controller_pid": os.getpid(),
+                              "vm_name": os.environ.get("AZURE_VM_NAME", "")}},
                 )
                 # Extend reservation expiry_at so a long-running step past
                 # the initial 10h TTL is not reaped by reservation_reaper.
