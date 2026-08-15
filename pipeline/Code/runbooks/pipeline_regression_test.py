@@ -107,7 +107,8 @@ class PipelineRegressionTest:
 
     # -- entry ---------------------------------------------------------------
     def run(self, only: str = "") -> dict:
-        functions = {"zombie_detection": self.zombie_detection}
+        functions = {"zombie_detection": self.zombie_detection,
+                     "user_reservations": self.user_reservations}
         chosen = {k: v for k, v in functions.items() if not only or k == only}
         results = {}
         for name, fn in chosen.items():
@@ -135,9 +136,15 @@ class PipelineRegressionTest:
         checks = []
         try:
             self._write_metadata(dead_run, dead_vm, live_run, live_vm)
+            # Both runs get a host. Naming a host for the live run without
+            # creating it made ARM answer 404, which the components correctly
+            # read as "this run is over" -- so the assertion that the live run
+            # is spared would have failed while they behaved perfectly, and
+            # argued for teaching them to leave dead runs alone.
             self._create_vm(dead_vm, dead_run)
-            ready = self._wait_ready(dead_vm)
-            checks.append(self._check("host is up and answering", ready))
+            self._create_vm(live_vm, live_run)
+            ready = self._wait_ready(dead_vm) and self._wait_ready(live_vm)
+            checks.append(self._check("both hosts are up and answering", ready))
             if not ready:
                 return checks
 
@@ -173,11 +180,68 @@ class PipelineRegressionTest:
                                       watchdog == "Completed", detail=watchdog))
             checks.append(self._check(
                 "dead host deleted", not self._vm_exists(dead_vm)))
+            checks.append(self._check(
+                "live host spared", self._vm_exists(live_vm)))
+            live_procs = self._processes_on(live_vm)
+            checks.append(self._check(
+                "live host's processes still running",
+                any(live_run in line for line in live_procs),
+                detail=str(live_procs[:2])))
             return checks
         finally:
             self._teardown(dead_run, live_run)
 
     # -- manufactured conditions ---------------------------------------------
+    def user_reservations(self) -> list:
+        """A reservation a person holds, and one whose time is up.
+
+        A user reservation is a row and nothing else -- no host, no process --
+        so this is decided entirely in the database. Two of them are written,
+        one still in date and one lapsed, and the reaper is asked to judge
+        both in the same tick.
+        """
+        stamp = datetime.now(timezone.utc).strftime("%H%M%S")
+        held = f"{MARKER}-user-held-{stamp}"
+        lapsed = f"{MARKER}-user-lapsed-{stamp}"
+        now = datetime.utcnow()
+        checks = []
+        try:
+            self._db["cluster_lifecycle"].replace_one(
+                {"_id": held},
+                {"_id": held, "job_id": held, "requester": MARKER,
+                 "cluster_name": os.environ.get("PIPELINE_CLUSTER",
+                                                "ChatHealthyDataPipelines"),
+                 "status": "active", "reservation_class": "human",
+                 "start_time": (now - timedelta(minutes=5)).isoformat(),
+                 "expiry_at": now + timedelta(hours=3),
+                 "regression_test": True}, upsert=True)
+            self._db["cluster_lifecycle"].replace_one(
+                {"_id": lapsed},
+                {"_id": lapsed, "job_id": lapsed, "requester": MARKER,
+                 "cluster_name": os.environ.get("PIPELINE_CLUSTER",
+                                                "ChatHealthyDataPipelines"),
+                 "status": "active", "reservation_class": "human",
+                 "start_time": (now - timedelta(hours=4)).isoformat(),
+                 "expiry_at": now - timedelta(hours=1),
+                 "regression_test": True}, upsert=True)
+            log.info("regression: user reservations written held=%s lapsed=%s",
+                     held, lapsed)
+
+            status = self._start_runbook("ReservationReaper")
+            checks.append(self._check("ReservationReaper ran",
+                                      status == "Completed", detail=status))
+            checks.append(self._check(
+                "a reservation still in date is respected",
+                self._db["cluster_lifecycle"].find_one({"_id": held}) is not None))
+            checks.append(self._check(
+                "a lapsed reservation is reaped",
+                self._db["cluster_lifecycle"].find_one({"_id": lapsed}) is None))
+            return checks
+        finally:
+            self._db["cluster_lifecycle"].delete_many({"_id": held})
+            self._db["cluster_lifecycle"].delete_many({"_id": lapsed})
+            log.info("regression: user reservations cleaned up")
+
     def _write_metadata(self, dead_run, dead_vm, live_run, live_vm) -> None:
         """Runs and reservations for jobs that never existed."""
         now = datetime.utcnow()
@@ -190,6 +254,7 @@ class PipelineRegressionTest:
             "run_id": live_run, "pipeline_name": "provider", "status": "running",
             "started_at": old, "vm_name": live_vm,
             "controller_heartbeat_at": now, "regression_test": True})
+        log.info("regression: live run %s heartbeat is fresh", live_run)
         self._db["cluster_lifecycle"].replace_one(
             {"_id": dead_run},
             {"_id": dead_run, "run_id": dead_run, "vm_name": dead_vm,
