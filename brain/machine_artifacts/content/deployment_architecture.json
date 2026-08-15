@@ -4775,6 +4775,66 @@
                 "automation_variables": [],
                 "node_address": "https://management.azure.com/subscriptions/7a17eec1-c477-4c7c-b1c1-d0662ce7a1ee/resourceGroups/rg-chathealthy-pipeline-dev/providers/Microsoft.Automation/automationAccounts/ChatHealthyJobManager/runbooks/EntitlementReport"
               }
+            },
+            {
+              "package_id": "pipeline_regression_test",
+              "kind": "runbook",
+              "files": [
+                {
+                  "source_location": "pipeline/Code/runbooks/pipeline_regression_test.py",
+                  "feature_id": "EPIC-008-F-012",
+                  "handler_type": "python_source",
+                  "disposition": "referenced",
+                  "content_hash": "1088589b26f0f2f20bd1c4227517969e148f258863eff6714af0a7968be17a7a",
+                  "package": "pipeline_regression_test"
+                }
+              ],
+              "secrets": {
+                "ATLAS_PUBLIC_KEY": "local_env",
+                "ATLAS_PRIVATE_KEY": "local_env",
+                "ATLAS_PROJECT_ID": "local_env",
+                "ENV_PREFIX": "local_env",
+                "PIPELINE_CLUSTER": "local_env",
+                "ACTIVITY_WINDOW_MINUTES": "local_env",
+                "AZ_SUBSCRIPTION_ID": "local_env",
+                "AZ_RESOURCE_GROUP": "local_env",
+                "AZ_AUTOMATION_ACCOUNT": "local_env",
+                "SPARKMAIL_API_KEY": "local_env",
+                "NOTIFICATION_FROM_EMAIL": "local_env",
+                "NOTIFICATION_TO_EMAIL": "local_env",
+                "AZ_AUTOMATION_RESOURCE_GROUP": "local_env",
+                "AZ_VM_ADMIN_SSH_PUBKEY": "local_env",
+                "AZ_VM_ADMIN_USERNAME": "local_env",
+                "AZ_VM_LOCATION": "local_env",
+                "AZ_VM_RESOURCE_GROUP": "local_env",
+                "AZ_VM_SIZE": "local_env",
+                "CH_LOG_DB": "local_env",
+                "ATLAS_PIPELINE_PUBLIC_KEY": "local_env",
+                "ATLAS_PIPELINE_PRIVATE_KEY": "local_env"
+              },
+              "secret_descriptions": {
+                "ACTIVITY_WINDOW_MINUTES": "How long a cluster may idle before it is paused",
+                "ATLAS_PRIVATE_KEY": "MongoDB Atlas administrative API private key",
+                "ATLAS_PROJECT_ID": "The Atlas project the clusters belong to",
+                "ATLAS_PUBLIC_KEY": "MongoDB Atlas administrative API public key",
+                "AZ_AUTOMATION_ACCOUNT": "The automation account that runs scheduled work",
+                "AZ_AUTOMATION_RESOURCE_GROUP": "The resource group the automation account is in",
+                "AZ_RESOURCE_GROUP": "The resource group resources are created in",
+                "AZ_SUBSCRIPTION_ID": "The Azure subscription resources are created in",
+                "AZ_VM_ADMIN_SSH_PUBKEY": "Public key permitted to reach the pipeline run host",
+                "AZ_VM_ADMIN_USERNAME": "Administrative account on the pipeline run host",
+                "AZ_VM_LOCATION": "Region the pipeline run host is created in",
+                "AZ_VM_RESOURCE_GROUP": "Resource group the pipeline run host is created in",
+                "AZ_VM_SIZE": "Size of the machine the pipeline run is given",
+                "ENV_PREFIX": "Which environment this component is running as",
+                "NOTIFICATION_FROM_EMAIL": "Address notification email is sent from",
+                "NOTIFICATION_TO_EMAIL": "Address notification email is sent to",
+                "PIPELINE_CLUSTER": "Name of the Atlas cluster the pipeline writes to",
+                "SPARKMAIL_API_KEY": "SparkPost key for sending notification email",
+                "CH_LOG_DB": "Database the structured log records are written to",
+                "ATLAS_PIPELINE_PUBLIC_KEY": "Atlas API public key that may pause and resume the pipeline cluster",
+                "ATLAS_PIPELINE_PRIVATE_KEY": "Atlas API private key that may pause and resume the pipeline cluster"
+              }
             }
           ]
         }

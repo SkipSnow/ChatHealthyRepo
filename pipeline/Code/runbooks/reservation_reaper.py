@@ -56,7 +56,7 @@ except ImportError:
 
 from chathealthy_lib.logging_service import ChatHealthyLoggingService
 from chathealthy_lib.mongo_utilities import ChatHealthyMongoUtilities
-from chathealthy_lib.azure_host import ChatHealthyAzureHost
+from chathealthy_lib.pipeline_job_status import ChatHealthyPipelineJobStatus
 import os
 import sys
 import json
@@ -275,14 +275,24 @@ def _maybe_send_streak_email(state, latest_cause):
         state["emails_sent"] = emails
 
 
-def _record_failure(client, cause):
-    """Record an incomplete pass where a reader of job metadata will find it."""
+def _record_failure(client, cause, unexamined=None, corrected=None):
+    """Record an incomplete pass where a reader of job metadata will find it.
+
+    The traceback says the pass died; unexamined says what it did not reach,
+    which is what a reader needs to know how much of the metadata is still
+    unjudged. A pass that completes deletes this document, so its presence
+    means incomplete and its absence means complete -- including complete
+    having found nothing to correct.
+    """
     state = _read_failure_state(client) or {"emails_sent": [], "failures": []}
     state.setdefault("emails_sent", [])
     state.setdefault("failures", [])
     state["failures"].append({
         "failure_time": datetime.now(timezone.utc).isoformat(),
         "failure_cause": cause[:2000],
+        "unexamined": list(unexamined or [])[:200],
+        "unexamined_count": len(unexamined or []),
+        "corrected_before_failure": list(corrected or [])[:200],
     })
     _maybe_send_streak_email(state, cause)
     _write_failure_state(client, state)
@@ -302,29 +312,78 @@ _TERMINAL_RUN_STATUSES = {"succeeded", "failed", "aborted", "completed"}
 _TERMINAL_ITEM_STATUSES = {"done", "succeeded", "failed", "complete", "completed"}
 
 
-def _host_is_dead(coll, run_id) -> bool:
-    """Has the run's host or Controller process gone?
+class CorrectionPass:
+    """One sweep over pipeline job metadata, and a record of what it reached.
 
-    A live reservation says only that nobody has waited long enough for it to
-    expire. This asks Azure what is true now. An unknown answer is not a death
-    -- an Azure that will not answer is no evidence a run has stopped -- so
-    only a definite verdict reaps.
+    REQ-B-002 requires that no job is recorded in a non-terminal state while
+    it is not running, and that no lock or reservation is held on behalf of a
+    job that is not running. Locks alone do not satisfy that: a job whose
+    reservation was cancelled before its manifest was stamped leaves no
+    lifecycle row at all, so a sweep driven by lifecycle rows never sees it.
+    This is driven by pipeline.runs as well.
+
+    REQ-B-003 requires that a pass which cannot finish says so, and says what
+    it did not reach. Every unit of work is enrolled before the sweep starts
+    and struck off as it is examined, so whatever remains enrolled at the end
+    is exactly what went unexamined.
     """
-    reservation = coll.find_one({"_id": run_id}) or {}
-    vm_name = reservation.get("vm_name")
-    if not vm_name:
-        return False
-    verdict = ChatHealthyAzureHost().verdict(vm_name, reservation.get("controller_pid"))
-    if verdict.is_dead:
-        log.info("Run %s is over: %s", run_id, verdict.detail)
-        return True
-    if not verdict.is_known:
-        log.info("Run %s host state unknown (%s); leaving the reservation alone",
-                 run_id, verdict.detail)
-    return False
+
+    def __init__(self, client):
+        self._client = client
+        self._runs = client[PIPELINE_ADMIN_DB]["pipeline.runs"]
+        self._lifecycle = client[DB_NAME][COLLECTION]
+        self._status = ChatHealthyPipelineJobStatus(client)
+        self.outstanding: list[str] = []
+        self.corrected: list[str] = []
+
+    def enrol(self, item: str) -> None:
+        self.outstanding.append(item)
+
+    def done(self, item: str) -> None:
+        if item in self.outstanding:
+            self.outstanding.remove(item)
+
+    def correct_orphaned_runs(self, now_aware) -> None:
+        """A run recorded as going, whose Controller is not.
+
+        The run's own record names the host, so a run with no lifecycle row is
+        still answerable. A run that names no host cannot be judged and is left
+        alone rather than guessed at.
+        """
+        candidates = list(self._runs.find(
+            {"status": {"$nin": list(_TERMINAL_RUN_STATUSES)}},
+            {"run_id": 1, "vm_name": 1, "controller_pid": 1, "started_at": 1}))
+        for run in candidates:
+            self.enrol(f"run:{run.get('run_id')}")
+        for run in candidates:
+            run_id = run.get("run_id")
+            item = f"run:{run_id}"
+            started = run.get("started_at")
+            if started is not None and getattr(started, "tzinfo", None) is None:
+                started = started.replace(tzinfo=timezone.utc)
+            if started and (now_aware - started).total_seconds() / 60.0 < PIPELINE_LOCK_STARTUP_GRACE_MIN:
+                self.done(item)
+                continue
+            verdict = self._run_verdict(run_id, run)
+            if verdict is None or not verdict.has_stopped:
+                self.done(item)
+                continue
+            self._runs.update_one(
+                {"run_id": run_id, "status": {"$nin": list(_TERMINAL_RUN_STATUSES)}},
+                {"$set": {"status": "failed",
+                          "failure_reason": f"controller_not_running:{verdict.detail}",
+                          "corrected_by_reaper_at": now_aware}})
+            self._lifecycle.delete_many({"run_id": run_id})
+            self._lifecycle.delete_one({"_id": run_id})
+            log.info("Corrected orphaned run %s: %s", run_id, verdict.detail)
+            self.corrected.append(item)
+            self.done(item)
+
+    def _run_verdict(self, run_id, run):
+        return self._status.verdict(run_id)
 
 
-def _reap_stuck_pipeline_lock(coll, runs_coll, row, now_aware):
+def _reap_stuck_pipeline_lock(coll, runs_coll, row, now_aware, status):
     """Reap a pipeline_lock row iff its run holds no live reservation.
 
     The reservation is what says a run is legitimately alive. A run makes one
@@ -363,11 +422,21 @@ def _reap_stuck_pipeline_lock(coll, runs_coll, row, now_aware):
                 expiry = datetime.fromisoformat(expiry)
             except (ValueError, TypeError):
                 expiry = None
-        if expiry is not None:
-            if getattr(expiry, "tzinfo", None) is None:
-                expiry = expiry.replace(tzinfo=timezone.utc)
-            if expiry > now_aware and not _host_is_dead(coll, run_id):
-                return False  # The run holds a live reservation and is running.
+        # The process decides, and the clock only speaks when Azure will not.
+        # A running Controller keeps its lock however old its reservation is:
+        # a heartbeat thread that wedged while the run works on is a failure
+        # of the renewal, not of the run, and reaping it here would stamp a
+        # live run failed and free its lock for a second one to collide with.
+        verdict = status.verdict(run_id)
+        log.info("Run %s verdict: %s (%s)", run_id, verdict.state, verdict.detail)
+        if verdict.is_running:
+            return False
+        if not verdict.has_stopped:
+            if expiry is not None:
+                if getattr(expiry, "tzinfo", None) is None:
+                    expiry = expiry.replace(tzinfo=timezone.utc)
+                if expiry > now_aware:
+                    return False  # Unproven either way; the lease still stands.
         log.info(
             "Reaping stuck pipeline_lock: _id=%s run_id=%s age_min=%.1f "
             "status=%s reservation_expiry=%s",
@@ -424,6 +493,9 @@ def _r1_work_pending(client):
     return False
 
 
+_PASS = None
+
+
 def _main():
     now = datetime.now(timezone.utc)
 
@@ -447,10 +519,19 @@ def _main():
     log.info("Loaded %d cluster_lifecycle rows from %s.%s",
              len(reservations), DB_NAME, COLLECTION)
 
+    # REQ-B-002: a run recorded as going whose Controller is not must be
+    # corrected, whether or not it left a lock behind.
+    global _PASS
+    _PASS = CorrectionPass(client)
+    for r in reservations:
+        _PASS.enrol(f"lifecycle:{r.get('_id')}")
+    _PASS.correct_orphaned_runs(now)
+
     kept, reaped = [], []
     now_utc_naive = datetime.utcnow()
     now_utc_aware = datetime.now(timezone.utc)
     for r in reservations:
+        _PASS.done(f"lifecycle:{r.get('_id')}")
         # Row shape discriminator. Two shapes coexist here:
         #  - kind == "pipeline_lock" -- atomic per-pipeline mutex added
         #    2026-07-28 in commit 1384700d. Fields: _id="pipeline_lock:{name}",
@@ -464,7 +545,8 @@ def _main():
         # missing expiry_at as "keep forever" and would silently protect
         # every pipeline_lock row from reaping.
         if r.get("kind") == "pipeline_lock":
-            if _reap_stuck_pipeline_lock(coll, runs_coll, r, now_utc_aware):
+            if _reap_stuck_pipeline_lock(coll, runs_coll, r, now_utc_aware,
+                                         _PASS._status):
                 reaped.append(r)
             else:
                 kept.append(r)
@@ -587,20 +669,33 @@ def _main():
     return client
 
 
-_client = None
-try:
-    _client = _main()
-    _delete_failure_state(_client)
-    sys.exit(0)
-except Exception:
-    tb = traceback.format_exc()
-    log.error("Reaper tick failed: %s", tb)
+# Azure Automation executes a runbook as the main script, so this guard does
+# not change how it runs there. It does stop an import from firing a tick --
+# importing this module to test one function paused a live cluster.
+def _run_tick() -> int:
+    global _client
+    _client = None
     try:
-        # The pass did not finish. Say so where job metadata is read; opening
-        # a connection here is the last resort when _main died before one.
-        if _client is None:
-            _client = ChatHealthyMongoUtilities().getConnection("pipelineEditor", "admin")
-        _record_failure(_client, tb)
-    except Exception as inner:
-        log.error("recording the incomplete pass also failed: %r", inner)
-    sys.exit(1)
+        _client = _main()
+        _delete_failure_state(_client)
+        return 0
+    except Exception:
+        tb = traceback.format_exc()
+        log.error("Reaper tick failed: %s", tb)
+        try:
+            # The pass did not finish. Say so where job metadata is read;
+            # opening a connection here is the last resort when _main died
+            # before one existed.
+            if _client is None:
+                _client = ChatHealthyMongoUtilities().getConnection("pipelineEditor", "admin")
+            _record_failure(_client, tb,
+                            unexamined=(_PASS.outstanding if _PASS else None),
+                            corrected=(_PASS.corrected if _PASS else None))
+        except Exception as inner:
+            log.error("recording the incomplete pass also failed: %r", inner)
+        return 1
+
+
+_client = None
+if __name__ == "__main__":
+    sys.exit(_run_tick())
