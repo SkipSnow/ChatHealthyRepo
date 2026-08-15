@@ -286,6 +286,20 @@ def _record_failure(client, cause):
     _write_failure_state(client, state)
 
 
+# Startup grace for pipeline_lock rows: how long we wait after
+# acquired_at before judging the lock. VM boot + apt + docker pull +
+# Controller container start is typically 3-5 minutes in a healthy fire;
+# 8 min leaves headroom for slow days.
+PIPELINE_LOCK_STARTUP_GRACE_MIN = 8
+
+# A run in one of these states is over; its lock is free whatever its
+# reservation still says.
+_TERMINAL_RUN_STATUSES = {"succeeded", "failed", "aborted", "completed"}
+
+# The same for a single work item.
+_TERMINAL_ITEM_STATUSES = {"done", "succeeded", "failed", "complete", "completed"}
+
+
 def _reap_stuck_pipeline_lock(coll, runs_coll, row, now_aware):
     """Reap a pipeline_lock row iff its run holds no live reservation.
 
