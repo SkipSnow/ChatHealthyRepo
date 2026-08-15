@@ -89,6 +89,22 @@ def _is_retryable_http(exc: BaseException) -> bool:
 _log = ChatHealthyLoggingService()
 
 PRACTICE_ADDRESS_TYPES = frozenset({"practice", "secondary_practice"})
+
+# A county is a United States subdivision, so only a United States address has
+# one. Despite being named "(If outside U.S.)", NPPES populates the country on
+# every row -- 26,510 US and 11 foreign across the DE load, with no blanks --
+# and normalization maps it onto all three address types. So US is stated, not
+# assumed from an empty field.
+#
+# Without this, eligibility was "has five digits", and the Census ZCTA
+# crosswalk stamped whatever US county those digits matched: a Freiburg
+# practice address at postcode 79106 was published as Potter County, Texas,
+# with a name and a RUCC, indistinguishable from a real match.
+US_COUNTRY_CODE = "US"
+
+
+def _is_united_states(addr: dict) -> bool:
+    return str(addr.get("country") or "").strip().upper() == US_COUNTRY_CODE
 DEFAULT_SLA = 0.98
 DEFAULT_BATCH_SIZE = 500
 DEFAULT_NPPES_RATE = 5.0
@@ -120,6 +136,8 @@ def _addr_needs_enrichment(addr: dict) -> bool:
     if not isinstance(addr, dict):
         return False
     if addr.get("address_type") not in PRACTICE_ADDRESS_TYPES:
+        return False
+    if not _is_united_states(addr):
         return False
     c = addr.get("county")
     if isinstance(c, dict) and c.get("fips") and c.get("name"):
