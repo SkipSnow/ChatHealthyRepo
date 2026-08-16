@@ -285,7 +285,7 @@ def _wait_source_idle(cluster_name: str) -> None:
 def _frontend_admin_coll():
     # Lifecycle records are operational, and must be readable while the
     # source factory is asleep -- which is exactly when this job consults them.
-    fe = ChatHealthyMongoUtilities().getConnection("dataTransferAgent", "admin")
+    fe = ChatHealthyMongoUtilities().getConnection("dataTransferAgent", "ChatHealthyFrontEnd")
     return fe[PIPELINE_ADMIN_DB]["cluster_lifecycle"]
 
 
@@ -623,9 +623,9 @@ def _main():
     # The crossing: read the factory, write the front end, keep status in
     # admin. Three connections, one identity -- the only principal permitted
     # to write PipelinePublicHealthData.
-    src_client = ChatHealthyMongoUtilities().getConnection("dataTransferAgent", "pipelines")
-    dst_client = ChatHealthyMongoUtilities().getConnection("dataTransferAgent", "frontEnd")
-    pipeline_client = ChatHealthyMongoUtilities().getConnection("dataTransferAgent", "admin")
+    src_client = ChatHealthyMongoUtilities().getConnection("dataTransferAgent", "ChatHealthyDataPipelines")
+    dst_client = ChatHealthyMongoUtilities().getConnection("dataTransferAgent", "ChatHealthyFrontEnd")
+    pipeline_client = ChatHealthyMongoUtilities().getConnection("dataTransferAgent", "ChatHealthyFrontEnd")
 
     src_coll = src_client[src_db_name][src_coll_name]
     dst_coll = dst_client[dst_db_name][dst_coll_name]
@@ -675,7 +675,7 @@ def _main():
 
         # Reconciliation count must be the EFFECTIVE covered scope, not
         # the raw base_filter. A dotted base_filter (e.g.
-        # addresses.address_type=business, addresses.state in (...))
+        # business_address.state in (...))
         # matches docs where DIFFERENT array elements satisfy different
         # parts. The partitions use $elemMatch (per-element scoping), so
         # they only claim docs that have a SINGLE element matching the

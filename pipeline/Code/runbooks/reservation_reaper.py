@@ -489,7 +489,7 @@ def _main():
     already_paused = pre_state == "IDLE" and pre_paused
 
     # Uses pipelineEditor identity to access frontend cluster resources
-    client = ChatHealthyMongoUtilities().getConnection("pipelineEditor", "admin")
+    client = ChatHealthyMongoUtilities().getConnection("pipelineEditor", "ChatHealthyFrontEnd")
     coll = client[DB_NAME][COLLECTION]
     runs_coll = client[PIPELINE_ADMIN_DB]["pipeline.runs"]
     reservations = list(coll.find({}))
@@ -660,7 +660,7 @@ def _run_tick() -> int:
             # opening a connection here is the last resort when _main died
             # before one existed.
             if _client is None:
-                _client = ChatHealthyMongoUtilities().getConnection("pipelineEditor", "admin")
+                _client = ChatHealthyMongoUtilities().getConnection("pipelineEditor", "ChatHealthyFrontEnd")
             _record_failure(_client, tb,
                             unexamined=(_PASS.outstanding if _PASS else None),
                             corrected=(_PASS.corrected if _PASS else None))

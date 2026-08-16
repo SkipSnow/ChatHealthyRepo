@@ -42,7 +42,7 @@ _mongo: MongoClient | None = None
 
 def _get_mongo_client() -> MongoClient:
     from chathealthy_lib.mongo_utilities import ChatHealthyMongoUtilities
-    return ChatHealthyMongoUtilities().getConnection("pipelineEditor", "frontEnd")
+    return ChatHealthyMongoUtilities().getConnection("pipelineEditor", "ChatHealthyFrontEnd")
 
 
 # ── NPPES field-prefix constants ─────────────────────────────────────────────
@@ -179,12 +179,13 @@ def normalize_raw_record(raw: dict) -> dict:
     if other_identifiers:
         doc["other_identifiers"] = other_identifiers
 
-    # Unified addresses[] — one 'business' (the NPPES mailing address) and
-    # one or more 'practice' entries (primary from main NPPES file here;
-    # secondaries are concat'd by attach_practice_locations from pl_pfile_*.csv
-    # in Step 6). county subdoc carries fips=None placeholder on every entry
-    # regardless of address_type; the county enrichment passes populate it.
-    addresses: list = []
+    # business_address (the NPPES mailing address) is one object, because NPPES
+    # gives an NPI exactly one. practice_addresses[] holds the primary from the
+    # main NPPES file here; secondaries are concat'd by
+    # attach_practice_addresses from pl_pfile_*.csv in Step 6. The county
+    # subdoc carries a fips=None placeholder on every entry; the county
+    # enrichment passes populate it.
+    practice_addresses: list = []
 
     def _apply_address_labels(addr: dict) -> None:
         """LLD v39 sec. 7.1: state and country get sibling _label fields."""
@@ -209,7 +210,7 @@ def normalize_raw_record(raw: dict) -> dict:
         practice["address_type"] = "practice"
         practice["county"] = {"fips": None}
         _apply_address_labels(practice)
-        addresses.append(practice)
+        practice_addresses.append(practice)
 
     business = {
         sub: (raw[field] or "").strip()
@@ -223,10 +224,10 @@ def normalize_raw_record(raw: dict) -> dict:
         business["address_type"] = "business"
         business["county"] = {"fips": None}
         _apply_address_labels(business)
-        addresses.append(business)
+        doc["business_address"] = business
 
-    if addresses:
-        doc["addresses"] = addresses
+    if practice_addresses:
+        doc["practice_addresses"] = practice_addresses
 
     # active event log — derived from NPPES NPI Deactivation Date /
     # NPI Reactivation Date. Absent when neither is set (provider currently

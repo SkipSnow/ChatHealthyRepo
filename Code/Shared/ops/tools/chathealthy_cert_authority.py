@@ -174,19 +174,14 @@ class ChatHealthyCertificateAuthority:
             certificate_pem: PEM-encoded certificate
             private_key_pem: PEM-encoded private key
         """
-        # Use DN hash as vault key name (sanitized)
-        dn_hash = self._sanitize_dn_for_vault(subject_dn)
-
-        # Store cert
+        # One secret, named exactly the identity, holding the cert+key PEM.
+        # It was a cert-<name> / key-<name> pair, which meant the name in the
+        # vault was never the name of the identity, and the reader had to
+        # know the decoration to find its own credential.
+        identity = self._sanitize_dn_for_vault(subject_dn)
         self.secret_client.set_secret(
-            f"cert-{dn_hash}",
-            certificate_pem
-        )
-
-        # Store key (separate, access controlled)
-        self.secret_client.set_secret(
-            f"key-{dn_hash}",
-            private_key_pem
+            identity,
+            certificate_pem.strip() + chr(10) + private_key_pem.strip() + chr(10)
         )
 
 

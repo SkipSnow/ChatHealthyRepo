@@ -886,48 +886,33 @@ def _atlas_resume_pipeline_cluster() -> dict:
         _time.sleep(15)
 
 
-def _provision_vm_and_wake_mongo_in_parallel(
+def _wake_mongo_then_provision_vm(
     run_id: str, load_mode: str, state_scope,
     invocation_mode: str, resume_from_step: str = "",
     data_version: int = 0,
     google_maps_enabled: bool = False,
 ) -> dict:
-    """v32 §5.2.2 par-block: fire VM create AND Atlas resume in parallel.
+    """The cluster is up before the host exists.
 
-    Runbook returns as soon as both API calls have been dispatched (not
-    when the VM boots or the cluster is IDLE -- those are Controller's
-    responsibility to poll).
+    These ran in parallel threads the runbook abandoned after 90 seconds.
+    Resuming a paused Atlas cluster takes minutes -- 340 seconds measured on
+    2026-08-16 -- so the runbook returned, the host booted, and the Controller
+    met a cluster still REPAIRING. Its first act is an observability gate that
+    connects, and that connection was refused: the run died in bootstrap with
+    nothing recorded, because the thing it records to was the thing that was
+    not up.
+
+    Sequential removes the race rather than widening the window. The resume
+    polls to IDLE and raises if it cannot get there, so a cluster that will
+    not wake costs no VM at all -- previously it cost a host that booted, ran
+    for its whole reservation and did nothing.
     """
-    import threading
-
-    results = {"vm": None, "atlas": None, "vm_error": None, "atlas_error": None}
-
-    def _run_vm():
-        try:
-            results["vm"] = _provision_vm(
-                run_id, load_mode, state_scope, invocation_mode, resume_from_step,
-                data_version, google_maps_enabled,
-            )
-        except Exception as exc:  # noqa: BLE001
-            results["vm_error"] = f"{type(exc).__name__}: {exc}"
-            log("vm_provision_error", error=results["vm_error"])
-
-    def _run_atlas():
-        try:
-            results["atlas"] = _atlas_resume_pipeline_cluster()
-        except Exception as exc:  # noqa: BLE001
-            results["atlas_error"] = f"{type(exc).__name__}: {exc}"
-            log("atlas_resume_error", error=results["atlas_error"])
-
-    t_vm = threading.Thread(target=_run_vm, daemon=False)
-    t_atlas = threading.Thread(target=_run_atlas, daemon=False)
-    t_vm.start()
-    t_atlas.start()
-    t_vm.join(timeout=90)
-    t_atlas.join(timeout=90)
-    if results["vm_error"]:
-        raise ChatHealthyException(mode="runtime_error", message=f"VM provisioning failed: {results['vm_error']}")
-    return results
+    atlas = _atlas_resume_pipeline_cluster()
+    vm = _provision_vm(
+        run_id, load_mode, state_scope, invocation_mode, resume_from_step,
+        data_version, google_maps_enabled,
+    )
+    return {"vm": vm, "atlas": atlas}
 
 
 # ============================================================================
@@ -1106,7 +1091,7 @@ def main() -> int:
             # authenticates with pipelineEditor's certificate, so there is
             # no URI to publish and no SRV form to bypass.
             mongo = ChatHealthyMongoUtilities().getConnection(
-                "pipelineEditor", "frontEnd"
+                "pipelineEditor", "ChatHealthyFrontEnd"
             )
             mongo.admin.command("ping")
             log("mongo_connected", cluster="chathealthydatapipelines")
@@ -1146,7 +1131,8 @@ def main() -> int:
                 traceback=traceback.format_exc()[-2000:])
             return 1
 
-        # v32 §5.2.2: provision VM AND wake Mongo in parallel.
+        # Wake Mongo to IDLE, then provision the VM. Sequential: a host that
+        # boots against a still-REPAIRING cluster dies in its own gate.
         # Lock lifetime handoff: the runbook acquired the pipeline_lock
         # above; on successful VM PUT, ownership transfers to the
         # Controller inside the VM (its quiesce step releases the lock
@@ -1158,7 +1144,7 @@ def main() -> int:
         vm_provisioned = False
         vm_name_for_teardown = f"vm-chpipeline-{_reservation_short_id(run_id)}"
         try:
-            result = _provision_vm_and_wake_mongo_in_parallel(
+            result = _wake_mongo_then_provision_vm(
                 run_id, load_mode, state_scope, invocation_mode, resume_from_step,
                 data_version, google_maps_enabled,
             )
@@ -1167,10 +1153,9 @@ def main() -> int:
             # VM is up; Controller now owns lock release via its
             # _quiesce_mongo_state step. Runbook must NOT release.
             runbook_owns_lock_release = False
-            log("vm_provision_dispatched_and_mongo_woke_in_parallel",
+            log("mongo_idle_then_vm_provisioned",
                 run_id=run_id,
-                vm_id=vm_id,
-                atlas_resume_error=result.get("atlas_error"))
+                vm_id=vm_id)
             # Reservation on the front cluster's admin.cluster_lifecycle.
             # Written AFTER VM PUT succeeds so the reservation always
             # references a real VM. Controller inherits and cancels in

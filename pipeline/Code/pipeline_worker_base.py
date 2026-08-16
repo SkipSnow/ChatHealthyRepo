@@ -69,7 +69,7 @@ def _get_base_mongo_client():
     if not os.environ.get("MONGO_HOST"):
         return None
     from chathealthy_lib.mongo_utilities import ChatHealthyMongoUtilities
-    return ChatHealthyMongoUtilities().getConnection("pipelineEditor", "admin")
+    return ChatHealthyMongoUtilities().getConnection("pipelineEditor", "ChatHealthyFrontEnd")
 
 
 class PipelineWorkerBase(ABC):

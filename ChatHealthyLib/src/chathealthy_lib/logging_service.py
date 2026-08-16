@@ -286,7 +286,7 @@ class _MongoLogHandler(logging.Handler):
                     # Logs are operational records: admin target, which must
                     # answer 24x7 even while the pipeline factory is down.
                     timed_client = ChatHealthyMongoUtilities().getConnection(
-                        _mongo_log_identity, "admin"
+                        _mongo_log_identity, "ChatHealthyFrontEnd"
                     )
                     raw_client = timed_client._client
                     # ONE log. The system is distributed but the business

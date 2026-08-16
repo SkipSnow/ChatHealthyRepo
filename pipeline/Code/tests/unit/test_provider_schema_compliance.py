@@ -127,7 +127,7 @@ def test_built_record_validates_against_providers_schema(
     assert doc["licenses"][0]["state"] == "PA"
     assert doc["licenses"][0]["state_label"] == "Pennsylvania"
     # Address labels
-    for addr in doc["addresses"]:
+    for addr in ([doc["business_address"]] if doc.get("business_address") else []) + (doc.get("practice_addresses") or []):
         if addr.get("state"):
             assert "state_label" in addr, f"state_label missing on {addr!r}"
         if addr.get("country"):

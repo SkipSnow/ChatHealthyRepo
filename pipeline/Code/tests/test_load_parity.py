@@ -74,9 +74,9 @@ def db_state_counts(pipeline_providers):
     # practice address in state X". Same semantic on the front-end side
     # (count_documents with $elemMatch on address_type=practice + state).
     for doc in pipeline_providers.aggregate([
-        {"$unwind": "$addresses"},
-        {"$match": {"addresses.address_type": "practice"}},
-        {"$group": {"_id": {"state": "$addresses.state", "npi": "$npi"}}},
+        {"$unwind": "$practice_addresses"},
+        {"$match": {"practice_addresses.address_type": "practice"}},
+        {"$group": {"_id": {"state": "$practice_addresses.state", "npi": "$npi"}}},
         {"$group": {"_id": "$_id.state", "count": {"$sum": 1}}},
     ], allowDiskUse=True):
         state = doc["_id"]

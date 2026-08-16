@@ -93,7 +93,7 @@ def check_mongo_health(config: dict = None) -> dict:
     """
     try:
         from chathealthy_lib.mongo_utilities import ChatHealthyMongoUtilities
-        client = ChatHealthyMongoUtilities().getConnection("pipelineEditor", "pipelines")
+        client = ChatHealthyMongoUtilities().getConnection("pipelineEditor", "ChatHealthyDataPipelines")
         client.admin.command("ping")
         client.close()
         return {"status": "ok"}

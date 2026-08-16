@@ -35,5 +35,5 @@ def test_partition_filter_state():
     # by NPPES and unique per NPI, so $elemMatch gives exactly one owner.
     assert filt == {
         "run_id": "r1",
-        "addresses": {"$elemMatch": {"address_type": "business", "state": "WY"}},
+        "business_address.state": "WY",
     }

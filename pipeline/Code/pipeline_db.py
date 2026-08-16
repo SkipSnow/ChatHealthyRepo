@@ -42,12 +42,12 @@ def _validate_env(env_prefix: str) -> str:
     return env_prefix
 
 
-def get_mongo(cluster: str = "pipelines") -> MongoClient:
+def get_mongo(cluster: str) -> MongoClient:
     """MongoClient for pipeline work, as pipelineEditor.
 
-    Defaults to the `pipelines` target -- the data factory, which is down by
-    design most of the day. Callers reaching for metadata want `admin`, and
-    should use get_metadata_db() rather than passing it here.
+    The cluster is named by the caller and has no default. A default meant
+    the data factory -- down by design most of the day -- was what a caller
+    got by not choosing, and made the reaching call site unreadable.
     """
     return ChatHealthyMongoUtilities().getConnection("pipelineEditor", cluster)
 
@@ -59,7 +59,7 @@ def get_frontend_mongo() -> MongoClient:
     specifically so reservation reads and writes never depend on the pipeline
     factory being awake.
     """
-    return ChatHealthyMongoUtilities().getConnection("pipelineEditor", "frontEnd")
+    return ChatHealthyMongoUtilities().getConnection("pipelineEditor", "ChatHealthyFrontEnd")
 
 
 def get_db(env_prefix: str = None):
@@ -76,7 +76,7 @@ def get_db(env_prefix: str = None):
     """
     env_prefix = env_prefix or os.environ.get("ENV_PREFIX", "dev")
     _validate_env(env_prefix)
-    return get_mongo("pipelines")["PipelinePublicHealthData"]
+    return get_mongo("ChatHealthyDataPipelines")["PipelinePublicHealthData"]
 
 
 # Every piece of pipeline metadata -- configuration, discrepancy reports, run
@@ -94,4 +94,4 @@ def get_metadata_db():
     be readable while the data factory is asleep -- notably so that "factory
     unreachable" can itself be reported.
     """
-    return get_mongo("admin")[PIPELINE_ADMIN_DB]
+    return get_mongo("ChatHealthyFrontEnd")[PIPELINE_ADMIN_DB]

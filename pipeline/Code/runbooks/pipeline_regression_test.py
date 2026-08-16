@@ -113,7 +113,7 @@ class PipelineRegressionTest:
     def __init__(self) -> None:
         self._token = None
         self._mongo = ChatHealthyMongoUtilities().getConnection(
-            "pipelineEditor", "admin")
+            "pipelineEditor", "ChatHealthyFrontEnd")
         self._db = self._mongo[PIPELINE_ADMIN_DB]
         self._created = []
         self._host_logs = {}

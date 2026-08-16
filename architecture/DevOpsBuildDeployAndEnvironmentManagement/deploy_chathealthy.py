@@ -129,7 +129,7 @@ def _latest_admin_build() -> int | None:
     try:
         from chathealthy_lib.mongo_utilities import ChatHealthyMongoUtilities
         latest = (ChatHealthyMongoUtilities()
-                  .getConnection("DevOpsUser", "admin")
+                  .getConnection("DevOpsUser", "ChatHealthyFrontEnd")
                   ["frontEndAdmin"]["BuildVersions"].find_one(sort=[("from", -1)]))
     except Exception:
         return None

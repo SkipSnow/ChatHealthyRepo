@@ -57,7 +57,18 @@ class ObservabilityGate:
 
     def _verify_mongo_reachable(self) -> None:
         try:
-            client = ChatHealthyMongoUtilities().getConnection("pipelineEditor", "pipelines")
+            # The front-end cluster, which is where pipelineAdmin and the log
+            # collections live. This gate proves the observability path is
+            # open, and that path is the log cluster.
+            #
+            # It asked the pipeline data cluster instead, which nothing may
+            # touch before staging load. The runbook dispatches the host in
+            # parallel with the Atlas resume, so on a cold start the
+            # controller booted while that cluster was still coming up, every
+            # shard refused, and it abended before it could log a word. A warm
+            # cluster hid it: VT and DE passed on exactly this code.
+            client = ChatHealthyMongoUtilities().getConnection(
+                "pipelineEditor", "ChatHealthyFrontEnd")
             ping_result = client.admin.command("ping")
         except ChatHealthyException as ch_exc:
             self._dump_to_stderr(ch_exc)

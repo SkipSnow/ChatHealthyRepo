@@ -55,7 +55,7 @@ def versions_collection():
         sys.path.insert(0, str(lib_src))
     from chathealthy_lib.mongo_utilities import ChatHealthyMongoUtilities
     return (ChatHealthyMongoUtilities()
-            .getConnection("DevOpsUser", "admin")[VERSIONS_DB][VERSIONS_COLLECTION])
+            .getConnection("DevOpsUser", "ChatHealthyFrontEnd")[VERSIONS_DB][VERSIONS_COLLECTION])
 
 
 def latest_record() -> dict:
@@ -103,7 +103,7 @@ def package_builds_collection():
         sys.path.insert(0, str(lib_src))
     from chathealthy_lib.mongo_utilities import ChatHealthyMongoUtilities
     return (ChatHealthyMongoUtilities()
-            .getConnection("DevOpsUser", "admin")
+            .getConnection("DevOpsUser", "ChatHealthyFrontEnd")
             [VERSIONS_DB][PACKAGE_BUILDS_COLLECTION])
 
 

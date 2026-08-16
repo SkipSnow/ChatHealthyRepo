@@ -12,8 +12,6 @@ Stamps on every provider record in the run:
                                lookup in the normalized specialty catalog.
   is_homeopathic       (bool)  Primary taxonomy code lookup in normalized
                                specialty catalog.
-  is_npi_registered    (bool)  True iff the NPI appears in the NPPES
-                               staging load and is not deactivated.
 
 Sourced from:
   - Specialty catalog    PipelinePublicHealthData.SpecialtyMetaData on the
@@ -29,6 +27,8 @@ ChatHealthyException.
 """
 
 from __future__ import annotations
+
+import time as _time
 from chathealthy_lib.logging_service import ChatHealthyLoggingService
 from chathealthy_lib.exceptions import ChatHealthyException
 
@@ -36,7 +36,6 @@ from typing import Any
 
 from pymongo import UpdateOne
 
-from staging_loader import staging_collection_name, staging_db_name
 
 _log = ChatHealthyLoggingService()
 
@@ -59,11 +58,6 @@ def _record_discrepancy(run_id: str, entry: dict) -> None:
     )
 
 
-NPPES_DEACTIVATION_KEYS = (
-    "NPI Deactivation Date",
-    "npi_deactivation_date",
-    "Provider Deactivation Date",
-)
 DEFAULT_BATCH = 500
 
 # Credentials with universal US prescribing authority. Parsed from the
@@ -73,7 +67,54 @@ DEFAULT_BATCH = 500
 _PRESCRIBING_CREDENTIAL_TOKENS = frozenset({"MD", "DO"})
 
 
-def _load_catalog(mongo, data_version: int) -> dict[str, dict[str, bool]]:
+def _raise_mongo_client_required() -> None:
+    """Raise-only helper: the catcher logs, not the thrower."""
+    raise ChatHealthyException(
+        mode="mongo_client_required",
+        message=(
+            "provider_flags_engine: pipeline-cluster Mongo client is "
+            "required to read PipelinePublicHealthData.SpecialtyMetaData_v_"
+            "{data_version} (the loaded catalog produced by "
+            "publish_smd_and_embed). Caller must pass mongo= kwarg."
+        ),
+    )
+
+
+def _raise_catalog_row_missing_code(coll_ref: str, row: dict) -> None:
+    """Raise-only helper: the catcher logs, not the thrower."""
+    raise ChatHealthyException(
+        mode="catalog_row_missing_code",
+        message=(f"provider_flags_engine: {coll_ref} row _id="
+                 f"{row.get('_id')} is missing 'Code' (top level)"),
+        collection=coll_ref,
+        keys=sorted(list(row.keys())),
+    )
+
+
+def _raise_catalog_row_missing_flag(coll_ref: str, code, flag: str,
+                                    mode_suffix: str) -> None:
+    """Raise-only helper: the catcher logs, not the thrower."""
+    raise ChatHealthyException(
+        mode=f"catalog_row_missing_{mode_suffix}",
+        message=(f"provider_flags_engine: {coll_ref} row for "
+                 f"Code={code!r} is missing {flag!r} (top level)"),
+        collection=coll_ref, code=code,
+    )
+
+
+def _raise_catalog_empty(coll_ref: str) -> None:
+    """Raise-only helper: the catcher logs, not the thrower."""
+    raise ChatHealthyException(
+        mode="catalog_empty",
+        message=(f"provider_flags_engine: {coll_ref} loaded zero catalog "
+                 f"rows -- publish_smd_and_embed must have failed to land "
+                 f"the loaded collection. F-105 flag enrichment cannot "
+                 f"proceed."),
+        collection=coll_ref,
+    )
+
+
+def _load_catalog(mongo, data_version: int, state: str = 'ALL') -> dict[str, dict[str, bool]]:
     """Load the normalized specialty catalog into
     {code -> {can_prescribe, is_homeopathic, is_supplemented}}.
 
@@ -89,86 +130,28 @@ def _load_catalog(mongo, data_version: int) -> dict[str, dict[str, bool]]:
     coll = mongo["PipelinePublicHealthData"][coll_name]
     coll_ref = f"PipelinePublicHealthData.{coll_name}"
     out: dict[str, dict[str, bool]] = {}
+    _started = _time.time()
+    _log.info("provider_flags[%s]: loading catalog from %s", state, coll_ref)
     for row in coll.find({}):
         code = row.get("Code") or row.get("code")
         can_prescribe = row.get("can_prescribe")
         is_homeopathic = row.get("is_homeopathic")
         is_supplemented = row.get("is_supplemented")
         if not code:
-            raise ChatHealthyException(
-                mode="catalog_row_missing_code",
-                message=(
-                    f"provider_flags_engine: {coll_ref} row _id="
-                    f"{row.get('_id')} is missing 'Code' (top level)"
-                ),
-                collection=coll_ref,
-                keys=sorted(list(row.keys())),
-            )
+            _raise_catalog_row_missing_code(coll_ref, row)
         if can_prescribe is None:
-            raise ChatHealthyException(
-                mode="catalog_row_missing_can_prescribe",
-                message=(
-                    f"provider_flags_engine: {coll_ref} row for "
-                    f"Code={code!r} is missing 'can_prescribe' (top level)"
-                ),
-                collection=coll_ref, code=code,
-            )
+            _raise_catalog_row_missing_flag(coll_ref, code, "can_prescribe",
+                                            "can_prescribe")
         if is_homeopathic is None:
-            raise ChatHealthyException(
-                mode="catalog_row_missing_homeopathic",
-                message=(
-                    f"provider_flags_engine: {coll_ref} row for "
-                    f"Code={code!r} is missing 'is_homeopathic' (top level)"
-                ),
-                collection=coll_ref, code=code,
-            )
+            _raise_catalog_row_missing_flag(coll_ref, code, "is_homeopathic",
+                                            "homeopathic")
         out[str(code).strip()] = {
             "can_prescribe": bool(can_prescribe),
             "is_homeopathic": bool(is_homeopathic),
             "is_supplemented": bool(is_supplemented),
         }
     if not out:
-        raise ChatHealthyException(
-            mode="catalog_empty",
-            message=(
-                f"provider_flags_engine: {coll_ref} loaded zero catalog "
-                f"rows -- publish_smd_and_embed must have failed to "
-                f"land the loaded collection. F-105 flag enrichment "
-                f"cannot proceed."
-            ),
-            collection=coll_ref,
-        )
-    return out
-
-
-def _load_registered_npis(mongo, registry) -> set[str]:
-    """Every NPI in the NPPES staging load that is not deactivated."""
-    coll_name = staging_collection_name(registry, "nppes_npi")
-    db_name = staging_db_name(registry, "nppes_npi")
-    coll = mongo[db_name][coll_name]
-    out: set[str] = set()
-    for row in coll.find({}, {"npi": 1, "raw": 1}):
-        npi = row.get("npi")
-        raw = row.get("raw") or {}
-        if not npi:
-            npi = raw.get("NPI") or raw.get("npi")
-        if not npi:
-            continue
-        deactivated = any(
-            str(raw.get(k) or "").strip() for k in NPPES_DEACTIVATION_KEYS
-        )
-        if deactivated:
-            continue
-        out.add(str(npi).zfill(10))
-    if not out:
-        raise ChatHealthyException(
-            mode="nppes_staging_empty",
-            message=(
-                f"provider_flags_engine: {db_name}.{coll_name} "
-                f"produced zero non-deactivated NPIs -- staging load failed."
-            ),
-            collection=coll_name,
-        )
+        _raise_catalog_empty(coll_ref)
     return out
 
 
@@ -246,7 +229,6 @@ def _apply_flags_to_doc(
     doc: dict,
     *,
     catalog: dict[str, dict[str, object]],
-    registered_npis: set[str],
     discrepancy_sink=None,
 ) -> dict[str, bool] | None:
     """Deterministic flag computation.
@@ -305,12 +287,9 @@ def _apply_flags_to_doc(
     )
     can_prescribe = credential_prescribes or cat_row["can_prescribe"]
     is_homeopathic = cat_row["is_homeopathic"]
-    npi = str(doc.get("npi") or "").zfill(10) if doc.get("npi") else None
-    is_npi_registered = bool(npi and npi in registered_npis)
     return {
         "can_prescribe": can_prescribe,
         "is_homeopathic": is_homeopathic,
-        "is_npi_registered": is_npi_registered,
     }
 
 
@@ -346,21 +325,17 @@ def apply_provider_flags(
     batch_size = int(config.get("batch_size", DEFAULT_BATCH))
 
     if mongo is None:
-        raise ChatHealthyException(
-            mode="mongo_client_required",
-            message=(
-                "provider_flags_engine: pipeline-cluster Mongo client is "
-                "required to read PipelinePublicHealthData.SpecialtyMetaData_v_"
-                "{data_version} (the loaded catalog produced by "
-                "publish_smd_and_embed). Caller must pass mongo= kwarg."
-            ),
-        )
-    # Registry from config's dataset_versions[]: the source-of-truth
-    # nppes_npi staging collection name lives there, not in code.
-    from pipeline_dataset_registry import PipelineDatasetRegistry
-    registry = PipelineDatasetRegistry(config, data_version, mongo)
-    catalog = _load_catalog(mongo, data_version)
-    registered = _load_registered_npis(mongo, registry)
+        _raise_mongo_client_required()
+    _t0 = _time.time()
+    _state_label_start = partition_state or "ALL"
+    _log.info("provider_flags[%s]: START run_id=%s entity=%s "
+              "collection=%s batch=%d",
+              _state_label_start, run_id, entity_kind_filter or "ALL",
+              provider_collection, batch_size)
+    _state_label = partition_state or "ALL"
+    catalog = _load_catalog(mongo, data_version, _state_label)
+    _log.info("provider_flags[%s]: catalog ready in %.0fs (catalog=%s)",
+              _state_label, _time.time() - _t0, f"{len(catalog):,}")
 
     def _sink(entry: dict) -> None:
         _record_discrepancy(run_id, entry)
@@ -379,7 +354,7 @@ def apply_provider_flags(
     # per NPI; practice is optional and multi-valued). Match the shape
     # every other partition-aware engine uses.
     if partition_state:
-        query["addresses"] = {"$elemMatch": {"address_type": "business", "state": partition_state}}
+        query["business_address.state"] = partition_state
 
     ops: list[UpdateOne] = []
     modified = 0
@@ -392,12 +367,19 @@ def apply_provider_flags(
         "taxonomies": 1,
         "provider_credential_text": 1,
     }
+    _scan_started = _time.time()
+    _log.info("provider_flags[%s]: scanning %s query=%s",
+              _state_label, provider_collection, query)
     for doc in coll.find(query, projection):
         matched += 1
+        if matched % 100_000 == 0:
+            _log.info("provider_flags[%s]: %s matched, %s modified, "
+                      "%s unresolved (%.0fs)", _state_label,
+                      f"{matched:,}", f"{modified:,}", f"{unresolved:,}",
+                      _time.time() - _scan_started)
         flags = _apply_flags_to_doc(
             doc,
             catalog=catalog,
-            registered_npis=registered,
             discrepancy_sink=_sink,
         )
         if flags is None:
@@ -419,10 +401,14 @@ def apply_provider_flags(
         result = coll.bulk_write(ops, ordered=False)
         modified += (result.modified_count or 0)
 
+    _log.info("provider_flags[%s]: DONE matched=%s modified=%s "
+              "unresolved=%s in %.0fs (scan %.0fs)",
+              _state_label, f"{matched:,}", f"{modified:,}",
+              f"{unresolved:,}", _time.time() - _t0,
+              _time.time() - _scan_started)
     return {
         "matched": matched,
         "modified": modified,
         "unresolved_taxonomy_count": unresolved,
         "catalog_size": len(catalog),
-        "registered_npi_count": len(registered),
     }

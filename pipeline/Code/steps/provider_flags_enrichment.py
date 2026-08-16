@@ -5,7 +5,7 @@
 
 Bridges StepContext to provider_flags_engine.apply_provider_flags().
 Stamps can_prescribe (credential level-1 MD/DO OR catalog level-2),
-is_homeopathic (catalog), and is_npi_registered (NPPES staging) on every
+and is_homeopathic (catalog) on every
 provider record in the run partition. No fallbacks: engine raises on
 any unresolvable path.
 """
@@ -31,11 +31,24 @@ def run_step(ctx) -> dict:
     config.setdefault("entity_kind_filter", partition.get("entity_kind"))
     config.setdefault("partition_state", partition.get("business_address_state"))
 
-    result = apply_provider_flags(
-        config,
-        mongo=ctx.mongo_client,
-        blob=ctx.blob_client,
-    ) or {}
+    # This wrapper declared a logger and never called it, so a worker that
+    # entered the step and stopped looked the same as one that never started.
+    _log.info("provider_flags_enrichment[%s]: step begin run_id=%s entity=%s",
+              config.get("partition_state") or "ALL", ctx.run_id,
+              config.get("entity_kind_filter") or "ALL")
+    try:
+        result = apply_provider_flags(
+            config,
+            mongo=ctx.mongo_client,
+            blob=ctx.blob_client,
+        ) or {}
+    except Exception as exc:
+        _log.error("provider_flags_enrichment: step FAILED run_id=%s state=%s "
+                   "%s: %s", ctx.run_id, config.get("partition_state") or "ALL",
+                   type(exc).__name__, exc)
+        raise
+    _log.info("provider_flags_enrichment: step done run_id=%s state=%s %s",
+              ctx.run_id, config.get("partition_state") or "ALL", result)
 
     key = f"flags:{config.get('entity_kind_filter') or 'ALL'}:{config.get('partition_state') or 'ALL'}"
     ctx.manifest.metrics.setdefault("provider_flags", {})[key] = result

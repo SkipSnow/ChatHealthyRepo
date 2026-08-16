@@ -37,14 +37,23 @@ def cleanup_test_artifacts():
     credential = DefaultAzureCredential()
     client = SecretClient(vault_url=vault_url, credential=credential)
 
-    # Test secret name patterns
+    # Test secret name patterns. These are matched as substrings against every
+    # secret in the vault, so they must name test artifacts and nothing else.
+    # "cert-" and "key-" were here and matched cert-pipelineEditor,
+    # key-pipelineEditor and every other identity's credential: running this
+    # cleanup would have deleted the production certificates.
     test_patterns = [
         "test-ca-root-cert-",
         "test-ca-root-privatekey-",
-        "cert-",
-        "key-",
         "third-party-",
     ]
+
+    # Identity credentials and certificate-authority material are never test
+    # artifacts, whatever a pattern says.
+    never_delete = {
+        "pipelineEditor", "DevOpsUser", "frontendUser", "claudeCodeAgent",
+    }
+    never_delete_prefixes = ("cert-", "key-", "ca-", "certs-")
 
     deleted_count = 0
     error_count = 0
@@ -54,6 +63,10 @@ def cleanup_test_artifacts():
         secret_name = secret_props.name
 
         # Check if this is a test artifact
+        if secret_name in never_delete:
+            continue
+        if any(secret_name.startswith(p) for p in never_delete_prefixes):
+            continue
         is_test = any(pattern in secret_name for pattern in test_patterns)
 
         if is_test:

@@ -106,7 +106,7 @@ def _execute(ctx) -> dict:
     _log.info("prepare_infrastructure: begin run_id=%s states=%s",
               ctx.run_id, list(ctx.args.resolved_states() or []))
     t0 = time.time()
-    cfg = ensure_pipeline_config(get_mongo(), ctx.env_prefix)
+    cfg = ensure_pipeline_config(get_mongo("ChatHealthyDataPipelines"), ctx.env_prefix)
     _log.info("prepare_infrastructure: config read (%.1fs) sources=%d",
               time.time() - t0, len(cfg.get("dataset_versions") or []))
     ctx.config.setdefault("dataset_versions", cfg.get("dataset_versions", {}))
@@ -145,7 +145,7 @@ def _execute(ctx) -> dict:
 
     t = time.time()
     cleanup = _safety_cleanup(
-        ctx.mongo_client or get_mongo(),
+        ctx.mongo_client or get_mongo("ChatHealthyDataPipelines"),
         list(ctx.args.resolved_states() or []),
     )
     _log.info("prepare_infrastructure: safety cleanup done (%.1fs); "

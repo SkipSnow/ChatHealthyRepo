@@ -247,7 +247,7 @@ def _bump_build_counter(env: str) -> int:
     sys.path.insert(0, str(repo_root / "ChatHealthyLib" / "src"))
     from chathealthy_lib.mongo_utilities import ChatHealthyMongoUtilities
     coll = (ChatHealthyMongoUtilities()
-            .getConnection("DevOpsUser", "admin")[VERSIONS_DB][VERSIONS_COLLECTION])
+            .getConnection("DevOpsUser", "ChatHealthyFrontEnd")[VERSIONS_DB][VERSIONS_COLLECTION])
     latest = coll.find_one(sort=[("from", -1)])
     if latest is None:
         sys.exit(f"ERROR: {VERSIONS_DB}.{VERSIONS_COLLECTION} has no records.")

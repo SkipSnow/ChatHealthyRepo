@@ -67,7 +67,7 @@ def _devops_connection():
             _ld(_p / ".env", override=False)
             break
     from chathealthy_lib.mongo_utilities import ChatHealthyMongoUtilities
-    return ChatHealthyMongoUtilities().getConnection("DevOpsUser", "admin")
+    return ChatHealthyMongoUtilities().getConnection("DevOpsUser", "ChatHealthyFrontEnd")
 
 
 def promote_data(from_env: str, to_env: str, dry_run: bool = False):

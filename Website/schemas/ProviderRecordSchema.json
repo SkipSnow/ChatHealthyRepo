@@ -8,7 +8,7 @@
     "npi",
     "entity_type_code",
     "entity_type_code_label",
-    "addresses",
+    "business_address",
     "taxonomies",
     "active",
     "bad_data"
@@ -199,8 +199,202 @@
         }
       }
     },
-    "addresses": {
+    "business_address": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "address_type",
+        "line1",
+        "city",
+        "state",
+        "state_label",
+        "zip",
+        "country_code",
+        "country_code_label",
+        "phones",
+        "primary"
+      ],
+      "properties": {
+        "address_type": {
+          "enum": [
+            "business"
+          ]
+        },
+        "line1": {
+          "type": "string"
+        },
+        "line2": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "city": {
+          "type": "string"
+        },
+        "state": {
+          "type": "string"
+        },
+        "state_label": {
+          "type": "string"
+        },
+        "zip": {
+          "type": "string",
+          "pattern": "^[0-9]{5}$"
+        },
+        "country_code": {
+          "type": "string"
+        },
+        "country_code_label": {
+          "type": "string"
+        },
+        "phones": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "type",
+              "type_label",
+              "number"
+            ],
+            "properties": {
+              "type": {
+                "enum": [
+                  "voice",
+                  "fax",
+                  "mobile",
+                  "tty"
+                ]
+              },
+              "type_label": {
+                "type": "string"
+              },
+              "number": {
+                "type": "string"
+              }
+            }
+          }
+        },
+        "primary": {
+          "type": "boolean"
+        },
+        "source": {
+          "enum": [
+            "nppes_base",
+            "pl_pfile",
+            null
+          ]
+        },
+        "county": {
+          "type": [
+            "object",
+            "null"
+          ],
+          "additionalProperties": false,
+          "properties": {
+            "fips": {
+              "type": [
+                "string",
+                "null"
+              ]
+            },
+            "name": {
+              "type": "string"
+            },
+            "source": {
+              "enum": [
+                "zip_crosswalk",
+                "census_batch",
+                "nppes_registry",
+                "google_maps",
+                "county_unresolvable",
+                "out_of_scope",
+                "out_of_scope_zip_state_mismatch",
+                null
+              ]
+            },
+            "rucc": {
+              "description": "USDA Rural-Urban Continuum Code (1-9) for this county from the USDA ERS RUCC catalog. 1-3 = metro (1=1M+, 2=250K-1M, 3=<250K); 4-9 = nonmetro urban/rural gradient. Stamped alongside fips/name/source by the county-cascade pipeline for every practice address whose stage produced a numeric FIPS (crosswalk, Census batch, NPPES registry). Absent (or null) when the cascade stage produced a non-numeric fips_key (Google Maps) or the FIPS is not in the RUCC catalog. Front-end consumers apply their own urban/rural threshold at query time from this raw integer.",
+              "type": [
+                "integer",
+                "null"
+              ],
+              "minimum": 1,
+              "maximum": 9
+            }
+          }
+        },
+        "urban": {
+          "description": "RETIRED 2026-07-30. Previously stamped by the standalone urban_flag step (RUCC 1-3 -> true, 4-9 -> false); that step was retired in favor of county.rucc which preserves the raw integer. Field kept in schema so historical records still validate; no new records populate it. Consumers should read addresses[i].county.rucc and apply their own threshold.",
+          "type": [
+            "boolean",
+            "null"
+          ]
+        },
+        "coordinates": {
+          "description": "Geo coordinates for this specific address. Stamped by county-cascade stages that publish coordinates (census_batch: TIGER street-segment interpolation; google_maps: variable, per precision field). Absent when no cascade stage produced coordinates for this address \u2014 MUST NOT be defaulted to a county/zip centroid.",
+          "type": [
+            "object",
+            "null"
+          ],
+          "additionalProperties": false,
+          "required": [
+            "latitude",
+            "longitude",
+            "source",
+            "precision"
+          ],
+          "properties": {
+            "latitude": {
+              "description": "WGS84 decimal degrees, range [-90, +90].",
+              "type": "number",
+              "minimum": -90,
+              "maximum": 90
+            },
+            "longitude": {
+              "description": "WGS84 decimal degrees, range [-180, +180].",
+              "type": "number",
+              "minimum": -180,
+              "maximum": 180
+            },
+            "source": {
+              "description": "Which API produced these coordinates.",
+              "enum": [
+                "census_batch",
+                "google_maps"
+              ]
+            },
+            "precision": {
+              "description": "Qualitative accuracy bucket. census_batch is always range_interpolated; google_maps reports its own per-result location_type.",
+              "enum": [
+                "rooftop",
+                "range_interpolated",
+                "geometric_center",
+                "approximate"
+              ]
+            }
+          }
+        },
+        "address_repair_provenance": {
+          "enum": [
+            "license_state_match",
+            null
+          ]
+        },
+        "address_refresh_provenance": {
+          "description": "Set to nppes_registry when the county-cascade stage 3 refreshed this address's fields (line1/line2/city/state/zip) from the live NPPES registry after the monthly-dissemination-file load. Absent otherwise.",
+          "enum": [
+            "nppes_registry",
+            null
+          ]
+        }
+      },
+      "description": "The provider's business mailing address. NPPES gives an NPI exactly one, so it is a single object rather than an array entry. business_address.state is the partition key and a scalar path, which is what lets it share a compound index with taxonomies.code."
+    },
+    "practice_addresses": {
       "type": "array",
+      "description": "Practice locations. Primary from the NPPES main file, secondaries attached from pl_pfile.",
       "items": {
         "type": "object",
         "additionalProperties": false,
@@ -219,8 +413,7 @@
         "properties": {
           "address_type": {
             "enum": [
-              "primary_practice",
-              "mailing",
+              "practice",
               "secondary_practice"
             ]
           },
@@ -337,7 +530,7 @@
             ]
           },
           "coordinates": {
-            "description": "Geo coordinates for this specific address. Stamped by county-cascade stages that publish coordinates (census_batch: TIGER street-segment interpolation; google_maps: variable, per precision field). Absent when no cascade stage produced coordinates for this address — MUST NOT be defaulted to a county/zip centroid.",
+            "description": "Geo coordinates for this specific address. Stamped by county-cascade stages that publish coordinates (census_batch: TIGER street-segment interpolation; google_maps: variable, per precision field). Absent when no cascade stage produced coordinates for this address \u2014 MUST NOT be defaulted to a county/zip centroid.",
             "type": [
               "object",
               "null"

@@ -79,7 +79,7 @@ def _devops_connection():
             _ld(_p / ".env", override=False)
             break
     from chathealthy_lib.mongo_utilities import ChatHealthyMongoUtilities
-    return ChatHealthyMongoUtilities().getConnection("DevOpsUser", "admin")
+    return ChatHealthyMongoUtilities().getConnection("DevOpsUser", "ChatHealthyFrontEnd")
 
 
 def _builds_to_map(builds_array):

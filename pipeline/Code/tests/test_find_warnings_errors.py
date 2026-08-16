@@ -22,7 +22,7 @@ def test_find_warnings_and_errors():
 
     # Connect to PIPELINE cluster where discrepancy_report writes data
     utilities = ChatHealthyMongoUtilities()
-    client = utilities.getConnection("pipelineEditor", "admin")
+    client = utilities.getConnection("pipelineEditor", "ChatHealthyFrontEnd")
     assert client, "Could not get pipeline MongoDB connection"
 
     try:

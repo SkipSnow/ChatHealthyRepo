@@ -22,7 +22,7 @@ def test_list_databases():
 
     # Connect to PIPELINE cluster
     utilities = ChatHealthyMongoUtilities()
-    client = utilities.getConnection("pipelineEditor", "admin")
+    client = utilities.getConnection("pipelineEditor", "ChatHealthyFrontEnd")
     assert client, "Could not get pipeline MongoDB connection"
     try:
         # List all databases

@@ -1974,11 +1974,15 @@ def _raise_entitlements_missing(missing: list) -> None:
 
 
 def apply_explicit_permissions_from_manifest(coll: DeploymentCollection, env: str) -> None:
-    """Iterate every target's permissions[] and grant each {object_id, role}
-    pair at that target's Azure scope. Self-contained mechanism for
-    user / service-principal grants that do not fit the intersection
-    model (IdentityCatalog.roles x target.allowed_roles) above."""
-    step("applying explicit per-target permissions from manifest")
+    """Check every target's permissions[] {object_id, role} pair is held.
+
+    The companion to the IdentityCatalog check, for grants that do not fit
+    the intersection model. It grants nothing, and a pair that is declared
+    and not held aborts the deploy: an entitlement the manifest asserts and
+    Azure does not carry is a security fact, not a note.
+    """
+    step("verifying explicit per-target permissions against the manifest")
+    missing: list = []
     for target in coll:
         perms = target.permissions or []
         if not perms:
@@ -1991,12 +1995,13 @@ def apply_explicit_permissions_from_manifest(coll: DeploymentCollection, env: st
             role = entry.get("role", "").strip()
             if not object_id or not role:
                 continue
-            r = None  # the chain does not grant; see _role_is_held
-            if r.returncode == 0:
-                step(f"  {object_id[:8]}...: {role} on {target.target_id} — granted")
+            if _role_is_held(object_id, role, scope):
+                step(f"  {object_id[:8]}...: {role} on {target.target_id} - held")
             else:
-                err = (r.stderr or r.stdout or "").strip().replace("\n", " ")[:800]
-                step(f"  {object_id[:8]}...: {role} on {target.target_id} — refused: {err}")
+                missing.append((object_id[:8] + "...", role, target.target_id, scope))
+                step(f"  {object_id[:8]}...: {role} on {target.target_id} - MISSING")
+    if missing:
+        _raise_entitlements_missing(missing)
 
 
 def ensure_runbook_webhook_stored_in_kv(
@@ -2965,17 +2970,19 @@ def run_cloud_deploy(env: str, target_arg: str,
             failed.append((target_id, msg))
             if target_kind == "hf_space":
                 any_hf_failed = True
-    # Apply identity role grants from the manifest AFTER every target
-    # has been deployed. Data-driven: iterates IdentityCatalog roles ×
+    # Verify identity role grants against the manifest AFTER every target has
+    # been deployed. Data-driven: iterates IdentityCatalog roles x
     # target.allowed_roles intersection. No role names in this code path.
-    try:
-        apply_identity_role_grants_from_manifest(coll, env)
-    except Exception as exc:  # noqa: BLE001
-        step(f"WARN: identity role grants failed: {exc}")
-    try:
-        apply_explicit_permissions_from_manifest(coll, env)
-    except Exception as exc:  # noqa: BLE001
-        step(f"WARN: explicit permissions failed: {exc}")
+    #
+    # Not caught. A right that is declared and not held, or held and not
+    # declared, means the deployment does not match its own statement of
+    # itself -- and a warning at the end of a successful deploy is read as
+    # success. It aborts.
+    apply_identity_role_grants_from_manifest(coll, env)
+    # Not caught either, for the same reason: an entitlement that does not
+    # match the manifest is a security fact, and a security fact is not
+    # optional. It aborts.
+    apply_explicit_permissions_from_manifest(coll, env)
     if succeeded:
         step(f"deployed {len(succeeded)} target(s):")
         for d in succeeded:

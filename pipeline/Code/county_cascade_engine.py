@@ -236,13 +236,13 @@ def _stream_provider_chunks(
     """
     query: dict[str, Any] = {"run_id": run_id}
     if partition_state:
-        query["addresses"] = {"$elemMatch": {"address_type": "business", "state": partition_state}}
+        query["business_address.state"] = partition_state
 
     cursor = coll.find(query).batch_size(_PROVIDER_CHUNK)
     chunk: list[tuple[dict, list[dict]]] = []
     for doc in cursor:
         eligible = [
-            addr for addr in (doc.get("addresses") or [])
+            addr for addr in (doc.get("practice_addresses") or [])
             if _addr_needs_enrichment(addr)
         ]
         if not eligible:
@@ -1298,14 +1298,14 @@ def run_county_cascade(
         # parent key) rather than _id -- NPI-atomic ownership rule.
         # $set of the full addresses[] is safe because this worker is
         # the exclusive owner of this NPI (partition query enforces it
-        # via addresses.0.state = partition_state).
+        # via business_address.state = partition_state).
         for doc, _addrs in chunk:
             npi = doc.get("npi")
             if not npi:
                 continue
             update_ops.append(UpdateOne(
                 {"npi": npi},
-                {"$set": {"addresses": doc.get("addresses", [])}},
+                {"$set": {"practice_addresses": doc.get("practice_addresses", [])}},
             ))
             if len(update_ops) >= _BULK_WRITE_CHUNK:
                 _flush_updates()
