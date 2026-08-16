@@ -39,6 +39,7 @@ set_mongo_log_identity("pipelineEditor")
 
 import atexit
 import os
+import socket
 import stat
 import sys
 import tempfile
@@ -315,6 +316,77 @@ def _seed_read_long_lived_cert(
 
 
 
+def _announce_alive(node_identity: str) -> None:
+    """Say, durably, that this container reached the point of speech.
+
+    The credential that authenticates to Mongo is itself a vault secret, so
+    this is the earliest instant the process can speak at all. Nothing before
+    it can be recorded anywhere that outlives the container.
+    """
+    detail = (
+        f"run_id={os.environ.get('RUN_ID', '<unset>')} "
+        f"node={node_identity} "
+        f"env={os.environ.get('ENV_PREFIX', '<unset>')} "
+        f"data_version={os.environ.get('DATA_VERSION', '<unset>')} "
+        f"load_mode={os.environ.get('LOAD_MODE', '<unset>')} "
+        f"state_scope={os.environ.get('STATE_SCOPE', '<unset>')} "
+        f"host={socket.gethostname()}"
+    )
+    try:
+        from chathealthy_lib.logging_service import (  # noqa: PLC0415
+            ChatHealthyLoggingService, set_mongo_log_identity)
+        set_mongo_log_identity(PIPELINE_IDENTITY)
+        os.environ["CH_LOG_DESTINATION"] = "stderr,mongo"
+        ChatHealthyLoggingService().info(
+            "bootstrap: container alive and able to log | %s", detail)
+        _emit("bootstrap: announced to mongo")
+        return
+    except Exception as exc:  # noqa: BLE001
+        _emit(f"bootstrap: CANNOT LOG TO MONGO ({type(exc).__name__}: {exc})")
+        _mail_unreachable_mongo(detail, exc)
+        _raise_cannot_log(detail, exc)
+
+
+def _mail_unreachable_mongo(detail: str, exc: Exception) -> None:
+    """The only channel left on a host that is about to be deleted."""
+    try:
+        from chathealthy_lib.notification_client import (  # noqa: PLC0415
+            NotificationClient)
+        to = os.environ.get("NOTIFICATION_TO_EMAIL", "").strip()
+        if not to:
+            _emit("bootstrap: no NOTIFICATION_TO_EMAIL; the alarm cannot be raised")
+            return
+        lines = [
+            "A pipeline controller started and could not reach Mongo.",
+            "",
+            detail,
+            "",
+            f"{type(exc).__name__}: {exc}",
+            "",
+            "The run is abandoned. The container runs under docker --rm on a "
+            "host deleted at the end of the run, so this mail is the only "
+            "record that survives.",
+        ]
+        NotificationClient().send_email(
+            to=to,
+            subject="ChatHealthy pipeline FATAL: controller cannot log to Mongo",
+            body=chr(10).join(lines),
+        )
+        _emit("bootstrap: alarm mailed")
+    except Exception as mail_exc:  # noqa: BLE001
+        _emit(f"bootstrap: mail also failed "
+              f"({type(mail_exc).__name__}: {mail_exc})")
+
+
+def _raise_cannot_log(detail: str, exc: Exception) -> None:
+    """Raise-only helper: the catcher logs, not the thrower."""
+    raise ChatHealthyException(
+        mode="observability_unavailable",
+        component="bootstrap",
+        message=(f"controller cannot log to Mongo, so nothing it does would be "
+                 f"recorded: {type(exc).__name__}: {exc} | {detail}"))
+
+
 def main() -> int:
     pipeline_name = os.environ.get("PIPELINE_NAME", "provider")
     blob_logger.install(pipeline_name)
@@ -403,6 +475,11 @@ def main() -> int:
     _emit(f"identity certificate materialised for {node_identity}")
     n = _load_all_secrets_into_env(client)
     _emit(f"loaded {n} non-cert secrets into env")
+
+    # Earliest possible moment: the Mongo credential is itself a vault
+    # secret. Being unable to log is fatal -- a run nobody can explain is
+    # worse than a run that did not start.
+    _announce_alive(node_identity)
     ca_path = _materialize_ca_chain(client=client)
     _emit("CA chain ready; handing off to the entry point")
 

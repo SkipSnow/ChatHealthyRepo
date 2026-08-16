@@ -76,6 +76,27 @@ def _safety_cleanup(mongo, scoped_states: list[str]) -> dict:
 
 
 def execute(ctx) -> dict:
+    """Wrapper: the step says it started, and says why it stopped.
+
+    A phase that raised said nothing, so a step that died mid-way looked
+    exactly like one still working, and the run status kept reading
+    "not started" because nothing recorded that it had begun.
+    """
+    started = time.time()
+    _log.info("prepare_infrastructure: STEP START run_id=%s", ctx.run_id)
+    try:
+        result = _execute(ctx)
+    except Exception as exc:
+        _log.error("prepare_infrastructure: STEP FAILED after %.1fs run_id=%s "
+                   "%s: %s", time.time() - started, ctx.run_id,
+                   type(exc).__name__, exc)
+        raise
+    _log.info("prepare_infrastructure: STEP DONE in %.1fs run_id=%s",
+              time.time() - started, ctx.run_id)
+    return result
+
+
+def _execute(ctx) -> dict:
     # Every call below can block for minutes -- waking Atlas, reserving it,
     # and an index check that waits out a paused cluster. Unbracketed, the
     # worker went silent here for the whole wait and the Controller could
