@@ -28,7 +28,7 @@ import pytest
 # connection string here and no fallback. Raises if the identity cannot
 # connect, which is the point -- a test that quietly connects as something
 # else proves nothing about production.
-def _ch_connection(cluster: str = "pipelines"):
+def _ch_connection(cluster: str = "ChatHealthyDataPipelines"):
     import sys as _sys, pathlib as _pl
     for _d in _pl.Path(__file__).resolve().parents:
         if (_d / ".git").exists():

@@ -113,7 +113,11 @@ def _execute(ctx) -> dict:
     ctx.config.setdefault("source_freshness", cfg.get("source_freshness", []))
     cluster = ctx.config.get("pipeline_cluster", "ChatHealthyDataPipelines")
     duration = int(ctx.args.expected_duration_minutes)
-    ops = ClusterLifecycleManager(get_db_fn=get_mongo)
+    # get_mongo is passed as a callback and invoked with no arguments, so
+    # removing its default cluster broke this without any call site reading
+    # get_mongo(). The cluster is named here, where it is chosen.
+    ops = ClusterLifecycleManager(
+        get_db_fn=lambda: get_mongo("ChatHealthyDataPipelines"))
 
     t = time.time()
     _log.info("prepare_infrastructure: waking cluster %s", cluster)

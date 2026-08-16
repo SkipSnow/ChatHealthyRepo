@@ -52,7 +52,7 @@ from conversation_log_alarm import clear_drain_failure, record_drain_failure  # 
 
 # The archive is business data, not a log: its own database, its own identity.
 IDENTITY = "DevOpsUser"
-CLUSTER = "admin"
+CLUSTER = "ChatHealthyFrontEnd"
 MONGO_DB = "ClaudeCodeUtterances"
 MONGO_COLLECTION = "utterances"
 

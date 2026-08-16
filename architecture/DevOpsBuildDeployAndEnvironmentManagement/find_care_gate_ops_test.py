@@ -33,7 +33,7 @@ def _ch_connection():
                 _sys.path.insert(0, str(_lib))
             break
     from chathealthy_lib.mongo_utilities import ChatHealthyMongoUtilities
-    return ChatHealthyMongoUtilities().getConnection("DevOpsUser", 'frontEnd')
+    return ChatHealthyMongoUtilities().getConnection("DevOpsUser", 'ChatHealthyFrontEnd')
 
 SHARED_URL = "https://localhost:8002"
 

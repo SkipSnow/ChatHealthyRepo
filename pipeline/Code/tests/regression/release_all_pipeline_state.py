@@ -52,7 +52,7 @@ def _ch_connection():
                 _sys.path.insert(0, str(_lib))
             break
     from chathealthy_lib.mongo_utilities import ChatHealthyMongoUtilities
-    return ChatHealthyMongoUtilities().getConnection("DevOpsUser", 'pipelines')
+    return ChatHealthyMongoUtilities().getConnection("DevOpsUser", 'ChatHealthyDataPipelines')
 
 _REPO_ROOT = Path(__file__).resolve().parents[4]
 sys.path.insert(0, str(_REPO_ROOT / "pipeline" / "Code"))
