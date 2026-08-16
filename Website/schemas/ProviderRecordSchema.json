@@ -839,6 +839,13 @@
           }
         }
       }
+    },
+    "urban": {
+      "type": [
+        "boolean",
+        "null"
+      ],
+      "description": "The provider's urban marker, rolled up from the most urban of the provider's practice addresses (the lowest USDA RUCC). True where that RUCC is 1, 2 or 3. Absent when no practice address resolved a RUCC."
     }
   },
   "allOf": [

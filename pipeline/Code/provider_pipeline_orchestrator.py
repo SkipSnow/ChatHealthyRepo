@@ -155,12 +155,13 @@ class ProviderPipelineOrchestrator(BasePipelineOrchestrator):
             partition_key="business_address_state",
         ),
         StepSpec(
-            # County enrichment now also stamps addresses[i].county.rucc
-            # (int 1-9 USDA RUCC) alongside fips/name/source. The
-            # standalone urban_flag step has been retired -- doing both
-            # in one pass avoids a second per-state address scan +
-            # bulk_write. Front-end decides urban/rural threshold at
-            # query time from the raw rucc integer.
+            # County enrichment stamps practice_addresses[i].county.rucc
+            # (int 1-9 USDA RUCC) and county.urban alongside
+            # fips/name/source. The standalone urban_flag step is folded in
+            # here rather than retired: doing both in one pass avoids a
+            # second per-state address scan and bulk_write. The threshold
+            # is the pipeline's, per LLD 5.2.15 -- urban where RUCC is in
+            # {1, 2, 3}.
             name="county_enrichment",
             prerequisites=["license_address_repair"],
             parallelism="process_pool",

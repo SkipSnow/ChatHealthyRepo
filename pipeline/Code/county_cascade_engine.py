@@ -176,18 +176,46 @@ def _stamp_county(
     directly from the API.
 
     rucc is the USDA Rural-Urban Continuum Code (int 1-9) for the
-    county's FIPS, when available. Preserved as an integer so callers
-    (FindCare filters, EvaluateCare ranking) can apply their own
-    threshold at query time rather than being forced into a
-    pipeline-baked urban=bool. Absent when the RUCC lookup misses or
+    county's FIPS, when available. Absent when the RUCC lookup misses or
     when the stage produces a non-numeric fips (google_maps returns
-    'STATE::CountyName' shape, not a numeric FIPS)."""
+    'STATE::CountyName' shape, not a numeric FIPS).
+
+    urban is stamped from it, per LLD 5.2.15: true where RUCC is in
+    {1, 2, 3}, else false. The pipeline owns this marker -- EPIC-006-F-025
+    requires the Provider Detail panel to display county.urban on every
+    address row and states the pipeline re-stamps it on each full load.
+    Leaving it to consumers to threshold the integer stopped populating a
+    field the panel reads. Where no RUCC resolves it is absent rather than
+    false: false asserts rural, absent asserts nothing."""
     entry: dict = {"fips": fips, "source": source}
     if name:
         entry["name"] = name
     if rucc is not None:
         entry["rucc"] = rucc
+        entry["urban"] = rucc in (1, 2, 3)
     addr["county"] = entry
+
+
+def provider_urban(doc: dict) -> bool | None:
+    """The provider's urban marker: the most urban practice address wins.
+
+    A provider practising in a metropolitan county and a rural one is an
+    urban provider -- they can be reached there. Most urban is the LOWEST
+    RUCC, because the scale runs 1 (metro, 1M+) to 9 (rural, non-adjacent),
+    so the rollup is a minimum and not a maximum.
+
+    None when no practice address resolved a RUCC: false would assert rural
+    of a provider we have not placed.
+    """
+    ruccs = [
+        a["county"]["rucc"]
+        for a in (doc.get("practice_addresses") or [])
+        if isinstance(a, dict) and isinstance(a.get("county"), dict)
+        and isinstance(a["county"].get("rucc"), int)
+    ]
+    if not ruccs:
+        return None
+    return min(ruccs) in (1, 2, 3)
 
 
 def _stamp_coordinates(
@@ -352,9 +380,10 @@ def _load_rucc_by_fips(mongo, registry, run_id: str) -> dict[str, int]:
     """Load {5-digit county FIPS -> USDA RUCC integer 1..9} from staging.
 
     Reads from the pipeline cluster's usda_rucc staging collection per
-    the registry (dataset_versions[]). Preserves the raw integer (1..9)
-    so downstream consumers can apply their own urban/rural threshold at
-    query time -- no boolean collapse here.
+    the registry (dataset_versions[]). The raw integer (1..9) is kept on
+    the address and county.urban is derived from it, because the marker is
+    the pipeline's to own: EPIC-006-F-025 has the Provider Detail panel
+    reading county.urban directly.
 
     RUCC integer semantics (from USDA ERS):
       1: Metro 1M+          6: Nonmetro 2.5K-20K adjacent
@@ -1305,10 +1334,11 @@ def run_county_cascade(
             npi = doc.get("npi")
             if not npi:
                 continue
-            update_ops.append(UpdateOne(
-                {"npi": npi},
-                {"$set": {"practice_addresses": doc.get("practice_addresses", [])}},
-            ))
+            fields = {"practice_addresses": doc.get("practice_addresses", [])}
+            urban = provider_urban(doc)
+            if urban is not None:
+                fields["urban"] = urban
+            update_ops.append(UpdateOne({"npi": npi}, {"$set": fields}))
             if len(update_ops) >= _BULK_WRITE_CHUNK:
                 _flush_updates()
 
