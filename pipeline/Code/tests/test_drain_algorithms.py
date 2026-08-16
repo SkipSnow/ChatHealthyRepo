@@ -193,20 +193,27 @@ def test_constrained_drain_matches_zero_when_state_absent(target_coll):
     assert coll.count_documents({}) == 3, "unrelated rows must survive"
 
 
-def test_drains_do_not_touch_live_collections(mongo):
-    """Sentinel: this test file must never touch PublicData.Provider_v_3
-    or PublicStaging.StagingProvider_v_3. Counts before + after the module
-    fixtures run must be identical. Reads only -- no writes."""
+def _live_counts(mongo) -> tuple[int, int]:
     frontend = ChatHealthyMongoUtilities().getConnection("pipelineEditor", "ChatHealthyFrontEnd")
-    target = frontend["PublicData"]["Provider_v_3"]
-    staging = mongo["PublicStaging"]["StagingProvider_v_3"]
+    return (frontend["PublicData"]["Provider_v_3"].estimated_document_count(),
+            mongo["PublicStaging"]["StagingProvider_v_3"].estimated_document_count())
 
-    # A count is always >= 0, so asserting that asserted nothing. The claim
-    # this test makes is that the module fixtures left the live collections
-    # untouched, and only a before/after comparison can carry it.
-    before_target = target.count_documents({})
-    before_staging = staging.count_documents({})
-    assert target.count_documents({}) == before_target, (
-        "PublicData.Provider_v_3 changed while this module ran")
-    assert staging.count_documents({}) == before_staging, (
-        "PublicStaging.StagingProvider_v_3 changed while this module ran")
+
+@pytest.fixture(scope="module", autouse=True)
+def live_collections_untouched(mongo):
+    """Counts before and after everything in this module must be identical.
+
+    Written as a test this proved nothing: the fixtures had already run by
+    the time it read its first count, and a number compared to itself
+    microseconds later can only match. Module-scoped and autouse, it spans
+    the window the claim is actually about. estimated_document_count is a
+    metadata read, so it costs nothing against a nine-million-document
+    collection and still moves the moment something writes.
+    """
+    before = _live_counts(mongo)
+    yield
+    after = _live_counts(mongo)
+    assert after == before, (
+        f"this module wrote to a live collection: "
+        f"PublicData.Provider_v_3 {before[0]} -> {after[0]}, "
+        f"PublicStaging.StagingProvider_v_3 {before[1]} -> {after[1]}")

@@ -28,6 +28,8 @@ ChatHealthyException.
 
 from __future__ import annotations
 
+from steps._partitions import business_state_filter
+
 import time as _time
 from chathealthy_lib.logging_service import ChatHealthyLoggingService
 from chathealthy_lib.exceptions import ChatHealthyException
@@ -353,14 +355,7 @@ def apply_provider_flags(
     # address is the canonical NPI-atomic partition key (single-valued
     # per NPI; practice is optional and multi-valued). Match the shape
     # every other partition-aware engine uses.
-    if partition_state == "ALL_OTHERS":
-        # The catch-all partition: everything whose business state is not one
-        # of the fifty-one. Written as an equality it matched the literal
-        # string, stamped nothing, and reported a clean zero.
-        from pipeline_runtime import STATE_US_SET  # noqa: PLC0415
-        query["business_address.state"] = {"$nin": list(STATE_US_SET)}
-    elif partition_state:
-        query["business_address.state"] = partition_state
+    query.update(business_state_filter(partition_state))
 
     ops: list[UpdateOne] = []
     modified = 0

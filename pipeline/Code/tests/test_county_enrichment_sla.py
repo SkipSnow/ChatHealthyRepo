@@ -67,9 +67,15 @@ def _connect():
 def test_county_enrichment_sla_above_97_percent():
     coll, coll_path = _connect()
 
-    total = coll.estimated_document_count()
+    # The population the SLA is about is providers the enrichment can reach.
+    # County enrichment admits practice address types only, and a provider
+    # with no practice address can never enter the numerator -- counting it
+    # in the denominator depresses the ratio on data shape rather than on
+    # enrichment failure. Exact on both sides: an estimated denominator
+    # against an exact numerator is not a ratio of anything.
+    total = coll.count_documents({"practice_addresses.0": {"$exists": True}})
     if total == 0:
-        pytest.skip(f"{coll_path} is empty; nothing to assert SLA against")
+        pytest.skip(f"{coll_path} holds no provider with a practice address")
 
     # $ne is document-level negation -- it selects documents where NO entry
     # has a null fips, i.e. every practice address resolved. The SLA is that
