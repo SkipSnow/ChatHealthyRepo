@@ -198,7 +198,15 @@ def test_drains_do_not_touch_live_collections(mongo):
     or PublicStaging.StagingProvider_v_3. Counts before + after the module
     fixtures run must be identical. Reads only -- no writes."""
     frontend = ChatHealthyMongoUtilities().getConnection("pipelineEditor", "ChatHealthyFrontEnd")
-    live_target_count = frontend["PublicData"]["Provider_v_3"].estimated_document_count()
-    live_staging_count = mongo["PublicStaging"]["StagingProvider_v_3"].estimated_document_count()
-    assert live_target_count >= 0
-    assert live_staging_count >= 0
+    target = frontend["PublicData"]["Provider_v_3"]
+    staging = mongo["PublicStaging"]["StagingProvider_v_3"]
+
+    # A count is always >= 0, so asserting that asserted nothing. The claim
+    # this test makes is that the module fixtures left the live collections
+    # untouched, and only a before/after comparison can carry it.
+    before_target = target.count_documents({})
+    before_staging = staging.count_documents({})
+    assert target.count_documents({}) == before_target, (
+        "PublicData.Provider_v_3 changed while this module ran")
+    assert staging.count_documents({}) == before_staging, (
+        "PublicStaging.StagingProvider_v_3 changed while this module ran")
