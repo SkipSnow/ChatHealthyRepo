@@ -149,12 +149,25 @@ def main() -> int:
 
     # SIGINT, not SIGTERM. The Controller's finally block does the rest --
     # workers, report, reservation, cluster, host.
+    # The controller runs inside a container, and controller_pid is that
+    # container's pid namespace -- almost always 1. Sending kill -2 1 on the
+    # HOST signals systemd, and SIGINT to pid 1 under systemd is
+    # ctrl-alt-del: it reboots the machine. That is what this did on
+    # 2026-08-16, taking the run with it because the container runs --rm.
+    #
+    # docker kill delivers into the container's namespace, which is where
+    # the controller actually is.
     out = _run_shell(args.resource_group, vm,
-                     f"kill -2 {int(pid)} 2>&1 && echo SIGNAL_SENT "
-                     f"|| echo SIGNAL_FAILED")
+                     "c=$(docker ps -q | head -1); "
+                     "if [ -z \"$c\" ]; then echo NO_CONTAINER; "
+                     "else docker kill --signal=INT \"$c\" >/dev/null 2>&1 "
+                     "&& echo SIGNAL_SENT || echo SIGNAL_FAILED; fi")
     log.info("host said: %s", out.replace("\n", " | ")[:300])
+    if "NO_CONTAINER" in out:
+        log.error("no container running on %s; nothing to signal", vm)
+        return 1
     if "SIGNAL_SENT" not in out:
-        log.error("could not signal pid %s on %s", pid, vm)
+        log.error("could not signal the controller container on %s", vm)
         return 1
 
     log.info("SIGINT delivered to controller pid %s; waiting up to %ds for "
