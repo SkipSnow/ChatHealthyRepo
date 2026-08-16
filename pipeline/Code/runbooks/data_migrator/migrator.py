@@ -549,11 +549,18 @@ def _constrain(query: dict, key: str, value) -> None:
     """
     if value is _MISSING:
         value = {"$exists": False}
-    if key not in query:
-        query[key] = value
+    if key in query:
+        existing = query.pop(key)
+        query.setdefault("$and", []).extend([{key: existing}, {key: value}])
         return
-    existing = query.pop(key)
-    query.setdefault("$and", []).extend([{key: existing}, {key: value}])
+    # Once a key has moved into $and it stays there. Putting the third
+    # constraint back at the top level is correct -- Mongo ands top-level
+    # keys with $and -- but it means the same query carries one key in two
+    # shapes, and the next reader has to know that to reason about it.
+    if any(key in clause for clause in query.get("$and", [])):
+        query.setdefault("$and", []).append({key: value})
+        return
+    query[key] = value
 
 
 def _migrate_slice(src_coll, dst_coll, base_filter: dict, partition: dict,
