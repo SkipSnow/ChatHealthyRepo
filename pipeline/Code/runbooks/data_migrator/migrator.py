@@ -328,7 +328,7 @@ def _split_prefix(key: str) -> tuple[str, str]:
     return "", key
 
 
-def _prefix_is_array(src_coll, prefix: str, jf_query: dict) -> bool:
+def _prefix_is_array(src_coll, prefix: str) -> bool:
     """Is this path actually an array in the data?
 
     A dot in a key used to be taken as proof, and it was, while every dotted
@@ -338,9 +338,7 @@ def _prefix_is_array(src_coll, prefix: str, jf_query: dict) -> bool:
     collection instead of seeking the index the split exists to enable, and
     silently dropping documents that carry no such field at all.
     """
-    probe = dict(jf_query or {})
-    probe[prefix] = {"$type": "array"}
-    return src_coll.find_one(probe, {"_id": 1}) is not None
+    return src_coll.find_one({prefix: {"$type": "array"}}, {"_id": 1}) is not None
 
 
 def _group_by_prefix(spec: dict) -> tuple[dict, dict]:
@@ -360,18 +358,19 @@ def _group_by_prefix(spec: dict) -> tuple[dict, dict]:
     return flat, grouped
 
 
-def _materialize_query(flat: dict, grouped: dict) -> dict:
+def _materialize_query(flat: dict, grouped: dict,
+                       array_prefixes=()) -> dict:
     """Render the operator's dotted-path spec as a real Mongo query:
        a prefix with 2+ leafs becomes a single $elemMatch on that prefix
        (per-element scoping the operator never has to spell out);
        a prefix with exactly 1 leaf stays as a dotted-path predicate."""
     out = dict(flat)
     for prefix, leafs in grouped.items():
-        if len(leafs) >= 2:
+        if len(leafs) >= 2 and prefix in (array_prefixes or ()):
             out[prefix] = {"$elemMatch": dict(leafs)}
         else:
-            leaf, val = next(iter(leafs.items()))
-            out[f"{prefix}.{leaf}"] = val
+            for leaf, val in leafs.items():
+                out[f"{prefix}.{leaf}"] = val
     return out
 
 
@@ -395,8 +394,15 @@ def _enumerate_partitions(src_coll, base_filter: dict, thread_criteria: dict) ->
         )
 
     jf_flat, jf_grouped = _group_by_prefix(base_filter or {})
-    jf_query = _materialize_query(jf_flat, jf_grouped)
     tc_groups = _group_thread_criteria(thread_criteria)
+    # Probed once per prefix, before any query is built from it. A dot is not
+    # proof of an array, and the answer must be the same everywhere it is
+    # asked or two functions will disagree about the same field.
+    array_prefixes = {
+        pre for pre in set(jf_grouped) | {p for p in tc_groups if p}
+        if _prefix_is_array(src_coll, pre)
+    }
+    jf_query = _materialize_query(jf_flat, jf_grouped, array_prefixes)
 
     # Enumerate distinct values for each wildcard, in declaration order
     # across thread_criteria. Grouped wildcards use aggregate $unwind +
@@ -405,7 +411,7 @@ def _enumerate_partitions(src_coll, base_filter: dict, thread_criteria: dict) ->
     wildcard_enums: list[tuple[str, str, list]] = []
     for prefix, g in tc_groups.items():
         for leaf in g["wildcards"]:
-            if prefix and _prefix_is_array(src_coll, prefix, jf_query):
+            if prefix in array_prefixes:
                 element_match: dict = {}
                 for ek, ev in jf_grouped.get(prefix, {}).items():
                     element_match[f"{prefix}.{ek}"] = ev
@@ -423,14 +429,18 @@ def _enumerate_partitions(src_coll, base_filter: dict, thread_criteria: dict) ->
                 ]
                 values = [d["_id"] for d in src_coll.aggregate(pipeline, allowDiskUse=True)]
             else:
-                values = src_coll.distinct(
-                    f"{prefix}.{leaf}" if prefix else leaf, jf_query)
+                field = f"{prefix}.{leaf}" if prefix else leaf
+                values = src_coll.distinct(field, jf_query)
+                if src_coll.find_one({**jf_query, field: {"$exists": False}},
+                                     {"_id": 1}) is not None:
+                    values = list(values) + [None]
             if not values:
                 values = [None]
             wildcard_enums.append((prefix, leaf, values))
 
     def _base_partition() -> dict:
-        p: dict = {"_groups": {}, "_top_fixed": {}}
+        p: dict = {"_groups": {}, "_top_fixed": {},
+                   "_array_prefixes": sorted(array_prefixes)}
         for prefix, g in tc_groups.items():
             if prefix and (g["fixed"] or g["wildcards"]):
                 p["_groups"][prefix] = {"fixed": dict(g["fixed"]), "wildcards": {}}
@@ -477,11 +487,11 @@ def _compose_slice_filter(base_filter: dict, partition: dict) -> dict:
             em[fk] = fv
         for wk, wv in tc_group.get("wildcards", {}).items():
             em[wk] = wv
-        if len(em) >= 2:
+        if len(em) >= 2 and prefix in set(partition.get("_array_prefixes") or ()):
             combined[prefix] = {"$elemMatch": em}
-        elif len(em) == 1:
-            leaf, val = next(iter(em.items()))
-            combined[f"{prefix}.{leaf}"] = val
+        else:
+            for leaf, val in em.items():
+                combined[f"{prefix}.{leaf}"] = val
     return combined
 
 

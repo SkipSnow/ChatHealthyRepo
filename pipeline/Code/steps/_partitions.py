@@ -13,9 +13,28 @@ ALL_US_STATES = [
 ]
 
 
+ALL_OTHERS = "ALL_OTHERS"
+
+
+def business_state_filter(state: str | None) -> dict:
+    """The Mongo predicate selecting one partition's providers.
+
+    ALL_OTHERS is a sentinel, not a state: it names every provider whose
+    business address is outside the fifty-one, including those carrying no
+    business state at all. Written as an equality it matched the literal
+    string and selected nothing, silently, in whichever step spelled it that
+    way. There is one spelling now.
+    """
+    if not state:
+        return {}
+    if state == ALL_OTHERS:
+        return {"business_address.state": {"$nin": list(ALL_US_STATES)}}
+    return {"business_address.state": state}
+
+
 def state_partitions(states: list[str]) -> list[dict]:
     if states == ["ALL"] or not states:
-        return [{"business_address_state": s} for s in ALL_US_STATES] + [{"business_address_state": "ALL_OTHERS"}]
+        return [{"business_address_state": s} for s in ALL_US_STATES] + [{"business_address_state": ALL_OTHERS}]
     return [{"business_address_state": s} for s in states]
 
 

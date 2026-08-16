@@ -4,6 +4,8 @@
 """Normalize staging NPPES rows into providers_v<N> — LLD §4.8."""
 
 from __future__ import annotations
+
+from steps._partitions import business_state_filter
 from chathealthy_lib.logging_service import ChatHealthyLoggingService
 
 
@@ -90,9 +92,8 @@ def per_state_normalize(ctx, state: str) -> dict[str, Any]:
     # matches this partition. Preserves indexes (delete_many, not drop()).
     drained = 0
     if not ctx.args.incremental:
-        drained = rt.providers_coll.delete_many({
-            "business_address.state": state,
-        }).deleted_count
+        drained = rt.providers_coll.delete_many(
+            business_state_filter(state)).deleted_count
 
     seen_npis: set[str] = set()
     inserted = 0

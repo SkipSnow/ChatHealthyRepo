@@ -174,15 +174,8 @@ class PipelineRuntime:
         address gives exactly one owner per NPI."""
         if not state:
             return {"run_id": self.run_id}
-        if state == "ALL_OTHERS":
-            return {
-                "run_id": self.run_id,
-                "business_address.state": {"$nin": list(STATE_US_SET)},
-            }
-        return {
-            "run_id": self.run_id,
-            "business_address.state": state,
-        }
+        from steps._partitions import business_state_filter  # noqa: PLC0415
+        return {"run_id": self.run_id, **business_state_filter(state)}
 
     def discrepancies_collection(self):
         return self.discrepancies_coll
