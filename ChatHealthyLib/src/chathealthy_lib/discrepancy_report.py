@@ -99,6 +99,9 @@ class DiscrepancyReport:
         self.total_rows = total_rows
         self.fatal_error = fatal_error
         self.data_version = data_version
+        # What the run actually ended as. Without it the report cannot tell a
+        # successful run from a failed one and describes every run as fatal.
+        self.manifest_status = ""
         # Bound FIRST, before any work that logs. The vault fetch, the
         # connection and the config load all emit records on the way in, and
         # anything bound after them produces records that belong to this run
@@ -277,6 +280,29 @@ class DiscrepancyReport:
                 self.mongo_down = True
                 self.mongo_down_reason = f"{type(exc).__name__}: {str(exc)[:200]}"
         return (self._held_warnings or "Unknown", self._held_errors or "Unknown")
+
+    def count_rows(self) -> None:
+        """Fill the row counts from the database.
+
+        These were only ever set by a caller that passed them in, and the
+        quiesce path does not, so every report said Unknown about numbers the
+        run had just finished producing.
+        """
+        if self.mongo_down or self.mongo_connection is None:
+            return
+        target = self.config.get("provider_collection") or self.config.get("target_collection")
+        if not target or "." not in str(target):
+            return
+        db_name, coll_name = str(target).split(".", 1)
+        try:
+            coll = self.mongo_connection[db_name][coll_name]
+            if self.rows_in_target is None:
+                self.rows_in_target = coll.count_documents({"run_id": self.run_id})
+            if self.total_rows is None:
+                self.total_rows = coll.estimated_document_count()
+        except Exception as exc:  # noqa: BLE001
+            self.mongo_down = True
+            self.mongo_down_reason = f"{type(exc).__name__}: {str(exc)[:200]}"
 
     def _target_collection_name(self) -> str:
         """Short name of the collection this pipeline loads into. Never the
@@ -503,10 +529,15 @@ class DiscrepancyReport:
             elif level == "warning":
                 warning_reports.append(row)
 
-        # The fatal error is known here whether or not it was ever written
-        # down, because the caller handed it over rather than storing it.
-        explanation = self._fatal_explanation()
-        if not fatal_reports:
+        # A run that did not fail has no fatal error to report. This used to
+        # synthesise one whenever none had been recorded, so every successful
+        # run published a report whose headline was a fatal error that never
+        # happened, explained as "reported without an exception" -- which was
+        # the truth about the report, not about the run.
+        is_fatal = bool(self.fatal_error or self.fatal_exception) or (
+            self.manifest_status not in ("", "succeeded", "completed"))
+        explanation = self._fatal_explanation() if is_fatal else ""
+        if is_fatal and not fatal_reports:
             fatal_reports = [{
                 "run_id": self.run_id,
                 "job_name": self.pipeline_name,
@@ -522,7 +553,8 @@ class DiscrepancyReport:
             "run_started_utc": self.start_time,
             "run_ended_utc": end_time,
             "fatal_reason": explanation,
-            "records_100_percent_successfully_collected": False,
+            "records_100_percent_successfully_collected": (
+                not is_fatal and warning_count == 0 and error_count == 0),
             "records_with_non_fatal_warnings": warning_count,
             "records_with_non_fatal_errors": error_count,
             "rows_in_target": self._reported(self.rows_in_target),
@@ -551,7 +583,10 @@ class DiscrepancyReport:
         }]
 
         receivers = self._resolve_recipients()
-        subject = f"Provider pipeline {self.run_id} - fatal"
+        outcome = ("fatal" if is_fatal
+                   else "clean" if warning_count == 0 and error_count == 0
+                   else "with discrepancies")
+        subject = f"Provider pipeline {self.run_id} - {outcome}"
         log_context = (
             f"warnings={warning_count} errors={error_count} "
             f"warning_threshold={self.config.get('warning_threshold', 'Unknown')} "
@@ -1019,6 +1054,14 @@ def emit_discrepancy_report(
         if pipeline_mongo is not None:
             report.mongo_connection = pipeline_mongo
             report.mongo_down = False
+
+        # Both of these arrive as arguments and were both ignored, so the
+        # report could not say what the run did or how much it moved.
+        report.manifest_status = (manifest_status or "").strip().lower()
+        report.config = dict(config or {})
+        if isinstance(manifest_doc, dict) and manifest_doc.get("fatal_exception"):
+            report.fatal_error = True
+        report.count_rows()
 
         total = 0
         if not report.mongo_down and report.mongo_connection is not None:

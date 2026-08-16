@@ -70,14 +70,21 @@ def _fmt_header_fields(manifest: dict, discrepancies: list[dict]) -> list[tuple[
         records_with_errors = len(errors)
     total_source_rows = manifest.get("total_source_rows")
     if total_source_rows is None:
-        successful = "Unknown"
+        # A clean run says so rather than saying it does not know: no
+        # discrepancy touched any record, which is the claim being made.
+        collected = manifest.get("records_100_percent_successfully_collected")
+        successful = ("all records, none flagged" if collected
+                      else str(manifest.get("rows_in_target", "Unknown")))
     else:
         touched = {d.get("npi") for d in discrepancies if d.get("npi")}
         successful = str(int(total_source_rows) - len(touched))
     fatal_reason = manifest.get("fatal_reason") or ""
     fatal_present = bool(fatal_reason)
-    rows_in_target = manifest.get("rows_in_target", "Unknown") if fatal_present else "n/a"
-    total_rows = manifest.get("total_rows", "Unknown") if fatal_present else "n/a"
+    # The row counts were shown only when the run had gone fatal, which is
+    # the one case they matter least: a successful run is exactly when the
+    # reader wants to know how much it moved.
+    rows_in_target = manifest.get("rows_in_target", "Unknown")
+    total_rows = manifest.get("total_rows", "Unknown")
     target_collection = manifest.get("target_collection") or "target collection"
     return [
         ("Pipeline",                            str(manifest.get("pipeline_name", "provider"))),
