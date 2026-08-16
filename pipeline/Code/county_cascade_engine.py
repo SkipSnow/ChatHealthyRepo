@@ -48,7 +48,6 @@ Public entry point: `run_county_cascade(config, mongo, blob)`.
 
 from __future__ import annotations
 
-from steps._partitions import business_state_filter
 from chathealthy_lib.logging_service import ChatHealthyLoggingService
 
 
@@ -238,6 +237,7 @@ def _stream_provider_chunks(
     """
     query: dict[str, Any] = {"run_id": run_id}
     if partition_state:
+        from steps._partitions import business_state_filter  # noqa: PLC0415
         query.update(business_state_filter(partition_state))
 
     cursor = coll.find(query).batch_size(_PROVIDER_CHUNK)
