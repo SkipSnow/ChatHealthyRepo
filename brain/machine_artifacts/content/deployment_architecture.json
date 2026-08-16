@@ -5042,8 +5042,7 @@
         "ATLAS_PIPELINE_PRIVATE_KEY": "Atlas API private key that may pause and resume the pipeline cluster"
       },
       "allowed_roles": [
-        "Key Vault Secrets Officer",
-        "Key Vault Secrets User"
+        "Key Vault Secrets Officer"
       ]
     },
     {
