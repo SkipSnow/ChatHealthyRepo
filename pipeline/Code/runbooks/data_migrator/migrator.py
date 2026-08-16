@@ -532,7 +532,7 @@ def _compose_slice_filter(base_filter: dict, partition: dict) -> dict:
 
 def _raise_partitions_do_not_cover(uncovered: int) -> None:
     """Raise-only helper: the catcher logs, not the thrower."""
-    raise _ch_exc()(
+    raise ChatHealthyException(
         mode="config_error",
         component="data_migrator",
         message=(f"{uncovered} source document(s) match the JobFilter and no "
