@@ -55,6 +55,18 @@ def _fmt_local_time(iso_or_dt) -> str:
         return str(iso_or_dt)
 
 
+# A value carrying this prefix is rendered bold in both the PDF and the
+# email. The run's outcome is the one thing a reader should not have to hunt
+# for, so it is the only field that uses it.
+_BOLD = "⁣BOLD⁣"
+
+
+def _strip_bold(value: str) -> tuple[str, bool]:
+    """Return the value without its marker, and whether it was marked."""
+    text = str(value)
+    return (text[len(_BOLD):], True) if text.startswith(_BOLD) else (text, False)
+
+
 def _fmt_header_fields(manifest: dict, discrepancies: list[dict]) -> list[tuple[str, str]]:
     """11 header field-value pairs, spec-verbatim labels."""
     errors = [d for d in discrepancies if (d.get("level") or "").lower() == "error"]
@@ -88,6 +100,7 @@ def _fmt_header_fields(manifest: dict, discrepancies: list[dict]) -> list[tuple[
     target_collection = manifest.get("target_collection") or "target collection"
     return [
         ("Pipeline",                            str(manifest.get("pipeline_name", "provider"))),
+        ("Run status",                          _BOLD + str(manifest.get("run_status", "Unknown")).upper()),
         ("Run started",                         _fmt_local_time(manifest.get("run_started_utc"))),
         ("Run ended",                           _fmt_local_time(manifest.get("run_ended_utc"))),
         ("Records 100% successfully collected", successful),
@@ -115,6 +128,10 @@ def render_header_as_html(manifest: dict, discrepancies: list[dict]) -> str:
             rl, rv = col_right[i]
         else:
             rl = rv = ""
+        lv, lb = _strip_bold(lv)
+        rv, rb = _strip_bold(rv)
+        lv = f"<strong>{lv}</strong>" if lb else lv
+        rv = f"<strong>{rv}</strong>" if rb else rv
         rows_html.append(
             f"<tr>"
             f"<td style='border:1px solid #000;padding:6px 10px;background:#f4f4f4;font-weight:bold'>{ll}</td>"
@@ -176,11 +193,13 @@ def build_discrepancy_pdf(manifest: dict, discrepancies: list[dict]) -> bytes:
         right.append(("", ""))
     wrapped_rows = []
     for (ll, lv), (rl, rv) in zip(left, right):
+        lv_text, lv_bold = _strip_bold(lv)
+        rv_text, rv_bold = _strip_bold(rv)
         wrapped_rows.append([
             Paragraph(str(ll), label_style),
-            Paragraph(str(lv), value_style),
+            Paragraph(lv_text, label_style if lv_bold else value_style),
             Paragraph(str(rl), label_style),
-            Paragraph(str(rv), value_style),
+            Paragraph(rv_text, label_style if rv_bold else value_style),
         ])
     header_table = Table(
         wrapped_rows,

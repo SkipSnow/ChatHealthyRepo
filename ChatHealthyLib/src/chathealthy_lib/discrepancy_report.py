@@ -550,6 +550,9 @@ class DiscrepancyReport:
         manifest = {
             "run_id": self.run_id,
             "pipeline_name": self.pipeline_name,
+            # The outcome, said outright. A reader had to infer it from the
+            # absence of a fatal line.
+            "run_status": self.manifest_status or ("failed" if is_fatal else "succeeded"),
             "run_started_utc": self.start_time,
             "run_ended_utc": end_time,
             "fatal_reason": explanation,
@@ -583,10 +586,11 @@ class DiscrepancyReport:
         }]
 
         receivers = self._resolve_recipients()
-        outcome = ("fatal" if is_fatal
-                   else "clean" if warning_count == 0 and error_count == 0
-                   else "with discrepancies")
-        subject = f"Provider pipeline {self.run_id} - {outcome}"
+        status = self.manifest_status or ("failed" if is_fatal else "succeeded")
+        detail = ("" if is_fatal
+                  else ", no discrepancies" if warning_count == 0 and error_count == 0
+                  else f", {warning_count} warning(s) {error_count} error(s)")
+        subject = f"Provider pipeline {self.run_id} - {status}{detail}"
         log_context = (
             f"warnings={warning_count} errors={error_count} "
             f"warning_threshold={self.config.get('warning_threshold', 'Unknown')} "
