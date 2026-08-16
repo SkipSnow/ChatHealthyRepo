@@ -71,7 +71,12 @@ def test_county_enrichment_sla_above_97_percent():
     if total == 0:
         pytest.skip(f"{coll_path} is empty; nothing to assert SLA against")
 
-    with_county_query = {"practice_addresses.county.fips": {"$ne": None}}
+    # $ne is document-level negation -- it selects documents where NO entry
+    # has a null fips, i.e. every practice address resolved. The SLA is that
+    # the provider has county data, meaning at least one did, which is what
+    # $elemMatch asks.
+    with_county_query = {
+        "practice_addresses": {"$elemMatch": {"county.fips": {"$ne": None}}}}
     with_county = coll.count_documents(with_county_query)
     ratio = with_county / total
 

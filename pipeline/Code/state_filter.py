@@ -9,11 +9,12 @@ so the predicate is 100% uniform across the pipeline (REQ-T-001).
 Behavior:
   - states missing / empty / malformed -> raises ValueError       (REQ-T-002)
   - states == ["ALL"]                  -> full-load sentinel       (REQ-B-002, T-004)
-  - any other non-empty list           -> multi-state-bearing-field predicate
-                                          across addresses[].state (covers both
-                                          business + practice entries),
-                                          licenses[].state,
-                                          other_identifiers[].state (REQ-T-003)
+  - any other non-empty list           -> business_address.state predicate
+                                          (REQ-T-003). The wider
+                                          any-address / licenses /
+                                          other_identifiers predicate is gone:
+                                          the business address is the
+                                          canonical residency signal.
 
 Supports legacy dict input {"mode": "include"|"exclude", "list": [...]} for
 backward compatibility with the existing enrichment caller. Exclude mode is
@@ -25,15 +26,6 @@ from chathealthy_lib.exceptions import ChatHealthyException
 
 ALL_STATES_SENTINEL = "ALL"
 
-# Every state-bearing field on a provider doc. If a future field is added,
-# put it here so every pipeline step picks it up automatically.
-#
-# Post-schema-reconciliation: practice_address + mailing_address unified into
-# addresses[] (with address_type discriminator). One Mongo path
-# "business_address.state" covers both. other_identifiers[] is now an array of
-# objects (each with .state); the old parallel-array `other_identifier_states`
-# is gone.
-BUSINESS_ADDRESS_TYPE = "business"
 
 
 def normalize_states(config: dict) -> list[str]:
@@ -73,15 +65,13 @@ def mongo_state_filter(states) -> dict:
     """Build a Mongo filter scoped to the BUSINESS address only.
 
     Returns `{}` (match all) when `states` is the ALL sentinel. Otherwise
-    returns an `$elemMatch` predicate that fires when the provider's
-    business-typed address (addresses[].address_type == 'business') has
-    a `state` in the requested set. The wider any-address / licenses /
-    other_identifiers predicate is gone — business-address is the
-    canonical residency signal for state-scoped runs and the only one
-    the drain step should key off of (Skip 2026-05-27).
+    an equality on `business_address.state`, which is the canonical
+    residency signal for state-scoped runs and the only one the drain step
+    keys off. It was an `$elemMatch` over addresses[] while the business
+    address was an entry in that array.
 
-    For the legacy dict form, `mode='exclude'` becomes a `$nor` on the
-    same business-address elemMatch — preserving the exclude semantic.
+    For the legacy dict form, `mode='exclude'` becomes a `$nor` on the same
+    predicate — preserving the exclude semantic.
     """
     if is_full_load(states):
         return {}

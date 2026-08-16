@@ -328,6 +328,21 @@ def _split_prefix(key: str) -> tuple[str, str]:
     return "", key
 
 
+def _prefix_is_array(src_coll, prefix: str, jf_query: dict) -> bool:
+    """Is this path actually an array in the data?
+
+    A dot in a key used to be taken as proof, and it was, while every dotted
+    partition key named an entry inside addresses[]. business_address is a
+    dotted path onto a single object, and $unwind accepts a non-array operand
+    -- so the wrong branch produced right answers slowly, scanning the
+    collection instead of seeking the index the split exists to enable, and
+    silently dropping documents that carry no such field at all.
+    """
+    probe = dict(jf_query or {})
+    probe[prefix] = {"$type": "array"}
+    return src_coll.find_one(probe, {"_id": 1}) is not None
+
+
 def _group_by_prefix(spec: dict) -> tuple[dict, dict]:
     """Partition spec entries into (flat, grouped):
        flat: {key: value} for entries with no dot prefix (top-level fields
@@ -390,7 +405,7 @@ def _enumerate_partitions(src_coll, base_filter: dict, thread_criteria: dict) ->
     wildcard_enums: list[tuple[str, str, list]] = []
     for prefix, g in tc_groups.items():
         for leaf in g["wildcards"]:
-            if prefix:
+            if prefix and _prefix_is_array(src_coll, prefix, jf_query):
                 element_match: dict = {}
                 for ek, ev in jf_grouped.get(prefix, {}).items():
                     element_match[f"{prefix}.{ek}"] = ev
@@ -408,7 +423,8 @@ def _enumerate_partitions(src_coll, base_filter: dict, thread_criteria: dict) ->
                 ]
                 values = [d["_id"] for d in src_coll.aggregate(pipeline, allowDiskUse=True)]
             else:
-                values = src_coll.distinct(leaf, jf_query)
+                values = src_coll.distinct(
+                    f"{prefix}.{leaf}" if prefix else leaf, jf_query)
             if not values:
                 values = [None]
             wildcard_enums.append((prefix, leaf, values))
