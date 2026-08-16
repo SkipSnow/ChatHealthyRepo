@@ -624,6 +624,29 @@ runcmd:
       az vm delete --resource-group {RESOURCE_GROUP} --name {vm_name_for_farewell} --yes --no-wait || true
     else
       echo "chpipeline: controller exited $DOCKER_EXIT; leaving {vm_name_for_farewell} up so the failure can be read. The watchdog will reap it."
+      # A controller that does not come up is a fatal error and has to be
+      # reported as one. Everything the failing container knew died with it:
+      # --rm removed the container, and this log lives on a host that gets
+      # deleted. The same image is run again for the sole purpose of saying
+      # what happened, because it already carries the library, the identity
+      # certificate and the vault credentials.
+      docker run --rm --network host \\
+        -e CHATHEALTHY_NODE_IDENTITY='pipeline-control' \\
+        -e CH_SPACE_NAME='control' \\
+        -e CH_LOG_DESTINATION='stderr,mongo' \\
+        -e CH_LOG_DB='{CH_LOG_DB}' \\
+        -e CH_COMPONENT='provider_pipeline_control' \\
+        -e RUN_ID='{run_id}' \\
+        -e ENV_PREFIX='{ENV_PREFIX}' \\
+        -e KEY_VAULT_URI='{KEY_VAULT_URI}' \\
+        -e PIPELINEEDITOR_AZURE_TENANT_ID='{PIPELINE_EDITOR_TENANT}' \\
+        -e PIPELINEEDITOR_AZURE_CLIENT_ID='{PIPELINE_EDITOR_CLIENT_ID}' \\
+        -e PIPELINEEDITOR_AZURE_CLIENT_SECRET='{PIPELINE_EDITOR_SECRET}' \\
+        -e PIPELINE_SECRET_NAMES='{PIPELINE_SECRET_NAMES}' \\
+        -e CONTROLLER_EXIT_CODE="$DOCKER_EXIT" \\
+        --entrypoint python \\
+        {image_ref} bootstrap.py report_controller_failure.py \\
+        || echo "chpipeline: could not report the controller failure $(date -u +%FT%TZ)"
     fi
 """
     return base64.b64encode(yaml_body.encode("utf-8")).decode("ascii")
