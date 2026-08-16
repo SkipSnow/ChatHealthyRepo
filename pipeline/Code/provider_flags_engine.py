@@ -28,7 +28,6 @@ ChatHealthyException.
 
 from __future__ import annotations
 
-from steps._partitions import business_state_filter
 
 import time as _time
 from chathealthy_lib.logging_service import ChatHealthyLoggingService
@@ -355,6 +354,7 @@ def apply_provider_flags(
     # address is the canonical NPI-atomic partition key (single-valued
     # per NPI; practice is optional and multi-valued). Match the shape
     # every other partition-aware engine uses.
+    from steps._partitions import business_state_filter  # noqa: PLC0415
     query.update(business_state_filter(partition_state))
 
     ops: list[UpdateOne] = []

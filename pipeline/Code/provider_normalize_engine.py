@@ -5,7 +5,6 @@
 
 from __future__ import annotations
 
-from steps._partitions import business_state_filter
 from chathealthy_lib.logging_service import ChatHealthyLoggingService
 
 
@@ -69,6 +68,8 @@ def per_state_normalize(ctx, state: str) -> dict[str, Any]:
     (secondary practices); business mailing is required and unique, so it
     is the reliable NPI-atomic partition key.
     """
+    from steps._partitions import (  # noqa: PLC0415
+        ALL_OTHERS, ALL_US_STATES, business_state_filter)
     rt = PipelineRuntime(ctx)
     state = (state or "").upper()
     if not state:
@@ -109,7 +110,16 @@ def per_state_normalize(ctx, state: str) -> dict[str, Any]:
     # level timeoutMS (120s) — big states take longer than 2 min to
     # iterate + build + validate + write. no_cursor_timeout=True also
     # prevents server-side cursor idle kill.
-    query = {"run_id": rt.run_id, f"raw.{_NPPES_STATE_COLUMN}": state}
+    # The drain and this read must select the same providers. The drain took
+    # ALL_OTHERS as "not one of the fifty-one" while this took it as a literal
+    # state name, so the pairing was delete-everything, insert-nothing. It has
+    # never fired -- resolved_states() expands ["ALL"] before the sentinel is
+    # minted, so the partition is unreachable -- but the two halves disagreed.
+    if state == ALL_OTHERS:
+        staging_state: dict = {"$nin": ALL_US_STATES}
+    else:
+        staging_state = state
+    query = {"run_id": rt.run_id, f"raw.{_NPPES_STATE_COLUMN}": staging_state}
     with pymongo.timeout(3600):
         for row in rt.staging_coll("nppes_npi").find(query, no_cursor_timeout=True):
             raw = row.get("raw") or {}

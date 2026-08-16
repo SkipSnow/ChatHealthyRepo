@@ -56,7 +56,6 @@ Three stages, each callable independently:
 
 from __future__ import annotations
 
-from steps._partitions import business_state_filter
 from chathealthy_lib.logging_service import ChatHealthyLoggingService
 from chathealthy_lib.exceptions import ChatHealthyException
 
@@ -799,6 +798,7 @@ def apply_other_identifier_classifications(config: dict, *, mongo, blob=None) ->
     # Same rule as harvest above -- keeps apply's per-state work aligned
     # with harvest's per-state work, so every provider is processed by
     # exactly one state worker.
+    from steps._partitions import business_state_filter  # noqa: PLC0415
     query = {
         **business_state_filter(state),
         "other_identifiers": {"$exists": True, "$ne": []},

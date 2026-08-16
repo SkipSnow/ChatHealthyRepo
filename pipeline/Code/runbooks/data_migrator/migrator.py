@@ -328,6 +328,22 @@ def _split_prefix(key: str) -> tuple[str, str]:
     return "", key
 
 
+class _Missing:
+    """The partition claiming documents that carry no value at this path.
+
+    Written as None it became {"path": None}, which selects documents whose
+    value IS null -- not those where the path is absent -- and, being an
+    ordinary value, it overwrote whatever the JobFilter said about the same
+    path. Both faults sent a partition outside the migration's scope.
+    """
+
+    def __repr__(self) -> str:
+        return "<missing>"
+
+
+_MISSING = _Missing()
+
+
 def _prefix_is_array(src_coll, prefix: str) -> bool:
     """Is this path actually an array in the data?
 
@@ -419,7 +435,8 @@ def _enumerate_partitions(src_coll, base_filter: dict, thread_criteria: dict) ->
                     element_match[f"{prefix}.{fk}"] = fv
                 pipeline = [
                     {"$match": jf_query},
-                    {"$unwind": f"${prefix}"},
+                    {"$unwind": {"path": f"${prefix}",
+                                 "preserveNullAndEmptyArrays": True}},
                 ]
                 if element_match:
                     pipeline.append({"$match": element_match})
@@ -427,13 +444,21 @@ def _enumerate_partitions(src_coll, base_filter: dict, thread_criteria: dict) ->
                     {"$group": {"_id": f"${prefix}.{leaf}"}},
                     {"$sort": {"_id": 1}},
                 ]
-                values = [d["_id"] for d in src_coll.aggregate(pipeline, allowDiskUse=True)]
+                values = [
+                    _MISSING if d["_id"] is None else d["_id"]
+                    for d in src_coll.aggregate(pipeline, allowDiskUse=True)
+                ]
             else:
                 field = f"{prefix}.{leaf}" if prefix else leaf
-                values = src_coll.distinct(field, jf_query)
-                if src_coll.find_one({**jf_query, field: {"$exists": False}},
-                                     {"_id": 1}) is not None:
-                    values = list(values) + [None]
+                values = list(src_coll.distinct(field, jf_query))
+                # $and, not a merged dict: when the JobFilter constrains this
+                # same path, a merged key overwrites it and the probe asks a
+                # wider question than the migration is scoped to.
+                absent = src_coll.find_one(
+                    {"$and": [jf_query, {field: {"$exists": False}}]},
+                    {"_id": 1})
+                if absent is not None and _MISSING not in values:
+                    values.append(_MISSING)
             if not values:
                 values = [None]
             wildcard_enums.append((prefix, leaf, values))
@@ -479,20 +504,56 @@ def _compose_slice_filter(base_filter: dict, partition: dict) -> dict:
 
     all_prefixes = set(jf_grouped.keys()) | set(partition.get("_groups", {}).keys())
     for prefix in all_prefixes:
-        em: dict = {}
+        # Every constraint on a leaf is kept. Assigning them into one dict let
+        # the partition's wildcard replace the JobFilter's constraint on the
+        # same leaf, so a run scoped to two states could yield a partition
+        # scoped to neither.
+        em: dict[str, list] = {}
         for ek, ev in jf_grouped.get(prefix, {}).items():
-            em[ek] = ev
+            em.setdefault(ek, []).append(ev)
         tc_group = partition.get("_groups", {}).get(prefix, {})
         for fk, fv in tc_group.get("fixed", {}).items():
-            em[fk] = fv
+            em.setdefault(fk, []).append(fv)
         for wk, wv in tc_group.get("wildcards", {}).items():
-            em[wk] = wv
+            em.setdefault(wk, []).append(wv)
+
         if len(em) >= 2 and prefix in set(partition.get("_array_prefixes") or ()):
-            combined[prefix] = {"$elemMatch": em}
+            elem: dict = {}
+            for leaf, vals in em.items():
+                for val in vals:
+                    _constrain(elem, leaf, val)
+            _constrain(combined, prefix, {"$elemMatch": elem})
         else:
-            for leaf, val in em.items():
-                combined[f"{prefix}.{leaf}"] = val
+            for leaf, vals in em.items():
+                for val in vals:
+                    _constrain(combined, f"{prefix}.{leaf}", val)
     return combined
+
+
+def _raise_partitions_do_not_cover(uncovered: int) -> None:
+    """Raise-only helper: the catcher logs, not the thrower."""
+    raise _ch_exc()(
+        mode="config_error",
+        component="data_migrator",
+        message=(f"{uncovered} source document(s) match the JobFilter and no "
+                 f"partition, so no thread would copy them and the "
+                 f"reconciliation could not see the loss."))
+
+
+def _constrain(query: dict, key: str, value) -> None:
+    """Add a constraint without discarding one already on that key.
+
+    A partition wildcard assigned straight into the query replaced whatever
+    the JobFilter had said about the same path, so a run scoped to two states
+    could produce a partition scoped to neither.
+    """
+    if value is _MISSING:
+        value = {"$exists": False}
+    if key not in query:
+        query[key] = value
+        return
+    existing = query.pop(key)
+    query.setdefault("$and", []).extend([{key: existing}, {key: value}])
 
 
 def _migrate_slice(src_coll, dst_coll, base_filter: dict, partition: dict,
@@ -717,6 +778,19 @@ def _main():
         else:
             covered_query = {"$or": partition_filters}
         source_total = src_coll.count_documents(covered_query)
+        # The union of partition filters is derived from the partitions that
+        # did the writing, so a document no partition claims is absent from
+        # both sides and compares equal to itself. Ask separately whether the
+        # partitions cover the JobFilter's own population.
+        jf_flat, jf_grouped = _group_by_prefix(base_filter or {})
+        jf_scope = _materialize_query(
+            jf_flat, jf_grouped,
+            set(partitions[0].get("_array_prefixes") or ()) if partitions else set())
+        uncovered = src_coll.count_documents(
+            {"$and": [jf_scope, {"$nor": partition_filters}]}
+        ) if partition_filters and jf_scope else 0
+        if uncovered:
+            _raise_partitions_do_not_cover(uncovered)
         _assert_reconciled(success_writes, source_total)
 
     except Exception:

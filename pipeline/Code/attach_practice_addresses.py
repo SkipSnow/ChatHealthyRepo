@@ -31,7 +31,6 @@ sequentially and issued one Atlas find_one + one update_one per row
 
 from __future__ import annotations
 
-from steps._partitions import business_state_filter
 from chathealthy_lib.logging_service import ChatHealthyLoggingService
 from chathealthy_lib.exceptions import ChatHealthyException
 
@@ -162,6 +161,7 @@ def attach_practice_addresses(ctx) -> dict:
     # valued per NPPES contract, so $elemMatch gives exactly one owner
     # per NPI). Practice addresses are optional and multi-valued and
     # cannot serve as the atomic partition key.
+    from steps._partitions import business_state_filter  # noqa: PLC0415
     for doc in rt.providers_coll.find(
         business_state_filter(state),
         {"npi": 1, "business_address": 1, "practice_addresses": 1},
