@@ -54,10 +54,8 @@ _PAYLOAD = {
     "destination_database": "PublicHealthData",
     "destination_collection": "provider_v02",
     "filter": {
-        "business_address.address_type": "business",
     },
     "thread_criteria": {
-        "business_address.address_type": "business",
         "business_address.state": "*",
     },
     "preserve_indices": True,

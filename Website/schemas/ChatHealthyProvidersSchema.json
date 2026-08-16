@@ -37,11 +37,11 @@
       ],
       "properties": {
         "_id": {
-          "description": "MongoDB ObjectId — auto-assigned on insert. Omit on write; always present on read.",
+          "description": "MongoDB ObjectId \u2014 auto-assigned on insert. Omit on write; always present on read.",
           "type": "object"
         },
         "npi": {
-          "description": "National Provider Identifier — 10-digit string, globally unique, issued by CMS. Never numeric; leading zeros are significant. THE record's business key.",
+          "description": "National Provider Identifier \u2014 10-digit string, globally unique, issued by CMS. Never numeric; leading zeros are significant. THE record's business key.",
           "type": "string",
           "pattern": "^[0-9]{10}$",
           "examples": [
@@ -58,14 +58,14 @@
           ]
         },
         "load_id": {
-          "description": "Pipeline run identifier that wrote this record (parent orchestration's instance_id). Provenance — use npi as the stable identifier across runs.",
+          "description": "Pipeline run identifier that wrote this record (parent orchestration's instance_id). Provenance \u2014 use npi as the stable identifier across runs.",
           "type": "string",
           "examples": [
             "651268f0987b48c79afb1c78d6625f27"
           ]
         },
         "record_id": {
-          "description": "Sequential integer assigned within a single pipeline run. Unique within one run but NOT globally unique across runs — use npi as the stable identifier.",
+          "description": "Sequential integer assigned within a single pipeline run. Unique within one run but NOT globally unique across runs \u2014 use npi as the stable identifier.",
           "type": "integer",
           "minimum": 0
         },
@@ -96,7 +96,7 @@
           "pattern": "^[0-9]{2}/[0-9]{2}/[0-9]{4}$"
         },
         "active": {
-          "description": "Inactivity event log for this NPI. OPTIONAL: absence = the provider is currently active AND has never had an inactivity incident in NPPES. PRESENT = the provider is currently inactive OR has been inactive at some point in the past (even if later reactivated). Each entry records one deactivation or reactivation event with the NPPES date. The current active state is computed by an evaluator function that walks the event log (latest deactivated/reactivated determines current status); the schema records the events, the function makes the call. Subsumes the former top-level npi_deactivation_date / npi_reactivation_date fields — their data lives in this event log.",
+          "description": "Inactivity event log for this NPI. OPTIONAL: absence = the provider is currently active AND has never had an inactivity incident in NPPES. PRESENT = the provider is currently inactive OR has been inactive at some point in the past (even if later reactivated). Each entry records one deactivation or reactivation event with the NPPES date. The current active state is computed by an evaluator function that walks the event log (latest deactivated/reactivated determines current status); the schema records the events, the function makes the call. Subsumes the former top-level npi_deactivation_date / npi_reactivation_date fields \u2014 their data lives in this event log.",
           "type": "array",
           "items": {
             "type": "object",
@@ -131,13 +131,14 @@
             }
           }
         },
-        "addresses": {
-          "description": "Unified address array. Replaces the previous separate practice_address + mailing_address fields. Exactly one entry has address_type='business' (the NPPES mailing/billing address); one or more entries have address_type='practice' (the primary practice location from the main NPPES file plus any secondary locations attached from the NPPES Practice Location Reference File pl_pfile_*.csv). County + urban enrichment is carried on every address entry regardless of type.",
+        "business_address": {
+          "$ref": "#/definitions/address"
+        },
+        "practice_addresses": {
           "type": "array",
           "items": {
             "$ref": "#/definitions/address"
-          },
-          "minItems": 1
+          }
         },
         "taxonomies": {
           "description": "Provider specialty taxonomy codes (NUCC Health Care Provider Taxonomy). Each type-1 provider has at least one NUCC code. Each entry is {code, code_label} -- the labels-alongside-codes rule (LLD v39 sec. 7.1). The primary designator is stored top-level as primary_taxonomy_code (per NPPES Readme v.2 sec. 1.1: primary is a per-NPI fact, not a per-taxonomy attribute).",
@@ -556,7 +557,7 @@
           }
         },
         {
-          "description": "Type 2 organizations: organization name + EIN + authorized-official quartet + is_organization_subpart required (100% presence in NPPES sampling). Nested: if is_organization_subpart='Y', parent_organization_lbn and parent_organization_tin become required (100% co-occurrence in NPPES sampling — 7,522/7,522 subpart records carried both; 0/10,000 non-subpart records carried either).",
+          "description": "Type 2 organizations: organization name + EIN + authorized-official quartet + is_organization_subpart required (100% presence in NPPES sampling). Nested: if is_organization_subpart='Y', parent_organization_lbn and parent_organization_tin become required (100% co-occurrence in NPPES sampling \u2014 7,522/7,522 subpart records carried both; 0/10,000 non-subpart records carried either).",
           "if": {
             "properties": {
               "entity_type_code": {
@@ -679,13 +680,13 @@
         },
         "county": {
           "$ref": "#/definitions/county",
-          "description": "County enrichment result for this specific address. Populated by the county enrichment passes regardless of address_type — business addresses get county/urban stamped the same as practice addresses."
+          "description": "County enrichment result for this specific address. Populated by the county enrichment passes regardless of address_type \u2014 business addresses get county/urban stamped the same as practice addresses."
         }
       }
     },
     "county": {
       "title": "CountyEnrichment",
-      "description": "Result of the county enrichment pipeline for one address. Nested under each entry in the provider's `addresses` array. Includes a derived urban flag from USDA Rural-Urban Continuum Codes (RUCC 1-3 → urban=true, RUCC 4-9 → urban=false).",
+      "description": "Result of the county enrichment pipeline for one address. Nested under each entry in the provider's `addresses` array. Includes a derived urban flag from USDA Rural-Urban Continuum Codes (RUCC 1-3 \u2192 urban=true, RUCC 4-9 \u2192 urban=false).",
       "type": "object",
       "properties": {
         "fips": {
@@ -701,7 +702,7 @@
           "type": "string"
         },
         "source": {
-          "description": "Which enrichment pass assigned the county. Determines reliability and method of the assignment. Deterministic — no separate 'reason' is needed except for the out_of_scope_zip_state_mismatch case captured in the `reason` field below.",
+          "description": "Which enrichment pass assigned the county. Determines reliability and method of the assignment. Deterministic \u2014 no separate 'reason' is needed except for the out_of_scope_zip_state_mismatch case captured in the `reason` field below.",
           "type": "string",
           "enum": [
             "crosswalk_pass1",
@@ -748,7 +749,7 @@
           ]
         },
         "zip_ratio": {
-          "description": "Residential population ratio of the ZIP→county mapping used (0.0 - 1.0). Pulled from ZipCountyCrosswalk.res_ratio. 1.0 = the ZIP is entirely within this county; <1.0 = split-ZIP where the ratio is the fraction of residents in THIS county vs others the ZIP also covers. Present only when source = 'crosswalk_pass1' or 'crosswalk_zip_fixed'.",
+          "description": "Residential population ratio of the ZIP\u2192county mapping used (0.0 - 1.0). Pulled from ZipCountyCrosswalk.res_ratio. 1.0 = the ZIP is entirely within this county; <1.0 = split-ZIP where the ratio is the fraction of residents in THIS county vs others the ZIP also covers. Present only when source = 'crosswalk_pass1' or 'crosswalk_zip_fixed'.",
           "type": "number",
           "minimum": 0.0,
           "maximum": 1.0
