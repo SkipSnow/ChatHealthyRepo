@@ -36,6 +36,7 @@ def test_email_send_with_warnings_and_errors():
         env="local",
         pipeline_name="provider",
         source="ProviderPipelineOnDemand",
+        target_collection="PipelinePublicHealthData.Provider_v_3",
         total_source_rows=8214553,
         rows_in_target=0,
         total_rows=8214550,

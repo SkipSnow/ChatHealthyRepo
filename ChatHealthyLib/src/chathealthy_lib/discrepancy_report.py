@@ -63,6 +63,37 @@ class DiscrepancyDetail(str, Enum):
     FATAL = "fatal"
 
 
+def _reject_bad_report_inputs(
+    *, run_id: str, pipeline_name: str, target_collection: str,
+    total_source_rows, rows_in_target, total_rows,
+) -> None:
+    """Raise-only: the catcher logs, not the thrower.
+
+    Objected to on the way in, not discovered in the artifact. A collection
+    name without its database addresses nothing, and a count that is neither a
+    number nor a deliberate None is a caller that has not decided.
+    """
+    if not isinstance(target_collection, str) or "." not in target_collection:
+        raise ChatHealthyException(
+            mode="discrepancy_report_target_collection_invalid",
+            component="DiscrepancyReport",
+            message=("DiscrepancyReport: target_collection must be "
+                     f"'<db>.<collection>'; got {target_collection!r}."),
+            run_id=run_id, pipeline_name=pipeline_name,
+        )
+    for name, value in (("total_source_rows", total_source_rows),
+                        ("rows_in_target", rows_in_target),
+                        ("total_rows", total_rows)):
+        if value is not None and not isinstance(value, int):
+            raise ChatHealthyException(
+                mode="discrepancy_report_count_invalid",
+                component="DiscrepancyReport",
+                message=(f"DiscrepancyReport: {name} must be an int, or None "
+                         f"where the caller has no count; got {value!r}."),
+                run_id=run_id, pipeline_name=pipeline_name,
+            )
+
+
 class DiscrepancyReport:
     """Emits discrepancy reports. Manages its own mongo connection."""
 
@@ -73,23 +104,46 @@ class DiscrepancyReport:
         env: str,
         pipeline_name: str,
         source: str,
-        total_source_rows: int | None = None,
-        rows_in_target: int | None = None,
-        total_rows: int | None = None,
+        total_source_rows: int | None,
+        rows_in_target: int | None,
+        total_rows: int | None,
+        target_collection: str,
         fatal_error: bool = False,
         data_version: int | None = None,
     ) -> None:
         """
         Args:
-            total_source_rows: Rows read from the source file.
-            rows_in_target: Rows currently in the target collection.
-            total_rows: Rows in the staging collection.
+            total_source_rows: rows the source offered this run.
+            rows_in_target: rows this run put in the target collection.
+            total_rows: rows the target collection holds in total.
+            target_collection: "<db>.<collection>" this pipeline publishes to,
+                printed in the header. Not queried.
 
-        The three counts are the CALLER's to supply. They count data, which
-        lives on the pipeline cluster; this object only ever talks to the
-        metadata database. Any count left None is reported as "Unknown" --
-        an absent count is never rendered as zero.
+        All four are REQUIRED and carry no default. A default would let a
+        caller say nothing by accident and get Unknown without ever deciding
+        to; every pipeline is made to state its numbers, and to pass None
+        deliberately where it does not have one. target_collection must name
+        its database, because a collection name without one addresses nothing.
+
+        The three counts are the CLIENT's to supply, and this object never
+        goes looking for them. Only the client knows what they mean for its
+        own pipeline: source rows are a staging collection here, and could be
+        a file's lines, an API's pages, or a sum across collections in the
+        next pipeline. A library that counted them would need a branch per
+        pipeline, and each branch would be a fresh chance to count the wrong
+        thing against the wrong cluster.
+
+        A count the client does not know is passed as None and reported as
+        "Unknown". An absent count is never rendered as zero, and a count of
+        zero is therefore an assertion the client is making rather than a
+        failure to look.
         """
+        _reject_bad_report_inputs(
+            run_id=run_id, pipeline_name=pipeline_name,
+            target_collection=target_collection,
+            total_source_rows=total_source_rows,
+            rows_in_target=rows_in_target, total_rows=total_rows,
+        )
         self.run_id = run_id
         self.env = env
         self.pipeline_name = pipeline_name
@@ -102,6 +156,8 @@ class DiscrepancyReport:
         # What the run actually ended as. Without it the report cannot tell a
         # successful run from a failed one and describes every run as fatal.
         self.manifest_status = ""
+        # Named by the caller, which knows it. Nothing else reliably does.
+        self.target_collection = target_collection or ""
         # Bound FIRST, before any work that logs. The vault fetch, the
         # connection and the config load all emit records on the way in, and
         # anything bound after them produces records that belong to this run
@@ -281,36 +337,12 @@ class DiscrepancyReport:
                 self.mongo_down_reason = f"{type(exc).__name__}: {str(exc)[:200]}"
         return (self._held_warnings or "Unknown", self._held_errors or "Unknown")
 
-    def count_rows(self) -> None:
-        """Fill the row counts from the database.
-
-        These were only ever set by a caller that passed them in, and the
-        quiesce path does not, so every report said Unknown about numbers the
-        run had just finished producing.
-        """
-        if self.mongo_down or self.mongo_connection is None:
-            return
-        target = self.config.get("provider_collection") or self.config.get("target_collection")
-        if not target or "." not in str(target):
-            return
-        db_name, coll_name = str(target).split(".", 1)
-        try:
-            coll = self.mongo_connection[db_name][coll_name]
-            if self.rows_in_target is None:
-                self.rows_in_target = coll.count_documents({"run_id": self.run_id})
-            if self.total_rows is None:
-                self.total_rows = coll.estimated_document_count()
-        except Exception as exc:  # noqa: BLE001
-            self.mongo_down = True
-            self.mongo_down_reason = f"{type(exc).__name__}: {str(exc)[:200]}"
-
     def _target_collection_name(self) -> str:
         """Short name of the collection this pipeline loads into. Never the
         staging collection."""
-        configured = self.config.get("provider_collection") or self.config.get("target_collection")
-        if not configured:
+        if not self.target_collection:
             return "target collection"
-        return str(configured).split(".")[-1]
+        return str(self.target_collection).split(".")[-1]
 
     @staticmethod
     def _reported(count: int | None):
@@ -1012,6 +1044,10 @@ def emit_discrepancy_report(
     manifest_status: str,
     manifest_doc: dict,
     config: dict,
+    target_collection: str = "",
+    total_source_rows: int | None = None,
+    rows_in_target: int | None = None,
+    total_rows: int | None = None,
     operator_email: str | None = None,
     operator_sms: str | None = None,
 ) -> dict:
@@ -1027,6 +1063,11 @@ def emit_discrepancy_report(
         manifest_status: Final status of the run (succeeded, failed, etc.)
         manifest_doc: Run manifest document
         config: Pipeline configuration
+        target_collection: "<db>.<collection>" this pipeline publishes to,
+            printed in the header and never queried
+        total_source_rows / rows_in_target / total_rows: the three counts,
+            taken by the caller. None where the caller does not know, which
+            the report states as Unknown rather than zero.
         operator_email: Optional operator email; falls back to env var
         operator_sms: Optional operator SMS number (reserved for future use)
 
@@ -1045,6 +1086,10 @@ def emit_discrepancy_report(
             data_version=(int(os.environ["DATA_VERSION"])
                           if os.environ.get("DATA_VERSION", "").strip().isdigit()
                           else None),
+            target_collection=target_collection,
+            total_source_rows=total_source_rows,
+            rows_in_target=rows_in_target,
+            total_rows=total_rows,
         )
 
         # Override with passed-in operator email, or use environment default
@@ -1062,10 +1107,13 @@ def emit_discrepancy_report(
         # Both of these arrive as arguments and were both ignored, so the
         # report could not say what the run did or how much it moved.
         report.manifest_status = (manifest_status or "").strip().lower()
-        report.config = dict(config or {})
+        # Fill gaps only. Assigning the caller's config over the top replaced
+        # the one the report loads at construction, which is where the
+        # warning and error thresholds live -- so both became Unknown.
+        for key, value in (config or {}).items():
+            report.config.setdefault(key, value)
         if isinstance(manifest_doc, dict) and manifest_doc.get("fatal_exception"):
             report.fatal_error = True
-        report.count_rows()
 
         total = 0
         if not report.mongo_down and report.mongo_connection is not None:

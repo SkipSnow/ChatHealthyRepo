@@ -99,15 +99,23 @@ class PipelineWorkerBase(ABC):
             source = config.get("source", "pipeline")
             if not run_id:
                 return None
-            # data_version comes from config: the worker knows which data
-            # generation it is operating on and the report cannot infer it.
-            # Row counts are supplied later by whoever queries them; an
-            # absent count reports "Unknown" and never zero.
+            # data_version and the target collection come from config: the
+            # worker knows which data generation it is operating on and which
+            # collection it writes, and the report infers neither.
+            #
+            # The three counts are None deliberately. A worker reporting a
+            # fatal mid-run has no business asserting how many rows the run
+            # landed -- it is failing partway through one. None prints
+            # Unknown, which is the true answer here; zero would be a lie.
             return DiscrepancyReport(
                 run_id=run_id,
                 env=env,
                 pipeline_name=pipeline_name,
                 source=source,
+                target_collection=config.get("provider_collection", ""),
+                total_source_rows=None,
+                rows_in_target=None,
+                total_rows=None,
                 data_version=config.get("data_version"),
             )
         except Exception:
