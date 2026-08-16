@@ -102,7 +102,7 @@ def clusters(monkeypatch, scratch_mongo):
     import pipeline_runtime
 
     monkeypatch.setattr(pipeline_runtime, "get_frontend_mongo", lambda: frontend)
-    monkeypatch.setattr(pipeline_runtime, "get_mongo", lambda: pipeline)
+    monkeypatch.setattr(pipeline_runtime, "get_mongo", lambda *_: pipeline)
     monkeypatch.setattr(pipeline_runtime, "load_pipeline_config", lambda **kw: cfg)
     monkeypatch.setattr(pipeline_loaded_metadata, "_METADATA_DB", db.name)
     monkeypatch.setattr(pipeline_loaded_metadata, "_METADATA_COLL",

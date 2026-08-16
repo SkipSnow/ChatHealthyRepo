@@ -44,7 +44,7 @@ def _ch_connection():
                 _sys.path.insert(0, str(_lib))
             break
     from chathealthy_lib.mongo_utilities import ChatHealthyMongoUtilities
-    return ChatHealthyMongoUtilities().getConnection("DevOpsUser", 'frontEnd')
+    return ChatHealthyMongoUtilities().getConnection("DevOpsUser", 'ChatHealthyFrontEnd')
 
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
 
