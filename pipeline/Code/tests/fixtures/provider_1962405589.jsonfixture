@@ -25,7 +25,36 @@
       "license_id": "SP008386"
     }
   ],
-  "addresses": [
+  "npi": "1962405589",
+  "entity_type_code": "1",
+  "provider_last_name_legal_name": "LONG",
+  "provider_first_name": "SUZIE",
+  "provider_middle_name": "H",
+  "provider_credential_text": "C.R.N.P.",
+  "provider_enumeration_date": "05/27/2005",
+  "last_update_date": "08/15/2023",
+  "provider_sex_code": "F",
+  "is_sole_proprietor": "Y",
+  "certification_date": "08/15/2023",
+  "run_id": "prov-2026-07-31T16-51-15Z-c8080b",
+  "entity_type_code_label": "individual",
+  "can_prescribe": true,
+  "is_homeopathic": false,
+  "is_npi_registered": true,
+  "sex": "F",
+  "business_address": {
+    "line1": "3411 SILVERSIDE RD STE 100",
+    "city": "WILMINGTON",
+    "state": "DE",
+    "zip": "19810",
+    "country": "US",
+    "phone": "3025435454",
+    "address_type": "business",
+    "county": {
+      "fips": null
+    }
+  },
+  "practice_addresses": [
     {
       "line1": "3411 SILVERSIDE RD STE 100",
       "city": "WILMINGTON",
@@ -34,18 +63,6 @@
       "country": "US",
       "phone": "3025435454",
       "address_type": "practice",
-      "county": {
-        "fips": null
-      }
-    },
-    {
-      "line1": "3411 SILVERSIDE RD STE 100",
-      "city": "WILMINGTON",
-      "state": "DE",
-      "zip": "19810",
-      "country": "US",
-      "phone": "3025435454",
-      "address_type": "business",
       "county": {
         "fips": null
       }
@@ -83,22 +100,5 @@
         "rucc": 1
       }
     }
-  ],
-  "npi": "1962405589",
-  "entity_type_code": "1",
-  "provider_last_name_legal_name": "LONG",
-  "provider_first_name": "SUZIE",
-  "provider_middle_name": "H",
-  "provider_credential_text": "C.R.N.P.",
-  "provider_enumeration_date": "05/27/2005",
-  "last_update_date": "08/15/2023",
-  "provider_sex_code": "F",
-  "is_sole_proprietor": "Y",
-  "certification_date": "08/15/2023",
-  "run_id": "prov-2026-07-31T16-51-15Z-c8080b",
-  "entity_type_code_label": "individual",
-  "can_prescribe": true,
-  "is_homeopathic": false,
-  "is_npi_registered": true,
-  "sex": "F"
+  ]
 }

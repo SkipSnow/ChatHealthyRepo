@@ -76,24 +76,22 @@ def _clean(value: Any) -> str | None:
 
 
 def _practice_addresses(record: dict) -> list:
-    """Return practice-type entries from addresses[].
+    """Every practice location on the record.
 
-    Post-schema-reconciliation: practice_address + mailing_address are unified
-    into addresses[] with an address_type discriminator. Practice locations are
-    every entry whose address_type == "practice".
+    The business mailing address is its own field and is not among these:
+    a practice location is where care is given, which is what the embedding
+    text is about.
     """
     return [
-        a for a in (record.get("addresses") or [])
-        if isinstance(a, dict) and a.get("address_type") == "practice"
+        a for a in (record.get("practice_addresses") or [])
+        if isinstance(a, dict)
     ]
 
 
 def _business_address(record: dict) -> dict | None:
-    """Return the (single) business-type entry from addresses[], or None."""
-    for a in (record.get("addresses") or []):
-        if isinstance(a, dict) and a.get("address_type") == "business":
-            return a
-    return None
+    """The provider's business mailing address, or None."""
+    a = record.get("business_address")
+    return a if isinstance(a, dict) else None
 
 
 def _is_active(record: dict) -> bool:
@@ -207,7 +205,7 @@ def _format_licenses(licenses: list) -> str | None:
 
 
 def _format_other_identifiers(entries: list) -> str | None:
-    """Format the addresses[]-shape other_identifiers (list of dicts).
+    """Format the other_identifiers list of dicts.
 
     Each entry: {identifier, type, state, issuer}. Post-schema-reconciliation
     other_identifiers is an array of objects (not the legacy parallel arrays).
@@ -260,7 +258,9 @@ def should_embed(record: dict) -> bool:
     bad_data = record.get("bad_data") or {}
     if bad_data.get("flagged", False):
         return False
-    for a in record.get("addresses") or []:
+    _business = record.get("business_address")
+    _all = ([_business] if isinstance(_business, dict) else []) +            (record.get("practice_addresses") or [])
+    for a in _all:
         if not isinstance(a, dict):
             continue
         c = a.get("county") or {}
@@ -285,7 +285,7 @@ def project(record: dict) -> dict:
     """
     # The primary practice address's county describes the provider's main
     # location for embedding purposes. Post-schema-reconciliation, county
-    # is always nested under each addresses[] element — no top-level fallback.
+    # is always nested under each address element — no top-level fallback.
     _primary_practice = next(iter(_practice_addresses(record)), {})
     county = _primary_practice.get("county") if isinstance(_primary_practice.get("county"), dict) else {}
     is_indiv = record.get("entity_type_code") == "1"
@@ -312,7 +312,7 @@ def project(record: dict) -> dict:
     ) or None
 
     # --- derived: addresses ---
-    # Format every practice-type addresses[] entry so the embedding text
+    # Format every practice_addresses[] entry so the embedding text
     # reflects every location a multi-site provider works at (not just the
     # primary). The business-type entry feeds the mailing/billing line.
     practice_addrs = [
@@ -334,7 +334,7 @@ def project(record: dict) -> dict:
     npi_status = "active" if _is_active(record) else "inactive"
 
     # --- derived: flags ---
-    # The provider is foreign if ANY practice-type addresses[] entry has a
+    # The provider is foreign if ANY practice_addresses[] entry has a
     # non-US country code (matches the Pass-1 out-of-scope semantics).
     foreign_provider = "no"
     for _addr in _practice_addresses(record):
