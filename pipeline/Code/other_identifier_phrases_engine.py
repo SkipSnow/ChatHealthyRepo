@@ -101,11 +101,11 @@ def _phrase_state_id(type_code: str, issuer_text: str, state: str) -> str:
 
 
 def _business_state_of(doc: dict) -> str | None:
-    for a in (doc.get("addresses") or []):
-        if isinstance(a, dict) and a.get("address_type") == "business":
-            st = (a.get("state") or "").strip().upper()
-            if st:
-                return st
+    a = doc.get("business_address")
+    if isinstance(a, dict):
+        st = (a.get("state") or "").strip().upper()
+        if st:
+            return st
     return None
 
 
@@ -163,7 +163,7 @@ def harvest_other_identifier_phrases(config: dict, *, mongo, blob=None) -> dict:
         "other_identifiers": {"$exists": True, "$ne": []},
     }
     if scoped_states:
-        provider_query["addresses"] = {"$elemMatch": {"address_type": "business", "state": {"$in": scoped_states}}}
+        provider_query["business_address.state"] = {"$in": scoped_states}
 
     accumulator: dict[str, dict[str, Any]] = {}
     scanned = 0
@@ -171,7 +171,8 @@ def harvest_other_identifier_phrases(config: dict, *, mongo, blob=None) -> dict:
 
     cursor = provider_coll.find(
         provider_query,
-        {"other_identifiers": 1, "addresses": 1, "_id": 0},
+        {"other_identifiers": 1, "business_address": 1,
+    "practice_addresses": 1, "_id": 0},
         no_cursor_timeout=True,
     )
     scoped_set = set(scoped_states)
@@ -797,7 +798,7 @@ def apply_other_identifier_classifications(config: dict, *, mongo, blob=None) ->
     # with harvest's per-state work, so every provider is processed by
     # exactly one state worker.
     query = {
-        "addresses": {"$elemMatch": {"address_type": "business", "state": state}},
+        "business_address.state": state,
         "other_identifiers": {"$exists": True, "$ne": []},
     }
 

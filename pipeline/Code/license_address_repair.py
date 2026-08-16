@@ -3,6 +3,8 @@
 """LLD v22 Provider Pipeline — see pipeline/ArchitectureDesignAndAudit/ProviderPipeline_LowLevelDesign_v22.docx."""
 
 from __future__ import annotations
+
+from provider_addresses import all_addresses
 from chathealthy_lib.logging_service import ChatHealthyLoggingService
 
 from pymongo import UpdateOne
@@ -32,7 +34,7 @@ def repair_license_addresses(ctx) -> dict:
     for doc in rt.providers_coll.find(filt).batch_size(_BULK_WRITE_CHUNK):
         licenses = doc.get("licenses") or []
         changed = False
-        for addr in doc.get("addresses") or []:
+        for addr in all_addresses(doc):
             if addr.get("state"):
                 continue
             if len(licenses) == 1:
@@ -63,7 +65,10 @@ def repair_license_addresses(ctx) -> dict:
             if npi:
                 update_ops.append(UpdateOne(
                     {"npi": npi},
-                    {"$set": {"addresses": doc.get("addresses")}},
+                    {"$set": {
+                        "business_address": doc.get("business_address"),
+                        "practice_addresses": doc.get("practice_addresses") or [],
+                    }},
                 ))
                 if len(update_ops) >= _BULK_WRITE_CHUNK:
                     _flush()

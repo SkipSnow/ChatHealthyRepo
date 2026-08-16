@@ -210,7 +210,7 @@ def main() -> int:
     token = _bearer_token()
 
     from chathealthy_lib.mongo_utilities import ChatHealthyMongoUtilities
-    client = ChatHealthyMongoUtilities().getConnection("pipelineEditor", "admin")
+    client = ChatHealthyMongoUtilities().getConnection("pipelineEditor", "ChatHealthyFrontEnd")
     doc = client[_CONFIG_DB][_CONFIG_COLL].find_one({"env": env})
     client.close()
     if doc is None:

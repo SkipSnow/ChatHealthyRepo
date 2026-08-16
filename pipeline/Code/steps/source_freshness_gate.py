@@ -69,7 +69,7 @@ def _archived_blob_exists(mongo, source_name: str) -> bool:
 def execute(ctx) -> dict:
     from pipeline_db import get_mongo
 
-    mongo = ctx.mongo_client or get_mongo()
+    mongo = ctx.mongo_client or get_mongo("ChatHealthyDataPipelines")
     registry = mongo[PIPELINE_ADMIN_DB]["DataSourceRegistry"]
     freshness_list = ctx.config.get("source_freshness") or []
     # `source_freshness` mirrors chathealthyfrontend.pipeline.config.

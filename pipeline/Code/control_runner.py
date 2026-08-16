@@ -229,7 +229,7 @@ def main(argv: list[str] | None = None) -> int:
     orchestrator = ProviderPipelineOrchestrator(
         env=ns.env_prefix,
         config=load_pipeline_config(env_prefix=ns.env_prefix),
-        mongo_client=get_mongo(),
+        mongo_client=get_mongo("ChatHealthyDataPipelines"),
         blob_client=get_blob_service(),
     )
     if ns.run_id:
@@ -267,7 +267,7 @@ def main(argv: list[str] | None = None) -> int:
         while not _hb_stop.wait(60):
             try:
                 m = ChatHealthyMongoUtilities().getConnection(
-                    "pipelineEditor", "admin"
+                    "pipelineEditor", "ChatHealthyFrontEnd"
                 )
                 now = datetime.datetime.utcnow()
                 # The run's own record names the process running it, so the
@@ -313,6 +313,24 @@ def main(argv: list[str] | None = None) -> int:
         _log.info("control_runner: run %s finished status=%s",
                   manifest.run_id if manifest else "(none)", final_status)
         exit_code = 0 if final_status == "succeeded" else 1
+    except KeyboardInterrupt:
+        # SIGINT, which is how a run is stopped on purpose. Naming the cause
+        # is the whole point: without this the discrepancy report said
+        # "failed" with fatal_exception None, so a deliberate stop and a
+        # crash were indistinguishable in the record.
+        final_status = "failed"
+        _log.error("control_runner: operator stop received; quiescing",
+                   exc=ChatHealthyException(
+                       mode="operator_stop",
+                       message="Run stopped by operator signal (SIGINT); "
+                               "quiescing.",
+                       component="ControlRunner",
+                   ))
+        fatal_exception = ChatHealthyException(
+            mode="operator_stop",
+            message="Run stopped by operator signal (SIGINT); quiescing.",
+            component="ControlRunner",
+        )
     except ChatHealthyException as ch_exc:
         fatal_exception = ch_exc
         final_status = "failed"
@@ -368,7 +386,7 @@ def _fatal_on_worker_log_db_reports(run_id: str) -> None:
         return
     try:
         from pipeline_fatal_recorder import record_fatal_discrepancy
-        wi = ChatHealthyMongoUtilities().getConnection("pipelineEditor", "admin")
+        wi = ChatHealthyMongoUtilities().getConnection("pipelineEditor", "ChatHealthyFrontEnd")
         rows = list(wi[PIPELINE_ADMIN_DB]["pipeline.work_items"].find(
             {"run_id": run_id, "reason": {"$regex": "^log_db_fatal:"}},
             {"step": 1, "reason": 1, "detail": 1},
@@ -492,7 +510,7 @@ def _quiesce_mongo_state(run_id: str, final_status: str, *,
         _log.warning("quiesce_mongo_state: no run_id available; skipping")
         return
     try:
-        mongo = ChatHealthyMongoUtilities().getConnection("pipelineEditor", "admin")
+        mongo = ChatHealthyMongoUtilities().getConnection("pipelineEditor", "ChatHealthyFrontEnd")
     except Exception as exc:
         _log.error("quiesce: unable to open pipeline-cluster Mongo run_id=%s err=%s",
                    run_id, str(exc)[:500])
@@ -569,7 +587,7 @@ def _quiesce_mongo_state(run_id: str, final_status: str, *,
     try:
         pipeline_mongo = None
         try:
-            pipeline_mongo = ChatHealthyMongoUtilities().getConnection("pipelineEditor", "admin")
+            pipeline_mongo = ChatHealthyMongoUtilities().getConnection("pipelineEditor", "ChatHealthyFrontEnd")
         except Exception as mongo_exc:
             _log.error("quiesce: mongo unreachable for discrepancy report run_id=%s err=%s",
                        run_id, str(mongo_exc)[:500])

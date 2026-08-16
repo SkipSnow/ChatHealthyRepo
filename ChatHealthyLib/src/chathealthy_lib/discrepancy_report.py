@@ -129,7 +129,7 @@ class DiscrepancyReport:
         self.config = {}
         try:
             self.mongo_connection = ChatHealthyMongoUtilities().getConnection(
-                "pipelineEditor", "admin")
+                "pipelineEditor", "ChatHealthyFrontEnd")
             self.config = self._load_pipeline_config()
         except Exception as exc:  # noqa: BLE001 -- see above
             self.mongo_down = True

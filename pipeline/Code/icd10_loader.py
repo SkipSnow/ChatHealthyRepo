@@ -43,7 +43,7 @@ _mongo: MongoClient | None = None
 def _get_mongo_client() -> MongoClient:
     global _mongo
     if _mongo is None:
-        _mongo = ChatHealthyMongoUtilities().getConnection("pipelineEditor", "frontEnd")
+        _mongo = ChatHealthyMongoUtilities().getConnection("pipelineEditor", "ChatHealthyFrontEnd")
     return _mongo
 
 _ENV_PREFIX = os.environ.get("ENV_PREFIX", "dev")

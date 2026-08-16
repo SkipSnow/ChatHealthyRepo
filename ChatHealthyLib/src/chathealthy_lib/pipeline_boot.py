@@ -12,7 +12,7 @@ event lands.
 This module used to fetch a Mongo URI from Key Vault, translate it out of
 SRV form over DNS-over-HTTPS, and place it in the environment for CHLS to
 connect with. CHLS has not connected that way since the certificate model
-landed -- its handler calls getConnection(identity, "admin") and the
+landed -- its handler calls getConnection(identity, "ChatHealthyFrontEnd") and the
 identity's certificate is the credential. The fetch produced a working
 database credential that nothing consumed and every runbook carried.
 

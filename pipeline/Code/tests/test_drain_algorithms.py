@@ -11,9 +11,7 @@
   (2) CONSTRAINED drain of the real (target) file
       provider_normalize_engine.per_state_normalize step drain:
         providers_coll.delete_many({
-            "addresses": {"$elemMatch": {
-                "address_type": "business", "state": state
-            }}
+            "business_address.state": state
         })
       Deletes only providers whose BUSINESS mailing address matches this
       partition state. Providers with the state in a NON-business address
@@ -53,7 +51,7 @@ TARGET_COLL = "ConstrainedDrainProvider"
 
 @pytest.fixture(scope="module")
 def mongo():
-    client = ChatHealthyMongoUtilities().getConnection("pipelineEditor", "frontEnd")
+    client = ChatHealthyMongoUtilities().getConnection("pipelineEditor", "ChatHealthyFrontEnd")
     yield client
     client.drop_database(SCRATCH_DB)
 
@@ -82,7 +80,7 @@ def target_coll(mongo):
     coll = mongo[SCRATCH_DB][TARGET_COLL]
     coll.delete_many({})
     coll.create_index([("npi", ASCENDING)], unique=True, name="npi_unique")
-    coll.create_index([("addresses.state", ASCENDING)], name="addr_state")
+    coll.create_index([("business_address.state", ASCENDING)], name="addr_state")
     yield coll
     coll.drop()
 
@@ -132,8 +130,8 @@ def test_constrained_drain_removes_only_matching_business_state(target_coll):
     ms_providers = [
         {
             "npi": f"MS{i:08d}",
-            "addresses": [
-                {"address_type": "business", "state": "MS", "city": "Jackson"},
+            "business_address": {"address_type": "business", "state": "MS", "city": "Jackson"},
+            "practice_addresses": [
                 {"address_type": "practice", "state": "MS", "city": "Jackson"},
             ],
         }
@@ -142,8 +140,8 @@ def test_constrained_drain_removes_only_matching_business_state(target_coll):
     ca_providers = [
         {
             "npi": f"CA{i:08d}",
-            "addresses": [
-                {"address_type": "business", "state": "CA", "city": "Oakland"},
+            "business_address": {"address_type": "business", "state": "CA", "city": "Oakland"},
+            "practice_addresses": [
                 {"address_type": "practice", "state": "CA", "city": "Oakland"},
             ],
         }
@@ -151,8 +149,8 @@ def test_constrained_drain_removes_only_matching_business_state(target_coll):
     ]
     ms_practice_only = {
         "npi": "MSPRACTICE1",
-        "addresses": [
-            {"address_type": "business", "state": "AL", "city": "Mobile"},
+        "business_address": {"address_type": "business", "state": "AL", "city": "Mobile"},
+        "practice_addresses": [
             {"address_type": "practice", "state": "MS", "city": "Tupelo"},
         ],
     }
@@ -160,7 +158,7 @@ def test_constrained_drain_removes_only_matching_business_state(target_coll):
     assert coll.count_documents({}) == 6
 
     drain_filter = {
-        "addresses": {"$elemMatch": {"address_type": "business", "state": "MS"}}
+        "business_address.state": "MS"
     }
     result = coll.delete_many(drain_filter)
 
@@ -181,14 +179,14 @@ def test_constrained_drain_matches_zero_when_state_absent(target_coll):
     coll.insert_many([
         {
             "npi": f"AL{i:08d}",
-            "addresses": [{"address_type": "business", "state": "AL", "city": "Mobile"}],
+            "business_address": {"address_type": "business", "state": "AL", "city": "Mobile"},
         }
         for i in range(3)
     ])
     assert coll.count_documents({}) == 3
 
     result = coll.delete_many({
-        "addresses": {"$elemMatch": {"address_type": "business", "state": "MS"}}
+        "business_address.state": "MS"
     })
 
     assert result.deleted_count == 0, "drain for absent state must delete nothing"
@@ -199,7 +197,7 @@ def test_drains_do_not_touch_live_collections(mongo):
     """Sentinel: this test file must never touch PublicData.Provider_v_3
     or PublicStaging.StagingProvider_v_3. Counts before + after the module
     fixtures run must be identical. Reads only -- no writes."""
-    frontend = ChatHealthyMongoUtilities().getConnection("pipelineEditor", "frontEnd")
+    frontend = ChatHealthyMongoUtilities().getConnection("pipelineEditor", "ChatHealthyFrontEnd")
     live_target_count = frontend["PublicData"]["Provider_v_3"].estimated_document_count()
     live_staging_count = mongo["PublicStaging"]["StagingProvider_v_3"].estimated_document_count()
     assert live_target_count >= 0

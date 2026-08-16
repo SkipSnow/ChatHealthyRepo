@@ -79,18 +79,19 @@ def per_state_normalize(ctx, state: str) -> dict[str, Any]:
     # prepare ensured npi_1 on the name in pipeline.config and the writes went
     # somewhere else, so 45,000 rows were written to a collection whose only
     # index was _id_. create_index is idempotent.
-    rt.providers_coll.create_index([("npi", ASCENDING)], name="npi_1")
-    rt.providers_coll.create_index(
-        [("addresses.address_type", ASCENDING), ("addresses.state", ASCENDING)],
-        name="business_state_scan",
-    )
+    from ensure_provider_indexes_activity import _REQUIRED_INDEXES  # noqa: PLC0415
+    for _idx in _REQUIRED_INDEXES:
+        rt.providers_coll.create_index(
+            _idx["keys"], name=_idx["name"],
+            background=_idx["background"], unique=_idx["unique"],
+        )
 
     # Full-mode drain: DELETE rows whose BUSINESS mailing address state
     # matches this partition. Preserves indexes (delete_many, not drop()).
     drained = 0
     if not ctx.args.incremental:
         drained = rt.providers_coll.delete_many({
-            "addresses": {"$elemMatch": {"address_type": "business", "state": state}},
+            "business_address.state": state,
         }).deleted_count
 
     seen_npis: set[str] = set()

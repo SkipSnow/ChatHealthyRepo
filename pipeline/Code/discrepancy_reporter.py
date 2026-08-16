@@ -17,7 +17,7 @@ from sparkpost import SparkPost
 
 def _get_mongo_client():
     from chathealthy_lib.mongo_utilities import ChatHealthyMongoUtilities
-    return ChatHealthyMongoUtilities().getConnection("pipelineEditor", "frontEnd")
+    return ChatHealthyMongoUtilities().getConnection("pipelineEditor", "ChatHealthyFrontEnd")
 
 
 REPORT_COLLECTION = "admin.PipelineDiscrepancyReports"

@@ -67,7 +67,24 @@ def _states_list(raw: str) -> list[str]:
     return [s.strip().upper() for s in raw.split(",") if s.strip()]
 
 
+def _raise_on_stop_signal(signum, _frame) -> None:
+    """Turn a stop signal into an exception so the stack unwinds.
+
+    SIGTERM has no default Python handler: the process dies where it stands
+    and no finally runs, which is why every worker the Controller stopped left
+    its work item claimed by a process that no longer existed. KeyboardInterrupt
+    derives from BaseException, so it passes through this module's
+    except-ChatHealthyException and except-Exception clauses untouched and
+    reaches the finally that reports the work item.
+    """
+    raise KeyboardInterrupt(f"stop signal {signum}")
+
+
 def main(argv: list[str] | None = None) -> int:
+    import signal  # noqa: PLC0415
+    signal.signal(signal.SIGTERM, _raise_on_stop_signal)
+    signal.signal(signal.SIGINT, _raise_on_stop_signal)
+
     ns = _parse_args(argv if argv is not None else sys.argv[1:])
 
     if ns.log_level:
@@ -98,13 +115,16 @@ def main(argv: list[str] | None = None) -> int:
             args=args,
             manifest=manifest,
             config={"partition": partition},
-            mongo_client=get_mongo(),
+            mongo_client=get_mongo("ChatHealthyDataPipelines"),
             blob_client=get_blob_service(),
         )
         runner = get_runner(ns.step)
         result = runner(ctx)
         status, reason, detail = "succeeded", "", ""
         return 0
+    except KeyboardInterrupt as exc:
+        status, reason, detail = "failed", "stopped_by_controller", str(exc)[:500]
+        raise
     except ChatHealthyException as exc:
         reason = f"log_db_fatal:{exc.mode}" if is_log_db_fatal(exc) else str(exc.mode)
         detail = str(exc)[:500]

@@ -104,7 +104,7 @@ def _dispatch(step: str, payload: dict) -> dict:
     """Route the step to its handler. Every process_pool step in
     provider_pipeline_orchestrator.STEPS resolves through steps.get_runner
     to the module's run_step(ctx) callable."""
-    mongo = get_mongo()
+    mongo = get_mongo("ChatHealthyDataPipelines")
     blob = get_blob_service()
     ctx = _reconstruct_step_context(payload, mongo, blob)
     runner = get_runner(step)

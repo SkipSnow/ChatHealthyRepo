@@ -30,7 +30,7 @@ ALL_STATES_SENTINEL = "ALL"
 #
 # Post-schema-reconciliation: practice_address + mailing_address unified into
 # addresses[] (with address_type discriminator). One Mongo path
-# "addresses.state" covers both. other_identifiers[] is now an array of
+# "business_address.state" covers both. other_identifiers[] is now an array of
 # objects (each with .state); the old parallel-array `other_identifier_states`
 # is gone.
 BUSINESS_ADDRESS_TYPE = "business"
@@ -87,30 +87,21 @@ def mongo_state_filter(states) -> dict:
         return {}
     if isinstance(states, dict):
         lst = states["list"]
-        biz_match = {"addresses": {"$elemMatch": {
-            "address_type": BUSINESS_ADDRESS_TYPE,
-            "state": {"$in": lst},
-        }}}
+        biz_match = {"business_address.state": {"$in": lst}}
         return biz_match if states["mode"] == "include" else {"$nor": [biz_match]}
-    return {"addresses": {"$elemMatch": {
-        "address_type": BUSINESS_ADDRESS_TYPE,
-        "state": {"$in": states},
-    }}}
+    return {"business_address.state": {"$in": list(states)}}
 
 
 def _business_address_state(doc: dict) -> str:
-    """Return the upper-cased state from the provider's business-typed address,
-    or empty string if absent.
+    """Return the upper-cased state from the provider's business address, or
+    empty string if absent.
 
-    Post-schema-reconciliation: `addresses` is a list with one
-    `address_type='business'` entry (plus zero-or-more `address_type='practice'`
-    entries). State-scoping keys off the business entry only — practice
-    addresses, licenses, and other_identifiers are no longer part of the
-    state predicate.
+    State-scoping keys off the business address only — practice addresses,
+    licenses and other_identifiers are not part of the state predicate.
     """
-    for entry in (doc.get("addresses") or []):
-        if isinstance(entry, dict) and entry.get("address_type") == BUSINESS_ADDRESS_TYPE:
-            return (entry.get("state") or "").upper()
+    entry = doc.get("business_address")
+    if isinstance(entry, dict):
+        return (entry.get("state") or "").upper()
     return ""
 
 

@@ -59,8 +59,12 @@ def _mark_run_failed(exit_code: str, detail: str) -> None:
     run_id = os.environ.get("RUN_ID", "").strip()
     if not run_id:
         return
+    # pipelineAdmin lives on the front-end cluster. Naming "pipelines" here
+    # would make reporting a failure depend on the one cluster a controller
+    # must not touch before staging load -- the same mistake that made the
+    # failure unreportable in the first place.
     db = ChatHealthyMongoUtilities().getConnection(
-        "pipelineEditor", "pipelines")[PIPELINE_ADMIN_DB]
+        "pipelineEditor", "ChatHealthyFrontEnd")[PIPELINE_ADMIN_DB]
     db["pipeline.runs"].update_one(
         {"run_id": run_id, "status": "running"},
         {"$set": {"status": "failed",

@@ -11,19 +11,27 @@ index the pipeline depends on:
                               recovery activity (fetch_many_by_npi). Without
                               it, recovery scans the collection per NPI.
 
-  addresses.county.source_1   multi-key index used by
-                              build_recovery_assignments_fn's aggregation
-                              that finds providers carrying any address
-                              currently tagged with a per-pass failure
-                              label. Without it the aggregation does a
-                              COLLSCAN -> Atlas cursor timeout at scale.
+  practice_addresses.county   used by build_recovery_assignments_fn's
+  .source_1                   aggregation that finds providers carrying an
+                              address currently tagged with a per-pass
+                              failure label. Practice only: county
+                              enrichment admits practice address types and
+                              nothing else, so a business-address county
+                              index would index a field no pass populates.
+                              Without this the aggregation does a COLLSCAN
+                              -> Atlas cursor timeout at scale.
 
-  addresses.address_type_1_   compound multi-key index supporting drain's
-  addresses.state_1           $elemMatch on (address_type='business',
-                              state in [...]) — the canonical residency
-                              signal for state-scoped drains. Without it
-                              drain COLLSCAN'd all 1.5M docs to find the
-                              handful of CA business-address matches.
+  business_state_taxonomy     compound {business_address.state,
+                              taxonomies.code}. Its prefix answers the
+                              state-scoped drain and every per-state fan-out;
+                              both fields answer the F-105 catalog join in
+                              §5.2.16. One index doing two jobs, where the
+                              array-based pair could do neither well: with
+                              addresses[] and taxonomies[] both arrays, no
+                              compound index could span them, so the planner
+                              picked one and post-filtered with the other --
+                              measured examining 600,248 documents to write
+                              263.
 
 create_index is idempotent on PyMongo — if the index already exists with
 the same spec, it returns the existing name and does nothing. We do not
@@ -48,6 +56,18 @@ import time
 from pymongo import MongoClient
 
 
+# The provider collection's index set, per LLD v47 §7.6. This list is the one
+# statement of it: provider_normalize_engine applies these rather than
+# restating them, because the two sites previously created the same key under
+# two different names and nothing reconciled them.
+#
+# {business_address.state, taxonomies.code} is one index doing two jobs. A
+# compound index serves queries on its prefix, so the per-state drain and
+# fan-out are answered by its first field alone, and the F-105 catalog join by
+# both. It replaces {addresses.address_type, addresses.state} and
+# {taxonomies.code}: those named two array paths, so no compound could span
+# them, and the planner had to pick one and filter the other -- measured
+# 2026-08-16 examining 600,248 documents to write 263.
 _REQUIRED_INDEXES = [
     {
         "keys": [("npi", 1)],
@@ -56,14 +76,14 @@ _REQUIRED_INDEXES = [
         "unique": True,
     },
     {
-        "keys": [("addresses.county.source", 1)],
-        "name": "addresses.county.source_1",
+        "keys": [("business_address.state", 1), ("taxonomies.code", 1)],
+        "name": "business_state_taxonomy",
         "background": True,
         "unique": False,
     },
     {
-        "keys": [("addresses.address_type", 1), ("addresses.state", 1)],
-        "name": "addresses.address_type_1_addresses.state_1",
+        "keys": [("practice_addresses.county.source", 1)],
+        "name": "practice_addresses.county.source_1",
         "background": True,
         "unique": False,
     },
@@ -114,7 +134,7 @@ def _providers_collection_and_client(provider_collection: str | None) -> tuple:
     # serverSelectionTimeoutMS is short so each ping fails fast and the
     # _wait_for_cluster_ready poll loop drives the cadence.
     from chathealthy_lib.mongo_utilities import ChatHealthyMongoUtilities
-    client = ChatHealthyMongoUtilities().getConnection("pipelineEditor", "frontEnd")
+    client = ChatHealthyMongoUtilities().getConnection("pipelineEditor", "ChatHealthyFrontEnd")
     return client[db_name][coll_name], client
 
 

@@ -46,7 +46,7 @@ STATE_US_SET = {
 class PipelineRuntime:
     def __init__(self, ctx) -> None:
         self.ctx = ctx
-        self.mongo = ctx.mongo_client or get_mongo()
+        self.mongo = ctx.mongo_client or get_mongo("ChatHealthyDataPipelines")
         self.frontend = get_frontend_mongo()
         self.env = ctx.env_prefix
         self.run_id = ctx.run_id
@@ -153,9 +153,9 @@ class PipelineRuntime:
         })
 
     def mailing_state(self, doc: dict) -> str | None:
-        for addr in doc.get("addresses") or []:
-            if isinstance(addr, dict) and addr.get("address_type") == "mailing":
-                return (addr.get("state") or "").upper() or None
+        addr = doc.get("business_address")
+        if isinstance(addr, dict):
+            return (addr.get("state") or "").upper() or None
         return None
 
     def entity_kind(self, doc: dict) -> str:
@@ -177,12 +177,11 @@ class PipelineRuntime:
         if state == "ALL_OTHERS":
             return {
                 "run_id": self.run_id,
-                "addresses": {"$elemMatch": {"address_type": "business",
-                                             "state": {"$nin": list(STATE_US_SET)}}},
+                "business_address.state": {"$nin": list(STATE_US_SET)},
             }
         return {
             "run_id": self.run_id,
-            "addresses": {"$elemMatch": {"address_type": "business", "state": state}},
+            "business_address.state": state,
         }
 
     def discrepancies_collection(self):

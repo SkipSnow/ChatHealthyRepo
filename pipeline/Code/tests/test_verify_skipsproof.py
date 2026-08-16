@@ -22,7 +22,7 @@ def test_verify_skipsproof_data():
 
     # Connect to PIPELINE cluster where the data is actually written
     utilities = ChatHealthyMongoUtilities()
-    client = utilities.getConnection("pipelineEditor", "admin")
+    client = utilities.getConnection("pipelineEditor", "ChatHealthyFrontEnd")
     assert client, "Could not get pipeline MongoDB connection"
 
     try:

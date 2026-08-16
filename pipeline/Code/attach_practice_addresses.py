@@ -147,9 +147,10 @@ def attach_practice_addresses(ctx) -> dict:
             new_addrs = pl_by_npi.get(npi)
             if not new_addrs:
                 continue
-            existing = list(doc.get("addresses") or [])
+            existing = list(doc.get("practice_addresses") or [])
             merged = dedupe_addresses([*existing, *new_addrs])
-            ops_buffer.append(UpdateOne({"npi": npi}, {"$set": {"addresses": merged}}))
+            ops_buffer.append(
+                UpdateOne({"npi": npi}, {"$set": {"practice_addresses": merged}}))
             addresses_attached += len(new_addrs)
             if len(ops_buffer) >= _BULK_CHUNK:
                 providers_updated += _flush(rt.providers_coll, ops_buffer)
@@ -160,8 +161,8 @@ def attach_practice_addresses(ctx) -> dict:
     # per NPI). Practice addresses are optional and multi-valued and
     # cannot serve as the atomic partition key.
     for doc in rt.providers_coll.find(
-        {"addresses": {"$elemMatch": {"address_type": "business", "state": state}}},
-        {"npi": 1, "addresses": 1},
+        {"business_address.state": state},
+        {"npi": 1, "business_address": 1, "practice_addresses": 1},
     ):
         providers_scanned += 1
         chunk.append(doc)

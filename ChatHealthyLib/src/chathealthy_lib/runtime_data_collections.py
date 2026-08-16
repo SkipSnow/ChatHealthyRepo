@@ -79,7 +79,7 @@ def _read_build_info() -> dict:
 
 def _mongo_client() -> MongoClient:
     # Config lives in ChatHealthyConfig on the admin target.
-    return ChatHealthyMongoUtilities().getConnection("frontendUser", "frontEnd")
+    return ChatHealthyMongoUtilities().getConnection("frontendUser", "ChatHealthyFrontEnd")
 
 
 def _read_env_doc(env: str) -> dict:

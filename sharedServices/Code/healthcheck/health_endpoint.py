@@ -58,7 +58,7 @@ class HealthEndpoint:
         mongo_doc: dict = {}
         try:
             from chathealthy_lib.mongo_utilities import ChatHealthyMongoUtilities
-            client = ChatHealthyMongoUtilities().getConnection("frontendUser", "frontEnd")
+            client = ChatHealthyMongoUtilities().getConnection("frontendUser", "ChatHealthyFrontEnd")
             mongo_doc = client["frontEndAdmin"]["BuildVersions"].find_one(sort=[("from", -1)]) or {}
             db_status = "connected"
         except Exception as exc:

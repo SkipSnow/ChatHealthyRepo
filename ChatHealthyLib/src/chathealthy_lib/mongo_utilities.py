@@ -39,34 +39,42 @@ from .logging_service import ChatHealthyLoggingService
 log = ChatHealthyLoggingService()
 TIMEOUT_MS = 120000
 
-# Logical connection targets. A target names a PURPOSE, never a server:
-#
-#   frontEnd   user-facing data      PublicHealthData, Users
-#   admin      operational records   ChatHealthyConfig, ClaudeCodeLog, Pipelines
-#   pipelines  pipeline data         PipelinePublicHealthData, PublicStaging
-#
-# The pipeline data factory is down by design most of the day, so anything
-# that must answer 24x7 belongs to admin, not pipelines.
-#
-# Today all three resolve to the same physical cluster: the separation is
-# real in the entitlement model and notional in the wiring. Buying the
-# pipeline or admin cluster changes this map and nothing else.
-CLUSTER_TARGETS = ("frontEnd", "admin", "pipelines")
+# A cluster is named by its Atlas cluster name and by nothing else. There is
+# no alias, no logical target and no purpose-word: what a caller writes is
+# what a reader can look up in Atlas.
+CLUSTER_TARGETS = ("ChatHealthyFrontEnd", "ChatHealthyDataPipelines")
 
-# A target maps to a HOST, never to a credentialed connection string. The
+# A cluster maps to a HOST, never to a credentialed connection string. The
 # credential comes from the identity's certificate and nowhere else, so no
 # secret is involved in deciding where to connect.
 _TARGET_HOST = {
-    "frontEnd": "chathealthyfrontend.mdwahg.mongodb.net",
-    "admin": "chathealthyfrontend.mdwahg.mongodb.net",
-    "pipelines": "chathealthydatapipeline.mdwahg.mongodb.net",
+    "ChatHealthyFrontEnd": "chathealthyfrontend.mdwahg.mongodb.net",
+    "ChatHealthyDataPipelines": "chathealthydatapipeline.mdwahg.mongodb.net",
 }
 
-# Vault secret names are conventional: the identity IS the key. This removes
-# the registry round-trip, which needed a Mongo connection to discover how to
-# make a Mongo connection.
-_VAULT_CERT_KEY = "cert-{identity}"
-_VAULT_PRIVATE_KEY = "key-{identity}"
+# The data-pipeline cluster is paused whenever no run holds a reservation, so
+# a connection to it can meet a machine mid-transition. It is not this
+# library's job to wait out a wake: the runbook resumes the cluster to IDLE
+# before it creates the host, so nothing downstream should ever meet a paused
+# cluster. These attempts cover a brief transient, not a cold start -- a long
+# envelope here would turn "is it up" into a multi-minute question for every
+# caller that wants an answer now.
+_CONNECT_ATTEMPTS = {
+    "ChatHealthyFrontEnd": 1,
+    "ChatHealthyDataPipelines": 3,
+}
+_CONNECT_BACKOFF_SECONDS = 5
+
+# A client is reusable only for a cluster that stays up. Holding one against
+# the pipeline cluster outlives the cluster itself, and an open handle is a
+# false signal of activity to anything judging idleness.
+_CACHEABLE_CLUSTERS = ("ChatHealthyFrontEnd",)
+
+# The vault secret IS the identity: one secret, named exactly what the caller
+# passes, holding the cert+key PEM. It was two secrets, cert-{identity} and
+# key-{identity}, which the code fetched separately and immediately joined --
+# two round trips to rebuild something only ever used whole, under two names
+# neither of which was the identity.
 
 # One client per (identity, cluster). Certificate retrieval is a vault round
 # trip; doing it per call would put it on every query.
@@ -328,6 +336,44 @@ class ChatHealthyMongoUtilities:
             component="ChatHealthyMongoUtilities",
         )
 
+    def _verify_certificate_names_the_identity(self, pem: str, identity: str) -> None:
+        """The certificate's Subject CN must be the identity, exactly.
+
+        Step 2 of this class's stated contract, which had no implementing code
+        until 2026-08-16. Without it the identity argument selects a vault
+        secret and nothing ever confirms the certificate inside names the same
+        actor, so a mis-stored secret authenticates as whoever its certificate
+        says and no caller can tell.
+        """
+        from cryptography.x509 import load_pem_x509_certificate  # noqa: PLC0415
+        from cryptography.x509.oid import NameOID  # noqa: PLC0415
+
+        try:
+            cert = load_pem_x509_certificate(pem.encode("utf-8"))
+            common_names = cert.subject.get_attributes_for_oid(NameOID.COMMON_NAME)
+        except Exception as exc:
+            raise ChatHealthyException(
+                mode="security_violation",
+                message=(f"certificate for {identity!r} could not be parsed: "
+                         f"{type(exc).__name__}: {exc}"),
+                component="ChatHealthyMongoUtilities",
+            ) from exc
+
+        if not common_names:
+            raise ChatHealthyException(
+                mode="security_violation",
+                message=f"certificate for {identity!r} carries no Subject CN",
+                component="ChatHealthyMongoUtilities",
+            )
+        subject_cn = common_names[0].value
+        if subject_cn != identity:
+            raise ChatHealthyException(
+                mode="security_violation",
+                message=(f"certificate Subject CN {subject_cn!r} does not match "
+                         f"identity {identity!r}"),
+                component="ChatHealthyMongoUtilities",
+            )
+
     def _vault_secret(self, vault_uri: str, token: str, name: str) -> str:
         """One secret out of Key Vault. Raises, never logs."""
         response = httpx.get(
@@ -459,8 +505,7 @@ class ChatHealthyMongoUtilities:
         token = self._azure_token(identity)
 
         try:
-            cert = self._vault_secret(vault_uri, token, _VAULT_CERT_KEY.format(identity=identity))
-            key = self._vault_secret(vault_uri, token, _VAULT_PRIVATE_KEY.format(identity=identity))
+            pem = self._vault_secret(vault_uri, token, identity)
         except ChatHealthyException:
             raise
         except Exception as exc:
@@ -469,7 +514,7 @@ class ChatHealthyMongoUtilities:
                 message=f"No certificate in the vault for identity {identity!r}: {exc}",
                 component="ChatHealthyMongoUtilities",
             ) from exc
-        return cert.strip() + chr(10) + key.strip() + chr(10)
+        return pem.strip() + chr(10)
 
     def getConnection(self, identity: str, cluster: str) -> TimedClient:
         """Connect to a logical target as an identity, over mTLS.
@@ -507,11 +552,13 @@ class ChatHealthyMongoUtilities:
                 component="ChatHealthyMongoUtilities",
             )
 
-        cached = _CLIENT_CACHE.get((identity, cluster))
-        if cached is not None:
-            return cached
+        if cluster in _CACHEABLE_CLUSTERS:
+            cached = _CLIENT_CACHE.get((identity, cluster))
+            if cached is not None:
+                return cached
 
         cert_key_pem = self._fetch_identity_cert(identity)
+        self._verify_certificate_names_the_identity(cert_key_pem, identity)
         # Per-process path, written whole then moved into place. Every worker
         # sharing an identity used to write one filename, and `open(..., "w")`
         # truncates: a process reading while another was mid-write got a
@@ -546,24 +593,36 @@ class ChatHealthyMongoUtilities:
         # it fine. certifi is the same bundle on both, so the handshake does
         # not depend on where the code happens to be running.
         import certifi  # noqa: PLC0415
-        try:
-            client = MongoClient(
-                uri,
-                tls=True,
-                tlsCertificateKeyFile=cert_path,
-                tlsCAFile=certifi.where(),
-                serverSelectionTimeoutMS=10000,
-            )
-            client.admin.command("ping")
-        except Exception as exc:
-            raise ChatHealthyException(
-                mode="mongo_network_failure",
-                message=f"mTLS connection failed for {identity!r} on {cluster!r}: {exc}",
-                component="ChatHealthyMongoUtilities",
-            ) from exc
+        attempts = _CONNECT_ATTEMPTS[cluster]
+        last_exc: Exception | None = None
+        for attempt in range(1, attempts + 1):
+            try:
+                client = MongoClient(
+                    uri,
+                    tls=True,
+                    tlsCertificateKeyFile=cert_path,
+                    tlsCAFile=certifi.where(),
+                    serverSelectionTimeoutMS=10000,
+                )
+                client.admin.command("ping")
+                break
+            except Exception as exc:
+                last_exc = exc
+                if attempt == attempts:
+                    raise ChatHealthyException(
+                        mode="mongo_network_failure",
+                        message=(f"mTLS connection failed for {identity!r} on "
+                                 f"{cluster!r} after {attempts} attempt(s): {exc}"),
+                        component="ChatHealthyMongoUtilities",
+                    ) from exc
+                # No log here: this function raises, and the catcher logs.
+                # The raised exception names the attempt count, so a retried
+                # failure is still fully described where it is handled.
+                time.sleep(_CONNECT_BACKOFF_SECONDS * attempt)
 
         timed = TimedClient(client)
-        _CLIENT_CACHE[(identity, cluster)] = timed
+        if cluster in _CACHEABLE_CLUSTERS:
+            _CLIENT_CACHE[(identity, cluster)] = timed
         return timed
 
 

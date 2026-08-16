@@ -30,7 +30,7 @@ def _primary_practice_address(provider: dict) -> dict:
     Post-schema-reconciliation: practice_address + mailing_address are unified
     into addresses[] with an address_type discriminator.
     """
-    for a in (provider.get("addresses") or []):
+    for a in (provider.get("practice_addresses") or []):
         if isinstance(a, dict) and a.get("address_type") == "practice":
             return a
     return {}
@@ -262,7 +262,8 @@ def enrich_all(env_prefix: str = "dev", states: list = None, batch_size: int = 1
         # 4 + 5. Location + taxonomy from provider record
         provider = provider_coll.find_one(
             {"npi": npi},
-            {"addresses": 1, "taxonomy_codes": 1,
+            {"business_address": 1,
+    "practice_addresses": 1, "taxonomy_codes": 1,
              "enumeration_date": 1, "_id": 0}
         )
 

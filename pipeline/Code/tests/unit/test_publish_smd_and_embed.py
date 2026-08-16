@@ -277,7 +277,7 @@ def clusters(monkeypatch, scratch_mongo):
     prefix = collection("").name  # the run's unique prefix
     cfg = _scratch_config(db.name, prefix)
 
-    frontend = ChatHealthyMongoUtilities().getConnection("DevOpsUser", "frontEnd")
+    frontend = ChatHealthyMongoUtilities().getConnection("DevOpsUser", "ChatHealthyFrontEnd")
     frontend_db = frontend[db.name]
 
     discrepancies = frontend_db[f"{prefix}discrepancies"]

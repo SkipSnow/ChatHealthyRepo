@@ -92,7 +92,7 @@ def test_apply_flags_md_credential_overrides_catalog_false():
     row for the taxonomy says can_prescribe=False."""
     doc = {"npi": "1", "provider_credential_text": "MD",
            "primary_taxonomy_code": "133N00000X", "taxonomies": [{"code": "133N00000X"}]}
-    flags = _apply_flags_to_doc(doc, catalog=_CATALOG, registered_npis=set())
+    flags = _apply_flags_to_doc(doc, catalog=_CATALOG)
     assert flags["can_prescribe"] is True
     assert flags["is_homeopathic"] is False
 
@@ -102,7 +102,7 @@ def test_apply_flags_catalog_true_used_when_credential_absent():
     """Level 2 fallback: no MD/DO credential -> read catalog."""
     doc = {"npi": "1", "provider_credential_text": None,
            "primary_taxonomy_code": "207Y00000X", "taxonomies": [{"code": "207Y00000X"}]}
-    flags = _apply_flags_to_doc(doc, catalog=_CATALOG, registered_npis=set())
+    flags = _apply_flags_to_doc(doc, catalog=_CATALOG)
     assert flags["can_prescribe"] is True
 
 
@@ -111,7 +111,7 @@ def test_apply_flags_catalog_false_yields_false():
     """Non-MD credential + catalog can_prescribe=False -> False."""
     doc = {"npi": "1", "provider_credential_text": "PhD",
            "primary_taxonomy_code": "133N00000X", "taxonomies": [{"code": "133N00000X"}]}
-    flags = _apply_flags_to_doc(doc, catalog=_CATALOG, registered_npis=set())
+    flags = _apply_flags_to_doc(doc, catalog=_CATALOG)
     assert flags["can_prescribe"] is False
 
 
@@ -119,7 +119,7 @@ def test_apply_flags_catalog_false_yields_false():
 def test_apply_flags_homeopathic_from_catalog():
     doc = {"npi": "1", "provider_credential_text": None,
            "primary_taxonomy_code": "175F00000X", "taxonomies": [{"code": "175F00000X"}]}
-    flags = _apply_flags_to_doc(doc, catalog=_CATALOG, registered_npis=set())
+    flags = _apply_flags_to_doc(doc, catalog=_CATALOG)
     assert flags["is_homeopathic"] is True
 
 
@@ -128,28 +128,8 @@ def test_apply_flags_raises_when_code_not_in_catalog():
     doc = {"npi": "1", "provider_credential_text": "MD",
            "primary_taxonomy_code": "ZZZZ99999X", "taxonomies": [{"code": "ZZZZ99999X"}]}
     with pytest.raises(ChatHealthyException) as exc_info:
-        _apply_flags_to_doc(doc, catalog=_CATALOG, registered_npis=set())
+        _apply_flags_to_doc(doc, catalog=_CATALOG)
     assert exc_info.value.mode == "taxonomy_code_missing_from_catalog"
-
-
-@pytest.mark.unit
-def test_apply_flags_npi_registered_true_when_in_set():
-    doc = {"npi": "1234567890", "provider_credential_text": "MD",
-           "primary_taxonomy_code": "207Y00000X", "taxonomies": [{"code": "207Y00000X"}]}
-    flags = _apply_flags_to_doc(
-        doc, catalog=_CATALOG, registered_npis={"1234567890"},
-    )
-    assert flags["is_npi_registered"] is True
-
-
-@pytest.mark.unit
-def test_apply_flags_npi_registered_false_when_not_in_set():
-    doc = {"npi": "1234567890", "provider_credential_text": "MD",
-           "primary_taxonomy_code": "207Y00000X", "taxonomies": [{"code": "207Y00000X"}]}
-    flags = _apply_flags_to_doc(
-        doc, catalog=_CATALOG, registered_npis={"9999999999"},
-    )
-    assert flags["is_npi_registered"] is False
 
 
 # ---------- _load_catalog ----------

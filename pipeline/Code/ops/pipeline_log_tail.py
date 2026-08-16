@@ -60,7 +60,7 @@ class PipelineLogTail:
     """Reads the pipeline's Mongo log forward from a point in time."""
 
     def __init__(self, identity: str = "pipelineEditor") -> None:
-        client = ChatHealthyMongoUtilities().getConnection(identity, "admin")
+        client = ChatHealthyMongoUtilities().getConnection(identity, "ChatHealthyFrontEnd")
         self._db = client[ADMIN_DB]
         if LOG_COLLECTION not in self._db.list_collection_names():
             _raise_no_log(ADMIN_DB, LOG_COLLECTION)

@@ -29,7 +29,7 @@ def _primary_practice_address(provider: dict) -> dict:
     Post-schema-reconciliation: practice_address + mailing_address are unified
     into addresses[] with an address_type discriminator.
     """
-    for a in (provider.get("addresses") or []):
+    for a in (provider.get("practice_addresses") or []):
         if isinstance(a, dict) and a.get("address_type") == "practice":
             return a
     return {}
@@ -159,13 +159,14 @@ class PrescriberLoadWorker(PipelineWorkerBase):
                   len(self._cms_by_npi), skipped)
 
         # Step B: Open cursor on ALL providers in our states
-        state_filter = {"addresses.state": {"$in": self.states}}
+        state_filter = {"business_address.state": {"$in": self.states}}
         total_providers = self._provider_collection().count_documents(state_filter)
         _log.info("Providers in %s: %d — building provider_quality for ALL", self.states, total_providers)
 
         self._provider_cursor = self._provider_collection().find(
             state_filter,
-            {"npi": 1, "addresses": 1,
+            {"npi": 1, "business_address": 1,
+    "practice_addresses": 1,
              "taxonomy_codes": 1, "enumeration_date": 1, "_id": 0}
         )
 

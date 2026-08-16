@@ -74,9 +74,9 @@ def _full_array_writer(coll, npi: str, array_field: str, mutation_fn) -> None:
 @pytest.mark.parametrize("array_field,mut_a_idx,mut_a_key,mut_a_val,mut_b_idx,mut_b_key,mut_b_val", [
     # addresses[]: worker A stamps county on addresses[0] (DE practice),
     # worker B stamps county on addresses[3] (DE secondary_practice)
-    ("addresses", 0, "county",
+    ("practice_addresses", 0, "county",
         {"fips": "10003", "source": "worker_a", "name": "New Castle County", "rucc": 1},
-     3, "county",
+     2, "county",
         {"fips": "10003", "source": "worker_b", "name": "New Castle County", "rucc": 1}),
     # licenses[]: worker A adds credential_expiry, worker B adds validated_at
     ("licenses", 0, "credential_expiry", "2028-12-31",
@@ -159,8 +159,9 @@ def test_1962405589_fixture_shape():
     with open(_FIXTURE_PATH, encoding="utf-8") as f:
         doc = json.load(f)
     assert doc["npi"] == "1962405589"
-    assert len(doc["addresses"]) == 4
-    address_states = {a.get("state") for a in doc["addresses"]}
+    assert len(doc["practice_addresses"]) == 3
+    address_states = {a.get("state") for a in doc["practice_addresses"]}
+    address_states.add((doc["business_address"] or {}).get("state"))
     assert "DE" in address_states
     assert "PA" in address_states
     assert len(doc["licenses"]) >= 1

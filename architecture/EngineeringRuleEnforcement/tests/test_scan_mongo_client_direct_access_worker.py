@@ -41,7 +41,7 @@ from chathealthy_lib.mongo_utilities import ChatHealthyMongoUtilities
 
 
 def connect():
-    return ChatHealthyMongoUtilities().getConnection("pipelineEditor", "admin")
+    return ChatHealthyMongoUtilities().getConnection("pipelineEditor", "ChatHealthyFrontEnd")
 '''
 
 

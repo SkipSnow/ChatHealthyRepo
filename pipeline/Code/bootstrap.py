@@ -70,8 +70,14 @@ ENV_CA_CHAIN_PATH = "CHATHEALTHY_CA_CHAIN_PATH"
 # same material. Nothing here mints: certificate issuance belongs to
 # claudeCodeAgent, and a node that cannot find its cert fails rather than
 # creating one.
-KV_CERT_PREFIX = "cert-"            # cert-pipelineEditor
-KV_KEY_PREFIX = "key-"              # key-pipelineEditor
+KV_CERT_PREFIX = "cert-"            # superseded cert-<identity> secrets
+KV_KEY_PREFIX = "key-"              # superseded key-<identity> secrets
+
+# An identity's vault secret is named exactly the identity and holds its
+# cert+key PEM. These are never loaded into the environment.
+KV_IDENTITY_SECRETS = frozenset({
+    "pipelineEditor", "DevOpsUser", "frontendUser", "claudeCodeAgent",
+})
 KV_CA_PREFIX = "ca-"                # every CA secret, public and private
 KV_LEGACY_CERT_PREFIX = "certs-"    # superseded certs-pipeline-* secrets
 KV_CA_PUBLIC = "ca-root-cert"
@@ -234,11 +240,18 @@ def _load_all_secrets_into_env(client: SecretClient) -> int:
     # Key material never lands in os.environ: identity certificates and their
     # keys are materialised as files, and certificate-authority material is
     # never read by this node at all.
+    #
+    # An identity's secret is now named exactly the identity, so it carries no
+    # prefix for a prefix test to catch. The names are listed explicitly --
+    # a guard that silently stopped matching would put a private key in an
+    # environment variable.
     skip_prefixes = (
         KV_CERT_PREFIX, KV_KEY_PREFIX, KV_LEGACY_CERT_PREFIX, KV_CA_PREFIX,
     )
     n = 0
     for name in declared:
+        if name in KV_IDENTITY_SECRETS:
+            continue
         if any(name.startswith(pre) for pre in skip_prefixes):
             continue
         s = client.get_secret(name)
@@ -296,18 +309,35 @@ def _seed_read_long_lived_cert(
     its cert + key from KV under the consolidated path via its own MI.
     All pipeline identities (pipeline-runbook, pipeline-control) read from
     the same cert secret. Returns (cert_path, key_path)."""
-    # All pipeline identities run as pipelineEditor and read its cert.
-    cert_secret = f"{KV_CERT_PREFIX}pipelineEditor"
-    key_secret = f"{KV_KEY_PREFIX}pipelineEditor"
-    _emit(f"seed-reading long-lived cert from KV: {cert_secret}")
-    cert_pem = client.get_secret(cert_secret).value or ""
-    key_pem = client.get_secret(key_secret).value or ""
-    if not cert_pem or not key_pem:
+    # All pipeline identities run as pipelineEditor and read its cert. The
+    # vault secret is named exactly the identity and holds the cert+key PEM
+    # whole; the two files below are split from it here because downstream
+    # env vars name a cert path and a key path separately.
+    from cryptography.hazmat.primitives import serialization  # noqa: PLC0415
+    from cryptography.x509 import load_pem_x509_certificate  # noqa: PLC0415
+
+    secret_name = PIPELINE_IDENTITY
+    _emit(f"seed-reading long-lived cert from KV: {secret_name}")
+    combined = client.get_secret(secret_name).value or ""
+    if not combined:
         _emit(
-            f"FATAL: KV secret {cert_secret!r} or {key_secret!r} is "
-            f"empty; deploy MUST place both before this container "
-            f"starts."
+            f"FATAL: KV secret {secret_name!r} is empty; deploy MUST place "
+            f"the identity's cert+key PEM before this container starts."
         )
+        sys.exit(2)
+    try:
+        raw = combined.encode("utf-8")
+        cert_pem = load_pem_x509_certificate(raw).public_bytes(
+            serialization.Encoding.PEM).decode("utf-8")
+        key_pem = serialization.load_pem_private_key(
+            raw, password=None).private_bytes(
+                encoding=serialization.Encoding.PEM,
+                format=serialization.PrivateFormat.PKCS8,
+                encryption_algorithm=serialization.NoEncryption(),
+        ).decode("utf-8")
+    except Exception as exc:  # noqa: BLE001
+        _emit(f"FATAL: KV secret {secret_name!r} is not a cert+key PEM pair: "
+              f"{type(exc).__name__}: {exc}")
         sys.exit(2)
     cert_path = _track(_write_secure_file(cert_pem.encode("utf-8"), "_cert.pem"))
     key_path = _track(_write_secure_file(key_pem.encode("utf-8"), "_key.pem"))

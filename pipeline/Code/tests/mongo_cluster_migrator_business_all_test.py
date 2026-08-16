@@ -54,11 +54,11 @@ _PAYLOAD = {
     "destination_database": "PublicHealthData",
     "destination_collection": "provider_v02",
     "filter": {
-        "addresses.address_type": "business",
+        "business_address.address_type": "business",
     },
     "thread_criteria": {
-        "addresses.address_type": "business",
-        "addresses.state": "*",
+        "business_address.address_type": "business",
+        "business_address.state": "*",
     },
     "preserve_indices": True,
     "reservation_duration_minutes": 300,

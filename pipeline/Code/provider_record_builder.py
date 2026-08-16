@@ -53,9 +53,9 @@ def dedupe_within_record(doc: dict) -> dict:
             unique_ids.append(entry)
         doc["other_identifiers"] = unique_ids
 
-    addresses = doc.get("addresses") or []
-    if addresses:
-        doc["addresses"] = dedupe_addresses(addresses)
+    practice = doc.get("practice_addresses") or []
+    if practice:
+        doc["practice_addresses"] = dedupe_addresses(practice)
 
     return doc
 

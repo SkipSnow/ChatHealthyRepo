@@ -313,7 +313,7 @@ def _legacy_blob_log_unused(event: str, **fields):
 # lives on pipeline cluster; frontend cluster is off-limits to pipeline).
 # -----------------------------------------------------------------------------
 def _mongo_client():
-    return ChatHealthyMongoUtilities().getConnection("pipelineEditor", "admin")
+    return ChatHealthyMongoUtilities().getConnection("pipelineEditor", "ChatHealthyFrontEnd")
 
 
 # -----------------------------------------------------------------------------

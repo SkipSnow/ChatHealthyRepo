@@ -106,7 +106,7 @@ def scratch_mongo():
     """
     from chathealthy_lib.mongo_utilities import ChatHealthyMongoUtilities
 
-    client = ChatHealthyMongoUtilities().getConnection("DevOpsUser", "pipelines")
+    client = ChatHealthyMongoUtilities().getConnection("DevOpsUser", "ChatHealthyDataPipelines")
     db = client[SCRATCH_DB]
     run_prefix = f"{SCRATCH_PREFIX}{uuid.uuid4().hex}_"
 
@@ -125,13 +125,20 @@ def scratch_mongo():
                 db.drop_collection(name)
 
 
-@pytest.fixture
+@pytest.fixture(scope="session")
 def mongo_available():
+    """Asked once per session, not once per test.
+
+    The pipeline cluster is paused whenever no run holds a reservation, so
+    this probe usually fails, and connecting costs the connect retry each
+    time it is asked. Per-test that is minutes of the suite spent learning
+    the same answer repeatedly.
+    """
     try:
         from pipeline_env import load_pipeline_env
         load_pipeline_env()
         from pipeline_db import get_mongo
-        get_mongo().admin.command("ping", maxTimeMS=5000)
+        get_mongo("ChatHealthyDataPipelines").admin.command("ping", maxTimeMS=5000)
         return True
     except Exception:
         return False

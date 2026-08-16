@@ -20,8 +20,19 @@ from __future__ import annotations
 
 import argparse
 import datetime
+import pathlib
 import sys
 import time
+
+# The modules this reads live beside the pipeline, not beside this file. The
+# usage line above says to run it from the repository root, which could not
+# work without this: pipeline_db is not importable from there.
+_HERE = pathlib.Path(__file__).resolve()
+for _parent in _HERE.parents:
+    if (_parent / "pipeline" / "Code").is_dir():
+        sys.path.insert(0, str(_parent / "pipeline" / "Code"))
+        sys.path.insert(0, str(_parent / "ChatHealthyLib" / "src"))
+        break
 
 DONE = ("completed", "succeeded", "done")
 FAILED = ("failed", "error")
