@@ -431,14 +431,25 @@ def _report_fatal(run_id: str, exc: ChatHealthyException) -> None:
     """
     try:
         from chathealthy_lib.discrepancy_report import DiscrepancyReport
+        data_version = (int(os.environ["DATA_VERSION"])
+                        if os.environ.get("DATA_VERSION", "").strip().isdigit()
+                        else None)
+        # This stage never reached the VM, so no row of this run was written
+        # anywhere. rows_in_target is 0 as an assertion, not as a failure to
+        # look. The two collection totals are whatever the previous load left
+        # and this stage cannot read them, so they are None and print Unknown
+        # -- the report must not imply the standing data was disturbed.
         DiscrepancyReport(
             run_id=run_id,
             env=os.environ.get("ENV_PREFIX", "dev"),
             pipeline_name=PIPELINE_NAME,
             source="ProviderPipelineRunbook",
-            data_version=(int(os.environ["DATA_VERSION"])
-                          if os.environ.get("DATA_VERSION", "").strip().isdigit()
-                          else None),
+            target_collection=(
+                f"PipelinePublicHealthData.Provider_v_{data_version}"),
+            total_source_rows=None,
+            rows_in_target=0,
+            total_rows=None,
+            data_version=data_version,
         ).fatal(exc)
         log("runbook_fatal_report_sent", run_id=run_id)
     except Exception as report_exc:

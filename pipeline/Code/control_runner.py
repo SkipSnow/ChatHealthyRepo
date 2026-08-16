@@ -611,12 +611,62 @@ def _quiesce_mongo_state(run_id: str, final_status: str, *,
                     "message": str(fatal_exception),
                     "mode": getattr(fatal_exception, "mode", "unknown"),
                 }
+            # Which two collections the report counts. The registry owns the
+            # source-to-collection map, so the names are asked for, never
+            # built here out of an env var. A failure to resolve is said out
+            # loud and the counts read Unknown; it is not papered over with a
+            # constructed name that may address nothing.
+            # The three row counts are this pipeline's to take, not the
+            # report's to go looking for. Only here is it known that source
+            # rows mean the NPPES staging collection and that the target is
+            # the published provider collection; the next pipeline's three
+            # numbers will come from somewhere else entirely.
+            #
+            # They are counted against the DATA cluster. pipeline_mongo above
+            # reaches the metadata cluster, where the run's own records live.
+            # Counting provider data through it returns 0 -- not an error and
+            # not Unknown, just a confident wrong number.
+            #
+            # Counted here, at quiesce, because the run is over: a count taken
+            # earlier and carried down is a count from whenever it was taken.
+            # A count that cannot be taken stays None and reads Unknown.
+            target_collection = ""
+            total_source_rows = rows_in_target = total_rows = None
+            try:
+                from pipeline_dataset_registry import PipelineDatasetRegistry  # noqa: PLC0415
+                registry = PipelineDatasetRegistry(
+                    cfg, int(args.data_version), pipeline_mongo)
+                target_entry = registry.by_source_name("provider")
+                source_entry = registry.by_source_name("nppes_npi")
+                target_collection = (
+                    f"{target_entry.public_data_db}."
+                    f"{registry.public_data_collection_name('provider')}")
+                source_collection = (
+                    f"{source_entry.staging_db}."
+                    f"{registry.staging_collection_name('nppes_npi')}")
+                data_mongo = ChatHealthyMongoUtilities().getConnection(
+                    "pipelineEditor", "ChatHealthyDataPipelines")
+                t_db, t_coll = target_collection.split(".", 1)
+                s_db, s_coll = source_collection.split(".", 1)
+                target = data_mongo[t_db][t_coll]
+                rows_in_target = target.count_documents({"run_id": run_id})
+                total_rows = target.count_documents({})
+                total_source_rows = data_mongo[s_db][s_coll].count_documents({})
+            except Exception as exc:  # noqa: BLE001
+                _log.error("quiesce: the row counts could not be taken "
+                           "run_id=%s err=%s; the report will say Unknown",
+                           run_id, str(exc)[:300])
+
             summary = emit_discrepancy_report(
                 pipeline_mongo=pipeline_mongo,
                 run_id=run_id,
                 manifest_status=manifest_status,
                 manifest_doc=manifest_doc,
                 config=cfg,
+                target_collection=target_collection,
+                total_source_rows=total_source_rows,
+                rows_in_target=rows_in_target,
+                total_rows=total_rows,
                 operator_email=getattr(args, "operator_email", None) if args else None,
                 operator_sms=getattr(args, "operator_sms", None) if args else None,
             )
