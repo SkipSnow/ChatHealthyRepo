@@ -15931,6 +15931,256 @@
               },
               "approval": "approved",
               "due_date": ""
+            },
+            {
+              "feature_id": "EPIC-010-F-108",
+              "name": "Data Migration",
+              "status": "done",
+              "description": "This feature specifies the requirements for ChatHealthy.ai's migration of published data from the pipeline cluster to the front-end cluster. A migration moves collections from ChatHealthyDataPipelines.PipelinePublicHealthData to ChatHealthyFrontEnd.PublicHealthData. A collection arrives under the name it left with. Nothing is transformed in transit. Migration is the only path by which data reaches the front-end cluster. It is separate from the pipeline that produced the data, and runs only when a human releases it.",
+              "realized_by": [
+                "Python 3.11"
+              ],
+              "stories": {
+                "story": [
+                  {
+                    "story_id": "EPIC-010-F-108-S-001",
+                    "name": "Data Migration",
+                    "description": "This story specifies the requirements for ChatHealthy.ai's migration of published data from the pipeline cluster to the front-end cluster. A migration moves collections from ChatHealthyDataPipelines.PipelinePublicHealthData to ChatHealthyFrontEnd.PublicHealthData. A collection arrives under the name it left with. Nothing is transformed in transit. Migration is the only path by which data reaches the front-end cluster. It is separate from the pipeline that produced the data, and runs only when a human releases it.",
+                    "size": "M",
+                    "status": "done",
+                    "orphan": false,
+                    "approval": "approved",
+                    "requirements": {
+                      "requirement": [
+                        {
+                          "req_id": "EPIC-010-F-108-S-001-REQ-B-001",
+                          "name": "A migrated collection keeps its name",
+                          "requirement": "Every collection present in ChatHealthyFrontEnd.PublicHealthData as the result of a migration carries the same name it had in ChatHealthyDataPipelines.PipelinePublicHealthData.",
+                          "priority": "must-have",
+                          "status": "done",
+                          "orphan": false,
+                          "approval": "approved",
+                          "depends_on": [],
+                          "tests": {
+                            "test": [
+                              {
+                                "test_id": "EPIC-010-F-108-S-001-REQ-B-001-TEST-1",
+                                "test_type": "ordinary",
+                                "orphan": false,
+                                "file": "pipeline/Code/tests/test_data_migration.py"
+                              }
+                            ]
+                          }
+                        },
+                        {
+                          "req_id": "EPIC-010-F-108-S-001-REQ-B-002",
+                          "name": "Migration is the only way data reaches the front-end cluster",
+                          "requirement": "No process other than a migration writes to ChatHealthyFrontEnd.PublicHealthData.",
+                          "priority": "must-have",
+                          "status": "done",
+                          "orphan": false,
+                          "approval": "approved",
+                          "depends_on": [],
+                          "tests": {
+                            "test": [
+                              {
+                                "test_id": "EPIC-010-F-108-S-001-REQ-B-002-TEST-1",
+                                "test_type": "ordinary",
+                                "orphan": false,
+                                "file": "pipeline/Code/tests/test_data_migration.py"
+                              }
+                            ]
+                          }
+                        },
+                        {
+                          "req_id": "EPIC-010-F-108-S-001-REQ-B-003",
+                          "name": "A migration runs only after a human releases it",
+                          "requirement": "Every migration that has run is preceded by a recorded human sign-off for the data it moved.",
+                          "priority": "must-have",
+                          "status": "done",
+                          "orphan": false,
+                          "approval": "approved",
+                          "depends_on": [],
+                          "tests": {
+                            "test": [
+                              {
+                                "test_id": "EPIC-010-F-108-S-001-REQ-B-003-TEST-1",
+                                "test_type": "ordinary",
+                                "orphan": false,
+                                "file": "pipeline/Code/tests/test_data_migration.py"
+                              }
+                            ]
+                          }
+                        },
+                        {
+                          "req_id": "EPIC-010-F-108-S-001-REQ-B-004",
+                          "name": "A migration never alters or removes what is already there",
+                          "requirement": "No migration changes or removes any document, collection or index that existed before it ran.",
+                          "priority": "must-have",
+                          "status": "done",
+                          "orphan": false,
+                          "approval": "approved",
+                          "depends_on": [],
+                          "tests": {
+                            "test": [
+                              {
+                                "test_id": "EPIC-010-F-108-S-001-REQ-B-004-TEST-1",
+                                "test_type": "ordinary",
+                                "orphan": false,
+                                "file": "pipeline/Code/tests/test_data_migration.py"
+                              }
+                            ]
+                          }
+                        },
+                        {
+                          "req_id": "EPIC-010-F-108-S-001-REQ-B-005",
+                          "name": "A collection that already exists at the destination stops the migration",
+                          "requirement": "A migration that finds its target collection already present in ChatHealthyFrontEnd.PublicHealthData MUST fail, MUST raise, and MUST log the collection it found. It MUST NOT write.",
+                          "priority": "must-have",
+                          "status": "done",
+                          "orphan": false,
+                          "approval": "approved",
+                          "depends_on": [],
+                          "tests": {
+                            "test": [
+                              {
+                                "test_id": "EPIC-010-F-108-S-001-REQ-B-005-TEST-1",
+                                "test_type": "ordinary",
+                                "orphan": false,
+                                "file": "pipeline/Code/tests/test_data_migration.py"
+                              }
+                            ]
+                          }
+                        },
+                        {
+                          "req_id": "EPIC-010-F-108-S-001-REQ-B-006",
+                          "name": "Every collection is reached through an instance of the one class that realizes this story",
+                          "requirement": "One class realizes this story. Every collection the migration touches is reached through an instance of that class, one instance per collection. No collection handle is obtained any other way.",
+                          "priority": "must-have",
+                          "status": "done",
+                          "orphan": false,
+                          "approval": "approved",
+                          "depends_on": [],
+                          "tests": {
+                            "test": [
+                              {
+                                "test_id": "EPIC-010-F-108-S-001-REQ-B-006-TEST-1",
+                                "test_type": "ordinary",
+                                "orphan": false,
+                                "file": "pipeline/Code/tests/test_data_migration.py"
+                              }
+                            ]
+                          }
+                        },
+                        {
+                          "req_id": "EPIC-010-F-108-S-001-REQ-B-007",
+                          "name": "The class constructor takes the collection name and nothing else",
+                          "requirement": "The constructor of the class that realizes this story accepts exactly one argument, the collection name.",
+                          "priority": "must-have",
+                          "status": "done",
+                          "orphan": false,
+                          "approval": "approved",
+                          "depends_on": [],
+                          "tests": {
+                            "test": [
+                              {
+                                "test_id": "EPIC-010-F-108-S-001-REQ-B-007-TEST-1",
+                                "test_type": "ordinary",
+                                "orphan": false,
+                                "file": "pipeline/Code/tests/test_data_migration.py"
+                              }
+                            ]
+                          }
+                        },
+                        {
+                          "req_id": "EPIC-010-F-108-S-001-REQ-B-008",
+                          "name": "The collection name is the only value assigned to the class from outside it",
+                          "requirement": "No variable on the class that realizes this story is assigned externally other than the collection name.",
+                          "priority": "must-have",
+                          "status": "done",
+                          "orphan": false,
+                          "approval": "approved",
+                          "depends_on": [],
+                          "tests": {
+                            "test": [
+                              {
+                                "test_id": "EPIC-010-F-108-S-001-REQ-B-008-TEST-1",
+                                "test_type": "ordinary",
+                                "orphan": false,
+                                "file": "pipeline/Code/tests/test_data_migration.py"
+                              }
+                            ]
+                          }
+                        },
+                        {
+                          "req_id": "EPIC-010-F-108-S-001-REQ-B-009",
+                          "name": "One file performs the migration",
+                          "requirement": "Exactly one file in the repository performs migration, and no other file does any part of it.",
+                          "priority": "must-have",
+                          "status": "done",
+                          "orphan": false,
+                          "approval": "approved",
+                          "depends_on": [],
+                          "tests": {
+                            "test": [
+                              {
+                                "test_id": "EPIC-010-F-108-S-001-REQ-B-009-TEST-1",
+                                "test_type": "ordinary",
+                                "orphan": false,
+                                "file": "pipeline/Code/tests/test_data_migration.py"
+                              }
+                            ]
+                          }
+                        },
+                        {
+                          "req_id": "EPIC-010-F-108-S-001-REQ-B-010",
+                          "name": "An engineering rule guarantees the code meets this story",
+                          "requirement": "An engineering rule parses the migration file with an LLM and guarantees that every requirement of this story is enforced by the code. A file that does not satisfy every requirement is not committed.",
+                          "priority": "must-have",
+                          "status": "done",
+                          "orphan": false,
+                          "approval": "approved",
+                          "depends_on": [],
+                          "tests": {
+                            "test": [
+                              {
+                                "test_id": "EPIC-010-F-108-S-001-REQ-B-010-TEST-1",
+                                "test_type": "ordinary",
+                                "orphan": false,
+                                "file": "pipeline/Code/tests/test_data_migration.py"
+                              }
+                            ]
+                          }
+                        },
+                        {
+                          "req_id": "EPIC-010-F-108-S-001-REQ-B-011",
+                          "name": "Zero trust - the migration's identities exist and are constrained to this story alone",
+                          "requirement": "ChatHealthy's zero-trust infrastructure creates a database user holding only the role this story requires, and an Azure identity holding only the entitlements this story requires. Neither carries any grant beyond what the migration performs.",
+                          "priority": "must-have",
+                          "status": "done",
+                          "orphan": false,
+                          "approval": "approved",
+                          "depends_on": [],
+                          "tests": {
+                            "test": [
+                              {
+                                "test_id": "EPIC-010-F-108-S-001-REQ-B-011-TEST-1",
+                                "test_type": "ordinary",
+                                "orphan": false,
+                                "file": "pipeline/Code/tests/test_data_migration.py"
+                              }
+                            ]
+                          }
+                        }
+                      ]
+                    }
+                  }
+                ]
+              },
+              "orphan": false,
+              "approval": "approved",
+              "due_date": "2026-08-17",
+              "priority": "must-have"
             }
           ]
         }

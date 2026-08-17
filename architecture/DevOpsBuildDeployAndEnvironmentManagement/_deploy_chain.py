@@ -54,7 +54,6 @@ if str(HERE) not in sys.path:
     sys.path.insert(0, str(HERE))
 
 import ch_fonts_inliner
-import chdm_helpers
 import hf_helpers as rd
 from agile_backlog import AgileBacklogLoader
 from crosswalk import Crosswalk
@@ -1473,30 +1472,6 @@ def az_automation_runbook_verify_runnable(rg: str, aa: str, runbook: str) -> Non
     )
 
 
-chdm_persistent_infra_ensured_for: set[str] = set()
-CHDM_TARGET_PREFIX = "target_azure_automation_runbook_chdm_"
-CHDM_PROVISIONER_TARGET = "target_azure_automation_runbook_chdm_provisioner"
-
-
-def ensure_chdm_persistent_infrastructure_once(
-    aa_rg: str, aa: str, vm_rg: str, env_key: str,
-    *, repo_root: Path, resolver: SecretsResolver, env: str,
-) -> str:
-    """Run the CHDM persistent-infrastructure ensure block exactly once per
-    `local_deploy` process for the given env. Returns the VM subnet ARM
-    resource id (cached after the first call for downstream callers in the
-    same session). Lands the admin SSH private key on the operator's
-    workstation as part of the same once-per-session block."""
-    cache_key = f"{env_key}|{aa_rg}|{aa}|{vm_rg}"
-    if cache_key in chdm_persistent_infra_ensured_for:
-        return chdm_helpers.chdm_ensure_vm_subnet(vm_rg)
-    subnet_id = chdm_helpers.chdm_ensure_chdm_persistent_infrastructure(
-        vm_rg=vm_rg, aa_rg=aa_rg, aa=aa,
-    )
-    private_key_b64 = resolver.resolve("AZ_VM_ADMIN_SSH_PRIVATE_KEY_B64", env)
-    chdm_helpers.chdm_ensure_admin_private_key_file(repo_root, private_key_b64)
-    chdm_persistent_infra_ensured_for.add(cache_key)
-    return subnet_id
 
 
 def az_automation_python3_packages_list(rg: str, aa: str) -> dict[str, dict]:
@@ -2238,24 +2213,6 @@ def deploy_azure_automation_runbook(
     if not content_path.is_file():
         sys.exit(f"ERROR: runbook.py missing at {content_path}")
 
-    # For any ChatHealthyDataMigrator runbook, the deploy script owns the
-    # persistent infrastructure that the chain depends on: undelegated VM
-    # subnet, Hybrid Worker Group, AA managed-identity role assignments.
-    # Idempotent; runs once per local_deploy process.
-    chdm_subnet_id: str | None = None
-    if target.target_id.startswith(CHDM_TARGET_PREFIX):
-        vm_rg = resolver.resolve("AZ_VM_RESOURCE_GROUP", env)
-        if not vm_rg:
-            sys.exit(
-                "ERROR: AZ_VM_RESOURCE_GROUP must be set in the operator "
-                "secret store (.env) — the CHDM persistent-infra ensure "
-                "needs to know which resource group hosts the Hybrid Worker VM."
-            )
-        chdm_subnet_id = ensure_chdm_persistent_infrastructure_once(
-            aa_rg=rg, aa=aa, vm_rg=vm_rg, env_key=env,
-            repo_root=repo_root, resolver=resolver, env=env,
-        )
-
     # Push every secret binding into the Automation Account as an Automation
     # Variable. Resolver fetches the value from the operator's bound store
     # (.env for local). Values never land on disk; only the az process
@@ -2281,13 +2238,6 @@ def deploy_azure_automation_runbook(
             f"{', '.join(skipped)}"
         )
     step(f"  pushed {pushed} Automation Variable(s)")
-
-    # Inject the deploy-computed AZ_VM_SUBNET_ID for the provisioner runbook.
-    # The subnet ARM resource id only exists after the ensure step ran and
-    # is therefore not in the operator's secret store.
-    if target.target_id == CHDM_PROVISIONER_TARGET and chdm_subnet_id:
-        az_automation_variable_set(rg, aa, "AZ_VM_SUBNET_ID", chdm_subnet_id)
-        step("  pushed deploy-computed AZ_VM_SUBNET_ID Automation Variable")
 
     # Ensure declared Python3 packages are installed on the AA before
     # publishing the runbook content. The runbook's first execution can

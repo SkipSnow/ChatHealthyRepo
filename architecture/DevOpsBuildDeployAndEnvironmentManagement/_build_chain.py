@@ -1034,8 +1034,6 @@ def _build_automation_account(repo_root: Path, target: TargetRecord,
                      f"inlining: line {exc.lineno}: {exc.msg}")
         if pid == "change_db_version":
             _emit_change_db_version_target_url_registry(repo_root, pkg_dir)
-        if pid in ("ca_bootstrap", "ca_endpoint"):
-            _inline_ca_helpers(repo_root, pkg_dir)
 
 
 def _build_azure_automation_runbook(repo_root: Path, target: TargetRecord, build_dir: Path) -> None:
@@ -1078,64 +1076,6 @@ def _build_azure_automation_runbook(repo_root: Path, target: TargetRecord, build
 
     if target.target_id == "target_azure_automation_runbook_change_db_version":
         _emit_change_db_version_target_url_registry(repo_root, build_dir)
-    if target.target_id in (
-        "target_azure_automation_runbook_ca_bootstrap",
-        "target_azure_automation_runbook_ca_endpoint",
-    ):
-        _inline_ca_helpers(repo_root, build_dir)
-
-
-def _inline_ca_helpers(repo_root: Path, build_dir: Path) -> None:
-    """Inline pipeline/deploy/ca_helpers.py into the staged CA runbook.
-
-    Azure Automation runbooks are a single Python file (see
-    _build_azure_automation_runbook). ca_helpers.py stays a shared source
-    module on disk for local use and for the chathealthy_ca client mirror;
-    at build time we embed it into runbook.py the same way change_db_version
-    gets its URL registry inlined — so the AA-deployed artifact is one file
-    with no sibling imports.
-    """
-    helpers_path = repo_root / "pipeline" / "deploy" / "ca_helpers.py"
-    if not helpers_path.is_file():
-        sys.exit(
-            f"ERROR: cannot inline ca_helpers — missing {helpers_path}"
-        )
-    helpers_src = helpers_path.read_text(encoding="utf-8")
-    runbook_py = build_dir / "runbook.py"
-    original = runbook_py.read_text(encoding="utf-8")
-    # Authors keep `import ca_helpers as ch` (plus optional sys.path insert)
-    # in source; build replaces that import with an in-process module.
-    import_line = "import ca_helpers as ch"
-    if import_line not in original:
-        sys.exit(
-            f"ERROR: cannot inline ca_helpers — {import_line!r} not found in "
-            f"{runbook_py}. CA runbook sources must keep that import literal."
-        )
-    # Strip the optional sibling-path insert that only matters on disk.
-    cleaned = original
-    path_insert = (
-        "sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))\n\n"
-    )
-    cleaned = cleaned.replace(path_insert, "", 1)
-    # Drop the short comment block that documents the path insert, if present.
-    for comment in (
-        "# Ensure sibling ca_helpers.py resolves whether the runbook is run from\n"
-        "# the deploy dir or dropped into the Automation Account root.\n",
-    ):
-        cleaned = cleaned.replace(comment, "")
-    inline_block = (
-        "# --- inlined from pipeline/deploy/ca_helpers.py at build time ---\n"
-        "import types as _ch_types\n"
-        f"_ca_helpers_src = {helpers_src!r}\n"
-        '_ca_helpers_mod = _ch_types.ModuleType("ca_helpers")\n'
-        "exec(_ca_helpers_src, _ca_helpers_mod.__dict__)\n"
-        "ch = _ca_helpers_mod\n"
-        "# --- end inlined ca_helpers ---\n"
-    )
-    staged = cleaned.replace(import_line, inline_block, 1)
-    runbook_py.write_text(staged, encoding="utf-8")
-    size_kb = runbook_py.stat().st_size / 1024.0
-    _step(f"  inlined ca_helpers into {runbook_py.name} ({size_kb:.1f} KB)")
 
 
 def _emit_change_db_version_target_url_registry(repo_root: Path, build_dir: Path) -> None:
