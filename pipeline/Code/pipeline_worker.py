@@ -31,17 +31,18 @@ import threading
 import time
 import traceback
 
-from pipeline_db import get_mongo, get_frontend_mongo, PIPELINE_ADMIN_DB
+from pipeline_db import PIPELINE_ADMIN_DB
 from blob_client import get_blob_service
 from step_context import PipelineArgs, RunManifest, StepContext, StepTransition
 from steps import get_runner
+from chathealthy_lib.mongo_utilities import ChatHealthyMongoUtilities
 
 _log = ChatHealthyLoggingService()
 
 HEARTBEAT_INTERVAL_S = 120     # v32 §4.3.4
 WORK_ITEMS_COLLECTION = "pipeline.work_items"
 # The coordination substrate the Controller actually writes to. It enqueues
-# every work item with get_frontend_mongo()[PIPELINE_ADMIN_DB], and this read
+# every work item with ChatHealthyMongoUtilities().getConnection("pipelineEditor", "ChatHealthyFrontEnd")[PIPELINE_ADMIN_DB], and this read
 # the database "chathealthypipelines" through get_mongo() -- a different
 # database on a different accessor. Workers therefore claimed nothing, logged
 # nothing after startup, and the Controller waited on "remaining=1" until it
@@ -82,8 +83,8 @@ def _reconstruct_step_context(payload: dict, mongo, blob) -> StepContext:
     # metrics, completed_steps) from the live pipeline.runs doc so per-step
     # decisions that depend on earlier steps' state work identically to
     # inline execution. Coord (pipeline.runs) lives on the pipeline cluster.
-    coord = get_frontend_mongo()
-    live = coord[COORD_DB]["pipeline.runs"].find_one({"run_id": payload["run_id"]})
+    coord = ChatHealthyMongoUtilities().getConnection("pipelineEditor", "ChatHealthyFrontEnd")
+    live = coord["pipelineAdmin"]["pipeline.runs"].find_one({"run_id": payload["run_id"]})
     if live:
         manifest.source_versions = live.get("source_versions") or {}
         manifest.metrics = live.get("metrics") or {}
@@ -104,7 +105,7 @@ def _dispatch(step: str, payload: dict) -> dict:
     """Route the step to its handler. Every process_pool step in
     provider_pipeline_orchestrator.STEPS resolves through steps.get_runner
     to the module's run_step(ctx) callable."""
-    mongo = get_mongo("ChatHealthyDataPipelines")
+    mongo = ChatHealthyMongoUtilities().getConnection("pipelineEditor", "ChatHealthyDataPipelines")
     blob = get_blob_service()
     ctx = _reconstruct_step_context(payload, mongo, blob)
     runner = get_runner(step)
@@ -139,7 +140,7 @@ def _dispatch(step: str, payload: dict) -> dict:
                 set_ops[f"metrics.{k}"] = v
         if set_ops:
             # pipeline.runs lives on the pipeline cluster.
-            get_frontend_mongo()[COORD_DB]["pipeline.runs"].update_one(
+            ChatHealthyMongoUtilities().getConnection("pipelineEditor", "ChatHealthyFrontEnd")["pipelineAdmin"]["pipeline.runs"].update_one(
                 {"run_id": payload["run_id"]},
                 {"$set": set_ops},
             )
@@ -150,7 +151,7 @@ def _dispatch(step: str, payload: dict) -> dict:
 # Claim primitive — atomic findOneAndUpdate per v32 §4.3.4
 # ─────────────────────────────────────────────────────────────────────────────
 def _claim_work_item(mongo, run_id: str, step: str, worker_pid: int) -> dict | None:
-    coll = mongo[COORD_DB][WORK_ITEMS_COLLECTION]
+    coll = mongo["pipelineAdmin"]["pipeline.work_items"]
     now = datetime.datetime.utcnow()
     return coll.find_one_and_update(
         {"run_id": run_id, "step": step, "status": "pending"},
@@ -166,7 +167,7 @@ def _claim_work_item(mongo, run_id: str, step: str, worker_pid: int) -> dict | N
 
 
 def _write_heartbeat(mongo, item_id) -> None:
-    coll = mongo[COORD_DB][WORK_ITEMS_COLLECTION]
+    coll = mongo["pipelineAdmin"]["pipeline.work_items"]
     coll.update_one(
         {"_id": item_id},
         {"$set": {"heartbeat_at": datetime.datetime.utcnow()}},
@@ -174,7 +175,7 @@ def _write_heartbeat(mongo, item_id) -> None:
 
 
 def _mark_done(mongo, item_id, output: dict) -> None:
-    coll = mongo[COORD_DB][WORK_ITEMS_COLLECTION]
+    coll = mongo["pipelineAdmin"]["pipeline.work_items"]
     coll.update_one(
         {"_id": item_id},
         {"$set": {
@@ -186,7 +187,7 @@ def _mark_done(mongo, item_id, output: dict) -> None:
 
 
 def _mark_failed(mongo, item_id, error: dict) -> None:
-    coll = mongo[COORD_DB][WORK_ITEMS_COLLECTION]
+    coll = mongo["pipelineAdmin"]["pipeline.work_items"]
     coll.update_one(
         {"_id": item_id},
         {"$set": {
@@ -244,7 +245,7 @@ def main(argv: list[str] | None = None) -> int:
 
     # work_items live where the Controller enqueues them, which is the
     # front cluster. Reading them anywhere else claims nothing.
-    coord = get_frontend_mongo()
+    coord = ChatHealthyMongoUtilities().getConnection("pipelineEditor", "ChatHealthyFrontEnd")
     worker_pid = os.getpid()
 
     # One look, by design. The Controller does not spawn a worker until every
@@ -256,9 +257,9 @@ def main(argv: list[str] | None = None) -> int:
         # Controller is waiting on finding no work. Say what was searched for
         # and where, because the previous message left the Controller
         # reporting remaining=1 with no explanation anywhere.
-        pending = coord[COORD_DB][WORK_ITEMS_COLLECTION].count_documents(
+        pending = coord["pipelineAdmin"]["pipeline.work_items"].count_documents(
             {"run_id": ns.run_id})
-        unclaimed = coord[COORD_DB][WORK_ITEMS_COLLECTION].count_documents(
+        unclaimed = coord["pipelineAdmin"]["pipeline.work_items"].count_documents(
             {"run_id": ns.run_id, "step": ns.step, "status": "pending"})
         _log.warning(
             "pipeline_worker: NO work-item claimed. run_id=%s step=%s "

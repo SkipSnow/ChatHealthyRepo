@@ -61,6 +61,7 @@ from typing import Any, Iterator
 from pymongo import ASCENDING, InsertOne
 
 from pipeline_dataset_registry import PipelineDatasetRegistry
+from chathealthy_lib.mongo_utilities import ChatHealthyMongoUtilities
 
 _log = ChatHealthyLoggingService()
 
@@ -385,28 +386,21 @@ def _stream_sha256(local_path: str) -> str:
     return h.hexdigest()
 
 
-_SOURCE_HASH_DB = "pipelineAdmin"
-_SOURCE_HASH_COLL = "staging_source_hashes"
 
 
-def _source_hash_coll():
-    """The hash record is metadata, so it lives with the other metadata on
-    the front-end cluster rather than beside the staging data it describes."""
-    from pipeline_db import get_metadata_db  # noqa: PLC0415
-    return get_metadata_db()[_SOURCE_HASH_COLL]
 
 
 def _prior_content_hash(mongo, coll_name: str) -> str | None:
     """Read the previously-loaded content hash for the given staging
     collection. Returns None if no record exists."""
-    row = _source_hash_coll().find_one({"_id": coll_name})
+    row = ChatHealthyMongoUtilities().getConnection("pipelineEditor", "ChatHealthyFrontEnd")["pipelineAdmin"]["staging_source_hashes"].find_one({"_id": coll_name})
     return (row or {}).get("content_hash")
 
 
 def _record_content_hash(mongo, coll_name: str, content_hash: str, row_count: int) -> None:
     """Upsert the freshly-loaded content hash so the next run can skip
     reload if the source hasn't changed."""
-    _source_hash_coll().replace_one(
+    ChatHealthyMongoUtilities().getConnection("pipelineEditor", "ChatHealthyFrontEnd")["pipelineAdmin"]["staging_source_hashes"].replace_one(
         {"_id": coll_name},
         {
             "_id": coll_name,

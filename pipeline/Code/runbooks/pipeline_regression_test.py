@@ -99,7 +99,6 @@ LOCATION = os.environ.get("AZ_VM_LOCATION", "eastus2")
 VNET = os.environ.get("AZ_VNET_NAME", "vnet-chathealthy-pipeline-dev")
 SUBNET = os.environ.get("AZ_SUBNET_NAME", "snet-pipeline-compute")
 VM_SIZE = os.environ.get("REGRESSION_VM_SIZE", "Standard_D2als_v7")
-RESULTS_COLLECTION = "pipeline.regression_results"
 HOST_LOG = "/var/log/chregtest.log"
 
 # Every name this runbook creates carries this marker, so anything it leaves
@@ -114,7 +113,7 @@ class PipelineRegressionTest:
         self._token = None
         self._mongo = ChatHealthyMongoUtilities().getConnection(
             "pipelineEditor", "ChatHealthyFrontEnd")
-        self._db = self._mongo[PIPELINE_ADMIN_DB]
+        self._db = self._mongo["pipelineAdmin"]
         self._created = []
         self._host_logs = {}
         self._headers = {}
@@ -716,7 +715,7 @@ class PipelineRegressionTest:
 
     def _record(self, function: str, result: dict) -> None:
         try:
-            self._db[RESULTS_COLLECTION].insert_one({
+            self._db["pipeline.regression_results"].insert_one({
                 "function": function,
                 "ran_at": datetime.now(timezone.utc),
                 "env": os.environ.get("ENV_PREFIX", "dev"),

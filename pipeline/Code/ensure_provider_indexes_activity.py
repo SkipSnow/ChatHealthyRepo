@@ -133,8 +133,16 @@ def _providers_collection_and_client(provider_collection: str | None) -> tuple:
     db_name, coll_name = fqn.split(".", 1)
     # serverSelectionTimeoutMS is short so each ping fails fast and the
     # _wait_for_cluster_ready poll loop drives the cadence.
+    # The PIPELINE cluster. Provider data -- PublicStaging and
+    # PipelinePublicHealthData -- lives there. Opening the front end built
+    # every index on a phantom collection MongoDB created on reference, so the
+    # step reported success while the real staging collection, nine million
+    # rows of it, kept no index at all. The ping loop above was equally
+    # useless: it waited on the always-on front end rather than on the cluster
+    # that has to come out of pause.
     from chathealthy_lib.mongo_utilities import ChatHealthyMongoUtilities
-    client = ChatHealthyMongoUtilities().getConnection("pipelineEditor", "ChatHealthyFrontEnd")
+    client = ChatHealthyMongoUtilities().getConnection(
+        "pipelineEditor", "ChatHealthyDataPipelines")
     return client[db_name][coll_name], client
 
 

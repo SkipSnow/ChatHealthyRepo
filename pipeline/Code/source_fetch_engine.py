@@ -76,6 +76,7 @@ import requests
 from source_url_discovery import find_latest_data_url
 from throttle_semaphore import RateLimitedGate
 from pipeline_db import PIPELINE_ADMIN_DB
+from chathealthy_lib.mongo_utilities import ChatHealthyMongoUtilities
 
 _log = ChatHealthyLoggingService()
 
@@ -545,11 +546,16 @@ def _purge_prior_run_transients(blob, container_name: str, current_run_id: str) 
 def _persist_versions_to_manifest(
     mongo, *, run_id: str, source_versions: dict[str, str]
 ) -> None:
-    """Write source_versions block to chathealthypipelines.pipeline.runs (LLD §3.6)."""
-    if mongo is None:
-        return
+    """Write source_versions block to pipelineAdmin.pipeline.runs (LLD §3.6).
+
+    The `mongo` handed in is the pipeline cluster, and pipeline.runs is on the
+    front end -- every reader of the manifest reads it there. Writing through
+    the caller's client put source_versions in a pipelineAdmin that MongoDB
+    manufactured on the pipeline cluster, so the manifest never gained the
+    block and no reader ever saw a source version.
+    """
     try:
-        coll = mongo[PIPELINE_ADMIN_DB]["pipeline.runs"]
+        coll = ChatHealthyMongoUtilities().getConnection("pipelineEditor", "ChatHealthyFrontEnd")[PIPELINE_ADMIN_DB]["pipeline.runs"]
         coll.update_one(
             {"run_id": run_id},
             {"$set": {"source_versions": source_versions, "updated_at": _now_iso()}},

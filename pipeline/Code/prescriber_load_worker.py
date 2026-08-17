@@ -19,6 +19,7 @@ from pymongo import UpdateOne
 from pipeline_worker_base import PipelineWorkerBase
 from blob_client import get_blob_service
 from pipeline_db import get_db
+from chathealthy_lib.mongo_utilities import ChatHealthyMongoUtilities
 
 _log = ChatHealthyLoggingService()
 
@@ -90,12 +91,6 @@ class PrescriberLoadWorker(PipelineWorkerBase):
         self._batch = []           # provider_quality writes
         self._provider_batch = []  # providers.can_prescribe.drugs writes
 
-    def _quality_collection(self):
-        return get_db(self.env_prefix)["provider_quality"]
-
-    def _provider_collection(self):
-        return get_db(self.env_prefix)["providers"]
-
     # ── PipelineWorkerBase contract ────────────────────────────────────────
 
     def _pipeline_open(self):
@@ -160,10 +155,10 @@ class PrescriberLoadWorker(PipelineWorkerBase):
 
         # Step B: Open cursor on ALL providers in our states
         state_filter = {"business_address.state": {"$in": self.states}}
-        total_providers = self._provider_collection().count_documents(state_filter)
+        total_providers = ChatHealthyMongoUtilities().getConnection("pipelineEditor", "ChatHealthyDataPipelines")["PipelinePublicHealthData"]["providers"].count_documents(state_filter)
         _log.info("Providers in %s: %d — building provider_quality for ALL", self.states, total_providers)
 
-        self._provider_cursor = self._provider_collection().find(
+        self._provider_cursor = ChatHealthyMongoUtilities().getConnection("pipelineEditor", "ChatHealthyDataPipelines")["PipelinePublicHealthData"]["providers"].find(
             state_filter,
             {"npi": 1, "business_address": 1,
     "practice_addresses": 1,
@@ -287,7 +282,7 @@ class PrescriberLoadWorker(PipelineWorkerBase):
 
     def _flush_batch(self):
         if self._batch:
-            self._quality_collection().bulk_write(self._batch, ordered=False)
+            ChatHealthyMongoUtilities().getConnection("pipelineEditor", "ChatHealthyDataPipelines")["PipelinePublicHealthData"]["provider_quality"].bulk_write(self._batch, ordered=False)
             self._npis_loaded += len(self._batch)
             _log.info("Batch: %d NPIs → provider_quality (total: %d, with Rx: %d)",
                       len(self._batch), self._npis_loaded, self._npis_with_rx)
@@ -295,7 +290,7 @@ class PrescriberLoadWorker(PipelineWorkerBase):
 
         # Dual-write: update providers.can_prescribe.drugs for FindCare
         if self._provider_batch:
-            self._provider_collection().bulk_write(self._provider_batch, ordered=False)
+            ChatHealthyMongoUtilities().getConnection("pipelineEditor", "ChatHealthyDataPipelines")["PipelinePublicHealthData"]["providers"].bulk_write(self._provider_batch, ordered=False)
             _log.info("  → %d NPIs updated in providers.can_prescribe.drugs",
                       len(self._provider_batch))
             self._provider_batch = []

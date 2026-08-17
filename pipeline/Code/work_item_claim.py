@@ -12,12 +12,10 @@ from datetime import datetime, timedelta, timezone
 # Coordination is metadata, so it lives in pipelineAdmin on the front-end
 # cluster, which answers while the pipeline cluster sleeps. The old value was
 # a CLUSTER name used as a database name and no identity is granted on it.
-WORK_ITEMS_DB = "pipelineAdmin"
-WORK_ITEMS_COLL = "pipeline.work_items"
 
 
 def _coll(mongo_client):
-    return mongo_client[WORK_ITEMS_DB][WORK_ITEMS_COLL]
+    return mongo_client["pipelineAdmin"]["pipeline.work_items"]
 
 
 def seed_work_items(

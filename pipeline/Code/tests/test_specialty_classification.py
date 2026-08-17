@@ -26,6 +26,7 @@ for _d in _pl.Path(__file__).resolve().parents:
             _sys.path.insert(0, str(_lib))
         break
 from chathealthy_lib.logging_service import ChatHealthyLoggingService
+from chathealthy_lib.mongo_utilities import ChatHealthyMongoUtilities
 
 _CH_LOG = ChatHealthyLoggingService()
 
@@ -35,21 +36,9 @@ _CH_LOG = ChatHealthyLoggingService()
 # connection string here and no fallback. Raises if the identity cannot
 # connect, which is the point -- a test that quietly connects as something
 # else proves nothing about production.
-def _ch_connection():
-    import sys as _sys, pathlib as _pl
-    for _d in _pl.Path(__file__).resolve().parents:
-        if (_d / ".git").exists():
-            _lib = _d / "ChatHealthyLib" / "src"
-            if str(_lib) not in _sys.path:
-                _sys.path.insert(0, str(_lib))
-            break
-    from chathealthy_lib.mongo_utilities import ChatHealthyMongoUtilities
-    return ChatHealthyMongoUtilities().getConnection("DevOpsUser", 'ChatHealthyFrontEnd')
-
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
 
 _ENV = os.environ.get("ENV_PREFIX", "dev")
-_DB_NAME = "PipelinePublicHealthData"
 
 
 def _get_connection_string():
@@ -59,8 +48,8 @@ def _get_connection_string():
 @pytest.fixture(scope="module")
 def specialty_coll():
     from pymongo import MongoClient
-    client = _ch_connection()
-    return client[_DB_NAME]["SpecialtyMetaData"]
+    client = ChatHealthyMongoUtilities().getConnection("DevOpsUser", "ChatHealthyDataPipelines")
+    return client["PipelinePublicHealthData"]["SpecialtyMetaData"]
 
 
 @pytest.fixture(scope="module")
@@ -232,8 +221,8 @@ class TestCrosswalkOnProviders:
     @pytest.fixture(scope="class")
     def providers_coll(self):
         from pymongo import MongoClient
-        client = _ch_connection()
-        return client[_DB_NAME]["providers"]
+        client = ChatHealthyMongoUtilities().getConnection("DevOpsUser", "ChatHealthyDataPipelines")
+        return client["PipelinePublicHealthData"]["providers"]
 
     def test_providers_have_can_prescribe(self, providers_coll):
         """DE providers should have can_prescribe flag."""

@@ -27,6 +27,7 @@ from datetime import datetime, timezone
 
 from pymongo import MongoClient, UpdateOne
 
+from chathealthy_lib.mongo_utilities import ChatHealthyMongoUtilities
 from code_labels import (
     state_label_of,
     country_label_of,
@@ -38,11 +39,6 @@ from code_labels import (
 # ── Mongo client ─────────────────────────────────────────────────────────────
 
 _mongo: MongoClient | None = None
-
-
-def _get_mongo_client() -> MongoClient:
-    from chathealthy_lib.mongo_utilities import ChatHealthyMongoUtilities
-    return ChatHealthyMongoUtilities().getConnection("pipelineEditor", "ChatHealthyFrontEnd")
 
 
 # ── NPPES field-prefix constants ─────────────────────────────────────────────
@@ -303,7 +299,7 @@ def normalize_provider_rows_worker_fn(config: dict) -> dict:
     batch_size = int(config.get("normalize_batch_size", 500))
 
     db_name, coll_name = provider_collection.split(".", 1)
-    coll = _get_mongo_client()[db_name][coll_name]
+    coll = ChatHealthyMongoUtilities().getConnection("pipelineEditor", "ChatHealthyFrontEnd")[db_name][coll_name]
 
     started_at = datetime.now(timezone.utc).isoformat()
     started_clock = time.monotonic()

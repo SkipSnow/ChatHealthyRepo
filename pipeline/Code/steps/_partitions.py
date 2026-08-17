@@ -32,6 +32,28 @@ def business_state_filter(state: str | None) -> dict:
     return {"business_address.state": state}
 
 
+def staged_state_filter(state: str | None) -> dict:
+    """The predicate selecting one partition's rows in a staging collection
+    that carries the provider's ACTUAL state on each row.
+
+    business_state_filter reads business_address.state on a provider record.
+    This reads a flat `state` field on a harvested row. Both need the same
+    sentinel handling and neither can borrow the other's field name, so the
+    sentinel is spelled out once here rather than a third and fourth time at
+    the call sites.
+    """
+    if not state:
+        return {}
+    if state == ALL_OTHERS:
+        return {"state": {"$nin": list(ALL_US_STATES)}}
+    return {"state": state}
+
+
+def is_full_scope(states: list[str] | None) -> bool:
+    """True when a states list means the whole country rather than a set."""
+    return bool(states) and len(states) == 1 and str(states[0]).upper() == "ALL"
+
+
 def state_partitions(states: list[str]) -> list[dict]:
     if states == ["ALL"] or not states:
         return [{"business_address_state": s} for s in ALL_US_STATES] + [{"business_address_state": ALL_OTHERS}]

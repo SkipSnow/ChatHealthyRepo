@@ -166,7 +166,6 @@ def _pst_now_iso():
     return now_utc.astimezone(timezone(offset)).isoformat()
 
 
-REAPER_STATE_COLLECTION = "pipeline.reaper_state"
 REAPER_STATE_ID = "reservation_reaper"
 
 
@@ -179,7 +178,7 @@ def _state_coll(client):
     account, credential and SDK holding one fact, and which never once worked
     in the Automation sandbox.
     """
-    return client[PIPELINE_ADMIN_DB][REAPER_STATE_COLLECTION]
+    return client["pipelineAdmin"]["pipeline.reaper_state"]
 
 
 def _read_failure_state(client):
@@ -338,8 +337,8 @@ class CorrectionPass:
 
     def __init__(self, client):
         self._client = client
-        self._runs = client[PIPELINE_ADMIN_DB]["pipeline.runs"]
-        self._lifecycle = client[DB_NAME][COLLECTION]
+        self._runs = client["pipelineAdmin"]["pipeline.runs"]
+        self._lifecycle = client["pipelineAdmin"]["cluster_lifecycle"]
         self._status = ChatHealthyPipelineJobStatus(client)
         self.outstanding: list[str] = []
         self.corrected: list[str] = []
@@ -490,8 +489,8 @@ def _main():
 
     # Uses pipelineEditor identity to access frontend cluster resources
     client = ChatHealthyMongoUtilities().getConnection("pipelineEditor", "ChatHealthyFrontEnd")
-    coll = client[DB_NAME][COLLECTION]
-    runs_coll = client[PIPELINE_ADMIN_DB]["pipeline.runs"]
+    coll = client["pipelineAdmin"]["cluster_lifecycle"]
+    runs_coll = client["pipelineAdmin"]["pipeline.runs"]
     reservations = list(coll.find({}))
     log.info("Loaded %d cluster_lifecycle rows from %s.%s",
              len(reservations), DB_NAME, COLLECTION)

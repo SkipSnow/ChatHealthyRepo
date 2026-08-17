@@ -30,12 +30,14 @@ from __future__ import annotations
 
 
 import time as _time
+from datetime import datetime, timezone
 from chathealthy_lib.logging_service import ChatHealthyLoggingService
 from chathealthy_lib.exceptions import ChatHealthyException
 
 from typing import Any
 
 from pymongo import UpdateOne
+from chathealthy_lib.mongo_utilities import ChatHealthyMongoUtilities
 
 
 _log = ChatHealthyLoggingService()
@@ -45,18 +47,31 @@ def _record_discrepancy(run_id: str, entry: dict) -> None:
     """Record one unresolved taxonomy code encountered during a run.
 
     This used to signal a Durable Functions entity named work_manager, which
-    no target has hosted since the Function App was retired -- so every
-    discrepancy raised here went nowhere. See LLD v42 sec. 6.9 Data Quality
-    and NUCC_SpecialtyCodeDataDiscrepancyManagement.docx for governance.
+    no target has hosted since the Function App was retired. It was then
+    reduced to a log line, which meant every unresolved taxonomy code was
+    written down where no report reads and none of them ever reached the
+    operator. It is persisted now, to the same collection every other
+    discrepancy uses. See LLD v42 sec. 6.9 Data Quality and
+    NUCC_SpecialtyCodeDataDiscrepancyManagement.docx for governance.
     """
-    _log.warning(
-        "provider_flags discrepancy run_id=%s npi=%s reason=%s code=%s message=%s",
-        run_id,
-        entry.get("npi"),
-        entry.get("reason", "unresolved_taxonomy_code"),
-        entry.get("code"),
-        entry.get("message"),
-    )
+    doc = {
+        "run_id": run_id,
+        "npi": entry.get("npi"),
+        "reason": entry.get("reason", "unresolved_taxonomy_code"),
+        "step": "provider_flags_enrichment",
+        "state": entry.get("state"),
+        "entity_kind": entry.get("entity_kind"),
+        "level": "warning",
+        "detail": {"code": entry.get("code"), "message": entry.get("message")},
+        "recorded_at": datetime.now(timezone.utc).isoformat(),
+    }
+    try:
+        ChatHealthyMongoUtilities().getConnection("pipelineEditor", "ChatHealthyFrontEnd")["pipelineAdmin"]["pipeline.discrepancies"].insert_one(doc)
+    except Exception as exc:  # noqa: BLE001 - a lost discrepancy must not end the run
+        _log.warning(
+            "provider_flags discrepancy could not be persisted run_id=%s npi=%s "
+            "code=%s (%s); it is recorded here only",
+            run_id, entry.get("npi"), entry.get("code"), exc)
 
 
 DEFAULT_BATCH = 500

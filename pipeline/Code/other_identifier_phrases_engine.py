@@ -82,8 +82,6 @@ def _bail_missing_scoped_states():
     )
 
 
-STAGING_DB = "PublicStaging"
-STAGING_COLL = "OtherIdentifierPhrases"
 
 _LLM_MODEL_ID = "google-gla:gemini-2.5-flash"
 _LLM_MODEL_NAME_FOR_AUDIT = "gemini-2.5-flash"
@@ -117,7 +115,7 @@ def _resolve_provider_collection(config: dict, mongo):
 
 
 def _resolve_staging_collection(mongo):
-    return mongo[STAGING_DB][STAGING_COLL]
+    return mongo["PublicStaging"]["OtherIdentifierPhrases"]
 
 
 # ── Stage 1: harvest ───────────────────────────────────────────────────────
@@ -152,8 +150,15 @@ def harvest_other_identifier_phrases(config: dict, *, mongo, blob=None) -> dict:
 
     if not scoped_states:
         _bail_missing_scoped_states()
+    # ["ALL"] is the whole country, not a state named ALL. It stays non-empty
+    # so the missing-scope guard above still fires on a genuinely unscoped
+    # call, and it means no state predicate at all -- which is the only way
+    # the territories, the military codes and the blank-state rows are ever
+    # harvested.
+    from steps._partitions import is_full_scope  # noqa: PLC0415
+    full_scope = is_full_scope(scoped_states)
     prior_deleted = staging_coll.delete_many(
-        {"state": {"$in": scoped_states}}
+        {"run_id": run_id} if full_scope else {"state": {"$in": scoped_states}}
     ).deleted_count
 
     # NPI-atomic ownership: partition by BUSINESS mailing address state.
@@ -163,7 +168,7 @@ def harvest_other_identifier_phrases(config: dict, *, mongo, blob=None) -> dict:
     provider_query: dict[str, Any] = {
         "other_identifiers": {"$exists": True, "$ne": []},
     }
-    if scoped_states:
+    if scoped_states and not full_scope:
         provider_query["business_address.state"] = {"$in": scoped_states}
 
     accumulator: dict[str, dict[str, Any]] = {}
@@ -176,7 +181,9 @@ def harvest_other_identifier_phrases(config: dict, *, mongo, blob=None) -> dict:
     "practice_addresses": 1, "_id": 0},
         no_cursor_timeout=True,
     )
-    scoped_set = set(scoped_states)
+    # Empty at full scope: every state a provider actually carries is in
+    # scope, including the ones that are not among the fifty-one.
+    scoped_set = set() if full_scope else set(scoped_states)
     try:
         for doc in cursor:
             scanned += 1
@@ -538,8 +545,9 @@ def classify_other_identifier_phrases(config: dict, *, mongo, blob=None) -> dict
     staging_coll = _resolve_staging_collection(mongo)
     phrase_cls, input_cls, output_cls = _build_pydantic_ai_schemas()
 
+    from steps._partitions import staged_state_filter  # noqa: PLC0415
     pending = list(staging_coll.find({
-        "state": state,
+        **staged_state_filter(state),
         "run_id": run_id,
         "classification": None,
     }))
@@ -699,8 +707,10 @@ def classify_other_identifier_phrases(config: dict, *, mongo, blob=None) -> dict
 
 def _state_classification_lookup(staging_coll, state: str, run_id: str) -> dict[str, dict]:
     """Return {phrase_state_id: staging_doc} for classified rows in state."""
+    from steps._partitions import staged_state_filter  # noqa: PLC0415
     lookup: dict[str, dict] = {}
-    query = {"state": state, "run_id": run_id, "classification": {"$ne": None}}
+    query = {**staged_state_filter(state), "run_id": run_id,
+             "classification": {"$ne": None}}
     for doc in staging_coll.find(query):
         lookup[doc["_id"]] = doc
     return lookup

@@ -61,7 +61,7 @@ class PipelineLogTail:
 
     def __init__(self, identity: str = "pipelineEditor") -> None:
         client = ChatHealthyMongoUtilities().getConnection(identity, "ChatHealthyFrontEnd")
-        self._db = client[ADMIN_DB]
+        self._db = client["pipelineAdmin"]
         if LOG_COLLECTION not in self._db.list_collection_names():
             _raise_no_log(ADMIN_DB, LOG_COLLECTION)
         self._collection = self._db[LOG_COLLECTION]

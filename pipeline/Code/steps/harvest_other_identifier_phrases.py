@@ -21,7 +21,11 @@ def run_step(ctx) -> dict:
     config = dict(ctx.config)
     config.setdefault("run_id", ctx.run_id)
     config.setdefault("provider_collection", ctx.provider_collection)
-    config.setdefault("states", list(ctx.args.resolved_states() or []))
+    # partition_states, not resolved_states: ["ALL"] survives as the whole
+    # country so harvest scans providers outside the fifty-one too. Handing it
+    # the explicit fifty-one made it skip every territory and military row,
+    # which classify and apply then could not find.
+    config.setdefault("states", list(ctx.args.partition_states() or []))
 
     result = harvest_other_identifier_phrases(
         config,

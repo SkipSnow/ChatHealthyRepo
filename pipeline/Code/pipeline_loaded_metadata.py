@@ -42,14 +42,13 @@ from datetime import datetime, timezone
 
 
 _METADATA_DB = "pipelineAdmin"  # metadata home, front-end cluster
-_METADATA_COLL = "pipeline.loaded_metadata"
 
 
 def read_metadata(frontend, publichealthdata_collection_name: str) -> dict | None:
     """Return the load-metadata doc for the versioned PipelinePublicHealthData
     collection (e.g. 'SpecialtyMetaData_v_3'), or None if no prior
     successful load exists. Reads from the FRONTEND cluster."""
-    return frontend[_METADATA_DB][_METADATA_COLL].find_one(
+    return frontend["pipelineAdmin"]["pipeline.loaded_metadata"].find_one(
         {"_id": publichealthdata_collection_name}
     )
 
@@ -151,7 +150,7 @@ def mark_loaded(
     A step MUST NOT call this on a fatal-error path -- absence of the
     doc is the signal that the next fire should reload.
     """
-    frontend_mongo[_METADATA_DB][_METADATA_COLL].update_one(
+    frontend_mongo["pipelineAdmin"]["pipeline.loaded_metadata"].update_one(
         {"_id": publichealthdata_collection_name},
         {
             "$set": {

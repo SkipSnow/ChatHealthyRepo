@@ -19,7 +19,7 @@ from datetime import datetime, timezone
 
 from pymongo import UpdateOne
 from blob_client import get_blob_service
-from pipeline_db import get_db
+from chathealthy_lib.mongo_utilities import ChatHealthyMongoUtilities
 
 _log = ChatHealthyLoggingService()
 
@@ -49,13 +49,13 @@ def _primary_county(provider: dict) -> dict:
 
 def _get_cached_indication(env_prefix, drug_name):
     """Check drug_indication_cache for existing mapping."""
-    coll = get_db(env_prefix)["drug_indication_cache"]
+    coll = ChatHealthyMongoUtilities().getConnection("pipelineEditor", "ChatHealthyDataPipelines")["PipelinePublicHealthData"]["drug_indication_cache"]
     return coll.find_one({"drug_name": drug_name.lower()}, {"_id": 0})
 
 
 def _cache_indication(env_prefix, drug_name, mapping):
     """Store drug → indication → ICD-10 mapping in cache."""
-    coll = get_db(env_prefix)["drug_indication_cache"]
+    coll = ChatHealthyMongoUtilities().getConnection("pipelineEditor", "ChatHealthyDataPipelines")["PipelinePublicHealthData"]["drug_indication_cache"]
     coll.update_one(
         {"drug_name": drug_name.lower()},
         {"$set": {
@@ -210,7 +210,7 @@ def enrich_all(env_prefix: str = "dev", states: list = None, batch_size: int = 1
       5. Copy taxonomy + enumeration date from provider record
     """
     _require_states(states, env_prefix)
-    db = get_db(env_prefix)
+    db = ChatHealthyMongoUtilities().getConnection("pipelineEditor", "ChatHealthyDataPipelines")["PipelinePublicHealthData"]
     quality_coll = db["provider_quality"]
     provider_coll = db["providers"]
 

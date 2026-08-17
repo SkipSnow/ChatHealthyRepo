@@ -22,7 +22,7 @@ from datetime import datetime, timezone
 import requests
 from pymongo import UpdateOne
 
-from pipeline_db import get_db
+from chathealthy_lib.mongo_utilities import ChatHealthyMongoUtilities
 
 _log = ChatHealthyLoggingService()
 
@@ -374,7 +374,7 @@ def umls_get_icd10(indication_text: str, api_key: str = None) -> list[str]:
 
 def _get_cached_crosswalk(env_prefix: str, molecule_name: str) -> dict | None:
     """Check drug_crosswalk_cache for an existing crosswalk entry."""
-    coll = get_db(env_prefix)["drug_crosswalk_cache"]
+    coll = ChatHealthyMongoUtilities().getConnection("pipelineEditor", "ChatHealthyDataPipelines")["PipelinePublicHealthData"]["drug_crosswalk_cache"]
     return coll.find_one(
         {"molecule": molecule_name.lower()},
         {"_id": 0},
@@ -383,7 +383,7 @@ def _get_cached_crosswalk(env_prefix: str, molecule_name: str) -> dict | None:
 
 def _cache_crosswalk(env_prefix: str, crosswalk: dict):
     """Store a crosswalk entry in drug_crosswalk_cache."""
-    coll = get_db(env_prefix)["drug_crosswalk_cache"]
+    coll = ChatHealthyMongoUtilities().getConnection("pipelineEditor", "ChatHealthyDataPipelines")["PipelinePublicHealthData"]["drug_crosswalk_cache"]
     coll.update_one(
         {"molecule": crosswalk["molecule"].lower()},
         {"$set": {
@@ -495,7 +495,7 @@ def enrich_providers_with_crosswalk(
       6. Dual-write to provider_quality collection
     """
     states = states or ["DE"]
-    db = get_db(env_prefix)
+    db = ChatHealthyMongoUtilities().getConnection("pipelineEditor", "ChatHealthyDataPipelines")["PipelinePublicHealthData"]
     provider_coll = db["providers"]
     quality_coll = db["provider_quality"]
 
@@ -710,7 +710,7 @@ def compute_specialty_baselines(
     Runs AFTER enrich_providers_with_crosswalk — needs all providers enriched.
     """
     states = states or ["DE"]
-    db = get_db(env_prefix)
+    db = ChatHealthyMongoUtilities().getConnection("pipelineEditor", "ChatHealthyDataPipelines")["PipelinePublicHealthData"]
     provider_coll = db["providers"]
 
     state_filter = {
