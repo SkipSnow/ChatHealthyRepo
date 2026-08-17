@@ -49,14 +49,9 @@ from pipeline_env import load_pipeline_env  # noqa: E402
 from chathealthy_lib.mongo_utilities import ChatHealthyMongoUtilities
 
 
-_PIPELINE_CLUSTER_NAME = os.environ.get(
-    "PIPELINE_CLUSTER_NAME", "ChatHealthyDataPipelines",
-)
-
-
 def _mongo_client() -> MongoClient:
     load_pipeline_env()
-    return ChatHealthyMongoUtilities().getConnection("DevOpsUser", "ChatHealthyFrontEnd")
+    return ChatHealthyMongoUtilities().getConnection("pipelineEditor", "ChatHealthyFrontEnd")
 
 
 def test_release_all_pipeline_state():
@@ -74,7 +69,7 @@ def test_release_all_pipeline_state():
 
     _CH_LOG.error("[release] before: cluster_lifecycle for pipeline cluster:")
     for r in client["pipelineAdmin"]["cluster_lifecycle"].find(
-        {"cluster_name": _PIPELINE_CLUSTER_NAME},
+        {"cluster_name": "ChatHealthyDataPipelines"},
     ).limit(20):
         _CH_LOG.error(f"  _id={r.get('_id')} status={r.get('status')} "
               f"requester={r.get('requester')}")
@@ -91,9 +86,19 @@ def test_release_all_pipeline_state():
           f"modified={abort_result.modified_count}")
 
     delete_result = client["pipelineAdmin"]["cluster_lifecycle"].delete_many(
-        {"cluster_name": _PIPELINE_CLUSTER_NAME},
+        {"cluster_name": "ChatHealthyDataPipelines"},
     )
     _CH_LOG.error(f"[release] cleared reservations: deleted={delete_result.deleted_count}")
+
+    # The mutual-exclusion lock carries only its _id -- no cluster_name and no
+    # status -- so the reservation filter above cannot see it. It is the row a
+    # new run collides with, so a release that leaves it standing has released
+    # nothing that matters, and this test asserted a clean slate it had not
+    # reached. Named by literal _id, which is checkable on sight.
+    lock_result = client["pipelineAdmin"]["cluster_lifecycle"].delete_one(
+        {"_id": "pipeline_lock:provider"},
+    )
+    _CH_LOG.error(f"[release] cleared provider lock: deleted={lock_result.deleted_count}")
 
     # Post-condition assertions.
     still_running = client["pipelineAdmin"]["pipeline.runs"].count_documents(
@@ -103,10 +108,16 @@ def test_release_all_pipeline_state():
         f"expected zero running provider runs after release, got {still_running}"
     )
     still_reserved = client["pipelineAdmin"]["cluster_lifecycle"].count_documents(
-        {"cluster_name": _PIPELINE_CLUSTER_NAME},
+        {"cluster_name": "ChatHealthyDataPipelines"},
     )
     assert still_reserved == 0, (
         f"expected zero pipeline cluster reservations after release, "
         f"got {still_reserved}"
+    )
+    still_locked = client["pipelineAdmin"]["cluster_lifecycle"].count_documents(
+        {"_id": "pipeline_lock:provider"},
+    )
+    assert still_locked == 0, (
+        f"expected the provider pipeline lock to be released, got {still_locked}"
     )
     _CH_LOG.error("[release] verified clean slate")
