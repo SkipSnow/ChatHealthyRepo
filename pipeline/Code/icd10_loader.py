@@ -47,7 +47,6 @@ def _get_mongo_client() -> MongoClient:
     return _mongo
 
 _ENV_PREFIX = os.environ.get("ENV_PREFIX", "dev")
-ICD10_COLLECTION = "PipelinePublicHealthData.ICD10Codes"
 
 
 class Icd10Fetcher(DataFetcherBase):
@@ -164,7 +163,7 @@ def load_icd10(config: dict = None, registry=None) -> dict:
             ),
             missing_field="registry",
         )
-    collection_name = config.get("icd10_collection", ICD10_COLLECTION)
+    collection_name = config.get("icd10_collection", "PipelinePublicHealthData.ICD10Codes")
     db_name, coll_name = collection_name.split(".", 1)
 
     fetcher = Icd10Fetcher(config, registry=registry)

@@ -75,7 +75,6 @@ import requests
 
 from source_url_discovery import find_latest_data_url
 from throttle_semaphore import RateLimitedGate
-from pipeline_db import PIPELINE_ADMIN_DB
 from chathealthy_lib.mongo_utilities import ChatHealthyMongoUtilities
 
 _log = ChatHealthyLoggingService()
@@ -555,7 +554,7 @@ def _persist_versions_to_manifest(
     block and no reader ever saw a source version.
     """
     try:
-        coll = ChatHealthyMongoUtilities().getConnection("pipelineEditor", "ChatHealthyFrontEnd")[PIPELINE_ADMIN_DB]["pipeline.runs"]
+        coll = ChatHealthyMongoUtilities().getConnection("pipelineEditor", "ChatHealthyFrontEnd")["pipelineAdmin"]["pipeline.runs"]
         coll.update_one(
             {"run_id": run_id},
             {"$set": {"source_versions": source_versions, "updated_at": _now_iso()}},

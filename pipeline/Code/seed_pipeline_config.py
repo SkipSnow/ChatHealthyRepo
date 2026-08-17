@@ -17,7 +17,6 @@ sys.path.insert(0, os.path.join(repo_root, "pipeline", "Code"))
 
 from chathealthy_lib.logging_service import ChatHealthyLoggingService
 
-from pipeline_db import PIPELINE_ADMIN_DB
 from chathealthy_lib.mongo_utilities import ChatHealthyMongoUtilities
 
 _log = ChatHealthyLoggingService()
@@ -45,7 +44,7 @@ def seed_config(env_prefix: str) -> None:
     )
     _log.info(
         "seeded %s.PipelineConfig from %s: matched=%s modified=%s upserted_id=%s",
-        PIPELINE_ADMIN_DB, env_prefix, result.matched_count,
+        "pipelineAdmin", env_prefix, result.matched_count,
         result.modified_count, result.upserted_id,
     )
 

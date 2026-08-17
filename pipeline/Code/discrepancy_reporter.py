@@ -21,7 +21,6 @@ from chathealthy_lib.mongo_utilities import ChatHealthyMongoUtilities
 # else: pipelineAdmin on the front end. It wrote to `admin`, MongoDB's reserved
 # system database, which is owned by neither cluster and which no reader of
 # pipeline metadata has ever looked in.
-REPORT_COLLECTION = "pipelineAdmin.PipelineDiscrepancyReports"
 
 
 class DiscrepancyReporter:
@@ -131,7 +130,7 @@ class DiscrepancyReporter:
 
         db_name, coll_name = "pipelineAdmin.PipelineDiscrepancyReports".split(".", 1)
         ChatHealthyMongoUtilities().getConnection("pipelineEditor", "ChatHealthyFrontEnd")[db_name][coll_name].insert_one(report)
-        ChatHealthyLoggingService().info("Discrepancy report written to %s for load_id=%s", REPORT_COLLECTION, load_id)
+        ChatHealthyLoggingService().info("Discrepancy report written to %s for load_id=%s", "pipelineAdmin.PipelineDiscrepancyReports", load_id)
 
         # ── SparkPost email notification ──────────────────────────────────────
         status_line = "Reconciled OK" if reconcile_match else "MISMATCH — INVESTIGATE"
@@ -182,7 +181,7 @@ class DiscrepancyReporter:
             ChatHealthyLoggingService().warning("SparkPost credentials not configured — load_id: %s", load_id)
 
         return {
-            "report_collection": REPORT_COLLECTION,
+            "report_collection": "pipelineAdmin.PipelineDiscrepancyReports",
             "total_loaded": total_loaded,
             "reconcile_match": reconcile_match,
         }

@@ -23,7 +23,6 @@ import datetime
 import pathlib
 import sys
 import time
-from chathealthy_lib.mongo_utilities import ChatHealthyMongoUtilities
 
 # The modules this reads live beside the pipeline, not beside this file. The
 # usage line above says to run it from the repository root, which could not
@@ -34,6 +33,7 @@ for _parent in _HERE.parents:
         sys.path.insert(0, str(_parent / "pipeline" / "Code"))
         sys.path.insert(0, str(_parent / "ChatHealthyLib" / "src"))
         break
+from chathealthy_lib.mongo_utilities import ChatHealthyMongoUtilities
 
 DONE = ("completed", "succeeded", "done")
 FAILED = ("failed", "error")

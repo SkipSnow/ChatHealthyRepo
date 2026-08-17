@@ -52,7 +52,6 @@ from pipeline_fatal_recorder import record_fatal_discrepancy
 _log = ChatHealthyLoggingService()
 
 # Pipeline cluster coordination DB (per operator directive 2026-08-03).
-from pipeline_db import PIPELINE_ADMIN_DB
 _CHUNK_BYTES = 1024 * 1024
 _TRANSIENT_CONTAINER = "pipeline-transients"
 

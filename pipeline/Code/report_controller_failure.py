@@ -23,7 +23,6 @@ from chathealthy_lib.logging_service import (
 set_mongo_log_identity("pipelineEditor")
 log = ChatHealthyLoggingService()
 
-PIPELINE_ADMIN_DB = "pipelineAdmin"
 
 
 def _detail() -> str:

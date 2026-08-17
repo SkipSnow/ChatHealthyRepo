@@ -14,7 +14,6 @@ from typing import Any
 
 from pipeline_config import load_pipeline_config
 from pipeline_dataset_registry import PipelineDatasetRegistry
-from pipeline_db import PIPELINE_ADMIN_DB
 from staging_loader import staging_collection_name, staging_db_name
 from chathealthy_lib.mongo_utilities import ChatHealthyMongoUtilities
 
@@ -114,19 +113,17 @@ class PipelineRuntime:
 
     @property
     def discrepancies_coll(self):
-        coll_name = "pipeline.discrepancies"
         if os.environ.get("PIPELINE_TEST_MODE", "").lower() in ("1", "true", "yes"):
             from pipeline_test_config import TEST_DISCREPANCIES_COLL
-            coll_name = TEST_DISCREPANCIES_COLL.split(".", 1)[-1]
-        return self.frontend[PIPELINE_ADMIN_DB][coll_name]
+            return self.frontend["pipelineAdmin"][TEST_DISCREPANCIES_COLL.split(".", 1)[-1]]
+        return self.frontend["pipelineAdmin"]["pipeline.discrepancies"]
 
     @property
     def runs_coll(self):
-        coll_name = "pipeline.runs"
         if os.environ.get("PIPELINE_TEST_MODE", "").lower() in ("1", "true", "yes"):
             from pipeline_test_config import TEST_RUNS_COLL
-            coll_name = TEST_RUNS_COLL.split(".", 1)[-1]
-        return self.frontend[PIPELINE_ADMIN_DB][coll_name]
+            return self.frontend["pipelineAdmin"][TEST_RUNS_COLL.split(".", 1)[-1]]
+        return self.frontend["pipelineAdmin"]["pipeline.runs"]
 
     @property
     def reports_container(self) -> str:
@@ -182,4 +179,4 @@ class PipelineRuntime:
         return self.discrepancies_coll
 
     def reservations_collection(self):
-        return self.frontend[PIPELINE_ADMIN_DB]["cluster_lifecycle"]
+        return self.frontend["pipelineAdmin"]["cluster_lifecycle"]

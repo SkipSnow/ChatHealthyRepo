@@ -36,7 +36,6 @@ from chathealthy_lib.logging_service import ChatHealthyLoggingService
 import os
 
 from source_freshness_probe import probe_source_version
-from pipeline_db import PIPELINE_ADMIN_DB
 from chathealthy_lib.mongo_utilities import ChatHealthyMongoUtilities
 
 _log = ChatHealthyLoggingService()
@@ -63,7 +62,7 @@ def _archived_blob_exists(mongo, source_name: str) -> bool:
     DataSourceRegistry row. Freshness reuse requires both (a) the source
     hasn't changed AND (b) we actually still have the last-archived
     bytes to reuse."""
-    doc = mongo[PIPELINE_ADMIN_DB]["DataSourceRegistry"].find_one({"source_name": source_name}) or {}
+    doc = mongo["pipelineAdmin"]["DataSourceRegistry"].find_one({"source_name": source_name}) or {}
     return bool(doc.get("archive_blob"))
 
 
@@ -74,7 +73,7 @@ def execute(ctx) -> dict:
     # one on reference rather than failing -- so every freshness lookup missed
     # and every source was re-fetched as though never seen.
     mongo = ChatHealthyMongoUtilities().getConnection("pipelineEditor", "ChatHealthyFrontEnd")
-    registry = mongo[PIPELINE_ADMIN_DB]["DataSourceRegistry"]
+    registry = mongo["pipelineAdmin"]["DataSourceRegistry"]
     freshness_list = ctx.config.get("source_freshness") or []
     # `source_freshness` mirrors chathealthyfrontend.pipeline.config.
     # Each entry: {source_name, number_of_days?, always_refetch?}.

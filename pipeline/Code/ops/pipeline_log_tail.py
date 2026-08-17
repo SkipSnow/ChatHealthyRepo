@@ -44,7 +44,6 @@ from chathealthy_lib.mongo_utilities import ChatHealthyMongoUtilities  # noqa: E
 
 log = ChatHealthyLoggingService()
 
-ADMIN_DB = "pipelineAdmin"
 LOG_COLLECTION = "Log"
 
 
@@ -63,7 +62,7 @@ class PipelineLogTail:
         client = ChatHealthyMongoUtilities().getConnection(identity, "ChatHealthyFrontEnd")
         self._db = client["pipelineAdmin"]
         if LOG_COLLECTION not in self._db.list_collection_names():
-            _raise_no_log(ADMIN_DB, LOG_COLLECTION)
+            _raise_no_log("pipelineAdmin", LOG_COLLECTION)
         self._collection = self._db[LOG_COLLECTION]
         self._seen = set()
 
@@ -121,7 +120,7 @@ def main() -> int:
 
     tail = PipelineLogTail(args.identity)
     after = tail.since(args.minutes)
-    log.info("tailing %s.%s from %s", ADMIN_DB, LOG_COLLECTION,
+    log.info("tailing %s.%s from %s", "pipelineAdmin", LOG_COLLECTION,
              after.strftime("%H:%M:%S"))
 
     quiet_polls = 0

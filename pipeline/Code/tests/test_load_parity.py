@@ -25,7 +25,6 @@ for _d in _pl.Path(__file__).resolve().parents:
             _sys.path.insert(0, str(_lib))
         break
 from chathealthy_lib.logging_service import ChatHealthyLoggingService
-from chathealthy_lib.mongo_utilities import ChatHealthyMongoUtilities
 
 _CH_LOG = ChatHealthyLoggingService()
 
@@ -36,6 +35,7 @@ _CH_LOG = ChatHealthyLoggingService()
 # connect, which is the point -- a test that quietly connects as something
 # else proves nothing about production.
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
+from chathealthy_lib.mongo_utilities import ChatHealthyMongoUtilities
 
 _log = ChatHealthyLoggingService()
 

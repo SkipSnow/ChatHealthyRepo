@@ -17,7 +17,6 @@ from __future__ import annotations
 from chathealthy_lib.logging_service import ChatHealthyLoggingService
 from chathealthy_lib.exceptions import ChatHealthyException
 from pipeline_fatal_recorder import is_log_db_fatal
-from pipeline_db import PIPELINE_ADMIN_DB
 
 # Distinct from a step failure: the logging substrate never came up.
 EXIT_LOG_DB_FATAL = 78
@@ -145,7 +144,7 @@ def _report_to_controller(run_id, step, status: str, reason: str, detail: str) -
     would replace the real reason with this function's own failure.
     """
     try:
-        wi = ChatHealthyMongoUtilities().getConnection("pipelineEditor", "ChatHealthyFrontEnd")[PIPELINE_ADMIN_DB]["pipeline.work_items"]
+        wi = ChatHealthyMongoUtilities().getConnection("pipelineEditor", "ChatHealthyFrontEnd")["pipelineAdmin"]["pipeline.work_items"]
         wi.update_one(
             {"run_id": run_id, "step": step or os.environ.get("PIPELINE_STEP")},
             {"$set": {"status": status, "reason": reason, "detail": detail}},

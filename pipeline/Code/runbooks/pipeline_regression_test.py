@@ -49,7 +49,6 @@ import urllib.parse
 import urllib.request
 from datetime import datetime, timedelta, timezone
 
-PIPELINE_ADMIN_DB = "pipelineAdmin"
 
 from chathealthy_lib.logging_service import (  # noqa: E402
     ChatHealthyLoggingService, set_mongo_log_identity)

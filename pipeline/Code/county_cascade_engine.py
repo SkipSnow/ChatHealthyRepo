@@ -61,7 +61,6 @@ import requests
 from pymongo import UpdateOne
 
 from throttle_semaphore import RateLimitedConcurrencyGate, RateLimitedGate
-from pipeline_db import PIPELINE_ADMIN_DB
 from chathealthy_lib.mongo_utilities import ChatHealthyMongoUtilities
 
 # Retry policy for HTTP fetches in the cascade. Vendor endpoints (Census
@@ -1189,7 +1188,7 @@ def run_county_cascade(
     # cluster. Writing discrepancies through it put them in a database the
     # discrepancy report never reads, which is why a run could resolve
     # thousands of unresolvable addresses and still report zero discrepancies.
-    discrepancies_coll = ChatHealthyMongoUtilities().getConnection("pipelineEditor", "ChatHealthyFrontEnd")[PIPELINE_ADMIN_DB]["pipeline.discrepancies"]
+    discrepancies_coll = ChatHealthyMongoUtilities().getConnection("pipelineEditor", "ChatHealthyFrontEnd")["pipelineAdmin"]["pipeline.discrepancies"]
 
     _log.info(
         "county_cascade: funnel entering run_id=%s state=%s sla_target=%.3f google_enabled=%s "

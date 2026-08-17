@@ -31,7 +31,6 @@ import threading
 import time
 import traceback
 
-from pipeline_db import PIPELINE_ADMIN_DB
 from blob_client import get_blob_service
 from step_context import PipelineArgs, RunManifest, StepContext, StepTransition
 from steps import get_runner
@@ -40,14 +39,12 @@ from chathealthy_lib.mongo_utilities import ChatHealthyMongoUtilities
 _log = ChatHealthyLoggingService()
 
 HEARTBEAT_INTERVAL_S = 120     # v32 §4.3.4
-WORK_ITEMS_COLLECTION = "pipeline.work_items"
 # The coordination substrate the Controller actually writes to. It enqueues
-# every work item with ChatHealthyMongoUtilities().getConnection("pipelineEditor", "ChatHealthyFrontEnd")[PIPELINE_ADMIN_DB], and this read
+# every work item with ChatHealthyMongoUtilities().getConnection("pipelineEditor", "ChatHealthyFrontEnd")["pipelineAdmin"], and this read
 # the database "chathealthypipelines" through get_mongo() -- a different
 # database on a different accessor. Workers therefore claimed nothing, logged
 # nothing after startup, and the Controller waited on "remaining=1" until it
 # timed out. Both sides must name the same place, so they name it once.
-COORD_DB = PIPELINE_ADMIN_DB
 
 
 # ─────────────────────────────────────────────────────────────────────────────
@@ -266,7 +263,7 @@ def main(argv: list[str] | None = None) -> int:
             "db=%s coll=%s items_for_this_run=%d still_pending_for_this_step=%d. "
             "The Controller is waiting on a claim that will never come.",
             ns.run_id, ns.step,
-            COORD_DB, WORK_ITEMS_COLLECTION, pending, unclaimed,
+            "pipelineAdmin", "pipeline.work_items", pending, unclaimed,
         )
         return 0
 
