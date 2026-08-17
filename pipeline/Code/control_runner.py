@@ -40,8 +40,15 @@ os.environ.setdefault("CH_LOG_DESTINATION", "stderr,mongo")
 os.environ.setdefault("CH_SPACE_NAME", "controller")
 os.environ.setdefault("CH_COMPONENT", "provider_pipeline_control")
 
-from chathealthy_lib.logging_service import ChatHealthyLoggingService
+from chathealthy_lib.logging_service import (
+    ChatHealthyLoggingService, set_mongo_log_identity)
 from chathealthy_lib.exceptions import ChatHealthyException
+
+# The identity is named here because CH_LOG_DESTINATION above asks for mongo,
+# and the mongo handler refuses to wire without one. It used to arrive as a
+# side effect of importing pipeline_db; that import went away with the helpers
+# it existed for, and took the identity with it, so the first _log call died.
+set_mongo_log_identity("pipelineEditor")
 
 import argparse
 import datetime
