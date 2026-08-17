@@ -50,7 +50,6 @@ from azure.identity import ClientSecretCredential, ManagedIdentityCredential
 from azure.keyvault.secrets import SecretClient
 
 import blob_logger
-import chathealthy_ca
 from PipelineServices.observability_gate import ObservabilityGate
 from chathealthy_lib.exceptions import ChatHealthyException
 
@@ -82,6 +81,12 @@ KV_CA_PREFIX = "ca-"                # every CA secret, public and private
 KV_LEGACY_CERT_PREFIX = "certs-"    # superseded certs-pipeline-* secrets
 KV_CA_PUBLIC = "ca-root-cert"
 KV_CA_INTERMEDIATE_CHAIN = "ca-intermediate-cert"
+
+# Where the deploy's image bake writes the two public CA certs. The
+# Dockerfile writes these exact paths; this end reads them.
+CA_CHAIN_DIR = os.environ.get("CHATHEALTHY_CA_DIR", "/etc/chathealthy/ca")
+CA_INTERMEDIATE_CERT_PATH = os.path.join(CA_CHAIN_DIR, "intermediate.pem")
+CA_ROOT_CERT_PATH = os.path.join(CA_CHAIN_DIR, "root.pem")
 
 
 PIPELINE_IDENTITY = "pipelineEditor"
@@ -269,8 +274,8 @@ def _materialize_ca_chain(
     Prefer the image-baked chain at /etc/chathealthy/ca/ (deploy places
     it via ADD in the Dockerfile). Fall back to KV read via MI when the
     baked chain is absent (local dev / not-yet-baked images)."""
-    intermediate_path = Path(chathealthy_ca.CA_INTERMEDIATE_CERT_PATH)
-    root_path = Path(chathealthy_ca.CA_ROOT_CERT_PATH)
+    intermediate_path = Path(CA_INTERMEDIATE_CERT_PATH)
+    root_path = Path(CA_ROOT_CERT_PATH)
     if intermediate_path.is_file() and root_path.is_file():
         # Concatenate on disk into one PEM that pymongo's tlsCAFile
         # option accepts. Preserve trailing newline.

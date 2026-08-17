@@ -26,7 +26,7 @@ from chathealthy_lib.exceptions import ChatHealthyException
 from chathealthy_lib.llm import run_llm_sync
 
 CLASSIFIER_MODEL_NAME = "gemini-2.5-flash-lite"
-CLASSIFIER_VERSION = 1
+CLASSIFIER_VERSION = 2
 
 
 class Tone(str, Enum):
@@ -60,6 +60,7 @@ class UtteranceClass(str, Enum):
     reprimand = "reprimand"
     architecture = "architecture"
     apology = "apology"
+    greeting = "greeting"
     unclassified = "unclassified"
 
 
@@ -99,6 +100,8 @@ MESSAGE CLASS - what it was doing:
   reprimand       rebukes the recipient for conduct; about conduct, not facts
   architecture    settles structure: components, ownership, how parts relate
   apology         accepts fault for one's own conduct
+  greeting        opens or sustains social contact only; hi/hello/hey and
+                  equivalent phatic openers with no work content
   unclassified    a bare identifier, path or token with no surrounding sentence
 
 Return exactly one tone and one message class."""

@@ -127,3 +127,7 @@ architecture/EngineeringRuleEnforcement/ArchitectureDesignAndAuditDocs/llm_class
 .claude/first-run
 .claude/assistant-daemon-state.json
 architecture/EngineeringRuleEnforcement/tests/_cold_start_seconds.txt
+
+# Operator-only tooling. Never committed, never built, never deployed.
+_operator/
+**/_operator/
