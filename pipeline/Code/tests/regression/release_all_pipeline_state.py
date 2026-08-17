@@ -46,7 +46,6 @@ _CH_LOG = ChatHealthyLoggingService()
 _REPO_ROOT = Path(__file__).resolve().parents[4]
 sys.path.insert(0, str(_REPO_ROOT / "pipeline" / "Code"))
 from pipeline_env import load_pipeline_env  # noqa: E402
-from pipeline_db import PIPELINE_ADMIN_DB
 from chathealthy_lib.mongo_utilities import ChatHealthyMongoUtilities
 
 
@@ -67,21 +66,21 @@ def test_release_all_pipeline_state():
     client = _mongo_client()
 
     _CH_LOG.error("[release] before: pipeline.runs status=running for provider:")
-    for r in client[PIPELINE_ADMIN_DB]["pipeline.runs"].find(
+    for r in client["pipelineAdmin"]["pipeline.runs"].find(
         {"pipeline_name": "provider", "status": "running"},
         {"run_id": 1, "started_at": 1},
     ).limit(20):
         _CH_LOG.error(f"  {r.get('run_id')} started={r.get('started_at')}")
 
     _CH_LOG.error("[release] before: cluster_lifecycle for pipeline cluster:")
-    for r in client[PIPELINE_ADMIN_DB]["cluster_lifecycle"].find(
+    for r in client["pipelineAdmin"]["cluster_lifecycle"].find(
         {"cluster_name": _PIPELINE_CLUSTER_NAME},
     ).limit(20):
         _CH_LOG.error(f"  _id={r.get('_id')} status={r.get('status')} "
               f"requester={r.get('requester')}")
 
     aborted_iso = datetime.datetime.utcnow().isoformat()
-    abort_result = client[PIPELINE_ADMIN_DB]["pipeline.runs"].update_many(
+    abort_result = client["pipelineAdmin"]["pipeline.runs"].update_many(
         {"pipeline_name": "provider", "status": "running"},
         {"$set": {
             "status": "aborted_release_all",
@@ -91,19 +90,19 @@ def test_release_all_pipeline_state():
     _CH_LOG.error(f"[release] aborted runs: matched={abort_result.matched_count} "
           f"modified={abort_result.modified_count}")
 
-    delete_result = client[PIPELINE_ADMIN_DB]["cluster_lifecycle"].delete_many(
+    delete_result = client["pipelineAdmin"]["cluster_lifecycle"].delete_many(
         {"cluster_name": _PIPELINE_CLUSTER_NAME},
     )
     _CH_LOG.error(f"[release] cleared reservations: deleted={delete_result.deleted_count}")
 
     # Post-condition assertions.
-    still_running = client[PIPELINE_ADMIN_DB]["pipeline.runs"].count_documents(
+    still_running = client["pipelineAdmin"]["pipeline.runs"].count_documents(
         {"pipeline_name": "provider", "status": "running"},
     )
     assert still_running == 0, (
         f"expected zero running provider runs after release, got {still_running}"
     )
-    still_reserved = client[PIPELINE_ADMIN_DB]["cluster_lifecycle"].count_documents(
+    still_reserved = client["pipelineAdmin"]["cluster_lifecycle"].count_documents(
         {"cluster_name": _PIPELINE_CLUSTER_NAME},
     )
     assert still_reserved == 0, (

@@ -41,7 +41,6 @@ from __future__ import annotations
 from datetime import datetime, timezone
 
 
-_METADATA_DB = "pipelineAdmin"  # metadata home, front-end cluster
 
 
 def read_metadata(frontend, publichealthdata_collection_name: str) -> dict | None:

@@ -74,7 +74,6 @@ class CrosswalkFetcher(DataFetcherBase):
     def blob_name(self) -> str:
         return "census_zcta_county_2020.txt"
 
-CROSSWALK_COLLECTION = "PipelinePublicHealthData.ZipCountyCrosswalk"
 SPLIT_THRESHOLD = 0.98
 
 
@@ -95,7 +94,7 @@ def load_crosswalk(config: dict = None, registry=None) -> dict:
             ),
             missing_field="registry",
         )
-    collection_name = config.get("crosswalk_collection", CROSSWALK_COLLECTION)
+    collection_name = config.get("crosswalk_collection", "PipelinePublicHealthData.ZipCountyCrosswalk")
     db_name, coll_name = collection_name.split(".", 1)
 
     fetcher = CrosswalkFetcher(config, registry=registry)

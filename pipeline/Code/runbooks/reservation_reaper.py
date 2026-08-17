@@ -78,7 +78,6 @@ sys.stderr.write("reaper: module import begin\n")
 # constant rather than importing pipeline_db, which is not deployed beside
 # it. That import is what killed every 15-minute tick with
 # ModuleNotFoundError, before the runbook could say anything at all.
-PIPELINE_ADMIN_DB = "pipelineAdmin"
 
 # pipeline_db was also where the logging identity got named. Naming it here
 # is not optional: without it the handler raises mongo_log_identity_not_set
@@ -139,8 +138,6 @@ AZ_AA            = os.environ.get("AZ_AUTOMATION_ACCOUNT", "ChatHealthyJobManage
 SPARKPOST_KEY    = os.environ.get("SPARKMAIL_API_KEY", "")
 EMAIL_FROM       = os.environ.get("NOTIFICATION_FROM_EMAIL", "Skip.Snow@mail.chatHealthy.ai")
 EMAIL_TO         = os.environ.get("NOTIFICATION_TO_EMAIL", "Skip@chatHealthy.ai")
-DB_NAME          = PIPELINE_ADMIN_DB
-COLLECTION       = "cluster_lifecycle"
 ATLAS_BASE       = f"https://cloud.mongodb.com/api/atlas/v2/groups/{ATLAS_PROJECT}"
 ATLAS_CLUSTER_URL= f"{ATLAS_BASE}/clusters/{CLUSTER_NAME}"
 ATLAS_HEADERS    = {
@@ -493,7 +490,7 @@ def _main():
     runs_coll = client["pipelineAdmin"]["pipeline.runs"]
     reservations = list(coll.find({}))
     log.info("Loaded %d cluster_lifecycle rows from %s.%s",
-             len(reservations), DB_NAME, COLLECTION)
+             len(reservations), "pipelineAdmin", "cluster_lifecycle")
 
     # REQ-B-002: a run recorded as going whose Controller is not must be
     # corrected, whether or not it left a lock behind.

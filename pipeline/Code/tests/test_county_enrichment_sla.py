@@ -40,14 +40,13 @@ _CH_LOG = ChatHealthyLoggingService()
 # connect, which is the point -- a test that quietly connects as something
 # else proves nothing about production.
 SLA_THRESHOLD = 0.97
-DEFAULT_COLLECTION = "PipelinePublicHealthData.providers"
 
 
 def _connect():
     """Return the providers collection. Raises pytest.skip if no Mongo URI."""
     from pymongo import MongoClient
 
-    coll_path = os.environ.get("PROVIDER_COLLECTION", DEFAULT_COLLECTION)
+    coll_path = os.environ.get("PROVIDER_COLLECTION", "PipelinePublicHealthData.providers")
     db_name, coll_name = coll_path.split(".", 1)
     client = ChatHealthyMongoUtilities().getConnection("DevOpsUser", "ChatHealthyDataPipelines")
     return client[db_name][coll_name], coll_path

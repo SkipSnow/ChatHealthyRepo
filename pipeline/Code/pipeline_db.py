@@ -44,6 +44,5 @@ def _validate_env(env_prefix: str) -> str:
 # else. Physical pipeline DATA (provider collections, staging) is separate and
 # lives on the pipelines target. Named once, by the report service every
 # pipeline shares.
-from chathealthy_lib.discrepancy_report import PIPELINE_ADMIN_DB  # noqa: F401
 
 

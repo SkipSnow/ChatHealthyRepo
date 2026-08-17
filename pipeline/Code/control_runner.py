@@ -52,7 +52,6 @@ import sys
 from chathealthy_lib.mongo_utilities import ChatHealthyMongoUtilities
 
 from blob_client import get_blob_service
-from pipeline_db import PIPELINE_ADMIN_DB
 from pipeline_env import load_pipeline_env
 from provider_pipeline_orchestrator import ProviderPipelineOrchestrator
 from step_context import PipelineArgs
@@ -275,7 +274,7 @@ def main(argv: list[str] | None = None) -> int:
                 # alone. Without it a reader had to recover the run id from
                 # /proc/<pid>/environ on the host, which is only possible
                 # while the host still answers.
-                m[PIPELINE_ADMIN_DB]["pipeline.runs"].update_one(
+                m["pipelineAdmin"]["pipeline.runs"].update_one(
                     {"run_id": rid},
                     {"$set": {"controller_heartbeat_at": now,
                               "controller_pid": os.getpid(),
@@ -285,7 +284,7 @@ def main(argv: list[str] | None = None) -> int:
                 # the initial 10h TTL is not reaped by reservation_reaper.
                 # Reaper reads expiry_at (post-fix); Watchdog reads
                 # controller_heartbeat_at on the manifest.
-                m[PIPELINE_ADMIN_DB]["cluster_lifecycle"].update_one(
+                m["pipelineAdmin"]["cluster_lifecycle"].update_one(
                     {"_id": rid},
                     {"$set": {
                         "expiry_at": now + datetime.timedelta(hours=_RENEWAL_HOURS),
@@ -387,7 +386,7 @@ def _fatal_on_worker_log_db_reports(run_id: str) -> None:
     try:
         from pipeline_fatal_recorder import record_fatal_discrepancy
         wi = ChatHealthyMongoUtilities().getConnection("pipelineEditor", "ChatHealthyFrontEnd")
-        rows = list(wi[PIPELINE_ADMIN_DB]["pipeline.work_items"].find(
+        rows = list(wi["pipelineAdmin"]["pipeline.work_items"].find(
             {"run_id": run_id, "reason": {"$regex": "^log_db_fatal:"}},
             {"step": 1, "reason": 1, "detail": 1},
         ))
@@ -516,7 +515,7 @@ def _quiesce_mongo_state(run_id: str, final_status: str, *,
                    run_id, str(exc)[:500])
         return
     try:
-        mongo[PIPELINE_ADMIN_DB]["cluster_lifecycle"].delete_one({"_id": run_id})
+        mongo["pipelineAdmin"]["cluster_lifecycle"].delete_one({"_id": run_id})
         _log.info("quiesce: reservation cancelled run_id=%s", run_id)
     except Exception as exc:
         _log.error("quiesce: reservation cancel FAILED run_id=%s err=%s",
@@ -530,7 +529,7 @@ def _quiesce_mongo_state(run_id: str, final_status: str, *,
     pipeline_name = os.environ.get("PIPELINE_NAME", "")
     if pipeline_name:
         try:
-            r = mongo[PIPELINE_ADMIN_DB]["cluster_lifecycle"].delete_one({
+            r = mongo["pipelineAdmin"]["cluster_lifecycle"].delete_one({
                 "_id": f"pipeline_lock:{pipeline_name}",
                 "run_id": run_id,
             })
@@ -544,7 +543,7 @@ def _quiesce_mongo_state(run_id: str, final_status: str, *,
                 pipeline_name, run_id, str(exc)[:500],
             )
     try:
-        mongo[PIPELINE_ADMIN_DB]["pipeline.runs"].update_one(
+        mongo["pipelineAdmin"]["pipeline.runs"].update_one(
             {"run_id": run_id},
             {"$set": {
                 "status": final_status,
@@ -562,7 +561,7 @@ def _quiesce_mongo_state(run_id: str, final_status: str, *,
     # completion path.
     if final_status != "succeeded":
         try:
-            res = mongo[PIPELINE_ADMIN_DB]["pipeline.work_items"].update_many(
+            res = mongo["pipelineAdmin"]["pipeline.work_items"].update_many(
                 {"run_id": run_id,
                  "status": {"$nin": ["completed", "done", "failed"]}},
                 {"$set": {

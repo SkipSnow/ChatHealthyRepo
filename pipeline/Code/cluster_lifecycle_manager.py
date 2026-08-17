@@ -26,7 +26,6 @@ from datetime import datetime, timezone, timedelta
 import requests
 from pymongo.errors import DuplicateKeyError
 from requests.auth import HTTPDigestAuth
-from pipeline_db import PIPELINE_ADMIN_DB
 from chathealthy_lib.mongo_utilities import ChatHealthyMongoUtilities
 
 _log = ChatHealthyLoggingService()
@@ -120,8 +119,11 @@ class ClusterLifecycleManager:
         self._push = push_fn
 
     def _coll(self):
-        client = self._ChatHealthyMongoUtilities().getConnection("pipelineEditor", "ChatHealthyDataPipelines")["PipelinePublicHealthData"]
-        return client[PIPELINE_ADMIN_DB]["cluster_lifecycle"] if client is not None else None
+        # The reservation says whether the pipeline cluster is wanted, so it
+        # cannot live on the pipeline cluster: reservation_reaper reads it from
+        # the front end. Opened here, named here, no callback and no injection.
+        return ChatHealthyMongoUtilities().getConnection(
+            "pipelineEditor", "ChatHealthyFrontEnd")["pipelineAdmin"]["cluster_lifecycle"]
 
     @staticmethod
     def _atlas_wake_request(cluster_name: str) -> str:

@@ -44,7 +44,6 @@ from step_spec import StepSpec
 from steps import get_runner
 from steps._partitions import (county_partitions, state_entity_partitions,
                                state_partitions)
-from pipeline_db import PIPELINE_ADMIN_DB
 from chathealthy_lib.mongo_utilities import ChatHealthyMongoUtilities
 
 _log = ChatHealthyLoggingService()
@@ -213,7 +212,7 @@ class BasePipelineOrchestrator:
         # lives on the FRONT-END cluster (always-on chathealthyfrontend
         # Atlas). ctx.mongo_client is the PIPELINE cluster (paused between
         # runs) and is not the right target for coordination writes.
-        wi_coll = ChatHealthyMongoUtilities().getConnection("pipelineEditor", "ChatHealthyFrontEnd")[PIPELINE_ADMIN_DB]["pipeline.work_items"]
+        wi_coll = ChatHealthyMongoUtilities().getConnection("pipelineEditor", "ChatHealthyFrontEnd")["pipelineAdmin"]["pipeline.work_items"]
 
         # 1. Enqueue work_items.
         args_snapshot = {
