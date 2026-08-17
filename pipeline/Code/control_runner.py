@@ -604,6 +604,37 @@ def _quiesce_mongo_state(run_id: str, final_status: str, *,
                 if manifest and hasattr(manifest, "to_document") else
                 {"run_id": run_id, "status": manifest_status}
             )
+            # A failed run whose exception did not reach here still knows what
+            # went wrong: the worker wrote it to pipeline.work_items before it
+            # died. Without this the report said "fatal error reported without
+            # an exception" -- a statement about the report, not about the run
+            # -- next to a row count of zero it never explained. Now it names
+            # the step, the exception type and the message.
+            if fatal_exception is None and manifest_status not in ("succeeded", "completed"):
+                try:
+                    failed = ChatHealthyMongoUtilities().getConnection(
+                        "pipelineEditor", "ChatHealthyFrontEnd"
+                    )["pipelineAdmin"]["pipeline.work_items"].find_one(
+                        {"run_id": run_id, "status": {"$in": ["failed", "error"]}},
+                        sort=[("finished_at", 1)],
+                    ) or {}
+                    err = ((failed.get("output") or {}).get("error")
+                           or failed.get("error") or {})
+                    if err:
+                        part = (failed.get("payload") or {}).get("partition") or {}
+                        where = failed.get("step", "unknown step")
+                        if part:
+                            where += f" {part}"
+                        fatal_exception = ChatHealthyException(
+                            mode="pipeline_step_failed",
+                            component="control_runner",
+                            message=(f"{where} failed with "
+                                     f"{err.get('type', 'error')}: {err.get('msg', '')}"),
+                            step=failed.get("step"),
+                        )
+                except Exception as lookup_exc:  # noqa: BLE001
+                    _log.warning("quiesce: could not read the failing work item "
+                                 "run_id=%s (%s)", run_id, str(lookup_exc)[:160])
             if fatal_exception:
                 manifest_doc["fatal_exception"] = {
                     "type": type(fatal_exception).__name__,
