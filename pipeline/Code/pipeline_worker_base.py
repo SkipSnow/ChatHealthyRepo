@@ -61,15 +61,9 @@ Warning vs Error (use log_warning() and log_error())
 import os
 from abc import ABC, abstractmethod
 from datetime import datetime, timezone
+from chathealthy_lib.mongo_utilities import ChatHealthyMongoUtilities
 
 _base_mongo = None  # lazy singleton — avoids import at module load when MongoDB is unavailable
-
-
-def _get_base_mongo_client():
-    if not os.environ.get("MONGO_HOST"):
-        return None
-    from chathealthy_lib.mongo_utilities import ChatHealthyMongoUtilities
-    return ChatHealthyMongoUtilities().getConnection("pipelineEditor", "ChatHealthyFrontEnd")
 
 
 class PipelineWorkerBase(ABC):
@@ -248,7 +242,7 @@ class PipelineWorkerBase(ABC):
         if (not self.row_errors and not fatal_exception) or not self._report_collection:
             return
         try:
-            client = _get_base_mongo_client()
+            client = None if not os.environ.get("MONGO_HOST") else ChatHealthyMongoUtilities().getConnection("pipelineEditor", "ChatHealthyFrontEnd")
             if client is None:
                 ChatHealthyLoggingService().warning(
                     "PipelineWorkerBase: MONGO_HOST not set — "

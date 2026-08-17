@@ -38,7 +38,11 @@ import requests
 from blob_client import get_blob_service
 from pymongo import MongoClient
 
-REGISTRY_COLLECTION = "admin.DataSourceRegistry"
+# pipelineAdmin, not admin. `admin` is MongoDB's reserved system database, and
+# steps/archive_sources.py writes the registry to pipelineAdmin -- so the
+# fetcher's skip-if-unchanged check and the archival step kept two homes for
+# one registry and could never agree. The client is already the front end,
+# which is where pipelineAdmin lives.
 
 _mongo: MongoClient | None = None
 
@@ -249,7 +253,7 @@ class DataFetcherBase:
 
     def _load_registry(self) -> dict | None:
         """Load existing registry entry for this source."""
-        db_name, coll_name = REGISTRY_COLLECTION.split(".", 1)
+        db_name, coll_name = "pipelineAdmin.DataSourceRegistry".split(".", 1)
         return _get_mongo_client()[db_name][coll_name].find_one(
             {"source_name": self.source_name},
             {"_id": 0},
@@ -264,7 +268,7 @@ class DataFetcherBase:
         size_bytes: int,
     ) -> None:
         """Upsert registry entry for this source."""
-        db_name, coll_name = REGISTRY_COLLECTION.split(".", 1)
+        db_name, coll_name = "pipelineAdmin.DataSourceRegistry".split(".", 1)
         _get_mongo_client()[db_name][coll_name].update_one(
             {"source_name": self.source_name},
             {"$set": {

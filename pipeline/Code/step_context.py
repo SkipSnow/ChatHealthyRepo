@@ -49,14 +49,49 @@ class PipelineArgs:
                 data_version=repr(self.data_version),
             )
 
+    def is_all_states(self) -> bool:
+        """True when the operator asked for the whole country.
+
+        ALL means every provider, not every provider in the fifty-one. The
+        United States also issues NPIs against Puerto Rico, the Virgin
+        Islands, Guam, American Samoa, the Northern Marianas, the three
+        military codes AA/AE/AP and foreign addresses, and NPPES carries rows
+        with no business state at all.
+        """
+        scope = self.state_scope or self.states
+        return bool(scope) and len(scope) == 1 and scope[0].upper() == "ALL"
+
     def resolved_states(self) -> list[str]:
         scope = self.state_scope or self.states
         if not scope:
             raise ChatHealthyException(mode="value_error", message="states or state_scope required")
-        if len(scope) == 1 and scope[0].upper() == "ALL":
+        if self.is_all_states():
             from steps._partitions import ALL_US_STATES
             return list(ALL_US_STATES)
         return [s.upper() for s in scope]
+
+    def partition_states(self) -> list[str]:
+        """What the partition builder needs, which is not what a state filter
+        needs.
+
+        resolved_states expands ALL into the fifty-one, and the expansion is
+        what made state_partitions' ALL_OTHERS branch unreachable: by the time
+        it tested for the sentinel, the sentinel was gone. So the fan-out asks
+        this instead, and the sentinel survives long enough to mint the worker
+        that owns everything outside the fifty-one.
+        """
+        return ["ALL"] if self.is_all_states() else self.resolved_states()
+
+    def staging_states(self) -> list[str]:
+        """Which states the NPPES staging ingest keeps.
+
+        Empty means keep every row, which is what ALL must mean. Handing the
+        loader the explicit fifty-one made it drop every territory, military
+        and blank-state row at ingest, so no later step could load what was
+        never staged. The full-load drain does delete_many({}) and ignores
+        this list, so emptying it costs no hygiene.
+        """
+        return [] if self.is_all_states() else self.resolved_states()
 
 
 @dataclass

@@ -136,9 +136,9 @@ def mongo_available():
     """
     try:
         from pipeline_env import load_pipeline_env
+        from chathealthy_lib.mongo_utilities import ChatHealthyMongoUtilities
         load_pipeline_env()
-        from pipeline_db import get_mongo
-        get_mongo("ChatHealthyDataPipelines").admin.command("ping", maxTimeMS=5000)
+        ChatHealthyMongoUtilities().getConnection("pipelineEditor", "ChatHealthyDataPipelines").admin.command("ping", maxTimeMS=5000)
         return True
     except Exception:
         return False

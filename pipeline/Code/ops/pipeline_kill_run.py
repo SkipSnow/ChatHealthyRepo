@@ -64,7 +64,6 @@ from chathealthy_lib.mongo_utilities import ChatHealthyMongoUtilities  # noqa: E
 
 log = ChatHealthyLoggingService()
 
-ADMIN_DB = "pipelineAdmin"
 TERMINAL = ("succeeded", "failed", "aborted", "completed")
 
 
@@ -119,7 +118,7 @@ def main() -> int:
     args = parser.parse_args()
 
     db = ChatHealthyMongoUtilities().getConnection(
-        "pipelineEditor", "ChatHealthyFrontEnd")[ADMIN_DB]
+        "pipelineEditor", "ChatHealthyFrontEnd")["pipelineAdmin"]
     run = find_run(db, args.run_id)
     if not run:
         log.info("nothing to stop: no non-terminal run")

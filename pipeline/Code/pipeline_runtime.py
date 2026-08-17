@@ -14,8 +14,9 @@ from typing import Any
 
 from pipeline_config import load_pipeline_config
 from pipeline_dataset_registry import PipelineDatasetRegistry
-from pipeline_db import get_frontend_mongo, get_mongo, PIPELINE_ADMIN_DB
+from pipeline_db import PIPELINE_ADMIN_DB
 from staging_loader import staging_collection_name, staging_db_name
+from chathealthy_lib.mongo_utilities import ChatHealthyMongoUtilities
 
 
 _log = ChatHealthyLoggingService()
@@ -46,8 +47,8 @@ STATE_US_SET = {
 class PipelineRuntime:
     def __init__(self, ctx) -> None:
         self.ctx = ctx
-        self.mongo = ctx.mongo_client or get_mongo("ChatHealthyDataPipelines")
-        self.frontend = get_frontend_mongo()
+        self.mongo = ctx.mongo_client or ChatHealthyMongoUtilities().getConnection("pipelineEditor", "ChatHealthyDataPipelines")
+        self.frontend = ChatHealthyMongoUtilities().getConnection("pipelineEditor", "ChatHealthyFrontEnd")
         self.env = ctx.env_prefix
         self.run_id = ctx.run_id
         self.data_version = int(ctx.args.data_version)

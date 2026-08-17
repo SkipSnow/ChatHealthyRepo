@@ -15,12 +15,13 @@ from datetime import datetime, timezone
 from sparkpost import SparkPost
 
 
-def _get_mongo_client():
-    from chathealthy_lib.mongo_utilities import ChatHealthyMongoUtilities
-    return ChatHealthyMongoUtilities().getConnection("pipelineEditor", "ChatHealthyFrontEnd")
+from chathealthy_lib.mongo_utilities import ChatHealthyMongoUtilities
 
-
-REPORT_COLLECTION = "admin.PipelineDiscrepancyReports"
+# This file is metadata. One cluster, one database, stated here and nowhere
+# else: pipelineAdmin on the front end. It wrote to `admin`, MongoDB's reserved
+# system database, which is owned by neither cluster and which no reader of
+# pipeline metadata has ever looked in.
+REPORT_COLLECTION = "pipelineAdmin.PipelineDiscrepancyReports"
 
 
 class DiscrepancyReporter:
@@ -51,7 +52,7 @@ class DiscrepancyReporter:
         _env = config.get("env_prefix", os.environ.get("ENV_PREFIX", "dev"))
         provider_collection = config.get("provider_collection", "PipelinePublicHealthData.providers")
         db_name, coll_name = provider_collection.split(".", 1)
-        staging_coll = _get_mongo_client()[db_name][coll_name]
+        staging_coll = ChatHealthyMongoUtilities().getConnection("pipelineEditor", "ChatHealthyFrontEnd")[db_name][coll_name]
 
         source_counts: dict = {
             (doc["_id"] or "unenriched"): doc["count"]
@@ -128,8 +129,8 @@ class DiscrepancyReporter:
             },
         })
 
-        db_name, coll_name = REPORT_COLLECTION.split(".", 1)
-        _get_mongo_client()[db_name][coll_name].insert_one(report)
+        db_name, coll_name = "pipelineAdmin.PipelineDiscrepancyReports".split(".", 1)
+        ChatHealthyMongoUtilities().getConnection("pipelineEditor", "ChatHealthyFrontEnd")[db_name][coll_name].insert_one(report)
         ChatHealthyLoggingService().info("Discrepancy report written to %s for load_id=%s", REPORT_COLLECTION, load_id)
 
         # ── SparkPost email notification ──────────────────────────────────────

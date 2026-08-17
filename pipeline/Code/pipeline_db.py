@@ -3,7 +3,6 @@ from chathealthy_lib.logging_service import (
     set_mongo_log_identity,
 )
 from chathealthy_lib.exceptions import ChatHealthyException
-from chathealthy_lib.mongo_utilities import ChatHealthyMongoUtilities
 # Copyright (c) 2026 ChatHealthy.ai LLC. All rights reserved.
 # Licensed under the FindCare Evaluation License (FEL-1.0).
 #
@@ -13,9 +12,7 @@ from chathealthy_lib.mongo_utilities import ChatHealthyMongoUtilities
 # ENV_PREFIX routing - no hardcoded database names (Framework 1.1).
 # Environment values constrained by CV-010 (controlled_vocabularies.json).
 
-import os
 
-from pymongo import MongoClient
 
 _log = ChatHealthyLoggingService()
 
@@ -42,43 +39,6 @@ def _validate_env(env_prefix: str) -> str:
     return env_prefix
 
 
-def get_mongo(cluster: str) -> MongoClient:
-    """MongoClient for pipeline work, as pipelineEditor.
-
-    The cluster is named by the caller and has no default. A default meant
-    the data factory -- down by design most of the day -- was what a caller
-    got by not choosing, and made the reaching call site unreadable.
-    """
-    return ChatHealthyMongoUtilities().getConnection("pipelineEditor", cluster)
-
-
-def get_frontend_mongo() -> MongoClient:
-    """MongoClient for the frontEnd target, as pipelineEditor.
-
-    Used by ClusterLifecycleManager. Note this returns the frontEnd target
-    specifically so reservation reads and writes never depend on the pipeline
-    factory being awake.
-    """
-    return ChatHealthyMongoUtilities().getConnection("pipelineEditor", "ChatHealthyFrontEnd")
-
-
-def get_db(env_prefix: str = None):
-    """Get the PipelinePublicHealthData database on the pipelines cluster.
-
-    The pipeline's own published data. The name is deliberately distinct from
-    the front end's PublicHealthData so that no accessor mistake can put
-    pipeline output into the front-end application's database.
-
-    Environments are separated by CLUSTER, not by database name. No database
-    is named for an environment: there is no dev_, qa_ or prod_ prefix. The
-    env_prefix argument is still validated so callers cannot pass a value
-    outside CV-010, but it does not participate in the database name.
-    """
-    env_prefix = env_prefix or os.environ.get("ENV_PREFIX", "dev")
-    _validate_env(env_prefix)
-    return get_mongo("ChatHealthyDataPipelines")["PipelinePublicHealthData"]
-
-
 # Every piece of pipeline metadata -- configuration, discrepancy reports, run
 # counters, fatal records, load state -- lives in this one database and nowhere
 # else. Physical pipeline DATA (provider collections, staging) is separate and
@@ -87,11 +47,3 @@ def get_db(env_prefix: str = None):
 from chathealthy_lib.discrepancy_report import PIPELINE_ADMIN_DB  # noqa: F401
 
 
-def get_metadata_db():
-    """The single home for pipeline metadata.
-
-    Lives on the `admin` target, which answers 24x7. Pipeline metadata must
-    be readable while the data factory is asleep -- notably so that "factory
-    unreachable" can itself be reported.
-    """
-    return get_mongo("ChatHealthyFrontEnd")[PIPELINE_ADMIN_DB]

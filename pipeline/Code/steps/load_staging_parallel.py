@@ -119,7 +119,11 @@ def run_step(ctx) -> dict:
     config.setdefault("run_id", ctx.run_id)
     config.setdefault("env", ctx.env_prefix)
     config["sources"] = {source_name: spec}
-    config["states"] = ctx.args.resolved_states()
+    # staging_states, not resolved_states: empty means keep every row, which
+    # is what ALL must mean. The explicit fifty-one made the NPPES ingest drop
+    # every territory, military and blank-state row before any later step
+    # could see it.
+    config["states"] = ctx.args.staging_states()
     config["incremental"] = bool(ctx.args.incremental)
     config["data_version"] = int(ctx.args.data_version)
 

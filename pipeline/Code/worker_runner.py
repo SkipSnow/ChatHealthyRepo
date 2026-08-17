@@ -17,7 +17,7 @@ from __future__ import annotations
 from chathealthy_lib.logging_service import ChatHealthyLoggingService
 from chathealthy_lib.exceptions import ChatHealthyException
 from pipeline_fatal_recorder import is_log_db_fatal
-from pipeline_db import PIPELINE_ADMIN_DB, get_frontend_mongo
+from pipeline_db import PIPELINE_ADMIN_DB
 
 # Distinct from a step failure: the logging substrate never came up.
 EXIT_LOG_DB_FATAL = 78
@@ -27,10 +27,10 @@ import os
 import sys
 
 from blob_client import get_blob_service
-from pipeline_db import get_mongo
 from pipeline_env import load_pipeline_env
 from step_context import PipelineArgs, RunManifest, StepContext
 from steps import get_runner
+from chathealthy_lib.mongo_utilities import ChatHealthyMongoUtilities
 
 _log = ChatHealthyLoggingService()
 
@@ -115,7 +115,7 @@ def main(argv: list[str] | None = None) -> int:
             args=args,
             manifest=manifest,
             config={"partition": partition},
-            mongo_client=get_mongo("ChatHealthyDataPipelines"),
+            mongo_client=ChatHealthyMongoUtilities().getConnection("pipelineEditor", "ChatHealthyDataPipelines"),
             blob_client=get_blob_service(),
         )
         runner = get_runner(ns.step)
@@ -145,7 +145,7 @@ def _report_to_controller(run_id, step, status: str, reason: str, detail: str) -
     would replace the real reason with this function's own failure.
     """
     try:
-        wi = get_frontend_mongo()[PIPELINE_ADMIN_DB]["pipeline.work_items"]
+        wi = ChatHealthyMongoUtilities().getConnection("pipelineEditor", "ChatHealthyFrontEnd")[PIPELINE_ADMIN_DB]["pipeline.work_items"]
         wi.update_one(
             {"run_id": run_id, "step": step or os.environ.get("PIPELINE_STEP")},
             {"$set": {"status": status, "reason": reason, "detail": detail}},

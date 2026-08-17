@@ -12,7 +12,7 @@ from chathealthy_lib.logging_service import ChatHealthyLoggingService
 from cluster_lifecycle_manager import ClusterLifecycleManager
 from ensure_provider_indexes_activity import ensure_provider_indexes_fn
 from pipeline_config import ensure_pipeline_config
-from pipeline_db import get_mongo
+from chathealthy_lib.mongo_utilities import ChatHealthyMongoUtilities
 
 _log = ChatHealthyLoggingService()
 
@@ -106,18 +106,21 @@ def _execute(ctx) -> dict:
     _log.info("prepare_infrastructure: begin run_id=%s states=%s",
               ctx.run_id, list(ctx.args.resolved_states() or []))
     t0 = time.time()
-    cfg = ensure_pipeline_config(get_mongo("ChatHealthyDataPipelines"), ctx.env_prefix)
+    cfg = ensure_pipeline_config(ChatHealthyMongoUtilities().getConnection("pipelineEditor", "ChatHealthyDataPipelines"), ctx.env_prefix)
     _log.info("prepare_infrastructure: config read (%.1fs) sources=%d",
               time.time() - t0, len(cfg.get("dataset_versions") or []))
     ctx.config.setdefault("dataset_versions", cfg.get("dataset_versions", {}))
     ctx.config.setdefault("source_freshness", cfg.get("source_freshness", []))
     cluster = ctx.config.get("pipeline_cluster", "ChatHealthyDataPipelines")
     duration = int(ctx.args.expected_duration_minutes)
-    # get_mongo is passed as a callback and invoked with no arguments, so
-    # removing its default cluster broke this without any call site reading
-    # get_mongo(). The cluster is named here, where it is chosen.
+    # get_frontend_mongo, not get_mongo. The reservation says whether the
+    # pipeline cluster is wanted, so it cannot live on the pipeline cluster --
+    # and reservation_reaper reads it from the front end. Naming the pipeline
+    # cluster here wrote every run's reservation where the reaper never looks,
+    # which leaves the reaper free to pause a cluster with a run on it.
     ops = ClusterLifecycleManager(
-        get_db_fn=lambda: get_mongo("ChatHealthyDataPipelines"))
+        get_db_fn=lambda: ChatHealthyMongoUtilities().getConnection(
+            "pipelineEditor", "ChatHealthyFrontEnd"))
 
     t = time.time()
     _log.info("prepare_infrastructure: waking cluster %s", cluster)
@@ -149,7 +152,7 @@ def _execute(ctx) -> dict:
 
     t = time.time()
     cleanup = _safety_cleanup(
-        ctx.mongo_client or get_mongo("ChatHealthyDataPipelines"),
+        ctx.mongo_client or ChatHealthyMongoUtilities().getConnection("pipelineEditor", "ChatHealthyDataPipelines"),
         list(ctx.args.resolved_states() or []),
     )
     _log.info("prepare_infrastructure: safety cleanup done (%.1fs); "

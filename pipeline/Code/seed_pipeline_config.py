@@ -17,7 +17,8 @@ sys.path.insert(0, os.path.join(repo_root, "pipeline", "Code"))
 
 from chathealthy_lib.logging_service import ChatHealthyLoggingService
 
-from pipeline_db import get_metadata_db, PIPELINE_ADMIN_DB
+from pipeline_db import PIPELINE_ADMIN_DB
+from chathealthy_lib.mongo_utilities import ChatHealthyMongoUtilities
 
 _log = ChatHealthyLoggingService()
 
@@ -37,7 +38,7 @@ PROVIDER_CONFIG = {
 
 def seed_config(env_prefix: str) -> None:
     """Seed PipelineConfig in the one metadata database."""
-    result = get_metadata_db()["PipelineConfig"].replace_one(
+    result = ChatHealthyMongoUtilities().getConnection("pipelineEditor", "ChatHealthyFrontEnd")["pipelineAdmin"]["PipelineConfig"].replace_one(
         {"_id": "provider"},
         PROVIDER_CONFIG,
         upsert=True

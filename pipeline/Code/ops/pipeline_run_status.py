@@ -23,6 +23,7 @@ import datetime
 import pathlib
 import sys
 import time
+from chathealthy_lib.mongo_utilities import ChatHealthyMongoUtilities
 
 # The modules this reads live beside the pipeline, not beside this file. The
 # usage line above says to run it from the repository root, which could not
@@ -163,8 +164,7 @@ def main() -> int:
     except ImportError:
         pass
 
-    from pipeline_db import get_metadata_db
-    db = get_metadata_db()
+    db = ChatHealthyMongoUtilities().getConnection("pipelineEditor", "ChatHealthyFrontEnd")["pipelineAdmin"]
     names = step_names(args.pipeline)
 
     while True:

@@ -43,21 +43,11 @@ _CH_LOG = ChatHealthyLoggingService()
 # connection string here and no fallback. Raises if the identity cannot
 # connect, which is the point -- a test that quietly connects as something
 # else proves nothing about production.
-def _ch_connection():
-    import sys as _sys, pathlib as _pl
-    for _d in _pl.Path(__file__).resolve().parents:
-        if (_d / ".git").exists():
-            _lib = _d / "ChatHealthyLib" / "src"
-            if str(_lib) not in _sys.path:
-                _sys.path.insert(0, str(_lib))
-            break
-    from chathealthy_lib.mongo_utilities import ChatHealthyMongoUtilities
-    return ChatHealthyMongoUtilities().getConnection("DevOpsUser", 'ChatHealthyDataPipelines')
-
 _REPO_ROOT = Path(__file__).resolve().parents[4]
 sys.path.insert(0, str(_REPO_ROOT / "pipeline" / "Code"))
 from pipeline_env import load_pipeline_env  # noqa: E402
 from pipeline_db import PIPELINE_ADMIN_DB
+from chathealthy_lib.mongo_utilities import ChatHealthyMongoUtilities
 
 
 _PIPELINE_CLUSTER_NAME = os.environ.get(
@@ -67,7 +57,7 @@ _PIPELINE_CLUSTER_NAME = os.environ.get(
 
 def _mongo_client() -> MongoClient:
     load_pipeline_env()
-    return _ch_connection()
+    return ChatHealthyMongoUtilities().getConnection("DevOpsUser", "ChatHealthyFrontEnd")
 
 
 def test_release_all_pipeline_state():

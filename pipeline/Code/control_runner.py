@@ -52,7 +52,7 @@ import sys
 from chathealthy_lib.mongo_utilities import ChatHealthyMongoUtilities
 
 from blob_client import get_blob_service
-from pipeline_db import get_mongo, PIPELINE_ADMIN_DB
+from pipeline_db import PIPELINE_ADMIN_DB
 from pipeline_env import load_pipeline_env
 from provider_pipeline_orchestrator import ProviderPipelineOrchestrator
 from step_context import PipelineArgs
@@ -229,7 +229,7 @@ def main(argv: list[str] | None = None) -> int:
     orchestrator = ProviderPipelineOrchestrator(
         env=ns.env_prefix,
         config=load_pipeline_config(env_prefix=ns.env_prefix),
-        mongo_client=get_mongo("ChatHealthyDataPipelines"),
+        mongo_client=ChatHealthyMongoUtilities().getConnection("pipelineEditor", "ChatHealthyDataPipelines"),
         blob_client=get_blob_service(),
     )
     if ns.run_id:

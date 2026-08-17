@@ -37,6 +37,7 @@ import os
 
 from source_freshness_probe import probe_source_version
 from pipeline_db import PIPELINE_ADMIN_DB
+from chathealthy_lib.mongo_utilities import ChatHealthyMongoUtilities
 
 _log = ChatHealthyLoggingService()
 
@@ -67,9 +68,12 @@ def _archived_blob_exists(mongo, source_name: str) -> bool:
 
 
 def execute(ctx) -> dict:
-    from pipeline_db import get_mongo
 
-    mongo = ctx.mongo_client or get_mongo("ChatHealthyDataPipelines")
+    # pipelineAdmin lives on the FRONT END. Reading the registry through the
+    # pipeline client addressed a database that is not there -- MongoDB makes
+    # one on reference rather than failing -- so every freshness lookup missed
+    # and every source was re-fetched as though never seen.
+    mongo = ChatHealthyMongoUtilities().getConnection("pipelineEditor", "ChatHealthyFrontEnd")
     registry = mongo[PIPELINE_ADMIN_DB]["DataSourceRegistry"]
     freshness_list = ctx.config.get("source_freshness") or []
     # `source_freshness` mirrors chathealthyfrontend.pipeline.config.

@@ -11,6 +11,7 @@ import json
 import os
 
 import pytest
+from chathealthy_lib.mongo_utilities import ChatHealthyMongoUtilities
 
 
 # Rule-004: one place in this file obtains a connection, and it goes through
@@ -18,17 +19,6 @@ import pytest
 # connection string here and no fallback. Raises if the identity cannot
 # connect, which is the point -- a test that quietly connects as something
 # else proves nothing about production.
-def _ch_connection():
-    import sys as _sys, pathlib as _pl
-    for _d in _pl.Path(__file__).resolve().parents:
-        if (_d / ".git").exists():
-            _lib = _d / "ChatHealthyLib" / "src"
-            if str(_lib) not in _sys.path:
-                _sys.path.insert(0, str(_lib))
-            break
-    from chathealthy_lib.mongo_utilities import ChatHealthyMongoUtilities
-    return ChatHealthyMongoUtilities().getConnection("DevOpsUser", 'ChatHealthyFrontEnd')
-
 BRAIN_DIR = os.path.normpath(
     os.path.join(os.path.dirname(__file__), "..", "..", "..", "brain",
                  "machine_artifacts", "content")
@@ -62,7 +52,7 @@ def _get_mongo_client():
             "No FRONTEND_MONGO_URI or MONGO_URI_FRONTEND env var set — "
             "skipping MongoDB tests"
         )
-    client = _ch_connection()
+    client = ChatHealthyMongoUtilities().getConnection("DevOpsUser", "ChatHealthyFrontEnd")
     # Quick connectivity check
     try:
         client.admin.command("ping")

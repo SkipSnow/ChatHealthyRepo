@@ -12,7 +12,6 @@ TEST_PROVIDER_COLLECTION = os.environ.get(
     "PROVIDER_TEST_COLLECTION",
     "PipelinePublicHealthData.providers_test_v1",
 )
-TEST_RUNS_DB = "pipelineAdmin"
 TEST_RUNS_COLL = os.environ.get("PIPELINE_TEST_RUNS_COLL", "pipeline_test.runs")
 TEST_DISCREPANCIES_COLL = os.environ.get(
     "PIPELINE_TEST_DISCREPANCIES_COLL",

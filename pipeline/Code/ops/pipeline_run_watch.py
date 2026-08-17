@@ -48,7 +48,6 @@ from chathealthy_lib.mongo_utilities import ChatHealthyMongoUtilities  # noqa: E
 
 log = ChatHealthyLoggingService()
 
-ADMIN_DB = "pipelineAdmin"
 TERMINAL = ("succeeded", "failed", "aborted", "completed")
 
 
@@ -115,7 +114,7 @@ def main() -> int:
     args = parser.parse_args()
 
     db = ChatHealthyMongoUtilities().getConnection(
-        "pipelineEditor", "ChatHealthyFrontEnd")[ADMIN_DB]
+        "pipelineEditor", "ChatHealthyFrontEnd")["pipelineAdmin"]
     log.info("watching %s every %d minute(s)", args.pipeline, args.minutes)
     while True:
         if _report(db, args.pipeline, args.resource_group):

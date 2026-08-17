@@ -45,6 +45,7 @@ from steps import get_runner
 from steps._partitions import (county_partitions, state_entity_partitions,
                                state_partitions)
 from pipeline_db import PIPELINE_ADMIN_DB
+from chathealthy_lib.mongo_utilities import ChatHealthyMongoUtilities
 
 _log = ChatHealthyLoggingService()
 
@@ -212,8 +213,7 @@ class BasePipelineOrchestrator:
         # lives on the FRONT-END cluster (always-on chathealthyfrontend
         # Atlas). ctx.mongo_client is the PIPELINE cluster (paused between
         # runs) and is not the right target for coordination writes.
-        from pipeline_db import get_frontend_mongo  # noqa: PLC0415
-        wi_coll = get_frontend_mongo()[PIPELINE_ADMIN_DB]["pipeline.work_items"]
+        wi_coll = ChatHealthyMongoUtilities().getConnection("pipelineEditor", "ChatHealthyFrontEnd")[PIPELINE_ADMIN_DB]["pipeline.work_items"]
 
         # 1. Enqueue work_items.
         args_snapshot = {
@@ -452,7 +452,9 @@ class BasePipelineOrchestrator:
                 {"source": "usda_rucc"},
                 {"source": "specialty_catalog"},
             ]
-        states = ctx.args.resolved_states()
+        # partition_states, not resolved_states: the ALL sentinel has to
+        # survive to state_partitions or the ALL_OTHERS worker is never minted.
+        states = ctx.args.partition_states()
         if key == "county_partition":
             return county_partitions(states)
         if key == "state_entity":

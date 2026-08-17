@@ -64,7 +64,7 @@ def _mark_run_failed(exit_code: str, detail: str) -> None:
     # must not touch before staging load -- the same mistake that made the
     # failure unreportable in the first place.
     db = ChatHealthyMongoUtilities().getConnection(
-        "pipelineEditor", "ChatHealthyFrontEnd")[PIPELINE_ADMIN_DB]
+        "pipelineEditor", "ChatHealthyFrontEnd")["pipelineAdmin"]
     db["pipeline.runs"].update_one(
         {"run_id": run_id, "status": "running"},
         {"$set": {"status": "failed",
