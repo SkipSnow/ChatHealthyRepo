@@ -539,6 +539,40 @@ def _reservation_still_live(mongo, run_id: str) -> bool:
     return now < expiry_at
 
 
+def _never_reported_for_duty(manifest: dict | None) -> bool:
+    """True when a run holds a claim but nothing ever ran behind it.
+
+    The reservation is written by the Runbook BEFORE the Controller exists,
+    and only the Controller deletes it, so a Controller that dies at startup
+    leaves a live-looking claim for its entire TTL. Honouring that claim is
+    what kept a dead run's host and reservation standing for eleven hours
+    across roughly forty-four Watchdog passes, every one logging
+    skip_reservation_live -- the Watchdog could not reap the one case it
+    exists for.
+
+    A manifest that has never recorded controller_heartbeat_at, and whose
+    start is older than the staleness window, has no Controller behind it.
+    Saying so only routes the VM to the checks below; those ask the job for
+    a verdict before anything is deleted, so a live run is still safe.
+    """
+    if not manifest:
+        return False
+    if manifest.get("controller_heartbeat_at"):
+        return False
+    started = manifest.get("started_at")
+    if isinstance(started, str):
+        try:
+            started = datetime.datetime.fromisoformat(
+                started.replace("Z", "+00:00")
+            ).replace(tzinfo=None)
+        except Exception:
+            return False
+    if not isinstance(started, datetime.datetime):
+        return False
+    age_seconds = (datetime.datetime.utcnow() - started).total_seconds()
+    return age_seconds > HEARTBEAT_STALE_MINUTES * 60
+
+
 def _run_manifest(mongo, run_id: str) -> dict | None:
     return mongo[PIPELINE_ADMIN_DB]["pipeline.runs"].find_one(
         {"run_id": run_id}
@@ -593,12 +627,16 @@ def _process_vm(vm: dict, mongo, tok: str) -> None:
         log("skip_vm_no_run_id_tag", vm=vm_name)
         return
 
-    # Check 1: reservation live?
-    if _reservation_still_live(mongo, run_id):
-        log("skip_reservation_live", vm=vm_name, run_id=run_id)
-        return
-
     manifest = _run_manifest(mongo, run_id)
+
+    # Check 1: reservation live? A claim counts only once something has
+    # reported for duty behind it -- see _never_reported_for_duty.
+    if _reservation_still_live(mongo, run_id):
+        if not _never_reported_for_duty(manifest):
+            log("skip_reservation_live", vm=vm_name, run_id=run_id)
+            return
+        log("reservation_live_but_no_controller_ever", vm=vm_name,
+            run_id=run_id, status=(manifest or {}).get("status"))
 
     # Check 2: manifest terminal?
     if manifest and manifest.get("status") in TERMINAL_STATUSES:

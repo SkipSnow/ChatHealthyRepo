@@ -65,7 +65,7 @@ import time
 from datetime import datetime, timezone
 from typing import Any
 
-from pymongo import UpdateOne
+from pymongo import UpdateMany, UpdateOne
 
 
 _log = ChatHealthyLoggingService()
@@ -546,13 +546,56 @@ def classify_other_identifier_phrases(config: dict, *, mongo, blob=None) -> dict
     phrase_cls, input_cls, output_cls = _build_pydantic_ai_schemas()
 
     from steps._partitions import staged_state_filter  # noqa: PLC0415
-    pending = list(staging_coll.find({
+    # A classification is a property of the phrase. State says nothing about
+    # what an issuer_text means, so state takes no part in deciding what to
+    # classify or in where the answer is written; it only divides the work
+    # across the fanout.
+    #
+    # The staging _id carries state, so one phrase seen in N states is N rows,
+    # each with classification=None. Selecting rows meant N LLM calls for one
+    # answer -- 90,393 redundant calls out of 241,179 on the 2026-08-17
+    # national run. The step's own docstring claimed first-writer-wins across
+    # states; it did not happen, because the guard was the row's own _id.
+    staging_coll.create_index([("type_code", 1), ("issuer_text", 1),
+                               ("classification", 1)],
+                              name="phrase_classification", background=True)
+    rows = list(staging_coll.find({
         **staged_state_filter(state),
         "run_id": run_id,
         "classification": None,
     }))
-    if not pending:
+    if not rows:
         return {"state": state, "classified": 0, "pending": 0}
+
+    # Reduce to one row per phrase, then drop phrases another state already
+    # answered. What survives is unique by construction, so nothing downstream
+    # has to dedupe.
+    by_phrase: dict[tuple[str, str], dict] = {}
+    for doc in rows:
+        by_phrase.setdefault(
+            ((doc.get("type_code") or "").strip(),
+             (doc.get("issuer_text") or "").strip().upper()), doc)
+    answered = {
+        ((d.get("type_code") or "").strip(),
+         (d.get("issuer_text") or "").strip().upper())
+        for d in staging_coll.find(
+            {"$or": [{"type_code": tc, "issuer_text": it}
+                     for tc, it in by_phrase],
+             "classification": {"$ne": None}},
+            {"type_code": 1, "issuer_text": 1})
+    } if by_phrase else set()
+    pending = [doc for key, doc in by_phrase.items() if key not in answered]
+    # Returned, not logged: this function raises, and the thrower does not log.
+    # The step wrapper logs whatever comes back, so the saving stays visible
+    # without this function holding two jobs.
+    selection = {
+        "rows": len(rows),
+        "unique_phrases": len(by_phrase),
+        "already_answered_elsewhere": len(answered),
+        "to_classify": len(pending),
+    }
+    if not pending:
+        return {"state": state, "classified": 0, "pending": 0, **selection}
 
     # Type-05 fastpath: NPPES codes type_05 as MEDICAID by construction.
     # Skip the LLM for those entries - just persist MEDICAID/MEDICAID.
@@ -561,7 +604,7 @@ def classify_other_identifier_phrases(config: dict, *, mongo, blob=None) -> dict
     now_iso_fp = datetime.now(timezone.utc).isoformat()
     fastpath_count = 0
     llm_pending = []
-    fp_ops: list[UpdateOne] = []
+    fp_ops: list[UpdateMany] = []
 
     def _flush_fp() -> None:
         if not fp_ops:
@@ -571,8 +614,10 @@ def classify_other_identifier_phrases(config: dict, *, mongo, blob=None) -> dict
 
     for doc in pending:
         if (doc.get("type_code") or "").strip() == "05":
-            fp_ops.append(UpdateOne(
-                {"_id": doc["_id"], "classification": None},
+            fp_ops.append(UpdateMany(
+                {"type_code": (doc.get("type_code") or "").strip(),
+                 "issuer_text": (doc.get("issuer_text") or "").strip().upper(),
+                 "classification": None},
                 {
                     "$set": {
                         "classification": "INSURANCE",
@@ -594,7 +639,8 @@ def classify_other_identifier_phrases(config: dict, *, mongo, blob=None) -> dict
     _flush_fp()
 
     if not llm_pending:
-        return {"state": state, "classified": fastpath_count, "unknown": 0, "pending": len(pending)}
+        return {"state": state, "classified": fastpath_count, "unknown": 0,
+                "pending": len(pending), **selection}
 
     pending = llm_pending
     classified_count = fastpath_count
@@ -608,10 +654,12 @@ def classify_other_identifier_phrases(config: dict, *, mongo, blob=None) -> dict
         if not items:
             return
         now_iso = datetime.now(timezone.utc).isoformat()
-        ops: list[UpdateOne] = []
+        ops: list[UpdateMany] = []
         for doc, cls in items:
-            ops.append(UpdateOne(
-                {"_id": doc["_id"], "classification": None},
+            ops.append(UpdateMany(
+                {"type_code": (doc.get("type_code") or "").strip(),
+                 "issuer_text": (doc.get("issuer_text") or "").strip().upper(),
+                 "classification": None},
                 {
                     "$set": {
                         "classification": cls["classification"],
@@ -642,7 +690,7 @@ def classify_other_identifier_phrases(config: dict, *, mongo, blob=None) -> dict
     # in _classify_iteratively) gets written here so the classification
     # actually lands on the staging row.
     now_iso = datetime.now(timezone.utc).isoformat()
-    fill_ops: list[UpdateOne] = []
+    fill_ops: list[UpdateMany] = []
     fill_tracks: list[dict] = []  # parallel list so we can post-flush count UNKNOWNs
 
     def _flush_fill() -> None:
@@ -675,8 +723,10 @@ def classify_other_identifier_phrases(config: dict, *, mongo, blob=None) -> dict
         cls = classified_map.get(doc["_id"])
         if cls is None:
             continue
-        fill_ops.append(UpdateOne(
-            {"_id": doc["_id"], "classification": None},
+        fill_ops.append(UpdateMany(
+            {"type_code": (doc.get("type_code") or "").strip(),
+             "issuer_text": (doc.get("issuer_text") or "").strip().upper(),
+             "classification": None},
             {
                 "$set": {
                     "classification": cls["classification"],
@@ -700,6 +750,7 @@ def classify_other_identifier_phrases(config: dict, *, mongo, blob=None) -> dict
         "classified": classified_count,
         "unknown": unknown_count,
         "pending": len(pending),
+        **selection,
     }
 
 
