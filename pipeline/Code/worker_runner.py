@@ -14,8 +14,14 @@ StepContext whose config["partition"] carries the PART_* values.
 """
 
 from __future__ import annotations
-from chathealthy_lib.logging_service import ChatHealthyLoggingService
+from chathealthy_lib.logging_service import (
+    ChatHealthyLoggingService, set_mongo_log_identity)
 from chathealthy_lib.exceptions import ChatHealthyException
+
+# This process inherits CH_LOG_DESTINATION=mongo from the container, so it must
+# name its own identity. It is a separate process from the Controller; nothing
+# the Controller sets in memory survives the spawn.
+set_mongo_log_identity("pipelineEditor")
 from pipeline_fatal_recorder import is_log_db_fatal
 
 # Distinct from a step failure: the logging substrate never came up.
