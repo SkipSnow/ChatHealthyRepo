@@ -88,7 +88,6 @@ os.environ.setdefault("ENV_PREFIX",
 os.environ.setdefault("CH_LOG_DESTINATION", "stderr,mongo")
 
 log = ChatHealthyLoggingService()
-_STATUS_DB = "admin"
 _STATUS_COLLECTION = "ChatHealthyDataMigrator_jobs"
 _BATCH_SIZE = 5000
 _DEPROVISIONER_RUNBOOK = "ChatHealthyDataMigratorDeprovisioner"
@@ -124,7 +123,9 @@ def _connection_string_for_cluster(cluster_name: str) -> str:
 
 class StatusDoc:
     def __init__(self, pipeline_client: MongoClient, job_id: str):
-        self._coll = pipeline_client[_STATUS_DB][_STATUS_COLLECTION]
+        # pipelineAdmin, not admin. This wrote job status into MongoDB's
+        # reserved system database, which no ChatHealthy role grants.
+        self._coll = pipeline_client["pipelineAdmin"][_STATUS_COLLECTION]
         self._job_id = job_id
         self._lock = threading.Lock()
 

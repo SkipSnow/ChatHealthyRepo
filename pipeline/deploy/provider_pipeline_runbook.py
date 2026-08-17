@@ -647,6 +647,7 @@ runcmd:
         -e CH_LOG_DESTINATION='stderr,mongo' \\
         -e CH_LOG_DB='{CH_LOG_DB}' \\
         -e CH_COMPONENT='provider_pipeline_control' \\
+        -e PIPELINE_LOG_ACCOUNT_URL='https://stchpipelinedev.blob.core.windows.net' \\
         -e RUN_ID='{run_id}' \\
         -e ENV_PREFIX='{ENV_PREFIX}' \\
         -e KEY_VAULT_URI='{KEY_VAULT_URI}' \\
