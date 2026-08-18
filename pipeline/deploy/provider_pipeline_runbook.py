@@ -601,6 +601,8 @@ runcmd:
       -e CH_LOG_DB='{CH_LOG_DB}' \\
       -e CH_COMPONENT='provider_pipeline_control' \\
       -e PIPELINE_LOG_ACCOUNT_URL='https://stchpipelinedev.blob.core.windows.net' \\
+      -e CH_MONGO_HOST_CHATHEALTHYFRONTEND='chathealthyfrontend-pri.mdwahg.mongodb.net' \\
+      -e CH_MONGO_HOST_CHATHEALTHYDATAPIPELINES='chathealthydatapipeline-pri.mdwahg.mongodb.net' \\
       -e RUN_ID='{run_id}' \\
       -e DATA_VERSION='{data_version}' \\
       -e GOOGLE_MAPS_ENABLED='{"1" if google_maps_enabled else "0"}' \\
@@ -648,6 +650,8 @@ runcmd:
         -e CH_LOG_DB='{CH_LOG_DB}' \\
         -e CH_COMPONENT='provider_pipeline_control' \\
         -e PIPELINE_LOG_ACCOUNT_URL='https://stchpipelinedev.blob.core.windows.net' \\
+        -e CH_MONGO_HOST_CHATHEALTHYFRONTEND='chathealthyfrontend-pri.mdwahg.mongodb.net' \\
+        -e CH_MONGO_HOST_CHATHEALTHYDATAPIPELINES='chathealthydatapipeline-pri.mdwahg.mongodb.net' \\
         -e RUN_ID='{run_id}' \\
         -e ENV_PREFIX='{ENV_PREFIX}' \\
         -e KEY_VAULT_URI='{KEY_VAULT_URI}' \\
