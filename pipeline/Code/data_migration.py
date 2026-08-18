@@ -1,4 +1,4 @@
-"""EPIC-010-F-108-S-001 — Data Migration.
+"""EPIC-010-F-108-S-001 -- Data Migration.
 
 Moves a collection from ChatHealthyDataPipelines.PipelinePublicHealthData to
 ChatHealthyFrontEnd.PublicHealthData under the name it already has.
@@ -19,6 +19,7 @@ the front-end cluster.
 """
 from __future__ import annotations
 
+import datetime
 import json
 import os
 import sys
@@ -217,42 +218,93 @@ def _webhook_body() -> dict:
     return {}
 
 
-def _raise_unauthorized(collection: str, authorization: dict) -> None:
+def _raise_unauthorized(collection: str, approval_id: str, why: str) -> None:
     """Raise-only helper: the catcher logs, not the thrower."""
     raise ChatHealthyException(
         mode="migration_not_authorized",
         component="data_migration",
         message=(
-            f"no human authorization on the payload for {collection!r}; a "
-            f"migration runs only after an operator clicked APPROVE"),
-        authorization=json.dumps(authorization)[:400])
+            f"{collection!r} is not released to migrate: {why}. A migration "
+            f"runs only after an operator clicked APPROVE, and the click is "
+            f"looked up, never taken on the caller's word"),
+        approval_id=approval_id or "<none given>")
+
+
+def _released_approval(collection: str, approval_id: str) -> dict:
+    """The recorded sign-off for this collection, read from the cluster.
+
+    The payload names an approval; it does not carry one. A caller who could
+    reach the webhook once only had to type human_click=true to migrate
+    without a person, because the runbook believed the fields it was handed.
+    Now the record is written by migrate_data.py before the fire, under
+    pipelineEditor's certificate, and this reads it back and checks it says
+    what the caller claims.
+    """
+    if not approval_id:
+        _raise_unauthorized(collection, approval_id,
+                            "the payload names no approval record")
+
+    record = ChatHealthyMongoUtilities().getConnection(
+        "dataMigrator", "ChatHealthyDataPipelines"
+    )["PipelinePublicHealthData"]["MigrationApprovals"].find_one(
+        {"_id": approval_id})
+
+    if record is None:
+        _raise_unauthorized(collection, approval_id,
+                            "no such approval exists on the cluster")
+    if record.get("verdict") != "approve":
+        _raise_unauthorized(collection, approval_id,
+                            f"the recorded verdict is {record.get('verdict')!r}")
+    if record.get("human_click") is not True:
+        _raise_unauthorized(collection, approval_id,
+                            "the record carries no human click")
+    if record.get("collection") != collection:
+        _raise_unauthorized(
+            collection, approval_id,
+            f"the approval is for {record.get('collection')!r}, not this collection")
+
+    released_at = record.get("released_at")
+    if isinstance(released_at, datetime.datetime):
+        age = (datetime.datetime.now(datetime.timezone.utc)
+               - released_at.replace(tzinfo=datetime.timezone.utc)).total_seconds()
+        if age > _APPROVAL_VALID_SECONDS:
+            _raise_unauthorized(
+                collection, approval_id,
+                f"the approval is {age / 3600:.1f} hours old and expired")
+    return record
 
 
 def main() -> int:
     body = _webhook_body()
     collection = str(body.get("collection") or "")
-    authorization = body.get("authorization") or {}
-    released_at = body.get("released_at") or ""
+    approval_id = str(body.get("approval_id") or "")
 
     migrated = MigratedCollection(collection)
 
-    # The release is recorded before the first document moves, so a migration
-    # that ran is always preceded by the record of the click that released it.
-    _log.info("data_migration released collection=%s verdict=%s human_click=%s "
-              "released_at=%s",
-              collection, authorization.get("verdict"),
-              authorization.get("human_click"), released_at)
+    _log.info("data_migration asked collection=%s approval_id=%s",
+              collection, approval_id or "<none>")
 
     try:
-        if (authorization.get("verdict") != "approve"
-                or authorization.get("human_click") is not True):
-            _raise_unauthorized(collection, authorization)
+        approval = _released_approval(collection, approval_id)
+        _log.info("data_migration released collection=%s approval_id=%s "
+                  "human_click=%s released_at=%s",
+                  collection, approval_id, approval.get("human_click"),
+                  approval.get("released_at"))
         migrated.refuse_unless_migratable()
         expected = migrated.source_count()
     except ChatHealthyException as exc:
-        _log.error("data_migration refused collection=%s mode=%s: %s",
-                   collection, exc.mode, exc)
-        return 1
+        # Log the narrative, then let it go. Returning 1 here would have been
+        # an orderly exit reporting a failure, and REQ-B-005 asks for an
+        # abend: the exception leaves the process, the runbook job is marked
+        # failed by the platform rather than by a number this code chose, and
+        # the traceback is in the job record. A refusal that tidies itself
+        # away is the shape of a refusal that gets missed.
+        _log.error(
+            "data_migration ABEND collection=%s mode=%s approval_id=%s: %s. "
+            "Nothing was written: the destination collection was left exactly "
+            "as it was found, unaltered and not appended to.",
+            collection, exc.mode, approval_id or "<none>", exc)
+        raise
 
     _log.info("data_migration start collection=%s expected=%d", collection, expected)
 
