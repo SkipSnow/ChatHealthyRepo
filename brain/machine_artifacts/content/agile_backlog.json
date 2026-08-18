@@ -16035,7 +16035,7 @@
                         {
                           "req_id": "EPIC-010-F-108-S-001-REQ-B-005",
                           "name": "A collection that already exists at the destination stops the migration",
-                          "requirement": "A migration that finds its target collection already present in ChatHealthyFrontEnd.PublicHealthData MUST fail, MUST raise, and MUST log the collection it found. It MUST NOT write.",
+                          "requirement": "A migration that finds its target collection already present in ChatHealthyFrontEnd.PublicHealthData MUST abend. Prior to the abend it MUST: (a) raise an exception; (b) log a detailed narrative of the error including the collection name it found. It MUST NOT write, append to, or in any way alter the existing collection, in any case.",
                           "priority": "must-have",
                           "status": "done",
                           "orphan": false,
