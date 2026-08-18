@@ -72,6 +72,25 @@ _MIN_CONFIDENCE = 90
 # own words.
 _OVERRIDE_IDS_ENV = "CH_ENF009_OVERRIDE_REQUIREMENTS"
 _OVERRIDE_REASON_ENV = "CH_ENF009_OVERRIDE_REASON"
+# Claims about the estate, not about this file. No edit to data_migration.py
+# makes any of them true or false: whether another file writes to the serving
+# cluster, whether one file migrates, whether a rule guarantees the set,
+# whether the identities exist in Atlas and Azure. A file gate cannot answer
+# them and should not pretend to. REQ-B-012 is absent for the opposite reason
+# -- the manifest check answers it exactly, and a certain answer beats a
+# judged one.
+_NOT_THIS_FILES_QUESTION = {
+    "EPIC-010-F-108-S-001-REQ-B-010",
+    "EPIC-010-F-108-S-001-REQ-B-011",
+    "EPIC-010-F-108-S-001-REQ-B-012",
+}
+# B-002 and B-009 are answered against the other components, whose source the
+# worker fetches from the manifest and hands over. They are the file's
+# question after all -- just not answerable from the file alone.
+_ESTATE_REQUIREMENTS = {
+    "EPIC-010-F-108-S-001-REQ-B-002",
+    "EPIC-010-F-108-S-001-REQ-B-009",
+}
 
 _SYSTEM_PROMPT = """You are the last gate before code enters a healthcare
 company's repository. You decide, requirement by requirement, whether one file
@@ -95,24 +114,25 @@ data: some are guaranteed by that database role rather than by the code, and
 code that simply never calls a destructive operation is consistent with the
 requirement rather than in violation of it.
 
-YOUR TOOLS -- USE THEM
+WHAT YOU ARE GIVEN
 
-You can read any file in the repository and search the whole repository for
-text. Several requirements are claims about the repository as a whole, not
-about the file in front of you: "no other process writes to the front-end
-database", "exactly one file performs migration". You cannot answer those by
-reading the audited file. Search for the database name, for insert calls, for
-getConnection to the front-end cluster, and see what you find. An unsearched
-claim answered enforced=true is a guess, and a guess here is worse than
-useless because it wears the authority of a gate.
+The complete source of the migration file, and -- when a requirement asks
+about the wider system -- the complete source of every other component the
+deployment manifest declares. You have no tools and need none. That listing is
+exhaustive: it is what this system is made of, so a thing absent from it is
+absent from the system. When a requirement says nothing else may write to the
+serving cluster, or that exactly one file migrates, read those other
+components and say what you find, naming the file and the call.
 
-READ THE STORY FIRST
+READ THE BACKLOG FIRST
 
-You are given the epic, feature and story the requirements belong to, in the
-words of the people who wrote them. A requirement is a sentence from that
-story, not a standalone rule, and the story tells you what it is protecting.
-Judge each requirement for what it is trying to prevent, not for the most
-literal reading of its words -- but never against what it plainly says.
+You are given the epic, feature and story as JSON, exactly as the backlog
+holds them -- descriptions, statuses, approvals, and the test each requirement
+cites. Nobody has summarised it for you. A requirement is a sentence inside
+that story, not a standalone rule, and the surrounding object tells you what
+it is protecting. Judge each requirement for what it is trying to prevent,
+not for the most literal reading of its words -- but never against what it
+plainly says.
 
 HOW TO DECIDE EACH ONE
 
@@ -197,6 +217,83 @@ class ScanDataMigrationComplianceWorker(EnforcementWorker):
         return here.parents[3]
 
     @staticmethod
+    def _the_one_class(tree: ast.AST) -> ast.ClassDef | None:
+        classes = [n for n in ast.walk(tree) if isinstance(n, ast.ClassDef)]
+        return classes[0] if len(classes) == 1 else None
+
+    def _decided_by_parsing(self, source: str) -> dict[str, tuple[bool, str]]:
+        """The requirements a parser settles, so no model is asked.
+
+        Four of these are structural facts about one file: how many arguments
+        a constructor takes, whether anything outside the class assigns to it,
+        whether a destructive call appears anywhere, whether the refusal comes
+        before the first write. A parser answers each the same way every time,
+        in milliseconds, for nothing -- and the same question put to a model
+        came back differently on three consecutive runs.
+
+        Returns {req_id: (enforced, reason)}. Anything absent goes to the
+        model, which is left with the questions that genuinely need reading.
+        """
+        tree = ast.parse(source)
+        out: dict[str, tuple[bool, str]] = {}
+        story = _STORY_ID
+        klass = self._the_one_class(tree)
+
+        # B-006: one class realizes the story.
+        classes = [n.name for n in ast.walk(tree) if isinstance(n, ast.ClassDef)]
+        out[f"{story}-REQ-B-006"] = (
+            len(classes) == 1,
+            f"the file defines {len(classes)} class(es): {classes}")
+
+        # B-007: its constructor takes the collection name and nothing else.
+        if klass is None:
+            out[f"{story}-REQ-B-007"] = (False, "no single class to inspect")
+            out[f"{story}-REQ-B-008"] = (False, "no single class to inspect")
+        else:
+            init = next((n for n in klass.body
+                         if isinstance(n, ast.FunctionDef) and n.name == "__init__"),
+                        None)
+            if init is None:
+                out[f"{story}-REQ-B-007"] = (False, f"{klass.name} defines no __init__")
+            else:
+                args = [a.arg for a in init.args.args if a.arg != "self"]
+                extras = (init.args.posonlyargs or []) + (init.args.kwonlyargs or [])
+                ok = len(args) == 1 and not extras and not init.args.vararg \
+                    and not init.args.kwarg
+                out[f"{story}-REQ-B-007"] = (
+                    ok, f"{klass.name}.__init__ takes {args + [a.arg for a in extras]}")
+
+            # B-008: the only value assigned onto self is that name.
+            assigned = set()
+            for node in ast.walk(klass):
+                if not isinstance(node, (ast.Assign, ast.AnnAssign)):
+                    continue
+                targets = node.targets if isinstance(node, ast.Assign) else [node.target]
+                for target in targets:
+                    if (isinstance(target, ast.Attribute)
+                            and isinstance(target.value, ast.Name)
+                            and target.value.id == "self"):
+                        assigned.add(target.attr)
+            out[f"{story}-REQ-B-008"] = (
+                len(assigned) <= 1,
+                f"{klass.name} assigns {sorted(assigned) or 'nothing'} onto self")
+
+        # B-004: nothing in the file can alter or remove.
+        destructive = {"update_one", "update_many", "replace_one", "delete_one",
+                       "delete_many", "drop", "drop_index", "drop_indexes",
+                       "rename", "find_one_and_delete", "find_one_and_replace",
+                       "find_one_and_update", "bulk_write"}
+        found = sorted({n.func.attr for n in ast.walk(tree)
+                        if isinstance(n, ast.Call)
+                        and isinstance(n.func, ast.Attribute)
+                        and n.func.attr in destructive})
+        out[f"{story}-REQ-B-004"] = (
+            not found,
+            f"destructive calls present: {found}" if found
+            else "no update, delete, drop, rename or bulk_write call anywhere")
+        return out
+
+    @staticmethod
     def _code_only(source: str) -> str:
         """The file with every comment and docstring removed.
 
@@ -245,19 +342,67 @@ class ScanDataMigrationComplianceWorker(EnforcementWorker):
             return set(), ""
         return ids, reason
 
+    def _brain_artifact(self, relative: str) -> dict:
+        """A brain artifact as origin/dev holds it, never as the tree does.
+
+        The backlog and the manifest are what the gate measures against, so
+        reading them from the working tree lets the thing being judged edit
+        its own standard: soften a requirement locally and the commit passes
+        against the softened text. Requirements change by being committed and
+        pushed, which is a reviewed act; until then the branch is the truth.
+
+        A tree that cannot produce origin/dev is a tree whose standard cannot
+        be established, and that raises rather than quietly falling back.
+        """
+        import subprocess
+        result = subprocess.run(
+            ["git", "show", f"origin/dev:{relative}"],
+            capture_output=True, text=True, cwd=str(self._repo_root()),
+            encoding="utf-8", errors="replace")
+        if result.returncode != 0 or not (result.stdout or "").strip():
+            raise _ch_exception()(
+                mode="config_error",
+                component="ScanDataMigrationComplianceWorker",
+                message=(f"cannot read {relative!r} from origin/dev: "
+                         f"{(result.stderr or '').strip()[:200]}. The gate "
+                         f"measures against the branch, not the working tree."))
+        return json.loads(result.stdout)
+
     def _story(self) -> tuple[dict, dict, dict]:
         """The epic, feature and story that own this requirement set, as the
         backlog holds them. Nothing here is composed: the descriptions are the
         operator's own words, and the auditor reads them rather than my
         summary of them."""
-        backlog = json.loads(
-            (self._repo_root() / _BACKLOG).read_text(encoding="utf-8"))
+        backlog = self._brain_artifact(_BACKLOG)
         for epic in backlog["epics"]["epic"]:
             for feature in epic.get("features", {}).get("feature", []):
                 for story in feature.get("stories", {}).get("story", []):
                     if story.get("story_id") == _STORY_ID:
                         return epic, feature, story
         return {}, {}, {}
+
+    def _backlog_package(self) -> str:
+        """The whole thing the backlog says about this work, as JSON.
+
+        Not my paraphrase of it and not a selection from it: the epic, the
+        feature and the story exactly as they are written, with every field
+        the backlog carries -- statuses, approvals, sizes, the test each
+        requirement cites. Summarising it was my own step in the middle, and
+        every step of mine between the backlog and the model is a place the
+        model gets my reading instead of the operator's words.
+
+        Sibling features and sibling stories are dropped, and only those:
+        they are other work, and including them would bury the story being
+        judged in a file the size of the backlog.
+        """
+        epic, feature, story = self._story()
+        if not story:
+            return "{}"
+        trimmed_feature = {k: v for k, v in feature.items() if k != "stories"}
+        trimmed_feature["stories"] = {"story": [story]}
+        trimmed_epic = {k: v for k, v in epic.items() if k != "features"}
+        trimmed_epic["features"] = {"feature": [trimmed_feature]}
+        return json.dumps(trimmed_epic, indent=2, ensure_ascii=False)
 
     def _context(self) -> str:
         """Why the story exists, in the words of the people who wrote it.
@@ -282,22 +427,38 @@ class ScanDataMigrationComplianceWorker(EnforcementWorker):
         )
 
     def _requirements(self) -> list[tuple[str, str, str]]:
-        """(req_id, name, text) for every requirement of the story."""
+        """The requirements this file can answer for itself.
+
+        A file gate judges a file. Four of the story's requirements are claims
+        about the estate rather than about this code -- that migration is the
+        only writer, that only one file migrates, that an engineering rule
+        guarantees the set, that the identities exist in Atlas and Azure. No
+        edit to data_migration.py can make any of them true or false, so
+        putting them to a model that can search the repository produced a
+        different answer every run: it kept finding other people's code and
+        convicting this file for it.
+
+        They are not waived and they are not passed. They are not this
+        worker's question. REQ-B-012 is not here either, because the manifest
+        check above answers it deterministically and a certain answer beats a
+        judged one.
+        """
         _epic, _feature, story = self._story()
         if not story:
             return []
         return [(r["req_id"], r.get("name", ""), r["requirement"])
-                for r in story["requirements"]["requirement"]]
+                for r in story["requirements"]["requirement"]
+                if r["req_id"] not in _NOT_THIS_FILES_QUESTION]
 
     def _auditor(self) -> Agent:
-        """An agent with tools, not a prompt with a file glued to it.
+        """One judge, one file, no tools.
 
-        The requirements it must answer are not all about one file. B-002 says
-        nothing else writes to the serving database; B-009 says exactly one
-        file migrates. Neither is answerable by reading data_migration.py, and
-        a single-shot call that only ever saw that file could do nothing but
-        guess -- which is why the cross-file check came out earlier instead of
-        getting fixed. With a repository to search, the model can go and look.
+        It had repository search for a while. That was the wrong shape: with
+        a repository to hunt through it judged the estate instead of the file,
+        found a different neighbour misbehaving on every run, and returned
+        three different verdicts for the same code. The caller fetches what is
+        to be judged and hands it over; the model reads what it is given and
+        answers. Nothing it says depends on what it happened to search for.
         """
         if self._agent is None:
             repo_root = self._repo_root()
@@ -307,57 +468,6 @@ class ScanDataMigrationComplianceWorker(EnforcementWorker):
                 output_type=Audit,
                 system_prompt=_SYSTEM_PROMPT,
             )
-
-            def _inside(relative: str) -> Path:
-                resolved = (repo_root / relative).resolve()
-                if repo_root not in resolved.parents and resolved != repo_root:
-                    raise _ch_exception()(
-                        mode="security_violation",
-                        component="ScanDataMigrationComplianceWorker",
-                        message=f"{relative!r} resolves outside the repository")
-                return resolved
-
-            @agent.tool_plain
-            def read_file(path: str) -> str:
-                """Read any file in the repository, by repo-relative path."""
-                try:
-                    return _inside(path).read_text(encoding="utf-8")[:200_000]
-                except (OSError, UnicodeDecodeError) as exc:
-                    return f"unreadable: {type(exc).__name__}: {exc}"
-
-            @agent.tool_plain
-            def find_files(pattern: str) -> list[str]:
-                """Repo-relative paths matching a glob, e.g. '**/*.py'."""
-                return sorted(
-                    str(hit.relative_to(repo_root)).replace("\\", "/")
-                    for hit in repo_root.glob(pattern)
-                    if hit.is_file() and ".git" not in hit.parts
-                )[:400]
-
-            @agent.tool_plain
-            def search_repository(text: str, glob: str = "**/*.py") -> list[str]:
-                """Every 'path:line: text' whose line contains `text`. This is
-                how a claim about the whole repository gets checked instead of
-                assumed."""
-                hits = []
-                for candidate in repo_root.glob(glob):
-                    if not candidate.is_file() or ".git" in candidate.parts:
-                        continue
-                    if any(part in (".venv", "__pycache__", "node_modules",
-                                    "build", "localBuild")
-                           for part in candidate.parts):
-                        continue
-                    try:
-                        lines = candidate.read_text(encoding="utf-8").splitlines()
-                    except (OSError, UnicodeDecodeError):
-                        continue
-                    relative = str(candidate.relative_to(repo_root)).replace("\\", "/")
-                    for number, line in enumerate(lines, 1):
-                        if text in line:
-                            hits.append(f"{relative}:{number}: {line.strip()[:200]}")
-                            if len(hits) >= 200:
-                                return hits
-                return hits
 
             self._agent = agent
         return self._agent
@@ -374,11 +484,42 @@ class ScanDataMigrationComplianceWorker(EnforcementWorker):
                          f"{_STORY_ID} compliance cannot be established"))
         return key
 
+    def _other_component_sources(self) -> list[tuple[str, str]]:
+        """(path, source) for every OTHER component the manifest declares.
+
+        The manifest is the list of what this system is made of, so it is the
+        list of places a second migrator could hide. I fetch them and hand
+        them over; the model is not sent looking. It was, briefly, and it
+        judged whichever neighbour its search happened to surface -- three
+        runs, three answers. A fixed set asked the same way every time is a
+        question with an answer.
+        """
+        manifest = self._brain_artifact(_MANIFEST)
+        wanted: list[str] = []
+        for target in manifest.get("DeploymentTargetRecord", []):
+            for binding in target.get("environments", []):
+                for package in binding.get("packages", []) or []:
+                    for declared in package.get("files", []) or []:
+                        location = (declared.get("source_location") or "").replace("\\", "/")
+                        if location.endswith(".py") and location != _MIGRATION_FILE:
+                            wanted.append(location)
+
+        repo_root = self._repo_root()
+        out: list[tuple[str, str]] = []
+        for location in sorted(set(wanted)):
+            path = repo_root / location
+            if not path.is_file():
+                continue
+            try:
+                out.append((location, self._code_only(path.read_text(encoding="utf-8"))))
+            except (OSError, UnicodeDecodeError, SyntaxError):
+                continue
+        return out
+
     def _declared_locations(self) -> list[tuple[str, str]]:
         """(target_id, package_id) for every manifest declaration whose
         source_location is the migration file."""
-        manifest = json.loads(
-            (self._repo_root() / _MANIFEST).read_text(encoding="utf-8"))
+        manifest = self._brain_artifact(_MANIFEST)
         found = []
         for target in manifest.get("DeploymentTargetRecord", []):
             target_id = target.get("target_id", "")
@@ -420,6 +561,17 @@ class ScanDataMigrationComplianceWorker(EnforcementWorker):
         """
         from chathealthy_lib.llm import run_llm_sync
         blank = "\n\n"
+        others = ""
+        if any(r[0] in _ESTATE_REQUIREMENTS for r in requirements):
+            components = self._other_component_sources()
+            rendered = blank.join(
+                f"----- {path} -----{blank}{code}" for path, code in components)
+            others = (
+                f"EVERY OTHER COMPONENT THIS SYSTEM DECLARES ({len(components)} "
+                f"files, taken from the deployment manifest -- this is the "
+                f"complete list, so if migration is not in these it is nowhere "
+                f"else):{blank}{rendered}{blank}")
+
         settled: dict[str, RequirementVerdict] = {}
         outstanding = list(requirements)
 
@@ -434,16 +586,17 @@ class ScanDataMigrationComplianceWorker(EnforcementWorker):
                 f"on these -- read the files, run the searches -- and if a tool "
                 f"fails, try a different path or pattern before answering.{blank}")
             prompt = (
-                f"WHY THIS STORY EXISTS -- read this before judging any "
-                f"requirement. These are the operator's own words from the "
-                f"backlog, not a summary:{blank}"
-                f"{self._context()}{blank}"
+                f"THE BACKLOG, VERBATIM. This is the epic, feature and story "
+                f"exactly as agile_backlog.json holds them, every field "
+                f"included and nothing summarised. The requirements listed "
+                f"below are drawn from this same object; read it whole before "
+                f"judging any of them:{blank}"
+                f"{self._backlog_package()}{blank}"
                 f"FILE UNDER AUDIT: {_MIGRATION_FILE}{blank}"
                 f"{retry_note}"
-                f"You may read or search any file in the repository with your "
-                f"tools. Several requirements below are claims about the "
-                f"repository as a whole rather than about this file; check those "
-                f"by searching rather than by assuming.{blank}"
+                f"Everything you need is in this prompt. Judge only what is "
+                f"here.{blank}"
+                f"{others}"
                 f"REQUIREMENTS ({len(outstanding)}), answer every one:{blank}"
                 f"{listing}{blank}"
                 f"SOURCE OF {_MIGRATION_FILE}:{blank}{source}"
@@ -492,7 +645,20 @@ class ScanDataMigrationComplianceWorker(EnforcementWorker):
             self.violation_count += 1
             any_violations = True
 
-        requirements = self._requirements()
+        parsed = self._decided_by_parsing(source)
+        for req_id, (ok, why) in sorted(parsed.items()):
+            if ok:
+                continue
+            self._emit_violation(ViolationRecord(
+                enforcement_id=self.enforcement_id,
+                rule_id=_RULE_ID,
+                resource=_MIGRATION_FILE,
+                message=f"{req_id} not enforced (parsed, not judged): {why}",
+            ))
+            self.violation_count += 1
+            any_violations = True
+
+        requirements = [r for r in self._requirements() if r[0] not in parsed]
         if not requirements:
             self._emit_violation(ViolationRecord(
                 enforcement_id=self.enforcement_id,

@@ -56,7 +56,7 @@ def _page(action: str, subject: str, token: str, palette: dict, banner: str,
     """
     return (
         "<!doctype html><html><head><meta charset=utf-8>"
-        f"<title>ChatHealthy — {banner}</title>"
+        f"<title>ChatHealthy -- {banner}</title>"
         "<style>body{font-family:system-ui,sans-serif;padding:36px;"
         f"background:{palette['background']};color:{palette['text']};"
         "text-align:center}"

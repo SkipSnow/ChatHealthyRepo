@@ -23,6 +23,7 @@ import json
 import pathlib
 import subprocess
 import sys
+import uuid
 import urllib.request
 
 _HERE = pathlib.Path(__file__).resolve()
@@ -37,6 +38,7 @@ from chathealthy_lib.human_authorization import (  # noqa: E402
     APPROVE, request_authorization)
 from chathealthy_lib.logging_service import (  # noqa: E402
     ChatHealthyLoggingService, set_mongo_log_identity)
+from chathealthy_lib.mongo_utilities import ChatHealthyMongoUtilities  # noqa: E402
 
 set_mongo_log_identity("pipelineEditor")
 
@@ -108,15 +110,34 @@ def main() -> int:
                    args.collection, authorization.verdict)
         return 1
 
-    released_at = datetime.datetime.now(datetime.timezone.utc).isoformat()
+    # The approval is written down before the webhook is fired, and the
+    # payload carries only its id. It used to carry the verdict itself, which
+    # meant the runbook believed whatever the caller asserted -- anyone who
+    # could reach the webhook could type human_click=true and migrate without
+    # a person. Now the caller can only name a record, and writing that record
+    # needs pipelineEditor's certificate.
+    released_at = datetime.datetime.now(datetime.timezone.utc)
+    approval_id = f"migration-approval-{uuid.uuid4().hex}"
+    approvals = ChatHealthyMongoUtilities().getConnection(
+        "pipelineEditor", "ChatHealthyDataPipelines"
+    )["PipelinePublicHealthData"]["MigrationApprovals"]
+    approvals.insert_one({
+        "_id": approval_id,
+        "collection": args.collection,
+        "env": args.env,
+        "verdict": authorization.verdict,
+        "human_click": authorization.human_click,
+        "subject": authorization.subject,
+        "seconds_waited": authorization.seconds_waited,
+        "released_at": released_at,
+    })
+    _log.info("data_migration approval recorded id=%s collection=%s",
+              approval_id, args.collection)
+
     payload = {
         "collection": args.collection,
-        "released_at": released_at,
-        "authorization": {
-            "verdict": authorization.verdict,
-            "human_click": authorization.human_click,
-            "subject": authorization.subject,
-        },
+        "approval_id": approval_id,
+        "released_at": released_at.isoformat(),
     }
 
     try:
