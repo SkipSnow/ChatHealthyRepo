@@ -36,6 +36,9 @@ set_mongo_log_identity("dataMigrator")
 _log = ChatHealthyLoggingService()
 
 _BATCH = 1000
+# An approval releases one migration, not a standing permission. Older than
+# this and the operator is asked again rather than assumed to still mean it.
+_APPROVAL_VALID_SECONDS = 4 * 60 * 60
 
 
 class MigratedCollection:
@@ -349,7 +352,7 @@ def main() -> int:
                   collection, ", ".join(outstanding))
 
     _log.info("data_migration complete collection=%s written=%d indexes=%d "
-              "released_at=%s", collection, written, len(built), released_at)
+              "approval_id=%s", collection, written, len(built), approval_id)
     return 0
 
 
