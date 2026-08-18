@@ -1897,22 +1897,37 @@ def apply_identity_role_grants_from_manifest(coll: DeploymentCollection, env: st
     missing: list = []
     for identity in coll.identity_catalog or []:
         iid = identity.get("identity_id", "")
-        principal_id = _resolve_identity_principal_id(coll, identity)
         roles = identity.get("roles", []) or []
-        for role in roles:
-            for target in coll:
-                allowed = target.allowed_roles or []
-                if role not in allowed:
-                    continue
-                scope = _resolve_target_azure_scope(target, env)
-                if not scope:
-                    continue
-                held = _role_is_held(principal_id, role, scope)
-                if held:
-                    step(f"  {iid}: {role} on {target.target_id} - held")
-                else:
-                    missing.append((iid, role, target.target_id, scope))
-                    step(f"  {iid}: {role} on {target.target_id} - MISSING")
+
+        # An identity is resolved to an Azure principal only when it claims a
+        # role some target actually scopes in Azure. Not every identity this
+        # system relies on is an Azure one: a MongoDB X.509 user authenticates
+        # by certificate and holds Atlas database roles, and has no principal
+        # to look up. Resolving eagerly made the catalog Azure-only in
+        # practice, so the way to deploy was to delete the declaration -- and
+        # an identity holding live grants on two clusters then existed
+        # nowhere the manifest could see it. The check that matters is
+        # unchanged: a role claimed at an Azure scope is still verified as
+        # held, and still stops the deploy when it is not.
+        azure_scoped = [
+            (role, target, scope)
+            for role in roles
+            for target in coll
+            if role in (target.allowed_roles or [])
+            for scope in [_resolve_target_azure_scope(target, env)]
+            if scope
+        ]
+        if not azure_scoped:
+            step(f"  {iid}: claims no Azure-scoped role - nothing to verify")
+            continue
+
+        principal_id = _resolve_identity_principal_id(coll, identity)
+        for role, target, scope in azure_scoped:
+            if _role_is_held(principal_id, role, scope):
+                step(f"  {iid}: {role} on {target.target_id} - held")
+            else:
+                missing.append((iid, role, target.target_id, scope))
+                step(f"  {iid}: {role} on {target.target_id} - MISSING")
 
 
     if missing:
