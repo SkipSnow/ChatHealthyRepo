@@ -45,21 +45,37 @@ class Authorization:
         return self.verdict == APPROVE
 
 
-def _page(action: str, subject: str, token: str) -> str:
+def _page(action: str, subject: str, token: str, palette: dict, banner: str,
+          detail: str) -> str:
+    """One page, coloured by the caller.
+
+    Rule-065's commit gate is teal. A page that asks about something else and
+    looks identical to the commit gate invites the wrong click, so the colour
+    and the banner are the caller's to set: the operator should know what they
+    are approving from across the room, before reading a word.
+    """
     return (
         "<!doctype html><html><head><meta charset=utf-8>"
-        f"<title>ChatHealthy — {action}</title>"
-        "<style>body{font-family:system-ui,sans-serif;padding:40px;"
-        "background:#0b7a75;color:#fff;text-align:center}"
-        "h1{font-size:28px;margin-bottom:4px}"
-        "p.subject{font-size:22px;font-weight:600;margin:18px 0 30px;"
-        "font-family:ui-monospace,SFMono-Regular,Menlo,monospace}"
-        "button{font-size:18px;padding:14px 32px;margin:8px;border:none;"
-        "border-radius:6px;cursor:pointer;font-weight:600}"
-        ".approve{background:#0b9a94;color:#fff}"
-        ".reject{background:#dc2626;color:#fff}</style></head><body>"
+        f"<title>ChatHealthy — {banner}</title>"
+        "<style>body{font-family:system-ui,sans-serif;padding:36px;"
+        f"background:{palette['background']};color:{palette['text']};"
+        "text-align:center}"
+        "p.banner{font-size:13px;letter-spacing:.18em;text-transform:uppercase;"
+        "font-weight:700;opacity:.85;margin:0 0 22px}"
+        "h1{font-size:26px;margin:0 0 6px;font-weight:600}"
+        "p.subject{font-size:21px;font-weight:700;margin:16px auto 12px;"
+        "font-family:ui-monospace,SFMono-Regular,Menlo,monospace;"
+        "max-width:760px;word-break:break-word}"
+        "p.detail{font-size:15px;line-height:1.55;margin:0 auto 28px;"
+        "max-width:640px;opacity:.92}"
+        "button{font-size:18px;padding:14px 34px;margin:8px;border:none;"
+        "border-radius:6px;cursor:pointer;font-weight:700}"
+        f".approve{{background:{palette['approve']};color:{palette['text']}}}"
+        ".reject{background:#b91c1c;color:#fff}</style></head><body>"
+        f"<p class=banner>{banner}</p>"
         f"<h1>Authorize {action}?</h1>"
         f"<p class=subject>{subject}</p>"
+        f"<p class=detail>{detail}</p>"
         "<button class=approve id=btn_approve type=button>APPROVE</button>"
         "<button class=reject id=btn_reject type=button>REJECT</button>"
         "<input type=hidden id=human_click value=\"false\">"
@@ -86,21 +102,42 @@ _ACK = ("<!doctype html><html><head><meta charset=utf-8></head><body "
         "<h1>Recorded. You can close this tab.</h1></body></html>")
 
 
+PALETTES = {
+    # Rule-065's commit gate. Left as it was so the page operators already
+    # know keeps looking like itself.
+    "commit": {"background": "#0b7a75", "approve": "#0b9a94", "text": "#ffffff"},
+    # Data migration. Deep indigo, deliberately nothing like the teal commit
+    # gate: this one moves data onto the cluster serving users, and it must
+    # not be mistaken at a glance for the routine one.
+    "migration": {"background": "#312e81", "approve": "#4f46e5", "text": "#ffffff"},
+    # Entitlement and identity changes.
+    "entitlement": {"background": "#7c2d12", "approve": "#c2410c", "text": "#ffffff"},
+}
+
+
 def request_authorization(action: str, subject: str,
-                          timeout_seconds: int = 600) -> Authorization:
+                          timeout_seconds: int = 600,
+                          palette: str = "commit",
+                          banner: str = "ChatHealthy authorization",
+                          detail: str = "") -> Authorization:
     """Block until the operator clicks, or the timeout expires.
 
-    `action` is the verb shown in the heading; `subject` is the thing being
-    acted on and appears both on the page and on the returned record, so the
-    caller's log can name exactly what was approved.
+    `action` is the verb in the heading; `subject` is the thing being acted on
+    and appears on the page and on the returned record, so the caller's log
+    names exactly what was approved. `palette` and `banner` make this page
+    visually distinct from every other approval page -- an operator who cannot
+    tell two gates apart will eventually click the wrong one. `detail` is the
+    sentence that says what happens on APPROVE, and what does not happen on
+    REJECT.
     """
+    colours = PALETTES.get(palette) or PALETTES["commit"]
     with socket.socket() as probe:
         probe.bind(("127.0.0.1", 0))
         port = probe.getsockname()[1]
 
     token = secrets.token_urlsafe(8)
     decision: dict = {"verdict": None, "human_click": False}
-    page_html = _page(action, subject, token)
+    page_html = _page(action, subject, token, colours, banner, detail)
 
     class Handler(BaseHTTPRequestHandler):
         def log_message(self, *args, **kwargs):

@@ -5234,7 +5234,57 @@
         "Key Vault Secrets User",
         "Key Vault Secrets Officer"
       ]
+    },
+    {
+      "identity_id": "identity_data_migrator",
+      "identity_class": "user",
+      "roles": [
+        "role_data_migrator"
+      ]
     }
   ],
-  "CustomRoleCatalog": []
+  "CustomRoleCatalog": [
+    {
+      "role_id": "role_data_migrator",
+      "description": "Atlas custom database role dataMigratorRole. Reads the pipeline's published data and the front-end serving data; on the serving database only, may insert documents, create collections and create indexes. It holds no update, no delete and no drop anywhere, so a migration can add and can never alter or remove what is already serving users.",
+      "grants": [
+        {
+          "operation": "FIND",
+          "on": "target_atlas_pipeline/PipelinePublicHealthData"
+        },
+        {
+          "operation": "LIST_COLLECTIONS",
+          "on": "target_atlas_pipeline/PipelinePublicHealthData"
+        },
+        {
+          "operation": "LIST_INDEXES",
+          "on": "target_atlas_pipeline/PipelinePublicHealthData"
+        },
+        {
+          "operation": "FIND",
+          "on": "target_atlas_pipeline/PublicHealthData"
+        },
+        {
+          "operation": "LIST_COLLECTIONS",
+          "on": "target_atlas_pipeline/PublicHealthData"
+        },
+        {
+          "operation": "LIST_INDEXES",
+          "on": "target_atlas_pipeline/PublicHealthData"
+        },
+        {
+          "operation": "INSERT",
+          "on": "target_atlas_pipeline/PublicHealthData"
+        },
+        {
+          "operation": "CREATE_COLLECTION",
+          "on": "target_atlas_pipeline/PublicHealthData"
+        },
+        {
+          "operation": "CREATE_INDEX",
+          "on": "target_atlas_pipeline/PublicHealthData"
+        }
+      ]
+    }
+  ]
 }

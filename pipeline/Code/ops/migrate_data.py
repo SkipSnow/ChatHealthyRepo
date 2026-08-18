@@ -75,14 +75,26 @@ def main() -> int:
     args = parser.parse_args()
 
     vault = _VAULT_BY_ENV[args.env]
-    subject = f"{args.collection}  →  ChatHealthyFrontEnd.PublicHealthData"
+    subject = (f"{args.collection}\n"
+               f"ChatHealthyDataPipelines.PipelinePublicHealthData"
+               f"  →  ChatHealthyFrontEnd.PublicHealthData")
 
     _log.info("data_migration authorization requested collection=%s env=%s",
               args.collection, args.env)
 
     authorization = request_authorization(
-        "migration of", subject,
-        timeout_seconds=_AUTHORIZATION_TIMEOUT_SECONDS)
+        "this migration", subject,
+        timeout_seconds=_AUTHORIZATION_TIMEOUT_SECONDS,
+        palette="migration",
+        banner=f"Data migration — {args.env}",
+        detail=(
+            f"APPROVE copies every document in <b>{args.collection}</b> onto "
+            f"the cluster that serves users, under the same name, and builds "
+            f"its indexes. It cannot overwrite or delete anything that is "
+            f"already there, and nothing in the estate can remove what it "
+            f"writes — so an approval here is not reversible by us. "
+            f"REJECT stops now: nothing is copied and the refusal is recorded "
+            f"against your name."))
 
     _log.info(
         "data_migration authorization %s collection=%s human_click=%s "
