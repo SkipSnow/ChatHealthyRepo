@@ -201,6 +201,11 @@
               "statement_number": 8,
               "statement_body": "The build, deploy and promote chain has exactly three operator-facing entry points -- build_chathealthy.py, deploy_chathealthy.py and promote_chathealthy.py. Every other top-level file in that directory is an imported-only helper and carries no entry-point block.",
               "req_id": "EPIC-008-F-012"
+            },
+            {
+              "statement_number": 9,
+              "statement_body": "The one file that migrates data to the front-end serving database satisfies every requirement of story EPIC-010-F-108-S-001. The requirements are read from the backlog and each is put to an LLM against the file's source; a requirement the code does not enforce, or that could not be established, stops the commit. No other file writes to that database.",
+              "req_id": "EPIC-010-F-108-S-001-REQ-B-010"
             }
           ]
         },
@@ -598,6 +603,15 @@
               "requires_lock": false,
               "scopes": [],
               "timeout": 10
+            },
+            {
+              "enforcement_id": "Rule-065-ENF-009",
+              "title": "The data migration satisfies every requirement of its story",
+              "hook": "pre-commit",
+              "executable_path": "architecture/EngineeringRuleEnforcement/code/scan_data_migration_compliance_worker.py",
+              "requires_lock": false,
+              "scopes": [],
+              "timeout": 300
             }
           ]
         }

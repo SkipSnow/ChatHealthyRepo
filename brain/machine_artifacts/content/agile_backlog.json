@@ -16171,6 +16171,26 @@
                               }
                             ]
                           }
+                        },
+                        {
+                          "req_id": "EPIC-010-F-108-S-001-REQ-B-012",
+                          "name": "The migration file is declared in the deployment manifest at its actual path",
+                          "requirement": "deployment_architecture.json declares the file that performs the migration under exactly one deployment target and one package, and the source_location it declares is that file's actual repository-relative path. A commit in which the file is undeclared, is declared in more than one place, or is declared at a path that is not where the file is, is not made.",
+                          "priority": "must-have",
+                          "status": "done",
+                          "orphan": false,
+                          "approval": "approved",
+                          "depends_on": [],
+                          "tests": {
+                            "test": [
+                              {
+                                "test_id": "EPIC-010-F-108-S-001-REQ-B-012-TEST-1",
+                                "test_type": "ordinary",
+                                "orphan": false,
+                                "file": "pipeline/Code/tests/test_data_migration.py"
+                              }
+                            ]
+                          }
                         }
                       ]
                     }

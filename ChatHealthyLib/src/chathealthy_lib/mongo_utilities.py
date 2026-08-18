@@ -47,10 +47,27 @@ CLUSTER_TARGETS = ("ChatHealthyFrontEnd", "ChatHealthyDataPipelines")
 # A cluster maps to a HOST, never to a credentialed connection string. The
 # credential comes from the identity's certificate and nowhere else, so no
 # secret is involved in deciding where to connect.
+#
+# These are the PUBLIC hostnames, and they are the default because most
+# callers need them: the operator workstation, and the Hugging Face Spaces
+# that host the front-end services, are both outside Azure and can only reach
+# Atlas over the internet. That reachability is a requirement, not debt.
+#
+# Azure compute is the exception. A VM, container-app job or runbook inside
+# the pipeline vnet reaches the same clusters through the project's Azure
+# Private Link service, and MUST, because traffic between our own Azure
+# components has no business on a public address. Those hosts are not chosen
+# here -- the deploy sets CH_MONGO_HOST_<CLUSTER> on the compute and this
+# reads it. The library is told where to connect; it does not decide.
 _TARGET_HOST = {
     "ChatHealthyFrontEnd": "chathealthyfrontend.mdwahg.mongodb.net",
     "ChatHealthyDataPipelines": "chathealthydatapipeline.mdwahg.mongodb.net",
 }
+
+
+def _host_for(cluster: str) -> str:
+    return (os.environ.get(f"CH_MONGO_HOST_{cluster.upper()}") or "").strip() \
+        or _TARGET_HOST[cluster]
 
 # The data-pipeline cluster is paused whenever no run holds a reservation, so
 # a connection to it can meet a machine mid-transition. It is not this
@@ -581,7 +598,7 @@ class ChatHealthyMongoUtilities:
             pass
         os.replace(staging_path, cert_path)
 
-        host = _TARGET_HOST[cluster]
+        host = _host_for(cluster)
         uri = (
             f"mongodb+srv://{host}/?authSource=%24external"
             "&authMechanism=MONGODB-X509&retryWrites=true&w=majority"
