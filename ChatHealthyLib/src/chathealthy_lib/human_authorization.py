@@ -19,6 +19,9 @@ import socket
 import socketserver
 import threading
 import time
+import os
+import subprocess
+import sys
 import webbrowser
 from dataclasses import dataclass
 from http.server import BaseHTTPRequestHandler
@@ -78,13 +81,29 @@ def _page(action: str, subject: str, token: str, palette: dict, banner: str,
         f"<p class=detail>{detail}</p>"
         "<button class=approve id=btn_approve type=button>APPROVE</button>"
         "<button class=reject id=btn_reject type=button>REJECT</button>"
+        "<div id=why style=\"margin:10px 0;color:#a3231d;font-size:14px\"></div>"
         "<input type=hidden id=human_click value=\"false\">"
         "<script>"
         f"var TOKEN='{token}';"
-        "document.addEventListener('mousedown',function(){"
-        "document.getElementById('human_click').value='true';});"
+        # A click on its own proves little: it can be dispatched by script, and
+        # a focused button fires one from the keyboard. A pointer that travelled
+        # across the page and then pressed is the evidence wanted, so both are
+        # required and both must be isTrusted -- a flag the browser sets and
+        # page script cannot forge.
+        "var moved=0,lx=null,ly=null,pressed=false;"
+        "document.addEventListener('mousemove',function(e){"
+        "if(!e.isTrusted)return;"
+        "if(lx!==null){moved+=Math.abs(e.clientX-lx)+Math.abs(e.clientY-ly);}"
+        "lx=e.clientX;ly=e.clientY;"
+        "if(moved>40&&pressed){"
+        "document.getElementById('human_click').value='true';}});"
+        "document.addEventListener('mousedown',function(e){"
+        "if(!e.isTrusted)return;pressed=true;"
+        "if(moved>40){document.getElementById('human_click').value='true';}});"
         "function send(v){"
         "var hc=document.getElementById('human_click').value;"
+        "if(hc!=='true'){document.getElementById('why').textContent="
+        "'Move the mouse across this window, then click.';return;}"
         "fetch('/decide',{method:'POST',body:new URLSearchParams("
         "{token:TOKEN,verdict:v,human_click:hc})})"
         ".then(function(){document.body.innerHTML='<h1>Recorded.</h1>';"
@@ -187,10 +206,57 @@ def request_authorization(action: str, subject: str,
         return Authorization(UNREACHABLE, False, subject, url, 0.0)
 
     threading.Thread(target=server.serve_forever, daemon=True).start()
-    try:
-        webbrowser.open_new(url)
-    except Exception:  # noqa: BLE001
-        pass
+
+    # The page is placed deliberately: two thirds of the screen, centred, in a
+    # window of its own and in front. It used to be one webbrowser call inside a
+    # bare except, so when it failed -- which it does when the hook runs as a
+    # child process with no session of its own -- nothing appeared, nothing said
+    # so, and the run waited out its timeout for a click on a window nobody had
+    # been shown.
+    def _screen() -> tuple[int, int]:
+        try:
+            import ctypes
+            user32 = ctypes.windll.user32
+            user32.SetProcessDPIAware()
+            return int(user32.GetSystemMetrics(0)), int(user32.GetSystemMetrics(1))
+        except Exception:                           # noqa: BLE001
+            return 1920, 1080
+
+    opened = False
+    if sys.platform == "win32":
+        sw, sh = _screen()
+        w, h = int(sw * 2 / 3), int(sh * 2 / 3)
+        x, y = int((sw - w) / 2), int((sh - h) / 2)
+        flags = getattr(subprocess, "CREATE_NO_WINDOW", 0)
+        for exe in ("msedge", "chrome"):
+            try:
+                subprocess.run(
+                    # --app gives the page a window of its own and honours the
+                    # geometry even when the browser is already running;
+                    # --new-window does not, so the page landed as a tab in
+                    # whatever window happened to be open.
+                    ["cmd", "/c", "start", "", exe, f"--app={url}",
+                     f"--window-size={w},{h}", f"--window-position={x},{y}"],
+                    check=True, creationflags=flags, timeout=20)
+                opened = True
+                break
+            except Exception:                       # noqa: BLE001
+                continue
+        if not opened:
+            try:
+                os.startfile(url)                   # noqa: S606
+                opened = True
+            except Exception:                       # noqa: BLE001
+                pass
+    if not opened:
+        try:
+            opened = bool(webbrowser.open_new(url))
+        except Exception:                           # noqa: BLE001
+            opened = False
+    if not opened:
+        from chathealthy_lib.logging_service import ChatHealthyLoggingService
+        ChatHealthyLoggingService().error(
+            "authorization page could not be opened; open %s to decide", url)
 
     started = time.monotonic()
     deadline = started + timeout_seconds
