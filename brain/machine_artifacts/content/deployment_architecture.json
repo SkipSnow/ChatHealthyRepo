@@ -5318,6 +5318,14 @@
         "role_data_migrator"
       ],
       "description": "The one capability of the dataMigrator application: copies published collections from the pipeline cluster to the front-end cluster. Attached to ChatHealthyJobManager, carries no client secret, and reads one vault secret. Its name is identical in Entra, in Key Vault, in its certificate subject and in the environment variable the library derives."
+    },
+    {
+      "identity_id": "ClaudeCodeUser",
+      "identity_class": "user",
+      "entra_object_type": "user",
+      "actor_type": "agent",
+      "object_id": "04dcf8d4-6365-4886-924a-42f06ea25a18",
+      "description": "Holds no rights and signs in nowhere. It exists because Entra will not accept a service principal as a group's last owner, so the agent groups need a user object to own them. Its password is held by the operator and is recorded nowhere."
     }
   ],
   "CustomRoleCatalog": [

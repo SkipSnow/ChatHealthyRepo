@@ -1506,6 +1506,7 @@ def render_pdf(data: dict, out_path: Path) -> Path:
     unapproved = [h for h in data["holders"]
                   if not h["approved"] and not h.get("orphaned")]
     orphaned = [h for h in data["holders"] if h.get("orphaned")]
+    undeclared = [r for r in data["rightless"] if not r["approved"]]
     approved = [h for h in data["holders"] if h["approved"]]
     priv_unapproved = [h for h in unapproved if h["privileged_count"]]
 
@@ -1529,9 +1530,8 @@ def render_pdf(data: dict, out_path: Path) -> Path:
                                         "the role publishes"),
             ("Where a grant can land", "each resource group and the subscription it "
                                        "belongs to"),
-            ("Exceptions", "principals outside the approved register, grants whose "
-                           "principal no longer exists, resources carrying no description, "
-                           "and principals that exist holding nothing"),
+            ("Exceptions", "grants whose principal no longer exists, and resources "
+                           "carrying no description"),
             ("Group definitions", "each directory group, what it means and who manages "
                                   "it"),
             ("Vault-wide access", "principals that can reach every secret in a vault, "
@@ -1576,14 +1576,9 @@ def render_pdf(data: dict, out_path: Path) -> Path:
         ["Role assignments in force", str(data["assignment_count"])],
         ["Principals holding rights", str(len(data["holders"]))],
         ["Approved identities present", f"{len(approved)} of {len(APPROVED)}"],
-        ["Principals outside the approved list", str(len(unapproved))],
-        ["Of those, holding an administrative role", str(len(priv_unapproved))],
         ["Orphaned assignments", str(len(orphaned))],
         ["Resources undescribed", str(len(data["undescribed"]))],
-        ["Principals that exist and hold no rights", str(len(data["rightless"]))],
-        ["Exceptions in total", str(len(unapproved) + len(orphaned)
-                                    + len(data["undescribed"])
-                                    + len(data["rightless"]))],
+        ["Exceptions in total", str(len(orphaned) + len(data["undescribed"]))],
     ]
     t = Table(summary, colWidths=[4.2 * inch, 1.2 * inch], hAlign="LEFT")
     style = [
@@ -1710,7 +1705,7 @@ def render_pdf(data: dict, out_path: Path) -> Path:
         descs = data["secret_descriptions"]
         # user -> resource -> right. The resource leads, because that is the
         # thing being protected; the right is how this user touches it.
-        rows = [["Resource", "Right held on it", "Why, from the assignment",
+        rows = [["Resource", "Right held on it",
                  "Administrative", "Conditioned", "Adds nothing"]]
         bullet_rows: list[int] = []
         title_rows: list[int] = []
@@ -1724,7 +1719,7 @@ def render_pdf(data: dict, out_path: Path) -> Path:
 
         for sub_name in sorted(by_sub):
             title_rows.append(len(rows))
-            rows.append([Paragraph(f'<b>{sub_name}</b>', cell), "", "", "", "", ""])
+            rows.append([Paragraph(f'<b>{sub_name}</b>', cell), "", "", "", ""])
             # One row per grant. Two grants on the same resource are two facts,
             # and folding them into one row because the resource repeats hides
             # one of them.
@@ -1741,16 +1736,13 @@ def render_pdf(data: dict, out_path: Path) -> Path:
                 rows.append([
                     Paragraph(label, cell),
                     Paragraph(g["role"], cell),
-                    # Azure's own description property on the assignment: the
-                    # only place a person can say why this grant exists.
-                    Paragraph(g["justification"] or "&mdash;", cell),
                     "yes" if g["privileged"] else "",
                     "yes" if g["conditioned"] else "",
                     "yes" if g["redundant"] else "",
                 ])
 
-        tb = Table(rows, colWidths=[3.3 * inch, 1.9 * inch, 2.1 * inch,
-                                    0.75 * inch, 0.75 * inch, 0.75 * inch],
+        tb = Table(rows, colWidths=[4.4 * inch, 2.4 * inch,
+                                    0.9 * inch, 0.85 * inch, 0.85 * inch],
                    hAlign="LEFT", repeatRows=1)
         st = [
             ("BACKGROUND", (0, 0), (-1, 0), BAND),
@@ -1819,14 +1811,6 @@ def render_pdf(data: dict, out_path: Path) -> Path:
         return out
 
     story.append(Paragraph("Exceptions", sec))
-    story.append(Paragraph(
-        f"Principals outside the approved list ({len(unapproved)})", sub_sec))
-    if unapproved:
-        for h in unapproved:
-            story.append(KeepTogether(_block(h)))
-    else:
-        story.append(Paragraph("None.", body))
-
     story.append(Paragraph(
         f"Orphaned assignments &mdash; grants whose principal no longer exists "
         f"({len(orphaned)})", sub_sec))
@@ -2195,40 +2179,6 @@ def render_pdf(data: dict, out_path: Path) -> Path:
     else:
         story.append(Paragraph("None.", body))
 
-    rightless = data["rightless"]
-    story.append(Paragraph(
-        f"Principals that exist and hold no rights ({len(rightless)})", sub_sec))
-    if not data["directory_enumerated"]:
-        story.append(Paragraph(
-            "This list covers managed identities and identities attached to resources. Users and "
-            "application registrations are absent: the reporting identity holds no Microsoft Graph "
-            "directory read, so the directory could not be enumerated. Granting Directory.Read.All "
-            "completes it.", note))
-        story.append(Spacer(1, 6))
-    if rightless:
-        rows = [["Principal", "Kind", "Where it came from", "In the register"]]
-        for e in rightless:
-            rows.append([Paragraph(e["name"], cell), e["type"],
-                         Paragraph(e["origin"], cell), "yes" if e["approved"] else ""])
-        t2 = Table(rows, colWidths=[3.0 * inch, 1.6 * inch, 3.6 * inch, 1.2 * inch],
-                   hAlign="LEFT", repeatRows=1)
-        st2 = [("BACKGROUND", (0, 0), (-1, 0), BAND),
-               ("FONTNAME", (0, 0), (-1, 0), "Helvetica-Bold"),
-               ("FONTSIZE", (0, 0), (-1, -1), 8),
-               ("LINEBELOW", (0, 0), (-1, -1), 0.25, RULE),
-               ("VALIGN", (0, 0), (-1, -1), "TOP"),
-               ("ALIGN", (3, 0), (3, -1), "CENTER"),
-               ("TOPPADDING", (0, 0), (-1, -1), 3),
-               ("BOTTOMPADDING", (0, 0), (-1, -1), 3)]
-        for i, e in enumerate(rightless, start=1):
-            if not e["approved"]:
-                st2.append(("TEXTCOLOR", (0, i), (0, i), FLAG))
-        t2.setStyle(TableStyle(st2))
-        story.append(t2)
-    else:
-        story.append(Paragraph(
-            "None. Every principal that exists also holds rights and is listed above.", body))
-
     story.append(PageBreak())
     story.append(Paragraph(
         f"Full entitlement detail ({len(approved)})", sec))
@@ -2265,6 +2215,7 @@ def send(pdf_path: Path, data: dict) -> dict:
     unapproved = [h for h in data["holders"]
                   if not h["approved"] and not h.get("orphaned")]
     orphaned = [h for h in data["holders"] if h.get("orphaned")]
+    undeclared = [r for r in data["rightless"] if not r["approved"]]
     stamp = data["generated"].strftime("%Y-%m-%d")
     verdict = ("no exceptions" if not unapproved
                else f"{len(unapproved)} principal(s) outside the approved register")
@@ -2318,6 +2269,7 @@ def main(argv: list[str] | None = None) -> int:
     unapproved = [h for h in data["holders"]
                   if not h["approved"] and not h.get("orphaned")]
     orphaned = [h for h in data["holders"] if h.get("orphaned")]
+    undeclared = [r for r in data["rightless"] if not r["approved"]]
     # The attestation qualifier belongs in the summary line, not only in the PDF.
     # "0 exceptions" read from a run that could not see the directory says the
     # same words as one that could, and means something entirely different.
