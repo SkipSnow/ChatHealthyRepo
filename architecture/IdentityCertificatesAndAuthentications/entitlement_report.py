@@ -203,24 +203,36 @@ def _scope_story(data: dict) -> list[str]:
 
 
 def _control_policy(data: dict) -> str:
-    """Who can create and entitle identities, from what the run found."""
-    agents = sorted({h["name"] or h["object_id"] for h in data["holders"]
-                     if h["actor_type"] == "agent"
-                     and any(g["role"] in data["privileged_roles"] for g in h["grants"])})
-    people = sorted({h["name"] or h["object_id"] for h in data["holders"]
-                     if h["actor_type"] == "person"})
-    if agents:
-        first = (", ".join(agents) + (" holds" if len(agents) == 1 else " hold")
-                 + " an administrative role, which includes creating and entitling "
-                   "further identities.")
-    else:
-        first = ("No agent holds an administrative role. Identity creation rests with "
-                 + (", ".join(people) if people else "named people") + ".")
-    second = ("Classification below is directory group membership."
-              if data["groups_readable"] else
-              "The directory could not be read on this run, so nothing below is "
-              "classified.")
-    return first + " " + second
+    """Who holds administrative roles, and what each one's roles permit.
+
+    This sentence used to end "which includes creating and entitling further
+    identities", appended to whatever the derivation found. It was prose, and it
+    was false for DevOpsUser, whose administrative flag comes from a key vault
+    data wildcard that confers no power over identities at all. Each principal
+    now carries the clauses computed from the actions of the roles it actually
+    holds.
+    """
+    lines = []
+    for h in data["holders"]:
+        admin = [g["role"] for g in h["grants"]
+                 if g["role"] in data["privileged_roles"]]
+        if not admin:
+            continue
+        clauses = []
+        for role in sorted(set(admin)):
+            for c in data["role_reach"].get(role, {}).get("reach", []):
+                if c not in clauses:
+                    clauses.append(c)
+        lines.append(f"{h['name'] or h['object_id']} holds "
+                     f"{', '.join(sorted(set(admin)))}, permitting "
+                     f"{'; '.join(clauses)}.")
+    if not lines:
+        lines.append("No principal holds an administrative role.")
+    lines.append("Classification below is directory group membership."
+                 if data["groups_readable"] else
+                 "The directory could not be read on this run, so nothing below "
+                 "is classified.")
+    return " ".join(lines)
 
 
 def _population_sentence(data: dict) -> str:
@@ -694,6 +706,21 @@ def _vaults_and_certificates(token: str, subscription_ids: list[str]) -> tuple[l
     return sorted(vaults), sorted(certs)
 
 
+def _tenant_name(credential) -> str:
+    """The tenant's own name, so the report names the directory it read."""
+    try:
+        gtoken = credential.get_token("https://graph.microsoft.com/.default").token
+        r = requests.get(f"{GRAPH}/organization?$select=displayName",
+                         headers={"Authorization": f"Bearer {gtoken}"}, timeout=60)
+        if r.status_code == 200:
+            v = r.json().get("value", [])
+            if v:
+                return v[0].get("displayName", "")
+    except Exception as exc:                                    # noqa: BLE001
+        _LOG.info("tenant name not readable: %s", exc)
+    return ""
+
+
 def _tenant_id() -> str:
     """The tenant this estate is, taken from the credential rather than typed.
 
@@ -769,32 +796,53 @@ def _role_reach(defs: list[dict]) -> dict[str, dict]:
     return out
 
 
-def _subscriptions(token: str) -> list[dict]:
-    """Every subscription this report covers, discovered rather than asserted.
+def _subscriptions(token: str, credential) -> list[dict]:
+    """Every subscription in the tenant, and whether this run could read it.
 
-    The id and display name used to be literals here, and a single pair of them.
-    That was two failures at once: a report naming its own scope from a constant
-    cannot notice it is pointed somewhere else, and one naming a single scope
-    silently omits every other subscription the firm owns -- the omission looks
-    exactly like a clean estate.
+    Listing what the reporting identity can see defines the report's scope by
+    its own blind spots: a subscription it cannot read does not appear, and
+    neither does any grant inside it, so a principal shown holding two roles may
+    hold ten. An empty subscription still exists, and a subscription nobody
+    here can read still holds whatever it holds.
 
-    The reporting identity sees precisely the subscriptions it is entitled to
-    read, so the answer is also the honest boundary of what this run can attest.
+    The tenant's own subscription list is asked for first, through the same
+    directory the rest of the report reads. What the identity can actually
+    enumerate is recorded per subscription, so the report states its reach
+    rather than assuming it.
     """
-    subs = _get_all(f"{ARM}/subscriptions?api-version=2022-12-01", token)
-    live = [{"id": s["subscriptionId"],
-             "name": s.get("displayName") or s["subscriptionId"],
-             "state": s.get("state", "")}
-            for s in subs]
-    if not live:
+    readable = {s["subscriptionId"]: s
+                for s in _get_all(f"{ARM}/subscriptions?api-version=2022-12-01", token)}
+    known: dict[str, dict] = {}
+    try:
+        gtoken = credential.get_token("https://graph.microsoft.com/.default").token
+        r = requests.get(f"{GRAPH}/directory/subscriptions"
+                         f"?$select=id,displayName,ocpSubscriptionId",
+                         headers={"Authorization": f"Bearer {gtoken}"}, timeout=60)
+        if r.status_code == 200:
+            for sub in r.json().get("value", []):
+                sid = sub.get("ocpSubscriptionId") or sub.get("id")
+                if sid:
+                    known[sid] = {"name": sub.get("displayName") or sid}
+    except Exception as exc:                                    # noqa: BLE001
+        _LOG.info("tenant subscription list not readable: %s", exc)
+
+    out = []
+    for sid, meta in {**known, **{k: {"name": v.get("displayName") or k}
+                                 for k, v in readable.items()}}.items():
+        out.append({"id": sid, "name": meta["name"],
+                    "state": readable.get(sid, {}).get("state", ""),
+                    "readable": sid in readable})
+    if not out:
         raise _chathealthy_exception()(
             mode="config_error",
             component="EntitlementReport",
-            message="the reporting identity can see no subscription; there is "
-                    "nothing to report on")
-    _LOG.info("entitlement report covers %d subscription(s): %s",
-              len(live), ", ".join(s["name"] for s in live))
-    return live
+            message="no subscription is visible to the reporting identity and the "
+                    "tenant subscription list could not be read; there is nothing "
+                    "to report on")
+    out.sort(key=lambda x: x["name"].lower())
+    _LOG.info("entitlement report: %d subscription(s) in tenant, %d readable",
+              len(out), sum(1 for x in out if x["readable"]))
+    return out
 
 
 def _group_tree(credential) -> tuple[dict[str, list[str]], dict[str, str],
@@ -896,7 +944,7 @@ def collect() -> dict:
     token = credential.get_token(f"{ARM}/.default").token
     group_membership, group_descriptions, group_owners, groups_readable = _group_tree(credential)
 
-    subscriptions = _subscriptions(token)
+    subscriptions = _subscriptions(token, credential)
 
     # Every subscription the reporting identity can see is walked. Aggregating
     # rather than picking one is the point: a grant in a subscription this report
@@ -909,6 +957,8 @@ def collect() -> dict:
     rows: list[dict] = []
     existing: dict[str, dict] = {}
     for sub in subscriptions:
+        if not sub["readable"]:
+            continue
         sid = sub["id"]
         defs = _get_all(f"{ARM}/subscriptions/{sid}/providers"
                         f"/Microsoft.Authorization/roleDefinitions?api-version=2022-04-01", token)
@@ -1135,6 +1185,7 @@ def collect() -> dict:
         "role_reach": role_reach,
         "vaults": vaults,
         "certificate_secrets": certificate_secrets,
+        "tenant_name": _tenant_name(credential) or _tenant_id(),
         "shared_secrets": shared,
         "redundant_grants": redundant,
         "owners": owners,
@@ -1190,7 +1241,7 @@ def render_pdf(data: dict, out_path: Path) -> Path:
         title="ChatHealthy access entitlement report",
         author="ChatHealthy.ai", subject="Access entitlement review")
     doc.ch_scope_line = "Azure subscriptions: " + ", ".join(
-        f"{s['name']} ({s['id']})" for s in data["subscriptions"])
+        s["name"] for s in data["subscriptions"])
 
     stamp = data["generated"].strftime("%d %B %Y at %H:%M UTC")
     unapproved = [h for h in data["holders"] if not h["approved"]]
@@ -1201,17 +1252,37 @@ def render_pdf(data: dict, out_path: Path) -> Path:
     story.append(Paragraph("Access entitlement report", title))
     story.append(Paragraph(
         "Azure subscriptions &nbsp;&middot;&nbsp; "
-        + " &nbsp;|&nbsp; ".join(f"{s['name']} ({s['id']})"
-                                 for s in data["subscriptions"])
+        + " &nbsp;|&nbsp; ".join(s["name"] for s in data["subscriptions"])
         + f"<br/>Enumerated {stamp}", sub))
 
     story.append(Paragraph("Scope", sec))
-    for para in _scope_story(data):
-        story.append(Paragraph(para, body))
-
-    story.append(Paragraph("The control", sec))
-    story.append(Paragraph(_population_sentence(data), body))
-    story.append(Paragraph(_control_policy(data), body))
+    scope_rows = [["", ""]]
+    scope_rows.append(["Tenant", Paragraph(data["tenant_name"], cell)])
+    for sub in data["subscriptions"]:
+        scope_rows.append([
+            Paragraph("Subscription", cell),
+            Paragraph(f"<b>{sub['name']}</b> &mdash; "
+                      + ("enumerated in full" if sub["readable"] else
+                         "NOT ENUMERATED: the reporting identity holds no access here, "
+                         "so grants inside it are absent from this report"), cell)])
+    scope_rows.append(["Certificate secrets",
+                       Paragraph(f"{len(data['certificate_secrets'])} in "
+                                 + (", ".join(data["vaults"]) or "no vault visible"), cell)])
+    scope_rows.append(["Directory", Paragraph(
+        "groups and ownership read" if data["groups_readable"]
+        else "NOT READ: nothing below is classified", cell)])
+    scope_rows.append(["Covers", Paragraph(
+        "every identity holding rights in the subscriptions marked enumerated, "
+        "what each may do, how it is classified and who manages it", cell)])
+    st = Table(scope_rows[1:], colWidths=[2.0 * inch, 7.4 * inch], hAlign="LEFT")
+    st.setStyle(TableStyle([
+        ("FONTSIZE", (0, 0), (-1, -1), 8.5),
+        ("FONTNAME", (0, 0), (0, -1), "Helvetica-Bold"),
+        ("LINEBELOW", (0, 0), (-1, -1), 0.25, RULE),
+        ("VALIGN", (0, 0), (-1, -1), "TOP"),
+        ("TOPPADDING", (0, 0), (-1, -1), 4),
+        ("BOTTOMPADDING", (0, 0), (-1, -1), 4)]))
+    story.append(st)
 
     story.append(Paragraph("Population and exceptions", sec))
     summary = [
@@ -1252,36 +1323,7 @@ def render_pdf(data: dict, out_path: Path) -> Path:
             "alone. Granting Directory.Read.All to the reporting identity resolves this.",
             note))
 
-    story.append(Paragraph("How the control is enforced", sec))
-    # Written from what the run found. The paragraph this replaces described two
-    # mechanisms restraining identity creation, both of which were removed on
-    # 2026-08-19 while it went on describing them.
-    conditioned = sorted(h["name"] or h["object_id"] for h in data["holders"]
-                         if any(g["conditioned"] for g in h["grants"]))
-    admin_agents = sorted(h["name"] or h["object_id"] for h in data["holders"]
-                          if h["actor_type"] == "agent"
-                          and any(g["role"] in data["privileged_roles"]
-                                  for g in h["grants"]))
-    lines = []
-    if conditioned:
-        lines.append(f"ABAC conditions are in force on {', '.join(conditioned)}. The "
-                     f"Conditioned column marks those assignments and the roles each "
-                     f"condition forbids are listed under that identity.")
-    else:
-        lines.append("No assignment carries an ABAC condition.")
-    if admin_agents:
-        lines.append(f"{', '.join(admin_agents)} can grant themselves any further role "
-                     f"in these subscriptions. Nothing in Azure prevents it.")
-    story.append(Paragraph(" ".join(lines), body))
-
     story.append(Paragraph("What each right permits", sec))
-    story.append(Paragraph(
-        "Every right named in this report and what holding it permits, computed from the "
-        "actions the role publishes. No description is printed: a description is prose about "
-        "a role rather than the role, it is written by whoever created it, and the most "
-        "powerful right in this estate described itself as administering a subscription "
-        "while its actions were every action and every data action. The action patterns "
-        "themselves are listed, so the statement can be checked against them.", body))
     gl = [["Right", "Administrative", "What it permits"]]
     for role in sorted(data["role_text"]):
         meta = data["role_reach"].get(role, {})
@@ -1393,9 +1435,14 @@ def render_pdf(data: dict, out_path: Path) -> Path:
     def _block(holder: dict) -> list:
         label = holder["name"] or "Unidentified principal"
         out = [Paragraph(label, who)]
-        meta = f"{holder['type']} &nbsp;&middot;&nbsp; object id {holder['object_id']}"
+        meta = holder["entra_object_type"] or holder["type"]
+        if holder["owns_tenant"]:
+            meta += " &nbsp;&middot;&nbsp; tenant owner"
+        if holder["owns_subscriptions"]:
+            meta += (" &nbsp;&middot;&nbsp; owns "
+                     + ", ".join(holder["owns_subscriptions"]))
         if holder["groups"]:
-            meta += "&nbsp;&middot;&nbsp; " + ", ".join(holder["groups"])
+            meta += " &nbsp;&middot;&nbsp; " + ", ".join(holder["groups"])
         out.append(Paragraph(meta, note))
         # Who answers for this identity existing. An entitlement table says what
         # an identity may do and never who is accountable for it, and in an
@@ -1456,9 +1503,6 @@ def render_pdf(data: dict, out_path: Path) -> Path:
         f"Exceptions &nbsp;&middot;&nbsp; principals outside the approved list ({len(unapproved)})",
         sec))
     if unapproved:
-        story.append(Paragraph(
-            "These hold rights and are not in the approved register. Each needs adding to "
-            "the register or its rights revoked.", body))
         for h in unapproved:
             story.append(KeepTogether(_block(h)))
     else:
@@ -1508,10 +1552,6 @@ def render_pdf(data: dict, out_path: Path) -> Path:
     story.append(Paragraph(
         f"Shared credentials &nbsp;&middot;&nbsp; secrets reachable by more than one "
         f"principal ({len(data['shared_secrets'])})", sec))
-    story.append(Paragraph(
-        "A certificate is a credential: a principal that can read one can act as the "
-        "identity it names. Every secret below is reachable by more than one principal, "
-        "counting broad grants over the vault as well as grants naming the secret.", body))
     if data["shared_secrets"]:
         rows = [["Secret", "Reachable by"]]
         for secret, names in data["shared_secrets"]:
@@ -1533,10 +1573,6 @@ def render_pdf(data: dict, out_path: Path) -> Path:
     story.append(Paragraph(
         f"Grants that add nothing &nbsp;&middot;&nbsp; access held for no stated reason "
         f"({len(data['redundant_grants'])})", sec))
-    story.append(Paragraph(
-        "Each grant below is already covered by a broader one the same principal holds. "
-        "Removing it changes what that principal can do in no way, so it is access "
-        "granted for a reason nobody records.", body))
     if data["redundant_grants"]:
         rows = [["Principal", "Role", "Scope", "Also covered by"]]
         for holder_name, role, scope, why in data["redundant_grants"]:
@@ -1559,9 +1595,6 @@ def render_pdf(data: dict, out_path: Path) -> Path:
     rightless = data["rightless"]
     story.append(Paragraph(
         f"Principals that exist and hold no rights &nbsp;&middot;&nbsp; ({len(rightless)})", sec))
-    story.append(Paragraph(
-        "Principals owned by this tenant that hold no role assignment. They are listed by "
-        "existence rather than entitlement.", body))
     if not data["directory_enumerated"]:
         story.append(Paragraph(
             "This list covers managed identities and identities attached to resources. Users and "
@@ -1596,8 +1629,6 @@ def render_pdf(data: dict, out_path: Path) -> Path:
     story.append(PageBreak())
     story.append(Paragraph(
         f"Approved identities &nbsp;&middot;&nbsp; full entitlement detail ({len(approved)})", sec))
-    story.append(Paragraph(
-        "Every right held by each approved identity, and the scope at which it is granted.", body))
     for h in approved:
         story.append(KeepTogether(_block(h)))
 
