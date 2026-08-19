@@ -476,6 +476,72 @@ def _secret_descriptions() -> dict[str, str]:
     return out
 
 
+def _reaches(scope: str, subscription_name: str, contents: dict | None = None) -> str:
+    """The thing a grant reaches, named as a thing.
+
+    A scope is a path, and rendering its levels as columns made the report a
+    picture of Azure's addressing scheme. What an operator needs is what the
+    grant can touch: a vault, a secret, a container, a subscription. Each is a
+    first-class object with a type and a name, and that is what this returns.
+    """
+    low = scope.lower()
+    for marker, label in (
+            ("/secrets/", "secret"),
+            ("/containers/", "blob container"),
+            ("/providers/microsoft.keyvault/vaults/", "key vault"),
+            ("/providers/microsoft.storage/storageaccounts/", "storage account"),
+            ("/providers/microsoft.containerregistry/registries/", "container registry"),
+            ("/providers/microsoft.automation/automationaccounts/", "automation account"),
+            ("/providers/microsoft.managedidentity/userassignedidentities/",
+             "managed identity")):
+        if marker in low:
+            name = scope[low.index(marker) + len(marker):].split("/", 1)[0]
+            return f"{label} <b>{name}</b>"
+    if "/resourcegroups/" in low:
+        name = scope[low.index("/resourcegroups/") + len("/resourcegroups/"):].split("/", 1)[0]
+        return f"resource group <b>{name}</b>"
+    if not scope.strip("/"):
+        return "the whole tenant"
+    c = (contents or {}).get(subscription_name)
+    if c:
+        vaults = (f", including {c['vaults']} key vault"
+                  f"{'s' if c['vaults'] != 1 else ''}" if c["vaults"] else "")
+        return (f"every resource in subscription <b>{subscription_name}</b> "
+                f"&mdash; {c['count']} resource{'s' if c['count'] != 1 else ''}{vaults}")
+    return f"subscription <b>{subscription_name}</b>"
+
+
+def _scope_parts(scope: str) -> dict:
+    """Split a scope path into the things it names.
+
+    A scope is a nested path and each level is a different object: the
+    subscription, the resource group inside it, the resource inside that, and
+    the object the grant reaches. Rendered as one string they read as a single
+    fact, and the object -- a secret, which IS the credential -- ended up at the
+    tail of a long line. Each level is returned separately so each gets its own
+    column.
+    """
+    out = {"resource_group": "", "resource": "", "object": ""}
+    low = scope.lower()
+    if "/resourcegroups/" in low:
+        rest = scope[low.index("/resourcegroups/") + len("/resourcegroups/"):]
+        out["resource_group"] = rest.split("/", 1)[0]
+    for marker in ("/providers/Microsoft.KeyVault/vaults/",
+                   "/providers/Microsoft.Storage/storageAccounts/",
+                   "/providers/Microsoft.ContainerRegistry/registries/",
+                   "/providers/Microsoft.Automation/automationAccounts/",
+                   "/providers/Microsoft.ManagedIdentity/userAssignedIdentities/"):
+        if marker.lower() in low:
+            rest = scope[low.index(marker.lower()) + len(marker):]
+            out["resource"] = rest.split("/", 1)[0]
+            break
+    if "/secrets/" in low:
+        out["object"] = scope[low.index("/secrets/") + len("/secrets/"):]
+    elif "/containers/" in low:
+        out["object"] = scope[low.index("/containers/") + len("/containers/"):]
+    return out
+
+
 def _scope_label(scope: str, subscription_ids: tuple[str, ...] = ()) -> str:
     """The scope, named by the thing it governs rather than by its full path.
 
@@ -784,6 +850,11 @@ def _role_reach(defs: list[dict]) -> dict[str, dict]:
                 clauses.append("reads the resources named below and changes nothing")
             elif acts:
                 clauses.append("the actions named below, and nothing else")
+            elif data_acts:
+                # A role with data actions and no management actions -- Key Vault
+                # Secrets User is the example -- produced no sentence at all and
+                # printed as a bare list.
+                clauses.append("the data actions named below, and nothing else")
         out[name] = {
             "reach": clauses,
             "custom": d["properties"].get("type") == "CustomRole",
@@ -1002,6 +1073,72 @@ def collect() -> dict:
     role_contains = _role_containment(all_defs)
     role_reach = _role_reach(all_defs)
     vaults, certificate_secrets = _vaults_and_certificates(token, list(sub_ids))
+
+    # Resource groups, stated once against the subscription they belong to. A
+    # resource group lives in exactly one subscription, so once that is said an
+    # entitlement need only name the resource group and what is inside it.
+    resource_groups: list[dict] = []
+    for sub in subscriptions:
+        if not sub["readable"]:
+            continue
+        for rg in _get_all(f"{ARM}/subscriptions/{sub['id']}/resourcegroups"
+                           f"?api-version=2021-04-01", token):
+            resource_groups.append({"name": rg.get("name", ""),
+                                    "subscription": sub["name"],
+                                    "location": rg.get("location", "")})
+    resource_groups.sort(key=lambda r: (r["subscription"].lower(), r["name"].lower()))
+
+    # Every resource, the group that owns it, and its description tag. A resource
+    # nobody described is a resource nobody can account for, so it is reported.
+    resources: list[dict] = []
+
+    # A resource's own description, which the person who created it controls.
+    # Azure carries it as a tag; nothing else on a resource is free text.
+    resource_notes: dict[str, str] = {}
+    for sub in subscriptions:
+        if not sub["readable"]:
+            continue
+        for r in _get_all(f"{ARM}/subscriptions/{sub['id']}/resources"
+                          f"?api-version=2021-04-01", token):
+            tags = r.get("tags") or {}
+            note = ""
+            for key in ("description", "Description", "purpose", "Purpose"):
+                if tags.get(key):
+                    note = tags[key]
+                    break
+            if note and r.get("id"):
+                resource_notes[r["id"]] = note
+            rid = r.get("id", "")
+            group = ""
+            low = rid.lower()
+            if "/resourcegroups/" in low:
+                group = rid[low.index("/resourcegroups/")
+                            + len("/resourcegroups/"):].split("/", 1)[0]
+            resources.append({
+                "name": r.get("name", ""),
+                "type": r.get("type", ""),
+                "group": group,
+                "subscription": sub["name"],
+                "description": note,
+            })
+
+    # What a subscription actually contains. "Owner on subscription X" tells a
+    # reader nothing about what can be touched; the count of resources, and the
+    # vaults among them, is the thing a security officer is reading for.
+    sub_contents: dict[str, dict] = {}
+    for sub in subscriptions:
+        if not sub["readable"]:
+            continue
+        res = _get_all(f"{ARM}/subscriptions/{sub['id']}/resources"
+                       f"?api-version=2021-04-01", token)
+        kinds: dict[str, int] = {}
+        for r in res:
+            kinds[r.get("type", "")] = kinds.get(r.get("type", ""), 0) + 1
+        sub_contents[sub["name"]] = {
+            "count": len(res),
+            "vaults": kinds.get("Microsoft.KeyVault/vaults", 0),
+            "kinds": kinds,
+        }
     holders: dict[str, dict] = {}
     for r in rows:
         p = r["properties"]
@@ -1088,6 +1225,18 @@ def collect() -> dict:
     owner_targets.update({h["object_id"]: "users"
                           for h in holders_list if h["type"].lower() == "user"})
     owners = _owners(credential, owner_targets)
+
+    # Conditions are a property of the right, not of the identity holding it, so
+    # they are gathered per role and stated once in the rights table. Repeated
+    # under every holder they crowded out that holder's actual entitlements.
+    role_conditions: dict[str, list[str]] = {}
+    for h in holders_list:
+        for g in h["grants"]:
+            if g["conditioned"] and g["forbidden_roles"]:
+                role_conditions.setdefault(g["role"], [])
+                for f in g["forbidden_roles"]:
+                    if f not in role_conditions[g["role"]]:
+                        role_conditions[g["role"]].append(f)
 
     # Ownership, derived from scope and actions rather than from a role name.
     # A principal owns a subscription when it holds, at that subscription's own
@@ -1183,6 +1332,12 @@ def collect() -> dict:
         "subscriptions": subscriptions,
         "privileged_roles": sorted(privileged_roles),
         "role_reach": role_reach,
+        "role_conditions": {k: sorted(v) for k, v in role_conditions.items()},
+        "resource_groups": resource_groups,
+        "subscription_contents": sub_contents,
+        "resource_notes": resource_notes,
+        "resources": resources,
+        "undescribed": [r for r in resources if not r["description"]],
         "vaults": vaults,
         "certificate_secrets": certificate_secrets,
         "tenant_name": _tenant_name(credential) or _tenant_id(),
@@ -1233,6 +1388,9 @@ def render_pdf(data: dict, out_path: Path) -> Path:
     who = ParagraphStyle("w", parent=base["Heading3"], fontSize=10.5, textColor=INK,
                          spaceBefore=10, spaceAfter=1)
     cell = ParagraphStyle("c", parent=base["Normal"], fontSize=8, leading=10.5)
+    bullet = ParagraphStyle("bul", parent=base["Normal"], fontSize=9, leading=13,
+                            leftIndent=14, bulletIndent=4, spaceAfter=2,
+                            bulletText="•")
 
     doc = SimpleDocTemplate(
         str(out_path), pagesize=landscape(letter),
@@ -1254,6 +1412,36 @@ def render_pdf(data: dict, out_path: Path) -> Path:
         "Azure subscriptions &nbsp;&middot;&nbsp; "
         + " &nbsp;|&nbsp; ".join(s["name"] for s in data["subscriptions"])
         + f"<br/>Enumerated {stamp}", sub))
+
+    story.append(Paragraph(
+        "This is the operational report of who can act on ChatHealthy systems. Every value "
+        "in it is read at the time stated, from Azure and from the directory. It states no "
+        "fact of its own. Its sections are:", body))
+    for label, line in (
+            ("Scope", "the tenant and each subscription, and whether this run could "
+                      "enumerate it"),
+            ("Population and exceptions", "how many principals hold rights and how many "
+                                          "are in the approved register"),
+            ("What each right permits", "every right named here, stated from the actions "
+                                        "the role publishes"),
+            ("Where a grant can land", "each resource group and the subscription it "
+                                       "belongs to"),
+            ("Resource Undescribed exceptions", "resources carrying no description tag, "
+                                                "named with the resource group that owns "
+                                                "them"),
+            ("Exceptions", "principals holding rights that are not in the approved "
+                           "register"),
+            ("Classification and delegated authority", "the directory group each principal "
+                                                       "belongs to and who manages it"),
+            ("Shared credentials", "secrets reachable by more than one principal"),
+            ("Grants that add nothing", "grants already covered by a broader one the same "
+                                        "principal holds"),
+            ("Principals that exist and hold no rights", "principals in this tenant with no "
+                                                         "role assignment"),
+            ("Full entitlement detail", "every right held by each principal, and the scope "
+                                        "at which it is granted")):
+        story.append(Paragraph(f"<b>{label}</b> &mdash; {line}", bullet))
+    story.append(Spacer(1, 6))
 
     story.append(Paragraph("Scope", sec))
     scope_rows = [["", ""]]
@@ -1324,7 +1512,12 @@ def render_pdf(data: dict, out_path: Path) -> Path:
             note))
 
     story.append(Paragraph("What each right permits", sec))
-    gl = [["Right", "Administrative", "What it permits"]]
+    # The section name repeats with the column header. Without it a table that
+    # runs over three pages reads as three sections, when it is one list sorted
+    # alphabetically.
+    gl = [[Paragraph("<b>What each right permits</b> &nbsp;&middot;&nbsp; "
+                     "continued, one list in alphabetical order", cell), "", ""],
+          ["Right", "Administrative", "What it permits"]]
     for role in sorted(data["role_text"]):
         meta = data["role_reach"].get(role, {})
         parts = []
@@ -1343,15 +1536,29 @@ def render_pdf(data: dict, out_path: Path) -> Path:
             more = (f" and {len(data_acts) - len(shown)} more"
                     if len(data_acts) > len(shown) else "")
             parts.append("<font size=7>data actions: " + ", ".join(shown) + more + "</font>")
-        if meta.get("custom"):
-            parts.append("<font size=7>Custom role, authored here.</font>")
+        # Cited, with its author named, never stated as the report's own finding.
+        described = (data["role_text"].get(role) or "").strip()
+        if described:
+            source = ("the ChatHealthy role definition" if meta.get("custom")
+                      else "the Azure role definition")
+            parts.append(f"<font size=7><i>Description, from {source}:</i> "
+                         f"{described}</font>")
+        forbidden = data["role_conditions"].get(role)
+        if forbidden:
+            parts.append("<b>Conditioned where held:</b> the holder may neither grant "
+                         "nor revoke " + ", ".join(forbidden)
+                         + ", to any principal including itself. The list includes this "
+                           "role, so the holder cannot lift the condition from its own "
+                           "assignment.")
         gl.append([Paragraph(role, cell),
                    "yes" if role in data["privileged_roles"] else "",
                    Paragraph(" ".join(parts), cell)])
-    gt = Table(gl, colWidths=[2.4 * inch, 1.0 * inch, 5.95 * inch], hAlign="LEFT", repeatRows=1)
+    gt = Table(gl, colWidths=[2.4 * inch, 1.0 * inch, 5.95 * inch], hAlign="LEFT",
+               repeatRows=2)
     gst = [
-        ("BACKGROUND", (0, 0), (-1, 0), BAND),
-        ("FONTNAME", (0, 0), (-1, 0), "Helvetica-Bold"),
+        ("SPAN", (0, 0), (-1, 0)),
+        ("BACKGROUND", (0, 0), (-1, 1), BAND),
+        ("FONTNAME", (0, 1), (-1, 1), "Helvetica-Bold"),
         ("FONTSIZE", (0, 0), (-1, -1), 8),
         ("LINEBELOW", (0, 0), (-1, -1), 0.25, RULE),
         ("VALIGN", (0, 0), (-1, -1), "TOP"),
@@ -1359,11 +1566,58 @@ def render_pdf(data: dict, out_path: Path) -> Path:
         ("TOPPADDING", (0, 0), (-1, -1), 3),
         ("BOTTOMPADDING", (0, 0), (-1, -1), 3),
     ]
-    for i, role in enumerate(sorted(data["role_text"]), start=1):
+    for i, role in enumerate(sorted(data["role_text"]), start=2):
         if role in data["privileged_roles"]:
             gst.append(("TEXTCOLOR", (1, i), (1, i), FLAG))
     gt.setStyle(TableStyle(gst))
     story.append(gt)
+
+    story.append(Paragraph(
+        f"Where a grant can land &nbsp;&middot;&nbsp; resource groups and the "
+        f"subscription each belongs to ({len(data['resource_groups'])})", sec))
+    if data["resource_groups"]:
+        rg_rows = [["Resource group", "Subscription", "Region"]]
+        for rg in data["resource_groups"]:
+            rg_rows.append([Paragraph(f"<b>{rg['name']}</b>", cell),
+                            Paragraph(rg["subscription"], cell),
+                            Paragraph(rg["location"], cell)])
+        rgt = Table(rg_rows, colWidths=[3.4 * inch, 3.6 * inch, 2.4 * inch],
+                    hAlign="LEFT", repeatRows=1)
+        rgt.setStyle(TableStyle([
+            ("BACKGROUND", (0, 0), (-1, 0), BAND),
+            ("FONTNAME", (0, 0), (-1, 0), "Helvetica-Bold"),
+            ("FONTSIZE", (0, 0), (-1, -1), 8),
+            ("LINEBELOW", (0, 0), (-1, -1), 0.25, RULE),
+            ("VALIGN", (0, 0), (-1, -1), "TOP"),
+            ("TOPPADDING", (0, 0), (-1, -1), 3),
+            ("BOTTOMPADDING", (0, 0), (-1, -1), 3)]))
+        story.append(rgt)
+    else:
+        story.append(Paragraph("None.", body))
+
+    story.append(Paragraph(
+        f"Resource Undescribed exceptions ({len(data['undescribed'])})", sec))
+    if data["undescribed"]:
+        u_rows = [["Resource", "Resource group", "Subscription", "Type"]]
+        for r in sorted(data["undescribed"],
+                        key=lambda x: (x["subscription"].lower(), x["name"].lower())):
+            u_rows.append([Paragraph(f"<b>{r['name']}</b>", cell),
+                           Paragraph(r["group"] or "&mdash;", cell),
+                           Paragraph(r["subscription"], cell),
+                           Paragraph(r["type"], cell)])
+        ut = Table(u_rows, colWidths=[3.0 * inch, 2.2 * inch, 2.2 * inch, 2.0 * inch],
+                   hAlign="LEFT", repeatRows=1)
+        ut.setStyle(TableStyle([
+            ("BACKGROUND", (0, 0), (-1, 0), BAND),
+            ("FONTNAME", (0, 0), (-1, 0), "Helvetica-Bold"),
+            ("FONTSIZE", (0, 0), (-1, -1), 8),
+            ("LINEBELOW", (0, 0), (-1, -1), 0.25, RULE),
+            ("VALIGN", (0, 0), (-1, -1), "TOP"),
+            ("TOPPADDING", (0, 0), (-1, -1), 3),
+            ("BOTTOMPADDING", (0, 0), (-1, -1), 3)]))
+        story.append(ut)
+    else:
+        story.append(Paragraph("None.", body))
 
     story.append(PageBreak())
 
@@ -1373,44 +1627,49 @@ def render_pdf(data: dict, out_path: Path) -> Path:
         # role held on six secrets reads as six near-identical rows whose only
         # difference sits at the end of a long string.
         descs = data["secret_descriptions"]
-        rows = [["Role", "Scope", "Administrative", "Conditioned", "Adds nothing"]]
+        # user -> resource -> right. The resource leads, because that is the
+        # thing being protected; the right is how this user touches it.
+        rows = [["Resource", "Right held on it", "Why, from the assignment",
+                 "Administrative", "Conditioned", "Adds nothing"]]
         bullet_rows: list[int] = []
-        grouped: dict[tuple, list[dict]] = {}
-        order: list = []
+        title_rows: list[int] = []
+        # Every entitlement is titled with the subscription it is granted in.
+        # Without it a scope reads "the whole subscription" with no way to know
+        # which, and two grants in different subscriptions look identical.
+        by_sub: dict[str, list[dict]] = {}
         for g in holder["grants"]:
-            key = (g["role"], g["parent_scope"]) if g["secret"] else ("", id(g))
-            if key not in grouped:
-                grouped[key] = []
-                order.append((key, g))
-            grouped[key].append(g)
+            by_sub.setdefault(g["subscription"] or "(subscription not recorded)",
+                              []).append(g)
 
-        for key, first in order:
-            members = grouped[key]
-            if not first["secret"]:
+        for sub_name in sorted(by_sub):
+            title_rows.append(len(rows))
+            rows.append([Paragraph(f'<b>{sub_name}</b>', cell), "", "", "", "", ""])
+            # One row per grant. Two grants on the same resource are two facts,
+            # and folding them into one row because the resource repeats hides
+            # one of them.
+            for g in by_sub[sub_name]:
+                label = _reaches(g["raw_scope"], g["subscription"],
+                                 data["subscription_contents"])
+                note_text = data["resource_notes"].get(g["raw_scope"], "")
+                if g["secret"]:
+                    d = descs.get(g["secret"], "")
+                    label = (f'secret <b>{g["secret"]}</b> &mdash; {d}' if d
+                             else f'secret <b>{g["secret"]}</b>')
+                elif note_text:
+                    label = f'{label} &mdash; {note_text}'
                 rows.append([
-                    Paragraph(first["role"], cell),
-                    Paragraph(first["scope"], cell),
-                    "yes" if first["privileged"] else "",
-                    "yes" if first["conditioned"] else "",
-                    "yes" if first["redundant"] else "",
+                    Paragraph(label, cell),
+                    Paragraph(g["role"], cell),
+                    # Azure's own description property on the assignment: the
+                    # only place a person can say why this grant exists.
+                    Paragraph(g["justification"] or "&mdash;", cell),
+                    "yes" if g["privileged"] else "",
+                    "yes" if g["conditioned"] else "",
+                    "yes" if g["redundant"] else "",
                 ])
-                continue
-            rows.append([
-                Paragraph(first["role"], cell),
-                Paragraph(f'{first["parent_scope"]} &mdash; '
-                          f'{len(members)} individual secret'
-                          f'{"s" if len(members) != 1 else ""}', cell),
-                "yes" if first["privileged"] else "",
-                "yes" if any(m["conditioned"] for m in members) else "",
-                "yes" if all(m["redundant"] for m in members) else "",
-            ])
-            for m in sorted(members, key=lambda x: x["secret"]):
-                d = descs.get(m["secret"], "")
-                text = (f'&nbsp;&nbsp;&bull;&nbsp; <b>{m["secret"]}</b> &mdash; {d}' if d
-                        else f'&nbsp;&nbsp;&bull;&nbsp; <b>{m["secret"]}</b>')
-                bullet_rows.append(len(rows))
-                rows.append(["", Paragraph(text, cell), "", "", ""])
-        tb = Table(rows, colWidths=[2.3 * inch, 4.5 * inch, 0.95 * inch, 0.85 * inch, 0.85 * inch],
+
+        tb = Table(rows, colWidths=[3.3 * inch, 1.9 * inch, 2.1 * inch,
+                                    0.75 * inch, 0.75 * inch, 0.75 * inch],
                    hAlign="LEFT", repeatRows=1)
         st = [
             ("BACKGROUND", (0, 0), (-1, 0), BAND),
@@ -1451,51 +1710,21 @@ def render_pdf(data: dict, out_path: Path) -> Path:
         held_by = data["owners"].get(holder["object_id"], [])
         if held_by:
             out.append(Paragraph(f"Managed by {', '.join(held_by)}.", note))
-        elif holder["type"].lower() == "user":
-            out.append(Paragraph("A person. Directory ownership does not apply.", note))
-        elif holder["entra_object_type"] == "managedIdentity":
-            # A managed identity carries no directory owner; control follows the
-            # Azure resource it is attached to.
-            out.append(Paragraph(
-                "Managed identity. No directory owner; control follows the Azure "
-                "resource.", note))
-        else:
+        elif holder["type"].lower() != "user" and holder["entra_object_type"] != "managedIdentity":
             out.append(Paragraph("No owner recorded in the directory.", note))
+        # Cited as the catalog's description rather than stated as fact. It is
+        # prose someone wrote and it goes stale: the operator's said he was the
+        # only identity able to create another, which stopped being true the
+        # hour an agent was granted Owner and Application.ReadWrite.All.
         if holder["purpose"]:
-            out.append(Paragraph(holder["purpose"], note))
-        elif not holder["resolvable"]:
+            out.append(Paragraph(
+                f"<i>Description, from the identity catalog:</i> {holder['purpose']}", note))
+        if not holder["resolvable"]:
             out.append(Paragraph(
                 "Not present in the approved register, and its directory record could not be "
                 "read to establish what it is.", note))
         out.append(Spacer(1, 4))
         out.append(_grant_table(holder))
-        for g in holder["grants"]:
-            if g["redundant"]:
-                out.append(Spacer(1, 3))
-                out.append(Paragraph(
-                    f"<b>{g['role']} on {g['scope']} adds nothing.</b> It is "
-                    f"{g['redundant']}. Removing it changes what this identity can do in no way.",
-                    note))
-        for g in holder["grants"]:
-            if g["justification"]:
-                out.append(Spacer(1, 3))
-                out.append(Paragraph(
-                    f"<b>{g['role']} &mdash; recorded justification.</b> {g['justification']}", note))
-        for g in holder["grants"]:
-            if not g["conditioned"]:
-                continue
-            verbs = []
-            if g["constrains_write"]:
-                verbs.append("granted")
-            if g["constrains_delete"]:
-                verbs.append("revoked")
-            out.append(Spacer(1, 3))
-            out.append(Paragraph(
-                f"<b>Constraint in force on {g['role']}.</b> The holder may not "
-                f"{' or '.join(verbs) or 'act on'} the following roles, to any principal "
-                f"including itself: {', '.join(g['forbidden_roles']) or 'see assignment'}. "
-                f"The list includes the constrained role itself, so the holder cannot remove "
-                f"this constraint from its own assignment.", note))
         out.append(Spacer(1, 10))
         return out
 
@@ -1628,7 +1857,7 @@ def render_pdf(data: dict, out_path: Path) -> Path:
 
     story.append(PageBreak())
     story.append(Paragraph(
-        f"Approved identities &nbsp;&middot;&nbsp; full entitlement detail ({len(approved)})", sec))
+        f"Full entitlement detail ({len(approved)})", sec))
     for h in approved:
         story.append(KeepTogether(_block(h)))
 
