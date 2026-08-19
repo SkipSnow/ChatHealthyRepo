@@ -1525,8 +1525,8 @@ def render_pdf(data: dict, out_path: Path) -> Path:
             ("Exceptions", "principals outside the approved register, grants whose "
                            "principal no longer exists, resources carrying no description, "
                            "and principals that exist holding nothing"),
-            ("Classification and delegated authority", "the directory group each principal "
-                                                       "belongs to and who manages it"),
+            ("Group definitions", "each directory group, what it means and who manages "
+                                  "it"),
             ("Shared credentials", "secrets reachable by more than one principal"),
             ("Full entitlement detail", "every right held by each principal, and the scope "
                                         "at which it is granted")):
@@ -1870,8 +1870,7 @@ def render_pdf(data: dict, out_path: Path) -> Path:
     # and when it cannot be read, the section says so instead of reporting an
     # empty finding, which would read identically to a clean estate.
     story.append(Paragraph(
-        "Classification and delegated authority &nbsp;&middot;&nbsp; "
-        "what the directory says each principal is, and who answers for it", sec))
+        "Group definitions", sec))
     if not data["groups_readable"]:
         story.append(Paragraph(
             "Not attested. The reporting identity could not read the directory, so nothing "
@@ -1994,8 +1993,7 @@ def render_pdf(data: dict, out_path: Path) -> Path:
     # and when it cannot be read, the section says so instead of reporting an
     # empty finding, which would read identically to a clean estate.
     story.append(Paragraph(
-        "Classification and delegated authority &nbsp;&middot;&nbsp; "
-        "what the directory says each principal is, and who answers for it", sec))
+        "Group definitions", sec))
     if not data["groups_readable"]:
         story.append(Paragraph(
             "Not attested. The reporting identity could not read the directory, so nothing "
