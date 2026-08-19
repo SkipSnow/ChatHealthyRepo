@@ -593,6 +593,41 @@ def _all_principals(token: str, credential, subscription_id: str) -> dict[str, d
     return found
 
 
+def _directory_roles(credential) -> dict[str, list[str]]:
+    """Directory roles held, by principal object id.
+
+    Tenant-level authority is not an Azure role assignment and cannot be found
+    by reading Azure. Global Administrator is a directory role, it sits above
+    every subscription the tenant holds, and a report that reads only the
+    resource plane concludes there is no tenant owner while one exists. Both
+    planes are read here for that reason.
+    """
+    out: dict[str, list[str]] = {}
+    try:
+        gtoken = credential.get_token("https://graph.microsoft.com/.default").token
+    except Exception as exc:                                    # noqa: BLE001
+        _LOG.info("directory roles not readable: %s", exc)
+        return out
+    headers = {"Authorization": f"Bearer {gtoken}"}
+    defs = requests.get(f"{GRAPH}/roleManagement/directory/roleDefinitions"
+                        f"?$select=id,displayName", headers=headers, timeout=60)
+    if defs.status_code != 200:
+        _LOG.info("directory role definitions returned %s", defs.status_code)
+        return out
+    names = {d["id"]: d["displayName"] for d in defs.json().get("value", [])}
+    ras = requests.get(f"{GRAPH}/roleManagement/directory/roleAssignments",
+                       headers=headers, timeout=60)
+    if ras.status_code != 200:
+        _LOG.info("directory role assignments returned %s", ras.status_code)
+        return out
+    for a in ras.json().get("value", []):
+        pid = a.get("principalId")
+        role = names.get(a.get("roleDefinitionId"), a.get("roleDefinitionId", ""))
+        if pid:
+            out.setdefault(pid, []).append(role)
+    return out
+
+
 def _owners(credential, object_ids: dict[str, str]) -> dict[str, list[str]]:
     """Who is accountable for each object, read from the directory.
 
@@ -678,6 +713,60 @@ def _tenant_id() -> str:
         return (dotenv_values(_root / ".env").get(key) or "").strip()
     except ImportError:
         return ""
+
+
+def _role_reach(defs: list[dict]) -> dict[str, dict]:
+    """What each role actually permits, computed from its own action set.
+
+    The table used to print the role's description. For a built-in role that is
+    Microsoft's text and says what the role does. For a custom role it is text
+    somebody here wrote, so the most powerful role in the estate was explained
+    by its own author -- chatHealthyAgent said "IDE agent that administers the
+    subscription" while its actions were * and its dataActions were *, which is
+    every resource and every secret in them.
+
+    Each clause below is a statement about actions, so a role is described by
+    what it permits whoever holds it, whatever anyone called it.
+    """
+    out: dict[str, dict] = {}
+    for d in defs:
+        name = d["properties"]["roleName"]
+        acts, data_acts = set(), set()
+        for perm in (d["properties"].get("permissions") or []):
+            acts.update(a.strip().lower() for a in (perm.get("actions") or []))
+            data_acts.update(a.strip().lower() for a in (perm.get("dataActions") or []))
+        clauses = []
+        if "*" in acts:
+            clauses.append("every management action on every resource in scope")
+        if "*" in data_acts:
+            clauses.append("every data action in scope, which includes reading the "
+                           "contents of every key vault secret")
+        elif any(a.startswith("microsoft.keyvault/") and a.endswith("/*")
+                 for a in data_acts):
+            clauses.append("reads the contents of every secret in the key vaults in scope")
+        if any(a.startswith("microsoft.authorization/roleassignments/write")
+               or a == "microsoft.authorization/*" for a in acts):
+            clauses.append("grants and revokes roles, including to itself")
+        if any(a.startswith("microsoft.authorization/roledefinitions/write") for a in acts):
+            clauses.append("creates and rewrites role definitions")
+        if any(a.startswith("microsoft.managedidentity/userassignedidentities/write")
+               for a in acts):
+            clauses.append("creates identities")
+        if not clauses:
+            if acts and all(a.endswith("/read") for a in acts):
+                clauses.append("reads the resources named below and changes nothing")
+            elif acts:
+                clauses.append("the actions named below, and nothing else")
+        out[name] = {
+            "reach": clauses,
+            "custom": d["properties"].get("type") == "CustomRole",
+            "actions": sorted(acts),
+            "data_actions": sorted(data_acts),
+            "not_actions": sorted(
+                a for perm in (d["properties"].get("permissions") or [])
+                for a in (perm.get("notActions") or [])),
+        }
+    return out
 
 
 def _subscriptions(token: str) -> list[dict]:
@@ -861,6 +950,7 @@ def collect() -> dict:
 
     sub_ids = tuple(s["id"] for s in subscriptions)
     role_contains = _role_containment(all_defs)
+    role_reach = _role_reach(all_defs)
     vaults, certificate_secrets = _vaults_and_certificates(token, list(sub_ids))
     holders: dict[str, dict] = {}
     for r in rows:
@@ -949,6 +1039,55 @@ def collect() -> dict:
                           for h in holders_list if h["type"].lower() == "user"})
     owners = _owners(credential, owner_targets)
 
+    # Ownership, derived from scope and actions rather than from a role name.
+    # A principal owns a subscription when it holds, at that subscription's own
+    # scope, a role permitting every management action. It owns the tenant when
+    # it holds such a role at the tenant root, which sits above every
+    # subscription the tenant will ever contain. Neither is read from a role
+    # name or a description: claudeCodeAgent is a subscription owner through a
+    # role called chatHealthyAgent, and nothing but its actions says so.
+    def _total(role: str) -> bool:
+        meta = role_reach.get(role, {})
+        return "*" in meta.get("actions", [])
+
+    directory_roles = _directory_roles(credential)
+    # A directory role naming the whole directory is tenant authority. Global
+    # Administrator is the one Microsoft ships for it; any role granting the
+    # same is caught by the same test rather than by its name.
+    TENANT_ROLES = {"Global Administrator", "Company Administrator",
+                    "Privileged Role Administrator"}
+    for h in holders_list:
+        h["directory_roles"] = sorted(directory_roles.get(h["object_id"], []))
+        owns_subs = []
+        owns_tenant = bool(set(h["directory_roles"]) & TENANT_ROLES)
+        for g in h["grants"]:
+            if not _total(g["role"]):
+                continue
+            raw = g["raw_scope"].rstrip("/")
+            if raw == "":
+                owns_tenant = True
+            for sub in subscriptions:
+                if raw.lower() == f"/subscriptions/{sub['id']}".lower():
+                    if sub["name"] not in owns_subs:
+                        owns_subs.append(sub["name"])
+        h["owns_subscriptions"] = owns_subs
+        h["owns_tenant"] = owns_tenant
+
+        # For an owner, control-plane grants are implied by the ownership and
+        # say nothing. Data-plane grants are NOT: Owner permits managing a key
+        # vault and not reading a secret in it, so a data grant to an owner is
+        # an addition to what ownership gives and has to be stated.
+        for g in h["grants"]:
+            in_owned = any(f"/subscriptions/{sub['id']}".lower()
+                           in g["raw_scope"].lower()
+                           for sub in subscriptions
+                           if sub["name"] in owns_subs)
+            has_data = bool(role_reach.get(g["role"], {}).get("data_actions"))
+            g["beyond_ownership"] = bool(in_owned and has_data)
+            g["implied_by_ownership"] = bool(
+                in_owned and not has_data
+                and g["role"] not in ("Owner",))
+
     # Who can reach each secret, counting both the grants naming a secret and
     # the broader grants that cover the vault holding it. A certificate is a
     # credential: every principal that can read one can become the identity it
@@ -993,6 +1132,7 @@ def collect() -> dict:
         "directory_enumerated": any(m["origin"] == "directory" for m in existing.values()),
         "subscriptions": subscriptions,
         "privileged_roles": sorted(privileged_roles),
+        "role_reach": role_reach,
         "vaults": vaults,
         "certificate_secrets": certificate_secrets,
         "shared_secrets": shared,
@@ -1136,13 +1276,36 @@ def render_pdf(data: dict, out_path: Path) -> Path:
 
     story.append(Paragraph("What each right permits", sec))
     story.append(Paragraph(
-        "Every right named in this report, and what holding it allows. Rights marked administrative "
-        "confer authority over the subscription, or over who may hold rights within it.", body))
+        "Every right named in this report and what holding it permits, computed from the "
+        "actions the role publishes. No description is printed: a description is prose about "
+        "a role rather than the role, it is written by whoever created it, and the most "
+        "powerful right in this estate described itself as administering a subscription "
+        "while its actions were every action and every data action. The action patterns "
+        "themselves are listed, so the statement can be checked against them.", body))
     gl = [["Right", "Administrative", "What it permits"]]
     for role in sorted(data["role_text"]):
+        meta = data["role_reach"].get(role, {})
+        parts = []
+        if meta.get("reach"):
+            parts.append("<b>Permits " + "; ".join(meta["reach"]) + ".</b>")
+        if meta.get("not_actions"):
+            parts.append("<b>Except:</b> " + ", ".join(meta["not_actions"]) + ".")
+        acts = meta.get("actions", [])
+        data_acts = meta.get("data_actions", [])
+        if acts:
+            shown = acts[:6]
+            more = f" and {len(acts) - len(shown)} more" if len(acts) > len(shown) else ""
+            parts.append("<font size=7>actions: " + ", ".join(shown) + more + "</font>")
+        if data_acts:
+            shown = data_acts[:4]
+            more = (f" and {len(data_acts) - len(shown)} more"
+                    if len(data_acts) > len(shown) else "")
+            parts.append("<font size=7>data actions: " + ", ".join(shown) + more + "</font>")
+        if meta.get("custom"):
+            parts.append("<font size=7>Custom role, authored here.</font>")
         gl.append([Paragraph(role, cell),
                    "yes" if role in data["privileged_roles"] else "",
-                   Paragraph(data["role_text"][role] or "No description published.", cell)])
+                   Paragraph(" ".join(parts), cell)])
     gt = Table(gl, colWidths=[2.4 * inch, 1.0 * inch, 5.95 * inch], hAlign="LEFT", repeatRows=1)
     gst = [
         ("BACKGROUND", (0, 0), (-1, 0), BAND),
