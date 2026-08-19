@@ -942,6 +942,34 @@ def collect() -> dict:
                           for h in holders_list if h["type"].lower() == "user"})
     owners = _owners(credential, owner_targets)
 
+    # Who can reach each secret, counting both the grants naming a secret and
+    # the broader grants that cover the vault holding it. A certificate is a
+    # credential: every principal that can read one can become the identity it
+    # names, so a secret reachable by more than one principal is a shared
+    # credential and is reported as such.
+    reach: dict[str, set[str]] = {}
+    for h in holders_list:
+        holder_name = h["name"] or h["object_id"]
+        vault_wide = [g for g in h["grants"]
+                      if g["role"] in privileged_roles and "/vaults/" in g["raw_scope"]
+                      and "/secrets/" not in g["raw_scope"]]
+        for g in h["grants"]:
+            if g["secret"]:
+                reach.setdefault(g["secret"], set()).add(holder_name)
+        for g in vault_wide:
+            for secret in certificate_secrets:
+                reach.setdefault(secret, set()).add(holder_name)
+        # A subscription-wide data-plane wildcard reaches every secret there is.
+        if any(g["role"] in privileged_roles and g["scope"] == "the whole subscription"
+               for g in h["grants"]):
+            for secret in certificate_secrets:
+                reach.setdefault(secret, set()).add(holder_name)
+    shared = sorted(((secret, sorted(names)) for secret, names in reach.items()
+                     if len(names) > 1), key=lambda x: (-len(x[1]), x[0]))
+
+    redundant = [(h["name"] or h["object_id"], g["role"], g["scope"], g["redundant"])
+                 for h in holders_list for g in h["grants"] if g["redundant"]]
+
     # A principal holding rights while belonging to no group is the finding this
     # report exists for: nobody placed it, so nobody classified it, so nothing
     # states whether a person or a program holds what it holds.
@@ -960,6 +988,8 @@ def collect() -> dict:
         "privileged_roles": sorted(privileged_roles),
         "vaults": vaults,
         "certificate_secrets": certificate_secrets,
+        "shared_secrets": shared,
+        "redundant_grants": redundant,
         "owners": owners,
         "group_owners": group_owners,
         "groups_readable": groups_readable,
@@ -1304,6 +1334,57 @@ def render_pdf(data: dict, out_path: Path) -> Path:
         else:
             story.append(Paragraph(
                 "Every principal holding rights belongs to a group.", body))
+
+    story.append(Paragraph(
+        f"Shared credentials &nbsp;&middot;&nbsp; secrets reachable by more than one "
+        f"principal ({len(data['shared_secrets'])})", sec))
+    story.append(Paragraph(
+        "A certificate is a credential: a principal that can read one can act as the "
+        "identity it names. Every secret below is reachable by more than one principal, "
+        "counting broad grants over the vault as well as grants naming the secret.", body))
+    if data["shared_secrets"]:
+        rows = [["Secret", "Reachable by"]]
+        for secret, names in data["shared_secrets"]:
+            rows.append([Paragraph(f"<b>{secret}</b>", cell),
+                         Paragraph(", ".join(names), cell)])
+        ts = Table(rows, colWidths=[3.2 * inch, 6.2 * inch], hAlign="LEFT", repeatRows=1)
+        ts.setStyle(TableStyle([
+            ("BACKGROUND", (0, 0), (-1, 0), BAND),
+            ("FONTNAME", (0, 0), (-1, 0), "Helvetica-Bold"),
+            ("FONTSIZE", (0, 0), (-1, -1), 8),
+            ("LINEBELOW", (0, 0), (-1, -1), 0.25, RULE),
+            ("VALIGN", (0, 0), (-1, -1), "TOP"),
+            ("TOPPADDING", (0, 0), (-1, -1), 3),
+            ("BOTTOMPADDING", (0, 0), (-1, -1), 3)]))
+        story.append(ts)
+    else:
+        story.append(Paragraph("None.", body))
+
+    story.append(Paragraph(
+        f"Grants that add nothing &nbsp;&middot;&nbsp; access held for no stated reason "
+        f"({len(data['redundant_grants'])})", sec))
+    story.append(Paragraph(
+        "Each grant below is already covered by a broader one the same principal holds. "
+        "Removing it changes what that principal can do in no way, so it is access "
+        "granted for a reason nobody records.", body))
+    if data["redundant_grants"]:
+        rows = [["Principal", "Role", "Scope", "Also covered by"]]
+        for holder_name, role, scope, why in data["redundant_grants"]:
+            rows.append([Paragraph(holder_name, cell), Paragraph(role, cell),
+                         Paragraph(scope, cell), Paragraph(why, cell)])
+        tr = Table(rows, colWidths=[1.7 * inch, 1.9 * inch, 2.7 * inch, 3.1 * inch],
+                   hAlign="LEFT", repeatRows=1)
+        tr.setStyle(TableStyle([
+            ("BACKGROUND", (0, 0), (-1, 0), BAND),
+            ("FONTNAME", (0, 0), (-1, 0), "Helvetica-Bold"),
+            ("FONTSIZE", (0, 0), (-1, -1), 8),
+            ("LINEBELOW", (0, 0), (-1, -1), 0.25, RULE),
+            ("VALIGN", (0, 0), (-1, -1), "TOP"),
+            ("TOPPADDING", (0, 0), (-1, -1), 3),
+            ("BOTTOMPADDING", (0, 0), (-1, -1), 3)]))
+        story.append(tr)
+    else:
+        story.append(Paragraph("None.", body))
 
     rightless = data["rightless"]
     story.append(Paragraph(
