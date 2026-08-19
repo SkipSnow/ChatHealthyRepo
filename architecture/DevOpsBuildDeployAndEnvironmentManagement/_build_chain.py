@@ -1112,9 +1112,27 @@ def _emit_entitlement_report_identity_register(repo_root: Path, build_dir: Path)
             "roles": identity.get("roles", []),
             "description": identity.get("description", ""),
         })
+    payload = {"identities": register}
     out = build_dir / "entitlement_report_identity_register.json"
-    out.write_text(json.dumps({"identities": register}, indent=2) + chr(10),
-                   encoding="utf-8")
+    out.write_text(json.dumps(payload, indent=2) + chr(10), encoding="utf-8")
+
+    # The sibling file reaches a workstation run and nothing else. An Azure
+    # Automation runbook is ONE file: nothing staged beside it is deployed, so
+    # the report shipped without its register and refused to run. The register
+    # is therefore also injected into the runbook source, the same way the
+    # library is inlined. That is not the literal this replaced -- the source
+    # file in the repository still carries no population, and what is injected
+    # is derived here from IdentityCatalog on every build.
+    runbook = build_dir / "runbook.py"
+    if runbook.is_file():
+        marker = "_BAKED_IDENTITY_REGISTER"
+        text = runbook.read_text(encoding="utf-8")
+        if marker not in text:
+            runbook.write_text(
+                f"{marker} = {json.dumps(payload)}{chr(10)}{chr(10)}" + text,
+                encoding="utf-8")
+            _step(f"  injected identity register into {runbook.name} "
+                  f"({len(register)} identities)")
     _step(f"  baked identity register -> {out.name} ({len(register)} identities)")
 
 

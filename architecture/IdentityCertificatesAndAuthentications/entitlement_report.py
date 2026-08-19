@@ -102,6 +102,27 @@ def _approved_register() -> tuple[dict[str, tuple], str]:
     exactly the defect this replaces, and a report that cannot say what was
     approved must not print a number that reads as though it could.
     """
+    # Inside Azure Automation the runbook is a single file: nothing staged
+    # beside it is deployed, so the build injects the register as a module
+    # global instead. This file carries no population of its own; the value is
+    # derived from IdentityCatalog at build time on every build.
+    injected = globals().get("_BAKED_IDENTITY_REGISTER")
+    if injected:
+        register = {}
+        for e in injected.get("identities", []):
+            oid = (e.get("object_id") or "").strip()
+            if not oid:
+                continue
+            register[oid] = (
+                e.get("identity_id", ""),
+                e.get("description", ""),
+                e.get("actor_type", ""),
+                e.get("entra_object_type", "") or e.get("identity_class", ""),
+                e.get("application", ""),
+                tuple(e.get("roles", []) or ()),
+            )
+        return register, "register injected at build time"
+
     here = Path(__file__).resolve().parent
     candidates = [here / "entitlement_report_identity_register.json"]
     if _root is not None:
