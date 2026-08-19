@@ -1130,10 +1130,21 @@ def _emit_entitlement_report_identity_register(repo_root: Path, build_dir: Path)
         # matched that reference and silently skipped the injection.
         marker = "_BAKED_IDENTITY_REGISTER = "
         text = runbook.read_text(encoding="utf-8")
-        if not text.startswith(marker):
-            runbook.write_text(
-                f"{marker}{json.dumps(payload)}{chr(10)}{chr(10)}" + text,
-                encoding="utf-8")
+        if marker not in text.split(chr(10) + chr(10))[0]:
+            # The assignment cannot go at the top of the file. Python requires
+            # `from __future__ import annotations` to be the first statement,
+            # and prepending above it made every deployed run a SyntaxError.
+            # It goes immediately after that import instead, which is still
+            # before any code that reads it.
+            lines = text.split(chr(10))
+            insert_at = 0
+            for i, line in enumerate(lines):
+                if line.startswith("from __future__ import"):
+                    insert_at = i + 1
+                    break
+            lines.insert(insert_at, "")
+            lines.insert(insert_at + 1, f"{marker}{json.dumps(payload)}")
+            runbook.write_text(chr(10).join(lines), encoding="utf-8")
             _step(f"  injected identity register into {runbook.name} "
                   f"({len(register)} identities)")
     _step(f"  baked identity register -> {out.name} ({len(register)} identities)")

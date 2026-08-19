@@ -60,9 +60,9 @@ _LOG = ChatHealthyLoggingService()
 try:
     import automationassets  # type: ignore[import-not-found]
 
-    for _k in ("PIPELINEEDITOR_AZURE_TENANT_ID",
-               "PIPELINEEDITOR_AZURE_CLIENT_ID",
-               "PIPELINEEDITOR_AZURE_CLIENT_SECRET",
+    for _k in ("DEVOPSUSER_AZURE_TENANT_ID",
+               "DEVOPSUSER_AZURE_CLIENT_ID",
+               "DEVOPSUSER_AZURE_CLIENT_SECRET",
                "SPARKMAIL_API_KEY",
                "NOTIFICATION_FROM_EMAIL",
                "ENTITLEMENT_REPORT_TO_EMAIL"):
@@ -299,10 +299,17 @@ class _Credential:
 
 
 def _credential() -> _Credential:
-    """The identity the report runs as: pipelineEditor, and nothing else."""
-    keys = ("PIPELINEEDITOR_AZURE_TENANT_ID",
-            "PIPELINEEDITOR_AZURE_CLIENT_ID",
-            "PIPELINEEDITOR_AZURE_CLIENT_SECRET")
+    """The identity the report runs as: DevOpsUser, and nothing else.
+
+    It ran as pipelineEditor, which sees one subscription and is confined to the
+    pipeline by design. The report must be able to see every subscription it
+    claims to cover, and DevOpsUser is the identity that deploys across them.
+    Giving pipelineEditor that reach instead would widen the pipeline runtime to
+    subscriptions it has no business in.
+    """
+    keys = ("DEVOPSUSER_AZURE_TENANT_ID",
+            "DEVOPSUSER_AZURE_CLIENT_ID",
+            "DEVOPSUSER_AZURE_CLIENT_SECRET")
     v = {k: _ch_os.environ.get(k, "") for k in keys}
     if not all(v.values()):
         try:
@@ -318,7 +325,7 @@ def _credential() -> _Credential:
         raise _chathealthy_exception()(
             mode="azure_credential_missing",
             component="EntitlementReport",
-            message=f"cannot authenticate as pipelineEditor: {', '.join(missing)} absent",
+            message=f"cannot authenticate as DevOpsUser: {', '.join(missing)} absent",
             context={"missing": missing})
     return _Credential(v[keys[0]], v[keys[1]], v[keys[2]])
 
@@ -662,7 +669,7 @@ def _tenant_id() -> str:
     -- 127 of them appeared under a heading that says they are logins nobody
     authorised.
     """
-    key = "PIPELINEEDITOR_AZURE_TENANT_ID"
+    key = "DEVOPSUSER_AZURE_TENANT_ID"
     value = _ch_os.environ.get(key, "").strip()
     if value or _root is None:
         return value
