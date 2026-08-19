@@ -28,7 +28,7 @@ The answer IS one of:
 ### Rule-008 (JSON schema validation on commit)
 - **Never** edit `record_loader.py` or `scan_files_enforcement_worker.py` to resolve chathealthy.ai schemas locally. The URL is the source of truth for validation.
 - **Never** use `CHATHEALTHY_LOCAL_SCHEMA_PATH` env var without explicit operator instruction. The env var exists in the loader for operator-invoked workflow, not for me.
-- Schema change process: commit schema alone → push → deploy Website → then commit manifest changes.
+- Schema change process: commit schema alone → push → deploy Website → then commit deployment_architecture.json changes.
 
 ### Rule-065 (commit authorization)
 - **Never** commit without operator approval on non-trivial content.

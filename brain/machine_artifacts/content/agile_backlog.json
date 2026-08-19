@@ -16191,6 +16191,26 @@
                               }
                             ]
                           }
+                        },
+                        {
+                          "req_id": "EPIC-010-F-108-S-001-REQ-B-013",
+                          "name": "A migration of a collection that is not there is refused and reported",
+                          "requirement": "A migration invoked against a collection that is not present in ChatHealthyDataPipelines.PipelinePublicHealthData MUST NOT report success. It MUST raise, and MUST record the refusal in the log naming the collection asked for.",
+                          "priority": "must-have",
+                          "status": "done",
+                          "orphan": false,
+                          "approval": "approved",
+                          "depends_on": [],
+                          "tests": {
+                            "test": [
+                              {
+                                "test_id": "EPIC-010-F-108-S-001-REQ-B-013-TEST-1",
+                                "test_type": "ordinary",
+                                "orphan": false,
+                                "file": "pipeline/Code/tests/test_data_migration.py"
+                              }
+                            ]
+                          }
                         }
                       ]
                     }
