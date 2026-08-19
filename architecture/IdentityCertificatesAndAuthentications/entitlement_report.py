@@ -1569,6 +1569,12 @@ def render_pdf(data: dict, out_path: Path) -> Path:
         ["Approved identities present", f"{len(approved)} of {len(APPROVED)}"],
         ["Principals outside the approved list", str(len(unapproved))],
         ["Of those, holding an administrative role", str(len(priv_unapproved))],
+        ["Orphaned assignments", str(len(orphaned))],
+        ["Resources undescribed", str(len(data["undescribed"]))],
+        ["Principals that exist and hold no rights", str(len(data["rightless"]))],
+        ["Exceptions in total", str(len(unapproved) + len(orphaned)
+                                    + len(data["undescribed"])
+                                    + len(data["rightless"]))],
     ]
     t = Table(summary, colWidths=[4.2 * inch, 1.2 * inch], hAlign="LEFT")
     style = [
@@ -1585,7 +1591,7 @@ def render_pdf(data: dict, out_path: Path) -> Path:
     else:
         style.append(("TEXTCOLOR", (1, 3), (1, 3), OK))
     t.setStyle(TableStyle(style))
-    story.append(t)
+    story.append(KeepTogether(t))
 
     if data["approved_absent"]:
         story.append(Spacer(1, 8))
