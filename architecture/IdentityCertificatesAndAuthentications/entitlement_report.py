@@ -1390,7 +1390,7 @@ def render_pdf(data: dict, out_path: Path) -> Path:
     cell = ParagraphStyle("c", parent=base["Normal"], fontSize=8, leading=10.5)
     bullet = ParagraphStyle("bul", parent=base["Normal"], fontSize=9, leading=13,
                             leftIndent=14, bulletIndent=4, spaceAfter=2,
-                            bulletText="•")
+                            bulletText="·")
 
     doc = SimpleDocTemplate(
         str(out_path), pagesize=landscape(letter),
