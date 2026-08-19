@@ -31,14 +31,17 @@ from chathealthy_lib.logging_service import (
     ChatHealthyLoggingService, set_mongo_log_identity)
 from chathealthy_lib.mongo_utilities import ChatHealthyMongoUtilities
 
-set_mongo_log_identity("dataMigrator")
+set_mongo_log_identity("PipelineToFrontEndPublicDataMigrator")
 
 _log = ChatHealthyLoggingService()
 
 _BATCH = 1000
-# An approval releases one migration, not a standing permission. Older than
-# this and the operator is asked again rather than assumed to still mean it.
-_APPROVAL_VALID_SECONDS = 4 * 60 * 60
+# An approval releases one migration, taken seconds ago, and nothing else. A
+# minute is long enough for the webhook to reach the runbook and short enough
+# that a record cannot be found later and reused: replaying yesterday's
+# approval against today's collection is the attack this closes.
+_APPROVAL_VALID_SECONDS = 60
+_AUTHORIZATION_TYPE = "data_migration"
 
 
 class MigratedCollection:
@@ -53,22 +56,22 @@ class MigratedCollection:
 
     def _source(self):
         return ChatHealthyMongoUtilities().getConnection(
-            "dataMigrator", "ChatHealthyDataPipelines"
+            "PipelineToFrontEndPublicDataMigrator", "ChatHealthyDataPipelines"
         )["PipelinePublicHealthData"][self._collection_name]
 
     def _destination(self):
         return ChatHealthyMongoUtilities().getConnection(
-            "dataMigrator", "ChatHealthyFrontEnd"
+            "PipelineToFrontEndPublicDataMigrator", "ChatHealthyFrontEnd"
         )["PublicHealthData"][self._collection_name]
 
     def _destination_database(self):
         return ChatHealthyMongoUtilities().getConnection(
-            "dataMigrator", "ChatHealthyFrontEnd"
+            "PipelineToFrontEndPublicDataMigrator", "ChatHealthyFrontEnd"
         )["PublicHealthData"]
 
     def _source_database(self):
         return ChatHealthyMongoUtilities().getConnection(
-            "dataMigrator", "ChatHealthyDataPipelines"
+            "PipelineToFrontEndPublicDataMigrator", "ChatHealthyDataPipelines"
         )["PipelinePublicHealthData"]
 
     def exists_at_source(self) -> bool:
@@ -248,13 +251,16 @@ def _released_approval(collection: str, approval_id: str) -> dict:
                             "the payload names no approval record")
 
     record = ChatHealthyMongoUtilities().getConnection(
-        "dataMigrator", "ChatHealthyDataPipelines"
-    )["PipelinePublicHealthData"]["MigrationApprovals"].find_one(
-        {"_id": approval_id})
+        "PipelineToFrontEndPublicDataMigrator", "ChatHealthyFrontEnd"
+    )["pipelineAdmin"]["Authorizations"].find_one({"_id": approval_id})
 
     if record is None:
         _raise_unauthorized(collection, approval_id,
                             "no such approval exists on the cluster")
+    if record.get("type") != _AUTHORIZATION_TYPE:
+        _raise_unauthorized(
+            collection, approval_id,
+            f"the record is a {record.get('type')!r} authorization, not a migration")
     if record.get("verdict") != "approve":
         _raise_unauthorized(collection, approval_id,
                             f"the recorded verdict is {record.get('verdict')!r}")
@@ -267,13 +273,24 @@ def _released_approval(collection: str, approval_id: str) -> dict:
             f"the approval is for {record.get('collection')!r}, not this collection")
 
     released_at = record.get("released_at")
-    if isinstance(released_at, datetime.datetime):
-        age = (datetime.datetime.now(datetime.timezone.utc)
-               - released_at.replace(tzinfo=datetime.timezone.utc)).total_seconds()
-        if age > _APPROVAL_VALID_SECONDS:
-            _raise_unauthorized(
-                collection, approval_id,
-                f"the approval is {age / 3600:.1f} hours old and expired")
+    if not isinstance(released_at, datetime.datetime):
+        _raise_unauthorized(collection, approval_id,
+                            "the record carries no usable release time")
+    age = (datetime.datetime.now(datetime.timezone.utc)
+           - released_at.replace(tzinfo=datetime.timezone.utc)).total_seconds()
+    if age > _APPROVAL_VALID_SECONDS:
+        _raise_unauthorized(
+            collection, approval_id,
+            f"the approval is {age:.0f}s old and expired "
+            f"({_APPROVAL_VALID_SECONDS}s is the window)")
+    if age < -5:
+        _raise_unauthorized(
+            collection, approval_id,
+            f"the approval is dated {abs(age):.0f}s in the future")
+    if record.get("env") != os.environ.get("ENV_PREFIX", record.get("env")):
+        _raise_unauthorized(
+            collection, approval_id,
+            f"the approval was taken for env {record.get('env')!r}")
     return record
 
 

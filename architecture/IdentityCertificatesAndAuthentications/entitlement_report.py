@@ -1,17 +1,19 @@
 """Daily entitlement report.
 
-Enumerates every role assignment in the ChatHealthy pipeline subscription,
-groups them by the principal holding them, classifies each against the firm's
-approved identity list, renders an audit-grade PDF and mails it at 04:00 PST.
+An operational report, read every morning to run the estate. It answers four
+questions about every identity that holds rights: what it is, who classified
+it, who answers for it, and what it can reach. Anything it cannot establish it
+says it cannot establish, rather than printing a figure that reads as clean.
 
-The report is written to be handed to an auditor without a covering
-explanation. It states the control, shows the population, and lists the
-exceptions. A reader who knows nothing about ChatHealthy should be able to
-determine from it alone whether access rights are under control.
+Every fact on the page is measured at the time stated. The subscriptions come
+from what the reporting identity can see, the classification from directory
+group membership, the delegation from directory ownership, the privilege of a
+role from the actions Azure publishes for it, and where certificate material
+lives from the vaults themselves. Nothing is asserted from this file.
 
-Principal names come from Microsoft Graph. The approved identities are also
-pinned by object id, so the report remains meaningful when the running
-identity has no directory read -- the names simply fall back to ids.
+That is not a stylistic preference. The population was once a dict written
+here, matched by hand to what Azure held, so the report printed zero exceptions
+by construction and an identity added to the estate appeared nowhere at all.
 
 CLI:
     python entitlement_report.py [--no-email] [--out <path>]
@@ -71,8 +73,6 @@ try:
 except ImportError:
     pass
 
-SUBSCRIPTION_ID = "7a17eec1-c477-4c7c-b1c1-d0662ce7a1ee"
-SUBSCRIPTION_NAME = "PipeLineServices"
 ARM = "https://management.azure.com"
 GRAPH = "https://graph.microsoft.com/v1.0"
 
@@ -83,56 +83,123 @@ BAND = colors.HexColor("#f2f2f2")
 FLAG = colors.HexColor("#a3231d")
 OK = colors.HexColor("#1f6b34")
 
-# The identities the firm has approved, pinned by object id so the
-# classification does not depend on directory read being available.
-APPROVED = {
-    "2e48c87f-6fad-41bf-9c69-3c1e752087a9": (
-        "skip@chathealthy.ai", "Named human operator. Sole authority to create identities."),
-    "dca8be2d-d37a-4e74-8580-0923cf76cdf9": (
-        "claudeCodeAgent", "Engineering agent. Grants and revokes entitlements; cannot create identities."),
-    "8e6f61db-9d92-4f7a-a3db-8731a7518791": (
-        "DevOpsUser", "Build and deploy. Acts on resources; holds no entitlement-management rights."),
-    "1dbcec4a-97ce-4ddb-ab8d-f4a55d5c37a1": (
-        "pipelineEditor", "Pipeline runtime. Reads its own certificate; processes data."),
-    "a46dfa74-fa21-4175-b5e8-ebc9652dd7c8": (
-        "frontendUser", "Front-end runtime. Reads its own certificate."),
-}
+def _approved_register() -> tuple[dict[str, tuple], str]:
+    """The approved population, read from the register the build baked.
+
+    This used to be a dict written into this file. That made the audit grade
+    itself against its own answer key: the literal was authored to match what
+    Azure held, so the report printed zero exceptions by construction, and an
+    identity added to the estate appeared nowhere at all.
+
+    The register is derived from IdentityCatalog in deployment_architecture.json
+    at build time and shipped beside this runbook, because Azure Automation has
+    no git tree. So the approved population changes only by deploying a changed
+    manifest -- and a manifest change to IdentityCatalog needs operator approval
+    under Rule-065-ENF-005 -- while the observed population is enumerated live
+    on every run. The two are never the same source.
+
+    A missing register is fatal. Falling back to a built-in list would restore
+    exactly the defect this replaces, and a report that cannot say what was
+    approved must not print a number that reads as though it could.
+    """
+    here = Path(__file__).resolve().parent
+    candidates = [here / "entitlement_report_identity_register.json"]
+    if _root is not None:
+        candidates.append(_root / "brain" / "machine_artifacts" / "content"
+                          / "deployment_architecture.json")
+    for path in candidates:
+        if not path.is_file():
+            continue
+        data = json.loads(path.read_text(encoding="utf-8"))
+        entries = data.get("identities") or data.get("IdentityCatalog") or []
+        register = {}
+        for e in entries:
+            oid = (e.get("object_id") or "").strip()
+            if not oid:
+                continue
+            register[oid] = (
+                e.get("identity_id", ""),
+                e.get("description", ""),
+                e.get("actor_type", ""),
+                e.get("entra_object_type", "") or e.get("identity_class", ""),
+                e.get("application", ""),
+                tuple(e.get("roles", []) or ()),
+            )
+        return register, path.name
+    from chathealthy_lib.exceptions import ChatHealthyException
+    raise ChatHealthyException(
+        mode="config_error",
+        component="entitlement_report",
+        message=("no identity register found. Expected "
+                 "entitlement_report_identity_register.json beside this file "
+                 "(baked by the build) or deployment_architecture.json in the "
+                 "repository. The report will not run against a built-in list."))
+
+
+# The read is separated from the logging of it: a function that raises does
+# not also log, because the catcher logs and not the thrower.
+APPROVED, _REGISTER_SOURCE = _approved_register()
+_LOG.info("entitlement_report approved register read from %s (%d identities)",
+          _REGISTER_SOURCE, len(APPROVED))
 
 # Roles that confer administrative authority over the subscription or over
 # who may hold rights within it. Their presence is the thing an auditor looks
 # for first, so they are counted and marked wherever they appear.
-PRIVILEGED_ROLES = (
-    "Owner",
-    "Contributor",
-    "User Access Administrator",
-    "Role Based Access Control Administrator",
-    "Managed Identity Contributor",
-    "ChatHealthy Agent",
+# What makes a role privileged, stated as the actions that make it so. A typed
+# list of role names was a fact copied into this file: it went stale the moment a
+# role was renamed -- "ChatHealthy Agent" became "chatHealthyAgent" and the list
+# would have stopped flagging the most powerful role in the estate while still
+# printing a confident table. These patterns are matched against each role's own
+# published actions, so a role is privileged because of what it permits.
+PRIVILEGE_MARKERS = (
+    "*",
+    "microsoft.authorization/roleassignments/write",
+    "microsoft.authorization/roleassignments/delete",
+    "microsoft.authorization/roledefinitions/write",
+    "microsoft.authorization/roledefinitions/delete",
+    "microsoft.authorization/elevateaccess/action",
+    "microsoft.managedidentity/userassignedidentities/write",
+    "microsoft.keyvault/vaults/accesspolicies/write",
 )
 
-STORY = (
-    "This report specifies every identity permitted to act on ChatHealthy systems, and what each "
-    "one may do.",
+def _scope_story(data: dict) -> list[str]:
+    """One paragraph: what the report states, and where each fact comes from."""
+    vaults = data["vaults"]
+    certs = data["certificate_secrets"]
+    where = (f"one key vault, {vaults[0]}" if len(vaults) == 1
+             else f"{len(vaults)} key vaults ({', '.join(vaults)})" if vaults
+             else "no key vault visible to this run")
+    return [
+        f"This report states every identity holding rights in the subscriptions named "
+        f"above, what each may do, how it is classified and who manages it. "
+        f"Role assignments and role definitions come from Azure Resource Manager. "
+        f"Classification comes from directory group membership and management from "
+        f"directory ownership. Whether a role is administrative is read from the "
+        f"actions Azure publishes for it. The approved population comes from "
+        f"IdentityCatalog in deployment_architecture.json. {len(certs)} certificate "
+        f"secrets were found, in {where}. All values are read at the time stated."
+    ]
 
-    "Its scope is the whole of ChatHealthy, because access begins in one place. Each component "
-    "authenticates with a certificate, and every certificate is held in a single Azure key vault. "
-    "Reaching that vault means obtaining a certificate, and a certificate opens the provider "
-    "database, the user services and the rest of the estate.",
 
-    "The rights listed here therefore govern what can be reached across ChatHealthy, not only "
-    "within the subscription they are drawn from.",
-)
-
-CONTROL_POLICY = (
-    "No component may create an identity. That authority belongs to the named human operators "
-    "alone, and it is withheld from every component by two means: none holds the directory "
-    "permission under which users and application registrations are created, and the role held "
-    "by the engineering agent excludes the actions that create a managed identity. The "
-    "engineering agent administers rights on identities that already exist. A condition attached "
-    "to its own access names the roles it may neither grant nor revoke; that list includes the "
-    "role the condition is attached to, so the agent cannot lift the condition from itself. "
-    "Every figure and every entry in this report is read live from Azure at the time stated."
-)
+def _control_policy(data: dict) -> str:
+    """Who can create and entitle identities, from what the run found."""
+    agents = sorted({h["name"] or h["object_id"] for h in data["holders"]
+                     if h["actor_type"] == "agent"
+                     and any(g["role"] in data["privileged_roles"] for g in h["grants"])})
+    people = sorted({h["name"] or h["object_id"] for h in data["holders"]
+                     if h["actor_type"] == "person"})
+    if agents:
+        first = (", ".join(agents) + (" holds" if len(agents) == 1 else " hold")
+                 + " an administrative role, which includes creating and entitling "
+                   "further identities.")
+    else:
+        first = ("No agent holds an administrative role. Identity creation rests with "
+                 + (", ".join(people) if people else "named people") + ".")
+    second = ("Classification below is directory group membership."
+              if data["groups_readable"] else
+              "The directory could not be read on this run, so nothing below is "
+              "classified.")
+    return first + " " + second
 
 
 def _population_sentence(data: dict) -> str:
@@ -276,7 +343,7 @@ def _principal_names(object_ids: list[str], credential) -> dict[str, dict]:
     return resolved
 
 
-def _managed_identity_names(token: str) -> dict[str, dict]:
+def _managed_identity_names(token: str, subscription_ids: list[str]) -> dict[str, dict]:
     """Resolve user-assigned managed identities through ARM.
 
     Managed identities are Azure resources as well as directory principals, so
@@ -284,14 +351,15 @@ def _managed_identity_names(token: str) -> dict[str, dict]:
     the report legible when directory read is unavailable.
     """
     out: dict[str, dict] = {}
-    try:
-        items = _get_all(
-            f"{ARM}/subscriptions/{SUBSCRIPTION_ID}/providers"
-            f"/Microsoft.ManagedIdentity/userAssignedIdentities?api-version=2023-01-31",
-            token)
-    except Exception as exc:                                    # noqa: BLE001
-        _LOG.info("managed identity enumeration failed: %s", exc)
-        return out
+    items: list[dict] = []
+    for sid in subscription_ids:
+        try:
+            items.extend(_get_all(
+                f"{ARM}/subscriptions/{sid}/providers"
+                f"/Microsoft.ManagedIdentity/userAssignedIdentities?api-version=2023-01-31",
+                token))
+        except Exception as exc:                                # noqa: BLE001
+            _LOG.info("managed identity enumeration failed in %s: %s", sid, exc)
     for i in items:
         pid = (i.get("properties") or {}).get("principalId")
         if pid:
@@ -301,12 +369,43 @@ def _managed_identity_names(token: str) -> dict[str, dict]:
 
 # A role that contains another: holding the key grants everything the values
 # grant, so a narrower assignment alongside it adds nothing.
-ROLE_CONTAINS = {
-    "Key Vault Administrator": ("Key Vault Secrets Officer", "Key Vault Secrets User"),
-    "Key Vault Secrets Officer": ("Key Vault Secrets User",),
-    "Owner": ("Contributor", "Reader"),
-    "Contributor": ("Reader",),
-}
+def _role_containment(defs: list[dict]) -> dict[str, set[str]]:
+    """Which roles subsume which, computed from the actions Azure publishes.
+
+    This was a typed map of four entries. It was a fact about Azure copied into
+    this file: correct for the roles somebody thought of, silent about every
+    other pair, and unable to notice that a custom role had been widened to
+    swallow another. Now a role contains another when its action set covers the
+    other's, wildcards expanded, which is what "already covered by" means.
+    """
+    def expand(d: dict) -> tuple[set[str], set[str]]:
+        acts, data_acts = set(), set()
+        for perm in (d["properties"].get("permissions") or []):
+            acts.update(a.strip().lower() for a in (perm.get("actions") or []))
+            data_acts.update(a.strip().lower() for a in (perm.get("dataActions") or []))
+        return acts, data_acts
+
+    def covers(wide: set[str], narrow: set[str]) -> bool:
+        if not narrow:
+            return False
+        for needed in narrow:
+            if needed in wide:
+                continue
+            if any(w == "*" or (w.endswith("*") and needed.startswith(w[:-1]))
+                   for w in wide):
+                continue
+            return False
+        return True
+
+    sets = {d["properties"]["roleName"]: expand(d) for d in defs}
+    out: dict[str, set[str]] = {}
+    for wide_name, (wa, wd) in sets.items():
+        for narrow_name, (na, nd) in sets.items():
+            if wide_name == narrow_name:
+                continue
+            if covers(wa, na) and (not nd or covers(wd, nd)):
+                out.setdefault(wide_name, set()).add(narrow_name)
+    return out
 
 
 def _secret_descriptions() -> dict[str, str]:
@@ -337,25 +436,36 @@ def _secret_descriptions() -> dict[str, str]:
     return out
 
 
-def _scope_label(scope: str) -> str:
+def _scope_label(scope: str, subscription_ids: tuple[str, ...] = ()) -> str:
     """The scope, named by the thing it governs rather than by its full path.
 
     The distinguishing element goes last and must not be buried: two grants that
     differ only in which secret they cover have to read as different rows.
     """
-    s = scope.replace(f"/subscriptions/{SUBSCRIPTION_ID}", "")
+    s = scope
+    for sid in subscription_ids:
+        s = s.replace(f"/subscriptions/{sid}", "")
     if not s.strip():
         return "the whole subscription"
+    if s.strip() == "/":
+        # A grant at the tenant root is not a grant on this subscription; it is
+        # above it, and covers every subscription the tenant will ever hold.
+        return "the tenant root -- above every subscription"
     s = s.replace("/resourceGroups/", "resource group ")
     s = s.replace("/providers/Microsoft.KeyVault/vaults/", ", key vault ")
     s = s.replace("/providers/Microsoft.ContainerRegistry/registries/", ", container registry ")
     s = s.replace("/providers/Microsoft.Storage/storageAccounts/", ", storage account ")
+    s = s.replace("/providers/Microsoft.Automation/automationAccounts/", ", automation account ")
+    s = s.replace("/providers/Microsoft.ManagedIdentity/userAssignedIdentities/",
+                  ", managed identity ")
     s = s.replace("/providers/Microsoft.ManagedIdentity/userAssignedIdentities/", ", managed identity ")
     s = s.replace("/secrets/", ", the single secret ")
     return s.strip()
 
 
-def _mark_redundant(grants: list[dict]) -> None:
+def _mark_redundant(grants: list[dict],
+                    subscription_ids: tuple[str, ...] = (),
+                    role_contains: dict[str, set[str]] | None = None) -> None:
     """Flag any grant already covered by a broader one the same identity holds.
 
     Two ways one grant covers another: the same role at a scope that contains
@@ -371,14 +481,14 @@ def _mark_redundant(grants: list[dict]) -> None:
                            and g["raw_scope"].startswith(other["raw_scope"]))
             same_scope = other["raw_scope"] == g["raw_scope"]
             covers_role = (other["role"] == g["role"]
-                           or g["role"] in ROLE_CONTAINS.get(other["role"], ()))
+                           or g["role"] in (role_contains or {}).get(other["role"], ()))
             if covers_role and (wider_scope or (same_scope and other["role"] != g["role"])):
                 g["redundant"] = (f"already covered by {other['role']} on "
-                                  f"{_scope_label(other['raw_scope'])}")
+                                  f"{_scope_label(other['raw_scope'], subscription_ids)}")
                 break
 
 
-def _all_principals(token: str, credential) -> dict[str, dict]:
+def _all_principals(token: str, credential, subscription_id: str) -> dict[str, dict]:
     """Every principal that exists, whether or not it holds anything.
 
     A principal can be brought into existence holding nothing -- creating a
@@ -395,7 +505,7 @@ def _all_principals(token: str, credential) -> dict[str, dict]:
     found: dict[str, dict] = {}
 
     for item in _get_all(
-            f"{ARM}/subscriptions/{SUBSCRIPTION_ID}/providers"
+            f"{ARM}/subscriptions/{subscription_id}/providers"
             f"/Microsoft.ManagedIdentity/userAssignedIdentities?api-version=2023-01-31",
             token):
         pid = (item.get("properties") or {}).get("principalId")
@@ -404,7 +514,7 @@ def _all_principals(token: str, credential) -> dict[str, dict]:
                           "origin": "user-assigned identity"}
 
     for res in _get_all(
-            f"{ARM}/subscriptions/{SUBSCRIPTION_ID}/resources"
+            f"{ARM}/subscriptions/{subscription_id}/resources"
             f"?api-version=2021-04-01&$expand=identity", token):
         ident = res.get("identity") or {}
         pid = ident.get("principalId")
@@ -423,7 +533,15 @@ def _all_principals(token: str, credential) -> dict[str, dict]:
     except Exception as exc:                                    # noqa: BLE001
         _LOG.info("directory not enumerable: %s", exc)
         return found
-    for kind, url in (("ServicePrincipal", f"{GRAPH}/servicePrincipals?$select=id,displayName,servicePrincipalType"),
+    # Microsoft's own first-party service principals live in every tenant --
+    # Azure Cloud Shell, Azure Compute, a hundred more. They are not this firm's
+    # identities, nobody here granted them anything, and listing them buries the
+    # handful that matter under pages nobody reads. A principal is ours when the
+    # tenant that owns its application is this one; Microsoft's carry Microsoft's.
+    tenant = _tenant_id()
+    for kind, url in (("ServicePrincipal",
+                       f"{GRAPH}/servicePrincipals"
+                       f"?$select=id,displayName,servicePrincipalType,appOwnerOrganizationId"),
                       ("User", f"{GRAPH}/users?$select=id,displayName,userPrincipalName")):
         page = url
         while page:
@@ -435,6 +553,9 @@ def _all_principals(token: str, credential) -> dict[str, dict]:
             for o in payload.get("value", []):
                 if o["id"] in found:
                     continue
+                owner = o.get("appOwnerOrganizationId")
+                if kind == "ServicePrincipal" and owner and tenant and owner != tenant:
+                    continue
                 found[o["id"]] = {
                     "name": o.get("displayName") or o.get("userPrincipalName") or o["id"],
                     "kind": o.get("servicePrincipalType", kind),
@@ -444,27 +565,275 @@ def _all_principals(token: str, credential) -> dict[str, dict]:
     return found
 
 
+def _owners(credential, object_ids: dict[str, str]) -> dict[str, list[str]]:
+    """Who is accountable for each object, read from the directory.
+
+    Authority in this estate is delegated, not flat: a person empowers an agent,
+    and that agent then administers others. Entra records that as the owner edge,
+    and it is the only place the delegation is written down -- an entitlement
+    table shows what an identity may do, never who answers for it existing.
+
+    Both type casts are queried. Graph's default owners collection omits service
+    principals, so an agent that owns objects appears to own nothing, and a
+    delegation to an agent reads as no delegation at all.
+    """
+    out: dict[str, list[str]] = {}
+    try:
+        gtoken = credential.get_token("https://graph.microsoft.com/.default").token
+    except Exception as exc:                                    # noqa: BLE001
+        _LOG.info("owners not readable: %s", exc)
+        return out
+    headers = {"Authorization": f"Bearer {gtoken}"}
+    for oid, kind in object_ids.items():
+        names: list[str] = []
+        for cast in ("microsoft.graph.user", "microsoft.graph.servicePrincipal"):
+            r = requests.get(f"{GRAPH}/{kind}/{oid}/owners/{cast}?$select=displayName",
+                             headers=headers, timeout=60)
+            if r.status_code != 200:
+                continue
+            names.extend(o.get("displayName", "") for o in r.json().get("value", []))
+        if names:
+            out[oid] = sorted(n for n in names if n)
+    return out
+
+
+def _vaults_and_certificates(token: str, subscription_ids: list[str]) -> tuple[list[str], list[str]]:
+    """Where certificate material actually lives, and how much of it there is.
+
+    Named rather than asserted: the count and the vault names are what make the
+    scope paragraph a measurement instead of a claim. A secret is treated as
+    certificate material when a role assignment in this estate points at it and
+    its name is carried by the identity register, or when it is named for a
+    certificate -- both are read, neither is typed.
+    """
+    vaults: list[str] = []
+    certs: list[str] = []
+    for sid in subscription_ids:
+        for v in _get_all(f"{ARM}/subscriptions/{sid}/resources"
+                          f"?api-version=2021-04-01&$filter=resourceType eq "
+                          f"'Microsoft.KeyVault/vaults'", token):
+            name = v.get("name", "")
+            if name and name not in vaults:
+                vaults.append(name)
+    known = {v[0] for v in APPROVED.values() if v[0]}
+    for sid in subscription_ids:
+        for row in _get_all(f"{ARM}/subscriptions/{sid}/providers"
+                            f"/Microsoft.Authorization/roleAssignments"
+                            f"?api-version=2022-04-01", token):
+            scope = row["properties"].get("scope", "")
+            if "/secrets/" not in scope:
+                continue
+            secret = scope.split("/secrets/", 1)[1]
+            if secret in certs:
+                continue
+            if secret in known or secret.startswith(("cert-", "key-", "ca-")):
+                certs.append(secret)
+    return sorted(vaults), sorted(certs)
+
+
+def _tenant_id() -> str:
+    """The tenant this estate is, taken from the credential rather than typed.
+
+    Resolved the same way the credential itself is: inside Automation the value
+    arrives as an environment variable, and on a workstation it lives in .env.
+    Reading only the environment returned empty there, which silently disabled
+    the filter that keeps Microsoft's own service principals out of this report
+    -- 127 of them appeared under a heading that says they are logins nobody
+    authorised.
+    """
+    key = "PIPELINEEDITOR_AZURE_TENANT_ID"
+    value = _ch_os.environ.get(key, "").strip()
+    if value or _root is None:
+        return value
+    try:
+        from dotenv import dotenv_values
+        return (dotenv_values(_root / ".env").get(key) or "").strip()
+    except ImportError:
+        return ""
+
+
+def _subscriptions(token: str) -> list[dict]:
+    """Every subscription this report covers, discovered rather than asserted.
+
+    The id and display name used to be literals here, and a single pair of them.
+    That was two failures at once: a report naming its own scope from a constant
+    cannot notice it is pointed somewhere else, and one naming a single scope
+    silently omits every other subscription the firm owns -- the omission looks
+    exactly like a clean estate.
+
+    The reporting identity sees precisely the subscriptions it is entitled to
+    read, so the answer is also the honest boundary of what this run can attest.
+    """
+    subs = _get_all(f"{ARM}/subscriptions?api-version=2022-12-01", token)
+    live = [{"id": s["subscriptionId"],
+             "name": s.get("displayName") or s["subscriptionId"],
+             "state": s.get("state", "")}
+            for s in subs]
+    if not live:
+        raise _chathealthy_exception()(
+            mode="config_error",
+            component="EntitlementReport",
+            message="the reporting identity can see no subscription; there is "
+                    "nothing to report on")
+    _LOG.info("entitlement report covers %d subscription(s): %s",
+              len(live), ", ".join(s["name"] for s in live))
+    return live
+
+
+def _group_tree(credential) -> tuple[dict[str, list[str]], dict[str, str],
+                                    dict[str, list[str]], bool]:
+    """The directory's own classification of every principal.
+
+    The groups are the structure this report stands on. `humans` and `agents`
+    say what kind of thing holds a grant, and Entra is the only place that
+    fact is recorded by a person rather than asserted by a file -- putting a
+    principal in a group is a deliberate act, and this reads that act rather
+    than a list somebody typed.
+
+    Returns (membership, description, readable). `membership` maps a principal
+    object id to every group it belongs to, transitively, so a grant made to
+    `agents` reaches a member of `runtimeAgents` exactly as Azure resolves it.
+    `readable` is False when the directory could not be read at all, which the
+    caller must surface rather than treat as "no groups exist" -- the two look
+    identical in the data and mean opposite things.
+    """
+    membership: dict[str, list[str]] = {}
+    described: dict[str, str] = {}
+    try:
+        gtoken = credential.get_token("https://graph.microsoft.com/.default").token
+    except Exception as exc:                                    # noqa: BLE001
+        _LOG.info("group tree not readable: %s", exc)
+        return membership, described, {}, False
+
+    headers = {"Authorization": f"Bearer {gtoken}"}
+    r = requests.get(f"{GRAPH}/groups?$select=id,displayName,description",
+                     headers=headers, timeout=60)
+    if r.status_code != 200:
+        _LOG.info("group enumeration returned %s", r.status_code)
+        return membership, described, {}, False
+
+    groups = r.json().get("value", [])
+    by_id = {g["id"]: g["displayName"] for g in groups}
+
+    def direct(group_id: str) -> tuple[list[str], list[str]]:
+        """(principal ids, nested group ids) directly in this group.
+
+        Two queries, and the second is not optional. Graph omits service
+        principals from the untyped member collection entirely, and its
+        transitiveMembers collection omits them whether cast or not -- measured,
+        not assumed. Reading only the obvious endpoint returns users and groups
+        and reports every agent in the estate as belonging to nothing, which
+        reads as a catastrophic finding and is an artefact of the query.
+        """
+        principals: list[str] = []
+        nested: list[str] = []
+        for collection in ("members", "members/microsoft.graph.servicePrincipal"):
+            page = f"{GRAPH}/groups/{group_id}/{collection}?$select=id,displayName"
+            while page:
+                m = requests.get(page, headers=headers, timeout=60)
+                if m.status_code != 200:
+                    _LOG.info("members of %s (%s) returned %s",
+                              by_id.get(group_id, group_id), collection, m.status_code)
+                    break
+                payload = m.json()
+                for member in payload.get("value", []):
+                    (nested if member["id"] in by_id else principals).append(member["id"])
+                page = payload.get("@odata.nextLink") or ""
+        return principals, nested
+
+    for group in groups:
+        described[group["displayName"]] = group.get("description") or ""
+
+    # Nesting is resolved here rather than by Graph, because the collection that
+    # would resolve it does not return service principals. A grant to `agents`
+    # reaches a member of `runtimeAgents`, so the walk records both names
+    # against that member, exactly as Azure resolves the grant.
+    for group in groups:
+        seen_groups: set[str] = set()
+        frontier = [group["id"]]
+        while frontier:
+            gid = frontier.pop()
+            if gid in seen_groups:
+                continue
+            seen_groups.add(gid)
+            principals, nested = direct(gid)
+            for pid in principals:
+                names = membership.setdefault(pid, [])
+                if group["displayName"] not in names:
+                    names.append(group["displayName"])
+            frontier.extend(nested)
+    group_owners = {}
+    for group in groups:
+        names = []
+        for cast in ("microsoft.graph.user", "microsoft.graph.servicePrincipal"):
+            o = requests.get(f"{GRAPH}/groups/{group['id']}/owners/{cast}?$select=displayName",
+                             headers=headers, timeout=60)
+            if o.status_code == 200:
+                names.extend(x.get("displayName", "") for x in o.json().get("value", []))
+        group_owners[group["displayName"]] = sorted(n for n in names if n)
+    return membership, described, group_owners, True
+
+
 def collect() -> dict:
     credential = _credential()
     token = credential.get_token(f"{ARM}/.default").token
+    group_membership, group_descriptions, group_owners, groups_readable = _group_tree(credential)
 
-    defs = _get_all(f"{ARM}/subscriptions/{SUBSCRIPTION_ID}/providers"
-                    f"/Microsoft.Authorization/roleDefinitions?api-version=2022-04-01", token)
-    roles = {d["id"].rsplit("/", 1)[-1]: d["properties"]["roleName"] for d in defs}
-    role_text = {d["properties"]["roleName"]: (d["properties"].get("description") or "").strip()
-                 for d in defs}
+    subscriptions = _subscriptions(token)
 
-    rows = _get_all(f"{ARM}/subscriptions/{SUBSCRIPTION_ID}/providers"
-                    f"/Microsoft.Authorization/roleAssignments?api-version=2022-04-01", token)
-
-    existing = _all_principals(token, credential)
+    # Every subscription the reporting identity can see is walked. Aggregating
+    # rather than picking one is the point: a grant in a subscription this report
+    # skipped is indistinguishable, on the page, from a grant that does not
+    # exist.
+    roles: dict[str, str] = {}
+    role_text: dict[str, str] = {}
+    privileged_roles: set[str] = set()
+    all_defs: list[dict] = []
+    rows: list[dict] = []
+    existing: dict[str, dict] = {}
+    for sub in subscriptions:
+        sid = sub["id"]
+        defs = _get_all(f"{ARM}/subscriptions/{sid}/providers"
+                        f"/Microsoft.Authorization/roleDefinitions?api-version=2022-04-01", token)
+        all_defs.extend(defs)
+        for d in defs:
+            roles[d["id"].rsplit("/", 1)[-1]] = d["properties"]["roleName"]
+            role_text[d["properties"]["roleName"]] = (
+                d["properties"].get("description") or "").strip()
+            # Privilege is read off each role's published actions, so a renamed
+            # role, or one authored tomorrow, is judged on what it permits rather
+            # than on whether somebody remembered to add its name to this file.
+            for perm in (d["properties"].get("permissions") or []):
+                for action in (perm.get("actions") or []):
+                    if action.strip().lower() in PRIVILEGE_MARKERS:
+                        privileged_roles.add(d["properties"]["roleName"])
+                # A data-plane wildcard is administrative in the sense that
+                # matters here: Key Vault Administrator names no privileged verb
+                # and yet reads every certificate in the firm. The same test is
+                # NOT applied to control-plane actions, where a service wildcard
+                # like Microsoft.Network/* means Contributor over networking and
+                # confers no authority over who holds rights.
+                for action in (perm.get("dataActions") or []):
+                    a = action.strip().lower()
+                    if a in PRIVILEGE_MARKERS or a.endswith("/*"):
+                        privileged_roles.add(d["properties"]["roleName"])
+        for row in _get_all(f"{ARM}/subscriptions/{sid}/providers"
+                            f"/Microsoft.Authorization/roleAssignments"
+                            f"?api-version=2022-04-01", token):
+            row["_subscription"] = sub["name"]
+            rows.append(row)
+        for pid, meta in _all_principals(token, credential, sid).items():
+            existing.setdefault(pid, meta)
     oids = sorted({r["properties"]["principalId"] for r in rows})
     # ARM first -- managed identities resolve without any directory permission.
     # Graph then fills in users and app registrations, when permitted.
-    names = _managed_identity_names(token)
+    names = _managed_identity_names(token, [s['id'] for s in subscriptions])
     graph_names = _principal_names(oids, credential)
     names.update(graph_names)
 
+    sub_ids = tuple(s["id"] for s in subscriptions)
+    role_contains = _role_containment(all_defs)
+    vaults, certificate_secrets = _vaults_and_certificates(token, list(sub_ids))
     holders: dict[str, dict] = {}
     for r in rows:
         p = r["properties"]
@@ -475,6 +844,17 @@ def collect() -> dict:
             "object_id": oid,
             "name": approved[0] if approved else (known["name"] if known else ""),
             "purpose": approved[1] if approved else "",
+            # Group membership is the directory's own answer to "what kind of
+            # thing is this" -- a person put it there. actor_type from the
+            # register is the second opinion, and the two disagreeing is
+            # itself worth seeing.
+            "groups": sorted(group_membership.get(oid, [])),
+            "actor_type": approved[2] if approved else "",
+            "entra_object_type": (approved[3] if approved else
+                                  (known["kind"] if known
+                                   else p.get("principalType", ""))),
+            "application": approved[4] if approved else "",
+            "declared_roles": list(approved[5]) if approved else [],
             "type": known["kind"] if known else p.get("principalType", "Unknown"),
             "approved": approved is not None,
             "resolvable": known is not None,
@@ -489,23 +869,24 @@ def collect() -> dict:
         forbidden = sorted({name for guid, name in roles.items() if guid in condition})
         entry["grants"].append({
             "role": role_name,
-            "scope": _scope_label(p.get("scope", "")),
+            "scope": _scope_label(p.get("scope", ""), sub_ids),
             "raw_scope": p.get("scope", ""),
             "secret": (p.get("scope", "").split("/secrets/", 1)[1]
                        if "/secrets/" in p.get("scope", "") else ""),
-            "parent_scope": _scope_label(p.get("scope", "").split("/secrets/", 1)[0])
+            "parent_scope": _scope_label(p.get("scope", "").split("/secrets/", 1)[0], sub_ids)
                             if "/secrets/" in p.get("scope", "") else "",
             "redundant": "",
-            "privileged": role_name in PRIVILEGED_ROLES,
+            "privileged": role_name in privileged_roles,
             "conditioned": bool(condition),
             "forbidden_roles": forbidden,
             "constrains_write": "roleAssignments/write" in condition,
             "constrains_delete": "roleAssignments/delete" in condition,
             "justification": (p.get("description") or "").strip(),
+            "subscription": r.get("_subscription", ""),
         })
 
     for h in holders.values():
-        _mark_redundant(h["grants"])
+        _mark_redundant(h["grants"], sub_ids, role_contains)
         h["grants"].sort(key=lambda g: (not g["privileged"], g["scope"], g["role"]))
         h["privileged_count"] = sum(1 for g in h["grants"] if g["privileged"])
 
@@ -524,11 +905,27 @@ def collect() -> dict:
             "object_id": oid,
             "name": approved[0] if approved else meta["name"],
             "type": meta["kind"],
+            "actor_type": approved[2] if approved else "",
+            "application": approved[4] if approved else "",
             "origin": meta["origin"],
             "approved": approved is not None,
         })
 
     missing = [v[0] for k, v in APPROVED.items() if k not in holders]
+
+    # Who answers for each principal and each group. Delegation is a fact about
+    # authority as much as any role assignment, and it lives only here.
+    owner_targets = {h["object_id"]: "servicePrincipals"
+                     for h in holders_list if h["type"].lower() != "user"}
+    owner_targets.update({h["object_id"]: "users"
+                          for h in holders_list if h["type"].lower() == "user"})
+    owners = _owners(credential, owner_targets)
+
+    # A principal holding rights while belonging to no group is the finding this
+    # report exists for: nobody placed it, so nobody classified it, so nothing
+    # states whether a person or a program holds what it holds.
+    ungrouped = [h["name"] or h["object_id"]
+                 for h in holders_list if not h["groups"]] if groups_readable else []
 
     return {
         "generated": _dt.datetime.now(_dt.timezone.utc),
@@ -538,6 +935,15 @@ def collect() -> dict:
         "secret_descriptions": _secret_descriptions(),
         "rightless": rightless,
         "directory_enumerated": any(m["origin"] == "directory" for m in existing.values()),
+        "subscriptions": subscriptions,
+        "privileged_roles": sorted(privileged_roles),
+        "vaults": vaults,
+        "certificate_secrets": certificate_secrets,
+        "owners": owners,
+        "group_owners": group_owners,
+        "groups_readable": groups_readable,
+        "group_descriptions": group_descriptions,
+        "ungrouped": ungrouped,
         "role_text": {r: t for r, t in role_text.items()
                       if any(g["role"] == r for h in holders_list for g in h["grants"])},
         "approved_absent": missing,
@@ -555,8 +961,10 @@ def _page_furniture(canvas, doc):
     canvas.drawString(0.5 * inch, h - 0.52 * inch,
                       "ChatHealthy.ai  |  Access entitlement report  |  Confidential")
     canvas.line(0.5 * inch, 0.55 * inch, w - 0.5 * inch, 0.55 * inch)
+    # The footer names the scope on every page, because a page read on its own
+    # must say which subscriptions it covers. doc carries it; the render sets it.
     canvas.drawString(0.5 * inch, 0.4 * inch,
-                      f"Azure subscription {SUBSCRIPTION_NAME} ({SUBSCRIPTION_ID})")
+                      getattr(doc, "ch_scope_line", "Azure subscriptions: unknown"))
     canvas.drawRightString(w - 0.5 * inch, 0.4 * inch, f"Page {doc.page}")
     canvas.restoreState()
 
@@ -583,6 +991,8 @@ def render_pdf(data: dict, out_path: Path) -> Path:
         topMargin=0.8 * inch, bottomMargin=0.75 * inch,
         title="ChatHealthy access entitlement report",
         author="ChatHealthy.ai", subject="Access entitlement review")
+    doc.ch_scope_line = "Azure subscriptions: " + ", ".join(
+        f"{s['name']} ({s['id']})" for s in data["subscriptions"])
 
     stamp = data["generated"].strftime("%d %B %Y at %H:%M UTC")
     unapproved = [h for h in data["holders"] if not h["approved"]]
@@ -592,16 +1002,18 @@ def render_pdf(data: dict, out_path: Path) -> Path:
     story: list = []
     story.append(Paragraph("Access entitlement report", title))
     story.append(Paragraph(
-        f"Azure subscription {SUBSCRIPTION_NAME} &nbsp;&middot;&nbsp; {SUBSCRIPTION_ID}"
-        f"<br/>Enumerated {stamp}", sub))
+        "Azure subscriptions &nbsp;&middot;&nbsp; "
+        + " &nbsp;|&nbsp; ".join(f"{s['name']} ({s['id']})"
+                                 for s in data["subscriptions"])
+        + f"<br/>Enumerated {stamp}", sub))
 
     story.append(Paragraph("Scope", sec))
-    for para in STORY:
+    for para in _scope_story(data):
         story.append(Paragraph(para, body))
 
     story.append(Paragraph("The control", sec))
     story.append(Paragraph(_population_sentence(data), body))
-    story.append(Paragraph(CONTROL_POLICY, body))
+    story.append(Paragraph(_control_policy(data), body))
 
     story.append(Paragraph("Population and exceptions", sec))
     summary = [
@@ -643,16 +1055,26 @@ def render_pdf(data: dict, out_path: Path) -> Path:
             note))
 
     story.append(Paragraph("How the control is enforced", sec))
-    story.append(Paragraph(
-        "Two mechanisms withhold identity creation. The custom role held by the engineering agent "
-        "excludes the actions that create a managed identity, and the actions that would let it "
-        "write a replacement role. The assignment carrying that role also carries an "
-        "attribute-based access control (ABAC) condition, which names the roles its holder may "
-        "neither grant nor revoke; that list includes the role the condition is attached to, so "
-        "the holder cannot lift it. Separately, the Entra ID directory permissions under which "
-        "users and application registrations are created are held by no component. The "
-        "Conditioned column marks each assignment where an ABAC condition is in force, and the "
-        "roles it forbids are stated beneath that identity's table.", body))
+    # Written from what the run found. The paragraph this replaces described two
+    # mechanisms restraining identity creation, both of which were removed on
+    # 2026-08-19 while it went on describing them.
+    conditioned = sorted(h["name"] or h["object_id"] for h in data["holders"]
+                         if any(g["conditioned"] for g in h["grants"]))
+    admin_agents = sorted(h["name"] or h["object_id"] for h in data["holders"]
+                          if h["actor_type"] == "agent"
+                          and any(g["role"] in data["privileged_roles"]
+                                  for g in h["grants"]))
+    lines = []
+    if conditioned:
+        lines.append(f"ABAC conditions are in force on {', '.join(conditioned)}. The "
+                     f"Conditioned column marks those assignments and the roles each "
+                     f"condition forbids are listed under that identity.")
+    else:
+        lines.append("No assignment carries an ABAC condition.")
+    if admin_agents:
+        lines.append(f"{', '.join(admin_agents)} can grant themselves any further role "
+                     f"in these subscriptions. Nothing in Azure prevents it.")
+    story.append(Paragraph(" ".join(lines), body))
 
     story.append(Paragraph("What each right permits", sec))
     story.append(Paragraph(
@@ -661,7 +1083,7 @@ def render_pdf(data: dict, out_path: Path) -> Path:
     gl = [["Right", "Administrative", "What it permits"]]
     for role in sorted(data["role_text"]):
         gl.append([Paragraph(role, cell),
-                   "yes" if role in PRIVILEGED_ROLES else "",
+                   "yes" if role in data["privileged_roles"] else "",
                    Paragraph(data["role_text"][role] or "No description published.", cell)])
     gt = Table(gl, colWidths=[2.4 * inch, 1.0 * inch, 5.95 * inch], hAlign="LEFT", repeatRows=1)
     gst = [
@@ -675,7 +1097,7 @@ def render_pdf(data: dict, out_path: Path) -> Path:
         ("BOTTOMPADDING", (0, 0), (-1, -1), 3),
     ]
     for i, role in enumerate(sorted(data["role_text"]), start=1):
-        if role in PRIVILEGED_ROLES:
+        if role in data["privileged_roles"]:
             gst.append(("TEXTCOLOR", (1, i), (1, i), FLAG))
     gt.setStyle(TableStyle(gst))
     story.append(gt)
@@ -751,7 +1173,26 @@ def render_pdf(data: dict, out_path: Path) -> Path:
         label = holder["name"] or "Unidentified principal"
         out = [Paragraph(label, who)]
         meta = f"{holder['type']} &nbsp;&middot;&nbsp; object id {holder['object_id']}"
+        if holder["groups"]:
+            meta += "&nbsp;&middot;&nbsp; " + ", ".join(holder["groups"])
         out.append(Paragraph(meta, note))
+        # Who answers for this identity existing. An entitlement table says what
+        # an identity may do and never who is accountable for it, and in an
+        # estate where a person empowers an agent that then administers others,
+        # that chain is the control.
+        held_by = data["owners"].get(holder["object_id"], [])
+        if held_by:
+            out.append(Paragraph(f"Managed by {', '.join(held_by)}.", note))
+        elif holder["type"].lower() == "user":
+            out.append(Paragraph("A person. Directory ownership does not apply.", note))
+        elif holder["entra_object_type"] == "managedIdentity":
+            # A managed identity carries no directory owner; control follows the
+            # Azure resource it is attached to.
+            out.append(Paragraph(
+                "Managed identity. No directory owner; control follows the Azure "
+                "resource.", note))
+        else:
+            out.append(Paragraph("No owner recorded in the directory.", note))
         if holder["purpose"]:
             out.append(Paragraph(holder["purpose"], note))
         elif not holder["resolvable"]:
@@ -795,24 +1236,60 @@ def render_pdf(data: dict, out_path: Path) -> Path:
         sec))
     if unapproved:
         story.append(Paragraph(
-            "Each identity below holds rights and does not appear in the approved register. Each "
-            "requires disposition: added to the register, or its rights revoked.", body))
+            "These hold rights and are not in the approved register. Each needs adding to "
+            "the register or its rights revoked.", body))
         for h in unapproved:
             story.append(KeepTogether(_block(h)))
     else:
+        story.append(Paragraph("None.", body))
+
+    # Classification by group. The directory is where a person records what kind
+    # of thing a principal is, so it is the foundation this section stands on --
+    # and when it cannot be read, the section says so instead of reporting an
+    # empty finding, which would read identically to a clean estate.
+    story.append(Paragraph(
+        "Classification and delegated authority &nbsp;&middot;&nbsp; "
+        "what the directory says each principal is, and who answers for it", sec))
+    if not data["groups_readable"]:
         story.append(Paragraph(
-            "None. Every principal holding rights in this subscription appears in the approved "
-            "register.", body))
+            "Not attested. The reporting identity could not read the directory, so nothing "
+            "below is classified. Directory.Read.All on the reporting identity is required.",
+            note))
+    else:
+        groups = data["group_descriptions"]
+        if groups:
+            rows = [["Group", "Managed by", "What it means"]]
+            for name in sorted(groups):
+                rows.append([Paragraph(f"<b>{name}</b>", cell),
+                             Paragraph(", ".join(data["group_owners"].get(name, []))
+                                       or "nobody", cell),
+                             Paragraph(groups[name] or "", cell)])
+            tg = Table(rows, colWidths=[1.7 * inch, 2.0 * inch, 5.7 * inch],
+                       hAlign="LEFT", repeatRows=1)
+            tg.setStyle(TableStyle([
+                ("BACKGROUND", (0, 0), (-1, 0), BAND),
+                ("FONTNAME", (0, 0), (-1, 0), "Helvetica-Bold"),
+                ("FONTSIZE", (0, 0), (-1, -1), 8),
+                ("LINEBELOW", (0, 0), (-1, -1), 0.25, RULE),
+                ("VALIGN", (0, 0), (-1, -1), "TOP"),
+                ("TOPPADDING", (0, 0), (-1, -1), 3),
+                ("BOTTOMPADDING", (0, 0), (-1, -1), 3)]))
+            story.append(tg)
+            story.append(Spacer(1, 8))
+        if data["ungrouped"]:
+            story.append(Paragraph(
+                f"{len(data['ungrouped'])} principal(s) hold rights and belong to no group: "
+                f"{', '.join(data['ungrouped'])}.", note))
+        else:
+            story.append(Paragraph(
+                "Every principal holding rights belongs to a group.", body))
 
     rightless = data["rightless"]
     story.append(Paragraph(
         f"Principals that exist and hold no rights &nbsp;&middot;&nbsp; ({len(rightless)})", sec))
     story.append(Paragraph(
-        "A principal can be brought into existence holding nothing: creating a virtual machine "
-        "with a system-assigned identity mints one as a side effect of the resource write. Such a "
-        "principal appears in no role assignment, so it is listed here by existence rather than "
-        "by entitlement. Anything unexpected in this list is a login nobody authorised, waiting "
-        "to be granted something.", body))
+        "Principals owned by this tenant that hold no role assignment. They are listed by "
+        "existence rather than entitlement.", body))
     if not data["directory_enumerated"]:
         story.append(Paragraph(
             "This list covers managed identities and identities attached to resources. Users and "
@@ -930,8 +1407,14 @@ def main(argv: list[str] | None = None) -> int:
     render_pdf(data, out)
 
     unapproved = [h for h in data["holders"] if not h["approved"]]
-    _LOG.info("entitlement report: %d assignments, %d principals, %d exceptions, pdf=%s",
-              data["assignment_count"], len(data["holders"]), len(unapproved), out)
+    # The attestation qualifier belongs in the summary line, not only in the PDF.
+    # "0 exceptions" read from a run that could not see the directory says the
+    # same words as one that could, and means something entirely different.
+    attested = "attested" if data["groups_readable"] else "NOT ATTESTED (directory unreadable)"
+    _LOG.info("entitlement report: %d assignments, %d principals, %d exceptions, "
+              "%d ungrouped, %s, pdf=%s",
+              data["assignment_count"], len(data["holders"]), len(unapproved),
+              len(data["ungrouped"]), attested, out)
 
     if args.no_email:
         return 0

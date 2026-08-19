@@ -1804,20 +1804,21 @@
     },
     "IdentityCatalog": {
       "type": "array",
-      "description": "Canonical registry of every identity (managed identity, entra user, service principal, atlas db user, hf user, cloudflare api token) referenced anywhere in this manifest. Each identity is declared once here; targets and role assignments reference identities by identity_id.",
+      "description": "Every user of this system. A user is a person or an agent, and each is named here by the name the platform holding it uses. This is the list that answers who can do what, so it is deliberately short: adding an agent is a decision, and the catalog is where that decision is visible.",
       "uniqueItems": true,
       "items": {
         "type": "object",
         "additionalProperties": false,
         "required": [
           "identity_id",
-          "identity_class"
+          "identity_class",
+          "actor_type"
         ],
         "properties": {
           "identity_id": {
             "type": "string",
-            "pattern": "^identity_[a-z0-9_]{1,64}$",
-            "description": "Opaque canonical id for this identity."
+            "pattern": "^[A-Za-z][A-Za-z0-9 ._-]{0,63}$",
+            "description": "The name this thing actually has in the platform that holds it -- the Entra display name, the service principal name, the Atlas database user. Not a canonical id, not a prefixed alias: what is written here is what a reader can look up. A prefix invents a second name for one thing, and then the two drift."
           },
           "identity_class": {
             "enum": [
@@ -1846,6 +1847,36 @@
           "identity_package": {
             "type": "string",
             "description": "package_id inside the referenced target that owns this identity. Required when target_id_ref/identity_target_id names a target whose identities are packages (e.g. target_entra_identities)."
+          },
+          "actor_type": {
+            "enum": [
+              "person",
+              "agent"
+            ],
+            "description": "Whether this user is a person or an agent. A user that holds access and states neither is not a qualified user: the entitlement report cannot say whether a person or a program holds the grant."
+          },
+          "description": {
+            "type": "string",
+            "maxLength": 1024,
+            "description": "What this identity is for, in one sentence."
+          },
+          "object_id": {
+            "type": "string",
+            "description": "The Azure AD object id, where the identity has one. Named object_id here and in PrincipalCatalog because it is the same fact in both; one name, one meaning."
+          },
+          "application": {
+            "type": "string",
+            "pattern": "^[A-Za-z][A-Za-z0-9 ._-]{0,63}$",
+            "description": "The application this principal belongs to, named as it is in Entra. An application is the real software thing; a principal is one capability of it, entitled separately. Absent for a principal that is not part of an application, such as a person."
+          },
+          "entra_object_type": {
+            "enum": [
+              "user",
+              "application",
+              "servicePrincipal",
+              "managedIdentity"
+            ],
+            "description": "The concrete Entra object type, so a reader knows what to look up and where. identity_class is the abstract kind; this is the thing that exists in the directory."
           }
         }
       }

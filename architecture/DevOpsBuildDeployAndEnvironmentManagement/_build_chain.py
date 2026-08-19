@@ -1034,6 +1034,8 @@ def _build_automation_account(repo_root: Path, target: TargetRecord,
                      f"inlining: line {exc.lineno}: {exc.msg}")
         if pid == "change_db_version":
             _emit_change_db_version_target_url_registry(repo_root, pkg_dir)
+        if pid == "entitlement_report":
+            _emit_entitlement_report_identity_register(repo_root, pkg_dir)
 
 
 def _build_azure_automation_runbook(repo_root: Path, target: TargetRecord, build_dir: Path) -> None:
@@ -1076,6 +1078,44 @@ def _build_azure_automation_runbook(repo_root: Path, target: TargetRecord, build
 
     if target.target_id == "target_azure_automation_runbook_change_db_version":
         _emit_change_db_version_target_url_registry(repo_root, build_dir)
+    if target.target_id == "target_azure_automation_runbook_entitlement_report":
+        _emit_entitlement_report_identity_register(repo_root, build_dir)
+
+
+def _emit_entitlement_report_identity_register(repo_root: Path, build_dir: Path) -> None:
+    """Bake entitlement_report_identity_register.json sibling to the runbook.
+
+    The report classifies every principal Azure reports as approved or not.
+    It used to classify against a dict written into its own source, which
+    made the audit grade itself against its own answer key: the literal was
+    written to match reality, so it reported zero exceptions by construction
+    and a user added to the estate never appeared at all.
+
+    The register is now derived here from IdentityCatalog, at build time,
+    because Azure Automation has no git tree and no manifest to read. The
+    approved population therefore changes only by deploying a changed
+    manifest -- which is correct for a controlled register -- while the
+    observed population is enumerated live on every run.
+    """
+    manifest_path = (repo_root / "brain" / "machine_artifacts" / "content"
+                     / "deployment_architecture.json")
+    data = json.loads(manifest_path.read_text(encoding="utf-8"))
+    register = []
+    for identity in data.get("IdentityCatalog", []) or []:
+        register.append({
+            "identity_id": identity.get("identity_id", ""),
+            "actor_type": identity.get("actor_type", ""),
+            "identity_class": identity.get("identity_class", ""),
+            "entra_object_type": identity.get("entra_object_type", ""),
+            "application": identity.get("application", ""),
+            "object_id": identity.get("object_id", ""),
+            "roles": identity.get("roles", []),
+            "description": identity.get("description", ""),
+        })
+    out = build_dir / "entitlement_report_identity_register.json"
+    out.write_text(json.dumps({"identities": register}, indent=2) + chr(10),
+                   encoding="utf-8")
+    _step(f"  baked identity register -> {out.name} ({len(register)} identities)")
 
 
 def _emit_change_db_version_target_url_registry(repo_root: Path, build_dir: Path) -> None:

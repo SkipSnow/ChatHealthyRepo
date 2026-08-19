@@ -47,6 +47,11 @@ _log = ChatHealthyLoggingService()
 _VAULT_BY_ENV = {"dev": "kv-chpipeline-dev"}
 _WEBHOOK_SECRET_NAME = "DATA-MIGRATION-WEBHOOK-URL"
 _AUTHORIZATION_TIMEOUT_SECONDS = 600
+# One collection holds every authorization the estate takes, and the type
+# says which kind this is. A migration approval and a commit approval are
+# the same shape of fact -- who was asked, what they were shown, what they
+# said -- and they belong in one place that can be read as a whole.
+_AUTHORIZATION_TYPE = "data_migration"
 
 
 def _cflags() -> int:
@@ -104,25 +109,19 @@ def main() -> int:
         authorization.verdict, args.collection, authorization.human_click,
         authorization.seconds_waited, args.env)
 
-    if not authorization.approved:
-        _log.error("data_migration NOT authorized collection=%s verdict=%s; "
-                   "nothing was fired",
-                   args.collection, authorization.verdict)
-        return 1
-
-    # The approval is written down before the webhook is fired, and the
-    # payload carries only its id. It used to carry the verdict itself, which
-    # meant the runbook believed whatever the caller asserted -- anyone who
-    # could reach the webhook could type human_click=true and migrate without
-    # a person. Now the caller can only name a record, and writing that record
-    # needs pipelineEditor's certificate.
+    # Every verdict is written to Mongo, not just the one that proceeds. A
+    # refusal that leaves only a log line is a decision with no record: the
+    # question of who was asked and what they said has to be answerable from
+    # the database afterwards, and it has to be answerable the same way
+    # whichever way they answered.
     released_at = datetime.datetime.now(datetime.timezone.utc)
     approval_id = f"migration-approval-{uuid.uuid4().hex}"
     approvals = ChatHealthyMongoUtilities().getConnection(
-        "pipelineEditor", "ChatHealthyDataPipelines"
-    )["PipelinePublicHealthData"]["MigrationApprovals"]
+        "pipelineEditor", "ChatHealthyFrontEnd"
+    )["pipelineAdmin"]["Authorizations"]
     approvals.insert_one({
         "_id": approval_id,
+        "type": _AUTHORIZATION_TYPE,
         "collection": args.collection,
         "env": args.env,
         "verdict": authorization.verdict,
@@ -131,8 +130,20 @@ def main() -> int:
         "seconds_waited": authorization.seconds_waited,
         "released_at": released_at,
     })
-    _log.info("data_migration approval recorded id=%s collection=%s",
-              approval_id, args.collection)
+    _log.info("data_migration decision recorded id=%s collection=%s verdict=%s",
+              approval_id, args.collection, authorization.verdict)
+
+    if not authorization.approved:
+        _log.error("data_migration NOT authorized collection=%s verdict=%s "
+                   "approval_id=%s; nothing was fired",
+                   args.collection, authorization.verdict, approval_id)
+        return 1
+
+    # The payload carries only the record's id. It used to carry the verdict
+    # itself, which meant the runbook believed whatever the caller asserted --
+    # anyone who could reach the webhook could type human_click=true and
+    # migrate without a person. Naming a record instead means forging one
+    # requires pipelineEditor's certificate.
 
     payload = {
         "collection": args.collection,

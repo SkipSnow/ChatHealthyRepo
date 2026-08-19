@@ -1819,6 +1819,10 @@ def _resolve_identity_principal_id(coll: DeploymentCollection, identity: dict) -
     iid = identity.get("identity_id", "<unnamed>")
     cls = identity.get("identity_class", "")
     tgt_id = identity.get("target_id_ref", "")
+    if not tgt_id and identity.get("object_id"):
+        # A principal that states its object id needs no target to be
+        # resolved through: the id is the answer.
+        return identity["object_id"]
     if not tgt_id:
         _raise_identity_absent(iid, "it names no target_id_ref")
     tgt = coll.by_target_id(tgt_id)
