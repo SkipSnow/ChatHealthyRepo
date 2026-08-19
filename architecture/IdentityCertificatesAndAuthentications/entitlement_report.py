@@ -48,6 +48,7 @@ from reportlab.lib import colors  # noqa: E402
 from reportlab.lib.pagesizes import landscape, letter  # noqa: E402
 from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle  # noqa: E402
 from reportlab.lib.units import inch  # noqa: E402
+from reportlab.pdfgen import canvas as canvas_module  # noqa: E402
 from reportlab.platypus import (  # noqa: E402
     SimpleDocTemplate, Paragraph, Spacer, Table, TableStyle, PageBreak, KeepTogether,
 )
@@ -379,7 +380,51 @@ def _principal_names(object_ids: list[str], credential) -> dict[str, dict]:
             resolved[o["id"]] = {
                 "name": o.get("displayName") or o.get("userPrincipalName") or o["id"],
                 "kind": o.get("@odata.type", "").rsplit(".", 1)[-1],
+                "record": "live",
+                "qualities": {},
             }
+
+    # The same lookup continues into the directory's deleted items. An object
+    # id either has a record or it does not; where that record lives is one of
+    # the qualities it comes back with, not a case to be tested for.
+    for kind in ("microsoft.graph.user", "microsoft.graph.servicePrincipal",
+                 "microsoft.graph.group"):
+        page = (f"{GRAPH}/directory/deletedItems/{kind}"
+                f"?$select=id,displayName,userPrincipalName,userType,"
+                f"createdDateTime,deletedDateTime,accountEnabled")
+        while page:
+            d = requests.get(page, headers={"Authorization": f"Bearer {token}"},
+                             timeout=60)
+            if d.status_code != 200:
+                break
+            payload = d.json()
+            for o in payload.get("value", []):
+                if o["id"] in resolved or o["id"] not in set(object_ids):
+                    continue
+                deleted = o.get("deletedDateTime") or ""
+                recoverable = ""
+                if deleted:
+                    try:
+                        when = _dt.datetime.fromisoformat(deleted.replace("Z", "+00:00"))
+                        recoverable = (when + _dt.timedelta(days=30)).date().isoformat()
+                    except ValueError:
+                        recoverable = ""
+                resolved[o["id"]] = {
+                    "name": o.get("displayName") or o.get("userPrincipalName") or o["id"],
+                    "kind": kind.rsplit(".", 1)[-1],
+                    "record": "deleted",
+                    "qualities": {
+                        "sign-in name": o.get("userPrincipalName", ""),
+                        "kind": o.get("userType", ""),
+                        "created": (o.get("createdDateTime") or "")[:10],
+                        "deleted": deleted[:10],
+                        "recoverable until": recoverable,
+                        "account was enabled": ("yes" if o.get("accountEnabled")
+                                                else "no") if o.get("accountEnabled")
+                                               is not None else "",
+                    },
+                }
+            page = payload.get("@odata.nextLink") or ""
     return resolved
 
 
@@ -1163,6 +1208,14 @@ def collect() -> dict:
             "type": known["kind"] if known else p.get("principalType", "Unknown"),
             "approved": approved is not None,
             "resolvable": known is not None,
+            "record": (known or {}).get("record", "none"),
+            "qualities": (known or {}).get("qualities", {}),
+            # A principal that does not resolve in the directory has been
+            # deleted; its assignment outlived it. That is not "outside the
+            # approved register" -- no register can contain a deleted object,
+            # and listing it as one invites someone to add it rather than
+            # remove the grant.
+            "orphaned": known is None and approved is None,
             "grants": [],
         })
         role_name = roles.get(p["roleDefinitionId"].rsplit("/", 1)[-1],
@@ -1354,6 +1407,35 @@ def collect() -> dict:
     }
 
 
+class _NumberedCanvas(canvas_module.Canvas):
+    """Holds every page until the end so each can be stamped "n of m".
+
+    A page numbered without its total cannot tell a reader whether the report
+    in front of them is complete. The total is only known once the last page
+    exists, so pages are kept and stamped on save.
+    """
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self._saved = []
+
+    def showPage(self):
+        self._saved.append(dict(self.__dict__))
+        self._startPage()
+
+    def save(self):
+        total = len(self._saved)
+        for state in self._saved:
+            self.__dict__.update(state)
+            self.setFont("Helvetica", 7.5)
+            self.setFillColor(MUTED)
+            w, h = landscape(letter)
+            self.drawRightString(w - 0.5 * inch, h - 0.52 * inch,
+                                 f"{self._pageNumber}/{total}")
+            super().showPage()
+        super().save()
+
+
 def _page_furniture(canvas, doc):
     canvas.saveState()
     w, h = landscape(letter)
@@ -1363,13 +1445,14 @@ def _page_furniture(canvas, doc):
     canvas.setFont("Helvetica", 7.5)
     canvas.setFillColor(MUTED)
     canvas.drawString(0.5 * inch, h - 0.52 * inch,
-                      "ChatHealthy.ai  |  Access entitlement report  |  Confidential")
+                      "ChatHealthy.ai  |  Access entitlement report  |  Confidential  |  "
+                      + getattr(doc, "ch_stamp", ""))
+    # Page n of m. The total is known only after the first pass, so the document
+    # is built twice and the count carried between them; a page numbered without
+    # its total cannot tell a reader whether the report is complete.
     canvas.line(0.5 * inch, 0.55 * inch, w - 0.5 * inch, 0.55 * inch)
-    # The footer names the scope on every page, because a page read on its own
-    # must say which subscriptions it covers. doc carries it; the render sets it.
     canvas.drawString(0.5 * inch, 0.4 * inch,
                       getattr(doc, "ch_scope_line", "Azure subscriptions: unknown"))
-    canvas.drawRightString(w - 0.5 * inch, 0.4 * inch, f"Page {doc.page}")
     canvas.restoreState()
 
 
@@ -1410,7 +1493,10 @@ def render_pdf(data: dict, out_path: Path) -> Path:
         stamp = local.strftime("%d %B %Y at %H:%M %Z")
     except Exception:                                           # noqa: BLE001
         stamp = data["generated"].strftime("%d %B %Y at %H:%M UTC")
-    unapproved = [h for h in data["holders"] if not h["approved"]]
+    doc.ch_stamp = stamp
+    unapproved = [h for h in data["holders"]
+                  if not h["approved"] and not h.get("orphaned")]
+    orphaned = [h for h in data["holders"] if h.get("orphaned")]
     approved = [h for h in data["holders"] if h["approved"]]
     priv_unapproved = [h for h in unapproved if h["privileged_count"]]
 
@@ -1434,6 +1520,8 @@ def render_pdf(data: dict, out_path: Path) -> Path:
                                         "the role publishes"),
             ("Where a grant can land", "each resource group and the subscription it "
                                        "belongs to"),
+            ("Orphaned assignments", "grants whose principal has been deleted from the "
+                                     "directory"),
             ("Resource Undescribed exceptions", "resources carrying no description tag, "
                                                 "named with the resource group that owns "
                                                 "them"),
@@ -1526,7 +1614,7 @@ def render_pdf(data: dict, out_path: Path) -> Path:
     gl = [[Paragraph("<b>What each right permits</b> &nbsp;&middot;&nbsp; "
                      "continued, one list in alphabetical order", cell), "", ""],
           ["Right", "Administrative", "What it permits"]]
-    for role in sorted(data["role_text"]):
+    for role in sorted(data["role_text"], key=str.lower):
         meta = data["role_reach"].get(role, {})
         parts = []
         if meta.get("reach"):
@@ -1574,7 +1662,7 @@ def render_pdf(data: dict, out_path: Path) -> Path:
         ("TOPPADDING", (0, 0), (-1, -1), 3),
         ("BOTTOMPADDING", (0, 0), (-1, -1), 3),
     ]
-    for i, role in enumerate(sorted(data["role_text"]), start=2):
+    for i, role in enumerate(sorted(data["role_text"], key=str.lower), start=2):
         if role in data["privileged_roles"]:
             gst.append(("TEXTCOLOR", (1, i), (1, i), FLAG))
     gt.setStyle(TableStyle(gst))
@@ -1600,6 +1688,33 @@ def render_pdf(data: dict, out_path: Path) -> Path:
             ("TOPPADDING", (0, 0), (-1, -1), 3),
             ("BOTTOMPADDING", (0, 0), (-1, -1), 3)]))
         story.append(rgt)
+    else:
+        story.append(Paragraph("None.", body))
+
+    story.append(Paragraph(
+        f"Orphaned assignments &nbsp;&middot;&nbsp; grants whose principal no longer "
+        f"exists ({len(orphaned)})", sec))
+    if orphaned:
+        o_rows = [["Principal object id", "Right", "Resource", "Subscription"]]
+        for h in orphaned:
+            for g in h["grants"]:
+                o_rows.append([
+                    Paragraph(h["object_id"], cell),
+                    Paragraph(g["role"], cell),
+                    Paragraph(_reaches(g["raw_scope"], g["subscription"],
+                                       data["subscription_contents"]), cell),
+                    Paragraph(g["subscription"], cell)])
+        ot = Table(o_rows, colWidths=[2.6 * inch, 1.9 * inch, 3.0 * inch, 1.9 * inch],
+                   hAlign="LEFT", repeatRows=1)
+        ot.setStyle(TableStyle([
+            ("BACKGROUND", (0, 0), (-1, 0), BAND),
+            ("FONTNAME", (0, 0), (-1, 0), "Helvetica-Bold"),
+            ("FONTSIZE", (0, 0), (-1, -1), 8),
+            ("LINEBELOW", (0, 0), (-1, -1), 0.25, RULE),
+            ("VALIGN", (0, 0), (-1, -1), "TOP"),
+            ("TOPPADDING", (0, 0), (-1, -1), 3),
+            ("BOTTOMPADDING", (0, 0), (-1, -1), 3)]))
+        story.append(ot)
     else:
         story.append(Paragraph("None.", body))
 
@@ -1727,10 +1842,19 @@ def render_pdf(data: dict, out_path: Path) -> Path:
         if holder["purpose"]:
             out.append(Paragraph(
                 f"<i>Description, from the identity catalog:</i> {holder['purpose']}", note))
-        if not holder["resolvable"]:
+        if holder["record"] == "deleted":
+            q = ", ".join(f"{k} {v}" for k, v in holder["qualities"].items() if v)
             out.append(Paragraph(
-                "Not present in the approved register, and its directory record could not be "
-                "read to establish what it is.", note))
+                f"<b>The grant below is held by a deleted account.</b> {q}.", note))
+        elif holder["record"] == "none":
+            out.append(Paragraph(
+                "<b>The directory holds no record of this holder</b> &mdash; not among "
+                "its objects and not among its deleted ones. Nothing can be restored, "
+                "because there is nothing recorded to restore.", note)
+                if data["directory_enumerated"] else Paragraph(
+                "The directory could not be read on this run, so this holder was "
+                "neither confirmed nor ruled out.", note))
+
         out.append(Spacer(1, 4))
         out.append(_grant_table(holder))
         out.append(Spacer(1, 10))
@@ -1869,7 +1993,8 @@ def render_pdf(data: dict, out_path: Path) -> Path:
     for h in approved:
         story.append(KeepTogether(_block(h)))
 
-    doc.build(story, onFirstPage=_page_furniture, onLaterPages=_page_furniture)
+    doc.build(story, onFirstPage=_page_furniture, onLaterPages=_page_furniture,
+              canvasmaker=_NumberedCanvas)
     return out_path
 
 
@@ -1895,7 +2020,9 @@ def send(pdf_path: Path, data: dict) -> dict:
             message=f"the report cannot be sent: {', '.join(missing)} absent",
             context={"missing": missing})
 
-    unapproved = [h for h in data["holders"] if not h["approved"]]
+    unapproved = [h for h in data["holders"]
+                  if not h["approved"] and not h.get("orphaned")]
+    orphaned = [h for h in data["holders"] if h.get("orphaned")]
     stamp = data["generated"].strftime("%Y-%m-%d")
     verdict = ("no exceptions" if not unapproved
                else f"{len(unapproved)} principal(s) outside the approved register")
@@ -1946,7 +2073,9 @@ def main(argv: list[str] | None = None) -> int:
         _ch_os.environ.get("TEMP", ".")) / f"ChatHealthy-entitlements-{stamp}.pdf"
     render_pdf(data, out)
 
-    unapproved = [h for h in data["holders"] if not h["approved"]]
+    unapproved = [h for h in data["holders"]
+                  if not h["approved"] and not h.get("orphaned")]
+    orphaned = [h for h in data["holders"] if h.get("orphaned")]
     # The attestation qualifier belongs in the summary line, not only in the PDF.
     # "0 exceptions" read from a run that could not see the directory says the
     # same words as one that could, and means something entirely different.
