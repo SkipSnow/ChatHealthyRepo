@@ -412,7 +412,7 @@
           "source_location": "Website/schemas/ChatHealthyDeploymentArchitectureSchema.json",
           "handler_type": "json",
           "disposition": "referenced",
-          "content_hash": "d71e16d705a6896556ff694517f31144df19458df4c59f6e213753b75a94ae36",
+          "content_hash": "613fed837d7514fe557153381384b8553ff48a5def8a9a5bc47bafade7185a23",
           "package": "json_schemas"
         },
         {
@@ -857,7 +857,7 @@
           "source_location": "ChatHealthyLib/src/chathealthy_lib/mongo_utilities.py",
           "handler_type": "python_source",
           "disposition": "referenced",
-          "content_hash": "2a614a92181687126050655eff7848a9538a976579c31d60191ae0a4f3c39d21",
+          "content_hash": "8ad15441dc7e8294ecd66a013d5c0f8e0964d19943ce3ae76770d6ee62697b34",
           "package": "service_runtime"
         },
         {
@@ -2302,7 +2302,7 @@
           "source_location": "ChatHealthyLib/src/chathealthy_lib/mongo_utilities.py",
           "handler_type": "python_source",
           "disposition": "referenced",
-          "content_hash": "2a614a92181687126050655eff7848a9538a976579c31d60191ae0a4f3c39d21",
+          "content_hash": "8ad15441dc7e8294ecd66a013d5c0f8e0964d19943ce3ae76770d6ee62697b34",
           "package": "service_runtime"
         },
         {
@@ -2821,7 +2821,7 @@
           "source_location": "ChatHealthyLib/src/chathealthy_lib/mongo_utilities.py",
           "handler_type": "python_source",
           "disposition": "referenced",
-          "content_hash": "2a614a92181687126050655eff7848a9538a976579c31d60191ae0a4f3c39d21",
+          "content_hash": "8ad15441dc7e8294ecd66a013d5c0f8e0964d19943ce3ae76770d6ee62697b34",
           "package": "service_runtime"
         },
         {
@@ -4180,7 +4180,7 @@
                   "source_location": "pipeline/deploy/provider_pipeline_runbook.py",
                   "handler_type": "python_source",
                   "disposition": "referenced",
-                  "content_hash": "873442a538048c2248e5e646b8fa05092f7c06482f6473dfebaeed3e5a4ef12c",
+                  "content_hash": "eac05168c5512cd1541bca2f16b40bf461fa4f9efed59ed4385808e6b8c3529f",
                   "package": "provider_pipeline"
                 }
               ],
@@ -4321,27 +4321,27 @@
                   "feature_id": "EPIC-002-F-003",
                   "handler_type": "python_source",
                   "disposition": "referenced",
-                  "content_hash": "c5661fad0b807a5c75457a7ce3494cd9bf3c4b93087e7d9f908ff37b2f875132",
+                  "content_hash": "9d9002fc96976ea49dea2494cef162a0a050fa31f352ed6365ed751a69dd4201",
                   "package": "entitlement_report"
                 }
               ],
               "secrets": {
-                "PIPELINEEDITOR_AZURE_TENANT_ID": "local_env",
-                "PIPELINEEDITOR_AZURE_CLIENT_ID": "local_env",
-                "PIPELINEEDITOR_AZURE_CLIENT_SECRET": "local_env",
                 "SPARKMAIL_API_KEY": "local_env",
                 "NOTIFICATION_FROM_EMAIL": "local_env",
                 "ENTITLEMENT_REPORT_TO_EMAIL": "local_env",
-                "CH_LOG_DB": "local_env"
+                "CH_LOG_DB": "local_env",
+                "DEVOPSUSER_AZURE_TENANT_ID": "local_env",
+                "DEVOPSUSER_AZURE_CLIENT_ID": "local_env",
+                "DEVOPSUSER_AZURE_CLIENT_SECRET": "local_env"
               },
               "secret_descriptions": {
                 "ENTITLEMENT_REPORT_TO_EMAIL": "Who the daily entitlement report is sent to",
                 "NOTIFICATION_FROM_EMAIL": "Address notification email is sent from",
-                "PIPELINEEDITOR_AZURE_CLIENT_ID": "Identifies pipelineEditor to Azure",
-                "PIPELINEEDITOR_AZURE_CLIENT_SECRET": "Proves pipelineEditor to Azure",
-                "PIPELINEEDITOR_AZURE_TENANT_ID": "The directory pipelineEditor belongs to",
                 "SPARKMAIL_API_KEY": "SparkPost key for sending notification email",
-                "CH_LOG_DB": "Database the structured log records are written to"
+                "CH_LOG_DB": "Database the structured log records are written to",
+                "DEVOPSUSER_AZURE_TENANT_ID": "Tenant the report enumerates. Not a secret.",
+                "DEVOPSUSER_AZURE_CLIENT_ID": "Identity the report runs as. Not a secret.",
+                "DEVOPSUSER_AZURE_CLIENT_SECRET": "Credential the report authenticates with."
               },
               "config": {
                 "runbook_name": "EntitlementReport",
@@ -4463,7 +4463,7 @@
                   "feature_id": "EPIC-010-F-108",
                   "handler_type": "python_source",
                   "disposition": "referenced",
-                  "content_hash": "5f8607bdf7a6b1e18ece7a15502a49352d7bf7e7674077d49996c2423f667c59",
+                  "content_hash": "075fb345933b5e47631da0dc06f9fed4796d343ef37e7c4aa74cbc53f0594a4c",
                   "package": "data_migration"
                 }
               ],
@@ -4529,7 +4529,10 @@
         "PIPELINE_SECRET_NAMES": "local_env",
         "CH_LOG_DB": "local_env",
         "GEMINI_API_KEY": "local_env",
-        "PIPELINETOFRONTENDPUBLICDATAMIGRATOR_AZURE_CLIENT_ID": "local_env"
+        "PIPELINETOFRONTENDPUBLICDATAMIGRATOR_AZURE_CLIENT_ID": "local_env",
+        "DEVOPSUSER_AZURE_TENANT_ID": "local_env",
+        "DEVOPSUSER_AZURE_CLIENT_ID": "local_env",
+        "DEVOPSUSER_AZURE_CLIENT_SECRET": "local_env"
       },
       "secret_descriptions": {
         "ENTITLEMENT_REPORT_TO_EMAIL": "Who the daily entitlement report is sent to",
@@ -4551,7 +4554,10 @@
         "PIPELINE_SECRET_NAMES": "Which vault secrets the pipeline run host is permitted to read",
         "CH_LOG_DB": "Database the structured log records are written to",
         "GEMINI_API_KEY": "Google Gemini key used to classify NPPES other-identifier phrases per state",
-        "PIPELINETOFRONTENDPUBLICDATAMIGRATOR_AZURE_CLIENT_ID": "clientId of the migrator managed identity. Not a secret."
+        "PIPELINETOFRONTENDPUBLICDATAMIGRATOR_AZURE_CLIENT_ID": "clientId of the migrator managed identity. Not a secret.",
+        "DEVOPSUSER_AZURE_TENANT_ID": "Tenant the report enumerates. Not a secret.",
+        "DEVOPSUSER_AZURE_CLIENT_ID": "Identity the report runs as. Not a secret.",
+        "DEVOPSUSER_AZURE_CLIENT_SECRET": "Credential the report authenticates with."
       },
       "entitlements": [
         {
@@ -5263,10 +5269,11 @@
         "Website Contributor",
         "Storage Blob Data Contributor",
         "Monitoring Reader",
-        "AcrPush"
+        "AcrPush",
+        "Directory.Read.All"
       ],
       "target_id_ref": "target_identity_devops_user",
-      "description": "Builds and deploys. Holds full control of the pipeline key vault, which exceeds what building requires."
+      "description": "Builds and deploys, across every subscription the firm holds. Runs the entitlement report, which is why it reads the directory. Holds full control of the pipeline key vault, which exceeds what building requires."
     },
     {
       "identity_id": "frontendUser",
@@ -5297,7 +5304,7 @@
         "Storage Blob Data Contributor"
       ],
       "target_id_ref": "target_identity_pipeline_editor",
-      "description": "Runs the pipeline. Reads twenty-three named secrets one grant at a time, because the estate has no group to grant once."
+      "description": "Runs the pipeline. Reads twenty-three named secrets one grant at a time, because the estate has no group to grant once. Confined to the pipeline subscription and holds no directory permission."
     },
     {
       "identity_id": "PipelineToFrontEndPublicDataMigrator",
