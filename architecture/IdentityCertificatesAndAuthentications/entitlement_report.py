@@ -1401,7 +1401,15 @@ def render_pdf(data: dict, out_path: Path) -> Path:
     doc.ch_scope_line = "Azure subscriptions: " + ", ".join(
         s["name"] for s in data["subscriptions"])
 
-    stamp = data["generated"].strftime("%d %B %Y at %H:%M UTC")
+    # Stated in the operator's own time. A report read every morning in
+    # California should not make its reader convert from UTC to know whether
+    # it is this morning's.
+    try:
+        from zoneinfo import ZoneInfo
+        local = data["generated"].astimezone(ZoneInfo("America/Los_Angeles"))
+        stamp = local.strftime("%d %B %Y at %H:%M %Z")
+    except Exception:                                           # noqa: BLE001
+        stamp = data["generated"].strftime("%d %B %Y at %H:%M UTC")
     unapproved = [h for h in data["holders"] if not h["approved"]]
     approved = [h for h in data["holders"] if h["approved"]]
     priv_unapproved = [h for h in unapproved if h["privileged_count"]]
