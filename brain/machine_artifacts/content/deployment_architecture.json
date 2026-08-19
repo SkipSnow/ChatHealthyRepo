@@ -4528,7 +4528,8 @@
         "AUTOMATION_SUBSCRIPTION_ID": "local_env",
         "PIPELINE_SECRET_NAMES": "local_env",
         "CH_LOG_DB": "local_env",
-        "GEMINI_API_KEY": "local_env"
+        "GEMINI_API_KEY": "local_env",
+        "PIPELINETOFRONTENDPUBLICDATAMIGRATOR_AZURE_CLIENT_ID": "local_env"
       },
       "secret_descriptions": {
         "ENTITLEMENT_REPORT_TO_EMAIL": "Who the daily entitlement report is sent to",
@@ -4549,7 +4550,8 @@
         "AUTOMATION_SUBSCRIPTION_ID": "Subscription the runbooks address",
         "PIPELINE_SECRET_NAMES": "Which vault secrets the pipeline run host is permitted to read",
         "CH_LOG_DB": "Database the structured log records are written to",
-        "GEMINI_API_KEY": "Google Gemini key used to classify NPPES other-identifier phrases per state"
+        "GEMINI_API_KEY": "Google Gemini key used to classify NPPES other-identifier phrases per state",
+        "PIPELINETOFRONTENDPUBLICDATAMIGRATOR_AZURE_CLIENT_ID": "clientId of the migrator managed identity. Not a secret."
       },
       "entitlements": [
         {
