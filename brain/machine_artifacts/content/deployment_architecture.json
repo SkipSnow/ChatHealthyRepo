@@ -4468,10 +4468,12 @@
                 }
               ],
               "secrets": {
-                "CH_LOG_DB": "local_env"
+                "CH_LOG_DB": "local_env",
+                "PIPELINETOFRONTENDPUBLICDATAMIGRATOR_AZURE_CLIENT_ID": "local_env"
               },
               "secret_descriptions": {
-                "CH_LOG_DB": "Database the structured log records are written to"
+                "CH_LOG_DB": "Database the structured log records are written to",
+                "PIPELINETOFRONTENDPUBLICDATAMIGRATOR_AZURE_CLIENT_ID": "clientId of the migrator managed identity. Not a secret."
               },
               "config": {
                 "runbook_name": "DataMigration",
@@ -5215,32 +5217,99 @@
   },
   "IdentityCatalog": [
     {
-      "identity_id": "identity_pipeline_editor",
-      "identity_class": "service_principal",
-      "target_id_ref": "target_identity_pipeline_editor",
+      "identity_id": "Skip Snow",
+      "identity_class": "user",
+      "entra_object_type": "user",
+      "actor_type": "person",
+      "object_id": "2e48c87f-6fad-41bf-9c69-3c1e752087a9",
       "roles": [
+        "Owner",
+        "User Access Administrator",
+        "Global Administrator"
+      ],
+      "description": "The operator. The only person, the only Global Administrator, and the only identity in the tenant that can create another identity."
+    },
+    {
+      "identity_id": "claudeCodeAgent",
+      "identity_class": "service_principal",
+      "entra_object_type": "servicePrincipal",
+      "application": "claudeCodeAgent",
+      "actor_type": "agent",
+      "object_id": "dca8be2d-d37a-4e74-8580-0923cf76cdf9",
+      "roles": [
+        "chatHealthyAgent",
+        "Key Vault Administrator",
+        "Reader",
+        "Storage Blob Data Contributor",
+        "Application.ReadWrite.OwnedBy",
+        "Directory.Read.All"
+      ],
+      "description": "The engineering agent that writes and deploys code, and administers the PipeLineServices subscription. Registers applications it then owns; cannot alter the directory beyond those."
+    },
+    {
+      "identity_id": "DevOpsUser",
+      "identity_class": "service_principal",
+      "entra_object_type": "servicePrincipal",
+      "application": "DevOpsUser",
+      "actor_type": "agent",
+      "object_id": "8e6f61db-9d92-4f7a-a3db-8731a7518791",
+      "roles": [
+        "Key Vault Administrator",
+        "Key Vault Secrets Officer",
+        "Key Vault Secrets User",
+        "Automation Contributor",
+        "Container Apps Contributor",
+        "Website Contributor",
+        "Storage Blob Data Contributor",
+        "Monitoring Reader",
+        "AcrPush"
+      ],
+      "target_id_ref": "target_identity_devops_user",
+      "description": "Builds and deploys. Holds full control of the pipeline key vault, which exceeds what building requires."
+    },
+    {
+      "identity_id": "frontendUser",
+      "identity_class": "service_principal",
+      "entra_object_type": "servicePrincipal",
+      "application": "frontendUser",
+      "actor_type": "agent",
+      "object_id": "a46dfa74-fa21-4175-b5e8-ebc9652dd7c8",
+      "roles": [
+        "Key Vault Secrets User"
+      ],
+      "description": "The front-end runtime. Reads its own certificate and nothing else."
+    },
+    {
+      "identity_id": "pipelineEditor",
+      "identity_class": "service_principal",
+      "entra_object_type": "servicePrincipal",
+      "application": "pipelineEditor",
+      "actor_type": "agent",
+      "object_id": "1dbcec4a-97ce-4ddb-ab8d-f4a55d5c37a1",
+      "roles": [
+        "Key Vault Secrets User",
+        "Automation Operator",
+        "AcrPull",
         "Virtual Machine Contributor",
         "Network Contributor",
         "Reader",
-        "Key Vault Secrets User",
-        "Automation Operator"
-      ]
+        "Storage Blob Data Contributor"
+      ],
+      "target_id_ref": "target_identity_pipeline_editor",
+      "description": "Runs the pipeline. Reads twenty-three named secrets one grant at a time, because the estate has no group to grant once."
     },
     {
-      "identity_id": "identity_devops_user",
-      "identity_class": "service_principal",
-      "target_id_ref": "target_identity_devops_user",
+      "identity_id": "PipelineToFrontEndPublicDataMigrator",
+      "identity_class": "managed_identity",
+      "entra_object_type": "managedIdentity",
+      "application": "dataMigrator",
+      "actor_type": "agent",
+      "object_id": "f37fe579-94fc-40ae-991d-8df76156d954",
       "roles": [
         "Key Vault Secrets User",
-        "Key Vault Secrets Officer"
-      ]
-    },
-    {
-      "identity_id": "identity_data_migrator",
-      "identity_class": "user",
-      "roles": [
         "role_data_migrator"
-      ]
+      ],
+      "description": "The one capability of the dataMigrator application: copies published collections from the pipeline cluster to the front-end cluster. Attached to ChatHealthyJobManager, carries no client secret, and reads one vault secret. Its name is identical in Entra, in Key Vault, in its certificate subject and in the environment variable the library derives."
     }
   ],
   "CustomRoleCatalog": [
