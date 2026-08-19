@@ -1035,7 +1035,8 @@ def _build_automation_account(repo_root: Path, target: TargetRecord,
         if pid == "change_db_version":
             _emit_change_db_version_target_url_registry(repo_root, pkg_dir)
         if pid == "entitlement_report":
-            _emit_entitlement_report_identity_register(repo_root, pkg_dir)
+            _emit_entitlement_report_identity_register(repo_root, pkg_dir,
+                                                       env, build_sha, build_n)
 
 
 def _build_azure_automation_runbook(repo_root: Path, target: TargetRecord, build_dir: Path) -> None:
@@ -1079,10 +1080,13 @@ def _build_azure_automation_runbook(repo_root: Path, target: TargetRecord, build
     if target.target_id == "target_azure_automation_runbook_change_db_version":
         _emit_change_db_version_target_url_registry(repo_root, build_dir)
     if target.target_id == "target_azure_automation_runbook_entitlement_report":
-        _emit_entitlement_report_identity_register(repo_root, build_dir)
+        _emit_entitlement_report_identity_register(repo_root, build_dir,
+                                                   _CURRENT_ENV, _CURRENT_SHA, _CURRENT_BUILD)
 
 
-def _emit_entitlement_report_identity_register(repo_root: Path, build_dir: Path) -> None:
+def _emit_entitlement_report_identity_register(repo_root: Path, build_dir: Path,
+                                               env: str = "", build_sha: str = "",
+                                               build_n: int = 0) -> None:
     """Bake entitlement_report_identity_register.json sibling to the runbook.
 
     The report classifies every principal Azure reports as approved or not.
@@ -1112,7 +1116,11 @@ def _emit_entitlement_report_identity_register(repo_root: Path, build_dir: Path)
             "roles": identity.get("roles", []),
             "description": identity.get("description", ""),
         })
-    payload = {"identities": register}
+    # The register is a snapshot of one manifest at one commit. A report that
+    # does not say which cannot be checked against anything: the reader has no
+    # way to know whether it read dev or prod, or how old the manifest was.
+    payload = {"identities": register,
+               "source": {"environment": env, "commit": build_sha, "build": build_n}}
     out = build_dir / "entitlement_report_identity_register.json"
     out.write_text(json.dumps(payload, indent=2) + chr(10), encoding="utf-8")
 
@@ -1420,6 +1428,11 @@ def _materialize_managed_files(target: TargetRecord, build_dir: Path,
         _step(f"  materialised managed {f.source_location}")
 
 
+_CURRENT_ENV = ""
+_CURRENT_SHA = ""
+_CURRENT_BUILD = 0
+
+
 def _build_one(repo_root: Path, target: TargetRecord, build_n: int, build_sha: str, build_root_rel: Path | None = None, env: str = "local", packages_wanted: set[str] | None = None) -> Path:
     target_dir = _target_build_dir(repo_root, build_n, target.target_id, build_root_rel)
     packages = _prepare_build_tree(target, target_dir, packages_wanted)
@@ -1494,6 +1507,8 @@ def _build_one(repo_root: Path, target: TargetRecord, build_n: int, build_sha: s
                                target_dir if routes else None, selected)
     # The manifest describes the TARGET, so it sits at the target root
     # above the package directories, not inside one of them.
+    global _CURRENT_ENV, _CURRENT_SHA, _CURRENT_BUILD
+    _CURRENT_ENV, _CURRENT_SHA, _CURRENT_BUILD = env, build_sha, build_n
     _write_manifest_snapshot(target_dir, target, build_n, build_sha,
                             packages)
     if target.target_kind == "azure_container_app":

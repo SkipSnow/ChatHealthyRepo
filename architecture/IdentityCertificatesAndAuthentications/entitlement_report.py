@@ -84,7 +84,7 @@ BAND = colors.HexColor("#f2f2f2")
 FLAG = colors.HexColor("#a3231d")
 OK = colors.HexColor("#1f6b34")
 
-def _approved_register() -> tuple[dict[str, tuple], str]:
+def _approved_register(source: str = "") -> tuple[dict[str, tuple], str]:
     """The approved population, read from the register the build baked.
 
     This used to be a dict written into this file. That made the audit grade
@@ -122,7 +122,35 @@ def _approved_register() -> tuple[dict[str, tuple], str]:
                 e.get("application", ""),
                 tuple(e.get("roles", []) or ()),
             )
-        return register, "register injected at build time"
+        src = injected.get("source") or {}
+        where = (f"{src.get('environment','?')} build {src.get('build','?')} "
+                 f"commit {src.get('commit','?')}")
+        return register, where
+
+    # Named explicitly, the manifest is fetched from that environment rather
+    # than read from whatever happens to be on disk. A report run against dev
+    # while reading a workstation`s edits states a register nobody deployed.
+    if source:
+        url = (f"https://{source}.chathealthy.ai/schemas/deployment_architecture.json"
+               if not source.startswith("http") else source)
+        r = requests.get(url, timeout=60)
+        if r.status_code != 200:
+            from chathealthy_lib.exceptions import ChatHealthyException
+            raise ChatHealthyException(
+                mode="config_error", component="entitlement_report",
+                message=f"cannot fetch the identity register from {url}: "
+                        f"HTTP {r.status_code}")
+        entries = r.json().get("IdentityCatalog", [])
+        register = {}
+        for e in entries:
+            oid = (e.get("object_id") or "").strip()
+            if oid:
+                register[oid] = (
+                    e.get("identity_id", ""), e.get("description", ""),
+                    e.get("actor_type", ""),
+                    e.get("entra_object_type", "") or e.get("identity_class", ""),
+                    e.get("application", ""), tuple(e.get("roles", []) or ()))
+        return register, url
 
     here = Path(__file__).resolve().parent
     candidates = [here / "entitlement_report_identity_register.json"]
@@ -147,7 +175,7 @@ def _approved_register() -> tuple[dict[str, tuple], str]:
                 e.get("application", ""),
                 tuple(e.get("roles", []) or ()),
             )
-        return register, path.name
+        return register, f"{path.name}, working tree"
     from chathealthy_lib.exceptions import ChatHealthyException
     raise ChatHealthyException(
         mode="config_error",
@@ -160,7 +188,13 @@ def _approved_register() -> tuple[dict[str, tuple], str]:
 
 # The read is separated from the logging of it: a function that raises does
 # not also log, because the catcher logs and not the thrower.
-APPROVED, _REGISTER_SOURCE = _approved_register()
+_REGISTER_ARG = ""
+for _i, _a in enumerate(sys.argv):
+    if _a == "--register-from" and _i + 1 < len(sys.argv):
+        _REGISTER_ARG = sys.argv[_i + 1]
+    elif _a.startswith("--register-from="):
+        _REGISTER_ARG = _a.split("=", 1)[1]
+APPROVED, _REGISTER_SOURCE = _approved_register(_REGISTER_ARG)
 _LOG.info("entitlement_report approved register read from %s (%d identities)",
           _REGISTER_SOURCE, len(APPROVED))
 
@@ -1453,7 +1487,8 @@ def _page_furniture(canvas, doc):
     canvas.setFillColor(MUTED)
     canvas.drawString(0.5 * inch, h - 0.52 * inch,
                       "ChatHealthy.ai  |  Access entitlement report  |  Confidential  |  "
-                      + getattr(doc, "ch_stamp", ""))
+                      + getattr(doc, "ch_stamp", "")
+                      + "  |  register: " + getattr(doc, "ch_register", ""))
     # Page n of m. The total is known only after the first pass, so the document
     # is built twice and the count carried between them; a page numbered without
     # its total cannot tell a reader whether the report is complete.
@@ -1503,6 +1538,7 @@ def render_pdf(data: dict, out_path: Path) -> Path:
     except Exception:                                           # noqa: BLE001
         stamp = data["generated"].strftime("%d %B %Y at %H:%M UTC")
     doc.ch_stamp = stamp
+    doc.ch_register = _REGISTER_SOURCE
     unapproved = [h for h in data["holders"]
                   if not h["approved"] and not h.get("orphaned")]
     orphaned = [h for h in data["holders"] if h.get("orphaned")]
@@ -2258,6 +2294,11 @@ def main(argv: list[str] | None = None) -> int:
     ap.add_argument("--no-email", action="store_true",
                     help="render the PDF and skip the send")
     ap.add_argument("--out", default="", help="where to write the PDF")
+    ap.add_argument("--register-from", default="",
+                    help="environment whose deployment_architecture.json supplies the "
+                         "approved register (dev|qa|prod), or a full URL. Omitted, the "
+                         "register is the one baked into this runbook, or the repository "
+                         "copy when running from a working tree.")
     args = ap.parse_args(argv)
 
     data = collect()
