@@ -1125,11 +1125,14 @@ def _emit_entitlement_report_identity_register(repo_root: Path, build_dir: Path)
     # is derived here from IdentityCatalog on every build.
     runbook = build_dir / "runbook.py"
     if runbook.is_file():
-        marker = "_BAKED_IDENTITY_REGISTER"
+        # Guard on the assignment at the very top, not on the name appearing
+        # anywhere: the report reads the global by name, so a substring check
+        # matched that reference and silently skipped the injection.
+        marker = "_BAKED_IDENTITY_REGISTER = "
         text = runbook.read_text(encoding="utf-8")
-        if marker not in text:
+        if not text.startswith(marker):
             runbook.write_text(
-                f"{marker} = {json.dumps(payload)}{chr(10)}{chr(10)}" + text,
+                f"{marker}{json.dumps(payload)}{chr(10)}{chr(10)}" + text,
                 encoding="utf-8")
             _step(f"  injected identity register into {runbook.name} "
                   f"({len(register)} identities)")
