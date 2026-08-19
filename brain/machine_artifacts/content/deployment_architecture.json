@@ -5240,7 +5240,6 @@
         "chatHealthyAgent",
         "Key Vault Administrator",
         "Reader",
-        "Storage Blob Data Contributor",
         "Application.ReadWrite.OwnedBy",
         "Directory.Read.All"
       ],
