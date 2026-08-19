@@ -138,10 +138,19 @@ def _latest_admin_build() -> int | None:
     return latest.get("build")
 
 
-def _staleness_gate(repo_root: Path, env: str, target_ids: list[str]) -> None:
-    """Three-check staleness gate per plan v3 §C.4. Fails fast on any
-    target's manifest mismatch. For --env local, skip checks (a) and (c)
-    per §INV-1 (working-tree source)."""
+def _staleness_gate(repo_root: Path, env: str, target_ids: list[str],
+                    packages: set[str] | None = None) -> None:
+    """Three-check staleness gate per plan v3 SS C.4. Fails fast on any
+    manifest mismatch in a package being deployed. For --env local, skip
+    checks (a) and (c) per INV-1 (working-tree source).
+
+    The gate used to read pkgs[0] -- whichever package the manifest happened
+    to list first -- and judge the whole target by it. That is wrong in both
+    directions: a current build of the selected package was refused because an
+    unrelated package was stale, and a stale selected package would have
+    shipped whenever the first one happened to be current. Every package being
+    deployed is checked now, and only those.
+    """
     head_sha = _current_head_sha(repo_root) if env != "local" else None
     latest_build = _latest_admin_build() if env != "local" else None
 
@@ -150,34 +159,42 @@ def _staleness_gate(repo_root: Path, env: str, target_ids: list[str]) -> None:
         pkgs = _target_packages(repo_root, target_id)
         if not pkgs:
             continue  # provisioned target: no bytes, nothing to stale-check
-        data = package_build_facts(repo_root, target_id, pkgs[0])
+        if packages:
+            pkgs = [p for p in pkgs if p in packages]
+            if not pkgs:
+                continue  # nothing from this target is being deployed
 
-        manifest_env = data.get("env")
-        if manifest_env != env:
-            sys.exit(
-                f"ERROR: build was for env {manifest_env!r}, deploy "
-                f"requested {env!r} (target={target_id}); rebuild for {env}"
-            )
+        for pkg in pkgs:
+            data = package_build_facts(repo_root, target_id, pkg)
 
-        if env == "local":
-            continue
-
-        manifest_sha = data.get("git_head_sha")
-        if manifest_sha and manifest_sha != head_sha:
-            sys.exit(
-                f"ERROR: build at {manifest_sha} does not match current "
-                f"checkout {head_sha} (target={target_id}); rebuild with "
-                f"build_chathealthy.py --env {env}"
-            )
-
-        if latest_build is not None:
-            manifest_build = data.get("build")
-            if manifest_build is not None and int(manifest_build) != int(latest_build):
+            manifest_env = data.get("env")
+            if manifest_env != env:
                 sys.exit(
-                    f"ERROR: build_number {manifest_build} is older than "
-                    f"frontEndAdmin.BuildVersions latest {latest_build} for env {env} "
-                    f"(target={target_id}); rebuild"
+                    f"ERROR: build was for env {manifest_env!r}, deploy "
+                    f"requested {env!r} (target={target_id}, package={pkg}); "
+                    f"rebuild for {env}"
                 )
+
+            if env == "local":
+                continue
+
+            manifest_sha = data.get("git_head_sha")
+            if manifest_sha and manifest_sha != head_sha:
+                sys.exit(
+                    f"ERROR: build at {manifest_sha} does not match current "
+                    f"checkout {head_sha} (target={target_id}, package={pkg}); "
+                    f"rebuild with build_chathealthy.py --env {env}"
+                )
+
+            if latest_build is not None:
+                manifest_build = data.get("build")
+                if (manifest_build is not None
+                        and int(manifest_build) != int(latest_build)):
+                    sys.exit(
+                        f"ERROR: build_number {manifest_build} is older than "
+                        f"frontEndAdmin.BuildVersions latest {latest_build} for "
+                        f"env {env} (target={target_id}, package={pkg}); rebuild"
+                    )
 
 
 def _collect_target_ids_for_env(repo_root: Path, env: str, target_arg: str) -> list[str]:
@@ -444,7 +461,7 @@ def main(argv: list[str] | None = None) -> int:
                 f"[local_deploy] --package filter: {len(target_ids)} targets "
                 f"remain (packages selected: {sorted(pkg_selection)})"
             )
-        _staleness_gate(repo_root, args.env, target_ids)
+        _staleness_gate(repo_root, args.env, target_ids, pkg_selection)
         # F-003 §5.1 / F-012 §7.1 cert placement runs inside run_cloud_deploy
         # after CA runbooks and before ACA Jobs (dependency order). Do not
         # call it here — CaEndpointRunbook must already be published.

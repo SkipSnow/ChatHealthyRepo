@@ -352,11 +352,6 @@ def main(argv: list[str] | None = None) -> int:
 
     canonical_repo = _find_repo_root(Path(__file__))
 
-    # Schema validation is the first thing that happens. It used to run
-    # after _refresh_content_hashes had already written to the manifest,
-    # so the document being validated was one the build had modified.
-    RecordLoader.validate_architecture(canonical_repo)
-
     # The build output root persists; each build empties only the package
     # directories it was asked to produce (_prepare_build_tree). Purging
     # the whole tree here made every build a full build in effect: a
@@ -364,12 +359,6 @@ def main(argv: list[str] | None = None) -> int:
     # deploy of one of those would have shipped nothing.
     canonical_build_dir = canonical_repo / "build"
     canonical_build_dir.mkdir(parents=True, exist_ok=True)
-    _n_targets, _n_packages = materialize_build_structure(
-        canonical_repo / "brain" / "machine_artifacts" / "content"
-        / "deployment_architecture.json",
-        canonical_build_dir,
-    )
-    _step(f"build structure: {_n_targets} target(s), {_n_packages} package(s)")
 
     # Materialise .env into <repo>/build/.env: working tree for --env
     # local, KV for --env dev|qa|prod. Downstream build code reads env
@@ -386,6 +375,26 @@ def main(argv: list[str] | None = None) -> int:
     import hf_helpers as _rd
     _rd.set_build_source(repo_root)
     _step(f"repo_root={repo_root} env={args.env} target={args.target}")
+
+    try:
+        # Both of these read the manifest, and both used to read the
+        # workstation's copy before repo_root existed. That contradicted the
+        # contract stated two lines above and had two effects: an uncommitted
+        # local manifest could fail the schema gate and block a build of
+        # committed code, and the build tree was shaped by one manifest while
+        # its packages were filled from another, with nothing reporting the
+        # disagreement. For --env local repo_root IS the working tree, so
+        # local builds are unchanged.
+        RecordLoader.validate_architecture(repo_root)
+        _n_targets, _n_packages = materialize_build_structure(
+            repo_root / "brain" / "machine_artifacts" / "content"
+            / "deployment_architecture.json",
+            canonical_build_dir,
+        )
+        _step(f"build structure: {_n_targets} target(s), {_n_packages} package(s)")
+    except BaseException:
+        _release_build_source(repo_root, canonical_repo)
+        raise
 
     try:
         rc = _build_body(args, repo_root, canonical_repo, canonical_build_dir)
