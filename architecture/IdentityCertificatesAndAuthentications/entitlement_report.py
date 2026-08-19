@@ -1340,30 +1340,36 @@ def collect() -> dict:
                 in_owned and not has_data
                 and g["role"] not in ("Owner",))
 
-    # Who can reach each secret, counting both the grants naming a secret and
-    # the broader grants that cover the vault holding it. A certificate is a
-    # credential: every principal that can read one can become the identity it
-    # names, so a secret reachable by more than one principal is a shared
-    # credential and is reported as such.
-    reach: dict[str, set[str]] = {}
+    # Two different facts were being reported as one. A principal holding a
+    # vault-wide role can read every secret in that vault, which made every
+    # secret look shared by everyone and buried the secrets that are actually
+    # shared. Vault-wide access is stated once, as its own list. A secret is
+    # shared only when more than one principal is granted that secret by name.
+    vault_wide: list[dict] = []
     for h in holders_list:
-        holder_name = h["name"] or h["object_id"]
-        vault_wide = [g for g in h["grants"]
-                      if g["role"] in privileged_roles and "/vaults/" in g["raw_scope"]
-                      and "/secrets/" not in g["raw_scope"]]
+        for g in h["grants"]:
+            data_acts = role_reach.get(g["role"], {}).get("data_actions", [])
+            reaches_secrets = any(a == "*" or a.startswith("microsoft.keyvault/vaults/")
+                                  for a in data_acts)
+            if not reaches_secrets or g["secret"]:
+                continue
+            writes = any(a == "*" or a.rstrip("/*").endswith("microsoft.keyvault/vaults")
+                         or "setsecret" in a or "/secrets/*" in a for a in data_acts)
+            vault_wide.append({
+                "principal": h["name"] or h["object_id"],
+                "role": g["role"],
+                "where": _reaches(g["raw_scope"], g["subscription"], {}),
+                "access": "read and write" if writes else "read",
+            })
+    vault_wide.sort(key=lambda x: (x["principal"].lower(), x["role"].lower()))
+
+    named: dict[str, set[str]] = {}
+    for h in holders_list:
         for g in h["grants"]:
             if g["secret"]:
-                reach.setdefault(g["secret"], set()).add(holder_name)
-        for g in vault_wide:
-            for secret in certificate_secrets:
-                reach.setdefault(secret, set()).add(holder_name)
-        # A subscription-wide data-plane wildcard reaches every secret there is.
-        if any(g["role"] in privileged_roles and g["scope"] == "the whole subscription"
-               for g in h["grants"]):
-            for secret in certificate_secrets:
-                reach.setdefault(secret, set()).add(holder_name)
-    shared = sorted(((secret, sorted(names)) for secret, names in reach.items()
-                     if len(names) > 1), key=lambda x: (-len(x[1]), x[0]))
+                named.setdefault(g["secret"], set()).add(h["name"] or h["object_id"])
+    shared = sorted(((secret, sorted(who)) for secret, who in named.items()
+                     if len(who) > 1), key=lambda x: (-len(x[1]), x[0]))
 
     redundant = [(h["name"] or h["object_id"], g["role"], g["scope"], g["redundant"])
                  for h in holders_list for g in h["grants"] if g["redundant"]]
@@ -1395,6 +1401,7 @@ def collect() -> dict:
         "certificate_secrets": certificate_secrets,
         "tenant_name": _tenant_name(credential) or _tenant_id(),
         "shared_secrets": shared,
+        "vault_wide": vault_wide,
         "redundant_grants": redundant,
         "owners": owners,
         "group_owners": group_owners,
@@ -1527,7 +1534,9 @@ def render_pdf(data: dict, out_path: Path) -> Path:
                            "and principals that exist holding nothing"),
             ("Group definitions", "each directory group, what it means and who manages "
                                   "it"),
-            ("Shared credentials", "secrets reachable by more than one principal"),
+            ("Vault-wide access", "principals that can reach every secret in a vault, "
+                                  "and whether they can write"),
+            ("Shared secrets", "secrets granted by name to more than one principal"),
             ("Full entitlement detail", "every right held by each principal, and the scope "
                                         "at which it is granted")):
         story.append(Paragraph(f"<b>{label}</b> &mdash; {line}", bullet))
@@ -1911,11 +1920,34 @@ def render_pdf(data: dict, out_path: Path) -> Path:
             story.append(Paragraph(
                 "Every principal holding rights belongs to a group.", body))
 
+    story.append(Paragraph("Vault-wide access", sec))
+    if data["vault_wide"]:
+        vw = [["Principal", "Right", "Where", "Access to every secret"]]
+        for v in data["vault_wide"]:
+            vw.append([Paragraph(f"<b>{v['principal']}</b>", cell),
+                       Paragraph(v["role"], cell),
+                       Paragraph(v["where"], cell),
+                       Paragraph(v["access"], cell)])
+        vt = Table(vw, colWidths=[2.3 * inch, 2.4 * inch, 3.0 * inch, 1.65 * inch],
+                   hAlign="LEFT", repeatRows=1)
+        vt.setStyle(TableStyle([
+            ("BACKGROUND", (0, 0), (-1, 0), BAND),
+            ("FONTNAME", (0, 0), (-1, 0), "Helvetica-Bold"),
+            ("FONTSIZE", (0, 0), (-1, -1), 8),
+            ("LINEBELOW", (0, 0), (-1, -1), 0.25, RULE),
+            ("VALIGN", (0, 0), (-1, -1), "TOP"),
+            ("TOPPADDING", (0, 0), (-1, -1), 3),
+            ("BOTTOMPADDING", (0, 0), (-1, -1), 3)]))
+        story.append(vt)
+    else:
+        story.append(Paragraph("No principal holds access to every secret in a vault.",
+                               body))
+
     story.append(Paragraph(
-        f"Shared credentials &nbsp;&middot;&nbsp; secrets reachable by more than one "
-        f"principal ({len(data['shared_secrets'])})", sec))
+        f"Shared secrets &nbsp;&middot;&nbsp; granted by name to more than one principal "
+        f"({len(data['shared_secrets'])})", sec))
     if data["shared_secrets"]:
-        rows = [["Secret", "Reachable by"]]
+        rows = [["Secret", "Granted by name to"]]
         for secret, names in data["shared_secrets"]:
             rows.append([Paragraph(f"<b>{secret}</b>", cell),
                          Paragraph(", ".join(names), cell)])
@@ -1930,7 +1962,8 @@ def render_pdf(data: dict, out_path: Path) -> Path:
             ("BOTTOMPADDING", (0, 0), (-1, -1), 3)]))
         story.append(ts)
     else:
-        story.append(Paragraph("None.", body))
+        story.append(Paragraph("No secrets are shared. No secret is granted by name to "
+                               "more than one principal.", body))
 
     story.append(Paragraph("Exceptions", sec))
     story.append(Paragraph(
@@ -2034,16 +2067,33 @@ def render_pdf(data: dict, out_path: Path) -> Path:
             story.append(Paragraph(
                 "Every principal holding rights belongs to a group.", body))
 
+    story.append(Paragraph("None.", body))
+
+    story.append(Paragraph("Exceptions", sec))
     story.append(Paragraph(
-        f"Shared credentials &nbsp;&middot;&nbsp; secrets reachable by more than one "
-        f"principal ({len(data['shared_secrets'])})", sec))
-    if data["shared_secrets"]:
-        rows = [["Secret", "Reachable by"]]
-        for secret, names in data["shared_secrets"]:
-            rows.append([Paragraph(f"<b>{secret}</b>", cell),
-                         Paragraph(", ".join(names), cell)])
-        ts = Table(rows, colWidths=[3.2 * inch, 6.2 * inch], hAlign="LEFT", repeatRows=1)
-        ts.setStyle(TableStyle([
+        f"Principals outside the approved list ({len(unapproved)})", sub_sec))
+    if unapproved:
+        for h in unapproved:
+            story.append(KeepTogether(_block(h)))
+    else:
+        story.append(Paragraph("None.", body))
+
+    story.append(Paragraph(
+        f"Orphaned assignments &mdash; grants whose principal no longer exists "
+        f"({len(orphaned)})", sub_sec))
+    if orphaned:
+        o_rows = [["Principal object id", "Right", "Resource", "Subscription"]]
+        for h in orphaned:
+            for g in h["grants"]:
+                o_rows.append([
+                    Paragraph(h["object_id"], cell),
+                    Paragraph(g["role"], cell),
+                    Paragraph(_reaches(g["raw_scope"], g["subscription"],
+                                       data["subscription_contents"]), cell),
+                    Paragraph(g["subscription"], cell)])
+        ot = Table(o_rows, colWidths=[2.6 * inch, 1.9 * inch, 3.0 * inch, 1.9 * inch],
+                   hAlign="LEFT", repeatRows=1)
+        ot.setStyle(TableStyle([
             ("BACKGROUND", (0, 0), (-1, 0), BAND),
             ("FONTNAME", (0, 0), (-1, 0), "Helvetica-Bold"),
             ("FONTSIZE", (0, 0), (-1, -1), 8),
@@ -2051,9 +2101,77 @@ def render_pdf(data: dict, out_path: Path) -> Path:
             ("VALIGN", (0, 0), (-1, -1), "TOP"),
             ("TOPPADDING", (0, 0), (-1, -1), 3),
             ("BOTTOMPADDING", (0, 0), (-1, -1), 3)]))
-        story.append(ts)
+        story.append(ot)
     else:
         story.append(Paragraph("None.", body))
+
+    story.append(Paragraph(
+        f"Resources undescribed &mdash; carrying no description tag "
+        f"({len(data['undescribed'])})", sub_sec))
+    if data["undescribed"]:
+        u_rows = [["Resource", "Resource group", "Subscription", "Type"]]
+        for r in sorted(data["undescribed"],
+                        key=lambda x: (x["subscription"].lower(), x["name"].lower())):
+            u_rows.append([Paragraph(f"<b>{r['name']}</b>", cell),
+                           Paragraph(r["group"] or "&mdash;", cell),
+                           Paragraph(r["subscription"], cell),
+                           Paragraph(r["type"], cell)])
+        ut = Table(u_rows, colWidths=[3.0 * inch, 2.2 * inch, 2.2 * inch, 2.0 * inch],
+                   hAlign="LEFT", repeatRows=1)
+        ut.setStyle(TableStyle([
+            ("BACKGROUND", (0, 0), (-1, 0), BAND),
+            ("FONTNAME", (0, 0), (-1, 0), "Helvetica-Bold"),
+            ("FONTSIZE", (0, 0), (-1, -1), 8),
+            ("LINEBELOW", (0, 0), (-1, -1), 0.25, RULE),
+            ("VALIGN", (0, 0), (-1, -1), "TOP"),
+            ("TOPPADDING", (0, 0), (-1, -1), 3),
+            ("BOTTOMPADDING", (0, 0), (-1, -1), 3)]))
+        story.append(ut)
+    else:
+        story.append(Paragraph("None.", body))
+
+
+    # Classification by group. The directory is where a person records what kind
+    # of thing a principal is, so it is the foundation this section stands on --
+    # and when it cannot be read, the section says so instead of reporting an
+    # empty finding, which would read identically to a clean estate.
+    story.append(Paragraph(
+        "Group definitions", sec))
+    if not data["groups_readable"]:
+        story.append(Paragraph(
+            "Not attested. The reporting identity could not read the directory, so nothing "
+            "below is classified. Directory.Read.All on the reporting identity is required.",
+            note))
+    else:
+        groups = data["group_descriptions"]
+        if groups:
+            rows = [["Group", "Managed by", "What it means"]]
+            for name in sorted(groups):
+                rows.append([Paragraph(f"<b>{name}</b>", cell),
+                             Paragraph(", ".join(data["group_owners"].get(name, []))
+                                       or "nobody", cell),
+                             Paragraph(groups[name] or "", cell)])
+            tg = Table(rows, colWidths=[1.7 * inch, 2.0 * inch, 5.7 * inch],
+                       hAlign="LEFT", repeatRows=1)
+            tg.setStyle(TableStyle([
+                ("BACKGROUND", (0, 0), (-1, 0), BAND),
+                ("FONTNAME", (0, 0), (-1, 0), "Helvetica-Bold"),
+                ("FONTSIZE", (0, 0), (-1, -1), 8),
+                ("LINEBELOW", (0, 0), (-1, -1), 0.25, RULE),
+                ("VALIGN", (0, 0), (-1, -1), "TOP"),
+                ("TOPPADDING", (0, 0), (-1, -1), 3),
+                ("BOTTOMPADDING", (0, 0), (-1, -1), 3)]))
+            story.append(tg)
+            story.append(Spacer(1, 8))
+        if data["ungrouped"]:
+            story.append(Paragraph(
+                f"{len(data['ungrouped'])} principal(s) hold rights and belong to no group: "
+                f"{', '.join(data['ungrouped'])}.", note))
+        else:
+            story.append(Paragraph(
+                "Every principal holding rights belongs to a group.", body))
+
+    story.append(Paragraph("None.", body))
 
     story.append(Paragraph(
         f"Grants that add nothing &nbsp;&middot;&nbsp; access held for no stated reason "
