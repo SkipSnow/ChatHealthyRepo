@@ -4470,12 +4470,18 @@
               "secrets": {
                 "CH_LOG_DB": "local_env",
                 "PIPELINETOFRONTENDPUBLICDATAMIGRATOR_AZURE_CLIENT_ID": "local_env",
-                "KEY_VAULT_URI": "local_env"
+                "KEY_VAULT_URI": "local_env",
+                "ATLAS_PROJECT_ID": "local_env",
+                "ATLAS_PIPELINE_PUBLIC_KEY": "local_env",
+                "ATLAS_PIPELINE_PRIVATE_KEY": "local_env"
               },
               "secret_descriptions": {
                 "CH_LOG_DB": "Database the structured log records are written to",
                 "PIPELINETOFRONTENDPUBLICDATAMIGRATOR_AZURE_CLIENT_ID": "clientId of the migrator managed identity. Not a secret.",
-                "KEY_VAULT_URI": "Vault holding the migrator's certificate. Not a secret."
+                "KEY_VAULT_URI": "Vault holding the migrator's certificate. Not a secret.",
+                "ATLAS_PROJECT_ID": "Atlas project the clusters live in. Not a secret.",
+                "ATLAS_PIPELINE_PUBLIC_KEY": "Atlas API key that resumes the source cluster.",
+                "ATLAS_PIPELINE_PRIVATE_KEY": "Secret half of the Atlas key that resumes the cluster."
               },
               "config": {
                 "runbook_name": "DataMigration",
