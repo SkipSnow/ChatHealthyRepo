@@ -5183,7 +5183,7 @@
                 "runbook_name": "DataMigration",
                 "schedule_names": [],
                 "automation_variables": [],
-                "node_address": "https://management.azure.com/.../automationAccounts/ChatHealthyJobManager/runbooks/DataMigration",
+                "node_address": "https://management.azure.com/subscriptions/7a17eec1-c477-4c7c-b1c1-d0662ce7a1ee/resourceGroups/rg-chathealthy-pipeline-dev/providers/Microsoft.Automation/automationAccounts/PipelineToFrontEndPublicDataMigratorWorkManager/runbooks/DataMigration",
                 "webhook_to_kv": {
                   "webhook_name": "DataMigrationOnDemand",
                   "kv_vault": "kv-chpipeline-dev",
@@ -5193,6 +5193,10 @@
                   {
                     "name": "anyio",
                     "content_url": "https://files.pythonhosted.org/packages/1b/b4/f7e396030e3b11394436358ca258a81d6010106582422f23443c16ca1873/anyio-4.5.2-py3-none-any.whl"
+                  },
+                  {
+                    "name": "cryptography",
+                    "content_url": "https://files.pythonhosted.org/packages/9e/f6/179a0533f167e234f18c3ea32096ff01787fe67a70cd6c281854722ec5eb/cryptography-3.2.1-cp38-cp38-win_amd64.whl"
                   },
                   {
                     "name": "dnspython",
@@ -5252,7 +5256,7 @@
                 "runbook_name": "SandboxFacts",
                 "schedule_names": [],
                 "automation_variables": [],
-                "node_address": "https://management.azure.com/.../automationAccounts/ChatHealthyJobManager/runbooks/SandboxFacts",
+                "node_address": "https://management.azure.com/subscriptions/7a17eec1-c477-4c7c-b1c1-d0662ce7a1ee/resourceGroups/rg-chathealthy-pipeline-dev/providers/Microsoft.Automation/automationAccounts/PipelineToFrontEndPublicDataMigratorWorkManager/runbooks/SandboxFacts",
                 "python_packages": []
               }
             }
@@ -5260,7 +5264,14 @@
         }
       ],
       "allowed_roles": [],
-      "entitlements": []
+      "entitlements": [
+        {
+          "kind": "azure_rbac_role_assignment",
+          "principal": "PipelineToFrontEndPublicDataMigrator",
+          "role": "Key Vault Secrets User",
+          "scope": "/subscriptions/<subscription-id>/resourceGroups/<pipeline_rg>/providers/Microsoft.KeyVault/vaults/kv-chpipeline-dev/secrets/PipelineToFrontEndPublicDataMigrator"
+        }
+      ]
     }
   ],
   "firm": {
@@ -5363,7 +5374,7 @@
         "Key Vault Secrets User",
         "role_data_migrator"
       ],
-      "description": "The one capability of the dataMigrator application: copies published collections from the pipeline cluster to the front-end cluster. Attached to ChatHealthyJobManager, carries no client secret, and reads one vault secret. Its name is identical in Entra, in Key Vault, in its certificate subject and in the environment variable the library derives."
+      "description": "The one capability of the dataMigrator application: copies published collections from the pipeline cluster to the front-end cluster. Attached to its own Work Manager, PipelineToFrontEndPublicDataMigratorWorkManager, which holds its runbooks and no other identity's; carries no client secret, and reads one vault secret at the scope of that secret alone. Its name is identical in Entra, in Key Vault, in its certificate subject and in the environment variable the library derives."
     },
     {
       "identity_id": "ClaudeCodeUser",
@@ -5377,7 +5388,7 @@
   "CustomRoleCatalog": [
     {
       "role_id": "role_data_migrator",
-      "description": "Atlas custom database role dataMigratorRole. Reads the pipeline's published data and the front-end serving data; on the serving database only, may insert documents, create collections and create indexes. It holds no update, no delete and no drop anywhere, so a migration can add and can never alter or remove what is already serving users.",
+      "description": "Atlas custom database role dataMigratorRole. Reads the pipeline's published data and the front-end serving data; on the serving database only, may insert documents, create collections and create indexes. On pipelineAdmin it reads and writes the Authorizations record that releases a migration and the reservation that admits one job at a time, and may delete that reservation and nothing else. It holds no update, no delete and no drop over any data anywhere, so a migration can add and can never alter or remove what is already serving users.",
       "grants": [
         {
           "operation": "FIND",
@@ -5414,6 +5425,26 @@
         {
           "operation": "CREATE_INDEX",
           "on": "target_atlas_pipeline/PublicHealthData"
+        },
+        {
+          "operation": "FIND",
+          "on": "target_atlas_pipeline/pipelineAdmin.Authorizations"
+        },
+        {
+          "operation": "INSERT",
+          "on": "target_atlas_pipeline/pipelineAdmin.Authorizations"
+        },
+        {
+          "operation": "FIND",
+          "on": "target_atlas_pipeline/pipelineAdmin.DataMigrationServiceMutex"
+        },
+        {
+          "operation": "INSERT",
+          "on": "target_atlas_pipeline/pipelineAdmin.DataMigrationServiceMutex"
+        },
+        {
+          "operation": "REMOVE",
+          "on": "target_atlas_pipeline/pipelineAdmin.DataMigrationServiceMutex"
         }
       ]
     }

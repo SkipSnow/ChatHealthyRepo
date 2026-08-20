@@ -49,10 +49,29 @@ from pymongo.errors import BulkWriteError
 from requests.auth import HTTPDigestAuth
 
 from chathealthy_lib.exceptions import ChatHealthyException
-from chathealthy_lib.logging_service import ChatHealthyLoggingService
+from chathealthy_lib.logging_service import (
+    ChatHealthyLoggingService, set_run_id)
 from chathealthy_lib.pipeline_boot import bootstrap_aa_mongo_logging
 from chathealthy_lib.mongo_utilities import ChatHealthyMongoUtilities
 from chathealthy_lib.reservations import release, reserve
+
+def _mark(step: str) -> None:
+    """Say where we are on the sandbox's own output stream.
+
+    Everything up to the log handler is invisible to the log, because the
+    handler is the log: imports, variable hydration, the vault fetch and the
+    Mongo connect all happen before the first record can exist. A job that
+    dies in that window says nothing at all, which is how this one spent six
+    minutes without reporting that it could not parse a certificate.
+
+    Azure keeps stdout on a job and returns it from the job's output
+    endpoint, so these markers survive a failure that reaches no database.
+    """
+    sys.stdout.write(f"[data_migration] {step}" + chr(10))
+    sys.stdout.flush()
+
+
+_mark("module import: begin")
 
 # Hydrate the Automation Variables the deploy pushed into os.environ, the
 # way every other runbook in this account does. The sandbox does not put
@@ -78,6 +97,7 @@ try:
                 _automation_assets.get_automation_variable(_name))
         except Exception:  # noqa: BLE001
             pass
+    _mark("automation variables hydrated")
 except ImportError:
     pass
 
@@ -455,13 +475,28 @@ def main() -> int:
     # a managed identity, and that connection failed before a single line
     # was written -- taking the whole job with it, because a process that
     # cannot record what it does must not run.
-    bootstrap_aa_mongo_logging(component_name="data_migration")
-
+    # The payload is read first, and the job id set, before the log exists.
+    # Reading it needs nothing but argv, and setting the id first is what
+    # puts the id on every record this process writes -- including the log
+    # handler's own first line. The id is minted by the caller and carried
+    # in the payload, the way change_db_version takes one, so the operator
+    # program's half of the story and this half read as one.
     body = _webhook_body()
     collection = str(body.get("collection") or "")
+    job_id = str(body.get("job_id") or "")
+    set_run_id(job_id or None)
+    _mark(f"job_id={job_id or '<none>'} collection={collection or '<none>'}")
+
+    _mark("logging bootstrap: begin (vault fetch and mongo connect)")
+    bootstrap_aa_mongo_logging(component_name="data_migration")
+    _mark("logging bootstrap: done")
+    _log.info("data_migration begin job_id=%s collection=%s",
+              job_id or "<none>", collection or "<none>")
     try:
+        _mark("reserving the service")
         reserve(_MIGRATOR, _FRONT_END, _RESERVATION_TYPE,
                 holder="data_migration", about=collection)
+        _log.info("data_migration reserved the service collection=%s", collection)
     except ChatHealthyException as exc:
         _log.error(
             "data_migration ABEND collection=%s mode=%s: %s. The service "
@@ -490,13 +525,20 @@ def _migrate(body: dict, collection: str) -> int:
                   "human_click=%s released_at=%s",
                   collection, approval_id, approval.get("human_click"),
                   approval.get("released_at"))
+        _log.info("data_migration waking the source cluster collection=%s",
+                  collection)
         _wake_the_source_cluster()
+        _log.info("data_migration source cluster is up collection=%s", collection)
         acknowledgement_id = _acknowledge_approval(collection, approval_id)
         _log.info("data_migration acknowledged approval_id=%s "
                   "acknowledgement_id=%s collection=%s",
                   approval_id, acknowledgement_id, collection)
+        _log.info("data_migration checking the collection may be migrated "
+                  "collection=%s", collection)
         migrated.refuse_unless_migratable()
         expected = migrated.source_count()
+        _log.info("data_migration source counted collection=%s documents=%d",
+                  collection, expected)
     except ChatHealthyException as exc:
         # Log the narrative, then let it go. Returning 1 here would have been
         # an orderly exit reporting a failure, and REQ-B-005 asks for an
@@ -519,6 +561,8 @@ def _migrate(body: dict, collection: str) -> int:
         _log.info("data_migration constraint_index collection=%s name=%s",
                   collection, name)
 
+    _log.info("data_migration copying collection=%s expected=%d",
+              collection, expected)
     written = 0
     try:
         for written in migrated.copy():
@@ -535,6 +579,8 @@ def _migrate(body: dict, collection: str) -> int:
                    collection, written, expected)
         return 1
 
+    _log.info("data_migration copy complete collection=%s written=%d",
+              collection, written)
     wanted = [index["name"] for index in migrated.performance_indexes()]
     built = []
     for name in migrated.build_performance_indexes():

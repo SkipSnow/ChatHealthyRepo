@@ -16,6 +16,7 @@ chain, and it comes out the same way once it has answered.
 """
 from __future__ import annotations
 
+import os
 import platform
 import sys
 import sysconfig
@@ -71,6 +72,16 @@ def main() -> int:
             _say(f"    {name:14s} {getattr(module, '__version__', '?')}")
         except Exception as exc:  # noqa: BLE001
             _say(f"    {name:14s} not importable: {type(exc).__name__}")
+
+    _say("environment:")
+    # Names only. A value may be a credential; the names are what is being
+    # looked for -- specifically, whether the sandbox tells a runbook which
+    # job it is. The few keys that cannot hold a secret are shown in full.
+    for key in sorted(os.environ):
+        if any(w in key.upper() for w in ("JOB", "RUNBOOK", "AUTOMATION", "SANDBOX")):
+            _say(f"    {key} = {os.environ[key]}")
+        else:
+            _say(f"    {key}")
 
     return 0
 
