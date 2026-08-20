@@ -429,12 +429,12 @@ def main() -> int:
     it does not wait and it does not queue.
     """
     # Mongo logging, set up the way every runbook here sets it up, before
-    # the first log call. Rolling my own set it half-up: the handler needs
-    # CH_SPACE_NAME, ENV_PREFIX and CH_COMPONENT as well as an identity, and
-    # raises on the first line without them.
-    bootstrap_aa_mongo_logging(
-        component_name="data_migration",
-        identity=_MIGRATOR)
+    # the first log call. The identity is the bootstrap's own default and
+    # not the migrator: naming the migrator made the log handler connect as
+    # a managed identity, and that connection failed before a single line
+    # was written -- taking the whole job with it, because a process that
+    # cannot record what it does must not run.
+    bootstrap_aa_mongo_logging(component_name="data_migration")
 
     body = _webhook_body()
     collection = str(body.get("collection") or "")
