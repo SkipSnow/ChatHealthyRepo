@@ -5164,7 +5164,7 @@
       }
     },
     {
-      "target_id": "target_azure_automation_account_datamigrationworkmanager",
+      "target_id": "target_azure_automation_account_datamigratorworkmanager",
       "target_kind": "azure_automation_account",
       "promote_chain_bound": false,
       "files": [],
@@ -5193,7 +5193,7 @@
       "environments": [
         {
           "env_binding": "dev",
-          "node_address": "https://management.azure.com/subscriptions/7a17eec1-c477-4c7c-b1c1-d0662ce7a1ee/resourceGroups/rg-chathealthy-pipeline-dev/providers/Microsoft.Automation/automationAccounts/dataMigrationWorkManager",
+          "node_address": "https://management.azure.com/subscriptions/7a17eec1-c477-4c7c-b1c1-d0662ce7a1ee/resourceGroups/rg-chathealthy-pipeline-dev/providers/Microsoft.Automation/automationAccounts/PipelineToFrontEndPublicDataMigratorWorkManager",
           "azure_automation_account": {
             "vnet_name": "vnet-chathealthy-pipeline-dev",
             "vm_subnet_name": "snet-hybrid-worker",
