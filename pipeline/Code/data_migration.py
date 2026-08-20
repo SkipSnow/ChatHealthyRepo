@@ -40,7 +40,13 @@ from chathealthy_lib.reservations import release, reserve
 try:
     import automationassets as _automation_assets
 
-    for _name in ("KEY_VAULT_URI", "CH_LOG_DB", "AUTOMATION_ENV_PREFIX"):
+    # The client id belongs here as much as the vault URI does. Without it
+    # the token request names no identity and the sandbox answers with the
+    # account's own system identity, which holds nothing on the migrator's
+    # secret -- the vault then refuses, and the refusal looks like a missing
+    # grant rather than a token for the wrong principal.
+    for _name in ("KEY_VAULT_URI", "CH_LOG_DB", "AUTOMATION_ENV_PREFIX",
+                  "PIPELINETOFRONTENDPUBLICDATAMIGRATOR_AZURE_CLIENT_ID"):
         try:
             os.environ[_name] = str(
                 _automation_assets.get_automation_variable(_name))
