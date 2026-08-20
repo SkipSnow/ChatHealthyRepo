@@ -14,6 +14,7 @@ an error. The caller logs the answer and decides what it means.
 """
 from __future__ import annotations
 
+import datetime
 import secrets
 import socket
 import socketserver
@@ -82,6 +83,17 @@ def _page(action: str, subject: str, token: str, palette: dict, banner: str,
         "<button class=approve id=btn_approve type=button>APPROVE</button>"
         "<button class=reject id=btn_reject type=button>REJECT</button>"
         "<div id=why style=\"margin:10px 0;color:#a3231d;font-size:14px\"></div>"
+        + _click_proof(token)
+    )
+
+
+def _click_proof(token: str) -> str:
+    """The evidence that a person clicked, not a script.
+
+    Shared by every gate: a page that asks a person is only worth
+    anything if it can tell a person apart from a dispatched event.
+    """
+    return (
         "<input type=hidden id=human_click value=\"false\">"
         "<script>"
         f"var TOKEN='{token}';"
@@ -113,6 +125,87 @@ def _page(action: str, subject: str, token: str, palette: dict, banner: str,
         "document.getElementById('btn_reject').addEventListener('click',"
         "function(){send('reject');});"
         "</script></body></html>"
+    )
+
+
+def _transfer_page(token: str, collection: str, source: dict, destination: dict,
+                   authorizer: str, stamped: str, detail: str) -> str:
+    """The page that authorizes a data transfer.
+
+    It answers the question the operator actually has, which is not "authorize
+    this?" but "what moves, from where, to where". The collection is shown on
+    both sides because arriving under a different name would be a different
+    act; the cluster and the database are named on both sides because those
+    are what make one side the pipeline and the other the one serving users.
+    """
+    def panel(side: str, facts: dict) -> str:
+        return (
+            "<div class=col>"
+            f"<div class=side>{side}</div>"
+            "<div class=panel>"
+            "<div class=head>"
+            f"<div class=row><span class=k>Cluster:</span>"
+            f"<span class=v>{facts['cluster']}</span></div>"
+            f"<div class=row><span class=k>Data Base:</span>"
+            f"<span class=v>{facts['database']}</span></div>"
+            "</div>"
+            f"<div class=body><span class=chip>{collection}</span></div>"
+            "</div></div>")
+
+    return (
+        "<!doctype html><html><head><meta charset=utf-8>"
+        "<title>ChatHealthy -- Data Migration Authorization</title>"
+        "<style>"
+        "*{box-sizing:border-box}"
+        "body{margin:0;font-family:system-ui,sans-serif;background:#6a2b9d;"
+        "color:#fff;min-height:100vh}"
+        "header{background:#e9a3e0;color:#000;padding:18px 24px 14px;"
+        "text-align:center;border-bottom:3px solid #000}"
+        "header h1{margin:0;font-size:38px;font-weight:500;line-height:1.15}"
+        "header .when{margin-top:10px;font-size:22px}"
+        "header .when b{font-weight:600}"
+        "header .when small{font-size:15px}"
+        "main{padding:34px 28px 10px}"
+        ".grid{display:flex;align-items:center;justify-content:center;gap:22px;"
+        "flex-wrap:wrap;max-width:1180px;margin:0 auto}"
+        ".col{flex:1 1 380px;min-width:300px}"
+        ".side{font-size:30px;font-style:italic;text-align:center;"
+        "margin-bottom:14px}"
+        ".panel{border:2px solid #000;background:#f6e2f5}"
+        ".head{background:#e9a3e0;border-bottom:2px solid #000;padding:10px 14px}"
+        ".row{display:flex;gap:14px;font-size:19px;color:#000;padding:2px 0}"
+        ".k{flex:0 0 110px}"
+        ".v{font-weight:500;word-break:break-word}"
+        ".body{padding:26px 14px;min-height:170px;display:flex;"
+        "align-items:center;justify-content:center}"
+        ".chip{background:#1f1f5c;color:#fff;padding:5px 10px;font-size:19px;"
+        "font-family:ui-monospace,SFMono-Regular,Menlo,monospace;"
+        "word-break:break-all}"
+        ".arrow{flex:0 0 auto;color:#1a6f7f;font-size:60px;line-height:1}"
+        "p.detail{max-width:900px;margin:26px auto 0;font-size:15px;"
+        "line-height:1.55;text-align:center;opacity:.93}"
+        ".buttons{text-align:center;padding:22px 0 40px}"
+        "button{font-size:26px;font-weight:700;letter-spacing:.04em;"
+        "padding:14px 52px;margin:0 26px;color:#fff;cursor:pointer;"
+        "border:4px solid #1b1b6b;border-radius:8px}"
+        ".reject{background:#c0121a}"
+        ".approve{background:#3b46e0}"
+        "#why{text-align:center;color:#ffd7d5;font-size:15px;min-height:20px}"
+        "</style></head><body>"
+        "<header>"
+        f"<h1>Data Migration Authorization{authorizer}</h1>"
+        f"<div class=when>{stamped}</div>"
+        "</header><main><div class=grid>"
+        + panel("From", source)
+        + "<div class=arrow>&#10142;</div>"
+        + panel("To", destination)
+        + "</div>"
+        f"<p class=detail>{detail}</p></main>"
+        "<div class=buttons>"
+        "<button class=reject id=btn_reject type=button>REJECT</button>"
+        "<button class=approve id=btn_approve type=button>APPROVE</button>"
+        "</div><div id=why></div>"
+        + _click_proof(token)
     )
 
 
@@ -198,7 +291,8 @@ def request_authorization(action: str, subject: str,
                           timeout_seconds: int = 600,
                           palette: str = "commit",
                           banner: str = "ChatHealthy authorization",
-                          detail: str = "") -> Authorization:
+                          detail: str = "",
+                          transfer: dict | None = None) -> Authorization:
     """Block until the operator clicks, or the timeout expires.
 
     `action` is the verb in the heading; `subject` is the thing being acted on
@@ -208,6 +302,12 @@ def request_authorization(action: str, subject: str,
     tell two gates apart will eventually click the wrong one. `detail` is the
     sentence that says what happens on APPROVE, and what does not happen on
     REJECT.
+
+    `transfer` asks the transfer question instead: given
+    {collection, source: {cluster, database}, destination: {cluster, database},
+    authorizer}, the page names what moves and the two ends it moves between,
+    which is what an operator releasing data needs to see. The click evidence,
+    the token and the timeout are the same on both pages.
     """
     colours = PALETTES.get(palette) or PALETTES["commit"]
     with socket.socket() as probe:
@@ -216,7 +316,18 @@ def request_authorization(action: str, subject: str,
 
     token = secrets.token_urlsafe(8)
     decision: dict = {"verdict": None, "human_click": False}
-    page_html = _page(action, subject, token, colours, banner, detail)
+    if transfer:
+        by = transfer.get("authorizer") or ""
+        now = datetime.datetime.now().astimezone()
+        stamped = (f"<b>{now.strftime('%I').lstrip('0')}:{now.strftime('%M')}</b> "
+                   f"<small>{now.strftime('%Z')}</small>"
+                   "&nbsp;&nbsp;&nbsp;&nbsp;"
+                   f"<b>{now.month}/{now.day}/{now.year}</b>")
+        page_html = _transfer_page(
+            token, transfer["collection"], transfer["source"],
+            transfer["destination"], f" by: {by}" if by else "", stamped, detail)
+    else:
+        page_html = _page(action, subject, token, colours, banner, detail)
 
     class Handler(BaseHTTPRequestHandler):
         def log_message(self, *args, **kwargs):

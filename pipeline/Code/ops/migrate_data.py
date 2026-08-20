@@ -39,7 +39,7 @@ from chathealthy_lib.exceptions import ChatHealthyException  # noqa: E402
 from chathealthy_lib.human_authorization import (  # noqa: E402
     APPROVE, request_authorization)
 from chathealthy_lib.logging_service import (  # noqa: E402
-    ChatHealthyLoggingService, set_mongo_log_identity)
+    ChatHealthyLoggingService, set_mongo_log_identity, set_run_id)
 from chathealthy_lib.mongo_utilities import ChatHealthyMongoUtilities  # noqa: E402
 from pymongo import ReturnDocument  # noqa: E402
 
@@ -135,6 +135,14 @@ def _next_approval_number(counters, authorization_type: str) -> int:
     return int(counter["next"])
 
 
+def _authorizer() -> str:
+    """Who the page says is authorizing, read from the deployment record."""
+    record = json.loads(
+        (_REPO / "brain" / "machine_artifacts" / "content"
+         / "deployment_architecture.json").read_text(encoding="utf-8"))
+    return ((record.get("firm") or {}).get("git_identity") or {}).get("name", "")
+
+
 def _build_number() -> int | None:
     """The estate's build counter as it stands. Recorded on the release as a
     marker of when it happened, not as a claim about which artifact ran."""
@@ -156,13 +164,21 @@ def main() -> int:
                f"ChatHealthyDataPipelines.PipelinePublicHealthData"
                f"  →  ChatHealthyFrontEnd.PublicHealthData")
 
-    _log.info("data_migration authorization requested collection=%s env=%s",
-              args.collection, args.env)
+    # One id for one request, minted here and carried to the runbook in the
+    # webhook payload. Both processes stamp every record with it, so the
+    # operator program's half of the story and the runbook's half read as
+    # one, and neither has to be found by timestamp.
+    job_id = f"migration-job-{uuid.uuid4().hex}"
+    set_run_id(job_id)
+
+    _log.info("data_migration authorization requested job_id=%s collection=%s "
+              "env=%s", job_id, args.collection, args.env)
 
     authorization = request_authorization(
         "this migration", subject,
         timeout_seconds=_AUTHORIZATION_TIMEOUT_SECONDS,
         palette="migration",
+        transfer=transfer,
         banner=f"Data migration — {args.env}",
         detail=(
             f"APPROVE copies every document in <b>{args.collection}</b> onto "
@@ -238,6 +254,7 @@ def main() -> int:
         "gitSourceAttribute": judged.get("branch"),
         "source_commit": judged.get("commit"),
         "build_number": _build_number(),
+        "job_id": job_id,
         "human_click": authorization.human_click,
         "subject": authorization.subject,
         "seconds_waited": authorization.seconds_waited,
@@ -259,6 +276,7 @@ def main() -> int:
     payload = {
         "collection": args.collection,
         "approval_id": approval_id,
+        "job_id": job_id,
         "released_at": released_at.isoformat(),
     }
 
