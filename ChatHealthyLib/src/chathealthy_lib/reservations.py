@@ -29,7 +29,7 @@ from .exceptions import ChatHealthyException
 from .mongo_utilities import ChatHealthyMongoUtilities
 
 RESERVATIONS_DATABASE = "pipelineAdmin"
-RESERVATIONS_COLLECTION = "Reservations"
+RESERVATIONS_COLLECTION = "DataMigrationServiceMutex"
 
 
 def _collection(identity: str, cluster: str):
