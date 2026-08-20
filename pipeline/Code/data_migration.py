@@ -409,9 +409,9 @@ def _released_approval(collection: str, approval_id: str) -> dict:
         _raise_unauthorized(
             collection, approval_id,
             f"the record is a {record.get('type')!r} authorization, not a migration")
-    if record.get("verdict") != "approve":
+    if record.get("approval") is not True:
         _raise_unauthorized(collection, approval_id,
-                            f"the recorded verdict is {record.get('verdict')!r}")
+                            f"the record says approval={record.get('approval')!r}")
     if record.get("human_click") is not True:
         _raise_unauthorized(collection, approval_id,
                             "the record carries no human click")

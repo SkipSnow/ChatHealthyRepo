@@ -160,8 +160,8 @@ _BREAKAGES = {
         "destination = self._destination()",
         'destination = self._destination_database()[self._collection_name + "_migrated"]'),
     "REQ-B-003": (
-        'if record.get("verdict") != "approve":',
-        'if False and record.get("verdict") != "approve":'),
+        'if record.get("approval") is not True:',
+        'if False and record.get("approval") is not True:'),
     "REQ-B-013": (
         "        if not self.exists_at_source():",
         "        if False and not self.exists_at_source():"),
