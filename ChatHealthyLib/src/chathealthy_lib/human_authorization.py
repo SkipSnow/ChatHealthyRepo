@@ -134,6 +134,66 @@ PALETTES = {
 }
 
 
+def raise_window_to_front(title_fragment: str,
+                          raised: list | None = None) -> None:
+    """Bring a browser window to the front, and keep trying while it opens.
+
+    Windows only lets a process set the foreground window if it already owns
+    the foreground. A git hook is a child of a background process and owns
+    nothing, so the page opens behind everything and lands in the tray --
+    which is where every approval landed until this existed. Attaching this
+    thread's input queue to the foreground thread makes the call legal, which
+    is the documented way in and the reason this is not just
+    SetForegroundWindow.
+
+    Polls, because the browser takes a second or two to create the window and
+    there is nothing to raise before it exists. Appends to `raised` when the
+    OS actually granted the foreground, so a caller can report what happened
+    rather than assume it.
+    """
+    raised = [] if raised is None else raised
+    try:
+        import ctypes
+        from ctypes import wintypes
+    except Exception:                               # noqa: BLE001
+        return
+    user32 = ctypes.windll.user32
+    kernel32 = ctypes.windll.kernel32
+    SW_RESTORE, SW_SHOW = 9, 5
+    found: list[int] = []
+
+    def _visit(hwnd, _lparam):
+        length = user32.GetWindowTextLengthW(hwnd)
+        if length:
+            buffer = ctypes.create_unicode_buffer(length + 1)
+            user32.GetWindowTextW(hwnd, buffer, length + 1)
+            if title_fragment in buffer.value:
+                found.append(hwnd)
+        return True
+
+    callback = ctypes.WINFUNCTYPE(
+        wintypes.BOOL, wintypes.HWND, wintypes.LPARAM)(_visit)
+    deadline = time.monotonic() + 20
+    while time.monotonic() < deadline:
+        found.clear()
+        user32.EnumWindows(callback, 0)
+        if found:
+            hwnd = found[0]
+            foreground = user32.GetForegroundWindow()
+            mine = kernel32.GetCurrentThreadId()
+            theirs = user32.GetWindowThreadProcessId(foreground, None)
+            user32.AttachThreadInput(theirs, mine, True)
+            user32.ShowWindow(hwnd, SW_RESTORE)
+            user32.ShowWindow(hwnd, SW_SHOW)
+            user32.BringWindowToTop(hwnd)
+            user32.SetForegroundWindow(hwnd)
+            user32.AttachThreadInput(theirs, mine, False)
+            if user32.GetForegroundWindow() == hwnd:
+                raised.append(time.monotonic())
+                return
+        time.sleep(0.4)
+
+
 def request_authorization(action: str, subject: str,
                           timeout_seconds: int = 600,
                           palette: str = "commit",
@@ -222,66 +282,12 @@ def request_authorization(action: str, subject: str,
         except Exception:                           # noqa: BLE001
             return 1920, 1080
 
-    def _raise_the_window(title_fragment: str) -> None:
-        """Bring the page to the front, and keep trying while it opens.
-
-        Windows only lets a process set the foreground window if it already
-        owns the foreground. A commit hook is a child of a background process
-        and owns nothing, so the browser opens behind everything and lands in
-        the tray -- which is where it has been landing. Attaching this
-        thread's input queue to the current foreground thread makes the call
-        legal, which is the documented way in and the reason this is not just
-        SetForegroundWindow.
-
-        Runs in a thread and polls, because the browser takes a second or two
-        to create the window and there is nothing to raise before it exists.
-        """
-        try:
-            import ctypes
-            from ctypes import wintypes
-        except Exception:                           # noqa: BLE001
-            return
-        user32 = ctypes.windll.user32
-        kernel32 = ctypes.windll.kernel32
-        SW_RESTORE, SW_SHOW = 9, 5
-        found: list[int] = []
-
-        def _visit(hwnd, _lparam):
-            length = user32.GetWindowTextLengthW(hwnd)
-            if length:
-                buffer = ctypes.create_unicode_buffer(length + 1)
-                user32.GetWindowTextW(hwnd, buffer, length + 1)
-                if title_fragment in buffer.value:
-                    found.append(hwnd)
-            return True
-
-        callback = ctypes.WINFUNCTYPE(
-            wintypes.BOOL, wintypes.HWND, wintypes.LPARAM)(_visit)
-        deadline = time.monotonic() + 20
-        while time.monotonic() < deadline:
-            found.clear()
-            user32.EnumWindows(callback, 0)
-            if found:
-                hwnd = found[0]
-                foreground = user32.GetForegroundWindow()
-                mine = kernel32.GetCurrentThreadId()
-                theirs = user32.GetWindowThreadProcessId(foreground, None)
-                user32.AttachThreadInput(theirs, mine, True)
-                user32.ShowWindow(hwnd, SW_RESTORE)
-                user32.ShowWindow(hwnd, SW_SHOW)
-                user32.BringWindowToTop(hwnd)
-                user32.SetForegroundWindow(hwnd)
-                user32.AttachThreadInput(theirs, mine, False)
-                if user32.GetForegroundWindow() == hwnd:
-                    _raised.append(time.monotonic())
-                    return
-            time.sleep(0.4)
-
     _raised: list[float] = []
     opened = False
     if sys.platform == "win32":
         threading.Thread(
-            target=_raise_the_window, args=(f"ChatHealthy -- {banner}",),
+            target=raise_window_to_front,
+            args=(f"ChatHealthy -- {banner}", _raised),
             daemon=True).start()
         sw, sh = _screen()
         w, h = int(sw * 2 / 3), int(sh * 2 / 3)
