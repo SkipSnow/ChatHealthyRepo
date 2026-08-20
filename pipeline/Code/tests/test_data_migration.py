@@ -13,19 +13,17 @@ migrated live data with no approval at all -- it would have passed with the
 authorization check deleted, which makes it a test of the copy loop wearing
 the name of a test of the story.
 
-Four cases run unattended, and every one of them is a refusal:
+Four requests run as one sequence, each needing an operator click, because
+the cases are about each other:
 
-    no authorization on the payload          refused, nothing written
-    verdict approve but human_click false    refused, nothing written
-    target already at the destination        refused, nothing written
-    source absent from the pipeline          refused, nothing written
+    1   the real migration
+    2a  fired while the mutex is held   refused: one job at a time
+    2b  fired once free, absent source  refused: nothing to move
+    3   fired once free, target present refused: already there
 
-The fifth case is the successful migration, and it requires an operator to
-click APPROVE on the page the pytest opens. That is deliberate: the server
-refuses any decision arriving without the mouse-click marker, so a pytest that
-could approve itself would be proving the gate does not work. Run it with
-CH_OPERATOR=1 to include that case; without the flag it is skipped and the four
-refusals still run.
+Every click is a real one. The server refuses a decision arriving without the
+mouse-click marker, so a pytest that could approve itself would be proving the
+gate does not work.
 
 Nothing is faked. Rule-065-ENF-003 forbids a mock, stub or in-memory double
 of a client, database or collection: the certificate is the credential, and
@@ -80,15 +78,8 @@ _FIXTURES = _REPO / "_oneshots" / "test_output" / "migration_test_fixtures.json"
 _RESERVATION_MINUTES = 60
 
 
-_OPERATOR_ENV = "CH_OPERATOR"
 
 
-def _operator_present() -> bool:
-    """The operator cases open a page and block on a click, so they run only
-    when a person said they are at the keyboard. pytest_addoption belongs in
-    conftest.py, not here, so this is an environment flag instead of a CLI
-    option -- one fewer file touched for the same effect."""
-    return (os.environ.get(_OPERATOR_ENV) or "").strip() == "1"
 
 
 # ── the three runs, each one page ────────────────────────────────────────────
@@ -386,17 +377,6 @@ def seeded(reservation):
     return names
 
 
-def _front_end():
-    """The serving database, as frontendUser.
-
-    The test is not the migration and does not borrow the migration's
-    identity: PipelineToFrontEndPublicDataMigrator is a managed identity that
-    exists only inside Azure, and its role can insert and nothing else. The
-    test reads what arrived and plants the collision run three must refuse,
-    both of which are frontendUser's business.
-    """
-    return ChatHealthyMongoUtilities().getConnection(
-        "frontendUser", _FRONT_END_CLUSTER)[_FRONT_END_DB]
 
 
 def _approval_record(collection: str) -> dict | None:
