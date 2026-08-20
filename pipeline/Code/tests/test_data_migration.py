@@ -8,7 +8,7 @@ time. It touches no database.
 
 The second invokes the migration the way Azure Automation invokes it: a
 webhook envelope on argv, through the file's own entry point. Nothing calls
-MigratedCollection directly. An earlier version of this suite did, and so it
+MigratedCollection directly. An earlier version of this pytest did, and so it
 migrated live data with no approval at all -- it would have passed with the
 authorization check deleted, which makes it a test of the copy loop wearing
 the name of a test of the story.
@@ -21,8 +21,8 @@ Four cases run unattended, and every one of them is a refusal:
     source absent from the pipeline          refused, nothing written
 
 The fifth case is the successful migration, and it requires an operator to
-click APPROVE on the page the suite opens. That is deliberate: the server
-refuses any decision arriving without the mouse-click marker, so a suite that
+click APPROVE on the page the pytest opens. That is deliberate: the server
+refuses any decision arriving without the mouse-click marker, so a pytest that
 could approve itself would be proving the gate does not work. Run it with
 CH_OPERATOR=1 to include that case; without the flag it is skipped and the four
 refusals still run.
@@ -58,6 +58,9 @@ from dotenv import load_dotenv  # noqa: E402
 load_dotenv(str(_REPO / ".env"), override=False)
 
 from chathealthy_lib.mongo_utilities import ChatHealthyMongoUtilities  # noqa: E402
+from chathealthy_lib.logging_service import ChatHealthyLoggingService  # noqa: E402
+
+_log = ChatHealthyLoggingService()
 
 STORY = "EPIC-010-F-108-S-001"
 
@@ -71,11 +74,8 @@ _FRONT_END_CLUSTER = "ChatHealthyFrontEnd"
 _PIPELINE_DB = "PipelinePublicHealthData"
 _FRONT_END_DB = "PublicHealthData"
 
-_RESUME_TOOL = _REPO / "pipeline" / "Code" / "ops" / "pipeline_resume_cluster.py"
 _MIGRATE_TOOL = _REPO / "pipeline" / "Code" / "ops" / "migrate_data.py"
-_CLUSTER_WAIT_SECONDS = 900
-_CLUSTER_POLL_SECONDS = 20
-_SEED_ROWS = 5
+_FIXTURES = _REPO / "_oneshots" / "test_output" / "migration_test_fixtures.json"
 _RESERVATION_MINUTES = 60
 
 
@@ -88,6 +88,79 @@ def _operator_present() -> bool:
     conftest.py, not here, so this is an environment flag instead of a CLI
     option -- one fewer file touched for the same effect."""
     return (os.environ.get(_OPERATOR_ENV) or "").strip() == "1"
+
+
+# ── the three runs, each one page ────────────────────────────────────────────
+
+def test_run_one_a_collection_on_the_pipeline_and_not_the_front_end_migrates(seeded):
+    """TRUE: a migration a human released moves the data, and the collection
+    arrives under the name it left with. REQ-B-003 positively, and REQ-B-001.
+
+    A behavioural assertion. It opens the approval page, waits for a person,
+    and writes. It does not wake the cluster: bringing the pipeline cluster up
+    is the service's work, and a test that does it first is staging the thing
+    it claims to be observing. The only case in this file that
+    writes. Every document arrives, the name is
+    unchanged, and the human`s sign-off is recorded in Mongo before it ran."""
+    name = seeded["migratable"]
+    result = _operator_run(name)
+    output = result.stdout + result.stderr
+    assert result.returncode == 0, output[-900:]
+
+    record = _approval_record(name)
+    assert record is not None, "no approval record in Mongo"
+    assert record["verdict"] == "approve", record
+    assert record["human_click"] is True, record
+
+    assert _front_end()[name].count_documents({}) == seeded["rows"]
+
+
+def test_run_two_a_collection_absent_from_the_pipeline_fails(seeded):
+    """TRUE: approval alone does not make a migration happen. A released
+    migration with nothing at the source fails rather than reporting an empty
+    success, which would tell the operator data had moved when none had.
+
+    A behavioural assertion. It maps to no requirement and needs none: code that
+    reports success having moved nothing is simply wrong, and correctness of
+    that kind is not specified, it is expected."""
+    name = seeded["absent_everywhere"]
+    result = _operator_run(name)
+    output = result.stdout + result.stderr
+
+    record = _approval_record(name)
+    assert record is not None, "no approval record in Mongo"
+    assert record["verdict"] == "approve", record
+
+    assert result.returncode != 0, f"an absent source reported success: {output[-900:]}"
+    assert "migration_source_absent" in output, (
+        f"the refusal did not raise the mode this requirement names: {output[-900:]}")
+    assert name in output, (
+        f"the log does not name the collection asked for: {output[-900:]}")
+    assert name not in _front_end().list_collection_names()
+
+
+def test_run_three_a_collection_already_on_the_front_end_fails(seeded):
+    """TRUE: a collection already present at the destination stops the
+    migration, and what is already there is left exactly as it was. REQ-B-005.
+
+    A behavioural assertion. It runs the migration for real against a seeded
+    collection. Approval succeeded. B-005 stopped it anyway, which is the point: a human
+    releasing a migration cannot cause existing data to be overwritten."""
+    name = seeded["already_there"]
+    before = _front_end()[name].count_documents({})
+    result = _operator_run(name)
+    output = result.stdout + result.stderr
+
+    record = _approval_record(name)
+    assert record is not None, "no approval record in Mongo"
+    assert record["verdict"] == "approve", record
+
+    assert result.returncode != 0, f"an occupied target reported success: {output[-900:]}"
+    assert "migration_target_exists" in output, (
+        f"the refusal did not raise the mode this requirement names: {output[-900:]}")
+    assert name in output, (
+        f"the narrative does not name the collection it found: {output[-900:]}")
+    assert _front_end()[name].count_documents({}) == before, "the refusal wrote"
 
 
 # ── half one: the commit gate ────────────────────────────────────────────────
@@ -115,10 +188,15 @@ _BREAKAGES = {
 
 
 def _run_enforcement(path: str = "pipeline/Code/data_migration.py") -> tuple[int, list[str]]:
+    began = time.monotonic()
+    _log.info("[gate] invoking %s on %s", _ENFORCEMENT, path)
     result = subprocess.run(
         [sys.executable, str(_WORKER), _ENFORCEMENT],
-        input="pipeline/Code/data_migration.py\n",
+        input=f"{path}\n",
         capture_output=True, text=True, cwd=str(_REPO), timeout=1800)
+    for line in (result.stderr or "").splitlines():
+        if "[ENF-009]" in line:
+            _log.info("[gate] %s", line.split("[ENF-009]", 1)[1].strip())
     messages = []
     for line in (result.stdout or "").splitlines():
         try:
@@ -127,6 +205,11 @@ def _run_enforcement(path: str = "pipeline/Code/data_migration.py") -> tuple[int
             continue
         if record.get("kind") == "violation":
             messages.append(record.get("message", ""))
+    _log.info("[gate] %s exit=%d violations=%d in %.0fs",
+              _ENFORCEMENT, result.returncode, len(messages),
+              time.monotonic() - began)
+    for message in messages:
+        _log.info("[gate]   %s", message[:200])
     return result.returncode, messages
 
 
@@ -168,6 +251,7 @@ def test_each_broken_requirement_is_refused(req_id, pristine_migration_file):
       B-014  the transfer would proceed without acknowledging the approval
     """
     original = pristine_migration_file
+    _log.info("[mutation] breaking %s and requiring the gate to refuse it", req_id)
     old, new = _BREAKAGES[req_id]
     assert old in original, f"{req_id} mutation no longer matches the file"
     _MIGRATION_PATH.write_text(original.replace(old, new, 1), encoding="utf-8")
@@ -228,46 +312,30 @@ def _lifecycle():
     """The manager that holds reservations on the pipeline cluster.
 
     It opens its own connection and takes none from here; the constructor
-    arguments it accepts are for callers that inject one, which this suite
+    arguments it accepts are for callers that inject one, which this pytest
     does not.
     """
     from cluster_lifecycle_manager import ClusterLifecycleManager
     return ClusterLifecycleManager(get_db_fn=None)
 
 
-def _wake_pipeline_cluster() -> None:
-    """Ask the pipeline cluster to serve, and wait until it does.
-
-    The reaper pauses it whenever nothing holds a reservation, so the suite
-    reserves first and then wakes it. The tool asks repeatedly until the
-    cluster answers or the wait is spent; a cluster still asleep afterwards
-    fails the suite rather than letting every case fail one at a time.
-    """
-    result = subprocess.run(
-        [sys.executable, str(_RESUME_TOOL), "--cluster", _PIPELINE_CLUSTER,
-         "--interval", str(_CLUSTER_POLL_SECONDS)],
-        capture_output=True, text=True, cwd=str(_REPO),
-        timeout=_CLUSTER_WAIT_SECONDS)
-    assert result.returncode == 0, (
-        f"{_PIPELINE_CLUSTER} did not come up: "
-        f"{(result.stdout + result.stderr)[-600:]}")
-
-
 @pytest.fixture(scope="module")
 def reservation():
-    """A reservation for the suite, then released.
+    """A reservation for the pytest, then released.
 
-    Running this suite is the consent to spend the cluster. The operator typed
+    Running this pytest is the consent to spend the cluster. The operator typed
     the command; no page is opened to ask permission for that, because a page
     that says "Authorize this migration?" while meaning "may I wake a machine"
     is a production prompt wearing a costume -- and one of those was shown
     once, for a migration that could never happen.
 
     The reaper pauses the cluster whenever nothing holds a reservation, so
-    without one it can pause mid-suite; a reservation left behind keeps it
+    without one it can pause mid-run; a reservation left behind keeps it
     awake and billing. Released in teardown whatever the tests did.
     """
     job_id = f"migration-test-{uuid.uuid4().hex[:8]}"
+    _log.info("[reservation] taking %s on %s for %d minutes",
+              job_id, _PIPELINE_CLUSTER, _RESERVATION_MINUTES)
     lifecycle = _lifecycle()
     lifecycle.reserve(
         cluster_name=_PIPELINE_CLUSTER,
@@ -277,9 +345,9 @@ def reservation():
         reservation_class="human",
     )
     try:
-        _wake_pipeline_cluster()
         yield job_id
     finally:
+        _log.info("[reservation] releasing %s", job_id)
         released = lifecycle.release(job_id)
         assert released["deleted_count"] == 1, (
             f"reservation {job_id} was not released; the cluster will stay "
@@ -289,37 +357,34 @@ def reservation():
 
 
 @pytest.fixture(scope="module")
-def planted(reservation):
-    """Three collection names, and the state each case needs.
+def seeded(reservation):
+    """The collections that were staged before this ran, by name.
 
-    Names carry a per-run uuid, so no live collection is ever involved and a
-    re-run cannot collide with residue it has no right to remove.
+    Nothing here creates or removes anything. The fixtures are seeded from
+    outside by _oneshots/seed_migration_test_collections.py, because a test
+    that stages its own subject holds rights the software does not -- it
+    dropped collections the migration is forbidden to drop -- and its writes
+    reach the same clusters by the same route, so afterwards there is no
+    telling which of them wrote what.
 
-        migratable        seeded on the pipeline, absent at the destination
-        already_there     seeded on the pipeline AND planted at the destination
-        absent_everywhere seeded nowhere
+        migratable         on the pipeline, absent at the destination.
+                           Consumed by a successful run and re-seeded before
+                           the next one.
+        already_there      the same name on both clusters. Permanent: the
+                           migration refuses it, so nothing is consumed.
+        absent_everywhere  a name and nothing else. Not existing is the
+                           condition it tests.
     """
-    run = uuid.uuid4().hex[:8]
-    names = {
-        "migratable": f"MigrationTest_Absent_{run}",
-        "already_there": f"MigrationTest_Present_{run}",
-        "absent_everywhere": f"MigrationTest_Nowhere_{run}",
-        "run": run,
-    }
-    source = ChatHealthyMongoUtilities().getConnection(
-        "pipelineEditor", _PIPELINE_CLUSTER)[_PIPELINE_DB]
-    for key in ("migratable", "already_there"):
-        source[names[key]].insert_many(
-            [{"run": run, "n": i} for i in range(_SEED_ROWS)])
-
-    # frontendUser plants the collision the migrator must refuse.
-    _front_end()[names["already_there"]].insert_one(
-        {"run": run, "planted_by": "frontendUser"})
-
-    yield names
-
-    for key in ("migratable", "already_there"):
-        source[names[key]].drop()
+    if not _FIXTURES.is_file():
+        pytest.fail(
+            f"nothing has been seeded: {_FIXTURES} does not exist. Run "
+            f"python _oneshots/seed_migration_test_collections.py first. "
+            f"This pytest does not seed itself.")
+    names = json.loads(_FIXTURES.read_text(encoding="utf-8"))
+    _log.info("[seeded] migratable=%s already_there=%s absent_everywhere=%s",
+              names.get("migratable"), names.get("already_there"),
+              names.get("absent_everywhere"))
+    return names
 
 
 def _front_end():
@@ -347,80 +412,15 @@ def _approval_record(collection: str) -> dict | None:
 
 def _operator_run(collection: str) -> subprocess.CompletedProcess:
     """Invoke the operator's program. One invocation, one page, one click."""
-    return subprocess.run(
+    _log.info("[run] invoking the operator program for %s; an approval page "
+              "is about to open and it blocks until it is clicked", collection)
+    began = time.monotonic()
+    result = subprocess.run(
         [sys.executable, str(_MIGRATE_TOOL), collection, "--env", "dev"],
         capture_output=True, text=True, cwd=str(_REPO), timeout=1800)
-
-
-# ── the three runs, each one page ────────────────────────────────────────────
-
-def test_run_one_a_collection_on_the_pipeline_and_not_the_front_end_migrates(planted):
-    """TRUE: a migration a human released moves the data, and the collection
-    arrives under the name it left with. REQ-B-003 positively, and REQ-B-001.
-
-    A behavioural assertion. It wakes the pipeline cluster, opens the approval
-    page, waits for a person, and writes. The only case in this file that
-    writes. Every document arrives, the name is
-    unchanged, and the human`s sign-off is recorded in Mongo before it ran."""
-    name = planted["migratable"]
-    result = _operator_run(name)
-    output = result.stdout + result.stderr
-    assert result.returncode == 0, output[-900:]
-
-    record = _approval_record(name)
-    assert record is not None, "no approval record in Mongo"
-    assert record["verdict"] == "approve", record
-    assert record["human_click"] is True, record
-
-    assert _front_end()[name].count_documents({}) == _SEED_ROWS
-
-
-def test_run_two_a_collection_absent_from_the_pipeline_fails(planted):
-    """TRUE: approval alone does not make a migration happen. A released
-    migration with nothing at the source fails rather than reporting an empty
-    success, which would tell the operator data had moved when none had.
-
-    A behavioural assertion. It maps to no requirement and needs none: code that
-    reports success having moved nothing is simply wrong, and correctness of
-    that kind is not specified, it is expected."""
-    name = planted["absent_everywhere"]
-    result = _operator_run(name)
-    output = result.stdout + result.stderr
-
-    record = _approval_record(name)
-    assert record is not None, "no approval record in Mongo"
-    assert record["verdict"] == "approve", record
-
-    assert result.returncode != 0, f"an absent source reported success: {output[-900:]}"
-    assert "migration_source_absent" in output, (
-        f"the refusal did not raise the mode this requirement names: {output[-900:]}")
-    assert name in output, (
-        f"the log does not name the collection asked for: {output[-900:]}")
-    assert name not in _front_end().list_collection_names()
-
-
-def test_run_three_a_collection_already_on_the_front_end_fails(planted):
-    """TRUE: a collection already present at the destination stops the
-    migration, and what is already there is left exactly as it was. REQ-B-005.
-
-    A behavioural assertion. It runs the migration for real against a planted
-    collection. Approval succeeded. B-005 stopped it anyway, which is the point: a human
-    releasing a migration cannot cause existing data to be overwritten."""
-    name = planted["already_there"]
-    before = _front_end()[name].count_documents({})
-    result = _operator_run(name)
-    output = result.stdout + result.stderr
-
-    record = _approval_record(name)
-    assert record is not None, "no approval record in Mongo"
-    assert record["verdict"] == "approve", record
-
-    assert result.returncode != 0, f"an occupied target reported success: {output[-900:]}"
-    assert "migration_target_exists" in output, (
-        f"the refusal did not raise the mode this requirement names: {output[-900:]}")
-    assert name in output, (
-        f"the narrative does not name the collection it found: {output[-900:]}")
-    assert _front_end()[name].count_documents({}) == before, "the refusal wrote"
+    _log.info("[run] %s finished exit=%d after %.0fs",
+              collection, result.returncode, time.monotonic() - began)
+    return result
 
 
 # ── the requirements settled by reading the code ─────────────────────────────

@@ -5,9 +5,11 @@
 The mirror of pipeline_pause_cluster.py. Atlas refuses a resume for reasons
 that pass on their own -- a cluster still UPDATING from the pause, or resumed
 so recently the request collides with itself -- so this does not give up
-either. It asks every minute until the cluster reports paused=False and
-stateName IDLE, which is the point at which a connection will actually be
-served rather than time out on server selection.
+either. It asks until the cluster answers a ping, and then writes to it every
+second until a write succeeds -- ping is documented as returning even when the
+server is write-locked, so only a write that landed proves the cluster will
+take the work. It gives up after ten minutes of refused writes. The status
+label Atlas reports is logged and never used to decide.
 
     python pipeline/Code/ops/pipeline_resume_cluster.py
     python pipeline/Code/ops/pipeline_resume_cluster.py --cluster NAME
@@ -23,6 +25,7 @@ import os
 import pathlib
 import sys
 import time
+from datetime import datetime, timezone
 import urllib.error
 import urllib.request
 from urllib.request import (HTTPDigestAuthHandler, HTTPPasswordMgrWithDefaultRealm,
@@ -48,9 +51,19 @@ os.environ.setdefault("CH_COMPONENT", "pipeline-resume-cluster")
 os.environ["CH_LOG_DESTINATION"] = "stdout"
 
 from chathealthy_lib.exceptions import ChatHealthyException  # noqa: E402
+from chathealthy_lib.mongo_utilities import ChatHealthyMongoUtilities  # noqa: E402
 from chathealthy_lib.logging_service import ChatHealthyLoggingService  # noqa: E402
 
 log = ChatHealthyLoggingService()
+
+# Waiting for the cluster to take a write, after it answers a ping.
+_PING_SECONDS = 5
+_RETRY_SECONDS = 1
+_REPORT_SECONDS = 30
+_DEADLINE_SECONDS = 600
+_READINESS_DB = "pipelineAdmin"
+_READINESS_COLLECTION = "cluster_readiness"
+_READINESS_ID = "resume-readiness"
 
 _ATLAS = "https://cloud.mongodb.com/api/atlas/v1.0"
 
@@ -103,11 +116,103 @@ class AtlasCluster:
                 return f"{exc.code} {raw[:130]}"
 
 
+def _answers(cluster_name: str, identity: str) -> bool:
+    """True when the cluster answers a ping.
+
+    Whether a database is up is not a question about a status label. Atlas
+    reported REPAIRING while the cluster answered a connection in 25 seconds
+    and listed its collections, and a wait keyed on the label IDLE held a
+    wait against a database that was working. So this asks the database.
+    """
+    try:
+        client = ChatHealthyMongoUtilities().getConnection(identity, cluster_name)
+        client["admin"].command("ping")
+        return True
+    except Exception as exc:  # noqa: BLE001
+        log.info("ping refused (%s: %s)", type(exc).__name__, str(exc)[:120])
+        return False
+
+
+def _raise_not_usable(cluster_name: str, pings: int, writes: int,
+                      last: str) -> None:
+    """Raise-only helper: the catcher logs, not the thrower."""
+    raise ChatHealthyException(
+        mode="cluster_unavailable",
+        component="pipeline_resume_cluster",
+        message=(f"{cluster_name} was not usable within {_DEADLINE_SECONDS}s: "
+                 f"{pings} ping(s), {writes} write attempt(s); "
+                 f"last refusal {last or '<never reached a write>'}"),
+        cluster_name=cluster_name)
+
+
+def _wait_until_usable(cluster_name: str, identity: str) -> None:
+    """Return when the cluster takes a write. Raise after ten minutes.
+
+    An outer ping loop and an inner write loop. The ping is the cheap
+    question -- is anything there -- asked every five seconds while the
+    answer is no. Once it answers, that question is settled and is not asked
+    again; the inner loop writes every second, because a ping is not
+    evidence of a usable cluster: MongoDB documents it as a no-op that
+    "will return immediately even if the server is write-locked".
+
+    Both loops report every thirty seconds. The ten minutes is the whole
+    wait, not each loop's.
+    """
+    began = time.monotonic()
+    spoken = began
+    pings = writes = 0
+    last = ""
+
+    def due() -> bool:
+        nonlocal spoken
+        if time.monotonic() - spoken < _REPORT_SECONDS:
+            return False
+        spoken = time.monotonic()
+        return True
+
+    while time.monotonic() - began < _DEADLINE_SECONDS:
+        pings += 1
+        if not _answers(cluster_name, identity):
+            if due():
+                log.info("still pinging %s after %.0fs, %d ping(s)",
+                         cluster_name, time.monotonic() - began, pings)
+            time.sleep(_PING_SECONDS)
+            continue
+
+        while time.monotonic() - began < _DEADLINE_SECONDS:
+            writes += 1
+            try:
+                collection = (ChatHealthyMongoUtilities()
+                              .getConnection(identity, cluster_name)
+                              [_READINESS_DB][_READINESS_COLLECTION])
+                collection.replace_one(
+                    {"_id": _READINESS_ID},
+                    {"_id": _READINESS_ID, "cluster_name": cluster_name,
+                     "written_by": identity, "attempt": writes,
+                     "written_at": datetime.now(timezone.utc)},
+                    upsert=True)
+                log.info("%s took a write after %.0fs, %d ping(s), %d write "
+                         "attempt(s)", cluster_name, time.monotonic() - began,
+                         pings, writes)
+                return
+            except Exception as exc:  # noqa: BLE001
+                last = f"{type(exc).__name__}: {str(exc)[:160]}"
+            if due():
+                log.info("still trying to write to %s after %.0fs, %d "
+                         "attempt(s); last refusal %s", cluster_name,
+                         time.monotonic() - began, writes, last)
+            time.sleep(_RETRY_SECONDS)
+
+    _raise_not_usable(cluster_name, pings, writes, last)
+
+
 def main() -> int:
     parser = argparse.ArgumentParser(description="Resume the pipeline cluster.")
     parser.add_argument("--cluster",
                         default=os.environ.get("PIPELINE_CLUSTER",
                                                "ChatHealthyDataPipelines"))
+    parser.add_argument("--identity", default="pipelineEditor",
+                        help="the identity the ping connects as")
     parser.add_argument("--interval", type=int, default=60,
                         help="seconds between attempts (default 60)")
     args = parser.parse_args()
@@ -135,17 +240,15 @@ def main() -> int:
             time.sleep(args.interval)
             continue
 
-        # Not paused and IDLE is the only pair that serves a connection. Not
-        # paused while UPDATING is a cluster still coming up, and a client that
-        # connects then fails server selection.
-        if not paused and state == "IDLE":
-            log.info("%s is RUNNING after %d attempt(s)", args.cluster, attempt)
-            return 0
-
+        # Un-paused is where the Atlas API stops being consulted. From here
+        # the cluster is asked directly: first a ping, then a write, each
+        # polled every second until it answers or ten minutes are spent.
         if not paused:
-            log.info("attempt %d: %s is %s; waiting", attempt, args.cluster, state)
-            time.sleep(args.interval)
-            continue
+            log.info("%s is un-paused after %d attempt(s); Atlas says %s. "
+                     "Pinging every %ds.",
+                     args.cluster, attempt, state, _PING_SECONDS)
+            _wait_until_usable(args.cluster, args.identity)
+            return 0
 
         reason = cluster.resume()
         if not reason:
