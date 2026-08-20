@@ -39,6 +39,7 @@ import json
 import subprocess
 import sys
 import tempfile
+import time
 from pathlib import Path
 
 from pydantic import BaseModel, Field
@@ -57,6 +58,21 @@ except ImportError:
 
 # After enforcement_worker, which is what puts ChatHealthyLib on the path.
 from chathealthy_lib.exceptions import ChatHealthyException  # noqa: E402
+from chathealthy_lib.logging_service import ChatHealthyLoggingService  # noqa: E402
+
+_CH_LOG = ChatHealthyLoggingService()
+
+def _ch_exception():
+    """ChatHealthyException, resolved the same way every other worker does.
+
+    Two raise sites here call this and it was never defined, so both error
+    paths died on NameError instead of reporting what went wrong. Both are
+    error paths, which is why the commit gate never reached them and a
+    release-time audit did.
+    """
+    from chathealthy_lib.exceptions import ChatHealthyException
+    return ChatHealthyException
+
 
 _RULE_ID = "Rule-065"
 _STORY_ID = "EPIC-010-F-108-S-001"
@@ -708,6 +724,13 @@ class ScanDataMigrationComplianceWorker(EnforcementWorker):
                 f"{listing}{blank}"
                 f"SOURCE OF {_MIGRATION_FILE}:{blank}{source}"
             )
+            _CH_LOG.info(
+                "[ENF-009] round %d of %d: asking the model about %d "
+                "requirement(s): %s",
+                round_number, _AUDIT_ROUNDS, len(outstanding),
+                ", ".join(r[0].rsplit("-", 2)[-2] + "-" + r[0].rsplit("-", 1)[-1]
+                          for r in outstanding))
+            began = time.monotonic()
             result = run_llm_sync(
                 self._auditor(), prompt,
                 call_site="scan_data_migration_compliance_worker.audit",
@@ -722,12 +745,18 @@ class ScanDataMigrationComplianceWorker(EnforcementWorker):
                     settled[verdict.req_id] = verdict
 
             outstanding = [r for r in outstanding if r[0] not in settled]
+            _CH_LOG.info(
+                "[ENF-009] round %d answered in %.0fs: %d settled, %d still "
+                "outstanding", round_number, time.monotonic() - began,
+                len(settled), len(outstanding))
             if not outstanding:
                 break
 
         return settled
 
     def run(self) -> int:
+        _CH_LOG.info("[ENF-009] judging %s against %s, env=%s",
+                     _MIGRATION_FILE, _STORY_ID, self._env)
         staged = {f.replace("\\", "/") for f in self.files}
         any_violations = False
 
@@ -753,6 +782,10 @@ class ScanDataMigrationComplianceWorker(EnforcementWorker):
             any_violations = True
 
         parsed = self._decided_by_parsing(source)
+        _CH_LOG.info("[ENF-009] decided by parsing, no model asked: %s",
+                     ", ".join(f"{r.rsplit('-', 2)[-2]}-{r.rsplit('-', 1)[-1]}"
+                               f"={'yes' if ok else 'NO'}"
+                               for r, (ok, _w) in sorted(parsed.items())))
         for req_id, (ok, why) in sorted(parsed.items()):
             if ok:
                 continue

@@ -31,6 +31,7 @@ from chathealthy_lib.exceptions import ChatHealthyException
 from chathealthy_lib.logging_service import (
     ChatHealthyLoggingService, set_mongo_log_identity)
 from chathealthy_lib.mongo_utilities import ChatHealthyMongoUtilities
+from chathealthy_lib.reservations import release, reserve
 
 set_mongo_log_identity("PipelineToFrontEndPublicDataMigrator")
 
@@ -43,6 +44,12 @@ _BATCH = 1000
 # approval against today's collection is the attack this closes.
 _APPROVAL_VALID_SECONDS = 60
 _AUTHORIZATION_TYPE = "data_migration"
+# The service reserves itself before it works. One holder at a time, taken
+# and given back by the library: admitting a job and performing one are
+# different concerns.
+_RESERVATION_TYPE = "data_migration_service"
+_MIGRATOR = "PipelineToFrontEndPublicDataMigrator"
+_FRONT_END = "ChatHealthyFrontEnd"
 # The service's answer to a human approval, referencing it by key. A distinct
 # type because it is a distinct fact: the approval says a person released the
 # work, the acknowledgement says a service took that release up.
@@ -333,8 +340,32 @@ def _released_approval(collection: str, approval_id: str) -> dict:
 
 
 def main() -> int:
+    """Reserve the service, migrate, give the reservation back.
+
+    REQ-B-015: one job at a time. An invocation arriving while another is
+    running is refused before it reads or writes anything, and it abends --
+    it does not wait and it does not queue.
+    """
     body = _webhook_body()
     collection = str(body.get("collection") or "")
+    try:
+        reserve(_MIGRATOR, _FRONT_END, _RESERVATION_TYPE,
+                holder="data_migration", about=collection)
+    except ChatHealthyException as exc:
+        _log.error(
+            "data_migration ABEND collection=%s mode=%s: %s. The service "
+            "runs one job at a time; nothing was read and nothing was "
+            "written.", collection, exc.mode, exc)
+        raise
+    try:
+        return _migrate(body, collection)
+    finally:
+        release(_MIGRATOR, _FRONT_END, _RESERVATION_TYPE)
+        _log.info("data_migration reservation released collection=%s",
+                  collection)
+
+
+def _migrate(body: dict, collection: str) -> int:
     approval_id = str(body.get("approval_id") or "")
 
     migrated = MigratedCollection(collection)
