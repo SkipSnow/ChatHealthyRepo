@@ -43,7 +43,9 @@ from chathealthy_lib.logging_service import (  # noqa: E402
 from chathealthy_lib.mongo_utilities import ChatHealthyMongoUtilities  # noqa: E402
 from pymongo import ReturnDocument  # noqa: E402
 
-set_mongo_log_identity("DevOpsUser")
+set_mongo_log_identity("pipelineEditor")
+
+_RECORDER = "pipelineEditor"
 
 _log = ChatHealthyLoggingService()
 
@@ -211,21 +213,19 @@ def main() -> int:
 
     released_at = datetime.datetime.now(datetime.timezone.utc)
     approval_id = f"migration-approval-{uuid.uuid4().hex}"
-    # DevOpsUser records the decision. The migrator cannot: it is a managed
-    # identity, assumable only by the Azure resource it is attached to, so no
-    # workstation can become it. Recording a decision is a different concern
-    # from moving data, and this identity does only the former here.
+    # pipelineEditor writes the approval record. The one database this
+    # program reaches is pipelineAdmin on the front-end cluster, and this
+    # identity's certificate is the one entitled to it. It touches no
+    # collection of data on either cluster; moving data is the migrator's
+    # work and happens in Azure.
     approvals = ChatHealthyMongoUtilities().getConnection(
-        "DevOpsUser", "ChatHealthyFrontEnd"
+        _RECORDER, "ChatHealthyFrontEnd"
     )["pipelineAdmin"]["Authorizations"]
-    # Queried over time by (type, collection, released_at), so those are
-    # their own fields rather than packed into the id. The id is a surrogate
-    # and carries no meaning. build_number is the estate's counter at the
-    # moment of release -- a marker, not an identifier of what ran; the
-    # commit is what says that.
-    approvals.create_index([("type", 1), ("collection", 1), ("released_at", -1)])
-    approvals.create_index([("approval_number", 1)], unique=True)
-    approvals.create_index([("type", 1), ("day", 1)])
+    # Queried over time by (type, day) and by (type, collection), so those
+    # are their own fields rather than packed into the id. The indexes that
+    # serve those queries are created once, operationally; a program that
+    # builds them on every invocation is doing an administrator's work every
+    # time it does its own. The id is a surrogate and carries no meaning.
     approvals.insert_one({
         "_id": approval_id,
         "approval_number": _next_approval_number(
