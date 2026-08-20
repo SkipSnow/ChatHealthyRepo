@@ -4469,11 +4469,13 @@
               ],
               "secrets": {
                 "CH_LOG_DB": "local_env",
-                "PIPELINETOFRONTENDPUBLICDATAMIGRATOR_AZURE_CLIENT_ID": "local_env"
+                "PIPELINETOFRONTENDPUBLICDATAMIGRATOR_AZURE_CLIENT_ID": "local_env",
+                "KEY_VAULT_URI": "local_env"
               },
               "secret_descriptions": {
                 "CH_LOG_DB": "Database the structured log records are written to",
-                "PIPELINETOFRONTENDPUBLICDATAMIGRATOR_AZURE_CLIENT_ID": "clientId of the migrator managed identity. Not a secret."
+                "PIPELINETOFRONTENDPUBLICDATAMIGRATOR_AZURE_CLIENT_ID": "clientId of the migrator managed identity. Not a secret.",
+                "KEY_VAULT_URI": "Vault holding the migrator's certificate. Not a secret."
               },
               "config": {
                 "runbook_name": "DataMigration",

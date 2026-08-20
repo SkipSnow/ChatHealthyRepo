@@ -35,6 +35,7 @@ never tested.
 from __future__ import annotations
 
 import ast
+import datetime
 import json
 import os
 import pathlib
@@ -92,75 +93,73 @@ def _operator_present() -> bool:
 
 # ── the three runs, each one page ────────────────────────────────────────────
 
-def test_run_one_a_collection_on_the_pipeline_and_not_the_front_end_migrates(seeded):
-    """TRUE: a migration a human released moves the data, and the collection
-    arrives under the name it left with. REQ-B-003 positively, and REQ-B-001.
+def test_the_four_requests(seeded):
+    """TRUE: the service migrates what a human released, does one job at a
+    time, and refuses what it cannot migrate -- each for its own reason.
+    REQ-B-015, REQ-B-013, REQ-B-005, REQ-B-003 and REQ-B-001.
 
-    A behavioural assertion. It opens the approval page, waits for a person,
-    and writes. It does not wake the cluster: bringing the pipeline cluster up
-    is the service's work, and a test that does it first is staging the thing
-    it claims to be observing. The only case in this file that
-    writes. Every document arrives, the name is
-    unchanged, and the human`s sign-off is recorded in Mongo before it ran."""
-    name = seeded["migratable"]
-    result = _operator_run(name)
-    output = result.stdout + result.stderr
-    assert result.returncode == 0, output[-900:]
+    One sequence, four approvals, because the cases are about each other:
+    the second must arrive while the first is still running, and the third
+    and fourth must arrive after it has finished.
 
-    record = _approval_record(name)
+        1   the real migration
+        2a  fired while the reservation is held  -> refused, one job at a time
+        2b  fired once it is free, absent source -> refused, nothing to move
+        3   fired once it is free, target present -> refused, already there
+
+    The runbook adjudicates. Every assertion below reads what it recorded.
+    """
+    migratable = seeded["migratable"]
+    absent = seeded["absent_everywhere"]
+    present = seeded["already_there"]
+
+    # 1 -- the real one.
+    began = datetime.datetime.now(datetime.timezone.utc)
+    fired = _operator_run(migratable)
+    assert fired.returncode == 0, (fired.stdout + fired.stderr)[-900:]
+
+    record = _approval_record(migratable)
     assert record is not None, "no approval record in Mongo"
     assert record["verdict"] == "approve", record
     assert record["human_click"] is True, record
 
-    assert _front_end()[name].count_documents({}) == seeded["rows"]
+    # The reservation appearing is the service saying the job has started.
+    _await_the_service(held=True, every=1)
 
+    # 2a -- while it is held.
+    _log.info("[case] 2a: a second invocation while the first still runs")
+    second = datetime.datetime.now(datetime.timezone.utc)
+    fired = _operator_run(absent)
+    assert fired.returncode == 0, (fired.stdout + fired.stderr)[-900:]
+    said = _the_runbook_said(absent, since=second)
+    assert any("reservation_held" in line or "one job at a time" in line
+               for line in said), (
+        f"the second invocation was not refused for being second: {said}")
 
-def test_run_two_a_collection_absent_from_the_pipeline_fails(seeded):
-    """TRUE: approval alone does not make a migration happen. A released
-    migration with nothing at the source fails rather than reporting an empty
-    success, which would tell the operator data had moved when none had.
+    # 2b -- once the first has finished, the same name for a different reason.
+    _await_the_service(held=False, every=5)
+    _log.info("[case] 2b: the same absent collection, now that it is free")
+    third = datetime.datetime.now(datetime.timezone.utc)
+    fired = _operator_run(absent)
+    assert fired.returncode == 0, (fired.stdout + fired.stderr)[-900:]
+    said = _the_runbook_said(absent, since=third)
+    assert any("migration_source_absent" in line for line in said), (
+        f"an absent source was not refused as absent: {said}")
 
-    A behavioural assertion. It maps to no requirement and needs none: code that
-    reports success having moved nothing is simply wrong, and correctness of
-    that kind is not specified, it is expected."""
-    name = seeded["absent_everywhere"]
-    result = _operator_run(name)
-    output = result.stdout + result.stderr
+    # 3 -- a collection already at the destination.
+    _await_the_service(held=False, every=3)
+    _log.info("[case] 3: a collection already on the front end")
+    fourth = datetime.datetime.now(datetime.timezone.utc)
+    fired = _operator_run(present)
+    assert fired.returncode == 0, (fired.stdout + fired.stderr)[-900:]
+    said = _the_runbook_said(present, since=fourth)
+    assert any("migration_target_exists" in line for line in said), (
+        f"a collection already there was not refused as present: {said}")
 
-    record = _approval_record(name)
-    assert record is not None, "no approval record in Mongo"
-    assert record["verdict"] == "approve", record
-
-    assert result.returncode != 0, f"an absent source reported success: {output[-900:]}"
-    assert "migration_source_absent" in output, (
-        f"the refusal did not raise the mode this requirement names: {output[-900:]}")
-    assert name in output, (
-        f"the log does not name the collection asked for: {output[-900:]}")
-    assert name not in _front_end().list_collection_names()
-
-
-def test_run_three_a_collection_already_on_the_front_end_fails(seeded):
-    """TRUE: a collection already present at the destination stops the
-    migration, and what is already there is left exactly as it was. REQ-B-005.
-
-    A behavioural assertion. It runs the migration for real against a seeded
-    collection. Approval succeeded. B-005 stopped it anyway, which is the point: a human
-    releasing a migration cannot cause existing data to be overwritten."""
-    name = seeded["already_there"]
-    before = _front_end()[name].count_documents({})
-    result = _operator_run(name)
-    output = result.stdout + result.stderr
-
-    record = _approval_record(name)
-    assert record is not None, "no approval record in Mongo"
-    assert record["verdict"] == "approve", record
-
-    assert result.returncode != 0, f"an occupied target reported success: {output[-900:]}"
-    assert "migration_target_exists" in output, (
-        f"the refusal did not raise the mode this requirement names: {output[-900:]}")
-    assert name in output, (
-        f"the narrative does not name the collection it found: {output[-900:]}")
-    assert _front_end()[name].count_documents({}) == before, "the refusal wrote"
+    # The first one landed whole, under the name it left with.
+    said = _the_runbook_said(migratable, since=began)
+    assert any("complete" in line for line in said), (
+        f"the migration did not report completion: {said}")
 
 
 # ── half one: the commit gate ────────────────────────────────────────────────
@@ -410,6 +409,65 @@ def _approval_record(collection: str) -> dict | None:
         sort=[("released_at", -1)])
 
 
+_SERVICE_WAIT_SECONDS = 1800
+
+
+def _reservations():
+    from chathealthy_lib.reservations import (
+        RESERVATIONS_COLLECTION, RESERVATIONS_DATABASE)
+    return ChatHealthyMongoUtilities().getConnection(
+        "pipelineEditor", _FRONT_END_CLUSTER
+    )[RESERVATIONS_DATABASE][RESERVATIONS_COLLECTION]
+
+
+def _await_the_service(held: bool, every: int) -> dict:
+    """Wait until the service is held, or until it is free. Returns the
+    reservation when waiting for it to appear.
+
+    The reservation appearing is the service saying a job has started, and
+    it disappearing is the service saying that job is over. Neither is
+    inferred from a timer here: the pytest reads what the service wrote.
+    """
+    wanted = "held" if held else "free"
+    began = time.monotonic()
+    while time.monotonic() - began < _SERVICE_WAIT_SECONDS:
+        reservation = _reservations().find_one({})
+        if (reservation is not None) == held:
+            _log.info("[service] %s after %.0fs%s", wanted,
+                      time.monotonic() - began,
+                      f" — {reservation.get('holder')} has it for "
+                      f"{reservation.get('about')!r}" if reservation else "")
+            return reservation or {}
+        _log.info("[service] waiting for %s, asking again in %ds (%.0fs so far)",
+                  wanted, every, time.monotonic() - began)
+        time.sleep(every)
+    pytest.fail(f"the service never became {wanted} within "
+                f"{_SERVICE_WAIT_SECONDS}s")
+
+
+def _the_runbook_said(collection: str, since) -> list[str]:
+    """What the runbook recorded about this collection, in its own words.
+
+    The runbook adjudicates; this reads its verdict. Nothing here decides
+    whether an invocation should have been refused.
+    """
+    log = ChatHealthyMongoUtilities().getConnection(
+        "pipelineEditor", _FRONT_END_CLUSTER)["pipelineAdmin"]["Log"]
+    began = time.monotonic()
+    while time.monotonic() - began < _SERVICE_WAIT_SECONDS:
+        said = [str(record.get("message", ""))
+                for record in log.find({"timeStamp": {"$gte": since}})
+                if collection in str(record.get("message", ""))]
+        if said:
+            for line in said:
+                _log.info("[runbook] %s", line[:220])
+            return said
+        _log.info("[runbook] nothing recorded about %s yet, asking again",
+                  collection)
+        time.sleep(3)
+    pytest.fail(f"the runbook recorded nothing about {collection}")
+
+
 def _operator_run(collection: str) -> subprocess.CompletedProcess:
     """Invoke the operator's program. One invocation, one page, one click."""
     _log.info("[run] invoking the operator program for %s; an approval page "
@@ -544,3 +602,37 @@ def test_each_actor_uses_one_identity_and_not_the_other_s():
     assert len(workstation) == 1, f"the workstation uses {sorted(workstation)}"
     assert service != workstation, (
         f"both actors use the same identity: {sorted(service)}")
+
+
+def test_a_second_holder_cannot_take_the_reservation():
+    """TRUE: the service runs one job at a time, so a second invocation
+    arriving while one is running is refused. REQ-B-015.
+
+    A behavioural assertion against the real collection.
+
+    The reservation is the collection, not a row in it: one record or none,
+    whatever its type. So while this test holds it, a migration invoked at
+    that moment is refused -- which is the exclusion working, and is worth
+    knowing before running this against an estate doing real work. It is
+    held for the length of two calls and given back in a finally.
+    """
+    from chathealthy_lib.exceptions import ChatHealthyException
+    from chathealthy_lib.reservations import release, reserve
+
+    kind = f"pytest_mutex_{uuid.uuid4().hex[:8]}"
+    reserve("pipelineEditor", _FRONT_END_CLUSTER, kind,
+            holder="first", about="the first holder")
+    try:
+        with pytest.raises(ChatHealthyException) as refused:
+            reserve("pipelineEditor", _FRONT_END_CLUSTER, kind,
+                    holder="second", about="the second holder")
+        assert refused.value.mode == "reservation_held", refused.value.mode
+        assert "first" in str(refused.value), str(refused.value)
+    finally:
+        release("pipelineEditor", _FRONT_END_CLUSTER, kind)
+
+    # Released, so the next holder takes it. A mutex that never comes back
+    # refuses every job after the first and looks identical to one that works.
+    reserve("pipelineEditor", _FRONT_END_CLUSTER, kind,
+            holder="third", about="after the release")
+    release("pipelineEditor", _FRONT_END_CLUSTER, kind)

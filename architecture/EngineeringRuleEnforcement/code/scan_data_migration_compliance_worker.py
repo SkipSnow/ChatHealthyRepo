@@ -596,8 +596,12 @@ class ScanDataMigrationComplianceWorker(EnforcementWorker):
         return self._agent
 
     def _api_key(self) -> str:
+        # From the checkout, never the judged tree. The key belongs to the
+        # machine running the audit, not to the code under audit, and .env is
+        # not in git -- a materialised branch has none, so following the
+        # judged root made every --env audit die before asking anything.
         from dotenv import dotenv_values
-        values = dotenv_values(self._repo_root() / ".env")
+        values = dotenv_values(self._checkout_root() / ".env")
         key = values.get("OPENAI_API_KEY")
         if not key:
             raise _ch_exception()(
