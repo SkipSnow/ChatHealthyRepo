@@ -631,7 +631,25 @@ class ScanDataMigrationComplianceWorker(EnforcementWorker):
                         if location.endswith(".py") and location != _MIGRATION_FILE:
                             wanted.append(location)
 
+        # The library modules the migration imports. Half of what a
+        # requirement asks about can live in one of them -- the mutex that
+        # answers REQ-B-015 does -- and a model shown only the call and not
+        # the implementation cannot say whether the requirement is met. It
+        # said so: "the provided source contains no implementation proving
+        # reserve rejects a concurrent invocation". Asked without the
+        # evidence it guessed, and guessed differently on different runs.
         repo_root = self._repo_root()
+        migration = repo_root / _MIGRATION_FILE
+        if migration.is_file():
+            imported = ast.parse(migration.read_text(encoding="utf-8"))
+            for node in ast.walk(imported):
+                if not isinstance(node, ast.ImportFrom) or not node.module:
+                    continue
+                if not node.module.startswith("chathealthy_lib."):
+                    continue
+                module = node.module.split(".", 1)[1].replace(".", "/")
+                wanted.append(f"ChatHealthyLib/src/chathealthy_lib/{module}.py")
+
         out: list[tuple[str, str]] = []
         for location in sorted(set(wanted)):
             path = repo_root / location
