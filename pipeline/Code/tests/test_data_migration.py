@@ -224,6 +224,35 @@ def test_an_unregistered_migration_file_is_refused():
     assert "more than one place" in twice, twice
 
 
+def _lifecycle():
+    """The manager that holds reservations on the pipeline cluster.
+
+    It opens its own connection and takes none from here; the constructor
+    arguments it accepts are for callers that inject one, which this suite
+    does not.
+    """
+    from cluster_lifecycle_manager import ClusterLifecycleManager
+    return ClusterLifecycleManager(get_db_fn=None)
+
+
+def _wake_pipeline_cluster() -> None:
+    """Ask the pipeline cluster to serve, and wait until it does.
+
+    The reaper pauses it whenever nothing holds a reservation, so the suite
+    reserves first and then wakes it. The tool asks repeatedly until the
+    cluster answers or the wait is spent; a cluster still asleep afterwards
+    fails the suite rather than letting every case fail one at a time.
+    """
+    result = subprocess.run(
+        [sys.executable, str(_RESUME_TOOL), "--cluster", _PIPELINE_CLUSTER,
+         "--interval", str(_CLUSTER_POLL_SECONDS)],
+        capture_output=True, text=True, cwd=str(_REPO),
+        timeout=_CLUSTER_WAIT_SECONDS)
+    assert result.returncode == 0, (
+        f"{_PIPELINE_CLUSTER} did not come up: "
+        f"{(result.stdout + result.stderr)[-600:]}")
+
+
 @pytest.fixture(scope="module")
 def reservation():
     """A reservation for the suite, then released.
