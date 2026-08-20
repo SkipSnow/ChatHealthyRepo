@@ -402,8 +402,10 @@ def _front_end():
 def _approval_record(collection: str) -> dict | None:
     """The decision as Mongo holds it. The log says what happened; this says
     what was recorded, and the record is what REQ-B-003 asks for."""
+    # pipelineEditor, not frontendUser: the approval lives in pipelineAdmin
+    # and the front-end identity has no rights there, by design.
     return ChatHealthyMongoUtilities().getConnection(
-        "frontendUser", _FRONT_END_CLUSTER
+        "pipelineEditor", _FRONT_END_CLUSTER
     )["pipelineAdmin"]["Authorizations"].find_one(
         {"collection": collection, "type": "data_migration"},
         sort=[("released_at", -1)])

@@ -28,17 +28,26 @@ import uuid
 from pymongo.errors import BulkWriteError
 
 from chathealthy_lib.exceptions import ChatHealthyException
-from chathealthy_lib.logging_service import (
-    ChatHealthyLoggingService, set_mongo_log_identity)
+from chathealthy_lib.logging_service import ChatHealthyLoggingService
+from chathealthy_lib.pipeline_boot import bootstrap_aa_mongo_logging
 from chathealthy_lib.mongo_utilities import ChatHealthyMongoUtilities
 from chathealthy_lib.reservations import release, reserve
 
-# Where this runbook's log goes, stated by the runbook. Nothing in the
-# Automation sandbox carries it: there is no application .env there, and a
-# refusal or an abend written to a sandbox that is torn down when the job
-# ends is a decision nobody can read afterwards.
-os.environ.setdefault("CH_LOG_DESTINATION", "mongo")
-set_mongo_log_identity("PipelineToFrontEndPublicDataMigrator")
+# Hydrate the Automation Variables the deploy pushed into os.environ, the
+# way every other runbook in this account does. The sandbox does not put
+# them there: without KEY_VAULT_URI the certificate cannot be fetched and
+# this runbook reaches neither cluster, which is exactly how it failed.
+try:
+    import automationassets as _automation_assets
+
+    for _name in ("KEY_VAULT_URI", "CH_LOG_DB", "AUTOMATION_ENV_PREFIX"):
+        try:
+            os.environ[_name] = str(
+                _automation_assets.get_automation_variable(_name))
+        except Exception:  # noqa: BLE001
+            pass
+except ImportError:
+    pass
 
 _log = ChatHealthyLoggingService()
 
@@ -351,6 +360,14 @@ def main() -> int:
     running is refused before it reads or writes anything, and it abends --
     it does not wait and it does not queue.
     """
+    # Mongo logging, set up the way every runbook here sets it up, before
+    # the first log call. Rolling my own set it half-up: the handler needs
+    # CH_SPACE_NAME, ENV_PREFIX and CH_COMPONENT as well as an identity, and
+    # raises on the first line without them.
+    bootstrap_aa_mongo_logging(
+        component_name="data_migration",
+        identity=_MIGRATOR)
+
     body = _webhook_body()
     collection = str(body.get("collection") or "")
     try:
