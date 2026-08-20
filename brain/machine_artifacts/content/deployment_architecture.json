@@ -4321,7 +4321,7 @@
                   "feature_id": "EPIC-002-F-003",
                   "handler_type": "python_source",
                   "disposition": "referenced",
-                  "content_hash": "9d9002fc96976ea49dea2494cef162a0a050fa31f352ed6365ed751a69dd4201",
+                  "content_hash": "02af0506f649e66fecd74edb938742fadfabadd574e6b12b4325ab90a4781591",
                   "package": "entitlement_report"
                 }
               ],
@@ -5213,7 +5213,7 @@
                   "feature_id": "EPIC-010-F-108",
                   "handler_type": "python_source",
                   "disposition": "referenced",
-                  "content_hash": "075fb345933b5e47631da0dc06f9fed4796d343ef37e7c4aa74cbc53f0594a4c",
+                  "content_hash": "567191bd5d72072772eb55e24c53892913cf80842b6a5bccf17862981d1b2bcd",
                   "package": "data_migration"
                 }
               ],
@@ -5272,41 +5272,8 @@
           ]
         }
       ],
-      "allowed_roles": [
-        "Automation Operator"
-      ],
-      "entitlements": [
-        {
-          "kind": "azure_rbac_role_assignment",
-          "principal": "pipelineEditor",
-          "role": "Virtual Machine Contributor",
-          "scope": "/subscriptions/<subscription-id>/resourceGroups/<vm_rg>"
-        },
-        {
-          "kind": "azure_rbac_role_assignment",
-          "principal": "pipelineEditor",
-          "role": "Network Contributor",
-          "scope": "/subscriptions/<subscription-id>/resourceGroups/<vm_rg>"
-        },
-        {
-          "kind": "azure_rbac_role_assignment",
-          "principal": "ChatHealthyJobManager system-assigned managed identity",
-          "role": "User Access Administrator",
-          "scope": "/subscriptions/7a17eec1-c477-4c7c-b1c1-d0662ce7a1ee/resourceGroups/rg-chathealthy-pipeline-dev/providers/Microsoft.Automation/automationAccounts/ChatHealthyJobManager"
-        },
-        {
-          "kind": "azure_rbac_role_assignment",
-          "principal": "pipelineEditor",
-          "role": "Automation Operator",
-          "scope": "/subscriptions/7a17eec1-c477-4c7c-b1c1-d0662ce7a1ee/resourceGroups/rg-chathealthy-pipeline-dev/providers/Microsoft.Automation/automationAccounts/ChatHealthyJobManager"
-        },
-        {
-          "kind": "azure_rbac_role_assignment",
-          "principal": "pipelineEditor",
-          "role": "Automation Operator",
-          "scope": "/subscriptions/7a17eec1-c477-4c7c-b1c1-d0662ce7a1ee/resourceGroups/rg-chathealthy-pipeline-dev/providers/Microsoft.Automation/automationAccounts/ChatHealthyJobManager"
-        }
-      ]
+      "allowed_roles": [],
+      "entitlements": []
     }
   ],
   "firm": {
