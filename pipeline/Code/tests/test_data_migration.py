@@ -120,7 +120,7 @@ def test_the_four_requests(seeded):
 
     record = _approval_record(migratable)
     assert record is not None, "no approval record in Mongo"
-    assert record["verdict"] == "approve", record
+    assert record["approval"] is True, record
     assert record["human_click"] is True, record
 
     # The reservation appearing is the service saying the job has started.
