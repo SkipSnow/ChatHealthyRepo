@@ -29,10 +29,11 @@ def _say(line: str) -> None:
     stderr; it keeps stderr only inside an exception. Writing to stdout is
     what a completed job comes back with.
 
-    This imports nothing of ours. Every chathealthy_lib module a runbook
-    imports is inlined into it at build time, and the library reaches
-    mongo_utilities, which needs bson -- the very package this exists to
-    explain. The probe carries no import that could fail before it answers.
+    This imports nothing of ours, and must not name the shared library even
+    in a comment: the build inlines that library into any runbook whose text
+    contains its name, and what it inlines needs the very packages this
+    exists to explain. The probe carries no import that could fail before it
+    answers, and no word that would give it one.
     """
     sys.stdout.write(line + _NL)
     sys.stdout.flush()
