@@ -8,7 +8,7 @@ out.
 
 This writes what the sandbox is: the interpreter, the platform, and the wheel
 tags its own pip will accept. It reads nothing and holds no credential, and it
-writes to stderr rather than through the logging service -- that service needs
+writes to stdout rather than through the logging service -- that service needs
 Mongo, and Mongo needs the very packages this exists to explain.
 
 It is declared in deployment_architecture.json so it reaches Azure through the
@@ -20,21 +20,22 @@ import platform
 import sys
 import sysconfig
 
-from chathealthy_lib.exceptions import ChatHealthyException
 
 _NL = chr(10)
 
 
-facts: list[str] = []
-
-
 def _say(line: str) -> None:
-    """Both channels. Automation keeps the Output stream on success and
-    discards stderr, and it keeps stderr only inside an exception -- so a
-    job that succeeds quietly says nothing at all. The facts are collected
-    and raised at the end, which is the one channel that always survives."""
-    facts.append(line)
-    sys.stderr.write(line + _NL)
+    """Automation keeps the Output stream on a job that succeeds and discards
+    stderr; it keeps stderr only inside an exception. Writing to stdout is
+    what a completed job comes back with.
+
+    This imports nothing of ours. Every chathealthy_lib module a runbook
+    imports is inlined into it at build time, and the library reaches
+    mongo_utilities, which needs bson -- the very package this exists to
+    explain. The probe carries no import that could fail before it answers.
+    """
+    sys.stdout.write(line + _NL)
+    sys.stdout.flush()
 
 
 def main() -> int:
@@ -70,10 +71,7 @@ def main() -> int:
         except Exception as exc:  # noqa: BLE001
             _say(f"    {name:14s} not importable: {type(exc).__name__}")
 
-    raise ChatHealthyException(
-        mode="sandbox_facts",
-        component="sandbox_facts",
-        message=_NL.join(facts))
+    return 0
 
 
 if __name__ == "__main__":
