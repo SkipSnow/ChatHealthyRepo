@@ -39,7 +39,7 @@ from chathealthy_lib.exceptions import ChatHealthyException  # noqa: E402
 from chathealthy_lib.human_authorization import (  # noqa: E402
     APPROVE, request_authorization)
 from chathealthy_lib.logging_service import (  # noqa: E402
-    ChatHealthyLoggingService, set_mongo_log_identity, set_run_id)
+    ChatHealthyLoggingService, set_mongo_log_identity)
 from chathealthy_lib.mongo_utilities import ChatHealthyMongoUtilities  # noqa: E402
 from pymongo import ReturnDocument  # noqa: E402
 
@@ -136,7 +136,11 @@ def _next_approval_number(counters, authorization_type: str) -> int:
 
 
 def _authorizer() -> str:
-    """Who the page says is authorizing, read from the deployment record."""
+    """Who the page names as authorizing, read from the deployment record.
+
+    Read here rather than in the page: the page is a library and would have
+    to work out what platform it is on to answer this.
+    """
     record = json.loads(
         (_REPO / "brain" / "machine_artifacts" / "content"
          / "deployment_architecture.json").read_text(encoding="utf-8"))
@@ -164,15 +168,20 @@ def main() -> int:
                f"ChatHealthyDataPipelines.PipelinePublicHealthData"
                f"  →  ChatHealthyFrontEnd.PublicHealthData")
 
-    # One id for one request, minted here and carried to the runbook in the
-    # webhook payload. Both processes stamp every record with it, so the
-    # operator program's half of the story and the runbook's half read as
-    # one, and neither has to be found by timestamp.
-    job_id = f"migration-job-{uuid.uuid4().hex}"
-    set_run_id(job_id)
+    _log.info("data_migration authorization requested collection=%s env=%s",
+              args.collection, args.env)
 
-    _log.info("data_migration authorization requested job_id=%s collection=%s "
-              "env=%s", job_id, args.collection, args.env)
+    # The page asks the transfer question: what moves, and between which two
+    # ends. Who is authorizing is the page's own business and it works that
+    # out; this names no person.
+    transfer = {
+        "collection": args.collection,
+        "source": {"cluster": "ChatHealthyDataPipelines",
+                   "database": "PipelinePublicHealthData"},
+        "destination": {"cluster": "ChatHealthyFrontEnd",
+                        "database": "PublicHealthData"},
+        "authorizer": _authorizer(),
+    }
 
     authorization = request_authorization(
         "this migration", subject,
@@ -254,7 +263,6 @@ def main() -> int:
         "gitSourceAttribute": judged.get("branch"),
         "source_commit": judged.get("commit"),
         "build_number": _build_number(),
-        "job_id": job_id,
         "human_click": authorization.human_click,
         "subject": authorization.subject,
         "seconds_waited": authorization.seconds_waited,
@@ -276,7 +284,6 @@ def main() -> int:
     payload = {
         "collection": args.collection,
         "approval_id": approval_id,
-        "job_id": job_id,
         "released_at": released_at.isoformat(),
     }
 

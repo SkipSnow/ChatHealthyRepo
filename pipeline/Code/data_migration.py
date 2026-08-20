@@ -49,8 +49,7 @@ from pymongo.errors import BulkWriteError
 from requests.auth import HTTPDigestAuth
 
 from chathealthy_lib.exceptions import ChatHealthyException
-from chathealthy_lib.logging_service import (
-    ChatHealthyLoggingService, set_run_id)
+from chathealthy_lib.logging_service import ChatHealthyLoggingService
 from chathealthy_lib.pipeline_boot import bootstrap_aa_mongo_logging
 from chathealthy_lib.mongo_utilities import ChatHealthyMongoUtilities
 from chathealthy_lib.reservations import release, reserve
@@ -475,23 +474,17 @@ def main() -> int:
     # a managed identity, and that connection failed before a single line
     # was written -- taking the whole job with it, because a process that
     # cannot record what it does must not run.
-    # The payload is read first, and the job id set, before the log exists.
-    # Reading it needs nothing but argv, and setting the id first is what
-    # puts the id on every record this process writes -- including the log
-    # handler's own first line. The id is minted by the caller and carried
-    # in the payload, the way change_db_version takes one, so the operator
-    # program's half of the story and this half read as one.
+    # The payload is read before the log exists, because reading it needs
+    # nothing but argv and the collection it names belongs in the first
+    # marker this job writes.
     body = _webhook_body()
     collection = str(body.get("collection") or "")
-    job_id = str(body.get("job_id") or "")
-    set_run_id(job_id or None)
-    _mark(f"job_id={job_id or '<none>'} collection={collection or '<none>'}")
+    _mark(f"collection={collection or '<none>'}")
 
     _mark("logging bootstrap: begin (vault fetch and mongo connect)")
     bootstrap_aa_mongo_logging(component_name="data_migration")
     _mark("logging bootstrap: done")
-    _log.info("data_migration begin job_id=%s collection=%s",
-              job_id or "<none>", collection or "<none>")
+    _log.info("data_migration begin collection=%s", collection or "<none>")
     try:
         _mark("reserving the service")
         reserve(_MIGRATOR, _FRONT_END, _RESERVATION_TYPE,
