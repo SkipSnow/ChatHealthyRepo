@@ -34,6 +34,7 @@ never tested.
 """
 from __future__ import annotations
 
+import ast
 import json
 import os
 import pathlib
@@ -98,6 +99,12 @@ _BREAKAGES = {
     "REQ-B-003": (
         'if record.get("verdict") != "approve":',
         'if False and record.get("verdict") != "approve":'),
+    "REQ-B-013": (
+        "        if not self.exists_at_source():",
+        "        if False and not self.exists_at_source():"),
+    "REQ-B-014": (
+        "        acknowledgement_id = _acknowledge_approval(collection, approval_id)",
+        '        acknowledgement_id = "never-acknowledged"'),
     "REQ-B-005": (
         "        if self.exists_at_destination():",
         "        if False and self.exists_at_destination():"),
@@ -157,6 +164,8 @@ def test_each_broken_requirement_is_refused(req_id, pristine_migration_file):
       B-003  the migration would run without a recorded human release
       B-005  the migration would proceed over a collection already there
       B-007  the class would take a second constructor argument
+      B-013  the migration would report success with no source collection
+      B-014  the transfer would proceed without acknowledging the approval
     """
     original = pristine_migration_file
     old, new = _BREAKAGES[req_id]
@@ -284,11 +293,27 @@ def planted(reservation):
         source[names[key]].drop()
 
 
+def _front_end():
+    """The serving database, as frontendUser.
+
+    The test is not the migration and does not borrow the migration's
+    identity: PipelineToFrontEndPublicDataMigrator is a managed identity that
+    exists only inside Azure, and its role can insert and nothing else. The
+    test reads what arrived and plants the collision run three must refuse,
+    both of which are frontendUser's business.
+    """
+    return ChatHealthyMongoUtilities().getConnection(
+        "frontendUser", _FRONT_END_CLUSTER)[_FRONT_END_DB]
+
+
 def _approval_record(collection: str) -> dict | None:
     """The decision as Mongo holds it. The log says what happened; this says
     what was recorded, and the record is what REQ-B-003 asks for."""
-    return _front_end()["MigrationApprovals"].find_one(
-        {"collection": collection}, sort=[("released_at", -1)])
+    return ChatHealthyMongoUtilities().getConnection(
+        "frontendUser", _FRONT_END_CLUSTER
+    )["pipelineAdmin"]["Authorizations"].find_one(
+        {"collection": collection, "type": "data_migration"},
+        sort=[("released_at", -1)])
 
 
 def _operator_run(collection: str) -> subprocess.CompletedProcess:
@@ -367,3 +392,126 @@ def test_run_three_a_collection_already_on_the_front_end_fails(planted):
     assert name in output, (
         f"the narrative does not name the collection it found: {output[-900:]}")
     assert _front_end()[name].count_documents({}) == before, "the refusal wrote"
+
+
+# ── the requirements settled by reading the code ─────────────────────────────
+
+def _migration_tree():
+    return ast.parse(_MIGRATION_PATH.read_text(encoding="utf-8"))
+
+
+def _identities(path: pathlib.Path) -> set[str]:
+    """Every identity name handed to getConnection in one file."""
+    found = set()
+    for node in ast.walk(ast.parse(path.read_text(encoding="utf-8"))):
+        if (isinstance(node, ast.Call) and isinstance(node.func, ast.Attribute)
+                and node.func.attr == "getConnection" and node.args
+                and isinstance(node.args[0], ast.Constant)):
+            found.add(node.args[0].value)
+    return found
+
+
+def _declared_python_components() -> list[pathlib.Path]:
+    """Every .py file deployment_architecture.json declares."""
+    manifest = json.loads(
+        (_REPO / "brain" / "machine_artifacts" / "content"
+         / "deployment_architecture.json").read_text(encoding="utf-8"))
+    out = []
+    for target in manifest.get("DeploymentTargetRecord", []):
+        for environment in target.get("environments", []):
+            for package in environment.get("packages", []):
+                for entry in package.get("files", []) or []:
+                    location = (entry.get("source_location") or "").replace("\\", "/")
+                    if location.endswith(".py") and (_REPO / location).is_file():
+                        out.append(_REPO / location)
+    return out
+
+
+def test_only_the_migration_names_the_serving_database():
+    """TRUE: nothing other than the migration writes to the serving database.
+    REQ-B-002, and REQ-B-009 that exactly one file performs the migration.
+
+    A code assertion over every component the deployment declares."""
+    # Named exactly, not as a substring: PipelinePublicHealthData contains
+    # the serving database's name and is a different database.
+    others = []
+    for component in _declared_python_components():
+        if component == _MIGRATION_PATH:
+            continue
+        try:
+            tree = ast.parse(component.read_text(encoding="utf-8"))
+        except SyntaxError:
+            continue
+        if any(isinstance(n, ast.Constant) and n.value == _FRONT_END_DB
+               for n in ast.walk(tree)):
+            others.append(component)
+    assert not others, f"declared components also naming {_FRONT_END_DB}: {others}"
+
+
+def test_the_migration_cannot_alter_or_remove():
+    """TRUE: no migration changes or removes anything that existed before it
+    ran. REQ-B-004.
+
+    A code assertion: no call in the file can alter or remove."""
+    destructive = {"update_one", "update_many", "replace_one", "delete_one",
+                   "delete_many", "drop", "drop_index", "drop_indexes",
+                   "rename", "find_one_and_delete", "find_one_and_replace",
+                   "find_one_and_update", "bulk_write"}
+    found = sorted({n.func.attr for n in ast.walk(_migration_tree())
+                    if isinstance(n, ast.Call)
+                    and isinstance(n.func, ast.Attribute)
+                    and n.func.attr in destructive})
+    assert not found, f"the migration can alter or remove: {found}"
+
+
+def test_data_is_reached_only_on_behalf_of_a_named_collection():
+    """TRUE: within the implementing service every access to data is made on
+    behalf of exactly one named collection. REQ-B-006.
+
+    A code assertion: the databases holding the data are named nowhere in the
+    file outside the class that carries a collection name."""
+    data_databases = {_FRONT_END_DB, _PIPELINE_DB}
+    outside = []
+    for node in _migration_tree().body:
+        if isinstance(node, ast.ClassDef):
+            continue
+        named = sorted({c.value for c in ast.walk(node)
+                        if isinstance(c, ast.Constant)
+                        and isinstance(c.value, str) and c.value in data_databases})
+        if named:
+            outside.append((getattr(node, "name", type(node).__name__), named))
+    assert not outside, f"data reached outside the class: {outside}"
+
+
+def test_only_the_collection_name_is_assigned_onto_the_class():
+    """TRUE: the collection name is the only value assigned to the class from
+    outside it. REQ-B-008.
+
+    A code assertion on what the class assigns onto itself."""
+    classes = [n for n in ast.walk(_migration_tree()) if isinstance(n, ast.ClassDef)]
+    assert len(classes) == 1, f"expected one class, found {[c.name for c in classes]}"
+    assigned = set()
+    for node in ast.walk(classes[0]):
+        targets = (node.targets if isinstance(node, ast.Assign)
+                   else [node.target] if isinstance(node, ast.AnnAssign) else [])
+        for target in targets:
+            if (isinstance(target, ast.Attribute)
+                    and isinstance(target.value, ast.Name)
+                    and target.value.id == "self"):
+                assigned.add(target.attr)
+    assert len(assigned) == 1, f"the class assigns {sorted(assigned)} onto self"
+
+
+def test_each_actor_uses_one_identity_and_not_the_other_s():
+    """TRUE: two actors take part, the workstation recording the approval and
+    the service moving the data, and neither can perform the other's part.
+    REQ-B-011.
+
+    A code assertion: each file reaches the database as exactly one identity,
+    and the two identities are different."""
+    service = _identities(_MIGRATION_PATH)
+    workstation = _identities(_MIGRATE_TOOL)
+    assert len(service) == 1, f"the service uses {sorted(service)}"
+    assert len(workstation) == 1, f"the workstation uses {sorted(workstation)}"
+    assert service != workstation, (
+        f"both actors use the same identity: {sorted(service)}")

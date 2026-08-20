@@ -36,6 +36,9 @@ from __future__ import annotations
 
 import ast
 import json
+import subprocess
+import sys
+import tempfile
 from pathlib import Path
 
 from pydantic import BaseModel, Field
@@ -52,12 +55,25 @@ except ImportError:
         EnforcementWorker, ViolationRecord, EXIT_OK, EXIT_VIOLATIONS_FOUND,
     )
 
+# After enforcement_worker, which is what puts ChatHealthyLib on the path.
+from chathealthy_lib.exceptions import ChatHealthyException  # noqa: E402
+
 _RULE_ID = "Rule-065"
 _STORY_ID = "EPIC-010-F-108-S-001"
 _MIGRATION_FILE = "pipeline/Code/data_migration.py"
 _BACKLOG = "brain/machine_artifacts/content/agile_backlog.json"
 _MANIFEST = "brain/machine_artifacts/content/deployment_architecture.json"
 _MODEL_NAME = "gpt-5.5"
+# The branch each environment runs from. An environment is judged on the code
+# it actually runs, which is what its branch holds, not what this disk holds.
+_ENV_BRANCH = {"dev": "dev", "qa": "qa", "prod": "main"}
+# The databases that hold the data being moved. Reaching one of these is an
+# access to data; pipelineAdmin, which holds the approvals, is not.
+_DATA_DATABASES = {"PublicHealthData", "PipelinePublicHealthData"}
+# The calls that constitute beginning work on the collection. The
+# acknowledgement stands before the first of them.
+_WORK_BEGINS = {"refuse_unless_migratable", "source_count", "copy",
+                "build_constraint_indexes", "build_performance_indexes"}
 # Rounds, not retries-on-error: each round re-asks only what came back
 # undetermined and keeps every verdict already settled. Ten attempts, and a
 # requirement still undetermined after ten is a requirement not established,
@@ -203,18 +219,73 @@ class ScanDataMigrationComplianceWorker(EnforcementWorker):
 
     SCOPE_DEFAULT: bool = False
 
-    def __init__(self, enforcement_id: str) -> None:
+    def __init__(self, enforcement_id: str, env: str = "local") -> None:
         super().__init__(enforcement_id)
         self.files_scanned: int = 0
         self.violation_count: int = 0
         self._agent: Agent | None = None
+        self._env: str = env
+        self._judged_root: Path | None = None
 
-    def _repo_root(self) -> Path:
+    def _checkout_root(self) -> Path:
+        """The working tree: what the operator has on disk."""
         here = Path(__file__).resolve()
         for parent in (here, *here.parents):
             if (parent / ".git").is_dir():
                 return parent
         return here.parents[3]
+
+    def _repo_root(self) -> Path:
+        """The tree this run judges.
+
+        Pre-commit judges what is about to be committed, so the default is
+        the working tree and nothing is fetched. Named an environment, the
+        worker judges the branch that environment runs from instead -- what
+        is deployed there can differ from this disk by every uncommitted
+        edit on it, and a release asks about the former.
+        """
+        if self._env == "local":
+            return self._checkout_root()
+        if self._judged_root is not None:
+            return self._judged_root
+        checkout = self._checkout_root()
+        branch = _ENV_BRANCH[self._env]
+        where = Path(tempfile.mkdtemp(prefix=f"judge_{self._env}_{branch}_"))
+        for argv in (["fetch", "origin", branch],
+                     ["worktree", "add", "--detach", "--force",
+                      str(where), f"origin/{branch}"]):
+            result = subprocess.run(["git", *argv], cwd=str(checkout),
+                                    capture_output=True, text=True)
+            if result.returncode != 0:
+                raise ChatHealthyException(
+                    mode="config_error",
+                    component="ScanDataMigrationComplianceWorker",
+                    message=(f"cannot materialise origin/{branch} for "
+                             f"--env {self._env}: "
+                             f"{(result.stderr or '').strip()[:300]}"))
+        self._judged_root = where
+        # What was judged, named on stdout: the branch, and the commit it
+        # stood at when it was read. A release records these, so the
+        # approval says which code it released and not merely when.
+        head = subprocess.run(["git", "rev-parse", "HEAD"], cwd=str(where),
+                              capture_output=True, text=True)
+        sys.stdout.write(json.dumps({
+            "kind": "judged",
+            "environment": self._env,
+            "branch": branch,
+            "commit": (head.stdout or "").strip(),
+        }) + chr(10))
+        sys.stdout.flush()
+        return self._judged_root
+
+    def release(self) -> None:
+        """Remove the checkout _repo_root() materialised. No-op for local."""
+        if self._judged_root is None:
+            return
+        subprocess.run(
+            ["git", "worktree", "remove", "--force", str(self._judged_root)],
+            cwd=str(self._checkout_root()), capture_output=True, text=True)
+        self._judged_root = None
 
     @staticmethod
     def _the_one_class(tree: ast.AST) -> ast.ClassDef | None:
@@ -239,11 +310,47 @@ class ScanDataMigrationComplianceWorker(EnforcementWorker):
         story = _STORY_ID
         klass = self._the_one_class(tree)
 
-        # B-006: one class realizes the story.
-        classes = [n.name for n in ast.walk(tree) if isinstance(n, ast.ClassDef)]
+        # B-006: every access to data is made on behalf of one named
+        # collection. The class is what carries a collection name, so a data
+        # database reached anywhere outside it is an access made otherwise.
+        outside = []
+        for node in tree.body:
+            if isinstance(node, ast.ClassDef):
+                continue
+            named = sorted({c.value for c in ast.walk(node)
+                            if isinstance(c, ast.Constant)
+                            and isinstance(c.value, str)
+                            and c.value in _DATA_DATABASES})
+            if named:
+                where = getattr(node, "name", type(node).__name__)
+                outside.append(f"{where} reaches {named}")
         out[f"{story}-REQ-B-006"] = (
-            len(classes) == 1,
-            f"the file defines {len(classes)} class(es): {classes}")
+            not outside,
+            f"data reached outside the class: {outside}" if outside
+            else "every data database is reached only from inside the class")
+
+        # B-014: the acknowledgement is written before any work. Work begins
+        # at the first call onto the migrated collection, so the
+        # acknowledgement call must stand before it in the same function.
+        acknowledged = [n.lineno for n in ast.walk(tree)
+                        if isinstance(n, ast.Call)
+                        and isinstance(n.func, ast.Name)
+                        and "acknowledge" in n.func.id]
+        first_work = [n.lineno for n in ast.walk(tree)
+                      if isinstance(n, ast.Call)
+                      and isinstance(n.func, ast.Attribute)
+                      and n.func.attr in _WORK_BEGINS]
+        if not acknowledged:
+            out[f"{story}-REQ-B-014"] = (
+                False, "nothing in the file records an acknowledgement")
+        elif not first_work:
+            out[f"{story}-REQ-B-014"] = (
+                False, "no call that begins work was found to order against")
+        else:
+            out[f"{story}-REQ-B-014"] = (
+                min(acknowledged) < min(first_work),
+                f"acknowledgement at line {min(acknowledged)}, "
+                f"work begins at line {min(first_work)}")
 
         # B-007: its constructor takes the collection name and nothing else.
         if klass is None:
@@ -728,5 +835,19 @@ class ScanDataMigrationComplianceWorker(EnforcementWorker):
 
 if __name__ == "__main__":
     import sys
+    # argv[2] is the environment to judge. Absent, it is the working tree:
+    # the pre-commit hook passes no environment and asks about this disk.
     enforcement_id = sys.argv[1] if len(sys.argv) > 1 else "Rule-065-ENF-009"
-    sys.exit(ScanDataMigrationComplianceWorker(enforcement_id).run())
+    environment = sys.argv[2] if len(sys.argv) > 2 else "local"
+    if environment != "local" and environment not in _ENV_BRANCH:
+        raise ChatHealthyException(
+            mode="config_error",
+            component="ScanDataMigrationComplianceWorker",
+            message=(f"unknown environment {environment!r}; "
+                     f"expected local, {', '.join(sorted(_ENV_BRANCH))}"))
+    worker = ScanDataMigrationComplianceWorker(enforcement_id, environment)
+    try:
+        code = worker.run()
+    finally:
+        worker.release()
+    sys.exit(code)

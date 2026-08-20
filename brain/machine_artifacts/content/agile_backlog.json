@@ -15995,7 +15995,7 @@
                         {
                           "req_id": "EPIC-010-F-108-S-001-REQ-B-003",
                           "name": "A migration runs only after a human releases it",
-                          "requirement": "Every migration that has run is preceded by a recorded human sign-off for the data it moved.",
+                          "requirement": "Every migration MUST be preceded by a recorded human sign-off. The sign-off is taken at the operator's workstation. The implementing service MUST attest to this sign-off with evidence prior to execution of a migration.",
                           "priority": "must-have",
                           "status": "done",
                           "orphan": false,
@@ -16015,7 +16015,7 @@
                         {
                           "req_id": "EPIC-010-F-108-S-001-REQ-B-004",
                           "name": "A migration never alters or removes what is already there",
-                          "requirement": "No migration changes or removes any document, collection or index that existed before it ran.",
+                          "requirement": "No migration changes or removes any document, collection or index that existed before it ran. This binds the implementing service absolutely; nothing it is asked to do permits an exception.",
                           "priority": "must-have",
                           "status": "done",
                           "orphan": false,
@@ -16035,7 +16035,7 @@
                         {
                           "req_id": "EPIC-010-F-108-S-001-REQ-B-005",
                           "name": "A collection that already exists at the destination stops the migration",
-                          "requirement": "A migration that finds its target collection already present in ChatHealthyFrontEnd.PublicHealthData MUST abend. Prior to the abend it MUST: (a) raise an exception; (b) log a detailed narrative of the error including the collection name it found. It MUST NOT write, append to, or in any way alter the existing collection, in any case.",
+                          "requirement": "An implementing service that finds its target collection already present in ChatHealthyFrontEnd.PublicHealthData MUST abend. Prior to the abend it MUST: (a) raise an exception; (b) log a detailed narrative of the error including the collection name it found. It MUST NOT write, append to, or in any way alter the existing collection.",
                           "priority": "must-have",
                           "status": "done",
                           "orphan": false,
@@ -16055,7 +16055,7 @@
                         {
                           "req_id": "EPIC-010-F-108-S-001-REQ-B-006",
                           "name": "Every collection is reached through an instance of the one class that realizes this story",
-                          "requirement": "One class realizes this story. Every collection the migration touches is reached through an instance of that class, one instance per collection. No collection handle is obtained any other way.",
+                          "requirement": "Within the implementing service, every access to data is made on behalf of exactly one named collection, and no access is made otherwise. The operator's workstation makes no such access.",
                           "priority": "must-have",
                           "status": "done",
                           "orphan": false,
@@ -16155,7 +16155,7 @@
                         {
                           "req_id": "EPIC-010-F-108-S-001-REQ-B-011",
                           "name": "Zero trust - the migration's identities exist and are constrained to this story alone",
-                          "requirement": "ChatHealthy's zero-trust infrastructure creates a database user holding only the role this story requires, and an Azure identity holding only the entitlements this story requires. Neither carries any grant beyond what the migration performs.",
+                          "requirement": "Two actors take part: the operator's workstation makes the request, records an approval and verifies the software meets the requirements. The implementing service moves the data observing the rules as specified in these requirements.",
                           "priority": "must-have",
                           "status": "done",
                           "orphan": false,
@@ -16195,7 +16195,7 @@
                         {
                           "req_id": "EPIC-010-F-108-S-001-REQ-B-013",
                           "name": "A migration of a collection that is not there is refused and reported",
-                          "requirement": "A migration invoked against a collection that is not present in ChatHealthyDataPipelines.PipelinePublicHealthData MUST NOT report success. It MUST raise, and MUST record the refusal in the log naming the collection asked for.",
+                          "requirement": "An implementing service invoked against a collection that is not present in ChatHealthyDataPipelines.PipelinePublicHealthData MUST NOT report success. It MUST raise, and MUST record the refusal in the log naming the collection asked for.",
                           "priority": "must-have",
                           "status": "done",
                           "orphan": false,
@@ -16205,6 +16205,26 @@
                             "test": [
                               {
                                 "test_id": "EPIC-010-F-108-S-001-REQ-B-013-TEST-1",
+                                "test_type": "ordinary",
+                                "orphan": false,
+                                "file": "pipeline/Code/tests/test_data_migration.py"
+                              }
+                            ]
+                          }
+                        },
+                        {
+                          "req_id": "EPIC-010-F-108-S-001-REQ-B-014",
+                          "name": "DataTransferServiceToConfirmApproval",
+                          "requirement": "The implementing service is given the identity of the human's approval when it is asked to work. It reads that approval and confirms it releases this work; an identity naming no approval, or an approval that does not release this work, stops the transfer. Having confirmed it, and before doing any work, the service records its own acknowledgement of that approval alongside it.",
+                          "priority": "must-have",
+                          "status": "not_started",
+                          "orphan": false,
+                          "approval": "approved",
+                          "depends_on": [],
+                          "tests": {
+                            "test": [
+                              {
+                                "test_id": "EPIC-010-F-108-S-001-REQ-B-014-TEST-1",
                                 "test_type": "ordinary",
                                 "orphan": false,
                                 "file": "pipeline/Code/tests/test_data_migration.py"

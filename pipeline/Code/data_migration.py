@@ -23,6 +23,7 @@ import datetime
 import json
 import os
 import sys
+import uuid
 
 from pymongo.errors import BulkWriteError
 
@@ -42,6 +43,10 @@ _BATCH = 1000
 # approval against today's collection is the attack this closes.
 _APPROVAL_VALID_SECONDS = 60
 _AUTHORIZATION_TYPE = "data_migration"
+# The service's answer to a human approval, referencing it by key. A distinct
+# type because it is a distinct fact: the approval says a person released the
+# work, the acknowledgement says a service took that release up.
+_ACKNOWLEDGEMENT_TYPE = "data_migration_acknowledgement"
 
 
 class MigratedCollection:
@@ -236,6 +241,41 @@ def _raise_unauthorized(collection: str, approval_id: str, why: str) -> None:
         approval_id=approval_id or "<none given>")
 
 
+def _acknowledge_approval(collection: str, approval_id: str) -> str:
+    """Write this service's acknowledgement of the human approval it was
+    handed, before it does any work. REQ-B-014.
+
+    The transfer is given the key of a human's approval and answers it in
+    writing: this service, at this moment, is acting on that specific
+    record. Two facts then exist independently -- a person released it, and
+    a service took it up -- so afterwards it is answerable both that the
+    work was authorized and which authorization it ran under, without
+    inferring one from the other.
+
+    Written before the first read of either cluster. A transfer that has
+    not acknowledged has not started; the insert failing stops the work.
+    """
+    acknowledged_at = datetime.datetime.now(datetime.timezone.utc)
+    acknowledgement_id = f"migration-acknowledgement-{uuid.uuid4().hex}"
+    _authorizations().insert_one({
+        "_id": acknowledgement_id,
+        "type": _ACKNOWLEDGEMENT_TYPE,
+        "acknowledges": approval_id,
+        "collection": collection,
+        "env": os.environ.get("ENV_PREFIX", ""),
+        "service": "data_migration",
+        "acknowledged_at": acknowledged_at,
+        "day": acknowledged_at.date().isoformat(),
+    })
+    return acknowledgement_id
+
+
+def _authorizations():
+    return ChatHealthyMongoUtilities().getConnection(
+        "PipelineToFrontEndPublicDataMigrator", "ChatHealthyFrontEnd"
+    )["pipelineAdmin"]["Authorizations"]
+
+
 def _released_approval(collection: str, approval_id: str) -> dict:
     """The recorded sign-off for this collection, read from the cluster.
 
@@ -243,16 +283,14 @@ def _released_approval(collection: str, approval_id: str) -> dict:
     reach the webhook once only had to type human_click=true to migrate
     without a person, because the runbook believed the fields it was handed.
     Now the record is written by migrate_data.py before the fire, under
-    pipelineEditor's certificate, and this reads it back and checks it says
+    DevOpsUser's certificate, and this reads it back and checks it says
     what the caller claims.
     """
     if not approval_id:
         _raise_unauthorized(collection, approval_id,
                             "the payload names no approval record")
 
-    record = ChatHealthyMongoUtilities().getConnection(
-        "PipelineToFrontEndPublicDataMigrator", "ChatHealthyFrontEnd"
-    )["pipelineAdmin"]["Authorizations"].find_one({"_id": approval_id})
+    record = _authorizations().find_one({"_id": approval_id})
 
     if record is None:
         _raise_unauthorized(collection, approval_id,
@@ -310,6 +348,10 @@ def main() -> int:
                   "human_click=%s released_at=%s",
                   collection, approval_id, approval.get("human_click"),
                   approval.get("released_at"))
+        acknowledgement_id = _acknowledge_approval(collection, approval_id)
+        _log.info("data_migration acknowledged approval_id=%s "
+                  "acknowledgement_id=%s collection=%s",
+                  approval_id, acknowledgement_id, collection)
         migrated.refuse_unless_migratable()
         expected = migrated.source_count()
     except ChatHealthyException as exc:
