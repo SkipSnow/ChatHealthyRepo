@@ -396,6 +396,21 @@ class CommitAuthorizationWorker(EnforcementWorker):
         # gate timed out and refused the commit. On Windows the shell's own
         # opener succeeds in contexts where webbrowser's handler does not, so
         # it is tried second, and a failure of both is said out loud.
+        # The page has to arrive in front of the operator. A git hook is a
+        # child of a background process, so Windows will not give it the
+        # foreground and every approval landed in the tray to be hunted for.
+        # The library owns that manoeuvre; this asks it rather than keeping a
+        # second copy, which is how this file came to miss the fix entirely.
+        raised: list[float] = []
+        try:
+            from chathealthy_lib.human_authorization import raise_window_to_front
+            threading.Thread(
+                target=raise_window_to_front,
+                args=("ChatHealthy commit authorization", raised),
+                daemon=True).start()
+        except Exception:                           # noqa: BLE001
+            pass
+
         opened = False
         try:
             opened = bool(webbrowser.open_new(url))
