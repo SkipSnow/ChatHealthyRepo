@@ -39,6 +39,7 @@ import os
 import pathlib
 import subprocess
 import sys
+import threading
 import time
 import uuid
 
@@ -115,7 +116,11 @@ def test_the_four_requests(seeded):
     assert record["human_click"] is True, record
 
     # The reservation appearing is the service saying the job has started.
-    _await_the_service(held=True, every=1)
+    # The watcher runs alongside it: if the job dies instead of starting,
+    # the wait ends there and says why, rather than running its full half
+    # hour against a job that is already gone.
+    with _JobWatcher(since=began.isoformat()) as watcher:
+        _await_the_service(held=True, every=1, watcher=watcher)
 
     # 2a -- while it is held.
     _log.info("[case] 2a: a second invocation while the first still runs")
@@ -402,7 +407,70 @@ def _reservations():
     )[RESERVATIONS_DATABASE][RESERVATIONS_COLLECTION]
 
 
-def _await_the_service(held: bool, every: int) -> dict:
+_AUTOMATION_ACCOUNT = "PipelineToFrontEndPublicDataMigratorWorkManager"
+_RESOURCE_GROUP = "rg-chathealthy-pipeline-dev"
+_SUBSCRIPTION = "7a17eec1-c477-4c7c-b1c1-d0662ce7a1ee"
+
+
+def _az(args: list[str], timeout: int = 90) -> str:
+    return subprocess.run(["az", *args], capture_output=True, text=True,
+                          shell=(sys.platform == "win32"),
+                          timeout=timeout).stdout
+
+
+class _JobWatcher:
+    """Watches the service's jobs in a thread and remembers a failure.
+
+    The mutex appearing is the only sign the waiter had that work started,
+    so a job that died before taking it looked exactly like a job still
+    starting -- and the wait ran its full half hour on a job that had been
+    dead for four seconds. This asks Azure what became of the job, in
+    parallel, so a failure ends the wait at once and brings the runbook's
+    own exception with it.
+    """
+
+    def __init__(self, since: str) -> None:
+        self._since = since
+        self._stop = threading.Event()
+        self.failure: str | None = None
+        self._thread = threading.Thread(target=self._watch, daemon=True)
+
+    def __enter__(self) -> "_JobWatcher":
+        self._thread.start()
+        return self
+
+    def __exit__(self, *_exc) -> None:
+        self._stop.set()
+
+    def _watch(self) -> None:
+        while not self._stop.wait(4):
+            raw = _az(["automation", "job", "list",
+                       "--automation-account-name", _AUTOMATION_ACCOUNT,
+                       "--resource-group", _RESOURCE_GROUP, "-o", "json"])
+            try:
+                jobs = [j for j in json.loads(raw or "[]")
+                        if (j.get("creationTime") or "") > self._since]
+            except ValueError:
+                continue
+            for job in jobs:
+                if job.get("status") not in ("Failed", "Suspended", "Stopped"):
+                    continue
+                detail = _az(["rest", "--method", "get", "--url",
+                              f"https://management.azure.com/subscriptions/{_SUBSCRIPTION}"
+                              f"/resourceGroups/{_RESOURCE_GROUP}/providers/Microsoft.Automation"
+                              f"/automationAccounts/{_AUTOMATION_ACCOUNT}/jobs/{job['name']}"
+                              f"?api-version=2019-06-01"])
+                try:
+                    props = json.loads(detail or "{}").get("properties", {})
+                except ValueError:
+                    props = {}
+                self.failure = (f"the job {job.get('status')}: "
+                                f"{str(props.get('exception') or '')[-600:]}")
+                return
+
+
+def _await_the_service(held: bool, every: int,
+                       watcher: "_JobWatcher | None" = None) -> dict:
     """Wait until the service is held, or until it is free. Returns the
     reservation when waiting for it to appear.
 
@@ -420,6 +488,9 @@ def _await_the_service(held: bool, every: int) -> dict:
                       f" — {reservation.get('holder')} has it for "
                       f"{reservation.get('about')!r}" if reservation else "")
             return reservation or {}
+        if watcher is not None and watcher.failure:
+            pytest.fail(f"the service never became {wanted} because "
+                        f"{watcher.failure}")
         _log.info("[service] waiting for %s, asking again in %ds (%.0fs so far)",
                   wanted, every, time.monotonic() - began)
         time.sleep(every)

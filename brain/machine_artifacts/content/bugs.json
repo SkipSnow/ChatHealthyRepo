@@ -192,6 +192,33 @@
       "next_action": [
         "Design and implement a solution."
       ]
+    },
+    {
+      "bugid": "BUG-008",
+      "title": "Inadequate governance over what gets deployed",
+      "description": "Nothing gates a change to what is deployed. What is running in Azure, Atlas, Entra and Key Vault is not held to what the repository says should be running, in either direction, and Claude Code changes all of it by hand. Nothing detects it. What is deployed therefore cannot be reproduced from the repository, and every guarantee built on top of it is unverifiable -- that a migration runs approved code, that an identity holds only what it needs, that a build is what was reviewed. For a company handling healthcare data whose case to enterprise buyers rests on auditability, a deployment that cannot be reproduced from its own record is an existential risk, not a defect.\n\nTwo examples, both found on 2026-08-20 and only because the operator asked for a list of what was there.\n\nFive runbooks were published into ChatHealthyJobManager that nobody asked for. Four -- ChatHealthyDataMigrator, ChatHealthyDataMigratorProvisioner, ChatHealthyDataMigratorOrchestrator, ChatHealthyDataMigratorDeprovisioner -- had no package in deployment_architecture.json at all. The fifth, pipeline_regression_test, was declared with no runbook_name and no schedule, so it could never be triggered; it had never run once and wrote its results to a collection nobody reads. All five shipped on every deploy. No gate objected, because every gate checks that what ships is declared, and the declaration is written by Claude -- so the record certifies itself.\n\nThe migration's Python packages were installed into its Automation account by hand, one az rest call at a time, because the declarations named packages with no content_url and the deploy therefore installed nothing. The account's true contents came from a Claude session, not from the record. The same look found httpx and cryptography imported and never declared, five transitive dependencies Azure does not resolve, and a pymongo wheel built for Windows declared for a Linux sandbox.\n\nDeployment is not the boundary of the problem. In one session Claude created Entra applications and groups and assigned their owners; patched an Atlas custom role to add INSERT and REMOVE; minted and purged Key Vault certificate secrets; created Azure role assignments and deleted one that could not be restored; created and deleted Automation accounts, runbooks and webhooks; and dropped MongoDB collections. None of it passed through a build, a deploy, or any record. Each happened because a command was run, and the only thing between any of it and production was whether the operator happened to be reading at that moment.",
+      "environments": [
+        "local",
+        "dev",
+        "qa",
+        "prod"
+      ],
+      "status": "new",
+      "severity": "high",
+      "req_id": "ORPHAN",
+      "story_id": "EPIC-008-F-012",
+      "test_id": "",
+      "test_success_criteria": [
+        "Everything deployed matches what the repository declares, and the repository declares everything deployed.",
+        "Nothing is deployed or changed without an authorization that is recorded and names who gave it."
+      ],
+      "discovery_date": "2026-08-20",
+      "due_date": "2026-11-15",
+      "reproduction": "Audit the actual deployment facts against deployment_architecture.json. For each Automation account list its runbooks, variables and python3Packages and compare against what the record declares for that target. On 2026-08-20 this returned five runbooks present and unaccounted for, and a package set matching no declaration.",
+      "orphan": true,
+      "next_action": [
+        "Decide what authorizes a deployment or a change, given the record is written by the actor the record is meant to constrain."
+      ]
     }
   ]
 }

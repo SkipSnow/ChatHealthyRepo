@@ -5236,11 +5236,11 @@
                   },
                   {
                     "name": "cryptography",
-                    "content_url": "https://files.pythonhosted.org/packages/4c/a2/6565c5271a79e3c96d7a079053b4d8408a740d4bf365f0f5f244a807bd09/cryptography-3.2.1-cp35-abi3-manylinux2010_x86_64.whl"
+                    "content_url": "https://files.pythonhosted.org/packages/eb/ac/59b7790b4ccaed739fc44775ce4645c9b8ce54cbec53edf16c74fd80cb2b/cryptography-45.0.7-cp37-abi3-manylinux2014_x86_64.manylinux_2_17_x86_64.whl"
                   },
                   {
                     "name": "cffi",
-                    "content_url": "https://files.pythonhosted.org/packages/80/a8/1562ce87c8cb8c736cbef40bc235f4a2ac7835822c231f717e3064dfcc93/cffi-1.14.6-cp38-cp38-manylinux1_x86_64.whl"
+                    "content_url": "https://files.pythonhosted.org/packages/bb/19/b51af9f4a4faa4a8ac5a0e5d5c2522dcd9703d07fac69da34a36c4d960d3/cffi-1.17.1-cp38-cp38-manylinux_2_17_x86_64.manylinux2014_x86_64.whl"
                   },
                   {
                     "name": "pycparser",
