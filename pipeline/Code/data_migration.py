@@ -33,6 +33,11 @@ from chathealthy_lib.logging_service import (
 from chathealthy_lib.mongo_utilities import ChatHealthyMongoUtilities
 from chathealthy_lib.reservations import release, reserve
 
+# Where this runbook's log goes, stated by the runbook. Nothing in the
+# Automation sandbox carries it: there is no application .env there, and a
+# refusal or an abend written to a sandbox that is torn down when the job
+# ends is a decision nobody can read afterwards.
+os.environ.setdefault("CH_LOG_DESTINATION", "mongo")
 set_mongo_log_identity("PipelineToFrontEndPublicDataMigrator")
 
 _log = ChatHealthyLoggingService()
