@@ -4453,71 +4453,6 @@
                 "ATLAS_PIPELINE_PUBLIC_KEY": "Atlas API public key that may pause and resume the pipeline cluster",
                 "ATLAS_PIPELINE_PRIVATE_KEY": "Atlas API private key that may pause and resume the pipeline cluster"
               }
-            },
-            {
-              "package_id": "data_migration",
-              "kind": "runbook",
-              "files": [
-                {
-                  "source_location": "pipeline/Code/data_migration.py",
-                  "feature_id": "EPIC-010-F-108",
-                  "handler_type": "python_source",
-                  "disposition": "referenced",
-                  "content_hash": "075fb345933b5e47631da0dc06f9fed4796d343ef37e7c4aa74cbc53f0594a4c",
-                  "package": "data_migration"
-                }
-              ],
-              "secrets": {
-                "CH_LOG_DB": "local_env",
-                "PIPELINETOFRONTENDPUBLICDATAMIGRATOR_AZURE_CLIENT_ID": "local_env",
-                "KEY_VAULT_URI": "local_env",
-                "ATLAS_PROJECT_ID": "local_env",
-                "ATLAS_PIPELINE_PUBLIC_KEY": "local_env",
-                "ATLAS_PIPELINE_PRIVATE_KEY": "local_env",
-                "PIPELINEEDITOR_AZURE_TENANT_ID": "local_env",
-                "PIPELINEEDITOR_AZURE_CLIENT_ID": "local_env",
-                "PIPELINEEDITOR_AZURE_CLIENT_SECRET": "local_env"
-              },
-              "secret_descriptions": {
-                "CH_LOG_DB": "Database the structured log records are written to",
-                "PIPELINETOFRONTENDPUBLICDATAMIGRATOR_AZURE_CLIENT_ID": "clientId of the migrator managed identity. Not a secret.",
-                "KEY_VAULT_URI": "Vault holding the migrator's certificate. Not a secret.",
-                "ATLAS_PROJECT_ID": "Atlas project the clusters live in. Not a secret.",
-                "ATLAS_PIPELINE_PUBLIC_KEY": "Atlas API key that resumes the source cluster.",
-                "ATLAS_PIPELINE_PRIVATE_KEY": "Secret half of the Atlas key that resumes the cluster.",
-                "PIPELINEEDITOR_AZURE_TENANT_ID": "Tenant of the identity that writes the log. Not a secret.",
-                "PIPELINEEDITOR_AZURE_CLIENT_ID": "Client id of the identity that writes the log. Not a secret.",
-                "PIPELINEEDITOR_AZURE_CLIENT_SECRET": "Secret of the identity that writes the runbook log."
-              },
-              "config": {
-                "runbook_name": "DataMigration",
-                "schedule_names": [],
-                "automation_variables": [],
-                "node_address": "https://management.azure.com/.../automationAccounts/ChatHealthyJobManager/runbooks/DataMigration",
-                "webhook_to_kv": {
-                  "webhook_name": "DataMigrationOnDemand",
-                  "kv_vault": "kv-chpipeline-dev",
-                  "kv_secret_name": "DATA-MIGRATION-WEBHOOK-URL"
-                },
-                "python_packages": [
-                  {
-                    "name": "pymongo",
-                    "content_url": "https://files.pythonhosted.org/packages/38/52/a58196a45232e9046c8b13f4fa3d89cca0e462b5c6d28969759226f781ee/pymongo-4.10.1-cp38-cp38-win_amd64.whl"
-                  },
-                  {
-                    "name": "dnspython",
-                    "content_url": "https://files.pythonhosted.org/packages/87/a1/8c5287991ddb8d3e4662f71356d9656d91ab3a36618c3dd11b280df0d255/dnspython-2.6.1-py3-none-any.whl"
-                  },
-                  {
-                    "name": "certifi",
-                    "content_url": "https://files.pythonhosted.org/packages/59/8c/57e832b7af6d7c5abe66eb3fbe3a3a32f4d11ea23a1aa7131371035be991/certifi-2026.5.20-py3-none-any.whl"
-                  },
-                  {
-                    "name": "reportlab",
-                    "content_url": "https://files.pythonhosted.org/packages/cc/da/de8af288738de0980a7e982c62853efe9994ee7d07e59ed20fdccc8a658e/reportlab-4.0.9-py3-none-any.whl"
-                  }
-                ]
-              }
             }
           ]
         }
@@ -4543,7 +4478,6 @@
         "PIPELINE_SECRET_NAMES": "local_env",
         "CH_LOG_DB": "local_env",
         "GEMINI_API_KEY": "local_env",
-        "PIPELINETOFRONTENDPUBLICDATAMIGRATOR_AZURE_CLIENT_ID": "local_env",
         "DEVOPSUSER_AZURE_TENANT_ID": "local_env",
         "DEVOPSUSER_AZURE_CLIENT_ID": "local_env",
         "DEVOPSUSER_AZURE_CLIENT_SECRET": "local_env"
@@ -4568,7 +4502,6 @@
         "PIPELINE_SECRET_NAMES": "Which vault secrets the pipeline run host is permitted to read",
         "CH_LOG_DB": "Database the structured log records are written to",
         "GEMINI_API_KEY": "Google Gemini key used to classify NPPES other-identifier phrases per state",
-        "PIPELINETOFRONTENDPUBLICDATAMIGRATOR_AZURE_CLIENT_ID": "clientId of the migrator managed identity. Not a secret.",
         "DEVOPSUSER_AZURE_TENANT_ID": "Tenant the report enumerates. Not a secret.",
         "DEVOPSUSER_AZURE_CLIENT_ID": "Identity the report runs as. Not a secret.",
         "DEVOPSUSER_AZURE_CLIENT_SECRET": "Credential the report authenticates with."
@@ -5229,6 +5162,151 @@
         "PIPELINEEDITOR_AZURE_CLIENT_SECRET": "Proves pipelineEditor to Azure",
         "PIPELINEEDITOR_AZURE_TENANT_ID": "The directory pipelineEditor belongs to"
       }
+    },
+    {
+      "target_id": "target_azure_automation_account_datamigrationworkmanager",
+      "target_kind": "azure_automation_account",
+      "promote_chain_bound": false,
+      "files": [],
+      "secrets": {
+        "CH_LOG_DB": "local_env",
+        "PIPELINETOFRONTENDPUBLICDATAMIGRATOR_AZURE_CLIENT_ID": "local_env",
+        "KEY_VAULT_URI": "local_env",
+        "ATLAS_PROJECT_ID": "local_env",
+        "ATLAS_PIPELINE_PUBLIC_KEY": "local_env",
+        "ATLAS_PIPELINE_PRIVATE_KEY": "local_env",
+        "PIPELINEEDITOR_AZURE_TENANT_ID": "local_env",
+        "PIPELINEEDITOR_AZURE_CLIENT_ID": "local_env",
+        "PIPELINEEDITOR_AZURE_CLIENT_SECRET": "local_env"
+      },
+      "secret_descriptions": {
+        "CH_LOG_DB": "Database the structured log records are written to",
+        "PIPELINETOFRONTENDPUBLICDATAMIGRATOR_AZURE_CLIENT_ID": "clientId of the migrator managed identity. Not a secret.",
+        "KEY_VAULT_URI": "Vault holding the migrator's certificate. Not a secret.",
+        "ATLAS_PROJECT_ID": "Atlas project the clusters live in. Not a secret.",
+        "ATLAS_PIPELINE_PUBLIC_KEY": "Atlas API key that resumes the source cluster.",
+        "ATLAS_PIPELINE_PRIVATE_KEY": "Secret half of the Atlas key that resumes the cluster.",
+        "PIPELINEEDITOR_AZURE_TENANT_ID": "Tenant of the identity that writes the log. Not a secret.",
+        "PIPELINEEDITOR_AZURE_CLIENT_ID": "Client id of the identity that writes the log. Not a secret.",
+        "PIPELINEEDITOR_AZURE_CLIENT_SECRET": "Secret of the identity that writes the runbook log."
+      },
+      "environments": [
+        {
+          "env_binding": "dev",
+          "node_address": "https://management.azure.com/subscriptions/7a17eec1-c477-4c7c-b1c1-d0662ce7a1ee/resourceGroups/rg-chathealthy-pipeline-dev/providers/Microsoft.Automation/automationAccounts/dataMigrationWorkManager",
+          "azure_automation_account": {
+            "vnet_name": "vnet-chathealthy-pipeline-dev",
+            "vm_subnet_name": "snet-hybrid-worker",
+            "vm_subnet_address_prefix": "10.0.2.0/24",
+            "hybrid_worker_group_name": "ChatHealthyHybridWorkers",
+            "admin_private_key_filename": "chdm_admin_key",
+            "automation_api_version": "2023-11-01",
+            "network_api_version": "2023-09-01"
+          },
+          "packages": [
+            {
+              "package_id": "data_migration",
+              "kind": "runbook",
+              "files": [
+                {
+                  "source_location": "pipeline/Code/data_migration.py",
+                  "feature_id": "EPIC-010-F-108",
+                  "handler_type": "python_source",
+                  "disposition": "referenced",
+                  "content_hash": "075fb345933b5e47631da0dc06f9fed4796d343ef37e7c4aa74cbc53f0594a4c",
+                  "package": "data_migration"
+                }
+              ],
+              "secrets": {
+                "CH_LOG_DB": "local_env",
+                "PIPELINETOFRONTENDPUBLICDATAMIGRATOR_AZURE_CLIENT_ID": "local_env",
+                "KEY_VAULT_URI": "local_env",
+                "ATLAS_PROJECT_ID": "local_env",
+                "ATLAS_PIPELINE_PUBLIC_KEY": "local_env",
+                "ATLAS_PIPELINE_PRIVATE_KEY": "local_env",
+                "PIPELINEEDITOR_AZURE_TENANT_ID": "local_env",
+                "PIPELINEEDITOR_AZURE_CLIENT_ID": "local_env",
+                "PIPELINEEDITOR_AZURE_CLIENT_SECRET": "local_env"
+              },
+              "secret_descriptions": {
+                "CH_LOG_DB": "Database the structured log records are written to",
+                "PIPELINETOFRONTENDPUBLICDATAMIGRATOR_AZURE_CLIENT_ID": "clientId of the migrator managed identity. Not a secret.",
+                "KEY_VAULT_URI": "Vault holding the migrator's certificate. Not a secret.",
+                "ATLAS_PROJECT_ID": "Atlas project the clusters live in. Not a secret.",
+                "ATLAS_PIPELINE_PUBLIC_KEY": "Atlas API key that resumes the source cluster.",
+                "ATLAS_PIPELINE_PRIVATE_KEY": "Secret half of the Atlas key that resumes the cluster.",
+                "PIPELINEEDITOR_AZURE_TENANT_ID": "Tenant of the identity that writes the log. Not a secret.",
+                "PIPELINEEDITOR_AZURE_CLIENT_ID": "Client id of the identity that writes the log. Not a secret.",
+                "PIPELINEEDITOR_AZURE_CLIENT_SECRET": "Secret of the identity that writes the runbook log."
+              },
+              "config": {
+                "runbook_name": "DataMigration",
+                "schedule_names": [],
+                "automation_variables": [],
+                "node_address": "https://management.azure.com/.../automationAccounts/ChatHealthyJobManager/runbooks/DataMigration",
+                "webhook_to_kv": {
+                  "webhook_name": "DataMigrationOnDemand",
+                  "kv_vault": "kv-chpipeline-dev",
+                  "kv_secret_name": "DATA-MIGRATION-WEBHOOK-URL"
+                },
+                "python_packages": [
+                  {
+                    "name": "pymongo",
+                    "content_url": "https://files.pythonhosted.org/packages/38/52/a58196a45232e9046c8b13f4fa3d89cca0e462b5c6d28969759226f781ee/pymongo-4.10.1-cp38-cp38-win_amd64.whl"
+                  },
+                  {
+                    "name": "dnspython",
+                    "content_url": "https://files.pythonhosted.org/packages/87/a1/8c5287991ddb8d3e4662f71356d9656d91ab3a36618c3dd11b280df0d255/dnspython-2.6.1-py3-none-any.whl"
+                  },
+                  {
+                    "name": "certifi",
+                    "content_url": "https://files.pythonhosted.org/packages/59/8c/57e832b7af6d7c5abe66eb3fbe3a3a32f4d11ea23a1aa7131371035be991/certifi-2026.5.20-py3-none-any.whl"
+                  },
+                  {
+                    "name": "reportlab",
+                    "content_url": "https://files.pythonhosted.org/packages/cc/da/de8af288738de0980a7e982c62853efe9994ee7d07e59ed20fdccc8a658e/reportlab-4.0.9-py3-none-any.whl"
+                  }
+                ]
+              }
+            }
+          ]
+        }
+      ],
+      "allowed_roles": [
+        "Automation Operator"
+      ],
+      "entitlements": [
+        {
+          "kind": "azure_rbac_role_assignment",
+          "principal": "pipelineEditor",
+          "role": "Virtual Machine Contributor",
+          "scope": "/subscriptions/<subscription-id>/resourceGroups/<vm_rg>"
+        },
+        {
+          "kind": "azure_rbac_role_assignment",
+          "principal": "pipelineEditor",
+          "role": "Network Contributor",
+          "scope": "/subscriptions/<subscription-id>/resourceGroups/<vm_rg>"
+        },
+        {
+          "kind": "azure_rbac_role_assignment",
+          "principal": "ChatHealthyJobManager system-assigned managed identity",
+          "role": "User Access Administrator",
+          "scope": "/subscriptions/7a17eec1-c477-4c7c-b1c1-d0662ce7a1ee/resourceGroups/rg-chathealthy-pipeline-dev/providers/Microsoft.Automation/automationAccounts/ChatHealthyJobManager"
+        },
+        {
+          "kind": "azure_rbac_role_assignment",
+          "principal": "pipelineEditor",
+          "role": "Automation Operator",
+          "scope": "/subscriptions/7a17eec1-c477-4c7c-b1c1-d0662ce7a1ee/resourceGroups/rg-chathealthy-pipeline-dev/providers/Microsoft.Automation/automationAccounts/ChatHealthyJobManager"
+        },
+        {
+          "kind": "azure_rbac_role_assignment",
+          "principal": "pipelineEditor",
+          "role": "Automation Operator",
+          "scope": "/subscriptions/7a17eec1-c477-4c7c-b1c1-d0662ce7a1ee/resourceGroups/rg-chathealthy-pipeline-dev/providers/Microsoft.Automation/automationAccounts/ChatHealthyJobManager"
+        }
+      ]
     }
   ],
   "firm": {
