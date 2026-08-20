@@ -26,6 +26,24 @@ import sys
 import time
 import uuid
 
+# Atlas addresses are SRV records, and the Automation sandbox's own resolver
+# does not answer external SRV queries -- every connection from this runbook
+# died on "All nameservers failed to answer the query _mongodb._tcp.<host>
+# IN SRV" while the watchdog and the provider pipeline, which do this, were
+# reaching the same cluster. Point dnspython at public resolvers instead.
+# This MUST run before pymongo is imported, because pymongo binds the
+# default resolver at import time.
+try:
+    import dns.resolver  # type: ignore[import-not-found]
+
+    _resolver = dns.resolver.Resolver(configure=False)
+    _resolver.nameservers = ["8.8.8.8", "8.8.4.4", "1.1.1.1", "1.0.0.1"]
+    _resolver.timeout = 5
+    _resolver.lifetime = 10
+    dns.resolver.default_resolver = _resolver
+except ImportError:
+    pass
+
 import requests
 from pymongo.errors import BulkWriteError
 from requests.auth import HTTPDigestAuth
