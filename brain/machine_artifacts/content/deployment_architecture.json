@@ -5248,6 +5248,29 @@
                   }
                 ]
               }
+            },
+            {
+              "package_id": "sandbox_facts",
+              "kind": "runbook",
+              "files": [
+                {
+                  "source_location": "pipeline/Code/sandbox_facts.py",
+                  "feature_id": "EPIC-010-F-108",
+                  "handler_type": "python_source",
+                  "disposition": "referenced",
+                  "content_hash": "",
+                  "package": "sandbox_facts"
+                }
+              ],
+              "secrets": {},
+              "secret_descriptions": {},
+              "config": {
+                "runbook_name": "SandboxFacts",
+                "schedule_names": [],
+                "automation_variables": [],
+                "node_address": "https://management.azure.com/.../automationAccounts/ChatHealthyJobManager/runbooks/SandboxFacts",
+                "python_packages": []
+              }
             }
           ]
         }
