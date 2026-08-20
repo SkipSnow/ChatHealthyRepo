@@ -51,7 +51,10 @@ try:
     for _name in ("KEY_VAULT_URI", "CH_LOG_DB", "AUTOMATION_ENV_PREFIX",
                   "PIPELINETOFRONTENDPUBLICDATAMIGRATOR_AZURE_CLIENT_ID",
                   "ATLAS_PROJECT_ID", "ATLAS_PIPELINE_PUBLIC_KEY",
-                  "ATLAS_PIPELINE_PRIVATE_KEY"):
+                  "ATLAS_PIPELINE_PRIVATE_KEY",
+                  "PIPELINEEDITOR_AZURE_TENANT_ID",
+                  "PIPELINEEDITOR_AZURE_CLIENT_ID",
+                  "PIPELINEEDITOR_AZURE_CLIENT_SECRET"):
         try:
             os.environ[_name] = str(
                 _automation_assets.get_automation_variable(_name))

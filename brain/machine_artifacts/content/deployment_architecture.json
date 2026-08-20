@@ -4473,7 +4473,10 @@
                 "KEY_VAULT_URI": "local_env",
                 "ATLAS_PROJECT_ID": "local_env",
                 "ATLAS_PIPELINE_PUBLIC_KEY": "local_env",
-                "ATLAS_PIPELINE_PRIVATE_KEY": "local_env"
+                "ATLAS_PIPELINE_PRIVATE_KEY": "local_env",
+                "PIPELINEEDITOR_AZURE_TENANT_ID": "local_env",
+                "PIPELINEEDITOR_AZURE_CLIENT_ID": "local_env",
+                "PIPELINEEDITOR_AZURE_CLIENT_SECRET": "local_env"
               },
               "secret_descriptions": {
                 "CH_LOG_DB": "Database the structured log records are written to",
@@ -4481,7 +4484,10 @@
                 "KEY_VAULT_URI": "Vault holding the migrator's certificate. Not a secret.",
                 "ATLAS_PROJECT_ID": "Atlas project the clusters live in. Not a secret.",
                 "ATLAS_PIPELINE_PUBLIC_KEY": "Atlas API key that resumes the source cluster.",
-                "ATLAS_PIPELINE_PRIVATE_KEY": "Secret half of the Atlas key that resumes the cluster."
+                "ATLAS_PIPELINE_PRIVATE_KEY": "Secret half of the Atlas key that resumes the cluster.",
+                "PIPELINEEDITOR_AZURE_TENANT_ID": "Tenant of the identity that writes the log. Not a secret.",
+                "PIPELINEEDITOR_AZURE_CLIENT_ID": "Client id of the identity that writes the log. Not a secret.",
+                "PIPELINEEDITOR_AZURE_CLIENT_SECRET": "Secret of the identity that writes the runbook log."
               },
               "config": {
                 "runbook_name": "DataMigration",
