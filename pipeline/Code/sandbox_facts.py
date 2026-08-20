@@ -20,10 +20,20 @@ import platform
 import sys
 import sysconfig
 
+from chathealthy_lib.exceptions import ChatHealthyException
+
 _NL = chr(10)
 
 
+facts: list[str] = []
+
+
 def _say(line: str) -> None:
+    """Both channels. Automation keeps the Output stream on success and
+    discards stderr, and it keeps stderr only inside an exception -- so a
+    job that succeeds quietly says nothing at all. The facts are collected
+    and raised at the end, which is the one channel that always survives."""
+    facts.append(line)
     sys.stderr.write(line + _NL)
 
 
@@ -59,7 +69,11 @@ def main() -> int:
             _say(f"    {name:14s} {getattr(module, '__version__', '?')}")
         except Exception as exc:  # noqa: BLE001
             _say(f"    {name:14s} not importable: {type(exc).__name__}")
-    return 0
+
+    raise ChatHealthyException(
+        mode="sandbox_facts",
+        component="sandbox_facts",
+        message=_NL.join(facts))
 
 
 if __name__ == "__main__":
