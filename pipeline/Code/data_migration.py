@@ -23,9 +23,12 @@ import datetime
 import json
 import os
 import sys
+import time
 import uuid
 
+import requests
 from pymongo.errors import BulkWriteError
+from requests.auth import HTTPDigestAuth
 
 from chathealthy_lib.exceptions import ChatHealthyException
 from chathealthy_lib.logging_service import ChatHealthyLoggingService
@@ -46,7 +49,9 @@ try:
     # secret -- the vault then refuses, and the refusal looks like a missing
     # grant rather than a token for the wrong principal.
     for _name in ("KEY_VAULT_URI", "CH_LOG_DB", "AUTOMATION_ENV_PREFIX",
-                  "PIPELINETOFRONTENDPUBLICDATAMIGRATOR_AZURE_CLIENT_ID"):
+                  "PIPELINETOFRONTENDPUBLICDATAMIGRATOR_AZURE_CLIENT_ID",
+                  "ATLAS_PROJECT_ID", "ATLAS_PIPELINE_PUBLIC_KEY",
+                  "ATLAS_PIPELINE_PRIVATE_KEY"):
         try:
             os.environ[_name] = str(
                 _automation_assets.get_automation_variable(_name))
@@ -69,6 +74,9 @@ _AUTHORIZATION_TYPE = "data_migration"
 # different concerns.
 _RESERVATION_TYPE = "data_migration_service"
 _MIGRATOR = "PipelineToFrontEndPublicDataMigrator"
+_SOURCE_CLUSTER = "ChatHealthyDataPipelines"
+_WAKE_POLL_SECONDS = 5
+_WAKE_DEADLINE_SECONDS = 900
 _FRONT_END = "ChatHealthyFrontEnd"
 # The service's answer to a human approval, referencing it by key. A distinct
 # type because it is a distinct fact: the approval says a person released the
@@ -297,6 +305,60 @@ def _acknowledge_approval(collection: str, approval_id: str) -> str:
     return acknowledgement_id
 
 
+def _wake_the_source_cluster() -> None:
+    """Bring the cluster the data comes from up, and wait until it serves.
+
+    The reaper pauses it whenever nothing holds a reservation, which is
+    correct: it should not run when nothing needs it. Something does now.
+    Waking it is the service's work -- the operator asked for a migration,
+    not for a cluster -- and nothing else in the estate was doing it, so a
+    released migration failed on a paused source and told the operator their
+    approval had gone nowhere.
+
+    Raises; the caller logs.
+    """
+    project = os.environ.get("ATLAS_PROJECT_ID", "").strip()
+    public = os.environ.get("ATLAS_PIPELINE_PUBLIC_KEY", "").strip()
+    private = os.environ.get("ATLAS_PIPELINE_PRIVATE_KEY", "").strip()
+    if not (project and public and private):
+        raise ChatHealthyException(
+            mode="config_error",
+            component="data_migration",
+            message="the Atlas keys needed to wake the source cluster are "
+                    "absent; the cluster cannot be brought up")
+
+    url = (f"https://cloud.mongodb.com/api/atlas/v2/groups/{project}"
+           f"/clusters/{_SOURCE_CLUSTER}")
+    headers = {"Accept": "application/vnd.atlas.2024-08-05+json",
+               "Content-Type": "application/vnd.atlas.2024-08-05+json"}
+    auth = HTTPDigestAuth(public, private)
+    state = requests.get(url, auth=auth, headers=headers, timeout=30).json()
+    if state.get("paused"):
+        requests.patch(url, auth=auth, headers=headers,
+                       json={"paused": False}, timeout=30)
+
+    # Serving is what matters, and the label Atlas reports is not evidence of
+    # it: a cluster answering a connection has reported REPAIRING. So this
+    # asks the database, not the API.
+    deadline = time.monotonic() + _WAKE_DEADLINE_SECONDS
+    last = ""
+    while time.monotonic() < deadline:
+        try:
+            ChatHealthyMongoUtilities().getConnection(
+                _MIGRATOR, _SOURCE_CLUSTER)["admin"].command("ping")
+            return
+        except Exception as exc:  # noqa: BLE001
+            last = f"{type(exc).__name__}: {str(exc)[:120]}"
+        time.sleep(_WAKE_POLL_SECONDS)
+
+    raise ChatHealthyException(
+        mode="cluster_unavailable",
+        component="data_migration",
+        message=(f"{_SOURCE_CLUSTER} did not answer within "
+                 f"{_WAKE_DEADLINE_SECONDS}s of being asked to serve; "
+                 f"last refusal {last}"))
+
+
 def _authorizations():
     return ChatHealthyMongoUtilities().getConnection(
         "PipelineToFrontEndPublicDataMigrator", "ChatHealthyFrontEnd"
@@ -407,6 +469,7 @@ def _migrate(body: dict, collection: str) -> int:
                   "human_click=%s released_at=%s",
                   collection, approval_id, approval.get("human_click"),
                   approval.get("released_at"))
+        _wake_the_source_cluster()
         acknowledgement_id = _acknowledge_approval(collection, approval_id)
         _log.info("data_migration acknowledged approval_id=%s "
                   "acknowledgement_id=%s collection=%s",
