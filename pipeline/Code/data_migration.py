@@ -456,11 +456,18 @@ def main() -> int:
     _mark("logging bootstrap: done")
     _log.info("data_migration begin collection=%s", collection or "<none>")
     try:
-        _mark("reserving the service")
+        _mark("reserving the service: asking whether another job holds it")
         reserve(_MIGRATOR, _FRONT_END, _RESERVATION_TYPE,
                 holder="data_migration", about=collection)
+        _mark("reserved: this job holds the service")
         _log.info("data_migration reserved the service collection=%s", collection)
     except ChatHealthyException as exc:
+        # Said on the way out as well as after the fact. The log is a
+        # database write and this is the moment a second job discovers it
+        # cannot run; if the write is what fails, the stdout line is still
+        # in the job record.
+        _mark(f"ABEND: another job holds the service ({exc.mode}); "
+              f"this job will now end without reading or writing anything")
         _log.error(
             "data_migration ABEND collection=%s mode=%s: %s. The service "
             "runs one job at a time; nothing was read and nothing was "
