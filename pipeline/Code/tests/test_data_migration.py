@@ -215,6 +215,15 @@ def test_the_four_requests(seeded):
           f"1: the serving cluster holds {at_destination} documents in "
           f"{migratable!r}, the pipeline cluster holds {at_source}")
 
+    # And it ended well. A migration that copies everything and then abends
+    # is not a migration that worked: the operator reads a failed job, and
+    # nothing downstream can tell that apart from one that wrote nothing.
+    # The refusals abend on purpose; this one must not.
+    status, exception = _the_job_ended(since=began)
+    check(status == "Completed",
+          f"1: the migration ended {status!r}, not 'Completed': "
+          f"{exception[-400:]}")
+
     _log.info("[cases] %d of 4 cases reported a failure", len(failures))
     assert not failures, "\n".join(f"  - {f}" for f in failures)
 

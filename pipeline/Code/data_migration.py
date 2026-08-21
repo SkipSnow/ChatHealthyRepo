@@ -52,7 +52,7 @@ from chathealthy_lib.exceptions import ChatHealthyException
 from chathealthy_lib.logging_service import ChatHealthyLoggingService
 from chathealthy_lib.pipeline_boot import bootstrap_aa_mongo_logging
 from chathealthy_lib.mongo_utilities import ChatHealthyMongoUtilities
-from chathealthy_lib.reservations import release, reserve
+from chathealthy_lib.mutex import give_back, take
 
 def _mark(step: str) -> None:
     """Say where we are on the sandbox's own output stream.
@@ -104,10 +104,10 @@ _log = ChatHealthyLoggingService()
 
 _BATCH = 1000
 _AUTHORIZATION_TYPE = "data_migration"
-# The service reserves itself before it works. One holder at a time, taken
+# The service takes its mutex before it works. One holder at a time, taken
 # and given back by the library: admitting a job and performing one are
 # different concerns.
-_RESERVATION_TYPE = "data_migration_service"
+_MUTEX = "data_migration_service"
 _MIGRATOR = "PipelineToFrontEndPublicDataMigrator"
 _SOURCE_CLUSTER = "ChatHealthyDataPipelines"
 _WAKE_POLL_SECONDS = 5
@@ -182,16 +182,10 @@ class MigratedCollection:
 
     def source_indexes(self) -> list[dict]:
         """Every ordinary index on the source except _id_, which Mongo makes
-        itself. Atlas Search indexes are not here; list_indexes cannot see
-        them and source_search_indexes reads those separately."""
+        itself. Atlas Search indexes are not here: list_indexes cannot see
+        them, and this migration neither reads nor builds them."""
         return [dict(index) for index in self._source().list_indexes()
                 if index.get("name") != "_id_"]
-
-    def source_search_indexes(self) -> list[dict]:
-        """The Atlas Search indexes on the source. These are what
-        $vectorSearch queries; a collection that arrives without them is
-        data FindCare cannot search."""
-        return [dict(index) for index in self._source().list_search_indexes()]
 
     def copy(self):
         """Copy every document across, yielding the running count as each
@@ -248,15 +242,6 @@ class MigratedCollection:
         """Built last. These enforce nothing, so maintaining them across
         several million inserts buys nothing the final build does not."""
         return self._build(self.performance_indexes())
-
-    def search_indexes_to_create_operationally(self) -> list[str]:
-        """The search indexes the source carries and this migration does not
-        build. Vector indexes are not built by the pipeline; creating one is
-        an operational step taken after the data is in place. The names are
-        reported so the operator knows what the collection is still missing.
-        """
-        return [index["name"] for index in self.source_search_indexes()]
-
 
 def _webhook_body() -> dict:
     """The POST body Azure Automation delivered. The sandbox splits the
@@ -432,7 +417,7 @@ def _released_approval(collection: str, approval_id: str) -> dict:
 
 
 def main() -> int:
-    """Reserve the service, migrate, give the reservation back.
+    """Take the mutex, migrate, give the mutex back.
 
     REQ-B-015: one job at a time. An invocation arriving while another is
     running is refused before it reads or writes anything, and it abends --
@@ -451,33 +436,46 @@ def main() -> int:
     collection = str(body.get("collection") or "")
     _mark(f"collection={collection or '<none>'}")
 
+    # The mutex is taken at the first moment this job can reach a
+    # database, and before anything else it might do with one. Every
+    # instruction between reaching the cluster and claiming the service is
+    # time in which a second job can claim it instead, so there are none:
+    # the payload comes off argv, and the claim is the first write.
+    #
+    # The log does not exist yet. It is built after, and the outcome of the
+    # claim is written to it then -- including a refusal, which is held and
+    # reported rather than raised through a process that cannot yet record
+    # what happened to it. Until that point the sandbox's own output stream
+    # carries the story.
+    refusal: ChatHealthyException | None = None
+    try:
+        _mark("taking the mutex: asking whether another job holds it")
+        take(_MIGRATOR, _FRONT_END, _MUTEX,
+             holder="data_migration", about=collection)
+        _mark("taken: this job holds the mutex")
+    except ChatHealthyException as exc:
+        _mark(f"ABEND: another job holds the service ({exc.mode}); "
+              f"this job will now end without reading or writing anything")
+        refusal = exc
+
     _mark("logging bootstrap: begin (vault fetch and mongo connect)")
     bootstrap_aa_mongo_logging(component_name="data_migration")
     _mark("logging bootstrap: done")
     _log.info("data_migration begin collection=%s", collection or "<none>")
-    try:
-        _mark("reserving the service: asking whether another job holds it")
-        reserve(_MIGRATOR, _FRONT_END, _RESERVATION_TYPE,
-                holder="data_migration", about=collection)
-        _mark("reserved: this job holds the service")
-        _log.info("data_migration reserved the service collection=%s", collection)
-    except ChatHealthyException as exc:
-        # Said on the way out as well as after the fact. The log is a
-        # database write and this is the moment a second job discovers it
-        # cannot run; if the write is what fails, the stdout line is still
-        # in the job record.
-        _mark(f"ABEND: another job holds the service ({exc.mode}); "
-              f"this job will now end without reading or writing anything")
+
+    if refusal is not None:
         _log.error(
             "data_migration ABEND collection=%s mode=%s: %s. The service "
             "runs one job at a time; nothing was read and nothing was "
-            "written.", collection, exc.mode, exc)
-        raise
+            "written.", collection, refusal.mode, refusal)
+        raise refusal
+
+    _log.info("data_migration holds the mutex collection=%s", collection)
     try:
         return _migrate(body, collection)
     finally:
-        release(_MIGRATOR, _FRONT_END, _RESERVATION_TYPE)
-        _log.info("data_migration reservation released collection=%s",
+        give_back(_MIGRATOR, _FRONT_END, _MUTEX)
+        _log.info("data_migration gave the mutex back collection=%s",
                   collection)
 
 
@@ -562,12 +560,6 @@ def _migrate(body: dict, collection: str) -> int:
         _log.error("data_migration INDEXES INCOMPLETE collection=%s built=%s wanted=%s",
                    collection, sorted(built), sorted(wanted))
         return 1
-
-    outstanding = migrated.search_indexes_to_create_operationally()
-    if outstanding:
-        _log.info("data_migration collection=%s still needs these search "
-                  "indexes created operationally before it can serve: %s",
-                  collection, ", ".join(outstanding))
 
     _log.info("data_migration complete collection=%s written=%d indexes=%d "
               "approval_id=%s", collection, written, len(built), approval_id)
