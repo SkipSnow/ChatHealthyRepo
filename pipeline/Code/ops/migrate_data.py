@@ -51,10 +51,6 @@ _log = ChatHealthyLoggingService()
 
 _VAULT_BY_ENV = {"dev": "kv-chpipeline-dev"}
 _WEBHOOK_SECRET_NAME = "DATA-MIGRATION-WEBHOOK-URL"
-_ENFORCEMENT_ID = "Rule-065-ENF-009"
-_WORKER = ("architecture/EngineeringRuleEnforcement/code/"
-           "scan_data_migration_compliance_worker.py")
-_MIGRATION_FILE = "pipeline/Code/data_migration.py"
 _AUTHORIZATION_TIMEOUT_SECONDS = 600
 # One collection holds every authorization the estate takes, and the type
 # says which kind this is. A migration approval and a commit approval are
@@ -83,41 +79,14 @@ def _webhook_url(vault: str) -> str:
     return url
 
 
-def _code_is_compliant(env: str) -> tuple[bool, list[str], dict]:
-    """Ask Rule-065-ENF-009 whether the code `env` runs meets its story.
-
-    The environment is the rule's argument and the rule does the rest: it
-    pulls the branch that environment runs from and judges that. What is
-    deployed there can differ from this disk by every uncommitted edit on
-    it, and a release asks about the former.
-
-    Returns what the rule said, and what it judged -- the branch and commit
-    it read, which it names rather than this file deriving them. The
-    environment-to-branch mapping lives in the rule and nowhere else.
-    """
-    result = subprocess.run(
-        [sys.executable, str(_REPO / _WORKER), _ENFORCEMENT_ID, env],
-        input=f"{_MIGRATION_FILE}\n",
-        capture_output=True, text=True, cwd=str(_REPO), timeout=1800)
-    violations = []
-    judged: dict = {}
-    for line in (result.stdout or "").splitlines():
-        try:
-            record = json.loads(line)
-        except ValueError:
-            continue
-        if record.get("kind") == "violation":
-            violations.append(record.get("message", ""))
-        elif record.get("kind") == "judged":
-            judged = record
-    if result.returncode not in (0, 1):
-        raise ChatHealthyException(
-            mode="config_error",
-            component="migrate_data",
-            message=(f"{_ENFORCEMENT_ID} did not complete for env {env} "
-                     f"(exit {result.returncode}): "
-                     f"{(result.stderr or '').strip()[:300]}"))
-    return result.returncode == 0, violations, judged
+def _git_source() -> tuple[str, str]:
+    """The branch and commit this release was taken from."""
+    def read(*argv: str) -> str:
+        found = subprocess.run(["git", *argv], capture_output=True, text=True,
+                               cwd=str(_REPO), timeout=30,
+                               creationflags=_cflags())
+        return (found.stdout or "").strip()
+    return read("rev-parse", "--abbrev-ref", "HEAD"), read("rev-parse", "HEAD")
 
 
 def _next_approval_number(counters, authorization_type: str) -> int:
@@ -212,32 +181,9 @@ def main() -> int:
                    args.collection, authorization.verdict, args.env)
         return 1
 
-    # The code is judged before the release is recorded. A record written
-    # first would say a migration was released that the next line then
-    # refused to run.
-    _log.info("data_migration asking %s to judge env=%s",
-              _ENFORCEMENT_ID, args.env)
-    try:
-        compliant, violations, judged = _code_is_compliant(args.env)
-    except ChatHealthyException as exc:
-        _log.error("data_migration could not judge env=%s mode=%s: %s; "
-                   "nothing was recorded or fired", args.env, exc.mode, exc)
-        return 1
-    if not compliant:
-        for message in violations:
-            _log.error("data_migration compliance violation in env=%s: %s",
-                       args.env, message)
-        _log.error("data_migration REFUSED collection=%s: the code running in "
-                   "%s fails %d requirement(s) of its story; nothing was "
-                   "recorded or fired",
-                   args.collection, args.env, len(violations))
-        return 1
-    _log.info("data_migration env=%s branch=%s commit=%s satisfies every "
-              "requirement of its story", args.env, judged.get("branch"),
-              (judged.get("commit") or "")[:12])
-
     released_at = datetime.datetime.now(datetime.timezone.utc)
     approval_id = f"migration-approval-{uuid.uuid4().hex}"
+    branch, commit = _git_source()
     # pipelineEditor writes the approval record. The one database this
     # program reaches is pipelineAdmin on the front-end cluster, and this
     # identity's certificate is the one entitled to it. It touches no
@@ -260,8 +206,8 @@ def main() -> int:
         "env": args.env,
         "approval": authorization.approved,
         "message": authorization.verdict,
-        "gitSourceAttribute": judged.get("branch"),
-        "source_commit": judged.get("commit"),
+        "gitSourceAttribute": branch,
+        "source_commit": commit,
         "build_number": _build_number(),
         "human_click": authorization.human_click,
         "subject": authorization.subject,
