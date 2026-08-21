@@ -168,7 +168,7 @@ def test_the_four_requests(seeded):
         else:
             check(status == "Failed",
                   f"2a: the second invocation did not abend, it ended {status!r}")
-            check("reservation_held" in exception or "one job at a time" in exception,
+            check("mutex_held" in exception or "one job at a time" in exception,
                   f"2a: it abended, but not for being second: {exception[-400:]}")
     else:
         check(False, "2a: not attempted, the service was never held")
@@ -486,12 +486,11 @@ def _destination_db():
         "frontendUser", _FRONT_END_CLUSTER)[_FRONT_END_DB]
 
 
-def _reservations():
-    from chathealthy_lib.reservations import (
-        RESERVATIONS_COLLECTION, RESERVATIONS_DATABASE)
+def _mutex():
+    from chathealthy_lib.mutex import MUTEX_COLLECTION, MUTEX_DATABASE
     return ChatHealthyMongoUtilities().getConnection(
         "pipelineEditor", _FRONT_END_CLUSTER
-    )[RESERVATIONS_DATABASE][RESERVATIONS_COLLECTION]
+    )[MUTEX_DATABASE][MUTEX_COLLECTION]
 
 
 _AUTOMATION_ACCOUNT = "PipelineToFrontEndPublicDataMigratorWorkManager"
@@ -568,7 +567,7 @@ def _await_the_service(held: bool, every: int,
     wanted = "held" if held else "free"
     began = time.monotonic()
     while time.monotonic() - began < _SERVICE_WAIT_SECONDS:
-        reservation = _reservations().find_one({})
+        reservation = _mutex().find_one({})
         if (reservation is not None) == held:
             _log.info("[service] %s after %.0fs%s", wanted,
                       time.monotonic() - began,
@@ -796,22 +795,22 @@ def test_a_second_holder_cannot_take_the_reservation():
     held for the length of two calls and given back in a finally.
     """
     from chathealthy_lib.exceptions import ChatHealthyException
-    from chathealthy_lib.reservations import release, reserve
+    from chathealthy_lib.mutex import give_back, take
 
     kind = f"pytest_mutex_{uuid.uuid4().hex[:8]}"
-    reserve("pipelineEditor", _FRONT_END_CLUSTER, kind,
+    take("pipelineEditor", _FRONT_END_CLUSTER, kind,
             holder="first", about="the first holder")
     try:
         with pytest.raises(ChatHealthyException) as refused:
-            reserve("pipelineEditor", _FRONT_END_CLUSTER, kind,
+            take("pipelineEditor", _FRONT_END_CLUSTER, kind,
                     holder="second", about="the second holder")
-        assert refused.value.mode == "reservation_held", refused.value.mode
+        assert refused.value.mode == "mutex_held", refused.value.mode
         assert "first" in str(refused.value), str(refused.value)
     finally:
-        release("pipelineEditor", _FRONT_END_CLUSTER, kind)
+        give_back("pipelineEditor", _FRONT_END_CLUSTER, kind)
 
     # Released, so the next holder takes it. A mutex that never comes back
     # refuses every job after the first and looks identical to one that works.
-    reserve("pipelineEditor", _FRONT_END_CLUSTER, kind,
+    take("pipelineEditor", _FRONT_END_CLUSTER, kind,
             holder="third", about="after the release")
-    release("pipelineEditor", _FRONT_END_CLUSTER, kind)
+    give_back("pipelineEditor", _FRONT_END_CLUSTER, kind)
