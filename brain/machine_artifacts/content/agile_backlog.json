@@ -15117,6 +15117,26 @@
                             ]
                           },
                           "approval": "proposed"
+                        },
+                        {
+                          "req_id": "EPIC-008-F-012-S-002-REQ-B-006",
+                          "orphan": false,
+                          "name": "All promotions must be auditably approved by a human operator",
+                          "requirement": "Every code promotion MUST be approved by a human operator prior to any changes in the code REPO. This approval MUST be absolutely auditable, such that there is proof that a human and not an agent did the approval.",
+                          "priority": "must-have",
+                          "status": "done",
+                          "depends_on": [],
+                          "approval": "approved",
+                          "tests": {
+                            "test": [
+                              {
+                                "test_id": "EPIC-008-F-012-S-002-REQ-B-006-TEST-1",
+                                "orphan": false,
+                                "test_type": "engineering_rule",
+                                "file": "architecture/EngineeringRuleEnforcement/tests/test_promote_authorization_worker.py"
+                              }
+                            ]
+                          }
                         }
                       ]
                     }
