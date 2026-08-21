@@ -149,10 +149,27 @@ def test_the_four_requests(seeded):
         fired = _operator_run(absent)
         check(fired.returncode == 0,
               f"2a: the operator program failed: {(fired.stdout + fired.stderr)[-600:]}")
+        status, exception = _the_job_ended(since=second)
+        # Was it ever a second invocation? If the first released before the
+        # second reached the reservation, the two never overlapped and the
+        # requirement was not exercised. Saying "not met" there would be a
+        # lie about the service: it would mean the pytest could not create
+        # the condition, which is a fault in this file and not in the code
+        # under test. The two are reported differently on purpose.
         said = _the_runbook_said(absent, since=second)
-        check(any("reservation_held" in line or "one job at a time" in line
-                  for line in said),
-              f"2a: the second invocation was not refused for being second: {said}")
+        took_it = any("reserved the service" in line for line in said)
+        if took_it:
+            check(False,
+                  "2a: NOT DEMONSTRATED — the second job took the reservation, "
+                  "so the service was free when it arrived and the two never "
+                  "overlapped. It then abended for the wrong reason, which "
+                  "says nothing about REQ-B-015: it says this pytest could "
+                  "not hold the service long enough to test it.")
+        else:
+            check(status == "Failed",
+                  f"2a: the second invocation did not abend, it ended {status!r}")
+            check("reservation_held" in exception or "one job at a time" in exception,
+                  f"2a: it abended, but not for being second: {exception[-400:]}")
     else:
         check(False, "2a: not attempted, the service was never held")
 
@@ -166,9 +183,11 @@ def test_the_four_requests(seeded):
     fired = _operator_run(absent)
     check(fired.returncode == 0,
           f"2b: the operator program failed: {(fired.stdout + fired.stderr)[-600:]}")
-    said = _the_runbook_said(absent, since=third)
-    check(any("migration_source_absent" in line for line in said),
-          f"2b: an absent source was not refused as absent: {said}")
+    status, exception = _the_job_ended(since=third)
+    check(status == "Failed",
+          f"2b: an absent source did not abend, it ended {status!r}")
+    check("migration_source_absent" in exception,
+          f"2b: it abended, but not for the source being absent: {exception[-400:]}")
 
     # 3 -- a collection already at the destination.
     try:
@@ -180,14 +199,21 @@ def test_the_four_requests(seeded):
     fired = _operator_run(present)
     check(fired.returncode == 0,
           f"3: the operator program failed: {(fired.stdout + fired.stderr)[-600:]}")
-    said = _the_runbook_said(present, since=fourth)
-    check(any("migration_target_exists" in line for line in said),
-          f"3: a collection already there was not refused as present: {said}")
+    status, exception = _the_job_ended(since=fourth)
+    check(status == "Failed",
+          f"3: a collection already there did not abend, it ended {status!r}")
+    check("migration_target_exists" in exception,
+          f"3: it abended, but not for the collection being there: {exception[-400:]}")
 
-    # The first one landed whole, under the name it left with.
-    said = _the_runbook_said(migratable, since=began)
-    check(any("complete" in line for line in said),
-          f"1: the migration did not report completion: {said}")
+    # The first one landed whole, under the name it left with. Counted at
+    # the destination, not read from what the runbook said about itself:
+    # a migration that wrote nothing and logged a completion line would
+    # satisfy the log and not the requirement.
+    at_source = _source_db()[migratable].count_documents({})
+    at_destination = _destination_db()[migratable].count_documents({})
+    check(at_destination == at_source,
+          f"1: the serving cluster holds {at_destination} documents in "
+          f"{migratable!r}, the pipeline cluster holds {at_source}")
 
     _log.info("[cases] %d of 4 cases reported a failure", len(failures))
     assert not failures, "\n".join(f"  - {f}" for f in failures)
@@ -434,6 +460,23 @@ def _approval_record(collection: str) -> dict | None:
 _SERVICE_WAIT_SECONDS = 1800
 
 
+def _source_db():
+    """The pipeline cluster's published data, as the pipeline identity."""
+    return ChatHealthyMongoUtilities().getConnection(
+        "pipelineEditor", _PIPELINE_CLUSTER)[_PIPELINE_DB]
+
+
+def _destination_db():
+    """The serving data, as the identity that serves it.
+
+    frontendUser, because pipelineEditor has no rights on the serving
+    database -- which is the boundary working, and the reason this check
+    could not previously count what arrived.
+    """
+    return ChatHealthyMongoUtilities().getConnection(
+        "frontendUser", _FRONT_END_CLUSTER)[_FRONT_END_DB]
+
+
 def _reservations():
     from chathealthy_lib.reservations import (
         RESERVATIONS_COLLECTION, RESERVATIONS_DATABASE)
@@ -531,6 +574,45 @@ def _await_the_service(held: bool, every: int,
         time.sleep(every)
     pytest.fail(f"the service never became {wanted} within "
                 f"{_SERVICE_WAIT_SECONDS}s")
+
+
+def _the_job_ended(since, wait_seconds: int = 600) -> tuple[str, str]:
+    """What became of the job the service started after `since`.
+
+    Returns its terminal status and its exception text. A refusal is an
+    abend: REQ-B-005, REQ-B-013 and REQ-B-015 all require the invocation to
+    end abnormally rather than exit tidily reporting a problem, so the
+    platform's own verdict on the job is the evidence, not a line the
+    runbook chose to write about itself.
+    """
+    stamp = since.isoformat() if hasattr(since, "isoformat") else str(since)
+    began = time.monotonic()
+    while time.monotonic() - began < wait_seconds:
+        raw = _az(["automation", "job", "list",
+                   "--automation-account-name", _AUTOMATION_ACCOUNT,
+                   "--resource-group", _RESOURCE_GROUP, "-o", "json"])
+        try:
+            jobs = sorted(
+                (j for j in json.loads(raw or "[]")
+                 if (j.get("creationTime") or "") > stamp),
+                key=lambda j: j.get("creationTime") or "")
+        except ValueError:
+            jobs = []
+        for job in jobs:
+            if job.get("status") in ("Completed", "Failed", "Suspended", "Stopped"):
+                detail = _az(["rest", "--method", "get", "--url",
+                              f"https://management.azure.com/subscriptions/{_SUBSCRIPTION}"
+                              f"/resourceGroups/{_RESOURCE_GROUP}/providers/Microsoft.Automation"
+                              f"/automationAccounts/{_AUTOMATION_ACCOUNT}/jobs/{job['name']}"
+                              f"?api-version=2019-06-01"])
+                try:
+                    props = json.loads(detail or "{}").get("properties", {})
+                except ValueError:
+                    props = {}
+                return job["status"], str(props.get("exception") or "")
+        _log.info("[job] no job has ended since %s yet, asking again", stamp)
+        time.sleep(5)
+    return "none", f"no job ended within {wait_seconds}s"
 
 
 def _the_runbook_said(collection: str, since) -> list[str]:
