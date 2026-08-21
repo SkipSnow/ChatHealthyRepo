@@ -99,63 +99,98 @@ def test_the_four_requests(seeded):
         2b  fired once it is free, absent source -> refused, nothing to move
         3   fired once it is free, target present -> refused, already there
 
-    The runbook adjudicates. Every assertion below reads what it recorded.
+    The runbook adjudicates. Every check below reads what it recorded.
+
+    Every case runs. A case that fails is recorded and the sequence carries
+    on, because the operator answers four approval pages to get here and
+    stopping at the first failure spends three of those clicks on nothing --
+    and hides whatever the later cases would have said. Every failure is
+    reported together at the end.
     """
     migratable = seeded["migratable"]
     absent = seeded["absent_everywhere"]
     present = seeded["already_there"]
+    failures: list[str] = []
+
+    def check(passed: bool, message: str) -> bool:
+        if not passed:
+            _log.error("[FAIL] %s", message)
+            failures.append(message)
+        return passed
 
     # 1 -- the real one.
     began = datetime.datetime.now(datetime.timezone.utc)
     fired = _operator_run(migratable)
-    assert fired.returncode == 0, (fired.stdout + fired.stderr)[-900:]
+    check(fired.returncode == 0,
+          f"1: the operator program failed: {(fired.stdout + fired.stderr)[-600:]}")
 
     record = _approval_record(migratable)
-    assert record is not None, "no approval record in Mongo"
-    assert record["approval"] is True, record
-    assert record["human_click"] is True, record
+    if check(record is not None, "1: no approval record in Mongo"):
+        check(record["approval"] is True, f"1: the record says approval={record.get('approval')!r}")
+        check(record["human_click"] is True, f"1: the record carries no human click: {record.get('human_click')!r}")
 
     # The reservation appearing is the service saying the job has started.
     # The watcher runs alongside it: if the job dies instead of starting,
     # the wait ends there and says why, rather than running its full half
     # hour against a job that is already gone.
-    with _JobWatcher(since=began.isoformat()) as watcher:
-        _await_the_service(held=True, every=1, watcher=watcher)
+    held = False
+    try:
+        with _JobWatcher(since=began.isoformat()) as watcher:
+            _await_the_service(held=True, every=1, watcher=watcher)
+        held = True
+    except Exception as exc:  # noqa: BLE001
+        check(False, f"1: the service never became held: {exc}")
 
-    # 2a -- while it is held.
-    _log.info("[case] 2a: a second invocation while the first still runs")
-    second = datetime.datetime.now(datetime.timezone.utc)
-    fired = _operator_run(absent)
-    assert fired.returncode == 0, (fired.stdout + fired.stderr)[-900:]
-    said = _the_runbook_said(absent, since=second)
-    assert any("reservation_held" in line or "one job at a time" in line
-               for line in said), (
-        f"the second invocation was not refused for being second: {said}")
+    # 2a -- while it is held. Only meaningful if it is: firing it against a
+    # free service tests nothing, and says so rather than failing quietly.
+    if held:
+        _log.info("[case] 2a: a second invocation while the first still runs")
+        second = datetime.datetime.now(datetime.timezone.utc)
+        fired = _operator_run(absent)
+        check(fired.returncode == 0,
+              f"2a: the operator program failed: {(fired.stdout + fired.stderr)[-600:]}")
+        said = _the_runbook_said(absent, since=second)
+        check(any("reservation_held" in line or "one job at a time" in line
+                  for line in said),
+              f"2a: the second invocation was not refused for being second: {said}")
+    else:
+        check(False, "2a: not attempted, the service was never held")
 
     # 2b -- once the first has finished, the same name for a different reason.
-    _await_the_service(held=False, every=5)
+    try:
+        _await_the_service(held=False, every=5)
+    except Exception as exc:  # noqa: BLE001
+        check(False, f"2b: the service never became free: {exc}")
     _log.info("[case] 2b: the same absent collection, now that it is free")
     third = datetime.datetime.now(datetime.timezone.utc)
     fired = _operator_run(absent)
-    assert fired.returncode == 0, (fired.stdout + fired.stderr)[-900:]
+    check(fired.returncode == 0,
+          f"2b: the operator program failed: {(fired.stdout + fired.stderr)[-600:]}")
     said = _the_runbook_said(absent, since=third)
-    assert any("migration_source_absent" in line for line in said), (
-        f"an absent source was not refused as absent: {said}")
+    check(any("migration_source_absent" in line for line in said),
+          f"2b: an absent source was not refused as absent: {said}")
 
     # 3 -- a collection already at the destination.
-    _await_the_service(held=False, every=3)
+    try:
+        _await_the_service(held=False, every=3)
+    except Exception as exc:  # noqa: BLE001
+        check(False, f"3: the service never became free: {exc}")
     _log.info("[case] 3: a collection already on the front end")
     fourth = datetime.datetime.now(datetime.timezone.utc)
     fired = _operator_run(present)
-    assert fired.returncode == 0, (fired.stdout + fired.stderr)[-900:]
+    check(fired.returncode == 0,
+          f"3: the operator program failed: {(fired.stdout + fired.stderr)[-600:]}")
     said = _the_runbook_said(present, since=fourth)
-    assert any("migration_target_exists" in line for line in said), (
-        f"a collection already there was not refused as present: {said}")
+    check(any("migration_target_exists" in line for line in said),
+          f"3: a collection already there was not refused as present: {said}")
 
     # The first one landed whole, under the name it left with.
     said = _the_runbook_said(migratable, since=began)
-    assert any("complete" in line for line in said), (
-        f"the migration did not report completion: {said}")
+    check(any("complete" in line for line in said),
+          f"1: the migration did not report completion: {said}")
+
+    _log.info("[cases] %d of 4 cases reported a failure", len(failures))
+    assert not failures, "\n".join(f"  - {f}" for f in failures)
 
 
 # ── half one: the commit gate ────────────────────────────────────────────────
