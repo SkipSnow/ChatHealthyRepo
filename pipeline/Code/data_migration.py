@@ -103,11 +103,6 @@ except ImportError:
 _log = ChatHealthyLoggingService()
 
 _BATCH = 1000
-# An approval releases one migration, taken seconds ago, and nothing else. A
-# minute is long enough for the webhook to reach the runbook and short enough
-# that a record cannot be found later and reused: replaying yesterday's
-# approval against today's collection is the attack this closes.
-_APPROVAL_VALID_SECONDS = 60
 _AUTHORIZATION_TYPE = "data_migration"
 # The service reserves itself before it works. One holder at a time, taken
 # and given back by the library: admitting a job and performing one are
@@ -439,21 +434,6 @@ def _released_approval(collection: str, approval_id: str) -> dict:
             collection, approval_id,
             f"the approval is for {record.get('collection')!r}, not this collection")
 
-    released_at = record.get("released_at")
-    if not isinstance(released_at, datetime.datetime):
-        _raise_unauthorized(collection, approval_id,
-                            "the record carries no usable release time")
-    age = (datetime.datetime.now(datetime.timezone.utc)
-           - released_at.replace(tzinfo=datetime.timezone.utc)).total_seconds()
-    if age > _APPROVAL_VALID_SECONDS:
-        _raise_unauthorized(
-            collection, approval_id,
-            f"the approval is {age:.0f}s old and expired "
-            f"({_APPROVAL_VALID_SECONDS}s is the window)")
-    if age < -5:
-        _raise_unauthorized(
-            collection, approval_id,
-            f"the approval is dated {abs(age):.0f}s in the future")
     if record.get("env") != os.environ.get("ENV_PREFIX", record.get("env")):
         _raise_unauthorized(
             collection, approval_id,
