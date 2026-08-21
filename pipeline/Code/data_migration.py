@@ -103,8 +103,6 @@ except ImportError:
 _log = ChatHealthyLoggingService()
 
 _BATCH = 1000
-# TEMPORARY, FOR TESTING REQ-B-015 ONLY. REMOVE.
-_TESTING_PAUSE_BETWEEN_BATCHES = 0.4
 _AUTHORIZATION_TYPE = "data_migration"
 # The service reserves itself before it works. One holder at a time, taken
 # and given back by the library: admitting a job and performing one are
@@ -208,13 +206,6 @@ class MigratedCollection:
                 destination.insert_many(batch, ordered=False)
                 written += len(batch)
                 batch = []
-                # TEMPORARY, FOR TESTING REQ-B-015 ONLY. REMOVE.
-                # A second invocation cannot meet a held reservation when the
-                # hold is shorter than the time Azure takes to start a
-                # sandbox: 2,050,000 documents copy in 65 seconds and a
-                # second job needs about 220 to arrive. This pause stretches
-                # the hold to roughly 15 minutes so the two overlap.
-                time.sleep(_TESTING_PAUSE_BETWEEN_BATCHES)
                 yield written
         if batch:
             destination.insert_many(batch, ordered=False)
