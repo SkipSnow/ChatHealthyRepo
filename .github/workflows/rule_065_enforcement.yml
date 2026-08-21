@@ -1,0 +1,60 @@
+# Rule-065, enforced where the committer cannot switch it off.
+#
+# The local hooks are advisory by construction: `git commit --no-verify`
+# does not run them, and neither does deleting .git/hooks, repointing
+# core.hooksPath, or committing from another clone. This runs the same
+# driver against what was pushed, so a commit that skipped the hooks still
+# answers for itself before it can land on dev.
+#
+# It invokes commit_governance_driver.py — the component the hooks invoke —
+# rather than reimplementing any rule. There is one statement of what the
+# rules are.
+
+name: Rule-065 commit governance
+
+on:
+  push:
+    branches: [dev, qa, main]
+  pull_request:
+    branches: [dev, qa, main]
+
+jobs:
+  enforce:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out the pushed commit and its parent
+        uses: actions/checkout@v4
+        with:
+          # The driver judges a change set. Two commits is enough to name
+          # what this push added; a shallow clone of one is not.
+          fetch-depth: 2
+
+      - name: Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Dependencies the static enforcements need
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install jsonschema python-dotenv
+
+      - name: Stage the pushed change set for the driver
+        run: |
+          # The driver reads the staged set, because that is what a commit
+          # publishes. Re-stage what this push changed so it judges exactly
+          # the same files the hook would have.
+          git reset --soft HEAD~1 || true
+          git status --porcelain
+
+      - name: Rule-065
+        run: python architecture/EngineeringRuleEnforcement/code/commit_governance_driver.py
+
+      - name: The verdict, in full
+        if: always()
+        run: |
+          # The local run reports "driver returned 1" and says no more; the
+          # reason lives in the audit log. Print it, so a failure here names
+          # the file and the enforcement rather than sending someone to go
+          # and find them.
+          tail -n 1 architecture/EngineeringRuleEnforcement/ArchitectureDesignAndAuditDocs/commit_governance.log || true
