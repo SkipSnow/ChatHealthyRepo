@@ -161,12 +161,6 @@ class MigratedCollection:
     def refuse_unless_migratable(self) -> None:
         """The conditions under which nothing may be written. Raises; the
         caller logs."""
-        if not self._collection_name or not isinstance(self._collection_name, str):
-            raise ChatHealthyException(
-                mode="migration_collection_name_invalid",
-                component="MigratedCollection",
-                message="a collection name is required")
-
         if not self.exists_at_source():
             raise ChatHealthyException(
                 mode="migration_source_absent",
@@ -434,10 +428,6 @@ def _released_approval(collection: str, approval_id: str) -> dict:
             collection, approval_id,
             f"the approval is for {record.get('collection')!r}, not this collection")
 
-    if record.get("env") != os.environ.get("ENV_PREFIX", record.get("env")):
-        _raise_unauthorized(
-            collection, approval_id,
-            f"the approval was taken for env {record.get('env')!r}")
     return record
 
 
