@@ -35,6 +35,13 @@ for _parent in _HERE.parents:
         sys.path.insert(0, str(_parent / "ChatHealthyLib" / "src"))
         break
 
+from dotenv import load_dotenv  # noqa: E402
+
+# The program loads its own environment, as every other operator-facing
+# surface here does. Without it the program takes an APPROVE and then dies
+# reaching for a vault it has no address for.
+load_dotenv(str(_REPO / ".env"), override=False)
+
 from chathealthy_lib.exceptions import ChatHealthyException  # noqa: E402
 from chathealthy_lib.human_authorization import (  # noqa: E402
     APPROVE, request_authorization)
