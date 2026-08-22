@@ -320,7 +320,33 @@ class CommitGovernanceDriver:
         AUDIT_LOG_PATH.parent.mkdir(parents=True, exist_ok=True)
         with AUDIT_LOG_PATH.open("a", encoding="utf-8") as f:
             f.write(json.dumps(entry) + "\n")
+
+        if verdict != EXIT_OK:
+            self._record_refusal(entry)
         return entry
+
+    @staticmethod
+    def _record_refusal(entry: dict[str, Any]) -> None:
+        """Put the refusal where the refused thing cannot reach it.
+
+        This log lives inside the repository the rules govern, so the commit
+        being refused could carry a change to it. The durable statement that a
+        refusal happened, and what it named, goes to the same collection the
+        authorizations do.
+
+        Best effort, always: it records, it never gates. A refusal that cannot
+        be written is still a refusal, and making the gate depend on a
+        database being reachable would fail in the direction that lets work
+        through.
+        """
+        document = dict(entry)
+        document["authorization_type"] = "refusal"
+        document["operator"] = os.environ.get("USERNAME", "unknown")
+        try:
+            import authorization_record
+            authorization_record.append(document, tolerate_failure=True)
+        except Exception as exc:  # noqa: BLE001 - reported, never raised
+            _CH_LOG.error(f"[driver] the refusal could not be recorded: {exc}")
 
     @staticmethod
     def aggregate(codes: list[int]) -> int:

@@ -85,9 +85,38 @@ def deployment_facts(env: str = "dev") -> tuple[str, str]:
     return cluster["cluster_name"], identity
 
 
+def _load_env_beside_the_repository() -> None:
+    """Put .env on the environment for values not already set.
+
+    The gates run in a container with the repository mounted, and the
+    credentials that reach Atlas live in .env at its root -- not in git, and
+    not in the container's own environment. Without this the write failed on
+    KEY_VAULT_URI and every verdict went unrecorded while the gate reported
+    itself working.
+
+    Existing values win. The image sets CH_LOG_DESTINATION deliberately, and
+    the application .env sets it to mongo; letting the file override would
+    point devops logging at a database this identity cannot write to.
+    """
+    import os  # noqa: PLC0415
+
+    for parent in pathlib.Path(__file__).resolve().parents:
+        if not (parent / ".git").exists():
+            continue
+        env_file = parent / ".env"
+        if not env_file.is_file():
+            return
+        from dotenv import dotenv_values  # noqa: PLC0415
+        for name, value in dotenv_values(env_file).items():
+            if value is not None and name not in os.environ:
+                os.environ[name] = value
+        return
+
+
 def collection():
     global _collection
     if _collection is None:
+        _load_env_beside_the_repository()
         cluster, identity = deployment_facts()
         client = ChatHealthyMongoUtilities().getConnection(identity, cluster)
         _collection = client[AUTHORIZATION_DATABASE][AUTHORIZATION_COLLECTION]
