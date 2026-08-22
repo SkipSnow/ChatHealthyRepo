@@ -4893,6 +4893,24 @@
     {
       "target_id": "target_host_local_devops",
       "target_kind": "host_os_process",
+      "runtime": {
+        "interpreter_version": "python-3.12",
+        "container_image": "chathealthy/rule-enforcement",
+        "image_tag": "0.1.7-py312",
+        "python_packages": {
+          "chathealthy-lib": "0.1.7",
+          "jsonschema": "4.26.0",
+          "filelock": "3.20.3",
+          "fastapi": "0.128.0",
+          "cryptography": "46.0.5",
+          "pydantic": "2.12.5",
+          "httpx": "0.28.1",
+          "pymongo": "4.16.0",
+          "pydantic-ai-slim": "1.93.0",
+          "openai": "2.36.0",
+          "python-dotenv": "1.2.1"
+        }
+      },
       "environments": [
         {
           "env_binding": "local",
