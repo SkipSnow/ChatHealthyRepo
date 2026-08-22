@@ -14,9 +14,12 @@ name: Rule-065 commit governance
 
 on:
   push:
-    branches: [dev, qa, main]
-  pull_request:
-    branches: [dev, qa, main]
+    branches: [dev]
+
+# dev only. A commit is authored on local and enters at local -> dev, where
+# it is authorized. qa and main receive code by promote, which moves a branch
+# pointer and creates no commit -- judging one there would re-judge a commit
+# already authorized on the way in.
 
 jobs:
   enforce:
