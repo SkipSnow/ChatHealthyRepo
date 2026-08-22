@@ -1018,7 +1018,9 @@ def _runbook_packages(target: TargetRecord) -> list[tuple[str, dict]]:
 
 def _build_automation_account(repo_root: Path, target: TargetRecord,
                               target_dir: Path,
-                              selection: set[str] | None = None) -> None:
+                              selection: set[str] | None = None,
+                              env: str = "", build_sha: str = "",
+                              build_n: int = 0) -> None:
     """Build each runbook package of the Automation Account.
 
     One destination, many capabilities. Each runbook package produces
@@ -1514,7 +1516,8 @@ def _build_one(repo_root: Path, target: TargetRecord, build_n: int, build_sha: s
     elif target.target_kind == "host_os_process":
         _build_host_os_process(repo_root, target, build_dir)
     elif target.target_kind == "azure_automation_account":
-        _build_automation_account(repo_root, target, target_dir, selected)
+        _build_automation_account(repo_root, target, target_dir, selected,
+                                  env, build_sha, build_n)
     elif target.target_kind in (
         "atlas",
         "azure_resource_group",
