@@ -621,13 +621,24 @@ def _reaches(scope: str, subscription_name: str, contents: dict | None = None) -
         return f"resource group <b>{name}</b>"
     if not scope.strip("/"):
         return "the whole tenant"
+    return f"every resource in subscription <b>{subscription_name}</b>"
+
+
+def _holds(scope: str, subscription_name: str, contents: dict | None = None) -> str:
+    """How much sits inside the thing a grant reaches.
+
+    Its own column: a count is not a name, and a reader comparing two grants
+    should not have to read past a resource description to find it.
+    """
+    if scope.strip("/") and "/subscriptions/" in scope.lower() and (
+            "/resourcegroups/" in scope.lower() or "/providers/" in scope.lower()):
+        return ""
     c = (contents or {}).get(subscription_name)
-    if c:
-        vaults = (f", including {c['vaults']} key vault"
-                  f"{'s' if c['vaults'] != 1 else ''}" if c["vaults"] else "")
-        return (f"every resource in subscription <b>{subscription_name}</b> "
-                f"&mdash; {c['count']} resource{'s' if c['count'] != 1 else ''}{vaults}")
-    return f"subscription <b>{subscription_name}</b>"
+    if not c:
+        return ""
+    vaults = (f", {c['vaults']} key vault{'s' if c['vaults'] != 1 else ''}"
+              if c["vaults"] else "")
+    return f"{c['count']} resource{'s' if c['count'] != 1 else ''}{vaults}"
 
 
 def _scope_parts(scope: str) -> dict:
@@ -1334,6 +1345,11 @@ def collect() -> dict:
         if oid in holders:
             continue
         approved = APPROVED.get(oid)
+        # A principal holding nothing is an exception whether or not the
+        # register names it. Being declared does not make an orphan expected:
+        # something brought it into existence and nothing uses it, and that is
+        # the fact a reviewer must see. It is listed unapproved, with a note
+        # saying what is true of it.
         rightless.append({
             "object_id": oid,
             "name": approved[0] if approved else meta["name"],
@@ -1341,7 +1357,10 @@ def collect() -> dict:
             "actor_type": approved[2] if approved else "",
             "application": approved[4] if approved else "",
             "origin": meta["origin"],
-            "approved": approved is not None,
+            "approved": False,
+            "note": ("holds no rights; named in the approved register"
+                     if approved is not None
+                     else "holds no rights; not in the approved register"),
         })
 
     missing = [v[0] for k, v in APPROVED.items() if k not in holders]
@@ -1782,7 +1801,7 @@ def render_pdf(data: dict, out_path: Path) -> Path:
         descs = data["secret_descriptions"]
         # user -> resource -> right. The resource leads, because that is the
         # thing being protected; the right is how this user touches it.
-        rows = [["Resource", "Right held on it",
+        rows = [["Resource", "What it holds", "Description", "Right held on it",
                  "Administrative", "Conditioned", "Adds nothing"]]
         bullet_rows: list[int] = []
         title_rows: list[int] = []
@@ -1796,30 +1815,34 @@ def render_pdf(data: dict, out_path: Path) -> Path:
 
         for sub_name in sorted(by_sub):
             title_rows.append(len(rows))
-            rows.append([Paragraph(f'<b>{sub_name}</b>', cell), "", "", "", ""])
+            rows.append([Paragraph(f'<b>{sub_name}</b>', cell),
+                         "", "", "", "", "", ""])
             # One row per grant. Two grants on the same resource are two facts,
             # and folding them into one row because the resource repeats hides
             # one of them.
             for g in by_sub[sub_name]:
                 label = _reaches(g["raw_scope"], g["subscription"],
                                  data["subscription_contents"])
-                note_text = data["resource_notes"].get(g["raw_scope"], "")
+                holds = _holds(g["raw_scope"], g["subscription"],
+                               data["subscription_contents"])
+                described = data["resource_notes"].get(g["raw_scope"], "")
                 if g["secret"]:
-                    d = descs.get(g["secret"], "")
-                    label = (f'secret <b>{g["secret"]}</b> &mdash; {d}' if d
-                             else f'secret <b>{g["secret"]}</b>')
-                elif note_text:
-                    label = f'{label} &mdash; {note_text}'
+                    label = f'secret <b>{g["secret"]}</b>'
+                    holds = ""
+                    described = descs.get(g["secret"], "")
                 rows.append([
                     Paragraph(label, cell),
+                    Paragraph(holds, cell),
+                    Paragraph(described, cell),
                     Paragraph(g["role"], cell),
                     "yes" if g["privileged"] else "",
                     "yes" if g["conditioned"] else "",
                     "yes" if g["redundant"] else "",
                 ])
 
-        tb = Table(rows, colWidths=[4.4 * inch, 2.4 * inch,
-                                    0.9 * inch, 0.85 * inch, 0.85 * inch],
+        tb = Table(rows, colWidths=[2.5 * inch, 1.1 * inch, 2.1 * inch,
+                                    1.6 * inch, 0.9 * inch, 0.85 * inch,
+                                    0.85 * inch],
                    hAlign="LEFT", repeatRows=1)
         st = [
             ("BACKGROUND", (0, 0), (-1, 0), BAND),
@@ -1827,7 +1850,7 @@ def render_pdf(data: dict, out_path: Path) -> Path:
             ("FONTSIZE", (0, 0), (-1, -1), 8),
             ("LINEBELOW", (0, 0), (-1, -1), 0.25, RULE),
             ("VALIGN", (0, 0), (-1, -1), "TOP"),
-            ("ALIGN", (2, 0), (4, -1), "CENTER"),
+            ("ALIGN", (4, 0), (6, -1), "CENTER"),
             ("TOPPADDING", (0, 0), (-1, -1), 3),
             ("BOTTOMPADDING", (0, 0), (-1, -1), 3),
         ]
@@ -1835,8 +1858,8 @@ def render_pdf(data: dict, out_path: Path) -> Path:
             st.append(("LINEBELOW", (0, i), (-1, i), 0, colors.white))
             st.append(("TOPPADDING", (0, i), (-1, i), 0))
         for i, row in enumerate(rows[1:], start=1):
-            if i not in bullet_rows and row[2] == "yes":
-                st.append(("TEXTCOLOR", (2, i), (2, i), FLAG))
+            if i not in bullet_rows and row[4] == "yes":
+                st.append(("TEXTCOLOR", (4, i), (4, i), FLAG))
                 st.append(("FONTNAME", (0, i), (0, i), "Helvetica-Bold"))
         tb.setStyle(TableStyle(st))
         return tb
@@ -2358,7 +2381,8 @@ def main(argv: list[str] | None = None) -> int:
     attested = "attested" if data["groups_readable"] else "NOT ATTESTED (directory unreadable)"
     _LOG.info("entitlement report: %d assignments, %d principals, %d exceptions, "
               "%d ungrouped, %s, pdf=%s",
-              data["assignment_count"], len(data["holders"]), len(unapproved),
+              data["assignment_count"], len(data["holders"]),
+              len(unapproved) + len(data["rightless"]),
               len(data["ungrouped"]), attested, out)
 
     if args.no_email:
