@@ -5282,6 +5282,30 @@
       "secret_descriptions": {
         "GITHUB_DEPLOY_TOKEN": "GitHub token that writes the workflow to the branch"
       }
+    },
+    {
+      "target_id": "target_atlas_frontend",
+      "target_kind": "atlas",
+      "provisioning": "pre_existing",
+      "promote_chain_bound": false,
+      "environments": [
+        {
+          "env_binding": "dev",
+          "node_address": "chathealthyfrontend",
+          "atlas": {
+            "cluster": {
+              "cluster_name": "ChatHealthyFrontEnd",
+              "runtime_consumers": [
+                {
+                  "identity_target_id": "target_identity_devops_user",
+                  "operation": "mongo_write"
+                }
+              ]
+            }
+          }
+        }
+      ],
+      "files": []
     }
   ],
   "firm": {
@@ -5337,7 +5361,8 @@
         "Storage Blob Data Contributor",
         "Monitoring Reader",
         "AcrPush",
-        "Directory.Read.All"
+        "Directory.Read.All",
+        "role_governance_recorder"
       ],
       "target_id_ref": "target_identity_devops_user",
       "description": "Builds and deploys, across every subscription the firm holds. Runs the entitlement report, which is why it reads the directory. Holds full control of the pipeline key vault, which exceeds what building requires."
@@ -5455,6 +5480,32 @@
         {
           "operation": "REMOVE",
           "on": "target_atlas_pipeline/pipelineAdmin.DataMigrationServiceMutex"
+        }
+      ]
+    },
+    {
+      "role_id": "role_governance_recorder",
+      "description": "Atlas custom database role. Writes the record that authorizes a promotion and the record that says what became of it, across DevOpsAdmin on the front-end cluster. No update, no delete, no drop: a governance record its own writer can alter is not evidence, so an outcome is appended, never edited.",
+      "grants": [
+        {
+          "operation": "FIND",
+          "on": "target_atlas_frontend/DevOpsAdmin"
+        },
+        {
+          "operation": "INSERT",
+          "on": "target_atlas_frontend/DevOpsAdmin"
+        },
+        {
+          "operation": "CREATE_COLLECTION",
+          "on": "target_atlas_frontend/DevOpsAdmin"
+        },
+        {
+          "operation": "LIST_COLLECTIONS",
+          "on": "target_atlas_frontend/DevOpsAdmin"
+        },
+        {
+          "operation": "LIST_INDEXES",
+          "on": "target_atlas_frontend/DevOpsAdmin"
         }
       ]
     }

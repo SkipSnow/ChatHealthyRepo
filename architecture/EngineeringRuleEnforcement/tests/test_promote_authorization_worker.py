@@ -47,7 +47,7 @@ class FakeDecision:
 
 
 class FakeCollection:
-    """Stands in for GovernanceAdminDb.Authorizations."""
+    """Stands in for DevOpsAdmin.Authorizations."""
 
     def __init__(self, fail_on_insert=False):
         self.documents = []
@@ -167,7 +167,7 @@ class TestApprovalMustBeAuditable:
 
     def test_the_record_lives_outside_the_repository_being_promoted(self):
         """A file inside the governed tree is not evidence."""
-        assert paw.AUTHORIZATION_DATABASE == "GovernanceAdminDb"
+        assert paw.AUTHORIZATION_DATABASE == "DevOpsAdmin"
         assert paw.AUTHORIZATION_COLLECTION == "Authorizations"
 
     def test_a_failed_promotion_records_its_outcome(self, gate):

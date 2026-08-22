@@ -33,6 +33,7 @@ import os as _ch_os
 
 _ch_os.environ.setdefault("CH_LOG_DESTINATION", "stderr")
 
+import json  # noqa: E402
 from dataclasses import dataclass, asdict, field  # noqa: E402
 from datetime import datetime, timezone  # noqa: E402
 
@@ -45,10 +46,50 @@ from chathealthy_lib.mongo_utilities import ChatHealthyMongoUtilities  # noqa: E
 _log = ChatHealthyLoggingService()
 
 AUTHORIZATION_TYPE = "promotion"
-AUTHORIZATION_DATABASE = "GovernanceAdminDb"
+AUTHORIZATION_TARGET = "target_atlas_frontend"
+AUTHORIZATION_DATABASE = "DevOpsAdmin"
 AUTHORIZATION_COLLECTION = "Authorizations"
-AUTHORIZATION_IDENTITY = "DevOpsUser"
-AUTHORIZATION_CLUSTER = "ChatHealthyFrontEnd"
+
+
+def _deployment_facts(env: str = "dev") -> tuple[str, str]:
+    """The cluster and the identity, read from the record that owns them.
+
+    A deployment fact held in code is a fact the record cannot be trusted to
+    describe, so the cluster this writes to and the identity it writes as are
+    read from deployment_architecture.json rather than declared here.
+    """
+    manifest = _pl.Path(__file__).resolve()
+    for parent in manifest.parents:
+        if (parent / ".git").exists():
+            manifest = (parent / "brain" / "machine_artifacts" / "content"
+                        / "deployment_architecture.json")
+            break
+    record = json.loads(manifest.read_text(encoding="utf-8"))
+    target = next((t for t in record["DeploymentTargetRecord"]
+                   if t["target_id"] == AUTHORIZATION_TARGET), None)
+    if target is None:
+        raise ChatHealthyException(
+            "manifest_incomplete",
+            f"{AUTHORIZATION_TARGET} is not declared; the promotion record "
+            f"has no cluster to be written to")
+    binding = next((e for e in target["environments"]
+                    if e["env_binding"] == env), target["environments"][0])
+    cluster = binding["atlas"]["cluster"]
+    consumers = cluster.get("runtime_consumers") or []
+    if not consumers:
+        raise ChatHealthyException(
+            "manifest_incomplete",
+            f"{AUTHORIZATION_TARGET} declares no runtime consumer; the "
+            f"promotion record has no identity to be written as")
+    identity_target = consumers[0]["identity_target_id"]
+    identity = next(
+        (i["identity_id"] for i in record["IdentityCatalog"]
+         if i.get("target_id_ref") == identity_target), None)
+    if identity is None:
+        raise ChatHealthyException(
+            "manifest_incomplete",
+            f"{identity_target} names no identity in the IdentityCatalog")
+    return cluster["cluster_name"], identity
 TIMEOUT_SECONDS = 600
 ADJACENT_PAIRS = (("local", "dev"), ("dev", "qa"), ("qa", "prod"))
 
@@ -123,8 +164,8 @@ class PromoteAuthorizationWorker:
     # -- the collection ---------------------------------------------------
     def collection(self):
         if self._collection is None:
-            client = ChatHealthyMongoUtilities().getConnection(
-                AUTHORIZATION_IDENTITY, AUTHORIZATION_CLUSTER)
+            cluster, identity = _deployment_facts()
+            client = ChatHealthyMongoUtilities().getConnection(identity, cluster)
             self._collection = (client[AUTHORIZATION_DATABASE]
                                 [AUTHORIZATION_COLLECTION])
         return self._collection
