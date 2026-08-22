@@ -86,7 +86,7 @@ def _find_repo_root(start: Path) -> Path:
         if (p / ".git").exists():
             return p
         p = p.parent
-    raise _ch_exc()(
+    raise ChatHealthyException(
             mode="runtime_error",
             component="_build_chain",
             message=f"no .git found walking up from {start}")
@@ -212,7 +212,7 @@ def _stage_packages(repo_root: Path, target: TargetRecord,
             shutil.copy2(src, dst)
             staged += 1
     if missing:
-        raise _ch_exc()(
+        raise ChatHealthyException(
             mode="runtime_error",
             component="_build_chain",
             message=f"{target.target_id}: {len(missing)} declared file(s) "
@@ -292,7 +292,7 @@ def _prepare_build_tree(target: TargetRecord, build_dir: Path,
     if selection is not None:
         chosen = [p for p in packages if p in selection]
         if packages and not chosen:
-            raise _ch_exc()(
+            raise ChatHealthyException(
             mode="value_error",
             component="_build_chain",
             message=f"target {target.target_id!r} declares "
@@ -300,7 +300,7 @@ def _prepare_build_tree(target: TargetRecord, build_dir: Path,
                     "you intend to build")
         packages = chosen
     if not packages and target.files:
-        raise _ch_exc()(
+        raise ChatHealthyException(
             mode="runtime_error",
             component="_build_chain",
             message=f"target {target.target_id!r} has {len(target.files)} "
@@ -347,7 +347,7 @@ def _architecture_path(anywhere_under_repo: Path) -> Path:
         cand = d / ARCHITECTURE_REL
         if cand.is_file():
             return cand
-    raise _ch_exc()(
+    raise ChatHealthyException(
             mode="runtime_error",
             component="_build_chain",
             message=f"deployment_architecture.json not found above "
@@ -497,7 +497,7 @@ def _substitute_hf_urls_in_index_html(repo_root: Path, build_dir: Path, env: str
     }
     indexes = list(build_dir.rglob("index.html"))
     if len(indexes) != declared_indexes:
-        raise _ch_exc()(
+        raise ChatHealthyException(
             mode="runtime_error",
             component="_build_chain",
             message=f"_substitute_hf_urls_in_index_html: the selected package(s) "
@@ -521,7 +521,7 @@ def _substitute_hf_urls_in_index_html(repo_root: Path, build_dir: Path, env: str
         present = [p for p in _HF_URL_PLACEHOLDERS if p in text]
         if present and len(present) < len(_HF_URL_PLACEHOLDERS):
             missing = sorted(set(_HF_URL_PLACEHOLDERS) - set(present))
-            raise _ch_exc()(
+            raise ChatHealthyException(
                 mode="runtime_error",
                 component="_build_chain",
                 message=f"_substitute_hf_urls_in_index_html: {idx.relative_to(build_dir)} "
@@ -539,7 +539,7 @@ def _substitute_hf_urls_in_index_html(repo_root: Path, build_dir: Path, env: str
         final = idx.read_text(encoding="utf-8")
         for placeholder in _HF_URL_PLACEHOLDERS:
             if placeholder in final:
-                raise _ch_exc()(
+                raise ChatHealthyException(
             mode="runtime_error",
             component="_build_chain",
             message=f"_substitute_hf_urls_in_index_html: {idx.relative_to(build_dir)} "
@@ -549,7 +549,7 @@ def _substitute_hf_urls_in_index_html(repo_root: Path, build_dir: Path, env: str
         if present:
             for url in targets_for_placeholder.values():
                 if url not in final:
-                    raise _ch_exc()(
+                    raise ChatHealthyException(
             mode="runtime_error",
             component="_build_chain",
             message=f"_substitute_hf_urls_in_index_html: {idx.relative_to(build_dir)} "
@@ -559,11 +559,36 @@ def _substitute_hf_urls_in_index_html(repo_root: Path, build_dir: Path, env: str
 _PACKAGE_ROUTING_KINDS = (
     "host_os_process",
     "cloudflare_pages_project",
+    "github_repository",
     "azure_automation_account",
     "azure_container_registry",
     "azure_key_vault",
     "entra_directory",
 )
+
+
+def _build_github_repository(repo_root: Path, target: TargetRecord,
+                             build_dir: Path,
+                             selection: set[str] | None = None) -> None:
+    """Stage each declared file at its repo-relative source_location.
+
+    A workflow is deployed by existing on a branch, so what is staged here is
+    what the deploy puts there. Files present under .github/ but declared by
+    no package are not staged: an undeclared file does not ship.
+    """
+    for entry in target.files:
+        package = entry.package
+        if selection is not None and package not in selection:
+            continue
+        source = repo_root / entry.source_location
+        if not source.is_file():
+            raise ChatHealthyException(
+                "build_error",
+                f"{target.target_id} declares {entry.source_location} and "
+                f"it is not in the tree")
+        destination = build_dir / entry.source_location
+        destination.parent.mkdir(parents=True, exist_ok=True)
+        destination.write_bytes(source.read_bytes())
 
 
 def _build_cloudflare(repo_root: Path, target: TargetRecord, build_dir: Path,
@@ -628,7 +653,7 @@ def _build_hf_space(repo_root: Path, target: TargetRecord, build_dir: Path) -> N
     elif target_id == "target_hf_space_shared_services":
         source_set = rd._sharedservices_source_set(repo_root)
     else:
-        raise _ch_exc()(
+        raise ChatHealthyException(
             mode="runtime_error",
             component="_build_chain",
             message=f"unknown hf_space target {target_id!r}")
@@ -1457,7 +1482,7 @@ def _build_one(repo_root: Path, target: TargetRecord, build_n: int, build_sha: s
     elif target.target_kind in _PACKAGE_ROUTING_KINDS:
         build_dir = target_dir
     else:
-        raise _ch_exc()(
+        raise ChatHealthyException(
             mode="runtime_error",
             component="_build_chain",
             message=f"target {target.target_id!r} declares {len(declared_all)} "
@@ -1467,6 +1492,8 @@ def _build_one(repo_root: Path, target: TargetRecord, build_n: int, build_sha: s
                     "bytes")
     if target.target_kind == "cloudflare_pages_project":
         _build_cloudflare(repo_root, target, build_dir, env, build_n, selected)
+    elif target.target_kind == "github_repository":
+        _build_github_repository(repo_root, target, build_dir, selected)
     elif target.target_kind == "hf_space":
         _build_hf_space(repo_root, target, build_dir)
     elif target.target_kind == "azure_function_app":
@@ -1498,7 +1525,7 @@ def _build_one(repo_root: Path, target: TargetRecord, build_n: int, build_sha: s
         # removing it here would delete the declared structure.
         _stage_packages(repo_root, target, target_dir, selected)
     else:
-        raise _ch_exc()(
+        raise ChatHealthyException(
             mode="runtime_error",
             component="_build_chain",
             message=f"target_kind {target.target_kind!r} not supported in local_build.")
@@ -1525,6 +1552,7 @@ def _build_one(repo_root: Path, target: TargetRecord, build_n: int, build_sha: s
 _BUILDABLE_KINDS = (
     "host_os_process",
     "cloudflare_pages_project",
+    "github_repository",
     "hf_space",
     "azure_function_app",
     "azure_container_app",
@@ -1568,7 +1596,7 @@ def _select_targets(coll: DeploymentCollection, target_arg: str) -> list[TargetR
         by_id = {t.target_id: t for t in coll}
         unknown = [w for w in wanted if w not in by_id]
         if unknown:
-            raise _ch_exc()(
+            raise ChatHealthyException(
             mode="value_error",
             component="_build_chain",
             message=f"unknown target_id(s): {unknown}")

@@ -319,7 +319,7 @@ def find_repo_root(start: Path) -> Path:
         if (p / ".git").exists():
             return p
         p = p.parent
-    raise _ch_exc()(
+    raise ChatHealthyException(
             mode="runtime_error",
             component="_deploy_chain",
             message=f"no .git found walking up from {start}")
@@ -351,6 +351,89 @@ def _legacy_load_target_manifest(repo_root: Path, target_id: str, build_root_rel
 # ═════════════════════════════════════════════════════════════════════════
 # Cloudflare Pages handler (--env dev|qa|prod, target_kind=cloudflare_pages_project)
 # ═════════════════════════════════════════════════════════════════════════
+
+def deploy_github_repository(build_dir: Path, env: str, resolver,
+                             target) -> int:
+    """Put every staged file on the branch, then read it back and verify.
+
+    A GitHub Actions workflow runs because a file exists on a branch, so
+    deploying one means putting those bytes there. The deploy does not assert
+    it worked: it fetches what the branch now holds and compares the digest to
+    what it sent.
+    """
+    import base64
+    import hashlib
+    import json as _json
+    import urllib.request as _u
+
+    token = resolver.resolve("GITHUB_DEPLOY_TOKEN", env)
+
+    def api(path: str, method: str = "GET", body: dict | None = None):
+        request = _u.Request(
+            "https://api.github.com/" + path.lstrip("/"), method=method,
+            data=_json.dumps(body).encode() if body else None,
+            headers={"Authorization": f"Bearer {token}",
+                     "Accept": "application/vnd.github+json",
+                     "User-Agent": "chathealthy-deploy"})
+        try:
+            with _u.urlopen(request, timeout=45) as response:
+                return response.status, _json.loads(response.read() or b"{}")
+        except Exception as exc:  # noqa: BLE001 - converted below
+            return getattr(exc, "code", 0), {}
+
+    binding = _environment_for(target, env)
+    repository = binding["node_address"]
+    branch = binding.get("branch", env)
+    deployed = 0
+
+    for entry in target.files:
+        path = entry.source_location
+        staged = build_dir / path
+        if not staged.is_file():
+            raise ChatHealthyException(
+                "deploy_error",
+                f"{path} is declared and was not staged; build first")
+        content = staged.read_bytes()
+        sent = hashlib.sha256(content).hexdigest()
+
+        status, current = api(f"repos/{repository}/contents/{path}?ref={branch}")
+        sha = ""
+        if status == 200:
+            sha = current.get("sha", "")
+            if hashlib.sha256(
+                    base64.b64decode(current.get("content", ""))).hexdigest() == sent:
+                deployed += 1
+                continue
+
+        payload = {"message": f"deploy {path} to {branch}",
+                   "content": base64.b64encode(content).decode(),
+                   "branch": branch}
+        if sha:
+            payload["sha"] = sha
+        put_status, _ = api(f"repos/{repository}/contents/{path}", "PUT", payload)
+        if put_status not in (200, 201):
+            raise ChatHealthyException(
+                "deploy_error",
+                f"{path} could not be written to {repository}@{branch}: "
+                f"HTTP {put_status}")
+
+        back_status, back = api(
+            f"repos/{repository}/contents/{path}?ref={branch}")
+        if back_status != 200:
+            raise ChatHealthyException(
+                "deploy_error",
+                f"{path} was written and could not be read back to verify")
+        landed = hashlib.sha256(
+            base64.b64decode(back.get("content", ""))).hexdigest()
+        if landed != sent:
+            raise ChatHealthyException(
+                "deploy_error",
+                f"{path} on {branch} does not match what was deployed: "
+                f"sent {sent[:12]}, branch holds {landed[:12]}")
+        deployed += 1
+
+    return 0 if deployed else 1
+
 
 def deploy_cloudflare(
     build_dir: Path,
@@ -640,14 +723,14 @@ def set_hf_config(
             other_qual = (target.secrets or {}).get(other_name)\
                 or (target.variables or {}).get(other_name)
             if other_qual is None:
-                raise _ch_exc()(
+                raise ChatHealthyException(
             mode="key_error",
             component="_deploy_chain",
             message=f"target {target_id!r}: variable/secret {name!r} declared "
                     f"as rename_from:{other_name} but {other_name!r} does not "
                     "exist in the target's secrets or variables blocks")
             return _resolve_qualifier(other_name, other_qual)
-        raise _ch_exc()(
+        raise ChatHealthyException(
             mode="value_error",
             component="_deploy_chain",
             message=f"target {target_id!r}: unknown source qualifier "
@@ -742,7 +825,7 @@ def deploy_hf_space(
     converged = rd._hf_wait_for_build_convergence(qualified, build_n,
                                                    timeout_s=600, poll_interval_s=10)
     if not converged:
-        raise _ch_exc()(
+        raise ChatHealthyException(
             mode="runtime_error",
             component="_deploy_chain",
             message=f"deploy_hf_space: {qualified} did not converge to build="
@@ -1798,7 +1881,7 @@ def _resolve_target_azure_scope(target: TargetRecord, env: str) -> str:
 
 def _raise_identity_absent(identity_id: str, why: str) -> None:
     """Raise-only helper: the catcher logs, not the thrower."""
-    raise _ch_exc()(
+    raise ChatHealthyException(
         mode="config_error",
         component="deploy_chain",
         message=(f"identity {identity_id!r} cannot be resolved: {why}. "
@@ -1959,7 +2042,7 @@ def _role_is_held(principal_id: str, role: str, scope: str) -> bool:
 def _raise_entitlements_missing(missing: list) -> None:
     """Raise-only helper: the catcher logs, not the thrower."""
     lines = "; ".join(f"{iid} needs {role} on {tid}" for iid, role, tid, _ in missing)
-    raise _ch_exc()(
+    raise ChatHealthyException(
         mode="config_error",
         component="deploy_chain",
         message=(f"{len(missing)} entitlement(s) the manifest declares are not "
@@ -2467,6 +2550,8 @@ def deploy_one(
     build_n = int(manifest["build_number"])
     if target_kind == "cloudflare_pages_project":
         return deploy_cloudflare(build_dir, env, resolver, target)
+    if target_kind == "github_repository":
+        return deploy_github_repository(build_dir, env, resolver, target)
     if target_kind == "hf_space":
         # The docker build context is the PACKAGE directory, not the target
         # directory. A target holds one directory per package it declares and
@@ -2482,7 +2567,7 @@ def deploy_one(
         )
     if target_kind == "host_os_process":
         return deploy_host_os_process(repo_root, build_dir, target, env)
-    raise _ch_exc()(
+    raise ChatHealthyException(
             mode="runtime_error",
             component="_deploy_chain",
             message=f"target_kind {target_kind!r} not supported in local_deploy.")
@@ -2921,7 +3006,7 @@ def run_cloud_deploy(env: str, target_arg: str,
                 ok, detail = _verify_hf_space_live(coll, env, target_id, build_n,
                                                      timeout_s=180)
                 if not ok:
-                    raise _ch_exc()(
+                    raise ChatHealthyException(
             mode="runtime_error",
             component="_deploy_chain",
             message=f"post-deploy verify failed: {detail}")
