@@ -402,11 +402,20 @@ def deploy_github_repository(build_dir: Path, env: str, resolver,
 
     for entry in target.files:
         path = entry.source_location
-        staged = build_dir / path
+        # The build stages each file under the package that declares it, so
+        # a target carrying several packages keeps them apart on disk. The
+        # deploy reads the same layout rather than a flattened one.
+        staged = build_dir / entry.package / path
         if not staged.is_file():
+            # A package the operator did not name this run was never built,
+            # and deploying a target is not a claim about packages outside
+            # the selection.
+            if not (build_dir / entry.package).is_dir():
+                continue
             raise ChatHealthyException(
                 "deploy_error",
-                f"{path} is declared and was not staged; build first")
+                f"{path} is declared by package {entry.package} and was not "
+                f"staged; build first")
         content = staged.read_bytes()
         sent = hashlib.sha256(content).hexdigest()
 

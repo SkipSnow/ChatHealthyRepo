@@ -32,15 +32,25 @@ jobs:
           # what this push added; a shallow clone of one is not.
           fetch-depth: 2
 
+      # chathealthy-lib declares requires-python >=3.12. On 3.11 this job
+      # installed nothing and died importing the library on every run since
+      # the workflow was created -- it had never once reported a verdict.
       - name: Python
         uses: actions/setup-python@v5
         with:
-          python-version: '3.11'
+          python-version: '3.12'
 
-      - name: Dependencies the static enforcements need
+      # The library goes in as a package with its declared dependencies, not
+      # as a directory found by walking parents. That is the environment the
+      # design asks for, and it is why nothing in this job needs to search
+      # the filesystem for chathealthy_lib.
+      - name: chathealthy-lib and what the enforcements need
         run: |
           python -m pip install --upgrade pip
+          python -m pip install ./ChatHealthyLib
           python -m pip install jsonschema python-dotenv
+          python -c "import chathealthy_lib, importlib.metadata as m; \
+            print('chathealthy-lib', m.version('chathealthy-lib'))"
 
       - name: Stage the pushed change set for the driver
         run: |
