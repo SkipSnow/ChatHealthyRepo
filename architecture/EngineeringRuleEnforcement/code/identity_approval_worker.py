@@ -53,6 +53,9 @@ else:
         EXIT_VIOLATIONS_FOUND,
     )
 
+# Below the block that resolves the library, not above it.
+from chathealthy_lib.exceptions import ChatHealthyException
+
 
 _AGENT_MARKERS = ("CLAUDECODE", "CLAUDE_AGENT_SDK_VERSION", "CLAUDE_CODE_ENTRYPOINT")
 _BROWSER_TIMEOUT_SECONDS = 600

@@ -51,6 +51,7 @@ if __package__ in (None, ""):
         EXIT_OK,
         EXIT_VIOLATIONS_FOUND,
     )
+    import authorization_record
 else:
     from .enforcement_worker import (  # type: ignore
         EnforcementWorker,
@@ -58,6 +59,12 @@ else:
         EXIT_OK,
         EXIT_VIOLATIONS_FOUND,
     )
+    from . import authorization_record  # type: ignore
+
+from chathealthy_lib.exceptions import ChatHealthyException
+from chathealthy_lib.logging_service import ChatHealthyLoggingService
+
+_CH_LOG = ChatHealthyLoggingService()
 
 
 # Env markers any of which prove the worker is running inside an agent.
@@ -486,8 +493,21 @@ class CommitAuthorizationWorker(EnforcementWorker):
         self.violation_count = 1
 
     def _audit(self, action: str, verdict: str, reason: str) -> None:
+        """Record the verdict where the governed thing cannot reach it.
+
+        The durable record is the Authorizations collection, told apart from a
+        promotion by authorization_type. It is written best-effort and gates
+        nothing: the operator has already answered, and making the ability to
+        commit depend on a database being reachable would be a worse failure
+        than the one it guards against.
+
+        The file beside the design docs stays as a local trace, but it is not
+        the evidence -- it lives inside the repository this rule governs, and
+        the same commit can rewrite it.
+        """
+        now = datetime.now(timezone.utc).isoformat()
         entry = {
-            "ts": datetime.now(timezone.utc).isoformat(),
+            "ts": now,
             "hook": self.hook,
             "enforcement_id": self.enforcement_id,
             "action": action,
@@ -499,8 +519,19 @@ class CommitAuthorizationWorker(EnforcementWorker):
             _AUDIT_LOG_PATH.parent.mkdir(parents=True, exist_ok=True)
             with _AUDIT_LOG_PATH.open("a", encoding="utf-8") as f:
                 f.write(json.dumps(entry) + "\n")
-        except Exception:
-            pass
+        except Exception as exc:  # noqa: BLE001 - reported, never swallowed
+            # It used to pass silently, so a verdict could go unrecorded with
+            # nothing anywhere saying so.
+            _CH_LOG.error(f"[commit] the local trace of this {verdict} could "
+                          f"not be written to {_AUDIT_LOG_PATH}: {exc}")
+
+        document = dict(entry)
+        document["authorization_type"] = "commit"
+        document["operator"] = os.environ.get("USERNAME", "unknown")
+        document["branch"] = self._current_branch()
+        document["commit_subject"] = self._commit_repo()
+        document["files"] = self._staged_files()
+        authorization_record.append(document, tolerate_failure=True)
 
 
 def main(argv: list[str] | None = None) -> int:

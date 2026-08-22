@@ -56,6 +56,7 @@ if __package__ in (None, ""):
         EXIT_OK,
         EXIT_VIOLATIONS_FOUND,
     )
+    from chathealthy_lib.exceptions import ChatHealthyException
 else:
     from .enforcement_worker import (  # type: ignore
         EnforcementWorker,
@@ -64,6 +65,7 @@ else:
         EXIT_OK,
         EXIT_VIOLATIONS_FOUND,
     )
+    from chathealthy_lib.exceptions import ChatHealthyException
 
 
 # Regex matching plain http:// URLs in file content (V19 §4.9 / TR-11).
@@ -174,7 +176,7 @@ class ScanFilesEnforcementWorker(EnforcementWorker):
         """
         if not _META_SCHEMA_LOCAL_PATH.is_file():
             raise ChatHealthyException(
-            "worker_internal",
+                "worker_internal",
                 f"frozen external meta-schema not found at {_META_SCHEMA_LOCAL_PATH}; "
                 f"run the deploy step that populates Website/schemas/standard/"
             )
@@ -183,7 +185,7 @@ class ScanFilesEnforcementWorker(EnforcementWorker):
                 meta_schema = json.load(f)
         except json.JSONDecodeError as exc:
             raise ChatHealthyException(
-            "worker_internal",
+                "worker_internal",
                 f"frozen external meta-schema {_META_SCHEMA_LOCAL_PATH} is "
                 f"malformed JSON: {exc.msg} at line {exc.lineno} col {exc.colno}"
             )
@@ -681,19 +683,6 @@ class ScanFilesEnforcementWorker(EnforcementWorker):
         )
 
 
-
-def _ch_exception():
-    """ChatHealthyException, resolved without assuming the library is on the
-    path. Enforcement workers are spawned as bare scripts by the manager."""
-    import sys as _sys, pathlib as _pl
-    for _p in _pl.Path(__file__).resolve().parents:
-        if (_p / ".git").exists():
-            _lib = _p / "ChatHealthyLib" / "src"
-            if str(_lib) not in _sys.path:
-                _sys.path.insert(0, str(_lib))
-            break
-    from chathealthy_lib.exceptions import ChatHealthyException
-    return ChatHealthyException
 
 def main(argv: list[str] | None = None) -> int:
     return ScanFilesEnforcementWorker.main(argv)
