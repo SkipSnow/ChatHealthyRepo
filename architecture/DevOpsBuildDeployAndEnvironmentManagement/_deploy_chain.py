@@ -76,6 +76,15 @@ for _ch_d in _ch_pl.Path(__file__).resolve().parents:
 import os as _ch_os
 _ch_os.environ["CH_LOG_DESTINATION"] = "stderr"
 from chathealthy_lib.logging_service import ChatHealthyLoggingService
+
+import sys as _ch_sys_imp, pathlib as _ch_pl_imp
+for _ch_d in _ch_pl_imp.Path(__file__).resolve().parents:
+    if (_ch_d / ".git").exists():
+        _ch_lib = _ch_d / "ChatHealthyLib" / "src"
+        if str(_ch_lib) not in _ch_sys_imp.path:
+            _ch_sys_imp.path.insert(0, str(_ch_lib))
+        break
+from chathealthy_lib.exceptions import ChatHealthyException  # noqa: E402
 _CH_LOG = ChatHealthyLoggingService()
 
 
@@ -381,9 +390,14 @@ def deploy_github_repository(build_dir: Path, env: str, resolver,
         except Exception as exc:  # noqa: BLE001 - converted below
             return getattr(exc, "code", 0), {}
 
-    binding = _environment_for(target, env)
-    repository = binding["node_address"]
-    branch = binding.get("branch", env)
+    binding = next(
+        (e for e in target.environments if e.env_binding == env), None)
+    if binding is None:
+        raise ChatHealthyException(
+            "deploy_error",
+            f"{target.target_id} declares no binding for env {env!r}")
+    repository = binding.node_address
+    branch = binding.branch or env
     deployed = 0
 
     for entry in target.files:
