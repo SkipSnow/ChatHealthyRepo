@@ -218,6 +218,7 @@ PRIVILEGE_MARKERS = (
     "microsoft.keyvault/vaults/accesspolicies/write",
 )
 
+_TOC_ENTRY = None
 _SECTION_TITLE = None
 _SECTION_NOTE = None
 
@@ -1640,6 +1641,10 @@ def render_pdf(data: dict, out_path: Path) -> Path:
         "secnote", parent=base["Normal"], fontSize=9.5, leading=13,
         leftIndent=16, fontName="Helvetica-Oblique", textColor=INK,
         spaceAfter=0)
+    global _TOC_ENTRY
+    _TOC_ENTRY = ParagraphStyle(
+        "toc", parent=base["Normal"], fontSize=13, leading=19, leftIndent=16,
+        textColor=colors.HexColor("#1F5FBF"), spaceAfter=1)
     bullet = ParagraphStyle("bul", parent=base["Normal"], fontSize=9, leading=13,
                             leftIndent=22, spaceAfter=2)
 
@@ -1708,10 +1713,11 @@ def render_pdf(data: dict, out_path: Path) -> Path:
         "This is the operational report of who can act on ChatHealthy systems. Every value "
         "in it is read at the time stated, from Azure and from the directory. It states no "
         "fact of its own. Its sections are:", body))
-    for number, (label, line) in enumerate(SECTIONS, start=1):
-        story.append(Paragraph(
-            f'<font size="15" color="#1F5FBF"><b>{number}</b></font>&nbsp;&nbsp;'
-            f"<b>{label}</b> &mdash; {line}", bullet))
+    # The contents names the sections and nothing else. What each one states
+    # is said once, in the section itself, where a reader is standing when the
+    # answer matters.
+    for number, (label, _) in enumerate(SECTIONS, start=1):
+        story.append(Paragraph(f"{number}: {label}", _TOC_ENTRY))
     story.append(Spacer(1, 6))
 
     def _grant_table(holder: dict) -> Table:
