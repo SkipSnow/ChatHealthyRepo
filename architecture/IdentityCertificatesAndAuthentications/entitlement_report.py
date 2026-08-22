@@ -41,6 +41,7 @@ for _d in Path(__file__).resolve().parents:
 
 import os as _ch_os
 _ch_os.environ.setdefault("CH_LOG_DESTINATION", "stderr")
+from chathealthy_lib.exceptions import ChatHealthyException  # noqa: E402
 from chathealthy_lib.logging_service import ChatHealthyLoggingService  # noqa: E402
 
 import requests  # noqa: E402
@@ -135,7 +136,6 @@ def _approved_register(source: str = "") -> tuple[dict[str, tuple], str]:
                if not source.startswith("http") else source)
         r = requests.get(url, timeout=60)
         if r.status_code != 200:
-            from chathealthy_lib.exceptions import ChatHealthyException
             raise ChatHealthyException(
                 mode="config_error", component="entitlement_report",
                 message=f"cannot fetch the identity register from {url}: "
@@ -301,11 +301,6 @@ def _population_sentence(data: dict) -> str:
     return " ".join(parts)
 
 
-def _chathealthy_exception():
-    from chathealthy_lib.exceptions import ChatHealthyException
-    return ChatHealthyException
-
-
 class _Credential:
     """A token, fetched directly from the Microsoft identity platform.
 
@@ -331,7 +326,7 @@ class _Credential:
             "scope": f"{resource}/.default",
         })
         if r.status_code != 200:
-            raise _chathealthy_exception()(
+            raise ChatHealthyException(
                 mode="azure_login_failed",
                 component="EntitlementReport",
                 message=f"token request for {resource} returned "
@@ -369,7 +364,7 @@ def _credential() -> _Credential:
             pass
     missing = [k for k in keys if not v[k]]
     if missing:
-        raise _chathealthy_exception()(
+        raise ChatHealthyException(
             mode="azure_credential_missing",
             component="EntitlementReport",
             message=f"cannot authenticate as DevOpsUser: {', '.join(missing)} absent",
@@ -383,7 +378,7 @@ def _get_all(url: str, token: str) -> list[dict]:
     while url:
         r = requests.get(url, headers=headers, timeout=60)
         if r.status_code != 200:
-            raise _chathealthy_exception()(
+            raise ChatHealthyException(
                 mode="azure_query_failed",
                 component="EntitlementReport",
                 message=f"{r.status_code} from {url.split('?')[0]}: {r.text[:300]}",
@@ -528,31 +523,76 @@ def _role_containment(defs: list[dict]) -> dict[str, set[str]]:
 
 
 def _secret_descriptions() -> dict[str, str]:
-    """What each vault secret is, read from deployment_architecture.json.
+    """What each vault secret is, read from the vault that holds it.
 
-    The manifest is the source of truth. A secret the manifest does not
-    describe renders with its name alone rather than with a guess.
+    The description is a tag on the secret. It used to be read from
+    deployment_architecture.json, which meant the report could describe a
+    secret the vault does not hold and miss one it does, and could say so
+    with the same confidence either way. The manifest is written by the same
+    hands the report audits, so it is no longer a source here; the vault is.
+
+    A secret carrying no description renders with its name alone. That
+    silence is now a measurable gap rather than an invisible one.
     """
-    # Where the repository is not present, the build embeds the same map at
-    # CHATHEALTHY_SECRET_DESCRIPTIONS, read from the manifest at build time.
-    embedded = _ch_os.environ.get("CHATHEALTHY_SECRET_DESCRIPTIONS", "")
-    if embedded:
-        try:
-            return json.loads(embedded)
-        except ValueError as exc:
-            _LOG.info("embedded secret descriptions unreadable: %s", exc)
-    if _root is None:
-        return {}
-    manifest = _root / "brain" / "machine_artifacts" / "content" / "deployment_architecture.json"
-    try:
-        doc = json.loads(manifest.read_text(encoding="utf-8"))
-    except OSError as exc:
-        _LOG.info("deployment architecture unreadable, secrets render unnamed: %s", exc)
-        return {}
     out: dict[str, str] = {}
-    for record in doc.get("DeploymentTargetRecord", []):
-        out.update(record.get("secret_descriptions") or {})
+    for vault in _vault_hosts():
+        for name, described in _secret_tags(vault).items():
+            if described:
+                out[name] = described
     return out
+
+
+_DESCRIPTION_TAGS = ("description", "Description", "purpose", "Purpose")
+
+
+def _vault_hosts() -> list[str]:
+    """Every vault this run can reach, from the environment that names them."""
+    hosts: list[str] = []
+    uri = _ch_os.environ.get("KEY_VAULT_URI", "").strip()
+    if uri:
+        hosts.append(uri.rstrip("/"))
+    return hosts
+
+
+def _secret_tags(vault_uri: str) -> dict[str, str]:
+    """Every secret in one vault and what its own tags say it is.
+
+    A vault that cannot be listed contributes nothing and does not stop the
+    report: the count it prints is what states the coverage.
+    """
+    found: dict[str, str] = {}
+    try:
+        from azure.identity import DefaultAzureCredential  # noqa: PLC0415
+        token = DefaultAzureCredential().get_token(
+            "https://vault.azure.net/.default").token
+    except Exception as exc:  # noqa: BLE001 - an unreadable vault is not a crash
+        _LOG.info("vault %s unreadable, secrets render unnamed: %s", vault_uri, exc)
+        return found
+    url = f"{vault_uri}/secrets?api-version=7.4"
+    while url:
+        try:
+            response = requests.get(
+                url, headers={"Authorization": f"Bearer {token}"}, timeout=60)
+        except Exception as exc:  # noqa: BLE001
+            _LOG.info("vault %s listing failed: %s", vault_uri, exc)
+            return found
+        if response.status_code != 200:
+            _LOG.info("vault %s listing returned %s", vault_uri,
+                      response.status_code)
+            return found
+        body = response.json()
+        for item in body.get("value", []):
+            name = item.get("id", "").rsplit("/", 1)[-1]
+            if not name:
+                continue
+            tags = item.get("tags") or {}
+            for key in _DESCRIPTION_TAGS:
+                if tags.get(key):
+                    found[name] = tags[key]
+                    break
+            found.setdefault(name, "")
+        url = body.get("nextLink")
+    return found
 
 
 def _reaches(scope: str, subscription_name: str, contents: dict | None = None) -> str:
@@ -973,8 +1013,11 @@ def _subscriptions(token: str, credential) -> list[dict]:
                 sid = sub.get("ocpSubscriptionId") or sub.get("id")
                 if sid:
                     known[sid] = {"name": sub.get("displayName") or sid}
-    except Exception as exc:                                    # noqa: BLE001
-        _LOG.info("tenant subscription list not readable: %s", exc)
+    except Exception:                                           # noqa: BLE001
+        # Unreadable is not fatal here: the tenant list is one of two sources
+        # and the report states which subscriptions it could read. The caller
+        # logs; this function raises only when neither source yielded one.
+        pass
 
     out = []
     for sid, meta in {**known, **{k: {"name": v.get("displayName") or k}
@@ -983,15 +1026,13 @@ def _subscriptions(token: str, credential) -> list[dict]:
                     "state": readable.get(sid, {}).get("state", ""),
                     "readable": sid in readable})
     if not out:
-        raise _chathealthy_exception()(
+        raise ChatHealthyException(
             mode="config_error",
             component="EntitlementReport",
             message="no subscription is visible to the reporting identity and the "
                     "tenant subscription list could not be read; there is nothing "
                     "to report on")
     out.sort(key=lambda x: x["name"].lower())
-    _LOG.info("entitlement report: %d subscription(s) in tenant, %d readable",
-              len(out), sum(1 for x in out if x["readable"]))
     return out
 
 
@@ -2242,7 +2283,7 @@ def send(pdf_path: Path, data: dict) -> dict:
     missing = [n for n, v in (("ENTITLEMENT_REPORT_TO_EMAIL", to),
                               ("SPARKMAIL_API_KEY", api_key)) if not v]
     if missing:
-        raise _chathealthy_exception()(
+        raise ChatHealthyException(
             mode="notification_recipient_missing",
             component="EntitlementReport",
             message=f"the report cannot be sent: {', '.join(missing)} absent",
@@ -2281,7 +2322,7 @@ def send(pdf_path: Path, data: dict) -> dict:
         headers={"Authorization": api_key, "Content-Type": "application/json"},
         data=json.dumps(payload), timeout=120)
     if r.status_code not in (200, 201):
-        raise _chathealthy_exception()(
+        raise ChatHealthyException(
             mode="notification_send_failed",
             component="EntitlementReport",
             message=f"SparkPost returned {r.status_code}: {r.text[:300]}",
@@ -2336,4 +2377,4 @@ def run_as_runbook() -> int:
 
 
 if __name__ == "__main__":
-    raise SystemExit(main())
+    sys.exit(main())
