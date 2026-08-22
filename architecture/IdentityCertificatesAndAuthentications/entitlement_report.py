@@ -1564,6 +1564,7 @@ def render_pdf(data: dict, out_path: Path) -> Path:
                            textColor=INK, spaceAfter=2)
     sub = ParagraphStyle("s", parent=base["Normal"], fontSize=9.5, textColor=MUTED,
                          spaceAfter=14)
+    SECTION_NUMBER = colors.HexColor("#1F5FBF")
     sec = ParagraphStyle("sec", parent=base["Heading2"], fontSize=12.5, textColor=INK,
                          spaceBefore=16, spaceAfter=6)
     sub_sec = ParagraphStyle("subsec", parent=base["Heading3"], fontSize=10.5,
@@ -1617,7 +1618,7 @@ def render_pdf(data: dict, out_path: Path) -> Path:
         "This is the operational report of who can act on ChatHealthy systems. Every value "
         "in it is read at the time stated, from Azure and from the directory. It states no "
         "fact of its own. Its sections are:", body))
-    for label, line in (
+    for number, (label, line) in enumerate((
             ("Scope", "the tenant and each subscription, and whether this run could "
                       "enumerate it"),
             ("Population and exceptions", "how many principals hold rights and how many "
@@ -1634,11 +1635,13 @@ def render_pdf(data: dict, out_path: Path) -> Path:
                                   "and whether they can write"),
             ("Shared secrets", "secrets granted by name to more than one principal"),
             ("Full entitlement detail", "every right held by each principal, and the scope "
-                                        "at which it is granted")):
-        story.append(Paragraph(f"<b>{label}</b> &mdash; {line}", bullet))
+                                        "at which it is granted")), start=1):
+        story.append(Paragraph(
+            f'<font size="15" color="#1F5FBF"><b>{number}</b></font>&nbsp;&nbsp;'
+            f"<b>{label}</b> &mdash; {line}", bullet))
     story.append(Spacer(1, 6))
 
-    story.append(Paragraph("Scope", sec))
+    story.append(Paragraph(f"<font size='18.5' color='#1F5FBF'><b>1</b></font>&nbsp;&nbsp;Scope", sec))
     scope_rows = [["", ""]]
     scope_rows.append(["Tenant", Paragraph(data["tenant_name"], cell)])
     for sub in data["subscriptions"]:
@@ -1667,7 +1670,7 @@ def render_pdf(data: dict, out_path: Path) -> Path:
         ("BOTTOMPADDING", (0, 0), (-1, -1), 4)]))
     story.append(st)
 
-    story.append(Paragraph("Population and exceptions", sec))
+    story.append(Paragraph(f"<font size='18.5' color='#1F5FBF'><b>2</b></font>&nbsp;&nbsp;Population and exceptions", sec))
     summary = [
         ["Role assignments in force", str(data["assignment_count"])],
         ["Principals holding rights", str(len(data["holders"]))],
@@ -1707,7 +1710,7 @@ def render_pdf(data: dict, out_path: Path) -> Path:
             "alone. Granting Directory.Read.All to the reporting identity resolves this.",
             note))
 
-    story.append(Paragraph("What each right permits", sec))
+    story.append(Paragraph(f"<font size='18.5' color='#1F5FBF'><b>3</b></font>&nbsp;&nbsp;What each right permits", sec))
     # The section name repeats with the column header. Without it a table that
     # runs over three pages reads as three sections, when it is one list sorted
     # alphabetically.
@@ -1770,7 +1773,7 @@ def render_pdf(data: dict, out_path: Path) -> Path:
 
     story.append(Paragraph(
         f"Where a grant can land &nbsp;&middot;&nbsp; resource groups and the "
-        f"subscription each belongs to ({len(data['resource_groups'])})", sec))
+        f"<font size='18.5' color='#1F5FBF'><b>4</b></font>&nbsp;&nbsp;subscription each belongs to ({len(data['resource_groups'])})", sec))
     if data["resource_groups"]:
         rg_rows = [["Resource group", "Subscription", "Region"]]
         for rg in data["resource_groups"]:
@@ -1910,7 +1913,7 @@ def render_pdf(data: dict, out_path: Path) -> Path:
         out.append(Spacer(1, 10))
         return out
 
-    story.append(Paragraph("Exceptions", sec))
+    story.append(Paragraph(f'<font size="18.5" color="#1F5FBF"><b>5</b></font>&nbsp;&nbsp;Exceptions', sec))
     story.append(Paragraph(
         f"Orphaned assignments &mdash; grants whose principal no longer exists "
         f"({len(orphaned)})", sub_sec))
@@ -1969,7 +1972,7 @@ def render_pdf(data: dict, out_path: Path) -> Path:
     # and when it cannot be read, the section says so instead of reporting an
     # empty finding, which would read identically to a clean estate.
     story.append(Paragraph(
-        "Group definitions", sec))
+        f'<font size="18.5" color="#1F5FBF"><b>6</b></font>&nbsp;&nbsp;Group definitions', sec))
     if not data["groups_readable"]:
         story.append(Paragraph(
             "Not attested. The reporting identity could not read the directory, so nothing "
@@ -2004,7 +2007,7 @@ def render_pdf(data: dict, out_path: Path) -> Path:
             story.append(Paragraph(
                 "Every principal holding rights belongs to a group.", body))
 
-    story.append(Paragraph("Vault-wide access", sec))
+    story.append(Paragraph(f"<font size='18.5' color='#1F5FBF'><b>7</b></font>&nbsp;&nbsp;Vault-wide access", sec))
     if data["vault_wide"]:
         vw = [["Principal", "Right", "Where", "Access to every secret"]]
         for v in data["vault_wide"]:
@@ -2029,7 +2032,7 @@ def render_pdf(data: dict, out_path: Path) -> Path:
 
     story.append(Paragraph(
         f"Shared secrets &nbsp;&middot;&nbsp; granted by name to more than one principal "
-        f"({len(data['shared_secrets'])})", sec))
+        f"<font size='18.5' color='#1F5FBF'><b>8</b></font>&nbsp;&nbsp;({len(data['shared_secrets'])})", sec))
     if data["shared_secrets"]:
         rows = [["Secret", "Granted by name to"]]
         for secret, names in data["shared_secrets"]:
@@ -2049,7 +2052,7 @@ def render_pdf(data: dict, out_path: Path) -> Path:
         story.append(Paragraph("No secrets are shared. No secret is granted by name to "
                                "more than one principal.", body))
 
-    story.append(Paragraph("Exceptions", sec))
+    story.append(Paragraph(f'<font size="18.5" color="#1F5FBF"><b>5</b></font>&nbsp;&nbsp;Exceptions', sec))
     story.append(Paragraph(
         f"Principals outside the approved list ({len(unapproved)})", sub_sec))
     if unapproved:
@@ -2116,7 +2119,7 @@ def render_pdf(data: dict, out_path: Path) -> Path:
     # and when it cannot be read, the section says so instead of reporting an
     # empty finding, which would read identically to a clean estate.
     story.append(Paragraph(
-        "Group definitions", sec))
+        f'<font size="18.5" color="#1F5FBF"><b>6</b></font>&nbsp;&nbsp;Group definitions', sec))
     if not data["groups_readable"]:
         story.append(Paragraph(
             "Not attested. The reporting identity could not read the directory, so nothing "
@@ -2153,7 +2156,7 @@ def render_pdf(data: dict, out_path: Path) -> Path:
 
     story.append(Paragraph("None.", body))
 
-    story.append(Paragraph("Exceptions", sec))
+    story.append(Paragraph(f'<font size="18.5" color="#1F5FBF"><b>5</b></font>&nbsp;&nbsp;Exceptions', sec))
     story.append(Paragraph(
         f"Principals outside the approved list ({len(unapproved)})", sub_sec))
     if unapproved:
@@ -2220,7 +2223,7 @@ def render_pdf(data: dict, out_path: Path) -> Path:
     # and when it cannot be read, the section says so instead of reporting an
     # empty finding, which would read identically to a clean estate.
     story.append(Paragraph(
-        "Group definitions", sec))
+        f'<font size="18.5" color="#1F5FBF"><b>6</b></font>&nbsp;&nbsp;Group definitions', sec))
     if not data["groups_readable"]:
         story.append(Paragraph(
             "Not attested. The reporting identity could not read the directory, so nothing "
@@ -2281,7 +2284,7 @@ def render_pdf(data: dict, out_path: Path) -> Path:
 
     story.append(PageBreak())
     story.append(Paragraph(
-        f"Full entitlement detail ({len(approved)})", sec))
+        f"<font size='18.5' color='#1F5FBF'><b>9</b></font>&nbsp;&nbsp;Full entitlement detail ({len(approved)})", sec))
     for h in approved:
         story.append(KeepTogether(_block(h)))
 
