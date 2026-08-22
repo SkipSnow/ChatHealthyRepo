@@ -42,7 +42,6 @@ if __package__ in (None, ""):
     from enforcement_worker import (
         EnforcementWorker,
         ViolationRecord,
-        WorkerInternalError,
         EXIT_OK,
         EXIT_VIOLATIONS_FOUND,
     )
@@ -50,7 +49,6 @@ else:
     from .enforcement_worker import (  # type: ignore
         EnforcementWorker,
         ViolationRecord,
-        WorkerInternalError,
         EXIT_OK,
         EXIT_VIOLATIONS_FOUND,
     )
@@ -164,7 +162,8 @@ class IdentityApprovalWorker(EnforcementWorker):
             )
             return json.loads(out.decode("utf-8"))
         except (subprocess.CalledProcessError, json.JSONDecodeError) as exc:
-            raise WorkerInternalError(
+            raise ChatHealthyException(
+            "worker_internal",
                 f"could not load staged {_MANIFEST_REL}: {exc}"
             )
 

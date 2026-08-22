@@ -79,7 +79,7 @@ def _repo_root() -> Path:
     for p in (cur, *cur.parents):
         if (p / ".git").is_dir():
             return p
-    raise _ch_exc()(
+    raise ChatHealthyException(
             mode="runtime_error",
             component="promote_chathealthy",
             message="repo root not found")
@@ -457,6 +457,14 @@ def _promote_branch_to_branch(repo_root: Path, source_env: str, target_env: str)
     _CH_LOG.info("[promote] fetch origin")
     _run_git(["fetch", "origin"], repo_root)
 
+    # Rule-065-ENF-010 / EPIC-008-F-012-S-002-REQ-B-006: a human authorizes
+    # this promotion, and the authorization is recorded, before any ref moves.
+    gate, record_id = _authorize_promotion(
+        source_env, target_env, source_branch, target_branch, repo_root)
+    if record_id is None:
+        _CH_LOG.info(f"[promote] refused — origin {target_branch} unchanged")
+        return 1
+
     # Push origin/<source> tip to remote's <target> branch without a
     # local checkout. Refspec form `<src>:refs/heads/<dst>` moves the
     # remote branch pointer directly; the local working tree is never
@@ -470,13 +478,45 @@ def _promote_branch_to_branch(repo_root: Path, source_env: str, target_env: str)
         cwd=str(repo_root),
     )
     if result.returncode != 0:
+        # The record already says this promotion was authorized. Say what
+        # actually happened, or the record is a claim that it succeeded.
+        gate.record_outcome(record_id, "failed_ref_did_not_move")
         _CH_LOG.info(f"[promote] push FAILED — origin {target_branch} unchanged")
         return result.returncode
+
+    gate.record_outcome(record_id, "promoted")
 
     # Refresh the local remote-tracking ref for the target so subsequent
     # `git log origin/<target>` shows the new tip immediately.
     _run_git(["fetch", "origin", target_branch], repo_root)
     return 0
+
+
+def _authorize_promotion(source_env, target_env, source_branch,
+                         target_branch, repo_root):
+    """Ask a human, record the answer, and return the record it wrote.
+
+    Returns (worker, record_id). A record_id of None means the promotion is
+    refused and no ref may move.
+    """
+    sys.path.insert(0, str(repo_root / "architecture" /
+                           "EngineeringRuleEnforcement" / "code"))
+    from promote_authorization_worker import (
+        PromoteAuthorizationWorker, PromotionFacts)
+
+    def text(args):
+        return (_run_git(args, repo_root).stdout or "").strip()
+
+    tip = text(["rev-parse", f"origin/{source_branch}"])
+    subject = text(["log", "-1", "--format=%s", f"origin/{source_branch}"])
+    ahead = text(["rev-list", "--count",
+                  f"origin/{target_branch}..origin/{source_branch}"]) or "0"
+
+    worker = PromoteAuthorizationWorker(PromotionFacts(
+        source_environment=source_env, destination_environment=target_env,
+        source_branch=source_branch, destination_branch=target_branch,
+        commit=tip, commit_subject=subject, commits_ahead=int(ahead)))
+    return worker, worker.authorize()
 
 
 def main(argv: list[str] | None = None) -> int:
@@ -509,4 +549,4 @@ def main(argv: list[str] | None = None) -> int:
 
 
 if __name__ == "__main__":
-    raise SystemExit(main())
+    sys.exit(main())

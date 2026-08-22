@@ -45,6 +45,7 @@ for _d in _pl.Path(__file__).resolve().parents:
 # made a build depend on a Mongo write it has no grant for.
 import os as _ch_os
 _ch_os.environ["CH_LOG_DESTINATION"] = "stderr"
+from chathealthy_lib.exceptions import ChatHealthyException
 from chathealthy_lib.logging_service import ChatHealthyLoggingService
 
 _CH_LOG = ChatHealthyLoggingService()
@@ -78,29 +79,6 @@ SCOPE_LIST_TYPES: tuple[str, ...] = (
 
 
 
-def _ch_exc():
-    """ChatHealthyException without assuming the library is installed.
-    These modules run as bare scripts in the devops chain."""
-    import sys as _s, pathlib as _p
-    for _d in _p.Path(__file__).resolve().parents:
-        if (_d / ".git").exists():
-            _l = _d / "ChatHealthyLib" / "src"
-            if str(_l) not in _s.path:
-                _s.path.insert(0, str(_l))
-            break
-    from chathealthy_lib.exceptions import ChatHealthyException
-    return ChatHealthyException
-
-
-class WorkerInternalError(Exception):
-    """Raised when a worker hits an unrecoverable configuration error.
-
-    Per V19 §4.9.3: missing schema file, malformed schema, schema invalid
-    against Draft 2020-12 — any of these surface as WorkerInternalError, which
-    the worker's main() converts to exit code 5 (EXIT_WORKER_INTERNAL_ERROR).
-    """
-
-
 class ViolationRecord:
     """Violation record shape per TR-6.
 
@@ -119,7 +97,7 @@ class ViolationRecord:
         severity: str = "error",
     ) -> None:
         if severity not in ("info", "warn", "error"):
-            raise _ch_exc()(
+            raise ChatHealthyException(
             mode="value_error",
             component="enforcement_worker",
             message=f"severity must be info|warn|error, got {severity!r}")
@@ -188,7 +166,8 @@ class EnforcementWorker(abc.ABC):
         if self._files is None:
             raw = "" if sys.stdin is None or sys.stdin.isatty() else sys.stdin.read()
             if not raw.strip():
-                raise WorkerInternalError(
+                raise ChatHealthyException(
+                "worker_internal",
                     f"{self.enforcement_id}: no file array on stdin. A "
                     f"subordinate enforcer is handed its file set by the "
                     f"Rule-065 driver and never determines one itself."
@@ -210,7 +189,8 @@ class EnforcementWorker(abc.ABC):
                     decorated = dict(entry)
                     decorated.setdefault("rule_id", rule_id)
                     return decorated
-        raise WorkerInternalError(
+        raise ChatHealthyException(
+                "worker_internal",
             f"enforcement_id {self.enforcement_id!r} not found in "
             f"engineering_rules.json"
         )
@@ -238,7 +218,7 @@ class EnforcementWorker(abc.ABC):
                 continue
             seen.add(function_name)
             if not hasattr(self, function_name):
-                raise AttributeError(
+                raise ChatHealthyException("scope_function_missing", 
                     f"scope function_name {function_name!r} is not a method "
                     f"on {type(self).__name__}; check engineering_rules.json "
                     f"entry {self.enforcement_id}"
@@ -348,7 +328,7 @@ class EnforcementWorker(abc.ABC):
         """Parse enforcement_id; instantiate cls; emit telemetry; run; return.
 
         Per V19 Table 4 row 6: traps any uncaught exception (exit 2). Per
-        V19 §4.9.3: a WorkerInternalError surfaces as exit 5
+        V19 §4.9.3: a ChatHealthyException with mode "worker_internal" surfaces as exit 5
         (EXIT_WORKER_INTERNAL_ERROR — the manager promotes worker exit ≥ 3 to
         the same code).
         """
@@ -361,7 +341,7 @@ class EnforcementWorker(abc.ABC):
 
         try:
             worker = cls(enforcement_id)
-        except WorkerInternalError as exc:
+        except ChatHealthyException as exc:
             _CH_LOG.error(f"[worker] internal-error: {exc}")
             return EXIT_WORKER_INTERNAL_ERROR
 
@@ -381,9 +361,17 @@ class EnforcementWorker(abc.ABC):
             rc = worker.run()
             files_scanned = getattr(worker, "files_scanned", files_scanned)
             violation_count = getattr(worker, "violation_count", violation_count)
-        except WorkerInternalError as exc:
-            _CH_LOG.error(f"[worker] internal-error: {exc}")
-            rc = EXIT_WORKER_INTERNAL_ERROR
+        except ChatHealthyException as exc:
+            # Discriminate on the mode, not on the class. Only a
+            # worker_internal condition - the worker cannot do its job at all -
+            # is exit 5. Any other mode is an uncaught deliberate exception and
+            # keeps the exit-2 semantics of TR-2.
+            if exc.mode == "worker_internal":
+                _CH_LOG.error(f"[worker] internal-error: {exc}")
+                rc = EXIT_WORKER_INTERNAL_ERROR
+            else:
+                _CH_LOG.error(f"[worker] uncaught ({exc.mode}): {exc}")
+                rc = EXIT_WORKER_ERROR
         except Exception as exc:  # noqa: BLE001 — TR-2 trap: convert to exit 2
             # V19 Table 4 row 6: trap any uncaught exception → exit 2.
             # We re-raise the message to stderr so it isn't lost; the manager
@@ -406,7 +394,6 @@ class EnforcementWorker(abc.ABC):
 __all__ = [
     "EnforcementWorker",
     "ViolationRecord",
-    "WorkerInternalError",
     "EXIT_OK",
     "EXIT_VIOLATIONS_FOUND",
     "EXIT_WORKER_ERROR",

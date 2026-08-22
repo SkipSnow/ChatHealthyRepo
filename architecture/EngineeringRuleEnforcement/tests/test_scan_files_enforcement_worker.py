@@ -24,7 +24,6 @@ import scan_files_enforcement_worker as sfew
 from enforcement_worker import (
     EXIT_OK,
     EXIT_VIOLATIONS_FOUND,
-    WorkerInternalError,
 )
 
 

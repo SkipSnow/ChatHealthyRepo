@@ -48,7 +48,6 @@ if __package__ in (None, ""):
     from enforcement_worker import (
         EnforcementWorker,
         ViolationRecord,
-        WorkerInternalError,
         EXIT_OK,
         EXIT_VIOLATIONS_FOUND,
     )
@@ -56,7 +55,6 @@ else:
     from .enforcement_worker import (  # type: ignore
         EnforcementWorker,
         ViolationRecord,
-        WorkerInternalError,
         EXIT_OK,
         EXIT_VIOLATIONS_FOUND,
     )
@@ -143,7 +141,7 @@ class CommitAuthorizationWorker(EnforcementWorker):
                 cwd=self._commit_repo(),
             )
         except subprocess.CalledProcessError as exc:
-            raise WorkerInternalError(f"could not read current branch: {exc}")
+            raise ChatHealthyException("worker_internal", f"could not read current branch: {exc}")
         return out.decode("utf-8").strip()
 
     def _staged_files(self) -> list[str]:
@@ -154,7 +152,7 @@ class CommitAuthorizationWorker(EnforcementWorker):
                 cwd=self._commit_repo(),
             )
         except subprocess.CalledProcessError as exc:
-            raise WorkerInternalError(f"could not read staged files: {exc}")
+            raise ChatHealthyException("worker_internal", f"could not read staged files: {exc}")
         return [line.strip() for line in out.decode("utf-8").splitlines() if line.strip()]
 
     # ────────────────────────────────────────────────────────────────────────
@@ -470,7 +468,8 @@ class CommitAuthorizationWorker(EnforcementWorker):
             return "commit"
         if hook == "pre-push":
             return "push"
-        raise WorkerInternalError(
+        raise ChatHealthyException(
+            "worker_internal",
             f"CommitAuthorizationWorker bound to unsupported hook {hook!r}; "
             f"expected commit-msg, pre-commit or pre-push"
         )
