@@ -26,6 +26,7 @@ Wired to two git hooks via two enforcement entries on the same rule:
 
 from __future__ import annotations
 
+import hashlib
 import json
 import os
 import secrets
@@ -80,6 +81,28 @@ _COMMIT_BRANCH = "dev"
 # Wrong-branch notice: bounded so a refused commit never hangs on an unread page.
 _NOTICE_TIMEOUT_SECONDS = 30
 _NOTICE_GRACE_SECONDS = 2
+
+
+def _as_git_will_store(message: str) -> str:
+    """The message file as it will read back off the commit.
+
+    This hook is handed the file the operator edited, and git does not store
+    it verbatim: under the default cleanup it drops comment lines, strips
+    trailing whitespace, collapses runs of blank lines and trims the ends.
+    Digesting the raw file would never match the commit, and post-commit
+    would unmake the very commits the operator approved.
+    """
+    kept: list[str] = []
+    for line in message.splitlines():
+        if line.startswith("#"):
+            continue
+        line = line.rstrip()
+        if not line and (not kept or not kept[-1]):
+            continue
+        kept.append(line)
+    while kept and not kept[-1]:
+        kept.pop()
+    return chr(10).join(kept)
 
 
 def _escape(text: str) -> str:
@@ -284,6 +307,7 @@ class CommitAuthorizationWorker(EnforcementWorker):
 
         if reply.strip().lower() == "approve":
             self._audit(action, "approve", "inline")
+            self._leave_evidence()
             return EXIT_OK
 
         self._reject(action, "not approved")
@@ -456,6 +480,7 @@ class CommitAuthorizationWorker(EnforcementWorker):
 
         if verdict["value"] == "approve":
             self._audit(action, "approve", "browser")
+            self._leave_evidence()
             return EXIT_OK
         if verdict["value"] == "reject":
             self._reject(action, "rejected by human")
@@ -491,6 +516,48 @@ class CommitAuthorizationWorker(EnforcementWorker):
             severity="error",
         ))
         self.violation_count = 1
+
+    def _leave_evidence(self) -> None:
+        """Record that this exact message was approved, for post-commit.
+
+        `git commit --no-verify` skips pre-commit and commit-msg. It does not
+        skip post-commit -- git offers no way to suppress that one -- so the
+        commit still meets a hook, but only after it exists. Undoing it there
+        needs an answer to "was this approved", and the answer cannot be
+        "a commit-msg hook ran", because in the bypassed case none did.
+
+        So approval leaves evidence: the digest of the message the operator
+        actually saw. post-commit recomputes it from the commit and undoes
+        anything that does not match. Bypassing the gate now produces a
+        commit that is created and immediately unmade.
+
+        The evidence lives under .git/, never in the tree: a marker inside
+        the working tree would be a file the commit could carry.
+        """
+        message = self._message_being_committed()
+        if message is None:
+            return
+        marker = Path(self._commit_repo()) / ".git" / "rule065-approved"
+        marker.write_text(
+            hashlib.sha256(_as_git_will_store(message).encode("utf-8"))
+            .hexdigest(), encoding="utf-8")
+
+    def _message_being_committed(self) -> str | None:
+        """The message text this hook was handed.
+
+        git passes commit-msg the path to the message file as its first
+        argument, but the manager spawns workers with the enforcement id
+        alone, so the path reaches here through the environment instead.
+        Reading the file means the digest covers what the operator was
+        actually shown, and an approval cannot be transplanted onto some
+        other commit.
+        """
+        named = os.environ.get("CHATHEALTHY_COMMIT_MSG_FILE", "").strip()
+        if named:
+            path = Path(named)
+            if path.is_file():
+                return path.read_text(encoding="utf-8")
+        return None
 
     def _audit(self, action: str, verdict: str, reason: str) -> None:
         """Record the verdict where the governed thing cannot reach it.
