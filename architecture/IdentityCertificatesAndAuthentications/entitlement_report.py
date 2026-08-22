@@ -219,15 +219,24 @@ PRIVILEGE_MARKERS = (
 )
 
 SECTIONS = (
-    ("Scope", "the tenant and each subscription, and whether this run could enumerate it"),
-    ("Population and exceptions", "how many principals hold rights and how many are in the approved register"),
-    ("What each right permits", "every right named here, stated from the actions the role publishes"),
-    ("Where a grant can land", "each resource group and the subscription it belongs to"),
-    ("Exceptions", "grants whose principal no longer exists, and resources carrying no description"),
-    ("Group definitions", "each directory group, what it means and who manages it"),
-    ("Vault-wide access", "principals that can reach every secret in a vault, and whether they can write"),
-    ("Shared secrets", "secrets granted by name to more than one principal"),
-    ("Full entitlement detail", "every right held by each principal, and the scope at which it is granted"),
+    ("Scope", "the tenant and each subscription, and whether this run could "
+              "enumerate it"),
+    ("Population and exceptions", "how many principals hold rights and how "
+                                  "many are in the approved register"),
+    ("Full entitlement detail", "every right held by each principal, and the "
+                                "scope at which it is granted"),
+    ("What each right permits", "every right named here, stated from the "
+                                "actions the role publishes"),
+    ("Where a grant can land", "each resource group and the subscription it "
+                               "belongs to"),
+    ("Exceptions", "everything wanting a decision: principals outside the "
+                   "register, grants whose principal is gone, resources with "
+                   "no description, shared secrets, and grants that add "
+                   "nothing"),
+    ("Group definitions", "each directory group, what it means and who "
+                          "manages it"),
+    ("Vault-wide access", "principals that can reach every secret in a vault, "
+                          "and whether they can write"),
 )
 
 
@@ -1609,8 +1618,7 @@ def render_pdf(data: dict, out_path: Path) -> Path:
                          spaceBefore=10, spaceAfter=1)
     cell = ParagraphStyle("c", parent=base["Normal"], fontSize=8, leading=10.5)
     bullet = ParagraphStyle("bul", parent=base["Normal"], fontSize=9, leading=13,
-                            leftIndent=14, bulletIndent=4, spaceAfter=2,
-                            bulletText="·")
+                            leftIndent=22, spaceAfter=2)
 
     doc = SimpleDocTemplate(
         str(out_path), pagesize=landscape(letter),
@@ -1682,160 +1690,6 @@ def render_pdf(data: dict, out_path: Path) -> Path:
             f'<font size="15" color="#1F5FBF"><b>{number}</b></font>&nbsp;&nbsp;'
             f"<b>{label}</b> &mdash; {line}", bullet))
     story.append(Spacer(1, 6))
-
-    story.append(Paragraph(_section_header(1), sec))
-    scope_rows = [["", ""]]
-    scope_rows.append(["Tenant", Paragraph(data["tenant_name"], cell)])
-    for sub in data["subscriptions"]:
-        scope_rows.append([
-            Paragraph("Subscription", cell),
-            Paragraph(f"<b>{sub['name']}</b> &mdash; "
-                      + ("enumerated in full" if sub["readable"] else
-                         "NOT ENUMERATED: the reporting identity holds no access here, "
-                         "so grants inside it are absent from this report"), cell)])
-    scope_rows.append(["Certificate secrets",
-                       Paragraph(f"{len(data['certificate_secrets'])} in "
-                                 + (", ".join(data["vaults"]) or "no vault visible"), cell)])
-    scope_rows.append(["Directory", Paragraph(
-        "groups and ownership read" if data["groups_readable"]
-        else "NOT READ: nothing below is classified", cell)])
-    scope_rows.append(["Covers", Paragraph(
-        "every identity holding rights in the subscriptions marked enumerated, "
-        "what each may do, how it is classified and who manages it", cell)])
-    st = Table(scope_rows[1:], colWidths=[2.0 * inch, 7.4 * inch], hAlign="LEFT")
-    st.setStyle(TableStyle([
-        ("FONTSIZE", (0, 0), (-1, -1), 8.5),
-        ("FONTNAME", (0, 0), (0, -1), "Helvetica-Bold"),
-        ("LINEBELOW", (0, 0), (-1, -1), 0.25, RULE),
-        ("VALIGN", (0, 0), (-1, -1), "TOP"),
-        ("TOPPADDING", (0, 0), (-1, -1), 4),
-        ("BOTTOMPADDING", (0, 0), (-1, -1), 4)]))
-    story.append(st)
-
-    story.append(Paragraph(_section_header(2), sec))
-    summary = [
-        ["Role assignments in force", str(data["assignment_count"])],
-        ["Principals holding rights", str(len(data["holders"]))],
-        ["Approved identities present", f"{len(approved)} of {len(APPROVED)}"],
-        ["Orphaned assignments", str(len(orphaned))],
-        ["Resources undescribed", str(len(data["undescribed"]))],
-        ["Exceptions in total", str(len(orphaned) + len(data["undescribed"]))],
-    ]
-    t = Table(summary, colWidths=[4.2 * inch, 1.2 * inch], hAlign="LEFT")
-    style = [
-        ("FONTSIZE", (0, 0), (-1, -1), 9),
-        ("TEXTCOLOR", (0, 0), (-1, -1), INK),
-        ("LINEBELOW", (0, 0), (-1, -2), 0.25, RULE),
-        ("ALIGN", (1, 0), (1, -1), "RIGHT"),
-        ("TOPPADDING", (0, 0), (-1, -1), 4),
-        ("BOTTOMPADDING", (0, 0), (-1, -1), 4),
-    ]
-    if unapproved:
-        style.append(("TEXTCOLOR", (1, 3), (1, 4), FLAG))
-        style.append(("FONTNAME", (1, 3), (1, 4), "Helvetica-Bold"))
-    else:
-        style.append(("TEXTCOLOR", (1, 3), (1, 3), OK))
-    t.setStyle(TableStyle(style))
-    story.append(KeepTogether(t))
-
-    if data["approved_absent"]:
-        story.append(Spacer(1, 8))
-        story.append(Paragraph(
-            "Approved identities holding no rights in this subscription: "
-            + ", ".join(data["approved_absent"]) + ".", note))
-    if not data["names_resolved"]:
-        story.append(Spacer(1, 8))
-        story.append(Paragraph(
-            "Directory names were unavailable when this report ran: the reporting identity "
-            "holds no Microsoft Graph directory-read permission. Approved identities are "
-            "named from the firm's pinned register; all others are identified by object id "
-            "alone. Granting Directory.Read.All to the reporting identity resolves this.",
-            note))
-
-    story.append(Paragraph(_section_header(3), sec))
-    # The section name repeats with the column header. Without it a table that
-    # runs over three pages reads as three sections, when it is one list sorted
-    # alphabetically.
-    gl = [[Paragraph("<b>What each right permits</b> &nbsp;&middot;&nbsp; "
-                     "continued, one list in alphabetical order", cell), "", ""],
-          ["Right", "Administrative", "What it permits"]]
-    for role in sorted(data["role_text"], key=str.lower):
-        meta = data["role_reach"].get(role, {})
-        parts = []
-        if meta.get("reach"):
-            parts.append("<b>Permits " + "; ".join(meta["reach"]) + ".</b>")
-        if meta.get("not_actions"):
-            parts.append("<b>Except:</b> " + ", ".join(meta["not_actions"]) + ".")
-        acts = meta.get("actions", [])
-        data_acts = meta.get("data_actions", [])
-        if acts:
-            shown = acts[:6]
-            more = f" and {len(acts) - len(shown)} more" if len(acts) > len(shown) else ""
-            parts.append("<font size=7>actions: " + ", ".join(shown) + more + "</font>")
-        if data_acts:
-            shown = data_acts[:4]
-            more = (f" and {len(data_acts) - len(shown)} more"
-                    if len(data_acts) > len(shown) else "")
-            parts.append("<font size=7>data actions: " + ", ".join(shown) + more + "</font>")
-        # Cited, with its author named, never stated as the report's own finding.
-        described = (data["role_text"].get(role) or "").strip()
-        if described:
-            source = ("the ChatHealthy role definition" if meta.get("custom")
-                      else "the Azure role definition")
-            parts.append(f"<font size=7><i>Description, from {source}:</i> "
-                         f"{described}</font>")
-        forbidden = data["role_conditions"].get(role)
-        if forbidden:
-            parts.append("<b>Conditioned where held:</b> the holder may neither grant "
-                         "nor revoke " + ", ".join(forbidden)
-                         + ", to any principal including itself. The list includes this "
-                           "role, so the holder cannot lift the condition from its own "
-                           "assignment.")
-        gl.append([Paragraph(role, cell),
-                   "yes" if role in data["privileged_roles"] else "",
-                   Paragraph(" ".join(parts), cell)])
-    gt = Table(gl, colWidths=[2.4 * inch, 1.0 * inch, 5.95 * inch], hAlign="LEFT",
-               repeatRows=2)
-    gst = [
-        ("SPAN", (0, 0), (-1, 0)),
-        ("BACKGROUND", (0, 0), (-1, 1), BAND),
-        ("FONTNAME", (0, 1), (-1, 1), "Helvetica-Bold"),
-        ("FONTSIZE", (0, 0), (-1, -1), 8),
-        ("LINEBELOW", (0, 0), (-1, -1), 0.25, RULE),
-        ("VALIGN", (0, 0), (-1, -1), "TOP"),
-        ("ALIGN", (1, 0), (1, -1), "CENTER"),
-        ("TOPPADDING", (0, 0), (-1, -1), 3),
-        ("BOTTOMPADDING", (0, 0), (-1, -1), 3),
-    ]
-    for i, role in enumerate(sorted(data["role_text"], key=str.lower), start=2):
-        if role in data["privileged_roles"]:
-            gst.append(("TEXTCOLOR", (1, i), (1, i), FLAG))
-    gt.setStyle(TableStyle(gst))
-    story.append(gt)
-
-    story.append(Paragraph(
-        _section_header(4, " (" + str(len(data["resource_groups"])) + ")"), sec))
-    if data["resource_groups"]:
-        rg_rows = [["Resource group", "Subscription", "Region"]]
-        for rg in data["resource_groups"]:
-            rg_rows.append([Paragraph(f"<b>{rg['name']}</b>", cell),
-                            Paragraph(rg["subscription"], cell),
-                            Paragraph(rg["location"], cell)])
-        rgt = Table(rg_rows, colWidths=[3.4 * inch, 3.6 * inch, 2.4 * inch],
-                    hAlign="LEFT", repeatRows=1)
-        rgt.setStyle(TableStyle([
-            ("BACKGROUND", (0, 0), (-1, 0), BAND),
-            ("FONTNAME", (0, 0), (-1, 0), "Helvetica-Bold"),
-            ("FONTSIZE", (0, 0), (-1, -1), 8),
-            ("LINEBELOW", (0, 0), (-1, -1), 0.25, RULE),
-            ("VALIGN", (0, 0), (-1, -1), "TOP"),
-            ("TOPPADDING", (0, 0), (-1, -1), 3),
-            ("BOTTOMPADDING", (0, 0), (-1, -1), 3)]))
-        story.append(rgt)
-    else:
-        story.append(Paragraph("<i>no exceptions</i>", note))
-
-    story.append(PageBreak())
 
     def _grant_table(holder: dict) -> Table:
         # Grants that reach a single secret are gathered under one line naming
@@ -1957,7 +1811,166 @@ def render_pdf(data: dict, out_path: Path) -> Path:
         out.append(Spacer(1, 10))
         return out
 
-    story.append(Paragraph(_section_header(5), sec))
+    story.append(Paragraph(_section_header(1), sec))
+    scope_rows = [["", ""]]
+    scope_rows.append(["Tenant", Paragraph(data["tenant_name"], cell)])
+    for sub in data["subscriptions"]:
+        scope_rows.append([
+            Paragraph("Subscription", cell),
+            Paragraph(f"<b>{sub['name']}</b> &mdash; "
+                      + ("enumerated in full" if sub["readable"] else
+                         "NOT ENUMERATED: the reporting identity holds no access here, "
+                         "so grants inside it are absent from this report"), cell)])
+    scope_rows.append(["Certificate secrets",
+                       Paragraph(f"{len(data['certificate_secrets'])} in "
+                                 + (", ".join(data["vaults"]) or "no vault visible"), cell)])
+    scope_rows.append(["Directory", Paragraph(
+        "groups and ownership read" if data["groups_readable"]
+        else "NOT READ: nothing below is classified", cell)])
+    scope_rows.append(["Covers", Paragraph(
+        "every identity holding rights in the subscriptions marked enumerated, "
+        "what each may do, how it is classified and who manages it", cell)])
+    st = Table(scope_rows[1:], colWidths=[2.0 * inch, 7.4 * inch], hAlign="LEFT")
+    st.setStyle(TableStyle([
+        ("FONTSIZE", (0, 0), (-1, -1), 8.5),
+        ("FONTNAME", (0, 0), (0, -1), "Helvetica-Bold"),
+        ("LINEBELOW", (0, 0), (-1, -1), 0.25, RULE),
+        ("VALIGN", (0, 0), (-1, -1), "TOP"),
+        ("TOPPADDING", (0, 0), (-1, -1), 4),
+        ("BOTTOMPADDING", (0, 0), (-1, -1), 4)]))
+    story.append(st)
+
+    story.append(Paragraph(_section_header(2), sec))
+    summary = [
+        ["Role assignments in force", str(data["assignment_count"])],
+        ["Principals holding rights", str(len(data["holders"]))],
+        ["Approved identities present", f"{len(approved)} of {len(APPROVED)}"],
+        ["Orphaned assignments", str(len(orphaned))],
+        ["Resources undescribed", str(len(data["undescribed"]))],
+        ["Exceptions in total", str(len(orphaned) + len(data["undescribed"]))],
+    ]
+    t = Table(summary, colWidths=[4.2 * inch, 1.2 * inch], hAlign="LEFT")
+    style = [
+        ("FONTSIZE", (0, 0), (-1, -1), 9),
+        ("TEXTCOLOR", (0, 0), (-1, -1), INK),
+        ("LINEBELOW", (0, 0), (-1, -2), 0.25, RULE),
+        ("ALIGN", (1, 0), (1, -1), "RIGHT"),
+        ("TOPPADDING", (0, 0), (-1, -1), 4),
+        ("BOTTOMPADDING", (0, 0), (-1, -1), 4),
+    ]
+    if unapproved:
+        style.append(("TEXTCOLOR", (1, 3), (1, 4), FLAG))
+        style.append(("FONTNAME", (1, 3), (1, 4), "Helvetica-Bold"))
+    else:
+        style.append(("TEXTCOLOR", (1, 3), (1, 3), OK))
+    t.setStyle(TableStyle(style))
+    story.append(KeepTogether(t))
+
+    if data["approved_absent"]:
+        story.append(Spacer(1, 8))
+        story.append(Paragraph(
+            "Approved identities holding no rights in this subscription: "
+            + ", ".join(data["approved_absent"]) + ".", note))
+    if not data["names_resolved"]:
+        story.append(Spacer(1, 8))
+        story.append(Paragraph(
+            "Directory names were unavailable when this report ran: the reporting identity "
+            "holds no Microsoft Graph directory-read permission. Approved identities are "
+            "named from the firm's pinned register; all others are identified by object id "
+            "alone. Granting Directory.Read.All to the reporting identity resolves this.",
+            note))
+
+    story.append(Paragraph(
+        _section_header(3, " (" + str(len(approved)) + ")"), sec))
+    for h in approved:
+        story.append(KeepTogether(_block(h)))
+
+    story.append(Paragraph(_section_header(4), sec))
+    # The section name repeats with the column header. Without it a table that
+    # runs over three pages reads as three sections, when it is one list sorted
+    # alphabetically.
+    gl = [[Paragraph("<b>What each right permits</b> &nbsp;&middot;&nbsp; "
+                     "continued, one list in alphabetical order", cell), "", ""],
+          ["Right", "Administrative", "What it permits"]]
+    for role in sorted(data["role_text"], key=str.lower):
+        meta = data["role_reach"].get(role, {})
+        parts = []
+        if meta.get("reach"):
+            parts.append("<b>Permits " + "; ".join(meta["reach"]) + ".</b>")
+        if meta.get("not_actions"):
+            parts.append("<b>Except:</b> " + ", ".join(meta["not_actions"]) + ".")
+        acts = meta.get("actions", [])
+        data_acts = meta.get("data_actions", [])
+        if acts:
+            shown = acts[:6]
+            more = f" and {len(acts) - len(shown)} more" if len(acts) > len(shown) else ""
+            parts.append("<font size=7>actions: " + ", ".join(shown) + more + "</font>")
+        if data_acts:
+            shown = data_acts[:4]
+            more = (f" and {len(data_acts) - len(shown)} more"
+                    if len(data_acts) > len(shown) else "")
+            parts.append("<font size=7>data actions: " + ", ".join(shown) + more + "</font>")
+        # Cited, with its author named, never stated as the report's own finding.
+        described = (data["role_text"].get(role) or "").strip()
+        if described:
+            source = ("the ChatHealthy role definition" if meta.get("custom")
+                      else "the Azure role definition")
+            parts.append(f"<font size=7><i>Description, from {source}:</i> "
+                         f"{described}</font>")
+        forbidden = data["role_conditions"].get(role)
+        if forbidden:
+            parts.append("<b>Conditioned where held:</b> the holder may neither grant "
+                         "nor revoke " + ", ".join(forbidden)
+                         + ", to any principal including itself. The list includes this "
+                           "role, so the holder cannot lift the condition from its own "
+                           "assignment.")
+        gl.append([Paragraph(role, cell),
+                   "yes" if role in data["privileged_roles"] else "",
+                   Paragraph(" ".join(parts), cell)])
+    gt = Table(gl, colWidths=[2.4 * inch, 1.0 * inch, 5.95 * inch], hAlign="LEFT",
+               repeatRows=2)
+    gst = [
+        ("SPAN", (0, 0), (-1, 0)),
+        ("BACKGROUND", (0, 0), (-1, 1), BAND),
+        ("FONTNAME", (0, 1), (-1, 1), "Helvetica-Bold"),
+        ("FONTSIZE", (0, 0), (-1, -1), 8),
+        ("LINEBELOW", (0, 0), (-1, -1), 0.25, RULE),
+        ("VALIGN", (0, 0), (-1, -1), "TOP"),
+        ("ALIGN", (1, 0), (1, -1), "CENTER"),
+        ("TOPPADDING", (0, 0), (-1, -1), 3),
+        ("BOTTOMPADDING", (0, 0), (-1, -1), 3),
+    ]
+    for i, role in enumerate(sorted(data["role_text"], key=str.lower), start=2):
+        if role in data["privileged_roles"]:
+            gst.append(("TEXTCOLOR", (1, i), (1, i), FLAG))
+    gt.setStyle(TableStyle(gst))
+    story.append(gt)
+
+    story.append(Paragraph(
+        _section_header(5, " (" + str(len(data["resource_groups"])) + ")"), sec))
+    if data["resource_groups"]:
+        rg_rows = [["Resource group", "Subscription", "Region"]]
+        for rg in data["resource_groups"]:
+            rg_rows.append([Paragraph(f"<b>{rg['name']}</b>", cell),
+                            Paragraph(rg["subscription"], cell),
+                            Paragraph(rg["location"], cell)])
+        rgt = Table(rg_rows, colWidths=[3.4 * inch, 3.6 * inch, 2.4 * inch],
+                    hAlign="LEFT", repeatRows=1)
+        rgt.setStyle(TableStyle([
+            ("BACKGROUND", (0, 0), (-1, 0), BAND),
+            ("FONTNAME", (0, 0), (-1, 0), "Helvetica-Bold"),
+            ("FONTSIZE", (0, 0), (-1, -1), 8),
+            ("LINEBELOW", (0, 0), (-1, -1), 0.25, RULE),
+            ("VALIGN", (0, 0), (-1, -1), "TOP"),
+            ("TOPPADDING", (0, 0), (-1, -1), 3),
+            ("BOTTOMPADDING", (0, 0), (-1, -1), 3)]))
+        story.append(rgt)
+    else:
+        story.append(Paragraph("<i>no exceptions</i>", note))
+
+    story.append(PageBreak())
+
+    story.append(Paragraph(_section_header(6), sec))
     story.append(Paragraph(
         f"Orphaned assignments &mdash; grants whose principal no longer exists "
         f"({len(orphaned)})", sub_sec))
@@ -2011,71 +2024,9 @@ def render_pdf(data: dict, out_path: Path) -> Path:
         story.append(Paragraph("<i>no exceptions</i>", note))
 
 
-    # Classification by group. The directory is where a person records what kind
-    # of thing a principal is, so it is the foundation this section stands on --
-    # and when it cannot be read, the section says so instead of reporting an
-    # empty finding, which would read identically to a clean estate.
     story.append(Paragraph(
-        _section_header(6), sec))
-    if not data["groups_readable"]:
-        story.append(Paragraph(
-            "Not attested. The reporting identity could not read the directory, so nothing "
-            "below is classified. Directory.Read.All on the reporting identity is required.",
-            note))
-    else:
-        groups = data["group_descriptions"]
-        if groups:
-            rows = [["Group", "Managed by", "What it means"]]
-            for name in sorted(groups):
-                rows.append([Paragraph(f"<b>{name}</b>", cell),
-                             Paragraph(", ".join(data["group_owners"].get(name, []))
-                                       or "nobody", cell),
-                             Paragraph(groups[name] or "", cell)])
-            tg = Table(rows, colWidths=[1.7 * inch, 2.0 * inch, 5.7 * inch],
-                       hAlign="LEFT", repeatRows=1)
-            tg.setStyle(TableStyle([
-                ("BACKGROUND", (0, 0), (-1, 0), BAND),
-                ("FONTNAME", (0, 0), (-1, 0), "Helvetica-Bold"),
-                ("FONTSIZE", (0, 0), (-1, -1), 8),
-                ("LINEBELOW", (0, 0), (-1, -1), 0.25, RULE),
-                ("VALIGN", (0, 0), (-1, -1), "TOP"),
-                ("TOPPADDING", (0, 0), (-1, -1), 3),
-                ("BOTTOMPADDING", (0, 0), (-1, -1), 3)]))
-            story.append(tg)
-            story.append(Spacer(1, 8))
-        if data["ungrouped"]:
-            story.append(Paragraph(
-                f"{len(data['ungrouped'])} principal(s) hold rights and belong to no group: "
-                f"{', '.join(data['ungrouped'])}.", note))
-        else:
-            story.append(Paragraph(
-                "Every principal holding rights belongs to a group.", body))
-
-    story.append(Paragraph(_section_header(7), sec))
-    if data["vault_wide"]:
-        vw = [["Principal", "Right", "Where", "Access to every secret"]]
-        for v in data["vault_wide"]:
-            vw.append([Paragraph(f"<b>{v['principal']}</b>", cell),
-                       Paragraph(v["role"], cell),
-                       Paragraph(v["where"], cell),
-                       Paragraph(v["access"], cell)])
-        vt = Table(vw, colWidths=[2.3 * inch, 2.4 * inch, 3.0 * inch, 1.65 * inch],
-                   hAlign="LEFT", repeatRows=1)
-        vt.setStyle(TableStyle([
-            ("BACKGROUND", (0, 0), (-1, 0), BAND),
-            ("FONTNAME", (0, 0), (-1, 0), "Helvetica-Bold"),
-            ("FONTSIZE", (0, 0), (-1, -1), 8),
-            ("LINEBELOW", (0, 0), (-1, -1), 0.25, RULE),
-            ("VALIGN", (0, 0), (-1, -1), "TOP"),
-            ("TOPPADDING", (0, 0), (-1, -1), 3),
-            ("BOTTOMPADDING", (0, 0), (-1, -1), 3)]))
-        story.append(vt)
-    else:
-        story.append(Paragraph("No principal holds access to every secret in a vault.",
-                               body))
-
-    story.append(Paragraph(
-        _section_header(8, " (" + str(len(data["shared_secrets"])) + ")"), sec))
+        "Shared secrets &mdash; granted by name to more than one principal ("
+        + str(len(data["shared_secrets"])) + ")", sub_sec))
     if data["shared_secrets"]:
         rows = [["Secret", "Granted by name to"]]
         for secret, names in data["shared_secrets"]:
@@ -2156,12 +2107,34 @@ def render_pdf(data: dict, out_path: Path) -> Path:
         story.append(Paragraph("<i>no exceptions</i>", note))
 
 
+    story.append(Paragraph(
+        f"Grants that add nothing &nbsp;&middot;&nbsp; access held for no stated reason "
+        f"({len(data['redundant_grants'])})", sub_sec))
+    if data["redundant_grants"]:
+        rows = [["Principal", "Role", "Scope", "Also covered by"]]
+        for holder_name, role, scope, why in data["redundant_grants"]:
+            rows.append([Paragraph(holder_name, cell), Paragraph(role, cell),
+                         Paragraph(scope, cell), Paragraph(why, cell)])
+        tr = Table(rows, colWidths=[1.7 * inch, 1.9 * inch, 2.7 * inch, 3.1 * inch],
+                   hAlign="LEFT", repeatRows=1)
+        tr.setStyle(TableStyle([
+            ("BACKGROUND", (0, 0), (-1, 0), BAND),
+            ("FONTNAME", (0, 0), (-1, 0), "Helvetica-Bold"),
+            ("FONTSIZE", (0, 0), (-1, -1), 8),
+            ("LINEBELOW", (0, 0), (-1, -1), 0.25, RULE),
+            ("VALIGN", (0, 0), (-1, -1), "TOP"),
+            ("TOPPADDING", (0, 0), (-1, -1), 3),
+            ("BOTTOMPADDING", (0, 0), (-1, -1), 3)]))
+        story.append(tr)
+    else:
+        story.append(Paragraph("<i>no exceptions</i>", note))
+
     # Classification by group. The directory is where a person records what kind
     # of thing a principal is, so it is the foundation this section stands on --
     # and when it cannot be read, the section says so instead of reporting an
     # empty finding, which would read identically to a clean estate.
     story.append(Paragraph(
-        _section_header(6), sec))
+        _section_header(7), sec))
     if not data["groups_readable"]:
         story.append(Paragraph(
             "Not attested. The reporting identity could not read the directory, so nothing "
@@ -2196,6 +2169,31 @@ def render_pdf(data: dict, out_path: Path) -> Path:
             story.append(Paragraph(
                 "Every principal holding rights belongs to a group.", body))
 
+    story.append(Paragraph(_section_header(8), sec))
+    if data["vault_wide"]:
+        vw = [["Principal", "Right", "Where", "Access to every secret"]]
+        for v in data["vault_wide"]:
+            vw.append([Paragraph(f"<b>{v['principal']}</b>", cell),
+                       Paragraph(v["role"], cell),
+                       Paragraph(v["where"], cell),
+                       Paragraph(v["access"], cell)])
+        vt = Table(vw, colWidths=[2.3 * inch, 2.4 * inch, 3.0 * inch, 1.65 * inch],
+                   hAlign="LEFT", repeatRows=1)
+        vt.setStyle(TableStyle([
+            ("BACKGROUND", (0, 0), (-1, 0), BAND),
+            ("FONTNAME", (0, 0), (-1, 0), "Helvetica-Bold"),
+            ("FONTSIZE", (0, 0), (-1, -1), 8),
+            ("LINEBELOW", (0, 0), (-1, -1), 0.25, RULE),
+            ("VALIGN", (0, 0), (-1, -1), "TOP"),
+            ("TOPPADDING", (0, 0), (-1, -1), 3),
+            ("BOTTOMPADDING", (0, 0), (-1, -1), 3)]))
+        story.append(vt)
+    else:
+        story.append(Paragraph("No principal holds access to every secret in a vault.",
+                               body))
+
+    # Classification by group. The directory is where a person records what kind
+    # of thing a principal is, so it is the foundation this section stands on --
 
     story.append(Paragraph(
         f"Orphaned assignments &mdash; grants whose principal no longer exists "
@@ -2252,73 +2250,7 @@ def render_pdf(data: dict, out_path: Path) -> Path:
 
     # Classification by group. The directory is where a person records what kind
     # of thing a principal is, so it is the foundation this section stands on --
-    # and when it cannot be read, the section says so instead of reporting an
-    # empty finding, which would read identically to a clean estate.
-    story.append(Paragraph(
-        _section_header(6), sec))
-    if not data["groups_readable"]:
-        story.append(Paragraph(
-            "Not attested. The reporting identity could not read the directory, so nothing "
-            "below is classified. Directory.Read.All on the reporting identity is required.",
-            note))
-    else:
-        groups = data["group_descriptions"]
-        if groups:
-            rows = [["Group", "Managed by", "What it means"]]
-            for name in sorted(groups):
-                rows.append([Paragraph(f"<b>{name}</b>", cell),
-                             Paragraph(", ".join(data["group_owners"].get(name, []))
-                                       or "nobody", cell),
-                             Paragraph(groups[name] or "", cell)])
-            tg = Table(rows, colWidths=[1.7 * inch, 2.0 * inch, 5.7 * inch],
-                       hAlign="LEFT", repeatRows=1)
-            tg.setStyle(TableStyle([
-                ("BACKGROUND", (0, 0), (-1, 0), BAND),
-                ("FONTNAME", (0, 0), (-1, 0), "Helvetica-Bold"),
-                ("FONTSIZE", (0, 0), (-1, -1), 8),
-                ("LINEBELOW", (0, 0), (-1, -1), 0.25, RULE),
-                ("VALIGN", (0, 0), (-1, -1), "TOP"),
-                ("TOPPADDING", (0, 0), (-1, -1), 3),
-                ("BOTTOMPADDING", (0, 0), (-1, -1), 3)]))
-            story.append(tg)
-            story.append(Spacer(1, 8))
-        if data["ungrouped"]:
-            story.append(Paragraph(
-                f"{len(data['ungrouped'])} principal(s) hold rights and belong to no group: "
-                f"{', '.join(data['ungrouped'])}.", note))
-        else:
-            story.append(Paragraph(
-                "Every principal holding rights belongs to a group.", body))
-
     story.append(Paragraph("<i>no exceptions</i>", note))
-
-    story.append(Paragraph(
-        f"Grants that add nothing &nbsp;&middot;&nbsp; access held for no stated reason "
-        f"({len(data['redundant_grants'])})", sec))
-    if data["redundant_grants"]:
-        rows = [["Principal", "Role", "Scope", "Also covered by"]]
-        for holder_name, role, scope, why in data["redundant_grants"]:
-            rows.append([Paragraph(holder_name, cell), Paragraph(role, cell),
-                         Paragraph(scope, cell), Paragraph(why, cell)])
-        tr = Table(rows, colWidths=[1.7 * inch, 1.9 * inch, 2.7 * inch, 3.1 * inch],
-                   hAlign="LEFT", repeatRows=1)
-        tr.setStyle(TableStyle([
-            ("BACKGROUND", (0, 0), (-1, 0), BAND),
-            ("FONTNAME", (0, 0), (-1, 0), "Helvetica-Bold"),
-            ("FONTSIZE", (0, 0), (-1, -1), 8),
-            ("LINEBELOW", (0, 0), (-1, -1), 0.25, RULE),
-            ("VALIGN", (0, 0), (-1, -1), "TOP"),
-            ("TOPPADDING", (0, 0), (-1, -1), 3),
-            ("BOTTOMPADDING", (0, 0), (-1, -1), 3)]))
-        story.append(tr)
-    else:
-        story.append(Paragraph("<i>no exceptions</i>", note))
-
-    story.append(PageBreak())
-    story.append(Paragraph(
-        _section_header(9, " (" + str(len(approved)) + ")"), sec))
-    for h in approved:
-        story.append(KeepTogether(_block(h)))
 
     doc.build(story, onFirstPage=_page_furniture, onLaterPages=_page_furniture,
               canvasmaker=_NumberedCanvas)
