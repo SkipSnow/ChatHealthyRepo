@@ -26,6 +26,7 @@ if str(CODE) not in sys.path:
     sys.path.insert(0, str(CODE))
 
 import promote_authorization_worker as paw  # noqa: E402
+import authorization_record  # noqa: E402  (paw resolves the library first)
 from chathealthy_lib.exceptions import ChatHealthyException  # noqa: E402
 
 REQ = "EPIC-008-F-012-S-002-REQ-B-006"
@@ -84,7 +85,12 @@ def gate(monkeypatch):
         worker = paw.PromoteAuthorizationWorker(promotion or facts(),
                                                 operator="skip")
         collection = FakeCollection(fail_on_insert=fail_on_insert)
-        worker._collection = collection
+        # The gate no longer owns a connection. There is one writer for every
+        # authorization -- commit, promotion, migration -- so the fake stands
+        # in for that writer's collection rather than for a method on this
+        # worker.
+        monkeypatch.setattr(authorization_record, "collection",
+                            lambda: collection)
         monkeypatch.setattr(
             paw, "request_authorization",
             lambda *a, **k: decision if decision is not None else FakeDecision())
@@ -167,8 +173,8 @@ class TestApprovalMustBeAuditable:
 
     def test_the_record_lives_outside_the_repository_being_promoted(self):
         """A file inside the governed tree is not evidence."""
-        assert paw.AUTHORIZATION_DATABASE == "DevOpsAdmin"
-        assert paw.AUTHORIZATION_COLLECTION == "Authorizations"
+        assert authorization_record.AUTHORIZATION_DATABASE == "DevOpsAdmin"
+        assert authorization_record.AUTHORIZATION_COLLECTION == "Authorizations"
 
     def test_a_failed_promotion_records_its_outcome(self, gate):
         """Without this the record says a promotion was authorized while the

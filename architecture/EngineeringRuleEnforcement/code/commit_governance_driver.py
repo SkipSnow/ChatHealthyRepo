@@ -102,8 +102,10 @@ DEFAULT_TIMEOUT_SECONDS = 30
 
 
 class CommitGovernanceDriver:
-    def __init__(self, handed_list: list[str] | None = None) -> None:
+    def __init__(self, handed_list: list[str] | None = None,
+                 excluded: set[str] | None = None) -> None:
         self.handed_list = handed_list
+        self.excluded = excluded or set()
         self.escalated = False
         self.files: list[str] = []
         self.results: list[dict[str, Any]] = []
@@ -155,6 +157,18 @@ class CommitGovernanceDriver:
 
         return staged
 
+    @staticmethod
+    def _announce_excluded(dropped: list[dict[str, Any]]) -> None:
+        """Say which checks did not run.
+
+        Named, not silently skipped: a run that quietly drops two of nine
+        checks and reports "passed" is the report claiming something it never
+        established.
+        """
+        for e in dropped:
+            _CH_LOG.info(f"[driver]   EXCLUDED {e['enforcement_id']}  "
+                         f"{e['title']} -- not run here")
+
     # ── subordinates ────────────────────────────────────────────────────────
     def subordinates(self) -> list[dict[str, Any]]:
         """Rule-065's pre-commit enforcements.
@@ -175,10 +189,25 @@ class CommitGovernanceDriver:
             ]
             untitled = [e["enforcement_id"] for e in subs if not e.get("title")]
             if untitled:
-                raise ChatHealthyException("driver_error", 
+                raise ChatHealthyException("driver_error",
                     f"untitled enforcement(s): {', '.join(untitled)}. The "
                     f"driver will not run a check it cannot name."
                 )
+            if self.excluded:
+                kept, dropped = [], []
+                for e in subs:
+                    (dropped if e["enforcement_id"] in self.excluded
+                     else kept).append(e)
+                self._announce_excluded(dropped)
+                unknown = self.excluded - {e["enforcement_id"] for e in subs}
+                if unknown:
+                    raise ChatHealthyException(
+                        "driver_error",
+                        f"asked to exclude {', '.join(sorted(unknown))}, which "
+                        f"{'is' if len(unknown) == 1 else 'are'} not a "
+                        f"{SUBORDINATE_HOOK} enforcement of {RULE_ID}. An "
+                        f"exclusion that names nothing hides a renamed check.")
+                return kept
             return subs
         raise ChatHealthyException("driver_error", f"{RULE_ID} not found in {ENGINEERING_RULES_PATH}")
 
@@ -386,6 +415,17 @@ class CommitGovernanceDriver:
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(description="Rule-065 commit governance driver")
     parser.add_argument(
+        "--exclude",
+        nargs="+",
+        default=[],
+        metavar="ENFORCEMENT_ID",
+        help="Enforcement ids not to run here. Two checks cannot run on a "
+             "hosted runner -- one reaches Atlas with a certificate the "
+             "runner does not hold, the other calls an LLM -- and a check "
+             "that cannot run must be named as excluded rather than counted "
+             "as passed. Each is echoed in the run output.",
+    )
+    parser.add_argument(
         "--files-from",
         help="Path holding the file list, or '-' for stdin. Promote builds "
              "the baseline list, stages it, and hands it here. Without this "
@@ -398,7 +438,8 @@ def main(argv: list[str] | None = None) -> int:
             raw = (sys.stdin.read() if args.files_from == "-"
                    else Path(args.files_from).read_text(encoding="utf-8"))
             handed = [l for l in raw.splitlines() if l.strip()]
-        return CommitGovernanceDriver(handed_list=handed).run()
+        return CommitGovernanceDriver(handed_list=handed,
+                                      excluded=set(args.exclude)).run()
     except Exception as exc:  # noqa: BLE001 - the gate never dies silently
         _CH_LOG.error(f"[driver] unhandled: {exc}")
         return EXIT_DRIVER_ERROR

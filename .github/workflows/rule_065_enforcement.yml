@@ -60,8 +60,15 @@ jobs:
           git reset --soft HEAD~1 || true
           git status --porcelain
 
+      # Two checks cannot run here, and a check that cannot run is named
+      # rather than counted as passed. ENF-003 reaches Atlas with a
+      # certificate this runner does not hold; ENF-009 calls an LLM. The
+      # driver echoes both as EXCLUDED, and refuses an exclusion that names
+      # no enforcement -- so a renamed check cannot hide behind one.
       - name: Rule-065, on what this push changed
-        run: python architecture/EngineeringRuleEnforcement/code/commit_governance_driver.py
+        run: |
+          python architecture/EngineeringRuleEnforcement/code/commit_governance_driver.py \
+            --exclude Rule-065-ENF-003 Rule-065-ENF-009
 
       # The staged set cannot answer for the repository. A file committed
       # before a rule existed is never handed to it, so it is never judged by
@@ -88,7 +95,8 @@ jobs:
           print("\n".join(baseline_files(Path(".").resolve())))
           PY
           python architecture/EngineeringRuleEnforcement/code/commit_governance_driver.py \
-            --files-from /tmp/baseline.txt
+            --files-from /tmp/baseline.txt \
+            --exclude Rule-065-ENF-003 Rule-065-ENF-009
 
       - name: The verdict, in full
         if: always()

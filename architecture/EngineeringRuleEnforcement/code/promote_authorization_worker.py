@@ -41,55 +41,16 @@ from chathealthy_lib.exceptions import ChatHealthyException  # noqa: E402
 from chathealthy_lib.human_authorization import (  # noqa: E402
     request_authorization)
 from chathealthy_lib.logging_service import ChatHealthyLoggingService  # noqa: E402
-from chathealthy_lib.mongo_utilities import ChatHealthyMongoUtilities  # noqa: E402
+# Its own directory, so the shared writer resolves whoever imports this.
+if str(_pl.Path(__file__).resolve().parent) not in _sys.path:
+    _sys.path.insert(0, str(_pl.Path(__file__).resolve().parent))
+
+import authorization_record  # noqa: E402
 
 _log = ChatHealthyLoggingService()
 
 AUTHORIZATION_TYPE = "promotion"
-AUTHORIZATION_TARGET = "target_atlas_frontend"
-AUTHORIZATION_DATABASE = "DevOpsAdmin"
-AUTHORIZATION_COLLECTION = "Authorizations"
 
-
-def _deployment_facts(env: str = "dev") -> tuple[str, str]:
-    """The cluster and the identity, read from the record that owns them.
-
-    A deployment fact held in code is a fact the record cannot be trusted to
-    describe, so the cluster this writes to and the identity it writes as are
-    read from deployment_architecture.json rather than declared here.
-    """
-    manifest = _pl.Path(__file__).resolve()
-    for parent in manifest.parents:
-        if (parent / ".git").exists():
-            manifest = (parent / "brain" / "machine_artifacts" / "content"
-                        / "deployment_architecture.json")
-            break
-    record = json.loads(manifest.read_text(encoding="utf-8"))
-    target = next((t for t in record["DeploymentTargetRecord"]
-                   if t["target_id"] == AUTHORIZATION_TARGET), None)
-    if target is None:
-        raise ChatHealthyException(
-            "manifest_incomplete",
-            f"{AUTHORIZATION_TARGET} is not declared; the promotion record "
-            f"has no cluster to be written to")
-    binding = next((e for e in target["environments"]
-                    if e["env_binding"] == env), target["environments"][0])
-    cluster = binding["atlas"]["cluster"]
-    consumers = cluster.get("runtime_consumers") or []
-    if not consumers:
-        raise ChatHealthyException(
-            "manifest_incomplete",
-            f"{AUTHORIZATION_TARGET} declares no runtime consumer; the "
-            f"promotion record has no identity to be written as")
-    identity_target = consumers[0]["identity_target_id"]
-    identity = next(
-        (i["identity_id"] for i in record["IdentityCatalog"]
-         if i.get("target_id_ref") == identity_target), None)
-    if identity is None:
-        raise ChatHealthyException(
-            "manifest_incomplete",
-            f"{identity_target} names no identity in the IdentityCatalog")
-    return cluster["cluster_name"], identity
 TIMEOUT_SECONDS = 600
 ADJACENT_PAIRS = (("local", "dev"), ("dev", "qa"), ("qa", "prod"))
 
@@ -161,15 +122,6 @@ class PromoteAuthorizationWorker:
         self.operator = operator or _ch_os.environ.get("USERNAME", "unknown")
         self._collection = None
 
-    # -- the collection ---------------------------------------------------
-    def collection(self):
-        if self._collection is None:
-            cluster, identity = _deployment_facts()
-            client = ChatHealthyMongoUtilities().getConnection(identity, cluster)
-            self._collection = (client[AUTHORIZATION_DATABASE]
-                                [AUTHORIZATION_COLLECTION])
-        return self._collection
-
     # -- the question -----------------------------------------------------
     def build_question(self) -> dict:
         f = self.facts
@@ -235,20 +187,8 @@ class PromoteAuthorizationWorker:
 
     # -- the record -------------------------------------------------------
     def _write(self, record: AuthorizationRecord, tolerate_failure: bool):
-        try:
-            result = self.collection().insert_one(record.to_document())
-            return result.inserted_id
-        except Exception as exc:  # noqa: BLE001 - converted at the boundary
-            if tolerate_failure:
-                return None
-            raise ChatHealthyException(
-                "authorization_unrecordable",
-                f"the authorization could not be written to "
-                f"{AUTHORIZATION_DATABASE}.{AUTHORIZATION_COLLECTION}: {exc}. "
-                f"The promotion does not proceed; an authorization that left "
-                f"no record did not occur.",
-                component="PromoteAuthorizationWorker",
-                exception=exc)
+        return authorization_record.append(record.to_document(),
+                                           tolerate_failure)
 
     def record_outcome(self, record_id, outcome: str) -> None:
         """Append what happened, rather than altering what was authorized.
@@ -272,7 +212,7 @@ class PromoteAuthorizationWorker:
             "recorded_at": datetime.now(timezone.utc).isoformat(),
         }
         try:
-            self.collection().insert_one(document)
+            authorization_record.append(document, tolerate_failure=True)
         except Exception as exc:  # noqa: BLE001
             _log.error(f"[promote] outcome '{outcome}' could not be recorded "
                        f"against {record_id}: {exc}")
