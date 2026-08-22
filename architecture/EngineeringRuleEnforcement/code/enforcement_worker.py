@@ -98,9 +98,9 @@ class ViolationRecord:
     ) -> None:
         if severity not in ("info", "warn", "error"):
             raise ChatHealthyException(
-            mode="value_error",
-            component="enforcement_worker",
-            message=f"severity must be info|warn|error, got {severity!r}")
+                mode="value_error",
+                component="enforcement_worker",
+                message=f"severity must be info|warn|error, got {severity!r}")
         self.enforcement_id = enforcement_id
         self.rule_id = rule_id
         self.resource = resource
@@ -167,7 +167,7 @@ class EnforcementWorker(abc.ABC):
             raw = "" if sys.stdin is None or sys.stdin.isatty() else sys.stdin.read()
             if not raw.strip():
                 raise ChatHealthyException(
-                "worker_internal",
+                    "worker_internal",
                     f"{self.enforcement_id}: no file array on stdin. A "
                     f"subordinate enforcer is handed its file set by the "
                     f"Rule-065 driver and never determines one itself."
@@ -190,7 +190,7 @@ class EnforcementWorker(abc.ABC):
                     decorated.setdefault("rule_id", rule_id)
                     return decorated
         raise ChatHealthyException(
-                "worker_internal",
+            "worker_internal",
             f"enforcement_id {self.enforcement_id!r} not found in "
             f"engineering_rules.json"
         )
@@ -218,7 +218,8 @@ class EnforcementWorker(abc.ABC):
                 continue
             seen.add(function_name)
             if not hasattr(self, function_name):
-                raise ChatHealthyException("scope_function_missing", 
+                raise ChatHealthyException(
+                    "scope_function_missing",
                     f"scope function_name {function_name!r} is not a method "
                     f"on {type(self).__name__}; check engineering_rules.json "
                     f"entry {self.enforcement_id}"

@@ -152,16 +152,7 @@ def _approved_register(source: str = "") -> tuple[dict[str, tuple], str]:
                     e.get("application", ""), tuple(e.get("roles", []) or ()))
         return register, url
 
-    here = Path(__file__).resolve().parent
-    candidates = [here / "entitlement_report_identity_register.json"]
-    if _root is not None:
-        candidates.append(_root / "brain" / "machine_artifacts" / "content"
-                          / "deployment_architecture.json")
-    for path in candidates:
-        if not path.is_file():
-            continue
-        data = json.loads(path.read_text(encoding="utf-8"))
-        entries = data.get("identities") or data.get("IdentityCatalog") or []
+    def _build(entries):
         register = {}
         for e in entries:
             oid = (e.get("object_id") or "").strip()
@@ -175,7 +166,44 @@ def _approved_register(source: str = "") -> tuple[dict[str, tuple], str]:
                 e.get("application", ""),
                 tuple(e.get("roles", []) or ()),
             )
-        return register, f"{path.name}, working tree"
+        return register
+
+    here = Path(__file__).resolve().parent
+    baked = here / "entitlement_report_identity_register.json"
+    if baked.is_file():
+        data = json.loads(baked.read_text(encoding="utf-8"))
+        return (_build(data.get("identities") or data.get("IdentityCatalog") or []),
+                f"{baked.name}, deployed with this build")
+
+    # Off the branch, never off the disk. The approved population is the
+    # control this report measures against; a control a run can edit before
+    # measuring is not one. git show reads the committed bytes whatever the
+    # working tree says.
+    if _root is not None:
+        import subprocess  # noqa: PLC0415
+        rel = "brain/machine_artifacts/content/deployment_architecture.json"
+        try:
+            branch = subprocess.run(
+                ["git", "rev-parse", "--abbrev-ref", "HEAD"], cwd=str(_root),
+                capture_output=True, text=True, check=True).stdout.strip()
+            ref = f"origin/{branch}"
+            commit = subprocess.run(
+                ["git", "rev-parse", "--short", ref], cwd=str(_root),
+                capture_output=True, text=True, check=True).stdout.strip()
+            blob = subprocess.run(
+                ["git", "show", f"{ref}:{rel}"], cwd=str(_root),
+                capture_output=True, text=True, check=True).stdout
+        except Exception as exc:  # noqa: BLE001 - reported, not swallowed
+            raise ChatHealthyException(
+                mode="config_error",
+                component="entitlement_report",
+                message=(f"the approved register could not be read from "
+                         f"{rel} on the branch: {exc}. The report does not "
+                         f"fall back to the working tree, because a control "
+                         f"the run can edit is not a control."))
+        data = json.loads(blob)
+        return (_build(data.get("IdentityCatalog") or []),
+                f"deployment_architecture.json at {ref} {commit}")
     from chathealthy_lib.exceptions import ChatHealthyException
     raise ChatHealthyException(
         mode="config_error",
