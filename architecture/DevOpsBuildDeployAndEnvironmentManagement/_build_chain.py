@@ -52,6 +52,15 @@ import aca_helpers
 import ch_fonts_inliner
 import hf_helpers as rd
 
+import sys as _ch_sys_imp, pathlib as _ch_pl_imp
+for _ch_d in _ch_pl_imp.Path(__file__).resolve().parents:
+    if (_ch_d / ".git").exists():
+        _ch_lib = _ch_d / "ChatHealthyLib" / "src"
+        if str(_ch_lib) not in _ch_sys_imp.path:
+            _ch_sys_imp.path.insert(0, str(_ch_lib))
+        break
+from chathealthy_lib.exceptions import ChatHealthyException  # noqa: E402
+
 
 # Canonical build output root (operator directive 2026-08-04):
 # `<repo>/build/` is the single well-known location for every build's
