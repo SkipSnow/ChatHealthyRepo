@@ -50,7 +50,7 @@ from reportlab.lib.pagesizes import landscape, letter  # noqa: E402
 from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle  # noqa: E402
 from reportlab.lib.units import inch  # noqa: E402
 from reportlab.pdfgen import canvas as canvas_module  # noqa: E402
-from reportlab.platypus import (  # noqa: E402
+from reportlab.platypus import (CondPageBreak,   # noqa: E402
     SimpleDocTemplate, Paragraph, Spacer, Table, TableStyle, PageBreak, KeepTogether,
 )
 
@@ -218,6 +218,9 @@ PRIVILEGE_MARKERS = (
     "microsoft.keyvault/vaults/accesspolicies/write",
 )
 
+_SECTION_TITLE = None
+_SECTION_NOTE = None
+
 SECTIONS = (
     ("Scope", "the tenant and each subscription, and whether this run could "
               "enumerate it"),
@@ -241,17 +244,34 @@ SECTIONS = (
 
 
 def _section_header(number, suffix=""):
-    """The header states the section, in the words the contents used.
+    """Kept for callers that want the header as one string."""
+    label, line = SECTIONS[number - 1]
+    return f"{number}: {label}{suffix}"
 
-    The contents named nine sections and described each one; the body
-    then repeated the bare title, so a reader who turned to a section
-    lost the sentence that sent them there. Both now read one list.
+
+def _section_block(number, count=""):
+    """The header as three stacked lines, per the specified layout.
+
+    The number and title lead in blue at heading size. Beneath them, indented
+    and italic, sit the sentence that says what the section states and the
+    count of what it found. One line carrying all three read as a paragraph
+    and the eye had nothing to land on.
+
+    A CondPageBreak precedes it so a header is never left at the foot of a
+    page with its section overleaf: if less than an inch and a half remains,
+    the section starts on the next page instead.
     """
     label, line = SECTIONS[number - 1]
-    return ("<font size='18.5' color='#1F5FBF'><b>" + str(number)
-            + "</b></font>&nbsp;&nbsp;" + label + suffix
-            + " <font size='10.5' color='#4A5568'>&mdash; " + line
-            + "</font>")
+    # A header needs its section under it. Three inches is the header
+    # itself plus several lines of whatever follows; with less than that
+    # left, the section starts on the next page rather than stranding
+    # its title at the foot of this one.
+    out = [CondPageBreak(3.0 * inch),
+           Paragraph(f"{number}: {label}", _SECTION_TITLE),
+           Paragraph(line, _SECTION_NOTE)]
+    if count:
+        out.append(Paragraph(count, _SECTION_NOTE))
+    return out
 
 
 def _scope_story(data: dict) -> list[str]:
@@ -823,11 +843,6 @@ def _all_principals(token: str, credential, subscription_id: str) -> dict[str, d
                 break
             payload = r.json()
             for o in payload.get("value", []):
-                if o.get("servicePrincipalType") in ("SocialIdp",):
-                    # Microsoft plumbing for federated sign-in. Not an
-                    # identity this firm created, and counting it as an
-                    # orphan asks somebody to go and delete it.
-                    continue
                 if o["id"] in found:
                     continue
                 owner = o.get("appOwnerOrganizationId")
@@ -1617,6 +1632,14 @@ def render_pdf(data: dict, out_path: Path) -> Path:
     who = ParagraphStyle("w", parent=base["Heading3"], fontSize=10.5, textColor=INK,
                          spaceBefore=10, spaceAfter=1)
     cell = ParagraphStyle("c", parent=base["Normal"], fontSize=8, leading=10.5)
+    global _SECTION_TITLE, _SECTION_NOTE
+    _SECTION_TITLE = ParagraphStyle(
+        "sectitle", parent=base["Heading2"], fontSize=17, leading=21,
+        textColor=colors.HexColor("#1F5FBF"), spaceBefore=16, spaceAfter=1)
+    _SECTION_NOTE = ParagraphStyle(
+        "secnote", parent=base["Normal"], fontSize=9.5, leading=13,
+        leftIndent=16, fontName="Helvetica-Oblique", textColor=INK,
+        spaceAfter=0)
     bullet = ParagraphStyle("bul", parent=base["Normal"], fontSize=9, leading=13,
                             leftIndent=22, spaceAfter=2)
 
@@ -1811,7 +1834,7 @@ def render_pdf(data: dict, out_path: Path) -> Path:
         out.append(Spacer(1, 10))
         return out
 
-    story.append(Paragraph(_section_header(1), sec))
+    story.extend(_section_block(1))
     scope_rows = [["", ""]]
     scope_rows.append(["Tenant", Paragraph(data["tenant_name"], cell)])
     for sub in data["subscriptions"]:
@@ -1840,7 +1863,7 @@ def render_pdf(data: dict, out_path: Path) -> Path:
         ("BOTTOMPADDING", (0, 0), (-1, -1), 4)]))
     story.append(st)
 
-    story.append(Paragraph(_section_header(2), sec))
+    story.extend(_section_block(2))
     summary = [
         ["Role assignments in force", str(data["assignment_count"])],
         ["Principals holding rights", str(len(data["holders"]))],
@@ -1880,12 +1903,18 @@ def render_pdf(data: dict, out_path: Path) -> Path:
             "alone. Granting Directory.Read.All to the reporting identity resolves this.",
             note))
 
-    story.append(Paragraph(
-        _section_header(3, " (" + str(len(approved)) + ")"), sec))
-    for h in approved:
-        story.append(KeepTogether(_block(h)))
+    # The header travels with the first principal. A page break can be told
+    # how much room to require, but not how tall the next block will be, so
+    # binding the two is what actually keeps a title off the foot of a page.
+    head = _section_block(3, str(len(approved)) + " found")
+    if approved:
+        story.append(KeepTogether(head[1:] + _block(approved[0])))
+        for h in approved[1:]:
+            story.append(KeepTogether(_block(h)))
+    else:
+        story.extend(head)
 
-    story.append(Paragraph(_section_header(4), sec))
+    story.extend(_section_block(4))
     # The section name repeats with the column header. Without it a table that
     # runs over three pages reads as three sections, when it is one list sorted
     # alphabetically.
@@ -1946,8 +1975,7 @@ def render_pdf(data: dict, out_path: Path) -> Path:
     gt.setStyle(TableStyle(gst))
     story.append(gt)
 
-    story.append(Paragraph(
-        _section_header(5, " (" + str(len(data["resource_groups"])) + ")"), sec))
+    story.extend(_section_block(5, str(len(data["resource_groups"])) + " found"))
     if data["resource_groups"]:
         rg_rows = [["Resource group", "Subscription", "Region"]]
         for rg in data["resource_groups"]:
@@ -1970,7 +1998,7 @@ def render_pdf(data: dict, out_path: Path) -> Path:
 
     story.append(PageBreak())
 
-    story.append(Paragraph(_section_header(6), sec))
+    story.extend(_section_block(6))
     story.append(Paragraph(
         f"Orphaned assignments &mdash; grants whose principal no longer exists "
         f"({len(orphaned)})", sub_sec))
@@ -2133,8 +2161,7 @@ def render_pdf(data: dict, out_path: Path) -> Path:
     # of thing a principal is, so it is the foundation this section stands on --
     # and when it cannot be read, the section says so instead of reporting an
     # empty finding, which would read identically to a clean estate.
-    story.append(Paragraph(
-        _section_header(7), sec))
+    story.extend(_section_block(7))
     if not data["groups_readable"]:
         story.append(Paragraph(
             "Not attested. The reporting identity could not read the directory, so nothing "
@@ -2169,7 +2196,7 @@ def render_pdf(data: dict, out_path: Path) -> Path:
             story.append(Paragraph(
                 "Every principal holding rights belongs to a group.", body))
 
-    story.append(Paragraph(_section_header(8), sec))
+    story.extend(_section_block(8))
     if data["vault_wide"]:
         vw = [["Principal", "Right", "Where", "Access to every secret"]]
         for v in data["vault_wide"]:
