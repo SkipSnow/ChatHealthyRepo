@@ -5153,7 +5153,7 @@
                   "feature_id": "EPIC-010-F-108",
                   "handler_type": "python_source",
                   "disposition": "referenced",
-                  "content_hash": "567191bd5d72072772eb55e24c53892913cf80842b6a5bccf17862981d1b2bcd",
+                  "content_hash": "08d1590dd18afcd87892ea891204eaa8c4d0b08385a10c08d7e6cc6e32854b97",
                   "package": "data_migration"
                 }
               ],
@@ -5249,6 +5249,39 @@
           "scope": "/subscriptions/<subscription-id>/resourceGroups/<pipeline_rg>/providers/Microsoft.KeyVault/vaults/kv-chpipeline-dev/secrets/PipelineToFrontEndPublicDataMigrator"
         }
       ]
+    },
+    {
+      "target_id": "target_github_repository_chathealthy",
+      "target_kind": "github_repository",
+      "environments": [
+        {
+          "env_binding": "dev",
+          "node_address": "SkipSnow/ChatHealthyRepo",
+          "branch": "dev",
+          "packages": [
+            {
+              "package_id": "rule_065_enforcement_workflow",
+              "kind": "static_files"
+            }
+          ]
+        }
+      ],
+      "files": [
+        {
+          "feature_id": "EPIC-008-F-002",
+          "source_location": ".github/workflows/rule_065_enforcement.yml",
+          "handler_type": "static_asset",
+          "disposition": "referenced",
+          "content_hash": "a06cd8a7320fc245f321cd8e4d386be981e6004f635342a5ab63910b60a16994",
+          "package": "rule_065_enforcement_workflow"
+        }
+      ],
+      "secrets": {
+        "GITHUB_DEPLOY_TOKEN": "local_env"
+      },
+      "secret_descriptions": {
+        "GITHUB_DEPLOY_TOKEN": "GitHub token that writes the workflow to the branch"
+      }
     }
   ],
   "firm": {
