@@ -23,7 +23,7 @@ URL-pattern resolver and the prior draft's pre-build-at-init registry):
       so it is served from a local copy at
       Website/schemas/standard/json-schema-2020-12-meta.json. See §4.9.3.1.
     • An unreachable URL, non-200, timeout, or non-JSON body is a per-file
-      ViolationRecord, NOT a WorkerInternalError.
+      ViolationRecord, NOT a ChatHealthyException with mode "worker_internal".
 
 Inherits the default _load_scopes() from EnforcementWorker — its scope rows
 live on its enforcement entry's `scopes` field in engineering_rules.json
@@ -52,7 +52,6 @@ if __package__ in (None, ""):
     from enforcement_worker import (
         EnforcementWorker,
         ViolationRecord,
-        WorkerInternalError,
         PROJECT_ROOT,
         EXIT_OK,
         EXIT_VIOLATIONS_FOUND,
@@ -61,7 +60,6 @@ else:
     from .enforcement_worker import (  # type: ignore
         EnforcementWorker,
         ViolationRecord,
-        WorkerInternalError,
         PROJECT_ROOT,
         EXIT_OK,
         EXIT_VIOLATIONS_FOUND,
@@ -175,7 +173,8 @@ class ScanFilesEnforcementWorker(EnforcementWorker):
         validate any schema file without it).
         """
         if not _META_SCHEMA_LOCAL_PATH.is_file():
-            raise WorkerInternalError(
+            raise ChatHealthyException(
+            "worker_internal",
                 f"frozen external meta-schema not found at {_META_SCHEMA_LOCAL_PATH}; "
                 f"run the deploy step that populates Website/schemas/standard/"
             )
@@ -183,7 +182,8 @@ class ScanFilesEnforcementWorker(EnforcementWorker):
             with _META_SCHEMA_LOCAL_PATH.open(encoding="utf-8") as f:
                 meta_schema = json.load(f)
         except json.JSONDecodeError as exc:
-            raise WorkerInternalError(
+            raise ChatHealthyException(
+            "worker_internal",
                 f"frozen external meta-schema {_META_SCHEMA_LOCAL_PATH} is "
                 f"malformed JSON: {exc.msg} at line {exc.lineno} col {exc.colno}"
             )
@@ -567,7 +567,7 @@ class ScanFilesEnforcementWorker(EnforcementWorker):
 
         Per V19 §4.9.3 step 3: fetch failure (URLError, HTTPError, timeout,
         generic OSError) and malformed-JSON response are per-file violations,
-        NOT WorkerInternalError. Unreachable URL is a deployment problem; the
+        NOT a "worker_internal" ChatHealthyException. Unreachable URL is a deployment problem; the
         worker reports it as a violation against the file that declared it.
         """
         headers: dict[str, str] = {"User-Agent": _HTTP_USER_AGENT}

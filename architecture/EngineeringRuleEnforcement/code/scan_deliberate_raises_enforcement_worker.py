@@ -21,45 +21,54 @@ from typing import Any
 try:
     from .enforcement_worker import (
         EnforcementWorker, ViolationRecord, PROJECT_ROOT,
-        EXIT_OK, EXIT_VIOLATIONS_FOUND,
+        EXIT_OK, EXIT_VIOLATIONS_FOUND, ChatHealthyException,
     )
 except ImportError:
     from enforcement_worker import (  # noqa: E402
         EnforcementWorker, ViolationRecord, PROJECT_ROOT,
-        EXIT_OK, EXIT_VIOLATIONS_FOUND,
+        EXIT_OK, EXIT_VIOLATIONS_FOUND, ChatHealthyException,
     )
 
 
-_FORBIDDEN: frozenset[str] = frozenset({
-    "ValueError", "RuntimeError", "AssertionError",
-    "KeyError", "TypeError",
-})
+# Rule-065 statement 2 requires one class. Anything else raised deliberately
+# is a violation, so the check is an allowlist of one rather than a list of
+# forbidden names - a blocklist cannot express "this class must be used", and
+# the five-name version passed every custom exception ever written.
+_REQUIRED: str = "ChatHealthyException"
 
 
 
-def _ch_exception():
-    """ChatHealthyException, resolved without assuming the library is on the
-    path. Enforcement workers are spawned as bare scripts by the manager."""
-    import sys as _sys, pathlib as _pl
-    for _p in _pl.Path(__file__).resolve().parents:
-        if (_p / ".git").exists():
-            _lib = _p / "ChatHealthyLib" / "src"
-            if str(_lib) not in _sys.path:
-                _sys.path.insert(0, str(_lib))
-            break
-    from chathealthy_lib.exceptions import ChatHealthyException
-    return ChatHealthyException
+def _raised_name(expr: ast.expr) -> str | None:
+    """The name of the class being raised, however it is spelled."""
+    if isinstance(expr, ast.Call):
+        return _raised_name(expr.func)
+    if isinstance(expr, ast.Name):
+        return expr.id
+    if isinstance(expr, ast.Attribute):
+        return expr.attr
+    return None
+
 
 def _is_forbidden_raise(node: ast.Raise) -> str | None:
-    """If node raises a Call on a forbidden built-in name, return that
-    name; else None. Bare `raise` (no expression) returns None."""
+    """The class this raise uses when that class is not ChatHealthyException.
+
+    A bare `raise` re-raises the exception being handled and is always
+    allowed - Rule-065 statement 2 says so explicitly. `raise exc` where exc
+    is a caught name is the same act written differently and is also allowed:
+    it re-raises an object, it does not author a new one.
+    """
     if node.exc is None:
         return None
-    expr = node.exc
-    if isinstance(expr, ast.Call) and isinstance(expr.func, ast.Name):
-        if expr.func.id in _FORBIDDEN:
-            return expr.func.id
-    return None
+    name = _raised_name(node.exc)
+    if name is None:
+        return None
+    if name == _REQUIRED:
+        return None
+    # `raise exc` / `raise err` - re-raising a bound exception object, not
+    # constructing one. Constructing is always a Call.
+    if not isinstance(node.exc, ast.Call):
+        return None
+    return name
 
 
 def _count_forbidden_raises(source: str) -> list[tuple[int, str]]:

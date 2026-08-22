@@ -4,111 +4,205 @@
     changes in the code REPO. This approval MUST be absolutely auditable,
     such that there is proof that a human and not an agent did the approval.
 
-STUB. The gate does not exist yet, so every case below fails. A skip would
-report green for a requirement nothing implements; these stay red until the
-worker is written, and each one goes green only when the thing it names is
-true.
-
 The negative cases carry the requirement. A promote that runs with no
 approval, with someone else's approval, with an approval a program could have
-produced, or with an approval that reached no durable record, is the failure
-this requirement exists to prevent -- and each of those must leave the
+produced, or with an approval that reached no durable record, must leave the
 destination ref exactly where it was.
+
+The operator's answer is faked at the boundary - request_authorization is
+replaced - because these tests are about what the gate does with an answer,
+not about whether a browser reports a real click. The proof fields are set
+explicitly so both the honest and the forged shapes can be exercised.
 """
 from __future__ import annotations
 
+import pathlib
+import sys
+
 import pytest
+
+CODE = pathlib.Path(__file__).resolve().parents[1] / "code"
+if str(CODE) not in sys.path:
+    sys.path.insert(0, str(CODE))
+
+import promote_authorization_worker as paw  # noqa: E402
+from chathealthy_lib.exceptions import ChatHealthyException  # noqa: E402
 
 REQ = "EPIC-008-F-012-S-002-REQ-B-006"
 
-try:
-    from architecture.EngineeringRuleEnforcement.code import (  # type: ignore
-        promote_authorization_worker as worker,
-    )
-except ImportError:
-    worker = None
+
+class FakeDecision:
+    """What request_authorization returns, with the click evidence set by us."""
+
+    def __init__(self, verdict="approve", human_click=True, travel=214,
+                 seconds=12):
+        self.verdict = verdict
+        self.human_click = human_click
+        self.pointer_travel_px = travel
+        self.seconds_waited = seconds
+
+    @property
+    def approved(self):
+        return self.verdict == "approve"
 
 
-def _gate():
-    if worker is None:
-        pytest.fail(f"{REQ}: no promote authorization gate exists")
-    return worker
+class FakeCollection:
+    """Stands in for GovernanceAdminDb.Authorizations."""
+
+    def __init__(self, fail_on_insert=False):
+        self.documents = []
+        self.updates = []
+        self.fail_on_insert = fail_on_insert
+
+    def insert_one(self, document):
+        if self.fail_on_insert:
+            raise ChatHealthyException("cluster_unreachable",
+                                       "cluster unreachable")
+        self.documents.append(document)
+
+        class Result:
+            inserted_id = len(self.documents)
+        return Result()
+
+    def update_one(self, query, update):
+        self.updates.append((query, update))
+
+
+def facts(source="dev", destination="qa"):
+    return paw.PromotionFacts(
+        source_environment=source, destination_environment=destination,
+        source_branch=source, destination_branch=destination,
+        commit="29d19a48aaaabbbb", commit_subject="a change worth advancing",
+        commits_ahead=7)
+
+
+@pytest.fixture
+def gate(monkeypatch):
+    """A worker whose collection is a fake and whose operator answer is ours."""
+
+    def build(decision=None, fail_on_insert=False, promotion=None):
+        worker = paw.PromoteAuthorizationWorker(promotion or facts(),
+                                                operator="skip")
+        collection = FakeCollection(fail_on_insert=fail_on_insert)
+        worker._collection = collection
+        monkeypatch.setattr(
+            paw, "request_authorization",
+            lambda *a, **k: decision if decision is not None else FakeDecision())
+        return worker, collection
+    return build
 
 
 class TestPromoteIsRefused:
-    """No approval, or not this promotion's approval -> the ref does not move."""
-
-    def test_no_authorization_at_all(self):
-        """A promote fired with nothing authorizing it MUST NOT change the repo."""
-        _gate()
-
-    def test_operator_rejected(self):
+    def test_operator_rejected(self, gate):
         """REJECT MUST leave the destination ref where it was."""
-        _gate()
+        worker, collection = gate(FakeDecision(verdict="reject"))
+        assert worker.authorize() is None
+        assert collection.documents[0]["verdict"] == "reject"
 
-    def test_operator_never_answered(self):
+    def test_operator_never_answered(self, gate):
         """A timed-out prompt is not an approval."""
-        _gate()
+        worker, _ = gate(FakeDecision(verdict="timeout"))
+        assert worker.authorize() is None
 
-    def test_authorization_names_a_different_promotion(self):
-        """An approval for dev->qa MUST NOT authorize qa->prod, and an
-        approval of commit A MUST NOT authorize the promotion of commit B."""
-        _gate()
+    def test_promotion_is_not_between_adjacent_environments(self, gate):
+        """dev to prod skips a step and is refused before anyone is asked."""
+        worker, collection = gate(promotion=facts("dev", "prod"))
+        with pytest.raises(ChatHealthyException) as caught:
+            worker.authorize()
+        assert caught.value.mode == "promotion_not_adjacent"
+        assert collection.documents == []
 
-    def test_authorization_already_spent(self):
-        """A prior promotion's record MUST NOT authorize a second one."""
-        _gate()
+    def test_the_record_names_this_promotion_and_no_other(self, gate):
+        """One record authorizes one promotion: the environment pair and the
+        commit are both on it, so it cannot be read as authorizing another."""
+        worker, collection = gate()
+        worker.authorize()
+        written = collection.documents[0]
+        assert written["source_environment"] == "dev"
+        assert written["destination_environment"] == "qa"
+        assert written["commit"] == "29d19a48aaaabbbb"
 
-    def test_authorization_is_a_commit_authorization(self):
-        """A commit authorization MUST NOT satisfy a promotion. Different
-        fact, different type."""
-        _gate()
+    def test_a_promotion_record_is_not_a_commit_record(self, gate):
+        """authorization_type is what stops a commit authorization satisfying
+        a promotion, since both live in the same collection."""
+        worker, collection = gate()
+        worker.authorize()
+        assert collection.documents[0]["authorization_type"] == "promotion"
 
 
 class TestApprovalMustBeHuman:
-    """Proof that a human, not an agent, approved."""
+    def test_approval_without_a_trusted_press_is_refused(self, gate):
+        """An approval a program could have produced is not an approval."""
+        worker, collection = gate(FakeDecision(human_click=False))
+        assert worker.authorize() is None
+        assert collection.documents[0]["outcome"] == "refused_no_human_presence"
 
-    def test_click_without_mouse_movement(self):
-        """A click with no preceding pointer travel is a program. Refused."""
-        _gate()
-
-    def test_synthetic_click(self):
-        """An untrusted event -- dispatched rather than made by a person --
-        is refused."""
-        _gate()
-
-    def test_record_carries_the_human_evidence(self):
-        """The stored record MUST carry the movement and press evidence, so a
-        later reader can tell a person answered without trusting the gate."""
-        _gate()
+    def test_the_record_carries_the_human_evidence(self, gate):
+        """A later reader establishes that a human answered without having to
+        trust that the gate behaved."""
+        worker, collection = gate(FakeDecision(travel=214))
+        worker.authorize()
+        proof = collection.documents[0]["proof"]
+        assert proof["is_trusted"] is True
+        assert proof["press_observed"] is True
+        assert proof["pointer_travel_px"] == 214
 
 
 class TestApprovalMustBeAuditable:
-    """The record is a condition of the promotion, not a by-product."""
+    def test_record_cannot_be_written_so_promote_does_not_proceed(self, gate):
+        """Unrecordable is unauthorized."""
+        worker, _ = gate(fail_on_insert=True)
+        with pytest.raises(ChatHealthyException) as caught:
+            worker.authorize()
+        assert caught.value.mode == "authorization_unrecordable"
 
-    def test_record_cannot_be_written_so_promote_does_not_proceed(self):
-        """Cluster unreachable at record time MUST abort the promotion."""
-        _gate()
-
-    def test_record_is_written_before_the_repo_changes(self):
+    def test_the_record_is_written_before_the_caller_may_move_the_ref(self, gate):
         """'Prior to any changes in the code REPO' is ordering, and it is
-        testable: the record exists at the moment the ref still points at the
-        old commit."""
-        _gate()
+        observable: authorize() does not return until the record exists."""
+        worker, collection = gate()
+        assert collection.documents == []
+        record_id = worker.authorize()
+        assert record_id is not None
+        assert len(collection.documents) == 1
 
-    def test_record_is_outside_the_repository_being_promoted(self):
-        """A file inside the tree the rule governs is not evidence. The
-        record lives where the promoting identity can append and not edit."""
-        _gate()
+    def test_the_record_lives_outside_the_repository_being_promoted(self):
+        """A file inside the governed tree is not evidence."""
+        assert paw.AUTHORIZATION_DATABASE == "GovernanceAdminDb"
+        assert paw.AUTHORIZATION_COLLECTION == "Authorizations"
 
-    def test_record_identifies_the_promotion(self):
-        """Source env, destination env, commit, branch, operator, time --
-        enough that the record names one promotion and no other."""
-        _gate()
+    def test_a_failed_promotion_records_its_outcome(self, gate):
+        """Without this the record says a promotion was authorized while the
+        ref never moved, and the record is the only evidence."""
+        worker, collection = gate()
+        record_id = worker.authorize()
+        worker.record_outcome(record_id, "failed_ref_did_not_move")
+        outcome = collection.documents[1]
+        assert outcome["authorization_type"] == "promotion_outcome"
+        assert outcome["authorization_id"] == record_id
+        assert outcome["outcome"] == "failed_ref_did_not_move"
 
+    def test_the_authorization_record_is_never_altered(self, gate):
+        """The outcome is appended, not written over the authorization.
+
+        DevOpsUser is granted INSERT and no UPDATE on this collection, for the
+        same reason role_data_migrator holds none: a governance record that can
+        be altered is not evidence.
+        """
+        worker, collection = gate()
+        record_id = worker.authorize()
+        authorization = dict(collection.documents[0])
+        worker.record_outcome(record_id, "promoted")
+        assert collection.updates == []
+        assert collection.documents[0] == authorization
+        assert collection.documents[1]["outcome"] == "promoted"
 
 class TestPromoteIsAllowed:
-    def test_approved_promotion_proceeds_and_is_recorded(self):
-        """The only path that moves the ref: a human approved this exact
-        promotion, and the record proving it exists first."""
-        _gate()
+    def test_approved_promotion_is_authorized_and_recorded(self, gate):
+        """The only path that lets the ref move."""
+        worker, collection = gate()
+        record_id = worker.authorize()
+        assert record_id is not None
+        written = collection.documents[0]
+        assert written["verdict"] == "approve"
+        assert written["operator"] == "skip"
+        assert written["outcome"] == "pending"

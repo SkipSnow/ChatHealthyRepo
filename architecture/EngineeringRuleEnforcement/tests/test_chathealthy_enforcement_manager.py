@@ -12,7 +12,8 @@ from pathlib import Path
 import pytest
 
 import chathealthy_enforcement_manager as ce
-from chathealthy_enforcement_manager import ChatHealthyEnforcementManager, UnknownHookError
+from chathealthy_enforcement_manager import ChatHealthyEnforcementManager
+from chathealthy_lib.exceptions import ChatHealthyException
 
 
 # ─────────────────────────────────────────────────────────────────────────────
@@ -102,8 +103,11 @@ class TestConstructor:
         assert m.hook_name == "pre-commit"
 
     def test_unknown_hook_raises(self):
-        with pytest.raises(UnknownHookError):
+        # The rule requires ChatHealthyException with a mode; the catch
+        # discriminates on the mode, not on the class.
+        with pytest.raises(ChatHealthyException) as caught:
             ChatHealthyEnforcementManager("not-a-hook")
+        assert caught.value.mode == "unknown_hook"
 
 
 # ─────────────────────────────────────────────────────────────────────────────

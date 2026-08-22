@@ -41,6 +41,7 @@ for _d in _pl.Path(__file__).resolve().parents:
 # made a build depend on a Mongo write it has no grant for.
 import os as _ch_os
 _ch_os.environ["CH_LOG_DESTINATION"] = "stderr"
+from chathealthy_lib.exceptions import ChatHealthyException
 from chathealthy_lib.logging_service import ChatHealthyLoggingService
 
 _CH_LOG = ChatHealthyLoggingService()
@@ -62,8 +63,58 @@ HOOK_CWD_ENV = "CHATHEALTHY_HOOK_CWD"
 LAUNCH_CWD = os.getcwd()
 
 
-class UnknownHookError(Exception):
-    """Hook name is not a member of HOOKS."""
+class RefusalReport:
+    """The reasons a hook refused, rendered for the person who ran it.
+
+    Workers already emit one {"kind": "violation", ...} object per failure on
+    stdout, and the manager already reads their exit codes. Nothing joined the
+    two, so a refusal reached the operator as a non-zero exit and a log file
+    they had to know to open. This joins them.
+    """
+
+    def __init__(self) -> None:
+        self._violations: list[dict[str, Any]] = []
+        self._failures: list[tuple[str, int]] = []
+
+    def read_worker_stdout(self, text: str) -> None:
+        for line in text.splitlines():
+            line = line.strip()
+            if not line.startswith("{"):
+                continue
+            try:
+                payload = json.loads(line)
+            except ValueError:
+                continue
+            if payload.get("kind") == "violation":
+                self._violations.append(payload)
+
+    def note_failure(self, enforcement_id: str, exit_code: int) -> None:
+        if exit_code != 0:
+            self._failures.append((enforcement_id, exit_code))
+
+    def is_empty(self) -> bool:
+        return not self._violations and not self._failures
+
+    def render(self, hook_name: str, exit_code: int) -> str:
+        lines = ["Rule-065 refused this " + hook_name
+                 + ". Exit " + str(exit_code) + "."]
+        for v in self._violations:
+            lines.append(
+                "  " + str(v.get("enforcement_id", "?"))
+                + "  " + str(v.get("resource", "?"))
+                + "  " + str(v.get("message", ""))
+            )
+        reported = {v.get("enforcement_id") for v in self._violations}
+        for enforcement_id, code in self._failures:
+            if enforcement_id not in reported:
+                lines.append(
+                    "  " + enforcement_id + "  exit " + str(code)
+                    + ", no violation reported - the worker failed rather "
+                    "than found a fault"
+                )
+        return chr(10).join(lines) + chr(10)
+
+
 
 
 class ChatHealthyEnforcementManager:
@@ -111,11 +162,15 @@ class ChatHealthyEnforcementManager:
     def __init__(self, hook_name: str) -> None:
         """Validate hook_name; store. (V19 Table 3, ctor row.)"""
         if hook_name not in self.HOOKS:
-            raise UnknownHookError(
+            raise ChatHealthyException(
+                "unknown_hook",
                 f"unknown hook_name {hook_name!r}; "
-                f"must be one of {self.HOOKS}"
+                f"must be one of {self.HOOKS}",
+                component="ChatHealthyEnforcementManager",
+                hook_name=hook_name,
             )
         self.hook_name: str = hook_name
+        self.report: RefusalReport = RefusalReport()
 
     # ────────────────────────────────────────────────────────────────────────
     # Public entry point
@@ -130,9 +185,32 @@ class ChatHealthyEnforcementManager:
         enforcements = self._filter_enforcements(rules, self.hook_name)
 
         if not enforcements:
-            return self._aggregate([])
+            return self._report(self._aggregate([]))
 
-        return self._aggregate(self._dispatch(enforcements))
+        codes = self._dispatch(enforcements)
+        for enforcement, code in zip(enforcements, codes):
+            self.report.note_failure(enforcement["enforcement_id"], code)
+        return self._report(self._aggregate(codes))
+
+    def _report(self, exit_code: int) -> int:
+        """Tell the operator why, on the channel they are already watching.
+
+        git prints a hook's stderr, so the reason arrives where the command was
+        run - for a person at a terminal and for an agent reading a tool result
+        alike. No log file is involved in being told.
+        """
+        if exit_code == self.EXIT_OK:
+            return exit_code
+        if self.report.is_empty():
+            sys.stderr.write(
+                "Rule-065 refused this " + self.hook_name + ". Exit "
+                + str(exit_code) + ". No enforcement reported a reason, which "
+                "is itself a defect." + chr(10)
+            )
+        else:
+            sys.stderr.write(self.report.render(self.hook_name, exit_code))
+        sys.stderr.flush()
+        return exit_code
 
     def _dispatch(self, enforcements: list[dict[str, Any]]) -> list[int]:
         """Run these enforcements and return their exit codes.
@@ -282,8 +360,10 @@ class ChatHealthyEnforcementManager:
             if lock_handle is not None:
                 self._release_lock(lock_handle)
 
-        # Forward worker stdout (telemetry + violations) to our stdout.
+        # Forward worker stdout, and keep the violation records so the
+        # refusal can be reported.
         if completed.stdout:
+            self.report.read_worker_stdout(completed.stdout)
             sys.stdout.write(completed.stdout)
             if not completed.stdout.endswith("\n"):
                 sys.stdout.write("\n")

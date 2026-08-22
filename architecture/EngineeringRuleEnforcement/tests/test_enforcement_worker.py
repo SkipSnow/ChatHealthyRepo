@@ -12,7 +12,6 @@ import enforcement_worker as ew
 from enforcement_worker import (
     EnforcementWorker,
     ViolationRecord,
-    WorkerInternalError,
     SCOPE_LIST_TYPES,
     EXIT_OK,
     EXIT_VIOLATIONS_FOUND,
@@ -119,7 +118,7 @@ class TestLoadEnforcement:
         assert w.hook == "pre-commit"
 
     def test_unknown_enforcement_raises(self, fake_entry):
-        with pytest.raises(WorkerInternalError):
+        with pytest.raises(ChatHealthyException) as caught:
             _DummyWorker("Rule-999-ENF-NOPE")
 
 
@@ -144,7 +143,7 @@ class TestScopeFunctionNameValidation:
         path = tmp_path / "rules.json"
         path.write_text(json.dumps(rules), encoding="utf-8")
         monkeypatch.setattr(ew, "ENGINEERING_RULES_PATH", path)
-        with pytest.raises(AttributeError):
+        with pytest.raises(ChatHealthyException) as caught:
             _DummyWorker("Rule-999-ENF-001")
 
 
@@ -237,7 +236,7 @@ class TestMainExitCodes:
     def test_internal_error_returns_five(self, fake_entry):
         class _CfgWorker(_DummyWorker):
             def run(self):
-                raise WorkerInternalError("schema missing")
+                raise ChatHealthyException("worker_internal", "schema missing")
         rc = _CfgWorker.main(["Rule-999-ENF-001"])
         assert rc == EXIT_WORKER_INTERNAL_ERROR
 

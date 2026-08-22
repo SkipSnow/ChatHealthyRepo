@@ -46,6 +46,7 @@ for _d in Path(__file__).resolve().parents:
 # made a build depend on a Mongo write it has no grant for.
 import os as _ch_os
 _ch_os.environ["CH_LOG_DESTINATION"] = "stderr"
+from chathealthy_lib.exceptions import ChatHealthyException
 from chathealthy_lib.logging_service import ChatHealthyLoggingService
 from baseline_walk import baseline_files
 
@@ -85,10 +86,6 @@ _PRECEDENCE = (
 DEFAULT_TIMEOUT_SECONDS = 30
 
 
-class DriverError(Exception):
-    """The driver could not establish what the commit answers for."""
-
-
 # ── the working-tree duties, moved here from promote ─────────────────────────
 # They were promote's because promote was the only caller. They are git, and
 # git lives in one place now: emptying the stash, proving the tree can be
@@ -121,7 +118,7 @@ class CommitGovernanceDriver:
             check=False,
         )
         if check and proc.returncode != 0:
-            raise DriverError(f"git {' '.join(args)} failed: {proc.stderr.strip()}")
+            raise ChatHealthyException("driver_error", f"git {' '.join(args)} failed: {proc.stderr.strip()}")
         return proc.stdout
 
 
@@ -178,12 +175,12 @@ class CommitGovernanceDriver:
             ]
             untitled = [e["enforcement_id"] for e in subs if not e.get("title")]
             if untitled:
-                raise DriverError(
+                raise ChatHealthyException("driver_error", 
                     f"untitled enforcement(s): {', '.join(untitled)}. The "
                     f"driver will not run a check it cannot name."
                 )
             return subs
-        raise DriverError(f"{RULE_ID} not found in {ENGINEERING_RULES_PATH}")
+        raise ChatHealthyException("driver_error", f"{RULE_ID} not found in {ENGINEERING_RULES_PATH}")
 
     def _invoke(self, entry: dict[str, Any]) -> dict[str, Any]:
         """Run one subordinate over the array; collect its exceptions."""
@@ -251,7 +248,7 @@ class CommitGovernanceDriver:
     def dispatch(self, subs: list[dict[str, Any]]) -> list[dict[str, Any]]:
         """Every subordinate at once, over the same array. Then join."""
         if not subs:
-            raise DriverError(
+            raise ChatHealthyException("driver_error", 
                 f"{RULE_ID} declares no {SUBORDINATE_HOOK} enforcement. "
                 f"Nothing would be checked, so nothing can be certified."
             )
@@ -310,7 +307,7 @@ class CommitGovernanceDriver:
         try:
             self.files = self.collect()
             subs = self.subordinates()
-        except DriverError as exc:
+        except ChatHealthyException as exc:
             _CH_LOG.error(f"[driver] {exc}")
             return EXIT_DRIVER_ERROR
 
@@ -362,6 +359,16 @@ class CommitGovernanceDriver:
 
         for path, enforcement_ids in sorted(failed.items()):
             _CH_LOG.error(f"[driver]   FAIL {path}  {', '.join(enforcement_ids)}")
+            # The reason, not only the verdict. A refusal the operator cannot
+            # read sends them to a log file to find out why their commit
+            # stopped (design V31 4.12a).
+            for r in self.results:
+                for v in r["violations"]:
+                    if v.get("resource") == path:
+                        _CH_LOG.error(
+                            f"[driver]        {v.get('enforcement_id', '?')}: "
+                            f"{v.get('message', '')}"
+                        )
         for r in self.results:
             _CH_LOG.info(
                 f"[driver]   {r['enforcement_id']}  exit {r['exit_code']}  "
@@ -398,4 +405,4 @@ def main(argv: list[str] | None = None) -> int:
 
 
 if __name__ == "__main__":
-    raise SystemExit(main())
+    sys.exit(main())
