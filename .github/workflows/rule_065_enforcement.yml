@@ -50,8 +50,35 @@ jobs:
           git reset --soft HEAD~1 || true
           git status --porcelain
 
-      - name: Rule-065
+      - name: Rule-065, on what this push changed
         run: python architecture/EngineeringRuleEnforcement/code/commit_governance_driver.py
+
+      # The staged set cannot answer for the repository. A file committed
+      # before a rule existed is never handed to it, so it is never judged by
+      # it -- which is how this framework's own files came to violate rules it
+      # exists to enforce while every gate passed them. The sweep hands the
+      # driver the whole baseline instead.
+      #
+      # It runs here rather than at the commit gate because 708 files take
+      # forty seconds against seven enforcements, and a developer pays that on
+      # every commit while a runner pays it once per push.
+      #
+      # continue-on-error while the backlog it reports is open: the sweep's
+      # job today is to state the number, not to stop work on it. Removing
+      # that line is what makes the repository-wide result binding, and is an
+      # operator decision, not a mechanical one.
+      - name: Rule-065, across the whole repository
+        continue-on-error: true
+        run: |
+          python - <<'PY' > /tmp/baseline.txt
+          import sys
+          sys.path.insert(0, "architecture/EngineeringRuleEnforcement/code")
+          from pathlib import Path
+          from baseline_walk import baseline_files
+          print("\n".join(baseline_files(Path(".").resolve())))
+          PY
+          python architecture/EngineeringRuleEnforcement/code/commit_governance_driver.py \
+            --files-from /tmp/baseline.txt
 
       - name: The verdict, in full
         if: always()
