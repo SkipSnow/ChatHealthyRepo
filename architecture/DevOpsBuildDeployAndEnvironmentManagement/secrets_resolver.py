@@ -225,6 +225,21 @@ class SecretsResolver:
         self._vault_cache[key] = value
         return value
 
+    def _has_local_value(self, name: str) -> bool:
+        """A name in the .env with something after the '=' .
+
+        A bare `NAME=` satisfies every check that asks whether the name is
+        there, and satisfies nothing that asks for a credential. It would
+        deploy as an empty environment variable and the service would fail
+        authenticating against a peer, at runtime, with a value that looks
+        configured.
+        """
+        if self._env_file is None or not Path(self._env_file).is_file():
+            return False
+        if self._env_cache is None:
+            self._env_cache = self._read_env_file(Path(self._env_file))
+        return bool((self._env_cache.get(name) or "").strip())
+
     def _seed_vault(self, vault: str, secret_name: str,
                     name: str, env: str) -> str:
         if self._env_file is None or not Path(self._env_file).is_file():
@@ -233,15 +248,14 @@ class SecretsResolver:
                 component="secrets_resolver",
                 message=f"{vault} holds no secret {secret_name!r} and there is "
                         f"no .env to seed it from")
-        if self._env_cache is None:
-            self._env_cache = self._read_env_file(Path(self._env_file))
-        if name not in self._env_cache:
+        if not self._has_local_value(name):
             raise ChatHealthyException(
                 mode="key_error",
                 component="secrets_resolver",
-                message=f"{name!r} is declared for env {env!r} but exists "
-                        f"nowhere: {vault} holds no {secret_name!r} and it is "
-                        f"absent from {self._env_file}. Nothing can supply it.")
+                message=f"{name!r} is declared for env {env!r} but no value "
+                        f"exists for it: {vault} holds no {secret_name!r} and "
+                        f"{self._env_file} carries no value. Nothing can supply "
+                        f"it, and an empty secret is not written to the vault.")
         self._vault_write(vault, secret_name, self._env_cache[name])
         self._seeded.append((vault, secret_name))
         return self._env_cache[name]
@@ -345,24 +359,26 @@ class SecretsResolver:
             return False, f"no binding registered for {name!r} in env {env!r}"
         if store == _STORE_AZURE_KEY_VAULT:
             vault = self.vault_for(env)
-            _, absent = self._vault_read(vault, vault_secret_name(name))
-            if not absent:
+            value, absent = self._vault_read(vault, vault_secret_name(name))
+            if not absent and value:
                 return True, f"{vault}/{vault_secret_name(name)}"
-            if self._env_file is not None and Path(self._env_file).is_file():
-                if self._env_cache is None:
-                    self._env_cache = self._read_env_file(Path(self._env_file))
-                if name in self._env_cache:
-                    return True, (f"absent from {vault}; the deploy will seed it "
-                                  f"from {self._env_file}")
-            return False, (f"{vault} holds no {vault_secret_name(name)!r} and it "
-                           f"is absent from {self._env_file}")
+            if not absent:
+                return False, (f"{vault} holds {vault_secret_name(name)!r} with an "
+                               f"empty value, which authenticates nothing")
+            if self._has_local_value(name):
+                return True, (f"absent from {vault}; the deploy will seed it "
+                              f"from {self._env_file}")
+            return False, (f"{vault} holds no {vault_secret_name(name)!r} and "
+                           f"{self._env_file} carries no value for it")
         if store == _STORE_LOCAL_ENV:
             if self._env_file is None or not Path(self._env_file).is_file():
                 return False, f"{name!r} is bound to {store!r} with no .env to read"
-            if self._env_cache is None:
-                self._env_cache = self._read_env_file(Path(self._env_file))
-            if name in self._env_cache:
+            if self._has_local_value(name):
                 return True, str(self._env_file)
+            if name in (self._env_cache or {}):
+                return False, (f"{name!r} is present in {self._env_file} with an "
+                               f"empty value; a name without a value is not a "
+                               f"secret")
             return False, f"{name!r} not present in {self._env_file}"
         # The remaining stores are written BY a deploy rather than read by
         # one -- the value is computed at deploy time and pushed onto the

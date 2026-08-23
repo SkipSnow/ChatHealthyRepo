@@ -135,7 +135,8 @@ def test_a_secret_absent_from_both_vault_and_env_is_reported_not_invented(
     resolver = _resolver(env_file, NOWHERE_AT_ALL="azure_key_vault")
     with pytest.raises(ChatHealthyException) as caught:
         resolver.resolve("NOWHERE_AT_ALL", "dev")
-    assert "exists" in caught.value.message and "nowhere" in caught.value.message
+    assert "no value exists for it" in caught.value.message
+    assert "Nothing can supply it" in caught.value.message
 
 
 # ── the build's question: presence, never a value ────────────────────────
@@ -155,6 +156,52 @@ def test_the_build_accepts_a_secret_the_deploy_will_seed(monkeypatch, env_file):
     present, detail = resolver.exists("API_TOKEN_MAP", "dev")
     assert present is True
     assert "seed" in detail
+
+
+def test_a_name_with_no_value_is_not_a_secret(tmp_path):
+    """`NAME=` passes every check that asks whether the name is there."""
+    path = tmp_path / ".env"
+    path.write_text("# Secrets\nHAS_VALUE=abc\nEMPTY_VALUE=\nBLANK_VALUE=   \n",
+                    encoding="utf-8")
+    resolver = SecretsResolver(
+        bindings={("HAS_VALUE", "dev"): "local_env",
+                  ("EMPTY_VALUE", "dev"): "local_env",
+                  ("BLANK_VALUE", "dev"): "local_env"},
+        env_file=path, vaults={"dev": "kv-test-dev"})
+    assert resolver.exists("HAS_VALUE", "dev")[0] is True
+    for name in ("EMPTY_VALUE", "BLANK_VALUE"):
+        present, detail = resolver.exists(name, "dev")
+        assert present is False
+        assert "empty value" in detail
+
+
+def test_an_empty_value_is_never_seeded_into_the_vault(monkeypatch, tmp_path):
+    path = tmp_path / ".env"
+    path.write_text("# Secrets\nEMPTY_VALUE=\n", encoding="utf-8")
+    writes: list = []
+
+    def fake_run(argv, *a, **k):
+        if argv[3] == "show":
+            return _Completed(1, stderr="(SecretNotFound) not found")
+        writes.append(argv)
+        return _Completed(0)
+
+    monkeypatch.setattr(subprocess, "run", fake_run)
+    resolver = SecretsResolver(
+        bindings={("EMPTY_VALUE", "dev"): "azure_key_vault"},
+        env_file=path, vaults={"dev": "kv-test-dev"})
+    with pytest.raises(ChatHealthyException) as caught:
+        resolver.resolve("EMPTY_VALUE", "dev")
+    assert "empty secret is not written" in caught.value.message
+    assert writes == []
+
+
+def test_a_vault_secret_with_an_empty_value_fails_the_build(monkeypatch, env_file):
+    monkeypatch.setattr(subprocess, "run", lambda *a, **k: _Completed(0, stdout="\n"))
+    resolver = _resolver(env_file, OPENAI_API_KEY="azure_key_vault")
+    present, detail = resolver.exists("OPENAI_API_KEY", "dev")
+    assert present is False
+    assert "authenticates nothing" in detail
 
 
 def test_the_build_refuses_a_secret_that_exists_nowhere(monkeypatch, env_file):
