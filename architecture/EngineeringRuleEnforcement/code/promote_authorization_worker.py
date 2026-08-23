@@ -108,6 +108,7 @@ class AuthorizationRecord:
     decided_at: str
     verdict: str
     seconds_waited: int
+    operator_message: str = ""
     proof: dict = field(default_factory=dict)
     outcome: str = "pending"
 
@@ -123,6 +124,9 @@ class PromoteAuthorizationWorker:
         self.operator = operator or _ch_os.environ.get("USERNAME", "unknown")
         self._collection = None
         self.last_verdict = "not asked"
+        # What the operator typed over the offered message, if
+        # anything. Empty means they left it alone.
+        self.operator_message = ""
 
     # -- the question -----------------------------------------------------
     def build_question(self) -> dict:
@@ -174,6 +178,10 @@ class PromoteAuthorizationWorker:
             transfer=self.build_question())
 
         self.last_verdict = decision.verdict
+        typed = (getattr(decision, "message", "") or "").strip()
+        self.operator_message = (
+            "" if typed == (self.facts.commit_subject or "").strip()
+            else typed)
 
         proof = HumanPresenceProof(
             is_trusted=bool(getattr(decision, "human_click", False)),
@@ -192,6 +200,7 @@ class PromoteAuthorizationWorker:
             operator=self.operator,
             decided_at=datetime.now(timezone.utc).isoformat(),
             verdict=decision.verdict,
+            operator_message=self.operator_message,
             seconds_waited=int(getattr(decision, "seconds_waited", 0)),
             proof=asdict(proof))
 
