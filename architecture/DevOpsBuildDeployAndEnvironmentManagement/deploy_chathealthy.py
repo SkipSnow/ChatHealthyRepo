@@ -129,8 +129,10 @@ def _latest_admin_build() -> int | None:
     load_dotenv(_repo_root() / ".env")
     try:
         from chathealthy_lib.mongo_utilities import ChatHealthyMongoUtilities
+        from cluster_host import host_for as _cluster_host
         latest = (ChatHealthyMongoUtilities()
-                  .getConnection("DevOpsUser", "ChatHealthyFrontEnd")
+                  .getConnection("DevOpsUser", "ChatHealthyFrontEnd",
+                                 host=_cluster_host("ChatHealthyFrontEnd"))
                   ["frontEndAdmin"]["BuildVersions"].find_one(sort=[("from", -1)]))
     except Exception:
         return None

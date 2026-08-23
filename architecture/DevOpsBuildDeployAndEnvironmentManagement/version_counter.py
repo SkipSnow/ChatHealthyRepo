@@ -54,8 +54,10 @@ def versions_collection():
     if str(lib_src) not in sys.path:
         sys.path.insert(0, str(lib_src))
     from chathealthy_lib.mongo_utilities import ChatHealthyMongoUtilities
+    from cluster_host import host_for as _cluster_host
     return (ChatHealthyMongoUtilities()
-            .getConnection("DevOpsUser", "ChatHealthyFrontEnd")[VERSIONS_DB][VERSIONS_COLLECTION])
+            .getConnection("DevOpsUser", "ChatHealthyFrontEnd",
+                            host=_cluster_host("ChatHealthyFrontEnd"))[VERSIONS_DB][VERSIONS_COLLECTION])
 
 
 def latest_record() -> dict:
