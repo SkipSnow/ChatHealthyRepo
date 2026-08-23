@@ -44,16 +44,8 @@ VERSIONS_COLLECTION = "BuildVersions"
 
 
 def _repo_root() -> Path:
-    p = Path(__file__).resolve()
-    while p != p.parent:
-        if (p / ".git").exists():
-            return p
-        p = p.parent
-    from chathealthy_lib.exceptions import ChatHealthyException
-    raise ChatHealthyException(
-        mode="repo_root_not_found",
-        component="VersionCounter",
-        message=f"no .git found walking up from {__file__}")
+    import chain_provenance as _cp  # noqa: PLC0415
+    return _cp.repository_root(Path(__file__))
 
 
 def versions_collection():

@@ -70,6 +70,33 @@ def canonical_repo_override() -> Path | None:
     return Path(value) if value else None
 
 
+def repository_root(start: Path | None = None) -> Path:
+    """The repository this run belongs to. One answer, for every caller.
+
+    Six modules in the chain each walked up for a root and each disagreed
+    about what marks one -- .git as a directory, .git by any kind, .git or a
+    .env beside it. Running from a checkout made every one of those
+    differences matter at once: a git worktree carries .git as a FILE, and a
+    checkout carries no .env at all, so the walks that tested is_dir() or
+    looked for .env ran off the top of the filesystem.
+
+    The override wins when set, because in a re-executed run the thing being
+    asked for is the workstation's repository -- where .env lives and where
+    build output belongs -- and not the checkout the code is running from.
+    """
+    override = canonical_repo_override()
+    if override is not None:
+        return override
+    current = (start or Path(__file__)).resolve()
+    for candidate in (current, *current.parents):
+        if (candidate / ".git").exists():
+            return candidate
+    raise ChatHealthyException(
+        mode="repo_root_not_found",
+        component="chain_provenance",
+        message=f"no .git found walking up from {current}")
+
+
 def running_from_git() -> str:
     import os  # noqa: PLC0415
 
