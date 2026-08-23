@@ -152,10 +152,12 @@ def main() -> int:
     # out; this names no person.
     transfer = {
         "collection": args.collection,
-        "source": {"cluster": "ChatHealthyDataPipelines",
-                   "database": "PipelinePublicHealthData"},
-        "destination": {"cluster": "ChatHealthyFrontEnd",
-                        "database": "PublicHealthData"},
+        # The keys are the labels the page prints, so they read as the
+        # operator reads them.
+        "source": {"Cluster": "ChatHealthyDataPipelines",
+                   "Data Base": "PipelinePublicHealthData"},
+        "destination": {"Cluster": "ChatHealthyFrontEnd",
+                        "Data Base": "PublicHealthData"},
         "authorizer": _authorizer(),
     }
 

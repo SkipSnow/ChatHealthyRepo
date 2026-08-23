@@ -70,6 +70,7 @@ class PromotionFacts:
     commit: str
     commit_subject: str
     commits_ahead: int
+    files: int = 0
 
     def subject(self) -> str:
         return (f"{self.source_environment} to {self.destination_environment}: "
@@ -121,16 +122,26 @@ class PromoteAuthorizationWorker:
         self.facts = facts
         self.operator = operator or _ch_os.environ.get("USERNAME", "unknown")
         self._collection = None
+        self.last_verdict = "not asked"
 
     # -- the question -----------------------------------------------------
     def build_question(self) -> dict:
+        """What the operator is being asked, said plainly.
+
+        A promotion moves a baseline between environments. It has no cluster
+        and no collection, and the two sides are not the same kind of thing:
+        the left is a working tree about to become a commit, the right is the
+        branch that commit lands on and the commit it lands after.
+        """
         f = self.facts
         return {
-            "collection": f"{f.commit[:12]} — {f.commit_subject}",
-            "source": {"cluster": f.source_environment,
-                       "database": f.source_branch},
-            "destination": {"cluster": f.destination_environment,
-                            "database": f.destination_branch},
+            "collection": f.commit_subject or "(no message given)",
+            "chip_label": "This commit message will be recorded on dev",
+            "source": {"Promoting": f.source_environment,
+                       "What": f"the working tree, all {f.files} files"},
+            "destination": {"Onto": f"{f.destination_environment} "
+                                    f"(branch {f.destination_branch})",
+                            "After commit": f.commit[:12] or "(empty branch)"},
             "authorizer": self.operator,
         }
 
@@ -147,10 +158,22 @@ class PromoteAuthorizationWorker:
         decision = request_authorization(
             "this promotion", f.subject(),
             timeout_seconds=TIMEOUT_SECONDS,
-            palette="migration",
+            palette="promote",
             banner=(f"Promote {f.source_environment} to "
                     f"{f.destination_environment}"),
+            detail=(f"<b>APPROVE</b> stages every one of the {f.files} files "
+                    f"in the working tree, commits them to "
+                    f"<b>{f.destination_branch}</b> as a single commit "
+                    f"carrying the message below, and pushes that commit to "
+                    f"origin. Every engineering rule has already passed "
+                    f"against all {f.files} files; nothing else is checked "
+                    f"after you approve. &nbsp;&nbsp;<b>REJECT</b> changes "
+                    f"nothing at all: no file is staged, no commit is made, "
+                    f"nothing is pushed. Either answer is recorded against "
+                    f"your name."),
             transfer=self.build_question())
+
+        self.last_verdict = decision.verdict
 
         proof = HumanPresenceProof(
             is_trusted=bool(getattr(decision, "human_click", False)),
@@ -172,14 +195,20 @@ class PromoteAuthorizationWorker:
             seconds_waited=int(getattr(decision, "seconds_waited", 0)),
             proof=asdict(proof))
 
+        # A refusal is an answer the operator gave, and the record has to
+        # carry it. Written with the same intolerance as an approval: a
+        # refusal nobody can find later is indistinguishable from a
+        # promotion that was never asked for.
         if not decision.approved:
-            self._write(record, tolerate_failure=True)
+            record.outcome = ("refused_by_operator" if decision.verdict == "reject"
+                              else f"refused_{decision.verdict}")
+            self._write(record, tolerate_failure=False)
             return None
 
         if not proof.holds():
             record.verdict = "reject"
             record.outcome = "refused_no_human_presence"
-            self._write(record, tolerate_failure=True)
+            self._write(record, tolerate_failure=False)
             return None
 
         # Written while the destination ref still points at the old commit.
