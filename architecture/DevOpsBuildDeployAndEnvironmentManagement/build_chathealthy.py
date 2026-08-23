@@ -355,6 +355,38 @@ def _refresh_content_hashes(brain_path: Path, repo_root: Path) -> None:
     _step(f"content_hash refresh: scanned {scanned} referenced files, updated {changed}")
 
 
+def _run_from_branch_checkout(env: str, argv, script_name: str):
+    """Hand a cloud run over to the same program checked out of its branch.
+
+    Returns the child's exit code, or None when this process carries on.
+    Separate from main so main stays a driver.
+    """
+    import chain_provenance as _cp  # noqa: PLC0415
+    import sys as _sys  # noqa: PLC0415
+    return _cp.reexec_from_branch(
+        env,
+        f"architecture/DevOpsBuildDeployAndEnvironmentManagement/{script_name}",
+        list(argv if argv is not None else _sys.argv[1:]))
+
+
+def _prepare_workstation(env: str) -> tuple[Path, Path]:
+    """The three workstation facts a build needs before it reads any source.
+
+    The build acts as DevOpsUser rather than as whoever is at the terminal,
+    which governs every az subprocess the chain spawns downstream. The output
+    root persists and each build empties only the package directories it was
+    asked to produce; purging it here made every build a full build in effect.
+    And .env is materialised into it, which downstream steps read through
+    os.environ.
+    """
+    establish_azure_identity("DevOpsUser")
+    canonical_repo = _find_repo_root(Path(__file__))
+    canonical_build_dir = canonical_repo / "build"
+    canonical_build_dir.mkdir(parents=True, exist_ok=True)
+    _materialize_env_file(env, canonical_repo, canonical_build_dir)
+    return canonical_repo, canonical_build_dir
+
+
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(
         description="Build per-target deploy packages under localBuild/<target_id>/."
@@ -379,25 +411,11 @@ def main(argv: list[str] | None = None) -> int:
     )
     args = parser.parse_args(argv)
 
-    # The build acts as DevOpsUser, not as whoever is logged in at the
-    # terminal. Establishing it here governs every `az` subprocess the chain
-    # spawns downstream, at every call site.
-    establish_azure_identity("DevOpsUser")
+    from_git = _run_from_branch_checkout(args.env, argv, "build_chathealthy.py")
+    if from_git is not None:
+        return from_git
 
-    canonical_repo = _find_repo_root(Path(__file__))
-
-    # The build output root persists; each build empties only the package
-    # directories it was asked to produce (_prepare_build_tree). Purging
-    # the whole tree here made every build a full build in effect: a
-    # targeted build left every package it did not name empty, so the next
-    # deploy of one of those would have shipped nothing.
-    canonical_build_dir = canonical_repo / "build"
-    canonical_build_dir.mkdir(parents=True, exist_ok=True)
-
-    # Materialise .env into <repo>/build/.env: working tree for --env
-    # local, KV for --env dev|qa|prod. Downstream build code reads env
-    # values via os.environ; _materialize_env_file loads them for us.
-    _materialize_env_file(args.env, canonical_repo, canonical_build_dir)
+    canonical_repo, canonical_build_dir = _prepare_workstation(args.env)
 
     # Pull sources from the correct place per env:
     #   local           -> the working tree

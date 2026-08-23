@@ -91,6 +91,10 @@ def _chathealthy_exception():
 
 
 def _repo_root() -> Path:
+    import chain_provenance as _cp  # noqa: PLC0415
+    override = _cp.canonical_repo_override()
+    if override is not None:
+        return override
     cur = Path(__file__).resolve()
     for p in (cur, *cur.parents):
         if (p / ".git").is_dir() or (p / ".env").is_file():
@@ -468,85 +472,163 @@ def _filter_to_selected_packages(target_ids: list[str],
     return kept
 
 
+def _confirm_secrets_agree(repo_root: Path, env: str, target_ids: list[str],
+                           pkg_selection: set[str] | None) -> None:
+    """The vault's copy and the workstation's fair copy hold the same bytes.
+
+    The build already confirmed these exist. A deploy is about to install
+    them, so it asks the stricter question. Two copies of one credential that
+    nobody compares will drift, and the first sign of it is a service
+    authenticating with a value its peer has already retired.
+
+    Before anything is pushed. The earlier shape found a secret problem after
+    the image was built and after the target's variables had been written,
+    which left the target half-changed.
+    """
+    import secret_preflight as _secret_preflight  # noqa: PLC0415
+    from record_loader import RecordLoader as _RL2  # noqa: PLC0415
+    _secret_preflight.confirm_secrets_match_local(
+        _RL2().load_collection(
+            repo_root / "brain" / "machine_artifacts" / "content"
+            / "deployment_architecture.json"),
+        env, repo_root,
+        target_ids=list(target_ids) or None,
+        packages=pkg_selection or None)
+
+
+def _run_from_branch_checkout(env: str, argv):
+    """Hand a cloud deploy over to the same program checked out of its branch.
+
+    Returns the child's exit code, or None when this process carries on.
+    """
+    import chain_provenance as _cp  # noqa: PLC0415
+    return _cp.reexec_from_branch(
+        env,
+        "architecture/DevOpsBuildDeployAndEnvironmentManagement/deploy_chathealthy.py",
+        list(argv if argv is not None else sys.argv[1:]))
+
+
+def _authorize_deployment(repo_root: Path, args):
+    """EPIC-008-F-012-S-004-REQ-B-006. Ask a person, before anything is deployed.
+
+    Returns (worker, record id), or (None, None) for a local deploy, or
+    (worker, None) when the operator refused.
+
+    Local is exempt, and the requirement says why: a local deploy must be
+    accomplishable by code bots without human intervention. What the approval
+    governs is code leaving this machine for somewhere that serves people. A
+    page in front of the inner loop would also teach the operator to dismiss
+    the same page that guards dev, qa and prod.
+    """
+    if args.env == "local":
+        return None, None
+    import sys as _sys  # noqa: PLC0415
+    _sys.path.insert(
+        0, str(repo_root / "architecture" / "EngineeringRuleEnforcement" / "code"))
+    from deploy_authorization_worker import (  # noqa: PLC0415
+        DeployAuthorizationWorker, DeploymentFacts)
+    targets = [t.strip() for t in args.target.split(",") if t.strip()]
+    packages = [p.strip() for p in args.package.split(",") if p.strip()]
+    build_number, commit = _build_identity(repo_root, targets, packages)
+    worker = DeployAuthorizationWorker(DeploymentFacts(
+        environment=args.env, targets=targets,
+        packages={t: packages for t in targets},
+        build_number=build_number, commit=commit))
+    return worker, worker.authorize()
+
+
+def _build_identity(repo_root: Path, targets: list[str],
+                    packages: list[str]) -> tuple[int, str]:
+    """The build and commit the operator is being asked to approve.
+
+    Read off the staged package rather than off git, because what is about to
+    be installed is the build output, and a working tree can have moved since.
+    """
+    from _deploy_chain import package_build_facts  # noqa: PLC0415
+    for target_id in targets:
+        for package in packages:
+            try:
+                facts = package_build_facts(repo_root, target_id, package)
+            except Exception:  # noqa: BLE001 - a target may not carry it
+                continue
+            if facts:
+                return int(facts.get("build") or 0), str(facts.get("commit") or "")
+    return 0, ""
+
+
+def _deploy_to_cloud(args, repo_root: Path) -> int:
+    """Select the targets the operator named and drive them to running state."""
+    target_ids = _collect_target_ids_for_env(repo_root, args.env, args.target)
+    if not target_ids:
+        raise ChatHealthyException(
+            mode="aborted",
+            component="deploy_chathealthy",
+            message=f"ERROR: no targets matched --env={args.env} --target={args.target!r}")
+    # --package filter: drop synth per-package targets (runbook/job) whose
+    # package_id is not in the selected set. Host targets (KV, Storage, VNet,
+    # MIs, ACR, ACA env, AA, RG) pass through so their shells stay verified.
+    pkg_selection = {p.strip() for p in args.package.split(",") if p.strip()}
+    if pkg_selection:
+        target_ids = _filter_to_selected_packages(
+            target_ids, pkg_selection, args.target, args.package)
+    _staleness_gate(repo_root, args.env, target_ids, pkg_selection)
+    _confirm_secrets_agree(repo_root, args.env, target_ids, pkg_selection)
+    # Cert placement runs inside run_cloud_deploy after CA runbooks and before
+    # ACA Jobs (dependency order); not called here, CaEndpointRunbook must
+    # already be published. The filtered target_ids and pkg_selection are
+    # passed so --package is honoured end to end rather than re-enumerated.
+    return run_cloud_deploy(args.env, args.target,
+                            explicit_target_ids=target_ids,
+                            package_selection=pkg_selection or None)
+
+
+def _execute_deploy(args, repo_root: Path, worker, approval) -> int:
+    """Run the deploy and record what happened to it.
+
+    The outcome is written in a finally, so a deployment that raises still
+    records that it ran and failed. An authorization with no outcome beside
+    it says a deployment was approved and nothing about whether it happened.
+    """
+    rc = 1
+    try:
+        if args.env == "local" and not _is_local_manifest_target(repo_root, args.target):
+            # LocalStandUp owns the local stack lifecycle and consumes no
+            # per-target manifest, so it runs only when --target names none.
+            rc = LocalStandUp().run()
+        else:
+            rc = _deploy_to_cloud(args, repo_root)
+    finally:
+        if worker is not None:
+            worker.record_outcome(approval, "succeeded" if rc == 0 else "failed")
+    return rc
+
+
 def main(argv: list[str] | None = None) -> int:
     """Drive the deploy and report its status."""
     args = _arguments(argv)
+    from_git = _run_from_branch_checkout(args.env, argv)
+    if from_git is not None:
+        return from_git
     repo_root = _establish_context()
     _refuse_bad_selection(args)
-    # Nothing is deployed from a manifest that does not satisfy the
-    # published schema. The deploy validated only inside one selection
-    # helper, so whether it happened depended on which path ran.
+    # Nothing is deployed from a manifest that does not satisfy the published
+    # schema. The deploy validated only inside one selection helper, so
+    # whether it happened depended on which path ran.
     from record_loader import RecordLoader as _RL
     _RL.validate_architecture(repo_root)
-
     _enforce_env_branch_check(repo_root, args.env)
 
-    if args.env == "local" and not _is_local_manifest_target(repo_root, args.target):
-        # LocalStandUp owns the local stack lifecycle (Docker containers
-        # + host-OS Website wrapper). It does not consume per-target
-        # manifests, so it runs only when --target does not name one.
-        #
-        # It used to run for every --env local invocation regardless of
-        # --target, on the premise that no manifest target binds to local.
-        # host_os_process targets do, and standing up the whole stack to
-        # install one of them is not what was asked for.
-        rc = LocalStandUp().run()
-    else:
-        target_ids = _collect_target_ids_for_env(repo_root, args.env, args.target)
-        if not target_ids:
-            raise ChatHealthyException(
-                mode="aborted",
-                component="deploy_chathealthy",
-                message=f"ERROR: no targets matched --env={args.env} --target={args.target!r}")
-        # --package filter: drop synth per-package targets (runbook/job)
-        # whose package_id is not in the selected set. Host targets (KV,
-        # Storage, VNet, MIs, ACR, ACA env, AA, RG) pass through so their
-        # shells stay verified.
-        pkg_selection = {p.strip() for p in args.package.split(",") if p.strip()}
-        if pkg_selection:
-            target_ids = _filter_to_selected_packages(
-                target_ids, pkg_selection, args.target, args.package)
-        _staleness_gate(repo_root, args.env, target_ids, pkg_selection)
-        # The build confirmed these secrets exist. A deploy is about to
-        # install them, so it asks the stricter question: the vault's copy
-        # and the workstation's fair copy must be the same bytes. Two copies
-        # of one credential that nobody compares will drift, and the first
-        # sign of it is a service authenticating with a value its peer has
-        # already retired.
-        #
-        # Before anything is pushed. The earlier shape discovered a secret
-        # problem after the image was built and after the target's variables
-        # had been written, which left the target half-changed.
-        import secret_preflight as _secret_preflight
-        from record_loader import RecordLoader as _RL2
-        _secret_preflight.confirm_secrets_match_local(
-            _RL2().load_collection(
-                repo_root / "brain" / "machine_artifacts" / "content"
-                / "deployment_architecture.json"),
-            args.env, repo_root,
-            target_ids=list(target_ids) or None,
-            packages=pkg_selection or None)
-        # F-003 §5.1 / F-012 §7.1 cert placement runs inside run_cloud_deploy
-        # after CA runbooks and before ACA Jobs (dependency order). Do not
-        # call it here — CaEndpointRunbook must already be published.
-        # Pass the filtered target_ids so --package selection is honored end
-        # to end; without this, run_cloud_deploy re-enumerates via
-        # select_target_ids and iterates every synth per-package target
-        # regardless of --package, doing far more work than requested.
-        # pkg_selection also reaches the Automation Account handler, which
-        # owns the runbook packages directly now that each runbook is a
-        # package rather than its own synthetic target.
-        rc = run_cloud_deploy(args.env, args.target,
-                              explicit_target_ids=target_ids,
-                              package_selection=pkg_selection or None)
+    worker, approval = _authorize_deployment(repo_root, args)
+    if worker is not None and approval is None:
+        _CH_LOG.info(f"[deploy] {worker.last_verdict}: nothing deployed, "
+                     f"recorded as a rejected deployment")
+        return 3
 
-    if rc == 0:
-        tests = [t.strip() for t in args.tests.split(",") if t.strip()]
-        tests_rc = _run_tests(args.env, tests)
-        if tests_rc != 0:
-            return tests_rc
-
-    return rc
+    rc = _execute_deploy(args, repo_root, worker, approval)
+    if rc != 0:
+        return rc
+    return _run_tests(args.env,
+                      [t.strip() for t in args.tests.split(",") if t.strip()])
 
 
 if __name__ == "__main__":
