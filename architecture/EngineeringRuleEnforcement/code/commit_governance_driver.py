@@ -430,34 +430,39 @@ class CommitGovernanceDriver:
         return verdict
 
 
-def main(argv: list[str] | None = None) -> int:
-    parser = argparse.ArgumentParser(description="Rule-065 commit governance driver")
+def _arguments(argv: list[str] | None) -> argparse.Namespace:
+    """The command line this driver accepts."""
+    parser = argparse.ArgumentParser(
+        description="Rule-065 commit governance driver")
     parser.add_argument(
-        "--exclude",
-        nargs="+",
-        default=[],
-        metavar="ENFORCEMENT_ID",
-        help="Enforcement ids not to run here. Two checks cannot run on a "
-             "hosted runner -- one reaches Atlas with a certificate the "
-             "runner does not hold, the other calls an LLM -- and a check "
-             "that cannot run must be named as excluded rather than counted "
-             "as passed. Each is echoed in the run output.",
-    )
+        "--exclude", nargs="+", default=[], metavar="ENFORCEMENT_ID",
+        help="Enforcement ids not to run here. A check that cannot run in "
+             "this environment is named as excluded rather than counted as "
+             "passed, and each is echoed in the run output.")
     parser.add_argument(
         "--files-from",
         help="Path holding the file list, or '-' for stdin. Promote builds "
              "the baseline list, stages it, and hands it here. Without this "
-             "the staged set is governed, which is what a commit publishes.",
-    )
-    args = parser.parse_args(sys.argv[1:] if argv is None else argv)
+             "the staged set is governed, which is what a commit publishes.")
+    return parser.parse_args(sys.argv[1:] if argv is None else argv)
+
+
+def _handed_list(files_from: str | None) -> list[str] | None:
+    """The file list handed in, or None when the staged set governs."""
+    if not files_from:
+        return None
+    raw = (sys.stdin.read() if files_from == "-"
+           else Path(files_from).read_text(encoding="utf-8"))
+    return [line for line in raw.splitlines() if line.strip()]
+
+
+def main(argv: list[str] | None = None) -> int:
+    """Drive the gate and report its status."""
+    args = _arguments(argv)
     try:
-        handed = None
-        if args.files_from:
-            raw = (sys.stdin.read() if args.files_from == "-"
-                   else Path(args.files_from).read_text(encoding="utf-8"))
-            handed = [l for l in raw.splitlines() if l.strip()]
-        return CommitGovernanceDriver(handed_list=handed,
-                                      excluded=set(args.exclude)).run()
+        return CommitGovernanceDriver(
+            handed_list=_handed_list(args.files_from),
+            excluded=set(args.exclude)).run()
     except Exception as exc:  # noqa: BLE001 - the gate never dies silently
         _CH_LOG.error(f"[driver] unhandled: {exc}")
         return EXIT_DRIVER_ERROR

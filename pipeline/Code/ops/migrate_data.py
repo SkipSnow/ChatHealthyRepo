@@ -132,9 +132,8 @@ def _build_number() -> int | None:
     return read_build_number()
 
 
-def main() -> int:
-    parser = argparse.ArgumentParser(
-        description="Authorize and fire one collection migration.")
+def _run_migration(parser):
+    """Ask, then migrate, and report the outcome."""
     parser.add_argument("collection")
     parser.add_argument("--env", default="dev", choices=sorted(_VAULT_BY_ENV))
     args = parser.parse_args()
@@ -258,6 +257,12 @@ def main() -> int:
                   args.collection, response.status, body[:300])
 
     return 0
+
+
+def main() -> int:
+    parser = argparse.ArgumentParser(
+        description="Authorize and fire one collection migration.")
+    return _run_migration(parser)
 
 
 if __name__ == "__main__":

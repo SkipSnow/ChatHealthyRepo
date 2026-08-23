@@ -48,6 +48,14 @@ for _ch_d in _ch_pl.Path(__file__).resolve().parents:
 import os as _ch_os
 _ch_os.environ["CH_LOG_DESTINATION"] = "stderr"
 from chathealthy_lib.logging_service import ChatHealthyLoggingService
+import sys as _ch_sys, pathlib as _ch_pl  # noqa: E402
+for _ch_d in _ch_pl.Path(__file__).resolve().parents:
+    if (_ch_d / '.git').exists():
+        _ch_lib = _ch_d / 'ChatHealthyLib' / 'src'
+        if str(_ch_lib) not in _ch_sys.path:
+            _ch_sys.path.insert(0, str(_ch_lib))
+        break
+from chathealthy_lib.exceptions import ChatHealthyException  # noqa: E402
 
 REPO_ROOT = Path(__file__).resolve().parents[3]
 load_dotenv(REPO_ROOT / "Code" / ".env")
@@ -84,8 +92,11 @@ def _devops_connection():
 def extract_seed_values():
     """Read the latest build/version/framework from version.json."""
     if not VERSION_JSON.exists():
-        log.error("version.json not found at %s — cannot seed", VERSION_JSON)
-        sys.exit(1)
+        raise ChatHealthyException(
+            mode="aborted",
+            component="seed_versions_collection",
+            message=("version.json not found at %s — cannot seed" % (VERSION_JSON,)),
+            exit_code=1)
     with open(VERSION_JSON, encoding="utf-8") as f:
         data = json.load(f)
 
@@ -93,8 +104,11 @@ def extract_seed_values():
     if isinstance(versions, dict):
         versions = versions.get("version", [])
     if not versions:
-        log.error("version.json has no version entries — cannot seed")
-        sys.exit(1)
+        raise ChatHealthyException(
+            mode="aborted",
+            component="seed_versions_collection",
+            message="version.json has no version entries — cannot seed",
+            exit_code=1)
 
     latest_version = versions[-1]
     version_str = latest_version.get("version_number")
@@ -104,14 +118,19 @@ def extract_seed_values():
     if isinstance(builds, dict):
         builds = builds.get("build", [])
     if not builds:
-        log.error("latest version has no build entries — cannot seed")
-        sys.exit(1)
+        raise ChatHealthyException(
+            mode="aborted",
+            component="seed_versions_collection",
+            message="latest version has no build entries — cannot seed",
+            exit_code=1)
 
     build_num = builds[-1].get("build_number")
     if build_num is None or version_str is None or framework_str is None:
-        log.error("missing required field(s) — build=%s version=%s framework=%s",
-                  build_num, version_str, framework_str)
-        sys.exit(1)
+        raise ChatHealthyException(
+            mode="aborted",
+            component="seed_versions_collection",
+            message=("missing required field(s) — build=%s version=%s framework=%s" % (build_num, version_str, framework_str,)),
+            exit_code=1)
 
     return int(build_num), str(version_str), str(framework_str)
 
@@ -126,10 +145,13 @@ def main():
 
     existing = coll.count_documents({})
     if existing:
-        log.error("frontEndAdmin.BuildVersions already has %d document(s) — refusing to "
+        raise ChatHealthyException(
+            mode="aborted",
+            component="seed_versions_collection",
+            message=("frontEndAdmin.BuildVersions already has %d document(s) — refusing to "
                   "seed. Manual intervention required if you intended to "
-                  "reseed.", existing)
-        sys.exit(2)
+                  "reseed." % (existing,)),
+            exit_code=2)
 
     record = {
         "builds": [

@@ -35,6 +35,14 @@ for _ch_d in _ch_pl.Path(__file__).resolve().parents:
 import os as _ch_os
 _ch_os.environ["CH_LOG_DESTINATION"] = "stderr"
 from chathealthy_lib.logging_service import ChatHealthyLoggingService
+import sys as _ch_sys, pathlib as _ch_pl  # noqa: E402
+for _ch_d in _ch_pl.Path(__file__).resolve().parents:
+    if (_ch_d / '.git').exists():
+        _ch_lib = _ch_d / 'ChatHealthyLib' / 'src'
+        if str(_ch_lib) not in _ch_sys.path:
+            _ch_sys.path.insert(0, str(_ch_lib))
+        break
+from chathealthy_lib.exceptions import ChatHealthyException  # noqa: E402
 _CH_LOG = ChatHealthyLoggingService()
 
 
@@ -94,29 +102,38 @@ def _load_aca_facts_for(target_id: str, env_binding: str | None = None) -> dict:
             continue
         envs = rec.get("environments", [])
         if not envs:
-            sys.exit(f"ERROR: target {target_id!r} has no environments[].")
+            raise ChatHealthyException(
+                mode="aborted",
+                component="aca_helpers",
+                message=f"ERROR: target {target_id!r} has no environments[].")
         if env_binding is not None:
             for eb in envs:
                 if eb.get("env_binding") == env_binding:
                     block = eb.get("azure_container_app")
                     if not block:
-                        sys.exit(
-                            f"ERROR: target {target_id!r} env_binding "
-                            f"{env_binding!r} has no azure_container_app block."
-                        )
+                        raise ChatHealthyException(
+                            mode="aborted",
+                            component="aca_helpers",
+                            message=f"ERROR: target {target_id!r} env_binding "
+                            f"{env_binding!r} has no azure_container_app block.")
                     return block
-            sys.exit(
-                f"ERROR: target {target_id!r} has no env_binding "
-                f"{env_binding!r}."
-            )
+            raise ChatHealthyException(
+                mode="aborted",
+                component="aca_helpers",
+                message=f"ERROR: target {target_id!r} has no env_binding "
+                f"{env_binding!r}.")
         block = envs[0].get("azure_container_app")
         if not block:
-            sys.exit(
-                f"ERROR: target {target_id!r} env_binding "
-                f"{envs[0].get('env_binding')!r} has no azure_container_app block."
-            )
+            raise ChatHealthyException(
+                mode="aborted",
+                component="aca_helpers",
+                message=f"ERROR: target {target_id!r} env_binding "
+                f"{envs[0].get('env_binding')!r} has no azure_container_app block.")
         return block
-    sys.exit(f"ERROR: target {target_id!r} not present in manifest.")
+    raise ChatHealthyException(
+        mode="aborted",
+        component="aca_helpers",
+        message=f"ERROR: target {target_id!r} not present in manifest.")
 
 
 def _load_aca_facts(target_id: str | None = None) -> dict:
@@ -126,7 +143,10 @@ def _load_aca_facts(target_id: str | None = None) -> dict:
     if target_id is None:
         ids = aca_target_ids()
         if not ids:
-            sys.exit("ERROR: no azure_container_app targets in manifest.")
+            raise ChatHealthyException(
+                mode="aborted",
+                component="aca_helpers",
+                message="ERROR: no azure_container_app targets in manifest.")
         target_id = ids[0]
     return _load_aca_facts_for(target_id)
 
@@ -181,7 +201,10 @@ def aca_read_partition_count_from_host_json(repo_root: Path) -> int:
     """
     host_json = repo_root / "pipeline" / "Code" / "host.json"
     if not host_json.is_file():
-        sys.exit(f"ERROR: host.json not found at {host_json}")
+        raise ChatHealthyException(
+            mode="aborted",
+            component="aca_helpers",
+            message=f"ERROR: host.json not found at {host_json}")
     cfg = json.loads(host_json.read_text(encoding="utf-8"))
     try:
         return int(
@@ -189,11 +212,13 @@ def aca_read_partition_count_from_host_json(repo_root: Path) -> int:
                ["storageProvider"]["partitionCount"]
         )
     except (KeyError, TypeError, ValueError) as exc:
-        sys.exit(
-            f"ERROR: could not read "
+        raise ChatHealthyException(
+            mode="aborted",
+            component="aca_helpers",
+            message=f"ERROR: could not read "
             f"extensions.durableTask.storageProvider.partitionCount "
-            f"from {host_json}: {exc}"
-        )
+            f"from {host_json}: {exc}",
+            exception=exc)
 
 
 def _ensure_event_hub(
@@ -232,16 +257,17 @@ def _ensure_event_hub(
                 f"partitionCount={partition_count} — no-op"
             )
             return
-        sys.exit(
-            f"ERROR: Event Hub '{eh}' in namespace '{namespace}' currently "
+        raise ChatHealthyException(
+            mode="aborted",
+            component="aca_helpers",
+            message=f"ERROR: Event Hub '{eh}' in namespace '{namespace}' currently "
             f"has partitionCount={existing_count}; deploy requires "
             f"{partition_count}.\n"
             f"  Azure Event Hubs partition count is IMMUTABLE — it cannot "
             f"be changed in place.\n"
             f"  Delete the Event Hub by hand, then re-run this deploy:\n"
             f"    az eventhubs eventhub delete --namespace-name {namespace} "
-            f"--resource-group {resource_group} --name {eh}"
-        )
+            f"--resource-group {resource_group} --name {eh}")
 
     # show returned non-zero — assume not-found and create
     _step(
@@ -262,11 +288,12 @@ def _ensure_event_hub(
         shell=(sys.platform == "win32"),
     )
     if create.returncode != 0:
-        sys.exit(
-            f"ERROR: az eventhubs eventhub create failed "
+        raise ChatHealthyException(
+            mode="aborted",
+            component="aca_helpers",
+            message=f"ERROR: az eventhubs eventhub create failed "
             f"(exit {create.returncode})\n"
-            f"  stderr: {(create.stderr or '').strip()[:1500]}"
-        )
+            f"  stderr: {(create.stderr or '').strip()[:1500]}")
     _step(f"  event hub '{eh}' created.")
 
 
@@ -366,11 +393,12 @@ def aca_ensure_netherite_storage_container(
         shell=(sys.platform == "win32"),
     )
     if create.returncode != 0:
-        sys.exit(
-            f"ERROR: az storage container create failed "
+        raise ChatHealthyException(
+            mode="aborted",
+            component="aca_helpers",
+            message=f"ERROR: az storage container create failed "
             f"(exit {create.returncode})\n"
-            f"  stderr: {(create.stderr or '').strip()[:1500]}"
-        )
+            f"  stderr: {(create.stderr or '').strip()[:1500]}")
     _step(f"  storage container '{container_name}' created.")
 
 
@@ -419,11 +447,12 @@ def aca_ensure_log_analytics_workspace(
         shell=(sys.platform == "win32"),
     )
     if create.returncode != 0 or not create.stdout.strip():
-        sys.exit(
-            f"ERROR: az monitor log-analytics workspace create failed "
+        raise ChatHealthyException(
+            mode="aborted",
+            component="aca_helpers",
+            message=f"ERROR: az monitor log-analytics workspace create failed "
             f"(exit {create.returncode})\n"
-            f"  stderr: {(create.stderr or '').strip()[:1500]}"
-        )
+            f"  stderr: {(create.stderr or '').strip()[:1500]}")
     _step(f"  workspace '{workspace}' created.")
     return create.stdout.strip()
 
@@ -476,11 +505,12 @@ def aca_ensure_app_insights_component(
         shell=(sys.platform == "win32"),
     )
     if create.returncode != 0 or not create.stdout.strip():
-        sys.exit(
-            f"ERROR: az monitor app-insights component create failed "
+        raise ChatHealthyException(
+            mode="aborted",
+            component="aca_helpers",
+            message=f"ERROR: az monitor app-insights component create failed "
             f"(exit {create.returncode})\n"
-            f"  stderr: {(create.stderr or '').strip()[:1500]}"
-        )
+            f"  stderr: {(create.stderr or '').strip()[:1500]}")
     _step(f"  app insights '{component}' created.")
     return create.stdout.strip()
 
@@ -540,10 +570,11 @@ def aca_ensure_container_apps_environment(
     customer_id = (cid.stdout or "").strip()
     shared_key = (keys.stdout or "").strip()
     if not customer_id or not shared_key:
-        sys.exit(
-            f"ERROR: could not read customerId / sharedKey for workspace "
-            f"'{workspace}' (needed by az containerapp env create)."
-        )
+        raise ChatHealthyException(
+            mode="aborted",
+            component="aca_helpers",
+            message=f"ERROR: could not read customerId / sharedKey for workspace "
+            f"'{workspace}' (needed by az containerapp env create).")
     _step(f"  container apps environment '{environment}' missing — creating")
     create = subprocess.run(
         [
@@ -560,10 +591,11 @@ def aca_ensure_container_apps_environment(
         shell=(sys.platform == "win32"),
     )
     if create.returncode != 0:
-        sys.exit(
-            f"ERROR: az containerapp env create failed (exit {create.returncode})\n"
-            f"  stderr: {(create.stderr or '').strip()[:1500]}"
-        )
+        raise ChatHealthyException(
+            mode="aborted",
+            component="aca_helpers",
+            message=f"ERROR: az containerapp env create failed (exit {create.returncode})\n"
+            f"  stderr: {(create.stderr or '').strip()[:1500]}")
     _step(f"  container apps environment '{environment}' created.")
 
 
@@ -609,10 +641,11 @@ def aca_ensure_container_app_exists(
     user = os.environ.get(user_env)
     pwd = os.environ.get(pwd_env)
     if not user or not pwd:
-        sys.exit(
-            f"ERROR: missing admin credentials for ACR '{registry}'.\n"
-            f"  Required env vars: {user_env} and {pwd_env}."
-        )
+        raise ChatHealthyException(
+            mode="aborted",
+            component="aca_helpers",
+            message=f"ERROR: missing admin credentials for ACR '{registry}'.\n"
+            f"  Required env vars: {user_env} and {pwd_env}.")
 
     _step(
         f"  container app '{container_app}' not present — creating with "
@@ -641,10 +674,11 @@ def aca_ensure_container_app_exists(
         shell=(sys.platform == "win32"),
     )
     if create.returncode != 0:
-        sys.exit(
-            f"ERROR: az containerapp create failed (exit {create.returncode})\n"
-            f"  stderr: {(create.stderr or '').strip()[:1500]}"
-        )
+        raise ChatHealthyException(
+            mode="aborted",
+            component="aca_helpers",
+            message=f"ERROR: az containerapp create failed (exit {create.returncode})\n"
+            f"  stderr: {(create.stderr or '').strip()[:1500]}")
     _step(f"  container app '{container_app}' created.")
 
 
@@ -659,10 +693,11 @@ def aca_parse_storage_connection_string(conn_str: str) -> tuple[str, str]:
     name = parts.get("AccountName")
     key = parts.get("AccountKey")
     if not name or not key:
-        sys.exit(
-            "ERROR: storage connection string is missing AccountName or "
-            "AccountKey; cannot verify Netherite storage container."
-        )
+        raise ChatHealthyException(
+            mode="aborted",
+            component="aca_helpers",
+            message="ERROR: storage connection string is missing AccountName or "
+            "AccountKey; cannot verify Netherite storage container.")
     return name, key
 
 
@@ -672,12 +707,13 @@ def aca_login_to_acr(registry: str) -> None:
     user = os.environ.get(user_env)
     pwd = os.environ.get(pwd_env)
     if not user or not pwd:
-        sys.exit(
-            f"ERROR: missing admin credentials for ACR '{registry}'.\n"
+        raise ChatHealthyException(
+            mode="aborted",
+            component="aca_helpers",
+            message=f"ERROR: missing admin credentials for ACR '{registry}'.\n"
             f"  Required env vars: {user_env} and {pwd_env}.\n"
             f"  These come from `az acr credential show -n {registry}` "
-            f"and live in Code/.env (never committed)."
-        )
+            f"and live in Code/.env (never committed).")
     _step(f"docker login {registry}.azurecr.io -u {user} --password-stdin")
     r = subprocess.run(
         ["docker", "login", f"{registry}.azurecr.io", "-u", user, "--password-stdin"],
@@ -685,11 +721,12 @@ def aca_login_to_acr(registry: str) -> None:
         creationflags=_cflags(),
     )
     if r.returncode != 0:
-        sys.exit(
-            f"ERROR: docker login failed for {registry}.azurecr.io (exit {r.returncode}).\n"
+        raise ChatHealthyException(
+            mode="aborted",
+            component="aca_helpers",
+            message=f"ERROR: docker login failed for {registry}.azurecr.io (exit {r.returncode}).\n"
             f"  stderr: {(r.stderr or '').strip()[:1500]}\n"
-            f"  stdout: {(r.stdout or '').strip()[:300]}"
-        )
+            f"  stdout: {(r.stdout or '').strip()[:300]}")
 
 
 def aca_docker_build(build_ctx: Path, image: str, build_n: int) -> str:
@@ -705,10 +742,11 @@ def aca_docker_build(build_ctx: Path, image: str, build_n: int) -> str:
         creationflags=_cflags(),
     )
     if r.returncode != 0:
-        sys.exit(
-            f"ERROR: docker build failed for {image_tag}\n"
-            f"{(r.stderr or r.stdout)[-2000:]}"
-        )
+        raise ChatHealthyException(
+            mode="aborted",
+            component="aca_helpers",
+            message=f"ERROR: docker build failed for {image_tag}\n"
+            f"{(r.stderr or r.stdout)[-2000:]}")
     return image_tag
 
 
@@ -723,10 +761,11 @@ def aca_docker_push(image: str, build_n: int) -> None:
             creationflags=_cflags(),
         )
         if r.returncode != 0:
-            sys.exit(
-                f"ERROR: docker push failed for {ref}\n"
-                f"{(r.stderr or r.stdout)[-2000:]}"
-            )
+            raise ChatHealthyException(
+                mode="aborted",
+                component="aca_helpers",
+                message=f"ERROR: docker push failed for {ref}\n"
+                f"{(r.stderr or r.stdout)[-2000:]}")
 
 
 def _aca_secret_name(env_var_name: str) -> str:
@@ -774,10 +813,11 @@ def aca_set_secrets(
         creationflags=_cflags(), shell=(sys.platform == "win32"),
     )
     if r.returncode != 0:
-        sys.exit(
-            f"ERROR: az containerapp secret set failed (exit {r.returncode})\n"
-            f"  stderr: {(r.stderr or '').strip()[:1500]}"
-        )
+        raise ChatHealthyException(
+            mode="aborted",
+            component="aca_helpers",
+            message=f"ERROR: az containerapp secret set failed (exit {r.returncode})\n"
+            f"  stderr: {(r.stderr or '').strip()[:1500]}")
 
 
 def aca_update_container_app(
@@ -834,10 +874,11 @@ def aca_update_container_app(
         creationflags=_cflags(), shell=(sys.platform == "win32"),
     )
     if r.returncode != 0:
-        sys.exit(
-            f"ERROR: az containerapp update failed (exit {r.returncode})\n"
-            f"  stderr: {(r.stderr or '').strip()[:1500]}"
-        )
+        raise ChatHealthyException(
+            mode="aborted",
+            component="aca_helpers",
+            message=f"ERROR: az containerapp update failed (exit {r.returncode})\n"
+            f"  stderr: {(r.stderr or '').strip()[:1500]}")
 
 
 def aca_wait_for_revision(
@@ -882,10 +923,11 @@ def aca_wait_for_revision(
         last_state = (r.stdout or "").strip() or (r.stderr or "").strip()
         _step(f"  waiting for active+provisioned revision … last={last_state!r}")
         time.sleep(10)
-    sys.exit(
-        f"ERROR: container app {container_app} did not report an active "
-        f"provisioned revision within {timeout_s}s. last_state={last_state!r}"
-    )
+    raise ChatHealthyException(
+        mode="aborted",
+        component="aca_helpers",
+        message=f"ERROR: container app {container_app} did not report an active "
+        f"provisioned revision within {timeout_s}s. last_state={last_state!r}")
 
 
 def aca_query_fqdn(container_app: str, resource_group: str) -> str:
@@ -899,9 +941,10 @@ def aca_query_fqdn(container_app: str, resource_group: str) -> str:
         creationflags=_cflags(), shell=(sys.platform == "win32"),
     )
     if r.returncode != 0:
-        sys.exit(
-            f"ERROR: az containerapp show failed for {container_app} "
+        raise ChatHealthyException(
+            mode="aborted",
+            component="aca_helpers",
+            message=f"ERROR: az containerapp show failed for {container_app} "
             f"(exit {r.returncode})\n"
-            f"  stderr: {(r.stderr or '').strip()[:1500]}"
-        )
+            f"  stderr: {(r.stderr or '').strip()[:1500]}")
     return r.stdout.strip()

@@ -74,6 +74,14 @@ for _ch_d in _ch_pl.Path(__file__).resolve().parents:
 import os as _ch_os
 _ch_os.environ["CH_LOG_DESTINATION"] = "stderr"
 from chathealthy_lib.logging_service import ChatHealthyLoggingService
+import sys as _ch_sys, pathlib as _ch_pl  # noqa: E402
+for _ch_d in _ch_pl.Path(__file__).resolve().parents:
+    if (_ch_d / '.git').exists():
+        _ch_lib = _ch_d / 'ChatHealthyLib' / 'src'
+        if str(_ch_lib) not in _ch_sys.path:
+            _ch_sys.path.insert(0, str(_ch_lib))
+        break
+from chathealthy_lib.exceptions import ChatHealthyException  # noqa: E402
 _CH_LOG = ChatHealthyLoggingService()
 
 
@@ -101,7 +109,10 @@ def _materialize_env_file(env: str, canonical_repo: Path, build_dir: Path) -> Pa
     if env == "local":
         src = canonical_repo / ".env"
         if not src.is_file():
-            sys.exit(f"ERROR: --env local requires {src}; not found.")
+            raise ChatHealthyException(
+                mode="aborted",
+                component="build_chathealthy",
+                message=f"ERROR: --env local requires {src}; not found.")
         shutil.copy2(src, dst)
         _step(f"materialised {dst} from working-tree .env")
         # Same as the cloud branch below: the materialised file is the .env
@@ -122,16 +133,18 @@ def _materialize_env_file(env: str, canonical_repo: Path, build_dir: Path) -> Pa
         capture_output=True, text=True, shell=False,
     )
     if r.returncode != 0:
-        sys.exit(
-            f"ERROR: cannot fetch kv-chpipeline-dev/env-file: "
-            f"{r.stderr.strip()[:300]}"
-        )
+        raise ChatHealthyException(
+            mode="aborted",
+            component="build_chathealthy",
+            message=f"ERROR: cannot fetch kv-chpipeline-dev/env-file: "
+            f"{r.stderr.strip()[:300]}")
     raw = r.stdout.strip()
     if not raw.startswith("gz:"):
-        sys.exit(
-            "ERROR: kv-chpipeline-dev/env-file has unexpected encoding "
-            "(expected 'gz:<base64>'); refusing to interpret."
-        )
+        raise ChatHealthyException(
+            mode="aborted",
+            component="build_chathealthy",
+            message="ERROR: kv-chpipeline-dev/env-file has unexpected encoding "
+            "(expected 'gz:<base64>'); refusing to interpret.")
     plaintext = gzip.decompress(base64.b64decode(raw[3:])).decode("utf-8")
     dst.write_text(plaintext, encoding="utf-8")
     _step(f"materialised {dst} from kv-chpipeline-dev/env-file")
@@ -208,10 +221,11 @@ def _run_git(args: list[str], cwd: Path, label: str) -> None:
         ["git", *args], cwd=str(cwd), capture_output=True, text=True,
     )
     if r.returncode != 0:
-        sys.exit(
-            f"ERROR: git {label} failed (rc={r.returncode}). "
-            f"stderr: {r.stderr.strip()}"
-        )
+        raise ChatHealthyException(
+            mode="aborted",
+            component="build_chathealthy",
+            message=f"ERROR: git {label} failed (rc={r.returncode}). "
+            f"stderr: {r.stderr.strip()}")
 
 
 def _bump_build_counter(env: str) -> int:
@@ -250,10 +264,16 @@ def _bump_build_counter(env: str) -> int:
             .getConnection("DevOpsUser", "ChatHealthyFrontEnd")[VERSIONS_DB][VERSIONS_COLLECTION])
     latest = coll.find_one(sort=[("from", -1)])
     if latest is None:
-        sys.exit(f"ERROR: {VERSIONS_DB}.{VERSIONS_COLLECTION} has no records.")
+        raise ChatHealthyException(
+            mode="aborted",
+            component="build_chathealthy",
+            message=f"ERROR: {VERSIONS_DB}.{VERSIONS_COLLECTION} has no records.")
     prior = latest.get("build")
     if prior is None:
-        sys.exit(f"ERROR: {VERSIONS_DB}.{VERSIONS_COLLECTION} latest record "
+        raise ChatHealthyException(
+            mode="aborted",
+            component="build_chathealthy",
+            message=f"ERROR: {VERSIONS_DB}.{VERSIONS_COLLECTION} latest record "
                  "has no 'build' field.")
     new_build = int(prior) + 1
     git_sha = subprocess.run(
@@ -473,18 +493,25 @@ def _build_body(args, repo_root: Path, canonical_repo: Path, canonical_build_dir
 
     targets = _select_targets(coll, args.target)
     if not targets:
-        sys.exit(f"ERROR: no targets matched --target={args.target!r}")
+        raise ChatHealthyException(
+            mode="aborted",
+            component="build_chathealthy",
+            message=f"ERROR: no targets matched --target={args.target!r}")
 
     packages_wanted = {p.strip() for p in args.package.split(",") if p.strip()}
     if not packages_wanted:
-        sys.exit("ERROR: --package must name at least one package_id.")
+        raise ChatHealthyException(
+            mode="aborted",
+            component="build_chathealthy",
+            message="ERROR: --package must name at least one package_id.")
     known = {p for t in targets for p in _declared_packages(t)}
     unknown = sorted(packages_wanted - known)
     if unknown:
-        sys.exit(
-            f"ERROR: --package={sorted(unknown)} not declared by "
-            f"--target={args.target!r}. Declared: {sorted(known)}"
-        )
+        raise ChatHealthyException(
+            mode="aborted",
+            component="build_chathealthy",
+            message=f"ERROR: --package={sorted(unknown)} not declared by "
+            f"--target={args.target!r}. Declared: {sorted(known)}")
     _step(f"building packages {sorted(packages_wanted)} "
           f"across {len(targets)} target(s)")
 
@@ -566,10 +593,11 @@ def _stamp_env_on_manifest(target_dir: Path, env: str, git_head_sha: str,
         )
         stamped += 1
     if not stamped:
-        sys.exit(
-            f"ERROR: no package build.json under {target_dir}; the build "
-            f"produced no package to stamp."
-        )
+        raise ChatHealthyException(
+            mode="aborted",
+            component="build_chathealthy",
+            message=f"ERROR: no package build.json under {target_dir}; the build "
+            f"produced no package to stamp.")
 
 
 if __name__ == "__main__":

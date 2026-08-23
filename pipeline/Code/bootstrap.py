@@ -201,7 +201,11 @@ def _resolve_node_identity() -> str:
             f"FATAL: {ENV_NODE_IDENTITY} not set; deploy MUST inject "
             f"this env var on every pipeline container."
         )
-        sys.exit(2)
+        raise ChatHealthyException(
+            mode="aborted",
+            component="bootstrap",
+            message=2,
+            exception=exc)
     return ident
 
 
@@ -209,7 +213,11 @@ def _resolve_vault_uri() -> str:
     vault_uri = os.environ.get(ENV_KEY_VAULT_URI, "").strip()
     if not vault_uri:
         _emit(f"FATAL: {ENV_KEY_VAULT_URI} env var is required.")
-        sys.exit(2)
+        raise ChatHealthyException(
+            mode="aborted",
+            component="bootstrap",
+            message=2,
+            exception=exc)
     return vault_uri
 
 
@@ -293,7 +301,11 @@ def _materialize_ca_chain(
             "FATAL: image-baked CA chain not present and no KV client "
             "available to fall back to."
         )
-        sys.exit(2)
+        raise ChatHealthyException(
+            mode="aborted",
+            component="bootstrap",
+            message=2,
+            exception=exc)
 
     _emit("CA chain not baked into image; falling back to KV read")
     intermediate = client.get_secret(KV_CA_INTERMEDIATE_CHAIN).value or ""
@@ -330,7 +342,11 @@ def _seed_read_long_lived_cert(
             f"FATAL: KV secret {secret_name!r} is empty; deploy MUST place "
             f"the identity's cert+key PEM before this container starts."
         )
-        sys.exit(2)
+        raise ChatHealthyException(
+            mode="aborted",
+            component="bootstrap",
+            message=2,
+            exception=exc)
     try:
         raw = combined.encode("utf-8")
         cert_pem = load_pem_x509_certificate(raw).public_bytes(
@@ -344,7 +360,11 @@ def _seed_read_long_lived_cert(
     except Exception as exc:  # noqa: BLE001
         _emit(f"FATAL: KV secret {secret_name!r} is not a cert+key PEM pair: "
               f"{type(exc).__name__}: {exc}")
-        sys.exit(2)
+        raise ChatHealthyException(
+            mode="aborted",
+            component="bootstrap",
+            message=2,
+            exception=exc)
     cert_path = _track(_write_secure_file(cert_pem.encode("utf-8"), "_cert.pem"))
     key_path = _track(_write_secure_file(key_pem.encode("utf-8"), "_key.pem"))
     return cert_path, key_path
@@ -423,56 +443,68 @@ def _raise_cannot_log(detail: str, exc: Exception) -> None:
                  f"recorded: {type(exc).__name__}: {exc} | {detail}"))
 
 
-def main() -> int:
-    pipeline_name = os.environ.get("PIPELINE_NAME", "provider")
-    blob_logger.install(pipeline_name)
+def _dump_obs_abend(_obs_exc: ChatHealthyException) -> None:
+    chls = ChatHealthyLoggingService()
+    chls.error("=" * 78)
+    chls.error("bootstrap: pipeline observability gate FAILED -- abending")
+    chls.error("  pipeline_name (component): %r", pipeline_name)
+    chls.error("  execution/server:          %r",
+               os.environ.get('CONTAINER_APP_JOB_EXECUTION_NAME',
+                              socket.gethostname()))
+    chls.error("  env ENV_PREFIX:            %r",
+               os.environ.get('ENV_PREFIX', '<unset>'))
+    chls.error("  env CH_SPACE_NAME:         %r",
+               os.environ.get('CH_SPACE_NAME', '<unset>'))
+    chls.error("  mode:      %r", _obs_exc.mode)
+    chls.error("  message:   %s", _obs_exc.message)
+    chls.error("  server:    %r", _obs_exc.server)
+    chls.error("  component: %r", _obs_exc.component)
+    for _k, _v in (_obs_exc.context or {}).items():
+        chls.error("  ctx.%s: %r", _k, _v)
+    if _obs_exc.exception is not None:
+        _orig = _obs_exc.exception
+        chls.error("  original (chained) exception:")
+        chls.error("    type: %s", type(_orig).__name__)
+        chls.error("    args: %r", _orig.args)
+        chls.error("    repr: %r", _orig)
+        if _orig.__traceback__ is not None:
+            chls.error("    original traceback:\n%s",
+                       "".join(traceback.format_tb(_orig.__traceback__)))
+    chls.error("  construction_stack (ChatHealthyException):")
+    chls.error("%s", _obs_exc.construction_stack)
+    chls.error("  live traceback:\n%s", traceback.format_exc())
+    chls.error("=" * 78)
 
-    # Observability gate call is DEFERRED to after KV secret load below
-    # (Control path only). CH_SPACE_NAME + ENV_PREFIX are only in
-    # os.environ AFTER _load_all_secrets_into_env populates them. Running
-    # the gate here would abend on mode='mongo_env_unset' with no useful
-    # signal about actual Mongo reachability.
-    import socket  # noqa: PLC0415
-    import traceback  # noqa: PLC0415
 
-    def _dump_obs_abend(_obs_exc: ChatHealthyException) -> None:
-        chls = ChatHealthyLoggingService()
-        chls.error("=" * 78)
-        chls.error("bootstrap: pipeline observability gate FAILED -- abending")
-        chls.error("  pipeline_name (component): %r", pipeline_name)
-        chls.error("  execution/server:          %r",
-                   os.environ.get('CONTAINER_APP_JOB_EXECUTION_NAME',
-                                  socket.gethostname()))
-        chls.error("  env ENV_PREFIX:            %r",
-                   os.environ.get('ENV_PREFIX', '<unset>'))
-        chls.error("  env CH_SPACE_NAME:         %r",
-                   os.environ.get('CH_SPACE_NAME', '<unset>'))
-        chls.error("  mode:      %r", _obs_exc.mode)
-        chls.error("  message:   %s", _obs_exc.message)
-        chls.error("  server:    %r", _obs_exc.server)
-        chls.error("  component: %r", _obs_exc.component)
-        for _k, _v in (_obs_exc.context or {}).items():
-            chls.error("  ctx.%s: %r", _k, _v)
-        if _obs_exc.exception is not None:
-            _orig = _obs_exc.exception
-            chls.error("  original (chained) exception:")
-            chls.error("    type: %s", type(_orig).__name__)
-            chls.error("    args: %r", _orig.args)
-            chls.error("    repr: %r", _orig)
-            if _orig.__traceback__ is not None:
-                chls.error("    original traceback:\n%s",
-                           "".join(traceback.format_tb(_orig.__traceback__)))
-        chls.error("  construction_stack (ChatHealthyException):")
-        chls.error("%s", _obs_exc.construction_stack)
-        chls.error("  live traceback:\n%s", traceback.format_exc())
-        chls.error("=" * 78)
+def _open_the_vault(node_identity: str):
+    """Materialise this node's certificate and load what the vault guards.
 
-    if len(sys.argv) < 2:
-        _emit("usage: bootstrap.py <entry_point.py> [args...]")
-        return 2
+    The vault is opened as pipelineEditor, which proves itself with its
+    client secret. The certificate fetched here is what authenticates to
+    Mongo; the secret opens the vault and nothing else.
+    """
+    vault_uri = _resolve_vault_uri()
+    cred = _pipeline_credential()
+    client = SecretClient(vault_url=vault_uri, credential=cred)
+    _emit(f"KV client bound to {vault_uri}")
+    cert_path, key_path = _seed_read_long_lived_cert(client, node_identity)
+    _emit(f"identity certificate materialised for {node_identity}")
+    n = _load_all_secrets_into_env(client)
+    _emit(f"loaded {n} non-cert secrets into env")
 
-    atexit.register(_cleanup_materialized)
+    # Earliest possible moment: the Mongo credential is itself a vault
+    # secret. Being unable to log is fatal -- a run nobody can explain is
+    # worse than a run that did not start.
+    return client, cert_path, key_path
 
+
+def _announce_what_we_were_handed() -> None:
+    """Names and presence of every input, before anything can fail on one.
+
+    Never a value. Every container that died before this existed died
+    without saying which input was missing, and each one cost a deploy
+    cycle to guess at.
+    """
     # What this container was handed, before anything can fail on it. Names
     # and presence only -- never a value. Every container that died today
     # died before it could say which of these was missing, and each cost a
@@ -497,28 +529,9 @@ def main() -> int:
         f"ch_log_db={os.environ.get('CH_LOG_DB', '<unset>')!r}"
     )
 
-    node_identity = _resolve_node_identity()
-    _emit(f"node identity: {node_identity}")
 
-    # The vault is opened as pipelineEditor, which proves itself with its
-    # client secret. The certificate fetched here is what authenticates to
-    # Mongo; the secret opens the vault and nothing else.
-    vault_uri = _resolve_vault_uri()
-    cred = _pipeline_credential()
-    client = SecretClient(vault_url=vault_uri, credential=cred)
-    _emit(f"KV client bound to {vault_uri}")
-    cert_path, key_path = _seed_read_long_lived_cert(client, node_identity)
-    _emit(f"identity certificate materialised for {node_identity}")
-    n = _load_all_secrets_into_env(client)
-    _emit(f"loaded {n} non-cert secrets into env")
-
-    # Earliest possible moment: the Mongo credential is itself a vault
-    # secret. Being unable to log is fatal -- a run nobody can explain is
-    # worse than a run that did not start.
-    _announce_alive(node_identity)
-    ca_path = _materialize_ca_chain(client=client)
-    _emit("CA chain ready; handing off to the entry point")
-
+def _publish_materialised_paths(cert_path, key_path, ca_path) -> None:
+    """Tell the entry point where its credentials landed."""
     os.environ[ENV_CERT_PATH] = str(cert_path)
     os.environ[ENV_KEY_PATH] = str(key_path)
     os.environ[ENV_CA_CHAIN_PATH] = str(ca_path)
@@ -526,6 +539,39 @@ def main() -> int:
         f"materialized: cert={cert_path.name} key={key_path.name} "
         f"ca_chain={ca_path.name}"
     )
+
+
+def main() -> int:
+    pipeline_name = os.environ.get("PIPELINE_NAME", "provider")
+    blob_logger.install(pipeline_name)
+
+    # Observability gate call is DEFERRED to after KV secret load below
+    # (Control path only). CH_SPACE_NAME + ENV_PREFIX are only in
+    # os.environ AFTER _load_all_secrets_into_env populates them. Running
+    # the gate here would abend on mode='mongo_env_unset' with no useful
+    # signal about actual Mongo reachability.
+    import socket  # noqa: PLC0415
+    import traceback  # noqa: PLC0415
+
+    if len(sys.argv) < 2:
+        _emit("usage: bootstrap.py <entry_point.py> [args...]")
+        return 2
+
+    atexit.register(_cleanup_materialized)
+
+    _announce_what_we_were_handed()
+    node_identity = _resolve_node_identity()
+    _emit(f"node identity: {node_identity}")
+
+    # The vault is opened as pipelineEditor, which proves itself with its
+    # client secret. The certificate fetched here is what authenticates to
+    # Mongo; the secret opens the vault and nothing else.
+    client, cert_path, key_path = _open_the_vault(node_identity)
+    _announce_alive(node_identity)
+    ca_path = _materialize_ca_chain(client=client)
+    _emit("CA chain ready; handing off to the entry point")
+
+    _publish_materialised_paths(cert_path, key_path, ca_path)
 
     # Observability gate NOW: KV secrets have populated os.environ so
     # CH_SPACE_NAME (if declared) is present and the gate can prove

@@ -30,6 +30,14 @@ from __future__ import annotations
 
 import sys
 from pathlib import Path
+import sys as _ch_sys, pathlib as _ch_pl  # noqa: E402
+for _ch_d in _ch_pl.Path(__file__).resolve().parents:
+    if (_ch_d / '.git').exists():
+        _ch_lib = _ch_d / 'ChatHealthyLib' / 'src'
+        if str(_ch_lib) not in _ch_sys.path:
+            _ch_sys.path.insert(0, str(_ch_lib))
+        break
+from chathealthy_lib.exceptions import ChatHealthyException  # noqa: E402
 
 VERSIONS_DB = "frontEndAdmin"
 VERSIONS_COLLECTION = "BuildVersions"
@@ -64,7 +72,10 @@ def latest_record() -> dict:
     own connection."""
     latest = versions_collection().find_one(sort=[("from", -1)])
     if latest is None:
-        sys.exit(f"ERROR: {VERSIONS_DB}.{VERSIONS_COLLECTION} has no records.")
+        raise ChatHealthyException(
+            mode="aborted",
+            component="version_counter",
+            message=f"ERROR: {VERSIONS_DB}.{VERSIONS_COLLECTION} has no records.")
     return latest
 
 
@@ -73,13 +84,17 @@ def read_build_number() -> int:
     build_deploy_promote_plan v3 (§3); per-env slots were removed."""
     latest = versions_collection().find_one(sort=[("from", -1)])
     if latest is None:
-        sys.exit(f"ERROR: {VERSIONS_DB}.{VERSIONS_COLLECTION} has no records.")
+        raise ChatHealthyException(
+            mode="aborted",
+            component="version_counter",
+            message=f"ERROR: {VERSIONS_DB}.{VERSIONS_COLLECTION} has no records.")
     build = latest.get("build")
     if build is None:
-        sys.exit(
-            f"ERROR: {VERSIONS_DB}.{VERSIONS_COLLECTION} latest record has "
-            f"no 'build' field."
-        )
+        raise ChatHealthyException(
+            mode="aborted",
+            component="version_counter",
+            message=f"ERROR: {VERSIONS_DB}.{VERSIONS_COLLECTION} latest record has "
+            f"no 'build' field.")
     return int(build)
 
 

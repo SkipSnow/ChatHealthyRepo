@@ -271,10 +271,19 @@ async def _chathealthy_exception_to_response(request, exc: ChatHealthyException)
     response the client used to receive: same code, same detail body. Any
     other mode is an unhandled fault and answers 500.
     """
-    if exc.mode == "http_error":
-        return JSONResponse(status_code=int(exc.context.get("status_code", 500)),
-                            content={"detail": exc.message})
-    return JSONResponse(status_code=500, content={"detail": exc.message})
+    # The boundary logs. Throwers were stripped of their log calls because
+    # the rule says the catcher logs, and this is the catcher: without this
+    # line a converted failure reaches the client as a status code and
+    # leaves no trace anywhere of what happened.
+    status = (int(exc.context.get("status_code", 500))
+              if exc.mode == "http_error" else 500)
+    # exc= takes a constructed ChatHealthyException or one bound by an
+    # except clause; a parameter annotated as one is neither, so the facts
+    # go in the line itself rather than bending the rule to fit this frame.
+    log.error("%s %s -> %s  mode=%s component=%s  %s",
+              request.method, request.url.path, status,
+              exc.mode, exc.component or "-", exc.message)
+    return JSONResponse(status_code=status, content={"detail": exc.message})
 
 from chathealthy_lib.runtime_data_collections import (
     providers_coll,
@@ -425,13 +434,13 @@ def startup_security_verification():
         # exit code so the operator can diagnose; the user never sees the
         # service since it never bound a port. Not Mode 3 because the
         # exception IS caught and handled with explicit abend semantics.
-        log.error("STARTUP ABEND exit=78 primitive=crypto reason=import_failed: %s", _imp, exc=ChatHealthyException(
-                                                                                            mode="startup_abend_crypto_import_failed",
-                                                                                            message=f"STARTUP ABEND exit=78 primitive=crypto reason=import_failed: {_imp}",
-                                                                                            component="FindCareBackend",
-                                                                                            exception=_imp,
-                                                                                        ), if_not_debug_log=True)
-        sys.exit(78)
+        raise ChatHealthyException(
+            mode="startup_abend_config",
+            component="FindCareBackend",
+            message=("STARTUP ABEND exit=78 primitive=crypto reason=import_failed: %s" % (_imp,)),
+            exit_code="startup aborted, EX_CONFIG",
+            exit_code=78,
+            exception=_imp)
     certs_dir = os.environ.get("CERTS_DIR", "/certs")
     key_path = os.path.join(certs_dir, f"{cert_basename('FindCare')}.key")
     cert_path = os.path.join(certs_dir, f"{cert_basename('FindCare')}.crt")
@@ -443,34 +452,34 @@ def startup_security_verification():
     except FileNotFoundError as _fnf:
         # Mode 2 (REQ-B-008): startup-time fatal — handled locally with
         # named exit code 78 (EX_CONFIG, missing cert/key file).
-        log.error("STARTUP ABEND exit=78 primitive=session_token reason=missing_cert_or_key: %s", _fnf, exc=ChatHealthyException(
-                                                                                                         mode="startup_abend_session_token_missing",
-                                                                                                         message=f"STARTUP ABEND exit=78 primitive=session_token reason=missing_cert_or_key: {_fnf}",
-                                                                                                         component="FindCareBackend",
-                                                                                                         exception=_fnf,
-                                                                                                     ), if_not_debug_log=True)
-        sys.exit(78)
+        raise ChatHealthyException(
+            mode="startup_abend_config",
+            component="FindCareBackend",
+            message=("STARTUP ABEND exit=78 primitive=session_token reason=missing_cert_or_key: %s" % (_fnf,)),
+            exit_code="startup aborted, EX_CONFIG",
+            exit_code=78,
+            exception=_fnf)
     except PermissionError as _perm:
         # Mode 2 (REQ-B-008): startup-time fatal — handled locally with
         # named exit code 77 (EX_NOPERM, permission denied on cert/key).
-        log.error("STARTUP ABEND exit=77 primitive=session_token reason=permission: %s", _perm, exc=ChatHealthyException(
-                                                                                                 mode="startup_abend_session_token_permission",
-                                                                                                 message=f"STARTUP ABEND exit=77 primitive=session_token reason=permission: {_perm}",
-                                                                                                 component="FindCareBackend",
-                                                                                                 exception=_perm,
-                                                                                             ), if_not_debug_log=True)
-        sys.exit(77)
+        raise ChatHealthyException(
+            mode="startup_abend_permission",
+            component="FindCareBackend",
+            message=("STARTUP ABEND exit=77 primitive=session_token reason=permission: %s" % (_perm,)),
+            exit_code="startup aborted, EX_NOPERM",
+            exit_code=77,
+            exception=_perm)
     except Exception as _exc:
         # Mode 2 (REQ-B-008): startup-time fatal — handled locally with
         # named exit code 70 (EX_SOFTWARE, key/cert unreadable for other
         # reasons). Process abends cleanly; user never sees the service.
-        log.error("STARTUP ABEND exit=70 primitive=session_token reason=key_or_cert_unreadable: %s", _exc, exc=ChatHealthyException(
-                                                                                                            mode="startup_abend_session_token_unreadable",
-                                                                                                            message=f"STARTUP ABEND exit=70 primitive=session_token reason=key_or_cert_unreadable: {_exc}",
-                                                                                                            component="FindCareBackend",
-                                                                                                            exception=_exc,
-                                                                                                        ), if_not_debug_log=True)
-        sys.exit(70)
+        raise ChatHealthyException(
+            mode="startup_abend_software",
+            component="FindCareBackend",
+            message=("STARTUP ABEND exit=70 primitive=session_token reason=key_or_cert_unreadable: %s" % (_exc,)),
+            exit_code="startup aborted, EX_SOFTWARE",
+            exit_code=70,
+            exception=_exc)
     log.info("startup security check PASSED — findcare.key + findcare.crt OK at %s", certs_dir)
 
 startup_security_verification()

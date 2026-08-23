@@ -39,6 +39,14 @@ for _ch_d in _ch_pl.Path(__file__).resolve().parents:
 import os as _ch_os
 _ch_os.environ["CH_LOG_DESTINATION"] = "stderr"
 from chathealthy_lib.logging_service import ChatHealthyLoggingService
+import sys as _ch_sys, pathlib as _ch_pl  # noqa: E402
+for _ch_d in _ch_pl.Path(__file__).resolve().parents:
+    if (_ch_d / '.git').exists():
+        _ch_lib = _ch_d / 'ChatHealthyLib' / 'src'
+        if str(_ch_lib) not in _ch_sys.path:
+            _ch_sys.path.insert(0, str(_ch_lib))
+        break
+from chathealthy_lib.exceptions import ChatHealthyException  # noqa: E402
 
 load_dotenv(os.path.join(os.path.dirname(__file__), "..", "..", ".env"))
 
@@ -93,27 +101,39 @@ def _builds_to_map(builds_array):
 
 def promote(from_env: str, to_env: str, confirm_prod: bool = False, dry_run: bool = False):
     if (from_env, to_env) not in VALID_PROMOTIONS:
-        log.error("Invalid promotion: %s -> %s. Valid: dev->qa, qa->prod", from_env, to_env)
-        sys.exit(1)
+        raise ChatHealthyException(
+            mode="aborted",
+            component="promote_build",
+            message=("Invalid promotion: %s -> %s. Valid: dev->qa, qa->prod" % (from_env, to_env,)),
+            exit_code=1)
 
     if to_env == "prod" and not confirm_prod:
-        log.error("REFUSED: promoting to prod requires --confirm-prod flag (GOV-007)")
-        sys.exit(1)
+        raise ChatHealthyException(
+            mode="aborted",
+            component="promote_build",
+            message="REFUSED: promoting to prod requires --confirm-prod flag (GOV-007)",
+            exit_code=1)
 
     client = _devops_connection()
     coll = client["frontEndAdmin"]["BuildVersions"]
 
     latest = coll.find_one(sort=[("from", -1)])
     if latest is None:
-        log.error("frontEndAdmin.BuildVersions has no records — seed first")
-        sys.exit(1)
+        raise ChatHealthyException(
+            mode="aborted",
+            component="promote_build",
+            message="frontEndAdmin.BuildVersions has no records — seed first",
+            exit_code=1)
 
     builds_map = _builds_to_map(latest.get("builds", []))
     for required in ENV_ORDER:
         if required not in builds_map:
-            log.error("latest frontEndAdmin.BuildVersions record is missing the %r slot; "
-                      "run migrate_versions_to_per_env.py first", required)
-            sys.exit(1)
+            raise ChatHealthyException(
+                mode="aborted",
+                component="promote_build",
+                message=("latest frontEndAdmin.BuildVersions record is missing the %r slot; "
+                      "run migrate_versions_to_per_env.py first" % (required,)),
+            exit_code=1)
 
     # Promotion sources are explicit and asymmetric:
     #   dev -> qa  : qa <- dev

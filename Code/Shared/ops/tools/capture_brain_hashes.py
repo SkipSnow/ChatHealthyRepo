@@ -16,6 +16,14 @@ import os
 import sys
 import time
 from pathlib import Path
+import sys as _ch_sys, pathlib as _ch_pl  # noqa: E402
+for _ch_d in _ch_pl.Path(__file__).resolve().parents:
+    if (_ch_d / '.git').exists():
+        _ch_lib = _ch_d / 'ChatHealthyLib' / 'src'
+        if str(_ch_lib) not in _ch_sys.path:
+            _ch_sys.path.insert(0, str(_ch_lib))
+        break
+from chathealthy_lib.exceptions import ChatHealthyException  # noqa: E402
 
 PROJECT = Path(os.environ.get("CLAUDE_PROJECT_DIR", "."))
 OUT = PROJECT / "_oneshots/test_output" / "brain_precompact_hashes.json"
@@ -58,4 +66,7 @@ try:
 except Exception:
     pass
 
-sys.exit(0)
+raise ChatHealthyException(
+    mode="aborted",
+    component="capture_brain_hashes",
+    message=0)

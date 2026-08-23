@@ -237,6 +237,25 @@ def _parse_args(argv: list[str]) -> argparse.Namespace:
     return p.parse_args(argv)
 
 
+def _report_no_work_claimed(coord, run_id: str, step: str) -> None:
+    """Say what was looked for and where, when a claim finds nothing.
+
+    There is nothing clean about a worker the Controller is waiting on
+    finding no work: the previous message left the Controller reporting
+    remaining=1 with no explanation anywhere.
+    """
+    items = coord["pipelineAdmin"]["pipeline.work_items"]
+    pending = items.count_documents({"run_id": run_id})
+    unclaimed = items.count_documents(
+        {"run_id": run_id, "step": step, "status": "pending"})
+    _log.warning(
+        "pipeline_worker: NO work-item claimed. run_id=%s step=%s "
+        "db=%s coll=%s items_for_this_run=%d still_pending_for_this_step=%d. "
+        "The Controller is waiting on a claim that will never come.",
+        run_id, step, "pipelineAdmin", "pipeline.work_items",
+        pending, unclaimed)
+
+
 def main(argv: list[str] | None = None) -> int:
     ns = _parse_args(argv if argv is not None else sys.argv[1:])
     if ns.log_level:
@@ -256,21 +275,7 @@ def main(argv: list[str] | None = None) -> int:
     # not that it has yet to appear.
     item = _claim_work_item(coord, ns.run_id, ns.step, worker_pid)
     if item is None:
-        # Not "exiting cleanly" -- there is nothing clean about a worker the
-        # Controller is waiting on finding no work. Say what was searched for
-        # and where, because the previous message left the Controller
-        # reporting remaining=1 with no explanation anywhere.
-        pending = coord["pipelineAdmin"]["pipeline.work_items"].count_documents(
-            {"run_id": ns.run_id})
-        unclaimed = coord["pipelineAdmin"]["pipeline.work_items"].count_documents(
-            {"run_id": ns.run_id, "step": ns.step, "status": "pending"})
-        _log.warning(
-            "pipeline_worker: NO work-item claimed. run_id=%s step=%s "
-            "db=%s coll=%s items_for_this_run=%d still_pending_for_this_step=%d. "
-            "The Controller is waiting on a claim that will never come.",
-            ns.run_id, ns.step,
-            "pipelineAdmin", "pipeline.work_items", pending, unclaimed,
-        )
+        _report_no_work_claimed(coord, ns.run_id, ns.step)
         return 0
 
     _log.info("pipeline_worker: claimed item _id=%s run_id=%s step=%s payload=%s",

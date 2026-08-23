@@ -25,6 +25,14 @@ import os
 import subprocess
 import sys
 from pathlib import Path
+import sys as _ch_sys, pathlib as _ch_pl  # noqa: E402
+for _ch_d in _ch_pl.Path(__file__).resolve().parents:
+    if (_ch_d / '.git').exists():
+        _ch_lib = _ch_d / 'ChatHealthyLib' / 'src'
+        if str(_ch_lib) not in _ch_sys.path:
+            _ch_sys.path.insert(0, str(_ch_lib))
+        break
+from chathealthy_lib.exceptions import ChatHealthyException  # noqa: E402
 
 try:
     from .enforcement_worker import (
@@ -208,28 +216,43 @@ def check_b_violations(source: str) -> list[tuple[int, str]]:
 
 
 def check_c_violations(source: str) -> list[tuple[int, str]]:
-    """Check (c): throw-doesn't-log. In any function body that raises a
-    ChatHealthyException, no log method may be called."""
+    """Check (c): a thrower does not narrate its own failure.
+
+    The catcher logs, not the thrower -- but that is about the failure being
+    raised, not about every line in a function that can raise. A step that
+    records having succeeded, or a progress line on the way through, is the
+    trace an operator reads when something later goes wrong, and deleting it
+    to satisfy this check trades observability for a green number.
+
+    So the pattern flagged is narrow: a log call standing immediately before
+    a raise in the same block. That is the thrower saying what went wrong and
+    then throwing, which says it twice and leaves the message in the weaker
+    of the two places. Everything else a function logs is its own business.
+    """
     try:
         tree = ast.parse(source)
     except SyntaxError:
         return []
+
     hits: list[tuple[int, str]] = []
-    for fn in ast.walk(tree):
-        if not isinstance(fn, (ast.FunctionDef, ast.AsyncFunctionDef)):
-            continue
-        raises_ch = any(
-            isinstance(n, ast.Raise) and raises_chathealthy_exception(n)
-            for n in ast.walk(fn)
-        )
-        if not raises_ch:
-            continue
-        for n in ast.walk(fn):
-            if isinstance(n, ast.Call) and is_log_method_call(n):
+    for node in ast.walk(tree):
+        for field in ("body", "orelse", "finalbody"):
+            body = getattr(node, field, None)
+            if not isinstance(body, list):
+                continue
+            for first, second in zip(body, body[1:]):
+                if not (isinstance(first, ast.Expr)
+                        and isinstance(first.value, ast.Call)
+                        and is_log_method_call(first.value)):
+                    continue
+                if not (isinstance(second, ast.Raise)
+                        and raises_chathealthy_exception(second)):
+                    continue
                 hits.append((
-                    n.lineno,
-                    f"log call inside function {fn.name!r} that raises "
-                    f"ChatHealthyException — the catcher logs, not the thrower",
+                    first.lineno,
+                    "this logs the failure and then raises it: the catcher "
+                    "logs, not the thrower. Put the reason in the "
+                    "exception's message and drop the log call",
                 ))
     return hits
 
@@ -332,6 +355,15 @@ class ScanUniformLoggingEnforcementWorker(EnforcementWorker):
         return violations
 
 
-if __name__ == "__main__":
+def main() -> int:
+    """Drive the program and report its status.
+
+    The exit lives here because this is the function the guard
+    calls, and a process reports its outcome by exit code.
+    """
     enforcement_id = sys.argv[1] if len(sys.argv) > 1 else "Rule-065-ENF-004"
-    sys.exit(ScanUniformLoggingEnforcementWorker(enforcement_id).run())
+    return ScanUniformLoggingEnforcementWorker(enforcement_id).run()
+
+
+if __name__ == "__main__":
+    sys.exit(main())

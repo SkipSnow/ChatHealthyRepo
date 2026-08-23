@@ -119,9 +119,12 @@ def _click_proof(token: str) -> str:
         "var hc=document.getElementById('human_click').value;"
         "if(hc!=='true'){document.getElementById('why').textContent="
         "'Move the mouse across this window, then click.';return;}"
-        "fetch('/decide',{method:'POST',body:new URLSearchParams("
+        # The edited message is read before the request is built. It was
+        # read inside the URLSearchParams call, which is a syntax error:
+        # send() never defined, so neither button did anything.
         "var el=document.getElementById('message');"
         "var msg=el?el.value:'';"
+        "fetch('/decide',{method:'POST',body:new URLSearchParams("
         "{token:TOKEN,verdict:v,human_click:hc,message:msg})})"
         ".then(function(){document.body.innerHTML='<h1>Recorded.</h1>';"
         "try{window.close();}catch(e){}});}"

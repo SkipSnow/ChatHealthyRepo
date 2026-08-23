@@ -734,9 +734,10 @@ def _process_vm(vm: dict, mongo, tok: str) -> None:
 # -----------------------------------------------------------------------------
 # Main
 # -----------------------------------------------------------------------------
-def main() -> int:
-    # Wire Mongo logging FIRST - before any log() call. This fetches
-    # MONGO_FRONTEND from KV, applies SRV->direct URI conversion (AA
+def _watch():
+    """Do the watching and report the outcome."""
+    # Wire Mongo logging FIRST -- before any log() call. This fetches
+    # MONGO_FRONTEND from KV, applies SRV->direct URI conversion (the AA
     # sandbox cannot resolve _mongodb._tcp SRVs), and sets CHLS env so
     # every subsequent log() call also writes to Log_{env}.
     from chathealthy_lib.pipeline_boot import bootstrap_aa_mongo_logging  # noqa: PLC0415
@@ -791,6 +792,11 @@ def main() -> int:
     _reap_orphan_nics(tok)
     log("watchdog_end")
     return 0
+
+
+def main() -> int:
+    """Drive the watchdog and report its status."""
+    return _watch()
 
 
 if __name__ == "__main__":

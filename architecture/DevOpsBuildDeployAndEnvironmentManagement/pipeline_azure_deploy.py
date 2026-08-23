@@ -43,6 +43,14 @@ for _ch_d in _ch_pl.Path(__file__).resolve().parents:
 import os as _ch_os
 _ch_os.environ["CH_LOG_DESTINATION"] = "stderr"
 from chathealthy_lib.logging_service import ChatHealthyLoggingService
+import sys as _ch_sys, pathlib as _ch_pl  # noqa: E402
+for _ch_d in _ch_pl.Path(__file__).resolve().parents:
+    if (_ch_d / '.git').exists():
+        _ch_lib = _ch_d / 'ChatHealthyLib' / 'src'
+        if str(_ch_lib) not in _ch_sys.path:
+            _ch_sys.path.insert(0, str(_ch_lib))
+        break
+from chathealthy_lib.exceptions import ChatHealthyException  # noqa: E402
 _CH_LOG = ChatHealthyLoggingService()
 
 
@@ -93,7 +101,10 @@ def _az(args: list[str], *, check: bool = True) -> subprocess.CompletedProcess:
             f"  full stderr + argv:   {err_path}"
         )
         if check:
-            sys.exit(summary)
+            raise ChatHealthyException(
+                mode="aborted",
+                component="pipeline_azure_deploy",
+                message=summary)
         # Attach the summary + err_path so callers can surface both.
         r.summary = summary  # type: ignore[attr-defined]
         r.err_path = err_path  # type: ignore[attr-defined]
@@ -110,11 +121,15 @@ def _env_block(target, env: str, attr: str) -> dict:
         if eb.env_binding == env:
             block = getattr(eb, attr, None)
             if block is None:
-                sys.exit(
-                    f"ERROR: target {target.target_id!r} env={env!r} missing {attr}"
-                )
+                raise ChatHealthyException(
+                    mode="aborted",
+                    component="pipeline_azure_deploy",
+                    message=f"ERROR: target {target.target_id!r} env={env!r} missing {attr}")
             return block
-    sys.exit(f"ERROR: target {target.target_id!r} has no env_binding={env!r}")
+    raise ChatHealthyException(
+        mode="aborted",
+        component="pipeline_azure_deploy",
+        message=f"ERROR: target {target.target_id!r} has no env_binding={env!r}")
 
 
 def verify_resource_group(target, env: str) -> str:
@@ -124,12 +139,16 @@ def verify_resource_group(target, env: str) -> str:
     step(f"verify resource group {name}")
     r = _az(["group", "show", "--name", name], check=False)
     if r.returncode != 0:
-        sys.exit(f"ERROR: pre_existing RG {name!r} not found (F-012 §4.2)")
+        raise ChatHealthyException(
+            mode="aborted",
+            component="pipeline_azure_deploy",
+            message=f"ERROR: pre_existing RG {name!r} not found (F-012 §4.2)")
     shown = json.loads(r.stdout)
     if shown.get("location", "").lower().replace(" ", "") != loc.lower().replace(" ", ""):
-        sys.exit(
-            f"ERROR: RG {name!r} location {shown.get('location')!r} != declared {loc!r}"
-        )
+        raise ChatHealthyException(
+            mode="aborted",
+            component="pipeline_azure_deploy",
+            message=f"ERROR: RG {name!r} location {shown.get('location')!r} != declared {loc!r}")
     return name
 
 
@@ -140,7 +159,10 @@ def verify_key_vault(target, env: str) -> str:
     step(f"verify key vault {name}")
     r = _az(["keyvault", "show", "--name", name, "--resource-group", rg], check=False)
     if r.returncode != 0:
-        sys.exit(f"ERROR: pre_existing Key Vault {name!r} not found (F-012 §4.2)")
+        raise ChatHealthyException(
+            mode="aborted",
+            component="pipeline_azure_deploy",
+            message=f"ERROR: pre_existing Key Vault {name!r} not found (F-012 §4.2)")
     _ensure_kv_secrets_from_file_packages(target, env, name)
     return name
 
@@ -169,9 +191,10 @@ def _ensure_kv_secrets_from_file_packages(target, env: str, vault_name: str) -> 
             repo_root = Path(__file__).resolve().parents[2]
             src_path = repo_root / source_file
             if not src_path.is_file():
-                sys.exit(
-                    f"ERROR: secret_from_file source {source_file!r} not found on disk"
-                )
+                raise ChatHealthyException(
+                    mode="aborted",
+                    component="pipeline_azure_deploy",
+                    message=f"ERROR: secret_from_file source {source_file!r} not found on disk")
             import base64, gzip, tempfile
             raw = src_path.read_bytes()
             step(f"upload KV secret {secret_name} from {source_file} ({len(raw)}B raw)")
@@ -183,11 +206,12 @@ def _ensure_kv_secrets_from_file_packages(target, env: str, vault_name: str) -> 
             encoded = "gz:" + base64.b64encode(compressed).decode("ascii")
             step(f"  compressed+encoded to {len(encoded)}B (KV max 25600B)")
             if len(encoded) > 25000:
-                sys.exit(
-                    f"ERROR: encoded secret size {len(encoded)}B exceeds "
+                raise ChatHealthyException(
+                    mode="aborted",
+                    component="pipeline_azure_deploy",
+                    message=f"ERROR: encoded secret size {len(encoded)}B exceeds "
                     f"KV limit — .env grew too large; split it or use "
-                    f"blob storage for the backup"
-                )
+                    f"blob storage for the backup")
             with tempfile.NamedTemporaryFile(
                 mode="w", suffix=".b64gz", delete=False, encoding="ascii"
             ) as tmp:
@@ -272,9 +296,10 @@ def _ensure_kv_secrets_from_file_packages(target, env: str, vault_name: str) -> 
                 except OSError:
                     pass
             if r.returncode != 0:
-                sys.exit(
-                    f"ERROR: KV secret set {secret_name!r} failed: {r.stderr[:500]}"
-                )
+                raise ChatHealthyException(
+                    mode="aborted",
+                    component="pipeline_azure_deploy",
+                    message=f"ERROR: KV secret set {secret_name!r} failed: {r.stderr[:500]}")
             step(f"  {secret_name} uploaded — pull with: "
                  f"az keyvault secret show --vault-name {vault_name} --name {secret_name} --query value -o tsv | base64 --decode > {source_file}")
 
@@ -412,10 +437,11 @@ def _process_reserved_nic_pool(
     if action == "rename":
         from_prefix = pool.get("from_name_prefix")
         if not from_prefix:
-            sys.exit(
-                f"ERROR: reserved NIC pool {pool['name_prefix']!r} "
-                f"action=rename requires from_name_prefix"
-            )
+            raise ChatHealthyException(
+                mode="aborted",
+                component="pipeline_azure_deploy",
+                message=f"ERROR: reserved NIC pool {pool['name_prefix']!r} "
+                f"action=rename requires from_name_prefix")
         _delete_reserved_nic_pool(rg=rg, pool={"name_prefix": from_prefix})
         _create_reserved_nic_pool(
             rg=rg, vnet=vnet, subnet_name=subnet_name,
@@ -443,9 +469,10 @@ def _delete_reserved_nic_pool(*, rg: str, pool: dict) -> None:
     for nic in matching:
         nic_name = nic["name"]
         if nic.get("virtualMachine"):
-            sys.exit(
-                f"ERROR: NIC {nic_name!r} attached to a VM; cannot delete"
-            )
+            raise ChatHealthyException(
+                mode="aborted",
+                component="pipeline_azure_deploy",
+                message=f"ERROR: NIC {nic_name!r} attached to a VM; cannot delete")
         step(f"  delete NIC {nic_name}")
         _az(["network", "nic", "delete", "-g", rg, "-n", nic_name])
 
@@ -467,10 +494,11 @@ def _create_reserved_nic_pool(
     base_ip, _, _ = subnet_prefix.partition("/")
     octets = base_ip.split(".")
     if len(octets) != 4:
-        sys.exit(
-            f"ERROR: subnet {subnet_name!r} address_prefix {subnet_prefix!r} "
-            f"is not IPv4 — reserved NIC pool requires IPv4 subnet"
-        )
+        raise ChatHealthyException(
+            mode="aborted",
+            component="pipeline_azure_deploy",
+            message=f"ERROR: subnet {subnet_name!r} address_prefix {subnet_prefix!r} "
+            f"is not IPv4 — reserved NIC pool requires IPv4 subnet")
     subnet_id = _az_json(
         ["network", "vnet", "subnet", "show",
          "-g", rg, "--vnet-name", vnet, "-n", subnet_name,
@@ -482,10 +510,11 @@ def _create_reserved_nic_pool(
     for i, nic_name in enumerate(names):
         host_octet = ip_offset_start + i
         if host_octet > 254:
-            sys.exit(
-                f"ERROR: reserved NIC pool {name_prefix!r} count={count} "
-                f"exhausts /24 host range (host octet {host_octet} > 254)"
-            )
+            raise ChatHealthyException(
+                mode="aborted",
+                component="pipeline_azure_deploy",
+                message=f"ERROR: reserved NIC pool {name_prefix!r} count={count} "
+                f"exhausts /24 host range (host octet {host_octet} > 254)")
         expected_ip = f"{octets[0]}.{octets[1]}.{octets[2]}.{host_octet}"
         show = _az(
             ["network", "nic", "show", "-g", rg, "-n", nic_name],
@@ -498,10 +527,11 @@ def _create_reserved_nic_pool(
                 .get("privateIPAddress")
             )
             if live_ip != expected_ip:
-                sys.exit(
-                    f"ERROR: reserved NIC {nic_name!r} private IP "
-                    f"{live_ip!r} != declared slot {expected_ip!r}"
-                )
+                raise ChatHealthyException(
+                    mode="aborted",
+                    component="pipeline_azure_deploy",
+                    message=f"ERROR: reserved NIC {nic_name!r} private IP "
+                    f"{live_ip!r} != declared slot {expected_ip!r}")
             continue
         _az(
             [
@@ -525,10 +555,11 @@ def ensure_managed_identity_from_config(block: dict, owner: str,
     each. `owner` and `label` name the target and package for diagnostics.
     """
     if block.get("identity_class") not in ("managed_identity", "azure_managed_identity"):
-        sys.exit(
-            f"ERROR: {owner}/{label} identity_class "
-            f"{block.get('identity_class')!r} not supported for pipeline MI provision"
-        )
+        raise ChatHealthyException(
+            mode="aborted",
+            component="pipeline_azure_deploy",
+            message=f"ERROR: {owner}/{label} identity_class "
+            f"{block.get('identity_class')!r} not supported for pipeline MI provision")
     name = block["name"]
     rg = block["resource_group"]
     location = "eastus2"
@@ -651,7 +682,10 @@ def _acr_docker_build_loop(packages, name: str, rg: str) -> None:
         dockerfile = config.get("dockerfile")
         build_context = config.get("build_context", ".")
         if not dockerfile:
-            sys.exit(f"ERROR: ACR docker_image package {pkg.get('package_id')!r} missing dockerfile")
+            raise ChatHealthyException(
+                mode="aborted",
+                component="pipeline_azure_deploy",
+                message=f"ERROR: ACR docker_image package {pkg.get('package_id')!r} missing dockerfile")
         # Content-hash gate: skip build+push if ACR already has an image
         # whose :latest tag digest matches the current content-hash tag
         # (i.e., a prior deploy already built + pushed this exact source).
@@ -683,10 +717,11 @@ def _acr_docker_build_loop(packages, name: str, rg: str) -> None:
         ca_root_pem = _az_secret(kv_name, "ca-root-cert", default="")
         ca_int_pem = _az_secret(kv_name, "ca-intermediate-cert", default="")
         if not ca_root_pem or not ca_int_pem:
-            sys.exit(
-                f"ERROR: KV {kv_name!r} missing ca-root-cert or "
-                f"ca-intermediate-cert secrets (F-003 prerequisite)"
-            )
+            raise ChatHealthyException(
+                mode="aborted",
+                component="pipeline_azure_deploy",
+                message=f"ERROR: KV {kv_name!r} missing ca-root-cert or "
+                f"ca-intermediate-cert secrets (F-003 prerequisite)")
         ca_root_b64 = _b64.b64encode(ca_root_pem.encode("utf-8")).decode("ascii")
         ca_int_b64 = _b64.b64encode(ca_int_pem.encode("utf-8")).decode("ascii")
         # `az acr build` performs both build and push server-side.
@@ -755,20 +790,22 @@ def _acr_build_and_push(
                        capture_output=True, text=True,
                        encoding='utf-8', errors='replace')
     if r.returncode != 0:
-        sys.exit(
-            f"ERROR: docker build failed (exit {r.returncode})\n"
-            f"  stderr: {(r.stderr or '').strip()[-2000:]}"
-        )
+        raise ChatHealthyException(
+            mode="aborted",
+            component="pipeline_azure_deploy",
+            message=f"ERROR: docker build failed (exit {r.returncode})\n"
+            f"  stderr: {(r.stderr or '').strip()[-2000:]}")
     for ref in refs:
         step(f"docker push {ref}")
         r = subprocess.run(["docker", "push", ref],
                            creationflags=_cflags(),
                            capture_output=True, text=True)
         if r.returncode != 0:
-            sys.exit(
-                f"ERROR: docker push {ref} failed (exit {r.returncode})\n"
-                f"  stderr: {(r.stderr or '').strip()[-2000:]}"
-            )
+            raise ChatHealthyException(
+                mode="aborted",
+                component="pipeline_azure_deploy",
+                message=f"ERROR: docker push {ref} failed (exit {r.returncode})\n"
+                f"  stderr: {(r.stderr or '').strip()[-2000:]}")
 
 
 def _dockerfile_context_hash(dockerfile_path: str, build_context: str) -> str:
@@ -895,15 +932,17 @@ def ensure_aca_environment(target, env: str) -> str:
     workspace_name = block.get("log_analytics_workspace", "").strip()
 
     if logs not in ("none", "log-analytics"):
-        sys.exit(
-            f"ERROR: logs_destination={logs!r} not supported; must be "
-            f"'none' or 'log-analytics'."
-        )
+        raise ChatHealthyException(
+            mode="aborted",
+            component="pipeline_azure_deploy",
+            message=f"ERROR: logs_destination={logs!r} not supported; must be "
+            f"'none' or 'log-analytics'.")
     if logs == "log-analytics" and not workspace_name:
-        sys.exit(
-            "ERROR: logs_destination='log-analytics' requires "
-            "log_analytics_workspace to be set on the ACA env block."
-        )
+        raise ChatHealthyException(
+            mode="aborted",
+            component="pipeline_azure_deploy",
+            message="ERROR: logs_destination='log-analytics' requires "
+            "log_analytics_workspace to be set on the ACA env block.")
 
     step(f"ensure ACA environment {name} (logs={logs})")
 
@@ -1006,17 +1045,21 @@ def build_and_push_job_image(
     """Build image into ACR via az acr build. Returns image ref."""
     df = repo_root / dockerfile
     if not df.is_file():
-        sys.exit(f"ERROR: dockerfile missing: {dockerfile}")
+        raise ChatHealthyException(
+            mode="aborted",
+            component="pipeline_azure_deploy",
+            message=f"ERROR: dockerfile missing: {dockerfile}")
     root_b64 = os.environ.get("CHATHEALTHY_CA_ROOT_B64", "").strip()
     intermediate_b64 = os.environ.get(
         "CHATHEALTHY_CA_INTERMEDIATE_B64", ""
     ).strip()
     if not root_b64 or not intermediate_b64:
-        sys.exit(
-            "ERROR: CHATHEALTHY_CA_ROOT_B64 / CHATHEALTHY_CA_INTERMEDIATE_B64 "
+        raise ChatHealthyException(
+            mode="aborted",
+            component="pipeline_azure_deploy",
+            message="ERROR: CHATHEALTHY_CA_ROOT_B64 / CHATHEALTHY_CA_INTERMEDIATE_B64 "
             "not set; bake_ca_chain_into_images must run before ACA job image "
-            "builds (F-003 §7)."
-        )
+            "builds (F-003 §7).")
     # Dockerfiles COPY pipeline/Code + ChatHealthyLib from repo-root context.
     context = repo_root
     image = f"{registry_name}.azurecr.io/{image_repository}:{tag}"
@@ -1058,11 +1101,12 @@ def build_and_push_job_image(
         shell=(sys.platform == "win32"),
     )
     if r.returncode != 0:
-        sys.exit(
-            f"ERROR: az acr build --registry {registry_name} "
+        raise ChatHealthyException(
+            mode="aborted",
+            component="pipeline_azure_deploy",
+            message=f"ERROR: az acr build --registry {registry_name} "
             f"--image {image_repository}:{tag}... failed ({r.returncode})\n"
-            f"  stderr: {(r.stderr or '')[:2000]}"
-        )
+            f"  stderr: {(r.stderr or '')[:2000]}")
     verify = _az(
         [
             "acr", "repository", "show",
@@ -1072,10 +1116,11 @@ def build_and_push_job_image(
         check=False,
     )
     if verify.returncode != 0:
-        sys.exit(
-            f"ERROR: acr build reported success but image {image} is not "
-            f"present in the registry."
-        )
+        raise ChatHealthyException(
+            mode="aborted",
+            component="pipeline_azure_deploy",
+            message=f"ERROR: acr build reported success but image {image} is not "
+            f"present in the registry.")
     return image
 
 
@@ -1259,10 +1304,11 @@ def _azure_to_atlas_region(region: str) -> str:
     if lower in _AZURE_TO_ATLAS_REGION:
         return _AZURE_TO_ATLAS_REGION[lower]
     # Unmapped region — fail loud rather than guess incorrectly.
-    sys.exit(
-        f"ERROR: Azure region {region!r} not mapped to Atlas region name. "
-        f"Add it to _AZURE_TO_ATLAS_REGION in pipeline_azure_deploy.py."
-    )
+    raise ChatHealthyException(
+        mode="aborted",
+        component="pipeline_azure_deploy",
+        message=f"ERROR: Azure region {region!r} not mapped to Atlas region name. "
+        f"Add it to _AZURE_TO_ATLAS_REGION in pipeline_azure_deploy.py.")
 
 
 def _atlas_load_credentials() -> tuple[str, str, str]:
@@ -1286,9 +1332,10 @@ def _atlas_load_credentials() -> tuple[str, str, str]:
         "ATLAS_PROJECT_ID": project_id,
     }.items() if not v]
     if missing:
-        sys.exit(
-            f"ERROR: Atlas deploy credentials missing from .env: {missing}"
-        )
+        raise ChatHealthyException(
+            mode="aborted",
+            component="pipeline_azure_deploy",
+            message=f"ERROR: Atlas deploy credentials missing from .env: {missing}")
     return client_id, client_secret, project_id
 
 
@@ -1324,14 +1371,23 @@ def _atlas_get_access_token(client_id: str, client_secret: str) -> str:
             payload = json.loads(resp.read().decode("utf-8"))
     except urllib.error.HTTPError as e:
         body_text = e.read().decode("utf-8", errors="replace")[:500]
-        sys.exit(
-            f"ERROR: Atlas OAuth token request HTTP {e.code}: {body_text}"
-        )
+        raise ChatHealthyException(
+            mode="aborted",
+            component="pipeline_azure_deploy",
+            message=f"ERROR: Atlas OAuth token request HTTP {e.code}: {body_text}",
+            exception=e)
     except urllib.error.URLError as e:
-        sys.exit(f"ERROR: Atlas OAuth token URL error: {e}")
+        raise ChatHealthyException(
+            mode="aborted",
+            component="pipeline_azure_deploy",
+            message=f"ERROR: Atlas OAuth token URL error: {e}",
+            exception=e)
     token = payload.get("access_token")
     if not token:
-        sys.exit(f"ERROR: Atlas OAuth response missing access_token: {payload}")
+        raise ChatHealthyException(
+            mode="aborted",
+            component="pipeline_azure_deploy",
+            message=f"ERROR: Atlas OAuth response missing access_token: {payload}")
     expires_in = int(payload.get("expires_in", 3600))
     _ATLAS_TOKEN_CACHE[cache_key] = (token, time.monotonic() + expires_in)
     return token
@@ -1367,7 +1423,11 @@ def _atlas_request(
         code = e.code
         payload = e.read().decode("utf-8", errors="replace")
     except urllib.error.URLError as e:
-        sys.exit(f"ERROR: Atlas API URL error at {url}: {e}")
+        raise ChatHealthyException(
+            mode="aborted",
+            component="pipeline_azure_deploy",
+            message=f"ERROR: Atlas API URL error at {url}: {e}",
+            exception=e)
     parsed: Any = None
     if payload.strip():
         try:
@@ -1392,17 +1452,21 @@ def verify_atlas(target, env: str) -> str:
         access_token=access_token,
     )
     if code != 200:
-        sys.exit(f"ERROR: Atlas project not reachable (HTTP {code}): {body}")
+        raise ChatHealthyException(
+            mode="aborted",
+            component="pipeline_azure_deploy",
+            message=f"ERROR: Atlas project not reachable (HTTP {code}): {body}")
     step(f"Atlas cluster verify {cluster_name}")
     code, body = _atlas_request(
         "GET", f"/groups/{project_id}/clusters/{cluster_name}",
         access_token=access_token,
     )
     if code != 200:
-        sys.exit(
-            f"ERROR: Atlas cluster {cluster_name!r} not found in project "
-            f"(HTTP {code}): {body}"
-        )
+        raise ChatHealthyException(
+            mode="aborted",
+            component="pipeline_azure_deploy",
+            message=f"ERROR: Atlas cluster {cluster_name!r} not found in project "
+            f"(HTTP {code}): {body}")
     for access in block.get("accepted_access") or []:
         if access.get("kind") == "ip_allowlist":
             _atlas_reconcile_ip_allowlist(
@@ -1486,14 +1550,16 @@ def _atlas_ensure_private_endpoint_service(
             body={"region": atlas_region},
         )
         if code not in (200, 201, 202):
-            sys.exit(
-                f"ERROR: Atlas endpoint service create failed HTTP {code}: {created}"
-            )
+            raise ChatHealthyException(
+                mode="aborted",
+                component="pipeline_azure_deploy",
+                message=f"ERROR: Atlas endpoint service create failed HTTP {code}: {created}")
         endpoint_id = (created or {}).get("id")
         if not endpoint_id:
-            sys.exit(
-                f"ERROR: Atlas endpoint service create returned no id: {created}"
-            )
+            raise ChatHealthyException(
+                mode="aborted",
+                component="pipeline_azure_deploy",
+                message=f"ERROR: Atlas endpoint service create returned no id: {created}")
     for i in range(60):
         code, shown = _atlas_request(
             "GET",
@@ -1508,7 +1574,10 @@ def _atlas_ensure_private_endpoint_service(
             if status in ("AVAILABLE", "INITIATING"):
                 return endpoint_id
         time.sleep(10)
-    sys.exit(f"ERROR: Atlas endpoint service {endpoint_id} never became AVAILABLE")
+    raise ChatHealthyException(
+        mode="aborted",
+        component="pipeline_azure_deploy",
+        message=f"ERROR: Atlas endpoint service {endpoint_id} never became AVAILABLE")
 
 
 def atlas_resolve_private_link_service_resource_id(
@@ -1534,9 +1603,10 @@ def atlas_resolve_private_link_service_resource_id(
         access_token=access_token,
     )
     if code != 200:
-        sys.exit(
-            f"ERROR: Atlas endpoint services list HTTP {code}: {listed}"
-        )
+        raise ChatHealthyException(
+            mode="aborted",
+            component="pipeline_azure_deploy",
+            message=f"ERROR: Atlas endpoint services list HTTP {code}: {listed}")
     listing = listed if isinstance(listed, list) else (
         listed.get("results") if isinstance(listed, dict) else []
     )
@@ -1546,10 +1616,11 @@ def atlas_resolve_private_link_service_resource_id(
             endpoint_id = svc.get("id")
             break
     if not endpoint_id:
-        sys.exit(
-            f"ERROR: Atlas endpoint service missing for {provider}/{atlas_region} — "
-            f"is Atlas target deployed?"
-        )
+        raise ChatHealthyException(
+            mode="aborted",
+            component="pipeline_azure_deploy",
+            message=f"ERROR: Atlas endpoint service missing for {provider}/{atlas_region} — "
+            f"is Atlas target deployed?")
     code, shown = _atlas_request(
         "GET",
         f"/groups/{project_id}/privateEndpoint/{provider}/endpointService/"
@@ -1557,18 +1628,20 @@ def atlas_resolve_private_link_service_resource_id(
         access_token=access_token,
     )
     if code != 200 or not isinstance(shown, dict):
-        sys.exit(
-            f"ERROR: Atlas endpoint service {endpoint_id} details HTTP {code}"
-        )
+        raise ChatHealthyException(
+            mode="aborted",
+            component="pipeline_azure_deploy",
+            message=f"ERROR: Atlas endpoint service {endpoint_id} details HTTP {code}")
     pls_id = (
         shown.get("privateLinkServiceResourceId")
         or shown.get("privateEndpointResourceId")
     )
     if not pls_id:
-        sys.exit(
-            f"ERROR: Atlas endpoint service {endpoint_id} carries no "
-            f"privateLinkServiceResourceId"
-        )
+        raise ChatHealthyException(
+            mode="aborted",
+            component="pipeline_azure_deploy",
+            message=f"ERROR: Atlas endpoint service {endpoint_id} carries no "
+            f"privateLinkServiceResourceId")
     dns_suffix = shown.get("privateEndpointConnectionName") or ""
     return pls_id, dns_suffix
 
@@ -1601,7 +1674,10 @@ def atlas_approve_private_endpoint(
                 endpoint_id = svc.get("id")
                 break
     if not endpoint_id:
-        sys.exit("ERROR: Atlas endpoint service not present at approval time")
+        raise ChatHealthyException(
+            mode="aborted",
+            component="pipeline_azure_deploy",
+            message="ERROR: Atlas endpoint service not present at approval time")
     code, body = _atlas_request(
         "POST",
         f"/groups/{project_id}/privateEndpoint/{provider}/endpointService/"
@@ -1675,10 +1751,11 @@ def ensure_vnet_private_endpoints(target, env: str, coll) -> None:
         group_id = pe["group_id"]
         peer_target = coll.by_target_id(peer_target_id) if coll else None
         if peer_target is None:
-            sys.exit(
-                f"ERROR: private_endpoint {pe_name!r} peer_target_id "
-                f"{peer_target_id!r} not found in manifest"
-            )
+            raise ChatHealthyException(
+                mode="aborted",
+                component="pipeline_azure_deploy",
+                message=f"ERROR: private_endpoint {pe_name!r} peer_target_id "
+                f"{peer_target_id!r} not found in manifest")
         step(f"ensure private endpoint {pe_name} → {peer_target_id}/{group_id}")
         pls_id, _dns_suffix = atlas_resolve_private_link_service_resource_id(
             peer_target, env, group_id,

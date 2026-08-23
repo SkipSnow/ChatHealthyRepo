@@ -103,9 +103,8 @@ def find_run(db, run_id: str | None):
         {"status": {"$nin": list(TERMINAL)}}, sort=[("started_at", -1)])
 
 
-def main() -> int:
-    parser = argparse.ArgumentParser(
-        description="Stop a pipeline run by signalling its Controller.")
+def _kill(parser):
+    """Kill the run and report."""
     parser.add_argument("--run-id", default=None,
                         help="run to stop (default: newest non-terminal run)")
     parser.add_argument("--resource-group",
@@ -187,6 +186,12 @@ def main() -> int:
     log.warning("%s had not reached a terminal state within %ds; the "
                 "Controller may still be quiescing", run_id, args.wait)
     return 1
+
+
+def main() -> int:
+    parser = argparse.ArgumentParser(
+        description="Stop a pipeline run by signalling its Controller.")
+    return _kill(parser)
 
 
 if __name__ == "__main__":

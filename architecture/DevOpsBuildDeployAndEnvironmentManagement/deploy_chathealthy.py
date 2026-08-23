@@ -61,6 +61,14 @@ for _ch_d in _ch_pl.Path(__file__).resolve().parents:
 import os as _ch_os
 _ch_os.environ["CH_LOG_DESTINATION"] = "stderr"
 from chathealthy_lib.logging_service import ChatHealthyLoggingService
+import sys as _ch_sys, pathlib as _ch_pl  # noqa: E402
+for _ch_d in _ch_pl.Path(__file__).resolve().parents:
+    if (_ch_d / '.git').exists():
+        _ch_lib = _ch_d / 'ChatHealthyLib' / 'src'
+        if str(_ch_lib) not in _ch_sys.path:
+            _ch_sys.path.insert(0, str(_ch_lib))
+        break
+from chathealthy_lib.exceptions import ChatHealthyException  # noqa: E402
 _CH_LOG = ChatHealthyLoggingService()
 
 
@@ -169,32 +177,35 @@ def _staleness_gate(repo_root: Path, env: str, target_ids: list[str],
 
             manifest_env = data.get("env")
             if manifest_env != env:
-                sys.exit(
-                    f"ERROR: build was for env {manifest_env!r}, deploy "
+                raise ChatHealthyException(
+                    mode="aborted",
+                    component="deploy_chathealthy",
+                    message=f"ERROR: build was for env {manifest_env!r}, deploy "
                     f"requested {env!r} (target={target_id}, package={pkg}); "
-                    f"rebuild for {env}"
-                )
+                    f"rebuild for {env}")
 
             if env == "local":
                 continue
 
             manifest_sha = data.get("git_head_sha")
             if manifest_sha and manifest_sha != head_sha:
-                sys.exit(
-                    f"ERROR: build at {manifest_sha} does not match current "
+                raise ChatHealthyException(
+                    mode="aborted",
+                    component="deploy_chathealthy",
+                    message=f"ERROR: build at {manifest_sha} does not match current "
                     f"checkout {head_sha} (target={target_id}, package={pkg}); "
-                    f"rebuild with build_chathealthy.py --env {env}"
-                )
+                    f"rebuild with build_chathealthy.py --env {env}")
 
             if latest_build is not None:
                 manifest_build = data.get("build")
                 if (manifest_build is not None
                         and int(manifest_build) != int(latest_build)):
-                    sys.exit(
-                        f"ERROR: build_number {manifest_build} is older than "
+                    raise ChatHealthyException(
+                        mode="aborted",
+                        component="deploy_chathealthy",
+                        message=f"ERROR: build_number {manifest_build} is older than "
                         f"frontEndAdmin.BuildVersions latest {latest_build} for "
-                        f"env {env} (target={target_id}, package={pkg}); rebuild"
-                    )
+                        f"env {env} (target={target_id}, package={pkg}); rebuild")
 
 
 def _collect_target_ids_for_env(repo_root: Path, env: str, target_arg: str) -> list[str]:
@@ -241,11 +252,12 @@ def _provision_pipeline_certs(
     kv_target = coll.by_target_id("target_azure_key_vault_pipeline")
     acr_target = coll.by_target_id("target_azure_container_registry_pipeline")
     if kv_target is None or acr_target is None:
-        sys.exit(
-            "ERROR: manifest missing target_azure_key_vault_pipeline or "
+        raise ChatHealthyException(
+            mode="aborted",
+            component="deploy_chathealthy",
+            message="ERROR: manifest missing target_azure_key_vault_pipeline or "
             "target_azure_container_registry_pipeline. F-012 §7 cannot "
-            "run without both."
-        )
+            "run without both.")
     # Certificate issuance and the vault grant/revoke that follows it are
     # entitlement work, not deploy work, and belong to claudeCodeAgent. The
     # deploy reads the two public CA certs and bakes the trust chain into
@@ -322,7 +334,8 @@ def _is_local_manifest_target(repo_root: Path, target_arg: str) -> bool:
     return False
 
 
-def main(argv: list[str] | None = None) -> int:
+def _arguments(argv: list[str] | None) -> argparse.Namespace:
+    """The command line this program accepts."""
     parser = argparse.ArgumentParser(
         description="Deploy per-target packages: --env local stands up the local "
                     "host stack; --env dev|qa|prod ships cloud targets."
@@ -352,7 +365,17 @@ def main(argv: list[str] | None = None) -> int:
         help="Comma-separated list of test names to run after deploy "
              "(e.g. 'ur_um_regression'). Empty by default.",
     )
-    args = parser.parse_args(argv)
+    return parser.parse_args(argv)
+
+
+def _establish_context() -> Path:
+    """Act as DevOpsUser and tell hf_helpers which tree holds the manifest.
+
+    The deploy acts as the declared identity rather than whoever is
+    logged in, and hf_helpers will not resolve the manifest from
+    __file__ because during a cloud build that reads the
+    workstation's uncommitted deployment facts.
+    """
 
     # The deploy acts as DevOpsUser, not as whoever is logged in at the
     # terminal. Establishing it here governs every `az` subprocess the chain
@@ -369,6 +392,11 @@ def main(argv: list[str] | None = None) -> int:
     import hf_helpers as _hf
     _hf.set_build_source(repo_root)
 
+    return repo_root
+
+
+def _refuse_bad_selection(args) -> None:
+    """Refuse a selection the operator did not actually make."""
     # EPIC-008-F-012: reject any attempt to combine the
     # 'pipeline' selector with another target value. Comma-separated
     # multi-target strings are the only shape this rule needs to block —
@@ -376,11 +404,12 @@ def main(argv: list[str] | None = None) -> int:
     # legal because it names one target, not a combination.
     tokens = [t.strip() for t in args.target.split(",") if t.strip()]
     if "pipeline" in tokens and len(tokens) > 1:
-        sys.exit(
-            "ERROR: --target=pipeline MUST be the sole target. Pipeline "
+        raise ChatHealthyException(
+            mode="aborted",
+            component="deploy_chathealthy",
+            message="ERROR: --target=pipeline MUST be the sole target. Pipeline "
             "deploys are independent of front-end deploys "
-            "(EPIC-008-F-012)."
-        )
+            "(EPIC-008-F-012).")
 
     # Force explicit --package enumeration when --target is a group name.
     # Design intent: the operator must think through and TYPE every
@@ -391,20 +420,59 @@ def main(argv: list[str] | None = None) -> int:
     # destinations and the capabilities inside them; a selector meaning
     # "everything" is what turned every change into a whole-estate deploy.
     if args.target.strip() == "all":
-        sys.exit(
-            "ERROR: --target='all' no longer exists. Name the target_id(s) "
-            "(comma-separated) and the package(s) you intend to deploy."
-        )
+        raise ChatHealthyException(
+            mode="aborted",
+            component="deploy_chathealthy",
+            message="ERROR: --target='all' no longer exists. Name the target_id(s) "
+            "(comma-separated) and the package(s) you intend to deploy.")
     _GROUP_TARGETS = frozenset({"pipeline", "cloudflare", "hf", "azure", "aca"})
     if not args.package.strip():
-        sys.exit(
-            f"ERROR: --package MUST be explicitly enumerated "
+        raise ChatHealthyException(
+            mode="aborted",
+            component="deploy_chathealthy",
+            message=f"ERROR: --package MUST be explicitly enumerated "
             f"(comma-separated) for every deploy. No 'all packages' "
             f"shortcut exists — name every package you intend to deploy. "
             f"Example: --target target_hf_space_findcare_backend "
-            f"--package service_runtime"
-        )
+            f"--package service_runtime")
 
+
+def _filter_to_selected_packages(target_ids: list[str],
+                                 pkg_selection: set[str],
+                                 target: str, package: str) -> list[str]:
+    """Drop per-package targets the operator did not name.
+
+    Host targets -- vault, storage, network, identities, registry, the
+    container-app environment, the automation account, the resource group --
+    pass through so their shells stay verified. Only the synthetic
+    per-package targets are filtered, because those are the capabilities the
+    operator enumerated.
+    """
+    prefixes = ("target_azure_automation_runbook_",
+                "target_azure_container_app_job_")
+    kept: list[str] = []
+    for tid in target_ids:
+        prefix = next((x for x in prefixes if tid.startswith(x)), None)
+        if prefix is None:
+            kept.append(tid)
+        elif tid[len(prefix):] in pkg_selection:
+            kept.append(tid)
+    if not kept:
+        raise ChatHealthyException(
+            mode="aborted",
+            component="deploy_chathealthy",
+            message=f"--package={package!r} matched no packages under "
+                    f"--target={target!r}")
+    _CH_LOG.info(f"[local_deploy] --package filter: {len(kept)} targets "
+                 f"remain (packages selected: {sorted(pkg_selection)})")
+    return kept
+
+
+def main(argv: list[str] | None = None) -> int:
+    """Drive the deploy and report its status."""
+    args = _arguments(argv)
+    repo_root = _establish_context()
+    _refuse_bad_selection(args)
     # Nothing is deployed from a manifest that does not satisfy the
     # published schema. The deploy validated only inside one selection
     # helper, so whether it happened depended on which path ran.
@@ -426,41 +494,18 @@ def main(argv: list[str] | None = None) -> int:
     else:
         target_ids = _collect_target_ids_for_env(repo_root, args.env, args.target)
         if not target_ids:
-            sys.exit(f"ERROR: no targets matched --env={args.env} --target={args.target!r}")
+            raise ChatHealthyException(
+                mode="aborted",
+                component="deploy_chathealthy",
+                message=f"ERROR: no targets matched --env={args.env} --target={args.target!r}")
         # --package filter: drop synth per-package targets (runbook/job)
         # whose package_id is not in the selected set. Host targets (KV,
         # Storage, VNet, MIs, ACR, ACA env, AA, RG) pass through so their
         # shells stay verified.
         pkg_selection = {p.strip() for p in args.package.split(",") if p.strip()}
         if pkg_selection:
-            _PKG_TARGET_PREFIXES = (
-                "target_azure_automation_runbook_",
-                "target_azure_container_app_job_",
-            )
-            filtered: list[str] = []
-            for tid in target_ids:
-                is_pkg = any(tid.startswith(p) for p in _PKG_TARGET_PREFIXES)
-                if not is_pkg:
-                    filtered.append(tid)
-                    continue
-                # Extract the package_id from the synth target_id suffix.
-                pkg_id = tid
-                for p in _PKG_TARGET_PREFIXES:
-                    if tid.startswith(p):
-                        pkg_id = tid[len(p):]
-                        break
-                if pkg_id in pkg_selection:
-                    filtered.append(tid)
-            if not filtered:
-                sys.exit(
-                    f"ERROR: --package={args.package!r} matched no packages "
-                    f"under --target={args.target!r}"
-                )
-            target_ids = filtered
-            _CH_LOG.info(
-                f"[local_deploy] --package filter: {len(target_ids)} targets "
-                f"remain (packages selected: {sorted(pkg_selection)})"
-            )
+            target_ids = _filter_to_selected_packages(
+                target_ids, pkg_selection, args.target, args.package)
         _staleness_gate(repo_root, args.env, target_ids, pkg_selection)
         # F-003 §5.1 / F-012 §7.1 cert placement runs inside run_cloud_deploy
         # after CA runbooks and before ACA Jobs (dependency order). Do not

@@ -163,8 +163,11 @@ class RecordLoader:
         """
         path = repo_root / ARCHITECTURE_REL
         if not path.is_file():
-            _CH_LOG.error(f"ABEND: {path} not found.")
-            sys.exit(2)
+            raise ChatHealthyException(
+                mode="aborted",
+                component="record_loader",
+                message=f"ABEND: {path} not found.",
+            exit_code=2)
         doc = json.loads(path.read_text(encoding="utf-8"))
         # The document names the schema it claims to satisfy. Validate
         # against that, not against a URL held in this module -- a constant
@@ -172,9 +175,12 @@ class RecordLoader:
         # the check passes against a schema the document never claimed.
         declared = doc.get("$schema")
         if not declared:
-            _CH_LOG.error(f"ABEND: {path} declares no $schema. A document that does "
-                f"not name the schema it satisfies cannot be validated.")
-            sys.exit(2)
+            raise ChatHealthyException(
+                mode="aborted",
+                component="record_loader",
+                message=f"ABEND: {path} declares no $schema. A document that does "
+                f"not name the schema it satisfies cannot be validated.",
+            exit_code=2)
         loader = cls(declared)
         errors = sorted(
             loader._validator.iter_errors(doc),
@@ -189,9 +195,12 @@ class RecordLoader:
                 _CH_LOG.error(f"         {where}: {err.message}")
             if len(errors) > 20:
                 _CH_LOG.error(f"         ... and {len(errors) - 20} more")
-            _CH_LOG.error("       A schema change ships before the manifest change "
-                "that needs it.")
-            sys.exit(2)
+            raise ChatHealthyException(
+                mode="aborted",
+                component="record_loader",
+                message="       A schema change ships before the manifest change "
+                "that needs it.",
+            exit_code=2)
         _CH_LOG.info(f"[schema] deployment_architecture.json validates against "
               f"{loader.schema_url}")
 

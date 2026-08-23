@@ -109,14 +109,18 @@ def _build_manifest_for(repo_root: Path, target_id: str) -> dict:
     """
     path = repo_root / ARCHITECTURE_REL
     if not path.is_file():
-        sys.exit(f"ERROR: {path} not found.")
+        raise ChatHealthyException(
+            mode="aborted",
+            component="_deploy_chain",
+            message=f"ERROR: {path} not found.")
     doc = json.loads(path.read_text(encoding="utf-8"))
     for rec in doc.get("DeploymentTargetRecord", []):
         if rec.get("target_id") == target_id:
             return rec
-    sys.exit(
-        f"ERROR: no target {target_id!r} in deployment_architecture.json"
-    )
+    raise ChatHealthyException(
+        mode="aborted",
+        component="_deploy_chain",
+        message=f"ERROR: no target {target_id!r} in deployment_architecture.json")
 
 
 def package_build_facts(repo_root: Path, target_id: str,
@@ -129,11 +133,12 @@ def package_build_facts(repo_root: Path, target_id: str,
     """
     path = repo_root / BUILD_ROOT_REL / target_id / package_id / "build.json"
     if not path.is_file():
-        sys.exit(
-            f"ERROR: no build facts at {path}. Run "
+        raise ChatHealthyException(
+            mode="aborted",
+            component="_deploy_chain",
+            message=f"ERROR: no build facts at {path}. Run "
             f"`build_chathealthy.py --env <env> --target {target_id} "
-            f"--package {package_id}` first."
-        )
+            f"--package {package_id}` first.")
     return json.loads(path.read_text(encoding="utf-8"))
 
 
@@ -194,16 +199,18 @@ def _website_publish_dir(repo_root: Path) -> Path:
             shutil.copy2(src, dst)
             merged += 1
     if collisions:
-        sys.exit(
-            f"ERROR: {len(collisions)} file(s) claimed by more than one "
+        raise ChatHealthyException(
+            mode="aborted",
+            component="_deploy_chain",
+            message=f"ERROR: {len(collisions)} file(s) claimed by more than one "
             f"website package: {sorted(collisions)[:5]}. A served path must "
-            f"have exactly one owning capability."
-        )
+            f"have exactly one owning capability.")
     if not (out / "index.html").is_file():
-        sys.exit(
-            f"ERROR: merged website root {out} has no index.html. Run "
-            f"`build_chathealthy.py --env local` first."
-        )
+        raise ChatHealthyException(
+            mode="aborted",
+            component="_deploy_chain",
+            message=f"ERROR: merged website root {out} has no index.html. Run "
+            f"`build_chathealthy.py --env local` first.")
     step(f"merged {merged} file(s) into {out}")
     return out
 
@@ -220,18 +227,20 @@ def _package_dir(repo_root: Path, target_id: str,
     if package_id is None:
         packages = _target_packages(repo_root, target_id)
         if len(packages) != 1:
-            sys.exit(
-                f"ERROR: target {target_id!r} declares {len(packages)} "
+            raise ChatHealthyException(
+                mode="aborted",
+                component="_deploy_chain",
+                message=f"ERROR: target {target_id!r} declares {len(packages)} "
                 f"packages ({', '.join(packages) or 'none'}); the caller must "
-                f"name which one it needs."
-            )
+                f"name which one it needs.")
         package_id = packages[0]
     pkg = target_dir / package_id
     if not pkg.is_dir():
-        sys.exit(
-            f"ERROR: no build package at {pkg}. Run "
-            f"build_chathealthy.py first."
-        )
+        raise ChatHealthyException(
+            mode="aborted",
+            component="_deploy_chain",
+            message=f"ERROR: no build package at {pkg}. Run "
+            f"build_chathealthy.py first.")
     return pkg
 
 
@@ -260,10 +269,11 @@ def firm_git_identity() -> dict:
     data = json.loads(manifest_path.read_text(encoding="utf-8"))
     git_id = (data.get("firm") or {}).get("git_identity")
     if not git_id or "name" not in git_id or "email" not in git_id:
-        sys.exit(
-            "ERROR: firm.git_identity{name, email} missing from "
-            "deployment_architecture.json — populate it before deploy."
-        )
+        raise ChatHealthyException(
+            mode="aborted",
+            component="_deploy_chain",
+            message="ERROR: firm.git_identity{name, email} missing from "
+            "deployment_architecture.json — populate it before deploy.")
     return git_id
 
 
@@ -343,9 +353,10 @@ def load_target_manifest(repo_root: Path, target_id: str,
     """
     pkgs = _target_packages(repo_root, target_id)
     if not pkgs:
-        sys.exit(
-            f"ERROR: {target_id} declares no packages; nothing was built."
-        )
+        raise ChatHealthyException(
+            mode="aborted",
+            component="_deploy_chain",
+            message=f"ERROR: {target_id} declares no packages; nothing was built.")
     return package_build_facts(repo_root, target_id, pkgs[0])
 
 
@@ -353,7 +364,10 @@ def _legacy_load_target_manifest(repo_root: Path, target_id: str, build_root_rel
     root = build_root_rel if build_root_rel is not None else BUILD_ROOT_REL
     path = repo_root / root / target_id / "manifest.json"
     if not path.is_file():
-        sys.exit(f"ERROR: target manifest missing: {path}")
+        raise ChatHealthyException(
+            mode="aborted",
+            component="_deploy_chain",
+            message=f"ERROR: target manifest missing: {path}")
     return json.loads(path.read_text(encoding="utf-8"))
 
 
@@ -468,22 +482,24 @@ def deploy_cloudflare(
         (e for e in target.environments if e.env_binding == env), None,
     )
     if env_binding is None or not env_binding.branch:
-        sys.exit(
-            f"ERROR: target {target.target_id!r} env={env!r} has no `branch` "
+        raise ChatHealthyException(
+            mode="aborted",
+            component="_deploy_chain",
+            message=f"ERROR: target {target.target_id!r} env={env!r} has no `branch` "
             f"declared in deployment_architecture.json (REQ-T-050). The deploy "
-            f"script reads the branch from the manifest; no hard-coded fallback."
-        )
+            f"script reads the branch from the manifest; no hard-coded fallback.")
     cf_block = getattr(env_binding, "cloudflare_pages", None) or {}
     if isinstance(cf_block, dict):
         project = cf_block.get("project_name")
     else:
         project = getattr(cf_block, "project_name", None)
     if not project:
-        sys.exit(
-            f"ERROR: target {target.target_id!r} env={env!r} has no "
+        raise ChatHealthyException(
+            mode="aborted",
+            component="_deploy_chain",
+            message=f"ERROR: target {target.target_id!r} env={env!r} has no "
             f"cloudflare_pages.project_name declared in "
-            f"deployment_architecture.json. Populate it before deploy."
-        )
+            f"deployment_architecture.json. Populate it before deploy.")
     branch = env_binding.branch
     # Publish the merged site root, not the target directory. Since the build
     # writes one directory per package, the target directory holds package
@@ -580,18 +596,23 @@ def _cf_api(
             detail = exc.read().decode("utf-8", errors="replace")[:800]
         except Exception:  # noqa: BLE001
             pass
-        sys.exit(
-            f"ERROR: Cloudflare API {method} {path} returned {exc.code}\n"
+        raise ChatHealthyException(
+            mode="aborted",
+            component="_deploy_chain",
+            message=f"ERROR: Cloudflare API {method} {path} returned {exc.code}\n"
             f"body_sent={json.dumps(body)[:400] if body else '(none)'}\n"
-            f"response={detail}"
-        )
+            f"response={detail}",
+            exception=exc)
 
 
 def _cf_resolve_zone_id(zone_name: str, api_token: str) -> str:
     doc = _cf_api("GET", f"/zones?name={zone_name}&status=active", api_token)
     zones = doc.get("result") or []
     if not zones:
-        sys.exit(f"ERROR: Cloudflare zone {zone_name!r} not found on this account")
+        raise ChatHealthyException(
+            mode="aborted",
+            component="_deploy_chain",
+            message=f"ERROR: Cloudflare zone {zone_name!r} not found on this account")
     return zones[0]["id"]
 
 
@@ -641,10 +662,11 @@ def _reconcile_cloudflare_firewall_rules(
             )
         zone_id, ruleset_id, existing = zones_seen[zone_name]
         if not ruleset_id:
-            sys.exit(
-                f"ERROR: zone {zone_name!r} has no http_request_firewall_custom "
-                f"ruleset entrypoint (unexpected — zones always ship one)."
-            )
+            raise ChatHealthyException(
+                mode="aborted",
+                component="_deploy_chain",
+                message=f"ERROR: zone {zone_name!r} has no http_request_firewall_custom "
+                f"ruleset entrypoint (unexpected — zones always ship one).")
         expr = _substitute_secrets(rule["expression"], env, resolver)
         body = {
             "description": rule["description"],
@@ -693,10 +715,11 @@ def docker_build_then_push(build_dir: Path, image_ref: str) -> None:
         encoding="utf-8", errors="replace",
     )
     if r.returncode != 0:
-        sys.exit(
-            f"ERROR: docker build failed for {image_ref}\n"
-            f"{(r.stderr or r.stdout)[-2000:]}"
-        )
+        raise ChatHealthyException(
+            mode="aborted",
+            component="_deploy_chain",
+            message=f"ERROR: docker build failed for {image_ref}\n"
+            f"{(r.stderr or r.stdout)[-2000:]}")
     step(f"  docker push {image_ref}")
     r = subprocess.run(
         ["docker", "push", image_ref],
@@ -704,11 +727,12 @@ def docker_build_then_push(build_dir: Path, image_ref: str) -> None:
         encoding="utf-8", errors="replace",
     )
     if r.returncode != 0:
-        sys.exit(
-            f"ERROR: docker push failed for {image_ref}\n"
+        raise ChatHealthyException(
+            mode="aborted",
+            component="_deploy_chain",
+            message=f"ERROR: docker push failed for {image_ref}\n"
             f"{(r.stderr or r.stdout)[-2000:]}\n"
-            f"Hint: docker login ghcr.io -u <gh-user> -p <PAT-with-write:packages>"
-        )
+            f"Hint: docker login ghcr.io -u <gh-user> -p <PAT-with-write:packages>")
 
 
 def set_hf_config(
@@ -883,10 +907,11 @@ def az_subscription_id() -> str:
         creationflags=creation_flags(), shell=(sys.platform == "win32"),
     )
     if r.returncode != 0:
-        sys.exit(
-            f"ERROR: az account show failed (exit {r.returncode}); "
-            f"are you signed in?\n  stderr: {(r.stderr or '').strip()[:500]}"
-        )
+        raise ChatHealthyException(
+            mode="aborted",
+            component="_deploy_chain",
+            message=f"ERROR: az account show failed (exit {r.returncode}); "
+            f"are you signed in?\n  stderr: {(r.stderr or '').strip()[:500]}")
     return r.stdout.strip()
 
 
@@ -922,10 +947,11 @@ def az_automation_variable_set(rg: str, aa: str, name: str, value: str) -> None:
         creationflags=creation_flags(), shell=(sys.platform == "win32"),
     )
     if r.returncode != 0:
-        sys.exit(
-            f"ERROR: PUT automation variable {name!r} failed "
-            f"(exit {r.returncode})\n  stderr: {(r.stderr or '').strip()[:1500]}"
-        )
+        raise ChatHealthyException(
+            mode="aborted",
+            component="_deploy_chain",
+            message=f"ERROR: PUT automation variable {name!r} failed "
+            f"(exit {r.returncode})\n  stderr: {(r.stderr or '').strip()[:1500]}")
 
 
 def az_automation_runbook_ensure_exists(rg: str, aa: str, runbook: str) -> None:
@@ -952,10 +978,11 @@ def az_automation_runbook_ensure_exists(rg: str, aa: str, runbook: str) -> None:
         creationflags=creation_flags(), shell=(sys.platform == "win32"),
     )
     if loc_show.returncode != 0 or not loc_show.stdout.strip():
-        sys.exit(
-            f"ERROR: az automation account show for {aa!r} failed; cannot "
-            f"determine location for the new runbook."
-        )
+        raise ChatHealthyException(
+            mode="aborted",
+            component="_deploy_chain",
+            message=f"ERROR: az automation account show for {aa!r} failed; cannot "
+            f"determine location for the new runbook.")
     location = loc_show.stdout.strip()
     create = subprocess.run(
         ["az", "automation", "runbook", "create",
@@ -968,10 +995,11 @@ def az_automation_runbook_ensure_exists(rg: str, aa: str, runbook: str) -> None:
         creationflags=creation_flags(), shell=(sys.platform == "win32"),
     )
     if create.returncode != 0:
-        sys.exit(
-            f"ERROR: az automation runbook create failed for {runbook!r} "
-            f"(exit {create.returncode})\n  stderr: {(create.stderr or '').strip()[:1500]}"
-        )
+        raise ChatHealthyException(
+            mode="aborted",
+            component="_deploy_chain",
+            message=f"ERROR: az automation runbook create failed for {runbook!r} "
+            f"(exit {create.returncode})\n  stderr: {(create.stderr or '').strip()[:1500]}")
     step(f"  runbook {runbook} created.")
 
 
@@ -999,10 +1027,11 @@ def az_automation_runbook_ensure_mint_request_parameter(
         creationflags=creation_flags(), shell=(sys.platform == "win32"),
     )
     if get.returncode != 0:
-        sys.exit(
-            f"ERROR: cannot read runbook {runbook!r} to declare mint_request: "
-            f"{(get.stderr or '')[:800]}"
-        )
+        raise ChatHealthyException(
+            mode="aborted",
+            component="_deploy_chain",
+            message=f"ERROR: cannot read runbook {runbook!r} to declare mint_request: "
+            f"{(get.stderr or '')[:800]}")
     doc = json.loads(get.stdout or "{}")
     props = doc.get("properties") or {}
     params = dict(props.get("parameters") or {})
@@ -1040,10 +1069,11 @@ def az_automation_runbook_ensure_mint_request_parameter(
         creationflags=creation_flags(), shell=(sys.platform == "win32"),
     )
     if put.returncode != 0:
-        sys.exit(
-            f"ERROR: failed to declare mint_request on {runbook!r}: "
-            f"{(put.stderr or '')[:1500]}"
-        )
+        raise ChatHealthyException(
+            mode="aborted",
+            component="_deploy_chain",
+            message=f"ERROR: failed to declare mint_request on {runbook!r}: "
+            f"{(put.stderr or '')[:1500]}")
 
 
 def az_automation_runbook_replace_content(rg: str, aa: str, runbook: str, content_path: Path) -> None:
@@ -1055,7 +1085,10 @@ def az_automation_runbook_replace_content(rg: str, aa: str, runbook: str, conten
     """
     step(f"az rest PUT runbook draft/content --name {runbook}")
     if not content_path.is_file():
-        sys.exit(f"ERROR: runbook content missing at {content_path}")
+        raise ChatHealthyException(
+            mode="aborted",
+            component="_deploy_chain",
+            message=f"ERROR: runbook content missing at {content_path}")
     text = content_path.read_text(encoding="utf-8")
     sub = az_subscription_id()
     url = (
@@ -1086,10 +1119,11 @@ def az_automation_runbook_replace_content(rg: str, aa: str, runbook: str, conten
         except OSError:
             pass
     if r.returncode != 0:
-        sys.exit(
-            f"ERROR: runbook draft/content PUT failed for {runbook!r} "
-            f"(exit {r.returncode})\n  stderr: {(r.stderr or '').strip()[:1500]}"
-        )
+        raise ChatHealthyException(
+            mode="aborted",
+            component="_deploy_chain",
+            message=f"ERROR: runbook draft/content PUT failed for {runbook!r} "
+            f"(exit {r.returncode})\n  stderr: {(r.stderr or '').strip()[:1500]}")
 
 
 def _parse_interval_schedule(name: str):
@@ -1220,10 +1254,11 @@ def az_automation_schedule_ensure(rg: str, aa: str, name: str) -> bool:
         except OSError:
             pass
     if r.returncode != 0:
-        sys.exit(
-            f"ERROR: schedule create {name} failed on {aa}: "
-            f"{(r.stderr or '').strip()[:1500]}"
-        )
+        raise ChatHealthyException(
+            mode="aborted",
+            component="_deploy_chain",
+            message=f"ERROR: schedule create {name} failed on {aa}: "
+            f"{(r.stderr or '').strip()[:1500]}")
     step(f"  schedule {name} created ({body['properties']['frequency']} {body['properties']['interval']})")
     return True
 
@@ -1270,10 +1305,11 @@ def az_automation_runbook_link_schedule(
         if "409" in stderr_txt or "already exists" in stderr_txt.lower():
             step(f"  job-schedule {schedule}->{runbook} already linked (no-op)")
             return
-        sys.exit(
-            f"ERROR: link schedule {schedule} to runbook {runbook} failed: "
-            f"{stderr_txt}"
-        )
+        raise ChatHealthyException(
+            mode="aborted",
+            component="_deploy_chain",
+            message=f"ERROR: link schedule {schedule} to runbook {runbook} failed: "
+            f"{stderr_txt}")
     step(f"  job-schedule {schedule} linked to runbook {runbook}")
 
 
@@ -1290,10 +1326,11 @@ def az_automation_runbook_publish(rg: str, aa: str, runbook: str) -> None:
         creationflags=creation_flags(), shell=(sys.platform == "win32"),
     )
     if r.returncode != 0:
-        sys.exit(
-            f"ERROR: az automation runbook publish failed for {runbook!r} "
-            f"(exit {r.returncode})\n  stderr: {(r.stderr or '').strip()[:1500]}"
-        )
+        raise ChatHealthyException(
+            mode="aborted",
+            component="_deploy_chain",
+            message=f"ERROR: az automation runbook publish failed for {runbook!r} "
+            f"(exit {r.returncode})\n  stderr: {(r.stderr or '').strip()[:1500]}")
 
 
 def az_subscription_id() -> str:
@@ -1303,7 +1340,10 @@ def az_subscription_id() -> str:
         creationflags=creation_flags(), shell=(sys.platform == "win32"),
     )
     if r.returncode != 0:
-        sys.exit(f"ERROR: az account show failed: {(r.stderr or '').strip()[:500]}")
+        raise ChatHealthyException(
+            mode="aborted",
+            component="_deploy_chain",
+            message=f"ERROR: az account show failed: {(r.stderr or '').strip()[:500]}")
     return (r.stdout or "").strip()
 
 
@@ -1360,10 +1400,11 @@ def az_automation_runbook_dry_fire(rg: str, aa: str, runbook: str) -> dict:
         creationflags=creation_flags(), shell=(sys.platform == "win32"),
     )
     if r.returncode != 0:
-        sys.exit(
-            f"ERROR: dry-fire PUT /jobs failed for {runbook!r}: "
-            f"{(r.stderr or '').strip()[:1000]}"
-        )
+        raise ChatHealthyException(
+            mode="aborted",
+            component="_deploy_chain",
+            message=f"ERROR: dry-fire PUT /jobs failed for {runbook!r}: "
+            f"{(r.stderr or '').strip()[:1000]}")
 
     poll_url = (
         f"https://management.azure.com/subscriptions/{sub}/resourceGroups/{rg}"
@@ -1483,24 +1524,31 @@ def az_automation_orchestrator_verify_via_webhook(
             status_code = resp.status
             resp_text = resp.read().decode("utf-8", errors="replace")
     except urllib.error.HTTPError as e:
-        sys.exit(
-            f"ERROR: orchestrator webhook returned HTTP {e.code}: "
-            f"{e.read().decode('utf-8', errors='replace')[:500]}"
-        )
+        raise ChatHealthyException(
+            mode="aborted",
+            component="_deploy_chain",
+            message=f"ERROR: orchestrator webhook returned HTTP {e.code}: "
+            f"{e.read().decode('utf-8', errors='replace')[:500]}",
+            exception=e)
     if status_code != 202:
-        sys.exit(
-            f"ERROR: orchestrator webhook returned {status_code} "
-            f"(expected 202): {resp_text[:500]}"
-        )
+        raise ChatHealthyException(
+            mode="aborted",
+            component="_deploy_chain",
+            message=f"ERROR: orchestrator webhook returned {status_code} "
+            f"(expected 202): {resp_text[:500]}")
     try:
         webhook_resp = json.loads(resp_text)
     except json.JSONDecodeError:
-        sys.exit(f"ERROR: orchestrator webhook response not JSON: {resp_text[:500]}")
+        raise ChatHealthyException(
+            mode="aborted",
+            component="_deploy_chain",
+            message=f"ERROR: orchestrator webhook response not JSON: {resp_text[:500]}")
     job_ids = webhook_resp.get("JobIds") or webhook_resp.get("jobIds") or []
     if not job_ids:
-        sys.exit(
-            f"ERROR: orchestrator webhook response has no JobIds: {resp_text[:500]}"
-        )
+        raise ChatHealthyException(
+            mode="aborted",
+            component="_deploy_chain",
+            message=f"ERROR: orchestrator webhook response has no JobIds: {resp_text[:500]}")
     aa_job_id = str(job_ids[0])
     step(f"  health-check dry-fire {runbook} via webhook (aa_job_id={aa_job_id})")
     result = az_automation_poll_job_to_terminal(rg, aa, aa_job_id, timeout_sec=600)
@@ -1512,16 +1560,18 @@ def az_automation_orchestrator_verify_via_webhook(
         )
         return
     if status.startswith("Timeout"):
-        sys.exit(
-            f"ERROR: deploy FAILED for {aa}/{runbook} - orchestrator "
+        raise ChatHealthyException(
+            mode="aborted",
+            component="_deploy_chain",
+            message=f"ERROR: deploy FAILED for {aa}/{runbook} - orchestrator "
             f"health-check via webhook did not reach terminal status in 600s "
-            f"(last={status}, job={aa_job_id})."
-        )
-    sys.exit(
-        f"ERROR: deploy FAILED for {aa}/{runbook} - orchestrator "
+            f"(last={status}, job={aa_job_id}).")
+    raise ChatHealthyException(
+        mode="aborted",
+        component="_deploy_chain",
+        message=f"ERROR: deploy FAILED for {aa}/{runbook} - orchestrator "
         f"health-check via webhook ended status={status} (job={aa_job_id}). "
-        f"Exception (truncated):\n  {result['exception'][:1500]}"
-    )
+        f"Exception (truncated):\n  {result['exception'][:1500]}")
 
 
 def az_automation_runbook_verify_runnable(rg: str, aa: str, runbook: str) -> None:
@@ -1563,19 +1613,21 @@ def az_automation_runbook_verify_runnable(rg: str, aa: str, runbook: str) -> Non
         return
 
     if status.startswith("Timeout"):
-        sys.exit(
-            f"ERROR: deploy FAILED for {aa}/{runbook} - health-check "
+        raise ChatHealthyException(
+            mode="aborted",
+            component="_deploy_chain",
+            message=f"ERROR: deploy FAILED for {aa}/{runbook} - health-check "
             f"dry-fire did not reach terminal status in 600s "
-            f"(last={status}, job={job_id})."
-        )
+            f"(last={status}, job={job_id}).")
 
-    sys.exit(
-        f"ERROR: deploy FAILED for {aa}/{runbook} - health-check "
+    raise ChatHealthyException(
+        mode="aborted",
+        component="_deploy_chain",
+        message=f"ERROR: deploy FAILED for {aa}/{runbook} - health-check "
         f"dry-fire ended status={status} (job={job_id}). The runbook "
         f"the deploy just published cannot execute on this AA. "
         f"Exception (truncated):\n"
-        f"  {exception_text[:1500]}"
-    )
+        f"  {exception_text[:1500]}")
 
 
 
@@ -1595,10 +1647,11 @@ def az_automation_python3_packages_list(rg: str, aa: str) -> dict[str, dict]:
         creationflags=creation_flags(), shell=(sys.platform == "win32"),
     )
     if r.returncode != 0:
-        sys.exit(
-            f"ERROR: AA python3Packages list failed for {aa!r}: "
-            f"{(r.stderr or '').strip()[:1500]}"
-        )
+        raise ChatHealthyException(
+            mode="aborted",
+            component="_deploy_chain",
+            message=f"ERROR: AA python3Packages list failed for {aa!r}: "
+            f"{(r.stderr or '').strip()[:1500]}")
     body = json.loads(r.stdout or "{}")
     out: dict[str, dict] = {}
     for item in body.get("value", []):
@@ -1630,10 +1683,11 @@ def az_automation_python3_package_install(
         creationflags=creation_flags(), shell=(sys.platform == "win32"),
     )
     if r.returncode != 0:
-        sys.exit(
-            f"ERROR: AA python3 package PUT failed for {name!r}: "
-            f"{(r.stderr or '').strip()[:1500]}"
-        )
+        raise ChatHealthyException(
+            mode="aborted",
+            component="_deploy_chain",
+            message=f"ERROR: AA python3 package PUT failed for {name!r}: "
+            f"{(r.stderr or '').strip()[:1500]}")
     deadline = _time.time() + 600  # 10 min cap
     while _time.time() < deadline:
         get_r = subprocess.run(
@@ -1642,10 +1696,11 @@ def az_automation_python3_package_install(
             creationflags=creation_flags(), shell=(sys.platform == "win32"),
         )
         if get_r.returncode != 0:
-            sys.exit(
-                f"ERROR: AA python3 package GET poll failed for {name!r}: "
-                f"{(get_r.stderr or '').strip()[:1500]}"
-            )
+            raise ChatHealthyException(
+                mode="aborted",
+                component="_deploy_chain",
+                message=f"ERROR: AA python3 package GET poll failed for {name!r}: "
+                f"{(get_r.stderr or '').strip()[:1500]}")
         st = json.loads(get_r.stdout or "{}")
         props = st.get("properties", {}) or {}
         provisioning_state = props.get("provisioningState")
@@ -1654,16 +1709,18 @@ def az_automation_python3_package_install(
         if provisioning_state == "Succeeded":
             return
         if provisioning_state in ("Failed", "Cancelled"):
-            sys.exit(
-                f"ERROR: AA python3 package {name!r} entered terminal "
-                f"state {provisioning_state!r}; error: {error or '<none>'}"
-            )
+            raise ChatHealthyException(
+                mode="aborted",
+                component="_deploy_chain",
+                message=f"ERROR: AA python3 package {name!r} entered terminal "
+                f"state {provisioning_state!r}; error: {error or '<none>'}")
         _time.sleep(10)
-    sys.exit(
-        f"ERROR: AA python3 package {name!r} did not reach a terminal "
+    raise ChatHealthyException(
+        mode="aborted",
+        component="_deploy_chain",
+        message=f"ERROR: AA python3 package {name!r} did not reach a terminal "
         f"state within 10 minutes; last provisioningState was "
-        f"{provisioning_state!r}."
-    )
+        f"{provisioning_state!r}.")
 
 
 def ensure_runbook_python_packages(
@@ -1714,10 +1771,11 @@ def az_automation_runbook_webhook_list(rg: str, aa: str, runbook: str) -> list[d
         creationflags=creation_flags(), shell=(sys.platform == "win32"),
     )
     if r.returncode != 0:
-        sys.exit(
-            f"ERROR: AA webhook list failed for runbook {runbook!r}: "
-            f"{(r.stderr or '').strip()[:1500]}"
-        )
+        raise ChatHealthyException(
+            mode="aborted",
+            component="_deploy_chain",
+            message=f"ERROR: AA webhook list failed for runbook {runbook!r}: "
+            f"{(r.stderr or '').strip()[:1500]}")
     body = json.loads(r.stdout or "{}")
     items = body.get("value") or []
     return [
@@ -1739,10 +1797,11 @@ def az_automation_runbook_webhook_delete(rg: str, aa: str, webhook_name: str) ->
         creationflags=creation_flags(), shell=(sys.platform == "win32"),
     )
     if r.returncode != 0:
-        sys.exit(
-            f"ERROR: AA webhook delete failed for {webhook_name!r}: "
-            f"{(r.stderr or '').strip()[:1500]}"
-        )
+        raise ChatHealthyException(
+            mode="aborted",
+            component="_deploy_chain",
+            message=f"ERROR: AA webhook delete failed for {webhook_name!r}: "
+            f"{(r.stderr or '').strip()[:1500]}")
 
 
 def az_automation_runbook_webhook_create(
@@ -1777,17 +1836,19 @@ def az_automation_runbook_webhook_create(
         creationflags=creation_flags(), shell=(sys.platform == "win32"),
     )
     if r.returncode != 0:
-        sys.exit(
-            f"ERROR: AA webhook create failed for {webhook_name!r}: "
-            f"{(r.stderr or '').strip()[:1500]}"
-        )
+        raise ChatHealthyException(
+            mode="aborted",
+            component="_deploy_chain",
+            message=f"ERROR: AA webhook create failed for {webhook_name!r}: "
+            f"{(r.stderr or '').strip()[:1500]}")
     body_out = json.loads(r.stdout or "{}")
     webhook_url = body_out.get("properties", {}).get("uri") or ""
     if not webhook_url:
-        sys.exit(
-            f"ERROR: AA webhook PUT for {webhook_name!r} did not return a URI; "
-            f"the URL is unrecoverable from this point. Body: {r.stdout!r}"
-        )
+        raise ChatHealthyException(
+            mode="aborted",
+            component="_deploy_chain",
+            message=f"ERROR: AA webhook PUT for {webhook_name!r} did not return a URI; "
+            f"the URL is unrecoverable from this point. Body: {r.stdout!r}")
     return webhook_url
 
 
@@ -1801,10 +1862,11 @@ def functionapp_get_appsetting(rg: str, app: str, name: str) -> str:
         creationflags=creation_flags(), shell=(sys.platform == "win32"),
     )
     if r.returncode != 0:
-        sys.exit(
-            f"ERROR: az functionapp config appsettings list failed for "
-            f"{app!r}: {(r.stderr or '').strip()[:1500]}"
-        )
+        raise ChatHealthyException(
+            mode="aborted",
+            component="_deploy_chain",
+            message=f"ERROR: az functionapp config appsettings list failed for "
+            f"{app!r}: {(r.stderr or '').strip()[:1500]}")
     settings = json.loads(r.stdout or "[]")
     for s in settings:
         if s.get("name") == name:
@@ -2176,10 +2238,11 @@ def kv_secret_set(vault: str, name: str, value: str) -> None:
         creationflags=creation_flags(), shell=(sys.platform == "win32"),
     )
     if r.returncode != 0:
-        sys.exit(
-            f"ERROR: kv_secret_set failed for {vault}/{name}: "
-            f"{(r.stderr or '').strip()[:1500]}"
-        )
+        raise ChatHealthyException(
+            mode="aborted",
+            component="_deploy_chain",
+            message=f"ERROR: kv_secret_set failed for {vault}/{name}: "
+            f"{(r.stderr or '').strip()[:1500]}")
 
 
 def ensure_runbook_webhook_and_push_to_consumer(
@@ -2200,24 +2263,27 @@ def ensure_runbook_webhook_and_push_to_consumer(
     app_setting_name = webhook_block["app_setting_name"]
     consumer = coll.by_target_id(consumer_target_id)
     if consumer is None:
-        sys.exit(
-            f"ERROR: runbook {runbook!r} webhook block names consumer "
-            f"{consumer_target_id!r} which is not in the manifest."
-        )
+        raise ChatHealthyException(
+            mode="aborted",
+            component="_deploy_chain",
+            message=f"ERROR: runbook {runbook!r} webhook block names consumer "
+            f"{consumer_target_id!r} which is not in the manifest.")
     consumer_env = next(
         (e for e in consumer.environments if e.env_binding == env), None,
     )
     if consumer_env is None:
-        sys.exit(
-            f"ERROR: consumer {consumer_target_id!r} has no env_binding "
-            f"for env={env!r}; cannot push webhook URL."
-        )
+        raise ChatHealthyException(
+            mode="aborted",
+            component="_deploy_chain",
+            message=f"ERROR: consumer {consumer_target_id!r} has no env_binding "
+            f"for env={env!r}; cannot push webhook URL.")
     if consumer_env.azure is None:
-        sys.exit(
-            f"ERROR: consumer {consumer_target_id!r} env={env!r} is not "
+        raise ChatHealthyException(
+            mode="aborted",
+            component="_deploy_chain",
+            message=f"ERROR: consumer {consumer_target_id!r} env={env!r} is not "
             f"an azure_function_app target — only FA consumers are "
-            f"wired today for webhook-URL push."
-        )
+            f"wired today for webhook-URL push.")
     consumer_rg = consumer_env.azure["resource_group"]
     consumer_app = consumer_env.azure["function_app"]
     webhook_name = f"{runbook}Webhook"
@@ -2288,10 +2354,11 @@ def _deploy_runbook_packages(
                 continue
             pkg_dir = (repo_root / BUILD_ROOT_REL / target.target_id / pid)
             if not pkg_dir.is_dir():
-                sys.exit(
-                    f"ERROR: no build package at {pkg_dir}. Run "
-                    f"build_chathealthy.py first."
-                )
+                raise ChatHealthyException(
+                    mode="aborted",
+                    component="_deploy_chain",
+                    message=f"ERROR: no build package at {pkg_dir}. Run "
+                    f"build_chathealthy.py first.")
             synth = TargetRecord.from_dict(
                 _synth_runbook_package(raw, eb.to_dict(), pkg)
             )
@@ -2315,17 +2382,19 @@ def deploy_azure_automation_runbook(
         (e for e in target.environments if e.env_binding == env), None,
     )
     if env_binding is None:
-        sys.exit(
-            f"ERROR: target {target.target_id!r} has no env_binding "
-            f"matching {env!r}; cannot deploy."
-        )
+        raise ChatHealthyException(
+            mode="aborted",
+            component="_deploy_chain",
+            message=f"ERROR: target {target.target_id!r} has no env_binding "
+            f"matching {env!r}; cannot deploy.")
     aa_block = env_binding.azure_automation
     if aa_block is None:
-        sys.exit(
-            f"ERROR: target {target.target_id!r} env={env!r} is missing the "
+        raise ChatHealthyException(
+            mode="aborted",
+            component="_deploy_chain",
+            message=f"ERROR: target {target.target_id!r} env={env!r} is missing the "
             f"`azure_automation` sub-object (resource_group / automation_account / "
-            f"runbook_name) in deployment_architecture.json."
-        )
+            f"runbook_name) in deployment_architecture.json.")
     rg = aa_block["resource_group"]
     aa = aa_block["automation_account"]
     runbook = aa_block["runbook_name"]
@@ -2336,7 +2405,10 @@ def deploy_azure_automation_runbook(
 
     content_path = build_dir / "runbook.py"
     if not content_path.is_file():
-        sys.exit(f"ERROR: runbook.py missing at {content_path}")
+        raise ChatHealthyException(
+            mode="aborted",
+            component="_deploy_chain",
+            message=f"ERROR: runbook.py missing at {content_path}")
 
     # Push every secret binding into the Automation Account as an Automation
     # Variable. Resolver fetches the value from the operator's bound store
@@ -2400,11 +2472,12 @@ def deploy_azure_automation_runbook(
         try:
             webhook_url = resolver.resolve(ORCHESTRATOR_WEBHOOK_ENV_KEY, env)
         except KeyError:
-            sys.exit(
-                f"ERROR: deploy cannot verify {runbook} - "
+            raise ChatHealthyException(
+                mode="aborted",
+                component="_deploy_chain",
+                message=f"ERROR: deploy cannot verify {runbook} - "
                 f"{ORCHESTRATOR_WEBHOOK_ENV_KEY} is not in the operator's "
-                f"secret store. Set it in .env."
-            )
+                f"secret store. Set it in .env.")
         az_automation_orchestrator_verify_via_webhook(rg, aa, webhook_url, runbook)
     else:
         az_automation_runbook_verify_runnable(rg, aa, runbook)
@@ -2416,11 +2489,12 @@ def deploy_azure_automation_runbook(
     webhook_block = aa_block.get("webhook")
     if webhook_block is not None:
         if coll is None:
-            sys.exit(
-                f"ERROR: runbook {runbook!r} declares an azure_automation."
+            raise ChatHealthyException(
+                mode="aborted",
+                component="_deploy_chain",
+                message=f"ERROR: runbook {runbook!r} declares an azure_automation."
                 f"webhook block but the deploy handler was invoked without "
-                f"a manifest collection — cannot resolve consumer target."
-            )
+                f"a manifest collection — cannot resolve consumer target.")
         ensure_runbook_webhook_and_push_to_consumer(
             rg=rg, aa=aa, runbook=runbook,
             webhook_block=webhook_block, coll=coll, env=env,
@@ -2454,10 +2528,11 @@ def current_git_branch(repo_root: Path) -> str:
         cwd=str(repo_root), capture_output=True, text=True,
     )
     if cp.returncode != 0 or not cp.stdout.strip():
-        sys.exit(
-            "ERROR: deploy refuses to run from a detached HEAD or non-branch state.\n"
-            f"  stderr: {(cp.stderr or '').strip()[:300]}"
-        )
+        raise ChatHealthyException(
+            mode="aborted",
+            component="_deploy_chain",
+            message="ERROR: deploy refuses to run from a detached HEAD or non-branch state.\n"
+            f"  stderr: {(cp.stderr or '').strip()[:300]}")
     return cp.stdout.strip()
 
 
@@ -2568,7 +2643,10 @@ def deploy_one(
         return target_id
 
     if not build_dir.is_dir():
-        sys.exit(f"ERROR: build dir missing: {build_dir}")
+        raise ChatHealthyException(
+            mode="aborted",
+            component="_deploy_chain",
+            message=f"ERROR: build dir missing: {build_dir}")
     manifest = load_target_manifest(repo_root, target_id)
     build_n = int(manifest["build_number"])
     if target_kind == "cloudflare_pages_project":
@@ -2625,19 +2703,23 @@ def deploy_host_os_process(
     service has not deployed it.
     """
     if not build_dir.is_dir():
-        sys.exit(f"ERROR: build dir missing: {build_dir}")
+        raise ChatHealthyException(
+            mode="aborted",
+            component="_deploy_chain",
+            message=f"ERROR: build dir missing: {build_dir}")
     dest = repo_root / "deploy" / target.target_id.replace("target_host_local_", "")
 
     svc = next((e.windows_service for e in target.environments
                 if e.env_binding == env and e.windows_service), None)
     if svc and not _is_elevated():
-        sys.exit(
-            f"ERROR: {target.target_id} declares windows_service "
+        raise ChatHealthyException(
+            mode="aborted",
+            component="_deploy_chain",
+            message=f"ERROR: {target.target_id} declares windows_service "
             f"{svc['service_name']!r}, and registering a service requires "
             f"an elevated process. Re-run this deploy from an elevated "
             f"shell. Refusing to stage the files and report success while "
-            f"leaving the service unregistered."
-        )
+            f"leaving the service unregistered.")
 
     # Derived from the declared dotnet_project, never spelled out here: the
     # exe is named after the project, so a rename that touches one and not
@@ -2653,11 +2735,12 @@ def deploy_host_os_process(
         return target.target_id
     running = [p for p in dest.rglob(exe_name) if _file_is_locked(p)]
     if running:
-        sys.exit(
-            f"ERROR: {exe_name} is locked at {running[0]}, which means the "
+        raise ChatHealthyException(
+            mode="aborted",
+            component="_deploy_chain",
+            message=f"ERROR: {exe_name} is locked at {running[0]}, which means the "
             f"service is still running. Stop ClaudeCodeConversationPersistenceService and deploy "
-            f"again; overwriting a running binary leaves a partial install."
-        )
+            f"again; overwriting a running binary leaves a partial install.")
 
     if dest.exists():
         shutil.rmtree(dest)
@@ -2696,11 +2779,12 @@ def _register_windows_service(dest: Path, svc: dict) -> None:
     name = svc["service_name"]
     binary = (dest / svc["binary"]).resolve()
     if not binary.is_file():
-        sys.exit(
-            f"ERROR: windows_service {name!r} declares binary "
+        raise ChatHealthyException(
+            mode="aborted",
+            component="_deploy_chain",
+            message=f"ERROR: windows_service {name!r} declares binary "
             f"{svc['binary']!r}, which is not present at {binary} after "
-            f"staging. The build did not produce it."
-        )
+            f"staging. The build did not produce it.")
     start = {"Automatic": "auto", "Manual": "demand", "Disabled": "disabled"}[
         svc["start_mode"]]
     account = svc.get("account") or "LocalSystem"
@@ -2714,10 +2798,11 @@ def _register_windows_service(dest: Path, svc: dict) -> None:
     verb = "repointed" if exists else "registered"
     r = _sc("config" if exists else "create", name, *fields)
     if r.returncode != 0:
-        sys.exit(
-            f"ERROR: sc {'config' if exists else 'create'} {name} failed "
-            f"(rc={r.returncode}): {(r.stdout + r.stderr).strip()[:400]}"
-        )
+        raise ChatHealthyException(
+            mode="aborted",
+            component="_deploy_chain",
+            message=f"ERROR: sc {'config' if exists else 'create'} {name} failed "
+            f"(rc={r.returncode}): {(r.stdout + r.stderr).strip()[:400]}")
     step(f"  {verb} service {name} -> {binary}")
     step(f"  start_mode={svc['start_mode']} account={account}; NOT started -- "
          f"starting is the service manager's job, not the deploy's")
@@ -2780,7 +2865,10 @@ def select_target_ids(coll: DeploymentCollection, target_arg: str) -> list[tuple
         wanted = [p.strip() for p in target_arg.split(",") if p.strip()]
         unknown = [w for w in wanted if w not in by_id]
         if unknown:
-            sys.exit(f"ERROR: unknown target_id(s): {unknown}")
+            raise ChatHealthyException(
+                mode="aborted",
+                component="_deploy_chain",
+                message=f"ERROR: unknown target_id(s): {unknown}")
         return [(by_id[w].target_id, by_id[w].target_kind) for w in wanted]
     if target_arg == "pipeline":
         return [
@@ -2961,7 +3049,10 @@ def run_cloud_deploy(env: str, target_arg: str,
     else:
         selected = _dependency_sort_targets(select_target_ids(coll, target_arg))
     if not selected:
-        sys.exit(f"ERROR: no targets matched --target={target_arg!r}")
+        raise ChatHealthyException(
+            mode="aborted",
+            component="_deploy_chain",
+            message=f"ERROR: no targets matched --target={target_arg!r}")
     by_id = {t.target_id: t for t in coll}
     if any(by_id[tid].promote_chain_bound for tid, _ in selected):
         require_branch_matches_env(env)
@@ -2991,11 +3082,12 @@ def run_cloud_deploy(env: str, target_arg: str,
                 "target_azure_container_registry_pipeline"
             )
             if kv_target is None or acr_target is None:
-                sys.exit(
-                    "ERROR: manifest missing target_azure_key_vault_pipeline "
+                raise ChatHealthyException(
+                    mode="aborted",
+                    component="_deploy_chain",
+                    message="ERROR: manifest missing target_azure_key_vault_pipeline "
                     "or target_azure_container_registry_pipeline. F-012 §7 "
-                    "cannot run without both."
-                )
+                    "cannot run without both.")
             bake_ca_chain_into_images(
                 env=env, acr_target=acr_target, kv_target=kv_target,
             )
@@ -3070,10 +3162,11 @@ def run_cloud_deploy(env: str, target_arg: str,
             step(f"  {tid}: {msg[:300]}")
         return 1
     if not succeeded:
-        sys.exit(
-            f"ERROR: nothing deployed for env={env!r} target={target_arg!r}. "
-            f"Check env_binding in deployment_architecture.json."
-        )
+        raise ChatHealthyException(
+            mode="aborted",
+            component="_deploy_chain",
+            message=f"ERROR: nothing deployed for env={env!r} target={target_arg!r}. "
+            f"Check env_binding in deployment_architecture.json.")
     return 0
 
 
@@ -3127,7 +3220,10 @@ class LocalDeploy:
 
     def __init__(self) -> None:
         if REPO_ROOT_ENV not in os.environ:
-            sys.exit(f"ERROR: {_REPO_ROOT_ENV} env var not set. Cannot resolve paths.")
+            raise ChatHealthyException(
+                mode="aborted",
+                component="_deploy_chain",
+                message=f"ERROR: {_REPO_ROOT_ENV} env var not set. Cannot resolve paths.")
         self.env = "local"
         self.repo_root = Path(os.environ[REPO_ROOT_ENV]).resolve()
         self.deploy_dir = Path(__file__).resolve().parent
@@ -3182,7 +3278,10 @@ class LocalDeploy:
         )
         if not report.is_pass:
             sys.stderr.write(report.format() + "\n")
-            sys.exit(report.exit_code())
+            raise ChatHealthyException(
+                mode="aborted",
+                component="_deploy_chain",
+                message=report.exit_code())
         self._step_notice(
             f"deployment-architecture gate passed "
             f"(targets={len(coll)}, violations=0)"
@@ -3218,7 +3317,10 @@ class LocalDeploy:
         time.sleep(2)
         not_clear = [p for p in self.PORTS.values() if self._port_in_use(p)]
         if not_clear:
-            sys.exit(f"ERROR: ports still in use after teardown: {not_clear}")
+            raise ChatHealthyException(
+                mode="aborted",
+                component="_deploy_chain",
+                message=f"ERROR: ports still in use after teardown: {not_clear}")
         self.results["steps"].append({
             "ts": datetime.now(timezone.utc).isoformat(),
             "msg": f"teardown killed pids: {sorted(killed_pids) or 'none'}",
@@ -3241,11 +3343,20 @@ class LocalDeploy:
         ]
         missing = [c for c in required_certs if not (self.certs_dir / c).is_file()]
         if missing:
-            sys.exit(f"ERROR: missing certs in {self.certs_dir}: {missing}")
+            raise ChatHealthyException(
+                mode="aborted",
+                component="_deploy_chain",
+                message=f"ERROR: missing certs in {self.certs_dir}: {missing}")
         if not shutil.which("node"):
-            sys.exit("ERROR: node not on PATH")
+            raise ChatHealthyException(
+                mode="aborted",
+                component="_deploy_chain",
+                message="ERROR: node not on PATH")
         if not shutil.which("python"):
-            sys.exit("ERROR: python not on PATH")
+            raise ChatHealthyException(
+                mode="aborted",
+                component="_deploy_chain",
+                message="ERROR: python not on PATH")
 
     def _ensure_docker_available(self) -> None:
         """V11 S-002-REQ-T-001 — Docker mandatory; no Python-subprocess fallback."""
@@ -3254,12 +3365,13 @@ class LocalDeploy:
             capture_output=True, text=True, timeout=15, creationflags=creation_flags(),
         )
         if result.returncode != 0:
-            sys.exit(
-                "ERROR: Docker daemon not available. "
+            raise ChatHealthyException(
+                mode="aborted",
+                component="_deploy_chain",
+                message="ERROR: Docker daemon not available. "
                 "FIX: open Docker Desktop and re-run this script. "
                 f"`docker version` exit={result.returncode}, "
-                f"stderr={result.stderr.strip()[:300]}"
-            )
+                f"stderr={result.stderr.strip()[:300]}")
 
     def _write_build_info(self, build_ctx_abs: Path, container_name: str) -> Path:
         cflags = creation_flags()
@@ -3269,15 +3381,19 @@ class LocalDeploy:
         latest = latest_record()
         build_num = latest.get("build")
         if build_num is None:
-            sys.exit(
-                f"ERROR: {VERSIONS_DB}.{VERSIONS_COLLECTION} latest record "
-                f"has no 'build' field."
-            )
+            raise ChatHealthyException(
+                mode="aborted",
+                component="_deploy_chain",
+                message=f"ERROR: {VERSIONS_DB}.{VERSIONS_COLLECTION} latest record "
+                f"has no 'build' field.")
         build_num = int(build_num)
         version_str = latest.get("version")
         framework_str = latest.get("framework")
         if not version_str:
-            sys.exit("ERROR: admin.Versions latest record has no 'version' field.")
+            raise ChatHealthyException(
+                mode="aborted",
+                component="_deploy_chain",
+                message="ERROR: admin.Versions latest record has no 'version' field.")
         try:
             commit = subprocess.run(
                 ["git", "rev-parse", "--short", "HEAD"],
@@ -3321,10 +3437,11 @@ class LocalDeploy:
                                self.CONTAINER_TARGET_ID[container_name])
             dockerfile_abs = pkg / "Dockerfile"
             if not dockerfile_abs.is_file():
-                sys.exit(
-                    f"ERROR: Dockerfile missing at {dockerfile_abs}. "
-                    "V11 S-002-REQ-T-001 requires Dockerfile per backend."
-                )
+                raise ChatHealthyException(
+                    mode="aborted",
+                    component="_deploy_chain",
+                    message=f"ERROR: Dockerfile missing at {dockerfile_abs}. "
+                    "V11 S-002-REQ-T-001 requires Dockerfile per backend.")
             build_ctx_abs = pkg
             staged_lib = None
             if build_ctx_rel != ".":
@@ -3390,10 +3507,11 @@ class LocalDeploy:
                 if build_info_path.is_file():
                     build_info_path.unlink()
             if result.returncode != 0:
-                sys.exit(
-                    f"ERROR: docker build failed for {image_tag}: "
-                    f"{result.stderr.strip()[:500]}"
-                )
+                raise ChatHealthyException(
+                    mode="aborted",
+                    component="_deploy_chain",
+                    message=f"ERROR: docker build failed for {image_tag}: "
+                    f"{result.stderr.strip()[:500]}")
 
     def _build_website_container(self) -> None:
         """Build the Website wrapper container per S-002-REQ-T-002 / T-007 /
@@ -3411,11 +3529,12 @@ class LocalDeploy:
         if not dockerfile_abs.is_file():
             dockerfile_abs = pkg / "Dockerfile"
         if not dockerfile_abs.is_file():
-            sys.exit(
-                f"ERROR: Website Dockerfile missing at {dockerfile_abs}. "
+            raise ChatHealthyException(
+                mode="aborted",
+                component="_deploy_chain",
+                message=f"ERROR: Website Dockerfile missing at {dockerfile_abs}. "
                 "S-002-REQ-T-002 requires the Website wrapper to run in a "
-                "Docker container; its Dockerfile is the source of that image."
-            )
+                "Docker container; its Dockerfile is the source of that image.")
         self._step_notice(f"building image {self.WEBSITE_CONTAINER_NAME}")
         result = subprocess.run(
             # Context is the package, not the repo root. The package holds
@@ -3428,10 +3547,11 @@ class LocalDeploy:
             capture_output=True, text=True, creationflags=creation_flags(),
         )
         if result.returncode != 0:
-            sys.exit(
-                f"ERROR: docker build failed for {self.WEBSITE_CONTAINER_NAME}: "
-                f"{result.stderr.strip()[:500]}"
-            )
+            raise ChatHealthyException(
+                mode="aborted",
+                component="_deploy_chain",
+                message=f"ERROR: docker build failed for {self.WEBSITE_CONTAINER_NAME}: "
+                f"{result.stderr.strip()[:500]}")
 
     def _stage_wrapper_website(self) -> None:
         n = ch_fonts_inliner.stage_and_inline(
@@ -3454,7 +3574,10 @@ class LocalDeploy:
         canonical_vite = self.deploy_dir / "vite.config.ts"
         vite_copy = self.frontend_dir / "vite.config.ts"
         if not canonical_vite.is_file():
-            sys.exit(f"ERROR: canonical vite config missing at {canonical_vite}")
+            raise ChatHealthyException(
+                mode="aborted",
+                component="_deploy_chain",
+                message=f"ERROR: canonical vite config missing at {canonical_vite}")
         shutil.copy2(canonical_vite, vite_copy)
         try:
             subprocess.run(
@@ -3468,15 +3591,25 @@ class LocalDeploy:
                 shell=(sys.platform == "win32"),
             )
         except subprocess.CalledProcessError as e:
-            sys.exit(f"ERROR: React build failed: {e}")
+            raise ChatHealthyException(
+                mode="aborted",
+                component="_deploy_chain",
+                message=f"ERROR: React build failed: {e}",
+                exception=e)
         finally:
             if vite_copy.is_file():
                 vite_copy.unlink()
         dist_index = self.frontend_dir / "dist" / "index.html"
         if not dist_index.is_file():
-            sys.exit(f"ERROR: React build produced no {dist_index}")
+            raise ChatHealthyException(
+                mode="aborted",
+                component="_deploy_chain",
+                message=f"ERROR: React build produced no {dist_index}")
         if not ch_fonts_inliner.inline_into(dist_index):
-            sys.exit(f"ERROR: CH_FONTS marker not found in {dist_index}")
+            raise ChatHealthyException(
+                mode="aborted",
+                component="_deploy_chain",
+                message=f"ERROR: CH_FONTS marker not found in {dist_index}")
         backend_static = self.backend_dir / "static"
         for old in ("assets", "index.html"):
             old_path = backend_static / old
@@ -3496,10 +3629,11 @@ class LocalDeploy:
         certs_host = str(self.certs_dir).replace("\\", "/")
         env_file = self.repo_root / ".env"
         if not env_file.is_file():
-            sys.exit(
-                f"ERROR: env file missing at {env_file}; backend containers "
-                "depend on it for MongoDB / API credentials."
-            )
+            raise ChatHealthyException(
+                mode="aborted",
+                component="_deploy_chain",
+                message=f"ERROR: env file missing at {env_file}; backend containers "
+                "depend on it for MongoDB / API credentials.")
         from dotenv import dotenv_values
         env_dict = dotenv_values(env_file)
         # Local stack always binds to env={self.env} regardless of any
@@ -3553,10 +3687,11 @@ class LocalDeploy:
                 run_cmd, capture_output=True, text=True, creationflags=cflags,
             )
             if run_result.returncode != 0:
-                sys.exit(
-                    f"ERROR: docker run {container_name} failed: "
-                    f"{run_result.stderr.strip()[:500]}"
-                )
+                raise ChatHealthyException(
+                    mode="aborted",
+                    component="_deploy_chain",
+                    message=f"ERROR: docker run {container_name} failed: "
+                    f"{run_result.stderr.strip()[:500]}")
             self._step_notice(
                 f"docker run {container_name} -> host port {host_port}"
             )
@@ -3584,10 +3719,11 @@ class LocalDeploy:
             run_cmd, capture_output=True, text=True, creationflags=cflags,
         )
         if run_result.returncode != 0:
-            sys.exit(
-                f"ERROR: docker run {self.WEBSITE_CONTAINER_NAME} failed: "
-                f"{run_result.stderr.strip()[:500]}"
-            )
+            raise ChatHealthyException(
+                mode="aborted",
+                component="_deploy_chain",
+                message=f"ERROR: docker run {self.WEBSITE_CONTAINER_NAME} failed: "
+                f"{run_result.stderr.strip()[:500]}")
         self._step_notice(
             f"docker run {self.WEBSITE_CONTAINER_NAME} -> host ports 80+443 "
             "(per S-002-REQ-T-002)"
@@ -3634,10 +3770,11 @@ class LocalDeploy:
                     self._step_notice(f"all components ready: {ready}")
                     return
                 time.sleep(3)
-        sys.exit(
-            f"ERROR: components did not all come up in {timeout_s}s. "
-            f"State: {last_state}"
-        )
+        raise ChatHealthyException(
+            mode="aborted",
+            component="_deploy_chain",
+            message=f"ERROR: components did not all come up in {timeout_s}s. "
+            f"State: {last_state}")
 
     # REQ-B-003 — verify components
     def _verify_components(self) -> None:
@@ -3676,10 +3813,11 @@ class LocalDeploy:
             + (f"; failed={failed}" if failed else "")
         )
         if failed:
-            sys.exit(
-                f"ERROR: verification failed for {failed}. Aborting deploy "
-                "per V11 S-001-REQ-B-001 (atomic / no half-deployed state)."
-            )
+            raise ChatHealthyException(
+                mode="aborted",
+                component="_deploy_chain",
+                message=f"ERROR: verification failed for {failed}. Aborting deploy "
+                "per V11 S-001-REQ-B-001 (atomic / no half-deployed state).")
 
     # REQ-B-004 — invoke smoke test
 
@@ -3711,7 +3849,10 @@ class LocalDeploy:
             return
         ca_path = self.certs_dir / "ca.crt"
         if not ca_path.is_file():
-            sys.exit(f"ERROR: ChatHealthy CA cert missing at {ca_path}")
+            raise ChatHealthyException(
+                mode="aborted",
+                component="_deploy_chain",
+                message=f"ERROR: ChatHealthy CA cert missing at {ca_path}")
         probe = subprocess.run(
             ["certutil", "-store", "Root"],
             capture_output=True, text=True,
@@ -3735,21 +3876,23 @@ class LocalDeploy:
             creationflags=subprocess.CREATE_NO_WINDOW,
         )
         if result.returncode != 0:
-            sys.exit(
-                f"ERROR: certutil install failed (rc={result.returncode}). "
+            raise ChatHealthyException(
+                mode="aborted",
+                component="_deploy_chain",
+                message=f"ERROR: certutil install failed (rc={result.returncode}). "
                 f"stderr={result.stderr or '(empty)'} "
-                f"stdout={result.stdout or '(empty)'}"
-            )
+                f"stdout={result.stdout or '(empty)'}")
         verify = subprocess.run(
             ["certutil", "-store", "Root"],
             capture_output=True, text=True,
             creationflags=subprocess.CREATE_NO_WINDOW,
         )
         if "ChatHealthy" not in (verify.stdout or ""):
-            sys.exit(
-                "ERROR: ChatHealthy Local CA install completed but the "
-                "Windows Root store still doesn't show it (UAC cancelled?)."
-            )
+            raise ChatHealthyException(
+                mode="aborted",
+                component="_deploy_chain",
+                message="ERROR: ChatHealthy Local CA install completed but the "
+                "Windows Root store still doesn't show it (UAC cancelled?).")
         self._step_notice("ChatHealthy Local CA verified in Windows Root store")
 
     # ── Orchestration ─────────────────────────────────────────────────

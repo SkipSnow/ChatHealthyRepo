@@ -1028,8 +1028,8 @@ def _resolve_state_scope(raw):
 # ============================================================================
 # Main
 # ============================================================================
-def main() -> int:
-    invocation_mode = INVOCATION_MODE
+def _run_pipeline(invocation_mode):
+    """Run the pipeline and report."""
     webhook_body = _parse_webhook_input()
     if webhook_body:
         invocation_mode = webhook_body.get("invocation_mode", "webhook")
@@ -1247,6 +1247,11 @@ def main() -> int:
             log("pipeline_lock_ownership_handed_to_vm",
                 pipeline_name=PIPELINE_NAME, run_id=run_id,
                 vm_name=vm_name_for_teardown)
+
+
+def main() -> int:
+    invocation_mode = INVOCATION_MODE
+    return _run_pipeline(invocation_mode)
 
 
 if __name__ == "__main__":

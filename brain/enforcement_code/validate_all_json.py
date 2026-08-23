@@ -241,52 +241,63 @@ def walk_json_files(root: Path) -> list[Path]:
     return out
 
 
+_FAILING = ("FAIL", "PARSE_ERROR", "UNREADABLE", "MISSING_SCHEMA",
+            "NOT_STRICT", "FETCH_FAILED", "VALIDATOR_UNAVAILABLE")
+_QUIET = ("PASS", "SKIPPED_META_SCHEMA", "SKIPPED_NOT_OBJECT")
+
+
+def _tally(results: list[dict]) -> dict[str, int]:
+    """How many files landed in each status."""
+    summary: dict[str, int] = {}
+    for result in results:
+        summary[result["status"]] = summary.get(result["status"], 0) + 1
+    return summary
+
+
+def _report(results: list[dict], root: Path, summary: dict[str, int],
+            failures: list[dict]) -> None:
+    """Every file that is not clean, then the totals.
+
+    Passing files are not printed: a report listing everything hides the
+    handful that matter.
+    """
+    _CH_LOG.info(f"Validating {len(results)} JSON file(s) under {root}")
+    _CH_LOG.info("=" * 90)
+    for result in results:
+        if result["status"] in _QUIET:
+            continue
+        _CH_LOG.info(f"{result['status']:22} {result['file']}")
+        for error in result["errors"]:
+            _CH_LOG.info(f"  {error}")
+    _CH_LOG.info("=" * 90)
+    _CH_LOG.info("Summary: "
+                 + ", ".join(f"{k}={v}" for k, v in sorted(summary.items())))
+    _CH_LOG.info(f"Failures: {len(failures)}")
+
+
+def _write_report(root: Path, results: list[dict],
+                  summary: dict[str, int]) -> None:
+    """The same findings, machine-readable, where a gate can read them."""
+    REPORT_PATH.parent.mkdir(parents=True, exist_ok=True)
+    payload = {"root": str(root), "total_files": len(results),
+               "summary": summary, "results": results}
+    REPORT_PATH.write_text(
+        json.dumps(payload, indent=2, ensure_ascii=False) + chr(10),
+        encoding="utf-8")
+    _CH_LOG.info(f"Report: {REPORT_PATH}")
+
+
 def main(argv: list[str]) -> int:
+    """Validate every governed JSON file and report the outcome."""
     root = Path(argv[1]).resolve() if len(argv) > 1 else BRAIN_CONTENT
     if not root.is_dir():
         _CH_LOG.info(f"ERROR: {root} is not a directory")
         return 2
-
-    files = walk_json_files(root)
-    results = [validate_one(f) for f in files]
-
-    # Summarize
-    summary: dict[str, int] = {}
-    for r in results:
-        summary[r["status"]] = summary.get(r["status"], 0) + 1
-
-    failures = [r for r in results if r["status"] in (
-        "FAIL", "PARSE_ERROR", "UNREADABLE", "MISSING_SCHEMA",
-        "NOT_STRICT", "FETCH_FAILED", "VALIDATOR_UNAVAILABLE",
-    )]
-
-    # Print per-file report so every error is visible in the console
-    _CH_LOG.info(f"Validating {len(files)} JSON file(s) under {root}")
-    _CH_LOG.info("=" * 90)
-    for r in results:
-        if r["status"] == "PASS":
-            continue  # don't spam PASS lines
-        if r["status"] in ("SKIPPED_META_SCHEMA", "SKIPPED_NOT_OBJECT"):
-            continue
-        _CH_LOG.info(f"{r['status']:22} {r['file']}")
-        for e in r["errors"]:
-            _CH_LOG.info(f"  {e}")
-    _CH_LOG.info("=" * 90)
-    _CH_LOG.info("Summary: " + ", ".join(f"{k}={v}" for k, v in sorted(summary.items())))
-    _CH_LOG.info(f"Failures: {len(failures)}")
-
-    # Write machine-readable report
-    REPORT_PATH.parent.mkdir(parents=True, exist_ok=True)
-    report = {
-        "root": str(root),
-        "total_files": len(files),
-        "summary": summary,
-        "results": results,
-    }
-    REPORT_PATH.write_text(json.dumps(report, indent=2, ensure_ascii=False) + "\n",
-                           encoding="utf-8")
-    _CH_LOG.info(f"Report: {REPORT_PATH}")
-
+    results = [validate_one(f) for f in walk_json_files(root)]
+    summary = _tally(results)
+    failures = [r for r in results if r["status"] in _FAILING]
+    _report(results, root, summary, failures)
+    _write_report(root, results, summary)
     return 1 if failures else 0
 
 
