@@ -52,6 +52,11 @@ def scan(repo_root: Path) -> list[str]:
                 continue
             try:
                 source = py.read_text(encoding="utf-8", errors="replace")
+                # compile, not ast.parse. The parser accepts things the
+                # compiler refuses -- a repeated keyword argument among them --
+                # so a file that cannot run reached a container and died at
+                # import while this gate reported it clean.
+                compile(source, str(py), "exec")
                 tree = ast.parse(source, filename=str(py))
             except SyntaxError as e:
                 errors.append(f"{py.relative_to(repo_root).as_posix()}: SyntaxError: {e}")
