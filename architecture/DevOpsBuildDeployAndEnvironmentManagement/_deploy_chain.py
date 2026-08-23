@@ -3035,16 +3035,27 @@ def run_cloud_deploy(env: str, target_arg: str,
             if explicit_target_ids is not None else ""))
     brain_path = repo_root / "brain" / "machine_artifacts" / "content" / "deployment_architecture.json"
     env_file = repo_root / ".env"
-    load_filter = target_arg if target_arg.startswith("target_") else None
+    # A comma-separated list of target_ids is a legal --target, and this
+    # handed the whole string to the loader as one id, which matched nothing.
+    # Passing None loads the collection and lets explicit_target_ids do the
+    # selecting, which is what a multi-target deploy asked for.
+    named = [t for t in target_arg.split(",") if t.strip().startswith("target_")]
+    load_filter = named[0] if len(named) == 1 else None
     coll: DeploymentCollection = RecordLoader().load_collection(
         brain_path, target_id_filter=load_filter,
     )
     resolver = SecretsResolver.from_collection(coll, env_file=env_file)
     if explicit_target_ids is not None:
         allowed = set(explicit_target_ids)
+        # select_target_ids reads the raw argument too; with several ids in
+        # it, ask per id and join, so each is matched as the id it is.
+        pairs: list[tuple[str, str]] = []
+        for one in (named or [target_arg]):
+            pairs.extend(select_target_ids(coll, one))
+        seen: set[str] = set()
         selected = _dependency_sort_targets([
-            (tid, kind) for tid, kind in select_target_ids(coll, target_arg)
-            if tid in allowed
+            (tid, kind) for tid, kind in pairs
+            if tid in allowed and not (tid in seen or seen.add(tid))
         ])
     else:
         selected = _dependency_sort_targets(select_target_ids(coll, target_arg))
