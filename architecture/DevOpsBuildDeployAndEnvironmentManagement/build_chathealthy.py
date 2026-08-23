@@ -274,8 +274,10 @@ def _bump_build_counter(env: str) -> int:
     # repo script reaches it by path.
     sys.path.insert(0, str(repo_root / "ChatHealthyLib" / "src"))
     from chathealthy_lib.mongo_utilities import ChatHealthyMongoUtilities
+    from cluster_host import host_for as _cluster_host
     coll = (ChatHealthyMongoUtilities()
-            .getConnection("DevOpsUser", "ChatHealthyFrontEnd")[VERSIONS_DB][VERSIONS_COLLECTION])
+            .getConnection("DevOpsUser", "ChatHealthyFrontEnd",
+                            host=_cluster_host("ChatHealthyFrontEnd"))[VERSIONS_DB][VERSIONS_COLLECTION])
     latest = coll.find_one(sort=[("from", -1)])
     if latest is None:
         raise ChatHealthyException(
