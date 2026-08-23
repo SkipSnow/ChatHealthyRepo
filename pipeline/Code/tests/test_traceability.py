@@ -14,21 +14,21 @@ def _load_matrix():
         return json.load(f)
 
 def test_matrix_valid_json():
-    """EPIC-006-F-017-S-001-REQ-T-003: matrix file must parse and have required structure"""
+    """EPIC-006-F-017-S-001: matrix file must parse and have required structure"""
     matrix = _load_matrix()
     assert "_record_id" in matrix
     assert "entries" in matrix
     assert len(matrix["entries"]) > 0
 
 def test_all_requirements_have_tests():
-    """EPIC-006-F-017-S-001-REQ-T-001: every pipeline requirement has test artifact(s)"""
+    """EPIC-006-F-017-S-001: every pipeline requirement has test artifact(s)"""
     matrix = _load_matrix()
     for req_id, entry in matrix["entries"].items():
         tests = entry.get("test_artifacts", [])
         assert len(tests) > 0, f"Requirement {req_id} has no test artifacts"
 
 def test_test_files_exist():
-    """EPIC-006-F-017-S-001-REQ-T-002: every test file in matrix exists on disk"""
+    """EPIC-006-F-017-S-001: every test file in matrix exists on disk"""
     matrix = _load_matrix()
     missing = []
     for req_id, entry in matrix["entries"].items():

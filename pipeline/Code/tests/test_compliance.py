@@ -12,12 +12,12 @@ def _read(filename):
         return f.read()
 
 def test_no_raw_requests_get():
-    """EPIC-006-F-015-S-001-REQ-T-001: no requests.get in prescriber_evaluate_care_pipeline.py"""
+    """EPIC-006-F-015-S-001: no requests.get in prescriber_evaluate_care_pipeline.py"""
     content = _read("prescriber_evaluate_care_pipeline.py")
     assert "requests.get(" not in content
 
 def test_no_readall():
-    """EPIC-006-F-015-S-001-REQ-T-002: no .readall() on full blob downloads in pipeline files.
+    """EPIC-006-F-015-S-001: no .readall() on full blob downloads in pipeline files.
     Bounded byte-range reads (offset+length) in partition logic are allowed."""
     EXEMPT_PATTERNS = ["download_blob(offset="]  # bounded reads are OK
     for fname in os.listdir(PIPELINE_DIR):
@@ -34,7 +34,7 @@ def test_no_readall():
                     pytest.fail(f".readall() found in {fname}:{i}: {line.strip()}")
 
 def test_no_hardcoded_urls():
-    """EPIC-006-F-015-S-001-REQ-T-003: CMS URL loaded from env/config, not used as bare literal"""
+    """EPIC-006-F-015-S-001: CMS URL loaded from env/config, not used as bare literal"""
     content = _read("prescriber_evaluate_care_pipeline.py")
     # The URL must appear ONLY inside the CMS_PART_D_URL config assignment.
     # Verify: CMS_PART_D_URL is defined via os.environ.get, and the code uses
@@ -53,7 +53,7 @@ def test_no_hardcoded_urls():
             pytest.fail(f"Hardcoded CMS URL used outside config: {stripped}")
 
 def test_bell_ringer_imported():
-    """EPIC-006-F-015-S-001-REQ-T-005: pipeline imports BellRinger from
+    """EPIC-006-F-015-S-001: pipeline imports BellRinger from
     architecture/DevOpsBuildDeployAndEnvironmentManagement/code/bell_ringer.py"""
     content = _read("prescriber_evaluate_care_pipeline.py")
     assert "from bell_ringer import" in content or "import bell_ringer" in content

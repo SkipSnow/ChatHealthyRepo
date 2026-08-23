@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-# EPIC-008-F-003-S-001-REQ-T-007/016/017 — InstructionsLoaded hook.
+# EPIC-008-F-003-S-001/016/017 — InstructionsLoaded hook.
 #
 # For every instruction file the harness loads, append one line to
 # _oneshots/test_output/instructions_loaded.log. For the three context-resident

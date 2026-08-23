@@ -11,12 +11,12 @@
             {
               "statement_number": 1,
               "statement_body": "On every UserPromptSubmit hook event, the raw hook payload MUST be written to the spool at C:\tmp\\ChatHealthySpool as write-<guid>-<time_ns>.txt and then renamed in place to read-<guid>-<time_ns>.txt. The rename is what makes the file visible only once complete. The payload MUST NOT be parsed, and the writer MUST NOT open a network connection.",
-              "req_id": "EPIC-008-F-013-S-001-REQ-T-001"
+              "req_id": "EPIC-008-F-013-S-001"
             },
             {
               "statement_number": 2,
               "statement_body": "On every Stop hook event, the raw hook payload MUST be written to the spool by the same mechanism as statement 1.",
-              "req_id": "EPIC-008-F-013-S-001-REQ-T-002"
+              "req_id": "EPIC-008-F-013-S-001"
             },
             {
               "statement_number": 3,
@@ -57,27 +57,27 @@
             {
               "statement_number": 1,
               "statement_body": "On SessionStart and PostCompact, the boot MUST read the 170 most recent utterance documents from MongoDB ClaudeCodeLog.conversation_log_archive, trim each document to {actor, content}, order newest-to-oldest, and emit them as part of the hook's additionalContext so Claude resumes with recent conversation context. If the MongoDB read fails, the boot MUST fail open — log the failure and continue with remaining duties.",
-              "req_id": "EPIC-008-F-002-S-007-REQ-T-002"
+              "req_id": "EPIC-008-F-002-S-007"
             },
             {
               "statement_number": 2,
               "statement_body": "On SessionStart and PostCompact, the boot MUST read brain/machine_artifacts/content/agile_backlog.json and emit the business taxonomy as part of the hook's additionalContext: every epic's id, name, and description; every feature's id, name, and description; every story's id and name. Story descriptions, requirements, and tests MUST NOT be emitted.",
-              "req_id": "EPIC-008-F-002-S-007-REQ-T-003"
+              "req_id": "EPIC-008-F-002-S-007"
             },
             {
               "statement_number": 3,
               "statement_body": "The boot MUST read the Claude Code hook payload JSON from stdin and dispatch on the hook_event_name field. SessionStart and PostCompact MUST each execute the duties in statements 1 and 2. Any other hook_event_name value MUST be a no-op that exits 0.",
-              "req_id": "EPIC-008-F-002-S-007-REQ-T-006"
+              "req_id": "EPIC-008-F-002-S-007"
             },
             {
               "statement_number": 4,
               "statement_body": "chathealthy_devops_boot.py MUST NOT appear directly in .claude/settings.json hooks. It is invoked exclusively via Rule-002 enforcement entries dispatched by chathealthy_enforcement_manager.py. .claude/settings.json registers only the enforcement manager (one entry per hook); the manager loads engineering_rules.json and spawns the matching enforcement workers.",
-              "req_id": "EPIC-008-F-002-S-007-REQ-T-007"
+              "req_id": "EPIC-008-F-002-S-007"
             },
             {
               "statement_number": 5,
               "statement_body": "On SessionStart and PostCompact, the boot MUST compare the current line count of %TEMP%/chathealthy_consumer_errors.log to a line-count semaphore at %TEMP%/chathealthy_last_boot_error_line.txt. If the current line count exceeds the semaphore, the boot MUST emit one line to additionalContext naming the file path and the new line range. The boot MUST then update the semaphore to the current line count. If the error file does not exist, the boot MUST treat the line count as 0 and emit nothing.",
-              "req_id": "EPIC-008-F-013-S-003-REQ-T-002"
+              "req_id": "EPIC-008-F-013-S-003"
             }
           ]
         },

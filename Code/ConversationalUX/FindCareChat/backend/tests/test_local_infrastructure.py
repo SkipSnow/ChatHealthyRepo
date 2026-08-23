@@ -41,7 +41,7 @@ class TestSDTLocal001:
     """SDT-LOCAL-001: Python HTTP server serves Website/ on port 80."""
 
     def test_bat_starts_service_on_port_80(self):
-        """EPIC-006-F-029-S-001-REQ-T-001: start_local.bat launches something that serves port 80."""
+        """EPIC-006-F-029-S-001: start_local.bat launches something that serves port 80."""
         bat = _bat_content()
         # Caddy handles port 80 (reverse proxy) or a direct python http.server
         assert ":80" in bat or "port 80" in bat.lower() or "Caddy" in bat, \
@@ -56,14 +56,14 @@ class TestSDTLocal002:
     """SDT-LOCAL-002: EvaluateCare app.py on port 8001."""
 
     def test_app_runs_on_port_8001(self):
-        """EPIC-006-F-029-S-002-REQ-T-001: app.py defaults to port 8001."""
+        """EPIC-006-F-029-S-002: app.py defaults to port 8001."""
         src = _read(_EVALCARE_APP)
         assert "8001" in src, "EvaluateCare app.py must reference port 8001"
         # Verify the __main__ block or uvicorn config uses 8001
         assert 'PORT' in src or '8001' in src
 
     def test_cors_allows_localhost_origins(self):
-        """EPIC-006-F-029-S-002-REQ-T-002: CORS allows localhost origins for all ports."""
+        """EPIC-006-F-029-S-002: CORS allows localhost origins for all ports."""
         src = _read(_EVALCARE_APP)
         assert "CORSMiddleware" in src, "Must use CORSMiddleware"
         assert "localhost" in src, "CORS origins must include localhost"
@@ -96,7 +96,7 @@ class TestSDTLocal003:
     """SDT-LOCAL-003: start_local.bat launches all services."""
 
     def test_launches_all_4_services(self):
-        """EPIC-006-F-029-S-003-REQ-T-001: start_local.bat launches all 4 services."""
+        """EPIC-006-F-029-S-003: start_local.bat launches all 4 services."""
         bat = _bat_content()
         # Must launch: Caddy/Website, Vite/React, FindCare, EvaluateCare
         services_found = []
@@ -112,7 +112,7 @@ class TestSDTLocal003:
             f"Must launch 4 services, found {len(services_found)}: {services_found}"
 
     def test_admin_requirement_documented(self):
-        """EPIC-006-F-029-S-003-REQ-T-002: Script documents admin requirement for port 80."""
+        """EPIC-006-F-029-S-003: Script documents admin requirement for port 80."""
         bat = _bat_content()
         bat_lower = bat.lower()
         has_admin_ref = ("administrator" in bat_lower or "admin" in bat_lower
@@ -122,7 +122,7 @@ class TestSDTLocal003:
             "start_local.bat must mention admin/administrator requirement for port 80"
 
     def test_kills_zombies_on_all_service_ports(self):
-        """EPIC-006-F-029-S-003-REQ-T-005: Kills zombies on ALL service ports."""
+        """EPIC-006-F-029-S-003: Kills zombies on ALL service ports."""
         bat = _bat_content()
         required_ports = ["80", "443", "5173", "8000", "8001"]
         missing = []
@@ -135,7 +135,7 @@ class TestSDTLocal003:
             f"start_local.bat must kill zombies on ports {missing}"
 
     def test_logs_output_to_temp(self):
-        """EPIC-006-F-029-S-003-REQ-T-006: Logs output to %TEMP%/chathealthy_*.log."""
+        """EPIC-006-F-029-S-003: Logs output to %TEMP%/chathealthy_*.log."""
         bat = _bat_content()
         assert "TEMP" in bat or "temp" in bat.lower(), \
             "start_local.bat must reference %TEMP% for log files"
@@ -145,7 +145,7 @@ class TestSDTLocal003:
             "Log files must have .log extension"
 
     def test_verification_reports_log_on_failure(self):
-        """EPIC-006-F-029-S-003-REQ-T-007: Verification reports which log to check on failure."""
+        """EPIC-006-F-029-S-003: Verification reports which log to check on failure."""
         bat = _bat_content()
         # The FAIL lines should reference log file paths
         bat_lower = bat.lower()
@@ -155,7 +155,7 @@ class TestSDTLocal003:
             "Verification failures must tell user which log to check"
 
     def test_verifies_evaluatecare_on_8001(self):
-        """EPIC-006-F-029-S-003-REQ-T-008: Verifies EvaluateCare on :8001 is healthy."""
+        """EPIC-006-F-029-S-003: Verifies EvaluateCare on :8001 is healthy."""
         bat = _bat_content()
         # Should curl or check :8001/health
         has_8001_verify = ("8001" in bat and ("health" in bat.lower() or "curl" in bat.lower()))

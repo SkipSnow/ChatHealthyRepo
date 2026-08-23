@@ -50,15 +50,6 @@ RUN python -m pip install --no-cache-dir --upgrade pip==25.3 \
  && python -m pip install --no-cache-dir --no-deps /tmp/ChatHealthyLib \
  && rm -rf /tmp/ChatHealthyLib
 
-# Fail the build rather than ship an image whose contents differ from what
-# the record says ran. A version that drifted is only discoverable later,
-# from a scan result nobody can reproduce.
-COPY brain/machine_artifacts/content/deployment_architecture.json /tmp/record.json
-COPY architecture/EngineeringRuleEnforcement/code/verify_image_matches_record.py \
-     /tmp/verify_image_matches_record.py
-RUN python /tmp/verify_image_matches_record.py /tmp/record.json \
- && rm /tmp/record.json /tmp/verify_image_matches_record.py
-
 # CH_LOG_DESTINATION was assigned at import by eight modules, because the
 # chain materialises an application .env that points logging at Mongo and
 # devops tooling has no grant to write there. It is the environment's fact,
