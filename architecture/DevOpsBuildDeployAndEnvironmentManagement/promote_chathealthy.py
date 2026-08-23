@@ -449,7 +449,11 @@ def _promote_local_to_dev(repo_root: Path, label: str | None = None) -> int:
         return _finish("refused_by_governance", rc)
 
     auto = f"promote local -> dev ({datetime.now(timezone.utc).isoformat()})"
-    message = (label + chr(10) + chr(10) + auto) if label else auto
+    # The operator may rewrite the message on the approval page. Typing
+    # something replaces the label; leaving it alone keeps it. The trailer
+    # naming the promotion and its time is added either way.
+    subject = gate.operator_message or label
+    message = (subject + chr(10) + chr(10) + auto) if subject else auto
     _CH_LOG.info(f"[promote] commit: {message.splitlines()[0]}")
     rc = subprocess.run(["git", "commit", "--allow-empty", "-m", message],
                         cwd=str(repo_root)).returncode

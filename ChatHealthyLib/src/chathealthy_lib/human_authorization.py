@@ -43,6 +43,9 @@ class Authorization:
     subject: str
     url: str
     seconds_waited: float
+    # What the operator typed in place of the offered text, if anything.
+    # Empty means they left it alone and the caller's own text stands.
+    message: str = ""
 
     @property
     def approved(self) -> bool:
@@ -117,7 +120,9 @@ def _click_proof(token: str) -> str:
         "if(hc!=='true'){document.getElementById('why').textContent="
         "'Move the mouse across this window, then click.';return;}"
         "fetch('/decide',{method:'POST',body:new URLSearchParams("
-        "{token:TOKEN,verdict:v,human_click:hc})})"
+        "var el=document.getElementById('message');"
+        "var msg=el?el.value:'';"
+        "{token:TOKEN,verdict:v,human_click:hc,message:msg})})"
         ".then(function(){document.body.innerHTML='<h1>Recorded.</h1>';"
         "try{window.close();}catch(e){}});}"
         "document.getElementById('btn_approve').addEventListener('click',"
@@ -194,6 +199,9 @@ def _transfer_page(token: str, collection: str, source: dict, destination: dict,
         "word-break:break-all}"
         ".arrow{flex:0 0 auto;color:#1a6f7f;font-size:60px;line-height:1}"
         ".named{max-width:1180px;margin:26px auto 0;text-align:center}"
+        "textarea.chip{width:100%;max-width:900px;display:block;margin:0 auto;"
+        "border:2px solid #1f1f5c;resize:vertical}"
+        ".hint{font-size:13px;opacity:.8;margin-top:8px}"
         ".nk{font-size:17px;letter-spacing:.10em;text-transform:uppercase;opacity:.85;margin-bottom:8px}"
         "p.detail{max-width:900px;margin:26px auto 0;font-size:15px;"
         "line-height:1.55;text-align:center;opacity:.93}"
@@ -218,7 +226,11 @@ def _transfer_page(token: str, collection: str, source: dict, destination: dict,
         # act; a commit message does not change in transit, so printing it
         # twice says nothing and labels it as nothing.
         + (f"<div class=named><div class=nk>{chip_label}</div>"
-           f"<span class=chip>{collection}</span></div>" if chip_label else "")
+           f"<textarea id=message class=chip rows=2 "
+           f"spellcheck=false>{collection}</textarea>"
+           f"<div class=hint>Edit this if you want a different message. "
+           f"Leave it as it is and the message above is used.</div></div>"
+           if chip_label else "")
         + f"<p class=detail>{detail}</p></main>"
         "<div class=buttons>"
         "<button class=reject id=btn_reject type=button>REJECT</button>"
@@ -353,7 +365,7 @@ def request_authorization(action: str, subject: str,
         port = probe.getsockname()[1]
 
     token = secrets.token_urlsafe(8)
-    decision: dict = {"verdict": None, "human_click": False}
+    decision: dict = {"verdict": None, "human_click": False, "message": ""}
     if transfer:
         by = transfer.get("authorizer") or ""
         now = datetime.datetime.now().astimezone()
@@ -407,6 +419,7 @@ def request_authorization(action: str, subject: str,
                 return
             decision["verdict"] = verdict
             decision["human_click"] = True
+            decision["message"] = fields.get("message", [""])[0].strip()
             self._send(200, _ACK)
 
     url = f"http://127.0.0.1:{port}/prompt"
@@ -489,4 +502,4 @@ def request_authorization(action: str, subject: str,
     if decision["verdict"] is None:
         return Authorization(TIMEOUT, False, subject, url, waited)
     return Authorization(decision["verdict"], decision["human_click"],
-                         subject, url, waited)
+                         subject, url, waited, decision["message"])
