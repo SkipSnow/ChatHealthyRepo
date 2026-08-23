@@ -17,6 +17,14 @@ for _d in _pl.Path(__file__).resolve().parents:
             _sys.path.insert(0, str(_lib))
         break
 from chathealthy_lib.logging_service import ChatHealthyLoggingService
+import sys as _ch_sys, pathlib as _ch_pl  # noqa: E402
+for _ch_d in _ch_pl.Path(__file__).resolve().parents:
+    if (_ch_d / '.git').exists():
+        _ch_lib = _ch_d / 'ChatHealthyLib' / 'src'
+        if str(_ch_lib) not in _ch_sys.path:
+            _ch_sys.path.insert(0, str(_ch_lib))
+        break
+from chathealthy_lib.exceptions import ChatHealthyException  # noqa: E402
 
 _CH_LOG = ChatHealthyLoggingService()
 
@@ -31,14 +39,20 @@ def kv_secret(vault: str, name: str) -> str:
         capture_output=True, text=True, shell=False,
     )
     if p.returncode != 0:
-        sys.exit(f"FATAL: cannot read KV secret {name}: {p.stderr}")
+        raise ChatHealthyException(
+            mode="aborted",
+            component="test_provider_pipeline_vt_de",
+            message=f"FATAL: cannot read KV secret {name}: {p.stderr}")
     return p.stdout.strip()
 
 
 def main():
     url = kv_secret("kv-chpipeline-dev", "PROVIDER-PIPELINE-WEBHOOK-URL")
     if not url:
-        sys.exit("FATAL: PROVIDER-PIPELINE-WEBHOOK-URL is empty")
+        raise ChatHealthyException(
+            mode="aborted",
+            component="test_provider_pipeline_vt_de",
+            message="FATAL: PROVIDER-PIPELINE-WEBHOOK-URL is empty")
     body = json.dumps({
         "state_scope": ["VT", "DE"],
         "load_mode": "full",
@@ -63,7 +77,11 @@ def main():
             _CH_LOG.info(exc.read().decode("utf-8", errors="replace")[:2000])
         except Exception:
             pass
-        sys.exit(1)
+        raise ChatHealthyException(
+            mode="aborted",
+            component="test_provider_pipeline_vt_de",
+            message=1,
+            exception=exc)
 
 
 if __name__ == "__main__":

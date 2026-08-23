@@ -53,6 +53,14 @@ _ch_os.environ["CH_LOG_DESTINATION"] = "stderr"
 from chathealthy_lib.logging_service import ChatHealthyLoggingService
 sys.path.insert(0, str(_ch_d / 'architecture' / 'EngineeringRuleEnforcement' / 'code'))
 from baseline_walk import baseline_files
+import sys as _ch_sys, pathlib as _ch_pl  # noqa: E402
+for _ch_d in _ch_pl.Path(__file__).resolve().parents:
+    if (_ch_d / '.git').exists():
+        _ch_lib = _ch_d / 'ChatHealthyLib' / 'src'
+        if str(_ch_lib) not in _ch_sys.path:
+            _ch_sys.path.insert(0, str(_ch_lib))
+        break
+from chathealthy_lib.exceptions import ChatHealthyException  # noqa: E402
 _CH_LOG = ChatHealthyLoggingService()
 
 
@@ -143,11 +151,12 @@ def _apply_every_stash(repo_root: Path) -> None:
         _run_git(["add", "-A"], repo_root)
         dropped = _run_git(["stash", "drop"], repo_root, check=False)
         if dropped.returncode != 0:
-            sys.exit(
-                f"ERROR: promote stopped — could not drop {top}. The stash "
+            raise ChatHealthyException(
+                mode="aborted",
+                component="promote_chathealthy",
+                message=f"ERROR: promote stopped — could not drop {top}. The stash "
                 f"stack cannot be emptied, so no promote is possible.\n"
-                f"{dropped.stdout}\n{dropped.stderr}"
-            )
+                f"{dropped.stdout}\n{dropped.stderr}")
         if unmerged:
             conflicted.append(top)
             _CH_LOG.info(f"[promote]   CONFLICTED — entry dropped, content left in "
@@ -163,11 +172,12 @@ def _apply_every_stash(repo_root: Path) -> None:
 
     remaining = _run_git(["stash", "list"], repo_root).stdout.strip()
     if remaining:
-        sys.exit(
-            "ERROR: promote stopped — the stash stack is not empty after "
+        raise ChatHealthyException(
+            mode="aborted",
+            component="promote_chathealthy",
+            message="ERROR: promote stopped — the stash stack is not empty after "
             "applying every stash. After a promote attempt there can be no "
-            f"stashed files.\n{remaining}"
-        )
+            f"stashed files.\n{remaining}")
     _CH_LOG.info("[promote] stash stack empty")
 
 
@@ -287,13 +297,14 @@ def _require_capturable_tree(repo_root: Path) -> None:
         )
 
     if problems:
-        sys.exit(
-            "ERROR: promote refused — the working tree cannot be captured "
+        raise ChatHealthyException(
+            mode="aborted",
+            component="promote_chathealthy",
+            message="ERROR: promote refused — the working tree cannot be captured "
             "completely.\n\n"
             + "\n\n".join(f"  - {p}" for p in problems)
             + "\n\nA promote is a git baseline: the whole tree at one commit. "
-              "Clear every item above, then promote."
-        )
+              "Clear every item above, then promote.")
 
 
 def _require_everything_staged(repo_root: Path) -> None:
@@ -328,12 +339,13 @@ def _require_everything_staged(repo_root: Path) -> None:
         if residue:
             detail.append("  working-tree residue after staging:\n"
                           + "\n".join(f"      {r}" for r in residue[:20]))
-        sys.exit(
-            "ERROR: promote refused — the index does not contain the whole "
+        raise ChatHealthyException(
+            mode="aborted",
+            component="promote_chathealthy",
+            message="ERROR: promote refused — the index does not contain the whole "
             "working tree, so the commit would not be a complete baseline. "
             "NO COMMIT HAS BEEN MADE.\n\n"
-            + "\n\n".join(detail)
-        )
+            + "\n\n".join(detail))
 
     in_index = len([l for l in _run_git(["ls-files"], repo_root).stdout.splitlines() if l])
     _CH_LOG.info(f"[promote] index verified complete: {in_index} file(s) will be "
@@ -362,10 +374,11 @@ def _require_tree_fully_committed(repo_root: Path) -> None:
             f"{undone.stderr.strip()[:200]}. An incomplete baseline commit is "
             f"still at HEAD and must be removed by hand."
         )
-        sys.exit(
-            f"ERROR: promote produced an incomplete baseline — {reason}\n\n"
-            f"Nothing was pushed. {rolled}"
-        )
+        raise ChatHealthyException(
+            mode="aborted",
+            component="promote_chathealthy",
+            message=f"ERROR: promote produced an incomplete baseline — {reason}\n\n"
+            f"Nothing was pushed. {rolled}")
 
     residue = [l for l in _run_git(["status", "--porcelain"], repo_root)
                .stdout.splitlines() if l.strip()]
@@ -543,29 +556,38 @@ def _authorize_promotion(source_env, target_env, source_branch,
     return worker, worker.authorize()
 
 
-def main(argv: list[str] | None = None) -> int:
+def _arguments(argv: list[str] | None) -> argparse.Namespace:
+    """The command line this program accepts."""
     parser = argparse.ArgumentParser(
-        description="Promote the substrate one env forward in the promote chain. "
-                    "Does NOT rebuild; runs through the normal pre-commit gates."
-    )
+        description="Promote the substrate one env forward in the promote "
+                    "chain. Does NOT rebuild; runs through the normal "
+                    "pre-commit gates.")
     parser.add_argument("--from", dest="from_env", required=True,
                         choices=["local", "dev", "qa"])
     parser.add_argument("--to", dest="to_env", required=True,
                         choices=["dev", "qa", "prod"])
     parser.add_argument("--label", dest="label", default=None,
-                        help="Commit message subject for local -> dev promotes. "
-                             "Ignored on branch-to-branch promotes (those don't "
-                             "create commits; the label rides on the underlying "
-                             "commit advanced by the branch pointer move).")
-    args = parser.parse_args(argv)
+                        help="Commit message subject for local -> dev "
+                             "promotes. Ignored on branch-to-branch promotes "
+                             "(those create no commit; the label rides on the "
+                             "commit the branch pointer advances to).")
+    return parser.parse_args(argv)
 
-    pair = (args.from_env, args.to_env)
-    if pair not in _ADJACENT_PAIRS:
-        sys.exit(
-            f"ERROR: ({args.from_env} -> {args.to_env}) is not an adjacent pair "
-            f"in the promote chain. Valid pairs: {_ADJACENT_PAIRS}."
-        )
 
+def _require_adjacent(from_env: str, to_env: str) -> None:
+    """A promotion advances one step. Anything else is not a promotion."""
+    if (from_env, to_env) not in _ADJACENT_PAIRS:
+        raise ChatHealthyException(
+            mode="aborted",
+            component="promote_chathealthy",
+            message=f"({from_env} -> {to_env}) is not an adjacent pair in the "
+                    f"promote chain. Valid pairs: {_ADJACENT_PAIRS}.")
+
+
+def main(argv: list[str] | None = None) -> int:
+    """Drive the promotion and report its status."""
+    args = _arguments(argv)
+    _require_adjacent(args.from_env, args.to_env)
     repo_root = _repo_root()
     if args.from_env == "local":
         return _promote_local_to_dev(repo_root, label=args.label)

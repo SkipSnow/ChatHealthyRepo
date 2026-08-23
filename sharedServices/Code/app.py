@@ -110,10 +110,19 @@ async def _chathealthy_exception_to_response(request, exc: ChatHealthyException)
     response the client used to receive: same code, same detail body. Any
     other mode is an unhandled fault and answers 500.
     """
-    if exc.mode == "http_error":
-        return JSONResponse(status_code=int(exc.context.get("status_code", 500)),
-                            content={"detail": exc.message})
-    return JSONResponse(status_code=500, content={"detail": exc.message})
+    # The boundary logs. Throwers were stripped of their log calls because
+    # the rule says the catcher logs, and this is the catcher: without this
+    # line a converted failure reaches the client as a status code and
+    # leaves no trace anywhere of what happened.
+    status = (int(exc.context.get("status_code", 500))
+              if exc.mode == "http_error" else 500)
+    # exc= takes a constructed ChatHealthyException or one bound by an
+    # except clause; a parameter annotated as one is neither, so the facts
+    # go in the line itself rather than bending the rule to fit this frame.
+    log.error("%s %s -> %s  mode=%s component=%s  %s",
+              request.method, request.url.path, status,
+              exc.mode, exc.component or "-", exc.message)
+    return JSONResponse(status_code=status, content={"detail": exc.message})
 
 import datetime as dt
 

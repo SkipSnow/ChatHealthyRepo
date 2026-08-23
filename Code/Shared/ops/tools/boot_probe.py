@@ -37,8 +37,8 @@ LOG_PATH = Path(tempfile.gettempdir()) / "chathealthy_boot_probe.log"
 BRAIN_DIR = Path(__file__).resolve().parents[4] / "brain" / "machine_artifacts" / "content"
 
 
-def main() -> int:
-    parser = argparse.ArgumentParser()
+def _probe(parser):
+    """Probe the boot surface and report."""
     parser.add_argument("--event", required=True,
                         choices=["SessionStart", "UserPromptSubmit", "Stop", "SessionEnd"])
     args = parser.parse_args()
@@ -127,6 +127,11 @@ def main() -> int:
         json.dump(output, sys.stdout)
 
     return 0
+
+
+def main() -> int:
+    parser = argparse.ArgumentParser()
+    return _probe(parser)
 
 
 if __name__ == "__main__":

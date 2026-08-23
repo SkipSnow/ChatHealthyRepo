@@ -206,8 +206,8 @@ def _wait_until_usable(cluster_name: str, identity: str) -> None:
     _raise_not_usable(cluster_name, pings, writes, last)
 
 
-def main() -> int:
-    parser = argparse.ArgumentParser(description="Resume the pipeline cluster.")
+def _resume(parser):
+    """Resume the cluster and report."""
     parser.add_argument("--cluster",
                         default=os.environ.get("PIPELINE_CLUSTER",
                                                "ChatHealthyDataPipelines"))
@@ -264,6 +264,11 @@ def main() -> int:
         elif attempt % 10 == 0:
             log.info("attempt %d: still refused -- %s", attempt, reason)
         time.sleep(args.interval)
+
+
+def main() -> int:
+    parser = argparse.ArgumentParser(description="Resume the pipeline cluster.")
+    return _resume(parser)
 
 
 if __name__ == "__main__":

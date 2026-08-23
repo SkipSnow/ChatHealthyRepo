@@ -86,8 +86,8 @@ def _looks_like_builds_array(value) -> bool:
     return True
 
 
-def main() -> int:
-    client = _devops_connection()
+def _migrate(client):
+    """Perform the migration and report it."""
     coll = client["frontEndAdmin"]["BuildVersions"]
 
     latest = coll.find_one(sort=[("from", -1)])
@@ -149,6 +149,11 @@ def main() -> int:
              result.inserted_id, new_builds, version, framework,
              scalar_build, latest.get("_id"))
     return 0
+
+
+def main() -> int:
+    client = _devops_connection()
+    return _migrate(client)
 
 
 if __name__ == "__main__":

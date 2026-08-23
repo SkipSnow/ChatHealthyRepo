@@ -12,6 +12,15 @@ from __future__ import annotations
 
 from pathlib import Path
 from typing import Any
+import sys as _ch_sys, pathlib as _ch_pl  # noqa: E402
+for _ch_d in _ch_pl.Path(__file__).resolve().parents:
+    if (_ch_d / '.git').exists():
+        _ch_lib = _ch_d / 'ChatHealthyLib' / 'src'
+        if str(_ch_lib) not in _ch_sys.path:
+            _ch_sys.path.insert(0, str(_ch_lib))
+        break
+from chathealthy_lib.exceptions import ChatHealthyException  # noqa: E402
+import sys
 
 try:
     from .enforcement_worker import (
@@ -131,7 +140,16 @@ class ScanEntrypointUniquenessWorker(EnforcementWorker):
         return EXIT_VIOLATIONS_FOUND if any_violations else EXIT_OK
 
 
-if __name__ == "__main__":
+def main() -> int:
+    """Drive the program and report its status.
+
+    The exit lives here because this is the function the guard
+    calls, and a process reports its outcome by exit code.
+    """
     import sys
     enforcement_id = sys.argv[1] if len(sys.argv) > 1 else "Rule-065-ENF-008"
-    sys.exit(ScanEntrypointUniquenessWorker(enforcement_id).run())
+    return ScanEntrypointUniquenessWorker(enforcement_id).run()
+
+
+if __name__ == "__main__":
+    sys.exit(main())

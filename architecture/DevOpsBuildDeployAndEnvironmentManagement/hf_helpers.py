@@ -192,18 +192,20 @@ def _write_hf_build_info(workspace: Path, target_id: str, env: str) -> None:
     latest = latest_record()
     build_n = latest.get("build")
     if build_n is None:
-        sys.exit(
-            f"ERROR: {VERSIONS_DB}.{VERSIONS_COLLECTION} latest record has "
-            f"no 'build' field."
-        )
+        raise ChatHealthyException(
+            mode="aborted",
+            component="hf_helpers",
+            message=f"ERROR: {VERSIONS_DB}.{VERSIONS_COLLECTION} latest record has "
+            f"no 'build' field.")
     build_n = int(build_n)
     version_str = latest.get("version")
     framework_str = latest.get("framework")
     if not version_str:
-        sys.exit(
-            f"ERROR: {VERSIONS_DB}.{VERSIONS_COLLECTION} latest record has "
-            f"no 'version' field."
-        )
+        raise ChatHealthyException(
+            mode="aborted",
+            component="hf_helpers",
+            message=f"ERROR: {VERSIONS_DB}.{VERSIONS_COLLECTION} latest record has "
+            f"no 'version' field.")
     commit = subprocess.run(
         ["git", "rev-parse", "--short", "HEAD"],
         capture_output=True, text=True, check=True,

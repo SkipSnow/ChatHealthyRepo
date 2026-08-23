@@ -254,12 +254,17 @@ def scale_down(cluster_name: str) -> None:
     log.info("%s paused. No compute charges until next scale-up.", cluster_name)
 
 
-if __name__ == "__main__":
+def main() -> int:
+    """Drive the program and report its status.
+
+    The exit lives here because this is the function the guard
+    calls, and a process reports its outcome by exit code.
+    """
     import sys
     actions = ("scale-up", "scale-down", "pause", "resume")
     if len(sys.argv) != 3 or sys.argv[1] not in actions:
         ChatHealthyLoggingService().info(f"Usage: python atlas_cluster_manager.py <{'|'.join(actions)}> <cluster-name>")
-        sys.exit(1)
+        return 1
     action, name = sys.argv[1], sys.argv[2]
     if action == "scale-up":
         scale_up(name)
@@ -269,3 +274,7 @@ if __name__ == "__main__":
         pause_cluster(name)
     elif action == "resume":
         resume_cluster(name)
+
+
+if __name__ == "__main__":
+    sys.exit(main())

@@ -107,8 +107,8 @@ class AtlasCluster:
                 return f"{exc.code} {raw[:130]}"
 
 
-def main() -> int:
-    parser = argparse.ArgumentParser(description="Pause the pipeline cluster.")
+def _pause(parser):
+    """Pause the cluster and report."""
     parser.add_argument("--cluster",
                         default=os.environ.get("PIPELINE_CLUSTER",
                                                "ChatHealthyDataPipelines"))
@@ -161,6 +161,11 @@ def main() -> int:
         elif attempt % 10 == 0:
             log.info("attempt %d: still refused -- %s", attempt, reason)
         time.sleep(args.interval)
+
+
+def main() -> int:
+    parser = argparse.ArgumentParser(description="Pause the pipeline cluster.")
+    return _pause(parser)
 
 
 if __name__ == "__main__":

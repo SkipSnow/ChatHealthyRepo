@@ -205,9 +205,8 @@ def _states_list(raw: str) -> list[str]:
     return [s.strip().upper() for s in raw.split(",") if s.strip()]
 
 
-def main(argv: list[str] | None = None) -> int:
-    ns = _parse_args(argv if argv is not None else sys.argv[1:])
-
+def _control(ns):
+    """Drive the controller and report."""
     if ns.log_level:
         os.environ.setdefault("LOG_LEVEL", ns.log_level.upper())
 
@@ -381,6 +380,12 @@ def main(argv: list[str] | None = None) -> int:
             _pause_pipeline_cluster()
             _fire_farewell_vm_delete()
     return exit_code
+
+
+def main(argv: list[str] | None = None) -> int:
+    ns = _parse_args(argv if argv is not None else sys.argv[1:])
+
+    return _control(ns)
 
 
 def _fatal_on_worker_log_db_reports(run_id: str) -> None:

@@ -22,6 +22,14 @@ import os
 import sys
 import time
 from pathlib import Path
+import sys as _ch_sys, pathlib as _ch_pl  # noqa: E402
+for _ch_d in _ch_pl.Path(__file__).resolve().parents:
+    if (_ch_d / '.git').exists():
+        _ch_lib = _ch_d / 'ChatHealthyLib' / 'src'
+        if str(_ch_lib) not in _ch_sys.path:
+            _ch_sys.path.insert(0, str(_ch_lib))
+        break
+from chathealthy_lib.exceptions import ChatHealthyException  # noqa: E402
 
 PROJECT = Path(os.environ.get("CLAUDE_PROJECT_DIR", "."))
 LOG = PROJECT / "_oneshots/test_output" / "instructions_loaded.log"
@@ -43,7 +51,11 @@ try:
     payload = json.load(sys.stdin)
 except Exception as e:
     _write({"ts": time.time(), "parse_error": str(e)})
-    sys.exit(0)
+    raise ChatHealthyException(
+    mode="aborted",
+    component="log_instructions_loaded",
+    message=0,
+        exception=e)
 
 file_path = payload.get("file_path", "")
 size = None
@@ -67,7 +79,11 @@ base = {
 fname = os.path.basename(file_path) if file_path else ""
 if fname not in BRAIN_JSONS:
     _write(base)
-    sys.exit(0)
+    raise ChatHealthyException(
+        mode="aborted",
+        component="log_instructions_loaded",
+        message=0,
+        exception=ie)
 
 # ── REQ-017: 4-step procedure for brain JSONs ─────────────────────────────
 # Step 3 is implicit: this hook firing means the harness loaded the file.
@@ -82,11 +98,19 @@ try:
     except Exception as je:
         verdict = {"verdict": "FAILED", "reason": "invalid_json", "detail": str(je)[:200]}
         _write({**base, **verdict})
-        sys.exit(0)
+        raise ChatHealthyException(
+        mode="aborted",
+        component="log_instructions_loaded",
+        message=0,
+        exception=ie)
 except Exception as ie:
     verdict = {"verdict": "FAILED", "reason": "hash_unreadable", "detail": str(ie)[:200]}
     _write({**base, **verdict})
-    sys.exit(0)
+    raise ChatHealthyException(
+        mode="aborted",
+        component="log_instructions_loaded",
+        message=0,
+        exception=ie)
 
 # Step 2: hash on disk
 try:
@@ -95,7 +119,11 @@ try:
 except Exception as he:
     verdict = {"verdict": "FAILED", "reason": "hash_unreadable", "detail": str(he)[:200]}
     _write({**base, **verdict})
-    sys.exit(0)
+    raise ChatHealthyException(
+        mode="aborted",
+        component="log_instructions_loaded",
+        message=0,
+        exception=he)
 
 # Step 4: compare to precompact hash
 try:
@@ -107,7 +135,10 @@ except Exception:
     verdict["reason"] = None
     verdict["precompact_present"] = False
     _write({**base, **verdict})
-    sys.exit(0)
+    raise ChatHealthyException(
+        mode="aborted",
+        component="log_instructions_loaded",
+        message=0)
 
 normalized = str(Path(file_path)).replace("\\", "/")
 pre_entry = pre.get(normalized) or pre.get(file_path)
@@ -117,17 +148,26 @@ if not pre_entry:
     verdict["reason"] = None
     verdict["precompact_present"] = False
     _write({**base, **verdict})
-    sys.exit(0)
+    raise ChatHealthyException(
+        mode="aborted",
+        component="log_instructions_loaded",
+        message=0)
 
 pre_sha = pre_entry.get("sha256")
 if pre_sha and pre_sha != sha:
     verdict = {"verdict": "FAILED", "reason": "hash_mismatch",
                "sha256_precompact": pre_sha, "sha256_onload": sha}
     _write({**base, **verdict})
-    sys.exit(0)
+    raise ChatHealthyException(
+        mode="aborted",
+        component="log_instructions_loaded",
+        message=0)
 
 verdict["verdict"] = "LOADED"
 verdict["reason"] = None
 verdict["precompact_present"] = True
 _write({**base, **verdict})
-sys.exit(0)
+raise ChatHealthyException(
+            mode="aborted",
+            component="log_instructions_loaded",
+            message=0)

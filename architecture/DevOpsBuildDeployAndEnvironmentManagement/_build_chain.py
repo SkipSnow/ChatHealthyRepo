@@ -684,7 +684,10 @@ def _build_hf_space(repo_root: Path, target: TargetRecord, build_dir: Path) -> N
         if static_dst.exists():
             shutil.rmtree(static_dst, ignore_errors=True)
         if not dist.is_dir():
-            sys.exit(f"ERROR: React dist missing at {dist}")
+            raise ChatHealthyException(
+                mode="aborted",
+                component="_build_chain",
+                message=f"ERROR: React dist missing at {dist}")
         shutil.copytree(dist, static_dst)
 
     Extractor().materialize(target, build_dir)
@@ -786,10 +789,11 @@ def _build_azure_function_app(repo_root: Path, target: TargetRecord, build_dir: 
     ]
     r = subprocess.run(pip_cmd, capture_output=True, text=True)
     if r.returncode != 0:
-        sys.exit(
-            f"ERROR: pip install for gateway zip failed (exit {r.returncode})\n"
-            f"  stderr: {(r.stderr or '').strip()[:1500]}"
-        )
+        raise ChatHealthyException(
+            mode="aborted",
+            component="_build_chain",
+            message=f"ERROR: pip install for gateway zip failed (exit {r.returncode})\n"
+            f"  stderr: {(r.stderr or '').strip()[:1500]}")
 
     # Linux Consumption mounts the deploy package as wwwroot. zipfile on
     # Windows writes external_attr=0, which extracts as Unix mode 0000 on
@@ -808,10 +812,11 @@ def _build_azure_function_app(repo_root: Path, target: TargetRecord, build_dir: 
         for f in target.files:
             src_path = repo_root / f.source_location
             if not src_path.is_file():
-                sys.exit(
-                    f"ERROR: file in JSON manifest not present on disk: "
-                    f"{f.source_location}"
-                )
+                raise ChatHealthyException(
+                    mode="aborted",
+                    component="_build_chain",
+                    message=f"ERROR: file in JSON manifest not present on disk: "
+                    f"{f.source_location}")
             if f.source_location == _AZURE_REQUIREMENTS_SRC:
                 arcname = _AZURE_REQUIREMENTS_ZIP_PATH
             elif f.source_location.startswith(_PIPELINE_SOURCE_PREFIX):
@@ -819,11 +824,12 @@ def _build_azure_function_app(repo_root: Path, target: TargetRecord, build_dir: 
             elif f.source_location.startswith(_GATEWAY_SOURCE_PREFIX):
                 arcname = f.source_location[len(_GATEWAY_SOURCE_PREFIX):]
             else:
-                sys.exit(
-                    f"ERROR: azure target file {f.source_location!r} does "
+                raise ChatHealthyException(
+                    mode="aborted",
+                    component="_build_chain",
+                    message=f"ERROR: azure target file {f.source_location!r} does "
                     f"not start with {_PIPELINE_SOURCE_PREFIX!r} or "
-                    f"{_GATEWAY_SOURCE_PREFIX!r}; cannot map to a zip arcname."
-                )
+                    f"{_GATEWAY_SOURCE_PREFIX!r}; cannot map to a zip arcname.")
             _add_file(zf, arcname, src_path.read_bytes())
             arcnames_written.add(arcname)
         # Gateway shape: single .py + no host.json/requirements.txt in the
@@ -882,7 +888,10 @@ def _inline_secret_descriptions_if_used(repo_root: Path, runbook_path: Path) -> 
     import base64 as _b64_mod
     manifest = repo_root / "brain" / "machine_artifacts" / "content" / "deployment_architecture.json"
     if not manifest.is_file():
-        sys.exit(f"ERROR: cannot inline secret descriptions for {runbook_path.name}: "
+        raise ChatHealthyException(
+            mode="aborted",
+            component="_build_chain",
+            message=f"ERROR: cannot inline secret descriptions for {runbook_path.name}: "
                  f"{manifest} is missing.")
     doc = json.loads(manifest.read_text(encoding="utf-8"))
     merged: dict = {}
@@ -929,10 +938,11 @@ def _inline_chathealthy_lib_if_used(repo_root: Path, runbook_path: Path) -> None
     for mod in _INLINE_LIB_MODULES:
         mod_path = lib_src_root / f"{mod}.py"
         if not mod_path.is_file():
-            sys.exit(
-                f"ERROR: cannot inline chathealthy_lib for runbook "
-                f"{runbook_path.name}: source file {mod_path} is missing."
-            )
+            raise ChatHealthyException(
+                mode="aborted",
+                component="_build_chain",
+                message=f"ERROR: cannot inline chathealthy_lib for runbook "
+                f"{runbook_path.name}: source file {mod_path} is missing.")
         src_bytes = mod_path.read_bytes()
         encoded = _b64_mod.b64encode(src_bytes).decode("ascii")
         installs.append(f'_install("{mod}", "{encoded}")')
@@ -1036,22 +1046,25 @@ def _build_automation_account(repo_root: Path, target: TargetRecord,
     for pid, pkg in packages:
         files = pkg.get("files") or []
         if len(files) != 1:
-            sys.exit(
-                f"ERROR: runbook package {pid!r} on {target.target_id!r} "
-                f"MUST declare exactly one source file; got {len(files)}."
-            )
+            raise ChatHealthyException(
+                mode="aborted",
+                component="_build_chain",
+                message=f"ERROR: runbook package {pid!r} on {target.target_id!r} "
+                f"MUST declare exactly one source file; got {len(files)}.")
         src_rel = files[0]["source_location"]
         if not src_rel.endswith(".py"):
-            sys.exit(
-                f"ERROR: runbook package {pid!r} source MUST be a Python "
-                f"file; got {src_rel!r}."
-            )
+            raise ChatHealthyException(
+                mode="aborted",
+                component="_build_chain",
+                message=f"ERROR: runbook package {pid!r} source MUST be a Python "
+                f"file; got {src_rel!r}.")
         src_path = repo_root / src_rel
         if not src_path.is_file():
-            sys.exit(
-                f"ERROR: runbook source {src_rel!r} not present on disk "
-                f"for package {pid!r}."
-            )
+            raise ChatHealthyException(
+                mode="aborted",
+                component="_build_chain",
+                message=f"ERROR: runbook source {src_rel!r} not present on disk "
+                f"for package {pid!r}.")
         pkg_dir = _package_build_dir(target_dir, pid)
         pkg_dir.mkdir(parents=True, exist_ok=True)
         dst = pkg_dir / "runbook.py"
@@ -1067,8 +1080,12 @@ def _build_automation_account(repo_root: Path, target: TargetRecord,
         try:
             compile(dst.read_text(encoding="utf-8"), str(dst), "exec")
         except SyntaxError as exc:
-            sys.exit(f"ERROR: staged runbook {dst.name} does not compile after "
-                     f"inlining: line {exc.lineno}: {exc.msg}")
+            raise ChatHealthyException(
+                mode="aborted",
+                component="_build_chain",
+                message=f"ERROR: staged runbook {dst.name} does not compile after "
+                     f"inlining: line {exc.lineno}: {exc.msg}",
+                exception=exc)
         if pid == "change_db_version":
             _emit_change_db_version_target_url_registry(repo_root, pkg_dir)
         if pid == "entitlement_report":
@@ -1090,23 +1107,26 @@ def _build_azure_automation_runbook(repo_root: Path, target: TargetRecord, build
     """
     build_dir.mkdir(parents=True, exist_ok=True)
     if len(target.files) != 1:
-        sys.exit(
-            f"ERROR: azure_automation_runbook target {target.target_id!r} "
+        raise ChatHealthyException(
+            mode="aborted",
+            component="_build_chain",
+            message=f"ERROR: azure_automation_runbook target {target.target_id!r} "
             f"MUST declare exactly one source file (the runbook .py); got "
-            f"{len(target.files)} files."
-        )
+            f"{len(target.files)} files.")
     src_rel = target.files[0].source_location
     src_path = repo_root / src_rel
     if not src_path.is_file():
-        sys.exit(
-            f"ERROR: runbook source {src_rel!r} not present on disk for "
-            f"target {target.target_id!r}."
-        )
+        raise ChatHealthyException(
+            mode="aborted",
+            component="_build_chain",
+            message=f"ERROR: runbook source {src_rel!r} not present on disk for "
+            f"target {target.target_id!r}.")
     if not src_rel.endswith(".py"):
-        sys.exit(
-            f"ERROR: azure_automation_runbook source MUST be a Python file; "
-            f"got {src_rel!r} for {target.target_id!r}."
-        )
+        raise ChatHealthyException(
+            mode="aborted",
+            component="_build_chain",
+            message=f"ERROR: azure_automation_runbook source MUST be a Python file; "
+            f"got {src_rel!r} for {target.target_id!r}.")
     dst = build_dir / "runbook.py"
     shutil.copyfile(src_path, dst)
     size_kb = dst.stat().st_size / 1024.0
@@ -1245,12 +1265,13 @@ def _emit_change_db_version_target_url_registry(repo_root: Path, build_dir: Path
         placeholder = "_BAKED_REGISTRY: dict = {}"
         replacement = f"_BAKED_REGISTRY: dict = {json.dumps(registry, separators=(', ', ': '))}"
         if placeholder not in original:
-            sys.exit(
-                f"ERROR: cannot inline registry into runbook — placeholder "
+            raise ChatHealthyException(
+                mode="aborted",
+                component="_build_chain",
+                message=f"ERROR: cannot inline registry into runbook — placeholder "
                 f"{placeholder!r} not found in {runbook_py}. The source file "
                 "pipeline/Code/change_db_version.py must keep the "
-                "placeholder literal verbatim on a single line."
-            )
+                "placeholder literal verbatim on a single line.")
         runbook_py.write_text(original.replace(placeholder, replacement, 1), encoding="utf-8")
         _step(f"  inlined registry into {runbook_py.name}")
 
@@ -1272,10 +1293,11 @@ def _build_azure_container_app(repo_root: Path, target: TargetRecord, build_dir:
     for f in target.files:
         src_path = repo_root / f.source_location
         if not src_path.is_file():
-            sys.exit(
-                f"ERROR: file in JSON manifest not present on disk: "
-                f"{f.source_location}"
-            )
+            raise ChatHealthyException(
+                mode="aborted",
+                component="_build_chain",
+                message=f"ERROR: file in JSON manifest not present on disk: "
+                f"{f.source_location}")
         if f.source_location == _ACA_REQUIREMENTS_SRC:
             dst_rel = (Path("pipeline") / "Code" / _ACA_STAGE_REQUIREMENTS_NAME).as_posix()
         else:
@@ -1286,10 +1308,11 @@ def _build_azure_container_app(repo_root: Path, target: TargetRecord, build_dir:
     # requirements.txt is required by the Dockerfile's pip install step.
     req_dst = app_root / "pipeline" / "Code" / _ACA_STAGE_REQUIREMENTS_NAME
     if not req_dst.is_file():
-        sys.exit(
-            f"ERROR: ACA build requires {_ACA_REQUIREMENTS_SRC} in target.files[]; "
-            f"absent at {req_dst}"
-        )
+        raise ChatHealthyException(
+            mode="aborted",
+            component="_build_chain",
+            message=f"ERROR: ACA build requires {_ACA_REQUIREMENTS_SRC} in target.files[]; "
+            f"absent at {req_dst}")
     (build_dir / "Dockerfile").write_text(
         aca_helpers.aca_render_dockerfile(), encoding="utf-8",
     )
@@ -1349,10 +1372,11 @@ def _build_host_os_process(repo_root: Path, target: TargetRecord, build_dir: Pat
 
     projects = [f for f in target.files if f.handler_type == "dotnet_project"]
     if len(projects) > 1:
-        sys.exit(
-            f"ERROR: host_os_process target {target.target_id!r} declares "
-            f"{len(projects)} dotnet_project files; at most one is supported."
-        )
+        raise ChatHealthyException(
+            mode="aborted",
+            component="_build_chain",
+            message=f"ERROR: host_os_process target {target.target_id!r} declares "
+            f"{len(projects)} dotnet_project files; at most one is supported.")
 
     # build_dir is the package directory when this target declares one
     # package, and the target directory when it declares several. In the
@@ -1366,10 +1390,11 @@ def _build_host_os_process(repo_root: Path, target: TargetRecord, build_dir: Pat
         if not multi:
             return build_dir
         if not getattr(f, "package", None):
-            sys.exit(
-                f"ERROR: {target.target_id!r} routes by package but "
-                f"{f.source_location!r} names none."
-            )
+            raise ChatHealthyException(
+                mode="aborted",
+                component="_build_chain",
+                message=f"ERROR: {target.target_id!r} routes by package but "
+                f"{f.source_location!r} names none.")
         return _package_build_dir(build_dir, f.package)
 
     staged = 0
@@ -1378,10 +1403,11 @@ def _build_host_os_process(repo_root: Path, target: TargetRecord, build_dir: Pat
             continue
         src = repo_root / f.source_location
         if not src.is_file():
-            sys.exit(
-                f"ERROR: missing source file {f.source_location!r} for "
-                f"target {target.target_id!r}."
-            )
+            raise ChatHealthyException(
+                mode="aborted",
+                component="_build_chain",
+                message=f"ERROR: missing source file {f.source_location!r} for "
+                f"target {target.target_id!r}.")
         dst = _root_for(f) / f.source_location
         dst.parent.mkdir(parents=True, exist_ok=True)
         shutil.copy2(src, dst)
@@ -1394,7 +1420,10 @@ def _build_host_os_process(repo_root: Path, target: TargetRecord, build_dir: Pat
     proj_rel = projects[0].source_location
     proj_src = repo_root / proj_rel
     if not proj_src.is_file():
-        sys.exit(f"ERROR: missing dotnet project {proj_rel!r}.")
+        raise ChatHealthyException(
+            mode="aborted",
+            component="_build_chain",
+            message=f"ERROR: missing dotnet project {proj_rel!r}.")
     publish_dir = (_root_for(projects[0]) / Path(proj_rel).parent
                    / "build" / "publish")
     _step(f"  dotnet publish {Path(proj_rel).name} -> {publish_dir.relative_to(build_dir)}")
@@ -1404,17 +1433,19 @@ def _build_host_os_process(repo_root: Path, target: TargetRecord, build_dir: Pat
         capture_output=True, text=True,
     )
     if result.returncode != 0:
-        sys.exit(
-            f"ERROR: dotnet publish failed for {proj_rel!r} "
-            f"(exit {result.returncode}):\n{result.stdout}\n{result.stderr}"
-        )
+        raise ChatHealthyException(
+            mode="aborted",
+            component="_build_chain",
+            message=f"ERROR: dotnet publish failed for {proj_rel!r} "
+            f"(exit {result.returncode}):\n{result.stdout}\n{result.stderr}")
     exe = publish_dir / (Path(proj_rel).stem + ".exe")
     if not exe.is_file():
-        sys.exit(
-            f"ERROR: dotnet publish produced no {exe.name} in {publish_dir}. "
+        raise ChatHealthyException(
+            mode="aborted",
+            component="_build_chain",
+            message=f"ERROR: dotnet publish produced no {exe.name} in {publish_dir}. "
             f"The service cannot start from a publish output that has no "
-            f"executable."
-        )
+            f"executable.")
     _step(f"  published {exe.name} ({exe.stat().st_size / 1024.0:.1f} KB)")
 
 
@@ -1442,17 +1473,19 @@ def _materialize_managed_files(target: TargetRecord, build_dir: Path,
             continue
         content = f.embedded_content
         if content is None:
-            sys.exit(
-                f"ERROR: managed file {f.source_location!r} on target "
+            raise ChatHealthyException(
+                mode="aborted",
+                component="_build_chain",
+                message=f"ERROR: managed file {f.source_location!r} on target "
                 f"{target.target_id!r} has no embedded_content; the manifest "
-                f"owns these bytes and there is nothing to write."
-            )
+                f"owns these bytes and there is nothing to write.")
         if target_dir is not None:
             if not f.package:
-                sys.exit(
-                    f"ERROR: managed file {f.source_location!r} on target "
-                    f"{target.target_id!r} names no package."
-                )
+                raise ChatHealthyException(
+                    mode="aborted",
+                    component="_build_chain",
+                    message=f"ERROR: managed file {f.source_location!r} on target "
+                    f"{target.target_id!r} names no package.")
             context_root = _package_build_dir(target_dir, f.package)
         else:
             context_root = build_dir

@@ -89,7 +89,8 @@ def _raise_on_stop_signal(signum, _frame) -> None:
         message=f"stop signal {signum}")
 
 
-def main(argv: list[str] | None = None) -> int:
+def _run_worker(argv: list[str] | None):
+    """Run the worker and report its outcome."""
     import signal  # noqa: PLC0415
     signal.signal(signal.SIGTERM, _raise_on_stop_signal)
     signal.signal(signal.SIGINT, _raise_on_stop_signal)
@@ -145,6 +146,11 @@ def main(argv: list[str] | None = None) -> int:
         raise
     finally:
         _report_to_controller(ns.run_id, ns.step, status, reason, detail)
+
+
+def main(argv: list[str] | None = None) -> int:
+    """Drive the worker and report its status."""
+    return _run_worker(argv)
 
 
 def _report_to_controller(run_id, step, status: str, reason: str, detail: str) -> None:

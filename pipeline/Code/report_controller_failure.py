@@ -14,6 +14,7 @@ certificate are already in place by the time this runs.
 from __future__ import annotations
 
 import os
+import sys
 from datetime import datetime, timezone
 
 from chathealthy_lib.exceptions import ChatHealthyException

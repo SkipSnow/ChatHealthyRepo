@@ -888,7 +888,12 @@ class ScanDataMigrationComplianceWorker(EnforcementWorker):
         return EXIT_VIOLATIONS_FOUND if any_violations else EXIT_OK
 
 
-if __name__ == "__main__":
+def main() -> int:
+    """Drive the program and report its status.
+
+    The exit lives here because this is the function the guard
+    calls, and a process reports its outcome by exit code.
+    """
     import sys
     # argv[2] is the environment to judge. Absent, it is the working tree:
     # the pre-commit hook passes no environment and asks about this disk.
@@ -905,4 +910,8 @@ if __name__ == "__main__":
         code = worker.run()
     finally:
         worker.release()
-    sys.exit(code)
+    return code
+
+
+if __name__ == "__main__":
+    sys.exit(main())

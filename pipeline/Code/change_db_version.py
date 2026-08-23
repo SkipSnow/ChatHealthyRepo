@@ -81,6 +81,14 @@ except ImportError:
     pass
 
 from pymongo import MongoClient
+import sys as _ch_sys, pathlib as _ch_pl  # noqa: E402
+for _ch_d in _ch_pl.Path(__file__).resolve().parents:
+    if (_ch_d / '.git').exists():
+        _ch_lib = _ch_d / 'ChatHealthyLib' / 'src'
+        if str(_ch_lib) not in _ch_sys.path:
+            _ch_sys.path.insert(0, str(_ch_lib))
+        break
+from chathealthy_lib.exceptions import ChatHealthyException  # noqa: E402
 
 # Atlas requires a current CA bundle to validate its TLS chain. The AA
 # sandbox Windows Python doesn't always have a current trust store, so
@@ -123,13 +131,14 @@ def _read_registry() -> dict[str, str]:
     here = Path(__file__).resolve().parent
     registry_path = here / _REGISTRY_FILENAME
     if not registry_path.is_file():
-        sys.exit(
-            f"ERROR: target URL registry not found at {registry_path} and "
+        raise ChatHealthyException(
+            mode="aborted",
+            component="change_db_version",
+            message=f"ERROR: target URL registry not found at {registry_path} and "
             "_BAKED_REGISTRY is empty. The build step for the azure_"
             "automation_runbook target must either populate _BAKED_REGISTRY "
             "or write the sibling registry JSON file from deployment_"
-            "architecture.json."
-        )
+            "architecture.json.")
     return json.loads(registry_path.read_text(encoding="utf-8"))
 
 
@@ -137,7 +146,10 @@ def _bearer_token() -> str:
     raw = os.environ.get("API_TOKEN_MAP", "{}")
     token_map = json.loads(raw)
     if not token_map:
-        sys.exit("ERROR: API_TOKEN_MAP is empty; cannot authenticate to runtime endpoints.")
+        raise ChatHealthyException(
+            mode="aborted",
+            component="change_db_version",
+            message="ERROR: API_TOKEN_MAP is empty; cannot authenticate to runtime endpoints.")
     return next(iter(token_map))
 
 
@@ -198,43 +210,64 @@ def _read_webhook_payload() -> dict:
     return body
 
 
-def main() -> int:
-    payload = _read_webhook_payload()
-    job_id = payload.get("job_id") or "ChangeDBVersion-no-job-id"
-    env = payload.get("env")
-    if not env:
-        sys.exit("ERROR: payload missing required field 'env'.")
-    _log(f"job_id={job_id} env={env}")
-
-    registry = _read_registry()
-    _log(f"loaded target URL registry: {len(registry)} target(s)")
-    token = _bearer_token()
-
+def _env_document(env: str):
+    """The DBVersions document this run acts on."""
     from chathealthy_lib.mongo_utilities import ChatHealthyMongoUtilities
-    client = ChatHealthyMongoUtilities().getConnection("pipelineEditor", "ChatHealthyFrontEnd")
+    client = ChatHealthyMongoUtilities().getConnection(
+        "pipelineEditor", "ChatHealthyFrontEnd")
     doc = client[_CONFIG_DB][_CONFIG_COLL].find_one({"env": env})
     client.close()
     if doc is None:
-        sys.exit(f"ERROR: no ChatHealthyConfig.DBVersions doc for env={env!r}.")
+        raise ChatHealthyException(
+            mode="aborted",
+            component="change_db_version",
+            message=f"no ChatHealthyConfig.DBVersions doc for env={env!r}")
     _log(f"loaded env doc for {env!r} from ChatHealthyConfig.DBVersions")
+    return doc
 
-    has_exception = False
+
+def _target_url(registry: dict, env: str, target_id: str):
+    """Where this target answers, whichever shape the registry takes."""
+    scoped = registry.get(env)
+    if isinstance(scoped, dict):
+        return scoped.get(target_id)
+    return registry.get(target_id)
+
+
+def _swap_every_target(doc: dict, registry: dict, env: str, token: str) -> bool:
+    """Ask each target to swap, and report whether any refused."""
+    faulted = False
     for entry in doc.get("targets", []):
         target_id = entry.get("deployment_target")
-        collections = entry.get("collections", [])
-        url = registry.get(env, {}).get(target_id) if isinstance(registry.get(env), dict) else registry.get(target_id)
+        url = _target_url(registry, env, target_id)
         if not url:
-            has_exception = True
+            faulted = True
             _log(f"  {env}/{target_id}: NO URL in registry")
             continue
-        code, body = _post_swap(url, collections, token)
+        code, body = _post_swap(url, entry.get("collections", []), token)
         if code == 202:
             _log(f"  {env}/{target_id}: 202 Accepted")
         else:
-            has_exception = True
+            faulted = True
             _log(f"  {env}/{target_id}: {code} {body[:200]}")
+    return faulted
 
-    return 1 if has_exception else 0
+
+def main() -> int:
+    """Drive the version swap and report its status."""
+    payload = _read_webhook_payload()
+    env = payload.get("env")
+    if not env:
+        raise ChatHealthyException(
+            mode="aborted",
+            component="change_db_version",
+            message="payload missing required field 'env'")
+    _log(f"job_id={payload.get('job_id') or 'ChangeDBVersion-no-job-id'} env={env}")
+    registry = _read_registry()
+    _log(f"loaded target URL registry: {len(registry)} target(s)")
+    faulted = _swap_every_target(_env_document(env), registry, env,
+                                 _bearer_token())
+    return 1 if faulted else 0
 
 
 if __name__ == "__main__":

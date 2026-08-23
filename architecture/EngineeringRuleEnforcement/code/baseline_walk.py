@@ -28,6 +28,14 @@ for _d in Path(__file__).resolve().parents:
 import os as _ch_os
 _ch_os.environ["CH_LOG_DESTINATION"] = "stderr"
 from chathealthy_lib.logging_service import ChatHealthyLoggingService
+import sys as _ch_sys, pathlib as _ch_pl  # noqa: E402
+for _ch_d in _ch_pl.Path(__file__).resolve().parents:
+    if (_ch_d / '.git').exists():
+        _ch_lib = _ch_d / 'ChatHealthyLib' / 'src'
+        if str(_ch_lib) not in _ch_sys.path:
+            _ch_sys.path.insert(0, str(_ch_lib))
+        break
+from chathealthy_lib.exceptions import ChatHealthyException  # noqa: E402
 
 _CH_LOG = ChatHealthyLoggingService()
 
@@ -102,8 +110,9 @@ def _ignored(paths: list[str], root: Path) -> set[str]:
         encoding="utf-8", errors="surrogateescape",
     )
     if proc.returncode not in (0, 1):
-        sys.exit(
-            f"git check-ignore failed (rc={proc.returncode}): "
-            f"{proc.stderr.strip()[:300]}"
-        )
+        raise ChatHealthyException(
+            mode="aborted",
+            component="baseline_walk",
+            message=f"git check-ignore failed (rc={proc.returncode}): "
+            f"{proc.stderr.strip()[:300]}")
     return {p for p in proc.stdout.split(chr(0)) if p}

@@ -25,6 +25,15 @@ load_dotenv(os.path.join(os.path.dirname(__file__), '../../.env'))
 
 from azure.identity import DefaultAzureCredential
 from azure.keyvault.secrets import SecretClient
+import sys as _ch_sys, pathlib as _ch_pl  # noqa: E402
+for _ch_d in _ch_pl.Path(__file__).resolve().parents:
+    if (_ch_d / '.git').exists():
+        _ch_lib = _ch_d / 'ChatHealthyLib' / 'src'
+        if str(_ch_lib) not in _ch_sys.path:
+            _ch_sys.path.insert(0, str(_ch_lib))
+        break
+from chathealthy_lib.exceptions import ChatHealthyException  # noqa: E402
+import sys
 
 
 def cleanup_test_artifacts():
@@ -83,6 +92,15 @@ def cleanup_test_artifacts():
     return error_count == 0
 
 
-if __name__ == "__main__":
+def main() -> int:
+    """Drive the program and report its status.
+
+    The exit lives here because this is the function the guard
+    calls, and a process reports its outcome by exit code.
+    """
     success = cleanup_test_artifacts()
-    exit(0 if success else 1)
+    return 0 if success else 1
+
+
+if __name__ == "__main__":
+    sys.exit(main())

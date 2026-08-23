@@ -312,11 +312,8 @@ def sweep_archive(collection) -> int:
     return repaired
 
 
-def run_drain() -> int:
-    _enable_debugging()
-    # The service runs this as LocalSystem, whose environment carries none of
-    # the vault settings. Without this the certificate fetch fails immediately
-    # under the service while working perfectly from an operator shell.
+def _drain():
+    """Drain the spool and report what moved."""
     from dotenv import load_dotenv
     load_dotenv(Path(__file__).resolve().parents[2] / ".env")
 
@@ -399,6 +396,14 @@ def run_drain() -> int:
         # The supervisor hard-kills this process, so no finally would run
         # under the service. It logs the stop itself; see Worker.KillDrain.
         pass
+
+
+def run_drain() -> int:
+    _enable_debugging()
+    # The service runs this as LocalSystem, whose environment carries none of
+    # the vault settings. Without this the certificate fetch fails immediately
+    # under the service while working perfectly from an operator shell.
+    return _drain()
 
 
 if __name__ == "__main__":

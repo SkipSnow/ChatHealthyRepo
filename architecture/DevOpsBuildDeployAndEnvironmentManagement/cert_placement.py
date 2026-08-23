@@ -38,6 +38,14 @@ import subprocess
 import sys
 from pathlib import Path
 from typing import Iterable
+import sys as _ch_sys, pathlib as _ch_pl  # noqa: E402
+for _ch_d in _ch_pl.Path(__file__).resolve().parents:
+    if (_ch_d / '.git').exists():
+        _ch_lib = _ch_d / 'ChatHealthyLib' / 'src'
+        if str(_ch_lib) not in _ch_sys.path:
+            _ch_sys.path.insert(0, str(_ch_lib))
+        break
+from chathealthy_lib.exceptions import ChatHealthyException  # noqa: E402
 
 
 # F-003 identity registry entries for the pipeline tier.
@@ -65,9 +73,10 @@ def _kv_uri_for_env(kv_target, env: str) -> str:
     for eb in kv_target.environments:
         if getattr(eb, "env_binding", None) == env:
             return eb.node_address
-    sys.exit(
-        f"ERROR: KV target has no env_binding for env {env!r}."
-    )
+    raise ChatHealthyException(
+        mode="aborted",
+        component="cert_placement",
+        message=f"ERROR: KV target has no env_binding for env {env!r}.")
 
 
 def _kv_name_for_env(kv_target, env: str) -> str:
@@ -92,12 +101,16 @@ def _acr_name_for_env(acr_target, env: str) -> str:
             block = getattr(eb, "azure_container_registry", None)
             name = _block_field(block, "registry_name")
             if not name:
-                sys.exit(
-                    f"ERROR: ACR target env_binding {env!r} missing "
-                    f"azure_container_registry.registry_name."
-                )
+                raise ChatHealthyException(
+                    mode="aborted",
+                    component="cert_placement",
+                    message=f"ERROR: ACR target env_binding {env!r} missing "
+                    f"azure_container_registry.registry_name.")
             return name
-    sys.exit(f"ERROR: ACR target has no env_binding for env {env!r}.")
+    raise ChatHealthyException(
+        mode="aborted",
+        component="cert_placement",
+        message=f"ERROR: ACR target has no env_binding for env {env!r}.")
 
 
 def _kv_secret_show(vault_name: str, secret_name: str) -> dict | None:
@@ -155,10 +168,11 @@ def _kv_secret_set(
         creationflags=_cflags(), shell=(sys.platform == "win32"),
     )
     if r.returncode != 0:
-        sys.exit(
-            f"ERROR: az keyvault secret set failed for {secret_name} "
-            f"(exit {r.returncode})\n  stderr: {(r.stderr or '').strip()[:1500]}"
-        )
+        raise ChatHealthyException(
+            mode="aborted",
+            component="cert_placement",
+            message=f"ERROR: az keyvault secret set failed for {secret_name} "
+            f"(exit {r.returncode})\n  stderr: {(r.stderr or '').strip()[:1500]}")
 
 
 def _kv_grant_read(vault_name: str, principal_id: str, secret_name: str) -> None:
@@ -192,11 +206,12 @@ def _kv_grant_read(vault_name: str, principal_id: str, secret_name: str) -> None
         # them, ca-root-cert among them. A tool that hands out rights as a
         # side effect of placing a file is how access accumulates that nobody
         # decided to give.
-        sys.exit(
-            f"ERROR: {principal_id} does not hold 'Key Vault Secrets User' on "
+        raise ChatHealthyException(
+            mode="aborted",
+            component="cert_placement",
+            message=f"ERROR: {principal_id} does not hold 'Key Vault Secrets User' on "
             f"{secret_name}.\n  Grant it at scope: {scope}\n"
-            f"  The deploy chain states what must be true; it does not write it."
-        )
+            f"  The deploy chain states what must be true; it does not write it.")
 
 
 def _kv_revoke_deployer_read(
@@ -245,10 +260,11 @@ def _kv_secret_scope(vault_name: str, secret_name: str) -> str:
         creationflags=_cflags(), shell=(sys.platform == "win32"),
     )
     if r.returncode != 0 or not r.stdout.strip():
-        sys.exit(
-            f"ERROR: az keyvault show failed for {vault_name} "
-            f"(exit {r.returncode})"
-        )
+        raise ChatHealthyException(
+            mode="aborted",
+            component="cert_placement",
+            message=f"ERROR: az keyvault show failed for {vault_name} "
+            f"(exit {r.returncode})")
     vault_id = r.stdout.strip()
     return f"{vault_id}/secrets/{secret_name}"
 
@@ -264,11 +280,12 @@ def _mi_object_id(mi_name: str, resource_group: str) -> str:
         creationflags=_cflags(), shell=(sys.platform == "win32"),
     )
     if r.returncode != 0 or not r.stdout.strip():
-        sys.exit(
-            f"ERROR: az identity show failed for MI {mi_name} in "
+        raise ChatHealthyException(
+            mode="aborted",
+            component="cert_placement",
+            message=f"ERROR: az identity show failed for MI {mi_name} in "
             f"resource group {resource_group} (exit {r.returncode})\n"
-            f"  stderr: {(r.stderr or '').strip()[:1500]}"
-        )
+            f"  stderr: {(r.stderr or '').strip()[:1500]}")
     return r.stdout.strip()
 
 
@@ -290,10 +307,11 @@ def _deployer_object_id() -> str:
         creationflags=_cflags(), shell=(sys.platform == "win32"),
     )
     if r2.returncode != 0 or not r2.stdout.strip():
-        sys.exit(
-            "ERROR: could not resolve deployer identity via `az ad "
-            "signed-in-user show` or `az account show`."
-        )
+        raise ChatHealthyException(
+            mode="aborted",
+            component="cert_placement",
+            message="ERROR: could not resolve deployer identity via `az ad "
+            "signed-in-user show` or `az account show`.")
     return r2.stdout.strip()
 
 
@@ -303,7 +321,10 @@ def _find_repo_root(start: Path) -> Path:
         if (p / ".git").exists():
             return p
         p = p.parent
-    sys.exit(f"ERROR: no .git found walking up from {start}")
+    raise ChatHealthyException(
+        mode="aborted",
+        component="cert_placement",
+        message=f"ERROR: no .git found walking up from {start}")
 
 
 def _mint_leaf_cert(subject: str) -> tuple[str, str, str]:
@@ -313,18 +334,21 @@ def _mint_leaf_cert(subject: str) -> tuple[str, str, str]:
     # don't touch the CA (e.g. cross-check smoke drivers).
     code_dir = _find_repo_root(Path(__file__)) / "pipeline" / "Code"
     if not (code_dir / "chathealthy_ca.py").is_file():
-        sys.exit(
-            f"ERROR: chathealthy_ca.py missing at {code_dir}; cert placement "
-            "requires the pipeline/Code CA client library."
-        )
+        raise ChatHealthyException(
+            mode="aborted",
+            component="cert_placement",
+            message=f"ERROR: chathealthy_ca.py missing at {code_dir}; cert placement "
+            "requires the pipeline/Code CA client library.")
     sys.path.insert(0, str(code_dir))
     try:
         import chathealthy_ca  # type: ignore[import-not-found]
     except ImportError as exc:
-        sys.exit(
-            "ERROR: chathealthy_ca module not importable; cert placement "
-            f"requires the pipeline/Code CA client library ({exc})."
-        )
+        raise ChatHealthyException(
+            mode="aborted",
+            component="cert_placement",
+            message="ERROR: chathealthy_ca module not importable; cert placement "
+            f"requires the pipeline/Code CA client library ({exc}).",
+            exception=exc)
     # F-003 §4.3 deployer entitlement: principal name must contain
     # "sp-deployer". Pass that canonical role name (not the SP client id).
     # Force PipeLineServices coords — Code/.env often carries the product
@@ -349,14 +373,19 @@ def _mint_leaf_cert(subject: str) -> tuple[str, str, str]:
         creationflags=_cflags(), shell=(sys.platform == "win32"),
     )
     if tok_r.returncode != 0:
-        sys.exit(
-            "ERROR: az account get-access-token failed for CA mint: "
-            f"{(tok_r.stderr or '')[:500]}"
-        )
+        raise ChatHealthyException(
+            mode="aborted",
+            component="cert_placement",
+            message="ERROR: az account get-access-token failed for CA mint: "
+            f"{(tok_r.stderr or '')[:500]}")
     try:
         token = json.loads(tok_r.stdout)["accessToken"]
     except (json.JSONDecodeError, KeyError) as exc:
-        sys.exit(f"ERROR: cannot parse az access token for CA mint: {exc}")
+        raise ChatHealthyException(
+            mode="aborted",
+            component="cert_placement",
+            message=f"ERROR: cannot parse az access token for CA mint: {exc}",
+            exception=exc)
     cert_pem, key_pem, expires_iso = chathealthy_ca.mint_cert(
         subject=subject,
         azure_ad_token=token,
@@ -442,10 +471,11 @@ def _resolve_mi_resource_group(kv_target, env: str) -> str:
             rg = _block_field(block, "resource_group")
             if rg:
                 return rg
-    sys.exit(
-        f"ERROR: KV target env_binding {env!r} missing "
-        f"azure_key_vault.resource_group; cannot look up managed identity."
-    )
+    raise ChatHealthyException(
+        mode="aborted",
+        component="cert_placement",
+        message=f"ERROR: KV target env_binding {env!r} missing "
+        f"azure_key_vault.resource_group; cannot look up managed identity.")
 
 
 def bake_ca_chain_into_images(env: str, acr_target, kv_target) -> None:
@@ -470,18 +500,20 @@ def _fetch_ca_pem_b64s(vault_name: str) -> tuple[str, str]:
     root = _kv_secret_value(vault_name, "ca-root-cert")
     intermediate = _kv_secret_value(vault_name, "ca-intermediate-cert")
     if "BEGIN CERTIFICATE" not in root or "END CERTIFICATE" not in root:
-        sys.exit(
-            f"ERROR: KV secret ca-root-cert in {vault_name} is not a PEM cert "
-            f"(len={len(root)})."
-        )
+        raise ChatHealthyException(
+            mode="aborted",
+            component="cert_placement",
+            message=f"ERROR: KV secret ca-root-cert in {vault_name} is not a PEM cert "
+            f"(len={len(root)}).")
     if (
         "BEGIN CERTIFICATE" not in intermediate
         or "END CERTIFICATE" not in intermediate
     ):
-        sys.exit(
-            f"ERROR: KV secret ca-intermediate-cert in {vault_name} is not a "
-            f"PEM cert (len={len(intermediate)})."
-        )
+        raise ChatHealthyException(
+            mode="aborted",
+            component="cert_placement",
+            message=f"ERROR: KV secret ca-intermediate-cert in {vault_name} is not a "
+            f"PEM cert (len={len(intermediate)}).")
     return (
         base64.b64encode(root.encode("utf-8")).decode("ascii"),
         base64.b64encode(intermediate.encode("utf-8")).decode("ascii"),
@@ -501,10 +533,11 @@ def _kv_secret_value(vault_name: str, secret_name: str) -> str:
         creationflags=_cflags(), shell=(sys.platform == "win32"),
     )
     if r.returncode != 0 or not (r.stdout or "").strip():
-        sys.exit(
-            f"ERROR: cannot read KV secret {secret_name!r} from "
-            f"{vault_name}: {(r.stderr or '').strip()[:800]}"
-        )
+        raise ChatHealthyException(
+            mode="aborted",
+            component="cert_placement",
+            message=f"ERROR: cannot read KV secret {secret_name!r} from "
+            f"{vault_name}: {(r.stderr or '').strip()[:800]}")
     return r.stdout.strip()
 
 
@@ -514,10 +547,11 @@ def _fetch_ca_chain_b64(env: str) -> str:
     del env  # vault must be resolved by caller via CHATHEALTHY_PIPELINE_KV_NAME
     vault_name = os.environ.get("CHATHEALTHY_PIPELINE_KV_NAME", "").strip()
     if not vault_name:
-        sys.exit(
-            "ERROR: CHATHEALTHY_PIPELINE_KV_NAME not set; pass kv_target to "
-            "bake_ca_chain_into_images (F-003 §7)."
-        )
+        raise ChatHealthyException(
+            mode="aborted",
+            component="cert_placement",
+            message="ERROR: CHATHEALTHY_PIPELINE_KV_NAME not set; pass kv_target to "
+            "bake_ca_chain_into_images (F-003 §7).")
     root_b64, intermediate_b64 = _fetch_ca_pem_b64s(vault_name)
     root = base64.b64decode(root_b64)
     intermediate = base64.b64decode(intermediate_b64)

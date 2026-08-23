@@ -139,8 +139,8 @@ def render(db, run, names: list[str], now) -> str:
     return "\n".join(lines)
 
 
-def main() -> int:
-    parser = argparse.ArgumentParser(description=__doc__)
+def _report_status(parser):
+    """Fetch and print the run status."""
     parser.add_argument("--pipeline", default="provider")
     parser.add_argument("--run-id", default=None,
                         help="a specific run; otherwise the most recent one")
@@ -191,6 +191,11 @@ def main() -> int:
         if status in TERMINAL_RUN:
             return 0 if status == "succeeded" else 1
         time.sleep(args.watch)
+
+
+def main() -> int:
+    parser = argparse.ArgumentParser(description=__doc__)
+    return _report_status(parser)
 
 
 if __name__ == "__main__":
