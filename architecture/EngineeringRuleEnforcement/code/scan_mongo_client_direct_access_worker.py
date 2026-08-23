@@ -126,6 +126,68 @@ def _find_mongo_connection_strings(source: str) -> list[tuple[int, str]]:
     return found
 
 
+
+# The obligation the requirement states: a component that reaches MongoDB
+# does so through the canonical utility. A list of forbidden ways cannot
+# express that -- it names the doors already known and passes anything that
+# reaches the database by a door nobody has named yet.
+_REQUIRED_CALL = "getConnection"
+_REQUIRED_CLASS = "ChatHealthyMongoUtilities"
+
+# Names that mean a component is talking to MongoDB. Reaching any of these
+# is what puts a file under the obligation.
+_MONGO_DRIVERS = ("pymongo", "motor", "bson", "mongoengine", "beanie",
+                  "mongomock", "mongomock_motor", "pytest_mongodb", "mongobox")
+
+# Operations only a database handle answers to. A file calling these has a
+# handle, whatever it named the thing it called them on.
+_COLLECTION_OPS = frozenset((
+    "insert_one", "insert_many", "find_one", "find_one_and_update",
+    "find_one_and_replace", "find_one_and_delete", "update_one", "update_many",
+    "replace_one", "delete_one", "delete_many", "bulk_write", "aggregate",
+    "count_documents", "estimated_document_count", "distinct",
+    "create_index", "drop_index", "list_collection_names", "list_databases",
+    "drop_collection", "watch",
+))
+
+
+def _reaches_mongo(tree: ast.AST) -> list[tuple[int, str]]:
+    """Where a file shows it is talking to MongoDB."""
+    found: list[tuple[int, str]] = []
+    for node in ast.walk(tree):
+        if isinstance(node, ast.Import):
+            for a in node.names:
+                root = a.name.split(".")[0]
+                if root in _MONGO_DRIVERS:
+                    found.append((node.lineno, f"imports {a.name}"))
+        elif isinstance(node, ast.ImportFrom):
+            root = (node.module or "").split(".")[0]
+            if root in _MONGO_DRIVERS:
+                found.append((node.lineno, f"imports from {node.module}"))
+        elif isinstance(node, ast.Call) and isinstance(node.func, ast.Attribute):
+            if node.func.attr in _COLLECTION_OPS:
+                found.append((node.lineno, f"calls {node.func.attr}()"))
+    return found
+
+
+def _obtains_through_utility(tree: ast.AST) -> bool:
+    """True when the file gets its handle from the canonical utility."""
+    for node in ast.walk(tree):
+        if isinstance(node, ast.Call) and isinstance(node.func, ast.Attribute):
+            if node.func.attr == _REQUIRED_CALL:
+                return True
+        if isinstance(node, (ast.Import, ast.ImportFrom)):
+            names = [a.name for a in node.names]
+            if _REQUIRED_CLASS in names or _REQUIRED_CLASS in str(
+                    getattr(node, "module", "") or ""):
+                return True
+        if isinstance(node, ast.Name) and node.id == _REQUIRED_CLASS:
+            return True
+        if isinstance(node, ast.Attribute) and node.attr == _REQUIRED_CLASS:
+            return True
+    return False
+
+
 def _find_mongo_client_calls(source: str) -> list[tuple[int, str]]:
     """Every place this file acquires a Mongo client other than via the
     utility, as (line, what). Raises SyntaxError on unparseable source; the
@@ -263,6 +325,33 @@ class ScanMongoClientDirectAccessEnforcementWorker(EnforcementWorker):
                 ),
                 severity="error",
             )]
+        # The positive obligation, checked first: a file that reaches
+        # MongoDB and never obtains its handle from the utility is a file
+        # whose authorization was never tested, whatever route it took.
+        try:
+            tree = ast.parse(source)
+        except SyntaxError:
+            tree = None
+        if tree is not None:
+            reaching = _reaches_mongo(tree)
+            if reaching and not _obtains_through_utility(tree):
+                lineno, how = reaching[0]
+                violations.append(ViolationRecord(
+                    enforcement_id=self.enforcement_id,
+                    rule_id="Rule-004",
+                    resource=f"{file_path}:{lineno}",
+                    message=(
+                        f"this file reaches MongoDB ({how}) and never obtains "
+                        f"a handle from {_REQUIRED_CLASS}().{_REQUIRED_CALL}"
+                        f"(identity, cluster), which "
+                        f"EPIC-008-F-002-S-010-REQ-B-007 requires. A handle "
+                        f"obtained any other way presents no certificate, so "
+                        f"it matches no $external user and carries no role: "
+                        f"the code's authorization is never tested. There is "
+                        f"no test-file exemption."
+                    ),
+                    severity="error",
+                ))
         for lineno, what in call_lines:
             violations.append(ViolationRecord(
                 enforcement_id=self.enforcement_id,
