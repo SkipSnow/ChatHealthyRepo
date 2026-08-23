@@ -21,11 +21,50 @@ log = ChatHealthyLoggingService()
 
 
 def primary_practice_address(p: dict) -> dict:
-    """Return the first entry in addresses[] whose address_type=='practice'."""
-    for a in p.get("addresses") or []:
-        if isinstance(a, dict) and a.get("address_type") == "practice":
+    """Return the first entry in practice_addresses[].
+
+    v4 splits the single addresses[] into practice_addresses[] and
+    business_address. Every element of practice_addresses IS a practice
+    address, so the address_type test the old shape needed has nothing left
+    to select on -- carried forward it would match nothing at all."""
+    for a in p.get("practice_addresses") or []:
+        if isinstance(a, dict):
             return a
     return {}
+
+
+def matching_practice_address(p: dict, state: str = "", city: str = "",
+                              county: str = "", zip: str = "") -> dict:
+    """The practice address that satisfied the search, not merely the first.
+
+    v03 held one practice address, so "the practice address" and "the first
+    one" were the same thing. v4 holds several, and the query matches when
+    ANY element satisfies the geography -- so a San Francisco search can
+    return a provider whose element zero is in Wyoming, and displaying [0]
+    shows an address that has nothing to do with what was asked for.
+
+    Falls back to the first element when no criterion was given, which is
+    the NPI and name routes where there is no geography to match.
+    """
+    wanted_state = (state or "").strip().upper()
+    wanted_city = (city or "").strip().upper()
+    wanted_county = (county or "").strip()
+    wanted_zip = (zip or "").strip()[:5]
+    if not (wanted_state or wanted_city or wanted_county or wanted_zip):
+        return primary_practice_address(p)
+    for a in p.get("practice_addresses") or []:
+        if not isinstance(a, dict):
+            continue
+        if wanted_zip and (a.get("zip") or "")[:5] != wanted_zip:
+            continue
+        if wanted_state and (a.get("state") or "").upper() != wanted_state:
+            continue
+        if wanted_city and (a.get("city") or "").upper() != wanted_city:
+            continue
+        if wanted_county and (a.get("county") or {}).get("name") != wanted_county:
+            continue
+        return a
+    return primary_practice_address(p)
 
 
 def primary_county(p: dict) -> dict:
@@ -75,14 +114,13 @@ class FindCareService:
             return
         try:
             agg = list(providers_coll().aggregate([
-                {"$unwind": {"path": "$addresses", "preserveNullAndEmptyArrays": False}},
+                {"$unwind": {"path": "$practice_addresses", "preserveNullAndEmptyArrays": False}},
                 {"$match": {
-                    "addresses.address_type": "practice",
-                    "addresses.county.fips": {"$exists": True},
-                    "addresses.county.name": {"$exists": True},
+                    "practice_addresses.county.fips": {"$exists": True},
+                    "practice_addresses.county.name": {"$exists": True},
                 }},
-                {"$group": {"_id": "$addresses.county.fips",
-                            "name": {"$first": "$addresses.county.name"}}},
+                {"$group": {"_id": "$practice_addresses.county.fips",
+                            "name": {"$first": "$practice_addresses.county.name"}}},
             ]))
             db_map = {p["_id"]: p["name"] for p in agg if p.get("_id")}
             self.fips_to_county.update(db_map)
@@ -119,7 +157,7 @@ class FindCareService:
         # Practice addresses store zip as 5 digits; truncate the incoming
         # value so a ZIP+4 emission from the LLM still matches.
         z = (zip or "").strip()[:5]
-        elem = {"address_type": "practice"}
+        elem: dict = {}
         if z:
             elem["zip"] = z
         elif s and co:
@@ -132,7 +170,7 @@ class FindCareService:
             elem["state"] = s
         else:
             return {}
-        return {"addresses": {"$elemMatch": elem}}
+        return {"practice_addresses": {"$elemMatch": elem}}
 
     def _format_provider(self, p: dict) -> dict:
         if p.get("entity_type_code") == "1":
@@ -148,7 +186,9 @@ class FindCareService:
             name = p.get("provider_organization_name_legal_business_name") or "Unknown Organization"
         addr = primary_practice_address(p)
         address = ", ".join(x for x in [addr.get("line1"), addr.get("city"), addr.get("state"), addr.get("zip")] if x)
-        primary = next((t for t in p.get("taxonomies", []) if t.get("primary")), None)
+        primary_code = p.get("primary_taxonomy_code")
+        primary = next((t for t in p.get("taxonomies", [])
+                        if t.get("code") == primary_code), None) if primary_code else None
         county_obj = primary_county(p)
         county_name = county_obj.get("name") or self.fips_to_county.get(county_obj.get("fips", ""), "")
         raw_phone = addr.get("phone", "")
@@ -176,6 +216,12 @@ class FindCareService:
         """
         base_filter = dict(base_filter)
         base_filter["entity_type_code"] = "1"
+        # v4 ships providers with an inactivity history; earlier collections
+        # never did, so nothing downstream has ever had to exclude them.
+        # active[] is written only when NPPES carries a deactivation or
+        # reactivation date, so its absence is the whole test -- 18,552 of
+        # 9.3M documents carry one, and none of them belongs in a result.
+        base_filter["active"] = {"$exists": False}
         query_filter = dict(base_filter)
         if after_npi:
             query_filter["npi"] = {"$gt": after_npi}
@@ -232,7 +278,8 @@ class FindCareService:
         "provider_middle_name": 1, "provider_name_prefix_text": 1,
         "provider_name_suffix_text": 1, "provider_credential_text": 1,
         "provider_organization_name_legal_business_name": 1,
-        "addresses": 1, "taxonomies": 1,
+        "practice_addresses": 1, "business_address": 1, "taxonomies": 1,
+        "primary_taxonomy_code": 1,
     }
 
     def _vector_search(self, embedding: list, state: str, city: str, county: str, limit: int) -> list:
@@ -252,10 +299,10 @@ class FindCareService:
                     "queryVector": embedding,
                     "numCandidates": min(limit * 30, 300),
                     "limit": min(limit * 6, 60),
-                    "filter": {"addresses.state": state, "addresses.address_type": "practice"},
+                    "filter": {"practice_addresses.state": state},
                 }
             },
-            {"$match": precise or {"addresses": {"$elemMatch": {"address_type": "practice", "state": state}}}},
+            {"$match": precise or {"practice_addresses": {"$elemMatch": {"state": state}}}},
         ]
         pipeline += [{"$limit": limit}, {"$project": self._PROJECTION}]
         try:
@@ -561,7 +608,11 @@ class FindCareService:
         if county and state_upper:
             base_filter = {
                 "entity_type_code": "1",
-                "taxonomies": {"$elemMatch": {"code": {"$regex": "^2"}, "primary": True}},
+                # v4 promotes the primary taxonomy to the document, so the
+                # element match on the primary flag is a test of one scalar.
+                # $regex is not permitted in this tree; a prefix range does
+                # the same work on an indexable field.
+                "primary_taxonomy_code": {"$gte": "2", "$lt": "3"},
             }
             base_filter.update(self._practice_address_filter(state=state_upper, county=county, zip=zip))
             providers, total_count = self._facet_query(collection, base_filter, after_npi, safe_limit)

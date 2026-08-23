@@ -1823,6 +1823,37 @@ def ensure_vnet_private_endpoints(target, env: str, coll) -> None:
         atlas_approve_private_endpoint(peer_target, env, pe_resource_id)
 
 
+def seed_kv_facts_from_manifest(vault_name: str, declared: dict,
+                                identities: list[str] | None = None) -> None:
+    """Write the vault facts the manifest states outright.
+
+    A connection fact -- which host a cluster answers on, how many times a
+    paused cluster is worth retrying -- is public and belongs in the record,
+    not in a .env on somebody's workstation. Declared as
+    literal:<value>, it travels with the manifest, is reviewed in a diff,
+    and the deploy is what puts it in the vault. Nobody types an az command.
+
+    The vault is the home rather than a collection because dbUtils reads
+    these BEFORE it has a Mongo connection -- it is resolving where that
+    connection goes. The vault is already the first login.
+    """
+    facts = {name: q.split(":", 1)[1]
+             for name, q in (declared or {}).items()
+             if isinstance(q, str) and q.startswith("literal:")}
+    if not facts:
+        return
+    # Tagged onto each identity's own certificate secret, not written as
+    # secrets of their own. The vault grants an identity exactly one secret
+    # -- its certificate -- so a standalone mongo-host-* secret returns 403
+    # to every caller that needs it, and granting it round would widen every
+    # identity's reach. A tag rides on the read they already make.
+    for identity in identities or []:
+        pairs = [f"{name}={value}" for name, value in facts.items()]
+        step(f"tag {len(pairs)} connection fact(s) onto cert secret {identity}")
+        _az(["keyvault", "secret", "set-attributes", "--vault-name", vault_name,
+             "--name", identity, "--tags", *pairs])
+
+
 def seed_kv_secrets_from_env(vault_name: str, secret_names: list[str]) -> None:
     """Seed declared secret names from process env / dotenv into KV (Set).
 

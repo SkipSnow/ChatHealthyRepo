@@ -88,6 +88,27 @@ _REQUIRED_INDEXES = [
         "background": True,
         "unique": False,
     },
+    # Every front-end provider query carries the same three clauses:
+    # entity_type_code, the absence of active[], and a practice geography.
+    # v4 is the first collection to ship providers with an inactivity
+    # history, so the absence test is new and unindexed -- 18,552 documents
+    # of 9.3M carry active[], and without this the planner tests the other
+    # 9.3M for its absence on every search. Sparse, because the index only
+    # needs to answer which documents HAVE the field.
+    {
+        "keys": [("active", 1)],
+        "name": "active_1",
+        "background": True,
+        "unique": False,
+        "sparse": True,
+    },
+    {
+        "keys": [("entity_type_code", 1), ("taxonomies.code", 1),
+                 ("practice_addresses.state", 1)],
+        "name": "entity_taxonomy_practice_state",
+        "background": True,
+        "unique": False,
+    },
 ]
 
 

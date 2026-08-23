@@ -38,6 +38,33 @@ import requests
 log = ChatHealthyLoggingService()
 
 
+def stored_addresses(record: dict) -> list[dict]:
+    """Every stored address, practice first then business.
+
+    v4 splits the stored addresses[] into practice_addresses[] and a lone
+    business_address. The LIVE NPPES response is unaffected and keeps its
+    own shape -- live_to_addresses still reads live["addresses"], because
+    that is NPPES's field and not ours.
+    """
+    out = list(record.get("practice_addresses") or [])
+    business = record.get("business_address")
+    if business:
+        out.append(business)
+    return out
+
+
+def split_stored_addresses(addresses: list[dict]) -> dict:
+    """The inverse: the two fields v4 writes, from one tagged list."""
+    practice = [a for a in addresses
+                if (a or {}).get("address_type") == "practice"]
+    business = next((a for a in addresses
+                     if (a or {}).get("address_type") == "business"), None)
+    written: dict = {"practice_addresses": practice}
+    if business:
+        written["business_address"] = business
+    return written
+
+
 def live_to_comparable(live: dict) -> dict:
     return {
         "name": live_name(live),
@@ -54,7 +81,7 @@ def stored_to_comparable(stored: dict) -> dict:
         "name": stored_name(stored),
         "addresses": [
             {k: v for k, v in a.items() if k != "county"}
-            for a in (stored.get("addresses") or [])
+            for a in stored_addresses(stored)
         ],
         "taxonomies": [
             {"code": t.get("code", ""), "primary": bool(t.get("primary"))}
@@ -205,9 +232,9 @@ def regenerate_insurance(live_other_identifiers: list[dict]) -> list[dict]:
         )
         out.append({
             "insurance_type": insurance_type,
-            "brand": brand,
+            "payer_name": brand,
             "state": state,
-            "raw_value": (oi.get("identifier") or "").strip(),
+            "issuer_raw": (oi.get("identifier") or "").strip(),
         })
     return out
 
@@ -353,7 +380,7 @@ def update_active_log(
 
 
 def recompute_quality_flags(record: dict) -> dict:
-    addresses = record.get("addresses") or []
+    addresses = stored_addresses(record)
     active = record.get("active") or []
     out = dict(record)
     if not addresses:
@@ -429,8 +456,11 @@ def merge_for_writeback(live: dict, stored: dict) -> dict:
 
     # Addresses — preserve county on unchanged, geocode on new.
     live_addrs = live_to_addresses(live)
-    stored_addrs = stored.get("addresses") or []
-    new["addresses"] = addresses_with_preserved_county(live_addrs, stored_addrs)
+    stored_addrs = stored_addresses(stored)
+    # Written back into the two fields v4 holds, not the one v03 held.
+    new.update(split_stored_addresses(
+        addresses_with_preserved_county(live_addrs, stored_addrs)))
+    new.pop("addresses", None)
 
     # Taxonomies + flags
     live_tax = live_to_taxonomies(live)

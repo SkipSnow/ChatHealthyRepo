@@ -2587,6 +2587,11 @@ def deploy_one(
         # Prefer exact env key names as KV secret names (dash form for CA;
         # underscore form for Mongo etc. — store both styles as declared).
         pad.seed_kv_secrets_from_env(vault, list((target.secrets or {}).keys()))
+        # Facts the manifest states outright, rather than looks up in a .env.
+        pad.seed_kv_facts_from_manifest(
+            vault, target.secrets or {},
+            [i["identity_id"] for i in (coll.identity_catalog or [])
+             if i.get("identity_class") == "service_principal"])
         return vault
     if target_kind == "azure_storage_account":
         return pad.ensure_storage_containers(target, env)
