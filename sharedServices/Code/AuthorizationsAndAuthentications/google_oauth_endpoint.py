@@ -66,28 +66,44 @@ STATE_TTL_SECONDS = 600
 def wrapper_origin(server_env: str) -> str:
     origin = ENV_TO_WRAPPER_ORIGIN.get(server_env)
     if not origin:
-        raise HTTPException(500, f"Unknown server_env: {server_env!r}")
+        raise ChatHealthyException(
+            mode="http_error",
+            component="google_oauth_endpoint",
+            message=f"Unknown server_env: {server_env!r}",
+            status_code=500)
     return origin
 
 
 def redirect_uri(server_env: str) -> str:
     uri = ENV_TO_REDIRECT_URI.get(server_env)
     if not uri:
-        raise HTTPException(500, f"Unknown server_env: {server_env!r}")
+        raise ChatHealthyException(
+            mode="http_error",
+            component="google_oauth_endpoint",
+            message=f"Unknown server_env: {server_env!r}",
+            status_code=500)
     return uri
 
 
 def client_id() -> str:
     cid = os.getenv("GOOGLE_OAUTH_CLIENT_ID")
     if not cid:
-        raise HTTPException(500, "GOOGLE_OAUTH_CLIENT_ID is not configured on this Space")
+        raise ChatHealthyException(
+            mode="http_error",
+            component="google_oauth_endpoint",
+            message="GOOGLE_OAUTH_CLIENT_ID is not configured on this Space",
+            status_code=500)
     return cid
 
 
 def client_secret() -> str:
     sec = os.getenv("GOOGLE_OAUTH_CLIENT_SECRET")
     if not sec:
-        raise HTTPException(500, "GOOGLE_OAUTH_CLIENT_SECRET is not configured on this Space")
+        raise ChatHealthyException(
+            mode="http_error",
+            component="google_oauth_endpoint",
+            message="GOOGLE_OAUTH_CLIENT_SECRET is not configured on this Space",
+            status_code=500)
     return sec
 
 
@@ -130,29 +146,35 @@ def verify_state(state: str) -> dict:
         # Mode 2 (REQ-B-008): malformed OAuth state → user can't auth.
         # log.error always; the HTTPException(400) below surfaces the
         # failure to the caller for user-facing handling.
-        log.error("OAuth state malformed: %s", _exc, exc=ChatHealthyException(
-                                                        mode="oauth_state_malformed",
-                                                        message="OAuth state parameter malformed (missing '.' separator)",
-                                                        component="GoogleOAuthEndpoint",
-                                                        exception=_exc,
-                                                    ), if_not_debug_log=True)
-        raise HTTPException(400, "state parameter malformed")
+        raise ChatHealthyException(
+            mode="http_error",
+            component="google_oauth_endpoint",
+            message="state parameter malformed",
+            status_code=400,
+            exception=_exc)
     expected_sig = b64url(hmac.new(state_signing_key(), body_b64.encode("ascii"), hashlib.sha256).digest())
     if not hmac.compare_digest(expected_sig, sig_b64):
-        raise HTTPException(400, "state parameter signature invalid")
+        raise ChatHealthyException(
+            mode="http_error",
+            component="google_oauth_endpoint",
+            message="state parameter signature invalid",
+            status_code=400)
     try:
         payload = json.loads(b64url_decode(body_b64).decode("utf-8"))
     except Exception as _exc:
         # Mode 2 (REQ-B-008): OAuth state body invalid → user can't auth.
-        log.error("OAuth state body invalid: %s", _exc, exc=ChatHealthyException(
-                                                           mode="oauth_state_body_invalid",
-                                                           message=f"OAuth state body invalid: {_exc}",
-                                                           component="GoogleOAuthEndpoint",
-                                                           exception=_exc,
-                                                       ), if_not_debug_log=True)
-        raise HTTPException(400, "state parameter body invalid")
+        raise ChatHealthyException(
+            mode="http_error",
+            component="google_oauth_endpoint",
+            message="state parameter body invalid",
+            status_code=400,
+            exception=_exc)
     if int(time.time()) - int(payload.get("ts", 0)) > STATE_TTL_SECONDS:
-        raise HTTPException(400, "state parameter expired")
+        raise ChatHealthyException(
+            mode="http_error",
+            component="google_oauth_endpoint",
+            message="state parameter expired",
+            status_code=400)
     return payload
 
 

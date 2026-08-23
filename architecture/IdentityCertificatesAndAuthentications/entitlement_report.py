@@ -200,7 +200,8 @@ def _approved_register(source: str = "") -> tuple[dict[str, tuple], str]:
                 message=(f"the approved register could not be read from "
                          f"{rel} on the branch: {exc}. The report does not "
                          f"fall back to the working tree, because a control "
-                         f"the run can edit is not a control."))
+                         f"the run can edit is not a control."),
+                exception=exc)
         data = json.loads(blob)
         return (_build(data.get("IdentityCatalog") or []),
                 f"deployment_architecture.json at {ref} {commit}")

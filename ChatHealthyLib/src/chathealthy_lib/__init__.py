@@ -8,7 +8,6 @@ __version__ = "0.1.7"
 from .authentication import (
     SessionToken,
     SessionTokenVerification,
-    TokenInfraError,
     TokenWidgetData,
 )
 from .exceptions import ChatHealthyException
@@ -20,7 +19,6 @@ __all__ = [
     "ChatHealthyLoggingService",
     "SessionToken",
     "SessionTokenVerification",
-    "TokenInfraError",
     "TokenWidgetData",
     "run_llm",
     "run_llm_sync",

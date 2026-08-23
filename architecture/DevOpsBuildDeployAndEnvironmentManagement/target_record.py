@@ -16,6 +16,14 @@ from __future__ import annotations
 
 from dataclasses import dataclass, field
 from typing import Iterator
+import sys as _ch_sys, pathlib as _ch_pl  # noqa: E402
+for _ch_d in _ch_pl.Path(__file__).resolve().parents:
+    if (_ch_d / '.git').exists():
+        _ch_lib = _ch_d / 'ChatHealthyLib' / 'src'
+        if str(_ch_lib) not in _ch_sys.path:
+            _ch_sys.path.insert(0, str(_ch_lib))
+        break
+from chathealthy_lib.exceptions import ChatHealthyException  # noqa: E402
 def _ch_exc():
     """ChatHealthyException without assuming the library is installed.
     These modules run as bare scripts in the devops chain."""
@@ -179,7 +187,7 @@ class FileComposition:
             out["package"] = self.package
         if self.disposition == "managed":
             if self.embedded_content is None:
-                raise _ch_exc()(
+                raise ChatHealthyException(
             mode="value_error",
             component="target_record",
             message=f"FileComposition {self.source_location!r}: disposition="
@@ -187,7 +195,7 @@ class FileComposition:
             out["embedded_content"] = self.embedded_content
             if self.handler_type == "dockerfile":
                 if self.layout is None:
-                    raise _ch_exc()(
+                    raise ChatHealthyException(
             mode="value_error",
             component="target_record",
             message=f"FileComposition {self.source_location!r}: "
@@ -197,13 +205,13 @@ class FileComposition:
                 out["layout"] = self.layout
         elif self.disposition == "referenced":
             if self.embedded_content is not None:
-                raise _ch_exc()(
+                raise ChatHealthyException(
             mode="value_error",
             component="target_record",
             message=f"FileComposition {self.source_location!r}: disposition="
                     f"'referenced' forbids embedded_content")
             if self.layout is not None:
-                raise _ch_exc()(
+                raise ChatHealthyException(
             mode="value_error",
             component="target_record",
             message=f"FileComposition {self.source_location!r}: disposition="
@@ -211,7 +219,7 @@ class FileComposition:
             if self.content_hash is not None:
                 out["content_hash"] = self.content_hash
         else:
-            raise _ch_exc()(
+            raise ChatHealthyException(
             mode="value_error",
             component="target_record",
             message=f"FileComposition {self.source_location!r}: unknown "
@@ -311,7 +319,7 @@ class TargetRecord:
         envs_raw = d["environments"]
         files_raw = d["files"]
         if not isinstance(envs_raw, list) or not isinstance(files_raw, list):
-            raise _ch_exc()(
+            raise ChatHealthyException(
             mode="type_error",
             component="target_record",
             message="environments and files must be lists")
@@ -353,7 +361,7 @@ class DeploymentCollection:
     def add(self, record: TargetRecord) -> None:
         for existing in self.records:
             if existing.target_id == record.target_id:
-                raise _ch_exc()(
+                raise ChatHealthyException(
             mode="value_error",
             component="target_record",
             message=f"target_id collision: {record.target_id!r} already in collection")

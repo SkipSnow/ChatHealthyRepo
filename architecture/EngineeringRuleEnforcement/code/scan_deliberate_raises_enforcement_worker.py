@@ -71,6 +71,34 @@ def _is_forbidden_raise(node: ast.Raise) -> str | None:
     return name
 
 
+
+def _conversions_dropping_the_original(tree: ast.AST) -> list[tuple[int, str]]:
+    """Conversions that discard the exception they were converting.
+
+    The architecture is that an external exception keeps its native type
+    until a boundary, where it becomes a ChatHealthyException. A conversion
+    that does not carry the original into `exception=` throws the cause on
+    the ground: the mode says what kind of failure it was, and nothing says
+    what actually failed. The stack the operator needs is the one that no
+    longer exists.
+
+    A bare `raise` is untouched -- it re-raises the original itself.
+    """
+    hits: list[tuple[int, str]] = []
+    for handler in ast.walk(tree):
+        if not isinstance(handler, ast.ExceptHandler) or not handler.name:
+            continue
+        for node in ast.walk(handler):
+            if not (isinstance(node, ast.Raise) and isinstance(node.exc, ast.Call)):
+                continue
+            if _raised_name(node.exc) != _REQUIRED:
+                continue
+            if any(kw.arg == "exception" for kw in node.exc.keywords):
+                continue
+            hits.append((node.lineno, handler.name))
+    return hits
+
+
 def _count_forbidden_raises(source: str) -> list[tuple[int, str]]:
     """Return a list of (lineno, forbidden_name) for every forbidden
     Raise in the source. Unparseable source returns []."""
@@ -84,6 +112,8 @@ def _count_forbidden_raises(source: str) -> list[tuple[int, str]]:
             name = _is_forbidden_raise(node)
             if name is not None:
                 hits.append((node.lineno, name))
+    for lineno, caught in _conversions_dropping_the_original(tree):
+        hits.append((lineno, f"@drop:{caught}"))
     return hits
 
 
@@ -136,15 +166,27 @@ class ScanDeliberateRaisesEnforcementWorker(EnforcementWorker):
         # Any violation in the staged file is rejected.
         violations: list[ViolationRecord] = []
         for lineno, name in staged_hits:
+            if name.startswith("@drop:"):
+                caught = name.split(":", 1)[1]
+                message = (
+                    f"this catch converts {caught!r} to ChatHealthyException "
+                    f"and does not carry it: pass exception={caught}. An "
+                    f"external exception keeps its native type until a "
+                    f"boundary converts it, and a conversion that drops the "
+                    f"original leaves the mode saying what kind of failure "
+                    f"it was and nothing saying what failed."
+                )
+            else:
+                message = (
+                    f"deliberate raise of built-in {name!r}; "
+                    f"EPIC-008-F-002-S-009-REQ-B-002 forbids this — use "
+                    f"ChatHealthyException(mode=..., message=...) instead."
+                )
             violations.append(ViolationRecord(
                 enforcement_id=self.enforcement_id,
                 rule_id="Rule-003",
                 resource=f"{file_path}:{lineno}",
-                message=(
-                    f"deliberate raise of built-in {name!r}; "
-                    f"EPIC-008-F-002-S-009-REQ-B-002 forbids this — use "
-                    f"ChatHealthyException(mode=..., message=...) instead."
-                ),
+                message=message,
             ))
         return violations
 

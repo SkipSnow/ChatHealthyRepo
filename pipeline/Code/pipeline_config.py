@@ -76,7 +76,7 @@ def load_pipeline_config(mongo_client=None, env_prefix: str = "dev") -> dict[str
                 f"pipeline_config: {_CONFIG_PATH} is not valid JSON: {exc}"
             ),
             path=str(_CONFIG_PATH),
-        ) from exc
+            exception=exc) from exc
     records = payload.get("pipeline_config") or []
     for rec in records:
         if isinstance(rec, dict) and rec.get("env") == env_prefix:

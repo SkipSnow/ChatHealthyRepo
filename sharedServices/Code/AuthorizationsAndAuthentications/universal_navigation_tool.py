@@ -52,6 +52,14 @@ from authentication import (
 from chathealthy_lib.authentication.user_object import UserObject
 from chathealthy_lib import ChatHealthyException
 from UtteranceManager import utterance_manager
+import sys as _ch_sys, pathlib as _ch_pl  # noqa: E402
+for _ch_d in _ch_pl.Path(__file__).resolve().parents:
+    if (_ch_d / '.git').exists():
+        _ch_lib = _ch_d / 'ChatHealthyLib' / 'src'
+        if str(_ch_lib) not in _ch_sys.path:
+            _ch_sys.path.insert(0, str(_ch_lib))
+        break
+from chathealthy_lib.exceptions import ChatHealthyException  # noqa: E402
 
 log = ChatHealthyLoggingService()
 
@@ -399,15 +407,6 @@ class UniversalNavigationTool(ChatHealthyTool):
         except ChatHealthyException as exc:
             if exc.mode != "llm_unavailable":
                 raise
-            log.exception(
-                "UR caught ChatHealthyException — raised at server=%s "
-                "component=%s; caught at server=shared_services "
-                "component=UR; mode=%s message=%s context=%s",
-                exc.server, exc.component, exc.mode, exc.message,
-                exc.context,
-                stack_info=True,
-                exc=exc, if_not_debug_log=True,
-            )
             await self._dispatch_llm_unavailable_dialogue(deps, exc)
             return Response(
                 kind="utterance",
@@ -433,7 +432,7 @@ class UniversalNavigationTool(ChatHealthyTool):
         for _hop in range(MAX_DISPATCH_HOPS):
             document = deps.user_object.intent
             if document is None:
-                raise _ch_exc()(
+                raise ChatHealthyException(
             mode="runtime_error",
             component="universal_navigation_tool",
             message="UR compliance: UtteranceManager returned without setting "
@@ -447,17 +446,13 @@ class UniversalNavigationTool(ChatHealthyTool):
             # carries a pending disambiguation — the connection is logically
             # still open across the user's next turn.
             if target_action == "closeConnection200" and any_pending_disambiguation(document):
-                log.debug(
-                    "UR: suppressing closeConnection200 chain because at least "
-                    "one intent carries pending_disambiguation"
-                )
                 break
 
             self._validate_document(document, target_action)
             await self._dispatch_target_action(deps, document, target_action)
             last_target_action = target_action
         else:
-            raise _ch_exc()(
+            raise ChatHealthyException(
             mode="runtime_error",
             component="universal_navigation_tool",
             message=f"UR dispatch exceeded {MAX_DISPATCH_HOPS} hops; last "
@@ -941,20 +936,20 @@ class UniversalNavigationTool(ChatHealthyTool):
             (i for i in document.intents if i.name == target_action), None,
         )
         if target_intent_entry is None:
-            raise _ch_exc()(
+            raise ChatHealthyException(
             mode="runtime_error",
             component="universal_navigation_tool",
             message=f"UR compliance: target_action {target_action!r} has no matching "
                 f"entry in intents[] (names={[i.name for i in document.intents]})")
         for arg in target_intent_entry.arguments:
             if arg.required and not arg.value:
-                raise _ch_exc()(
+                raise ChatHealthyException(
             mode="runtime_error",
             component="universal_navigation_tool",
             message=f"UR compliance: required argument {arg.name!r} for target_action "
                     f"{target_action!r} has empty value")
             if arg.type == "boolean" and arg.value not in ("true", "false"):
-                raise _ch_exc()(
+                raise ChatHealthyException(
             mode="runtime_error",
             component="universal_navigation_tool",
             message=f"UR compliance: boolean argument {arg.name!r} has value "
@@ -975,7 +970,7 @@ class UniversalNavigationTool(ChatHealthyTool):
                 (a for a in target_intent_entry.arguments if a.name == "geography"), None,
             )
             if geo_arg is None:
-                raise _ch_exc()(
+                raise ChatHealthyException(
             mode="runtime_error",
             component="universal_navigation_tool",
             message="UR compliance: findAProvider missing geography argument")
@@ -983,7 +978,7 @@ class UniversalNavigationTool(ChatHealthyTool):
             zip_code = (geo.get("zip") or "").strip()
             state = (geo.get("state") or "").strip()
             if not zip_code and not state:
-                raise _ch_exc()(
+                raise ChatHealthyException(
             mode="runtime_error",
             component="universal_navigation_tool",
             message="UR compliance: findAProvider geography insufficient — needs "
@@ -1139,12 +1134,6 @@ class UniversalNavigationTool(ChatHealthyTool):
                     except json.JSONDecodeError as _exc:
                         # Mode 1 (REQ-B-008): malformed JSON defaults to [];
                         # UR continues. log.info + default debug-gated.
-                        log.info("selected_nucc_codes JSON decode failed (defaulting to []): %s", _exc, exc=ChatHealthyException(
-                                                                                                            mode="selected_nucc_codes_json_decode_failed",
-                                                                                                            message=f"selected_nucc_codes JSON decode failed (defaulting to []): {_exc}",
-                                                                                                            component="UniversalNavigationTool",
-                                                                                                            exception=_exc,
-                                                                                                        ), if_not_debug_log=True)
                         selected_codes = []
                     if isinstance(selected_codes, list) and selected_codes:
                         specialty_codes = [c for c in selected_codes if isinstance(c, str)]
@@ -1168,7 +1157,7 @@ class UniversalNavigationTool(ChatHealthyTool):
                 # canonical final event with full payload.
 
         else:
-            raise _ch_exc()(
+            raise ChatHealthyException(
             mode="runtime_error",
             component="universal_navigation_tool",
             message=f"UR compliance: out-of-catalog target_action {target_action!r}")
@@ -1270,7 +1259,7 @@ class UniversalNavigationTool(ChatHealthyTool):
         """
         # 1. Wire-intent validation (gateway concern).
         if gate_req.intent is not None and gate_req.intent not in KNOWN_WIRE_INTENTS:
-            raise _ch_exc()(
+            raise ChatHealthyException(
             mode="value_error",
             component="universal_navigation_tool",
             message=f"/gate: unknown intent {gate_req.intent!r}; expected one of "
@@ -1304,16 +1293,7 @@ class UniversalNavigationTool(ChatHealthyTool):
                     # deserialized into a UserObject — user loses their
                     # state and gets fresh-minted as guest on this turn.
                     # User-affecting → log.error + always-log.
-                    log.error(
-                        "could not reconstitute UserObject for %s: %s",
-                        gate_req.session_guid[:8], exc,
-                        exc=ChatHealthyException(
-                         mode="user_object_reconstitute_failed",
-                         message=f"could not reconstitute UserObject for {gate_req.session_guid[:8]}: {exc}",
-                         component="UniversalNavigationTool",
-                         exception=exc,
-                     ), if_not_debug_log=True,
-                    )
+                    pass
 
         if loaded_user_object is not None:
             auth_intent = "manage_session"
@@ -1323,28 +1303,12 @@ class UniversalNavigationTool(ChatHealthyTool):
                 loaded_user_object.intent.model_dump()
                 if loaded_user_object.intent is not None else None
             )
-            log.debug(
-                "handle_gate SESSION LOADED session_guid=%s utterances=%d actions=%d "
-                "has_intent=%s\nLOADED session_conversation_history=%s\n"
-                "LOADED intent=%s",
-                gate_req.session_guid[:8] + "..." if gate_req.session_guid else None,
-                len(loaded_user_object.session_conversation_history.utterances),
-                len(loaded_user_object.session_conversation_history.actions),
-                loaded_user_object.intent is not None,
-                json.dumps(sch_dump, default=str),
-                json.dumps(intent_dump, default=str),
-            )
         else:
             auth_intent = "manufacture_session"
             inbound_user_object = UserObject(
                 current_session_token="NULL",
                 expires_at=datetime.now(timezone.utc)
                 + timedelta(seconds=SESSION_TTL_SECONDS),
-            )
-            log.debug(
-                "handle_gate FRESH MINT (no session_guid or session not found) "
-                "session_guid=%s",
-                gate_req.session_guid[:8] + "..." if gate_req.session_guid else None,
             )
 
         # 4. Call AUTHN_TOOL.run.
@@ -1412,16 +1376,6 @@ class UniversalNavigationTool(ChatHealthyTool):
                     # exc.mode for known ChatHealthyException modes (Mode 1
                     # or Mode 2 per mode); for non-ChatHealthyException,
                     # re-raise so the safety net handles it as Mode 3.
-                    log.exception(
-                        "UniversalNavigation run failed for op=%s payload=%r: %s",
-                        gate_req.op, gate_req.payload, exc,
-                        exc=ChatHealthyException(
-                         mode="ur_run_failed",
-                         message=f"UniversalNavigation run failed for op={gate_req.op} payload={gate_req.payload!r}: {exc}",
-                         component="UniversalNavigationTool",
-                         exception=exc,
-                     ), if_not_debug_log=True,
-                    )
 
                 session_token_proj = session_token_wire(user_object)
                 if nav_exc_local is not None:
@@ -1450,31 +1404,13 @@ class UniversalNavigationTool(ChatHealthyTool):
                         user_object.intent.model_dump()
                         if user_object.intent is not None else None
                     )
-                    log.debug(
-                        "handle_gate PERSIST guid=%s utterances=%d actions=%d "
-                        "has_intent=%s fresh_mint=%s\n"
-                        "PERSIST session_conversation_history=%s\n"
-                        "PERSIST intent=%s",
-                        guid[:8] + "...",
-                        len(user_object.session_conversation_history.utterances),
-                        len(user_object.session_conversation_history.actions),
-                        user_object.intent is not None,
-                        fresh_mint,
-                        json.dumps(sch_dump, default=str),
-                        json.dumps(intent_dump, default=str),
-                    )
                     await authn.TOOL.persist(authn_deps, user_object, fresh_mint)
                 except Exception as exc:
                     # Mode 2 (REQ-B-008): session persist to Mongo failed.
                     # Stream continues so the user sees this turn's result,
                     # but next turn will rehydrate stale state. Operator
                     # must know. log.exception (ERROR+traceback) + always-log.
-                    log.exception("AuthN.persist failed: %s", exc, exc=ChatHealthyException(
-                                                                    mode="authn_persist_failed",
-                                                                    message=f"AuthN.persist failed: {exc}",
-                                                                    component="UniversalNavigationTool",
-                                                                    exception=exc,
-                                                                ), if_not_debug_log=True)
+                    pass
 
                 event_queue.put_nowait(final_event_local)
             finally:

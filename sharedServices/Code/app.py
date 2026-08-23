@@ -100,6 +100,21 @@ bootstrap_certs_from_env()
 
 app = FastAPI(title="ChatHealthy.ai Shared Services", version="0.1.5")
 
+
+@app.exception_handler(ChatHealthyException)
+async def _chathealthy_exception_to_response(request, exc: ChatHealthyException):
+    """Return the response the raise site asked for.
+
+    Raising ChatHealthyException instead of HTTPException moves the status
+    code into the exception's context. This turns it back into the same
+    response the client used to receive: same code, same detail body. Any
+    other mode is an unhandled fault and answers 500.
+    """
+    if exc.mode == "http_error":
+        return JSONResponse(status_code=int(exc.context.get("status_code", 500)),
+                            content={"detail": exc.message})
+    return JSONResponse(status_code=500, content={"detail": exc.message})
+
 import datetime as dt
 
 
@@ -284,27 +299,28 @@ def _verify_session_or_401(op: str, session_token_dict) -> tuple[SessionToken, s
     logs, not the thrower).
     """
     if not isinstance(session_token_dict, dict) or not session_token_dict:
-        log.warning("/gate op=%s rejected: session_token missing", op)
-        raise HTTPException(
-            status_code=401,
-            detail="session_token is required for non-trivial /gate ops",
-        )
+        raise ChatHealthyException(
+            mode="http_error",
+            component="app",
+            message="session_token is required for non-trivial /gate ops",
+            status_code=401)
     try:
         st_in = SessionToken.model_validate(session_token_dict)
         at = AuthToken(st_in, origin=ORIGIN)
         valid = at.verify()
     except (ValueError, TypeError) as _e:
-        log.warning("/gate op=%s session_token invalid: %s", op, _e,
-                    exc=ChatHealthyException(
-                        mode="gate_session_token_invalid",
-                        message=f"/gate op={op} session_token invalid: {_e}",
-                        component="SharedServices",
-                        exception=_e,
-                    ), if_not_debug_log=True)
-        raise HTTPException(status_code=401, detail=f"session_token invalid: {_e}") from _e
+        raise ChatHealthyException(
+            mode="http_error",
+            component="app",
+            message=f"session_token invalid: {_e}",
+            status_code=401,
+            exception=_e)
     if not valid:
-        log.warning("/gate op=%s session_token verification failed", op)
-        raise HTTPException(status_code=401, detail="session_token verification failed")
+        raise ChatHealthyException(
+            mode="http_error",
+            component="app",
+            message="session_token verification failed",
+            status_code=401)
     return st_in, st_in.get_auth_token()
 
 

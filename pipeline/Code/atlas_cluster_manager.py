@@ -1,5 +1,6 @@
 from chathealthy_lib.logging_service import ChatHealthyLoggingService
 from chathealthy_lib.exceptions import ChatHealthyException
+from chathealthy_lib.exceptions import ChatHealthyException  # noqa: E402
 # Copyright © 2026 ChatHealthy.ai LLC. All rights reserved.
 # Licensed under the FindCare Evaluation License (FEL-1.0).
 #
@@ -28,6 +29,7 @@ from pathlib import Path
 import requests
 from requests.auth import HTTPDigestAuth
 from dotenv import load_dotenv
+import sys
 
 load_dotenv(Path(__file__).parent.parent / ".env")
 
@@ -156,11 +158,13 @@ def wait_for_idle(cluster_name: str) -> None:
     deadline = time.time() + TIMEOUT_MIN * 60
     while time.time() < deadline:
         state = get_cluster_state(cluster_name)
-        log.info("%s state: %s", cluster_name, state)
         if state == "IDLE":
             return
         time.sleep(POLL_INTERVAL)
-    raise TimeoutError(f"{cluster_name} did not reach IDLE within {TIMEOUT_MIN} minutes")
+    raise ChatHealthyException(
+        mode="timeout",
+        component="atlas_cluster_manager",
+        message=f"{cluster_name} did not reach IDLE within {TIMEOUT_MIN} minutes")
 
 
 def pause_cluster(cluster_name: str) -> None:

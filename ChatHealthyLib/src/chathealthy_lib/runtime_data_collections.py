@@ -180,14 +180,26 @@ router = APIRouter()
 
 def _require_bearer(authorization: str | None = Header(default=None)) -> str:
     if not authorization or not authorization.startswith("Bearer "):
-        raise HTTPException(status_code=401, detail="Bearer token required.")
+        raise ChatHealthyException(
+            mode="http_error",
+            component="runtime_data_collections",
+            message="Bearer token required.",
+            status_code=401)
     token = authorization[7:].strip()
     if not token:
-        raise HTTPException(status_code=401, detail="Empty bearer token.")
+        raise ChatHealthyException(
+            mode="http_error",
+            component="runtime_data_collections",
+            message="Empty bearer token.",
+            status_code=401)
     token_map = json.loads(os.environ.get("API_TOKEN_MAP", "{}"))
     user = token_map.get(token)
     if not user:
-        raise HTTPException(status_code=401, detail="Invalid bearer token.")
+        raise ChatHealthyException(
+            mode="http_error",
+            component="runtime_data_collections",
+            message="Invalid bearer token.",
+            status_code=401)
     return user
 
 
@@ -210,13 +222,21 @@ def admin_swap(
     """
     items = payload.get("collections")
     if not isinstance(items, list):
-        raise HTTPException(status_code=400, detail="collections[] required.")
+        raise ChatHealthyException(
+            mode="http_error",
+            component="runtime_data_collections",
+            message="collections[] required.",
+            status_code=400)
     new_bindings: dict[str, str] = {}
     for entry in items:
         slot = entry.get("collection_environment_name")
         fqn = entry.get("runtime_collection_name")
         if not slot or not fqn:
-            raise HTTPException(status_code=400, detail="each collections[] entry needs both names.")
+            raise ChatHealthyException(
+                mode="http_error",
+                component="runtime_data_collections",
+                message="each collections[] entry needs both names.",
+                status_code=400)
         new_bindings[slot] = fqn
     _state.bindings = new_bindings
     return {"status": "ok", "target_id": _state.target_id, "env": _state.env, "bindings": new_bindings}

@@ -573,4 +573,4 @@ def _stamp_env_on_manifest(target_dir: Path, env: str, git_head_sha: str,
 
 
 if __name__ == "__main__":
-    raise SystemExit(main())
+    sys.exit(main())

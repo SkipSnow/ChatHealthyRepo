@@ -149,26 +149,26 @@ def _render_dockerfile(layout: list) -> str:
     Comments are not preserved by V1 encoding; layout is the spec.
     """
     if not isinstance(layout, list):
-        raise _ch_exc()(
+        raise ChatHealthyException(
             mode="type_error",
             component="builder",
             message=f"Dockerfile layout must be a list, got {type(layout).__name__}")
     lines: list[str] = []
     for step in layout:
         if not isinstance(step, dict):
-            raise _ch_exc()(
+            raise ChatHealthyException(
             mode="type_error",
             component="builder",
             message=f"Dockerfile layout step must be a dict, got {step!r}")
         inst = step.get("instruction")
         args = step.get("args", [])
         if not isinstance(inst, str):
-            raise _ch_exc()(
+            raise ChatHealthyException(
             mode="value_error",
             component="builder",
             message=f"Dockerfile step missing instruction: {step!r}")
         if not isinstance(args, list):
-            raise _ch_exc()(
+            raise ChatHealthyException(
             mode="type_error",
             component="builder",
             message=f"Dockerfile step args must be a list: {step!r}")
@@ -220,9 +220,10 @@ def _walk(
     """
     root = repo_root / dir_rel
     if not root.is_dir():
-        raise FileNotFoundError(
-            f"Builder expected directory at {root}; absent on disk"
-        )
+        raise ChatHealthyException(
+            mode="file_missing",
+            component="builder",
+            message=f"Builder expected directory at {root}; absent on disk")
     extra = tuple(p.replace("\\", "/").rstrip("/") for p in extra_exclude_rel_prefixes)
     out: list[Path] = []
     for path in sorted(root.rglob("*")):
@@ -304,7 +305,7 @@ class Builder:
             if handler in _MANAGED_HANDLER_TYPES:
                 layout = self._prior_layouts.get(rel)
                 if layout is None:
-                    raise _ch_exc()(
+                    raise ChatHealthyException(
             mode="runtime_error",
             component="builder",
             message=f"Builder: managed {handler} {rel!r} has no layout in "

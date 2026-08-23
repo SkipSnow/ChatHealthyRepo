@@ -24,6 +24,14 @@ sys.path.insert(0, str(Path(__file__).resolve().parent))
 import conversation_log_drain as drain          # noqa: E402
 import conversation_log_writer as writer        # noqa: E402
 from pymongo.errors import PyMongoError
+import sys as _ch_sys, pathlib as _ch_pl  # noqa: E402
+for _ch_d in _ch_pl.Path(__file__).resolve().parents:
+    if (_ch_d / '.git').exists():
+        _ch_lib = _ch_d / 'ChatHealthyLib' / 'src'
+        if str(_ch_lib) not in _ch_sys.path:
+            _ch_sys.path.insert(0, str(_ch_lib))
+        break
+from chathealthy_lib.exceptions import ChatHealthyException  # noqa: E402
 
 
 class FakeCollection:
@@ -37,7 +45,10 @@ class FakeCollection:
     def insert_one(self, doc):
         self.calls += 1
         if self.raise_on is not None and self.calls == self.raise_on:
-            raise PyMongoError("mongo unreachable")
+            raise ChatHealthyException(
+                mode="db_unreachable",
+                component="test_conversation_log_spool",
+                message="mongo unreachable")
         self.docs.append(doc)
 
 

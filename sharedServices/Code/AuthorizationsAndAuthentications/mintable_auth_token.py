@@ -18,6 +18,8 @@ from chathealthy_lib.authentication.session_token import (
     cert_basename,
 )
 
+from chathealthy_lib.exceptions import ChatHealthyException
+
 log = ChatHealthyLoggingService()
 
 
@@ -51,7 +53,10 @@ class MintableAuthToken(AuthToken):
         certs_dir = os.environ.get("CERTS_DIR", CERTS_DIR)
         key_path = os.path.join(certs_dir, f"{cert_basename(origin)}.key")
         if not os.path.exists(key_path):
-            raise FileNotFoundError(f"signing key not found: {key_path}")
+            raise ChatHealthyException(
+                mode="file_missing",
+                component="mintable_auth_token",
+                message=f"signing key not found: {key_path}")
         with open(key_path, "rb") as f:
             private_key = serialization.load_pem_private_key(f.read(), password=None)
         payload = f"{origin}:{original_stamp}:{guid}".encode()

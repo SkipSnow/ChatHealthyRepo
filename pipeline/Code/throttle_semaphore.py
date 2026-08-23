@@ -30,6 +30,7 @@ cross-process coordination construct one gate per worker.
 from __future__ import annotations
 from chathealthy_lib.logging_service import ChatHealthyLoggingService
 from chathealthy_lib.exceptions import ChatHealthyException
+from chathealthy_lib.exceptions import ChatHealthyException  # noqa: E402
 
 
 import threading
@@ -57,9 +58,10 @@ class ConcurrencyBoundedSemaphore:
     def hold(self, timeout: float | None = None) -> Iterator[None]:
         acquired = self._sem.acquire(timeout=timeout) if timeout is not None else self._sem.acquire()
         if not acquired:
-            raise TimeoutError(
-                f"ConcurrencyBoundedSemaphore.hold(): timed out after {timeout}s"
-            )
+            raise ChatHealthyException(
+                mode="timeout",
+                component="throttle_semaphore",
+                message=f"ConcurrencyBoundedSemaphore.hold(): timed out after {timeout}s")
         try:
             yield
         finally:

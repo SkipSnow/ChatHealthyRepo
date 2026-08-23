@@ -171,7 +171,8 @@ class CommitAuthorizationWorker(EnforcementWorker):
                 cwd=self._commit_repo(),
             )
         except subprocess.CalledProcessError as exc:
-            raise ChatHealthyException("worker_internal", f"could not read current branch: {exc}")
+            raise ChatHealthyException("worker_internal", f"could not read current branch: {exc}",
+                exception=exc)
         return out.decode("utf-8").strip()
 
     def _staged_files(self) -> list[str]:
@@ -182,7 +183,8 @@ class CommitAuthorizationWorker(EnforcementWorker):
                 cwd=self._commit_repo(),
             )
         except subprocess.CalledProcessError as exc:
-            raise ChatHealthyException("worker_internal", f"could not read staged files: {exc}")
+            raise ChatHealthyException("worker_internal", f"could not read staged files: {exc}",
+                exception=exc)
         return [line.strip() for line in out.decode("utf-8").splitlines() if line.strip()]
 
     # ────────────────────────────────────────────────────────────────────────

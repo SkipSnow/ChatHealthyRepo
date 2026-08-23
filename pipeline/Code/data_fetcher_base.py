@@ -156,7 +156,8 @@ class DataFetcherBase:
                     bc.delete_blob()
                 except Exception as del_exc:
                     pass
-            raise ChatHealthyException(mode="runtime_error", message=f"[{self.source_name}] gather failed and stale blob deleted; pipeline must abend.") from exc
+            raise ChatHealthyException(mode="runtime_error", message=f"[{self.source_name}] gather failed and stale blob deleted; pipeline must abend.",
+                exception=exc) from exc
 
         try:
             registry = self._load_registry()

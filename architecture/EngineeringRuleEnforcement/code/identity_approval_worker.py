@@ -167,8 +167,8 @@ class IdentityApprovalWorker(EnforcementWorker):
         except (subprocess.CalledProcessError, json.JSONDecodeError) as exc:
             raise ChatHealthyException(
             "worker_internal",
-                f"could not load staged {_MANIFEST_REL}: {exc}"
-            )
+                f"could not load staged {_MANIFEST_REL}: {exc}",
+                exception=exc)
 
     # ────────────────────────────────────────────────────────────────────────
     def _is_real_interactive_shell(self) -> bool:

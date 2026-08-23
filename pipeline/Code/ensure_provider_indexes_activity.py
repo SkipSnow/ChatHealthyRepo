@@ -48,6 +48,7 @@ No external prerequisite. No manual side-action.
 """
 from __future__ import annotations
 from chathealthy_lib.logging_service import ChatHealthyLoggingService
+from chathealthy_lib.exceptions import ChatHealthyException  # noqa: E402
 
 
 import os
@@ -117,10 +118,12 @@ def _wait_for_cluster_ready(
         except Exception as exc:
             remaining = deadline - time.time()
             if remaining <= 0:
-                raise TimeoutError(
-                    f"cluster not ready after {timeout_minutes} min "
-                    f"({attempts} attempts): {exc}"
-                )
+                raise ChatHealthyException(
+                    mode="timeout",
+                    component="ensure_provider_indexes_activity",
+                    message=f"cluster not ready after {timeout_minutes} min "
+                    f"({attempts} attempts): {exc}",
+            exception=exc)
             ChatHealthyLoggingService().info(
                 "cluster not ready (attempt %d, %.0fs remaining): %s",
                 attempts, remaining, exc,

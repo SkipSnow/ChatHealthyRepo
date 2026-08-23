@@ -56,7 +56,7 @@
           "rule_statement": [
             {
               "statement_number": 1,
-              "statement_body": "On SessionStart and PostCompact, the boot MUST read the 170 most recent utterance documents from MongoDB ClaudeCodeLog.conversation_log_archive, trim each document to {actor, content}, order newest-to-oldest, and emit them as part of the hook's additionalContext so Claude resumes with recent conversation context. If the MongoDB read fails, the boot MUST fail open — log the failure and continue with remaining duties.",
+              "statement_body": "On SessionStart and PostCompact, the boot MUST read the 170 most recent utterance documents from MongoDB ClaudeCodeLog.conversation_log_archive, trim each document to {actor, content}, order newest-to-oldest, and emit them as part of the hook's additionalContext so Claude resumes with recent conversation context. If the MongoDB read fails, the boot MUST fail open \u2014 log the failure and continue with remaining duties.",
               "req_id": "EPIC-008-F-002-S-007"
             },
             {
@@ -169,12 +169,12 @@
             },
             {
               "statement_number": 2,
-              "statement_body": "Every deliberate raise authored in ChatHealthy.ai code uses ChatHealthyException with a mode discriminator. The built-in types ValueError, RuntimeError, AssertionError, KeyError and TypeError are forbidden in a deliberate raise. A bare re-raise is always allowed.",
+              "statement_body": "Every deliberate raise authored in ChatHealthy.ai code uses ChatHealthyException with a mode discriminator. The class is required rather than a list of built-ins forbidden: a raise that constructs anything else is a violation. A bare re-raise is always allowed, and so is re-raising a bound name, since neither authors an exception. A catch that binds the caught exception and converts it to ChatHealthyException carries the original in exception=; an external exception keeps its native type until a boundary converts it, and a conversion that drops the original leaves the mode saying what kind of failure occurred and nothing saying what failed. Exception management is one concern and one enforcement carries it.",
               "req_id": "EPIC-008-F-002-S-009-REQ-B-002"
             },
             {
               "statement_number": 3,
-              "statement_body": "A MongoDB client or collection is obtained only through ChatHealthyMongoUtilities().getConnection(identity, cluster). Direct MongoClient construction is forbidden, and so is any fake, mock, stub or in-memory double of a client, database or collection. There is no test-file exemption: the certificate is the credential, and code that reaches Mongo without an identity is code whose authorization is never tested.",
+              "statement_body": "A MongoDB handle is obtained only through ChatHealthyMongoUtilities().getConnection(identity, cluster). The rule binds at acquisition: constructing a client, taking one from a static -- an imported module or a class defined in the same file -- or standing any fake, mock, stub or in-memory double in place of a client, database or collection. An attribute off self, off cls or off a local is ordinary code and is not acquisition. A component handed a handle by its caller is using one another component authenticated for, so passing a handle on is allowed. A connection-string literal is forbidden wherever it appears. There is no test-file exemption: the certificate is the credential, and code that reaches Mongo without an identity is code whose authorization is never tested.",
               "req_id": "EPIC-008-F-002-S-010-REQ-B-007"
             },
             {
@@ -222,7 +222,7 @@
             },
             {
               "enforcement_id": "Rule-065-ENF-002",
-              "title": "Deliberate raises use ChatHealthyException",
+              "title": "Exception management uses ChatHealthyException",
               "hook": "pre-commit",
               "executable_path": "architecture/EngineeringRuleEnforcement/code/scan_deliberate_raises_enforcement_worker.py",
               "requires_lock": false,
@@ -253,7 +253,7 @@
             },
             {
               "enforcement_id": "Rule-065-ENF-003",
-              "title": "MongoDB access only through the canonical utility",
+              "title": "A MongoDB handle is acquired only through the canonical utility",
               "hook": "pre-commit",
               "executable_path": "architecture/EngineeringRuleEnforcement/code/scan_mongo_client_direct_access_worker.py",
               "requires_lock": false,

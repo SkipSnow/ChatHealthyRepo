@@ -57,7 +57,12 @@ class EvaluateProvidersEndpoint:
                                                                       component="EvaluateProvidersEndpoint",
                                                                       exception=e,
                                                                   ), if_not_debug_log=True)
-            raise HTTPException(status_code=400, detail=str(e)) from e
+            raise ChatHealthyException(
+                mode="http_error",
+                component="evaluate_providers_endpoint",
+                message=str(e),
+                status_code=400,
+            exception=e)
 
         # Provider model is extra='allow' with zero declared fields, so any
         # field the frontend didn't include raises AttributeError on direct

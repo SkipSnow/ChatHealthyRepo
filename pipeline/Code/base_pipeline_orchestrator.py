@@ -45,6 +45,7 @@ from steps import get_runner
 from steps._partitions import (county_partitions, state_entity_partitions,
                                state_partitions)
 from chathealthy_lib.mongo_utilities import ChatHealthyMongoUtilities
+from chathealthy_lib.exceptions import ChatHealthyException  # noqa: E402
 
 _log = ChatHealthyLoggingService()
 
@@ -94,9 +95,15 @@ class BasePipelineOrchestrator:
         blob_client: Any,
     ) -> None:
         if not self.PIPELINE_NAME:
-            raise NotImplementedError("Subclass must declare PIPELINE_NAME")
+            raise ChatHealthyException(
+                mode="not_implemented",
+                component="base_pipeline_orchestrator",
+                message="Subclass must declare PIPELINE_NAME")
         if not self.STEPS:
-            raise NotImplementedError("Subclass must declare STEPS")
+            raise ChatHealthyException(
+                mode="not_implemented",
+                component="base_pipeline_orchestrator",
+                message="Subclass must declare STEPS")
         self.env = env
         self.config = dict(config or {})
         self.mongo_client = mongo_client

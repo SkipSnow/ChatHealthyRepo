@@ -17,6 +17,14 @@ from __future__ import annotations
 
 from pathlib import Path
 from typing import TYPE_CHECKING
+import sys as _ch_sys, pathlib as _ch_pl  # noqa: E402
+for _ch_d in _ch_pl.Path(__file__).resolve().parents:
+    if (_ch_d / '.git').exists():
+        _ch_lib = _ch_d / 'ChatHealthyLib' / 'src'
+        if str(_ch_lib) not in _ch_sys.path:
+            _ch_sys.path.insert(0, str(_ch_lib))
+        break
+from chathealthy_lib.exceptions import ChatHealthyException  # noqa: E402
 
 if TYPE_CHECKING:
     from target_record import DeploymentCollection
@@ -100,7 +108,7 @@ class SecretsResolver:
                         key = (name, env)
                         existing = bindings.get(key)
                         if existing is not None and existing != store_id:
-                            raise _ch_exc()(
+                            raise ChatHealthyException(
             mode="value_error",
             component="secrets_resolver",
             message=f"binding conflict for {key!r}: "
@@ -113,13 +121,13 @@ class SecretsResolver:
         key = (name, env)
         store = self._bindings.get(key)
         if store is None:
-            raise _ch_exc()(
+            raise ChatHealthyException(
             mode="key_error",
             component="secrets_resolver",
             message=f"no binding registered for secret {name!r} in env {env!r}")
         if store == _STORE_LOCAL_ENV:
             if self._env_file is None:
-                raise _ch_exc()(
+                raise ChatHealthyException(
             mode="runtime_error",
             component="secrets_resolver",
             message=f"binding {key!r} maps to {_STORE_LOCAL_ENV!r} "
@@ -127,7 +135,7 @@ class SecretsResolver:
             if self._env_cache is None:
                 self._env_cache = self._read_env_file(self._env_file)
             if name not in self._env_cache:
-                raise _ch_exc()(
+                raise ChatHealthyException(
             mode="key_error",
             component="secrets_resolver",
             message=f"secret {name!r} not present in {self._env_file}")
@@ -141,7 +149,7 @@ class SecretsResolver:
         if store == _STORE_AZURE_AA:
             self._read_azure_automation_variables(env)
         if store == _STORE_AZURE_AA_WEBHOOK:
-            raise _ch_exc()(
+            raise ChatHealthyException(
             mode="runtime_error",
             component="secrets_resolver",
             message=f"binding {key!r} maps to {_STORE_AZURE_AA_WEBHOOK!r}; "
@@ -151,7 +159,7 @@ class SecretsResolver:
                 f"the consumer target via UPSERT. The consumer's own "
                 f"deploy handler MUST skip secrets[] entries carrying "
                 f"this store before calling resolve().")
-        raise _ch_exc()(
+        raise ChatHealthyException(
             mode="runtime_error",
             component="secrets_resolver",
             message=f"binding {key!r} maps to unknown store {store!r}; no fallback")
@@ -212,7 +220,7 @@ class SecretsResolver:
                     val = val.split("#", 1)[0].rstrip()
                 result[key] = val
         if not result:
-            raise _ch_exc()(
+            raise ChatHealthyException(
             mode="runtime_error",
             component="secrets_resolver",
             message=f"{path}: `# Secrets` section missing or empty. "
@@ -255,24 +263,28 @@ class SecretsResolver:
 
     @staticmethod
     def _read_hf_space_secrets(env: str) -> dict[str, str]:
-        raise NotImplementedError(
-            "authored separately; only local .env is wired today"
-        )
+        raise ChatHealthyException(
+            mode="not_implemented",
+            component="secrets_resolver",
+            message="authored separately; only local .env is wired today")
 
     @staticmethod
     def _read_cloudflare_env_vars(env: str) -> dict[str, str]:
-        raise NotImplementedError(
-            "authored separately; only local .env is wired today"
-        )
+        raise ChatHealthyException(
+            mode="not_implemented",
+            component="secrets_resolver",
+            message="authored separately; only local .env is wired today")
 
     @staticmethod
     def _read_azure_function_app_settings(env: str) -> dict[str, str]:
-        raise NotImplementedError(
-            "authored separately; only local .env is wired today"
-        )
+        raise ChatHealthyException(
+            mode="not_implemented",
+            component="secrets_resolver",
+            message="authored separately; only local .env is wired today")
 
     @staticmethod
     def _read_azure_automation_variables(env: str) -> dict[str, str]:
-        raise NotImplementedError(
-            "authored separately; only local .env is wired today"
-        )
+        raise ChatHealthyException(
+            mode="not_implemented",
+            component="secrets_resolver",
+            message="authored separately; only local .env is wired today")

@@ -52,6 +52,7 @@ from azure.keyvault.secrets import SecretClient
 import blob_logger
 from PipelineServices.observability_gate import ObservabilityGate
 from chathealthy_lib.exceptions import ChatHealthyException
+from chathealthy_lib.exceptions import ChatHealthyException  # noqa: E402
 
 
 # Environment inputs the deploy step provides on every container.
@@ -556,4 +557,4 @@ def main() -> int:
 
 
 if __name__ == "__main__":
-    raise SystemExit(main())
+    sys.exit(main())

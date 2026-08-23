@@ -109,4 +109,5 @@ def check_mongo_health(config: dict = None) -> dict:
                 "once MongoDB is available."
             ),
         )
-        raise ChatHealthyException(mode="runtime_error", message=f"MongoDB health check failed: {msg}") from exc
+        raise ChatHealthyException(mode="runtime_error", message=f"MongoDB health check failed: {msg}",
+            exception=exc) from exc

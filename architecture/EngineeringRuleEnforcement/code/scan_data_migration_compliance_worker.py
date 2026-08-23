@@ -483,7 +483,7 @@ class ScanDataMigrationComplianceWorker(EnforcementWorker):
             capture_output=True, text=True, cwd=str(self._repo_root()),
             encoding="utf-8", errors="replace")
         if result.returncode != 0 or not (result.stdout or "").strip():
-            raise _ch_exception()(
+            raise ChatHealthyException(
                 mode="config_error",
                 component="ScanDataMigrationComplianceWorker",
                 message=(f"cannot read {relative!r} from origin/dev: "
@@ -604,7 +604,7 @@ class ScanDataMigrationComplianceWorker(EnforcementWorker):
         values = dotenv_values(self._checkout_root() / ".env")
         key = values.get("OPENAI_API_KEY")
         if not key:
-            raise _ch_exception()(
+            raise ChatHealthyException(
                 mode="config_error",
                 component="ScanDataMigrationComplianceWorker",
                 message=("OPENAI_API_KEY absent from .env; "

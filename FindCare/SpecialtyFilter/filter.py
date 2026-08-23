@@ -64,7 +64,7 @@ def load_prompt_text(record_id: str) -> str:
     for r in d.get("records", []):
         if r.get("_record_id") == record_id:
             return r.get("system_prompt", "")
-    raise _ch_exc()(
+    raise ChatHealthyException(
             mode="key_error",
             component="filter",
             message=f"prompts.json: no record with _record_id={record_id!r}")
@@ -115,7 +115,7 @@ class SpecialtyFilter:
         if self._oai is None:
             api_key = os.environ.get("OPENAI_API_KEY", "")
             if not api_key:
-                raise _ch_exc()(
+                raise ChatHealthyException(
             mode="runtime_error",
             component="filter",
             message="OPENAI_API_KEY missing from environment")
@@ -149,12 +149,11 @@ class SpecialtyFilter:
         )
         text = (r.choices[0].message.content or "").strip()
         if not text:
-            raise _ch_exc()(
+            raise ChatHealthyException(
             mode="runtime_error",
             component="filter",
             message=f"normalize step returned empty text from model "
                 f"{self._normalize_model!r} for query {raw_query!r}")
-        log.info("normalize: %r -> %r", raw_query, text)
         return text
 
     def embed_query(self, text: str) -> list[float]:
@@ -163,7 +162,7 @@ class SpecialtyFilter:
         injected embedding function returns no vector (no fallback)."""
         qvec = self._get_vector(text)
         if not qvec:
-            raise _ch_exc()(
+            raise ChatHealthyException(
             mode="runtime_error",
             component="filter",
             message="embedding step returned no vector — upstream embedding "
