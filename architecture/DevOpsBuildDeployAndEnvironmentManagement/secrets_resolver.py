@@ -58,6 +58,17 @@ def vault_secret_name(env_var_name: str) -> str:
     return env_var_name.replace("_", "-")
 
 
+# Every qualifier that names a store the resolver reads from, as opposed to a
+# source qualifier the deploy computes (peer_url:, local_cert_file:, env_name,
+# rename_from:, literal:). Callers that dispatch on qualifiers test membership
+# here rather than naming one store: the HF handler tested `== "local_env"`
+# and so refused every target the moment its secrets moved to the vault.
+STORE_IDS: frozenset[str] = frozenset({
+    _STORE_LOCAL_ENV, _STORE_HF_SPACE, _STORE_CLOUDFLARE, _STORE_AZURE_FA,
+    _STORE_AZURE_AA, _STORE_AZURE_AA_WEBHOOK, _STORE_AZURE_KEY_VAULT,
+})
+
+
 
 def _ch_exc():
     """ChatHealthyException without assuming the library is installed.
