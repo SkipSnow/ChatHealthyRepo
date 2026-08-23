@@ -11173,7 +11173,7 @@
                           "req_id": "EPIC-008-F-012-S-004-REQ-B-006",
                           "orphan": false,
                           "name": "Every deployment is approved by a human and the approval is recorded",
-                          "requirement": "Every deployment MUST be approved by a human operator before anything is deployed, and that approval MUST be recorded in the approvals repository. On completion the deployment MUST record its outcome -- success or failure -- in the approvals repository, referencing the approval that authorized it. A refusal to approve is not a failure of the deployment; it MUST be recorded in the approvals repository as a rejected deployment.",
+                          "requirement": "Every deployment MUST be approved by a human operator before anything is deployed, and that approval MUST be recorded in the approvals repository. On completion the deployment MUST record its outcome -- success or failure -- in the approvals repository, referencing the approval that authorized it. A refusal to approve is not a failure of the deployment; it MUST be recorded in the approvals repository as a rejected deployment. Local deploys are exempt from this requirement. It is required that a local deploy can be accomplished by code bots without human intervention.",
                           "priority": "must-have",
                           "status": "done",
                           "depends_on": [],

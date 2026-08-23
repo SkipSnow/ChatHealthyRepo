@@ -90,6 +90,10 @@ def _step(msg: str) -> None:
 
 
 def _find_repo_root(start: Path) -> Path:
+    import chain_provenance as _cp  # noqa: PLC0415
+    override = _cp.canonical_repo_override()
+    if override is not None:
+        return override
     p = start.resolve()
     while p != p.parent:
         if (p / ".git").exists():
