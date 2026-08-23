@@ -320,7 +320,7 @@ class SecretsResolver:
         """
         import hashlib  # noqa: PLC0415
 
-        store = self._bindings.get((name, env))
+        store = self._effective_store(name, env)
         if store != _STORE_AZURE_KEY_VAULT:
             return True, f"{name} is not vault-bound; nothing to compare"
         vault = self.vault_for(env)
@@ -354,7 +354,7 @@ class SecretsResolver:
         a build that asks nothing ships something that cannot be deployed.
         Asking for presence is the only thing that is both safe and useful.
         """
-        store = self._bindings.get((name, env))
+        store = self._effective_store(name, env)
         if store is None:
             return False, f"no binding registered for {name!r} in env {env!r}"
         if store == _STORE_AZURE_KEY_VAULT:
@@ -385,9 +385,28 @@ class SecretsResolver:
         # target. There is nothing for a build to verify the existence of.
         return True, f"{store} (established at deploy time)"
 
+    def _effective_store(self, name: str, env: str) -> str | None:
+        """The store this name is actually read from for this environment.
+
+        A vault-bound secret in the local environment comes from the
+        workstation .env, because that is where a local deployment genuinely
+        gets it: LocalDeploy hands the containers the .env wholesale and
+        never constructs a resolver. There is no local vault and there should
+        not be one -- standing a cloud vault behind a laptop's containers
+        would put cloud credentials on the laptop.
+
+        This is not one environment borrowing another's vault, which stays
+        forbidden. Local's store is different in kind, and saying so here
+        keeps every caller from having to know it.
+        """
+        store = self._bindings.get((name, env))
+        if store == _STORE_AZURE_KEY_VAULT and env == "local":
+            return _STORE_LOCAL_ENV
+        return store
+
     def resolve(self, name: str, env: str) -> str:
         key = (name, env)
-        store = self._bindings.get(key)
+        store = self._effective_store(name, env)
         if store is None:
             raise ChatHealthyException(
             mode="key_error",
