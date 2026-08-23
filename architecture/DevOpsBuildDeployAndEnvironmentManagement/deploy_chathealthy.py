@@ -507,6 +507,25 @@ def main(argv: list[str] | None = None) -> int:
             target_ids = _filter_to_selected_packages(
                 target_ids, pkg_selection, args.target, args.package)
         _staleness_gate(repo_root, args.env, target_ids, pkg_selection)
+        # The build confirmed these secrets exist. A deploy is about to
+        # install them, so it asks the stricter question: the vault's copy
+        # and the workstation's fair copy must be the same bytes. Two copies
+        # of one credential that nobody compares will drift, and the first
+        # sign of it is a service authenticating with a value its peer has
+        # already retired.
+        #
+        # Before anything is pushed. The earlier shape discovered a secret
+        # problem after the image was built and after the target's variables
+        # had been written, which left the target half-changed.
+        import secret_preflight as _secret_preflight
+        from record_loader import RecordLoader as _RL2
+        _secret_preflight.confirm_secrets_match_local(
+            _RL2().load_collection(
+                repo_root / "brain" / "machine_artifacts" / "content"
+                / "deployment_architecture.json"),
+            args.env, repo_root,
+            target_ids=list(target_ids) or None,
+            packages=pkg_selection or None)
         # F-003 §5.1 / F-012 §7.1 cert placement runs inside run_cloud_deploy
         # after CA runbooks and before ACA Jobs (dependency order). Do not
         # call it here — CaEndpointRunbook must already be published.

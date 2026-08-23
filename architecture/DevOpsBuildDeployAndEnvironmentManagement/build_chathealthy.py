@@ -96,10 +96,12 @@ def _materialize_env_file(env: str, canonical_repo: Path, build_dir: Path) -> Pa
       * --env local          -> copy the working-tree file <repo>/.env
                                 (operator's own file; the operator
                                 maintains this).
-      * --env dev|qa|prod    -> fetch the `env-file` secret from Azure
-                                Key Vault (kv-chpipeline-dev), decode
-                                the project's gz:<base64> wrapper, and
-                                write the resulting dotenv bytes.
+      * --env dev|qa|prod    -> copy the same working-tree file. It holds
+                                this workstation's operator credentials,
+                                which is what a build runs on. The secrets
+                                the deployed application runs on are NOT
+                                here: they are read one at a time from the
+                                environment's own Key Vault at deploy time.
 
     Downstream build steps (leak-check, mongo connect, etc.) and the
     matching deploy MUST read <build_dir>/.env — never the working-tree
@@ -123,33 +125,45 @@ def _materialize_env_file(env: str, canonical_repo: Path, build_dir: Path) -> Pa
         from dotenv import load_dotenv
         load_dotenv(dst, override=False)
         return dst
-    # cloud env: pull env-file from KV, decode gz:<base64>, write to dst.
-    import base64, gzip
-    az = shutil.which("az") or "az"
-    r = subprocess.run(
-        [az, "keyvault", "secret", "show",
-         "--vault-name", "kv-chpipeline-dev", "--name", "env-file",
-         "--query", "value", "-o", "tsv"],
-        capture_output=True, text=True, shell=False,
-    )
-    if r.returncode != 0:
+    # A cloud build used to fetch a secret literally named `env-file` from
+    # kv-chpipeline-dev: one Key Vault secret holding an entire dotenv
+    # document, 116 names, and it was the source for dev, qa and prod alike
+    # because the vault name was written into this call and carried no
+    # environment. Three things were wrong with it at once.
+    #
+    # It handed every environment every credential. One read produced the
+    # whole set -- every API key, the identity secrets, the values that reach
+    # the certificate authority -- so a build for one environment held what
+    # it needed to act as any other. That is the zero-trust model inverted:
+    # the blob sat in the same vault as ca-root-privatekey, and reading it
+    # required nothing beyond the access needed to build.
+    #
+    # It made rotation unmanageable. A key lives once in a vault and is
+    # rotated by one write; inside a blob it is a substring of a compressed
+    # document that has to be fetched, decoded, edited and re-uploaded whole.
+    #
+    # And it was a copy nobody reconciled. The blob was maintained by hand
+    # against a .env also maintained by hand, with no comparison between them
+    # ever performed, so which of the two was current on any given day was
+    # unknowable.
+    #
+    # The blob is not read any more. Secrets a target runs on are read one at
+    # a time from the environment's own vault, at deploy, through
+    # SecretsResolver's azure_key_vault store. What is materialised here is
+    # only what this build itself runs on -- the workstation's own operator
+    # credentials, used to reach Atlas for the build number and to sign az
+    # calls. Those are this machine acting as itself, not the deployed
+    # application's secrets, and every name the blob carried is present here.
+    src = canonical_repo / ".env"
+    if not src.is_file():
         raise ChatHealthyException(
             mode="aborted",
             component="build_chathealthy",
-            message=f"ERROR: cannot fetch kv-chpipeline-dev/env-file: "
-            f"{r.stderr.strip()[:300]}")
-    raw = r.stdout.strip()
-    if not raw.startswith("gz:"):
-        raise ChatHealthyException(
-            mode="aborted",
-            component="build_chathealthy",
-            message="ERROR: kv-chpipeline-dev/env-file has unexpected encoding "
-            "(expected 'gz:<base64>'); refusing to interpret.")
-    plaintext = gzip.decompress(base64.b64decode(raw[3:])).decode("utf-8")
-    dst.write_text(plaintext, encoding="utf-8")
-    _step(f"materialised {dst} from kv-chpipeline-dev/env-file")
-    # Load into os.environ so this build's downstream code that uses
-    # os.getenv() sees the values without any explicit load_dotenv call.
+            message=f"ERROR: a {env} build needs the operator credentials in "
+                    f"{src} to reach Atlas and Azure; not found.")
+    shutil.copy2(src, dst)
+    _step(f"materialised {dst} from the workstation .env (build-time "
+          f"credentials only; deployed secrets come from the {env} vault)")
     from dotenv import load_dotenv
     load_dotenv(dst, override=False)
     return dst
@@ -459,6 +473,23 @@ def _build_body(args, repo_root: Path, canonical_repo: Path, canonical_build_dir
     coll: DeploymentCollection = RecordLoader().load_collection(
         brain_path, target_id_filter=load_filter,
     )
+    # A build is only worth producing if it can be deployed, and it cannot be
+    # deployed if a secret its targets declare exists nowhere. That used to be
+    # discovered by the deploy, after docker build, after docker push, and
+    # after the target had already been part-mutated. Presence is asked here,
+    # where nothing has happened yet.
+    #
+    # Presence only. The value is never read into this process and never
+    # reaches canonical_build_dir; a build directory is not a place a
+    # credential belongs.
+    import secret_preflight as _secret_preflight
+    _named_targets = [t.strip() for t in args.target.split(",")
+                      if t.strip().startswith("target_")]
+    _secret_preflight.confirm_secrets_exist(
+        coll, args.env, canonical_repo,
+        target_ids=_named_targets or None,
+        packages={p.strip() for p in args.package.split(",") if p.strip()})
+
     env_values_for_leak: set[str] = (
         SecretsResolver().env_values_for_leak_check(env_file)
         if env_file.is_file() else set()

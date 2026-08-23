@@ -11068,7 +11068,128 @@
                     "status": "done",
                     "approval": "approved",
                     "requirements": {
-                      "requirement": []
+                      "requirement": [
+                        {
+                          "req_id": "EPIC-008-F-012-S-004-REQ-B-001",
+                          "orphan": false,
+                          "name": "A deploy reads only build output",
+                          "requirement": "A deploy MUST read only what a build produced. It MUST NOT read the repository source tree, and MUST NOT construct, transform or substitute any artifact at deploy time. Where the build output does not contain something a target declares, the deploy MUST fail and report what was missing rather than obtain it from source.",
+                          "priority": "must-have",
+                          "status": "done",
+                          "depends_on": [],
+                          "approval": "approved",
+                          "tests": {
+                            "test": [
+                              {
+                                "test_id": "EPIC-008-F-012-S-004-REQ-B-001-TEST-1",
+                                "orphan": false,
+                                "test_type": "engineering_rule",
+                                "file": "architecture/EngineeringRuleEnforcement/tests/test_deploy_authorization.py"
+                              }
+                            ]
+                          }
+                        },
+                        {
+                          "req_id": "EPIC-008-F-012-S-004-REQ-B-002",
+                          "orphan": false,
+                          "name": "Each named package installs to the target that declares it",
+                          "requirement": "A deploy names its targets and its packages, and installs each named package to the target whose declaration in deployment_architecture.json carries it. A package the named targets do not declare MUST NOT be installed. A target MUST receive only the packages it declares and that the operator named. Naming several targets in one invocation MUST deploy each of them.",
+                          "priority": "must-have",
+                          "status": "done",
+                          "depends_on": [],
+                          "approval": "approved",
+                          "tests": {
+                            "test": [
+                              {
+                                "test_id": "EPIC-008-F-012-S-004-REQ-B-002-TEST-1",
+                                "orphan": false,
+                                "test_type": "engineering_rule",
+                                "file": "architecture/EngineeringRuleEnforcement/tests/test_deploy_authorization.py"
+                              }
+                            ]
+                          }
+                        },
+                        {
+                          "req_id": "EPIC-008-F-012-S-004-REQ-B-003",
+                          "orphan": false,
+                          "name": "A running target reports the build it carries",
+                          "requirement": "Every deployed target MUST report, on demand and without operator action, the build number and the commit its running code was produced from. A target that cannot say which build it carries MUST be treated as unverified.",
+                          "priority": "must-have",
+                          "status": "done",
+                          "depends_on": [],
+                          "approval": "approved",
+                          "tests": {
+                            "test": [
+                              {
+                                "test_id": "EPIC-008-F-012-S-004-REQ-B-003-TEST-1",
+                                "orphan": false,
+                                "test_type": "engineering_rule",
+                                "file": "architecture/EngineeringRuleEnforcement/tests/test_deploy_authorization.py"
+                              }
+                            ]
+                          }
+                        },
+                        {
+                          "req_id": "EPIC-008-F-012-S-004-REQ-B-004",
+                          "orphan": false,
+                          "name": "The deploy verifies the build that arrived",
+                          "requirement": "After installing, a deploy MUST read back from the running target the build it reports, and compare it to the build that was installed. Agreement is the only evidence the deploy succeeded; a deploy MUST NOT report success on the basis of having sent the artifact. Disagreement, or an unreadable report, MUST fail the deploy for that target.",
+                          "priority": "must-have",
+                          "status": "done",
+                          "depends_on": [],
+                          "approval": "approved",
+                          "tests": {
+                            "test": [
+                              {
+                                "test_id": "EPIC-008-F-012-S-004-REQ-B-004-TEST-1",
+                                "orphan": false,
+                                "test_type": "engineering_rule",
+                                "file": "architecture/EngineeringRuleEnforcement/tests/test_deploy_authorization.py"
+                              }
+                            ]
+                          }
+                        },
+                        {
+                          "req_id": "EPIC-008-F-012-S-004-REQ-B-005",
+                          "orphan": false,
+                          "name": "Deployment argument definition",
+                          "requirement": "A deploy invocation MUST accept exactly one environment, and MUST deploy to that environment and no other. It MUST accept an array of targets containing at least one target. For each named target it MUST accept an array of packages containing at least one package, so that every package named is bound to the target it is being deployed to. An invocation naming no target, naming a target with no packages, or naming more than one environment MUST be refused before anything is deployed.",
+                          "priority": "must-have",
+                          "status": "done",
+                          "depends_on": [],
+                          "approval": "approved",
+                          "tests": {
+                            "test": [
+                              {
+                                "test_id": "EPIC-008-F-012-S-004-REQ-B-005-TEST-1",
+                                "orphan": false,
+                                "test_type": "engineering_rule",
+                                "file": "architecture/EngineeringRuleEnforcement/tests/test_deploy_authorization.py"
+                              }
+                            ]
+                          }
+                        },
+                        {
+                          "req_id": "EPIC-008-F-012-S-004-REQ-B-006",
+                          "orphan": false,
+                          "name": "Every deployment is approved by a human and the approval is recorded",
+                          "requirement": "Every deployment MUST be approved by a human operator before anything is deployed, and that approval MUST be recorded in the approvals repository. On completion the deployment MUST record its outcome -- success or failure -- in the approvals repository, referencing the approval that authorized it. A refusal to approve is not a failure of the deployment; it MUST be recorded in the approvals repository as a rejected deployment.",
+                          "priority": "must-have",
+                          "status": "done",
+                          "depends_on": [],
+                          "approval": "approved",
+                          "tests": {
+                            "test": [
+                              {
+                                "test_id": "EPIC-008-F-012-S-004-REQ-B-006-TEST-1",
+                                "orphan": false,
+                                "test_type": "engineering_rule",
+                                "file": "architecture/EngineeringRuleEnforcement/tests/test_deploy_authorization.py"
+                              }
+                            ]
+                          }
+                        }
+                      ]
                     }
                   },
                   {
