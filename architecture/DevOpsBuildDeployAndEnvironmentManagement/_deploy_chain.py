@@ -334,15 +334,16 @@ def require_branch_matches_env(env: str) -> None:
 
 
 def find_repo_root(start: Path) -> Path:
-    p = start.resolve()
-    while p != p.parent:
-        if (p / ".git").exists():
-            return p
-        p = p.parent
-    raise ChatHealthyException(
-            mode="runtime_error",
-            component="_deploy_chain",
-            message=f"no .git found walking up from {start}")
+    """The workstation's repository, even when this code runs from a checkout.
+
+    A re-executed deploy runs out of a temp checkout of origin/<branch>, and
+    walking up from __file__ lands there. Two of the things reached from this
+    root are not in the checkout and never will be: .env, which is not in git,
+    and build/, which the build wrote on this machine. Resolving them into the
+    checkout made every target report its build directory missing.
+    """
+    import chain_provenance as _cp  # noqa: PLC0415
+    return _cp.repository_root(start)
 
 
 def load_target_manifest(repo_root: Path, target_id: str,
