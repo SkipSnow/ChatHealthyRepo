@@ -86,7 +86,6 @@ def raise_unavailable(provider: str, call_site: str, server: str,
         provider=provider,
         call_site=call_site,
         attempts=MAX_ATTEMPTS,
-        exception=last_exc,
     ) from last_exc
 
 

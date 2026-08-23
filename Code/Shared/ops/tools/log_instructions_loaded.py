@@ -82,8 +82,7 @@ if fname not in BRAIN_JSONS:
     raise ChatHealthyException(
         mode="aborted",
         component="log_instructions_loaded",
-        message=0,
-        exception=ie)
+        message=0)
 
 # ── REQ-017: 4-step procedure for brain JSONs ─────────────────────────────
 # Step 3 is implicit: this hook firing means the harness loaded the file.
@@ -99,10 +98,11 @@ try:
         verdict = {"verdict": "FAILED", "reason": "invalid_json", "detail": str(je)[:200]}
         _write({**base, **verdict})
         raise ChatHealthyException(
-        mode="aborted",
-        component="log_instructions_loaded",
-        message=0,
-        exception=ie)
+            mode="aborted",
+            component="log_instructions_loaded",
+            message=f"instructions file is not valid JSON: {str(je)[:200]}",
+            exit_code=0,
+            exception=je)
 except Exception as ie:
     verdict = {"verdict": "FAILED", "reason": "hash_unreadable", "detail": str(ie)[:200]}
     _write({**base, **verdict})

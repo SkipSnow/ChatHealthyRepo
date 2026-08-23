@@ -42,6 +42,7 @@ import os
 import socket
 import stat
 import sys
+import traceback
 import tempfile
 from pathlib import Path
 from typing import Iterable, Optional, Tuple
@@ -204,8 +205,7 @@ def _resolve_node_identity() -> str:
         raise ChatHealthyException(
             mode="aborted",
             component="bootstrap",
-            message=2,
-            exception=exc)
+            message=2)
     return ident
 
 
@@ -216,8 +216,7 @@ def _resolve_vault_uri() -> str:
         raise ChatHealthyException(
             mode="aborted",
             component="bootstrap",
-            message=2,
-            exception=exc)
+            message=2)
     return vault_uri
 
 
@@ -304,8 +303,7 @@ def _materialize_ca_chain(
         raise ChatHealthyException(
             mode="aborted",
             component="bootstrap",
-            message=2,
-            exception=exc)
+            message=2)
 
     _emit("CA chain not baked into image; falling back to KV read")
     intermediate = client.get_secret(KV_CA_INTERMEDIATE_CHAIN).value or ""
@@ -345,8 +343,7 @@ def _seed_read_long_lived_cert(
         raise ChatHealthyException(
             mode="aborted",
             component="bootstrap",
-            message=2,
-            exception=exc)
+            message=2)
     try:
         raw = combined.encode("utf-8")
         cert_pem = load_pem_x509_certificate(raw).public_bytes(
@@ -443,7 +440,8 @@ def _raise_cannot_log(detail: str, exc: Exception) -> None:
                  f"recorded: {type(exc).__name__}: {exc} | {detail}"))
 
 
-def _dump_obs_abend(_obs_exc: ChatHealthyException) -> None:
+def _dump_obs_abend(_obs_exc: ChatHealthyException,
+                    pipeline_name: str) -> None:
     chls = ChatHealthyLoggingService()
     chls.error("=" * 78)
     chls.error("bootstrap: pipeline observability gate FAILED -- abending")
@@ -586,7 +584,7 @@ def main() -> int:
             ),
         ).check()
     except ChatHealthyException as _obs_exc:
-        _dump_obs_abend(_obs_exc)
+        _dump_obs_abend(_obs_exc, pipeline_name)
         return 1
 
     entry_point = sys.argv[1]

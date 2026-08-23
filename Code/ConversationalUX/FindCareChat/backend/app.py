@@ -438,7 +438,6 @@ def startup_security_verification():
             mode="startup_abend_config",
             component="FindCareBackend",
             message=("STARTUP ABEND exit=78 primitive=crypto reason=import_failed: %s" % (_imp,)),
-            exit_code="startup aborted, EX_CONFIG",
             exit_code=78,
             exception=_imp)
     certs_dir = os.environ.get("CERTS_DIR", "/certs")
@@ -456,7 +455,6 @@ def startup_security_verification():
             mode="startup_abend_config",
             component="FindCareBackend",
             message=("STARTUP ABEND exit=78 primitive=session_token reason=missing_cert_or_key: %s" % (_fnf,)),
-            exit_code="startup aborted, EX_CONFIG",
             exit_code=78,
             exception=_fnf)
     except PermissionError as _perm:
@@ -466,7 +464,6 @@ def startup_security_verification():
             mode="startup_abend_permission",
             component="FindCareBackend",
             message=("STARTUP ABEND exit=77 primitive=session_token reason=permission: %s" % (_perm,)),
-            exit_code="startup aborted, EX_NOPERM",
             exit_code=77,
             exception=_perm)
     except Exception as _exc:
@@ -477,7 +474,6 @@ def startup_security_verification():
             mode="startup_abend_software",
             component="FindCareBackend",
             message=("STARTUP ABEND exit=70 primitive=session_token reason=key_or_cert_unreadable: %s" % (_exc,)),
-            exit_code="startup aborted, EX_SOFTWARE",
             exit_code=70,
             exception=_exc)
     log.info("startup security check PASSED — findcare.key + findcare.crt OK at %s", certs_dir)
