@@ -129,7 +129,10 @@ def _click_proof(token: str) -> str:
 
 
 def _transfer_page(token: str, collection: str, source: dict, destination: dict,
-                   authorizer: str, stamped: str, detail: str) -> str:
+                   authorizer: str, stamped: str, detail: str,
+                   title: str = "Data Migration Authorization",
+                   kind: str = "migration",
+                   chip_label: str | None = None) -> str:
     """The page that authorizes a data transfer.
 
     It answers the question the operator actually has, which is not "authorize
@@ -138,28 +141,36 @@ def _transfer_page(token: str, collection: str, source: dict, destination: dict,
     act; the cluster and the database are named on both sides because those
     are what make one side the pipeline and the other the one serving users.
     """
+    head_shade = _CHROME["header"].get(kind, "#e9a3e0")
+    panel_shade = _CHROME["panel"].get(kind, "#f6e2f5")
+    body_shade = _CHROME["body"].get(kind, "#6a2b9d")
+    approve_shade = _CHROME["approve"].get(kind, "#3b46e0")
+
     def panel(side: str, facts: dict) -> str:
+        # Whatever the caller named. A migration names a cluster and a
+        # database; a promotion names an environment and a branch. The page
+        # renders the question it was handed rather than one shape of it.
+        rows = "".join(
+            f"<div class=row><span class=k>{key}:</span>"
+            f"<span class=v>{value}</span></div>"
+            for key, value in facts.items())
         return (
             "<div class=col>"
             f"<div class=side>{side}</div>"
             "<div class=panel>"
-            "<div class=head>"
-            f"<div class=row><span class=k>Cluster:</span>"
-            f"<span class=v>{facts['cluster']}</span></div>"
-            f"<div class=row><span class=k>Data Base:</span>"
-            f"<span class=v>{facts['database']}</span></div>"
-            "</div>"
-            f"<div class=body><span class=chip>{collection}</span></div>"
-            "</div></div>")
+            f"<div class=head>{rows}</div>"
+            + ("" if chip_label else
+               f"<div class=body><span class=chip>{collection}</span></div>")
+            + "</div></div>")
 
     return (
         "<!doctype html><html><head><meta charset=utf-8>"
-        "<title>ChatHealthy -- Data Migration Authorization</title>"
+        f"<title>ChatHealthy -- {title}</title>"
         "<style>"
         "*{box-sizing:border-box}"
-        "body{margin:0;font-family:system-ui,sans-serif;background:#6a2b9d;"
+        f"body{{margin:0;font-family:system-ui,sans-serif;background:{body_shade};"
         "color:#fff;min-height:100vh}"
-        "header{background:#e9a3e0;color:#000;padding:18px 24px 14px;"
+        f"header{{background:{head_shade};color:#000;padding:18px 24px 14px;"
         "text-align:center;border-bottom:3px solid #000}"
         "header h1{margin:0;font-size:38px;font-weight:500;line-height:1.15}"
         "header .when{margin-top:10px;font-size:22px}"
@@ -171,8 +182,8 @@ def _transfer_page(token: str, collection: str, source: dict, destination: dict,
         ".col{flex:1 1 380px;min-width:300px}"
         ".side{font-size:30px;font-style:italic;text-align:center;"
         "margin-bottom:14px}"
-        ".panel{border:2px solid #000;background:#f6e2f5}"
-        ".head{background:#e9a3e0;border-bottom:2px solid #000;padding:10px 14px}"
+        f".panel{{border:2px solid #000;background:{panel_shade}}}"
+        f".head{{background:{head_shade};border-bottom:2px solid #000;padding:10px 14px}}"
         ".row{display:flex;gap:14px;font-size:19px;color:#000;padding:2px 0}"
         ".k{flex:0 0 110px}"
         ".v{font-weight:500;word-break:break-word}"
@@ -182,6 +193,8 @@ def _transfer_page(token: str, collection: str, source: dict, destination: dict,
         "font-family:ui-monospace,SFMono-Regular,Menlo,monospace;"
         "word-break:break-all}"
         ".arrow{flex:0 0 auto;color:#1a6f7f;font-size:60px;line-height:1}"
+        ".named{max-width:1180px;margin:26px auto 0;text-align:center}"
+        ".nk{font-size:17px;letter-spacing:.10em;text-transform:uppercase;opacity:.85;margin-bottom:8px}"
         "p.detail{max-width:900px;margin:26px auto 0;font-size:15px;"
         "line-height:1.55;text-align:center;opacity:.93}"
         ".buttons{text-align:center;padding:22px 0 40px}"
@@ -189,18 +202,24 @@ def _transfer_page(token: str, collection: str, source: dict, destination: dict,
         "padding:14px 52px;margin:0 26px;color:#fff;cursor:pointer;"
         "border:4px solid #1b1b6b;border-radius:8px}"
         ".reject{background:#c0121a}"
-        ".approve{background:#3b46e0}"
+        f".approve{{background:{approve_shade}}}"
         "#why{text-align:center;color:#ffd7d5;font-size:15px;min-height:20px}"
         "</style></head><body>"
         "<header>"
-        f"<h1>Data Migration Authorization{authorizer}</h1>"
+        f"<h1>{title}{authorizer}</h1>"
         f"<div class=when>{stamped}</div>"
         "</header><main><div class=grid>"
         + panel("From", source)
         + "<div class=arrow>&#10142;</div>"
         + panel("To", destination)
         + "</div>"
-        f"<p class=detail>{detail}</p></main>"
+        # Named and shown once. A migration's collection appears on both
+        # sides because arriving under a different name would be a different
+        # act; a commit message does not change in transit, so printing it
+        # twice says nothing and labels it as nothing.
+        + (f"<div class=named><div class=nk>{chip_label}</div>"
+           f"<span class=chip>{collection}</span></div>" if chip_label else "")
+        + f"<p class=detail>{detail}</p></main>"
         "<div class=buttons>"
         "<button class=reject id=btn_reject type=button>REJECT</button>"
         "<button class=approve id=btn_approve type=button>APPROVE</button>"
@@ -224,6 +243,25 @@ PALETTES = {
     "migration": {"background": "#312e81", "approve": "#4f46e5", "text": "#ffffff"},
     # Entitlement and identity changes.
     "entitlement": {"background": "#7c2d12", "approve": "#c2410c", "text": "#ffffff"},
+    # Promotion. Advancing a baseline one environment forward is neither a
+    # commit nor a data migration, and it had been borrowing the migration
+    # page: the operator was asked to approve a data migration while the
+    # record written said promotion. Green, which none of the others use.
+    "promote": {"background": "#14532d", "header": "#86efac", "panel": "#dcfce7",
+                "approve": "#15803d", "text": "#ffffff"},
+}
+
+# The transfer page's own chrome, per palette. Absent means the migration
+# colours, so that page renders exactly as it did.
+_CHROME = {
+    "header": {"migration": "#e9a3e0", "promote": "#86efac",
+               "commit": "#7fd6d1", "entitlement": "#fdba74"},
+    "panel": {"migration": "#f6e2f5", "promote": "#dcfce7",
+              "commit": "#e2f7f5", "entitlement": "#ffedd5"},
+    "body": {"migration": "#6a2b9d", "promote": "#14532d",
+             "commit": "#0b7a75", "entitlement": "#7c2d12"},
+    "approve": {"migration": "#3b46e0", "promote": "#15803d",
+                "commit": "#0b9a94", "entitlement": "#c2410c"},
 }
 
 
@@ -325,7 +363,9 @@ def request_authorization(action: str, subject: str,
                    f"<b>{now.month}/{now.day}/{now.year}</b>")
         page_html = _transfer_page(
             token, transfer["collection"], transfer["source"],
-            transfer["destination"], f" by: {by}" if by else "", stamped, detail)
+            transfer["destination"], f" by: {by}" if by else "", stamped, detail,
+            title=banner or "Data Migration Authorization", kind=palette,
+            chip_label=transfer.get("chip_label"))
     else:
         page_html = _page(action, subject, token, colours, banner, detail)
 

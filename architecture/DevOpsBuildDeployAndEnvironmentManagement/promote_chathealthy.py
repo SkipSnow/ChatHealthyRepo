@@ -405,6 +405,24 @@ def _promote_local_to_dev(repo_root: Path, label: str | None = None) -> int:
     driver, which answers only for what it is handed. Promote runs no tests
     and deploys nothing.
     """
+    # The operator answers first, before anything is staged and before any
+    # rule runs. A promote that is refused by governance still consumed an
+    # authorization, and the record has to say so: the outcome is written
+    # against the same record the approval created, so an approval with no
+    # outcome is always an unfinished promote rather than a silent one.
+    gate, record_id = _authorize_promotion(
+        "local", "dev", "dev", "dev", repo_root)
+    if record_id is None:
+        # A refusal and an unanswered page are different facts, and the log
+        # said "refused by the operator" for both.
+        _CH_LOG.info(f"[promote] not authorized ({gate.last_verdict}); "
+                     f"nothing staged")
+        return 1
+
+    def _finish(outcome: str, rc: int) -> int:
+        gate.record_outcome(record_id, outcome)
+        return rc
+
     # Nothing may hide from the capture. Empties the stash stack for good.
     _require_capturable_tree(repo_root)
 
@@ -428,7 +446,7 @@ def _promote_local_to_dev(repo_root: Path, label: str | None = None) -> int:
     ).returncode
     if rc != 0:
         _CH_LOG.info(f"[promote] governance FAILED (exit {rc}) — nothing committed")
-        return rc
+        return _finish("refused_by_governance", rc)
 
     auto = f"promote local -> dev ({datetime.now(timezone.utc).isoformat()})"
     message = (label + chr(10) + chr(10) + auto) if label else auto
@@ -437,12 +455,13 @@ def _promote_local_to_dev(repo_root: Path, label: str | None = None) -> int:
                         cwd=str(repo_root)).returncode
     if rc != 0:
         _CH_LOG.info(f"[promote] commit refused (exit {rc}); nothing pushed")
-        return rc
+        return _finish("refused_at_commit", rc)
 
     _require_tree_fully_committed(repo_root)
     _CH_LOG.info("[promote] push origin dev")
-    return subprocess.run(["git", "push", "origin", "dev"],
-                          cwd=str(repo_root)).returncode
+    rc = subprocess.run(["git", "push", "origin", "dev"],
+                        cwd=str(repo_root)).returncode
+    return _finish("promoted" if rc == 0 else "failed_push", rc)
 
 def _promote_branch_to_branch(repo_root: Path, source_env: str, target_env: str) -> int:
     """Fully automated: fetch, then push origin/<source> to <target> on
@@ -515,7 +534,8 @@ def _authorize_promotion(source_env, target_env, source_branch,
     worker = PromoteAuthorizationWorker(PromotionFacts(
         source_environment=source_env, destination_environment=target_env,
         source_branch=source_branch, destination_branch=target_branch,
-        commit=tip, commit_subject=subject, commits_ahead=int(ahead)))
+        commit=tip, commit_subject=subject, commits_ahead=int(ahead),
+        files=len(baseline_files(repo_root))))
     return worker, worker.authorize()
 
 
