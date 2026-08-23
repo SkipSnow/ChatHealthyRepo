@@ -199,7 +199,7 @@ prompt_maker = PromptSystemMaker(brain_dir=brain_dir, env_prefix=ENV_PREFIX)
 EMERGENCY_KEYWORDS = prompt_maker.load_emergency_keywords()
 anthropic_tools = prompt_maker.load_tool_definitions()
 WELCOME_MESSAGE = PromptSystemMaker.build_welcome_message()
-# Build/version/framework: live from MongoDB per EPIC-008-F-004-S-001-REQ-T-002
+# Build/version/framework: live from MongoDB per EPIC-008-F-004-S-001
 
 ME_DIR = os.getenv("ME_DIR") or os.path.join(os.path.dirname(os.path.abspath(__file__)), "me")
 if not os.path.isdir(ME_DIR):
@@ -304,7 +304,7 @@ bind_data_collections()
 app.include_router(data_collections_router)
 
 
-# ── EPIC-002-F-001-S-012-REQ-T-004: startup security-primitive verification ──
+# ── EPIC-002-F-001-S-012: startup security-primitive verification ──
 # FindCare's security primitives are nonce restamp (signs with findcare.key)
 # and verify (reads peer certs). The probe loads both findcare.key and
 # findcare.crt to confirm CERTS_DIR is bootstrapped. Exit codes per sysexits.h:
@@ -376,7 +376,7 @@ def bootstrap_certs_from_env():
     If none of the env vars are present (e.g. local dev, local Docker with a
     bind-mounted /certs), the function is a no-op — the caller's CERTS_DIR
     resolution remains in effect. Malformed PEM content raises, which the
-    startup check turns into an exit-78 abend per EPIC-002-F-001-S-012-REQ-T-004.
+    startup check turns into an exit-78 abend per EPIC-002-F-001-S-012.
     """
     runtime_dir = "/tmp/ch_certs"
     mapping = {
@@ -393,7 +393,7 @@ def bootstrap_certs_from_env():
         os.environ["CERTS_DIR"] = runtime_dir
 
 def startup_security_verification():
-    """EPIC-002-F-001-S-012-REQ-T-004: exercise the security primitives this
+    """EPIC-002-F-001-S-012: exercise the security primitives this
     service uses. FindCare does NOT manufacture auth tokens — that's
     SharedServices's /auth/issue. FindCare's primitives are nonce restamp
     (signs with findcare.key) and verify (reads the page-owner's cert).
@@ -584,7 +584,7 @@ def _require_db_for_classify():
 
 @app.post("/classify")
 async def classify(body: ClassifyRequest, request: Request):
-    """EPIC-006-F-002-S-001-REQ-T-001: AI vector search for specialties.
+    """EPIC-006-F-002-S-001: AI vector search for specialties.
     Replaces the GPT classify call with embedding + vector search.
     Returns specialty codes ranked by cosine similarity + location extracted by simple parsing."""
 

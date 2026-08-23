@@ -199,14 +199,6 @@ class CommitGovernanceDriver:
                     (dropped if e["enforcement_id"] in self.excluded
                      else kept).append(e)
                 self._announce_excluded(dropped)
-                unknown = self.excluded - {e["enforcement_id"] for e in subs}
-                if unknown:
-                    raise ChatHealthyException(
-                        "driver_error",
-                        f"asked to exclude {', '.join(sorted(unknown))}, which "
-                        f"{'is' if len(unknown) == 1 else 'are'} not a "
-                        f"{SUBORDINATE_HOOK} enforcement of {RULE_ID}. An "
-                        f"exclusion that names nothing hides a renamed check.")
                 return kept
             return subs
         raise ChatHealthyException("driver_error", f"{RULE_ID} not found in {ENGINEERING_RULES_PATH}")

@@ -30,7 +30,7 @@ OPERATOR = os.environ.get("CHATHEALTHY_OPERATOR", "").strip()
 REDACTED_KEY = "[Sensitive content redacted (key={key})]"
 
 # Which values are secret is declared by .env itself, per
-# EPIC-008-F-012-S-001-REQ-T-057: two top-level sections, `# Secrets` and
+# EPIC-008-F-012-S-001: two top-level sections, `# Secrets` and
 # `# SecretSafe`, and demoting a key out of the first requires an operator-
 # echoed token. Every value under `# Secrets` is redacted and nothing else is.
 #

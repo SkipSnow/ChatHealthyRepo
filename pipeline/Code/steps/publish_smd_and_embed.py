@@ -34,7 +34,7 @@ Post-swap: PipelinePublicHealthData.SpecialtyMetaData_v_{n} holds 884 rows (883
 NUCC + F-105 supplements) each with an embedding vector (or discrepancy
 records for any rows the embed API dropped). The migrator, running on
 its own schedule, is responsible for shipping this to the front-end
-cluster for user-facing $vectorSearch (EPIC-002-F-005-S-001-REQ-T-003).
+cluster for user-facing $vectorSearch (EPIC-002-F-005-S-001).
 
 All collection names are version-suffixed (_v_N) per operator rule
 "all files must be versioned with the right version number."

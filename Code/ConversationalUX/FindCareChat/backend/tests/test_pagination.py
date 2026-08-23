@@ -513,7 +513,7 @@ class TestSearchResultPresentation(unittest.TestCase):
         self.assertIn("more 'shrinks'", msg)
         self.assertIn("filter 'shrinks'", msg)
 
-    # ── EPIC-006-F-004-S-001-REQ-T-001: summary_message in /chat PaginationMeta ──
+    # ── EPIC-006-F-004-S-001: summary_message in /chat PaginationMeta ──
 
     def test_chat_returns_summary_message(self):
         """/chat must include summary_message in pagination metadata."""
@@ -531,7 +531,7 @@ class TestSearchResultPresentation(unittest.TestCase):
             self.assertIn("pediatrician", pagination["summary_message"].lower(),
                           "summary_message must contain the search term")
 
-    # ── EPIC-006-F-004-S-001-REQ-T-002: No summary when has_more is False ──
+    # ── EPIC-006-F-004-S-001: No summary when has_more is False ──
 
     def test_no_summary_when_no_more(self):
         """summary_message must be empty when has_more is False."""
@@ -651,7 +651,7 @@ class TestSearchResultPresentation(unittest.TestCase):
             self.assertIn(user_term, msg,
                           f"Summary must contain user's term '{user_term}'")
 
-    # ── EPIC-006-F-004-S-002-REQ-T-001: Frontend handles action links ──
+    # ── EPIC-006-F-004-S-002: Frontend handles action links ──
 
     def test_frontend_handles_action_links(self):
         """MessageBubble must intercept #action: links."""

@@ -49,7 +49,7 @@ class EmbeddingClient:
     def get_specialty_vector(self, text: str) -> list:
         """Embed via text-embedding-3-large. For specialty matching.
         Same model as provider embeddings — required for cross-collection RAG.
-        Raises on failure (no fallback per EPIC-006-F-002-S-001-REQ-T-001).
+        Raises on failure (no fallback per EPIC-006-F-002-S-001).
         SpecialtyFilter's find_specialties() is the single catch point and
         surfaces the actual upstream cause to the frontend."""
         return self._get_oai().embeddings.create(

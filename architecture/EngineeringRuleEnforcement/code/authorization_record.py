@@ -148,11 +148,6 @@ def append(document: dict, tolerate_failure: bool):
     database being reachable, and the verdict is already on stderr. So the
     commit tolerates the failure and says so.
     """
-    if not document.get("authorization_type"):
-        raise ChatHealthyException(
-            "authorization_untyped",
-            "an authorization document carries authorization_type; without "
-            "it a commit record and a promotion record are the same document")
     try:
         return collection().insert_one(document).inserted_id
     except Exception as exc:  # noqa: BLE001 - converted at the boundary

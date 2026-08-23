@@ -43,7 +43,7 @@ def _decode_cert_pem(env_var: str, b64: str, component: str) -> bytes:
 
 
 def bootstrap_certs_from_env():
-    """EPIC-002-F-001-S-012-REQ-T-005: decode PEM certs from HF Space Secrets
+    """EPIC-002-F-001-S-012: decode PEM certs from HF Space Secrets
     into a runtime directory so SessionToken.verify can find
     them on HF. No-op locally where /certs is bind-mounted and CERTS_DIR is
     already set."""

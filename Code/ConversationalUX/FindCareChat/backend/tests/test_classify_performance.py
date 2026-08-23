@@ -1,7 +1,7 @@
 # Copyright (c) 2026 ChatHealthy.ai LLC. All rights reserved.
 # Licensed under the FindCare Evaluation License (FEL-1.0).
 #
-# EPIC-006-F-001-S-001-REQ-T-001: AI translates user question into ordered specialty
+# EPIC-006-F-001-S-001: AI translates user question into ordered specialty
 # codes (most likely → least likely). Provider search is a DB query, not AI.
 # GOV-011: AI translates, system answers.
 
@@ -9,7 +9,7 @@ import pytest
 
 
 class TestClassifyReturnsOrderedSpecialties:
-    """EPIC-006-F-001-S-001-REQ-T-001: /classify returns ordered specialty codes for DB query."""
+    """EPIC-006-F-001-S-001: /classify returns ordered specialty codes for DB query."""
 
     def test_classify_returns_ordered_specialties(self):
         """/classify returns a list of specialty codes ordered by relevance."""
