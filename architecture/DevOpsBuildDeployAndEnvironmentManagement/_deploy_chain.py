@@ -58,6 +58,7 @@ import hf_helpers as rd
 from agile_backlog import AgileBacklogLoader
 from crosswalk import Crosswalk
 from record_loader import RecordLoader
+import secrets_resolver as _sr
 from secrets_resolver import SecretsResolver
 from target_record import DeploymentCollection, TargetRecord
 
@@ -753,7 +754,10 @@ def set_hf_config(
     space = rd._hf_space_per_build_name(target_id, env, build_n)
 
     def _resolve_qualifier(name: str, qualifier: str) -> str:
-        if qualifier == "local_env":
+        # Any qualifier naming a store goes to the resolver, which owns the
+        # one code path per store. Testing for a single store by name is what
+        # made every HF target fail the moment its secrets moved to the vault.
+        if qualifier in _sr.STORE_IDS:
             return resolver.resolve(name, env)
         if qualifier == "env_name":
             return env

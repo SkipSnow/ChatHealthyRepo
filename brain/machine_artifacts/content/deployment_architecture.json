@@ -660,9 +660,9 @@
         }
       ],
       "secrets": {
-        "CLOUDFLARE_API_TOKEN": "local_env",
+        "CLOUDFLARE_API_TOKEN": "azure_key_vault",
         "CLOUDFLARE_ACCOUNT_ID": "local_env",
-        "CLOUDFLARE_PIPELINE_AUTH_HEADER": "local_env"
+        "CLOUDFLARE_PIPELINE_AUTH_HEADER": "azure_key_vault"
       },
       "secret_descriptions": {
         "CLOUDFLARE_ACCOUNT_ID": "The Cloudflare account the website belongs to",
@@ -1047,16 +1047,16 @@
         }
       ],
       "secrets": {
-        "EVALCARE_SIGNING_KEY_B64": "local_env",
-        "HF_TOKEN": "local_env",
+        "EVALCARE_SIGNING_KEY_B64": "azure_key_vault",
+        "HF_TOKEN": "azure_key_vault",
         "KEY_VAULT_URI": "local_env",
         "FRONTENDUSER_AZURE_TENANT_ID": "local_env",
         "FRONTENDUSER_AZURE_CLIENT_ID": "local_env",
-        "FRONTENDUSER_AZURE_CLIENT_SECRET": "local_env",
+        "FRONTENDUSER_AZURE_CLIENT_SECRET": "azure_key_vault",
         "EVALCARE_SIGNING_KEY_PEM": "rename_from:EVALCARE_SIGNING_KEY_B64",
         "PIPELINEEDITOR_AZURE_TENANT_ID": "local_env",
         "PIPELINEEDITOR_AZURE_CLIENT_ID": "local_env",
-        "PIPELINEEDITOR_AZURE_CLIENT_SECRET": "local_env"
+        "PIPELINEEDITOR_AZURE_CLIENT_SECRET": "azure_key_vault"
       },
       "secret_descriptions": {
         "EVALCARE_SIGNING_KEY_B64": "The EvaluateCare signing key, encoded for transport",
@@ -2507,25 +2507,25 @@
         }
       ],
       "secrets": {
-        "API_TOKEN_MAP": "local_env",
-        "FINDCARE_SIGNING_KEY_B64": "local_env",
-        "GEMINI_API_KEY": "local_env",
-        "GOOGLE_API_KEY": "local_env",
-        "HF_TOKEN": "local_env",
-        "ADMIN_UNLOCK_KEY": "local_env",
-        "ANTHROPIC_API_KEY": "local_env",
+        "API_TOKEN_MAP": "azure_key_vault",
+        "FINDCARE_SIGNING_KEY_B64": "azure_key_vault",
+        "GEMINI_API_KEY": "azure_key_vault",
+        "GOOGLE_API_KEY": "azure_key_vault",
+        "HF_TOKEN": "azure_key_vault",
+        "ADMIN_UNLOCK_KEY": "azure_key_vault",
+        "ANTHROPIC_API_KEY": "azure_key_vault",
         "NOTIFICATION_FROM_EMAIL": "local_env",
         "NOTIFICATION_TO_EMAIL": "local_env",
-        "OPENAI_API_KEY": "local_env",
-        "SPARKMAIL_API_KEY": "local_env",
+        "OPENAI_API_KEY": "azure_key_vault",
+        "SPARKMAIL_API_KEY": "azure_key_vault",
         "KEY_VAULT_URI": "local_env",
         "FRONTENDUSER_AZURE_TENANT_ID": "local_env",
         "FRONTENDUSER_AZURE_CLIENT_ID": "local_env",
-        "FRONTENDUSER_AZURE_CLIENT_SECRET": "local_env",
+        "FRONTENDUSER_AZURE_CLIENT_SECRET": "azure_key_vault",
         "FINDCARE_SIGNING_KEY_PEM": "rename_from:FINDCARE_SIGNING_KEY_B64",
         "PIPELINEEDITOR_AZURE_TENANT_ID": "local_env",
         "PIPELINEEDITOR_AZURE_CLIENT_ID": "local_env",
-        "PIPELINEEDITOR_AZURE_CLIENT_SECRET": "local_env"
+        "PIPELINEEDITOR_AZURE_CLIENT_SECRET": "azure_key_vault"
       },
       "secret_descriptions": {
         "ADMIN_UNLOCK_KEY": "Releases a user locked out by the safety check",
@@ -3223,22 +3223,22 @@
         }
       ],
       "secrets": {
-        "SHARED_SIGNING_KEY_B64": "local_env",
+        "SHARED_SIGNING_KEY_B64": "azure_key_vault",
         "GOOGLE_OAUTH_CLIENT_ID": "local_env",
-        "GOOGLE_OAUTH_CLIENT_SECRET": "local_env",
-        "HF_TOKEN": "local_env",
-        "GEMINI_API_KEY": "local_env",
-        "GOOGLE_API_KEY": "local_env",
-        "OPENAI_API_KEY": "local_env",
-        "ANTHROPIC_API_KEY": "local_env",
+        "GOOGLE_OAUTH_CLIENT_SECRET": "azure_key_vault",
+        "HF_TOKEN": "azure_key_vault",
+        "GEMINI_API_KEY": "azure_key_vault",
+        "GOOGLE_API_KEY": "azure_key_vault",
+        "OPENAI_API_KEY": "azure_key_vault",
+        "ANTHROPIC_API_KEY": "azure_key_vault",
         "KEY_VAULT_URI": "local_env",
         "FRONTENDUSER_AZURE_TENANT_ID": "local_env",
         "FRONTENDUSER_AZURE_CLIENT_ID": "local_env",
-        "FRONTENDUSER_AZURE_CLIENT_SECRET": "local_env",
+        "FRONTENDUSER_AZURE_CLIENT_SECRET": "azure_key_vault",
         "SHARED_SIGNING_KEY_PEM": "rename_from:SHARED_SIGNING_KEY_B64",
         "PIPELINEEDITOR_AZURE_TENANT_ID": "local_env",
         "PIPELINEEDITOR_AZURE_CLIENT_ID": "local_env",
-        "PIPELINEEDITOR_AZURE_CLIENT_SECRET": "local_env"
+        "PIPELINEEDITOR_AZURE_CLIENT_SECRET": "azure_key_vault"
       },
       "secret_descriptions": {
         "ANTHROPIC_API_KEY": "Anthropic API key for language model calls",
@@ -3767,23 +3767,23 @@
         }
       ],
       "secrets": {
-        "AZ_VM_ADMIN_SSH_PRIVATE_KEY_B64": "local_env",
+        "AZ_VM_ADMIN_SSH_PRIVATE_KEY_B64": "azure_key_vault",
         "CHATHEALTHY_PROJECT_ROOT": "local_env",
         "ENV_PREFIX": "local_env",
         "EVALCARE_URL": "local_env",
         "GITHUB_ACTIONS": "local_env",
         "GITHUB_SHA": "local_env",
-        "PUSHOVER_TOKEN": "local_env",
-        "PUSHOVER_USER": "local_env",
+        "PUSHOVER_TOKEN": "azure_key_vault",
+        "PUSHOVER_USER": "azure_key_vault",
         "SHARED_SERVICES_URL": "local_env",
         "SMOKE_TEST_ENV": "local_env",
         "SMOKE_TEST_URL": "local_env",
         "SPACE_ID": "local_env",
         "WEBSITE_SITE_NAME": "local_env",
-        "CLOUDFLARE_API_TOKEN": "local_env",
+        "CLOUDFLARE_API_TOKEN": "azure_key_vault",
         "CLOUDFLARE_ACCOUNT_ID": "local_env",
-        "HF_TOKEN": "local_env",
-        "ANTHROPIC_API_KEY": "local_env"
+        "HF_TOKEN": "azure_key_vault",
+        "ANTHROPIC_API_KEY": "azure_key_vault"
       },
       "secret_descriptions": {
         "ANTHROPIC_API_KEY": "Anthropic API key for language model calls",
@@ -3995,14 +3995,14 @@
         }
       ],
       "secrets": {
-        "AZ_VM_ADMIN_SSH_PRIVATE_KEY_B64": "local_env",
+        "AZ_VM_ADMIN_SSH_PRIVATE_KEY_B64": "azure_key_vault",
         "CHATHEALTHY_PROJECT_ROOT": "local_env",
         "ENV_PREFIX": "local_env",
         "EVALCARE_URL": "local_env",
         "GITHUB_ACTIONS": "local_env",
         "GITHUB_SHA": "local_env",
-        "PUSHOVER_TOKEN": "local_env",
-        "PUSHOVER_USER": "local_env",
+        "PUSHOVER_TOKEN": "azure_key_vault",
+        "PUSHOVER_USER": "azure_key_vault",
         "SHARED_SERVICES_URL": "local_env",
         "SMOKE_TEST_ENV": "local_env",
         "SMOKE_TEST_URL": "local_env",
@@ -4417,10 +4417,10 @@
         "AUTOMATION_SUBSCRIPTION_ID": "local_env",
         "PIPELINE_SECRET_NAMES": "local_env",
         "CH_LOG_DB": "local_env",
-        "GEMINI_API_KEY": "local_env",
+        "GEMINI_API_KEY": "azure_key_vault",
         "DEVOPSUSER_AZURE_TENANT_ID": "local_env",
         "DEVOPSUSER_AZURE_CLIENT_ID": "local_env",
-        "DEVOPSUSER_AZURE_CLIENT_SECRET": "local_env"
+        "DEVOPSUSER_AZURE_CLIENT_SECRET": "azure_key_vault"
       },
       "secret_descriptions": {
         "ENTITLEMENT_REPORT_TO_EMAIL": "Who the daily entitlement report is sent to",
@@ -4503,7 +4503,6 @@
         }
       ],
       "files": [],
-      "secrets": {},
       "secret_descriptions": {}
     },
     {
@@ -4534,16 +4533,16 @@
       ],
       "files": [],
       "secrets": {
-        "ATLAS_PUBLIC_KEY": "local_env",
-        "ATLAS_PRIVATE_KEY": "local_env",
+        "ATLAS_PUBLIC_KEY": "azure_key_vault",
+        "ATLAS_PRIVATE_KEY": "azure_key_vault",
         "ATLAS_PROJECT_ID": "local_env",
-        "AZURE_STORAGE_CONNECTION_STRING": "local_env",
-        "PIPELINE_STORAGE_CONNECTION_STRING": "local_env",
+        "AZURE_STORAGE_CONNECTION_STRING": "azure_key_vault",
+        "PIPELINE_STORAGE_CONNECTION_STRING": "azure_key_vault",
         "KEY_VAULT_URI": "local_env",
-        "ANTHROPIC_API_KEY": "local_env",
-        "GEMINI_API_KEY": "local_env",
-        "GOOGLE_MAPS_API_KEY": "local_env",
-        "SPARKMAIL_API_KEY": "local_env",
+        "ANTHROPIC_API_KEY": "azure_key_vault",
+        "GEMINI_API_KEY": "azure_key_vault",
+        "GOOGLE_MAPS_API_KEY": "azure_key_vault",
+        "SPARKMAIL_API_KEY": "azure_key_vault",
         "NOTIFICATION_FROM_EMAIL": "local_env",
         "NOTIFICATION_TO_EMAIL": "local_env",
         "SOURCE_URL_NPPES_NPI": "local_env",
@@ -4551,12 +4550,12 @@
         "SOURCE_URL_CENSUS_ZCTA_COUNTY": "local_env",
         "SOURCE_URL_USDA_RUCC": "local_env",
         "SPECIALTY_CLASSIFICATION_CATALOG_URL": "local_env",
-        "CLOUDFLARE_PIPELINE_AUTH_HEADER": "local_env",
+        "CLOUDFLARE_PIPELINE_AUTH_HEADER": "azure_key_vault",
         "PIPELINEEDITOR_AZURE_TENANT_ID": "local_env",
         "PIPELINEEDITOR_AZURE_CLIENT_ID": "local_env",
-        "PIPELINEEDITOR_AZURE_CLIENT_SECRET": "local_env",
-        "ATLAS_PIPELINE_PUBLIC_KEY": "local_env",
-        "ATLAS_PIPELINE_PRIVATE_KEY": "local_env"
+        "PIPELINEEDITOR_AZURE_CLIENT_SECRET": "azure_key_vault",
+        "ATLAS_PIPELINE_PUBLIC_KEY": "azure_key_vault",
+        "ATLAS_PIPELINE_PRIVATE_KEY": "azure_key_vault"
       },
       "secret_descriptions": {
         "ANTHROPIC_API_KEY": "Anthropic API key for language model calls",
@@ -4662,7 +4661,6 @@
         }
       ],
       "files": [],
-      "secrets": {},
       "secret_descriptions": {},
       "allowed_roles": [
         "Storage Blob Data Contributor"
@@ -4719,7 +4717,6 @@
         }
       ],
       "files": [],
-      "secrets": {},
       "secret_descriptions": {}
     },
     {
@@ -4746,7 +4743,6 @@
         }
       ],
       "files": [],
-      "secrets": {},
       "secret_descriptions": {}
     },
     {
@@ -4770,7 +4766,6 @@
         }
       ],
       "files": [],
-      "secrets": {},
       "secret_descriptions": {}
     },
     {
@@ -4825,7 +4820,6 @@
         }
       ],
       "files": [],
-      "secrets": {},
       "secret_descriptions": {},
       "allowed_roles": [
         "AcrPush",
@@ -4924,11 +4918,25 @@
           "packages": [
             {
               "package_id": "conversation_archive",
-              "kind": "file_set"
+              "kind": "file_set",
+              "secrets": {
+                "CHATHEALTHY_PROJECT_ROOT": "local_env",
+                "OPENAI_API_KEY": "azure_key_vault"
+              },
+              "secret_descriptions": {
+                "CHATHEALTHY_PROJECT_ROOT": "Where the project tree sits on the workstation",
+                "OPENAI_API_KEY": "OpenAI API key for language model and embedding calls"
+              }
             },
             {
               "package_id": "rule_enforcement",
-              "kind": "file_set"
+              "kind": "file_set",
+              "secrets": {
+                "CH_LOG_DB": "local_env"
+              },
+              "secret_descriptions": {
+                "CH_LOG_DB": "Database that runtime logs are written to"
+              }
             }
           ]
         }
@@ -5097,16 +5105,13 @@
         }
       ],
       "secrets": {
-        "CHATHEALTHY_PROJECT_ROOT": "local_env",
-        "CH_LOG_DB": "local_env",
         "KEY_VAULT_URI": "local_env",
         "AZURE_TENANT_ID": "local_env",
         "AZURE_CLIENT_ID": "local_env",
-        "AZURE_CLIENT_SECRET": "local_env",
-        "OPENAI_API_KEY": "local_env",
+        "AZURE_CLIENT_SECRET": "azure_key_vault",
         "PIPELINEEDITOR_AZURE_TENANT_ID": "local_env",
         "PIPELINEEDITOR_AZURE_CLIENT_ID": "local_env",
-        "PIPELINEEDITOR_AZURE_CLIENT_SECRET": "local_env"
+        "PIPELINEEDITOR_AZURE_CLIENT_SECRET": "azure_key_vault"
       },
       "secret_descriptions": {
         "AZURE_CLIENT_ID": "Identifies the acting principal to Azure",
@@ -5131,11 +5136,11 @@
         "PIPELINETOFRONTENDPUBLICDATAMIGRATOR_AZURE_CLIENT_ID": "local_env",
         "KEY_VAULT_URI": "local_env",
         "ATLAS_PROJECT_ID": "local_env",
-        "ATLAS_PIPELINE_PUBLIC_KEY": "local_env",
-        "ATLAS_PIPELINE_PRIVATE_KEY": "local_env",
+        "ATLAS_PIPELINE_PUBLIC_KEY": "azure_key_vault",
+        "ATLAS_PIPELINE_PRIVATE_KEY": "azure_key_vault",
         "PIPELINEEDITOR_AZURE_TENANT_ID": "local_env",
         "PIPELINEEDITOR_AZURE_CLIENT_ID": "local_env",
-        "PIPELINEEDITOR_AZURE_CLIENT_SECRET": "local_env"
+        "PIPELINEEDITOR_AZURE_CLIENT_SECRET": "azure_key_vault"
       },
       "secret_descriptions": {
         "CH_LOG_DB": "Database the structured log records are written to",
@@ -5295,7 +5300,7 @@
         }
       ],
       "secrets": {
-        "GITHUB_DEPLOY_TOKEN": "local_env"
+        "GITHUB_DEPLOY_TOKEN": "azure_key_vault"
       },
       "secret_descriptions": {
         "GITHUB_DEPLOY_TOKEN": "GitHub token that writes the workflow to the branch"
