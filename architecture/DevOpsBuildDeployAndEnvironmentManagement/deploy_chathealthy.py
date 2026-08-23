@@ -92,18 +92,7 @@ def _chathealthy_exception():
 
 def _repo_root() -> Path:
     import chain_provenance as _cp  # noqa: PLC0415
-    override = _cp.canonical_repo_override()
-    if override is not None:
-        return override
-    cur = Path(__file__).resolve()
-    for p in (cur, *cur.parents):
-        if (p / ".git").is_dir() or (p / ".env").is_file():
-            return p
-    raise ChatHealthyException(
-        mode="repo_root_not_found",
-        component="DeployChatHealthy",
-        message="repo root not found walking up from "
-                f"{Path(__file__).resolve()}")
+    return _cp.repository_root(Path(__file__))
 
 
 def _current_branch(repo_root: Path) -> str:

@@ -316,15 +316,8 @@ def _deployer_object_id() -> str:
 
 
 def _find_repo_root(start: Path) -> Path:
-    p = start.resolve()
-    while p != p.parent:
-        if (p / ".git").exists():
-            return p
-        p = p.parent
-    raise ChatHealthyException(
-        mode="aborted",
-        component="cert_placement",
-        message=f"ERROR: no .git found walking up from {start}")
+    import chain_provenance as _cp  # noqa: PLC0415
+    return _cp.repository_root(start)
 
 
 def _mint_leaf_cert(subject: str) -> tuple[str, str, str]:

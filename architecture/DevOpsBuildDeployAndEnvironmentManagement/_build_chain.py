@@ -91,18 +91,7 @@ def _step(msg: str) -> None:
 
 def _find_repo_root(start: Path) -> Path:
     import chain_provenance as _cp  # noqa: PLC0415
-    override = _cp.canonical_repo_override()
-    if override is not None:
-        return override
-    p = start.resolve()
-    while p != p.parent:
-        if (p / ".git").exists():
-            return p
-        p = p.parent
-    raise ChatHealthyException(
-            mode="runtime_error",
-            component="_build_chain",
-            message=f"no .git found walking up from {start}")
+    return _cp.repository_root(start)
 
 
 def _resolve_build_sha(repo_root: Path) -> str:

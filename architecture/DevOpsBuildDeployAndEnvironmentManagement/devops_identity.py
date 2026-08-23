@@ -37,6 +37,12 @@ for _ch_d in Path(__file__).resolve().parents:
 import os as _ch_os
 _ch_os.environ["CH_LOG_DESTINATION"] = "stderr"
 from chathealthy_lib.logging_service import ChatHealthyLoggingService  # noqa: E402
+# Four raise sites in this module named ChatHealthyException and the module
+# never imported it, so every failure path here produced a NameError instead
+# of the exception it meant to raise. Latent until a re-executed run made the
+# repo-root walk fail, which then reported the wrong error about the wrong
+# thing.
+from chathealthy_lib.exceptions import ChatHealthyException  # noqa: E402
 
 _CH_LOG = ChatHealthyLoggingService()
 
@@ -67,14 +73,8 @@ def _chathealthy_exception():
 
 
 def _repo_root() -> Path:
-    cur = Path(__file__).resolve()
-    for p in (cur, *cur.parents):
-        if (p / ".git").is_dir() or (p / ".env").is_file():
-            return p
-    raise ChatHealthyException(
-        mode="repo_root_not_found",
-        component="DevOpsIdentity",
-        message=f"repo root not found walking up from {Path(__file__).resolve()}")
+    import chain_provenance as _cp  # noqa: PLC0415
+    return _cp.repository_root(Path(__file__))
 
 
 def _credential(identity: str) -> tuple[str, str, str]:
