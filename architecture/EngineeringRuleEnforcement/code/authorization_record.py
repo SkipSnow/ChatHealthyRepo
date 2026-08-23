@@ -85,6 +85,23 @@ def deployment_facts(env: str = "dev") -> tuple[str, str]:
     return cluster["cluster_name"], identity
 
 
+def _declared_host(cluster_name: str) -> str:
+    """The host the record declares for a cluster.
+
+    Same reason the chain reads it: this runs before any Mongo connection
+    exists -- it IS the first one -- so it cannot take the host off a tag
+    that a deploy has to write. The manifest carries the declaration and
+    this already reads the manifest.
+    """
+    record = _manifest()
+    wanted = f"mongo-host-{cluster_name}"
+    for target in record.get("DeploymentTargetRecord", []):
+        declared = (target.get("secrets") or {}).get(wanted)
+        if isinstance(declared, str) and declared.startswith("literal:"):
+            return declared.split(":", 1)[1].strip()
+    return ""
+
+
 def _load_env_beside_the_repository() -> None:
     """Put .env on the environment for values not already set.
 
@@ -118,7 +135,8 @@ def collection():
     if _collection is None:
         _load_env_beside_the_repository()
         cluster, identity = deployment_facts()
-        client = ChatHealthyMongoUtilities().getConnection(identity, cluster)
+        client = ChatHealthyMongoUtilities().getConnection(
+            identity, cluster, host=_declared_host(cluster))
         _collection = client[AUTHORIZATION_DATABASE][AUTHORIZATION_COLLECTION]
     return _collection
 
