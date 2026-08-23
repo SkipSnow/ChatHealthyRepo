@@ -107,9 +107,14 @@ class Address(BaseModel):
     @classmethod
     def ordered_from_stored(cls, stored: dict) -> list["Address"]:
         """Per S-001-REQ-B-004: practice first, business last; others between."""
-        raw = stored.get("addresses") or []
-        practice = [a for a in raw if a.get("address_type") == "practice"]
-        business = [a for a in raw if a.get("address_type") == "business"]
+        # v4 carries the two kinds in their own fields, so the ordering no
+        # longer has to be recovered by scanning a mixed array for a type
+        # tag, and the 'other' bucket cannot occur -- there is nowhere for a
+        # third kind to live.
+        practice = list(stored.get("practice_addresses") or [])
+        business_one = stored.get("business_address")
+        business = [business_one] if business_one else []
+        raw = practice + business
         other = [
             a for a in raw
             if a.get("address_type") not in ("practice", "business")
@@ -141,9 +146,9 @@ class Insurance(BaseModel):
     def from_stored(cls, insurance_record: dict) -> "Insurance":
         return cls(
             insurance_type=(insurance_record.get("insurance_type") or "").strip(),
-            brand=(insurance_record.get("brand") or "").strip(),
+            brand=(insurance_record.get("payer_name") or "").strip(),
             state=(insurance_record.get("state") or "").strip(),
-            raw_value=(insurance_record.get("raw_value") or "").strip(),
+            raw_value=(insurance_record.get("issuer_raw") or "").strip(),
         )
 
 
@@ -223,10 +228,12 @@ class ProviderDetailOutput(BaseModel):
 
     @staticmethod
     def primary_practice_state(stored: dict) -> str:
-        for a in stored.get("addresses") or []:
-            if a.get("address_type") == "practice" and a.get("state"):
-                return (a.get("state") or "").strip().upper()
-        for a in stored.get("addresses") or []:
+        # Practice first, then the business address -- the same order the
+        # old scan produced, expressed as the two fields that now hold them.
+        for a in stored.get("practice_addresses") or []:
             if a.get("state"):
                 return (a.get("state") or "").strip().upper()
+        business = stored.get("business_address") or {}
+        if business.get("state"):
+            return (business.get("state") or "").strip().upper()
         return ""

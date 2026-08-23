@@ -857,7 +857,7 @@
           "source_location": "ChatHealthyLib/src/chathealthy_lib/mongo_utilities.py",
           "handler_type": "python_source",
           "disposition": "referenced",
-          "content_hash": "10328c03c2674c695b83ab8495699c185cf797fd876c758d94556d6edc077058",
+          "content_hash": "e2fc1164956858b5f2e72432e18ed8f73928e6b9d2e1924db0b4f509b5de3bd9",
           "package": "service_runtime"
         },
         {
@@ -986,7 +986,7 @@
           "source_location": "evaluateCare/Code/app.py",
           "handler_type": "python_source",
           "disposition": "referenced",
-          "content_hash": "fd3ee5bd14b78dc1a80367e152d03def02bcebbb65c85a75fb82623a3750161f",
+          "content_hash": "cdd8d1a653191053422ecdb410d455a9e23312e5358d742ce627e37ac2dd9a84",
           "package": "service_runtime"
         },
         {
@@ -1095,7 +1095,8 @@
         "FINDCARE_CERT_PEM": "local_cert_file:Code/Shared/ops/certs/findcare.crt",
         "SHARED_CERT_PEM": "local_cert_file:Code/Shared/ops/certs/shared.crt",
         "EVALCARE_CERT_PEM": "local_cert_file:Code/Shared/ops/certs/evalcare.crt",
-        "CH_LOG_LEVEL": "local_env"
+        "CH_LOG_LEVEL": "local_env",
+        "CH_MONGO_HOST_CHATHEALTHYFRONTEND": "local_env"
       }
     },
     {
@@ -1329,7 +1330,7 @@
           "source_location": "Code/ConversationalUX/FindCareChat/backend/domain/find_care/provider_record_sync.py",
           "handler_type": "python_source",
           "disposition": "referenced",
-          "content_hash": "b043d339a43e97be42a76ce39e5b8d2c2fc040c8b90c1d0854706a7e278094b7",
+          "content_hash": "a9ae90ed86f3567da4299655c7ed844dd4191570cba72aa4c516cc7409698210",
           "package": "service_runtime"
         },
         {
@@ -2094,7 +2095,7 @@
           "source_location": "FindCare/ProviderDetail/provider_detail_models.py",
           "handler_type": "python_source",
           "disposition": "referenced",
-          "content_hash": "cfda9f904ff567b38d374b3ed39a61cfe25f39f92e082ee5b4b069f9eca95869",
+          "content_hash": "413ee9931cb0decde54476eef05da87eb28c5834fca67643f2d7ff443238a978",
           "package": "service_runtime"
         },
         {
@@ -2102,7 +2103,7 @@
           "source_location": "FindCare/ProviderDetail/provider_detail_service.py",
           "handler_type": "python_source",
           "disposition": "referenced",
-          "content_hash": "11d9e442d1575431c02b1dab47bf64d54a677260900bc03038b87ad6b5aef1cf",
+          "content_hash": "ab5d5dbbea5d63961257906e97be763b415cd34367e9e1c5c51920d017127510",
           "package": "service_runtime"
         },
         {
@@ -2142,7 +2143,7 @@
           "source_location": "FindCare/ProviderManagement/provider_search_service.py",
           "handler_type": "python_source",
           "disposition": "referenced",
-          "content_hash": "28e332b80f9da88410025db54197db0d91d6b0659c7d1ab70e5f3976fbf9483c",
+          "content_hash": "b4bd028c8b31df7fa80537005471a65a105a601c7e95a40bfce6a030f158b224",
           "package": "service_runtime"
         },
         {
@@ -2182,7 +2183,7 @@
           "source_location": "FindCare/SpecialtyFilter/filter.py",
           "handler_type": "python_source",
           "disposition": "referenced",
-          "content_hash": "bfa15a07331768a69d8bfdc993322c56fa82bab45251d215c44e1af5a51d0641",
+          "content_hash": "78784ac1662c76fbfa3e572f2c0dae39680f9430b95b025c92a44b37a4bcca7b",
           "package": "service_runtime"
         },
         {
@@ -2190,7 +2191,7 @@
           "source_location": "FindCare/SpecialtyFilter/find_specialists.py",
           "handler_type": "python_source",
           "disposition": "referenced",
-          "content_hash": "b8ebc7dd7d82dfb7ff58a1c22d011c5d422aac0ec1e4ef1b9571c22fa1cb5c4f",
+          "content_hash": "dcce013c8da7cb5bc4108d1dd73e1f3b5d5b5e5e3d7007f2ef7019fc144ec581",
           "package": "service_runtime"
         },
         {
@@ -2302,7 +2303,7 @@
           "source_location": "ChatHealthyLib/src/chathealthy_lib/mongo_utilities.py",
           "handler_type": "python_source",
           "disposition": "referenced",
-          "content_hash": "10328c03c2674c695b83ab8495699c185cf797fd876c758d94556d6edc077058",
+          "content_hash": "e2fc1164956858b5f2e72432e18ed8f73928e6b9d2e1924db0b4f509b5de3bd9",
           "package": "service_runtime"
         },
         {
@@ -2587,7 +2588,8 @@
         "FINDCARE_CERT_PEM": "local_cert_file:Code/Shared/ops/certs/findcare.crt",
         "SHARED_CERT_PEM": "local_cert_file:Code/Shared/ops/certs/shared.crt",
         "EVALCARE_CERT_PEM": "local_cert_file:Code/Shared/ops/certs/evalcare.crt",
-        "CH_LOG_LEVEL": "local_env"
+        "CH_LOG_LEVEL": "local_env",
+        "CH_MONGO_HOST_CHATHEALTHYFRONTEND": "local_env"
       }
     },
     {
@@ -2709,7 +2711,7 @@
           "source_location": "FindCare/SpecialtyFilter/filter.py",
           "handler_type": "python_source",
           "disposition": "referenced",
-          "content_hash": "bfa15a07331768a69d8bfdc993322c56fa82bab45251d215c44e1af5a51d0641",
+          "content_hash": "78784ac1662c76fbfa3e572f2c0dae39680f9430b95b025c92a44b37a4bcca7b",
           "package": "service_runtime"
         },
         {
@@ -2717,7 +2719,7 @@
           "source_location": "FindCare/SpecialtyFilter/find_specialists.py",
           "handler_type": "python_source",
           "disposition": "referenced",
-          "content_hash": "b8ebc7dd7d82dfb7ff58a1c22d011c5d422aac0ec1e4ef1b9571c22fa1cb5c4f",
+          "content_hash": "dcce013c8da7cb5bc4108d1dd73e1f3b5d5b5e5e3d7007f2ef7019fc144ec581",
           "package": "service_runtime"
         },
         {
@@ -2821,7 +2823,7 @@
           "source_location": "ChatHealthyLib/src/chathealthy_lib/mongo_utilities.py",
           "handler_type": "python_source",
           "disposition": "referenced",
-          "content_hash": "10328c03c2674c695b83ab8495699c185cf797fd876c758d94556d6edc077058",
+          "content_hash": "e2fc1164956858b5f2e72432e18ed8f73928e6b9d2e1924db0b4f509b5de3bd9",
           "package": "service_runtime"
         },
         {
@@ -3170,7 +3172,7 @@
           "source_location": "sharedServices/Code/app.py",
           "handler_type": "python_source",
           "disposition": "referenced",
-          "content_hash": "6f503a091df5fcd539b12ab879d832a7451012280505a47146b6c2935461ae18",
+          "content_hash": "632cfa7c5be50412ab4c14fd865a568c28924f23b6b8509243d7429f24ba335e",
           "package": "service_runtime"
         },
         {
@@ -3299,7 +3301,8 @@
         "FINDCARE_CERT_PEM": "local_cert_file:Code/Shared/ops/certs/findcare.crt",
         "SHARED_CERT_PEM": "local_cert_file:Code/Shared/ops/certs/shared.crt",
         "EVALCARE_CERT_PEM": "local_cert_file:Code/Shared/ops/certs/evalcare.crt",
-        "CH_LOG_LEVEL": "local_env"
+        "CH_LOG_LEVEL": "local_env",
+        "CH_MONGO_HOST_CHATHEALTHYFRONTEND": "local_env"
       }
     },
     {
@@ -3388,7 +3391,7 @@
           "source_location": "pipeline/Code/ensure_provider_indexes_activity.py",
           "handler_type": "python_source",
           "disposition": "referenced",
-          "content_hash": "eaf5141a6764efe3728e667b4e1aaafc0f35bb07e27644f3df7b58a857f2b67f",
+          "content_hash": "7f7ade10a06e462aa7aada64738d3169599edf1d06ed292b0617c8639b8f9bab",
           "package": "service_runtime"
         },
         {
@@ -4555,7 +4558,11 @@
         "PIPELINEEDITOR_AZURE_CLIENT_ID": "local_env",
         "PIPELINEEDITOR_AZURE_CLIENT_SECRET": "azure_key_vault",
         "ATLAS_PIPELINE_PUBLIC_KEY": "azure_key_vault",
-        "ATLAS_PIPELINE_PRIVATE_KEY": "azure_key_vault"
+        "ATLAS_PIPELINE_PRIVATE_KEY": "azure_key_vault",
+        "mongo-host-ChatHealthyFrontEnd": "literal:chathealthyfrontend.mdwahg.mongodb.net",
+        "mongo-host-ChatHealthyDataPipelines": "literal:chathealthydatapipeline.mdwahg.mongodb.net",
+        "mongo-attempts-ChatHealthyDataPipelines": "literal:3",
+        "mongo-nocache-ChatHealthyDataPipelines": "literal:true"
       },
       "secret_descriptions": {
         "ANTHROPIC_API_KEY": "Anthropic API key for language model calls",
@@ -4602,7 +4609,11 @@
         "mongo-client-cert-pipelineEditor": "Superseded pipelineEditor client certificate",
         "mongo-client-key-pipelineEditor": "Superseded pipelineEditor client key",
         "ATLAS_PIPELINE_PUBLIC_KEY": "Atlas API public key that may pause and resume the pipeline cluster",
-        "ATLAS_PIPELINE_PRIVATE_KEY": "Atlas API private key that may pause and resume the pipeline cluster"
+        "ATLAS_PIPELINE_PRIVATE_KEY": "Atlas API private key that may pause and resume the pipeline cluster",
+        "mongo-host-ChatHealthyFrontEnd": "Atlas host the front-end cluster answers on",
+        "mongo-host-ChatHealthyDataPipelines": "Atlas host the pipeline cluster answers on",
+        "mongo-attempts-ChatHealthyDataPipelines": "Connect attempts; the cluster pauses",
+        "mongo-nocache-ChatHealthyDataPipelines": "Do not cache a client for this cluster"
       },
       "allowed_roles": [
         "Key Vault Secrets Officer"

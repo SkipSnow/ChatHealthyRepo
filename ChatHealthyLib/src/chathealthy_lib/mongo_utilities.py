@@ -42,60 +42,143 @@ TIMEOUT_MS = 120000
 # A cluster is named by its Atlas cluster name and by nothing else. There is
 # no alias, no logical target and no purpose-word: what a caller writes is
 # what a reader can look up in Atlas.
-CLUSTER_TARGETS = ("ChatHealthyFrontEnd", "ChatHealthyDataPipelines")
-
-# A cluster maps to a HOST, never to a credentialed connection string. The
-# credential comes from the identity's certificate and nowhere else, so no
-# secret is involved in deciding where to connect.
+# EPIC-008-F-002-S-010-REQ-B-010: this library holds zero Mongo cluster
+# facts. It knew four of them -- which clusters exist, what each one's
+# hostname is, how many times to retry each, and which one's client may be
+# cached -- and every one of those is a deployment fact about ChatHealthy,
+# living in a library that is meant to be about connecting to Mongo. The
+# cluster name arrives as an opaque string and the library looks nothing up.
 #
-# These are the PUBLIC hostnames, and they are the default because most
-# callers need them: the operator workstation, and the Hugging Face Spaces
-# that host the front-end services, are both outside Azure and can only reach
-# Atlas over the internet. That reachability is a requirement, not debt.
+# A cluster maps to a HOST, never to a credentialed connection string: the
+# credential is the identity's certificate, so no secret is involved in
+# deciding where to connect. The host is TOLD to the library through
+# CH_MONGO_HOST_<CLUSTER>, which the deploy sets per target. That variable
+# already existed as an override for Azure compute reaching Atlas over
+# Private Link; it is now the only source, so the public and private routes
+# are the same mechanism rather than one being a hardcoded default and the
+# other an exception.
 #
-# Azure compute is the exception. A VM, container-app job or runbook inside
-# the pipeline vnet reaches the same clusters through the project's Azure
-# Private Link service, and MUST, because traffic between our own Azure
-# components has no business on a public address. Those hosts are not chosen
-# here -- the deploy sets CH_MONGO_HOST_<CLUSTER> on the compute and this
-# reads it. The library is told where to connect; it does not decide.
-_TARGET_HOST = {
-    "ChatHealthyFrontEnd": "chathealthyfrontend.mdwahg.mongodb.net",
-    "ChatHealthyDataPipelines": "chathealthydatapipeline.mdwahg.mongodb.net",
-}
-
-
-def _host_for(cluster: str) -> str:
-    return (os.environ.get(f"CH_MONGO_HOST_{cluster.upper()}") or "").strip() \
-        or _TARGET_HOST[cluster]
-
-# The data-pipeline cluster is paused whenever no run holds a reservation, so
-# a connection to it can meet a machine mid-transition. It is not this
-# library's job to wait out a wake: the runbook resumes the cluster to IDLE
-# before it creates the host, so nothing downstream should ever meet a paused
-# cluster. These attempts cover a brief transient, not a cold start -- a long
-# envelope here would turn "is it up" into a multi-minute question for every
-# caller that wants an answer now.
-_CONNECT_ATTEMPTS = {
-    "ChatHealthyFrontEnd": 1,
-    "ChatHealthyDataPipelines": 3,
-}
+# Retry and caching follow from what the caller knows about its cluster, not
+# from a list here naming ChatHealthy's. Both have neutral defaults and an
+# environment override: a cluster that pauses wants more attempts and no
+# cached client, and the deployment that knows it pauses is what says so.
 _CONNECT_BACKOFF_SECONDS = 5
 
-# A client is reusable only for a cluster that stays up. Holding one against
-# the pipeline cluster outlives the cluster itself, and an open handle is a
-# false signal of activity to anything judging idleness.
-_CACHEABLE_CLUSTERS = ("ChatHealthyFrontEnd",)
 
-# The vault secret IS the identity: one secret, named exactly what the caller
-# passes, holding the cert+key PEM. It was two secrets, cert-{identity} and
-# key-{identity}, which the code fetched separately and immediately joined --
-# two round trips to rebuild something only ever used whole, under two names
-# neither of which was the identity.
-
-# One client per (identity, cluster). Certificate retrieval is a vault round
-# trip; doing it per call would put it on every query.
+# EPIC-008-F-002-S-010-REQ-B-010: no datum needed to reach a cluster lives
+# in this file. Not the cluster names, not the hosts, not the retry counts,
+# not which client may be cached. This library is told, and it holds nothing.
+#
+# Told by the VAULT. A collection would be the other home, and it is where
+# public facts belong, but a collection cannot answer the question "where is
+# the cluster" -- reading it requires the connection being made. The vault
+# has no such problem: it is already the FIRST login, ahead of Mongo, because
+# the certificate comes from there. So one more secret on that same call
+# costs a round trip nobody was saving and closes the circularity.
+#
+# The host is not a secret -- it is a public DNS name, and the certificate is
+# the credential -- but the vault holds it anyway, because being reachable
+# before Mongo matters more here than the secret/non-secret distinction.
+_HOST_CACHE: dict[str, str] = {}
+_TAG_CACHE: dict[str, dict] = {}
+# One live client per (identity, cluster). Not a cluster fact -- a
+# process-local cache -- and it went out with the four that were.
 _CLIENT_CACHE: dict[tuple[str, str], "TimedClient"] = {}
+_VAULT_HOST_PREFIX = "mongo-host-"
+_VAULT_ATTEMPTS_PREFIX = "mongo-attempts-"
+_VAULT_NO_CACHE_PREFIX = "mongo-nocache-"
+
+
+def _vault_fact(self, cluster: str, identity: str, prefix: str) -> str:
+    """One connection fact, off the TAGS of the identity's own cert secret.
+
+    A separate secret per fact does not work and the 403 that proved it is
+    the entitlement model being right: the vault grants each identity
+    exactly one secret, its own certificate, so a shared mongo-host-* secret
+    would need a grant per identity and would widen every identity's reach
+    to read it.
+
+    The tags on that one secret cost no extra grant and no extra round trip
+    -- the certificate fetch already returns them. And it puts the fact
+    where the operator said it goes: keyed by the cert name. An identity
+    learns where the clusters IT may reach are, and nothing about the rest.
+    """
+    vault_uri = os.environ.get("KEY_VAULT_URI", "").strip()
+    if not vault_uri:
+        raise ChatHealthyException(
+            mode="vault_unreachable",
+            message="KEY_VAULT_URI not set, so no connection fact can be read",
+            component="ChatHealthyMongoUtilities",
+        )
+    tags = _vault_tags(self, vault_uri, identity)
+    return (tags.get(f"{prefix}{cluster}") or "").strip()
+
+
+def _vault_tags(self, vault_uri: str, identity: str) -> dict:
+    """The tags on an identity's certificate secret. Cached per process."""
+    if identity in _TAG_CACHE:
+        return _TAG_CACHE[identity]
+    response = httpx.get(
+        f"{vault_uri.rstrip('/')}/secrets/{identity}",
+        params={"api-version": "7.4"},
+        headers={"Authorization": f"Bearer {self._azure_token(identity)}"},
+        timeout=15,
+    )
+    if response.status_code != 200:
+        raise ChatHealthyException(
+            mode="security_violation",
+            message=f"Key Vault returned {response.status_code} reading the "
+                    f"connection facts tagged on {identity!r}",
+            component="ChatHealthyMongoUtilities",
+        )
+    tags = response.json().get("tags") or {}
+    _TAG_CACHE[identity] = tags
+    return tags
+
+
+def _host_for(self, cluster: str, identity: str, host: str = "") -> str:
+    """Where the cluster answers. Argument wins, then vault, then nothing.
+
+    The argument exists for a caller that already knows -- it is not a
+    default and it is not a fallback to something hardcoded, because there
+    is nothing hardcoded left to fall back to.
+    """
+    if host:
+        _HOST_CACHE[cluster] = host.strip()
+        return _HOST_CACHE[cluster]
+    if cluster in _HOST_CACHE:
+        return _HOST_CACHE[cluster]
+    found = _vault_fact(self, cluster, identity, _VAULT_HOST_PREFIX)
+    if found:
+        _HOST_CACHE[cluster] = found
+        return found
+    raise ChatHealthyException(
+        mode="manifest_incomplete",
+        message=f"no host for cluster {cluster!r}: the vault holds no "
+                f"{_VAULT_HOST_PREFIX}{cluster} and no caller supplied one. "
+                f"This library holds no cluster facts.",
+        component="ChatHealthyMongoUtilities",
+    )
+
+
+def _connect_attempts(self, cluster: str, identity: str) -> int:
+    """How many times to try. One, unless the vault says otherwise.
+
+    A cluster that pauses between runs can be met mid-transition. Which
+    cluster that is, is a deployment fact and not this library's to know.
+    """
+    raw = _vault_fact(self, cluster, identity, _VAULT_ATTEMPTS_PREFIX)
+    return int(raw) if raw.isdigit() and int(raw) > 0 else 1
+
+
+def _is_cacheable(self, cluster: str, identity: str) -> bool:
+    """A client is reusable only against a cluster that stays up.
+
+    Holding one against a cluster that pauses outlives the cluster, and an
+    open handle is a false signal of activity to anything judging idleness.
+    """
+    return _vault_fact(self, cluster, identity,
+                       _VAULT_NO_CACHE_PREFIX).lower() not in ("1", "true", "yes")
 
 
 def q(value: Any) -> str:
@@ -463,10 +546,28 @@ class ChatHealthyMongoUtilities:
             client_id = os.environ[keys[1]].strip()
             client_secret = os.environ[keys[2]].strip()
         except KeyError as exc:
+            # Name the condition, not the symptom. An identity this host is
+            # not entitled to use has no credential here BY DESIGN -- that is
+            # the control described above working. Reporting it as three
+            # missing variables invites someone to go and add them, which is
+            # granting a host an entitlement it was deliberately denied.
+            #
+            # Which of the two it is cannot be told apart here: an identity
+            # that should be reachable and is misconfigured looks identical
+            # to one this host must never hold. So the message says both, and
+            # points at ChatHealthyConfig.CertificateRegistry, which is the
+            # record that decides.
             raise ChatHealthyException(
                 mode="vault_unreachable",
-                message=f"{', '.join(keys)} are required to fetch the "
-                        f"certificate for {identity!r}; {exc} missing",
+                message=f"this host holds no Azure credential for {identity!r}, "
+                        f"so it cannot fetch that identity's certificate. Either "
+                        f"the host is not entitled to act as {identity!r} -- in "
+                        f"which case this is the entitlement model refusing, and "
+                        f"the work belongs on a host that is -- or the identity "
+                        f"is registered and this host is missing "
+                        f"{', '.join(keys)}. ChatHealthyConfig.CertificateRegistry "
+                        f"says which. Do not resolve this by reading the "
+                        f"certificate out of the vault under another identity.",
                 component="ChatHealthyMongoUtilities",
                 exception=exc) from exc
 
@@ -533,14 +634,16 @@ class ChatHealthyMongoUtilities:
                 exception=exc) from exc
         return pem.strip() + chr(10)
 
-    def getConnection(self, identity: str, cluster: str) -> TimedClient:
+    def getConnection(self, identity: str, cluster: str,
+                      host: str = "") -> TimedClient:
         """Connect to a logical target as an identity, over mTLS.
 
         Args:
             identity: WHO. Selects the X.509 certificate, and therefore the
                 MongoDB user and its grants.
-            cluster: WHERE. A logical target from CLUSTER_TARGETS, which maps
-                to a host.
+            cluster: WHERE. An Atlas cluster name. The host it resolves to
+                is read from CH_MONGO_HOST_<CLUSTER>, which the deploy sets;
+                this library knows no cluster by name.
 
         There is no connection string and no password. The certificate IS the
         credential: the server matches its subject DN against a $external user
@@ -562,14 +665,14 @@ class ChatHealthyMongoUtilities:
                 message=f"identity must be a non-empty string, got: {type(identity).__name__}",
                 component="ChatHealthyMongoUtilities",
             )
-        if cluster not in CLUSTER_TARGETS:
+        if not cluster or not isinstance(cluster, str):
             raise ChatHealthyException(
                 mode="security_violation",
-                message=f"cluster must be one of {CLUSTER_TARGETS}, got: {cluster!r}",
+                message=f"cluster must be a non-empty Atlas cluster name, got: {cluster!r}",
                 component="ChatHealthyMongoUtilities",
             )
 
-        if cluster in _CACHEABLE_CLUSTERS:
+        if _is_cacheable(self, cluster, identity):
             cached = _CLIENT_CACHE.get((identity, cluster))
             if cached is not None:
                 return cached
@@ -598,7 +701,7 @@ class ChatHealthyMongoUtilities:
             pass
         os.replace(staging_path, cert_path)
 
-        host = _host_for(cluster)
+        host = _host_for(self, cluster, identity, host)
         uri = (
             f"mongodb+srv://{host}/?authSource=%24external"
             "&authMechanism=MONGODB-X509&retryWrites=true&w=majority"
@@ -610,7 +713,7 @@ class ChatHealthyMongoUtilities:
         # it fine. certifi is the same bundle on both, so the handshake does
         # not depend on where the code happens to be running.
         import certifi  # noqa: PLC0415
-        attempts = _CONNECT_ATTEMPTS[cluster]
+        attempts = _connect_attempts(self, cluster, identity)
         last_exc: Exception | None = None
         for attempt in range(1, attempts + 1):
             try:
@@ -638,7 +741,7 @@ class ChatHealthyMongoUtilities:
                 time.sleep(_CONNECT_BACKOFF_SECONDS * attempt)
 
         timed = TimedClient(client)
-        if cluster in _CACHEABLE_CLUSTERS:
+        if _is_cacheable(self, cluster, identity):
             _CLIENT_CACHE[(identity, cluster)] = timed
         return timed
 

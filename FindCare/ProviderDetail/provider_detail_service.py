@@ -115,6 +115,20 @@ def resolve_taxonomy_display_names(
         return {}
 
 
+def _every_address(record: dict) -> list[dict]:
+    """Every address on a record, practice first then business.
+
+    v4 splits the single addresses[] into practice_addresses[] and a lone
+    business_address. One helper so every caller reads the two fields the
+    same way, rather than each remembering to look in both places.
+    """
+    out = list(record.get("practice_addresses") or [])
+    business = record.get("business_address")
+    if business:
+        out.append(business)
+    return out
+
+
 class ProviderDetailService:
     """Provider detail lookup with compare-and-write-back cycle."""
 
@@ -243,9 +257,9 @@ class ProviderDetailService:
                     (a.get("state") or "").strip(),
                     (a.get("zip") or "")[:5],
                 )
-                for a in stored.get("addresses") or []
+                for a in _every_address(stored)
             }
-            for a in new_doc.get("addresses") or []:
+            for a in _every_address(new_doc):
                 key = (
                     a.get("line1", ""),
                     a.get("city", ""),

@@ -314,7 +314,7 @@ def find_specialists(
         for d in specialty_metadata_collection.find(
             {"Code": {"$in": pick_codes}},
             {"_id": 0, "Code": 1, "Display Name": 1,
-             "can_prescribe": 1, "homeopathic": 1},
+             "can_prescribe": 1, "is_homeopathic": 1},
         ):
             meta_by_code[d["Code"]] = d
     list_one: list[AllPossibleRecord] = []
@@ -324,7 +324,7 @@ def find_specialists(
             code=p.code,
             name=m.get("Display Name", ""),
             can_prescribe=bool(m.get("can_prescribe", False)),
-            homeopathic=bool(m.get("homeopathic", False)),
+            homeopathic=bool(m.get("is_homeopathic", False)),
             homeopathic_general=False,
             rank=i,
         ))
@@ -337,7 +337,7 @@ def find_specialists(
     for i, d in enumerate(specialty_metadata_collection.find(
         {"homeopathic_general": True, "Section": "Individual"},
         {"_id": 0, "Code": 1, "Display Name": 1,
-         "can_prescribe": 1, "homeopathic": 1},
+         "can_prescribe": 1, "is_homeopathic": 1},
     )):
         code = d.get("Code", "")
         if not code or code in list_one_codes:

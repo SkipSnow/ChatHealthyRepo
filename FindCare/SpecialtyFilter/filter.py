@@ -189,7 +189,7 @@ class SpecialtyFilter:
             }},
             {"$project": {"_id": 0, "Code": 1, "Display Name": 1,
                           "Grouping": 1,
-                          "can_prescribe": 1, "homeopathic": 1,
+                          "can_prescribe": 1, "is_homeopathic": 1,
                           "score": {"$meta": "vectorSearchScore"}}},
         ]))
         return [r for r in rows
@@ -327,7 +327,7 @@ class SpecialtyFilter:
                 "Code": doc["Code"],
                 "Display Name": doc.get("Display Name", ""),
                 "can_prescribe": doc.get("can_prescribe", False),
-                "homeopathic": doc.get("homeopathic", False),
+                "homeopathic": doc.get("is_homeopathic", False),
                 "rank": rank,
             })
         log.info("filter: query=%r -> %d kept (from %d candidates)",
