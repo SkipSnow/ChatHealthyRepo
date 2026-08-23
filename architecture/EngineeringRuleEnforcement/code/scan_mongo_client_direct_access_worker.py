@@ -136,8 +136,18 @@ _REQUIRED_CLASS = "ChatHealthyMongoUtilities"
 
 # Names that mean a component is talking to MongoDB. Reaching any of these
 # is what puts a file under the obligation.
-_MONGO_DRIVERS = ("pymongo", "motor", "bson", "mongoengine", "beanie",
-                  "mongomock", "mongomock_motor", "pytest_mongodb", "mongobox")
+_CLIENT_CONSTRUCTORS = ("MongoClient", "AsyncIOMotorClient",
+                        "MongoReplicaSetClient")
+
+# Names that hand back a client without constructing one here. Taking a
+# client from any of them is acquiring it from a source other than the
+# utility, and the rule governs acquisition however it is spelled.
+_ACQUIRING_NAMES = ("get_client", "get_mongo_client", "get_db", "get_database",
+                    "mongo_client", "client_for", "connect")
+_CLIENT_ATTRIBUTES = ("MONGO_CLIENT", "CLIENT", "_CLIENT", "mongo_client")
+
+_MOCK_MODULES = ("unittest", "mock", "pytest_mock", "mongomock",
+                 "mongomock_motor", "pytest_mongodb", "mongobox")
 
 # Operations only a database handle answers to. A file calling these has a
 # handle, whatever it named the thing it called them on.
@@ -152,22 +162,125 @@ _COLLECTION_OPS = frozenset((
 
 
 def _reaches_mongo(tree: ast.AST) -> list[tuple[int, str]]:
-    """Where a file shows it is talking to MongoDB."""
+    """Where a file obtains a MongoDB handle of its own.
+
+    Obtaining is what the rule governs. A component handed a collection is
+    using a handle another component already authenticated for, and the
+    certificate was presented there; flagging the user as well would report
+    one connection at every layer that touches it and say nothing about who
+    authenticated. Constructing a client is obtaining. So is standing a
+    double in place of one, which authenticates as nothing.
+    """
     found: list[tuple[int, str]] = []
+    mocking: list[int] = []
+    ops = False
     for node in ast.walk(tree):
         if isinstance(node, ast.Import):
-            for a in node.names:
-                root = a.name.split(".")[0]
-                if root in _MONGO_DRIVERS:
-                    found.append((node.lineno, f"imports {a.name}"))
+            for alias in node.names:
+                if alias.name.split(".")[0] in _MOCK_MODULES:
+                    mocking.append(node.lineno)
         elif isinstance(node, ast.ImportFrom):
-            root = (node.module or "").split(".")[0]
-            if root in _MONGO_DRIVERS:
-                found.append((node.lineno, f"imports from {node.module}"))
-        elif isinstance(node, ast.Call) and isinstance(node.func, ast.Attribute):
-            if node.func.attr in _COLLECTION_OPS:
-                found.append((node.lineno, f"calls {node.func.attr}()"))
+            if (node.module or "").split(".")[0] in _MOCK_MODULES:
+                mocking.append(node.lineno)
+        elif isinstance(node, ast.Call):
+            func = node.func
+            name = (func.id if isinstance(func, ast.Name)
+                    else getattr(func, "attr", None))
+            if name in _CLIENT_CONSTRUCTORS:
+                found.append((node.lineno, f"constructs {name}"))
+            elif isinstance(func, ast.Attribute) and func.attr in _COLLECTION_OPS:
+                ops = True
+    if mocking and ops:
+        found.append((mocking[0], "stands a double in place of a collection"))
     return found
+
+
+
+def _static_roots(tree: ast.AST) -> set[str]:
+    """Names in this file that denote a static: an imported module, or a
+    class defined here. `self` and `cls` are neither, and a local variable
+    is not one either -- taking an attribute off one of those is ordinary
+    code, not acquisition from module state."""
+    roots: set[str] = set()
+    for node in ast.walk(tree):
+        if isinstance(node, ast.Import):
+            for alias in node.names:
+                roots.add((alias.asname or alias.name).split(".")[0])
+        elif isinstance(node, ast.ImportFrom):
+            for alias in node.names:
+                roots.add(alias.asname or alias.name)
+        elif isinstance(node, ast.ClassDef):
+            roots.add(node.name)
+    return roots
+
+
+def _handles_taken_from_a_static(tree: ast.AST) -> list[tuple[int, str]]:
+    """Assignments that take a database handle from a static.
+
+    Constructing a client is not the only way to acquire one; drivers hand
+    one back from module state, a class attribute or a cached factory. A
+    handle taken that way carries whatever certificate that source
+    presented, not this component's.
+
+    The source must actually be a static -- an imported module or a class
+    defined here. An attribute off `self`, off `cls`, or off a local is
+    ordinary code. The variable must then be driven as a collection, not
+    merely indexed, since indexing alone is how every dict in the language
+    is read. Assignment from getConnection is acquisition done correctly,
+    and a parameter is not an assignment, so passing a handle on is allowed.
+
+    Scoped per function: two functions commonly bind the same short name,
+    and one of them acquiring correctly says nothing about the other.
+    """
+    statics = _static_roots(tree)
+    if not statics:
+        return []
+    hits: list[tuple[int, str]] = []
+    for scope in [n for n in ast.walk(tree)
+                  if isinstance(n, (ast.FunctionDef, ast.AsyncFunctionDef,
+                                    ast.Module, ast.ClassDef))]:
+        taken: dict[str, tuple[int, str]] = {}
+        for node in ast.walk(scope):
+            if not isinstance(node, (ast.Assign, ast.AnnAssign)):
+                continue
+            value = node.value
+            if value is None:
+                continue
+            targets = (node.targets if isinstance(node, ast.Assign)
+                       else [node.target])
+            names = [t.id for t in targets if isinstance(t, ast.Name)]
+            if not names:
+                continue
+            expr = value.func if isinstance(value, ast.Call) else value
+            if isinstance(value, ast.Call) and getattr(expr, "attr", None) == _REQUIRED_CALL:
+                for name in names:
+                    taken.pop(name, None)
+                continue
+            if not isinstance(expr, ast.Attribute):
+                continue
+            root = expr
+            while isinstance(root, ast.Attribute):
+                root = root.value
+            if not (isinstance(root, ast.Name) and root.id in statics):
+                continue
+            shape = (f"{expr.attr}() on {root.id}" if isinstance(value, ast.Call)
+                     else f"the static {root.id}.{expr.attr}")
+            for name in names:
+                taken[name] = (node.lineno, shape)
+        if not taken:
+            continue
+        for node in ast.walk(scope):
+            if not (isinstance(node, ast.Call)
+                    and isinstance(node.func, ast.Attribute)
+                    and node.func.attr in _COLLECTION_OPS):
+                continue
+            walk = node.func.value
+            while isinstance(walk, (ast.Subscript, ast.Attribute)):
+                walk = walk.value
+            if isinstance(walk, ast.Name) and walk.id in taken:
+                line, src = taken.pop(walk.id)
+                hits.append((line, f"takes a database handle from {src}"))
+    return sorted(set(hits))
 
 
 def _obtains_through_utility(tree: ast.AST) -> bool:
@@ -333,6 +446,23 @@ class ScanMongoClientDirectAccessEnforcementWorker(EnforcementWorker):
         except SyntaxError:
             tree = None
         if tree is not None:
+            for lineno, what in _handles_taken_from_a_static(tree):
+                violations.append(ViolationRecord(
+                    enforcement_id=self.enforcement_id,
+                    rule_id="Rule-004",
+                    resource=f"{file_path}:{lineno}",
+                    message=(
+                        f"{what} — EPIC-008-F-002-S-010-REQ-B-007 requires "
+                        f"the handle come from {_REQUIRED_CLASS}()."
+                        f"{_REQUIRED_CALL}(identity, cluster). A handle "
+                        f"acquired anywhere else carries whatever "
+                        f"certificate that source presented, not this "
+                        f"component's, so its authorization is never "
+                        f"tested. Passing a handle on is allowed; taking "
+                        f"one from a static is not."
+                    ),
+                    severity="error",
+                ))
             reaching = _reaches_mongo(tree)
             if reaching and not _obtains_through_utility(tree):
                 lineno, how = reaching[0]

@@ -187,8 +187,8 @@ class ScanFilesEnforcementWorker(EnforcementWorker):
             raise ChatHealthyException(
                 "worker_internal",
                 f"frozen external meta-schema {_META_SCHEMA_LOCAL_PATH} is "
-                f"malformed JSON: {exc.msg} at line {exc.lineno} col {exc.colno}"
-            )
+                f"malformed JSON: {exc.msg} at line {exc.lineno} col {exc.colno}",
+                exception=exc)
         return {_META_SCHEMA_URL: meta_schema}
 
     # ────────────────────────────────────────────────────────────────────────

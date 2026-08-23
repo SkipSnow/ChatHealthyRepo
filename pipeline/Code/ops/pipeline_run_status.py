@@ -34,6 +34,7 @@ for _parent in _HERE.parents:
         sys.path.insert(0, str(_parent / "ChatHealthyLib" / "src"))
         break
 from chathealthy_lib.mongo_utilities import ChatHealthyMongoUtilities
+from chathealthy_lib.exceptions import ChatHealthyException  # noqa: E402
 
 DONE = ("completed", "succeeded", "done")
 FAILED = ("failed", "error")
@@ -193,4 +194,4 @@ def main() -> int:
 
 
 if __name__ == "__main__":
-    raise SystemExit(main())
+    sys.exit(main())

@@ -53,6 +53,7 @@ from chathealthy_lib.logging_service import ChatHealthyLoggingService
 from chathealthy_lib.pipeline_boot import bootstrap_aa_mongo_logging
 from chathealthy_lib.mongo_utilities import ChatHealthyMongoUtilities
 from chathealthy_lib.mutex import give_back, take
+from chathealthy_lib.exceptions import ChatHealthyException  # noqa: E402
 
 def _mark(step: str) -> None:
     """Say where we are on the sandbox's own output stream.
@@ -567,4 +568,4 @@ def _migrate(body: dict, collection: str) -> int:
 
 
 if __name__ == "__main__":
-    raise SystemExit(main())
+    sys.exit(main())

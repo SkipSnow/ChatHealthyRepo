@@ -62,6 +62,7 @@ import os
 from abc import ABC, abstractmethod
 from datetime import datetime, timezone
 from chathealthy_lib.mongo_utilities import ChatHealthyMongoUtilities
+from chathealthy_lib.exceptions import ChatHealthyException  # noqa: E402
 
 _base_mongo = None  # lazy singleton — avoids import at module load when MongoDB is unavailable
 
@@ -150,16 +151,10 @@ class PipelineWorkerBase(ABC):
         """
         log = ChatHealthyLoggingService()
         if not self._discrepancy_report:
-            log.info("Row warning [%s]: %s", source_line or "unknown", explanation)
             return
 
         # Increment global counter in database
         warning_count = self._discrepancy_report.increment_warning_count()
-        log.info("Row warning [%d/%s] [%s]: %s",
-                 warning_count,
-                 self._warning_threshold or "unlimited",
-                 source_line or "unknown",
-                 explanation)
 
         # Write discrepancy
         self._discrepancy_report.write(
@@ -181,7 +176,10 @@ class PipelineWorkerBase(ABC):
                 records_processed=warning_count,
                 rows_before_fatal=warning_count,
             )
-            raise Exception(f"Warning threshold exceeded: {warning_count} >= {self._warning_threshold}")
+            raise ChatHealthyException(
+                mode="runtime_error",
+                component="pipeline_worker_base",
+                message=f"Warning threshold exceeded: {warning_count} >= {self._warning_threshold}")
 
     def log_error(self, explanation: str, source_line: str | None = None, npi: str | None = None) -> None:
         """Log an error to both ChatHealthyLoggingService (error level) and DiscrepancyReport.
@@ -197,16 +195,10 @@ class PipelineWorkerBase(ABC):
         """
         log = ChatHealthyLoggingService()
         if not self._discrepancy_report:
-            log.error("Row error [%s]: %s", source_line or "unknown", explanation)
             return
 
         # Increment global counter in database
         error_count = self._discrepancy_report.increment_error_count()
-        log.error("Row error [%d/%s] [%s]: %s",
-                  error_count,
-                  self._error_threshold or "unlimited",
-                  source_line or "unknown",
-                  explanation)
 
         # Write discrepancy
         self._discrepancy_report.write(
@@ -228,7 +220,10 @@ class PipelineWorkerBase(ABC):
                 records_processed=error_count,
                 rows_before_fatal=error_count,
             )
-            raise Exception(f"Error threshold exceeded: {error_count} >= {self._error_threshold}")
+            raise ChatHealthyException(
+                mode="runtime_error",
+                component="pipeline_worker_base",
+                message=f"Error threshold exceeded: {error_count} >= {self._error_threshold}")
 
     # ── Row-error persistence (internal) ─────────────────────────────────────
 
@@ -289,11 +284,6 @@ class PipelineWorkerBase(ABC):
             if self._discrepancy_report:
                 # Increment global counter in database
                 error_count = self._discrepancy_report.increment_error_count()
-                log.error("Row error [%d/%s] [%s]: %s",
-                          error_count,
-                          self._error_threshold or "unlimited",
-                          key,
-                          reason)
                 # Write discrepancy
                 self._discrepancy_report.write(
                     discrepancy_level="error",
@@ -313,9 +303,13 @@ class PipelineWorkerBase(ABC):
                         records_processed=error_count,
                         rows_before_fatal=error_count,
                     )
-                    raise Exception(f"Error threshold exceeded: {error_count} >= {self._error_threshold}")
+                    raise ChatHealthyException(
+                        mode="runtime_error",
+                        component="pipeline_worker_base",
+                        message=f"Error threshold exceeded: {error_count} >= {self._error_threshold}",
+            exception=exc)
             else:
-                log.error("Row error [%s]: %s", key, reason)
+                pass
 
             self.row_errors.append({"row_key": key, "reason": reason})
             if self.fail_on_row_error:

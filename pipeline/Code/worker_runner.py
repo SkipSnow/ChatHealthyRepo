@@ -36,6 +36,7 @@ from pipeline_env import load_pipeline_env
 from step_context import PipelineArgs, RunManifest, StepContext
 from steps import get_runner
 from chathealthy_lib.mongo_utilities import ChatHealthyMongoUtilities
+from chathealthy_lib.exceptions import ChatHealthyException  # noqa: E402
 
 _log = ChatHealthyLoggingService()
 
@@ -82,7 +83,10 @@ def _raise_on_stop_signal(signum, _frame) -> None:
     except-ChatHealthyException and except-Exception clauses untouched and
     reaches the finally that reports the work item.
     """
-    raise KeyboardInterrupt(f"stop signal {signum}")
+    raise ChatHealthyException(
+        mode="interrupted",
+        component="worker_runner",
+        message=f"stop signal {signum}")
 
 
 def main(argv: list[str] | None = None) -> int:
@@ -160,4 +164,4 @@ def _report_to_controller(run_id, step, status: str, reason: str, detail: str) -
 
 
 if __name__ == "__main__":
-    raise SystemExit(main())
+    sys.exit(main())

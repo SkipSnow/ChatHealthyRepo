@@ -6,6 +6,14 @@ caller passes paths in a staging / dist directory.
 from __future__ import annotations
 import shutil
 from pathlib import Path
+import sys as _ch_sys, pathlib as _ch_pl  # noqa: E402
+for _ch_d in _ch_pl.Path(__file__).resolve().parents:
+    if (_ch_d / '.git').exists():
+        _ch_lib = _ch_d / 'ChatHealthyLib' / 'src'
+        if str(_ch_lib) not in _ch_sys.path:
+            _ch_sys.path.insert(0, str(_ch_lib))
+        break
+from chathealthy_lib.exceptions import ChatHealthyException  # noqa: E402
 
 MARKER = "<!-- CH_FONTS -->"
 _SNIPPET_PATH = (
@@ -15,7 +23,10 @@ _SNIPPET_PATH = (
 
 def read_snippet() -> str:
     if not _SNIPPET_PATH.is_file():
-        raise FileNotFoundError(f"canonical font snippet missing at {_SNIPPET_PATH}")
+        raise ChatHealthyException(
+            mode="file_missing",
+            component="ch_fonts_inliner",
+            message=f"canonical font snippet missing at {_SNIPPET_PATH}")
     return _SNIPPET_PATH.read_text(encoding="utf-8").rstrip("\n")
 
 

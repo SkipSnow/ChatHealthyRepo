@@ -10,6 +10,14 @@ import json
 from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Iterable
+import sys as _ch_sys, pathlib as _ch_pl  # noqa: E402
+for _ch_d in _ch_pl.Path(__file__).resolve().parents:
+    if (_ch_d / '.git').exists():
+        _ch_lib = _ch_d / 'ChatHealthyLib' / 'src'
+        if str(_ch_lib) not in _ch_sys.path:
+            _ch_sys.path.insert(0, str(_ch_lib))
+        break
+from chathealthy_lib.exceptions import ChatHealthyException  # noqa: E402
 def _ch_exc():
     """ChatHealthyException without assuming the library is installed.
     These modules run as bare scripts in the devops chain."""
@@ -123,7 +131,7 @@ class AgileBacklogLoader:
 
         declared = doc.get("$schema") if isinstance(doc, dict) else None
         if not declared:
-            raise _ch_exc()(
+            raise ChatHealthyException(
             mode="value_error",
             component="agile_backlog",
             message="agile_backlog.json declares no $schema; a document that "
@@ -134,17 +142,18 @@ class AgileBacklogLoader:
         try:
             with urllib.request.urlopen(req, timeout=10.0) as resp:
                 if resp.status != 200:
-                    raise _ch_exc()(
+                    raise ChatHealthyException(
             mode="runtime_error",
             component="agile_backlog",
             message=f"schema URL {declared} returned HTTP {resp.status}")
                 self._schema = json.loads(resp.read().decode("utf-8"))
         except OSError as exc:
-            raise _ch_exc()(
+            raise ChatHealthyException(
             mode="runtime_error",
             component="agile_backlog",
             message=f"cannot fetch agile-backlog schema from {declared}: "
-                    f"{type(exc).__name__}: {exc}. No local fallback allowed.") from exc
+                    f"{type(exc).__name__}: {exc}. No local fallback allowed.",
+            exception=exc) from exc
         self.schema_uri = declared
         self._validator = Draft202012Validator(self._schema)
 
@@ -159,12 +168,12 @@ class AgileBacklogLoader:
             joined = "; ".join(
                 f"{list(e.path)}: {e.message}" for e in errors[:5]
             )
-            raise _ch_exc()(
+            raise ChatHealthyException(
             mode="value_error",
             component="agile_backlog",
             message=f"agile_backlog failed schema validation: {joined}")
         if not isinstance(doc, dict):
-            raise _ch_exc()(
+            raise ChatHealthyException(
             mode="type_error",
             component="agile_backlog",
             message="agile_backlog.json root must be an object")

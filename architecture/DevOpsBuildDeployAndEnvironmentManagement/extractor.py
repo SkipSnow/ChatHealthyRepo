@@ -16,6 +16,14 @@ import base64
 from pathlib import Path
 
 from target_record import DeploymentCollection, FileComposition, TargetRecord
+import sys as _ch_sys, pathlib as _ch_pl  # noqa: E402
+for _ch_d in _ch_pl.Path(__file__).resolve().parents:
+    if (_ch_d / '.git').exists():
+        _ch_lib = _ch_d / 'ChatHealthyLib' / 'src'
+        if str(_ch_lib) not in _ch_sys.path:
+            _ch_sys.path.insert(0, str(_ch_lib))
+        break
+from chathealthy_lib.exceptions import ChatHealthyException  # noqa: E402
 
 
 _BASE64_PREFIX: str = "__base64__:"
@@ -55,7 +63,7 @@ class Extractor:
         if f.disposition != "managed":
             return
         if f.embedded_content is None:
-            raise _ch_exc()(
+            raise ChatHealthyException(
             mode="value_error",
             component="extractor",
             message=f"managed file {f.source_location!r} missing embedded_content")

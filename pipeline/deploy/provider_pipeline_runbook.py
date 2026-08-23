@@ -828,8 +828,8 @@ def _put(url: str, body: dict, tok: str) -> dict:
             body_txt = e.read().decode("utf-8", errors="replace")[:2000]
         except Exception:
             body_txt = ""
-        raise ChatHealthyException(mode="runtime_error", message=f"ARM PUT {url.rsplit('?', 1)[0]} -> HTTP {e.code}: {body_txt}"
-        ) from e
+        raise ChatHealthyException(mode="runtime_error", message=f"ARM PUT {url.rsplit('?', 1)[0]} -> HTTP {e.code}: {body_txt}",
+            exception=e) from e
 
 
 def _atlas_resume_pipeline_cluster() -> dict:

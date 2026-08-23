@@ -21,6 +21,14 @@
 
 FROM python:3.12-slim
 
+# git is a dependency of the scans, not a convenience: ENF-009 reads the
+# branch a target runs from, and the base image carries none. Without it
+# that worker fails on the host's own repository, which is mounted right
+# there.
+RUN apt-get update \
+ && apt-get install --no-install-recommends -y git \
+ && rm -rf /var/lib/apt/lists/*
+
 # Read-only work: no compiler, no cache, no root-owned writable tree.
 RUN useradd --create-home --uid 10001 scanner
 
@@ -50,10 +58,19 @@ RUN python -m pip install --no-cache-dir --upgrade pip==25.3 \
  && python -m pip install --no-cache-dir --no-deps /tmp/ChatHealthyLib \
  && rm -rf /tmp/ChatHealthyLib
 
+# The repository is mounted from the host and owned by the host's user,
+# while this runs as scanner. git refuses a repository it sees as owned by
+# someone else, so the mount point is declared safe. Passed as config
+# environment rather than a file, because the user has no writable home.
+ENV GIT_CONFIG_COUNT=1 \
+    GIT_CONFIG_KEY_0=safe.directory \
+    GIT_CONFIG_VALUE_0=/repo
+
 # CH_LOG_DESTINATION was assigned at import by eight modules, because the
 # chain materialises an application .env that points logging at Mongo and
 # devops tooling has no grant to write there. It is the environment's fact,
 # so the environment states it.
+
 ENV CH_LOG_DESTINATION=stderr \
     PYTHONDONTWRITEBYTECODE=1 \
     PYTHONUNBUFFERED=1

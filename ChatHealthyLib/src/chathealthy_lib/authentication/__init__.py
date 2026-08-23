@@ -10,7 +10,6 @@ from .nonce import Nonce
 from .session_token import (
     SessionToken,
     SessionTokenVerification,
-    TokenInfraError,
     TokenWidgetData,
 )
 
@@ -20,7 +19,6 @@ __all__ = [
     "SessionRestampRequest",
     "SessionToken",
     "SessionTokenVerification",
-    "TokenInfraError",
     "TokenWidgetData",
     "VerifyTokenResponse",
 ]

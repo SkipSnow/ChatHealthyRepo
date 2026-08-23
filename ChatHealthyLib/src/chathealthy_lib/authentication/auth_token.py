@@ -70,35 +70,36 @@ class AuthToken:
     def handle_session(cls, body: Any, origin: str, server_env: str) -> SessionToken:
         st_in = getattr(body, "session_token", None)
         if not st_in:
-            raise HTTPException(
-                status_code=400,
-                detail="session_token is required",
-            )
+            raise ChatHealthyException(
+                mode="http_error",
+                component="auth_token",
+                message="session_token is required",
+                status_code=400)
         at = cls(st_in, origin)
         at.update_nonce()
         wire = at.to_wire()
         wire.server_env = server_env
-        log.info("%s /session restamp: guid_prefix=%s", origin, at.guid[:8])
         return wire
 
     @classmethod
     def handle_verify(cls, body: Any, origin: str, server_env: str) -> "VerifyTokenResponse":
         st_in = getattr(body, "session_token", None)
         if not st_in:
-            raise HTTPException(status_code=400, detail="session_token is required")
+            raise ChatHealthyException(
+                mode="http_error",
+                component="auth_token",
+                message="session_token is required",
+                status_code=400)
         at = cls(st_in, origin)
         try:
             valid = at.verify()
         except ValueError as e:
-            log.warning("%s verify-token 400: %s", origin, e, exc=ChatHealthyException(
-                                                               mode="verify_token_value_error",
-                                                               message=f"{origin} verify-token 400: {e}",
-                                                               component="AuthToken",
-                                                               exception=e,
-                                                           ), if_not_debug_log=True)
-            raise HTTPException(status_code=400, detail=str(e)) from e
-        log.info("%s verify-token: prev_origin=%s valid=%s",
-                  origin, at._st.origin, valid)
+            raise ChatHealthyException(
+                mode="http_error",
+                component="auth_token",
+                message=str(e),
+                status_code=400,
+            exception=e)
         return VerifyTokenResponse(
             status="verified" if valid else "failed",
             session_token=at.to_verification(valid=valid, server_env=server_env),

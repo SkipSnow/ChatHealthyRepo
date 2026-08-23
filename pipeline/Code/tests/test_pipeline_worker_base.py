@@ -32,6 +32,7 @@ for _d in _pl.Path(__file__).resolve().parents:
             _sys.path.insert(0, str(_lib))
         break
 from chathealthy_lib.exceptions import ChatHealthyException
+from chathealthy_lib.exceptions import ChatHealthyException  # noqa: E402
 from azure.core.exceptions import AzureError
 
 
@@ -258,7 +259,10 @@ def test_on_job_failure_called_on_abend():
 def test_fatal_open_error_calls_on_job_failure_and_close():
     class FailOpen(_Worker):
         def _pipeline_open(self):
-            raise AzureError("blob unavailable")
+            raise ChatHealthyException(
+                mode="cloud_error",
+                component="test_pipeline_worker_base",
+                message="blob unavailable")
 
     w = FailOpen({}, [])
     with pytest.raises(RuntimeError, match="blob unavailable"):

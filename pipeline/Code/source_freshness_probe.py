@@ -78,7 +78,7 @@ def probe_source_version(
             ),
             component="source_freshness_probe",
             source_name=source_name,
-        ) from exc
+            exception=exc) from exc
     if resp.status_code >= 400:
         raise ChatHealthyException(
             mode="runtime_error",

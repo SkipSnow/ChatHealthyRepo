@@ -54,26 +54,7 @@ _FATAL_HTTP_CODES = (400, 401, 403)
 _NO_MATCH_SENTINEL = "no_match"
 
 
-class _NoMatchError(Exception):
-    """Agent explicitly returned {"url": null}. Never retried."""
 
-
-class _FatalDiscoveryError(Exception):
-    """Deterministic failure (HTTP 4xx that isn't 429, missing key, etc.).
-    Never retried; surfaced to the caller as ChatHealthyException."""
-
-    def __init__(self, message: str) -> None:
-        super().__init__(message)
-        self.message = message
-
-
-class _RetryableDiscoveryError(Exception):
-    """Transient failure (429, 5xx, timeout, unparsable JSON, unusable URL).
-    Retried up to _MAX_ATTEMPTS times with exponential backoff + jitter."""
-
-    def __init__(self, message: str) -> None:
-        super().__init__(message)
-        self.message = message
 
 
 def _sleep_with_jitter(delay: float, sleeper: Callable[[float], None]) -> None:
@@ -92,7 +73,7 @@ def _fetch_page_html(source_name: str, page_url: str, timeout_sec: int) -> str:
                 f"source_url_discovery[{source_name}]: cannot fetch index "
                 f"page {page_url}: {exc}"
             ),
-        ) from exc
+            exception=exc) from exc
     page_html = resp.text[:_PAGE_HTML_CHARS]
     if not page_html.strip():
         raise ChatHealthyException(
@@ -142,8 +123,8 @@ def _build_prompt(page_url: str, instructions: str, page_html: str) -> str:
 def _call_gemini(source_name: str, api_key: str, prompt: str) -> str:
     """Issue one Gemini call; return the raw response body text.
 
-    Raises _RetryableDiscoveryError on 429, 5xx, or network timeout.
-    Raises _FatalDiscoveryError on any deterministic 4xx other than 429.
+    Raises ChatHealthyException mode discovery_retryable on 429, 5xx, or network timeout.
+    Raises ChatHealthyException mode discovery_fatal on any deterministic 4xx other than 429.
     """
     body = {
         "contents": [{"parts": [{"text": prompt}]}],
@@ -161,44 +142,58 @@ def _call_gemini(source_name: str, api_key: str, prompt: str) -> str:
             return gresp.read().decode("utf-8", errors="replace")
     except urllib.error.HTTPError as exc:
         if exc.code == 429 or 500 <= exc.code < 600:
-            raise _RetryableDiscoveryError(
-                f"Gemini HTTP {exc.code} {exc.reason}"
-            ) from exc
+            raise ChatHealthyException(
+                mode="discovery_retryable",
+                component="source_url_discovery",
+                message=f"Gemini HTTP {exc.code} {exc.reason}",
+            exception=exc)
         if exc.code in _FATAL_HTTP_CODES:
-            raise _FatalDiscoveryError(
-                f"Gemini HTTP {exc.code} {exc.reason}"
-            ) from exc
-        raise _FatalDiscoveryError(
-            f"Gemini HTTP {exc.code} {exc.reason}"
-        ) from exc
+            raise ChatHealthyException(
+                mode="discovery_fatal",
+                component="source_url_discovery",
+                message=f"Gemini HTTP {exc.code} {exc.reason}",
+            exception=exc)
+        raise ChatHealthyException(
+            mode="discovery_fatal",
+            component="source_url_discovery",
+            message=f"Gemini HTTP {exc.code} {exc.reason}",
+            exception=exc)
     except (urllib.error.URLError, socket.timeout, TimeoutError) as exc:
-        raise _RetryableDiscoveryError(f"Gemini network error: {exc}") from exc
+        raise ChatHealthyException(
+            mode="discovery_retryable",
+            component="source_url_discovery",
+            message=f"Gemini network error: {exc}",
+            exception=exc)
 
 
 def _parse_gemini_response(source_name: str, raw: str) -> dict:
     """Parse Gemini's outer envelope + inner JSON.
 
-    Raises _RetryableDiscoveryError on any parse failure (retry-able:
+    Raises ChatHealthyException mode discovery_retryable on any parse failure (retry-able:
     the LLM may have emitted malformed JSON that a retry will fix).
-    Raises _NoMatchError if the agent explicitly returned {"url": null}
+    Raises ChatHealthyException mode discovery_no_match if the agent explicitly returned {"url": null}
     (fatal - the source page structurally does not contain a match).
-    Raises _RetryableDiscoveryError on an unusable URL (retryable: the
+    Raises ChatHealthyException mode discovery_retryable on an unusable URL (retryable: the
     agent may have returned a truncated string that a retry will correct).
     """
     try:
         wrapper = json.loads(raw)
         text = wrapper["candidates"][0]["content"]["parts"][0]["text"]
     except (KeyError, IndexError, ValueError, TypeError) as exc:
-        raise _RetryableDiscoveryError(
-            f"Gemini response envelope unparsable: {exc} :: {raw[:400]}"
-        ) from exc
+        raise ChatHealthyException(
+            mode="discovery_retryable",
+            component="source_url_discovery",
+            message=f"Gemini response envelope unparsable: {exc} :: {raw[:400]}",
+            exception=exc)
     raw_text = (text or "").strip().strip("`\n ")
     try:
         parsed = json.loads(raw_text)
     except ValueError as exc:
-        raise _RetryableDiscoveryError(
-            f"agent returned non-JSON: {exc} :: {raw_text[:400]}"
-        ) from exc
+        raise ChatHealthyException(
+            mode="discovery_retryable",
+            component="source_url_discovery",
+            message=f"agent returned non-JSON: {exc} :: {raw_text[:400]}",
+            exception=exc)
     return parsed
 
 
@@ -206,20 +201,23 @@ def _extract_url(source_name: str, parsed: dict, page_url: str) -> str:
     got_url_raw = parsed.get("url")
     # Explicit no-match signal: fatal.
     if got_url_raw is None or (isinstance(got_url_raw, str) and not got_url_raw.strip()):
-        raise _NoMatchError(
-            f"agent reported NO matching file on {page_url}"
-        )
+        raise ChatHealthyException(
+            mode="discovery_no_match",
+            component="source_url_discovery",
+            message=f"agent reported NO matching file on {page_url}")
     if not isinstance(got_url_raw, str):
-        raise _RetryableDiscoveryError(
-            f"agent returned non-string url: {got_url_raw!r}"
-        )
+        raise ChatHealthyException(
+            mode="discovery_retryable",
+            component="source_url_discovery",
+            message=f"agent returned non-string url: {got_url_raw!r}")
     got_url = got_url_raw.strip().strip("`<>\"' \t\n")
     if not got_url.startswith("http"):
         got_url = urljoin(page_url, got_url)
     if not _is_valid_url(got_url):
-        raise _RetryableDiscoveryError(
-            f"agent returned unusable URL: {got_url!r}"
-        )
+        raise ChatHealthyException(
+            mode="discovery_retryable",
+            component="source_url_discovery",
+            message=f"agent returned unusable URL: {got_url!r}")
     return got_url
 
 
@@ -248,14 +246,18 @@ def _discover_with_retry(
                 "url": got_url,
                 "raw_parsed": parsed,
             }
-        except _NoMatchError as exc:
+        except ChatHealthyException as exc:
+            if exc.mode != "discovery_no_match":
+                raise
             raise ChatHealthyException(
                 mode="source_url_discovery_no_matching_file",
                 message=f"source_url_discovery[{source_name}]: {exc}",
                 source_name=source_name,
                 page_url=page_url,
-            ) from exc
-        except _FatalDiscoveryError as exc:
+            exception=exc) from exc
+        except ChatHealthyException as exc:
+            if exc.mode != "discovery_fatal":
+                raise
             raise ChatHealthyException(
                 mode="source_url_discovery_fatal",
                 message=(
@@ -265,8 +267,10 @@ def _discover_with_retry(
                 source_name=source_name,
                 page_url=page_url,
                 attempt=attempt,
-            ) from exc
-        except _RetryableDiscoveryError as exc:
+            exception=exc) from exc
+        except ChatHealthyException as exc:
+            if exc.mode != "discovery_retryable":
+                raise
             last_error = exc.message
             if attempt >= _MAX_ATTEMPTS:
                 break

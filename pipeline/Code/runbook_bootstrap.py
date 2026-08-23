@@ -20,6 +20,14 @@ from pathlib import Path
 
 from azure.identity import DefaultAzureCredential
 from azure.keyvault.secrets import SecretClient
+import sys as _ch_sys, pathlib as _ch_pl  # noqa: E402
+for _ch_d in _ch_pl.Path(__file__).resolve().parents:
+    if (_ch_d / '.git').exists():
+        _ch_lib = _ch_d / 'ChatHealthyLib' / 'src'
+        if str(_ch_lib) not in _ch_sys.path:
+            _ch_sys.path.insert(0, str(_ch_lib))
+        break
+from chathealthy_lib.exceptions import ChatHealthyException  # noqa: E402
 
 
 _materialized_paths: list[Path] = []
@@ -93,7 +101,7 @@ def materialize_certs_and_set_env(
     if not vault_uri:
         vault_uri = os.environ.get("KEY_VAULT_URI", "").strip()
         if not vault_uri:
-            raise _ch_exc()(
+            raise ChatHealthyException(
             mode="value_error",
             component="runbook_bootstrap",
             message="vault_uri not provided and KEY_VAULT_URI env var not set")
@@ -102,22 +110,24 @@ def materialize_certs_and_set_env(
         cred = DefaultAzureCredential()
         client = SecretClient(vault_url=vault_uri, credential=cred)
     except Exception as exc:
-        raise _ch_exc()(
+        raise ChatHealthyException(
             mode="value_error",
             component="runbook_bootstrap",
-            message=f"Failed to create SecretClient for {vault_uri}: {exc}") from exc
+            message=f"Failed to create SecretClient for {vault_uri}: {exc}",
+            exception=exc) from exc
 
     try:
         cert_pem = client.get_secret(cert_secret).value or ""
         key_pem = client.get_secret(key_secret).value or ""
     except Exception as exc:
-        raise _ch_exc()(
+        raise ChatHealthyException(
             mode="value_error",
             component="runbook_bootstrap",
-            message=f"Failed to fetch secrets {cert_secret}/{key_secret} from KV: {exc}") from exc
+            message=f"Failed to fetch secrets {cert_secret}/{key_secret} from KV: {exc}",
+            exception=exc) from exc
 
     if not cert_pem or not key_pem:
-        raise _ch_exc()(
+        raise ChatHealthyException(
             mode="value_error",
             component="runbook_bootstrap",
             message=f"KV secrets {cert_secret} or {key_secret} are empty")

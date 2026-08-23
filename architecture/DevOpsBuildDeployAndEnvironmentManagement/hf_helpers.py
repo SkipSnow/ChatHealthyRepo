@@ -42,6 +42,7 @@ for _ch_d in _ch_pl.Path(__file__).resolve().parents:
 import os as _ch_os
 _ch_os.environ["CH_LOG_DESTINATION"] = "stderr"
 from chathealthy_lib.logging_service import ChatHealthyLoggingService
+from chathealthy_lib.exceptions import ChatHealthyException  # noqa: E402
 _CH_LOG = ChatHealthyLoggingService()
 def _ch_exc():
     """ChatHealthyException without assuming the library is installed.
@@ -82,7 +83,7 @@ def set_build_source(path: Path) -> None:
 @functools.lru_cache(maxsize=1)
 def _load_manifest() -> dict:
     if _BUILD_SOURCE is None:
-        raise _ch_exc()(
+        raise ChatHealthyException(
             mode="runtime_error",
             component="hf_helpers",
             message="build source not set; call set_build_source() with the "
@@ -107,13 +108,13 @@ def _hf_space_qualified(target_id: str, env: str) -> str:
                 continue
             hs = env_entry.get("huggingface_space")
             if not hs or "space" not in hs:
-                raise _ch_exc()(
+                raise ChatHealthyException(
             mode="runtime_error",
             component="hf_helpers",
             message=f"manifest target {target_id!r} env_binding {env!r} "
                     f"has no huggingface_space.space — populate it before deploy.")
             return hs["space"]
-    raise _ch_exc()(
+    raise ChatHealthyException(
             mode="runtime_error",
             component="hf_helpers",
             message=f"manifest has no target {target_id!r} with env_binding {env!r}.")
@@ -142,7 +143,7 @@ def _hf_default_org() -> str:
             hs = env_entry.get("huggingface_space")
             if hs and "space" in hs:
                 return hs["space"].split("/", 1)[0]
-    raise _ch_exc()(
+    raise ChatHealthyException(
             mode="runtime_error",
             component="hf_helpers",
             message="no hf_space target with a populated huggingface_space.space "
@@ -456,7 +457,7 @@ def _source_set_for(target_id: str) -> list[tuple[str, str | None]]:
             continue
         raw = rec.get("huggingface_source_set")
         if not raw:
-            raise _ch_exc()(
+            raise ChatHealthyException(
             mode="runtime_error",
             component="hf_helpers",
             message=f"manifest target {target_id!r} has no huggingface_source_set "
@@ -467,7 +468,7 @@ def _source_set_for(target_id: str) -> list[tuple[str, str | None]]:
             dst = entry.get("dst")
             out.append((src, dst))
         return out
-    raise _ch_exc()(
+    raise ChatHealthyException(
             mode="runtime_error",
             component="hf_helpers",
             message=f"manifest has no target {target_id!r}.")
@@ -493,7 +494,10 @@ def _copy_tree(
     Builder uses to enumerate source_locations."""
     src = src_root / src_rel
     if not src.is_dir():
-        raise FileNotFoundError(f"source dir missing: {src}")
+        raise ChatHealthyException(
+            mode="file_missing",
+            component="hf_helpers",
+            message=f"source dir missing: {src}")
     dst = dst_root if dst_rel == "." else dst_root / dst_rel
     dst.mkdir(parents=True, exist_ok=True)
     for path in src.rglob("*"):
@@ -516,12 +520,18 @@ def _copy_tree(
 def _build_react_frontend(repo_root: Path, env: str) -> None:
     frontend = repo_root / "Code" / "ConversationalUX" / "FindCareChat" / "frontend"
     if not (frontend / "package.json").is_file():
-        raise FileNotFoundError(f"frontend package.json missing at {frontend}")
+        raise ChatHealthyException(
+            mode="file_missing",
+            component="hf_helpers",
+            message=f"frontend package.json missing at {frontend}")
     canonical_vite = (repo_root / "architecture"
                       / "DevOpsBuildDeployAndEnvironmentManagement"
                       / "vite.config.ts")
     if not canonical_vite.is_file():
-        raise FileNotFoundError(f"canonical vite config missing at {canonical_vite}")
+        raise ChatHealthyException(
+            mode="file_missing",
+            component="hf_helpers",
+            message=f"canonical vite config missing at {canonical_vite}")
     vite_copy = frontend / "vite.config.ts"
     shutil.copy2(canonical_vite, vite_copy)
     evalcare_peer = _hf_peer_url("target_hf_space_evaluatecare_backend", env)
@@ -543,9 +553,12 @@ def _build_react_frontend(repo_root: Path, env: str) -> None:
         )
         dist_index = frontend / "dist" / "index.html"
         if not dist_index.is_file():
-            raise FileNotFoundError(f"vite produced no {dist_index}")
+            raise ChatHealthyException(
+            mode="file_missing",
+            component="hf_helpers",
+            message=f"vite produced no {dist_index}")
         if not ch_fonts_inliner.inline_into(dist_index):
-            raise _ch_exc()(
+            raise ChatHealthyException(
             mode="runtime_error",
             component="hf_helpers",
             message=f"CH_FONTS marker not found in {dist_index}")

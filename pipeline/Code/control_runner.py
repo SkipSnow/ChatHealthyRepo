@@ -57,6 +57,7 @@ import subprocess
 import sys
 
 from chathealthy_lib.mongo_utilities import ChatHealthyMongoUtilities
+from chathealthy_lib.exceptions import ChatHealthyException  # noqa: E402
 
 from blob_client import get_blob_service
 from pipeline_env import load_pipeline_env
@@ -724,4 +725,4 @@ def _quiesce_mongo_state(run_id: str, final_status: str, *,
 
 
 if __name__ == "__main__":
-    raise SystemExit(main())
+    sys.exit(main())

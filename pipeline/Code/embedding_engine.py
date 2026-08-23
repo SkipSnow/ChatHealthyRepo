@@ -72,7 +72,8 @@ def _build_openai_client(api_key: str | None):
     try:
         from openai import OpenAI
     except ImportError as exc:
-        raise ChatHealthyException(mode="runtime_error", message="embedding_engine: openai package not installed; add to requirements") from exc
+        raise ChatHealthyException(mode="runtime_error", message="embedding_engine: openai package not installed; add to requirements",
+            exception=exc) from exc
     return OpenAI(api_key=key)
 
 

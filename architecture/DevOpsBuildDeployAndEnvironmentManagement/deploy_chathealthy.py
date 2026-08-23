@@ -87,7 +87,7 @@ def _repo_root() -> Path:
     for p in (cur, *cur.parents):
         if (p / ".git").is_dir() or (p / ".env").is_file():
             return p
-    raise _chathealthy_exception()(
+    raise ChatHealthyException(
         mode="repo_root_not_found",
         component="DeployChatHealthy",
         message="repo root not found walking up from "
@@ -486,4 +486,4 @@ def main(argv: list[str] | None = None) -> int:
 
 
 if __name__ == "__main__":
-    raise SystemExit(main())
+    sys.exit(main())

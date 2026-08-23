@@ -5,6 +5,7 @@
 
 from __future__ import annotations
 from chathealthy_lib.exceptions import ChatHealthyException
+from chathealthy_lib.exceptions import ChatHealthyException  # noqa: E402
 
 import os
 from datetime import datetime, timedelta, timezone
@@ -108,4 +109,7 @@ def wait_for_step_completion(mongo_client, *, run_id: str, step: str, timeout_se
             return {"completed": completed, "failed": failed}
         import time
         time.sleep(5)
-    raise TimeoutError(f"step {step} did not complete within {timeout_seconds}s")
+    raise ChatHealthyException(
+        mode="timeout",
+        component="work_item_claim",
+        message=f"step {step} did not complete within {timeout_seconds}s")

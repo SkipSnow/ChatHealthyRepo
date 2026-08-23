@@ -71,7 +71,7 @@ def _repo_root() -> Path:
     for p in (cur, *cur.parents):
         if (p / ".git").is_dir() or (p / ".env").is_file():
             return p
-    raise _chathealthy_exception()(
+    raise ChatHealthyException(
         mode="repo_root_not_found",
         component="DevOpsIdentity",
         message=f"repo root not found walking up from {Path(__file__).resolve()}")
@@ -93,7 +93,7 @@ def _credential(identity: str) -> tuple[str, str, str]:
             f"{prefix}_AZURE_TENANT_ID")
     missing = [k for k in keys if not values.get(k)]
     if missing:
-        raise _chathealthy_exception()(
+        raise ChatHealthyException(
             mode="azure_credential_missing",
             component="DevOpsIdentity",
             message=f"cannot act as {identity}: .env is missing {', '.join(missing)}",
@@ -129,7 +129,7 @@ def establish_azure_identity(identity: str) -> str:
          "--username", client_id, "--password", secret, "--tenant", tenant,
          "--allow-no-subscriptions", "-o", "none"])
     if login.returncode != 0:
-        raise _chathealthy_exception()(
+        raise ChatHealthyException(
             mode="azure_login_failed",
             component="DevOpsIdentity",
             message=f"az login as {identity} ({client_id}) failed: "
@@ -140,7 +140,7 @@ def establish_azure_identity(identity: str) -> str:
         ["az", "account", "show", "--query", "user.name", "-o", "tsv"])
     acting = shown.stdout.strip()
     if acting != client_id:
-        raise _chathealthy_exception()(
+        raise ChatHealthyException(
             mode="azure_identity_mismatch",
             component="DevOpsIdentity",
             message=f"expected the chain to act as {identity} ({client_id}) "
@@ -148,5 +148,4 @@ def establish_azure_identity(identity: str) -> str:
             context={"identity": identity,
                      "expected": client_id, "acting": acting})
 
-    _CH_LOG.info(f"Azure identity: {identity} ({client_id})")
     return client_id

@@ -88,7 +88,7 @@ class SpecialtyFilterTool(ChatHealthyTool):
     async def run(self, deps: AgentDeps, request: "Request") -> "Response":
         text = (request.query or "").strip()
         if not text:
-            raise _ch_exc()(
+            raise ChatHealthyException(
             mode="value_error",
             component="specialty_filter_tool",
             message="SpecialtyFilter requires a non-empty Request.query; UR "
@@ -104,14 +104,6 @@ class SpecialtyFilterTool(ChatHealthyTool):
             # Mode 2 (REQ-B-008): LLM /classify temporarily unavailable; the
             # tool returns a graceful Response.error to the user inline. NOT
             # a 503; do NOT tag fatal_error=True.
-            log.error("specialty_filter HTTP /classify failed: %s: %s",
-                       type(exc).__name__, exc,
-                       exc=ChatHealthyException(
-                        mode="specialty_filter_classify_unavailable",
-                        message=f"specialty_filter HTTP /classify failed: {type(exc).__name__}: {exc}",
-                        component="SpecialtyFilterTool",
-                        exception=exc,
-                    ), if_not_debug_log=True)
             resp = self.Response(error=f"classify_unavailable: {type(exc).__name__}")
             deps.stream({"kind": "specialties", "data": resp.model_dump(exclude_none=True)})
             return resp

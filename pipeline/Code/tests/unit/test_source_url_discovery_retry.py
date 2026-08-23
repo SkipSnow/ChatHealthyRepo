@@ -79,7 +79,7 @@ def test_retry_on_429_succeeds_on_second_attempt(monkeypatch):
         fp=None,
     )
     # First attempt: 429 (retryable). Second attempt: success.
-    retryable = source_url_discovery._RetryableDiscoveryError(f"Gemini HTTP 429 {http_err.reason}")
+    retryable = ChatHealthyException(mode="discovery_retryable", component="source_url_discovery", message=f"Gemini HTTP 429 {http_err.reason}")
     _install_call_sequence(monkeypatch, [retryable, _success_body()])
     sleeper = _NoWaitSleeper()
     url = source_url_discovery.find_latest_data_url(
@@ -95,7 +95,7 @@ def test_retry_on_429_succeeds_on_second_attempt(monkeypatch):
 
 def test_retry_on_timeout_succeeds_on_third_attempt(monkeypatch):
     _install_page_and_key(monkeypatch)
-    r_timeout = source_url_discovery._RetryableDiscoveryError("Gemini network error: timeout")
+    r_timeout = ChatHealthyException(mode="discovery_retryable", component="source_url_discovery", message="Gemini network error: timeout")
     _install_call_sequence(monkeypatch, [r_timeout, r_timeout, _success_body()])
     sleeper = _NoWaitSleeper()
     url = source_url_discovery.find_latest_data_url(
@@ -111,7 +111,9 @@ def test_retry_on_timeout_succeeds_on_third_attempt(monkeypatch):
 
 def test_fatal_on_401_no_retry(monkeypatch):
     _install_page_and_key(monkeypatch)
-    fatal_401 = source_url_discovery._FatalDiscoveryError("Gemini HTTP 401 Unauthorized")
+    fatal_401 = ChatHealthyException(mode="discovery_fatal",
+                                    component="source_url_discovery",
+                                    message="Gemini HTTP 401 Unauthorized")
     _install_call_sequence(monkeypatch, [fatal_401])
     sleeper = _NoWaitSleeper()
     with pytest.raises(ChatHealthyException) as ei:
@@ -128,7 +130,7 @@ def test_fatal_on_401_no_retry(monkeypatch):
 
 def test_fatal_after_three_5xx_exhaustion(monkeypatch):
     _install_page_and_key(monkeypatch)
-    r_500 = source_url_discovery._RetryableDiscoveryError("Gemini HTTP 500 Internal Server Error")
+    r_500 = ChatHealthyException(mode="discovery_retryable", component="source_url_discovery", message="Gemini HTTP 500 Internal Server Error")
     _install_call_sequence(monkeypatch, [r_500, r_500, r_500])
     sleeper = _NoWaitSleeper()
     with pytest.raises(ChatHealthyException) as ei:

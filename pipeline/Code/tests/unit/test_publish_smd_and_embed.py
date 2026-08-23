@@ -22,6 +22,14 @@ from dataclasses import dataclass
 from typing import Any
 
 import pytest
+import sys as _ch_sys, pathlib as _ch_pl  # noqa: E402
+for _ch_d in _ch_pl.Path(__file__).resolve().parents:
+    if (_ch_d / '.git').exists():
+        _ch_lib = _ch_d / 'ChatHealthyLib' / 'src'
+        if str(_ch_lib) not in _ch_sys.path:
+            _ch_sys.path.insert(0, str(_ch_lib))
+        break
+from chathealthy_lib.exceptions import ChatHealthyException  # noqa: E402
 
 
 def _scratch_config(db_name: str, prefix: str) -> dict:
@@ -438,11 +446,12 @@ def test_publish_smd_and_embed_records_discrepancies_when_embed_fails(
     def _explode(client, texts):
         request = httpx.Request("POST", "https://api.openai.com/v1/embeddings")
         response = httpx.Response(429, request=request)
-        raise openai.RateLimitError(
-            "insufficient_quota: You have no credits remaining",
+        raise ChatHealthyException(
+            mode="rate_limited",
+            component="test_publish_smd_and_embed",
+            message="insufficient_quota: You have no credits remaining",
             response=response,
-            body=None,
-        )
+            body=None,)
 
     monkeypatch.setattr(_ee, "_embed_batch", _explode)
 

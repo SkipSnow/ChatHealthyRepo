@@ -10,6 +10,7 @@ import datetime
 import pytest
 
 from chathealthy_lib.exceptions import ChatHealthyException
+from chathealthy_lib.exceptions import ChatHealthyException  # noqa: E402
 
 from pymongo.errors import PyMongoError
 
@@ -30,7 +31,10 @@ class _CapturingColl:
 
 class _RaisingColl:
     def insert_one(self, doc):
-        raise PyMongoError("pipeline cluster unreachable")
+        raise ChatHealthyException(
+            mode="db_unreachable",
+            component="test_pipeline_fatal_recorder",
+            message="pipeline cluster unreachable")
 
 
 class _Db:

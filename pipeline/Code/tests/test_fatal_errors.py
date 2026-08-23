@@ -111,4 +111,5 @@ def test_email_send_with_warnings_and_errors():
         raise ChatHealthyException(
             mode="assertion_failed",
             component="test_fatal_errors",
-            message=f"Test failed with exception: {type(e).__name__}: {e}") from e
+            message=f"Test failed with exception: {type(e).__name__}: {e}",
+            exception=e) from e

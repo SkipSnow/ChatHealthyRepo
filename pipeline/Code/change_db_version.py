@@ -190,7 +190,8 @@ def _read_webhook_payload() -> dict:
         body, _consumed = json.JSONDecoder().raw_decode(rest)
     except json.JSONDecodeError as e:
         raise ChatHealthyException(mode="runtime_error", message=f"ChangeDBVersion: RequestBody not parseable JSON; "
-            f"rest first 500 chars={rest[:500]!r}; error={e}")
+            f"rest first 500 chars={rest[:500]!r}; error={e}",
+            exception=e)
     if not isinstance(body, dict):
         raise ChatHealthyException(mode="runtime_error", message=f"ChangeDBVersion: RequestBody is not a dict; got {type(body).__name__}"
         )

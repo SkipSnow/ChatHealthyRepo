@@ -374,7 +374,7 @@ class ChatHealthyMongoUtilities:
                 message=(f"certificate for {identity!r} could not be parsed: "
                          f"{type(exc).__name__}: {exc}"),
                 component="ChatHealthyMongoUtilities",
-            ) from exc
+                exception=exc) from exc
 
         if not common_names:
             raise ChatHealthyException(
@@ -468,7 +468,7 @@ class ChatHealthyMongoUtilities:
                 message=f"{', '.join(keys)} are required to fetch the "
                         f"certificate for {identity!r}; {exc} missing",
                 component="ChatHealthyMongoUtilities",
-            ) from exc
+                exception=exc) from exc
 
         token_response = httpx.post(
             f"https://login.microsoftonline.com/{tenant}/oauth2/v2.0/token",
@@ -530,7 +530,7 @@ class ChatHealthyMongoUtilities:
                 mode="security_violation",
                 message=f"No certificate in the vault for identity {identity!r}: {exc}",
                 component="ChatHealthyMongoUtilities",
-            ) from exc
+                exception=exc) from exc
         return pem.strip() + chr(10)
 
     def getConnection(self, identity: str, cluster: str) -> TimedClient:
@@ -631,7 +631,7 @@ class ChatHealthyMongoUtilities:
                         message=(f"mTLS connection failed for {identity!r} on "
                                  f"{cluster!r} after {attempts} attempt(s): {exc}"),
                         component="ChatHealthyMongoUtilities",
-                    ) from exc
+                        exception=exc) from exc
                 # No log here: this function raises, and the catcher logs.
                 # The raised exception names the attempt count, so a retried
                 # failure is still fully described where it is handled.

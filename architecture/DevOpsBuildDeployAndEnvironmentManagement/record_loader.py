@@ -37,6 +37,7 @@ for _d in _pl.Path(__file__).resolve().parents:
 import os as _ch_os
 _ch_os.environ["CH_LOG_DESTINATION"] = "stderr"
 from chathealthy_lib.logging_service import ChatHealthyLoggingService
+from chathealthy_lib.exceptions import ChatHealthyException  # noqa: E402
 
 _CH_LOG = ChatHealthyLoggingService()
 
@@ -101,24 +102,25 @@ class RecordLoader:
         try:
             with urllib.request.urlopen(req, timeout=timeout) as resp:
                 if resp.status != 200:
-                    raise _ch_exc()(
+                    raise ChatHealthyException(
             mode="runtime_error",
             component="record_loader",
             message=f"schema URL {schema_url} returned HTTP {resp.status}")
                 self._schema = json.loads(resp.read().decode("utf-8"))
         except urllib.error.URLError as exc:
-            raise _ch_exc()(
+            raise ChatHealthyException(
             mode="runtime_error",
             component="record_loader",
             message=f"cannot fetch deployment-architecture schema from {schema_url}: "
-                    f"{type(exc).__name__}: {exc}. No local fallback allowed.") from exc
+                    f"{type(exc).__name__}: {exc}. No local fallback allowed.",
+            exception=exc) from exc
         self._validator = jsonschema.Draft202012Validator(self._schema)
 
     def _rebind_to_declared_schema(self, doc: dict, source: Path) -> None:
         """Point this loader at the schema the document names."""
         declared = doc.get("$schema")
         if not declared:
-            raise _ch_exc()(
+            raise ChatHealthyException(
             mode="value_error",
             component="record_loader",
             message=f"{source} declares no $schema; a document that does not "
@@ -131,17 +133,18 @@ class RecordLoader:
         try:
             with urllib.request.urlopen(req, timeout=10.0) as resp:
                 if resp.status != 200:
-                    raise _ch_exc()(
+                    raise ChatHealthyException(
             mode="runtime_error",
             component="record_loader",
             message=f"schema URL {declared} returned HTTP {resp.status}")
                 self._schema = json.loads(resp.read().decode("utf-8"))
         except urllib.error.URLError as exc:
-            raise _ch_exc()(
+            raise ChatHealthyException(
             mode="runtime_error",
             component="record_loader",
             message=f"cannot fetch schema from {declared}: "
-                    f"{type(exc).__name__}: {exc}. No local fallback allowed.") from exc
+                    f"{type(exc).__name__}: {exc}. No local fallback allowed.",
+            exception=exc) from exc
         self.schema_url = declared
         self._validator = jsonschema.Draft202012Validator(self._schema)
 
@@ -161,7 +164,7 @@ class RecordLoader:
         path = repo_root / ARCHITECTURE_REL
         if not path.is_file():
             _CH_LOG.error(f"ABEND: {path} not found.")
-            raise SystemExit(2)
+            sys.exit(2)
         doc = json.loads(path.read_text(encoding="utf-8"))
         # The document names the schema it claims to satisfy. Validate
         # against that, not against a URL held in this module -- a constant
@@ -171,7 +174,7 @@ class RecordLoader:
         if not declared:
             _CH_LOG.error(f"ABEND: {path} declares no $schema. A document that does "
                 f"not name the schema it satisfies cannot be validated.")
-            raise SystemExit(2)
+            sys.exit(2)
         loader = cls(declared)
         errors = sorted(
             loader._validator.iter_errors(doc),
@@ -188,7 +191,7 @@ class RecordLoader:
                 _CH_LOG.error(f"         ... and {len(errors) - 20} more")
             _CH_LOG.error("       A schema change ships before the manifest change "
                 "that needs it.")
-            raise SystemExit(2)
+            sys.exit(2)
         _CH_LOG.info(f"[schema] deployment_architecture.json validates against "
               f"{loader.schema_url}")
 
@@ -200,18 +203,21 @@ class RecordLoader:
             joined = "; ".join(
                 f"{list(e.path)}: {e.message}" for e in errors[:5]
             )
-            raise _ch_exc()(
+            raise ChatHealthyException(
             mode="value_error",
             component="record_loader",
             message=f"TargetRecord failed schema validation: {joined}")
 
     def load(self, path: Path) -> TargetRecord:
         if not path.is_file():
-            raise FileNotFoundError(f"TargetRecord JSON not found at {path}")
+            raise ChatHealthyException(
+            mode="file_missing",
+            component="record_loader",
+            message=f"TargetRecord JSON not found at {path}")
         with path.open("r", encoding="utf-8") as f:
             doc = json.load(f)
         if not isinstance(doc, dict):
-            raise _ch_exc()(
+            raise ChatHealthyException(
             mode="type_error",
             component="record_loader",
             message=f"TargetRecord JSON at {path} must be an object, got {type(doc).__name__}")
@@ -237,10 +243,11 @@ class RecordLoader:
         """
         p = Path(path)
         if not p.is_file():
-            raise FileNotFoundError(
-                f"deployment_architecture.json not found at {p}. "
-                f"The brain artifact is the source of record; absence is a hard reject."
-            )
+            raise ChatHealthyException(
+            mode="file_missing",
+            component="record_loader",
+            message=f"deployment_architecture.json not found at {p}. "
+                f"The brain artifact is the source of record; absence is a hard reject.")
         with p.open("r", encoding="utf-8") as f:
             data = json.load(f)
         # The on-disk shape is an envelope:
@@ -249,7 +256,7 @@ class RecordLoader:
         # field; on import to MongoDB the envelope dissolves and each
         # entry in `DeploymentTargetRecord[]` becomes one document.
         if not isinstance(data, dict):
-            raise _ch_exc()(
+            raise ChatHealthyException(
             mode="type_error",
             component="record_loader",
             message=f"{p} must contain a JSON object envelope with a "
@@ -262,13 +269,13 @@ class RecordLoader:
         self._rebind_to_declared_schema(data, p)
         records = data.get("DeploymentTargetRecord")
         if not isinstance(records, list):
-            raise _ch_exc()(
+            raise ChatHealthyException(
             mode="type_error",
             component="record_loader",
             message=f"{p} 'DeploymentTargetRecord' field must be a JSON array of "
                 f"TargetRecord objects, got {type(records).__name__}")
         if not records:
-            raise _ch_exc()(
+            raise ChatHealthyException(
             mode="value_error",
             component="record_loader",
             message=f"{p} DeploymentTargetRecord array is empty; the deployment "
@@ -284,7 +291,7 @@ class RecordLoader:
                     target_idx = i
                     break
             if target_idx is None:
-                raise _ch_exc()(
+                raise ChatHealthyException(
             mode="value_error",
             component="record_loader",
             message=f"target_id_filter={target_id_filter!r} not present in the "
@@ -325,7 +332,7 @@ class RecordLoader:
             joined = "; ".join(
                 f"{list(e.absolute_path)}: {e.message}" for e in kept[:5]
             )
-            raise _ch_exc()(
+            raise ChatHealthyException(
             mode="value_error",
             component="record_loader",
             message=f"TargetRecord failed schema validation: {joined}")

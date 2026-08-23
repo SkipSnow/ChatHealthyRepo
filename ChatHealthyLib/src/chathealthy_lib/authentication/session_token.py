@@ -16,6 +16,7 @@ from pydantic import BaseModel, Field
 
 from ..exceptions import ChatHealthyException
 from ..logging_service import ChatHealthyLoggingService
+from chathealthy_lib.exceptions import ChatHealthyException  # noqa: E402
 from .nonce import Nonce
 
 
@@ -50,9 +51,6 @@ class SessionTokenVerification(BaseModel):
     guid: str = ""
     nonce: str = ""
 
-
-class TokenInfraError(RuntimeError):
-    pass
 
 
 CERTS_DIR = os.environ.get("CERTS_DIR", "/certs")
@@ -113,9 +111,10 @@ class SessionToken(BaseModel):
         certs_dir = os.environ.get("CERTS_DIR", CERTS_DIR)
         key_path = os.path.join(certs_dir, f"{cert_basename(origin)}.key")
         if not os.path.exists(key_path):
-            raise FileNotFoundError(
-                f"signing key not found: {key_path}"
-            )
+            raise ChatHealthyException(
+                mode="file_missing",
+                component="session_token",
+                message=f"signing key not found: {key_path}")
         with open(key_path, "rb") as f:
             private_key = serialization.load_pem_private_key(f.read(), password=None)
 
@@ -163,17 +162,20 @@ class SessionToken(BaseModel):
         certs_dir = os.environ.get("CERTS_DIR", CERTS_DIR)
         cert_path = os.path.join(certs_dir, f"{cert_basename(self.origin)}.crt")
         if not os.path.exists(cert_path):
-            raise TokenInfraError(
-                f"cert file missing at {cert_path} (CERTS_DIR={certs_dir})"
-            )
+            raise ChatHealthyException(
+                mode="token_infrastructure",
+                component="session_token",
+                message=f"cert file missing at {cert_path} (CERTS_DIR={certs_dir})")
         try:
             with open(cert_path, "rb") as f:
                 cert_pem = f.read()
             cert = load_pem_x509_certificate(cert_pem)
         except Exception as exc:
-            raise TokenInfraError(
-                f"failed to load cert at {cert_path}: {type(exc).__name__}: {exc}"
-            ) from exc
+            raise ChatHealthyException(
+                mode="token_infrastructure",
+                component="session_token",
+                message=f"failed to load cert at {cert_path}: {type(exc).__name__}: {exc}",
+            exception=exc)
 
         public_key = cert.public_key()
         payload = f"{self.origin}:{original_stamp}:{guid}".encode()
@@ -183,16 +185,19 @@ class SessionToken(BaseModel):
             raise ChatHealthyException(
             mode="value_error",
             component="session_token",
-            message=f"verify: signature is not valid base64: {type(exc).__name__}: {exc}") from exc
+            message=f"verify: signature is not valid base64: {type(exc).__name__}: {exc}",
+            exception=exc) from exc
 
         try:
             public_key.verify(sig_bytes, payload, padding.PKCS1v15(), hashes.SHA256())
         except InvalidSignature:
             return False
         except Exception as exc:
-            raise TokenInfraError(
-                f"crypto.verify raised {type(exc).__name__}: {exc}"
-            ) from exc
+            raise ChatHealthyException(
+                mode="token_infrastructure",
+                component="session_token",
+                message=f"crypto.verify raised {type(exc).__name__}: {exc}",
+            exception=exc)
 
         self.last_used = datetime.now(timezone.utc).isoformat()
         return True

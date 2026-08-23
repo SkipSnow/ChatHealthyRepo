@@ -5,6 +5,7 @@
 
 from __future__ import annotations
 from chathealthy_lib.logging_service import ChatHealthyLoggingService
+from chathealthy_lib.exceptions import ChatHealthyException  # noqa: E402
 
 import hashlib
 
@@ -70,9 +71,10 @@ def archive_source_blob(
     src_client = blob_service.get_container_client(source_container)
     src_blob = src_client.get_blob_client(source_blob_name)
     if not src_blob.exists():
-        raise FileNotFoundError(
-            f"source blob missing: {source_container}/{source_blob_name}"
-        )
+        raise ChatHealthyException(
+            mode="file_missing",
+            component="pipeline_source_archival",
+            message=f"source blob missing: {source_container}/{source_blob_name}")
 
     data = src_blob.download_blob().readall()
     checksum = checksum_sha256_bytes(data)

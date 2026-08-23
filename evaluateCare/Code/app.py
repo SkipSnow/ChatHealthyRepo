@@ -90,6 +90,21 @@ bootstrap_certs_from_env()
 
 app = FastAPI(title="ChatHealthy.ai EvaluateCare", version="0.1.4")
 
+
+@app.exception_handler(ChatHealthyException)
+async def _chathealthy_exception_to_response(request, exc: ChatHealthyException):
+    """Return the response the raise site asked for.
+
+    Raising ChatHealthyException instead of HTTPException moves the status
+    code into the exception's context. This turns it back into the same
+    response the client used to receive: same code, same detail body. Any
+    other mode is an unhandled fault and answers 500.
+    """
+    if exc.mode == "http_error":
+        return JSONResponse(status_code=int(exc.context.get("status_code", 500)),
+                            content={"detail": exc.message})
+    return JSONResponse(status_code=500, content={"detail": exc.message})
+
 import datetime as dt
 
 
