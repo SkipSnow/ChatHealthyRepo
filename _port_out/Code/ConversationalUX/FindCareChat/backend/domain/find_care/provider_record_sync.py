@@ -49,30 +49,15 @@ def live_to_comparable(live: dict) -> dict:
     }
 
 
-def stored_addresses(stored: dict) -> list[dict]:
-    """Every address on a stored record, practice first, business last.
-
-    The stored record carries practice_addresses[] and business_address;
-    this presents them the way the live-NPPES comparison expects.
-    """
-    out = [dict(a, address_type="practice")
-           for a in (stored.get("practice_addresses") or [])]
-    business = stored.get("business_address")
-    if isinstance(business, dict):
-        out.append(dict(business, address_type="business"))
-    return out
-
-
 def stored_to_comparable(stored: dict) -> dict:
     return {
         "name": stored_name(stored),
         "addresses": [
             {k: v for k, v in a.items() if k != "county"}
-            for a in stored_addresses(stored)
+            for a in (stored.get("addresses") or [])
         ],
         "taxonomies": [
-            {"code": t.get("code", ""),
-             "primary": t.get("code", "") == (stored.get("primary_taxonomy_code") or "")}
+            {"code": t.get("code", ""), "primary": bool(t.get("primary"))}
             for t in (stored.get("taxonomies") or [])
         ],
         "other_identifiers": stored.get("other_identifiers") or [],
@@ -220,9 +205,9 @@ def regenerate_insurance(live_other_identifiers: list[dict]) -> list[dict]:
         )
         out.append({
             "insurance_type": insurance_type,
-            "brand": brand,
+            "payer_name": brand,
             "state": state,
-            "raw_value": (oi.get("identifier") or "").strip(),
+            "issuer_raw": (oi.get("identifier") or "").strip(),
         })
     return out
 
@@ -368,7 +353,7 @@ def update_active_log(
 
 
 def recompute_quality_flags(record: dict) -> dict:
-    addresses = stored_addresses(record)
+    addresses = record.get("addresses") or []
     active = record.get("active") or []
     out = dict(record)
     if not addresses:
@@ -444,15 +429,14 @@ def merge_for_writeback(live: dict, stored: dict) -> dict:
 
     # Addresses — preserve county on unchanged, geocode on new.
     live_addrs = live_to_addresses(live)
-    stored_addrs = stored_addresses(stored)
+    stored_addrs = stored.get("addresses") or []
     new["addresses"] = addresses_with_preserved_county(live_addrs, stored_addrs)
 
     # Taxonomies + flags
     live_tax = live_to_taxonomies(live)
     new["taxonomies"] = live_tax
     stored_tax = [
-        {"code": t.get("code", ""),
-         "primary": t.get("code", "") == (stored.get("primary_taxonomy_code") or "")}
+        {"code": t.get("code", ""), "primary": bool(t.get("primary"))}
         for t in (stored.get("taxonomies") or [])
     ]
     if live_tax != stored_tax:

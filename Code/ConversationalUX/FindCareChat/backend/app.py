@@ -48,7 +48,6 @@ from application.tool_models.clinical_trials_models import ClinicalTrialsInput, 
 from application.tool_models.consent_models import LeadInput, UnknownInput
 from infrastructure.embeddings.embedding_client import EmbeddingClient
 from infrastructure.debug_logger import DebugLogger
-from SpecialtyFilter.find_specialists import find_specialists
 
 load_dotenv(override=True)
 
@@ -604,82 +603,65 @@ def _require_db_for_classify():
 
 @app.post("/classify")
 async def classify(body: ClassifyRequest, request: Request):
-    """EPIC-006-F-002-S-001: AI vector search for specialties.
-    Replaces the GPT classify call with embedding + vector search.
-    Returns specialty codes ranked by cosine similarity + location extracted by simple parsing."""
+    """EPIC-006-F-002-S-001: specialty matching.
 
+    normalize -> embed -> $vectorSearch -> LLM filter. Semantic search
+    carries recall; the LLM call carries precision. CAND_FLOOR is the
+    handoff between them and was tuned by the operator over a week.
+
+    This pipeline was replaced on 2026-05-10 (bc102984) by a single call
+    that walked the whole NUCC corpus. Nothing asked for that, the commit
+    that did it describes a sub-iframe and a label flip, and the tuning
+    went with it. SpecialtyFilter was never removed -- it stayed
+    instantiated and unreachable -- so this is a restoration, not a
+    rewrite, and the stages below are untouched.
+    """
     ip = request.headers.get("x-forwarded-for", "").split(",")[0].strip() or (
         request.client.host if request.client else "unknown")
 
-    # V5 LLM-picks specialty matching (EPIC-006-F-002):
-    # one Gemini call walks the full enriched NUCC corpus and returns
-    # picks with scores in [0, 1].
     import uuid as _uuid
     from datetime import datetime as dt, timezone as _tz
-    try:
-        _db_for_class = _require_db_for_classify()
-        spec_col = specialty_meta_coll()
-        # find_specialists uses pydantic-ai's run_sync internally; FastAPI's
-        # /classify is async and already inside an event loop, so direct
-        # call deadlocks ("this event loop is already running"). Run in a
-        # worker thread.
-        out = await asyncio.to_thread(find_specialists, body.message, spec_col)
-    except Exception as exc:
-        # EPIC-008-F-011-S-001-REQ-B-002/B-003: sanitized external error +
-        # full detail logged server-side keyed by req_id.
+
+    # find_specialties is synchronous and makes blocking model calls;
+    # /classify is async and already inside an event loop.
+    result = await asyncio.to_thread(specialty_service.find_specialties, body.message)
+
+    if "error" in result:
+        # REQ-B-002/B-003: sanitized outward, full detail kept server-side
+        # under a request id. filter.py reports "<stage>: <type>: <detail>",
+        # so the stage survives and the leak does not.
         req_id = _uuid.uuid4().hex[:8]
         ts = dt.now(_tz.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
-        stage = type(exc).__name__
-        # Mode 2 (REQ-B-008): /classify failed (LLM/library); endpoint returns
-        # graceful {"specialties": [], "error": sanitized}. NOT 503; no
-        # fatal_error tag.
+        raw = result["error"]
+        stage = (raw.split(":", 1)[0].strip() if ":" in raw else "unknown")
         log.error("classify req_id=%s ip=%s stage=%s detail=%r message=%r",
-                   req_id, ip, stage, repr(exc)[:300], body.message, exc=ChatHealthyException(
-                                                                      mode="classify_failed",
-                                                                      message=f"classify req_id={req_id} ip={ip} stage={stage} detail={repr(exc)[:300]} message={body.message!r}",
-                                                                      component="FindCareBackend",
-                                                                      exception=exc,
-                                                                  ), if_not_debug_log=True)
-        sanitized = (
-            f"FindCare /classify temporarily unavailable "
-            f"(stage: {stage}) at {ts}. Ref: {req_id}"
-        )
-        return {"specialties": [], "error": sanitized}
+                  req_id, ip, stage, raw, body.message,
+                  exc=ChatHealthyException(
+                      mode="classify_failed",
+                      message=f"classify req_id={req_id} ip={ip} stage={stage} detail={raw}",
+                      component="FindCareBackend",
+                  ), if_not_debug_log=True)
+        return {"specialties": [], "error": sanitized_classify_error(stage, ts, req_id)}
 
-    # EPIC-006-F-002: the tool owns the all-possible union (list-one V5
-    # picks + list-two static homeopathic generalists, both enriched
-    # with Display Name + flags from SpecialtyMetaData). /classify is
-    # a thin pass-through; no enrichment or generalists fetch here.
     specialties = [
-        {
-            "code": r.code,
-            "name": r.name,
-            "can_prescribe": r.can_prescribe,
-            "homeopathic": r.homeopathic,
-            "rank": r.rank,
-        }
-        for r in out.all_possible
-        if not r.homeopathic_general
+        {"code": s["Code"], "name": s["Display Name"],
+         "can_prescribe": s.get("can_prescribe", False),
+         "homeopathic": s.get("homeopathic", False),
+         "rank": s.get("rank", 0)}
+        for s in result.get("specialties", [])
     ]
-
-    # Homeopathic generalists list-two — also delivered by the tool now.
-    homeo_generalists = [
-        {
-            "code": r.code,
-            "name": r.name,
-            "can_prescribe": r.can_prescribe,
-            "homeopathic": r.homeopathic,
-            "homeopathic_general": True,
-        }
-        for r in out.all_possible
-        if r.homeopathic_general
-    ]
-    response = {
+    return {
         "specialties": specialties,
-        "homeopathic_generalists": homeo_generalists,
-        "model": "text-embedding-3-large (vector search)",
+        "homeopathic_generalists": [],
+        "complaint": result.get("complaint", ""),
+        "model": "normalize + embed + vectorSearch + LLM filter",
     }
-    return response
+
+
+def sanitized_classify_error(stage: str, ts: str, req_id: str) -> str:
+    return (f"FindCare /classify temporarily unavailable "
+            f"(stage: {stage}) at {ts}. Ref: {req_id}")
+
 
 @app.post("/welcome")
 def welcome():
@@ -751,7 +733,7 @@ def provider_detail(
     background_tasks: BackgroundTasks,
 ) -> ProviderDetailOutput:
     return provider_detail_service.lookup(
-        provider_name=body.name,
+        provider_name=body.name or "",
         npi=body.npi,
         state=body.state or "",
         provider_coll=providers_coll(),
@@ -1011,7 +993,7 @@ def strip_redundant_summary(text: str, total_count: int, page_count: int) -> str
 
 
 # ---------------------------------------------------------------------------
-# Chat handler — sequential implementation (LangGraph removed 2026-04-20)
+# Chat handler — sequential implementation
 # ---------------------------------------------------------------------------
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", "..", "..", "Shared"))
 from llm_client import chat as llm_chat

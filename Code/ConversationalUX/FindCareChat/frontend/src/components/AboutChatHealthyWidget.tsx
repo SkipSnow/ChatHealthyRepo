@@ -45,8 +45,8 @@ function buildAboutHtml(data: any): string {
 
   // Service-switch buttons mirror the old non-prod chrome's row of
   // FindCare / EvaluateCare / SharedServices service switchers.
-  // SharedServices reveals the user_object in frame_MainWindow so the
-  // operator can diagnose live session state.
+  // SharedServices switches service ownership; Session Info opens the
+  // live session in a popup beside this one, same chrome as this window.
   const navBtn = (action: string, label: string, color: string) =>
     `<button type="button" data-router-action="${action}"
              style="padding:0.5em 1em;border-radius:0.4em;border:0.125em solid ${color};
@@ -70,9 +70,7 @@ function buildAboutHtml(data: any): string {
         ${navBtn('goto_findcare',       'FindCare',       '#0b7a75')}
         ${navBtn('goto_evaluatecare',   'EvaluateCare',   '#d97706')}
         ${navBtn('goto_sharedservices', 'SharedServices', '#6366f1')}
-      </div>
-      <div style="margin-top:0.5em;font-size:0.85em;color:#6b7280;">
-        SharedServices shows the live user_object (identity, threads, actions) for diagnosis.
+        ${navBtn('session_info',        'Session Info',   '#0b7a75')}
       </div>
     </div>
   `
@@ -101,12 +99,23 @@ export default function AboutChatHealthyWidget() {
 
       // Nav buttons inside the About popup — close the popup first so
       // the user sees the underlying frame change, then leave the
-      // matching widget (EvaluateCareSplashWidget, SharedServicesSplashWidget,
-      // WelcomeWidget) to handle the action it subscribed to.
+      // matching widget (EvaluateCareSplashWidget, WelcomeWidget) to
+      // handle the action it subscribed to.
+      // SharedServices is where this panel already is, so the button says
+      // so rather than closing the window as if it had navigated somewhere.
+      if (msg.type === 'router:action' && msg.action === 'goto_sharedservices') {
+        window.parent.postMessage({
+          type: 'router:exec',
+          code:
+            "var b = document.querySelector('[data-router-action=\"goto_sharedservices\"]');" +
+            "if (b) { b.textContent = 'You are in SharedServices';" +
+            "b.style.opacity = '0.75'; }",
+        }, '*')
+        return
+      }
       if (msg.type === 'router:action' &&
           (msg.action === 'goto_findcare' ||
-           msg.action === 'goto_evaluatecare' ||
-           msg.action === 'goto_sharedservices')) {
+           msg.action === 'goto_evaluatecare')) {
         window.parent.postMessage({
           type: 'router:exec',
           code:

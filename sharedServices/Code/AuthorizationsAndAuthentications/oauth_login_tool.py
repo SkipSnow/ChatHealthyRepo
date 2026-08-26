@@ -127,13 +127,32 @@ def message_login_failed(email: Optional[str]) -> str:
 
 class Request(BaseModel):
     model_config = {"extra": "ignore"}
-    phase: Literal["start", "callback"]
-    identity_provider: str = "Google"
-    server_env: str = Field(min_length=1)
-    session_guid: str = Field(min_length=32, max_length=32)
-    oauth_code: Optional[str] = None
-    oauth_state: Optional[str] = None
-    flow: str = "login"
+    phase: Literal["start", "callback"] = Field(
+        description="start begins the login and returns the provider URL to "
+                    "send the browser to; callback completes it with what the "
+                    "provider sent back.")
+    identity_provider: str = Field(
+        default="Google",
+        description="Which identity provider is being used.")
+    server_env: str = Field(
+        min_length=1,
+        description="Environment this login belongs to, so the callback "
+                    "returns to the right one.")
+    session_guid: str = Field(
+        min_length=32, max_length=32,
+        description="The session being logged into, so the identity lands on "
+                    "the session that started the flow.")
+    oauth_code: Optional[str] = Field(
+        default=None,
+        description="Callback only: the provider's authorization code, "
+                    "exchanged for the identity.")
+    oauth_state: Optional[str] = Field(
+        default=None,
+        description="Callback only: the value sent at start, returned to "
+                    "prove the callback belongs to this flow.")
+    flow: str = Field(
+        default="login",
+        description="Whether this is a sign-in or another account action.")
 
 
 class Response(BaseModel):

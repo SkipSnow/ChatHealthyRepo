@@ -20,8 +20,16 @@ from pydantic import BaseModel, Field, HttpUrl
 
 
 class ProviderDetailInput(BaseModel):
-    """Fields the provider card currently shows on the screen."""
-    name: str = Field(..., description="Provider display name")
+    """Fields the provider card currently shows on the screen.
+
+    The NPI is the only one that identifies anybody; the rest are the
+    card's copy of what the record already holds. name is optional because
+    a detail is also opened from a recorded selection -- restoring a
+    context carries the NPI and no card -- and because the record, not a
+    card that may have been painted some time ago, is what the name should
+    come from.
+    """
+    name: Optional[str] = Field(default=None, description="Provider display name")
     npi: str = Field(..., description="National Provider Identifier")
     specialty: Optional[str] = Field(default=None)
     address: Optional[str] = Field(default=None)

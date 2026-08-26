@@ -4,7 +4,7 @@
 
 Puts sharedServices/Code on sys.path so test modules can import the
 same packages app.py imports at runtime (authentication, UtteranceManager,
-NonsenseTool, CloseConnection200Tool, etc.). Also puts FindCare on
+CloseConnection200Tool, etc.). Also puts FindCare on
 sys.path so SpecialtyFilter is importable when tests need it.
 """
 from __future__ import annotations

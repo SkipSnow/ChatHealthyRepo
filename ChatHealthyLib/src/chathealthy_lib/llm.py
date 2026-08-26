@@ -40,6 +40,67 @@ TRANSIENT = (
 )
 INJECT_ENV = "CHATHEALTHY_INJECT_LLM_FAILURE"
 
+# pydantic-ai is imported inside the functions that need it, never at
+# module scope. chathealthy_lib/__init__.py imports this module, so a
+# top-level import made every consumer of the library depend on it --
+# EvaluateCare, which makes no model calls at all, stopped booting on
+# ModuleNotFoundError.
+def _agent_run_error():
+    """The library's base class for a failed run, or None if absent."""
+    try:
+        from pydantic_ai.exceptions import AgentRunError
+    except ImportError:
+        return None
+    return AgentRunError
+
+
+def _agent_run_mode(exc: BaseException) -> str:
+    """Most specific first: IncompleteToolCall and ContentFilterError both
+    subclass UnexpectedModelBehavior."""
+    from pydantic_ai.exceptions import (
+        ContentFilterError,
+        IncompleteToolCall,
+        ModelAPIError,
+        UnexpectedModelBehavior,
+        UsageLimitExceeded,
+    )
+    for exc_type, mode in (
+        (IncompleteToolCall, "llm_incomplete_tool_call"),
+        (ContentFilterError, "llm_content_filtered"),
+        (UnexpectedModelBehavior, "llm_output_retries_exhausted"),
+        (UsageLimitExceeded, "llm_usage_limit_exceeded"),
+        (ModelAPIError, "llm_provider_error"),
+    ):
+        if isinstance(exc, exc_type):
+            return mode
+    return "llm_run_failed"
+
+
+def raise_agent_run_failure(exc: BaseException, *, provider: str,
+                            call_site: str, server: str, component: str,
+                            model_name_str: str,
+                            messages: list) -> None:
+    """Convert a pydantic-ai run failure at the library boundary.
+
+    messages carries the whole exchange -- every attempt, every correction
+    fed back to the model, every answer it gave. The exception itself
+    carries none of that: on retry exhaustion its message is the string
+    "Exceeded maximum output retries (n)" and the model's rejected answers
+    are discarded with the run. Without this the operator learns that a
+    budget ran out and nothing about what kept failing.
+    """
+    raise ChatHealthyException(
+        mode=_agent_run_mode(exc),
+        message=(f"{provider}/{model_name_str} run failed at "
+                 f"{call_site}: {type(exc).__name__}: {exc}"),
+        server=server,
+        component=component,
+        provider=provider,
+        call_site=call_site,
+        exception=exc,
+        messages=messages,
+    ) from exc
+
 
 def injected_failure(call_site: str) -> bool:
     """Test-only failure injection.
@@ -103,25 +164,44 @@ async def run_llm(agent: Any, prompt: str, *, call_site: str,
     raised ChatHealthyException as first-class attributes so the
     catching side can identify where the exception originated.
 
+    A failure pydantic-ai raises out of the run is converted here too --
+    see _AGENT_RUN_MODES. From agent.run forward the failure is ours, and
+    no vendor exception type leaves this module.
+
     Any kwargs beyond call_site/provider/server/component are
     forwarded to agent.run.
     """
     model_name_str = model_name(agent)
     last_exc: Exception | None = None
     for attempt in range(1, MAX_ATTEMPTS + 1):
-        try:
-            if injected_failure(call_site):
-                raise ChatHealthyException(
-                    mode="remote_protocol",
-                    component="llm",
-                    message="CHATHEALTHY_INJECT_LLM_FAILURE: synthetic failure")
-            return await agent.run(prompt, **agent_kwargs)
-        except TRANSIENT as exc:
-            last_exc = exc
-            if attempt < MAX_ATTEMPTS:
-                delay = jittered(BACKOFF_SECONDS[attempt - 1])
-                await asyncio.sleep(delay)
-                continue
+        # Holds the exchange even when the run raises, which is the only
+        # way to see what the model actually said on a failed run. Scoped
+        # to one call: within a single block only the FIRST run's messages
+        # are captured, so a shared block across attempts would report the
+        # first attempt for all of them.
+        from pydantic_ai import capture_run_messages
+        with capture_run_messages() as messages:
+            try:
+                if injected_failure(call_site):
+                    raise ChatHealthyException(
+                        mode="remote_protocol",
+                        component="llm",
+                        message="CHATHEALTHY_INJECT_LLM_FAILURE: synthetic failure")
+                return await agent.run(prompt, **agent_kwargs)
+            except TRANSIENT as exc:
+                last_exc = exc
+                if attempt < MAX_ATTEMPTS:
+                    delay = jittered(BACKOFF_SECONDS[attempt - 1])
+                    await asyncio.sleep(delay)
+                    continue
+            except _agent_run_error() as exc:
+                # Not retried here. pydantic-ai has already spent whatever
+                # budget it was given, and a content filter or a usage cap
+                # does not become true on a second ask.
+                raise_agent_run_failure(
+                    exc, provider=provider, call_site=call_site,
+                    server=server, component=component,
+                    model_name_str=model_name_str, messages=list(messages))
     assert last_exc is not None
     raise_unavailable(provider, call_site, server, component,
                        model_name_str, last_exc)
@@ -132,25 +212,32 @@ def run_llm_sync(agent: Any, prompt: str, *, call_site: str,
                  **agent_kwargs) -> Any:
     """Sync facade for pydantic-ai Agent.run_sync. Mirrors run_llm; uses
     time.sleep instead of asyncio.sleep. Required by FindCare's
-    SpecialtyFilter (_pick_agent.run_sync, find_specialists.py). See
+    SpecialtyFilter (filter.py normalize + filter_candidates). See
     run_llm for the meaning of the server and component kwargs.
     """
     model_name_str = model_name(agent)
     last_exc: Exception | None = None
     for attempt in range(1, MAX_ATTEMPTS + 1):
-        try:
-            if injected_failure(call_site):
-                raise ChatHealthyException(
-                    mode="remote_protocol",
-                    component="llm",
-                    message="CHATHEALTHY_INJECT_LLM_FAILURE: synthetic failure")
-            return agent.run_sync(prompt, **agent_kwargs)
-        except TRANSIENT as exc:
-            last_exc = exc
-            if attempt < MAX_ATTEMPTS:
-                delay = jittered(BACKOFF_SECONDS[attempt - 1])
-                time.sleep(delay)
-                continue
+        from pydantic_ai import capture_run_messages
+        with capture_run_messages() as messages:
+            try:
+                if injected_failure(call_site):
+                    raise ChatHealthyException(
+                        mode="remote_protocol",
+                        component="llm",
+                        message="CHATHEALTHY_INJECT_LLM_FAILURE: synthetic failure")
+                return agent.run_sync(prompt, **agent_kwargs)
+            except TRANSIENT as exc:
+                last_exc = exc
+                if attempt < MAX_ATTEMPTS:
+                    delay = jittered(BACKOFF_SECONDS[attempt - 1])
+                    time.sleep(delay)
+                    continue
+            except _agent_run_error() as exc:
+                raise_agent_run_failure(
+                    exc, provider=provider, call_site=call_site,
+                    server=server, component=component,
+                    model_name_str=model_name_str, messages=list(messages))
     assert last_exc is not None
     raise_unavailable(provider, call_site, server, component,
                        model_name_str, last_exc)

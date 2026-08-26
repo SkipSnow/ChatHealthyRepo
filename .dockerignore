@@ -63,7 +63,6 @@ _oneshots
 # Large repo-root artifacts not used by any container build
 Analysis
 Legal
-LangGraph
 docs
 enrichment_content
 # findCare/ — design docs excluded; runtime code under findCare/Code IS shipped.

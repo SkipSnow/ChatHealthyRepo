@@ -44,7 +44,7 @@ from pathlib import Path
 
 from pydantic import BaseModel, Field
 from pydantic_ai import Agent
-from pydantic_ai.models.openai import OpenAIModel
+from pydantic_ai.models.openai import OpenAIChatModel
 from pydantic_ai.providers.openai import OpenAIProvider
 
 try:
@@ -586,8 +586,8 @@ class ScanDataMigrationComplianceWorker(EnforcementWorker):
         if self._agent is None:
             repo_root = self._repo_root()
             agent = Agent(
-                OpenAIModel(_MODEL_NAME,
-                            provider=OpenAIProvider(api_key=self._api_key())),
+                OpenAIChatModel(_MODEL_NAME,
+                                provider=OpenAIProvider(api_key=self._api_key())),
                 output_type=Audit,
                 system_prompt=_SYSTEM_PROMPT,
             )

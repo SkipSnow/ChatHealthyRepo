@@ -36,13 +36,29 @@ def findcare_url() -> str:
 
 
 class Request(BaseModel):
-    condition: str
-    user_location: Optional[str] = None
-    age_years: Optional[int] = None
-    sex: Optional[str] = None
-    geographic_scope: Optional[str] = None
-    page_size: int = 10
-    cursor: Optional[str] = None
+    condition: str = Field(
+        description="The condition to find trials for. The only required "
+                    "field; every other field narrows the result.")
+    user_location: Optional[str] = Field(
+        default=None,
+        description="Where the person is, as prose. Trials are ranked by "
+                    "distance from it; absent means unranked.")
+    age_years: Optional[int] = Field(
+        default=None,
+        description="Age in years, to drop trials whose eligibility excludes "
+                    "it.")
+    sex: Optional[str] = Field(
+        default=None,
+        description="Sex, to drop trials restricted to another.")
+    geographic_scope: Optional[str] = Field(
+        default=None,
+        description="Whether to search worldwide or the US only.")
+    page_size: int = Field(
+        default=10, description="How many trials this page returns.")
+    cursor: Optional[str] = Field(
+        default=None,
+        description="Position in a longer result. Absent means the first "
+                    "page.")
 
 
 class Response(BaseModel):

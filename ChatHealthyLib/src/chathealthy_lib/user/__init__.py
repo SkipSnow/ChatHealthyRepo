@@ -96,12 +96,6 @@ class NotRegisteredFollowUp(BaseModel):
 
 
 # ── Session-level fields ───────────────────────────────────────────────
-class SillyQuestionCounts(BaseModel):
-    """Per spec: [session total, current sequence total]."""
-    session_total: int
-    current_sequence_total: int
-
-
 class SessionConversationHistory(BaseModel):
     """Relevant-only conversation history for the current session."""
     unanswered_questions: List[str]  # SHAPE-TBD: structured Q records?
@@ -112,7 +106,6 @@ class UserData(BaseModel):
     """Field order follows the canonical spec picture."""
     session_conversation_history: SessionConversationHistory
     is_locked_out: bool
-    silly_question_counts: SillyQuestionCounts
     ip_address: str  # SHAPE-TBD: IPvAnyAddress vs raw string
     is_registered: bool
     # Conditional branches keyed off is_registered

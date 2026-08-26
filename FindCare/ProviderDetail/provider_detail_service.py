@@ -14,6 +14,8 @@
 #   5. Embedding runs as a BackgroundTask scheduled by the FastAPI
 #      handler after the response returns.
 
+from typing import Optional
+
 from chathealthy_lib import ChatHealthyLoggingService
 from chathealthy_lib.exceptions import ChatHealthyException
 import urllib.parse
@@ -132,9 +134,29 @@ def _every_address(record: dict) -> list[dict]:
 class ProviderDetailService:
     """Provider detail lookup with compare-and-write-back cycle."""
 
+    @staticmethod
+    def display_name(stored: Optional[dict]) -> str:
+        """The provider's name as the card writes it, read from the record.
+
+        Same parts Identity.from_stored uses, so the header and the
+        identity block below it cannot say different things.
+        """
+        if not stored:
+            return ""
+        parts = [
+            (stored.get("provider_first_name") or "").strip(),
+            (stored.get("provider_middle_name") or "").strip(),
+            (stored.get("provider_last_name_legal_name") or "").strip(),
+        ]
+        name = " ".join(p for p in parts if p)
+        credential = (stored.get("provider_credential_text") or "").strip()
+        if name and credential:
+            return f"{name}, {credential}"
+        return name or credential
+
     def lookup(
         self,
-        provider_name: str,
+        provider_name: str = "",
         npi: str = "",
         state: str = "",
         provider_coll=None,
@@ -203,6 +225,14 @@ class ProviderDetailService:
             code_to_display = {}
             primary_display = ""
             primary_state = (state or "").upper()
+
+        # A detail opened from a recorded selection carries the NPI and no
+        # card, so the name comes from the record -- which is where it
+        # should come from anyway. Every other name field on the panel is
+        # already read from `stored`; taking the header and the research
+        # links from a card that may have been painted some time ago is how
+        # they would disagree with the rest of the panel.
+        provider_name = provider_name or self.display_name(stored)
 
         research_sites = self.build_research_sites(
             provider_name=provider_name,

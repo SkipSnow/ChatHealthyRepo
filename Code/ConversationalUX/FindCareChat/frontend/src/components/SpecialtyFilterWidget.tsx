@@ -14,7 +14,7 @@
 // data-router-action attribute; ClientRouter._bindActions binds clicks
 // and posts router:action back. Widget mutates state and re-renders.
 
-import { useEffect } from 'react'
+import { useEffect, useRef } from 'react'
 
 const TARGET = 'LeftPanel'
 
@@ -161,15 +161,24 @@ function buildFilterHtml(
 }
 
 export default function SpecialtyFilterWidget() {
+  // Refs, matching ClinicalTrialsWidget. This widget produces no JSX and
+  // paints by postMessage, so nothing triggers a re-render: useState buys
+  // nothing and its dep-array plumbing leaks subscriptions. One mechanism
+  // for cached view state across the widgets.
+  //
+  // This is a CACHE, not the record. It exists so a tick repaints without a
+  // round-trip. The applied selection is recorded server-side on the intent
+  // when Apply fires; losing these on remount costs a redraw, not a fact.
+  const specialtiesRef = useRef<Specialty[]>([])
+  const checkedRef = useRef<Record<string, boolean>>({})
+  const pristineRef = useRef<Record<string, boolean>>({})
+
   useEffect(() => {
-    let specialties: Specialty[] = []
-    let checked: Record<string, boolean> = {}
-    let pristine: Record<string, boolean> = {}
 
     function isDirty(): boolean {
-      const keys = new Set([...Object.keys(checked), ...Object.keys(pristine)])
+      const keys = new Set([...Object.keys(checkedRef.current), ...Object.keys(pristineRef.current)])
       for (const k of keys) {
-        if (!!checked[k] !== !!pristine[k]) return true
+        if (!!checkedRef.current[k] !== !!pristineRef.current[k]) return true
       }
       return false
     }
@@ -180,14 +189,14 @@ export default function SpecialtyFilterWidget() {
         target: TARGET,
         append: false,
         popup: false,
-        content: buildFilterHtml(specialties, checked, isDirty()),
+        content: buildFilterHtml(specialtiesRef.current, checkedRef.current, isDirty()),
       }, '*')
     }
 
     function toggleCodes(codes: string[], desired: boolean) {
-      const next = { ...checked }
+      const next = { ...checkedRef.current }
       for (const c of codes) next[c] = desired
-      checked = next
+      checkedRef.current = next
     }
 
     window.parent.postMessage({
@@ -201,13 +210,22 @@ export default function SpecialtyFilterWidget() {
 
       if (msg.type === 'router:event-broadcast' && msg.kind === 'specialties') {
         const data = msg.data || {}
-        specialties = Array.isArray(data.specialties) ? data.specialties as Specialty[] : []
-        checked  = {}
-        pristine = {}
-        for (const s of specialties) {
-          const seed = s.can_prescribe ? true : false
-          checked[s.code]  = seed
-          pristine[s.code] = seed
+        specialtiesRef.current = Array.isArray(data.specialties) ? data.specialties as Specialty[] : []
+        checkedRef.current  = {}
+        pristineRef.current = {}
+        // A restore carries the ticks the user left; a fresh panel has
+        // none and falls back to the prescriber default. Without this a
+        // return from EvaluateCare repainted the panel with the default
+        // selection and silently discarded what they had chosen.
+        const restored: string[] = Array.isArray(data.selected_codes)
+          ? data.selected_codes : []
+        const hasRestored = restored.length > 0
+        for (const s of specialtiesRef.current) {
+          const seed = hasRestored
+            ? restored.indexOf(s.code) !== -1
+            : Boolean(s.can_prescribe)
+          checkedRef.current[s.code]  = seed
+          pristineRef.current[s.code] = seed
         }
         repaint()
         return
@@ -218,43 +236,47 @@ export default function SpecialtyFilterWidget() {
       if (msg.action === 'filter:toggle-row') {
         const code = String((msg.data && msg.data.code) || '')
         if (!code) return
-        checked = { ...checked, [code]: !checked[code] }
+        checkedRef.current = { ...checkedRef.current, [code]: !checkedRef.current[code] }
         repaint()
         return
       }
 
       if (msg.action === 'filter:toggle-all') {
-        const allChecked = specialties.length > 0 && specialties.every(s => checked[s.code])
-        toggleCodes(specialties.map(s => s.code), !allChecked)
+        const allChecked = specialtiesRef.current.length > 0 && specialtiesRef.current.every(s => checkedRef.current[s.code])
+        toggleCodes(specialtiesRef.current.map(s => s.code), !allChecked)
         repaint()
         return
       }
 
       if (msg.action === 'filter:macro-prescribers') {
-        const codes = specialties.filter(s => s.can_prescribe).map(s => s.code)
-        const allOn = codes.length > 0 && codes.every(c => checked[c])
+        const codes = specialtiesRef.current.filter(s => s.can_prescribe).map(s => s.code)
+        const allOn = codes.length > 0 && codes.every(c => checkedRef.current[c])
         toggleCodes(codes, !allOn)
         repaint()
         return
       }
 
       if (msg.action === 'filter:macro-homeopathic') {
-        const codes = specialties.filter(s => s.homeopathic).map(s => s.code)
-        const allOn = codes.length > 0 && codes.every(c => checked[c])
+        const codes = specialtiesRef.current.filter(s => s.homeopathic).map(s => s.code)
+        const allOn = codes.length > 0 && codes.every(c => checkedRef.current[c])
         toggleCodes(codes, !allOn)
         repaint()
         return
       }
 
       if (msg.action === 'filter:apply') {
-        const chosen = specialties.filter(s => checked[s.code]).map(s => s.code)
+        const chosen = specialtiesRef.current.filter(s => checkedRef.current[s.code]).map(s => s.code)
         window.parent.postMessage({
           type: 'router:makeCall',
           op: 'apply_filter',
-          payload: { codes: chosen },
+          // Only the selection. The panel is not sent back: the server
+          // holds it on the intent and reuses it because the query has not
+          // changed. Sending it would be a second copy of one fact, and the
+          // two would drift.
+          payload: { selected_codes: chosen },
           call_id: 'filter-apply-' + Date.now(),
         }, '*')
-        pristine = { ...checked }
+        pristineRef.current = { ...checkedRef.current }
         repaint()
         return
       }

@@ -95,9 +95,8 @@ def is_unlock_literal(text: str) -> bool:
 
 
 def morph_to_close_connection_200(deps: AgentDeps) -> None:
-    """End-of-tool morph used by all three tasks. Mirrors NonsenseTool's
-    pattern so UR's bounded dispatch loop chains to CloseConnection200Tool
-    on the next hop."""
+    """End-of-tool morph used by all three tasks, so UR's bounded dispatch
+    loop chains to CloseConnection200Tool on the next hop."""
     document = deps.user_object.intent
     close_entry = IntentCloseConnection200(
         name="closeConnection200",

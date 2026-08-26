@@ -21,8 +21,12 @@ MAX_SELECTED = 5
 
 
 class Request(BaseModel):
-    verb: Literal["select", "deselect", "list"]
-    npi: Optional[str] = None
+    verb: Literal["select", "deselect", "list"] = Field(
+        description="Add a provider to the evaluation set, remove one, or "
+                    "return the set.")
+    npi: Optional[str] = Field(
+        default=None,
+        description="Which provider. Required for select and deselect.")
 
 
 class Response(BaseModel):

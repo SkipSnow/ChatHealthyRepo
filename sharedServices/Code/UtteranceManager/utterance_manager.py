@@ -20,7 +20,7 @@ from chathealthy_lib.exceptions import ChatHealthyException
 from typing import Any, Literal, Optional
 
 from pydantic import BaseModel, Field
-from pydantic_ai import Agent
+from pydantic_ai import Agent, ModelRetry
 
 from chathealthy_lib.authentication.agent_deps import AgentDeps
 from chathealthy_lib.authentication.chathealthy_tool import ChatHealthyTool
@@ -32,7 +32,6 @@ from chathealthy_lib.authentication.intent_document import (
     IntentDocument,
     IntentFindAProvider,
     IntentFindClinicalTrials,
-    IntentNonsense,
     IntentSafetyLockout,
     IntentSpecialtySearch,
     PendingDisambiguation,
@@ -40,7 +39,15 @@ from chathealthy_lib.authentication.intent_document import (
 
 log = ChatHealthyLoggingService()
 
+# The classifier runs on every turn: fast and cheap is the right trade.
 LLM_MODEL = "google:gemini-2.5-flash"
+
+# Manufacture runs only when the system cannot proceed -- rare, and the
+# turn is already lost if the question is a bad one. It reasons over the
+# whole session to work out what is established and what is missing, which
+# is not what a fast classifier model is for.
+REASONING_LLM_MODEL = "anthropic:claude-opus-5"
+
 MAX_USER_UTTERANCE_WINDOW = 10  # EPIC-002-F-010-S-001-REQ-B-006
 
 
@@ -78,7 +85,7 @@ class ClassifierOutput(BaseModel):
     with minimal translation."""
 
     target_action: Literal[
-        "nonsense", "specialtySearch", "findAProvider", "findClinicalTrials",
+        "specialtySearch", "findAProvider", "findClinicalTrials",
         "closeConnection200", "safetyLockout",
     ]
     complaint: Optional[str] = None
@@ -121,14 +128,14 @@ STREAMING CONTRACT: every dispatched tool flushes the stream (awaits at least on
 
 MULTI-INTENT: intents[] can carry more than one entry. UM may have detected findAProvider on turn 1 (geography missing) and still be tracking that intent on turn 2 when the user provides the missing geography. UM may also have detected a secondary intent (e.g., a safety concern) in the same utterance. target_action is always the single intent UR actions this turn; the other intents remain in the document for future turns.
 
-CATALOG (this deploy's closed set): nonsense, specialtySearch, findAProvider, closeConnection200, safetyLockout. UM clamps to one of these five; UR raises on any out-of-catalog target_action. safetyLockout is special — UR may dispatch it WITHOUT calling UM whenever user_object.is_locked_out is true (UR hydrates that flag from {env}_Safety.emergency_incidents by IP at /gate entry); UM only emits target_action=safetyLockout on a turn where the user is NOT yet locked out and the classifier judges the utterance signals immediate medical attention.",
+CATALOG (this deploy's closed set): specialtySearch, findAProvider, closeConnection200, safetyLockout. UM clamps to one of these four; UR raises on any out-of-catalog target_action. safetyLockout is special — UR may dispatch it WITHOUT calling UM whenever user_object.is_locked_out is true (UR hydrates that flag from {env}_Safety.emergency_incidents by IP at /gate entry); UM only emits target_action=safetyLockout on a turn where the user is NOT yet locked out and the classifier judges the utterance signals immediate medical attention.",
   "type": "object",
   "additionalProperties": false,
   "required": ["target_action", "intents"],
   "properties": {
     "target_action": {
       "description": "The single action UR must dispatch next. UM picks one of the catalog values; UR's match/case is keyed off this field. MUST correspond to a name in intents[] — UM enforces that invariant before emitting. NOTE: when user_object.is_locked_out is true (UR stamps it from {env}_Safety.emergency_incidents during hydration), UR dispatches safetyLockout directly without calling UM at all; UM's only role for safetyLockout is to recognise immediate-medical-attention utterances on turns where the user is NOT yet locked out and emit target_action=safetyLockout so UR locks them.",
-      "enum": ["nonsense", "specialtySearch", "findAProvider", "closeConnection200", "safetyLockout"]
+      "enum": ["specialtySearch", "findAProvider", "closeConnection200", "safetyLockout"]
     },
     "intents": {
       "type": "array",
@@ -138,7 +145,6 @@ CATALOG (this deploy's closed set): nonsense, specialtySearch, findAProvider, cl
       "uniqueItems": true,
       "items": {
         "oneOf": [
-          { "$ref": "#/$defs/IntentNonsense" },
           { "$ref": "#/$defs/IntentSpecialtySearch" },
           { "$ref": "#/$defs/IntentFindAProvider" },
           { "$ref": "#/$defs/IntentCloseConnection200" },
@@ -149,7 +155,7 @@ CATALOG (this deploy's closed set): nonsense, specialtySearch, findAProvider, cl
     "user_message": {
       "type": "string",
       "maxLength": 4096,
-      "description": "LLM-authored prose intended for the user (clarification question, follow-up, friendly framing). When non-empty UM streams it as {kind:'prompt', data:{text: user_message}} and awaits an event-loop tick to flush before returning to UR. When absent or empty UM streams nothing. The LLM owns this prose; no hardcoded chat strings appear in UM, NonsenseTool, CloseConnection200Tool, or any other component on the dispatch path."
+      "description": "LLM-authored prose intended for the user (clarification question, follow-up, friendly framing). When non-empty UM streams it as {kind:'prompt', data:{text: user_message}} and awaits an event-loop tick to flush before returning to UR. When absent or empty UM streams nothing. The LLM owns this prose; no hardcoded chat strings appear in UM, CloseConnection200Tool, or any other component on the dispatch path."
     }
   },
   "$defs": {
@@ -201,57 +207,6 @@ CATALOG (this deploy's closed set): nonsense, specialtySearch, findAProvider, cl
         "scaffolding": {
           "type": "object",
           "description": "Optional free-form context the next-turn resolver needs."
-        }
-      }
-    },
-    "IntentNonsense": {
-      "type": "object",
-      "additionalProperties": false,
-      "required": ["name", "arguments"],
-      "description": "Intent entry for an utterance UM classified as gibberish or otherwise not a real request. When target_action is nonsense, UR dispatches to NonsenseTool, whose deploy-1 behavior is to bump the silly-question counter on user_object using the utterance and is_nonsense arguments.",
-      "properties": {
-        "name": {
-          "const": "nonsense"
-        },
-        "pending_disambiguation": { "$ref": "#/$defs/PendingDisambiguation" },
-        "arguments": {
-          "type": "array",
-          "description": "Exactly two arguments: utterance (the typed text) and is_nonsense (always true). Both required.",
-          "minItems": 2,
-          "maxItems": 2,
-          "uniqueItems": true,
-          "items": {
-            "oneOf": [
-              {
-                "allOf": [
-                  { "$ref": "#/$defs/Argument" },
-                  {
-                    "properties": {
-                      "name": { "const": "utterance" },
-                      "type": { "const": "string" },
-                      "required": { "const": true },
-                      "value": { "minLength": 1, "maxLength": 4096 }
-                    }
-                  }
-                ],
-                "description": "Exact text the user typed that was classified as nonsense. NonsenseTool consumes this verbatim for the silly-question audit record."
-              },
-              {
-                "allOf": [
-                  { "$ref": "#/$defs/Argument" },
-                  {
-                    "properties": {
-                      "name": { "const": "is_nonsense" },
-                      "type": { "const": "boolean" },
-                      "required": { "const": true },
-                      "value": { "const": "true" }
-                    }
-                  }
-                ],
-                "description": "Explicit boolean carried as data so NonsenseTool can assert on it directly without re-reading target_action. value MUST be the string 'true' (parsed as boolean true) on every nonsense intent entry, when target_action is nonsense."
-              }
-            ]
-          }
         }
       }
     },
@@ -457,9 +412,9 @@ WHERE YOU SIT IN THE PROCESS:
     returning to UR. THIS IS THE ONLY PROSE THE USER SEES FROM
     THIS TURN. No other component streams chat text on this turn.
   - UR then reads user_object.intent.target_action and dispatches the
-    matching downstream tool: NonsenseTool, SpecialtyFilter alone
-    (specialtySearch), SpecialtyFilter+ProviderSearch (findAProvider),
-    or CloseConnection200Tool.
+    matching downstream tool: SpecialtyFilter alone (specialtySearch),
+    SpecialtyFilter+ProviderSearch (findAProvider), or
+    CloseConnection200Tool.
 
 RULE 0 — UNIVERSAL UTTERANCE PRECEDENCE (highest priority; applies to
 every other rule below). The transcript window is ordered oldest-first
@@ -487,7 +442,7 @@ normative type/enum bits):
 Your structured output is a JSON object with these fields:
 
 {
-  "target_action": "nonsense" | "specialtySearch" | "findAProvider" | "closeConnection200",
+  "target_action": "specialtySearch" | "findAProvider" | "closeConnection200",
   "complaint": string | null,
   "geography": { "state": string | null, "city": string | null, "county": string | null, "zip": string | null } | null,
   "user_message": string | null,
@@ -557,8 +512,8 @@ DECISION RULES (apply in this order):
        - Leave user_message empty; LockoutTool will author the
          deterministic "when you said '...'" + 911 + operator phone
          text from the trigger utterance directly.
-       - Do NOT also emit nonsense / specialtySearch / findAProvider
-         on the same turn — safetyLockout supersedes them.
+       - Do NOT also emit specialtySearch / findAProvider on the same
+         turn — safetyLockout supersedes them.
 
   1. PENDING DISAMBIGUATION TAKES PRECEDENCE OVER EVERY OTHER RULE.
      Before considering anything else, check the prior IntentDocument
@@ -588,15 +543,14 @@ DECISION RULES (apply in this order):
          into the slot, upgrade target_action, do not re-emit pending.
 
      A "yes" utterance on a turn with a pending disambiguation is
-     NEVER nonsense. NEVER classify it as nonsense. The pending
-     question gives the "yes" its full meaning.
+     ALWAYS routable. The pending question gives the "yes" its full
+     meaning.
 
   1.5. SPELLING CORRECTION. User utterances often contain typos —
      especially in city names, complaint terms, and specialty names.
      A USER UTTERANCE MUST NEVER PROPAGATE AS A FATAL ERROR. If a
      misspelling leaves you unable to extract any meaningful slot,
-     route to rule 6 (closeConnection200 with a friendly
-     clarification) — never let downstream code raise on it.
+     route to rule 2 — never let downstream code raise on it.
 
      SPELLING ONLY — NEVER TRANSLATE SEMANTICS. This rule corrects
      misspellings, not word choice. A word that is correctly spelled
@@ -714,11 +668,14 @@ DECISION RULES (apply in this order):
          Springfield-like; ask for the state or the intended city.
        - "phsyological"   - could be "psychological" or "physiological".
 
-  2. If not resolving a prior disambiguation, evaluate the latest
-     utterance ALONE. If it is gibberish, random characters, a single
-     nonsense word, or otherwise not a real request, set target_action
-     to "nonsense". Set user_message to a friendly clarification line.
-     Prior context never converts gibberish into a real request.
+  2. IF YOU CANNOT ROUTE THE UTTERANCE TO A TOOL, ASK FOR
+     CLARIFICATION. Every other rule below names a target_action and
+     the tool that serves it. If the latest utterance, evaluated
+     ALONE, does not give you what one of those rules needs, set
+     target_action to "closeConnection200" and set user_message to a
+     brief, friendly request for what is missing. Say what you need,
+     not that you failed. Never guess, and never let prior context
+     supply a meaning the utterance does not have.
 
   3. If the utterance is a real request with a clear healthcare
      complaint AND a fully usable geography (zip, state, state+city, or
@@ -867,10 +824,9 @@ DECISION RULES (apply in this order):
       geographic_scope are all optional refinements per the rules
       above.
 
-  6. If the utterance is a real request but you cannot extract a
-     complaint or recognize a healthcare ask, set target_action to
-     "closeConnection200" and set user_message to a brief friendly
-     clarification.
+  6. There is no other outcome. Every utterance either gives a rule
+     above what it needs, or it does not and rule 2 applies. Why it
+     does not is not yours to judge.
 
 State codes are 2-letter USPS uppercase. ZIP codes are 5 digits.
 """
@@ -896,8 +852,16 @@ class Request(BaseModel):
     (EPIC-002-F-010-S-003-REQ-B-002).
     """
     model_config = {"extra": "ignore"}
-    trigger_type: Literal["utterance", "manufacture"] = "utterance"
-    manufacture_utterance_reason: dict[str, Any] = Field(default_factory=dict)
+    trigger_type: Literal["utterance", "manufacture"] = Field(
+        default="utterance",
+        description="utterance: the person typed something and it is to be "
+                    "classified. manufacture: nobody typed anything and a "
+                    "message has to be authored to ask them for what is "
+                    "missing.")
+    manufacture_utterance_reason: dict[str, Any] = Field(
+        default_factory=dict,
+        description="Manufacture only: which path could not proceed. Internal "
+                    "plumbing, never shown to the person.")
 
 
 class Response(BaseModel):
@@ -939,7 +903,46 @@ classifier_agent = Agent(
     LLM_MODEL,
     output_type=ClassifierOutput,
     system_prompt=CLASSIFIER_SYSTEM_PROMPT,
+    # The classifier had none, so it took the default of one attempt. The
+    # our other agents carry 3 and 5.
+    retries=3,
 )
+
+
+@classifier_agent.output_validator
+def _provider_search_has_a_place(output: ClassifierOutput) -> ClassifierOutput:
+    """A provider search with no geography at all is an illegal state.
+
+    The schema cannot say this: every geography field is optional, because
+    a user names a state, or a city and a state, or a zip alone, and no
+    single field is required. All of them empty is different -- it is not a
+    sparse answer, it is no answer, and there is no provider search that
+    means anything without a place.
+
+    Left to validation alone the model returns it perfectly well-formed:
+    on identical input it reported the place five times in six and dropped
+    it the sixth. Nothing was malformed, so `retries` had nothing to act
+    on. Raising here is what turns an illegal state into a validation
+    failure, which is the thing retries count.
+
+    The message says what to do, not that it failed: a retry that only
+    reports the error invites the same answer back.
+    """
+    if output.target_action != "findAProvider":
+        return output
+    geo = output.geography
+    if geo is not None and any(
+        (value or "").strip() for value in
+        (geo.state, geo.city, geo.county, geo.zip)
+    ):
+        return output
+    raise ModelRetry(
+        "You set target_action=findAProvider but every geography field is "
+        "empty. A provider search always has a place: the user named one in "
+        "this turn, or one is listed as already established. Put it in the "
+        "geography field. If there is genuinely no place anywhere, the "
+        "action is specialtySearch, not findAProvider."
+    )
 
 
 def summarize_prior(prior: Optional[IntentDocument]) -> str:
@@ -974,77 +977,58 @@ def summarize_prior(prior: Optional[IntentDocument]) -> str:
     return " ".join(parts)
 
 
-MANUFACTURE_SYSTEM_PROMPT = """You are the ChatHealthy Utterance Manager
-running in MANUFACTURE mode (EPIC-002-F-010-S-003).
+MANUFACTURE_SYSTEM_PROMPT = """You are writing one message to a person
+who is looking for healthcare and has got stuck.
 
-The user did NOT type a free-text utterance this turn. The user clicked
-a structured UI control (Apply Filter, future selected-for-evaluation
-gates, future pagination edges) and the Universal Router has decided
-the system needs to ask the user something before it can act. UR has
-populated `manufacture_utterance_reason` with a structured dict of
-hardcoded, NON-user-facing facts describing why a manufactured
-utterance is needed and what slot is missing.
+You are given this session as JSON: the parameters it has established,
+the intent document as it stands, the dialogue so far, and the internal
+record of why you were called. Read the JSON. It is the state, not a
+description of it.
 
-YOUR JOB: read the facts AND the recent dialogue, then author ONE brief
-user-facing message that:
-  - asks the user for the missing slot,
-  - reads as a natural continuation of the conversation (not a
-    formulaic templated phrase that ignores prior turns),
-  - is sensitive to what the user already said and what the system has
-    already told them.
+Produce the ONE question that moves this forward.
 
-DO NOT classify intents. DO NOT pick a target_action — the system will
-set target_action=closeConnection200 deterministically because the
-manufactured utterance IS this turn's answer; the user's next free-text
-reply comes back through the interpret path and resolves any pending
-slot via the normal disambiguation mechanism.
+  - Say back what we already have. It is in the parameters. A person
+    who is told what we understood knows we were listening, and knows
+    what is left to answer.
+  - Ask for what is missing. One thing -- whichever is stopping the
+    intent document's target_action from being carried out.
+  - NEVER ask for something the parameters already hold. That is the
+    worst thing this message can do.
+  - The newest turns of the dialogue outweigh the older ones. Where
+    they disagree, the newest wins. Older turns tell you what has
+    already been asked, so you do not ask it twice.
+  - If the record says the system itself is unavailable, there is
+    nothing to ask for: say we cannot answer right now and ask them to
+    try again shortly.
 
-DO NOT echo manufacture_utterance_reason facts verbatim. The reason
-dict is internal plumbing; the user never sees keys or values.
+Never say we failed, never blame what they typed, and never call
+anything nonsense or unintelligible. We did not understand -- that is a
+fact about us, not about them.
 
-DO NOT use templated phrases like "Please provide your location." The
-whole reason this path is LLM-mediated (and not hardcoded prose in UR)
-is that UR cannot author this prose deterministically. A prose output
-that could have been hardcoded is a regression on
-EPIC-002-F-010-S-003-REQ-B-003.
+Never quote the JSON, its keys, its ids, or any internal name.
 
-Examples of gestures you may encounter and what they typically imply:
-  - gesture='apply_filter', missing_slot='geography': the user has
-    refined the specialty filter and wants to apply it, but the
-    system has no location yet. Ask for their location (city + state,
-    state, county + state, or zip code) in a way that names what
-    they just did. Vary the phrasing based on what was said before.
-    Example shape (NOT verbatim): "Got it — happy to apply that filter.
-    What city and state are you in?"
-  - gesture='system_llm_unavailable': the language model that powers
-    the system just had a transient failure (per
-    EPIC-008-F-002-S-009-REQ-B-007 — the LLM facade exhausted its
-    retries against the provider). The reason dict carries `provider`,
-    `call_site`, and `attempts`; these are internal plumbing — the
-    user MUST NEVER see provider names, exception class names, call
-    sites, or attempt counts. Author a brief, calm, non-technical
-    apology that names what's happening in plain terms and invites
-    the user to try again in a moment. Do NOT speculate on why or
-    when service will return. Do NOT use the word "exception" or
-    "error". Example shape (NOT verbatim): "Sorry — my language model
-    just had a brief hiccup. Could you try that again in a moment?"
-  - Other gestures will be added by populating new reason keys; treat
-    the dict as the source of truth for what to ask.
+Never write a phrase that would fit any session, like "Please provide
+your location." If it could have been written before reading the JSON,
+it is wrong.
 
-Output: a single user_message string. Length: a sentence or two,
-never a wall of text."""
+At most 150 words and at most 6 sentences. Usually far less."""
 
 
 class ManufactureOutput(BaseModel):
     """Structured output of the UM manufacture-path LLM. Narrower than
     the classifier output — no target_action choice (always
     closeConnection200), no intent classification, no geography
-    extraction. Just the LLM-authored user-facing user_message."""
-    user_message: str = Field(min_length=1, max_length=4096)
+    extraction. Just the LLM-authored user-facing user_message.
+
+    900 characters is the hard stop behind the prompt's 150-word, six-
+    sentence limit -- a cap the schema can express, where a word count is
+    not. The prompt is what actually holds the length; this stops a
+    runaway."""
+    user_message: str = Field(min_length=1, max_length=900)
 
 
 manufacture_agent = Agent(
-    LLM_MODEL,
+    REASONING_LLM_MODEL,
     output_type=ManufactureOutput,
     system_prompt=MANUFACTURE_SYSTEM_PROMPT,
 )
@@ -1054,10 +1038,15 @@ async def call_manufacture_llm(
     transcript: list[str],
     reason: dict[str, Any],
     prior: Optional[IntentDocument],
+    parameters=None,
 ) -> ManufactureOutput:
-    """Manufacture-path LLM call. Receives the recent dialogue + the
-    structured reason facts UR populated. Authors a context-sensitive
-    user_message."""
+    """Manufacture-path LLM call.
+
+    Receives the session -- the dialogue, what has been established, and
+    what the system was about to do -- and reasons its way to the question
+    worth asking. The reason dict says which gesture called it; it is not
+    the content of the question.
+    """
     window_block = (
         "\n".join(f"  {i+1}. {line}" for i, line in enumerate(transcript))
         if transcript else "  (no prior dialogue yet)"
@@ -1065,33 +1054,170 @@ async def call_manufacture_llm(
     reason_block = json.dumps(reason, ensure_ascii=False, indent=2)
     prior_summary = summarize_prior(prior)
     user_msg = (
-        f"Recent dialogue (last {len(transcript)} lines, oldest first):\n"
+        f"THE DIALOGUE (oldest first, {len(transcript)} lines):\n"
         f"{window_block}\n\n"
-        f"Prior IntentDocument summary: {prior_summary}\n\n"
-        f"manufacture_utterance_reason (structured facts; internal — DO NOT echo verbatim):\n"
+        f"WHAT THE SYSTEM CAN DO:\n"
+        f"{tool_contracts_block()}\n\n"
+        f"WHAT IS ESTABLISHED so far this session:\n"
+        f"{session_state_block(parameters)}\n\n"
+        f"WHAT THE SYSTEM WAS ABOUT TO DO: {prior_summary}\n\n"
+        f"WHY YOU WERE CALLED (internal plumbing; never quote it):\n"
         f"{reason_block}\n\n"
-        "Author the brief user-facing user_message per the system "
-        "prompt rules. Return the structured output."
+        "Reason over all of the above, then ask the one question that "
+        "moves this forward. Return the structured output."
     )
     log.debug("UM manufacture input: %s", user_msg)
-    result = await run_llm(
-        manufacture_agent,
-        user_msg,
-        call_site="UM._manufacture_agent",
-        provider="gemini",
-        server="shared_services",
-        component="UM",
-    )
+    result = await _run_agent(
+        manufacture_agent, user_msg, call_site="UM._manufacture_agent")
     log.debug("UM manufacture output: %s", result.output.model_dump_json())
     return result.output
 
 
+async def _run_agent(agent, prompt: str, *, call_site: str):
+    """One route to this tool's agents, carrying the identity every call
+    reports under.
+
+    No catch here. From agent.run forward a failure is chathealthy_lib.llm's
+    to convert, and it does -- a run that fails arrives as a
+    ChatHealthyException carrying a mode, the exchange, and the original.
+    Catching it again to re-wrap it would be a second conversion of the
+    same failure and would bury the mode the library already decided.
+
+    An output validator rejecting an illegal answer never reaches here at
+    all: ModelRetry is pydantic-ai's callback protocol, caught in its own
+    frame and turned into another turn at the model.
+    """
+    return await run_llm(
+        agent, prompt,
+        call_site=call_site,
+        provider="gemini",
+        server="shared_services",
+        component="UM",
+    )
+
+
+async def _structure_location(text: str) -> dict:
+    """Turn a free-text place into the geography parameter's shape.
+
+    The trials path reports a place as prose because that is what its own
+    tool consumes. The parameter is structured, so it is structured here
+    rather than stored as a second shape of the same fact.
+
+    Never fatal: a place that cannot be structured leaves geography as it
+    was, which is the same outcome as a turn that named no place.
+    """
+    try:
+        from chathealthy_lib.geo_extractor import extract_location
+        located = await asyncio.to_thread(extract_location, text)
+        return located.model_dump(exclude_none=True)
+    except Exception as exc:
+        log.info("could not structure %r as geography: %s", text, exc,
+                 exc=ChatHealthyException(
+                     mode="geography_not_structured",
+                     message=f"could not structure {text!r} as geography: {exc}",
+                     component="UtteranceManager",
+                     exception=exc if isinstance(exc, Exception) else None,
+                 ))
+        return {}
+
+
+def tool_contracts_block() -> str:
+    """What the system can be asked to do, and what comes back.
+
+    Generated into the build from the source it was made from, so it names
+    the tools this deploy carries. Absent outside a build, and a prompt
+    that cannot say what is reachable says so rather than guessing.
+    """
+    try:
+        from tool_registry import ToolRegistry
+    except ImportError:
+        return "  (the tool registry was not generated into this build)"
+    return (
+        "Each block below is one thing the system can do. WHAT EACH NEEDS "
+        "lists what must be known before it can run -- a fact missing there "
+        "is the thing to ask for. WHAT EACH RETURNS is what comes back, so "
+        "you can tell whether an answer is even available.\n\n"
+        f"WHAT EACH NEEDS:\n{ToolRegistry.jsons_in()}\n\n"
+        f"WHAT EACH RETURNS:\n{ToolRegistry.jsons_out()}"
+    )
+
+
+def session_state_block(parameters) -> str:
+    """Everything established this session, and what each part means.
+
+    The classifier gets geography alone. Asking a good question needs the
+    whole set: what the user is looking for, where, which specialties they
+    kept, where they are in the list. That is the difference between
+    apologising and asking for the one thing missing.
+    """
+    if parameters is None:
+        return "  (nothing established yet)"
+
+    lines = []
+
+    if parameters.complaint:
+        lines.append(f"  They are looking for care for: {parameters.complaint}")
+    else:
+        lines.append("  We do NOT know what kind of care they want.")
+
+    geo = parameters.geography
+    if geo is not None and not geo.is_empty():
+        where = ", ".join(v for v in (geo.city, geo.county, geo.state, geo.zip) if v)
+        lines.append(f"  They are looking in: {where}")
+    else:
+        lines.append("  We do NOT know where they are looking.")
+
+    offered = len(parameters.specialties)
+    if offered:
+        kept = len(parameters.selected_specialty_codes)
+        lines.append(
+            f"  We showed them {offered} kinds of provider and they kept "
+            f"{kept if kept else 'all of them'}.")
+
+    if parameters.page_cursors:
+        lines.append("  They have already paged past the first set of results.")
+
+    if parameters.selected_provider_npi:
+        lines.append("  They are reading one provider's details right now.")
+
+    return "\n".join(lines)
+
+
+def _known_parameters_block(parameters) -> str:
+    """What the user has already established, for the classifier to read.
+
+    Without this the classifier decides from the utterance alone, so "find
+    me a psychiatrist" after the user has already said New York looks like
+    a question with no place in it and is classified as a specialty search
+    rather than a provider search. The place is known; only the classifier
+    did not know it.
+    """
+    if parameters is None:
+        return ""
+    geo = parameters.geography
+    if geo is None or geo.is_empty():
+        return ""
+    parts = [f"{name}={value}" for name, value
+             in geo.model_dump(exclude_none=True).items() if value]
+    if not parts:
+        return ""
+    return (
+        f"Geography the user has ALREADY established this session: "
+        f"{', '.join(parts)}. Treat it as if the user had just said it: a "
+        f"request for providers is not missing a location, and you MUST NOT "
+        f"ask for a location the user has already given. Repeat it in the "
+        f"geography field unless this turn names a different place.\n\n"
+    )
+
+
 async def call_classifier_llm(
     transcript: list[str], prior: Optional[IntentDocument],
+    parameters=None,
 ) -> ClassifierOutput:
     """Single LLM call. Receives the recent transcript as already-labeled
-    lines (each prefixed with 'user: ' or 'system: ') plus the prior
-    IntentDocument summary. Classifies the latest 'user: ...' line."""
+    lines (each prefixed with 'user: ' or 'system: '), the prior
+    IntentDocument summary, and the user's live parameters. Classifies the
+    latest 'user: ...' line."""
     if not transcript:
         raise ChatHealthyException(
             mode="um_empty_transcript_window",
@@ -1104,20 +1230,15 @@ async def call_classifier_llm(
         f"Recent dialogue (last {len(transcript)} lines, oldest first):\n"
         f"{window_block}\n\n"
         f"Prior IntentDocument summary: {prior_summary}\n\n"
+        f"{_known_parameters_block(parameters)}"
         "Classify the LATEST 'user:' line (the most recent person turn) "
         "using the decision rules in the system prompt. If the prior "
         "IntentDocument summary lists a pending_disambiguation, Rule 1 "
         "applies and overrides every other rule. Return the structured "
         "output."
     )
-    result = await run_llm(
-        classifier_agent,
-        user_msg,
-        call_site="UM._classifier_agent",
-        provider="gemini",
-        server="shared_services",
-        component="UM",
-    )
+    result = await _run_agent(
+        classifier_agent, user_msg, call_site="UM._classifier_agent")
     return result.output
 
 
@@ -1139,16 +1260,6 @@ def cached_nucc_codes(entry: Any) -> Optional[str]:
         if arg.name == "nucc_codes":
             return arg.value
     return None
-
-
-def build_nonsense_intent(utterance_text: str) -> IntentNonsense:
-    return IntentNonsense(
-        name="nonsense",
-        arguments=[
-            Argument(name="utterance", value=utterance_text, type="string", required=True),
-            Argument(name="is_nonsense", value="true", type="boolean", required=True),
-        ],
-    )
 
 
 def build_specialty_search_intent(
@@ -1288,6 +1399,16 @@ def merge_intents(
 # ────────────────────────────────────────────────────────────────────
 
 
+def _latest_person_utterance(deps: AgentDeps) -> str:
+    """What the user last said, verbatim. Empty when they said nothing."""
+    for u in reversed(deps.user_object.session_conversation_history.utterances):
+        actor = getattr(u, "actor", None) or (u.get("actor") if isinstance(u, dict) else None)
+        text = getattr(u, "text", None) or (u.get("text") if isinstance(u, dict) else "")
+        if actor == "person" and text:
+            return str(text).strip()
+    return ""
+
+
 def to_pending(out: Optional[PendingDisambiguationOut]) -> Optional[PendingDisambiguation]:
     if out is None:
         return None
@@ -1338,9 +1459,18 @@ class UtteranceManagerTool(ChatHealthyTool):
             ),
             if_not_debug_log=True,
         )
+        # Quote it back. "I had trouble understanding that" leaves the user
+        # guessing which "that" -- whether the system heard them at all,
+        # heard something else, or dropped the turn. Showing the words it
+        # is holding makes the failure checkable by the person best placed
+        # to check it, and tells them whether rephrasing is even the
+        # problem.
+        heard = _latest_person_utterance(deps)
         fallback = (
-            "I had trouble understanding that. Could you say it a "
-            "different way?"
+            f"I had trouble understanding “{heard}”. Could you say "
+            f"it a different way?"
+            if heard else
+            "I did not receive anything to read. Could you say that again?"
         )
         prior = deps.user_object.intent
         base_doc = prior or IntentDocument(
@@ -1375,6 +1505,7 @@ class UtteranceManagerTool(ChatHealthyTool):
 
         llm_result = await call_manufacture_llm(
             transcript, request.manufacture_utterance_reason, prior,
+            deps.user_object.userParameters,
         )
         user_message = (llm_result.user_message or "").strip()
         if not user_message:
@@ -1439,7 +1570,8 @@ class UtteranceManagerTool(ChatHealthyTool):
             )
         prior = deps.user_object.intent
 
-        llm_result = await call_classifier_llm(transcript, prior)
+        llm_result = await call_classifier_llm(
+            transcript, prior, deps.user_object.userParameters)
         target_action = llm_result.target_action
         complaint = (llm_result.complaint or "").strip()
         geography = llm_result.geography.model_dump() if llm_result.geography else {}
@@ -1469,14 +1601,6 @@ class UtteranceManagerTool(ChatHealthyTool):
                 user_message=None,
             )
 
-        elif target_action == "nonsense":
-            new_doc = merge_intents(
-                base_doc,
-                [build_nonsense_intent(latest_text)],
-                target_action,
-                user_message,
-            )
-
         elif target_action == "specialtySearch":
             if not complaint:
                 raise ChatHealthyException(
@@ -1503,6 +1627,10 @@ class UtteranceManagerTool(ChatHealthyTool):
             new_doc = merge_intents(base_doc, built, target_action, user_message)
 
         elif target_action == "findAProvider":
+            # An all-empty geography never arrives here: the classifier's
+            # output validator rejects it and the agent retries. Enforcing
+            # it there rather than recovering from it here keeps one
+            # statement of the rule, in the contract the model answers to.
             if not complaint:
                 raise ChatHealthyException(
                     mode="um_classifier_findaprovider_missing_complaint",
@@ -1607,6 +1735,43 @@ class UtteranceManagerTool(ChatHealthyTool):
             deps.stream({"kind": "show_welcome", "data": {}})
 
         deps.user_object.intent = new_doc
+
+        # Geography is the user's, not this turn's, and not this action's.
+        # The classifier reports a place in one of two fields depending on
+        # what the user was asking about: `geography`, structured, when the
+        # question is about providers, and `user_location`, free text, when
+        # it is about trials. That is one fact under two names, which is
+        # why saying "New York" while looking at trials never reached the
+        # provider search. Both are written to the one parameter.
+        #
+        # Written only when this turn named a place: a turn that names none
+        # must not erase the place already set, which is what lets the user
+        # say it once.
+        live_geo = geography
+        if not live_geo and user_location:
+            live_geo = await _structure_location(user_location)
+        from UserParameters import user_parameters_tool
+        if live_geo:
+            await user_parameters_tool.TOOL.run_and_log(
+                deps,
+                user_parameters_tool.Request(
+                    verb="set", name="geography", value=live_geo,
+                    origin="non_deterministic",
+                ),
+            )
+
+        # The classifier already produced this. It reads the utterance and
+        # emits what the user is asking about, which is the definition of
+        # the complaint -- there was never a second translator to build.
+        if complaint:
+            await user_parameters_tool.TOOL.run_and_log(
+                deps,
+                user_parameters_tool.Request(
+                    verb="set", name="complaint", value=complaint,
+                    origin="non_deterministic",
+                ),
+            )
+
         await asyncio.sleep(0)
         return self.Response(target_action=new_doc.target_action)
 

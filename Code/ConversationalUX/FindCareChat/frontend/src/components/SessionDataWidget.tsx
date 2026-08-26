@@ -1,13 +1,14 @@
 // Copyright (c) 2026 ChatHealthy.ai LLC. All rights reserved.
 // Licensed under the FindCare Evaluation License (FEL-1.0).
 //
-// SharedServicesSplashWidget — on router:action 'goto_sharedservices' fires
+// SessionDataWidget — on router:action 'goto_sharedservices' fires
 // router:makeCall(op:'splash'). Subscribed to kind:'splash' broadcast;
 // paints the user_object into frame_MainWindow.
 
 import { useEffect } from 'react'
 
-const TARGET = 'MainWindow'
+// Its own popup, beside About rather than painted over MainWindow.
+const TARGET = 'SessionInfoPopUp'
 
 function _esc(s: any): string {
   return String(s == null ? '' : s)
@@ -65,13 +66,58 @@ function buildIdentityHtml(identity: any): string {
   `
 }
 
+const PARAMETER_ORDER = [
+  'geography', 'complaint', 'specialties', 'selected_specialty_codes',
+]
+
+function fmtParameter(name: string, value: any): string {
+  if (value === null || value === undefined) return '(not set)'
+  if (name === 'geography') {
+    const parts = ['state', 'city', 'county', 'zip']
+      .filter(k => value[k]).map(k => `${k}: ${value[k]}`)
+    return parts.length ? parts.join(', ') : '(not set)'
+  }
+  if (name === 'specialties') {
+    if (!Array.isArray(value) || !value.length) return '(none offered yet)'
+    return value.map((s: any) =>
+      `${s.name || '?'} (${s.code})${s.can_prescribe ? ' Rx' : ''}${s.homeopathic ? ' homeo' : ''}`
+    ).join(', ')
+  }
+  if (name === 'selected_specialty_codes') {
+    if (!Array.isArray(value) || !value.length) return '(nothing narrowed - all offered apply)'
+    return value.join(', ')
+  }
+  if (typeof value === 'string') return value.trim() || '(not set)'
+  return _fmt(value)
+}
+
+function buildParametersHtml(parameters: any): string {
+  const params = parameters || {}
+  const names = PARAMETER_ORDER.filter(k => k in params)
+    .concat(Object.keys(params).filter(k => !PARAMETER_ORDER.includes(k)))
+  const rows = names.map(k =>
+    `<dt style="font-weight:600;color:#374151;">${_esc(k)}</dt>` +
+    `<dd style="margin:0;color:#1f2937;white-space:pre-wrap;overflow-wrap:anywhere;">${_esc(fmtParameter(k, params[k]))}</dd>`
+  ).join('')
+  const body = rows
+    ? `<dl style="margin:0;display:grid;grid-template-columns:16.25em 1fr;gap:0.25em 1em;">${rows}</dl>`
+    : `<p style="margin:0;color:#9ca3af;font-style:italic;">Nothing set yet.</p>`
+  return `
+    <section style="margin-top:1em;">
+      <h3 style="margin:0 0 0.25em 0;color:#0b7a75;">User Parameters</h3>
+      <p style="color:#6b7280;margin:0 0 0.5em 0;">What is true right now, whichever tool set it. Live state, not history.</p>
+      ${body}
+    </section>
+  `
+}
+
 function buildRow(at: any, body: string, n: any): string {
   const nLabel = (n !== undefined && n !== null && n !== '')
     ? `<span style="color:#6b7280;">#${_esc(n)} </span>` : ''
   return `
     <div style="padding:0.4em 0.6em;border-top:0.125em solid #d1fae5;">
       <div style="color:#6b7280;line-height:1.1;">${nLabel}${_esc(at || '')}</div>
-      <div style="color:#1f2937;line-height:1.2;">${body}</div>
+      <div style="color:#1f2937;line-height:1.2;overflow-wrap:anywhere;">${body}</div>
     </div>
   `
 }
@@ -90,13 +136,13 @@ function buildActionRow(it: any): string {
   try {
     if (it.input_json && Object.keys(it.input_json).length) {
       inJson = JSON.stringify(it.input_json)
-      if (inJson.length > 120) inJson = inJson.slice(0, 120) + '…'
+      if (inJson.length > 400) inJson = inJson.slice(0, 400) + '…'
     }
   } catch { inJson = '' }
   try {
     if (it.output_json && Object.keys(it.output_json).length) {
       outJson = JSON.stringify(it.output_json)
-      if (outJson.length > 120) outJson = outJson.slice(0, 120) + '…'
+      if (outJson.length > 400) outJson = outJson.slice(0, 400) + '…'
     }
   } catch { outJson = '' }
   const body =
@@ -119,7 +165,7 @@ function buildThreadHtml(title: string, items: any[], formatter: (it: any) => st
   `
 }
 
-function buildSplashHtml(data: any): string {
+function buildSessionHtml(data: any): string {
   const identity = (data && data.identity) || {}
   const threads = (data && data.threads) || {}
   const utterances = Array.isArray(threads.utterances) ? threads.utterances : []
@@ -135,6 +181,7 @@ function buildSplashHtml(data: any): string {
       <h2 style="margin:0 0 0.5em 0;color:#0b7a75;">Shared Services — User Object</h2>
       <p style="color:#6b7280;margin:0 0 0.5em 0;">Live evidence that the entrance code completed. The cookie carries only the GUID; the user object lives in <code>admin.Sessions</code>.</p>
       ${buildIdentityHtml(identity)}
+      ${buildParametersHtml((data && data.parameters) || {})}
       <section style="margin-top:1em;flex:1;min-height:0;display:flex;flex-direction:column;">
         <h3 style="margin:0 0 0.5em 0;color:#0b7a75;">Session Conversation History</h3>
         ${history}
@@ -143,11 +190,11 @@ function buildSplashHtml(data: any): string {
   `
 }
 
-export default function SharedServicesSplashWidget() {
+export default function SessionDataWidget() {
   useEffect(() => {
     window.parent.postMessage({
       type: 'router:subscribe-broadcast',
-      kind: 'splash',
+      kind: 'session_data',
     }, '*')
 
     function postRender(content: string) {
@@ -155,7 +202,7 @@ export default function SharedServicesSplashWidget() {
         type: 'router:render',
         target: TARGET,
         append: false,
-        popup: false,
+        popup: true,
         content,
       }, '*')
     }
@@ -163,18 +210,18 @@ export default function SharedServicesSplashWidget() {
     function onMessage(ev: MessageEvent) {
       const msg = ev.data
       if (!msg || typeof msg !== 'object') return
-      if (msg.type === 'router:action' && msg.action === 'goto_sharedservices') {
+      if (msg.type === 'router:action' && msg.action === 'session_info') {
         postRender(buildLoadingHtml())
         window.parent.postMessage({
           type: 'router:makeCall',
-          op: 'splash',
+          op: 'session_data',
           payload: {},
-          call_id: 'splash-' + Date.now(),
+          call_id: 'session_data-' + Date.now(),
         }, '*')
         return
       }
-      if (msg.type === 'router:event-broadcast' && msg.kind === 'splash') {
-        postRender(buildSplashHtml(msg.data || {}))
+      if (msg.type === 'router:event-broadcast' && msg.kind === 'session_data') {
+        postRender(buildSessionHtml(msg.data || {}))
       }
     }
     window.addEventListener('message', onMessage)

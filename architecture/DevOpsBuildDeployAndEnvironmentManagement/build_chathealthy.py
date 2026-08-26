@@ -389,6 +389,60 @@ def _prepare_workstation(env: str) -> tuple[Path, Path]:
     return canonical_repo, canonical_build_dir
 
 
+# target -> the package the registry ships inside. It must land in the
+# package, not beside it: the package IS the Docker build context, so a
+# file one level up is written and never shipped.
+TOOL_REGISTRY_TARGETS = {"target_hf_space_shared_services": "service_runtime"}
+TOOL_REGISTRY_FILENAME = "tool_registry.py"
+
+
+def _generate_tool_registry(repo_root: Path, target_id: str,
+                            package_dir: Path) -> None:
+    """Write the tool registry into a package that reasons about tools.
+
+    Derived from the source this build was made from, so it names the tools
+    this build carries and no others. Written after the package is
+    populated -- written before, the package build replaces the directory
+    and the registry goes with it. Regenerated every build; never in the
+    git tree.
+    """
+    package = TOOL_REGISTRY_TARGETS.get(target_id)
+    if package is None:
+        return
+    destination = package_dir / package
+    if not destination.is_dir():
+        return
+    from tool_registry_generator import write_registry
+    count = write_registry(repo_root, destination / TOOL_REGISTRY_FILENAME)
+    _step(f"tool registry: {count} tool(s) -> "
+          f"{target_id}/{package}/{TOOL_REGISTRY_FILENAME}")
+
+
+def _delete_build_root(canonical_build_dir: Path) -> None:
+    """The whole tree, before anything is written into it.
+
+    Pruning only what the manifest no longer declares is not the same
+    thing: a file deleted from the repository leaves its staged copy
+    behind, inside a target that is still declared, and nothing removes it.
+    That is how architecture/DevOpsBuildDeployAndEnvironmentManagement/
+    localBuild/ came to hold two copies of a file that had been deleted
+    from the repository on 2026-07-09 -- staged that morning, orphaned that
+    afternoon, and still on disk seven weeks later carrying a MongoDB
+    connection string. Gitignored, so no gate could ever read it.
+
+    A build directory is derived: everything in it comes from source and
+    nothing is authored there. Deleting it costs one rebuild of whatever
+    this invocation names and guarantees the property that matters -- what
+    is in the tree came from this build, from source that exists.
+    """
+    if not canonical_build_dir.exists():
+        return
+    removed = sum(1 for _ in canonical_build_dir.rglob("*") if _.is_file())
+    shutil.rmtree(canonical_build_dir, ignore_errors=False)
+    _step(f"build root deleted: {removed} stale file(s) removed from "
+          f"{canonical_build_dir.name}/")
+
+
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(
         description="Build per-target deploy packages under localBuild/<target_id>/."
@@ -440,6 +494,9 @@ def main(argv: list[str] | None = None) -> int:
         # disagreement. For --env local repo_root IS the working tree, so
         # local builds are unchanged.
         RecordLoader.validate_architecture(repo_root)
+
+        _delete_build_root(canonical_build_dir)
+
         _n_targets, _n_packages = materialize_build_structure(
             repo_root / "brain" / "machine_artifacts" / "content"
             / "deployment_architecture.json",
@@ -578,6 +635,7 @@ def _build_body(args, repo_root: Path, canonical_repo: Path, canonical_build_dir
         for pid in sorted(packages_wanted & set(_declared_packages(t))):
             record_package_build(t.target_id, pid, build_n, args.env, build_sha)
             _step(f"  recorded {t.target_id}/{pid} build={build_n}")
+        _generate_tool_registry(repo_root, t.target_id, package_dir)
         _stamp_env_on_manifest(package_dir, args.env, build_sha, build_n)
         built.append(package_dir)
 

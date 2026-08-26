@@ -42,6 +42,10 @@ from .logging_service import set_mongo_log_identity
 set_mongo_log_identity("frontendUser")
 
 
+# The one spelling of a versioned collection. Shared with mongo_utilities,
+# which refuses any name that carries a version the binding did not give.
+_VERSION_SEPARATOR = "_v_"
+
 _CONFIG_DB = "ChatHealthyConfig"
 _CONFIG_COLL = "DBVersions"
 
@@ -52,7 +56,16 @@ _SPECIALTY_META_SLOT = "SPECIALTY_META_COLLECTION"
 class _State:
     target_id: str | None = None
     env: str | None = None
+    # slot -> composed 'Database.Collection_v_N'. What every consumer of a
+    # bound collection reads.
     bindings: dict[str, str] = {}
+    # (database, base) -> composed name, taken from the base the RECORD
+    # states. Derived from nothing: the previous form rebuilt this by
+    # splitting the composed name back apart, which is the same parsing the
+    # record was reshaped to eliminate, moved one layer down where it was
+    # harder to see. A base is a fact the binding carries, not a fact
+    # recovered from a string.
+    bases: dict[tuple[str, str], str] = {}
 
 
 _state = _State()
@@ -97,12 +110,89 @@ def _read_env_doc(env: str) -> dict:
     return doc
 
 
+def compose_collection(base: str, version) -> str:
+    """'PublicHealthData.Provider' + 4 -> 'PublicHealthData.Provider_v_4'.
+
+    The physical name is composed and never written down. A name that is
+    typed can be typed two ways -- provider_v03 and Provider_v_4 are two
+    spellings of one idea, and only the second follows the convention -- and
+    the binding that carries a typed name is where that divergence lives.
+    Composing it means the convention cannot be broken by a record.
+    """
+    if not base or "." not in base:
+        raise ChatHealthyException(
+            mode="config_error",
+            component="runtime_data_collections",
+            message=f"collection base must be 'Database.Collection', got {base!r}",
+        )
+    if _VERSION_SEPARATOR in base:
+        raise ChatHealthyException(
+            mode="config_error",
+            component="runtime_data_collections",
+            message=(
+                f"collection base {base!r} already carries a version. The base "
+                f"names the collection; the version is a separate field."),
+        )
+    try:
+        generation = int(version)
+    except (TypeError, ValueError):
+        raise ChatHealthyException(
+            mode="config_error",
+            component="runtime_data_collections",
+            message=f"collection version must be an integer, got {version!r}",
+        ) from None
+    return f"{base}{_VERSION_SEPARATOR}{generation}"
+
+
+def _binding_target(entry: dict) -> str:
+    """The collection one binding entry names, composed from base+version.
+
+    An entry carrying neither is a binding to an unversioned collection and
+    is taken as written -- Users and DBVersions are not versioned and never
+    will be.
+    """
+    base = entry.get("collection_base")
+    version = entry.get("version")
+    if base is not None or version is not None:
+        return compose_collection(base, version)
+    unversioned = entry.get("runtime_collection_name")
+    if not unversioned:
+        raise ChatHealthyException(
+            mode="config_error",
+            component="runtime_data_collections",
+            message=(
+                f"binding for {entry.get('collection_environment_name')!r} names "
+                f"no collection: give collection_base + version for a versioned "
+                f"collection, or runtime_collection_name for one that is not."),
+        )
+    return unversioned
+
+
+def _bases_from_doc(doc: dict, target_id: str) -> dict[tuple[str, str], str]:
+    """{(database, base): composed name} straight from what the record says.
+
+    The base is read, never recovered. A caller naming SpecialtyMetaData is
+    looked up here and the composed name is swapped in.
+    """
+    out: dict[tuple[str, str], str] = {}
+    for entry in doc.get("targets", []):
+        if entry.get("deployment_target") != target_id:
+            continue
+        for c in entry.get("collections", []):
+            base = c.get("collection_base")
+            if not base:
+                continue          # not versioned; nothing to swap
+            db_name, _, base_name = base.partition(".")
+            out[(db_name, base_name)] = _binding_target(c)
+    return out
+
+
 def _bindings_from_doc(doc: dict, target_id: str) -> dict[str, str]:
     for entry in doc.get("targets", []):
         if entry.get("deployment_target") != target_id:
             continue
         return {
-            c["collection_environment_name"]: c["runtime_collection_name"]
+            c["collection_environment_name"]: _binding_target(c)
             for c in entry.get("collections", [])
         }
     raise ChatHealthyException(
@@ -149,6 +239,7 @@ def bind_from_manifest() -> None:
     _state.target_id = target_id
     _state.env = env
     _state.bindings = bindings
+    _state.bases = _bases_from_doc(doc, target_id)
 
 
 def _coll_for(slot: str) -> Collection:
@@ -230,14 +321,15 @@ def admin_swap(
     new_bindings: dict[str, str] = {}
     for entry in items:
         slot = entry.get("collection_environment_name")
-        fqn = entry.get("runtime_collection_name")
-        if not slot or not fqn:
+        if not slot:
             raise ChatHealthyException(
                 mode="http_error",
                 component="runtime_data_collections",
-                message="each collections[] entry needs both names.",
+                message="each collections[] entry needs collection_environment_name.",
                 status_code=400)
-        new_bindings[slot] = fqn
+        # Composed here too, so a swap cannot introduce a spelling the
+        # startup binding would have refused.
+        new_bindings[slot] = _binding_target(entry)
     _state.bindings = new_bindings
     return {"status": "ok", "target_id": _state.target_id, "env": _state.env, "bindings": new_bindings}
 

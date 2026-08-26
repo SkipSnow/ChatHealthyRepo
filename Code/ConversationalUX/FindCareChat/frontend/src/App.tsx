@@ -16,11 +16,12 @@ import ProviderResultsWidget from './components/ProviderResultsWidget'
 import SelectedProvidersWidget from './components/SelectedProvidersWidget'
 import ProviderDetailWidget from './components/ProviderDetailWidget'
 import SpecialtyFilterWidget from './components/SpecialtyFilterWidget'
+import SessionDataWidget from './components/SessionDataWidget'
+import ContextSwitchWidget from './components/ContextSwitchWidget'
 import ClinicalTrialsWidget from './components/ClinicalTrialsWidget'
 import SelectedClinicalTrialsWidget from './components/SelectedClinicalTrialsWidget'
 import NewQueryLoadingWidget from './components/NewQueryLoadingWidget'
 import EvaluateCareSplashWidget from './components/EvaluateCareSplashWidget'
-import SharedServicesSplashWidget from './components/SharedServicesSplashWidget'
 import LegalPanelWidget from './components/LegalPanelWidget'
 import OAuthLoginWidget from './components/OAuthLoginWidget'
 import FakeGoogleLoginWidget from './components/FakeGoogleLoginWidget'
@@ -39,11 +40,12 @@ function App() {
       <SelectedProvidersWidget />
       <ProviderDetailWidget />
       <SpecialtyFilterWidget />
+      <SessionDataWidget />
+      <ContextSwitchWidget />
       <ClinicalTrialsWidget />
       <SelectedClinicalTrialsWidget />
       <NewQueryLoadingWidget />
       <EvaluateCareSplashWidget />
-      <SharedServicesSplashWidget />
       <LegalPanelWidget />
       <OAuthLoginWidget />
       <FakeGoogleLoginWidget />

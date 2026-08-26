@@ -37,14 +37,19 @@ def resolve_homeopathic_specialties(
     # which are relevant to homeopathic/alternative care for this query.
     # We don't pre-filter to our 24 homeopathic flags — GPT may identify
     # additional specialties that are relevant in a homeopathic context.
-    # Databases are not named for environments; environments are separated
-    # by cluster. The env-prefixed form pointed at a database that does not
-    # exist, which is why specialty resolution returned nothing.
-    meta_coll = db["PublicHealthData"]["SpecialtyMetaData"]
+    # The collection is versioned and the binding decides which version this
+    # runtime reads; naming it here reads whichever one happens to carry the
+    # unversioned name. That is not a style point: the unversioned
+    # SpecialtyMetaData has 883 documents and no flags at all, while the bound
+    # SpecialtyMetaData_v_4 has 884 with all 884 flagged, so this projected
+    # can_prescribe and is_homeopathic out of a collection that has neither
+    # and every candidate came back unflagged.
+    from chathealthy_lib.runtime_data_collections import specialty_meta_coll
+    meta_coll = specialty_meta_coll()
     candidate_docs = list(meta_coll.find(
         {"Code": {"$nin": list(existing_codes)}},
         {"Code": 1, "Display Name": 1, "Classification": 1, "Grouping": 1,
-         "can_prescribe": 1, "homeopathic": 1, "_id": 0},
+         "can_prescribe": 1, "is_homeopathic": 1, "_id": 0},
     ))
 
     if not candidate_docs:

@@ -22,8 +22,13 @@ MAX_SELECTED = 5
 
 
 class Request(BaseModel):
-    verb: Literal["select", "deselect", "list"]
-    nct_id: Optional[str] = None
+    verb: Literal["select", "deselect", "list"] = Field(
+        description="Add a trial to the evaluation set, remove one, or return "
+                    "the set.")
+    nct_id: Optional[str] = Field(
+        default=None,
+        description="Which trial, by its NCT identifier. Required for select "
+                    "and deselect.")
 
 
 class Response(BaseModel):

@@ -217,7 +217,6 @@ def test_req_um_b010_no_hardcoded_clarification_in_tools():
     import pathlib
     root = pathlib.Path(__file__).resolve().parents[3]
     targets = [
-        root / "sharedServices/Code/NonsenseTool/nonsense_tool.py",
         root / "sharedServices/Code/CloseConnection200Tool/close_connection_200_tool.py",
     ]
     bad = []
@@ -293,6 +292,9 @@ def test_req_ur_b003_first_run_writes_nucc_codes_to_intent():
     class FakeResponse:
         error = None
         specialties = [FakeRow("207X00000X", "Orthopaedic Surgery Physician", 0.9)]
+        # The specialty step returns the clinical reading of the utterance
+        # alongside the codes, and UR writes it to userParameters.complaint.
+        complaint = "back problem"
 
     with patch.object(sft.TOOL, "run_and_log", new=AsyncMock(return_value=FakeResponse())):
         codes = asyncio.run(nav.TOOL._run_or_cache_specialty_filter(deps, "back pain"))
@@ -418,6 +420,9 @@ def test_req_findcare_ur_b001_nucc_codes_cached_on_findcare_intents():
     class FakeResponse:
         error = None
         specialties = [FakeRow("207X00000X", "Orthopaedic Surgery Physician", 0.9)]
+        # The specialty step returns the clinical reading of the utterance
+        # alongside the codes, and UR writes it to userParameters.complaint.
+        complaint = "back problem"
 
     with patch.object(sft.TOOL, "run_and_log", new=AsyncMock(return_value=FakeResponse())):
         asyncio.run(nav.TOOL._run_or_cache_specialty_filter(deps, "back pain"))

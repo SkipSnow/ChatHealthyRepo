@@ -28,7 +28,12 @@ function buildSearchingHtml(query: string, seconds: number): string {
   `
 }
 
-function buildResultsAreaHtml(providers: any[], totalCount?: number, header?: string): string {
+// code -> Display Name, filled from the specialties event the panel is
+// built from. The provider payload carries taxonomy_code only.
+const SPECIALTY_NAMES: Record<string, string> = {}
+
+function buildResultsAreaHtml(providers: any[], totalCount?: number,
+                              header?: string, hasMore?: boolean): string {
   if (!providers.length) {
     return `<div style="padding:2em;color:#6b7280;font-style:italic;">No providers matched.</div>`
   }
@@ -43,7 +48,8 @@ function buildResultsAreaHtml(providers: any[], totalCount?: number, header?: st
   const rows = providers.map(p => {
     const name = _esc(p.name || '')
     const addrLine = _esc([p.address, p.city, p.state, p.zip].filter(Boolean).join(', '))
-    const spec = _esc(p.specialty || p.primary_specialty || '')
+    const spec = _esc(p.specialty || p.primary_specialty
+                      || SPECIALTY_NAMES[p.taxonomy_code] || p.taxonomy_code || '')
     const detailAttrs =
       `data-router-action="provider:detail"` +
       ` data-npi="${_esc(p.npi || '')}"` +
@@ -57,9 +63,13 @@ function buildResultsAreaHtml(providers: any[], totalCount?: number, header?: st
       `<div data-testid="provider-card" data-npi="${_esc(p.npi || '')}" draggable="true" data-drag-payload="${_esc(p.npi || '')}" style="padding:0.5em 1em;border-bottom:0.0625em solid #eee;display:flex;justify-content:space-between;align-items:center;gap:1em;cursor:grab;">` +
         `<div style="flex:1;min-width:0;">` +
           `<div style="font-weight:600;color:#0b7a75;">${name}</div>` +
-          `<div style="font-size:0.9em;color:#6b7280;">${spec}</div>` +
           `<div style="font-size:0.9em;color:#9ca3af;">${addrLine}</div>` +
           `<div style="font-size:0.85em;color:#6b7280;">NPI: ${_esc(p.npi || '')}${p.phone ? ' &middot; Phone: ' + _esc(p.phone) : ''}${p.county ? ' &middot; County: ' + _esc(p.county) : ''}</div>` +
+          // The specialty this provider was matched on, named. The row
+          // carried a taxonomy code and nothing that says what it means,
+          // so a list of 337 people gave no way to tell a podiatrist from
+          // a chiropractor without opening each one.
+          `<div style="font-size:0.85em;color:#0b7a75;">${spec}</div>` +
           `<div style="font-size:0.66em;margin-top:0.25em;"><a href="#" ${detailAttrs} style="color:#0b7a75;text-decoration:underline;">provider detail</a></div>` +
         `</div>` +
         `<button data-router-action="provider:select-click" data-npi="${_esc(p.npi || '')}" title="Select for evaluation" style="background:#fff;border:0.0625em solid #0b7a75;color:#0b7a75;padding:0.3em 0.75em;border-radius:0.375em;cursor:pointer;font-size:0.85em;white-space:nowrap;flex-shrink:0;">↓ Select</button>` +
@@ -74,6 +84,13 @@ function buildResultsAreaHtml(providers: any[], totalCount?: number, header?: st
         `<span style="color:#6b7280;">${providers.length} available — drag to select</span>` +
       `</div>` +
       `<div data-testid="available-providers" style="flex:1;overflow:auto;">${rows}</div>` +
+      (hasMore
+        ? `<div style="padding:0.6em 1em;border-top:0.125em solid #eee;text-align:center;flex-shrink:0;">` +
+            `<button data-router-action="providers:next-page" data-testid="providers-next-page" ` +
+            `style="background:#fff;border:0.125em solid #0b7a75;color:#0b7a75;padding:0.4em 1.2em;` +
+            `border-radius:0.375em;cursor:pointer;font-weight:700;">Show more providers &rarr;</button>` +
+          `</div>`
+        : '') +
     `</div>`
   )
 }
@@ -91,6 +108,10 @@ function buildScaffoldHtml(): string {
 }
 
 export default function ProviderResultsWidget() {
+  // Where this page ended, so the next one can be asked for. The server
+  // has always returned last_npi and has_more; nothing read them.
+  let lastNpiRef = ''
+  let hasMoreRef = false
   useEffect(() => {
     // Widget claims MainWindow only when the server classifies the turn as
     // a provider search. Ownership arrives via kind:'intent_classified'
@@ -98,6 +119,11 @@ export default function ProviderResultsWidget() {
     // owns the surface this turn and this widget stays quiet.
     window.parent.postMessage({ type: 'router:subscribe-broadcast', kind: 'intent_classified' }, '*')
     window.parent.postMessage({ type: 'router:subscribe-broadcast', kind: 'providers' }, '*')
+    // Apply Filter narrows the query already in force. It cannot announce
+    // intent_classified -- that means 'new query' and blanks all three
+    // frames, including the specialty panel being filtered with.
+    window.parent.postMessage({ type: 'router:subscribe-broadcast', kind: 'search_running' }, '*')
+    window.parent.postMessage({ type: 'router:subscribe-broadcast', kind: 'specialties' }, '*')
 
     let currentQuery = ''
     let startTs = 0
@@ -157,12 +183,35 @@ export default function ProviderResultsWidget() {
         }
         return
       }
+      if (msg.type === 'router:event-broadcast' && msg.kind === 'specialties') {
+        for (const s of ((msg.data || {}).specialties || [])) {
+          if (s && s.code) SPECIALTY_NAMES[s.code] = s.name || s.code
+        }
+        return
+      }
+      if (msg.type === 'router:action' && msg.action === 'providers:next-page') {
+        if (!lastNpiRef) return
+        window.parent.postMessage({
+          type: 'router:makeCall', op: 'provider_page',
+          payload: { after_npi: lastNpiRef },
+          call_id: 'provider-page-' + Date.now(),
+        }, '*')
+        return
+      }
+      if (msg.type === 'router:event-broadcast' && msg.kind === 'search_running') {
+        const criteria = String((msg.data || {}).criteria || '')
+        startTimer(criteria || 'your selected specialties')
+        return
+      }
       if (msg.type === 'router:event-broadcast' && msg.kind === 'providers') {
         stopTimer()
         const data = msg.data || {}
         const providers = Array.isArray(data.providers) ? data.providers : []
+        lastNpiRef = String(data.last_npi || '')
+        hasMoreRef = Boolean(data.has_more)
         postRender(buildScaffoldHtml())
-        postMergeResults(buildResultsAreaHtml(providers, data.total_count, data.summary_message))
+        postMergeResults(buildResultsAreaHtml(providers, data.total_count,
+                                              data.summary_message, hasMoreRef))
         return
       }
       if (msg.type === 'router:final') {

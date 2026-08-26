@@ -248,6 +248,45 @@ def _exits_that_are_raises(tree: ast.AST) -> list[tuple[int, str]]:
     return hits, faults
 
 
+# The one exception ChatHealthy code may construct that is not a
+# ChatHealthyException, and the only place it may do it.
+#
+# A pydantic-ai output validator is OUR function that THEIR library calls.
+# Raising ModelRetry inside it is not authoring an exception -- it is the
+# library's callback protocol, the only way to say "reject this answer and
+# ask the model again". The object never leaves pydantic-ai's own frame and
+# no ChatHealthy catch site ever sees it, so it cannot weaken the guarantee
+# that an exception arriving anywhere in our code carries a mode.
+#
+# Narrow on both axes deliberately: the RIGHT PLACE and the RIGHT
+# EXCEPTION. Either alone is not enough. The place is proven by the
+# decorator rather than by a naming convention, because the decorator IS
+# the registration -- a name can be right on a function that is not a
+# validator, and wrong on one that is.
+CALLBACK_PROTOCOL_DECORATOR = "output_validator"
+CALLBACK_PROTOCOL_EXCEPTION = "ModelRetry"
+
+
+def _callback_protocol_raises(tree: ast.AST) -> set[int]:
+    """Line numbers of the raises the callback-protocol carve-out allows."""
+    allowed: set[int] = set()
+    for node in ast.walk(tree):
+        if not isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef)):
+            continue
+        registered = any(
+            isinstance(dec, ast.Attribute)
+            and dec.attr == CALLBACK_PROTOCOL_DECORATOR
+            for dec in node.decorator_list
+        )
+        if not registered:
+            continue
+        for inner in ast.walk(node):
+            if (isinstance(inner, ast.Raise)
+                    and _raised_name(inner.exc) == CALLBACK_PROTOCOL_EXCEPTION):
+                allowed.add(inner.lineno)
+    return allowed
+
+
 def _count_forbidden_raises(source: str) -> list[tuple[int, str]]:
     """Return a list of (lineno, forbidden_name) for every forbidden
     Raise in the source. Unparseable source returns []."""
@@ -256,8 +295,11 @@ def _count_forbidden_raises(source: str) -> list[tuple[int, str]]:
     except SyntaxError:
         return []
     hits: list[tuple[int, str]] = []
+    allowed = _callback_protocol_raises(tree)
     for node in ast.walk(tree):
         if isinstance(node, ast.Raise):
+            if node.lineno in allowed:
+                continue
             name = _is_forbidden_raise(node)
             if name is not None:
                 hits.append((node.lineno, name))

@@ -31,14 +31,30 @@ FINDCARE_INTERNAL_URL_DEFAULT = "https://ch-findcare:7860"
 
 class Request(BaseModel):
     """Mirrors the on-screen provider-card fields. Same shape as
-    FindCare's ProviderDetailInput so the body forwards verbatim."""
-    name: str
-    npi: str
-    specialty: Optional[str] = None
-    address: Optional[str] = None
-    county: Optional[str] = None
-    phone: Optional[str] = None
-    state: Optional[str] = None
+    FindCare's ProviderDetailInput so the body forwards verbatim.
+
+    Only the NPI identifies anybody. name is optional because a detail is
+    also opened from a recorded selection, which carries the NPI and no
+    card; FindCare reads the name from the record in that case.
+    """
+    name: Optional[str] = Field(
+        default=None,
+        description="Display name from the card. Optional: a detail is also "
+                    "opened from a recorded selection carrying only the NPI, "
+                    "and the record supplies the name in that case.")
+    npi: str = Field(
+        description="The provider to open. The only field that identifies "
+                    "anybody; the rest are the card's copy of what the record "
+                    "already holds.")
+    specialty: Optional[str] = Field(default=None, description="Card echo.")
+    address: Optional[str] = Field(default=None, description="Card echo.")
+    county: Optional[str] = Field(default=None, description="Card echo.")
+    phone: Optional[str] = Field(default=None, description="Card echo.")
+    state: Optional[str] = Field(
+        default=None,
+        description="Two-letter USPS code, used only to build external "
+                    "research links when the record carries no practice "
+                    "state.")
 
 
 class ResearchSiteRow(BaseModel):
