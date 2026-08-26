@@ -27,8 +27,8 @@ from chathealthy_lib import llm as llm_mod
 
 @pytest.fixture(autouse=True)
 def _fast_backoff(monkeypatch):
-    monkeypatch.setattr(llm_mod, "_BACKOFF_SECONDS", (0.0, 0.0))
-    monkeypatch.delenv(llm_mod._INJECT_ENV, raising=False)
+    monkeypatch.setattr(llm_mod, "BACKOFF_SECONDS", (0.0, 0.0))
+    monkeypatch.delenv(llm_mod.INJECT_ENV, raising=False)
 
 
 def _fake_agent_async(side_effects):
@@ -107,7 +107,7 @@ def test_run_llm_does_not_retry_on_non_transient():
 
 
 def test_run_llm_inject_env_forces_failure(monkeypatch):
-    monkeypatch.setenv(llm_mod._INJECT_ENV, "1")
+    monkeypatch.setenv(llm_mod.INJECT_ENV, "1")
     agent = _fake_agent_async([SimpleNamespace(data="never_called")])
     with pytest.raises(ChatHealthyException) as ei:
         asyncio.run(run_llm(
@@ -119,7 +119,7 @@ def test_run_llm_inject_env_forces_failure(monkeypatch):
 
 
 def test_run_llm_inject_env_falsey_does_not_force(monkeypatch):
-    monkeypatch.setenv(llm_mod._INJECT_ENV, "0")
+    monkeypatch.setenv(llm_mod.INJECT_ENV, "0")
     agent = _fake_agent_async([SimpleNamespace(data="ok")])
     result = asyncio.run(run_llm(
         agent, "hi", call_site="test.inject_off", provider="gemini",
@@ -173,7 +173,7 @@ def test_run_llm_sync_raises_chathealthy_after_three_failures():
 
 
 def test_run_llm_sync_inject_env(monkeypatch):
-    monkeypatch.setenv(llm_mod._INJECT_ENV, "yes")
+    monkeypatch.setenv(llm_mod.INJECT_ENV, "yes")
     agent = _fake_agent_sync([SimpleNamespace(data="never")])
     with pytest.raises(ChatHealthyException) as ei:
         run_llm_sync(

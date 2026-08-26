@@ -107,12 +107,14 @@ class Address(BaseModel):
     @classmethod
     def ordered_from_stored(cls, stored: dict) -> list["Address"]:
         """Per S-001-REQ-B-004: practice first, business last; others between."""
-        practice = [dict(a, address_type="practice")
-                    for a in (stored.get("practice_addresses") or [])]
-        business_one = stored.get("business_address")
-        business = ([dict(business_one, address_type="business")]
-                    if isinstance(business_one, dict) else [])
-        return [cls.from_stored(a) for a in (practice + business)]
+        raw = stored.get("addresses") or []
+        practice = [a for a in raw if a.get("address_type") == "practice"]
+        business = [a for a in raw if a.get("address_type") == "business"]
+        other = [
+            a for a in raw
+            if a.get("address_type") not in ("practice", "business")
+        ]
+        return [cls.from_stored(a) for a in (practice + other + business)]
 
 
 class License(BaseModel):
@@ -151,13 +153,12 @@ class Taxonomy(BaseModel):
     primary: bool = False
 
     @classmethod
-    def from_stored(cls, taxonomy: dict, code_to_display: dict[str, str],
-                    primary_code: str = "") -> "Taxonomy":
+    def from_stored(cls, taxonomy: dict, code_to_display: dict[str, str]) -> "Taxonomy":
         code = (taxonomy.get("code") or "").strip()
         return cls(
             code=code,
             display_name=code_to_display.get(code, ""),
-            primary=bool(code) and code == (primary_code or "").strip(),
+            primary=bool(taxonomy.get("primary")),
         )
 
 
@@ -204,8 +205,7 @@ class ProviderDetailOutput(BaseModel):
             licenses=[License.from_stored(lic) for lic in stored.get("licenses") or []],
             insurance=[Insurance.from_stored(ins) for ins in stored.get("insurance") or []],
             taxonomies=[
-                Taxonomy.from_stored(t, code_to_display,
-                                     stored.get("primary_taxonomy_code") or "")
+                Taxonomy.from_stored(t, code_to_display)
                 for t in stored.get("taxonomies") or []
             ],
             research_sites={k: ResearchSite(**v) for k, v in research_sites.items()},
@@ -214,19 +214,19 @@ class ProviderDetailOutput(BaseModel):
     @staticmethod
     def primary_taxonomy_code(stored: dict) -> str:
         tax = stored.get("taxonomies") or []
-        primary = (stored.get("primary_taxonomy_code") or "").strip()
+        primary = next((t for t in tax if t.get("primary")), None)
         if primary:
-            return primary
+            return (primary.get("code") or "").strip()
         if tax:
             return (tax[0].get("code") or "").strip()
         return ""
 
     @staticmethod
     def primary_practice_state(stored: dict) -> str:
-        for a in stored.get("practice_addresses") or []:
+        for a in stored.get("addresses") or []:
+            if a.get("address_type") == "practice" and a.get("state"):
+                return (a.get("state") or "").strip().upper()
+        for a in stored.get("addresses") or []:
             if a.get("state"):
                 return (a.get("state") or "").strip().upper()
-        business = stored.get("business_address")
-        if isinstance(business, dict) and business.get("state"):
-            return (business.get("state") or "").strip().upper()
         return ""

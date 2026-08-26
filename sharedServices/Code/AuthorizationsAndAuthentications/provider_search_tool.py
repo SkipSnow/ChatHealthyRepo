@@ -1,6 +1,6 @@
 # Copyright (c) 2026 ChatHealthy.ai LLC. All rights reserved.
 # Licensed under the FindCare Evaluation License (FEL-1.0).
-"""ProviderSearchAndSelection tool — queries the provider DB given the
+"""ProviderSearch tool — queries the provider DB given the
 specialty codes + location resolved by SpecialtyFilter, returns the
 provider list payload the FE's center panel renders.
 
@@ -33,13 +33,34 @@ FINDCARE_INTERNAL_URL_DEFAULT = "https://ch-findcare:7860"
 
 
 class Request(BaseModel):
-    specialty_codes: list[str] = Field(default_factory=list)
-    state: Optional[str] = None
-    city: Optional[str] = None
-    county: Optional[str] = None
-    zip: Optional[str] = None
-    limit: int = 25
-    after_npi: Optional[str] = None
+    specialty_codes: list[str] = Field(
+        default_factory=list,
+        description="NUCC taxonomy codes. A provider matches if ANY taxonomy "
+                    "it holds carries one of these, not only its primary one, "
+                    "so a result can display a specialty that is not in this "
+                    "list. Empty searches every code the specialty step "
+                    "offered.")
+    state: Optional[str] = Field(
+        default=None,
+        description="Two-letter USPS code, uppercase. Sufficient on its own.")
+    city: Optional[str] = Field(
+        default=None,
+        description="City name. NOT sufficient alone -- city names repeat "
+                    "across states, so a state is required with it.")
+    county: Optional[str] = Field(
+        default=None,
+        description="County name. NOT sufficient alone; requires a state.")
+    zip: Optional[str] = Field(
+        default=None,
+        description="Five-digit ZIP. Sufficient on its own.")
+    limit: int = Field(
+        default=25, description="How many providers this page returns.")
+    after_npi: Optional[str] = Field(
+        default=None,
+        description="Keyset cursor: return providers ordered after this NPI. "
+                    "Absent means the first page. This is how position in a "
+                    "long result is carried, since results are ordered by NPI "
+                    "rather than numbered.")
 
 
 class Response(BaseModel):
@@ -61,12 +82,12 @@ def findcare_url() -> str:
     return os.environ.get(FINDCARE_INTERNAL_URL_ENV) or FINDCARE_INTERNAL_URL_DEFAULT
 
 
-class ProviderSearchAndSelectionTool(ChatHealthyTool):
+class ProviderSearchTool(ChatHealthyTool):
     """Pure-DB tool (no LLM Agent inside). Given specialty codes + state
     from deps.user_object.find_care (or via Request), HTTP-calls FindCare
     /search and returns the providers list. Same ChatHealthyTool interface
     as LLM-driven tools."""
-    TOOL_NAME = "provider_search_and_selection"
+    TOOL_NAME = "provider_search"
     Request = Request
     Response = Response
 
@@ -78,7 +99,7 @@ class ProviderSearchAndSelectionTool(ChatHealthyTool):
                       exc=ChatHealthyException(
                           mode="provider_search_no_specialty_codes",
                           message="provider_search precondition failed: no specialty codes",
-                          component="ProviderSearchAndSelectionTool",
+                          component="ProviderSearchTool",
                       ), if_not_debug_log=True)
             resp = self.Response(error="No specialty codes; cannot search providers.")
             deps.stream({"kind": "providers", "data": resp.model_dump(exclude_none=True)})
@@ -117,7 +138,7 @@ class ProviderSearchAndSelectionTool(ChatHealthyTool):
                        exc=ChatHealthyException(
                         mode="search_unavailable",
                         message=f"FindCare /search call failed: {type(exc).__name__}: {exc}",
-                        component="ProviderSearchAndSelectionTool",
+                        component="ProviderSearchTool",
                         exception=exc,
                     ), if_not_debug_log=True)
             resp = self.Response(
@@ -144,4 +165,4 @@ class ProviderSearchAndSelectionTool(ChatHealthyTool):
         return resp
 
 
-TOOL = ProviderSearchAndSelectionTool()
+TOOL = ProviderSearchTool()

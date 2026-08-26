@@ -29,22 +29,46 @@
           },
           "collections": {
             "type": "array",
-            "description": "One entry per logical collection slot the runtime consumes.",
+            "description": "One entry per logical collection slot the runtime consumes. A versioned collection states its base and its version and the runtime composes the physical name; an unversioned collection states its path directly. An entry is one or the other, never both.",
             "minItems": 1,
             "uniqueItems": true,
             "items": {
               "type": "object",
               "additionalProperties": false,
-              "required": ["collection_environment_name", "runtime_collection_name"],
+              "required": ["collection_environment_name"],
+              "oneOf": [
+                {
+                  "required": ["collection_base", "version"],
+                  "not": { "required": ["runtime_collection_name"] }
+                },
+                {
+                  "required": ["runtime_collection_name"],
+                  "not": { "anyOf": [
+                    { "required": ["collection_base"] },
+                    { "required": ["version"] }
+                  ] }
+                }
+              ],
               "properties": {
                 "collection_environment_name": {
                   "type": "string",
                   "description": "Identifier the runtime uses for this collection slot. Example: PROVIDER_COLLECTION.",
                   "pattern": "^[A-Z][A-Z0-9_]{0,63}$"
                 },
+                "collection_base": {
+                  "type": "string",
+                  "description": "Fully-qualified DB.collection path WITHOUT a version suffix, for a versioned collection. The runtime composes the physical name as <collection_base>_v_<version>, so the name is never written down and cannot be spelled two ways. This replaced a written runtime_collection_name: the collection had been recorded as both provider_v03 and Provider_v_4, two spellings of one idea, and only the second follows the convention. Example: PublicHealthData.Provider.",
+                  "pattern": "^[A-Za-z0-9_]+\\.[A-Za-z0-9_]+$",
+                  "not": { "pattern": "_v_" }
+                },
+                "version": {
+                  "type": "integer",
+                  "description": "Generation of the versioned collection named by collection_base. Composed into the physical name as _v_<version>. Example: 4, giving PublicHealthData.Provider_v_4.",
+                  "minimum": 1
+                },
                 "runtime_collection_name": {
                   "type": "string",
-                  "description": "Fully-qualified DB.collection path. Example: PublicHealthData.provider_v03.",
+                  "description": "Fully-qualified DB.collection path, for a collection that is NOT versioned and never will be. Example: Users.sessions. A versioned collection MUST use collection_base + version instead: writing its name here is what allowed the convention to be broken by a record.",
                   "pattern": "^[A-Za-z0-9_]+\\.[A-Za-z0-9_]+$"
                 }
               }

@@ -104,7 +104,7 @@ app = FastAPI(title="ChatHealthy.ai Shared Services", version="0.1.5")
 # versioned collections today. /admin/swap is how a data version is
 # activated, and a service that does not expose it cannot be told which
 # collection generation to serve -- so a version activation would silently
-# cover part of the estate and report success. Mounting the router costs
+# cover part of the application and report success. Mounting the router costs
 # nothing where no slot is bound: the endpoint answers and the swap is a
 # no-op for a target the binding document does not name.
 from chathealthy_lib.runtime_data_collections import (  # noqa: E402

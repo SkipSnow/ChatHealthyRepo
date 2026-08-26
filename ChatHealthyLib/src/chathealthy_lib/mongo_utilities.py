@@ -83,102 +83,12 @@ _HOST_CACHE: dict[str, str] = {}
 _TAG_CACHE: dict[str, dict] = {}
 # One live client per (identity, cluster). Not a cluster fact -- a
 # process-local cache -- and it went out with the four that were.
-_CLIENT_CACHE: dict[tuple[str, str], "TimedClient"] = {}
+# Keyed by identity, cluster AND version mode: the mode changes which
+# collection a name resolves to, so two modes are two different handles.
+_CLIENT_CACHE: dict[tuple[str, str, bool], "TimedClient"] = {}
 _VAULT_HOST_PREFIX = "mongo-host-"
 _VAULT_ATTEMPTS_PREFIX = "mongo-attempts-"
 _VAULT_NO_CACHE_PREFIX = "mongo-nocache-"
-
-
-def _vault_fact(self, cluster: str, identity: str, prefix: str) -> str:
-    """One connection fact, off the TAGS of the identity's own cert secret.
-
-    A separate secret per fact does not work and the 403 that proved it is
-    the entitlement model being right: the vault grants each identity
-    exactly one secret, its own certificate, so a shared mongo-host-* secret
-    would need a grant per identity and would widen every identity's reach
-    to read it.
-
-    The tags on that one secret cost no extra grant and no extra round trip
-    -- the certificate fetch already returns them. And it puts the fact
-    where the operator said it goes: keyed by the cert name. An identity
-    learns where the clusters IT may reach are, and nothing about the rest.
-    """
-    vault_uri = os.environ.get("KEY_VAULT_URI", "").strip()
-    if not vault_uri:
-        raise ChatHealthyException(
-            mode="vault_unreachable",
-            message="KEY_VAULT_URI not set, so no connection fact can be read",
-            component="ChatHealthyMongoUtilities",
-        )
-    tags = _vault_tags(self, vault_uri, identity)
-    return (tags.get(f"{prefix}{cluster}") or "").strip()
-
-
-def _vault_tags(self, vault_uri: str, identity: str) -> dict:
-    """The tags on an identity's certificate secret. Cached per process."""
-    if identity in _TAG_CACHE:
-        return _TAG_CACHE[identity]
-    response = httpx.get(
-        f"{vault_uri.rstrip('/')}/secrets/{identity}",
-        params={"api-version": "7.4"},
-        headers={"Authorization": f"Bearer {self._azure_token(identity)}"},
-        timeout=15,
-    )
-    if response.status_code != 200:
-        raise ChatHealthyException(
-            mode="security_violation",
-            message=f"Key Vault returned {response.status_code} reading the "
-                    f"connection facts tagged on {identity!r}",
-            component="ChatHealthyMongoUtilities",
-        )
-    tags = response.json().get("tags") or {}
-    _TAG_CACHE[identity] = tags
-    return tags
-
-
-def _host_for(self, cluster: str, identity: str, host: str = "") -> str:
-    """Where the cluster answers. Argument wins, then vault, then nothing.
-
-    The argument exists for a caller that already knows -- it is not a
-    default and it is not a fallback to something hardcoded, because there
-    is nothing hardcoded left to fall back to.
-    """
-    if host:
-        _HOST_CACHE[cluster] = host.strip()
-        return _HOST_CACHE[cluster]
-    if cluster in _HOST_CACHE:
-        return _HOST_CACHE[cluster]
-    found = _vault_fact(self, cluster, identity, _VAULT_HOST_PREFIX)
-    if found:
-        _HOST_CACHE[cluster] = found
-        return found
-    raise ChatHealthyException(
-        mode="manifest_incomplete",
-        message=f"no host for cluster {cluster!r}: the vault holds no "
-                f"{_VAULT_HOST_PREFIX}{cluster} and no caller supplied one. "
-                f"This library holds no cluster facts.",
-        component="ChatHealthyMongoUtilities",
-    )
-
-
-def _connect_attempts(self, cluster: str, identity: str) -> int:
-    """How many times to try. One, unless the vault says otherwise.
-
-    A cluster that pauses between runs can be met mid-transition. Which
-    cluster that is, is a deployment fact and not this library's to know.
-    """
-    raw = _vault_fact(self, cluster, identity, _VAULT_ATTEMPTS_PREFIX)
-    return int(raw) if raw.isdigit() and int(raw) > 0 else 1
-
-
-def _is_cacheable(self, cluster: str, identity: str) -> bool:
-    """A client is reusable only against a cluster that stays up.
-
-    Holding one against a cluster that pauses outlives the cluster, and an
-    open handle is a false signal of activity to anything judging idleness.
-    """
-    return _vault_fact(self, cluster, identity,
-                       _VAULT_NO_CACHE_PREFIX).lower() not in ("1", "true", "yes")
 
 
 def q(value: Any) -> str:
@@ -384,12 +294,140 @@ class TimedCollection:
             raise
 
 
+# THE naming convention for a versioned collection. One form, no variants:
+#
+#     <BaseName>_v_<N>        Provider_v_4, SpecialtyMetaData_v_4
+#
+# A collection is versioned if and only if its name ends this way. Anything
+# else -- Users, sessions, DBVersions, and the retired provider_v03, which
+# predates the convention -- is not versioned, is not resolved, and is read
+# under exactly the name the caller gave.
+#
+# Absolute, because a rule that admits variants is a rule that has to guess.
+# Guessing is what produced a map keyed by a base name derived two different
+# ways for two generations of the same collection.
+_VERSION_SEPARATOR = "_v_"
+
+
+def _is_versioned(collection_name: str) -> tuple[bool, str]:
+    """(is it versioned, its base name). The base is meaningless if not."""
+    base, separator, generation = collection_name.rpartition(_VERSION_SEPARATOR)
+    if not separator or not base or not generation.isdigit():
+        return False, collection_name
+    return True, base
+
+
+# Built once from the bindings the runtime resolved at startup, and rebuilt
+# only when those bindings change -- which is admin/swap and nothing else.
+# A map rebuilt per query would read the binding state on every collection
+# access in the process.
+_VERSION_MAP: dict[tuple[str, str], str] | None = None
+_VERSION_MAP_SOURCE: dict[str, str] | None = None
+
+
+def _version_map() -> dict[tuple[str, str], str]:
+    """{(database, base name): bound collection} for this runtime.
+
+    Read from the bindings the runtime already holds, so this consults no
+    second source and makes no round trip.
+
+    Empty when nothing is bound, which is every devops tool and every
+    pipeline: no binding means no version to manage, and the name given is
+    the name used.
+    """
+    global _VERSION_MAP, _VERSION_MAP_SOURCE
+
+    # Not wrapped. An exception here used to be swallowed into an empty map,
+    # which reads as "nothing is versioned" and sends every caller to the
+    # unversioned collection -- the precise failure this resolution exists to
+    # prevent, arrived at by the code protecting itself. If the binding state
+    # cannot be read, that is a fact the caller must see, not one to absorb.
+    from .runtime_data_collections import _state
+    bases = dict(_state.bases or {})
+
+    if _VERSION_MAP is not None and _VERSION_MAP_SOURCE == bases:
+        return _VERSION_MAP
+
+    # The bases come from the binding record, which states them. Nothing is
+    # split apart and nothing is inferred: the record says the base is
+    # PublicHealthData.Provider and the version is 4, so this map holds
+    # ("PublicHealthData", "Provider") -> "Provider_v_4" and the swap is a
+    # lookup.
+    built: dict[tuple[str, str], str] = {}
+    for (db_name, base), fqn in bases.items():
+        _, _, coll_name = str(fqn).partition(".")
+        if db_name and base and coll_name:
+            built[(db_name, base)] = coll_name
+
+    _VERSION_MAP = built
+    _VERSION_MAP_SOURCE = bases
+    return built
+
+
 class TimedDatabase:
-    def __init__(self, db: Any) -> None:
+    def __init__(self, db: Any, manage_versions: bool = True) -> None:
         self._db = db
+        self._manage_versions = manage_versions
+
+    def _resolve(self, name: str) -> str:
+        """The collection this runtime should read for the name asked for.
+
+        A caller names the collection it means -- SpecialtyMetaData -- and
+        gets the version bound for this target and environment. Applications
+        do not spell version numbers, so they cannot spell the wrong one:
+        the homeopathic resolver named the unversioned collection directly
+        and read 883 documents with no flags on them while the specialty
+        filter, going through the binding, read the 884 that had them.
+
+        Naming a version explicitly is refused rather than obeyed. A caller
+        that writes Provider_v_3 while the binding says Provider_v_4 has
+        stated something false about what this runtime reads, and serving it
+        would mean two components in one process disagreeing about which
+        generation of the data they are looking at -- silently, and
+        differently per environment. It raises, so the first exercise of that
+        path fails loudly instead of returning the wrong decade of data.
+        """
+        if not self._manage_versions:
+            return name
+
+        versioned, base = _is_versioned(name)
+        bound = _version_map().get((self._db.name, base if versioned else name))
+
+        if versioned:
+            if bound is None:
+                raise ChatHealthyException(
+                    mode="config_error",
+                    component="ChatHealthyMongoUtilities",
+                    status_code=503,
+                    fatal_error=True,
+                    message=(
+                        f"{self._db.name}.{name} names a version explicitly, but "
+                        f"no version of {base!r} is bound for this runtime. Name "
+                        f"the collection {base!r} and the binding decides the "
+                        f"version, or construct "
+                        f"ChatHealthyMongoUtilities(manage_versions=False) if "
+                        f"addressing a specific generation is the job."),
+                )
+            if bound != name:
+                raise ChatHealthyException(
+                    mode="config_error",
+                    component="ChatHealthyMongoUtilities",
+                    status_code=503,
+                    fatal_error=True,
+                    message=(
+                        f"{self._db.name}.{name} asks for a version this runtime "
+                        f"does not read: the binding for {base!r} is {bound!r}. "
+                        f"Name the collection {base!r} and let the binding "
+                        f"answer, or construct "
+                        f"ChatHealthyMongoUtilities(manage_versions=False) if "
+                        f"addressing a specific generation is the job."),
+                )
+            return bound
+
+        return bound or name
 
     def __getitem__(self, name: str) -> TimedCollection:
-        return TimedCollection(self._db[name])
+        return TimedCollection(self._db[self._resolve(name)])
 
     def __getattr__(self, name: str) -> Any:
         return getattr(self._db, name)
@@ -401,11 +439,12 @@ class TimedClient:
     ChatHealthyLoggingService. No time math - the asctime in each log
     line is the only timestamp."""
 
-    def __init__(self, client: MongoClient) -> None:
+    def __init__(self, client: MongoClient, manage_versions: bool = True) -> None:
         self._client = client
+        self._manage_versions = manage_versions
 
     def __getitem__(self, name: str) -> TimedDatabase:
-        return TimedDatabase(self._client[name])
+        return TimedDatabase(self._client[name], self._manage_versions)
 
     def __getattr__(self, name: str) -> Any:
         return getattr(self._client, name)
@@ -423,9 +462,23 @@ class ChatHealthyMongoUtilities:
       5. Returns TimedClient wrapping the authenticated MongoClient
     """
 
-    def __init__(self) -> None:
-        """No-op constructor. All state comes from vault. No caching."""
-        pass
+    def __init__(self, manage_versions: bool = True) -> None:
+        """One mode, chosen here and nowhere else.
+
+        manage_versions=True -- the default and what every application wants.
+        A collection named by its plain name resolves to the version bound
+        for this target and environment, so applications never spell a
+        version number and therefore never spell the wrong one.
+
+        manage_versions=False -- the name given is the name used. For the
+        migration, the pipelines and any tool whose whole job is to address a
+        specific generation of a collection.
+
+        It is private and it is settable only here. A switch that could be
+        flipped after construction would mean a handle's behaviour depends on
+        when you looked at it, and the two modes read different data.
+        """
+        object.__setattr__(self, "_manage_versions", bool(manage_versions))
 
     def __setattr__(self, name: str, value: Any) -> None:
         """Block any attempt to assign connection state."""
@@ -634,6 +687,93 @@ class ChatHealthyMongoUtilities:
                 exception=exc) from exc
         return pem.strip() + chr(10)
 
+    def _vault_fact(self, cluster: str, identity: str, prefix: str) -> str:
+        """One connection fact, off the TAGS of the identity's own cert secret.
+
+        A separate secret per fact does not work and the 403 that proved it is
+        the entitlement model being right: the vault grants each identity
+        exactly one secret, its own certificate, so a shared mongo-host-* secret
+        would need a grant per identity and would widen every identity's reach
+        to read it.
+
+        The tags on that one secret cost no extra grant and no extra round trip
+        -- the certificate fetch already returns them. And it puts the fact
+        where the operator said it goes: keyed by the cert name. An identity
+        learns where the clusters IT may reach are, and nothing about the rest.
+        """
+        vault_uri = os.environ.get("KEY_VAULT_URI", "").strip()
+        if not vault_uri:
+            raise ChatHealthyException(
+                mode="vault_unreachable",
+                message="KEY_VAULT_URI not set, so no connection fact can be read",
+                component="ChatHealthyMongoUtilities",
+            )
+        tags = self._vault_tags(vault_uri, identity)
+        return (tags.get(f"{prefix}{cluster}") or "").strip()
+
+    def _vault_tags(self, vault_uri: str, identity: str) -> dict:
+        """The tags on an identity's certificate secret. Cached per process."""
+        if identity in _TAG_CACHE:
+            return _TAG_CACHE[identity]
+        response = httpx.get(
+            f"{vault_uri.rstrip('/')}/secrets/{identity}",
+            params={"api-version": "7.4"},
+            headers={"Authorization": f"Bearer {self._azure_token(identity)}"},
+            timeout=15,
+        )
+        if response.status_code != 200:
+            raise ChatHealthyException(
+                mode="security_violation",
+                message=f"Key Vault returned {response.status_code} reading the "
+                        f"connection facts tagged on {identity!r}",
+                component="ChatHealthyMongoUtilities",
+            )
+        tags = response.json().get("tags") or {}
+        _TAG_CACHE[identity] = tags
+        return tags
+
+    def _host_for(self, cluster: str, identity: str, host: str = "") -> str:
+        """Where the cluster answers. Argument wins, then vault, then nothing.
+
+        The argument exists for a caller that already knows -- it is not a
+        default and it is not a fallback to something hardcoded, because there
+        is nothing hardcoded left to fall back to.
+        """
+        if host:
+            _HOST_CACHE[cluster] = host.strip()
+            return _HOST_CACHE[cluster]
+        if cluster in _HOST_CACHE:
+            return _HOST_CACHE[cluster]
+        found = self._vault_fact(cluster, identity, _VAULT_HOST_PREFIX)
+        if found:
+            _HOST_CACHE[cluster] = found
+            return found
+        raise ChatHealthyException(
+            mode="manifest_incomplete",
+            message=f"no host for cluster {cluster!r}: the vault holds no "
+                    f"{_VAULT_HOST_PREFIX}{cluster} and no caller supplied one. "
+                    f"This library holds no cluster facts.",
+            component="ChatHealthyMongoUtilities",
+        )
+
+    def _connect_attempts(self, cluster: str, identity: str) -> int:
+        """How many times to try. One, unless the vault says otherwise.
+
+        A cluster that pauses between runs can be met mid-transition. Which
+        cluster that is, is a deployment fact and not this library's to know.
+        """
+        raw = self._vault_fact(cluster, identity, _VAULT_ATTEMPTS_PREFIX)
+        return int(raw) if raw.isdigit() and int(raw) > 0 else 1
+
+    def _is_cacheable(self, cluster: str, identity: str) -> bool:
+        """A client is reusable only against a cluster that stays up.
+
+        Holding one against a cluster that pauses outlives the cluster, and an
+        open handle is a false signal of activity to anything judging idleness.
+        """
+        return self._vault_fact(cluster, identity,
+                           _VAULT_NO_CACHE_PREFIX).lower() not in ("1", "true", "yes")
+
     def getConnection(self, identity: str, cluster: str,
                       host: str = "") -> TimedClient:
         """Connect to a logical target as an identity, over mTLS.
@@ -672,8 +812,8 @@ class ChatHealthyMongoUtilities:
                 component="ChatHealthyMongoUtilities",
             )
 
-        if _is_cacheable(self, cluster, identity):
-            cached = _CLIENT_CACHE.get((identity, cluster))
+        if self._is_cacheable(cluster, identity):
+            cached = _CLIENT_CACHE.get((identity, cluster, self._manage_versions))
             if cached is not None:
                 return cached
 
@@ -701,7 +841,7 @@ class ChatHealthyMongoUtilities:
             pass
         os.replace(staging_path, cert_path)
 
-        host = _host_for(self, cluster, identity, host)
+        host = self._host_for(cluster, identity, host)
         uri = (
             f"mongodb+srv://{host}/?authSource=%24external"
             "&authMechanism=MONGODB-X509&retryWrites=true&w=majority"
@@ -713,7 +853,7 @@ class ChatHealthyMongoUtilities:
         # it fine. certifi is the same bundle on both, so the handshake does
         # not depend on where the code happens to be running.
         import certifi  # noqa: PLC0415
-        attempts = _connect_attempts(self, cluster, identity)
+        attempts = self._connect_attempts(cluster, identity)
         last_exc: Exception | None = None
         for attempt in range(1, attempts + 1):
             try:
@@ -740,9 +880,13 @@ class ChatHealthyMongoUtilities:
                 # failure is still fully described where it is handled.
                 time.sleep(_CONNECT_BACKOFF_SECONDS * attempt)
 
-        timed = TimedClient(client)
-        if _is_cacheable(self, cluster, identity):
-            _CLIENT_CACHE[(identity, cluster)] = timed
+        timed = TimedClient(client, self._manage_versions)
+        if self._is_cacheable(cluster, identity):
+            # The mode is part of the key. Two handles to one cluster that
+            # resolve names differently are not the same handle, and serving
+            # a cached one across modes would hand a migration the
+            # application's version or the reverse.
+            _CLIENT_CACHE[(identity, cluster, self._manage_versions)] = timed
         return timed
 
 

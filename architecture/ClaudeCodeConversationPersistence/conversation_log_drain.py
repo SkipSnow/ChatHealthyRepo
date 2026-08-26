@@ -202,11 +202,23 @@ def build_record(raw: bytes, time_ns: int, prior_collection, oai_client=None):
     # Native date, not a formatted string. An index over it compares instants,
     # so ordering holds through daylight-saving transitions.
     doc["timestamp"] = datetime.fromtimestamp(time_ns / 1e9, tz=timezone.utc)
-    _classify_into(doc)
+    _classify_into_content(doc, doc.get("content", ""))
     return doc, credentials_error
 
 
-def _classify_into(doc: dict) -> None:
+def _classification_for(content: str) -> dict:
+    """The label fields for one document, or {} when none can be produced.
+
+    Shares the ingest path's contract deliberately: the sweep finishing a
+    label ingest could not produce must produce the same label, or the archive
+    carries two vocabularies depending on which pass happened to reach it.
+    """
+    doc: dict = {}
+    _classify_into_content(doc, content)
+    return doc
+
+
+def _classify_into_content(doc: dict, content: str) -> None:
     """Add tone and utterance_class, if classification is available.
 
     Never raises. An unclassified utterance is still the utterance; losing it
@@ -215,7 +227,7 @@ def _classify_into(doc: dict) -> None:
     """
     try:
         from conversation_log_classifier import CLASSIFIER_VERSION, classify
-        result = classify(doc.get("content", ""))
+        result = classify(content)
         if result is None:
             return
         doc["tone"] = result.tone.value
@@ -236,7 +248,16 @@ def drain_once(directory: Path, collection, oai_client=None) -> tuple[int, int]:
     """
     shipped = failed = 0
     last_error = ""
-    for path in sorted(ready_files(directory)):
+    ready = sorted(ready_files(directory))
+    if ready:
+        # Both stores, before the batch rather than on a timer. REQ-B-005
+        # admits no window in which a declared secret is archived in the clear,
+        # and the secret most likely to be in this batch is the one added a
+        # minute ago -- because pasting it is what prompts declaring it.
+        env_count, vault_count = record.refresh_secret_sources()
+        _debug(f"secret sources refreshed: {env_count} .env value(s), "
+               f"{vault_count} vault name(s)")
+    for path in ready:
         parsed = parse_spool_name(path.name)
         try:
             raw = path.read_bytes()
@@ -275,41 +296,97 @@ def drain_once(directory: Path, collection, oai_client=None) -> tuple[int, int]:
 
 
 def sweep_archive(collection) -> int:
-    """Re-redact every archived document against the CURRENT secret list.
+    """Classify what ingest could not, and check for leaks on the way past.
 
-    CREDENTIALS ONLY, and deliberately: this walks the whole collection, so it
-    takes no model client. Passing one turned a fast deterministic pass into
-    one OpenAI call per document -- 39,000 serial HTTP calls that hung the
-    drain for hours. Profanity is per-utterance work and already runs on the
-    ingest path, where it costs one call per new utterance.
+    Classification is the job. An utterance archived while the classifier was
+    unavailable carries no classified_at -- that absence is deliberate, and it
+    is what this pass exists to find. Losing the label would have been a worse
+    trade than losing the utterance, so ingest archives it unlabelled and this
+    finishes the work later.
 
-    Why it is needed: .env grows. A credential archived before anyone thought
-    to record it is not redactable at the time and becomes redactable later.
-    Without this, the archive keeps every secret that was ever typed before it
-    was known. It also repairs anything written while redaction was broken.
+    The leak check is belt and suspenders. Ingest redacts against the same two
+    stores this uses, so a document repaired here is one that reached the
+    archive unredacted -- which makes a repair a defect report about ingest,
+    not housekeeping, and it is reported as one.
+
+    The leak check takes no model client. Passing one turned a fast
+    deterministic pass into one OpenAI call per document -- 39,000 serial HTTP
+    calls that hung the drain for hours. Profanity is per-utterance work and
+    already runs on ingest, where it costs one call per new utterance.
+    Classification does call a model, but only for the documents that lack a
+    label, which is a handful rather than the collection.
 
     Only documents that actually change are written.
     """
+    env_count, vault_count = record.refresh_secret_sources()
     total = collection.count_documents({})
-    _log(f"archive sweep BEGIN documents={total} "
-         f"llm={'on' if oai_client else 'off'}")
+    unlabelled = collection.count_documents({"classified_at": {"$exists": False}})
+    _log(f"archive sweep BEGIN documents={total} to_classify={unlabelled} "
+         f"checking against {env_count} .env value(s) and {vault_count} vault name(s)")
     started = time.time()
-    repaired = seen = 0
-    for doc in collection.find({}, {"content": 1}):
+    repaired = classified = seen = 0
+
+    for doc in collection.find({}, {"content": 1, "classified_at": 1}):
         seen += 1
         if seen % 500 == 0:
             rate = seen / max(time.time() - started, 0.001)
-            _debug(f"archive sweep {seen}/{total} repaired={repaired} "
-                 f"{rate:.1f} docs/s eta={(total-seen)/max(rate,0.001):.0f}s")
+            _debug(f"archive sweep {seen}/{total} classified={classified} "
+                   f"repaired={repaired} {rate:.1f} docs/s "
+                   f"eta={(total-seen)/max(rate,0.001):.0f}s")
         original = doc.get("content")
         if not isinstance(original, str) or not original:
             continue
+
+        update: dict = {}
+
+        # The job. An absent classified_at is ingest saying it could not label
+        # this one; nothing else records that, so nothing else can finish it.
+        if not doc.get("classified_at"):
+            labels = _classification_for(original)
+            if labels:
+                update.update(labels)
+                classified += 1
+
+        # Belt and suspenders.
         cleaned = record.redact(original)
         if cleaned != original:
-            collection.update_one({"_id": doc["_id"]}, {"$set": {"content": cleaned}})
+            update["content"] = cleaned
             repaired += 1
-    _log(f"archive sweep END repaired={repaired} elapsed={time.time()-started:.0f}s")
+
+        if update:
+            collection.update_one({"_id": doc["_id"]}, {"$set": update})
+
+    elapsed = time.time() - started
+    _log(f"archive sweep END classified={classified} of {unlabelled} "
+         f"elapsed={elapsed:.0f}s")
+    if repaired:
+        # Not routine housekeeping. Ingest redacts against the same two stores
+        # this sweep uses, so anything found here reached the archive
+        # unredacted and the ingest path is why. The sweep repairing it is the
+        # net catching what should never have fallen.
+        _fail(f"archive sweep repaired {repaired} document(s) in {elapsed:.0f}s "
+              f"-- these reached the archive unredacted and ingest is the "
+              f"defect; the sweep is the net, not the mechanism")
+    else:
+        _log(f"archive sweep END repaired=0 elapsed={elapsed:.0f}s")
     return repaired
+
+
+def _sweep_archive_thread(collection) -> None:
+    """Run the sweep on its own thread and report a failure.
+
+    The loop's `except Exception` guards the main thread and cannot see an
+    exception raised on this one. Without this wrapper a sweep that dies
+    logs "archive sweep spawned" and nothing else, which is indistinguishable
+    from a sweep that ran and found nothing to repair. That is how a
+    NameError on this function's opening log line went unnoticed from the day
+    it was written: every credential archived before .env declared it stayed
+    in the clear, and the log said the sweep had been started.
+    """
+    try:
+        sweep_archive(collection)
+    except Exception as exc:
+        _fail(f"archive sweep FAILED {type(exc).__name__}: {exc}", exc)
 
 
 def _drain():
@@ -386,7 +463,7 @@ def _drain():
             today = datetime.now().date()
             if today != last_sweep_day:
                 last_sweep_day = today
-                threading.Thread(target=sweep_archive, args=(collection,),
+                threading.Thread(target=_sweep_archive_thread, args=(collection,),
                                  name="archive-sweep", daemon=True).start()
                 _log("midnight - archive sweep spawned")
         except Exception as exc:                      # never let the loop die

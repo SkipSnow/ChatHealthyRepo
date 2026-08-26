@@ -69,17 +69,6 @@ class PendingDisambiguation(BaseModel):
 # ────────────────────────────────────────────────────────────────────
 
 
-class IntentNonsense(BaseModel):
-    """Intent entry: utterance was gibberish. Carries the typed text and an
-    is_nonsense=true confirmation argument."""
-
-    model_config = {"extra": "forbid"}
-
-    name: Literal["nonsense"]
-    arguments: list[Argument] = Field(min_length=2, max_length=2)
-    pending_disambiguation: Optional[PendingDisambiguation] = None
-
-
 class IntentSpecialtySearch(BaseModel):
     """Intent entry: UM extracted a complaint. Carries the complaint
     argument and may carry the SpecialtyFilter output (nucc_codes) plus
@@ -158,7 +147,6 @@ class IntentSafetyLockout(BaseModel):
 # Discriminated union — pydantic uses the `name` field to pick the variant.
 IntentEntry = Annotated[
     Union[
-        IntentNonsense,
         IntentSpecialtySearch,
         IntentFindAProvider,
         IntentFindClinicalTrials,

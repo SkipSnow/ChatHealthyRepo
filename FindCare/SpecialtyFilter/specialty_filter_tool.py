@@ -7,7 +7,7 @@ The Agent contract is user_object-based: deps.user_object is the input
 substrate; this tool reads `utterances[-1].text` as the user's query
 and writes the picked codes into `user_object.find_care`. Iteration 1
 internally HTTP-calls the existing FindCare `/classify` endpoint so the
-LLM-picks pipeline (Gemini Flash Lite preview + find_specialists.py
+specialty pipeline (normalize + embed + $vectorSearch + LLM filter, filter.py
 engine) is reused verbatim and behavior is preserved exactly. Iteration
 2 pulls that engine in-process and removes the HTTP hop.
 
@@ -53,7 +53,11 @@ class Request(BaseModel):
     Required and non-empty; SpecialtyFilter does not source from any other
     field on user_object."""
     model_config = {"extra": "ignore"}
-    query: str
+    query: str = Field(
+        description="The kind of care wanted, in clinical terms rather than "
+                    "the words the person used -- \"psychological problem\", "
+                    "not \"shrink\". Returns the provider types that treat "
+                    "it. Carries no location and finds no providers.")
 
 
 class SpecialtyRow(BaseModel):
@@ -66,6 +70,10 @@ class SpecialtyRow(BaseModel):
 
 
 class Response(BaseModel):
+    # What the user's words MEAN, in clinical terms: 'shrink' arrives here
+    # as 'psychological problem'. The utterance stays in the conversation;
+    # this is the translated fact every other tool reads.
+    complaint: str = ""
     specialties: list[SpecialtyRow] = Field(default_factory=list)
     homeopathic_generalists: list[SpecialtyRow] = Field(default_factory=list)
     model: Optional[str] = None
@@ -111,7 +119,8 @@ class SpecialtyFilterTool(ChatHealthyTool):
         specialties = [SpecialtyRow(**s) for s in (raw.get("specialties") or [])]
         homeo = [SpecialtyRow(**s) for s in (raw.get("homeopathic_generalists") or [])]
         resp = self.Response(
-            specialties=specialties,
+            complaint=str(raw.get("complaint") or "").strip(),
+        specialties=specialties,
             homeopathic_generalists=homeo,
             model=raw.get("model"),
             error=raw.get("error"),

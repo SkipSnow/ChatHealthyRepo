@@ -135,15 +135,49 @@ class SpecialtyFilter:
     # fail loudly with the actual upstream cause. No silent degradation,
     # no swallowed exceptions, no substitute values. find_specialties()
     # surfaces the real reason in {"error": ...}.
-    def normalize_query(self, raw_query: str) -> str:
-        """Stage 1: translate vernacular healthcare request into NUCC-aligned
-        text. Raises on any failure (no fallback per REQ-T-001)."""
+    # One utterance normalizes two ways, for two different consumers.
+    #
+    #   search term  what to look for   "orthodontist"
+    #   complaint    what is wrong      "tooth problem"
+    #
+    # They are not interchangeable. The search term is the right answer for
+    # the embedding and the specialty filter, and the wrong answer for the
+    # user-facing complaint: "orthodontist" is who you see, not what you
+    # have. Emitting one string and using it for both put a specialty name
+    # in the complaint field.
+    _DUAL_INSTRUCTION = """
+
+Return STRICT JSON with exactly two keys and nothing else:
+  {"search_term": "...", "complaint": "..."}
+
+search_term: the NUCC-aligned text to search specialties with, exactly as
+instructed above. This is what gets embedded.
+
+complaint: the same request restated as the KIND OF PROBLEM the person
+has, in two to four words of plain clinical language. Never a specialty
+name, never the words they used, never a place.
+
+  "find me a shrink in Long Beach CA" -> search_term "psychiatrist",
+                                         complaint "psychological problem"
+  "I need an orthodontist"            -> search_term "orthodontist",
+                                         complaint "tooth problem"
+  "find me a bone doc in Seattle WA"  -> search_term "orthopedic surgeon",
+                                         complaint "bone problem"
+"""
+
+    def normalize_query(self, raw_query: str) -> tuple[str, str]:
+        """Stage 1: (search_term, complaint) from the vernacular request.
+
+        Raises on any failure (no fallback per REQ-T-001).
+        """
         self._ensure_prompts_loaded()
         self._ensure_openai_client()
         r = self._oai.chat.completions.create(
-            model=self._normalize_model, max_tokens=200,
+            model=self._normalize_model, max_tokens=300,
+            response_format={"type": "json_object"},
             messages=[
-                {"role": "system", "content": self._normalize_prompt},
+                {"role": "system",
+                 "content": self._normalize_prompt + self._DUAL_INSTRUCTION},
                 {"role": "user", "content": raw_query},
             ],
         )
@@ -154,7 +188,25 @@ class SpecialtyFilter:
             component="filter",
             message=f"normalize step returned empty text from model "
                 f"{self._normalize_model!r} for query {raw_query!r}")
-        return text
+        try:
+            parsed = json.loads(text)
+            search_term = str(parsed["search_term"]).strip()
+            complaint = str(parsed.get("complaint") or "").strip()
+        except (ValueError, KeyError, TypeError) as exc:
+            raise ChatHealthyException(
+                mode="runtime_error",
+                component="filter",
+                message=f"normalize step returned no search_term from model "
+                        f"{self._normalize_model!r} for query {raw_query!r}: "
+                        f"{text[:200]}",
+                exception=exc) from exc
+        if not search_term:
+            raise ChatHealthyException(
+                mode="runtime_error",
+                component="filter",
+                message=f"normalize step returned an empty search_term for "
+                        f"query {raw_query!r}")
+        return search_term, complaint
 
     def embed_query(self, text: str) -> list[float]:
         """Stage 2: embed the normalized text with the canonical model
@@ -257,7 +309,7 @@ class SpecialtyFilter:
         query_text = " ".join(parts)
 
         try:
-            normalized = self.normalize_query(query_text)
+            normalized, complaint = self.normalize_query(query_text)
         except Exception as exc:
             # Mode 2 (REQ-B-008): Stage-1 LLM normalize failed; user gets
             # graceful error dict that the tool surfaces back to the user.
@@ -332,4 +384,4 @@ class SpecialtyFilter:
             })
         log.info("filter: query=%r -> %d kept (from %d candidates)",
                   raw_query, len(specialties), len(candidates))
-        return {"specialties": specialties}
+        return {"specialties": specialties, "complaint": complaint}

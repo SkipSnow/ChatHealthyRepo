@@ -3797,6 +3797,93 @@ class LocalDeploy:
             message=f"ERROR: components did not all come up in {timeout_s}s. "
             f"State: {last_state}")
 
+
+    # Which stream event paints which frame. A widget subscribes to the
+    # kind and renders into the frame; if the event never arrives the
+    # frame is never painted, and the user is looking at a missing screen
+    # while every health check says the service is up.
+    FRAME_PAINTERS = {
+        "specialties": "LeftPanel",     # SpecialtyFilterWidget
+        "providers":   "MainWindow",    # ProviderResultsWidget
+    }
+
+    # intent_classified means A NEW QUERY WAS CLASSIFIED, and
+    # NewQueryLoadingWidget answers it by blanking LeftPanel, RightPanel
+    # and MainWindow. Any op that is NOT a new query must never emit it:
+    # apply_filter did, and wiped the specialty panel the user was
+    # filtering with, while this deploy reported 8 of 8 passed.
+    BLANKS_EVERY_FRAME = "intent_classified"
+
+    def _verify_screens(self, record) -> None:
+        """Drive a real session and assert the frames that must be painted are.
+
+        Reachability is not a screen. Every check above this one passed
+        while a core panel was being destroyed, because nothing asked what
+        the user would see. These do.
+        """
+        import json as _json
+
+        gate = f"https://localhost:{self.PORTS['shared']}/gate"
+
+        def call(client, token, op, payload=None):
+            body = {"op": op, "session_token": token}
+            if payload is not None:
+                body["payload"] = payload
+            r = client.post(gate, json=body,
+                            headers={"accept": "application/x-ndjson"}, timeout=300)
+            r.raise_for_status()
+            events = []
+            for line in r.text.splitlines():
+                line = line.strip()
+                if not line:
+                    continue
+                try:
+                    events.append(_json.loads(line))
+                except ValueError:
+                    pass
+            for e in events:
+                st = e.get("session_token")
+                if st:
+                    token = st
+            return events, token
+
+        try:
+            with httpx.Client(verify=False, timeout=300) as c:
+                minted = c.post(f"https://localhost:{self.PORTS['shared']}/auth/issue",
+                                timeout=60)
+                token = minted.json()
+
+                turn, token = call(c, token, "utterance",
+                                   {"text": "find me a shrink in Long Beach CA"})
+                kinds = [e.get("kind") for e in turn]
+
+                for kind, frame in self.FRAME_PAINTERS.items():
+                    record(f"screen_{frame}_painted_on_utterance", kind in kinds,
+                           f"kind={kind!r} kinds={kinds}")
+
+                panel = next((e for e in turn if e.get("kind") == "specialties"), None)
+                rows = ((panel or {}).get("data") or {}).get("specialties") or []
+                record("screen_specialty_panel_has_rows", len(rows) > 0,
+                       f"{len(rows)} row(s)")
+                record("screen_specialty_flags_present",
+                       any(r.get("can_prescribe") for r in rows),
+                       f"{sum(1 for r in rows if r.get('can_prescribe'))} prescriber(s) "
+                       f"of {len(rows)} -- the prescriber switch selects nothing without these")
+
+                if rows:
+                    applied, token = call(c, token, "apply_filter",
+                                          {"selected_codes": [rows[0].get("code")]})
+                    a_kinds = [e.get("kind") for e in applied]
+                    record("screen_specialty_panel_survives_apply_filter",
+                           self.BLANKS_EVERY_FRAME not in a_kinds,
+                           f"emitting {self.BLANKS_EVERY_FRAME!r} blanks LeftPanel, "
+                           f"RightPanel and MainWindow; kinds={a_kinds}")
+                    record("screen_MainWindow_repainted_on_apply_filter",
+                           "providers" in a_kinds, f"kinds={a_kinds}")
+        except Exception as exc:
+            record("screen_verification_ran", False,
+                   f"{type(exc).__name__}: {exc}")
+
     # REQ-B-003 — verify components
     def _verify_components(self) -> None:
         passed, failed = [], []
@@ -3829,6 +3916,8 @@ class LocalDeploy:
                 ok = r.status_code == 200 and expected_substr in r.text
                 record(f"mtls_findcare_to_{tgt_svc}", ok,
                        r.text if ok else f"{r.status_code}: {r.text}")
+        self._verify_screens(record)
+
         self._step_notice(
             f"verification: {len(passed)} passed, {len(failed)} failed"
             + (f"; failed={failed}" if failed else "")

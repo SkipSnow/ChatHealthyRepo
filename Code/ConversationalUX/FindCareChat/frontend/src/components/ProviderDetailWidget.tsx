@@ -75,7 +75,14 @@ function buildDetailHtml(data: any): string {
     : '<div style="color:#6b7280;font-style:italic;">None on file.</div>'
   return `
     <div style="padding:0.75em 1em;">
-      <div style="font-weight:700;color:#0b7a75;font-size:1.05em;">${name}</div>
+      <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:0.5em;">
+        <div style="font-weight:700;color:#0b7a75;font-size:1.05em;">${name}</div>
+        <button type="button" data-router-action="provider:detail-close"
+                data-testid="provider-detail-close" title="Close"
+                style="flex-shrink:0;background:#fff;border:0.125em solid #0b7a75;color:#0b7a75;
+                       border-radius:0.375em;cursor:pointer;font-weight:700;line-height:1;
+                       padding:0.15em 0.45em;font-size:0.95em;">&times;</button>
+      </div>
       <div style="font-size:0.85em;color:#6b7280;">NPI: ${_esc(p.npi || '')}</div>
       <div style="font-size:0.85em;color:#374151;margin-top:0.2em;">${specialty}</div>
       ${sect('Practice addresses', addrs)}
@@ -86,11 +93,19 @@ function buildDetailHtml(data: any): string {
   `
 }
 
+// Solid white, not empty: an empty frame shows its own CSS background and
+// reads as a broken panel rather than a closed one.
+const BLANK = '<div style="height:100%;width:100%;background:#fff;"></div>'
+
 export default function ProviderDetailWidget() {
   useEffect(() => {
     window.parent.postMessage({
       type: 'router:subscribe-broadcast',
       kind: 'provider-detail',
+    }, '*')
+    window.parent.postMessage({
+      type: 'router:subscribe-broadcast',
+      kind: 'provider_detail_close',
     }, '*')
 
     function postRender(content: string) {
@@ -103,14 +118,45 @@ export default function ProviderDetailWidget() {
       }, '*')
     }
 
+    // Whether a detail is on screen right now, so a close control on a
+    // blank panel does not send a parameter write.
+    let open = false
+
     function onMessage(ev: MessageEvent) {
       const msg = ev.data
       if (!msg || typeof msg !== 'object') return
+
+      // The deliberate way out. The other way is the server taking it down
+      // when the batch it belongs to is replaced -- that needs no gesture,
+      // and scrolling within a batch is not one: the provider is still in
+      // the list being presented, just further down it.
+      if (msg.type === 'router:action' && msg.action === 'provider:detail-close') {
+        if (!open) return
+        open = false
+        window.parent.postMessage({
+          type: 'router:makeCall',
+          op: 'provider_detail_close',
+          payload: {},
+          call_id: 'pdc-' + Date.now(),
+        }, '*')
+        return
+      }
+
+      // The server decides what closing means and says so; the panel
+      // clears when told, not when clicked.
+      if (msg.type === 'router:event-broadcast' &&
+          msg.kind === 'provider_detail_close') {
+        open = false
+        postRender(BLANK)
+        return
+      }
+
       if (msg.type === 'router:action' && msg.action === 'provider:detail') {
         const d = msg.data || {}
         const npi  = String(d.npi  || '').trim()
         const name = String(d.name || '').trim()
-        if (!npi || !name) return
+        if (!npi) return
+        open = true
         postRender(buildLoadingHtml(npi))
         window.parent.postMessage({
           type: 'router:makeCall',
@@ -127,7 +173,10 @@ export default function ProviderDetailWidget() {
         }, '*')
         return
       }
+      // The paint is what makes it open, not the click -- a restore paints
+      // one nobody clicked, and it has to be closable the same way.
       if (msg.type === 'router:event-broadcast' && msg.kind === 'provider-detail') {
+        open = true
         postRender(buildDetailHtml(msg.data || {}))
       }
     }

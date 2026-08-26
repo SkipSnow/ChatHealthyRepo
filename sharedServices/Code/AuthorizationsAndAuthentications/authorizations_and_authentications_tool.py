@@ -32,7 +32,7 @@ import os
 from datetime import datetime, timedelta, timezone
 from typing import Any, Literal, Optional
 
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 
 from chathealthy_lib.authentication.agent_deps import AuthnDeps
 from chathealthy_lib.authentication.chathealthy_tool import ChatHealthyTool
@@ -66,8 +66,11 @@ class Request(BaseModel):
         AND user_object.OAuthIdentities[0] is the newly asserted
         identity from the OAuth callback.
     """
-    intent: Literal["manufacture_session", "manage_session"]
-    user_object: UserObject
+    intent: Literal["manufacture_session", "manage_session"] = Field(
+        description="manufacture_session mints a new session; manage_session "
+                    "carries an existing one forward.")
+    user_object: UserObject = Field(
+        description="The session being minted or carried.")
 
 
 class Response(BaseModel):

@@ -33,6 +33,9 @@ from chathealthy_lib.authentication.session_token import SessionToken
 from chathealthy_lib.authentication.intent_document import IntentDocument
 
 
+from chathealthy_lib.authentication.user_parameters import UserParameters
+
+
 class MergeRole(Enum):
     STORED_WINS = auto()
     GUEST_WINS = auto()
@@ -111,11 +114,6 @@ class SessionConversationHistory(BaseModel):
     """
     utterances: list[Utterance] = Field(default_factory=list)
     actions: list[Action] = Field(default_factory=list)
-
-
-class SillyQuestionCounts(BaseModel):
-    session_total: int = Field(default=0, ge=0)
-    current_sequence_total: int = Field(default=0, ge=0)
 
 
 class PortalAccess(BaseModel):
@@ -210,9 +208,6 @@ class UserObject(BaseModel):
     ] = Field(default_factory=SessionConversationHistory)
     is_locked_out: Annotated[Optional[bool], MergeRole.STORED_WINS] = None
     lockout: Annotated[Optional[Lockout], MergeRole.STORED_WINS] = None
-    silly_question_counts: Annotated[
-        Optional[SillyQuestionCounts], MergeRole.CUMULATIVE_COUNTER,
-    ] = None
     ip_address: Annotated[Optional[str], MergeRole.GUEST_WINS] = None
     is_registered: Annotated[Optional[bool], MergeRole.STORED_WINS] = None
     user_id: Annotated[Optional[str], MergeRole.STORED_WINS] = None
@@ -233,6 +228,16 @@ class UserObject(BaseModel):
     intent: Annotated[
         Optional["IntentDocument"], MergeRole.GUEST_WINS,
     ] = None
+    # The live user parameters. State, not history: current values only.
+    # The history of how they got there is session_conversation_history,
+    # which run_and_log writes on every tool invocation.
+    #
+    # GUEST_WINS for the same reason intent is: these belong to the session
+    # in front of the user, and a stored copy from an earlier login must not
+    # overwrite what they just asked for.
+    userParameters: Annotated[
+        UserParameters, MergeRole.GUEST_WINS,
+    ] = Field(default_factory=UserParameters)
     selected_providers: Annotated[
         list[str], MergeRole.GUEST_WINS,
     ] = Field(default_factory=list)

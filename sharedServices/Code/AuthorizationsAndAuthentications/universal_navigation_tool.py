@@ -6,10 +6,11 @@ Runs after AuthorizationsAndAuthentications has established the user
 (deps.user_object). Dispatches by op to a graph node handler:
 
   * boot              — identity-only handshake (page load)
-  * splash            — render the 4-thread SharedServices splash
+  * session_data      — render the session: identity, live parameters,
+                        and the utterance/action history
   * record_ux_event   — append a UX-control event to ux_events[]
   * utterance         — capture typed text + route to specialty_filter
-                        + provider_search_and_selection (streams events
+                        + provider_search (streams events
                         progressively to the FE)
 
 Every handler reads its input off deps.user_object (the working memory)
@@ -21,7 +22,7 @@ Canonical *_tool.py exports: TOOL_NAME, Request, Response, run().
 
 UR is a class: orchestration logic lives as methods on
 UniversalNavigationTool so each component has its own encapsulation.
-Pure utility functions (session-token assembly, splash data shape,
+Pure utility functions (session-token assembly, session-data shape,
 small read-only helpers) stay module-level since they hold no
 orchestration state and are referenced from non-orchestration code
 paths.
@@ -111,8 +112,14 @@ def _ch_exc():
 
 class Request(BaseModel):
     """Op + opaque payload. The router picks a handler by `op`."""
-    op: str = Field(default="boot")
-    payload: dict[str, Any] = Field(default_factory=dict)
+    op: str = Field(
+        default="boot",
+        description="Which gesture the client made. Every browser call "
+                    "arrives here and names one; the router dispatches the "
+                    "tool that owns it.")
+    payload: dict[str, Any] = Field(
+        default_factory=dict,
+        description="The gesture's own arguments, shaped by the op.")
 
 
 class Response(BaseModel):
@@ -218,8 +225,15 @@ def session_token_wire(user_object: UserObject) -> dict:
     return dict(st)
 
 
-def splash_data(user_object) -> dict[str, Any]:
-    """Splash payload shape. Read-only projection of user_object."""
+def session_data(user_object) -> dict[str, Any]:
+    """The session, as a read-only projection of the user object.
+
+    Not splash data. The splash is one surface that renders it; the
+    content is the session -- who the user is, what is true for them
+    now, and what has happened -- and naming it for the page that
+    happens to draw it invites a second copy the day something else
+    needs the same facts.
+    """
     cst = user_object.current_session_token
     oauth_idents = [
         oi.model_dump(mode="json") if hasattr(oi, "model_dump") else oi
@@ -239,8 +253,16 @@ def splash_data(user_object) -> dict[str, Any]:
     sch = user_object.session_conversation_history.model_dump()
     utterances = sch.get("utterances") if isinstance(sch, dict) else []
     actions = sch.get("actions") if isinstance(sch, dict) else []
+
+    # The live parameter set, in its own right rather than inferred from the
+    # actions beside it. A parameter that can be changed at will and cannot
+    # be seen is the same trap as a hidden cache: the user gets results
+    # narrowed by a geography they no longer remember giving. The page
+    # already shows what happened; this is what is true now.
+    params = user_object.userParameters
     return {
         "identity": identity,
+        "parameters": params.model_dump(mode="json") if params else {},
         "threads": {
             "empty": not utterances and not actions,
             "utterances": utterances or [],
@@ -258,6 +280,22 @@ def any_pending_disambiguation(document) -> bool:
         if getattr(entry, "pending_disambiguation", None) is not None:
             return True
     return False
+
+
+def read_nucc_codes_query(document) -> str:
+    """The query the cached nucc_codes were computed from, or "".
+
+    Codes without the question they answer cannot be reused safely, so an
+    entry carrying no key never matches and the filter re-runs.
+    """
+    for name in ("specialtySearch", "findAProvider"):
+        entry = next((i for i in document.intents if i.name == name), None)
+        if entry is None:
+            continue
+        for arg in entry.arguments:
+            if arg.name == "nucc_codes_query" and arg.value:
+                return str(arg.value)
+    return ""
 
 
 def read_nucc_codes_cache(document) -> Optional[list[dict]]:
@@ -300,7 +338,7 @@ class UniversalNavigationTool(ChatHealthyTool):
     """Receives the post-AuthN deps + a typed NavRequest (op + payload),
     dispatches to the right graph-node handler. The handler may invoke
     other tools (via their `run_and_log()`); those calls auto-log to
-    `deps.user_object.session_conversation_history` so the splash render
+    `deps.user_object.session_conversation_history` so the session render
     finds the per-tool invocation entries with `kind:"tool_invocation"`.
     """
     TOOL_NAME = "universal_navigation"
@@ -311,11 +349,14 @@ class UniversalNavigationTool(ChatHealthyTool):
     # getattr(self, name). Adding a new op = new method + new dict entry.
     _OP_HANDLERS = {
         "boot":                 "_handle_boot",
-        "splash":               "_handle_splash",
+        "session_data":         "_handle_session_data",
         "record_ux_event":      "_handle_record_ux_event",
         "utterance":            "_handle_utterance",
         "provider-detail":      "_handle_provider_detail",
+        "provider_detail_close": "_handle_provider_detail_close",
         "apply_filter":         "_handle_apply_filter",
+        "provider_page":        "_handle_provider_page",
+        "restore_findcare":     "_handle_restore_findcare",
         "evalcare-splash":      "_handle_evalcare_splash",
         # clinical_trials_page op removed: client-side cache pagination
         # eliminated the per-page server round-trip; the React widget
@@ -342,16 +383,16 @@ class UniversalNavigationTool(ChatHealthyTool):
         deps.stream({"kind": "boot", "data": {"ok": True}})
         return Response(kind="boot", result={"op": "boot"})
 
-    async def _handle_splash(self, deps: AgentDeps, payload: dict[str, Any]) -> Response:
-        data = splash_data(deps.user_object)
+    async def _handle_session_data(self, deps: AgentDeps, payload: dict[str, Any]) -> Response:
+        data = session_data(deps.user_object)
         append_action(
             deps.user_object,
-            tool_name="splash_displayed",
+            tool_name="session_data_displayed",
             input_json={},
             output_json={"note": "SharedServices took ownership and rendered the User Object."},
         )
-        deps.stream({"kind": "splash", "data": data})
-        return Response(kind="splash", result=data)
+        deps.stream({"kind": "session_data", "data": data})
+        return Response(kind="session_data", result=data)
 
     async def _handle_record_ux_event(self, deps: AgentDeps, payload: dict[str, Any]) -> Response:
         event_type = str(payload.get("event_type") or "").strip()
@@ -428,6 +469,23 @@ class UniversalNavigationTool(ChatHealthyTool):
                     a for a in entry.arguments if a.name != "selected_nucc_codes"
                 ]
 
+        # Same invariant on the parameter side. The selection belongs to the
+        # panel it was made on; carrying it onto a new question's panel
+        # would show the user ticks they never made for this question.
+        #
+        # Position goes with it: a new question starts at the top of its own
+        # list, and an open detail belongs to the list that is being
+        # replaced.
+        from UserParameters import user_parameters_tool
+        for name in ("selected_specialty_codes", "page_cursors",
+                     "selected_provider_npi"):
+            await user_parameters_tool.TOOL.run_and_log(
+                deps,
+                user_parameters_tool.Request(
+                    verb="clear", name=name, origin="deterministic",
+                ),
+            )
+
         last_target_action: Optional[str] = None
         for _hop in range(MAX_DISPATCH_HOPS):
             document = deps.user_object.intent
@@ -470,9 +528,150 @@ class UniversalNavigationTool(ChatHealthyTool):
         {kind: 'provider-detail', data: ...} back to the FE."""
         req = provider_detail_tool.Request(**payload)
         resp = await provider_detail_tool.TOOL.run_and_log(deps, req)
+
+        # An open detail is a place the user navigated to. Recording it here
+        # is what lets a return to FindCare put them back on it instead of
+        # at the top of the list.
+        npi = str((payload or {}).get("npi") or "").strip()
+        if npi:
+            from UserParameters import user_parameters_tool
+            await user_parameters_tool.TOOL.run_and_log(
+                deps,
+                user_parameters_tool.Request(
+                    verb="set", name="selected_provider_npi", value=npi,
+                    origin="deterministic",
+                ),
+            )
         # No inner "final" emission — _run_pipeline_then_finalize emits
         # the single canonical final event with full payload.
         return Response(kind="provider-detail", result=resp.model_dump(exclude_none=True, mode='json'))
+
+    async def _search_providers(self, deps: AgentDeps, **fields) -> Any:
+        """The one route to the provider search.
+
+        Every provider list the user is shown comes through here, which is
+        what lets the rule about an open detail be written once instead of
+        at each of the three places that used to call the tool directly.
+        Stated at each site it would be three copies of one rule, and the
+        site somebody adds next would not have it.
+        """
+        from authentication import provider_search_tool
+        resp = await provider_search_tool.TOOL.run_and_log(
+            deps, provider_search_tool.Request(**fields))
+        await self._reconcile_open_detail(deps, resp)
+        return resp
+
+    async def _reconcile_open_detail(self, deps: AgentDeps, search_response) -> None:
+        """A detail belongs to a provider in the list being presented.
+
+        Paging forward, narrowing the filter, or restoring to a different
+        page all replace the list the detail came from. Leaving the panel
+        up then describes somebody the user cannot see, and it is the panel
+        that is wrong, not the list.
+
+        Membership is checked against the page actually returned, not
+        against the query that produced it, because the page is what the
+        user is looking at.
+        """
+        npi = (deps.user_object.userParameters.selected_provider_npi or "").strip()
+        if not npi:
+            return
+        presented = {str(p.get("npi") or "").strip()
+                     for p in (search_response.providers or [])}
+        if npi in presented:
+            return
+        await self._handle_provider_detail_close(deps, {})
+
+    async def _handle_provider_detail_close(
+            self, deps: AgentDeps, payload: dict[str, Any]) -> Response:
+        """The detail is no longer on screen. Record that.
+
+        selected_provider_npi means "a detail is open", not "a detail was
+        opened once". A parameter that only ever gets set turns a return to
+        FindCare into a resurrection: the user closes a panel, leaves,
+        comes back, and it is there again.
+
+        Reached by the panel's own close control and by scrolling the
+        provider list -- scrolling moves the user off the row the detail
+        belongs to, so the panel stops describing what they are looking at.
+        The gesture is the client's; what it means is decided here.
+        """
+        from UserParameters import user_parameters_tool
+        await user_parameters_tool.TOOL.run_and_log(
+            deps,
+            user_parameters_tool.Request(
+                verb="clear", name="selected_provider_npi",
+                origin="deterministic",
+            ),
+        )
+        deps.stream({"kind": "provider_detail_close", "data": {"closed": True}})
+        return Response(kind="provider_detail_close", result={"closed": True})
+
+    async def _handle_restore_findcare(self, deps: AgentDeps, payload: dict[str, Any]) -> Response:
+        """Put the user back exactly where they left FindCare.
+
+        Replayed from the parameters, not from a cached screen. Everything
+        needed is already there because every step wrote it down: the panel
+        and which rows are ticked, the geography, how far down the list they
+        had read, and whether a detail was open.
+
+        That is the point of one live parameter set. A cached screen would
+        have to be invalidated, would go stale against a data version swap,
+        and would be a second copy of facts the session already holds.
+
+        Nothing here classifies or re-runs the specialty pipeline: the
+        panel is republished from the parameter, so returning costs no LLM
+        call and cannot come back different from how it was left.
+        """
+        params = deps.user_object.userParameters
+        if not params.specialties:
+            deps.stream({"kind": "restore_findcare", "data": {"restored": False}})
+            return Response(kind="restore_findcare", result={"restored": False})
+
+        # The panel, exactly as it was -- same rows, same ticks.
+        deps.stream({
+            "kind": "specialties",
+            "data": {
+                "specialties": [s.model_dump(exclude_none=True)
+                                for s in params.specialties],
+                "homeopathic_generalists": [],
+                "selected_codes": list(params.selected_specialty_codes),
+                "restored": True,
+            },
+        })
+
+        geo = params.geography
+        codes = params.selected_or_all()
+
+        # Back to the page they were on, in one query. The search is ordered
+        # by NPI, so the stored key IS the position: asking for the rows
+        # after it returns that page directly. No key means the top, which
+        # is where a list that was never paged belongs.
+        cursor = params.page_cursors.get("findAProvider", "")
+        await self._search_providers(
+            deps,
+            specialty_codes=codes,
+            state=geo.state if geo else None,
+            city=geo.city if geo else None,
+            county=geo.county if geo else None,
+            zip=geo.zip if geo else None,
+            after_npi=cursor or None,
+            limit=25,
+        )
+
+        # And the detail, if one was open AND its provider is on the page
+        # that just painted. The search above already cleared it if not, so
+        # re-reading the parameter here is what stops the restore from
+        # putting back a panel the rule just took down.
+        detail_npi = deps.user_object.userParameters.selected_provider_npi
+        if detail_npi:
+            await self._handle_provider_detail(deps, {"npi": detail_npi})
+
+        return Response(kind="restore_findcare", result={
+            "restored": True,
+            "cursor": cursor,
+            "detail_npi": detail_npi,
+        })
 
     async def _handle_evalcare_splash(self, deps: AgentDeps, payload: dict[str, Any]) -> Response:
         """Click path: a user clicked the EvaluateCare banner button. This
@@ -489,54 +688,75 @@ class UniversalNavigationTool(ChatHealthyTool):
         """UR dispatch for op == 'apply_filter' per
         EPIC-002-F-010-S-002-REQ-B-002.
 
-        The FE just told us the user clicked Apply Filter with a new
-        specialty selection (payload carries the new nucc_codes set).
-        UR reads the carried IntentDocument's geography and branches:
+        Apply Filter is a parameter change, not a flow. The user narrowed
+        the specialty selection; nothing else about what they asked for
+        moved. So this writes one parameter and dispatches the same
+        findAProvider the utterance path dispatches — one route to the
+        provider search, which is what stops the two from drifting apart.
 
-        * Geography sufficient (zip OR state, per the same rule
-          findAProvider applies) — build a new IntentDocument with
-          target_action=findAProvider using the new nucc_codes set,
-          dispatch ProviderSearch directly. UM is NOT called (no prose
-          needed; the provider list IS the response).
+        It used to rebuild the IntentDocument from parts, carrying the
+        complaint, the geography and the panel back onto a freshly
+        constructed pair of intent entries so none of them would be lost.
+        None of that is needed once those facts live on the user rather
+        than on the document: the document is not rebuilt, so there is
+        nothing to carry.
 
-        * Geography insufficient — populate
-          manufacture_utterance_reason with the relevant facts and
-          dispatch UM as a manufacture-trigger Request per
-          EPIC-002-F-010-S-003-REQ-T-001. UM authors the
-          context-sensitive location prompt and morphs the
-          IntentDocument to closeConnection200; UR's bounded dispatch
-          loop chains to CloseConnection200Tool.
+        Geography insufficient still goes to UM's manufacture path, which
+        authors the prompt asking for a location.
         """
-        import json as json
-        from chathealthy_lib.authentication.intent_document import (
-            Argument, IntentDocument, IntentSpecialtySearch, IntentFindAProvider,
-        )
-
-        nucc_codes = payload.get("nucc_codes") or []
+        # The FE sends selected_codes and the panel those codes came from.
+        # It used to send `codes` while this read `nucc_codes`, so the
+        # selection never arrived and every Apply Filter searched the full
+        # universe.
+        nucc_codes = (payload.get("selected_codes")
+                      or payload.get("nucc_codes") or [])
         if not isinstance(nucc_codes, list):
             return Response(
                 kind="apply_filter",
-                result={"ok": False, "error": "nucc_codes must be a list"},
+                result={"ok": False, "error": "selected_codes must be a list"},
             )
-        # The user's Apply-Filter narrowing — list of code STRINGS the
-        # FE sent. This stores on selected_nucc_codes and is what
-        # ProviderSearch filters against. The full specialty universe
-        # (the FE's panel) lives on nucc_codes and MUST NOT be
-        # overwritten by Apply Filter — that's the bug Skip reported on
-        # 2026-06-10: complaint did not change, so the filter choices
-        # must not change either.
         selected_codes = [c for c in nucc_codes if isinstance(c, str)]
-        selected_codes_json = json.dumps(selected_codes)
+
+        from UserParameters import user_parameters_tool
+        await user_parameters_tool.TOOL.run_and_log(
+            deps,
+            user_parameters_tool.Request(
+                verb="set", name="selected_specialty_codes",
+                value=selected_codes, origin="deterministic",
+            ),
+        )
 
         prior = deps.user_object.intent
-        complaint, geography = self._extract_complaint_and_geography(prior)
+        params = deps.user_object.userParameters
 
-        if self._geography_sufficient(geography):
-            new_doc = self._build_apply_filter_findaprovider_doc(
-                prior, complaint, geography, selected_codes_json,
-            )
-            deps.user_object.intent = new_doc
-            await self._dispatch_target_action(deps, new_doc, "findAProvider")
+        # Read, never dug out of the document. Geography was never Apply
+        # Filter's to carry: whoever set it last set it, and this gesture
+        # does not change it.
+        live_geo = params.geography
+        geography = (live_geo.model_dump(exclude_none=True) if live_geo else {})
+
+        if self._geography_sufficient(geography) and prior is not None:
+            # NOT intent_classified. That kind means "a new query has been
+            # classified", and NewQueryLoadingWidget answers it by blanking
+            # LeftPanel, RightPanel and MainWindow -- so announcing it here
+            # wiped the specialty panel the user was filtering with.
+            #
+            # Apply Filter is a narrowing of the query already in force, so
+            # it says only that a search is running. The panel stays; the
+            # results pane repaints when the providers arrive.
+            deps.stream({
+                "kind": "search_running",
+                "data": {
+                    "action": "findAProvider",
+                    "criteria": params.complaint or "your selected specialties",
+                    "selected_specialty_count": len(selected_codes),
+                },
+            })
+            # The same dispatch the utterance path uses. Re-running the
+            # specialty step is safe because it is keyed by the query, and
+            # Apply Filter produces no new utterance -- so the panel the
+            # user is choosing from is the panel they keep (2026-06-10).
+            await self._dispatch_target_action(deps, prior, "findAProvider")
             return Response(
                 kind="apply_filter",
                 result={"target_action": "findAProvider"},
@@ -547,21 +767,15 @@ class UniversalNavigationTool(ChatHealthyTool):
             "missing_slot": "geography",
             "selected_specialty_count": len(selected_codes),
         }
-        if complaint:
-            reason["prior_complaint"] = complaint
+        if params.complaint:
+            reason["prior_complaint"] = params.complaint
         partial_geo = {k: v for k, v in (geography or {}).items() if v}
         if partial_geo:
             reason["prior_partial_geography"] = partial_geo
 
-        # Carry the user's selection through onto the existing
-        # specialtySearch / findAProvider intents WITHOUT touching the
-        # nucc_codes universe. The next-turn interpret path (after the
-        # user supplies geography) will read selected_nucc_codes for
-        # ProviderSearch.
-        seeded_doc = self._seed_intent_with_selection(
-            prior, complaint, geography, selected_codes_json,
-        )
-        deps.user_object.intent = seeded_doc
+        # Nothing is seeded onto the document. The selection is already on
+        # the user's parameters, where the next turn reads it from, so
+        # copying it into the intent would be a second home for one fact.
 
         from UtteranceManager import utterance_manager as utterance_manager_module
         try:
@@ -594,6 +808,55 @@ class UniversalNavigationTool(ChatHealthyTool):
             kind="apply_filter",
             result={"target_action": "closeConnection200"},
         )
+
+    async def _handle_provider_page(self, deps: AgentDeps, payload: dict[str, Any]) -> Response:
+        """The next page of the search already in force.
+
+        The server has always paged -- provider_search takes after_npi and
+        the result carries has_more and last_npi -- and nothing ever
+        exposed it, so a search returning 337 providers showed 25 and
+        offered no way to the rest.
+
+        It is deterministic: same parameters, one more page. No LLM, no
+        reclassification, and no announcement that would blank the frames.
+        """
+        after_npi = str((payload or {}).get("after_npi") or "").strip()
+        if not after_npi:
+            return Response(kind="provider_page",
+                            result={"ok": False, "error": "after_npi required"})
+
+        params = deps.user_object.userParameters
+        geo = params.geography
+        codes = params.selected_or_all()
+        if not codes:
+            return Response(kind="provider_page",
+                            result={"ok": False, "error": "no specialties selected"})
+
+        await self._search_providers(
+            deps,
+            specialty_codes=codes,
+            state=geo.state if geo else None,
+            city=geo.city if geo else None,
+            county=geo.county if geo else None,
+            zip=geo.zip if geo else None,
+            after_npi=after_npi,
+            limit=25,
+        )
+
+        # Remember where they now are: this function's one key, replaced.
+        # Ten pages in is still one key, because the ordered query takes the
+        # position straight from it.
+        from UserParameters import user_parameters_tool
+        cursors = dict(params.page_cursors)
+        cursors["findAProvider"] = after_npi
+        await user_parameters_tool.TOOL.run_and_log(
+            deps,
+            user_parameters_tool.Request(
+                verb="set", name="page_cursors", value=cursors,
+                origin="deterministic",
+            ),
+        )
+        return Response(kind="provider_page", result={"after_npi": after_npi})
 
     async def _handle_about_chathealthy(self, deps: AgentDeps, payload: dict[str, Any]) -> Response:
         """Thin pass-through to AboutChatHealthyTool. Tool streams
@@ -668,195 +931,9 @@ class UniversalNavigationTool(ChatHealthyTool):
             return False
         return bool((geo.get("zip") or "").strip()) or bool((geo.get("state") or "").strip())
 
-    @staticmethod
-    def _extract_complaint_and_geography(
-        document,
-    ) -> tuple[str, dict]:
-        """Read the latest known complaint + geography off the carried
-        IntentDocument. Looks at findAProvider first (preferred — carries
-        both), falls back to specialtySearch for complaint. Returns
-        ('', {}) if no useful data is found."""
-        import json as json
-        if document is None:
-            return "", {}
-        complaint = ""
-        geography: dict = {}
-        for name in ("findAProvider", "specialtySearch"):
-            entry = next((i for i in document.intents if i.name == name), None)
-            if entry is None:
-                continue
-            for arg in entry.arguments:
-                if arg.name == "complaint" and arg.value and not complaint:
-                    complaint = arg.value
-                if arg.name == "geography" and arg.value and not geography:
-                    try:
-                        parsed = json.loads(arg.value)
-                        if isinstance(parsed, dict):
-                            geography = parsed
-                    except json.JSONDecodeError as _exc:
-                        # Mode 1 (REQ-B-008): geography arg JSON malformed;
-                        # UR skips and continues. log.info + default debug-gated.
-                        log.info("geography arg JSON decode failed (skipped): %s", _exc, exc=ChatHealthyException(
-                                                                                             mode="geography_arg_json_decode_failed",
-                                                                                             message=f"geography arg JSON decode failed (skipped): {_exc}",
-                                                                                             component="UniversalNavigationTool",
-                                                                                             exception=_exc,
-                                                                                         ), if_not_debug_log=True)
-        return complaint, geography
 
-    @staticmethod
-    def _carry_universe_args(prior_entry) -> list:
-        """Pull complaint + nucc_codes (universe) + geography from an
-        existing intent entry on the prior document. Returns a list of
-        Argument objects ready to be re-emitted on a refreshed entry.
-        Filters out any prior selected_nucc_codes — Apply Filter
-        regenerates that on every click."""
-        from chathealthy_lib.authentication.intent_document import Argument
-        out: list = []
-        if prior_entry is None:
-            return out
-        for arg in prior_entry.arguments:
-            if arg.name == "selected_nucc_codes":
-                continue
-            out.append(Argument(
-                name=arg.name, value=arg.value, type=arg.type, required=arg.required,
-            ))
-        return out
 
-    @staticmethod
-    def _build_apply_filter_findaprovider_doc(
-        prior, complaint: str, geography: dict, selected_codes_json: str,
-    ):
-        """When apply_filter arrives with sufficient geography, build a
-        synthetic IntentDocument with target_action=findAProvider. The
-        existing dispatch path runs ProviderSearch with the user's
-        selection (selected_nucc_codes). The full specialty universe
-        carried on nucc_codes is preserved — it is what the FE filter
-        panel renders, and the complaint did not change so the universe
-        does not change."""
-        import json as json
-        from chathealthy_lib.authentication.intent_document import (
-            Argument, IntentDocument, IntentFindAProvider, IntentSpecialtySearch,
-        )
-        prior_spec = next(
-            (i for i in (prior.intents if prior is not None else []) if i.name == "specialtySearch"),
-            None,
-        ) if prior is not None else None
-        prior_findap = next(
-            (i for i in (prior.intents if prior is not None else []) if i.name == "findAProvider"),
-            None,
-        ) if prior is not None else None
 
-        # specialtySearch: carry everything except selected_nucc_codes
-        # from prior + add the new selected_nucc_codes. Ensure complaint
-        # is present.
-        spec_args = UniversalNavigationTool._carry_universe_args(prior_spec)
-        if not any(a.name == "complaint" for a in spec_args):
-            spec_args.insert(0, Argument(
-                name="complaint", value=complaint or "", type="string", required=True,
-            ))
-        spec_args.append(Argument(
-            name="selected_nucc_codes", value=selected_codes_json,
-            type="array", required=False,
-        ))
-        spec = IntentSpecialtySearch(name="specialtySearch", arguments=spec_args)
-
-        # findAProvider: carry everything (universe nucc_codes,
-        # complaint, prior geography) + new geography from THIS turn +
-        # new selected_nucc_codes.
-        geo_compact = {k: v for k, v in (geography or {}).items() if v}
-        findap_args = UniversalNavigationTool._carry_universe_args(prior_findap)
-        findap_args = [a for a in findap_args if a.name not in ("complaint", "geography")]
-        findap_args.insert(0, Argument(
-            name="complaint", value=complaint or "", type="string", required=True,
-        ))
-        findap_args.append(Argument(
-            name="geography", value=json.dumps(geo_compact),
-            type="object", required=True,
-        ))
-        findap_args.append(Argument(
-            name="selected_nucc_codes", value=selected_codes_json,
-            type="array", required=False,
-        ))
-        findap = IntentFindAProvider(name="findAProvider", arguments=findap_args)
-
-        intents: list = [spec, findap]
-        if prior is not None:
-            for entry in prior.intents:
-                if entry.name not in ("specialtySearch", "findAProvider"):
-                    intents.append(entry)
-        return IntentDocument(
-            target_action="findAProvider",
-            intents=intents[:4],
-            user_message=None,
-        )
-
-    @staticmethod
-    def _seed_intent_with_selection(
-        prior, complaint: str, geography: dict, selected_codes_json: str,
-    ):
-        """Apply-Filter with insufficient geography: write the user's
-        selection onto selected_nucc_codes on the carried specialtySearch
-        and findAProvider intents WITHOUT touching the nucc_codes
-        universe. The complaint did not change, so the universe does not
-        change. The next-turn interpret path will see selected_nucc_codes
-        and ProviderSearch will use it as its filter."""
-        import json as json
-        from chathealthy_lib.authentication.intent_document import (
-            Argument, IntentDocument, IntentFindAProvider, IntentSpecialtySearch,
-        )
-        prior_spec = next(
-            (i for i in (prior.intents if prior is not None else []) if i.name == "specialtySearch"),
-            None,
-        ) if prior is not None else None
-        prior_findap = next(
-            (i for i in (prior.intents if prior is not None else []) if i.name == "findAProvider"),
-            None,
-        ) if prior is not None else None
-
-        # specialtySearch: carry everything (universe nucc_codes,
-        # complaint) + new selected_nucc_codes.
-        spec_args = UniversalNavigationTool._carry_universe_args(prior_spec)
-        if not any(a.name == "complaint" for a in spec_args):
-            spec_args.insert(0, Argument(
-                name="complaint", value=complaint or "", type="string", required=True,
-            ))
-        spec_args.append(Argument(
-            name="selected_nucc_codes", value=selected_codes_json,
-            type="array", required=False,
-        ))
-        spec = IntentSpecialtySearch(name="specialtySearch", arguments=spec_args)
-
-        intents: list = [spec]
-
-        # findAProvider only if we have prior partial geography to carry.
-        geo_compact = {k: v for k, v in (geography or {}).items() if v}
-        if geo_compact or prior_findap is not None:
-            findap_args = UniversalNavigationTool._carry_universe_args(prior_findap)
-            findap_args = [a for a in findap_args if a.name not in ("complaint", "geography")]
-            findap_args.insert(0, Argument(
-                name="complaint", value=complaint or "", type="string", required=True,
-            ))
-            if geo_compact:
-                findap_args.append(Argument(
-                    name="geography", value=json.dumps(geo_compact),
-                    type="object", required=True,
-                ))
-            findap_args.append(Argument(
-                name="selected_nucc_codes", value=selected_codes_json,
-                type="array", required=False,
-            ))
-            intents.append(IntentFindAProvider(name="findAProvider", arguments=findap_args))
-
-        if prior is not None:
-            for entry in prior.intents:
-                if entry.name not in ("specialtySearch", "findAProvider"):
-                    intents.append(entry)
-        return IntentDocument(
-            target_action="specialtySearch",
-            intents=intents[:4],
-            user_message=None,
-        )
 
     async def _hydrate_lockout_if_any(self, deps: AgentDeps) -> None:
         """UR's pre-UM hydration step for the safetyLockout flow.
@@ -1024,11 +1101,7 @@ class UniversalNavigationTool(ChatHealthyTool):
             (i for i in document.intents if i.name == target_action), None,
         )
 
-        if target_action == "nonsense":
-            from NonsenseTool import nonsense_tool
-            await nonsense_tool.TOOL.run_and_log(deps, nonsense_tool.Request())
-
-        elif target_action == "safetyLockout":
+        if target_action == "safetyLockout":
             # UM judged the latest utterance signals immediate medical
             # attention. LockoutTool's Task C inserts the
             # {env}_Safety.emergency_incidents record, stamps user_object
@@ -1106,7 +1179,7 @@ class UniversalNavigationTool(ChatHealthyTool):
             await clinical_trials_dispatcher.TOOL.run_and_log(deps, ct_req)
 
         elif target_action == "findAProvider":
-            from authentication import provider_search_and_selection_tool
+            from authentication import provider_search_tool
 
             complaint = next(
                 (a.value for a in target_intent_entry.arguments if a.name == "complaint"),
@@ -1114,44 +1187,25 @@ class UniversalNavigationTool(ChatHealthyTool):
             )
             specialties = await self._run_or_cache_specialty_filter(deps, complaint)
             if specialties:
-                # FindCare-UR REQ-B-002: ProviderSearch fires only when
-                # geography is sufficient.
-                geo_arg_val = next(
-                    (a for a in target_intent_entry.arguments if a.name == "geography"),
-                    None,
-                )
-                geo = json.loads(geo_arg_val.value) if geo_arg_val else {}
+                # provider_search is a consumer: it reads the user's live
+                # parameters and writes none. Nothing is handed to it and
+                # nothing is dug back out of the intent, which is what lets
+                # geography named while looking at trials apply here.
+                params = deps.user_object.userParameters
+                geo = params.geography
 
-                # Apply-Filter selection (if any) narrows the search.
-                # Absent selection: search the full universe.
-                selected_arg = next(
-                    (a for a in target_intent_entry.arguments if a.name == "selected_nucc_codes"),
-                    None,
-                )
-                if selected_arg and selected_arg.value:
-                    try:
-                        selected_codes = json.loads(selected_arg.value)
-                    except json.JSONDecodeError as _exc:
-                        # Mode 1 (REQ-B-008): malformed JSON defaults to [];
-                        # UR continues. log.info + default debug-gated.
-                        selected_codes = []
-                    if isinstance(selected_codes, list) and selected_codes:
-                        specialty_codes = [c for c in selected_codes if isinstance(c, str)]
-                    else:
-                        specialty_codes = [c["code"] for c in specialties]
-                else:
-                    specialty_codes = [c["code"] for c in specialties]
+                # No selection means the user has not narrowed, so the whole
+                # offered panel applies. A selection narrows it.
+                specialty_codes = params.selected_or_all()
 
-                ps_req = provider_search_and_selection_tool.Request(
+                await self._search_providers(
+                    deps,
                     specialty_codes=specialty_codes,
-                    state=geo.get("state"),
-                    city=geo.get("city"),
-                    county=geo.get("county"),
-                    zip=geo.get("zip"),
+                    state=geo.state if geo else None,
+                    city=geo.city if geo else None,
+                    county=geo.county if geo else None,
+                    zip=geo.zip if geo else None,
                     limit=25,
-                )
-                await provider_search_and_selection_tool.TOOL.run_and_log(
-                    deps, ps_req,
                 )
                 # No inner "final" emission — outer pipeline emits the
                 # canonical final event with full payload.
@@ -1182,17 +1236,17 @@ class UniversalNavigationTool(ChatHealthyTool):
         if document is None:
             return []
 
-        # Caching nucc_codes across utterances is a bug, not an
-        # optimization. The original cache key was the IntentDocument
-        # (not the complaint), so a prior dental query's nucc_codes would
-        # be returned verbatim for a new orthopedic query and the FE
-        # would show dental specialties for "find me a bone doctor"
-        # (operator-reported 2026-06-21). SpecialtyFilter is cheap; the
-        # right behavior is to run it on every new utterance.
-        # read_nucc_codes_cache() is retained for code that legitimately
-        # needs the prior turn's codes (e.g., ProviderSearch fallback
-        # when Apply Filter sends an empty selection), but it is NOT
-        # called here.
+        # The cache is keyed by the query the codes were computed from.
+        # Neither of the two previous shapes was: the first keyed by the
+        # IntentDocument, so a dental query's codes came back for "find me
+        # a bone doctor" (2026-06-21); the second removed caching, so
+        # Apply Filter regenerated the panel the user was mid-way through
+        # choosing from (2026-06-10). One bug was traded for the other
+        # because the key was never the thing that decides.
+        #
+        # A new utterance is a different query and re-runs. Apply Filter
+        # produces no utterance, so the query is unchanged and the panel
+        # the user is looking at is the panel they keep.
 
         # Restore prior behavior: SpecialtyFilter sees the VERBATIM latest
         # person utterance, not UM's narrow `complaint` extraction. The
@@ -1208,6 +1262,16 @@ class UniversalNavigationTool(ChatHealthyTool):
                 raw_utterance = str(text).strip()
                 break
         query = raw_utterance or complaint
+
+        cached = read_nucc_codes_cache(document)
+        if cached and read_nucc_codes_query(document) == query:
+            # The panel is republished on the cache-hit path too. A consumer
+            # reads the parameter, not this return value, so a path that
+            # returns codes without setting the parameter would hand the
+            # provider search an empty panel and it would find nothing.
+            await self._set_specialties_parameter(deps, cached)
+            return cached
+
         from SpecialtyFilter import specialty_filter_tool
         fs = await specialty_filter_tool.TOOL.run_and_log(
             deps, specialty_filter_tool.Request(query=query),
@@ -1225,9 +1289,16 @@ class UniversalNavigationTool(ChatHealthyTool):
         new_intents = []
         for entry in document.intents:
             if entry.name in ("specialtySearch", "findAProvider"):
-                kept_args = [a for a in entry.arguments if a.name != "nucc_codes"]
+                kept_args = [a for a in entry.arguments
+                             if a.name not in ("nucc_codes", "nucc_codes_query")]
                 kept_args.append(Argument(
                     name="nucc_codes", value=encoded, type="array", required=False,
+                ))
+                # The key travels with the value. Without it the next turn
+                # cannot tell whether these codes belong to its question.
+                kept_args.append(Argument(
+                    name="nucc_codes_query", value=query, type="string",
+                    required=False,
                 ))
                 new_intents.append(type(entry).model_validate({
                     **entry.model_dump(),
@@ -1242,7 +1313,67 @@ class UniversalNavigationTool(ChatHealthyTool):
             user_message=document.user_message,
         )
 
+        await self._set_specialties_parameter(deps, specialties)
+
+        # The specialty pipeline's normalize step emits two readings of the
+        # utterance: the search term it embeds with, and the complaint. The
+        # classifier also produces a complaint, but it is normalizing for a
+        # specialty search -- "orthodontist" -- which names who you see and
+        # not what you have. This one says "tooth problem", so it wins.
+        if fs.complaint:
+            from UserParameters import user_parameters_tool
+            await user_parameters_tool.TOOL.run_and_log(
+                deps,
+                user_parameters_tool.Request(
+                    verb="set", name="complaint", value=fs.complaint,
+                    origin="non_deterministic",
+                ),
+            )
+
         return specialties
+
+    async def _set_specialties_parameter(
+        self, deps: AgentDeps, specialties: list[dict],
+    ) -> None:
+        """Publish the offered panel, and the selection it is drawn with.
+
+        The panel paints prescribers checked and everything else clear, so
+        the search has to be the checked set or the screen is lying: the
+        user saw psychiatrists ticked and chiropractors not, and got
+        chiropractors, because an empty selection meant "search everything
+        offered" rather than "search what is checked".
+
+        Seeding the selection here makes the two the same set by
+        construction. Unchecking a row and applying then narrows from a
+        real starting point rather than from a set nobody chose.
+        """
+        from UserParameters import user_parameters_tool
+        await user_parameters_tool.TOOL.run_and_log(
+            deps,
+            user_parameters_tool.Request(
+                verb="set", name="specialties", value=specialties,
+                origin="non_deterministic",
+            ),
+        )
+        # ONLY when the user has not chosen yet. Seeding unconditionally
+        # overwrote the choice they had just made: Apply Filter writes the
+        # ticked codes, then dispatches findAProvider, which comes back
+        # through here and replaced them with the prescriber default. The
+        # user picked Orthodontics and got the default set, because the
+        # default was written after their choice.
+        #
+        # A choice is deterministic and outranks a default. The default
+        # exists for the turn where there is nothing to outrank it.
+        if not deps.user_object.userParameters.selected_specialty_codes:
+            prescribers = [s.get("code") for s in specialties
+                           if s.get("can_prescribe") and s.get("code")]
+            await user_parameters_tool.TOOL.run_and_log(
+                deps,
+                user_parameters_tool.Request(
+                    verb="set", name="selected_specialty_codes",
+                    value=prescribers, origin="deterministic",
+                ),
+            )
 
     # ── /gate orchestration entry point ───────────────────────────
 
