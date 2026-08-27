@@ -94,6 +94,42 @@
           "pattern": "^rename_from:[A-Za-z0-9_]+$"
         }
       ]
+    },
+    "PlatformFact": {
+      "type": "object",
+      "description": "One fact a platform requires. Carries a name and either a scalar value or facts of its own. A repeated structure is the same fact name repeated. The schema constrains this shape and nothing about which facts any platform needs.",
+      "additionalProperties": false,
+      "required": [
+        "name"
+      ],
+      "properties": {
+        "name": {
+          "type": "string",
+          "minLength": 1
+        },
+        "value": {
+          "type": "string"
+        },
+        "facts": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "$ref": "#/$defs/PlatformFact"
+          }
+        }
+      },
+      "oneOf": [
+        {
+          "required": [
+            "value"
+          ]
+        },
+        {
+          "required": [
+            "facts"
+          ]
+        }
+      ]
     }
   },
   "required": [
@@ -197,8 +233,9 @@
               "properties": {
                 "env_binding": {
                   "type": "string",
-                  "description": "Closed taxonomy of runtime-environment bindings. Source-of-truth: the project's env constants in the deploy/ops codebase (VALID_ENVS / ENV_ORDER) and Code/deploy/conftest.py choices.",
+                  "description": "Closed taxonomy of runtime-environment bindings. Source-of-truth: the project's env constants in the deploy/ops codebase (VALID_ENVS / ENV_ORDER) and Code/deploy/conftest.py choices. sandbox is a developer workstation; there may be many, one per workstation.",
                   "enum": [
+                    "sandbox",
                     "local",
                     "dev",
                     "qa",
@@ -263,6 +300,20 @@
                           "maxLength": 80,
                           "description": "A few plain words: what the secret is, on one line of a report."
                         }
+                      },
+                      "depends_on": {
+                        "type": "array",
+                        "description": "package_id values this package requires in order to function. The graph across all packages is acyclic. Install order is derived from these declarations and is not written into the build or the deploy.",
+                        "items": {
+                          "type": "string",
+                          "minLength": 1
+                        },
+                        "uniqueItems": true
+                      },
+                      "digest": {
+                        "type": "string",
+                        "description": "Digest over the exact bytes of this package's declared contents, normalised for line endings. Written by the build. A deploy skips a package only when the digest the host reports equals this value.",
+                        "minLength": 1
                       }
                     },
                     "dependentRequired": {
@@ -1367,6 +1418,35 @@
                       "type": "string"
                     }
                   }
+                },
+                "platforms": {
+                  "type": "array",
+                  "description": "The platforms that host or configure this target in this environment, each with the facts that platform needs. The schema does not enumerate platforms; the installing code owns which facts each platform requires.",
+                  "minItems": 1,
+                  "items": {
+                    "type": "object",
+                    "description": "The platform that hosts this target in this environment, and the facts that platform needs. The schema does not enumerate platforms: it validates that a fact has a name and a value. The code that installs to a platform owns the knowledge of which facts that platform requires, verifies them, and fails the deploy naming any platform it does not support.",
+                    "additionalProperties": false,
+                    "required": [
+                      "name",
+                      "facts"
+                    ],
+                    "properties": {
+                      "name": {
+                        "type": "string",
+                        "minLength": 1,
+                        "description": "Platform identifier. Matched by the installing code against the platforms it supports. Not constrained by this schema."
+                      },
+                      "facts": {
+                        "type": "array",
+                        "description": "Name/value facts this platform requires.",
+                        "minItems": 1,
+                        "items": {
+                          "$ref": "#/$defs/PlatformFact"
+                        }
+                      }
+                    }
+                  }
                 }
               }
             }
@@ -1910,6 +1990,28 @@
               "managedIdentity"
             ],
             "description": "The concrete Entra object type, so a reader knows what to look up and where. identity_class is the abstract kind; this is the thing that exists in the directory."
+          },
+          "identity_provider": {
+            "type": "object",
+            "description": "The directory this identity is federated with, and the facts that provider needs. The schema does not name any provider.",
+            "additionalProperties": false,
+            "required": [
+              "name",
+              "facts"
+            ],
+            "properties": {
+              "name": {
+                "type": "string",
+                "minLength": 1
+              },
+              "facts": {
+                "type": "array",
+                "minItems": 1,
+                "items": {
+                  "$ref": "#/$defs/PlatformFact"
+                }
+              }
+            }
           }
         }
       }
