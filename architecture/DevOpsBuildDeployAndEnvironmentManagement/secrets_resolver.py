@@ -1,12 +1,14 @@
 """Secret value resolver and leak-check utility.
 
-Single value-fetching code path per binding: a name is bound to one store
-and only that store is consulted. No cross-store fallback. Unavailable
-store raises hard. Today only the local `.env` store is wired; the
-remote stores (Hugging Face Space secrets, Cloudflare environment
-variables) are intentional stubs raising
-NotImplementedError so the architectural shape is in place without
-exposing fetch logic for the remote stores.
+A name is bound to one store and that store is consulted. The one
+exception is the local `.env`, which is a single workstation's copy of
+credentials the environment's vault also holds: a name bound to it that
+the file does not carry is read from that environment's vault instead.
+This is not a per-target accommodation -- it holds for every target and
+every secret bound to `local_env`, because a deployment that can only be
+run from the workstation that happens to hold a credential is not a
+deployment. A name neither store holds raises, naming the vault and the
+secret it looked for.
 
 The leak-check helper exposes the set of values present in a local
 `.env` so the Crosswalk can guarantee no `.env` value bytes ever leak
@@ -85,12 +87,13 @@ def _ch_exc():
 
 
 class SecretsResolver:
-    """Resolve a bound secret to a value via the single bound store.
+    """Resolve a bound secret to a value via the store it is bound to.
 
     Construction takes a mapping `(secret_name, env) -> store_id` so the
-    binding is explicit. `resolve` looks up the bound store and reads
-    the value from that store only — no fallback. Today only
-    `local_env` is wired.
+    binding is explicit. `resolve` looks up the bound store and reads the
+    value from it. A name bound to `local_env` that the file does not
+    carry is read from the environment's vault -- one rule, applied
+    wherever that binding appears, not a per-target accommodation.
     """
 
     def __init__(
@@ -371,15 +374,29 @@ class SecretsResolver:
             return False, (f"{vault} holds no {vault_secret_name(name)!r} and "
                            f"{self._env_file} carries no value for it")
         if store == _STORE_LOCAL_ENV:
-            if self._env_file is None or not Path(self._env_file).is_file():
-                return False, f"{name!r} is bound to {store!r} with no .env to read"
             if self._has_local_value(name):
                 return True, str(self._env_file)
+            # Not in the .env -- which is one workstation's copy, not the
+            # authority -- so the environment's vault is asked. Same order
+            # resolve() reads in, so what the build says is deployable and
+            # what the deploy can actually fetch cannot disagree. Neither
+            # holding it fails the deploy, which is the point: the value is
+            # missing everywhere it is meant to be.
+            vault = self.vault_for(env) if self._vaults.get(env) else None
+            if vault:
+                value, absent = self._vault_read(vault, vault_secret_name(name))
+                if not absent and value:
+                    return True, f"{vault}/{vault_secret_name(name)}"
+            if self._env_file is None or not Path(self._env_file).is_file():
+                return False, (f"{name!r} is bound to {store!r} with no .env to "
+                               f"read and no value in {vault or 'any vault'}")
             if name in (self._env_cache or {}):
                 return False, (f"{name!r} is present in {self._env_file} with an "
                                f"empty value; a name without a value is not a "
                                f"secret")
-            return False, f"{name!r} not present in {self._env_file}"
+            return False, (f"{name!r} is in neither {self._env_file} nor "
+                           f"{vault or 'any vault'} "
+                           f"(as {vault_secret_name(name)!r})")
         # The remaining stores are written BY a deploy rather than read by
         # one -- the value is computed at deploy time and pushed onto the
         # target. There is nothing for a build to verify the existence of.
@@ -423,12 +440,16 @@ class SecretsResolver:
                     "but no env_file was provided at construction")
             if self._env_cache is None:
                 self._env_cache = self._read_env_file(self._env_file)
-            if name not in self._env_cache:
-                raise ChatHealthyException(
-            mode="key_error",
-            component="secrets_resolver",
-            message=f"secret {name!r} not present in {self._env_file}")
-            return self._env_cache[name]
+            if self._has_local_value(name):
+                return self._env_cache[name]
+            # Absent from the .env, so the environment's own vault answers.
+            # This holds for every target and every secret bound to the
+            # local env: the .env is one workstation's copy, and a
+            # deployment that can only be run from the workstation that
+            # happens to hold a credential is not a deployment. A name the
+            # vault does not hold either still raises -- from the vault
+            # path, naming the vault and the secret it looked for.
+            return self._resolve_from_vault(name, env)
         if store == _STORE_HF_SPACE:
             self._read_hf_space_secrets(env)
         if store == _STORE_CLOUDFLARE:
