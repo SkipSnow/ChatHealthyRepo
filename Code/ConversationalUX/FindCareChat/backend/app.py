@@ -540,11 +540,18 @@ class SearchRequest(BaseModel):
     city: Optional[str] = None
     county: Optional[str] = None
     zip: Optional[str] = None
-    name: Optional[str] = None
     npi: Optional[str] = None
     nucc_codes: Optional[list[str]] = None
     after_npi: Optional[str] = None
     limit: int = 25
+    # Named outright rather than searched for by what they do.
+    last_name: Optional[str] = None
+    first_name: Optional[str] = None
+    middle_name: Optional[str] = None
+    # Preferences the person stated. Applied to an already-narrow result.
+    provider_sex: Optional[str] = None
+    sole_proprietor: Optional[bool] = None
+    insurance: Optional[str] = None
 
 @app.post("/search")
 async def search(body: SearchRequest):

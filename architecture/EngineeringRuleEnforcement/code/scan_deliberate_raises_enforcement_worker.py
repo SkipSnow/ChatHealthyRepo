@@ -263,6 +263,11 @@ def _exits_that_are_raises(tree: ast.AST) -> list[tuple[int, str]]:
 # decorator rather than by a naming convention, because the decorator IS
 # the registration -- a name can be right on a function that is not a
 # validator, and wrong on one that is.
+#
+# Such a function MAY log before it raises, and is not required to. The
+# "thrower does not log" rule holds because our catcher logs; here the
+# catcher is the library, in its own frame, and will never log to ours --
+# so the prohibition does not apply and the author decides.
 CALLBACK_PROTOCOL_DECORATOR = "output_validator"
 CALLBACK_PROTOCOL_EXCEPTION = "ModelRetry"
 

@@ -41,7 +41,7 @@ for _ch_d in _ch_pl.Path(__file__).resolve().parents:
 from chathealthy_lib.authentication.agent_deps import AgentDeps  # noqa: E402
 from chathealthy_lib.authentication.chathealthy_tool import ChatHealthyTool  # noqa: E402
 from chathealthy_lib.authentication.user_parameters import (  # noqa: E402
-    Geography, Specialty, UserParameters,
+    Geography, ProviderName, Specialty, UserParameters,
 )
 from chathealthy_lib.exceptions import ChatHealthyException  # noqa: E402
 from chathealthy_lib.logging_service import ChatHealthyLoggingService  # noqa: E402
@@ -57,7 +57,8 @@ log = ChatHealthyLoggingService()
 # provider" and that is what is written. A raw colloquialism reaching this
 # set would be a word nothing can query.
 WRITABLE = ("geography", "complaint", "specialties", "selected_specialty_codes",
-            "page_cursors", "selected_provider_npi")
+            "page_cursors", "selected_provider_npi",
+            "provider_name", "insurance", "provider_sex", "sole_proprietor")
 
 
 class Request(BaseModel):
@@ -108,7 +109,25 @@ def _coerce(name: str, value: Any):
         return {str(fn): str(key).strip()
                 for fn, key in dict(value or {}).items()
                 if str(fn).strip() and str(key).strip()}
-    if name in ("complaint", "selected_provider_npi"):
+    if name == "provider_name":
+        parts = value if isinstance(value, ProviderName) else ProviderName(**dict(value))
+        # Uppercased on the way in, because the records are uppercase and a
+        # case-insensitive match cannot use the name index.
+        return ProviderName(last=parts.last.strip().upper(),
+                            first=parts.first.strip().upper(),
+                            middle=parts.middle.strip().upper())
+    if name == "provider_sex":
+        code = str(value or "").strip().upper()
+        if code not in ("F", "M", "X", "U"):
+            raise ChatHealthyException(
+                mode="value_error",
+                component="UserParametersTool",
+                message=f"{code!r} is not a sex code. NPPES uses F, M, "
+                        f"X (neither male nor female) and U (undisclosed).")
+        return code
+    if name == "sole_proprietor":
+        return bool(value)
+    if name in ("complaint", "selected_provider_npi", "insurance"):
         return str(value or "").strip()
     raise ChatHealthyException(
         mode="value_error",
