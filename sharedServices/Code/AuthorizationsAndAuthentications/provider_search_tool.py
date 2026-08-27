@@ -61,6 +61,51 @@ class Request(BaseModel):
                     "Absent means the first page. This is how position in a "
                     "long result is carried, since results are ordered by NPI "
                     "rather than numbered.")
+    last_name: Optional[str] = Field(
+        default=None,
+        description="Surname, when a provider is named outright rather than "
+                    "searched for by what they do. Matched exactly.")
+    first_name: Optional[str] = Field(
+        default=None,
+        description="Given name or its initial. Matches either way round: "
+                    "JAMES also finds a record holding J, and J also finds "
+                    "JAMES.")
+    middle_name: Optional[str] = Field(
+        default=None,
+        description="Middle name or initial, matched the same way. This is "
+                    "what separates people who share a first and last name; "
+                    "there are 162 Richard Smiths.")
+    provider_sex: Optional[str] = Field(
+        default=None,
+        description="A stated preference about the provider. F Female, "
+                    "M Male, X neither male nor female, U undisclosed. X is "
+                    "an affirmation the provider made and U is a refusal to "
+                    "stipulate -- never merge them, and never present either "
+                    "as meaning transgender, which this data does not "
+                    "record. Stating a preference excludes everyone who "
+                    "does not match it.")
+    sole_proprietor: Optional[bool] = Field(
+        default=None,
+        description="True for a provider practising on their own account.")
+    insurance: Optional[str] = Field(
+        default=None,
+        description="Narrows to providers who list this payer among their "
+                    "identifiers in the NPI database. Our insurance "
+                    "information is weak: registering a payer identifier is "
+                    "voluntary and sparse, so most providers list none at "
+                    "all. Say that plainly before offering to use it. It is "
+                    "weakest in psychiatry, where many providers take no "
+                    "insurance by choice -- about a third list any payer "
+                    "against half in paediatrics -- so a psychiatrist "
+                    "listing none may genuinely take none. It follows that a "
+                    "provider's ABSENCE from these results says nothing "
+                    "about whether they take that insurance. It is also NOT "
+                    "network membership: nothing here establishes whether a "
+                    "particular plan covers a particular provider, and that "
+                    "must never be stated or implied. Where a person needs a "
+                    "real answer about coverage or network, tell them "
+                    "EvaluateCare goes further into insurance than a "
+                    "provider search can.")
 
 
 class Response(BaseModel):
@@ -75,6 +120,10 @@ class Response(BaseModel):
     search_params: Optional[dict] = None
     specialization_options: Optional[list[dict]] = None
     state: Optional[str] = None
+    # What the person may still narrow by, and what each choice would cost
+    # them, counted over THIS result. The panel shows these so a preference
+    # is made with its price visible rather than discovered afterwards.
+    refinements: dict = Field(default_factory=dict)
     error: Optional[str] = None
 
 
@@ -119,6 +168,13 @@ class ProviderSearchTool(ChatHealthyTool):
             body["zip"] = request.zip
         if request.after_npi:
             body["after_npi"] = request.after_npi
+        for field in ("last_name", "first_name", "middle_name",
+                      "provider_sex", "insurance"):
+            value = getattr(request, field, None)
+            if value:
+                body[field] = value
+        if request.sole_proprietor is not None:
+            body["sole_proprietor"] = request.sole_proprietor
 
         url = findcare_url() + "/search"
         try:
@@ -160,6 +216,7 @@ class ProviderSearchTool(ChatHealthyTool):
             search_params=raw.get("search_params"),
             specialization_options=raw.get("specialization_options"),
             state=raw.get("state") or request.state,
+            refinements=raw.get("refinements") or {},
         )
         deps.stream({"kind": "providers", "data": resp.model_dump(exclude_none=True)})
         return resp

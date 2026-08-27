@@ -101,6 +101,21 @@ class ClassifierOutput(BaseModel):
     age_years: Optional[int] = None
     sex: Optional[Literal["m", "f"]] = None
     geographic_scope: Optional[Literal["international", "us"]] = None
+    # findAProvider narrowings the person stated in words. Distinct from
+    # `sex` above, which is the trial participant's, not the provider's.
+    provider_last_name: Optional[str] = None
+    provider_first_name: Optional[str] = None
+    provider_middle_name: Optional[str] = None
+    provider_sex: Optional[Literal["F", "M", "X", "U"]] = None
+    insurance: Optional[str] = None
+    sole_proprietor: Optional[bool] = None
+    # Whether this turn narrows the search already running rather than
+    # asking a new question. Asked outright because inferring it from an
+    # absent complaint does not work: told to leave the field null the
+    # model writes "general health care", then "Medicare-covered health
+    # services" -- it will not decline to fill a field, but it will
+    # answer a question.
+    narrows_current_search: Optional[bool] = None
     # Audit-only label carried on the safetyLockout intent. LockoutTool
     # writes it onto {env}_Safety.emergency_incidents but renders the
     # user-facing prose from the trigger utterance, not from this label.
@@ -446,19 +461,54 @@ Your structured output is a JSON object with these fields:
   "complaint": string | null,
   "geography": { "state": string | null, "city": string | null, "county": string | null, "zip": string | null } | null,
   "user_message": string | null,
-  "pending_disambiguation": { "kind": string, "candidate": object } | null
+  "pending_disambiguation": { "kind": string, "candidate": object } | null,
+  "narrows_current_search": boolean | null
 }
 
 How the Python translator uses each field:
   - target_action: copied to IntentDocument.target_action.
   - complaint: becomes the complaint Argument on IntentSpecialtySearch
-    and/or IntentFindAProvider. Required whenever target_action involves
-    a complaint (specialtySearch, findAProvider, or
+    and/or IntentFindAProvider. Required whenever THIS TURN names what
+    the person is looking for (specialtySearch, findAProvider, or
     ambiguous-but-resolvable holding pattern).
+    NULL when the turn names none. A turn that only narrows a search
+    already running -- "just find me the medicare docs", "now the male
+    ones", "only solo practitioners" -- names no complaint, and the one
+    already in force still stands. NEVER invent a placeholder such as
+    "general health care" or restate the kind of provider the previous
+    turn established. Writing anything there tells the system the person
+    asked a NEW question: the specialty list is resolved again from the
+    words of the narrowing, the panel the person is looking at is
+    replaced, and the narrowing is applied to a different set of
+    providers than the one on their screen -- so asking for the male
+    ones among 5 returned 11.
   - geography: becomes the geography Argument on IntentFindAProvider
     (JSON-encoded). May be partial (e.g., {"city":"milwaukee"} alone)
     when pending_disambiguation is set. Must be sufficient (zip, state,
     state+city, or state+county) when target_action is findAProvider.
+    geography.county carries the NAME ONLY. The field is already named
+    county, so the word is never part of its value, and neither is any
+    other kind-word the place may be called by -- parish, borough,
+    municipio, district, region, or city in the states that have
+    independent ones. "Los Angeles County" -> "Los Angeles".
+    "Orleans Parish" -> "Orleans". "in LA county" -> "Los Angeles".
+    Write the name the person meant and nothing else; the search resolves
+    it to whatever form the records hold.
+  - narrows_current_search: true when this turn narrows the search
+    already running rather than asking a new question. Judge it by what
+    the person is looking for, not by their wording:
+      "just find me the medicare docs"  -> true
+      "now the male ones"               -> true
+      "only solo practitioners"         -> true
+      "actually make it Sacramento"     -> true  (same providers, new place)
+      "find me a dentist instead"       -> false (different providers)
+      "what about clinical trials"      -> false
+    When true the specialty list already on screen is kept and the
+    narrowing is applied to it. When false it is resolved afresh.
+    Getting this wrong is expensive in one direction: a false 'false'
+    replaces the panel the person is reading and applies their narrowing
+    to a different set of providers, so asking for the male ones among 5
+    came back 11.
   - user_message: streamed to the user verbatim as {kind:"prompt"}.
     The LLM owns this prose; the runtime never substitutes hardcoded
     chat strings. Set it on any turn that needs to talk to the user.
@@ -603,7 +653,8 @@ DECISION RULES (apply in this order):
          structured field on the geography object on your output:
            - corrected city  -> geography.city  = <corrected city>
            - corrected state -> geography.state = <2-letter USPS code>
-           - corrected county -> geography.county = <corrected county>
+           - corrected county -> geography.county = <corrected county
+             NAME ONLY, no County/Parish/Municipio/Borough kind-word>
          The user_message + corrections[] annotation alone is NOT
          enough. The geography object MUST carry the corrected fact
          in its dedicated slot — downstream code reads geography, not
@@ -824,6 +875,39 @@ DECISION RULES (apply in this order):
       geographic_scope are all optional refinements per the rules
       above.
 
+  5.5. NARROWINGS THE PERSON STATED, on a findAProvider or
+     specialtySearch turn. Extract only what they actually said; leave
+     every one absent otherwise. None of these changes target_action --
+     they ride alongside it.
+
+     A turn that states ONLY a narrowing sets its narrowing field and
+     leaves complaint NULL. Narrowings accumulate: each one stated is
+     added to those already in force, and one is dropped only when the
+     person says to drop it. "just find me the medicare docs" then "now
+     the male docs" means male AND medicare, not male instead of
+     medicare.
+
+     provider_last_name / provider_first_name / provider_middle_name --
+       a provider named outright: "I'm looking for Dr. Sarah Chen",
+       "is James P Smith taking patients". Split the name; do not guess
+       parts they did not say.
+
+     provider_sex -- a stated preference about the provider:
+       "a female doctor" -> F ; "I'd prefer a man" -> M.
+       Use X only if they ask for a provider who is neither male nor
+       female. Never infer it from anything else, and never treat it as
+       meaning transgender -- that is not what it records.
+       "I don't mind" is NOT a preference: leave it absent.
+
+     insurance -- the payer they carry: "I have Anthem" -> ANTHEM,
+       "I'm on Medicaid" -> MEDICAID, "Blue Cross" ->
+       BLUE_CROSS_BLUE_SHIELD. Upper case, underscores for spaces.
+       A question ABOUT insurance is not a statement of which they have:
+       "do they take my insurance?" sets nothing.
+
+     sole_proprietor -- true when they want someone practising on their
+       own account: "a solo practitioner", "not part of a big group".
+
   6. There is no other outcome. Every utterance either gives a rule
      above what it needs, or it does not and rule 2 applies. Why it
      does not is not yours to judge.
@@ -936,6 +1020,14 @@ def _provider_search_has_a_place(output: ClassifierOutput) -> ClassifierOutput:
         (geo.state, geo.city, geo.county, geo.zip)
     ):
         return output
+    # The thrower logs here, against Rule-065 statement 4's general shape,
+    # because the catcher is pydantic-ai and it will never log to ours. Left
+    # silent, a rule that fired one turn in six left no trace at all -- and
+    # would leave none if it started firing every turn.
+    log.info("LLM validator REJECT rule=provider_search_has_a_place "
+             "target_action=%s geography=%s",
+             output.target_action,
+             geo.model_dump(exclude_none=True) if geo is not None else None)
     raise ModelRetry(
         "You set target_action=findAProvider but every geography field is "
         "empty. A provider search always has a place: the user named one in "
@@ -1035,6 +1127,7 @@ manufacture_agent = Agent(
 
 
 async def call_manufacture_llm(
+    deps,
     transcript: list[str],
     reason: dict[str, Any],
     prior: Optional[IntentDocument],
@@ -1068,14 +1161,35 @@ async def call_manufacture_llm(
     )
     log.debug("UM manufacture input: %s", user_msg)
     result = await _run_agent(
-        manufacture_agent, user_msg, call_site="UM._manufacture_agent")
+        deps, manufacture_agent, user_msg, call_site="UM._manufacture_agent")
     log.debug("UM manufacture output: %s", result.output.model_dump_json())
     return result.output
 
 
-async def _run_agent(agent, prompt: str, *, call_site: str):
+def session_guid(deps) -> str:
+    """The correlation id for everything one turn does.
+
+    Every line a model call writes carries it, so the state going in and
+    the answer coming out can be put back together afterwards -- and so a
+    retry inside pydantic-ai's own frame, which nothing of ours catches,
+    can still be tied to the turn it happened on.
+    """
+    if deps is None:
+        return "no-session"
+    try:
+        return deps.session_token.get_auth_token()
+    except ChatHealthyException:
+        return "no-session"
+
+
+async def _run_agent(deps, agent, prompt: str, *, call_site: str):
     """One route to this tool's agents, carrying the identity every call
     reports under.
+
+    Logs the session going in and the answer coming out, both stamped with
+    the session guid. A model call was previously invisible: a turn that
+    took three attempts returned the same object as one that took one, and
+    nothing recorded what the model was given or what it said.
 
     No catch here. From agent.run forward a failure is chathealthy_lib.llm's
     to convert, and it does -- a run that fails arrives as a
@@ -1085,15 +1199,24 @@ async def _run_agent(agent, prompt: str, *, call_site: str):
 
     An output validator rejecting an illegal answer never reaches here at
     all: ModelRetry is pydantic-ai's callback protocol, caught in its own
-    frame and turned into another turn at the model.
+    frame and turned into another turn at the model. That is why the
+    validator logs for itself -- there is no catcher of ours to do it.
     """
-    return await run_llm(
+    guid = session_guid(deps)
+    session = (deps.user_object.model_dump_json(exclude_none=True)
+               if deps is not None and deps.user_object is not None else "{}")
+    log.info("LLM call BEGIN guid=%s call_site=%s session=%s prompt=%s",
+             guid, call_site, session, prompt)
+    result = await run_llm(
         agent, prompt,
         call_site=call_site,
         provider="gemini",
         server="shared_services",
         component="UM",
     )
+    log.info("LLM call END guid=%s call_site=%s output=%s",
+             guid, call_site, result.output.model_dump_json())
+    return result
 
 
 async def _structure_location(text: str) -> dict:
@@ -1211,7 +1334,7 @@ def _known_parameters_block(parameters) -> str:
 
 
 async def call_classifier_llm(
-    transcript: list[str], prior: Optional[IntentDocument],
+    deps, transcript: list[str], prior: Optional[IntentDocument],
     parameters=None,
 ) -> ClassifierOutput:
     """Single LLM call. Receives the recent transcript as already-labeled
@@ -1238,7 +1361,7 @@ async def call_classifier_llm(
         "output."
     )
     result = await _run_agent(
-        classifier_agent, user_msg, call_site="UM._classifier_agent")
+        deps, classifier_agent, user_msg, call_site="UM._classifier_agent")
     return result.output
 
 
@@ -1504,7 +1627,7 @@ class UtteranceManagerTool(ChatHealthyTool):
         prior = deps.user_object.intent
 
         llm_result = await call_manufacture_llm(
-            transcript, request.manufacture_utterance_reason, prior,
+            deps, transcript, request.manufacture_utterance_reason, prior,
             deps.user_object.userParameters,
         )
         user_message = (llm_result.user_message or "").strip()
@@ -1571,9 +1694,21 @@ class UtteranceManagerTool(ChatHealthyTool):
         prior = deps.user_object.intent
 
         llm_result = await call_classifier_llm(
-            transcript, prior, deps.user_object.userParameters)
+            deps, transcript, prior, deps.user_object.userParameters)
         target_action = llm_result.target_action
         complaint = (llm_result.complaint or "").strip()
+
+        # A narrowing turn carries the complaint already in force, not the
+        # one the model wrote for it. The model fills the field whatever it
+        # is told -- "general health care", then "Medicare-covered health
+        # services" -- and each invented value read downstream as a new
+        # question, throwing away the panel the person was reading. Leaving
+        # it empty instead is not available: findAProvider is not a valid
+        # intent without a complaint, so the turn failed to route at all.
+        if llm_result.narrows_current_search:
+            in_force = (deps.user_object.userParameters.complaint or "").strip()
+            if in_force:
+                complaint = in_force
         geography = llm_result.geography.model_dump() if llm_result.geography else {}
         user_location = (llm_result.user_location or "").strip() or None
         user_message = (llm_result.user_message or "").strip() or None
@@ -1768,6 +1903,37 @@ class UtteranceManagerTool(ChatHealthyTool):
                 deps,
                 user_parameters_tool.Request(
                     verb="set", name="complaint", value=complaint,
+                    origin="non_deterministic",
+                ),
+            )
+
+
+        # Narrowings the person stated in words. Same rule as geography:
+        # written only when this turn named one, so "a female doctor" said
+        # once keeps applying and a later turn that mentions nothing does
+        # not silently drop it.
+        name_parts = {
+            "last": llm_result.provider_last_name or "",
+            "first": llm_result.provider_first_name or "",
+            "middle": llm_result.provider_middle_name or "",
+        }
+        if any(name_parts.values()):
+            await user_parameters_tool.TOOL.run_and_log(
+                deps,
+                user_parameters_tool.Request(
+                    verb="set", name="provider_name", value=name_parts,
+                    origin="non_deterministic",
+                ),
+            )
+        for field, value in (("provider_sex", llm_result.provider_sex),
+                             ("insurance", llm_result.insurance),
+                             ("sole_proprietor", llm_result.sole_proprietor)):
+            if value is None or value == "":
+                continue
+            await user_parameters_tool.TOOL.run_and_log(
+                deps,
+                user_parameters_tool.Request(
+                    verb="set", name=field, value=value,
                     origin="non_deterministic",
                 ),
             )

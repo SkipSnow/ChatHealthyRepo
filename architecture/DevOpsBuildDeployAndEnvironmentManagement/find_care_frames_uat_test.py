@@ -167,6 +167,17 @@ EMPTY = "No providers matched."
 
 
 def _total(page):
+    """The count on screen, once the turn that produces it has finished.
+
+    Reading without waiting caught the results frame mid-search showing
+    "Waiting for response..." and reported it as a missing count. A search
+    is asynchronous; the number is only there when it lands.
+    """
+    page.wait_for_function(
+        "() => { const t = (document.querySelector('#frame_MainWindow')"
+        f" || {{}}).innerText || ''; return {_FOUND_JS}"
+        f" || t.includes('{EMPTY}'); }}",
+        timeout=LLM_TIMEOUT)
     text = page.locator(RESULTS).inner_text()
     if EMPTY in text:
         return 0
@@ -175,22 +186,6 @@ def _total(page):
             head = text.split(token)[0].strip().split()[-1]
             return int(head.replace(",", ""))
     pytest.fail(f"the results frame names no provider count: {text[:200]!r}")
-
-
-def _row_name(page, code):
-    """The specialty name the panel shows for one code."""
-    return page.locator(f"{PANEL} tr[data-code='{code}'] td") \
-               .first.inner_text().strip()
-
-
-def _card_texts(page):
-    return page.locator("[data-testid='provider-card']").all_inner_texts()
-
-
-def _panel_codes(page):
-    return page.evaluate(
-        f"() => Array.from(document.querySelectorAll('{PANEL} [data-code]'))"
-        ".map(e => e.getAttribute('data-code'))")
 
 
 @pytest.fixture(scope="module")
@@ -208,14 +203,100 @@ def page():
     pw.stop()
 
 
-@pytest.fixture(scope="module")
+@pytest.fixture(scope="class")
 def searched(page):
-    """One search, shared by the cases that read from it."""
+    """One search per CLASS, not per module.
+
+    Shared across the module it made every class depend on the order it ran
+    in: a class that ticked a chip, opened a detail or paged forward left
+    that state for the next one, which was asserting against an unfiltered
+    result. Six failures were that and nothing else, and reordering only
+    moved which six.
+
+    A search per class costs seconds and buys independence -- each class
+    starts from a session nothing else has touched.
+    """
+    page.reload(wait_until="networkidle")
+    page.wait_for_selector("[data-router-action='about_chathealthy']",
+                           timeout=DEFAULT_TIMEOUT)
     _ask(page, "find me a shrink in Long Beach CA")
     _wait_for_panel(page)
     _wait_for_results(page)
     _shot(page, "01_after_search")
     return page
+
+
+@pytest.fixture(scope="class")
+def fresh(page):
+    """A session with nothing established.
+
+    The ladder starts from "we know nothing", so it cannot run on the page
+    the other cases have been searching on -- their results are still up,
+    and the first turn asserts there are none.
+    """
+    page.reload(wait_until="networkidle")
+    page.wait_for_selector("[data-router-action='about_chathealthy']",
+                           timeout=DEFAULT_TIMEOUT)
+    return page
+
+
+class TestItAsksForWhatIsMissing:
+    """2026-08-26, from a live session. Three turns, each giving the system
+    a little more, and each answer asking only for what is still absent.
+
+    The second turn is the one that matters: two things were missing, so it
+    asked for both -- and did not re-ask what it had already been told.
+    That is the rule holding across turns, which a single-turn case cannot
+    show.
+
+    Prose is not asserted; it comes from a model and varies. What is
+    asserted is the shape: nothing routes until enough is known, the
+    question advances each turn, and the system never blames the person.
+    """
+
+    def test_an_utterance_it_cannot_route_asks_what_you_want(self, fresh):
+        before = _settled_text(fresh)
+        _ask(fresh, "It is a windy day today.")
+        reply = _system_reply(fresh, before)
+        assert fresh.locator("[data-testid='provider-card']").count() == 0, (
+            "an utterance carrying no healthcare request produced results")
+        low = reply.lower()
+        for word in ACCUSING:
+            assert word not in low, (
+                f"the reply says {word!r} -- that is a claim about the "
+                f"person, not about us")
+
+    def test_a_partial_request_asks_for_the_rest(self, fresh):
+        before = _settled_text(fresh)
+        _ask(fresh, "I'm looking for a provider")
+        reply = _system_reply(fresh, before)
+        assert fresh.locator("[data-testid='provider-card']").count() == 0, (
+            "a request with no complaint and no place produced results")
+        # Which missing thing it asks for varies run to run: sometimes both
+        # the complaint and the place, sometimes the complaint alone. What
+        # must hold is that it asks for something still absent rather than
+        # repeating a question already answered. Pinning it to the place
+        # made this case pass or fail on the model's mood.
+        low = reply.lower()
+        asks_place = any(w in low for w in ("where", "located", "location",
+                                            "city", "state", "zip"))
+        asks_complaint = any(w in low for w in ("concern", "condition",
+                                                "complaint", "kind of",
+                                                "what type", "symptom",
+                                                "help you with"))
+        assert asks_place or asks_complaint, (
+            f"neither the place nor the complaint is known, and the reply "
+            f"asks for neither: {reply[-300:]!r}")
+        for word in ACCUSING:
+            assert word not in low, f"the reply says {word!r}"
+
+    def test_the_complete_request_routes(self, fresh):
+        _ask(fresh, "I need someone to help me with my chronic headaches "
+                    "and I'm in Long Beach NY")
+        _wait_for_panel(fresh)
+        _wait_for_results(fresh)
+        _shot(fresh, "12_clarification_ladder_resolved")
+        _assert_results_painted(fresh)
 
 
 class TestTheScreenIsPainted:
@@ -317,7 +398,7 @@ class TestTheQueryIsTheTickedSet:
             "user did not make -- a default overwrote the choice")
 
 
-@pytest.fixture(scope="module")
+@pytest.fixture(scope="class")
 def paged(page):
     """A result wide enough to page through.
 
@@ -376,14 +457,17 @@ DETAIL_CLOSE = f"{DETAIL} [data-testid='provider-detail-close']"
 
 
 def _open_detail(page):
-    """Open the first card's detail and wait for the panel to carry it."""
+    """Open the first card's detail and wait for it to actually be there.
+
+    Waiting for the NPI to appear is not enough: the loading screen reads
+    "Loading NPI 1234", so the wait passed on a panel that had not loaded
+    and the next assertion looked for a close control only the loaded panel
+    carries. That control IS the signal the detail arrived.
+    """
     npi = page.locator("[data-testid='provider-card']").first.get_attribute("data-npi")
-    page.locator(f"[data-router-action='provider:detail'][data-npi='{npi}']") \
-        .first.click()
-    page.wait_for_function(
-        "(npi) => ((document.querySelector('#frame_RightPanel') || {})"
-        ".innerText || '').includes(npi)",
-        arg=npi, timeout=LLM_TIMEOUT)
+    link = page.locator(f"[data-router-action='provider:detail'][data-npi='{npi}']")
+    link.first.click()
+    page.wait_for_selector(DETAIL_CLOSE, timeout=LLM_TIMEOUT)
     return npi
 
 
@@ -538,6 +622,52 @@ class TestContextSwitchRestoresState:
             "open")
 
 
+PROMPT_TEXT = "#frame_MainWindow, #frame_UserPromptAndControl"
+
+# Words that make the claim about the person rather than about us. The
+# system did not understand; that is a fact about the system.
+ACCUSING = ("nonsense", "gibberish", "unintelligible", "invalid",
+            "sorry", "error", "failed", "cannot understand")
+
+
+def _settled_text(page) -> str:
+    """Body text with the running turn timer removed.
+
+    The timer ticks 1s, 2s, 3s while the model is working, so the page
+    changes every second whether or not an answer has arrived. A wait that
+    only asks "did anything change" is satisfied by the clock and reads the
+    PREVIOUS reply -- which is how this suite reported the app re-asking a
+    question it had in fact answered correctly.
+    """
+    return page.evaluate(
+        "() => (document.body.innerText || '').split(String.fromCharCode(10))"
+        ".filter(line => { const s = line.trim();"
+        "   if (!s.endsWith('s')) return true;"
+        "   const n = s.slice(0, -1);"
+        "   if (!n.length) return true;"
+        "   return ![...n].every(c => c >= '0' && c <= '9'); })"
+        ".join(String.fromCharCode(10))")
+
+
+def _system_reply(page, before: str) -> str:
+    """The prose the system put on screen in answer to the last utterance.
+
+    Waits for the text to differ from `before` ignoring the timer, and then
+    to hold still, so what is read is the finished answer.
+    """
+    deadline = LLM_TIMEOUT
+    waited = 0
+    last = None
+    while waited < deadline:
+        now = _settled_text(page)
+        if now != before and now == last:
+            return now
+        last = now
+        page.wait_for_timeout(1_000)
+        waited += 1_000
+    pytest.fail("the system never answered")
+
+
 class TestSharedServicesAndSessionInfo:
     """2026-08-26: the SharedServices button closed the window it was in
     rather than saying where you are; and there was no way to see session
@@ -557,3 +687,203 @@ class TestSharedServicesAndSessionInfo:
         _shot(page, "07_session_info")
         body = page.locator("text=User Parameters").first
         expect(body).to_be_visible()
+
+
+# ── State-changing cases run last ───────────────────────────────────
+# Everything above shares one browser session through the module-scoped
+# `page`. These two switch a filter ON and leave it on, so run earlier they
+# narrowed the list every later class was asserting against -- six failures
+# that were this ordering and nothing else. Each takes its own fresh
+# session; putting them at the end keeps the shared one clean for the rest.
+
+REFINE_CHIP = f"{PANEL} [data-router-action='filter:refine']"
+
+
+def _chips(page):
+    """[(dimension, value, count)] for every refinement the panel offers."""
+    return page.evaluate(
+        f"() => Array.from(document.querySelectorAll(\"{REFINE_CHIP}\")).map(e => ["
+        "e.getAttribute('data-dim'), e.getAttribute('data-value'),"
+        " parseInt((e.querySelector('b') || {}).textContent || '0', 10)])")
+
+
+class TestThePanelSaysHowToNarrow:
+    """2026-08-26: the panel is where the system messages the person about
+    the result they are looking at. It offers what is still narrowable and
+    what each choice would cost, counted over THIS result -- so a
+    preference is made with its price visible rather than discovered after.
+
+    The counts must reconcile with the total. Two bugs shipped before this
+    case existed: insurance counted identifier rows rather than providers
+    (108 shown where 97 qualified), and sole-proprietor dropped the
+    "Not answered" records so its numbers did not sum to the result."""
+
+    def test_the_panel_offers_narrowings(self, searched):
+        chips = _chips(searched)
+        assert chips, "the panel offers no way to narrow a result of hundreds"
+        dims = {d for d, _, _ in chips}
+        assert "provider_sex" in dims, f"sex is always offerable; got {dims}"
+
+    def test_every_choice_shows_its_cost(self, searched):
+        for dim, value, count in _chips(searched):
+            assert count > 0, f"{dim}={value} offered with a count of {count}"
+
+    def test_sex_counts_reconcile_with_the_total(self, searched):
+        rows = [(v, n) for d, v, n in _chips(searched) if d == "provider_sex"]
+        assert rows, "no sex choices offered"
+        assert sum(n for _, n in rows) == _total(searched), (
+            f"sex counts {rows} do not sum to the {_total(searched)} on screen")
+
+    def test_choosing_a_narrowing_narrows(self, searched):
+        before = _total(searched)
+        rows = [(v, n) for d, v, n in _chips(searched) if d == "provider_sex"]
+        value, expected = sorted(rows, key=lambda r: r[1])[0]
+        searched.locator(
+            f"{PANEL} [data-router-action='filter:refine'][data-value='{value}']"
+        ).first.click()
+        searched.wait_for_function(
+            "(prev) => { const t = (document.querySelector('#frame_MainWindow')"
+            " || {}).innerText || ''; return t && !t.includes(prev); }",
+            arg=f"{before} providers found", timeout=LLM_TIMEOUT)
+        _shot(searched, "13_refined_by_sex")
+        after = _total(searched)
+        assert after == expected, (
+            f"the panel promised {expected} for sex={value} and the search "
+            f"returned {after}")
+
+    def test_the_chosen_one_stays_on_the_panel(self, searched):
+        """A filter you cannot see is a filter you cannot remove.
+
+        The chosen dimension used to vanish from the panel once applied, so
+        the toggle existed on the server and nothing on screen could reach
+        it.
+        """
+        in_force = searched.locator(
+            f"{PANEL} [data-router-action='filter:refine'][data-in-force='1']")
+        assert in_force.count() >= 1, (
+            "the narrowing in force is not shown, so it cannot be undone")
+
+    def test_choosing_it_again_clears_it(self, searched):
+        narrowed = _total(searched)
+        chip = searched.locator(
+            f"{PANEL} [data-router-action='filter:refine'][data-in-force='1']").first
+        value = chip.get_attribute("data-value")
+        chip.click()
+        searched.wait_for_function(
+            "(prev) => { const t = (document.querySelector('#frame_MainWindow')"
+            " || {}).innerText || ''; return t && !t.includes(prev); }",
+            arg=f"{narrowed} providers found", timeout=LLM_TIMEOUT)
+        _shot(searched, "14_refinement_cleared")
+        assert _total(searched) > narrowed, (
+            f"clearing sex={value} left the result at {narrowed}; it should "
+            f"widen back")
+
+
+def _chip_in_force(page, value: str) -> bool:
+    return page.locator(
+        f"{PANEL} [data-router-action='filter:refine']"
+        f"[data-value='{value}'][data-in-force='1']").count() > 0
+
+
+class TestACountySearch:
+    """Never covered until now, which is why it broke unseen.
+
+    Every case in this file until this one used city+state. A county goes
+    down a different route, and refinements were wired into one route only
+    -- so the suite was green while a county search returned providers with
+    no way to narrow them at all.
+    """
+
+    @pytest.fixture(scope="class")
+    def county(self, page):
+        page.reload(wait_until="networkidle")
+        page.wait_for_selector("[data-router-action='about_chathealthy']",
+                               timeout=DEFAULT_TIMEOUT)
+        _ask(page, "find me a shrink in Los Angeles County CA")
+        _wait_for_panel(page)
+        _wait_for_results(page)
+        _shot(page, "16_county_search")
+        return page
+
+    def test_a_county_returns_providers(self, county):
+        assert _total(county) > 0, (
+            "Los Angeles County is among the densest provider areas in the "
+            "country and returned nothing")
+
+    def test_the_panel_is_painted(self, county):
+        assert county.locator(PANEL_BOXES).count() > 0, "no specialty panel"
+
+    def test_prescribers_are_ticked(self, county):
+        assert county.locator(PANEL_TICKED).count() > 0, (
+            "no row is ticked: the panel seeds prescribers, so zero means "
+            "the specialty rows reached it without can_prescribe")
+
+    def test_the_panel_says_how_to_narrow(self, county):
+        chips = _chips(county)
+        assert chips, (
+            "a county search offers no refinements -- the route returns "
+            "providers and the panel has nothing to say about them")
+
+    def test_the_counts_reconcile(self, county):
+        rows = [(v, n) for d, v, n in _chips(county) if d == "provider_sex"]
+        assert rows, "no sex choices offered"
+        assert sum(n for _, n in rows) == _total(county), (
+            f"sex counts {rows} do not sum to the {_total(county)} on screen")
+
+
+class TestSayingItOutLoudNarrows:
+    """The chips are one way in; speech is the other. A person who says
+    "a female doctor" should get the same narrowing as one who clicks it,
+    because both write the same parameter.
+
+    Its own session: the ladder and the panel cases leave preferences set,
+    and this asserts against a result that has none.
+    """
+
+    @pytest.fixture(scope="class")
+    def spoken(self, page):
+        page.reload(wait_until="networkidle")
+        page.wait_for_selector("[data-router-action='about_chathealthy']",
+                               timeout=DEFAULT_TIMEOUT)
+        _ask(page, "find me a psychiatrist in New Orleans LA")
+        _wait_for_panel(page)
+        _wait_for_results(page)
+        return page
+
+    def test_a_spoken_sex_preference_is_applied(self, spoken):
+        """Saying it does the same as clicking it.
+
+        Deliberately NOT "the total equals the count the panel showed
+        BEFORE the utterance". A spoken turn is classified afresh and can
+        re-resolve its specialty set -- and if the geography validator
+        rejects the first answer, the retry may resolve differently again.
+        Comparing across two turns' bases measured the classifier's
+        variance, not whether the preference applied.
+
+        What must hold is self-consistent: after the turn, the choice shown
+        as in force is the one the result was actually filtered by, so its
+        count IS the total on screen.
+        """
+        _ask(spoken, "I would prefer a female doctor")
+        spoken.wait_for_function(
+            f"() => document.querySelector(\"{PANEL} "
+            "[data-router-action='filter:refine'][data-in-force='1']\") !== null",
+            timeout=LLM_TIMEOUT)
+        _shot(spoken, "15_spoken_sex_preference")
+
+        in_force = [(d, v, n) for d, v, n in _chips(spoken)
+                    if _chip_in_force(spoken, v)]
+        assert in_force, "nothing is in force after stating a preference"
+        dim, value, count = in_force[0]
+        assert dim == "provider_sex" and value == "F", (
+            f"'a female doctor' put {dim}={value} in force")
+        assert count == _total(spoken), (
+            f"the panel shows {count} for the filter in force and the result "
+            f"holds {_total(spoken)}")
+
+    def test_the_spoken_preference_shows_on_the_panel(self, spoken):
+        in_force = spoken.locator(
+            f"{PANEL} [data-router-action='filter:refine'][data-in-force='1']")
+        assert in_force.count() >= 1, (
+            "a preference stated in words is not shown on the panel, so it "
+            "cannot be seen or removed")

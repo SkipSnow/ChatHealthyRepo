@@ -44,6 +44,23 @@ class Geography(BaseModel):
         return not any((self.state, self.city, self.county, self.zip))
 
 
+class ProviderName(BaseModel):
+    """A provider named outright.
+
+    last is matched exactly. first and middle match the name or the bare
+    initial in either direction, because a record may hold JAMES where the
+    person typed J, or hold J where they typed JAMES -- and a prefix only
+    ever resolves the first of those.
+    """
+
+    last: str = ""
+    first: str = ""
+    middle: str = ""
+
+    def is_empty(self) -> bool:
+        return not any((self.last, self.first, self.middle))
+
+
 class Specialty(BaseModel):
     """One NUCC specialty as the panel shows it."""
 
@@ -67,6 +84,33 @@ class UserParameters(BaseModel):
     """
 
     geography: Optional[Geography] = None
+
+    # A provider named outright, rather than searched for by what they do.
+    # Stored uppercase because the records are: NPPES holds every name in
+    # upper case, so an uppercased term matches without the case-insensitive
+    # option that would make the index unusable.
+    provider_name: Optional[ProviderName] = None
+
+    # Which insurance the person carries. This narrows to providers who
+    # list that payer among their identifiers -- it does NOT establish that
+    # a plan's network includes them, and nothing in this data can.
+    insurance: Optional[str] = None
+
+    # A stated preference about the provider, not a fact about the search.
+    # Absent means no preference, which is not the same as "any": a stated
+    # preference excludes everyone who does not match it, including
+    # providers who disclosed nothing.
+    #
+    #   F  Female        M  Male
+    #   X  Neither Male nor Female -- an affirmation the provider made
+    #   U  Undisclosed             -- a refusal to stipulate
+    #
+    # The two are never merged. One provider told us something and the
+    # other declined, and collapsing them would misrepresent both.
+    provider_sex: Optional[str] = None
+
+    # Y when the person wants a provider practising on their own account.
+    sole_proprietor: Optional[bool] = None
 
     # The clinical concept the utterance manager translated the user's words
     # into. NEVER the words themselves: "shrink" is something a person said

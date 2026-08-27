@@ -74,14 +74,6 @@ def primary_county(p: dict) -> dict:
 
 DEFAULT_LIMIT = 25  # F-10: raised from 10
 
-# HACK ASN-4AFBDA: static FIPS-to-county seed
-fips_to_county = {
-    "10001": "Kent", "10003": "New Castle", "10005": "Sussex",
-    "28001": "Adams", "28003": "Alcorn", "28005": "Amite", "28007": "Attala",
-    "28009": "Benton", "28011": "Bolivar", "28013": "Calhoun",
-}
-
-
 class FindCareService:
     """FindCare Facade — single entry point for all FindCare capabilities.
 
@@ -104,37 +96,105 @@ class FindCareService:
         self._env = env_prefix
         self._get_embedding = get_embedding_fn
         self._specialty = specialty_service
-        self.fips_to_county = dict(fips_to_county)
         self._taxonomy_name_cache = {}  # code -> Display Name
-        self._load_fips_county_map()
 
-    def _load_fips_county_map(self) -> None:
-        db = self._get_db()
-        if db is None:
-            return
-        try:
-            agg = list(providers_coll().aggregate([
-                {"$unwind": {"path": "$practice_addresses", "preserveNullAndEmptyArrays": False}},
-                {"$match": {
-                    "practice_addresses.county.fips": {"$exists": True},
-                    "practice_addresses.county.name": {"$exists": True},
-                }},
-                {"$group": {"_id": "$practice_addresses.county.fips",
-                            "name": {"$first": "$practice_addresses.county.name"}}},
-            ]))
-            db_map = {p["_id"]: p["name"] for p in agg if p.get("_id")}
-            self.fips_to_county.update(db_map)
-            log.info("HACK ASN-4AFBDA: loaded %d FIPS mappings (%d from DB)", len(self.fips_to_county), len(db_map))
-        except Exception as exc:
-            # Mode 1 (REQ-B-008): FIPS map enrichment falls back to the
-            # static seed dict (10 entries). County names may be missing
-            # for some providers but search still works.
-            log.info("HACK ASN-4AFBDA: failed to load FIPS map: %s", exc, exc=ChatHealthyException(
-                                                                              mode="fips_map_load_failed",
-                                                                              message=f"HACK ASN-4AFBDA: failed to load FIPS map: {exc}",
-                                                                              component="FindCareService",
-                                                                              exception=exc,
-                                                                          ))
+    def _searchable(self, base_filter: dict) -> dict:
+        """The filter plus what every result is implicitly constrained to.
+
+        Individuals only, and never a provider NPPES has deactivated.
+        _facet_query applied these to its own copy, so anything computing
+        counts off the raw filter counted providers the search would not
+        return -- the panel promised 482 where the result held 477.
+        """
+        out = dict(base_filter)
+        out["entity_type_code"] = "1"
+        # active[] is written only when NPPES carries a deactivation or
+        # reactivation date, so its absence is the whole test.
+        out["active"] = {"$exists": False}
+        return out
+
+    # What NPPES appends to a county name. Louisiana has parishes, Alaska
+    # boroughs, municipalities and census areas, Puerto Rico municipios,
+    # Virginia and Maryland independent cities. Taken from the 2,104 distinct
+    # names in the collection: no name carries any of these words other than
+    # as its last, so stripping one can never eat part of a real name. 288
+    # carry none at all, which is why the bare form is asked for too.
+    COUNTY_TYPE_WORDS = ("County", "Parish", "Municipio", "city", "Borough",
+                         "Area", "Region", "Municipality", "District")
+
+    def _county_clause(self, county: str) -> dict:
+        """Every stored form of one county name, as equality.
+
+        The parameter is named county, so the kind-word is the field and not
+        the value: the place is Los Angeles whether or not the person said
+        'county'. The data appends the kind-word and which one depends on the
+        state, so the value the model writes can never be the value the data
+        holds. Code closes that here rather than asking the model to spell a
+        stored value -- which is what made one sentence ask three different
+        questions: 2,237 providers one run, the whole of California the next,
+        nothing the run after.
+
+        $in is a seek per value on the second key of
+        idx_practice_state_county, so asking for every form costs what asking
+        for one did.
+        """
+        bare = (county or "").strip()
+        for word in self.COUNTY_TYPE_WORDS:
+            suffix = " " + word
+            if bare.endswith(suffix):
+                bare = bare[:-len(suffix)]
+                break
+        return {"$in": [bare] + [f"{bare} {w}" for w in self.COUNTY_TYPE_WORDS]}
+
+    def _name_filter(self, last: str = "", first: str = "", middle: str = "") -> dict:
+        """Match a provider named outright.
+
+        last is exact. first and middle match the name OR the bare initial,
+        in either direction: a record may hold JAMES where the person typed
+        J, or hold J where they typed JAMES, and a prefix only ever resolves
+        the first of those. $in on the second and third keys of
+        idx_provider_name is a seek per value rather than a scan.
+
+        Everything is uppercased because NPPES stores names that way. A
+        case-insensitive match would make the index unusable and turn every
+        name search into a scan of 9.3M documents.
+        """
+        clause: dict = {}
+        last = (last or "").strip().upper()
+        if last:
+            clause["provider_last_name_legal_name"] = last
+        for field, value in (("provider_first_name", first),
+                             ("provider_middle_name", middle)):
+            value = (value or "").strip().upper()
+            if not value:
+                continue
+            clause[field] = value if len(value) == 1 else {"$in": [value, value[0]]}
+        return clause
+
+    def _preference_filter(self, provider_sex: str = "",
+                           sole_proprietor=None, insurance: str = "") -> dict:
+        """Narrowings the person asked for, applied to an already-narrow set.
+
+        None of these is indexed and none should be: each has a handful of
+        values, so as a leading key it selects nothing. They refine a result
+        specialty and geography have already cut to hundreds.
+
+        A stated sex preference excludes everyone who does not match it,
+        including X (neither male nor female, an affirmation) and U
+        (undisclosed, a refusal to stipulate). Those two are never merged.
+        """
+        clause: dict = {}
+        sex = (provider_sex or "").strip().upper()
+        if sex:
+            clause["provider_sex_code"] = sex
+        if sole_proprietor is not None:
+            clause["is_sole_proprietor"] = "Y" if sole_proprietor else "N"
+        payer = (insurance or "").strip().upper()
+        if payer:
+            # Which payers a provider registered identifiers with. NOT
+            # network participation -- nothing in NPPES establishes that.
+            clause["insurance"] = {"$elemMatch": {"payer_name": payer}}
+        return clause
 
     def _practice_address_filter(self, state: str = "", city: str = "",
                                   county: str = "", zip: str = "") -> dict:
@@ -162,7 +222,7 @@ class FindCareService:
             elem["zip"] = z
         elif s and co:
             elem["state"] = s
-            elem["county.name"] = co
+            elem["county.name"] = self._county_clause(co)
         elif s and c:
             elem["state"] = s
             elem["city"] = c
@@ -190,7 +250,7 @@ class FindCareService:
         primary = next((t for t in p.get("taxonomies", [])
                         if t.get("code") == primary_code), None) if primary_code else None
         county_obj = primary_county(p)
-        county_name = county_obj.get("name") or self.fips_to_county.get(county_obj.get("fips", ""), "")
+        county_name = county_obj.get("name") or ""
         raw_phone = addr.get("phone", "")
         phone = f"({raw_phone[:3]}) {raw_phone[3:6]}-{raw_phone[6:]}" if len(raw_phone) == 10 else raw_phone
         return {
@@ -214,14 +274,7 @@ class FindCareService:
         is not, this is a data-integrity bug and we fail hard (no silent
         filtering, per Skip's 'no allowances for mistakes' rule).
         """
-        base_filter = dict(base_filter)
-        base_filter["entity_type_code"] = "1"
-        # v4 ships providers with an inactivity history; earlier collections
-        # never did, so nothing downstream has ever had to exclude them.
-        # active[] is written only when NPPES carries a deactivation or
-        # reactivation date, so its absence is the whole test -- 18,552 of
-        # 9.3M documents carry one, and none of them belongs in a result.
-        base_filter["active"] = {"$exists": False}
+        base_filter = self._searchable(base_filter)
         query_filter = dict(base_filter)
         if after_npi:
             query_filter["npi"] = {"$gt": after_npi}
@@ -360,10 +413,98 @@ class FindCareService:
             parts.append(f" You can also search by {', '.join(narrow_options)}.")
         return "".join(parts)
 
+    # What a person may still narrow by, and what each would cost them.
+    #
+    # Computed over the result specialty and geography have already cut to
+    # hundreds, which is why none of these fields is indexed: as a leading
+    # key each selects almost nothing, and here they are nearly free.
+    #
+    # The counts are the point. A sex preference costs 90% of the list for
+    # orthopaedic surgery and 10% for nurse practitioners, and a person
+    # should see that before choosing rather than after.
+    SEX_LABELS = {"F": "Female", "M": "Male",
+                  "X": "Neither Male nor Female", "U": "Undisclosed"}
+
+    def _refinements(self, collection, base_filter: dict, already: dict) -> dict:
+        """Per-choice counts for the dimensions not yet chosen."""
+        # Every dimension is offered, including one already in force. Hiding
+        # a chosen dimension left the person no way to undo it: the toggle
+        # existed on the server and nothing on screen could reach it. A
+        # filter you cannot remove is a trap.
+        facets: dict = {}
+        facets["sex"] = [{"$group": {"_id": "$provider_sex_code",
+                                     "n": {"$sum": 1}}}]
+        facets["sole_proprietor"] = [{"$group": {"_id": "$is_sole_proprietor",
+                                                 "n": {"$sum": 1}}}]
+        # Count PROVIDERS, not identifier rows. A provider registered with
+        # one payer across several states carries several entries, so a
+        # plain unwind reported 108 where 97 providers qualify -- an
+        # overcount on the one screen whose job is to tell the truth about
+        # what a choice costs.
+        facets["insurance"] = [
+            {"$unwind": "$insurance"},
+            {"$group": {"_id": {"payer": "$insurance.payer_name",
+                                "npi": "$npi"}}},
+            {"$group": {"_id": "$_id.payer", "n": {"$sum": 1}}},
+            {"$sort": {"n": -1}}, {"$limit": 8}]
+        if not facets:
+            return {}
+        try:
+            raw = next(iter(collection.aggregate(
+                [{"$match": self._searchable(base_filter)},
+                 {"$facet": facets}], allowDiskUse=True)))
+        except Exception as exc:
+            # Mode 1: refinement counts are an aid, not the answer. A
+            # failure here leaves the panel without hints and the result
+            # itself untouched.
+            log.info("refinement counts unavailable: %s", exc,
+                     exc=ChatHealthyException(
+                         mode="refinement_counts_unavailable",
+                         message=f"refinement counts unavailable: {exc}",
+                         component="ProviderSearchService", exception=exc))
+            return {}
+
+        out: dict = {}
+        if "sex" in raw:
+            chosen = (already.get("provider_sex") or "").upper()
+            rows = [{"value": r["_id"], "label": self.SEX_LABELS.get(r["_id"], r["_id"]),
+                     "count": r["n"], "in_force": r["_id"] == chosen}
+                    for r in raw["sex"] if r["_id"]]
+            if len(rows) > 1 or chosen:
+                out["provider_sex"] = sorted(rows, key=lambda r: -r["count"])
+        if "sole_proprietor" in raw:
+            # X is "Not Answered". Dropping it made the counts fail to sum
+            # to the result total, which on a panel of costs reads as an
+            # arithmetic error rather than as a provider who said nothing.
+            labels = {"Y": "Yes", "N": "No", "X": "Not answered"}
+            chosen_sole = already.get("sole_proprietor")
+            in_force = None if chosen_sole is None else ("Y" if chosen_sole else "N")
+            rows = [{"value": r["_id"], "label": labels.get(r["_id"], r["_id"]),
+                     "count": r["n"], "in_force": r["_id"] == in_force}
+                    for r in raw["sole_proprietor"] if r["_id"]]
+            if len([r for r in rows if r["value"] in ("Y", "N")]) > 1 or in_force:
+                out["sole_proprietor"] = sorted(rows, key=lambda r: -r["count"])
+        if "insurance" in raw:
+            chosen_ins = (already.get("insurance") or "").upper()
+            rows = [{"value": r["_id"], "count": r["n"],
+                     "in_force": r["_id"] == chosen_ins}
+                    for r in raw["insurance"] if r["_id"]]
+            if rows:
+                out["insurance"] = rows
+        return out
+
     def _paginated_result(self, providers: list, search_mode: str, safe_limit: int,
                           search_params: dict = None, total_count: int = 0,
-                          page_start: int = 1, **extra) -> dict:
-        """Build a result dict with pagination metadata."""
+                          page_start: int = 1, collection=None,
+                          base_filter: dict = None, chosen: dict = None,
+                          **extra) -> dict:
+        """Build a result dict with pagination metadata and refinements.
+
+        The refinements are computed HERE rather than at each route. Wired
+        into one route only, four others returned providers with no way to
+        narrow them -- including the county fallback -- and the panel went
+        silent on exactly the searches that return the most.
+        """
         first_npi = providers[0]["npi"] if providers else ""
         last_npi = providers[-1]["npi"] if providers else ""
         has_more = len(providers) == safe_limit and safe_limit > 0
@@ -379,6 +520,9 @@ class FindCareService:
         result = {
             "supported": True,
             "search_mode": search_mode,
+            "refinements": (
+                self._refinements(collection, base_filter, chosen or {})
+                if collection is not None and base_filter else {}),
             "count": len(providers),
             "total_count": total_count,
             "providers": providers,
@@ -397,6 +541,8 @@ class FindCareService:
                          county: str = "", zip: str = "", limit: int = 25, npi: str = "", name: str = "",
                          nucc_codes: list[str] = None,
                          after_npi: str = "",
+                         last_name: str = "", first_name: str = "", middle_name: str = "",
+                         provider_sex: str = "", sole_proprietor=None, insurance: str = "",
                          find_specialty_fn=None) -> dict:
         """Search for providers. Main entry point.
 
@@ -416,6 +562,9 @@ class FindCareService:
             after_npi: keyset pagination — return results after this NPI (sorted by NPI ascending)
             find_specialty_fn: callable for taxonomy fallback (injected to avoid circular dep)
         """
+        chosen = {"provider_sex": provider_sex, "sole_proprietor": sole_proprietor,
+                  "insurance": insurance}
+
         # Backwards-compat parameter name (the old `specialty_codes` is now `nucc_codes`).
         specialty_codes = nucc_codes
         state_upper = state.upper().strip() if state else ""
@@ -450,21 +599,26 @@ class FindCareService:
             return {"supported": True, "providers": [], "message": f"No provider found for NPI {npi}."}
 
         # ── Route 2: Name search ──
-        if name:
+        # A structured name uses idx_provider_name. The legacy free-text
+        # `name` argument does not: it matched with an unanchored,
+        # case-insensitive regex across three fields, which no index can
+        # serve, so every such search scanned the whole collection.
+        named = self._name_filter(last_name, first_name, middle_name)
+        if named:
             base_filter = self._practice_address_filter(state=state_upper, city=city, county=county, zip=zip)
-            base_filter["$or"] = [
-                {"provider_last_name_legal_name": {"$regex": name.strip(), "$options": "i"}},
-                {"provider_first_name": {"$regex": name.strip(), "$options": "i"}},
-                {"provider_organization_name_legal_business_name": {"$regex": name.strip(), "$options": "i"}},
-            ]
+            base_filter.update(named)
+            base_filter.update(self._preference_filter(provider_sex, sole_proprietor, insurance))
             providers, total_count = self._facet_query(collection, base_filter, after_npi, safe_limit)
             return self._paginated_result(providers, "name", safe_limit, search_params=_search_params,
-                                          total_count=total_count)
+                                          total_count=total_count,
+                                          collection=collection, base_filter=base_filter,
+                                          chosen=chosen)
 
         # ── Route 3: Specialty codes direct filter ──
         if specialty_codes:
             base_filter = {"taxonomies.code": {"$in": specialty_codes}}
             base_filter.update(self._practice_address_filter(state=state_upper, city=city, county=county, zip=zip))
+            base_filter.update(self._preference_filter(provider_sex, sole_proprietor, insurance))
 
             providers, total_count = self._facet_query(collection, base_filter, after_npi, safe_limit)
             log.info("search: specialty_codes returned %d for %d codes in %s",
@@ -507,6 +661,8 @@ class FindCareService:
                                           search_params=_search_params, total_count=total_count,
                                           state=state_upper, specialty_searched=filtered_term,
                                           specialization_options=specialization_options,
+                                          collection=collection, base_filter=base_filter,
+                                          chosen=chosen,
                                           codes_searched=len(specialty_codes))
 
         # ── Route 4: Specialty query (vector resolves codes → taxonomy returns data) ──
@@ -566,6 +722,7 @@ class FindCareService:
             # Step 3: Database answers — deterministic taxonomy query
             base_filter = {"taxonomies.code": {"$in": codes}}
             base_filter.update(self._practice_address_filter(state=state_upper, city=city, county=county, zip=zip))
+            base_filter.update(self._preference_filter(provider_sex, sole_proprietor, insurance))
 
             providers, total_count = self._facet_query(collection, base_filter, after_npi, safe_limit)
             log.info("search: specialty '%s' → %d codes → %d/%d providers in %s",
@@ -601,6 +758,8 @@ class FindCareService:
             if zip: replay_params["zip"] = zip
             return self._paginated_result(providers, "taxonomy", safe_limit,
                                           search_params=replay_params, total_count=total_count,
+                                          collection=collection, base_filter=base_filter,
+                                          chosen=chosen,
                                           state=state_upper, specialty_searched=specialty_query,
                                           specialization_options=specialization_options)
 
@@ -615,10 +774,13 @@ class FindCareService:
                 "primary_taxonomy_code": {"$gte": "2", "$lt": "3"},
             }
             base_filter.update(self._practice_address_filter(state=state_upper, county=county, zip=zip))
+            base_filter.update(self._preference_filter(provider_sex, sole_proprietor, insurance))
             providers, total_count = self._facet_query(collection, base_filter, after_npi, safe_limit)
             log.info("search: county fallback returned %d for '%s' in %s", len(providers), county, state_upper)
             return self._paginated_result(providers, "county_physicians", safe_limit,
                                           search_params=_search_params, total_count=total_count,
+                                          collection=collection, base_filter=base_filter,
+                                          chosen=chosen,
                                           state=state_upper, county_searched=county)
 
         return {"supported": True, "providers": [],

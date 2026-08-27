@@ -355,6 +355,7 @@ class UniversalNavigationTool(ChatHealthyTool):
         "provider-detail":      "_handle_provider_detail",
         "provider_detail_close": "_handle_provider_detail_close",
         "apply_filter":         "_handle_apply_filter",
+        "refine_search":        "_handle_refine_search",
         "provider_page":        "_handle_provider_page",
         "restore_findcare":     "_handle_restore_findcare",
         "evalcare-splash":      "_handle_evalcare_splash",
@@ -440,6 +441,12 @@ class UniversalNavigationTool(ChatHealthyTool):
             await lockout_tool.TOOL.run_and_log(deps, lockout_tool.Request())
             return Response(kind="utterance", result={"target_action": "safetyLockout"})
 
+        # What the search was about before this turn spoke. UM writes the
+        # complaint only when the turn named one, so comparing across the
+        # call is how the router tells a new question from a narrowing of
+        # the one already in force.
+        complaint_before = deps.user_object.userParameters.complaint
+
         from UtteranceManager import utterance_manager as utterance_manager_module
         try:
             await utterance_manager_module.TOOL.run_and_log(
@@ -454,6 +461,9 @@ class UniversalNavigationTool(ChatHealthyTool):
                 result={"target_action": "closeConnection200",
                         "mode": "llm_unavailable"},
             )
+
+        complaint_changed = (
+            deps.user_object.userParameters.complaint != complaint_before)
 
         # "New is new" invariant: a fresh free-text utterance clears any
         # selected_nucc_codes carried over from a prior turn's apply_filter
@@ -476,9 +486,19 @@ class UniversalNavigationTool(ChatHealthyTool):
         # Position goes with it: a new question starts at the top of its own
         # list, and an open detail belongs to the list that is being
         # replaced.
+        #
+        # Cleared when this turn asks a NEW question. An earlier attempt made
+        # this conditional on the complaint and place merely looking
+        # unchanged, and it broke: the specialty step still re-resolved, so
+        # the carried codes did not match the codes on screen, the panel
+        # showed nothing ticked, and the search ran on codes the person could
+        # not see. What makes it safe now is that the two decisions are the
+        # same decision -- an unchanged complaint keeps the ticks AND keeps
+        # the panel, because the filter is not re-run at all.
         from UserParameters import user_parameters_tool
-        for name in ("selected_specialty_codes", "page_cursors",
-                     "selected_provider_npi"):
+        carried = ("page_cursors", "selected_provider_npi")
+        for name in (("selected_specialty_codes",) + carried
+                     if complaint_changed else carried):
             await user_parameters_tool.TOOL.run_and_log(
                 deps,
                 user_parameters_tool.Request(
@@ -507,7 +527,9 @@ class UniversalNavigationTool(ChatHealthyTool):
                 break
 
             self._validate_document(document, target_action)
-            await self._dispatch_target_action(deps, document, target_action)
+            await self._dispatch_target_action(
+                deps, document, target_action,
+                complaint_changed=complaint_changed)
             last_target_action = target_action
         else:
             raise ChatHealthyException(
@@ -555,6 +577,24 @@ class UniversalNavigationTool(ChatHealthyTool):
         Stated at each site it would be three copies of one rule, and the
         site somebody adds next would not have it.
         """
+        # The preferences the person stated are read here, not at the three
+        # call sites. They live on the session, every provider list comes
+        # through this function, and a caller that forgot to pass them would
+        # silently return a list the person had already narrowed away.
+        params = deps.user_object.userParameters
+        if params is not None:
+            name = params.provider_name
+            if name is not None and not name.is_empty():
+                fields.setdefault("last_name", name.last or None)
+                fields.setdefault("first_name", name.first or None)
+                fields.setdefault("middle_name", name.middle or None)
+            if params.provider_sex:
+                fields.setdefault("provider_sex", params.provider_sex)
+            if params.insurance:
+                fields.setdefault("insurance", params.insurance)
+            if params.sole_proprietor is not None:
+                fields.setdefault("sole_proprietor", params.sole_proprietor)
+
         from authentication import provider_search_tool
         resp = await provider_search_tool.TOOL.run_and_log(
             deps, provider_search_tool.Request(**fields))
@@ -581,6 +621,63 @@ class UniversalNavigationTool(ChatHealthyTool):
         if npi in presented:
             return
         await self._handle_provider_detail_close(deps, {})
+
+    async def _handle_refine_search(
+            self, deps: AgentDeps, payload: dict[str, Any]) -> Response:
+        """The person picked a refinement in the panel.
+
+        The panel reported which dimension and which value; what that means
+        is decided here. One parameter is written and the search already in
+        force is re-run -- the query has not changed, only how narrow it is,
+        so this emits search_running rather than intent_classified, which
+        would blank the panel being refined with.
+
+        Choosing the value already in force clears it, so a chip is a
+        toggle: pick Female to narrow, pick it again to stop.
+        """
+        dimension = str((payload or {}).get("dimension") or "").strip()
+        value = str((payload or {}).get("value") or "").strip()
+        if dimension not in ("provider_sex", "insurance", "sole_proprietor"):
+            return Response(kind="refine_search",
+                            result={"ok": False, "error": f"unknown dimension {dimension!r}"})
+
+        params = deps.user_object.userParameters
+        current = getattr(params, dimension, None)
+        if dimension == "sole_proprietor":
+            chosen = value.upper() == "Y"
+            clearing = current is not None and bool(current) == chosen
+        else:
+            chosen = value
+            clearing = str(current or "") == value
+
+        from UserParameters import user_parameters_tool
+        await user_parameters_tool.TOOL.run_and_log(
+            deps,
+            user_parameters_tool.Request(
+                verb="clear" if clearing else "set",
+                name=dimension,
+                value=None if clearing else chosen,
+                origin="deterministic",
+            ),
+        )
+
+        deps.stream({"kind": "search_running",
+                     "data": {"action": "findAProvider", "refining": dimension}})
+
+        params = deps.user_object.userParameters
+        geo = params.geography
+        await self._search_providers(
+            deps,
+            specialty_codes=params.selected_or_all(),
+            state=geo.state if geo else None,
+            city=geo.city if geo else None,
+            county=geo.county if geo else None,
+            zip=geo.zip if geo else None,
+            limit=25,
+        )
+        return Response(kind="refine_search",
+                        result={"dimension": dimension,
+                                "cleared": clearing, "value": value})
 
     async def _handle_provider_detail_close(
             self, deps: AgentDeps, payload: dict[str, Any]) -> Response:
@@ -1092,7 +1189,8 @@ class UniversalNavigationTool(ChatHealthyTool):
             ),
         )
 
-    async def _dispatch_target_action(self, deps: AgentDeps, document, target_action: str) -> None:
+    async def _dispatch_target_action(self, deps: AgentDeps, document, target_action: str,
+                                      complaint_changed: bool = True) -> None:
         """Dispatch the tool that owns this target_action. Tools may mutate
         user_object.intent before returning; the caller loops and re-dispatches."""
         import json as json
@@ -1121,7 +1219,8 @@ class UniversalNavigationTool(ChatHealthyTool):
                 (a.value for a in target_intent_entry.arguments if a.name == "complaint"),
                 "",
             )
-            await self._run_or_cache_specialty_filter(deps, complaint)
+            await self._run_or_cache_specialty_filter(
+                deps, complaint, complaint_changed=complaint_changed)
             # No inner "final" emission — _run_pipeline_then_finalize
             # emits the single canonical final event with full payload.
 
@@ -1185,7 +1284,8 @@ class UniversalNavigationTool(ChatHealthyTool):
                 (a.value for a in target_intent_entry.arguments if a.name == "complaint"),
                 "",
             )
-            specialties = await self._run_or_cache_specialty_filter(deps, complaint)
+            specialties = await self._run_or_cache_specialty_filter(
+                deps, complaint, complaint_changed=complaint_changed)
             if specialties:
                 # provider_search is a consumer: it reads the user's live
                 # parameters and writes none. Nothing is handed to it and
@@ -1216,7 +1316,9 @@ class UniversalNavigationTool(ChatHealthyTool):
             component="universal_navigation_tool",
             message=f"UR compliance: out-of-catalog target_action {target_action!r}")
 
-    async def _run_or_cache_specialty_filter(self, deps: AgentDeps, complaint: str) -> list[dict]:
+    async def _run_or_cache_specialty_filter(
+            self, deps: AgentDeps, complaint: str,
+            complaint_changed: bool = True) -> list[dict]:
         """REQ-B-002 + REQ-B-003 + FindCare-UR REQ-B-001.
 
         Look for a cached nucc_codes argument on the IntentDocument's
@@ -1262,8 +1364,21 @@ class UniversalNavigationTool(ChatHealthyTool):
                 raw_utterance = str(text).strip()
                 break
         query = raw_utterance or complaint
-
         cached = read_nucc_codes_cache(document)
+
+        # A turn that names no new complaint is not a new question -- it
+        # narrows the one in force. "now find me the male docs" is about the
+        # same bone doctors, so it keeps the panel it was given: the cache is
+        # honoured whatever this turn's words were, SpecialtyFilter does not
+        # run, and the panel is not repainted. Re-resolving cost a second LLM
+        # pass and returned a different set of codes each time, so the
+        # narrowing landed on a list the person was not looking at -- 11 of
+        # the Medicare providers were male on screen and the answer came back
+        # 9.
+        if cached and not complaint_changed:
+            await self._set_specialties_parameter(deps, cached)
+            return cached
+
         if cached and read_nucc_codes_query(document) == query:
             # The panel is republished on the cache-hit path too. A consumer
             # reads the parameter, not this return value, so a path that

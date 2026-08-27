@@ -14,6 +14,7 @@ import UserPromptWidget from './components/UserPromptWidget'
 import SystemMessageWidget from './components/SystemMessageWidget'
 import ProviderResultsWidget from './components/ProviderResultsWidget'
 import SelectedProvidersWidget from './components/SelectedProvidersWidget'
+import ProviderSearchRefinementWidget from './components/ProviderSearchRefinementWidget'
 import ProviderDetailWidget from './components/ProviderDetailWidget'
 import SpecialtyFilterWidget from './components/SpecialtyFilterWidget'
 import SessionDataWidget from './components/SessionDataWidget'
@@ -38,6 +39,7 @@ function App() {
       <SystemMessageWidget />
       <ProviderResultsWidget />
       <SelectedProvidersWidget />
+      <ProviderSearchRefinementWidget />
       <ProviderDetailWidget />
       <SpecialtyFilterWidget />
       <SessionDataWidget />
