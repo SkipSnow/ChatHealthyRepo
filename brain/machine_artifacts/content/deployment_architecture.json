@@ -1096,7 +1096,8 @@
         "SHARED_CERT_PEM": "local_cert_file:Code/Shared/ops/certs/shared.crt",
         "EVALCARE_CERT_PEM": "local_cert_file:Code/Shared/ops/certs/evalcare.crt",
         "CH_LOG_LEVEL": "local_env",
-        "CH_MONGO_HOST_CHATHEALTHYFRONTEND": "local_env"
+        "MONGO_HOST_CHATHEALTHYFRONTEND": "azure_key_vault",
+        "CH_MONGO_HOST_CHATHEALTHYFRONTEND": "rename_from:MONGO_HOST_CHATHEALTHYFRONTEND"
       }
     },
     {
@@ -2557,7 +2558,8 @@
         "SHARED_CERT_PEM": "local_cert_file:Code/Shared/ops/certs/shared.crt",
         "EVALCARE_CERT_PEM": "local_cert_file:Code/Shared/ops/certs/evalcare.crt",
         "CH_LOG_LEVEL": "local_env",
-        "CH_MONGO_HOST_CHATHEALTHYFRONTEND": "local_env"
+        "MONGO_HOST_CHATHEALTHYFRONTEND": "azure_key_vault",
+        "CH_MONGO_HOST_CHATHEALTHYFRONTEND": "rename_from:MONGO_HOST_CHATHEALTHYFRONTEND"
       }
     },
     {
@@ -3238,7 +3240,8 @@
         "SHARED_CERT_PEM": "local_cert_file:Code/Shared/ops/certs/shared.crt",
         "EVALCARE_CERT_PEM": "local_cert_file:Code/Shared/ops/certs/evalcare.crt",
         "CH_LOG_LEVEL": "local_env",
-        "CH_MONGO_HOST_CHATHEALTHYFRONTEND": "local_env"
+        "MONGO_HOST_CHATHEALTHYFRONTEND": "azure_key_vault",
+        "CH_MONGO_HOST_CHATHEALTHYFRONTEND": "rename_from:MONGO_HOST_CHATHEALTHYFRONTEND"
       }
     },
     {
