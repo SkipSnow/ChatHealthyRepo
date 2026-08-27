@@ -59,7 +59,7 @@ from agile_backlog import AgileBacklogLoader
 from crosswalk import Crosswalk
 from record_loader import RecordLoader
 import secrets_resolver as _sr
-from secrets_resolver import SecretsResolver
+from secrets_resolver import SecretsResolver, STORE_IDS
 from target_record import DeploymentCollection, TargetRecord
 
 import sys as _ch_sys, pathlib as _ch_pl
@@ -801,6 +801,13 @@ def set_hf_config(
     for name, qualifier in (target.secrets or {}).items():
         value = _resolve_qualifier(name, qualifier)
         rd._hf_set_secret(hf_token, space, name, value)
+
+    # REQ-B-014: after a deploy the host carries nothing the record does not
+    # declare. A name set by hand, or declared once and later withdrawn, is
+    # removed here. Names are logged; no value is read.
+    declared = set(target.variables or {}) | set(target.secrets or {})
+    declared.add("CH_SPACE_NAME")
+    rd._hf_remove_undeclared(hf_token, space, declared)
 
 
 def push_thin_dockerfile_to_hf_space(
@@ -2559,6 +2566,39 @@ def require_branch_matches_env_binding(
     return
 
 
+
+def entry_value(name, qualifier, target, env, resolver, repo_root=None):
+    """The value one declared secret or variable carries, or None where the
+    value is established by the platform at install time.
+
+    One grammar, read the same way in every environment. A qualifier the
+    deploy cannot read here -- a peer URL, a certificate file, a webhook the
+    upstream target mints -- is established by the platform handler, and is
+    not something a container is given from a store.
+    """
+    if qualifier in STORE_IDS:
+        return resolver.resolve(name, env)
+    if qualifier.startswith("literal:"):
+        return qualifier.split(":", 1)[1]
+    if qualifier.startswith("local_cert_file:") and repo_root is not None:
+        rel = qualifier.split(":", 1)[1]
+        return base64.b64encode((repo_root / rel).read_bytes()).decode("ascii")
+    if qualifier.startswith("rename_from:"):
+        other = qualifier.split(":", 1)[1]
+        other_qual = ((target.secrets or {}).get(other)
+                      or (target.variables or {}).get(other))
+        if other_qual is None:
+            raise ChatHealthyException(
+                mode="key_error",
+                component="_deploy_chain",
+                message=f"target {target.target_id!r}: {name!r} declared "
+                        f"rename_from:{other} but {other!r} is declared "
+                        "nowhere on the target")
+        return entry_value(other, other_qual, target, env, resolver,
+                           repo_root)
+    return None
+
+
 def deploy_one(
     repo_root: Path,
     target_id: str,
@@ -3127,9 +3167,22 @@ def run_cloud_deploy(env: str, target_arg: str,
         if env not in target.env_binding_set():
             step(f"  skip {target_id}: no env_binding for {env!r}")
             continue
+        # The environment binding names the host, and the deploy dispatches
+        # on that and nothing else (REQ-B-008). target_kind fixed one host
+        # for every binding of a target, so an environment hosted
+        # differently could not be expressed and had to be deployed by a
+        # second program.
+        binding = next(e for e in target.environments if e.env_binding == env)
+        host = getattr(binding, "host", None)
+        if not host:
+            raise ChatHealthyException(
+                mode="value_error",
+                component="_deploy_chain",
+                message=f"target {target_id!r} binding {env!r} declares no "
+                        "host. Every binding names the platform that runs it.")
         try:
             result = deploy_one(
-                repo_root, target_id, target_kind, env, resolver, coll,
+                repo_root, target_id, host, env, resolver, coll,
                 package_selection,
             )
             # Programmatic end-to-end verification for HF Spaces: curl the
@@ -3655,8 +3708,39 @@ class LocalDeploy:
                 component="_deploy_chain",
                 message=f"ERROR: env file missing at {env_file}; backend containers "
                 "depend on it for MongoDB / API credentials.")
-        from dotenv import dotenv_values
-        env_dict = dotenv_values(env_file)
+        # Every declared secret and variable is resolved individually, by the
+        # name its target declares, exactly as a promoted deploy resolves it.
+        # Handing the whole .env over made local the one environment that
+        # could not detect a declaration naming a store that does not hold
+        # the value: the name was present because every name was present.
+        # A name the local store cannot supply fails here, as it fails in
+        # every other environment.
+        coll = RecordLoader().load_collection(
+            self.repo_root / "brain" / "machine_artifacts" / "content"
+            / "deployment_architecture.json")
+        resolver = SecretsResolver.from_collection(coll, env_file=env_file)
+        env_dict: dict[str, str] = {}
+        for record in coll:
+            bindings = [e for e in record.environments
+                        if e.env_binding == self.env]
+            if not bindings:
+                continue
+            # A container receives what the target it runs declares, and a
+            # container is a binding whose declared host is a container. The
+            # workstation and the deploy tool are hosts in their own right:
+            # what they declare is an inventory of what that machine may
+            # hold, not something handed to a container.
+            if not any(e.host == "docker_container" for e in bindings):
+                continue
+            for block in (record.secrets, record.variables):
+                for name, qualifier in (block or {}).items():
+                    value = entry_value(name, qualifier, record, self.env,
+                                        resolver, self.repo_root)
+                    if value is not None:
+                        env_dict[name] = value
+        self._step_notice(
+            f"resolved {len(env_dict)} declared secret(s) and variable(s) "
+            f"by name for the {self.env} binding")
         # Local stack always binds to env={self.env} regardless of any
         # ENV_PREFIX value in .env. HF Space deploys set this via
         # _hf_set_variable per env; the Azure FA gateway deploy sets it

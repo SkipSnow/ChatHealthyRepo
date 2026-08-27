@@ -222,6 +222,10 @@ name, never the words they used, never a place.
                 "error). This is fatal per REQ-T-001 (no fallback).")
         return qvec
 
+    @staticmethod
+    def _is_inactive(row: dict) -> bool:
+        return "inactive" in (row.get("Notes") or "").lower()
+
     def vector_search(self, qvec: list[float]) -> list[dict]:
         """Stage 3: $vectorSearch SpecialtyMetaData. Returns ALL candidates
         with cosine ≥ _CAND_FLOOR, dropping Deactivated entries."""
@@ -240,12 +244,14 @@ name, never the words they used, never a place.
                 "filter": {"Section": "Individual"},
             }},
             {"$project": {"_id": 0, "Code": 1, "Display Name": 1,
-                          "Grouping": 1,
+                          "Grouping": 1, "Classification": 1,
+                          "Specialization": 1, "Notes": 1,
                           "can_prescribe": 1, "is_homeopathic": 1,
                           "score": {"$meta": "vectorSearchScore"}}},
         ]))
         return [r for r in rows
                 if not (r.get("Display Name") or "").startswith("Deactivated")
+                and not self._is_inactive(r)
                 and r.get("score", 0) >= CAND_FLOOR]
 
     def filter_candidates(self, candidates: list[dict],
@@ -254,9 +260,20 @@ name, never the words they used, never a place.
         self._ensure_prompts_loaded()
         if not candidates:
             return []
+        # Every field the record carries that bears on the choice. NUCC gives
+        # two codes the same Display Name in six cases, so a candidate line
+        # built from that field alone offers the model the same words twice
+        # and it has nothing to choose on. Specialization and Definition are
+        # what separate them, and they are already what the embedding was
+        # composed from.
         cand_block = "\n".join(
-            f"{r['Code']} | score={r.get('score', 0):.4f} | "
-            f"{r.get('Display Name', '')} | Grouping: {r.get('Grouping', '')}"
+            " | ".join(part for part in (
+                r["Code"],
+                f"score={r.get('score', 0):.4f}",
+                r.get("Display Name", ""),
+                f"Grouping: {r['Grouping']}" if r.get("Grouping") else "",
+                f"Definition: {r['Definition']}" if r.get("Definition") else "",
+            ) if part)
             for r in candidates
         )
         user_msg = (

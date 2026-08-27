@@ -442,6 +442,16 @@ class SecretsResolver:
                 self._env_cache = self._read_env_file(self._env_file)
             if self._has_local_value(name):
                 return self._env_cache[name]
+            if not self._vaults.get(env):
+                # The environment has no vault and is not meant to have one.
+                # There is nowhere else to look, so this fails here rather
+                # than reaching into another environment's vault.
+                raise ChatHealthyException(
+                    mode="key_error",
+                    component="secrets_resolver",
+                    message=f"secret {name!r} is declared for env {env!r} and "
+                            f"is not in {self._env_file}. That environment "
+                            f"declares no vault, so nothing else can supply it.")
             # Absent from the .env, so the environment's own vault answers.
             # This holds for every target and every secret bound to the
             # local env: the .env is one workstation's copy, and a

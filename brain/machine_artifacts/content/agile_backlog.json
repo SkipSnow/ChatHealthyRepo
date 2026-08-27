@@ -1625,25 +1625,6 @@
                             ]
                           },
                           "depends_on": []
-                        },
-                        {
-                          "req_id": "EPIC-002-F-003-S-007-REQ-B-003",
-                          "name": "Every secret read is audited",
-                          "requirement": "The custodian of secrets at rest MUST log every read of every secret together with the identity of the reader and the time of the read. The audit stream MUST itself be tamper-evident.",
-                          "priority": "must-have",
-                          "status": "in_progress",
-                          "orphan": false,
-                          "approval": "approved",
-                          "tests": {
-                            "test": [
-                              {
-                                "test_type": "ORPHAN",
-                                "orphan": true,
-                                "file": "ORPHAN"
-                              }
-                            ]
-                          },
-                          "depends_on": []
                         }
                       ]
                     }
@@ -10931,7 +10912,7 @@
                         {
                           "req_id": "EPIC-008-F-012-S-002-REQ-B-002",
                           "orphan": false,
-                          "name": "The promote chain",
+                          "name": "A promote advances from one environment to the next: local -> dev -> qa -> prod",
                           "requirement": "Local files promote to dev, dev promotes to qa, and qa promotes to production on the main branch.",
                           "priority": "must-have",
                           "status": "done",
@@ -11055,6 +11036,120 @@
                             ]
                           },
                           "approval": "approved"
+                        },
+                        {
+                          "req_id": "EPIC-008-F-012-S-003-REQ-B-002",
+                          "orphan": false,
+                          "name": "A target declares one set of files, packages, secrets and variables",
+                          "requirement": "A target MUST declare exactly one set of files, packages, secrets and variables, and that set MUST serve every environment the target is bound to. A second declaration of the same fact for a different environment is forbidden. Where a target's contents differ between two environments, that difference is a defect in the declaration and not a property of the target.",
+                          "priority": "must-have",
+                          "status": "not_started",
+                          "depends_on": [],
+                          "approval": "approved",
+                          "tests": {
+                            "test": [
+                              {
+                                "orphan": true,
+                                "test_type": "ORPHAN",
+                                "file": ""
+                              }
+                            ]
+                          }
+                        },
+                        {
+                          "req_id": "EPIC-008-F-012-S-003-REQ-B-003",
+                          "orphan": false,
+                          "name": "Only what genuinely varies by environment is declared per environment",
+                          "requirement": "An environment binding MUST declare only what genuinely differs between environments: which host runs the target, the address it answers on, and the vault or cluster it reads. It MUST NOT declare files, packages, secrets or variables. A target MAY declare a default for any per-environment fact, and an environment that declares nothing takes that default; a per-environment declaration MUST exist only where the value actually differs.",
+                          "priority": "must-have",
+                          "status": "not_started",
+                          "depends_on": [],
+                          "approval": "approved",
+                          "tests": {
+                            "test": [
+                              {
+                                "orphan": true,
+                                "test_type": "ORPHAN",
+                                "file": ""
+                              }
+                            ]
+                          }
+                        },
+                        {
+                          "req_id": "EPIC-008-F-012-S-003-REQ-B-004",
+                          "orphan": false,
+                          "name": "A package declares the packages it depends on",
+                          "requirement": "A package MUST declare every package it requires in order to function, by package_id. The resulting graph MUST be acyclic. A build MUST fail where a declared dependency does not exist, and where the graph contains a cycle. Install order MUST be derived from these declarations and MUST NOT be encoded in the build or deploy programs.",
+                          "priority": "must-have",
+                          "status": "not_started",
+                          "depends_on": [],
+                          "approval": "approved",
+                          "tests": {
+                            "test": [
+                              {
+                                "orphan": true,
+                                "test_type": "ORPHAN",
+                                "file": ""
+                              }
+                            ]
+                          }
+                        },
+                        {
+                          "req_id": "EPIC-008-F-012-S-003-REQ-B-005",
+                          "orphan": false,
+                          "name": "A build produces a digest that identifies each package's contents",
+                          "requirement": "Every package a build produces MUST carry a digest computed over the exact bytes of its declared contents, normalised for line endings. The digest MUST change when any declared content changes and MUST NOT change otherwise. The digest MUST be recorded in the build output so a deploy can compare what a host holds against what the build produced. Every deployed host MUST report, on request, the package_id and digest of every package it carries, so that the build running in a given environment on a given host can be established unequivocally from the host itself rather than inferred from a deploy record or a log.",
+                          "priority": "must-have",
+                          "status": "not_started",
+                          "depends_on": [],
+                          "approval": "approved",
+                          "tests": {
+                            "test": [
+                              {
+                                "orphan": true,
+                                "test_type": "ORPHAN",
+                                "file": ""
+                              }
+                            ]
+                          }
+                        },
+                        {
+                          "req_id": "EPIC-008-F-012-S-003-REQ-B-006",
+                          "orphan": false,
+                          "name": "Each build must be complete and start from a null base",
+                          "requirement": "Prior to each build, all builds MUST be destroyed. Only the packages named as parameters of the build invocation MUST be built. No fact from a pre-existing build may be used in a new one.",
+                          "priority": "must-have",
+                          "status": "not_started",
+                          "depends_on": [],
+                          "approval": "approved",
+                          "tests": {
+                            "test": [
+                              {
+                                "orphan": true,
+                                "test_type": "ORPHAN",
+                                "file": ""
+                              }
+                            ]
+                          }
+                        },
+                        {
+                          "req_id": "EPIC-008-F-012-S-003-REQ-B-007",
+                          "orphan": false,
+                          "name": "The record names no technology",
+                          "requirement": "deployment_architecture.json and the schema it validates against MUST NOT name a vendor, a platform, a product or a programming language. A platform-specific fact MUST be carried as a named platform holding an array of name/value facts, and a language-specific fact as a named language holding the same shape. The schema MUST validate the shape of a fact and MUST NOT enumerate which platforms or languages exist. The code that installs to a platform owns the knowledge of which facts that platform requires and MUST verify them; a platform the code does not support MUST fail the deploy naming the platform.",
+                          "priority": "must-have",
+                          "status": "not_started",
+                          "depends_on": [],
+                          "approval": "approved",
+                          "tests": {
+                            "test": [
+                              {
+                                "orphan": true,
+                                "test_type": "ORPHAN",
+                                "file": ""
+                              }
+                            ]
+                          }
                         }
                       ]
                     }
@@ -11188,20 +11283,160 @@
                               }
                             ]
                           }
+                        },
+                        {
+                          "req_id": "EPIC-008-F-012-S-004-REQ-B-007",
+                          "orphan": false,
+                          "name": "A deploy behaves identically in every environment",
+                          "requirement": "Each deployment MUST result in identical code, metadata, binaries, environment variables, and secrets in each environment. Where a deploy succeeds in one environment and fails in the next, the cause MUST be a difference in that environment's idiosyncratic ways of receiving a deployment, not a difference in the facts of the deployment.",
+                          "priority": "must-have",
+                          "status": "not_started",
+                          "depends_on": [],
+                          "approval": "approved",
+                          "tests": {
+                            "test": [
+                              {
+                                "orphan": true,
+                                "test_type": "ORPHAN",
+                                "file": ""
+                              }
+                            ]
+                          }
+                        },
+                        {
+                          "req_id": "EPIC-008-F-012-S-004-REQ-B-008",
+                          "orphan": false,
+                          "name": "The environment selects the host and nothing else",
+                          "requirement": "The host that runs a target MUST be a property of the environment binding, not of the target. An environment binding MUST select the host and MUST NOT alter what is deployed. The deploy MUST dispatch on the declared host only at the point of installation; no other step may vary by environment or by host.",
+                          "priority": "must-have",
+                          "status": "not_started",
+                          "depends_on": [],
+                          "approval": "approved",
+                          "tests": {
+                            "test": [
+                              {
+                                "orphan": true,
+                                "test_type": "ORPHAN",
+                                "file": ""
+                              }
+                            ]
+                          }
+                        },
+                        {
+                          "req_id": "EPIC-008-F-012-S-004-REQ-B-009",
+                          "orphan": false,
+                          "name": "Every declared secret is resolved by name in every environment",
+                          "requirement": "Every secret and variable a target declares MUST be resolved individually, by the name the declaration gives it, in every environment without exception. A deploy MUST NOT hand a target a store wholesale: no environment may receive a file, a vault, or any other collection of values in place of the named entries it declares. Where a declared name cannot be resolved from the store it is bound to, the deploy MUST fail, naming the entry, the store and the environment, and MUST NOT substitute a value from any other source or install the target partially.",
+                          "priority": "must-have",
+                          "status": "not_started",
+                          "depends_on": [],
+                          "approval": "approved",
+                          "tests": {
+                            "test": [
+                              {
+                                "orphan": true,
+                                "test_type": "ORPHAN",
+                                "file": ""
+                              }
+                            ]
+                          }
+                        },
+                        {
+                          "req_id": "EPIC-008-F-012-S-004-REQ-B-010",
+                          "orphan": false,
+                          "name": "Packages install in the order their dependencies require",
+                          "requirement": "A deploy MUST install packages in an order satisfying every declared dependency, and MUST derive that order from the declarations rather than from any order written into the program. Where a dependency fails to install, the packages depending on it MUST NOT be installed, and the deploy MUST fail reporting which dependency was not met.",
+                          "priority": "must-have",
+                          "status": "not_started",
+                          "depends_on": [],
+                          "approval": "approved",
+                          "tests": {
+                            "test": [
+                              {
+                                "orphan": true,
+                                "test_type": "ORPHAN",
+                                "file": ""
+                              }
+                            ]
+                          }
+                        },
+                        {
+                          "req_id": "EPIC-008-F-012-S-004-REQ-B-011",
+                          "orphan": false,
+                          "name": "A package is installed whole or not at all",
+                          "requirement": "A package MUST be installed in its entirety or not installed. A deploy MUST NOT install part of a package, and MUST NOT leave a host carrying a partially installed package. Where installation of any part of a package fails, the deploy MUST fail for that target and report the package that failed.",
+                          "priority": "must-have",
+                          "status": "not_started",
+                          "depends_on": [],
+                          "approval": "approved",
+                          "tests": {
+                            "test": [
+                              {
+                                "orphan": true,
+                                "test_type": "ORPHAN",
+                                "file": ""
+                              }
+                            ]
+                          }
+                        },
+                        {
+                          "req_id": "EPIC-008-F-012-S-004-REQ-B-012",
+                          "orphan": false,
+                          "name": "An unchanged package is verified identical rather than assumed present",
+                          "requirement": "A deploy MAY skip installing a package only after verifying that what the host holds is byte-for-byte identical to what the build produced, by comparing the digest the host reports against the digest recorded in the build output. The presence of a package by name MUST NOT be taken as evidence that it is current. Where the host cannot report a digest, the package MUST be installed.",
+                          "priority": "must-have",
+                          "status": "not_started",
+                          "depends_on": [],
+                          "approval": "approved",
+                          "tests": {
+                            "test": [
+                              {
+                                "orphan": true,
+                                "test_type": "ORPHAN",
+                                "file": ""
+                              }
+                            ]
+                          }
+                        },
+                        {
+                          "req_id": "EPIC-008-F-012-S-004-REQ-B-013",
+                          "orphan": false,
+                          "name": "A deploy can create every target it installs to from nothing",
+                          "requirement": "A deploy MUST be able to create every target it installs to where that target does not yet exist, including hosts, vaults, secrets, databases and their indexes, and identities. An environment MUST be reproducible end to end from the repository and the deploy alone, with no manual step. Where creating a target requires a privilege the deploying identity does not hold, the deploy MUST fail naming the privilege.",
+                          "priority": "must-have",
+                          "status": "not_started",
+                          "depends_on": [],
+                          "approval": "approved",
+                          "tests": {
+                            "test": [
+                              {
+                                "orphan": true,
+                                "test_type": "ORPHAN",
+                                "file": ""
+                              }
+                            ]
+                          }
+                        },
+                        {
+                          "req_id": "EPIC-008-F-012-S-004-REQ-B-014",
+                          "orphan": false,
+                          "name": "No secret that is not in deployment_architecture.json CAN exist on a host",
+                          "requirement": "Subsequent to a deploy, no secret that is not in deployment_architecture.json CAN exist on a host. Each deployment execution MUST ensure that no such secret exists, and MUST log all secrets that are removed as a part of the deployment.",
+                          "priority": "must-have",
+                          "status": "not_started",
+                          "depends_on": [],
+                          "approval": "approved",
+                          "tests": {
+                            "test": [
+                              {
+                                "orphan": true,
+                                "test_type": "ORPHAN",
+                                "file": ""
+                              }
+                            ]
+                          }
                         }
                       ]
-                    }
-                  },
-                  {
-                    "story_id": "EPIC-008-F-012-S-005",
-                    "orphan": false,
-                    "name": "Deployment architecture artifact",
-                    "description": "This story establishes the requirements for ChatHealthy.ai's deployment-facts artifact. The artifact deployment_architecture.json contains all of ChatHealthy's deployment facts: every target, every package, every file, every environment binding, every secret and variable declaration, and every identity and role grant. A deployment fact held anywhere else does not exist.",
-                    "size": "M",
-                    "status": "done",
-                    "approval": "approved",
-                    "requirements": {
-                      "requirement": []
                     }
                   }
                 ]

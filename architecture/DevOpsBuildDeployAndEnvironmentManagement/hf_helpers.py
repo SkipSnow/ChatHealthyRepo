@@ -318,6 +318,49 @@ def _hf_space_exists(token: str, qualified: str) -> bool:
         raise
 
 
+def _hf_names_present(token: str, qualified: str) -> dict[str, list[str]]:
+    """The secret and variable NAMES a Space currently holds.
+
+    Names only. A value is never read, so nothing can be logged or returned
+    that would put a credential in an audit trail.
+    """
+    import json as _json
+    import urllib.request
+    out: dict[str, list[str]] = {"secrets": [], "variables": []}
+    for kind in ("secrets", "variables"):
+        url = f"https://huggingface.co/api/spaces/{qualified}/{kind}"
+        req = urllib.request.Request(
+            url, method="GET", headers={"Authorization": f"Bearer {token}"})
+        body = _json.loads(urllib.request.urlopen(req, timeout=20).read())
+        # The endpoint answers with an object keyed by name. Values are
+        # present for variables and masked for secrets; neither is read.
+        out[kind] = sorted(body.keys()) if isinstance(body, dict) else []
+    return out
+
+
+def _hf_remove_undeclared(token: str, qualified: str,
+                          declared: set[str]) -> list[str]:
+    """Remove every secret and variable the record does not declare.
+
+    Realizes EPIC-008-F-012-S-004-REQ-B-014: after a deploy, a host carries
+    nothing that deployment_architecture.json does not declare. A name set
+    by hand, or declared once and later withdrawn, is removed here rather
+    than living on unrecorded. Names are logged; values are never read.
+    """
+    present = _hf_names_present(token, qualified)
+    removed: list[str] = []
+    for kind in ("secrets", "variables"):
+        for key in present[kind]:
+            if key in declared:
+                continue
+            _hf_curl_delete(token, qualified, kind, key)
+            removed.append(f"{kind}/{key}")
+            _step(f"  removed undeclared {kind[:-1]} {key} from {qualified}")
+    if not removed:
+        _step(f"  no undeclared secret or variable on {qualified}")
+    return removed
+
+
 def _hf_create_space(token: str, qualified: str, sdk: str = "docker") -> None:
     """Create a new HF Space. Idempotent — if it already exists, no-op."""
     if _hf_space_exists(token, qualified):
