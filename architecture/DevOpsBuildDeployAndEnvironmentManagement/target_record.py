@@ -39,6 +39,31 @@ def _ch_exc():
 
 
 
+# Which facts name a collection. A collection is the singular fact repeated,
+# so one occurrence and one-of-many are written identically; what tells them
+# apart is knowing the fact is a collection, and that knowledge belongs to the
+# code that reads the platform rather than to the schema. Everything absent
+# from this set is a single value or a group.
+_COLLECTIONS: dict[str, str] = {
+    "subnet": "subnets",
+    "private_endpoint": "private_endpoints",
+    "private_dns_zone": "private_dns_zones",
+    "blob_container": "blob_containers",
+    "path_prefix": "path_prefixes",
+    "runtime_consumer": "runtime_consumers",
+    "entry": "entries",
+    "product": "products",
+    "phase": "phases",
+    "access_rule": "accepted_access",
+    "firewall_rule": "firewall_rules",
+}
+
+# Facts whose value is a boolean rather than text. A fact value is written as
+# text, so the type belongs to the code that reads the platform, in the same
+# way the arity of a collection does.
+_BOOLEAN_FACTS: frozenset[str] = frozenset({"enabled"})
+
+
 @dataclass(slots=True)
 
 class EnvironmentBinding:
@@ -65,6 +90,10 @@ class EnvironmentBinding:
     windows_service: dict | None = None
     cloudflare_firewall_rules: list | None = None
     branch: str | None = None
+    # The platform that runs this target here. Derived from platforms[]:
+    # the entry whose facts carry role=host. Every other entry configures
+    # the target rather than hosting it.
+    host: str | None = None
     # Consolidated Atlas sub-block: project + cluster + accepted_access +
     # private_endpoint_service under one substrate target. Deploy handler
     # provisions everything Atlas-side from this one block.
@@ -114,6 +143,54 @@ class EnvironmentBinding:
         return out
 
     @classmethod
+    def _from_facts(cls, facts: list) -> dict:
+        """The value a platform's facts describe.
+
+        A fact carries a name and either a value or facts of its own. A name
+        in _COLLECTIONS accumulates into a list even when it appears once.
+        """
+        out: dict = {}
+        for f in facts or ():
+            name = f["name"]
+            if "value" in f:
+                value = f["value"]
+                if name in _BOOLEAN_FACTS:
+                    value = value == "true"
+            else:
+                value = cls._from_facts(f["facts"])
+            plural = _COLLECTIONS.get(name)
+            if plural is not None:
+                out.setdefault(plural, []).append(value)
+            else:
+                out[name] = value
+        return out
+
+    @classmethod
+    def _platform(cls, d: dict, name: str):
+        """The named platform's facts, as the value that platform's handler
+        reads. Returns None when this binding declares no such platform."""
+        for p in d.get("platforms") or ():
+            if p.get("name") == name:
+                built = cls._from_facts(p.get("facts"))
+                # A platform whose facts are one repeated collection IS that
+                # collection: cloudflare_firewall_rules is a list of rules,
+                # not an object holding a list.
+                if len(built) == 1:
+                    key, only = next(iter(built.items()))
+                    if isinstance(only, list) and key in _COLLECTIONS.values():
+                        return only
+                return built
+        return None
+
+    @staticmethod
+    def _host_of(d: dict) -> str | None:
+        for p in d.get("platforms") or ():
+            for f in p.get("facts") or ():
+                if f.get("name") == "role" and f.get("value") == "host":
+                    return p.get("name")
+        return None
+
+    @classmethod
     def from_dict(cls, d: dict) -> "EnvironmentBinding":
         return cls(
             env_binding=d["env_binding"],
@@ -123,19 +200,20 @@ class EnvironmentBinding:
             azure_container_apps_environment=d.get("azure_container_apps_environment"),
             azure_container_app_job=d.get("azure_container_app_job"),
             azure_automation=d.get("azure_automation"),
-            azure_automation_account=d.get("azure_automation_account"),
-            azure_container_registry=d.get("azure_container_registry"),
-            azure_key_vault=d.get("azure_key_vault"),
-            azure_storage_account=d.get("azure_storage_account"),
-            azure_vnet=d.get("azure_vnet"),
-            azure_resource_group=d.get("azure_resource_group"),
+            azure_automation_account=cls._platform(d, "azure_automation_account"),
+            azure_container_registry=cls._platform(d, "azure_container_registry"),
+            azure_key_vault=cls._platform(d, "azure_key_vault"),
+            azure_storage_account=cls._platform(d, "azure_storage_account"),
+            azure_vnet=cls._platform(d, "azure_vnet"),
+            azure_resource_group=cls._platform(d, "azure_resource_group"),
             identity=d.get("identity"),
-            huggingface_space=d.get("huggingface_space"),
-            cloudflare_pages=d.get("cloudflare_pages"),
+            huggingface_space=cls._platform(d, "huggingface_space"),
+            cloudflare_pages=cls._platform(d, "cloudflare_pages"),
             windows_service=d.get("windows_service"),
-            cloudflare_firewall_rules=d.get("cloudflare_firewall_rules"),
+            cloudflare_firewall_rules=cls._platform(d, "cloudflare_firewall_rules"),
             branch=d.get("branch"),
-            atlas=d.get("atlas"),
+            host=cls._host_of(d),
+            atlas=cls._platform(d, "atlas"),
             runbooks=d.get("runbooks"),
             jobs=d.get("jobs"),
             packages=d.get("packages"),

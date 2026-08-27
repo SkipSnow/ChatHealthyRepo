@@ -49,6 +49,92 @@
               "package_id": "static_pages",
               "kind": "static_files"
             }
+          ],
+          "platforms": [
+            {
+              "name": "cloudflare_pages",
+              "facts": [
+                {
+                  "name": "role",
+                  "value": "host"
+                },
+                {
+                  "name": "project_name",
+                  "value": "chathealthy-website-dev"
+                }
+              ]
+            },
+            {
+              "name": "cloudflare_firewall_rules",
+              "facts": [
+                {
+                  "name": "firewall_rule",
+                  "facts": [
+                    {
+                      "name": "description",
+                      "value": "pipeline-auth-Data-bypass-dev"
+                    },
+                    {
+                      "name": "zone_name",
+                      "value": "chathealthy.ai"
+                    },
+                    {
+                      "name": "expression",
+                      "value": "(http.host eq \"dev.chathealthy.ai\" and starts_with(http.request.uri.path, \"/Data/\") and http.request.headers[\"x-chathealthy-pipeline-auth\"][0] eq \"${CLOUDFLARE_PIPELINE_AUTH_HEADER}\")"
+                    },
+                    {
+                      "name": "action",
+                      "value": "skip"
+                    },
+                    {
+                      "name": "action_parameters",
+                      "facts": [
+                        {
+                          "name": "phase",
+                          "value": "http_ratelimit"
+                        },
+                        {
+                          "name": "phase",
+                          "value": "http_request_sbfm"
+                        },
+                        {
+                          "name": "product",
+                          "value": "bic"
+                        },
+                        {
+                          "name": "product",
+                          "value": "hot"
+                        },
+                        {
+                          "name": "product",
+                          "value": "rateLimit"
+                        },
+                        {
+                          "name": "product",
+                          "value": "securityLevel"
+                        },
+                        {
+                          "name": "product",
+                          "value": "uaBlock"
+                        },
+                        {
+                          "name": "product",
+                          "value": "zoneLockdown"
+                        },
+                        {
+                          "name": "product",
+                          "value": "waf"
+                        }
+                      ]
+                    },
+                    {
+                      "name": "enabled",
+                      "value": "true"
+                    }
+                  ]
+                }
+              ]
+            }
           ]
         },
         {
@@ -94,6 +180,92 @@
             {
               "package_id": "static_pages",
               "kind": "static_files"
+            }
+          ],
+          "platforms": [
+            {
+              "name": "cloudflare_pages",
+              "facts": [
+                {
+                  "name": "role",
+                  "value": "host"
+                },
+                {
+                  "name": "project_name",
+                  "value": "chathealthy-website-qa"
+                }
+              ]
+            },
+            {
+              "name": "cloudflare_firewall_rules",
+              "facts": [
+                {
+                  "name": "firewall_rule",
+                  "facts": [
+                    {
+                      "name": "description",
+                      "value": "pipeline-auth-Data-bypass-qa"
+                    },
+                    {
+                      "name": "zone_name",
+                      "value": "chathealthy.ai"
+                    },
+                    {
+                      "name": "expression",
+                      "value": "(http.host eq \"qa.chathealthy.ai\" and starts_with(http.request.uri.path, \"/Data/\") and http.request.headers[\"x-chathealthy-pipeline-auth\"][0] eq \"${CLOUDFLARE_PIPELINE_AUTH_HEADER}\")"
+                    },
+                    {
+                      "name": "action",
+                      "value": "skip"
+                    },
+                    {
+                      "name": "action_parameters",
+                      "facts": [
+                        {
+                          "name": "phase",
+                          "value": "http_ratelimit"
+                        },
+                        {
+                          "name": "phase",
+                          "value": "http_request_sbfm"
+                        },
+                        {
+                          "name": "product",
+                          "value": "bic"
+                        },
+                        {
+                          "name": "product",
+                          "value": "hot"
+                        },
+                        {
+                          "name": "product",
+                          "value": "rateLimit"
+                        },
+                        {
+                          "name": "product",
+                          "value": "securityLevel"
+                        },
+                        {
+                          "name": "product",
+                          "value": "uaBlock"
+                        },
+                        {
+                          "name": "product",
+                          "value": "zoneLockdown"
+                        },
+                        {
+                          "name": "product",
+                          "value": "waf"
+                        }
+                      ]
+                    },
+                    {
+                      "name": "enabled",
+                      "value": "true"
+                    }
+                  ]
+                }
+              ]
             }
           ]
         },
@@ -141,6 +313,92 @@
               "package_id": "static_pages",
               "kind": "static_files"
             }
+          ],
+          "platforms": [
+            {
+              "name": "cloudflare_pages",
+              "facts": [
+                {
+                  "name": "role",
+                  "value": "host"
+                },
+                {
+                  "name": "project_name",
+                  "value": "chathealthywebsite"
+                }
+              ]
+            },
+            {
+              "name": "cloudflare_firewall_rules",
+              "facts": [
+                {
+                  "name": "firewall_rule",
+                  "facts": [
+                    {
+                      "name": "description",
+                      "value": "pipeline-auth-Data-bypass-prod"
+                    },
+                    {
+                      "name": "zone_name",
+                      "value": "chathealthy.ai"
+                    },
+                    {
+                      "name": "expression",
+                      "value": "(http.host eq \"chathealthy.ai\" and starts_with(http.request.uri.path, \"/Data/\") and http.request.headers[\"x-chathealthy-pipeline-auth\"][0] eq \"${CLOUDFLARE_PIPELINE_AUTH_HEADER}\")"
+                    },
+                    {
+                      "name": "action",
+                      "value": "skip"
+                    },
+                    {
+                      "name": "action_parameters",
+                      "facts": [
+                        {
+                          "name": "phase",
+                          "value": "http_ratelimit"
+                        },
+                        {
+                          "name": "phase",
+                          "value": "http_request_sbfm"
+                        },
+                        {
+                          "name": "product",
+                          "value": "bic"
+                        },
+                        {
+                          "name": "product",
+                          "value": "hot"
+                        },
+                        {
+                          "name": "product",
+                          "value": "rateLimit"
+                        },
+                        {
+                          "name": "product",
+                          "value": "securityLevel"
+                        },
+                        {
+                          "name": "product",
+                          "value": "uaBlock"
+                        },
+                        {
+                          "name": "product",
+                          "value": "zoneLockdown"
+                        },
+                        {
+                          "name": "product",
+                          "value": "waf"
+                        }
+                      ]
+                    },
+                    {
+                      "name": "enabled",
+                      "value": "true"
+                    }
+                  ]
+                }
+              ]
+            }
           ]
         },
         {
@@ -162,6 +420,25 @@
             {
               "package_id": "static_pages",
               "kind": "file_set"
+            }
+          ],
+          "platforms": [
+            {
+              "name": "docker_container",
+              "facts": [
+                {
+                  "name": "role",
+                  "value": "host"
+                },
+                {
+                  "name": "container_name",
+                  "value": "ch-website"
+                },
+                {
+                  "name": "host_port",
+                  "value": "443"
+                }
+              ]
             }
           ]
         }
@@ -412,7 +689,7 @@
           "source_location": "Website/schemas/ChatHealthyDeploymentArchitectureSchema.json",
           "handler_type": "json",
           "disposition": "referenced",
-          "content_hash": "e6dfa896ae18392bfd3d6f122c0c77d01df03434b89a401ecf94ffe8b4845563",
+          "content_hash": "1a466f89ac67ba28560d60b4bf22bd35e8fb631e6190d62767a190ef9c260b54",
           "package": "json_schemas"
         },
         {
@@ -698,6 +975,21 @@
               "package_id": "service_runtime",
               "kind": "file_set"
             }
+          ],
+          "platforms": [
+            {
+              "name": "huggingface_space",
+              "facts": [
+                {
+                  "name": "role",
+                  "value": "host"
+                },
+                {
+                  "name": "space",
+                  "value": "SkipSnow/dev_EvaluateCareSpace2_1606"
+                }
+              ]
+            }
           ]
         },
         {
@@ -711,6 +1003,21 @@
             {
               "package_id": "service_runtime",
               "kind": "file_set"
+            }
+          ],
+          "platforms": [
+            {
+              "name": "huggingface_space",
+              "facts": [
+                {
+                  "name": "role",
+                  "value": "host"
+                },
+                {
+                  "name": "space",
+                  "value": "SkipSnow/qa_EvaluateCareSpace"
+                }
+              ]
             }
           ]
         },
@@ -726,6 +1033,21 @@
               "package_id": "service_runtime",
               "kind": "file_set"
             }
+          ],
+          "platforms": [
+            {
+              "name": "huggingface_space",
+              "facts": [
+                {
+                  "name": "role",
+                  "value": "host"
+                },
+                {
+                  "name": "space",
+                  "value": "SkipSnow/EvaluateCareSpace"
+                }
+              ]
+            }
           ]
         },
         {
@@ -735,6 +1057,25 @@
             {
               "package_id": "service_runtime",
               "kind": "file_set"
+            }
+          ],
+          "platforms": [
+            {
+              "name": "docker_container",
+              "facts": [
+                {
+                  "name": "role",
+                  "value": "host"
+                },
+                {
+                  "name": "container_name",
+                  "value": "ch-evalcare"
+                },
+                {
+                  "name": "host_port",
+                  "value": "8001"
+                }
+              ]
             }
           ]
         }
@@ -1096,7 +1437,7 @@
         "SHARED_CERT_PEM": "local_cert_file:Code/Shared/ops/certs/shared.crt",
         "EVALCARE_CERT_PEM": "local_cert_file:Code/Shared/ops/certs/evalcare.crt",
         "CH_LOG_LEVEL": "local_env",
-        "MONGO_HOST_CHATHEALTHYFRONTEND": "azure_key_vault",
+        "MONGO_HOST_CHATHEALTHYFRONTEND": "literal:chathealthyfrontend.mdwahg.mongodb.net",
         "CH_MONGO_HOST_CHATHEALTHYFRONTEND": "rename_from:MONGO_HOST_CHATHEALTHYFRONTEND"
       }
     },
@@ -1116,6 +1457,21 @@
               "package_id": "service_runtime",
               "kind": "file_set"
             }
+          ],
+          "platforms": [
+            {
+              "name": "huggingface_space",
+              "facts": [
+                {
+                  "name": "role",
+                  "value": "host"
+                },
+                {
+                  "name": "space",
+                  "value": "SkipSnow/dev_ChatHealthySpace_1606"
+                }
+              ]
+            }
           ]
         },
         {
@@ -1129,6 +1485,21 @@
             {
               "package_id": "service_runtime",
               "kind": "file_set"
+            }
+          ],
+          "platforms": [
+            {
+              "name": "huggingface_space",
+              "facts": [
+                {
+                  "name": "role",
+                  "value": "host"
+                },
+                {
+                  "name": "space",
+                  "value": "SkipSnow/qa_ChatHealthySpace"
+                }
+              ]
             }
           ]
         },
@@ -1144,6 +1515,21 @@
               "package_id": "service_runtime",
               "kind": "file_set"
             }
+          ],
+          "platforms": [
+            {
+              "name": "huggingface_space",
+              "facts": [
+                {
+                  "name": "role",
+                  "value": "host"
+                },
+                {
+                  "name": "space",
+                  "value": "SkipSnow/ChatHealthySpace"
+                }
+              ]
+            }
           ]
         },
         {
@@ -1153,6 +1539,25 @@
             {
               "package_id": "service_runtime",
               "kind": "file_set"
+            }
+          ],
+          "platforms": [
+            {
+              "name": "docker_container",
+              "facts": [
+                {
+                  "name": "role",
+                  "value": "host"
+                },
+                {
+                  "name": "container_name",
+                  "value": "ch-findcare"
+                },
+                {
+                  "name": "host_port",
+                  "value": "7860"
+                }
+              ]
             }
           ]
         }
@@ -2091,7 +2496,7 @@
           "source_location": "FindCare/SpecialtyFilter/filter.py",
           "handler_type": "python_source",
           "disposition": "referenced",
-          "content_hash": "71fc25066d6b658e4afeaa6f993ac087305aafbb81a32cef3b57662c8e43c0bc",
+          "content_hash": "aaa8730a3a85ecf94b4fce4cf84b817259de1599ccd3ca9efef68d9f8ebdfe83",
           "package": "service_runtime"
         },
         {
@@ -2558,7 +2963,7 @@
         "SHARED_CERT_PEM": "local_cert_file:Code/Shared/ops/certs/shared.crt",
         "EVALCARE_CERT_PEM": "local_cert_file:Code/Shared/ops/certs/evalcare.crt",
         "CH_LOG_LEVEL": "local_env",
-        "MONGO_HOST_CHATHEALTHYFRONTEND": "azure_key_vault",
+        "MONGO_HOST_CHATHEALTHYFRONTEND": "literal:chathealthyfrontend.mdwahg.mongodb.net",
         "CH_MONGO_HOST_CHATHEALTHYFRONTEND": "rename_from:MONGO_HOST_CHATHEALTHYFRONTEND"
       }
     },
@@ -2578,6 +2983,21 @@
               "package_id": "service_runtime",
               "kind": "file_set"
             }
+          ],
+          "platforms": [
+            {
+              "name": "huggingface_space",
+              "facts": [
+                {
+                  "name": "role",
+                  "value": "host"
+                },
+                {
+                  "name": "space",
+                  "value": "SkipSnow/dev_SharedServicesSpace_1603"
+                }
+              ]
+            }
           ]
         },
         {
@@ -2591,6 +3011,21 @@
             {
               "package_id": "service_runtime",
               "kind": "file_set"
+            }
+          ],
+          "platforms": [
+            {
+              "name": "huggingface_space",
+              "facts": [
+                {
+                  "name": "role",
+                  "value": "host"
+                },
+                {
+                  "name": "space",
+                  "value": "SkipSnow/qa_SharedServicesSpace"
+                }
+              ]
             }
           ]
         },
@@ -2606,6 +3041,21 @@
               "package_id": "service_runtime",
               "kind": "file_set"
             }
+          ],
+          "platforms": [
+            {
+              "name": "huggingface_space",
+              "facts": [
+                {
+                  "name": "role",
+                  "value": "host"
+                },
+                {
+                  "name": "space",
+                  "value": "SkipSnow/SharedServicesSpace"
+                }
+              ]
+            }
           ]
         },
         {
@@ -2615,6 +3065,25 @@
             {
               "package_id": "service_runtime",
               "kind": "file_set"
+            }
+          ],
+          "platforms": [
+            {
+              "name": "docker_container",
+              "facts": [
+                {
+                  "name": "role",
+                  "value": "host"
+                },
+                {
+                  "name": "container_name",
+                  "value": "ch-sharedsvc"
+                },
+                {
+                  "name": "host_port",
+                  "value": "8002"
+                }
+              ]
             }
           ]
         }
@@ -2665,7 +3134,7 @@
           "source_location": "FindCare/SpecialtyFilter/filter.py",
           "handler_type": "python_source",
           "disposition": "referenced",
-          "content_hash": "71fc25066d6b658e4afeaa6f993ac087305aafbb81a32cef3b57662c8e43c0bc",
+          "content_hash": "aaa8730a3a85ecf94b4fce4cf84b817259de1599ccd3ca9efef68d9f8ebdfe83",
           "package": "service_runtime"
         },
         {
@@ -3240,7 +3709,7 @@
         "SHARED_CERT_PEM": "local_cert_file:Code/Shared/ops/certs/shared.crt",
         "EVALCARE_CERT_PEM": "local_cert_file:Code/Shared/ops/certs/evalcare.crt",
         "CH_LOG_LEVEL": "local_env",
-        "MONGO_HOST_CHATHEALTHYFRONTEND": "azure_key_vault",
+        "MONGO_HOST_CHATHEALTHYFRONTEND": "literal:chathealthyfrontend.mdwahg.mongodb.net",
         "CH_MONGO_HOST_CHATHEALTHYFRONTEND": "rename_from:MONGO_HOST_CHATHEALTHYFRONTEND"
       }
     },
@@ -3256,6 +3725,17 @@
             {
               "package_id": "service_runtime",
               "kind": "file_set"
+            }
+          ],
+          "platforms": [
+            {
+              "name": "host_os_process",
+              "facts": [
+                {
+                  "name": "role",
+                  "value": "host"
+                }
+              ]
             }
           ]
         }
@@ -3763,6 +4243,17 @@
               "package_id": "service_runtime",
               "kind": "file_set"
             }
+          ],
+          "platforms": [
+            {
+              "name": "host_os_process",
+              "facts": [
+                {
+                  "name": "role",
+                  "value": "host"
+                }
+              ]
+            }
           ]
         },
         {
@@ -3772,6 +4263,17 @@
             {
               "package_id": "service_runtime",
               "kind": "file_set"
+            }
+          ],
+          "platforms": [
+            {
+              "name": "host_os_process",
+              "facts": [
+                {
+                  "name": "role",
+                  "value": "host"
+                }
+              ]
             }
           ]
         }
@@ -4336,6 +4838,45 @@
                 "node_address": "https://management.azure.com/subscriptions/7a17eec1-c477-4c7c-b1c1-d0662ce7a1ee/resourceGroups/rg-chathealthy-pipeline-dev/providers/Microsoft.Automation/automationAccounts/ChatHealthyJobManager/runbooks/EntitlementReport"
               }
             }
+          ],
+          "platforms": [
+            {
+              "name": "azure_automation_account",
+              "facts": [
+                {
+                  "name": "role",
+                  "value": "host"
+                },
+                {
+                  "name": "vnet_name",
+                  "value": "vnet-chathealthy-pipeline-dev"
+                },
+                {
+                  "name": "vm_subnet_name",
+                  "value": "snet-hybrid-worker"
+                },
+                {
+                  "name": "vm_subnet_address_prefix",
+                  "value": "10.0.2.0/24"
+                },
+                {
+                  "name": "hybrid_worker_group_name",
+                  "value": "ChatHealthyHybridWorkers"
+                },
+                {
+                  "name": "admin_private_key_filename",
+                  "value": "chdm_admin_key"
+                },
+                {
+                  "name": "automation_api_version",
+                  "value": "2023-11-01"
+                },
+                {
+                  "name": "network_api_version",
+                  "value": "2023-09-01"
+                }
+              ]
+            }
           ]
         }
       ],
@@ -4441,7 +4982,26 @@
           "azure_resource_group": {
             "name": "rg-chathealthy-pipeline-dev",
             "location": "eastus2"
-          }
+          },
+          "platforms": [
+            {
+              "name": "azure_resource_group",
+              "facts": [
+                {
+                  "name": "role",
+                  "value": "host"
+                },
+                {
+                  "name": "name",
+                  "value": "rg-chathealthy-pipeline-dev"
+                },
+                {
+                  "name": "location",
+                  "value": "eastus2"
+                }
+              ]
+            }
+          ]
         }
       ],
       "files": [],
@@ -4461,7 +5021,30 @@
             "resource_group": "rg-chathealthy-pipeline-dev",
             "firewall_default_action": "Allow"
           },
-          "packages": []
+          "packages": [],
+          "platforms": [
+            {
+              "name": "azure_key_vault",
+              "facts": [
+                {
+                  "name": "role",
+                  "value": "host"
+                },
+                {
+                  "name": "vault_name",
+                  "value": "kv-chpipeline-dev"
+                },
+                {
+                  "name": "resource_group",
+                  "value": "rg-chathealthy-pipeline-dev"
+                },
+                {
+                  "name": "firewall_default_action",
+                  "value": "Allow"
+                }
+              ]
+            }
+          ]
         }
       ],
       "files": [],
@@ -4598,7 +5181,111 @@
                 ]
               }
             ]
-          }
+          },
+          "platforms": [
+            {
+              "name": "azure_storage_account",
+              "facts": [
+                {
+                  "name": "role",
+                  "value": "host"
+                },
+                {
+                  "name": "account_name",
+                  "value": "stchpipelinedev"
+                },
+                {
+                  "name": "resource_group",
+                  "value": "rg-chathealthy-pipeline-dev"
+                },
+                {
+                  "name": "blob_container",
+                  "facts": [
+                    {
+                      "name": "name",
+                      "value": "logs"
+                    },
+                    {
+                      "name": "purpose",
+                      "value": "logs"
+                    },
+                    {
+                      "name": "path_prefix",
+                      "value": "provider"
+                    }
+                  ]
+                },
+                {
+                  "name": "blob_container",
+                  "facts": [
+                    {
+                      "name": "name",
+                      "value": "sources"
+                    },
+                    {
+                      "name": "purpose",
+                      "value": "sources"
+                    },
+                    {
+                      "name": "path_prefix",
+                      "value": "provider"
+                    }
+                  ]
+                },
+                {
+                  "name": "blob_container",
+                  "facts": [
+                    {
+                      "name": "name",
+                      "value": "staging"
+                    },
+                    {
+                      "name": "purpose",
+                      "value": "staging"
+                    },
+                    {
+                      "name": "path_prefix",
+                      "value": "provider"
+                    }
+                  ]
+                },
+                {
+                  "name": "blob_container",
+                  "facts": [
+                    {
+                      "name": "name",
+                      "value": "reports"
+                    },
+                    {
+                      "name": "purpose",
+                      "value": "reports"
+                    },
+                    {
+                      "name": "path_prefix",
+                      "value": "provider"
+                    }
+                  ]
+                },
+                {
+                  "name": "blob_container",
+                  "facts": [
+                    {
+                      "name": "name",
+                      "value": "pipeline-logs"
+                    },
+                    {
+                      "name": "purpose",
+                      "value": "logs"
+                    },
+                    {
+                      "name": "path_prefix",
+                      "value": "provider"
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
         }
       ],
       "files": [],
@@ -4654,7 +5341,116 @@
                 "zone_name": "privatelink.mongodb.net"
               }
             ]
-          }
+          },
+          "platforms": [
+            {
+              "name": "azure_vnet",
+              "facts": [
+                {
+                  "name": "role",
+                  "value": "host"
+                },
+                {
+                  "name": "vnet_name",
+                  "value": "vnet-chathealthy-pipeline-dev"
+                },
+                {
+                  "name": "resource_group",
+                  "value": "rg-chathealthy-pipeline-dev"
+                },
+                {
+                  "name": "subnet",
+                  "facts": [
+                    {
+                      "name": "name",
+                      "value": "snet-pipeline-compute"
+                    },
+                    {
+                      "name": "address_prefix",
+                      "value": "10.0.0.0/23"
+                    },
+                    {
+                      "name": "purpose",
+                      "value": "pipeline_run_vm_landing"
+                    }
+                  ]
+                },
+                {
+                  "name": "subnet",
+                  "facts": [
+                    {
+                      "name": "name",
+                      "value": "snet-pipeline-atlas"
+                    },
+                    {
+                      "name": "address_prefix",
+                      "value": "10.0.6.0/24"
+                    },
+                    {
+                      "name": "purpose",
+                      "value": "atlas_private_endpoint_landing"
+                    }
+                  ]
+                },
+                {
+                  "name": "private_endpoint",
+                  "facts": [
+                    {
+                      "name": "private_endpoint_name",
+                      "value": "pe-atlas-pipeline-dev"
+                    },
+                    {
+                      "name": "subnet_name",
+                      "value": "snet-pipeline-atlas"
+                    },
+                    {
+                      "name": "peer_target_id",
+                      "value": "target_atlas_pipeline"
+                    },
+                    {
+                      "name": "group_id",
+                      "value": "mongodb"
+                    },
+                    {
+                      "name": "runtime_consumer",
+                      "facts": [
+                        {
+                          "name": "identity_target_id",
+                          "value": "target_identity_mi_control"
+                        },
+                        {
+                          "name": "operation",
+                          "value": "mongo_readwrite"
+                        }
+                      ]
+                    },
+                    {
+                      "name": "runtime_consumer",
+                      "facts": [
+                        {
+                          "name": "identity_target_id",
+                          "value": "target_identity_mi_runbook"
+                        },
+                        {
+                          "name": "operation",
+                          "value": "mongo_write"
+                        }
+                      ]
+                    }
+                  ]
+                },
+                {
+                  "name": "private_dns_zone",
+                  "facts": [
+                    {
+                      "name": "zone_name",
+                      "value": "privatelink.mongodb.net"
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
         }
       ],
       "files": [],
@@ -4680,7 +5476,18 @@
             "identity_class": "service_principal",
             "name": "pipelineEditor",
             "object_id": "1dbcec4a-97ce-4ddb-ab8d-f4a55d5c37a1"
-          }
+          },
+          "platforms": [
+            {
+              "name": "identity",
+              "facts": [
+                {
+                  "name": "role",
+                  "value": "host"
+                }
+              ]
+            }
+          ]
         }
       ],
       "files": [],
@@ -4703,7 +5510,18 @@
             "identity_class": "service_principal",
             "name": "DevOpsUser",
             "object_id": "8e6f61db-9d92-4f7a-a3db-8731a7518791"
-          }
+          },
+          "platforms": [
+            {
+              "name": "identity",
+              "facts": [
+                {
+                  "name": "role",
+                  "value": "host"
+                }
+              ]
+            }
+          ]
         }
       ],
       "files": [],
@@ -4756,6 +5574,29 @@
                   "ChatHealthyLib"
                 ]
               }
+            }
+          ],
+          "platforms": [
+            {
+              "name": "azure_container_registry",
+              "facts": [
+                {
+                  "name": "role",
+                  "value": "host"
+                },
+                {
+                  "name": "registry_name",
+                  "value": "chpipelinedevacr"
+                },
+                {
+                  "name": "resource_group",
+                  "value": "rg-chathealthy-pipeline-dev"
+                },
+                {
+                  "name": "image_tag_convention",
+                  "value": "git_head_sha"
+                }
+              ]
             }
           ]
         }
@@ -4814,7 +5655,110 @@
                 }
               ]
             }
-          }
+          },
+          "platforms": [
+            {
+              "name": "atlas",
+              "facts": [
+                {
+                  "name": "role",
+                  "value": "host"
+                },
+                {
+                  "name": "cluster",
+                  "facts": [
+                    {
+                      "name": "cluster_name",
+                      "value": "ChatHealthyDataPipelines"
+                    },
+                    {
+                      "name": "runtime_consumer",
+                      "facts": [
+                        {
+                          "name": "identity_target_id",
+                          "value": "target_identity_mi_control"
+                        },
+                        {
+                          "name": "operation",
+                          "value": "mongo_readwrite"
+                        }
+                      ]
+                    },
+                    {
+                      "name": "runtime_consumer",
+                      "facts": [
+                        {
+                          "name": "identity_target_id",
+                          "value": "target_identity_mi_runbook"
+                        },
+                        {
+                          "name": "operation",
+                          "value": "mongo_write"
+                        }
+                      ]
+                    }
+                  ]
+                },
+                {
+                  "name": "access_rule",
+                  "facts": [
+                    {
+                      "name": "kind",
+                      "value": "ip_allowlist"
+                    },
+                    {
+                      "name": "entry",
+                      "facts": [
+                        {
+                          "name": "cidr",
+                          "value": "0.0.0.0/0"
+                        },
+                        {
+                          "name": "comment",
+                          "value": "Sets 1+2: dynamic operator IPs + HF Space egress. Intentional until dynamic-allowlist story lands."
+                        }
+                      ]
+                    }
+                  ]
+                },
+                {
+                  "name": "access_rule",
+                  "facts": [
+                    {
+                      "name": "kind",
+                      "value": "private_endpoint"
+                    }
+                  ]
+                },
+                {
+                  "name": "private_endpoint_service",
+                  "facts": [
+                    {
+                      "name": "provider",
+                      "value": "AZURE"
+                    },
+                    {
+                      "name": "region",
+                      "value": "eastus2"
+                    },
+                    {
+                      "name": "runtime_consumer",
+                      "facts": [
+                        {
+                          "name": "identity_target_id",
+                          "value": "target_azure_vnet_pipeline"
+                        },
+                        {
+                          "name": "operation",
+                          "value": "azure_private_link_bind"
+                        }
+                      ]
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
         }
       ],
       "files": [],
@@ -4878,6 +5822,17 @@
               "secret_descriptions": {
                 "CH_LOG_DB": "Database that runtime logs are written to"
               }
+            }
+          ],
+          "platforms": [
+            {
+              "name": "host_os_process",
+              "facts": [
+                {
+                  "name": "role",
+                  "value": "host"
+                }
+              ]
             }
           ]
         }
@@ -5201,6 +6156,45 @@
                 ]
               }
             }
+          ],
+          "platforms": [
+            {
+              "name": "azure_automation_account",
+              "facts": [
+                {
+                  "name": "role",
+                  "value": "host"
+                },
+                {
+                  "name": "vnet_name",
+                  "value": "vnet-chathealthy-pipeline-dev"
+                },
+                {
+                  "name": "vm_subnet_name",
+                  "value": "snet-hybrid-worker"
+                },
+                {
+                  "name": "vm_subnet_address_prefix",
+                  "value": "10.0.2.0/24"
+                },
+                {
+                  "name": "hybrid_worker_group_name",
+                  "value": "ChatHealthyHybridWorkers"
+                },
+                {
+                  "name": "admin_private_key_filename",
+                  "value": "chdm_admin_key"
+                },
+                {
+                  "name": "automation_api_version",
+                  "value": "2023-11-01"
+                },
+                {
+                  "name": "network_api_version",
+                  "value": "2023-09-01"
+                }
+              ]
+            }
           ]
         }
       ],
@@ -5226,6 +6220,17 @@
             {
               "package_id": "rule_065_enforcement_workflow",
               "kind": "static_files"
+            }
+          ],
+          "platforms": [
+            {
+              "name": "github_repository",
+              "facts": [
+                {
+                  "name": "role",
+                  "value": "host"
+                }
+              ]
             }
           ]
         }
@@ -5266,7 +6271,40 @@
                 }
               ]
             }
-          }
+          },
+          "platforms": [
+            {
+              "name": "atlas",
+              "facts": [
+                {
+                  "name": "role",
+                  "value": "host"
+                },
+                {
+                  "name": "cluster",
+                  "facts": [
+                    {
+                      "name": "cluster_name",
+                      "value": "ChatHealthyFrontEnd"
+                    },
+                    {
+                      "name": "runtime_consumer",
+                      "facts": [
+                        {
+                          "name": "identity_target_id",
+                          "value": "target_identity_devops_user"
+                        },
+                        {
+                          "name": "operation",
+                          "value": "mongo_write"
+                        }
+                      ]
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
         }
       ],
       "files": []
@@ -5290,7 +6328,16 @@
         "User Access Administrator",
         "Global Administrator"
       ],
-      "description": "The operator. The only person, the only Global Administrator, and the only identity in the tenant that can create another identity."
+      "description": "The operator. The only person, the only Global Administrator, and the only identity in the tenant that can create another identity.",
+      "identity_provider": {
+        "name": "Entra",
+        "facts": [
+          {
+            "name": "object_type",
+            "value": "user"
+          }
+        ]
+      }
     },
     {
       "identity_id": "claudeCodeAgent",
@@ -5306,7 +6353,16 @@
         "Application.ReadWrite.OwnedBy",
         "Directory.Read.All"
       ],
-      "description": "The engineering agent that writes and deploys code, and administers the PipeLineServices subscription. Registers applications it then owns; cannot alter the directory beyond those."
+      "description": "The engineering agent that writes and deploys code, and administers the PipeLineServices subscription. Registers applications it then owns; cannot alter the directory beyond those.",
+      "identity_provider": {
+        "name": "Entra",
+        "facts": [
+          {
+            "name": "object_type",
+            "value": "servicePrincipal"
+          }
+        ]
+      }
     },
     {
       "identity_id": "DevOpsUser",
@@ -5329,7 +6385,16 @@
         "role_governance_recorder"
       ],
       "target_id_ref": "target_identity_devops_user",
-      "description": "Builds and deploys, across every subscription the firm holds. Runs the entitlement report, which is why it reads the directory. Holds full control of the pipeline key vault, which exceeds what building requires."
+      "description": "Builds and deploys, across every subscription the firm holds. Runs the entitlement report, which is why it reads the directory. Holds full control of the pipeline key vault, which exceeds what building requires.",
+      "identity_provider": {
+        "name": "Entra",
+        "facts": [
+          {
+            "name": "object_type",
+            "value": "servicePrincipal"
+          }
+        ]
+      }
     },
     {
       "identity_id": "frontendUser",
@@ -5341,7 +6406,16 @@
       "roles": [
         "Key Vault Secrets User"
       ],
-      "description": "The front-end runtime. Reads its own certificate and nothing else."
+      "description": "The front-end runtime. Reads its own certificate and nothing else.",
+      "identity_provider": {
+        "name": "Entra",
+        "facts": [
+          {
+            "name": "object_type",
+            "value": "servicePrincipal"
+          }
+        ]
+      }
     },
     {
       "identity_id": "pipelineEditor",
@@ -5360,7 +6434,16 @@
         "Storage Blob Data Contributor"
       ],
       "target_id_ref": "target_identity_pipeline_editor",
-      "description": "Runs the pipeline. Reads twenty-three named secrets one grant at a time, because the estate has no group to grant once. Confined to the pipeline subscription and holds no directory permission."
+      "description": "Runs the pipeline. Reads twenty-three named secrets one grant at a time, because the estate has no group to grant once. Confined to the pipeline subscription and holds no directory permission.",
+      "identity_provider": {
+        "name": "Entra",
+        "facts": [
+          {
+            "name": "object_type",
+            "value": "servicePrincipal"
+          }
+        ]
+      }
     },
     {
       "identity_id": "PipelineToFrontEndPublicDataMigrator",
@@ -5373,7 +6456,16 @@
         "Key Vault Secrets User",
         "role_data_migrator"
       ],
-      "description": "The one capability of the dataMigrator application: copies published collections from the pipeline cluster to the front-end cluster. Attached to its own Work Manager, PipelineToFrontEndPublicDataMigratorWorkManager, which holds its runbooks and no other identity's; carries no client secret, and reads one vault secret at the scope of that secret alone. Its name is identical in Entra, in Key Vault, in its certificate subject and in the environment variable the library derives."
+      "description": "The one capability of the dataMigrator application: copies published collections from the pipeline cluster to the front-end cluster. Attached to its own Work Manager, PipelineToFrontEndPublicDataMigratorWorkManager, which holds its runbooks and no other identity's; carries no client secret, and reads one vault secret at the scope of that secret alone. Its name is identical in Entra, in Key Vault, in its certificate subject and in the environment variable the library derives.",
+      "identity_provider": {
+        "name": "Entra",
+        "facts": [
+          {
+            "name": "object_type",
+            "value": "managedIdentity"
+          }
+        ]
+      }
     },
     {
       "identity_id": "ClaudeCodeUser",
@@ -5381,7 +6473,16 @@
       "entra_object_type": "user",
       "actor_type": "agent",
       "object_id": "04dcf8d4-6365-4886-924a-42f06ea25a18",
-      "description": "Holds no rights and signs in nowhere. It exists because Entra will not accept a service principal as a group's last owner, so the agent groups need a user object to own them. Its password is held by the operator and is recorded nowhere."
+      "description": "Holds no rights and signs in nowhere. It exists because Entra will not accept a service principal as a group's last owner, so the agent groups need a user object to own them. Its password is held by the operator and is recorded nowhere.",
+      "identity_provider": {
+        "name": "Entra",
+        "facts": [
+          {
+            "name": "object_type",
+            "value": "user"
+          }
+        ]
+      }
     }
   ],
   "CustomRoleCatalog": [
