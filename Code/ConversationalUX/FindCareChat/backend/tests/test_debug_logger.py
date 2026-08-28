@@ -22,21 +22,6 @@ class TestDebugLogger(unittest.TestCase):
         self.assertEqual(record["ip"], "1.2.3.4")
         self.assertEqual(record["tokens_in"], 100)
 
-    def test_log_chat_error_with_history_deidentifies(self):
-        mock_db = MagicMock()
-        mock_consent = MagicMock()
-        logger = DebugLogger(get_db_fn=lambda: mock_db, env_prefix="dev", consent_service=mock_consent)
-        history = [{"role": "user", "content": "my name is Skip"}]
-        logger.log_chat("1.2.3.4", "test", 1, 0, None, None, None, "error occurred", history)
-        mock_consent.de_identify.assert_called_once()
-
-    def test_log_chat_error_without_consent_service(self):
-        mock_db = MagicMock()
-        logger = DebugLogger(get_db_fn=lambda: mock_db, env_prefix="dev")
-        history = [{"role": "user", "content": "test"}]
-        # Should not raise even without consent service
-        logger.log_chat("1.2.3.4", "test", 1, 0, None, None, None, "error", history)
-
     def test_log_chat_db_failure_does_not_raise(self):
         mock_db = MagicMock()
         mock_db["dev_Debug"]["chat_calls"].insert_one.side_effect = Exception("DB down")

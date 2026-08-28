@@ -694,31 +694,6 @@ class FindCareService:
                     "rank": s.get("rank", 0),
                 })
 
-            # Add relevant homeopathic specialties based on query context.
-            # GPT-mini evaluates each homeopathic specialty against the search
-            # query and returns strictly_compliant, loosely_compliant, or out_of_scope.
-            try:
-                from domain.find_care.homeopathic_resolver import resolve_homeopathic_specialties
-                existing_codes = {o["code"] for o in specialization_options}
-                homeo_options = resolve_homeopathic_specialties(
-                    query=specialty_query or "",
-                    existing_codes=existing_codes,
-                    db=db,
-                    env_prefix=self._env,
-                )
-                specialization_options.extend(homeo_options)
-            except Exception as _he:
-                # Mode 1 (REQ-B-008): homeopathic-specialty enrichment is
-                # optional augmentation; without it, the base allopathic
-                # specialization_options still surface. Result quality
-                # degrades silently — no user-visible failure.
-                log.info("Homeopathic resolver failed: %s", _he, exc=ChatHealthyException(
-                                                                     mode="homeopathic_resolver_failed",
-                                                                     message=f"Homeopathic resolver failed: {_he}",
-                                                                     component="FindCareService",
-                                                                     exception=_he,
-                                                                 ))
-
             # Step 3: Database answers — deterministic taxonomy query
             base_filter = {"taxonomies.code": {"$in": codes}}
             base_filter.update(self._practice_address_filter(state=state_upper, city=city, county=county, zip=zip))

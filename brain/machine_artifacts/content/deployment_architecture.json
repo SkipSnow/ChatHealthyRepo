@@ -1624,7 +1624,7 @@
           "source_location": "Code/ConversationalUX/FindCareChat/backend/app.py",
           "handler_type": "python_source",
           "disposition": "referenced",
-          "content_hash": "3d6c54519ca29c1fec7a04fa406255a03610642d5a1cffa75a9e12fb2e06f3df",
+          "content_hash": "7a08e878c12029a944b1d55161dfe6956ef6ffb790c2957089cb756e0aa4112c",
           "package": "service_runtime"
         },
         {
@@ -1669,14 +1669,6 @@
         },
         {
           "feature_id": "EPIC-008-F-012",
-          "source_location": "Code/ConversationalUX/FindCareChat/backend/application/tool_models/consent_models.py",
-          "handler_type": "python_source",
-          "disposition": "referenced",
-          "content_hash": "c64e5f616455f50d7b3e75ff2c09df61b1a39c78fd51c6bd212001eb4cdead07",
-          "package": "service_runtime"
-        },
-        {
-          "feature_id": "EPIC-008-F-012",
           "source_location": "Code/ConversationalUX/FindCareChat/backend/application/tool_models/specialty_normalize_models.py",
           "handler_type": "python_source",
           "disposition": "referenced",
@@ -1688,7 +1680,7 @@
           "source_location": "Code/ConversationalUX/FindCareChat/backend/application/tool_router.py",
           "handler_type": "python_source",
           "disposition": "referenced",
-          "content_hash": "688f1f948cff02125960b1794e921fe23faad0faf2cdbf92f2aafb0d32f86db6",
+          "content_hash": "82ad5bd17c4875e216030444084169884213fac92ae00c772892e3059cc5c7e9",
           "package": "service_runtime"
         },
         {
@@ -1725,14 +1717,6 @@
         },
         {
           "feature_id": "EPIC-008-F-012",
-          "source_location": "Code/ConversationalUX/FindCareChat/backend/domain/find_care/homeopathic_resolver.py",
-          "handler_type": "python_source",
-          "disposition": "referenced",
-          "content_hash": "9ce03101ce644174f14e63ced3212d6c6e126a774d8ec0f27636b2daaf9bd93c",
-          "package": "service_runtime"
-        },
-        {
-          "feature_id": "EPIC-008-F-012",
           "source_location": "Code/ConversationalUX/FindCareChat/backend/domain/find_care/provider_record_sync.py",
           "handler_type": "python_source",
           "disposition": "referenced",
@@ -1765,14 +1749,6 @@
         },
         {
           "feature_id": "EPIC-008-F-012",
-          "source_location": "Code/ConversationalUX/FindCareChat/backend/domain/shared/consent/consent_service.py",
-          "handler_type": "python_source",
-          "disposition": "referenced",
-          "content_hash": "73ef7a2de87734855419c8ecb67adb15f22eab2787cf1893156773b54c35b585",
-          "package": "service_runtime"
-        },
-        {
-          "feature_id": "EPIC-008-F-012",
           "source_location": "Code/ConversationalUX/FindCareChat/backend/domain/shared/content/__init__.py",
           "handler_type": "python_source",
           "disposition": "referenced",
@@ -1797,14 +1773,6 @@
         },
         {
           "feature_id": "EPIC-008-F-012",
-          "source_location": "Code/ConversationalUX/FindCareChat/backend/domain/shared/lead_capture/lead_service.py",
-          "handler_type": "python_source",
-          "disposition": "referenced",
-          "content_hash": "77ba62e2ecd2cd2956b034ac0d3a8fa8f13e41b07c4db71d954359d5dfaf3460",
-          "package": "service_runtime"
-        },
-        {
-          "feature_id": "EPIC-008-F-012",
           "source_location": "Code/ConversationalUX/FindCareChat/backend/domain/shared/safety/__init__.py",
           "handler_type": "python_source",
           "disposition": "referenced",
@@ -1825,14 +1793,6 @@
           "handler_type": "python_source",
           "disposition": "referenced",
           "content_hash": "333007855b58ecd3143d58ec847655d541c6af6783b7fc4f08d38cee4ecf969e",
-          "package": "service_runtime"
-        },
-        {
-          "feature_id": "EPIC-008-F-012",
-          "source_location": "Code/ConversationalUX/FindCareChat/backend/domain/shared/unknowns/unknown_question_service.py",
-          "handler_type": "python_source",
-          "disposition": "referenced",
-          "content_hash": "1859b9888cd7a14c69fa5604fcf0a0566467a48b72a881c7bb62995f5857e466",
           "package": "service_runtime"
         },
         {
@@ -1864,7 +1824,7 @@
           "source_location": "Code/ConversationalUX/FindCareChat/backend/infrastructure/debug_logger.py",
           "handler_type": "python_source",
           "disposition": "referenced",
-          "content_hash": "793752367898329b9602d378614fb616570fb823553a7b57f05faf8cd7697722",
+          "content_hash": "e631c2fac68c27871bdcc59d2288e570f1279907820ea75dedcfffc4e19d604e",
           "package": "service_runtime"
         },
         {
@@ -1960,7 +1920,7 @@
           "source_location": "Code/ConversationalUX/FindCareChat/backend/tests/test_debug_logger.py",
           "handler_type": "python_test",
           "disposition": "referenced",
-          "content_hash": "9f2d331df52b56f1eadb930dbb35cdcc71f48558e18e3e351a4f92dc43602995",
+          "content_hash": "1f747153b500696e0a28d0b0bbc5f99ee39a48805c2e5f37f35f260adb6de1fb",
           "package": "service_runtime"
         },
         {
@@ -2089,14 +2049,6 @@
           "handler_type": "python_test",
           "disposition": "referenced",
           "content_hash": "6a324b920d8f102245ebabec863a95e73944a12283c2ee3e60c42a1df4e44150",
-          "package": "service_runtime"
-        },
-        {
-          "feature_id": "EPIC-008-F-012",
-          "source_location": "Code/ConversationalUX/FindCareChat/backend/tests/test_unanswerable_questions.py",
-          "handler_type": "python_test",
-          "disposition": "referenced",
-          "content_hash": "fcd0cb35c3caf2e1b082f77d8d6577108816d71e5e58819813707222616f3fe7",
           "package": "service_runtime"
         },
         {
@@ -2360,7 +2312,7 @@
           "source_location": "Code/Shared/prompt_system_maker.py",
           "handler_type": "python_source",
           "disposition": "referenced",
-          "content_hash": "fdf127d680152263b930848ba212ad1da82d917747e2ad75cc2e042aba28033e",
+          "content_hash": "9a7922e6e9040337a07e0931c2362e57bb0bfeb0796eaf9b717152881ea887c7",
           "package": "service_runtime"
         },
         {
@@ -2472,7 +2424,7 @@
           "source_location": "FindCare/ProviderManagement/provider_search_service.py",
           "handler_type": "python_source",
           "disposition": "referenced",
-          "content_hash": "deec9d6e1c65944e21b60682f7fd0da297c833e6e4e798905ca02991ac41ea31",
+          "content_hash": "a21ea62211e79e507cc65a7baab0d5988092dcd90770827e92bd69eceffe517b",
           "package": "service_runtime"
         },
         {
