@@ -116,6 +116,11 @@ class ClassifierOutput(BaseModel):
     # services" -- it will not decline to fill a field, but it will
     # answer a question.
     narrows_current_search: Optional[bool] = None
+    # Narrowings this turn REMOVES. A field left absent means unchanged,
+    # because a stated preference keeps applying, so without this there
+    # is no way to say a filter should stop applying and every narrowing
+    # is one-way once spoken.
+    cleared_narrowings: Optional[list[str]] = None
     # Audit-only label carried on the safetyLockout intent. LockoutTool
     # writes it onto {env}_Safety.emergency_incidents but renders the
     # user-facing prose from the trigger utterance, not from this label.
@@ -462,7 +467,8 @@ Your structured output is a JSON object with these fields:
   "geography": { "state": string | null, "city": string | null, "county": string | null, "zip": string | null } | null,
   "user_message": string | null,
   "pending_disambiguation": { "kind": string, "candidate": object } | null,
-  "narrows_current_search": boolean | null
+  "narrows_current_search": boolean | null,
+  "cleared_narrowings": [string] | null
 }
 
 How the Python translator uses each field:
@@ -887,6 +893,14 @@ DECISION RULES (apply in this order):
      the male docs" means male AND medicare, not male instead of
      medicare.
 
+     cleared_narrowings names the narrowings this turn REMOVES, by
+     field name: provider_sex, insurance, sole_proprietor,
+     provider_name. Asking for everything is a removal, not a value:
+     "include both males and females" -> ["provider_sex"];
+     "any insurance is fine" -> ["insurance"]; "forget the name" ->
+     ["provider_name"]; "show me everyone again" -> every narrowing
+     currently in force. A field named here carries no value.
+
      provider_last_name / provider_first_name / provider_middle_name --
        a provider named outright: "I'm looking for Dr. Sarah Chen",
        "is James P Smith taking patients". Split the name; do not guess
@@ -894,10 +908,13 @@ DECISION RULES (apply in this order):
 
      provider_sex -- a stated preference about the provider:
        "a female doctor" -> F ; "I'd prefer a man" -> M.
-       Use X only if they ask for a provider who is neither male nor
-       female. Never infer it from anything else, and never treat it as
-       meaning transgender -- that is not what it records.
-       "I don't mind" is NOT a preference: leave it absent.
+       X and U are what a provider said about themselves: X is a
+       provider who stated they are neither male nor female, U is one
+       who declined to state. Emit either ONLY when the person asks for
+       that specific group. Never emit them to mean "no preference".
+       Wanting every sex is not a value: "include both males and
+       females", "any gender", "I don't mind" name provider_sex in
+       cleared_narrowings and set no value.
 
      insurance -- the payer they carry: "I have Anthem" -> ANTHEM,
        "I'm on Medicaid" -> MEDICAID, "Blue Cross" ->
@@ -1925,6 +1942,20 @@ class UtteranceManagerTool(ChatHealthyTool):
                     origin="non_deterministic",
                 ),
             )
+        # A narrowing the turn removes. Absent means unchanged, so without
+        # this a filter could be set by speech and never lifted by it.
+        CLEARABLE = {"provider_sex", "insurance", "sole_proprietor",
+                     "provider_name"}
+        for field in (llm_result.cleared_narrowings or ()):
+            if field not in CLEARABLE:
+                continue
+            await user_parameters_tool.TOOL.run_and_log(
+                deps,
+                user_parameters_tool.Request(
+                    verb="clear", name=field, origin="non_deterministic",
+                ),
+            )
+
         for field, value in (("provider_sex", llm_result.provider_sex),
                              ("insurance", llm_result.insurance),
                              ("sole_proprietor", llm_result.sole_proprietor)):
