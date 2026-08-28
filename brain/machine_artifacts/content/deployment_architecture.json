@@ -3557,9 +3557,17 @@
                 "python",
                 "app.py"
               ]
+            },
+            {
+              "instruction": "COPY",
+              "args": "buildIdentity  /app/buildIdentity"
+            },
+            {
+              "instruction": "COPY",
+              "args": "sessionPdf  /app/sessionPdf"
             }
           ],
-          "embedded_content": "\nFROM python:3.12-slim\n\nWORKDIR /app\n\nCOPY requirements.txt /app/requirements.txt\nRUN pip install --no-cache-dir -r /app/requirements.txt\n\nCOPY ChatHealthyLib /app/ChatHealthyLib\nRUN pip install --no-cache-dir /app/ChatHealthyLib\n\nCOPY build_info.json    /app/build_info.json\nCOPY app.py             /app/app.py\nCOPY healthcheck        /app/healthcheck\nCOPY displayChrome      /app/displayChrome\nCOPY authentication     /app/authentication\nCOPY SpecialtyFilter    /app/SpecialtyFilter\nCOPY AboutChatHealthy  /app/AboutChatHealthy\nCOPY externalInterface  /app/externalInterface\nCOPY secretsManager     /app/secretsManager\nCOPY UtteranceManager  /app/UtteranceManager\nCOPY CloseConnection200Tool  /app/CloseConnection200Tool\nCOPY LockoutTool  /app/LockoutTool\nCOPY ProviderSelection  /app/ProviderSelection\nCOPY ClinicalTrialSelection  /app/ClinicalTrialSelection\nCOPY UserParameters  /app/UserParameters\n\nENV PORT=7860     CERTS_DIR=/certs     SSL_CERTFILE=/certs/shared.crt SSL_KEYFILE=/certs/shared.key\nEXPOSE 7860\nCMD [\"python\", \"app.py\"]\n",
+          "embedded_content": "\nFROM python:3.12-slim\n\nWORKDIR /app\n\nCOPY requirements.txt /app/requirements.txt\nRUN pip install --no-cache-dir -r /app/requirements.txt\n\nCOPY ChatHealthyLib /app/ChatHealthyLib\nRUN pip install --no-cache-dir /app/ChatHealthyLib\n\nCOPY build_info.json    /app/build_info.json\nCOPY app.py             /app/app.py\nCOPY healthcheck        /app/healthcheck\nCOPY displayChrome      /app/displayChrome\nCOPY authentication     /app/authentication\nCOPY SpecialtyFilter    /app/SpecialtyFilter\nCOPY AboutChatHealthy  /app/AboutChatHealthy\nCOPY externalInterface  /app/externalInterface\nCOPY secretsManager     /app/secretsManager\nCOPY UtteranceManager  /app/UtteranceManager\nCOPY CloseConnection200Tool  /app/CloseConnection200Tool\nCOPY LockoutTool  /app/LockoutTool\nCOPY ProviderSelection  /app/ProviderSelection\nCOPY ClinicalTrialSelection  /app/ClinicalTrialSelection\nCOPY UserParameters  /app/UserParameters\nCOPY buildIdentity  /app/buildIdentity\nCOPY sessionPdf  /app/sessionPdf\n\nENV PORT=7860     CERTS_DIR=/certs     SSL_CERTFILE=/certs/shared.crt SSL_KEYFILE=/certs/shared.key\nEXPOSE 7860\nCMD [\"python\", \"app.py\"]\n",
           "package": "service_runtime"
         },
         {
