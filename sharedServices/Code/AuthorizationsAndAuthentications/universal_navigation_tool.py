@@ -225,6 +225,106 @@ def session_token_wire(user_object: UserObject) -> dict:
     return dict(st)
 
 
+def health_url_for(target_id: str) -> str | None:
+    """Where a target answers /health, 'self' for this process, or None.
+
+    The addresses are the same deployment-supplied variables every other
+    peer call reads; only the binding from target_id to variable lives
+    here. A target absent from this map answers no health call.
+    """
+    if target_id == "target_hf_space_shared_services":
+        return "self"
+    if target_id == "target_hf_space_findcare_backend":
+        return os.environ.get("FINDCARE_INTERNAL_URL") or "https://ch-findcare:7860"
+    if target_id == "target_hf_space_evaluatecare_backend":
+        return os.environ.get("EVALCARE_INTERNAL_URL") or "https://ch-evalcare:7860"
+    return None
+
+
+def _deployed_packages(env: str) -> list[dict]:
+    """What the deploy recorded as landed in this environment.
+
+    The servers are not listed here. frontEndAdmin.PackageBuilds already
+    holds one row per package the deploy put somewhere, and naming them a
+    second time in this file is how the two come to disagree. The newest
+    'deployed' row per (target, package) is what that target holds.
+    """
+    from chathealthy_lib.mongo_utilities import ChatHealthyMongoUtilities
+    client = ChatHealthyMongoUtilities().getConnection(
+        "frontendUser", "ChatHealthyFrontEnd")
+    rows = client["frontEndAdmin"]["PackageBuilds"].find(
+        {"event": "deployed", "env": env}, sort=[("at", -1)])
+    latest: dict[tuple[str, str], dict] = {}
+    for row in rows:
+        key = (row.get("target_id"), row.get("package_id"))
+        if key not in latest:
+            latest[key] = row
+    return [dict(v, target_id=k[0], package_id=k[1])
+            for k, v in sorted(latest.items())]
+
+
+async def _reported_build(target_id: str, health_url_for) -> dict:
+    """What a running server says it carries, or why it could not say.
+
+    A target with no health address is not an error: a CDN project serves
+    bytes and answers no call. It reports nothing and the row still shows
+    what the deploy recorded for it.
+    """
+    url = health_url_for(target_id)
+    if url is None:
+        return {}
+    if url == "self":
+        from healthcheck.health_endpoint import read_build_info
+        baked = read_build_info() or {}
+        return {"build": baked.get("build"), "commit": baked.get("commit")}
+    import httpx
+    try:
+        async with httpx.AsyncClient(verify=False, timeout=10.0) as client:
+            resp = await client.post(url + "/health")
+            resp.raise_for_status()
+            body = resp.json()
+        return {"build": body.get("build"), "commit": body.get("commit")}
+    except Exception as exc:
+        return {"error": f"{type(exc).__name__}: {exc}"}
+
+
+async def deployment_facts(env: str, health_url_for) -> list[dict]:
+    """One row per deployed package: what the record says, what the server says.
+
+    Two separate facts, shown separately. A server carrying a build the
+    record does not know about is the failure this section exists to make
+    visible, and collapsing them into one number is what hid it.
+    """
+    try:
+        recorded = _deployed_packages(env)
+    except Exception as exc:
+        log.error("deployment_facts: PackageBuilds read failed: %s", exc,
+                  exc=ChatHealthyException(
+                      mode="deployment_facts_read_failed",
+                      message=f"PackageBuilds read failed: {exc}",
+                      component="UniversalNavigation",
+                      exception=exc), if_not_debug_log=True)
+        return []
+
+    said_all = await asyncio.gather(*[
+        _reported_build(row["target_id"], health_url_for) for row in recorded
+    ])
+
+    rows: list[dict] = []
+    for row, said in zip(recorded, said_all):
+        rows.append({
+            "target_id": row["target_id"],
+            "package_id": row["package_id"],
+            "env": env,
+            "deployed_build": row.get("build"),
+            "deployed_at": str(row.get("at")) if row.get("at") else "",
+            "reported_build": said.get("build"),
+            "reported_commit": said.get("commit"),
+            "error": said.get("error", ""),
+        })
+    return rows
+
+
 def session_data(user_object) -> dict[str, Any]:
     """The session, as a read-only projection of the user object.
 
@@ -386,6 +486,7 @@ class UniversalNavigationTool(ChatHealthyTool):
 
     async def _handle_session_data(self, deps: AgentDeps, payload: dict[str, Any]) -> Response:
         data = session_data(deps.user_object)
+        data["deployment_facts"] = await deployment_facts(ENV, health_url_for)
         append_action(
             deps.user_object,
             tool_name="session_data_displayed",

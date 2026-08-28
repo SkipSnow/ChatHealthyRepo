@@ -259,6 +259,46 @@
     _bindActions(sink);
   }
 
+  // print — hand the browser one element to print, which is how a page
+  // becomes a PDF without a PDF library on either side. Plumbing: the
+  // caller names the element and the document title (the browser offers
+  // that title as the filename); this function authors neither. Elements
+  // marked data-print-omit are controls, and a control printed onto paper
+  // is just a rectangle.
+  function printElement(args) {
+    var id = args && args.element;
+    if (!id) return;
+    var src = document.getElementById(id);
+    if (!src) return;
+    var clone = src.cloneNode(true);
+    var omit = clone.querySelectorAll('[data-print-omit]');
+    for (var i = 0; i < omit.length; i++) {
+      omit[i].parentNode && omit[i].parentNode.removeChild(omit[i]);
+    }
+    // Scrollable panes print as their visible slice unless released.
+    var panes = clone.querySelectorAll('*');
+    for (var j = 0; j < panes.length; j++) {
+      if (panes[j].style && panes[j].style.maxHeight) {
+        panes[j].style.maxHeight = 'none';
+        panes[j].style.overflow = 'visible';
+      }
+    }
+    var w = window.open('', '_blank');
+    if (!w) return;
+    var title = (args && args.title) || document.title || 'ChatHealthy';
+    w.document.open();
+    w.document.write(
+      '<!doctype html><html><head><meta charset="utf-8"><title>' +
+      String(title).split('<').join('').split('&').join('') +
+      '</title></head><body style="font-family:system-ui,sans-serif;">' +
+      clone.innerHTML + '</body></html>');
+    w.document.close();
+    w.focus();
+    // Give the new document a tick to lay out before the dialog opens;
+    // printing an unlaid-out document yields a blank first page.
+    w.setTimeout(function () { w.print(); }, 150);
+  }
+
   function _dispatchEvent(evt, caller) {
     if (!evt || typeof evt !== 'object') return;
     // Capture the freshly-restamped SessionToken from any stream event
@@ -443,6 +483,8 @@
         }
       });
       window['__unsub_' + msg.kind] = unsub;
+    } else if (msg.type === 'router:print') {
+      printElement({ element: msg.element, title: msg.title });
     } else if (msg.type === 'router:exec') {
       try { new Function(String(msg.code || ''))(); } catch (_) {}
     }

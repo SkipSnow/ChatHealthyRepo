@@ -56,6 +56,13 @@ _EXCLUDE_DIRS: frozenset[str] = frozenset({
     "__pycache__",
     "node_modules",
     "dist",
+    # setuptools leaves an old copy of a package under build/lib, and it is
+    # untracked, so it exists on one workstation and in no commit. Copied
+    # into an image it installs and wins the import over the source tree,
+    # which is how a Space reported one build number while running the code
+    # of another.
+    "build",
+    "*.egg-info",
     ".pytest_cache",
     ".vite",
     ".wrangler",

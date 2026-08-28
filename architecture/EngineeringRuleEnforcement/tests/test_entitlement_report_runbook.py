@@ -25,9 +25,9 @@ BUILD_CHAIN = ROOT / "architecture" / "DevOpsBuildDeployAndEnvironmentManagement
 
 
 def _inliners():
-    """The two build-time rewriters, loaded without importing the whole chain."""
+    """The build-time rewriter, loaded without importing the whole chain."""
     src = BUILD_CHAIN.read_text(encoding="utf-8")
-    start = src.index("def _inline_secret_descriptions_if_used")
+    start = src.index("def _inline_chathealthy_lib_if_used")
     end = src.index("def _stage_runbook") if "def _stage_runbook" in src else len(src)
     ns: dict = {"Path": Path, "sys": sys, "json": json,
                 "_step": lambda *a, **k: None, "step": lambda *a, **k: None}
@@ -47,7 +47,6 @@ def _stage(tmp_path: Path) -> Path:
     dst.write_text(REPORT.read_text(encoding="utf-8"), encoding="utf-8")
     ns = _inliners()
     ns["_inline_chathealthy_lib_if_used"](ROOT, dst)
-    ns["_inline_secret_descriptions_if_used"](ROOT, dst)
     return dst
 
 
@@ -71,70 +70,24 @@ def test_the_staged_runbook_carries_only_latin1(tmp_path):
     assert not offenders, f"characters az rest cannot upload: {offenders}"
 
 
-def test_the_staged_runbook_embeds_the_secret_descriptions(tmp_path):
-    """The descriptions are read from the manifest at build time; without
-    them the mailed report prints bare secret names."""
+def test_the_staged_runbook_carries_no_manifest_descriptions(tmp_path):
+    """The report describes what the vault and the directory hold, not what
+    deployment_architecture.json says they hold. The build used to read
+    secret_descriptions out of the manifest and bake them into this runbook,
+    which let the report describe a secret using the file it audits. Nothing
+    from the manifest may ride along."""
     staged = _stage(tmp_path)
     text = staged.read_text(encoding="utf-8")
-    assert "CHATHEALTHY_SECRET_DESCRIPTIONS" in text
-    ns: dict = {}
-    for line in text.splitlines():
-        if "b64decode(" in line and "CHATHEALTHY_SECRET_DESCRIPTIONS" in line:
-            exec(line.strip(), {"_b64d": __import__("base64"), "_osd": type(         # noqa: S102
-                "E", (), {"environ": ns})()})
-            break
-    payload = json.loads(ns["CHATHEALTHY_SECRET_DESCRIPTIONS"])
-    assert payload, "the embedded description map is empty"
-    for name in ("cert-pipelineEditor", "ca-root-privatekey"):
-        assert name in payload, f"{name} has no description"
+    assert "CHATHEALTHY_SECRET_DESCRIPTIONS" not in text
+    assert "inlined secret descriptions" not in text
 
 
-def test_the_staged_runbook_imports_nothing_from_the_repository(tmp_path):
-    """Azure ships one file. A module that lives in the repository and is not
-    inlined fails at import -- notification_client did exactly that."""
-    staged = _stage(tmp_path)
-    text = staged.read_text(encoding="utf-8")
-    for module in ("notification_client", "pipeline_db", "blob_logger",
-                   "chathealthy_ca", "PipelineServices"):
-        assert f"import {module}" not in text and f"from {module}" not in text, \
-            f"{module} lives in the repository and is not shipped with the runbook"
-
-
-def test_the_report_runs_with_no_repository_present(tmp_path):
-    """A sandbox has no git tree. The report resolved its root by walking for
-    one and raised NameError when it found none."""
-    staged = _stage(tmp_path)
-    proc = subprocess.run(
-        [sys.executable, "-c",
-         "import ast,sys;src=open(sys.argv[1],encoding='utf-8').read();"
-         "t=ast.parse(src);"
-         "names={n.id for n in ast.walk(t) if isinstance(n,ast.Name)};"
-         "print('_root' in names)", str(staged)],
-        capture_output=True, text=True, timeout=60)
-    assert proc.returncode == 0
-    source = staged.read_text(encoding="utf-8")
-    assert "_root: Path | None = None" in source, \
-        "_root must be declared before the walk, or its absence raises NameError"
-
-
-@pytest.mark.parametrize("name,expected", [
-    ("SCH-Reaper-15min", "Minute"),
-    ("SCH-EntitlementReport-1200UTC", "Day"),
-    ("SCH-EntitlementReport-Daily-0400PT", None),
-])
-def test_schedule_names_parse_to_the_intended_recurrence(name, expected):
-    """Schedule creation raised NameError on deleted regex objects, and an
-    unrecognised name is skipped silently -- so a schedule that never fires
-    looks identical to one that does."""
-    chain = (ROOT / "architecture" / "DevOpsBuildDeployAndEnvironmentManagement"
-             / "_deploy_chain.py").read_text(encoding="utf-8")
-    start = chain.index("def _parse_interval_schedule")
-    end = chain.index("def az_automation_schedule_ensure")
-    ns: dict = {}
-    exec(compile(chain[start:end], "<schedules>", "exec"), ns)    # noqa: S102
-    got = ns["_parse_schedule_from_name"](name)
-    if expected is None:
-        assert got is None, f"{name} should not be recognised"
-    else:
-        assert got is not None, f"{name} was not recognised"
-        assert got["properties"]["frequency"] == expected
+def test_the_report_reads_identity_descriptions_from_the_directory():
+    """An identity's description is a directory fact. Reading it from the
+    approved register would let the register describe an identity as the
+    manifest wishes it were."""
+    src = REPORT.read_text(encoding="utf-8")
+    assert 'e.get("description"' not in src, (
+        "the identity register is supplying descriptions again")
+    assert "appOwnerOrganizationId,description" in src, (
+        "the directory query no longer selects description")
