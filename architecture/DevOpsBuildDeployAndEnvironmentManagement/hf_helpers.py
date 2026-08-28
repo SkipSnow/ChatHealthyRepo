@@ -301,6 +301,58 @@ def _hf_space_per_build_name(target_id: str, env: str, build_n: int) -> str:
     return _hf_space_per_build_qualified(target_id, env, build_n).split("/", 1)[1]
 
 
+def _hf_wake_space(token: str, qualified: str, timeout_s: int = 300) -> str:
+    """Bring a sleeping Space up, and wait until it is running.
+
+    qa and prod Spaces sleep when nobody is using them, which is what they
+    are meant to do. A deploy that pushes to a sleeping Space watches for a
+    build that will never converge, because nothing is running to converge.
+    Waking is therefore part of deploying, not something an operator does by
+    hand beforehand.
+
+    Returns the stage the Space reached. A Space already RUNNING is left
+    alone rather than restarted, so this costs nothing on dev.
+    """
+    import json as _json
+    import time as _time
+    import urllib.request
+
+    def _stage() -> str:
+        url = f"https://huggingface.co/api/spaces/{qualified}"
+        req = urllib.request.Request(url, headers={"Authorization": f"Bearer {token}"})
+        with urllib.request.urlopen(req, timeout=30) as resp:
+            return ((_json.load(resp).get("runtime") or {}).get("stage") or "")
+
+    stage = _stage()
+    if stage == "RUNNING":
+        _step(f"  {qualified} already running")
+        return stage
+    _step(f"  {qualified} is {stage or 'unknown'}; waking it")
+    req = urllib.request.Request(
+        f"https://huggingface.co/api/spaces/{qualified}/restart",
+        data=b"", method="POST",
+        headers={"Authorization": f"Bearer {token}"})
+    try:
+        urllib.request.urlopen(req, timeout=60).read()
+    except Exception as exc:  # noqa: BLE001 - reported, then the wait decides
+        _step(f"  restart call returned {type(exc).__name__}: {exc}")
+
+    waited = 0
+    while waited < timeout_s:
+        stage = _stage()
+        if stage in ("RUNNING", "BUILDING", "RUNNING_BUILDING", "APP_STARTING"):
+            _step(f"  {qualified} is {stage}")
+            return stage
+        _time.sleep(10)
+        waited += 10
+    raise ChatHealthyException(
+        mode="runtime_error",
+        component="hf_helpers",
+        message=f"{qualified} did not wake within {timeout_s}s; last stage "
+                f"{stage!r}. A deploy cannot converge against a Space that is "
+                f"not running.")
+
+
 def _hf_space_exists(token: str, qualified: str) -> bool:
     import urllib.error
     import urllib.request
