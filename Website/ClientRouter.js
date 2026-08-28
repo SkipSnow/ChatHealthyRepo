@@ -94,6 +94,14 @@
     });
   }
 
+  // The website's own build, from the file the build stamped into it. The
+  // site deploys on its own cadence, so this legitimately differs from the
+  // servers and the session shows both rather than assuming one number.
+  function buildIdentity() {
+    return (window.CH_BUILD && typeof window.CH_BUILD === 'object')
+      ? window.CH_BUILD : {};
+  }
+
   function _bindActions(root) {
     if (!root || !root.querySelectorAll) return;
     var nodes = root.querySelectorAll('[data-router-action]');
@@ -434,6 +442,12 @@
         }
       });
       window['__unsub_' + msg.kind] = unsub;
+    } else if (msg.type === 'router:ask-build') {
+      var frame = document.querySelector('iframe[data-frame="MainWindow"]');
+      if (frame && frame.contentWindow) {
+        frame.contentWindow.postMessage(
+          { type: 'router:website-build', build: buildIdentity() }, '*');
+      }
     } else if (msg.type === 'router:download') {
       // Ask /gate for a file and let the browser save it. One entrance:
       // the download is an op like any other. The print dialogue this

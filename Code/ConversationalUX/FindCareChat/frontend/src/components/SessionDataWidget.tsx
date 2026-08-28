@@ -13,6 +13,8 @@ const TARGET = 'SessionInfoPopUp'
 // The element the PDF is taken from. The popup is React's, so printing it
 // is React's too -- the wrapper needs no print handler.
 const SESSION_PRINT_ROOT = 'session_print_root'
+// The website answers for itself; nothing on a static site can be asked.
+let websiteBuild: any = null
 
 function _esc(s: any): string {
   return String(s == null ? '' : s)
@@ -77,7 +79,7 @@ function buildDeploymentFactsHtml(rows: any[]): string {
   const body = (Array.isArray(rows) ? rows : []).map(r =>
     `<dt style="font-weight:600;color:#374151;">${_esc(r.component)}</dt>` +
     `<dd style="margin:0;color:${r.build ? '#1f2937' : '#b91c1c'};">` +
-    `${_esc(r.build || 'did not answer')}</dd>`
+    `${_esc(r.build || 'not yet loaded')}</dd>`
   ).join('')
   const inner = body
     ? `<dl style="margin:0;display:grid;grid-template-columns:16.25em 1fr;gap:0.25em 1em;">${body}</dl>`
@@ -88,6 +90,13 @@ function buildDeploymentFactsHtml(rows: any[]): string {
       ${inner}
     </section>
   `
+}
+
+// The website is a component like the others and reports independently.
+function withWebsite(rows: any[]): any[] {
+  const build = websiteBuild && websiteBuild.build
+  return [...(Array.isArray(rows) ? rows : []),
+          { component: 'Website', build: build ? String(build) : '' }]
 }
 
 const PARAMETER_ORDER = [
@@ -209,7 +218,7 @@ function buildSessionHtml(data: any): string {
       </div>
       <p style="color:#6b7280;margin:0 0 0.5em 0;">Live evidence that the entrance code completed. The cookie carries only the GUID; the user object lives in <code>admin.Sessions</code>.</p>
       ${buildIdentityHtml(identity)}
-      ${buildDeploymentFactsHtml((data && data.deployment_facts) || [])}
+      ${buildDeploymentFactsHtml(withWebsite((data && data.deployment_facts) || []))}
       ${buildParametersHtml((data && data.parameters) || {})}
       <section style="margin-top:1em;flex:1;min-height:0;display:flex;flex-direction:column;">
         <h3 style="margin:0 0 0.5em 0;color:#0b7a75;">Session Conversation History</h3>
@@ -235,6 +244,7 @@ export default function SessionDataWidget() {
       if (!msg || typeof msg !== 'object') return
       if (msg.type === 'router:action' && msg.action === 'session_info') {
         postRender(buildLoadingHtml())
+        window.parent.postMessage({ type: 'router:ask-build' }, '*')
         window.parent.postMessage({
           type: 'router:makeCall',
           op: 'session_data',
@@ -249,6 +259,10 @@ export default function SessionDataWidget() {
           op: 'session_pdf',
           filename: 'chatHealthySessionInfo.pdf',
         }, '*')
+        return
+      }
+      if (msg.type === 'router:website-build') {
+        websiteBuild = msg.build || {}
         return
       }
       if (msg.type === 'router:event-broadcast' && msg.kind === 'session_data') {

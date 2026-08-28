@@ -11,14 +11,20 @@ from pathlib import Path
 log = ChatHealthyLoggingService()
 
 
-BUILD_INFO_PATH = "/app/build_info.json"
-
-
 def read_build_info() -> dict | None:
-    """Return the build_info.json baked into the image at build time, or
-    None if the file is absent (older image; caller falls back to the
-    frontEndAdmin.BuildVersions read for back-compat)."""
-    p = Path(BUILD_INFO_PATH)
+    """The build this image carries, or None.
+
+    The fact itself lives in buildIdentity, named for what it is. /health
+    reports it because an operator asking after a server wants it there;
+    reporting a fact is not owning it, and the session reads the same
+    source rather than a second route to the same file.
+    """
+    from buildIdentity.build_identity import build_identity  # noqa: PLC0415
+    return build_identity() or None
+
+
+def _unused_legacy_read() -> dict | None:
+    p = Path("/app/build_info.json")
     if not p.is_file():
         return None
     try:
