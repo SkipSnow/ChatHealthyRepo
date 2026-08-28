@@ -52,7 +52,7 @@
           ],
           "platforms": [
             {
-              "name": "cloudflare_pages",
+              "name": "cloudflare_pages_project",
               "facts": [
                 {
                   "name": "role",
@@ -184,7 +184,7 @@
           ],
           "platforms": [
             {
-              "name": "cloudflare_pages",
+              "name": "cloudflare_pages_project",
               "facts": [
                 {
                   "name": "role",
@@ -316,7 +316,7 @@
           ],
           "platforms": [
             {
-              "name": "cloudflare_pages",
+              "name": "cloudflare_pages_project",
               "facts": [
                 {
                   "name": "role",
@@ -978,7 +978,7 @@
           ],
           "platforms": [
             {
-              "name": "huggingface_space",
+              "name": "hf_space",
               "facts": [
                 {
                   "name": "role",
@@ -1007,7 +1007,7 @@
           ],
           "platforms": [
             {
-              "name": "huggingface_space",
+              "name": "hf_space",
               "facts": [
                 {
                   "name": "role",
@@ -1036,7 +1036,7 @@
           ],
           "platforms": [
             {
-              "name": "huggingface_space",
+              "name": "hf_space",
               "facts": [
                 {
                   "name": "role",
@@ -1460,7 +1460,7 @@
           ],
           "platforms": [
             {
-              "name": "huggingface_space",
+              "name": "hf_space",
               "facts": [
                 {
                   "name": "role",
@@ -1489,7 +1489,7 @@
           ],
           "platforms": [
             {
-              "name": "huggingface_space",
+              "name": "hf_space",
               "facts": [
                 {
                   "name": "role",
@@ -1518,7 +1518,7 @@
           ],
           "platforms": [
             {
-              "name": "huggingface_space",
+              "name": "hf_space",
               "facts": [
                 {
                   "name": "role",
@@ -2986,7 +2986,7 @@
           ],
           "platforms": [
             {
-              "name": "huggingface_space",
+              "name": "hf_space",
               "facts": [
                 {
                   "name": "role",
@@ -3015,7 +3015,7 @@
           ],
           "platforms": [
             {
-              "name": "huggingface_space",
+              "name": "hf_space",
               "facts": [
                 {
                   "name": "role",
@@ -3044,7 +3044,7 @@
           ],
           "platforms": [
             {
-              "name": "huggingface_space",
+              "name": "hf_space",
               "facts": [
                 {
                   "name": "role",
