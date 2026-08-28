@@ -6,6 +6,7 @@
 // wrapper origin and renders it into a popup target via router:render.
 
 import { useEffect } from 'react'
+import { openPopup, closePopup } from './popupFrame'
 
 function _esc(s: any): string {
   return String(s == null ? '' : s)
@@ -34,13 +35,8 @@ export default function LegalPanelWidget() {
       const path  = String((msg.data && msg.data.path)  || '').trim()
       const title = String((msg.data && msg.data.title) || path)
       if (!path) return
-      const target = 'LegalPanel_' + path.replace(/[^a-zA-Z0-9_-]/g, '_')
-      window.postMessage({
-        type: 'ch:popup',
-        target,
-        title: 'ChatHealthy',
-        content: buildPopupContent(title, path),
-      }, '*')
+      const target = 'LegalPanel'
+      openPopup(target, buildPopupContent(title, path))
     }
     window.addEventListener('message', onMessage)
     return () => window.removeEventListener('message', onMessage)

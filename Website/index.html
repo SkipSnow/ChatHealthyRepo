@@ -13,6 +13,18 @@
      frame_RightPanel, frame_UserMessage, frame_UserPromptAndControl,
      frame_MainWindow — are the architectural spine and MUST NOT change.
 
+     Beside them sit four windows: frame_AboutChatHealtyPopUP,
+     frame_SessionInfoPopUp, frame_MobileNavDrawer and frame_LegalPanel.
+     A window is a different kind of frame from the seven, and these are
+     declared here rather than built at runtime because ClientRouter used to
+     manufacture them, which is display authored outside React. A window
+     holding nothing is hidden by CSS, so opening one is rendering content
+     into it and closing one is rendering none; nothing toggles anything.
+
+     There is no nesting limit: one window opens another (About offers
+     Session Info) and both stay open, so every window has its own declared
+     place and all four are legible at once.
+
      Layout proportions ported verbatim from production: body flex-column with
      header (6%), main (flex:1), footer (4%); inside main, chat-label + a
      content-row carrying side-panel (20%) + center-column (flex:1) + side-panel
@@ -81,6 +93,61 @@
     }
     #frame_UserMessage         { flex: 0 0 auto; background: var(--surface); border-top: 0.0625em solid #e5e7eb; }
     #frame_UserPromptAndControl{ flex: 0 0 auto; background: var(--surface); border-top: 0.0625em solid #e5e7eb; }
+    /* The popup window. It is markup here, not built in JavaScript: the
+       MainWindow iframe is a 1x1 offscreen host for the React widgets, so a
+       window rendered inside it has no viewport and cannot be seen or
+       clicked. The chrome is a static frame in this page; React authors
+       what goes in it and ClientRouter carries the bytes across, which is
+       couriering rather than authoring. Empty means closed. */
+    /* Printing the session. Declared here rather than built in JavaScript:
+       a printable page assembled from a string is display authoring, and a
+       stylesheet is the browser's own way to say what a page looks like on
+       paper. The session window prints; everything else does not. Controls
+       inside it are chrome and carry data-print-omit. */
+    @media print {
+      body.ch-printing-session > *          { display: none !important; }
+      body.ch-printing-session #frame_SessionInfoPopUp {
+        display: block !important; position: static !important;
+        max-width: none; max-height: none; overflow: visible;
+        border: none; box-shadow: none; padding: 0;
+      }
+      body.ch-printing-session [data-print-omit] { display: none !important; }
+      body.ch-printing-session [style*="max-height"] {
+        max-height: none !important; overflow: visible !important;
+      }
+    }
+    .ch-popup:empty { display: none; }
+    /* Where each window sits. One popup opens another -- About offers
+       Session Info -- so they are declared side by side rather than stacked
+       on one centre, which is what put the second on top of the first. */
+    /* Every window opens centred. They may land on one another; the person
+       moves the one they want by dragging its header. */
+    .ch-popup {
+      position: fixed; top: 50%; left: 50%;
+      transform: translate(-50%, -50%);
+      min-width: 28em; max-width: min(60em, 92vw); max-height: 80vh;
+      /* The window scrolls. Without this the session ran past the bottom
+         of the screen and read as truncated content rather than a window
+         too small for it. */
+      overflow-y: auto; overflow-x: hidden;
+      z-index: 1000; background: #fff;
+      border: 0.25em solid #0b7a75;
+      box-shadow: 0 0.5em 2em rgba(0,0,0,0.25);
+      border-radius: 0.5em; padding: 1em;
+    }
+    .ch-popup.ch-moved { transform: none; }
+    .ch-popup-drag {
+      cursor: move; user-select: none;
+      margin: -1em -1em 0.5em -1em; padding: 0.5em 2.5em 0.5em 1em;
+      background: #f0fffe; border-bottom: 0.125em solid #d1fae5;
+      border-radius: 0.25em 0.25em 0 0;
+    }
+    .ch-popup-close {
+      position: absolute; top: 0.25em; right: 0.5em;
+      font-size: 1.75em; line-height: 1; font-weight: 700;
+      color: #0b7a75; text-decoration: none; cursor: pointer;
+      padding: 0.1em 0.4em; border-radius: 0.3em;
+    }
     footer#frame_Footer {
       height: 4%;
       background: var(--surface);
@@ -110,6 +177,10 @@
     </div>
   </main>
 
+  <div id="frame_AboutChatHealtyPopUP" class="ch-popup"></div>
+  <div id="frame_SessionInfoPopUp" class="ch-popup"></div>
+  <div id="frame_MobileNavDrawer" class="ch-popup"></div>
+  <div id="frame_LegalPanel" class="ch-popup"></div>
   <footer id="frame_Footer"></footer>
 
   <!-- React widget host. ClientRouter posts router:event-broadcast back via

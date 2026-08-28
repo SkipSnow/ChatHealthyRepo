@@ -5,6 +5,7 @@
 // a drawer popup with the same nav buttons as the desktop header.
 
 import { useEffect } from 'react'
+import { openPopup, closePopup } from './popupFrame'
 
 const TARGET = 'MobileNavDrawer'
 
@@ -28,12 +29,7 @@ export default function MobileNavDrawerWidget() {
       if (!msg || typeof msg !== 'object') return
       if (msg.type !== 'router:action') return
       if (msg.action !== 'toggle_mobile_nav') return
-      window.postMessage({
-        type: 'ch:popup',
-        target: TARGET,
-        title: 'Menu',
-        content: buildDrawerHtml(),
-      }, '*')
+      openPopup(TARGET, buildDrawerHtml())
     }
     window.addEventListener('message', onMessage)
     return () => window.removeEventListener('message', onMessage)

@@ -439,7 +439,7 @@ def _declared_package_set(repo_root: Path, target_ids: list[str]) -> set[str]:
              / "deployment_architecture.json")
     coll = RecordLoader().load_collection(brain)
     wanted: set[str] = set()
-    for t in coll.targets:
+    for t in coll.records:
         if t.target_id in target_ids:
             wanted.update(_declared_packages(t))
     return wanted
@@ -460,7 +460,7 @@ def _ordered_packages(repo_root: Path, target_ids: list[str],
              / "deployment_architecture.json")
     coll = RecordLoader().load_collection(brain)
     order: list[str] = []
-    for t in coll.targets:
+    for t in coll.records:
         if t.target_id not in target_ids:
             continue
         for pid in package_install_order(t):

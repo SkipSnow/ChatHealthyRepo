@@ -29,8 +29,16 @@ ORIGIN = "SharedServices"
 
 class MintableAuthToken(AuthToken):
     @classmethod
-    def manufacture(cls, server_env: str) -> AuthToken:
-        guid = uuid.uuid4().hex
+    def manufacture(cls, server_env: str, guid: str | None = None) -> AuthToken:
+        """Stamp a token, resuming the session named by guid when given.
+
+        A page that already holds a GUID passes it back, and the session it
+        names is in Mongo. Minting a new one regardless is how a reload
+        orphaned the session it had: the document stayed, correct and
+        complete, and nothing could point at it again. The nonce is fresh
+        either way -- it is per hop, and the GUID is per session.
+        """
+        guid = (guid or "").strip() or uuid.uuid4().hex
         nonce_field = Nonce.fresh()
         original_stamp = Nonce.original_stamp(nonce_field)
 
@@ -45,7 +53,7 @@ class MintableAuthToken(AuthToken):
             signed=True,
             server_env=server_env,
         )
-        log.info("Manufactured AuthToken: env=%s guid_prefix=%s", server_env, guid[:8])
+        log.info("AuthToken: env=%s guid_prefix=%s", server_env, guid[:8])
         return cls(st, origin=ORIGIN)
 
     @staticmethod

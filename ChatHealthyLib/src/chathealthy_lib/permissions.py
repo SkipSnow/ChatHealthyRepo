@@ -53,7 +53,12 @@ COMPONENT_ENV_VAR = "CH_COMPONENT"
 # neither.
 IDENTITY_ENV_VAR = "CH_IDENTITY"
 PERMISSIONS_DB = "ChatHealthyConfig"
-PERMISSIONS_COLLECTION = "LibPermissions"
+# DBVersions, not a collection of its own. Mongo grants here are
+# collection-scoped and belong to the operator, so a new collection means a
+# new grant for every identity that runs the library. DBVersions is already
+# the per-environment binding every runtime reads at startup, through this
+# same utility, so the policy rides where the read already exists.
+PERMISSIONS_COLLECTION = "DBVersions"
 
 # What is reachable before the policy is known: getLibPermissions and the
 # capabilities that one method needs to reach the collection. Denying those
@@ -162,7 +167,8 @@ def getLibPermissions() -> list[str]:
         client = ChatHealthyMongoUtilities().getConnection(
             identity, "ChatHealthyFrontEnd")
         row = client[PERMISSIONS_DB][PERMISSIONS_COLLECTION].find_one(
-            {"component": name})
+            {"lib_permissions.component": name},
+            {"lib_permissions.$": 1})
     except ChatHealthyException:
         raise
     except Exception as exc:  # noqa: BLE001 - converted at this boundary
@@ -172,14 +178,16 @@ def getLibPermissions() -> list[str]:
             message=f"the capability list for {name!r} could not be read from "
                     f"{PERMISSIONS_DB}.{PERMISSIONS_COLLECTION}: {exc}",
             exception=exc) from exc
-    if row is None:
+    entries = (row or {}).get("lib_permissions") or []
+    if not entries:
         raise ChatHealthyException(
             mode="lib_permissions_absent",
             component="chathealthy_lib.permissions",
-            message=f"{PERMISSIONS_DB}.{PERMISSIONS_COLLECTION} carries no row "
-                    f"for component {name!r}. A component the policy does not "
-                    f"name is not a component that may load anything.")
-    return [str(m) for m in (row.get("excluded_modules") or [])]
+            message=f"{PERMISSIONS_DB}.{PERMISSIONS_COLLECTION} carries no "
+                    f"lib_permissions entry for component {name!r}. A component "
+                    f"the policy does not name is not a component that may "
+                    f"load anything.")
+    return [str(m) for m in (entries[0].get("excluded_modules") or [])]
 
 
 def initialize() -> str:

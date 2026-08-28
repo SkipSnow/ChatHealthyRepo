@@ -34,6 +34,16 @@ SCREENSHOT_DIR = os.path.join(
 )
 os.makedirs(SCREENSHOT_DIR, exist_ok=True)
 
+# A window is a declared frame in the top document, like the seven layout
+# frames. It is NOT inside the MainWindow iframe: that iframe is a 1x1
+# offscreen host for the React widgets, so anything rendered there has no
+# viewport and cannot be seen or clicked. A test looking in the wrong place
+# proves nothing, which is why these assert visibility and geometry rather
+# than presence in the DOM.
+ABOUT_WINDOW = "#frame_AboutChatHealtyPopUP"
+SESSION_WINDOW = "#frame_SessionInfoPopUp"
+
+
 PROMPT = "#frame_UserPromptAndControl input"
 PANEL = "#frame_LeftPanel"
 RESULTS = "#frame_MainWindow"
@@ -673,20 +683,215 @@ class TestSharedServicesAndSessionInfo:
     rather than saying where you are; and there was no way to see session
     state after the session view was removed."""
 
-    def test_shared_services_states_where_you_are(self, page):
+    def _open_about(self, page):
         page.locator("[data-router-action='about_chathealthy']").first.click()
-        page.wait_for_selector("text=Build", timeout=DEFAULT_TIMEOUT)
+        expect(page.locator(ABOUT_WINDOW)).to_be_visible(timeout=DEFAULT_TIMEOUT)
+
+    def _open_session(self, page):
+        self._open_about(page)
+        page.locator("[data-router-action='session_info']").first.click()
+        expect(page.locator(SESSION_WINDOW)).to_be_visible(timeout=LLM_TIMEOUT)
+        # The window paints "Loading SharedServices..." first; the session
+        # arrives when the call returns. Waiting on the loading state and
+        # then asserting reads an empty window and blames the feature.
+        expect(page.locator(f"{SESSION_WINDOW} >> text=User Parameters").first
+               ).to_be_visible(timeout=LLM_TIMEOUT)
+        expect(page.locator(f"{SESSION_WINDOW} th").first
+               ).to_be_visible(timeout=LLM_TIMEOUT)
+
+    def test_shared_services_states_where_you_are(self, page):
+        self._open_about(page)
         page.locator("[data-router-action='goto_sharedservices']").first.click()
-        page.wait_for_timeout(1_500)
         expect(page.locator("[data-router-action='goto_sharedservices']").first
-               ).to_contain_text("You are in SharedServices")
+               ).to_contain_text("You are in SharedServices",
+                                 timeout=DEFAULT_TIMEOUT)
 
     def test_session_info_shows_the_live_parameters(self, page):
-        page.locator("[data-router-action='session_info']").first.click()
-        page.wait_for_selector("text=User Parameters", timeout=LLM_TIMEOUT)
+        self._open_session(page)
         _shot(page, "07_session_info")
-        body = page.locator("text=User Parameters").first
-        expect(body).to_be_visible()
+        expect(page.locator(f"{SESSION_WINDOW} >> text=User Parameters").first
+               ).to_be_visible()
+
+    def test_a_window_opened_from_a_window_does_not_cover_it(self, page):
+        """About offers Session Info, so both are open at once. They used to
+        be built at the same fixed centre, which put the second on top of the
+        first; each is a declared frame with its own place now."""
+        self._open_session(page)
+        about = page.locator(ABOUT_WINDOW).bounding_box()
+        session = page.locator(SESSION_WINDOW).bounding_box()
+        assert about and session, "a window is open but has no box"
+        assert (about["x"] + about["width"] <= session["x"]
+                or session["x"] + session["width"] <= about["x"]), (
+            f"the windows overlap: about={about} session={session}")
+
+    def test_the_wrapper_builds_no_window(self, page):
+        """ClientRouter used to manufacture the popup, which is display
+        authored outside React. The frames are markup now and CSS hides an
+        empty one, so the wrapper composes nothing."""
+        self._open_session(page)
+        assert page.evaluate(
+            '() => document.querySelectorAll(\'[id^="popup_"]\').length'
+        ) == 0, "the wrapper is still building the window"
+
+    def test_session_states_the_build_every_server_carries(self, page):
+        """A server reporting one build while running the code of another is
+        what cost a day; the section exists so that is visible without asking
+        each server by hand."""
+        self._open_session(page)
+        expect(page.locator(f"{SESSION_WINDOW} >> text=Deployment Facts").first
+               ).to_be_visible(timeout=DEFAULT_TIMEOUT)
+        headers = page.locator(f"{SESSION_WINDOW} th").all_inner_texts()
+        for column in ("Deployed", "Running"):
+            assert column in headers, f"Deployment Facts has no {column} column"
+        assert page.locator(f"{SESSION_WINDOW} tbody tr").count() > 0, (
+            "Deployment Facts names no server")
+
+    def test_the_session_offers_a_pdf_a_person_can_press(self, page):
+        """Visible and pressable, not merely present: the window spent an
+        afternoon rendering into a 1x1 offscreen iframe where every control
+        existed in the DOM and none could be pressed."""
+        self._open_session(page)
+        pdf = page.locator("[data-router-action='session_pdf']").first
+        expect(pdf).to_be_visible(timeout=DEFAULT_TIMEOUT)
+        box = pdf.bounding_box()
+        assert box and box["x"] >= 0 and box["y"] >= 0 and box["width"] > 0, (
+            f"the PDF control is not on the screen: {box}")
+        # Chrome, not content: it must not print itself onto the page.
+        assert pdf.get_attribute("data-print-omit") is not None
+
+
+class TestTheSessionWindowAndTheDisambiguationTurn:
+    """2026-08-28. Five things the operator asked for, each asserted against
+    what a person can see rather than what is in the DOM.
+
+    The one that matters most: answering "yes" to "did you mean California?"
+    replaced a psychiatry panel of 45 codes with 57 that had chiropractors in
+    it and no Psychologist. UM had asked a geography question, and the answer
+    to it was scored as a description of care. A complaint that did not change
+    asks the specialty filter nothing, so it is not handed off to.
+    """
+
+    def _open_session(self, page):
+        page.locator("[data-router-action='about_chathealthy']").first.click()
+        expect(page.locator(ABOUT_WINDOW)).to_be_visible(timeout=DEFAULT_TIMEOUT)
+        page.locator("[data-router-action='session_info']").first.click()
+        expect(page.locator(SESSION_WINDOW)).to_be_visible(timeout=LLM_TIMEOUT)
+        expect(page.locator(f"{SESSION_WINDOW} >> text=Deployment Facts").first
+               ).to_be_visible(timeout=LLM_TIMEOUT)
+
+    def test_answering_the_question_does_not_repaint_the_panel(self, fresh):
+        """The panel a person is reading survives their answer to a question
+        about geography. 45 became 57 before this."""
+        _ask(fresh, "find me a shrink in san fransisco")
+        _wait_for_panel(fresh)
+        before = _rows(fresh)
+        _ask(fresh, "yes")
+        fresh.wait_for_timeout(20_000)
+        after = _rows(fresh)
+        assert [c for c, _ in after] == [c for c, _ in before], (
+            f"the panel was repainted: {len(before)} codes became {len(after)}; "
+            f"added={sorted(set(c for c, _ in after) - set(c for c, _ in before))[:6]} "
+            f"dropped={sorted(set(c for c, _ in before) - set(c for c, _ in after))[:6]}")
+
+    def test_an_utterance_that_keeps_the_complaint_leaves_the_panel_alone(self, fresh):
+        """There IS an utterance here, and it still must not repaint. "now
+        only the male ones" narrows the search already in force; the kind of
+        care wanted did not move, so the specialty filter is not handed off
+        to and the panel is untouched -- same codes, same ticks, same order.
+
+        Ticks matter as much as codes. A panel that comes back with the same
+        rows but everything re-checked has thrown away the narrowing the
+        person did, which reads to them as the same bug."""
+        _ask(fresh, "find me a shrink in Los Angeles")
+        _wait_for_panel(fresh)
+        _wait_for_results(fresh)
+        before = _rows(fresh)
+        assert before, "no panel to leave alone"
+
+        _new_search_settle = 20_000
+        _ask(fresh, "now only the male ones")
+        fresh.wait_for_timeout(_new_search_settle)
+
+        after = _rows(fresh)
+        assert after == before, (
+            "the panel moved on a turn that did not change the complaint: "
+            f"{len(before)} rows -> {len(after)}; "
+            f"codes added={sorted(set(c for c, _ in after) - set(c for c, _ in before))[:6]} "
+            f"dropped={sorted(set(c for c, _ in before) - set(c for c, _ in after))[:6]}; "
+            f"ticks before={sum(1 for _, t in before if t)} "
+            f"after={sum(1 for _, t in after if t)}")
+
+    def test_applying_a_filter_does_not_repaint_the_panel(self, fresh):
+        """No utterance, so no new complaint, so the specialty filter is not
+        handed off to at all. Unticking boxes and applying used to re-derive
+        the panel: 48 possible became 34, with Sleep Medicine, Neurology and
+        Epilepsy appearing in a list the person had already narrowed."""
+        _ask(fresh, "find me a shrink in Los Angeles")
+        _wait_for_panel(fresh)
+        _wait_for_results(fresh)
+        before = [code for code, _ in _rows(fresh)]
+        assert before, "no panel to filter"
+
+        # Untick two rows -- a change to the selection, not to the question.
+        for code in [c for c, ticked in _rows(fresh) if ticked][:2]:
+            _click_row(fresh, code)
+        _apply(fresh, 12_000)
+
+        after = [code for code, _ in _rows(fresh)]
+        assert after == before, (
+            f"the panel was re-derived: {len(before)} rows became {len(after)}; "
+            f"added={sorted(set(after) - set(before))[:6]} "
+            f"dropped={sorted(set(before) - set(after))[:6]}")
+
+    def test_a_window_opens_in_the_centre(self, page):
+        self._open_session(page)
+        box = page.locator(SESSION_WINDOW).bounding_box()
+        view = page.viewport_size
+        assert box and view, "the window has no box"
+        centre = box["x"] + box["width"] / 2
+        assert abs(centre - view["width"] / 2) < 40, (
+            f"the window is not centred: centre={centre} of {view['width']}")
+
+    def test_a_person_can_move_a_window(self, page):
+        self._open_session(page)
+        handle = page.locator(f"{SESSION_WINDOW} .ch-popup-drag").first
+        expect(handle).to_be_visible(timeout=DEFAULT_TIMEOUT)
+        start = page.locator(SESSION_WINDOW).bounding_box()
+        page.mouse.move(start["x"] + 60, start["y"] + 10)
+        page.mouse.down()
+        page.mouse.move(start["x"] + 260, start["y"] + 120, steps=12)
+        page.mouse.up()
+        page.wait_for_timeout(300)
+        end = page.locator(SESSION_WINDOW).bounding_box()
+        assert abs(end["x"] - start["x"]) > 80 or abs(end["y"] - start["y"]) > 40, (
+            f"the window did not move: {start} -> {end}")
+
+    def test_the_session_window_scrolls(self, page):
+        """It read as truncated because it could not scroll."""
+        self._open_session(page)
+        sel = SESSION_WINDOW
+        overflows = page.evaluate(
+            "(s) => { const e = document.querySelector(s);"
+            " return e.scrollHeight > e.clientHeight + 4; }", sel)
+        if not overflows:
+            return   # nothing to scroll is not a failure to scroll
+        page.evaluate("(s) => { document.querySelector(s).scrollTop = 400; }", sel)
+        moved = page.evaluate("(s) => document.querySelector(s).scrollTop", sel)
+        assert moved > 0, "the window holds more than it shows and will not scroll"
+
+    def test_deployment_facts_names_components_and_builds(self, page):
+        """Component names, not the URLs that serve them, and the build. No
+        other column."""
+        self._open_session(page)
+        text = page.locator(f"{SESSION_WINDOW}").inner_text()
+        section = text[text.find("Deployment Facts"):]
+        section = section[:section.find("User Parameters")]
+        for component in ("FindCare Server", "EvaluateCare Server",
+                          "SharedServices Server"):
+            assert component in section, f"{component} is not named"
+        for unwanted in ("target_", "Deployed", "Running", "Commit", "http"):
+            assert unwanted not in section, (
+                f"Deployment Facts still shows {unwanted!r}")
 
 
 # ── State-changing cases run last ───────────────────────────────────
