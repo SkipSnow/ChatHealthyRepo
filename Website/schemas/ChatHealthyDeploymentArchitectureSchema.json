@@ -303,10 +303,11 @@
                       },
                       "depends_on": {
                         "type": "array",
-                        "description": "package_id values this package requires in order to function. The graph across all packages is acyclic. Install order is derived from these declarations and is not written into the build or the deploy.",
+                        "description": "package_ids this package requires in order to function. The graph across all packages MUST be acyclic. Install order is derived from these declarations and is not encoded in the build or deploy programs.",
                         "items": {
                           "type": "string",
-                          "minLength": 1
+                          "minLength": 1,
+                          "maxLength": 128
                         },
                         "uniqueItems": true
                       },
