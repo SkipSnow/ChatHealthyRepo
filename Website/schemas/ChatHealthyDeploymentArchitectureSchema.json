@@ -315,11 +315,6 @@
                         "description": "Digest over the exact bytes of this package's declared contents, normalised for line endings. Written by the build. A deploy skips a package only when the digest the host reports equals this value.",
                         "minLength": 1
                       }
-                    },
-                    "dependentRequired": {
-                      "secrets": [
-                        "secret_descriptions"
-                      ]
                     }
                   }
                 },
@@ -1907,11 +1902,6 @@
               }
             }
           }
-        },
-        "dependentRequired": {
-          "secrets": [
-            "secret_descriptions"
-          ]
         }
       }
     },
