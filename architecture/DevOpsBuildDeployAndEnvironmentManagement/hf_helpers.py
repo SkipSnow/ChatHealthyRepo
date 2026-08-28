@@ -328,7 +328,8 @@ def _hf_names_present(token: str, qualified: str) -> dict[str, list[str]]:
     import urllib.request
     out: dict[str, list[str]] = {"secrets": [], "variables": []}
     for kind in ("secrets", "variables"):
-        url = f"https://huggingface.co/api/spaces/{qualified}/{kind}"
+        url = (f"https://huggingface.co/api/spaces/"
+               f"{_hf_default_org()}/{qualified}/{kind}")
         req = urllib.request.Request(
             url, method="GET", headers={"Authorization": f"Bearer {token}"})
         body = _json.loads(urllib.request.urlopen(req, timeout=20).read())
