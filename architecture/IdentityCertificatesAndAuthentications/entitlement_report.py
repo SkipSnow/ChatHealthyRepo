@@ -495,6 +495,11 @@ def _principal_names(object_ids: list[str], credential) -> dict[str, dict]:
             resolved[o["id"]] = {
                 "name": o.get("displayName") or o.get("userPrincipalName") or o["id"],
                 "kind": o.get("@odata.type", "").rsplit(".", 1)[-1],
+                # What the principal is, from the directory. This is the
+                # column the holders table renders as its purpose; taking it
+                # from the approved register let the register describe an
+                # identity as the record wished it were.
+                "description": (o.get("description") or "").strip(),
                 "record": "live",
                 "qualities": {},
             }
@@ -629,6 +634,46 @@ def _secret_descriptions() -> dict[str, str]:
 
 
 _DESCRIPTION_TAGS = ("description", "Description", "purpose", "Purpose")
+
+
+def _undescribed_secrets() -> list[dict]:
+    """Vault secrets carrying no description tag.
+
+    The vault is where a secret's description is enforced, so a secret without
+    one is an exception of the same kind as an undescribed resource. It was
+    invisible while `undescribed` counted Azure resources alone, which is how
+    a description could be removed from the record and land nowhere without
+    the report saying so.
+    """
+    out: list[dict] = []
+    for vault in _vault_hosts():
+        where = vault.split("//", 1)[-1].split(".", 1)[0]
+        for name, described in _secret_tags(vault).items():
+            if not described:
+                out.append({"origin": "Vault", "type": "secret",
+                            "name": name, "where": where})
+    return out
+
+
+def _undescribed_identities(holders: list[dict], rightless: list[dict]) -> list[dict]:
+    """Principals whose description the directory does not carry.
+
+    An Entra user has no description property at all, so it can never carry
+    one and is named here every run rather than silently excused.
+    """
+    out: list[dict] = []
+    seen: set[str] = set()
+    for h in list(holders) + list(rightless):
+        oid = h.get("object_id") or ""
+        if not oid or oid in seen:
+            continue
+        seen.add(oid)
+        if (h.get("purpose") or "").strip():
+            continue
+        kind = (h.get("type") or h.get("entra_object_type") or "principal")
+        out.append({"origin": "Entra", "type": kind,
+                    "name": h.get("name") or oid, "where": "directory"})
+    return out
 
 
 def _vault_hosts() -> list[str]:
@@ -888,6 +933,12 @@ def _all_principals(token: str, credential, subscription_id: str) -> dict[str, d
             payload = r.json()
             for o in payload.get("value", []):
                 if o["id"] in found:
+                    # Already discovered through a role assignment or a
+                    # resource, which carries no description. The directory
+                    # is the only place that has one, so fill it in rather
+                    # than skip the object and report it as undescribed.
+                    if o.get("description") and not found[o["id"]].get("description"):
+                        found[o["id"]]["description"] = o["description"].strip()
                     continue
                 owner = o.get("appOwnerOrganizationId")
                 if kind == "ServicePrincipal" and owner and tenant and owner != tenant:
@@ -1593,7 +1644,16 @@ def collect() -> dict:
         "subscription_contents": sub_contents,
         "resource_notes": resource_notes,
         "resources": resources,
-        "undescribed": [r for r in resources if not r["description"]],
+        # Every enforcement surface, not just Azure resources. Origin says
+        # which one, because "undescribed" means a different remedy on each:
+        # a tag on the resource, a tag on the vault secret, a description on
+        # the directory object.
+        "undescribed": (
+            [dict(r, origin="Azure", where=r.get("subscription", ""))
+             for r in resources if not r["description"]]
+            + _undescribed_secrets()
+            + _undescribed_identities(holders_list, rightless)
+        ),
         "vaults": vaults,
         "certificate_secrets": certificate_secrets,
         "tenant_name": _tenant_name(credential) or _tenant_id(),
@@ -2082,14 +2142,16 @@ def render_pdf(data: dict, out_path: Path) -> Path:
         f"Resources undescribed &mdash; carrying no description tag "
         f"({len(data['undescribed'])})", sub_sec))
     if data["undescribed"]:
-        u_rows = [["Resource", "Resource group", "Subscription", "Type"]]
+        u_rows = [["Origin", "Type", "Name", "Where"]]
         for r in sorted(data["undescribed"],
-                        key=lambda x: (x["subscription"].lower(), x["name"].lower())):
-            u_rows.append([Paragraph(r["name"], cell),
-                           Paragraph(r["group"] or "&mdash;", cell),
-                           Paragraph(r["subscription"], cell),
-                           Paragraph(r["type"], cell)])
-        ut = Table(u_rows, colWidths=[3.0 * inch, 2.2 * inch, 2.2 * inch, 2.0 * inch],
+                        key=lambda x: (x.get("origin", ""), x.get("type", ""),
+                                       x.get("name", "").lower())):
+            u_rows.append([Paragraph(r.get("origin", "&mdash;"), cell),
+                           Paragraph(r.get("type", "&mdash;"), cell),
+                           Paragraph(r.get("name", "&mdash;"), cell),
+                           Paragraph(r.get("where") or r.get("group")
+                                     or r.get("subscription") or "&mdash;", cell)])
+        ut = Table(u_rows, colWidths=[1.1 * inch, 2.4 * inch, 3.4 * inch, 2.5 * inch],
                    hAlign="LEFT", repeatRows=1)
         ut.setStyle(TableStyle([
             ("BACKGROUND", (0, 0), (-1, 0), BAND),
@@ -2165,14 +2227,16 @@ def render_pdf(data: dict, out_path: Path) -> Path:
         f"Resources undescribed &mdash; carrying no description tag "
         f"({len(data['undescribed'])})", sub_sec))
     if data["undescribed"]:
-        u_rows = [["Resource", "Resource group", "Subscription", "Type"]]
+        u_rows = [["Origin", "Type", "Name", "Where"]]
         for r in sorted(data["undescribed"],
-                        key=lambda x: (x["subscription"].lower(), x["name"].lower())):
-            u_rows.append([Paragraph(r["name"], cell),
-                           Paragraph(r["group"] or "&mdash;", cell),
-                           Paragraph(r["subscription"], cell),
-                           Paragraph(r["type"], cell)])
-        ut = Table(u_rows, colWidths=[3.0 * inch, 2.2 * inch, 2.2 * inch, 2.0 * inch],
+                        key=lambda x: (x.get("origin", ""), x.get("type", ""),
+                                       x.get("name", "").lower())):
+            u_rows.append([Paragraph(r.get("origin", "&mdash;"), cell),
+                           Paragraph(r.get("type", "&mdash;"), cell),
+                           Paragraph(r.get("name", "&mdash;"), cell),
+                           Paragraph(r.get("where") or r.get("group")
+                                     or r.get("subscription") or "&mdash;", cell)])
+        ut = Table(u_rows, colWidths=[1.1 * inch, 2.4 * inch, 3.4 * inch, 2.5 * inch],
                    hAlign="LEFT", repeatRows=1)
         ut.setStyle(TableStyle([
             ("BACKGROUND", (0, 0), (-1, 0), BAND),
@@ -2305,14 +2369,16 @@ def render_pdf(data: dict, out_path: Path) -> Path:
         f"Resources undescribed &mdash; carrying no description tag "
         f"({len(data['undescribed'])})", sub_sec))
     if data["undescribed"]:
-        u_rows = [["Resource", "Resource group", "Subscription", "Type"]]
+        u_rows = [["Origin", "Type", "Name", "Where"]]
         for r in sorted(data["undescribed"],
-                        key=lambda x: (x["subscription"].lower(), x["name"].lower())):
-            u_rows.append([Paragraph(r["name"], cell),
-                           Paragraph(r["group"] or "&mdash;", cell),
-                           Paragraph(r["subscription"], cell),
-                           Paragraph(r["type"], cell)])
-        ut = Table(u_rows, colWidths=[3.0 * inch, 2.2 * inch, 2.2 * inch, 2.0 * inch],
+                        key=lambda x: (x.get("origin", ""), x.get("type", ""),
+                                       x.get("name", "").lower())):
+            u_rows.append([Paragraph(r.get("origin", "&mdash;"), cell),
+                           Paragraph(r.get("type", "&mdash;"), cell),
+                           Paragraph(r.get("name", "&mdash;"), cell),
+                           Paragraph(r.get("where") or r.get("group")
+                                     or r.get("subscription") or "&mdash;", cell)])
+        ut = Table(u_rows, colWidths=[1.1 * inch, 2.4 * inch, 3.4 * inch, 2.5 * inch],
                    hAlign="LEFT", repeatRows=1)
         ut.setStyle(TableStyle([
             ("BACKGROUND", (0, 0), (-1, 0), BAND),
