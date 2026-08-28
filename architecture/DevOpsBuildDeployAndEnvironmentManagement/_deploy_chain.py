@@ -879,6 +879,10 @@ def deploy_hf_space(
     docker_build_then_push(build_dir, image_ref)
     hf_token = resolver.resolve("HF_TOKEN", env)
     rd._hf_create_space(hf_token, qualified, sdk="docker")
+    # A sleeping Space cannot converge to a new build, so waking it is part
+    # of deploying rather than something done by hand first. Already-running
+    # Spaces are left alone.
+    rd._hf_wake_space(hf_token, qualified)
     set_hf_config(repo_root, target_id, env, hf_token, resolver, target, build_n)
     push_thin_dockerfile_to_hf_space(target_id, env, hf_token, image_ref, port, build_n)
     converged = rd._hf_wait_for_build_convergence(qualified, build_n,
