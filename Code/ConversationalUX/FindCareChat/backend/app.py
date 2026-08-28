@@ -39,13 +39,9 @@ from SpecialtyFilter.filter import SpecialtyFilter
 from domain.evaluate_care_quality.clinical_trials_service import ClinicalTrialsService
 from ProviderDetail.provider_detail_service import ProviderDetailService
 from domain.shared.safety.safety_service import SafetyService
-from domain.shared.consent.consent_service import ConsentService
-from domain.shared.lead_capture.lead_service import LeadService
-from domain.shared.unknowns.unknown_question_service import UnknownQuestionService
 from domain.shared.content.about_service import AboutService
 from ProviderManagement.provider_search_models import ProviderSearchInput, SpecialtyInput
 from application.tool_models.clinical_trials_models import ClinicalTrialsInput, ProviderDetailInput
-from application.tool_models.consent_models import LeadInput, UnknownInput
 from infrastructure.embeddings.embedding_client import EmbeddingClient
 from infrastructure.debug_logger import DebugLogger
 
@@ -228,12 +224,9 @@ evaluate_care_facade = EvaluateCareFacade(
     clinical_trials=clinical_trials_service, provider_detail=provider_detail_service, find_care_facade=find_care)
 
 safety_service = SafetyService(get_db_fn=get_db, env_prefix=ENV_PREFIX, emergency_keywords=EMERGENCY_KEYWORDS)
-consent_service = ConsentService()
-lead_service = LeadService(get_db_fn=get_db, env_prefix=ENV_PREFIX, consent=consent_service, push_fn=push, commit_fn=commitSignificantActivity)
-unknown_question_service = UnknownQuestionService(consent=consent_service, push_fn=push, commit_fn=commitSignificantActivity)
 about_service = AboutService(me_context=ME, trim_fn=PromptSystemMaker.trim)
 
-debug_logger = DebugLogger(get_db_fn=get_db, env_prefix=ENV_PREFIX, consent_service=consent_service)
+debug_logger = DebugLogger(get_db_fn=get_db, env_prefix=ENV_PREFIX)
 
 # ToolRouter — F-05 fix
 tool_router = ToolRouter()
@@ -242,8 +235,6 @@ tool_router.register_with_models([
     ("find_specialty_codes",    find_care.identify_specialty,          SpecialtyInput),
     ("search_clinical_trials",  evaluate_care_facade.search_clinical_trials,  ClinicalTrialsInput),
     ("lookup_provider_external", evaluate_care_facade.get_provider_details,   ProviderDetailInput),
-    ("record_user_details",     lead_service.record_user_details,             LeadInput),
-    ("record_unknown_question", unknown_question_service.record,              UnknownInput),
     ("get_skip_snow_context",   about_service.get_skip_snow_context),
     ("get_chathealthy_context", about_service.get_chathealthy_context),
     ("commitSignificantActivity", commitSignificantActivity),

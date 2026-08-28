@@ -15,10 +15,9 @@ log = ChatHealthyLoggingService()
 class DebugLogger:
     """Persists chat call metadata to MongoDB. Dev environment debugging."""
 
-    def __init__(self, get_db_fn, env_prefix: str, consent_service=None):
+    def __init__(self, get_db_fn, env_prefix: str):
         self._get_db = get_db_fn
         self._env = env_prefix
-        self._consent = consent_service
 
     def log_chat(self, ip: str, message: str, history_len: int, tool_loop_iters: int,
                  tokens_in: Optional[int], tokens_out: Optional[int],
@@ -36,13 +35,6 @@ class DebugLogger:
                 "response_preview": response_text[:200] if response_text else None,
                 "error": error,
             }
-            if error and history and self._consent:
-                safe_history = [
-                    {"role": m.get("role", ""), "content": str(m.get("content", ""))[:500]}
-                    for m in history if m.get("role") in ("user", "assistant")
-                ]
-                self._consent.de_identify(safe_history)
-                record["chat_history_deidentified"] = safe_history
             db[f"{self._env}_Debug"]["chat_calls"].insert_one(record)
         except Exception as exc:
             log.warning("debug log failed: %s", exc, exc=ChatHealthyException(

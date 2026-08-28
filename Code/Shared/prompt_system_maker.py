@@ -145,35 +145,6 @@ class PromptSystemMaker:
                 },
             },
             {
-                "name": "record_user_details",
-                "description": "Record user contact details. Must complete two-tier consent flow first.",
-                "input_schema": {
-                    "type": "object",
-                    "properties": {
-                        "email": {"type": "string"},
-                        "name": {"type": "string"},
-                        "notes": {"type": "string"},
-                        "message": {"type": "string"},
-                        "consent_verbatim": {"type": "boolean"},
-                        "consent_summary": {"type": "boolean"},
-                    },
-                    "required": ["email", "notes", "consent_verbatim"],
-                },
-            },
-            {
-                "name": "record_unknown_question",
-                "description": "Record unanswerable question. Present response_template VERBATIM.",
-                "input_schema": {
-                    "type": "object",
-                    "properties": {
-                        "question": {"type": "string"},
-                        "question_class": {"type": "string", "enum": ["healthcare_capability", "medical_advice", "irrelevant"]},
-                        "consent": {"type": "boolean"},
-                    },
-                    "required": ["question", "question_class"],
-                },
-            },
-            {
                 "name": "find_specialty_codes",
                 "description": "Look up medical specialty taxonomy codes (NUCC).",
                 "input_schema": {
@@ -242,8 +213,8 @@ class PromptSystemMaker:
 
             f"RULE 2 — UNANSWERABLE: You know ONLY: {name}'s background, {website}'s platform, "
             f"providers in DE/MS/VA, specialties, clinical trials. NOTHING else. "
-            f"For anything outside these sources, call record_unknown_question. "
-            f"Present the template VERBATIM. Do NOT answer from training data.",
+            f"For anything outside these sources, say so plainly and do NOT "
+            f"answer from training data.",
 
             f"RULE 3 — MEDICAL ADVICE: When declining medical advice, you MUST say exactly: "
             f"'I do not give medical advice.' Then explain you CAN help navigate: find providers, "
@@ -272,12 +243,6 @@ class PromptSystemMaker:
             f"The system handles pagination — your job is to present the first page and ask. "
             f"Do NOT suggest external directories. The data is in our system.",
         ]
-
-        if follow_up_check:
-            rules.append(
-                f"RULE 7 — FOLLOW-UP: Ask: 'Would you like someone from {website} to follow up?' "
-                f"If yes, collect name/email, complete consent flow, call record_user_details."
-            )
 
         return "\n\n## STRICT ANSWER RULES — NO EXCEPTIONS\n" + "\n".join(rules)
 

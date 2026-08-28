@@ -106,10 +106,6 @@ class ToolRouter:
             name = block.name
             arguments = dict(block.input)
 
-            # Inject chat history for tools that need it
-            if name in ("record_user_details", "record_unknown_question") and format_history_fn:
-                arguments["chat_history"] = format_history_fn(messages, truncate=False)
-
             result = self.dispatch(name, arguments)
             tool_results.append({
                 "type": "tool_result",
@@ -134,9 +130,6 @@ class ToolRouter:
             name = tc["function"]["name"]
             args_str = tc["function"].get("arguments", "{}")
             arguments = json.loads(args_str) if isinstance(args_str, str) else args_str
-
-            if name in ("record_user_details", "record_unknown_question") and format_history_fn:
-                arguments["chat_history"] = format_history_fn(messages, truncate=False)
 
             result = self.dispatch(name, arguments)
             tool_results.append({
