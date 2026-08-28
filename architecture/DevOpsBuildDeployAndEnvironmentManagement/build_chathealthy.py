@@ -397,6 +397,35 @@ TOOL_REGISTRY_TARGETS = {"target_hf_space_shared_services": "service_runtime"}
 TOOL_REGISTRY_FILENAME = "tool_registry.py"
 
 
+# The website carries its build as a file, because there is nothing on a
+# static site to ask. It is deployed on its own cadence, so it will lag or
+# lead the servers, and the session shows what the browser actually loaded
+# rather than assuming one number for everything.
+BUILD_IDENTITY_TARGETS = {"target_cloudflare_pages_website": "runtime_driver"}
+BUILD_IDENTITY_FILENAME = "build.js"
+
+
+def _generate_build_identity(target_id: str, package_dir: Path, env: str,
+                             build_n: int, build_sha: str) -> None:
+    package = BUILD_IDENTITY_TARGETS.get(target_id)
+    if package is None:
+        return
+    destination = package_dir / package / "Website"
+    if not destination.is_dir():
+        destination = package_dir / package
+        if not destination.is_dir():
+            return
+    payload = {
+        "build": build_n, "commit": build_sha, "env": env,
+        "built_at": datetime.now(timezone.utc).isoformat(),
+    }
+    (destination / BUILD_IDENTITY_FILENAME).write_text(
+        "window.CH_BUILD = " + json.dumps(payload) + ";" + chr(10),
+        encoding="utf-8")
+    _step(f"  build identity: {target_id}/{package}/"
+          f"{BUILD_IDENTITY_FILENAME} build={build_n}")
+
+
 def _generate_tool_registry(repo_root: Path, target_id: str,
                             package_dir: Path) -> None:
     """Write the tool registry into a package that reasons about tools.
@@ -649,6 +678,8 @@ def _build_body(args, repo_root: Path, canonical_repo: Path, canonical_build_dir
             record_package_build(t.target_id, pid, build_n, args.env, build_sha)
             _step(f"  recorded {t.target_id}/{pid} build={build_n}")
         _generate_tool_registry(repo_root, t.target_id, package_dir)
+        _generate_build_identity(t.target_id, package_dir, args.env,
+                                 build_n, build_sha)
         _stamp_env_on_manifest(package_dir, args.env, build_sha, build_n)
         built.append(package_dir)
 

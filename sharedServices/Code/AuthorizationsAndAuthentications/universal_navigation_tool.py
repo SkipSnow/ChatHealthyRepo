@@ -253,8 +253,12 @@ async def _build_of(env_var: str, default: str) -> str:
     section exists for.
     """
     if not env_var:
-        from healthcheck.health_endpoint import read_build_info  # noqa: PLC0415
-        return str((read_build_info() or {}).get("build") or "")
+        from buildIdentity.build_identity import build_number  # noqa: PLC0415
+        # A component that cannot say which build it carries names the
+        # reason. Blank is not an answer: a server mid-restart and a server
+        # running an image with no build identity in it looked identical,
+        # and both read as the feature being broken.
+        return build_number() or "image carries no build identity"
     url = os.environ.get(env_var) or default
     import httpx  # noqa: PLC0415
     try:
@@ -264,7 +268,7 @@ async def _build_of(env_var: str, default: str) -> str:
             return str(resp.json().get("build") or "")
     except Exception as exc:  # noqa: BLE001 - an unreachable server says so
         log.info("build unknown for %s: %s", env_var, exc)
-        return ""
+        return f"did not answer ({type(exc).__name__})"
 
 
 async def deployment_facts() -> list[dict]:
