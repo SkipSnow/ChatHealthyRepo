@@ -95,6 +95,7 @@ class SpecialtyFilterTool(ChatHealthyTool):
 
     async def run(self, deps: AgentDeps, request: "Request") -> "Response":
         text = (request.query or "").strip()
+
         if not text:
             raise ChatHealthyException(
             mode="value_error",

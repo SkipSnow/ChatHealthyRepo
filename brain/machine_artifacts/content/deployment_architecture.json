@@ -449,7 +449,7 @@
           "source_location": "Website/ClientRouter.js",
           "handler_type": "static_asset",
           "disposition": "referenced",
-          "content_hash": "d0745eebd0f519966d592923502c9a16417ded4dcf4d1c9af22381698cec0578",
+          "content_hash": "530ce249433b2859d2feb0b7a523cec5455407527845d240e35a90b6c80937ca",
           "package": "runtime_driver"
         },
         {
@@ -537,7 +537,7 @@
           "source_location": "Website/index.html",
           "handler_type": "static_asset",
           "disposition": "referenced",
-          "content_hash": "f5a815514a5c5c2cabaf60d500fee2f36f5de61af0d09f5a92bee1f662f9150d",
+          "content_hash": "4d7fb246282c54b894f9453debcdafebe6ac36b7a31c76dc0c916fc210b14569",
           "package": "runtime_driver"
         },
         {
@@ -2088,7 +2088,7 @@
           "source_location": "Code/ConversationalUX/FindCareChat/frontend/src/App.tsx",
           "handler_type": "static_asset",
           "disposition": "referenced",
-          "content_hash": "be29893d63d6df77488b3313febfc18f468b8b1d26976f4b991bc772acd27895",
+          "content_hash": "79ea70492680154bdbaf0e7f6d082a29bd7f937a8294fed455cdfd024ed4ccda",
           "package": "service_runtime"
         },
         {
@@ -2096,7 +2096,7 @@
           "source_location": "Code/ConversationalUX/FindCareChat/frontend/src/components/AboutChatHealthyWidget.tsx",
           "handler_type": "static_asset",
           "disposition": "referenced",
-          "content_hash": "6eb56575b611f17b86d0520a73466ef407341d0bd248dd810848906eb1b59a0e",
+          "content_hash": "6209f546af018f04181e8b7ad4285fa3711f2c51c47b8eb6715e8a0d6e9328ff",
           "package": "service_runtime"
         },
         {
@@ -2136,7 +2136,7 @@
           "source_location": "Code/ConversationalUX/FindCareChat/frontend/src/components/LegalPanelWidget.tsx",
           "handler_type": "static_asset",
           "disposition": "referenced",
-          "content_hash": "4274f2fc2da3f9af19f6d7d94b8d9864e0352df9f59a60243f8634acdfd8eb13",
+          "content_hash": "3d84a8f9d515e9930e6eef7e22ee79dd27e99bdde03fd848911eaf9507781bcf",
           "package": "service_runtime"
         },
         {
@@ -2144,7 +2144,7 @@
           "source_location": "Code/ConversationalUX/FindCareChat/frontend/src/components/MobileNavDrawerWidget.tsx",
           "handler_type": "static_asset",
           "disposition": "referenced",
-          "content_hash": "11208d6d2c944aca6df2c96a18a4a47ff1928c0f395f79f533e2465beea9b089",
+          "content_hash": "968189a886cc198893948142162f796c279fb9551dbe4b23128377efba04d8e1",
           "package": "service_runtime"
         },
         {
@@ -2192,7 +2192,7 @@
           "source_location": "Code/ConversationalUX/FindCareChat/frontend/src/components/SessionDataWidget.tsx",
           "handler_type": "static_asset",
           "disposition": "referenced",
-          "content_hash": "afb776bef19361add85caded6b7eee8c5cda518b91814add6f116d4c3994b683",
+          "content_hash": "b94d819b7aa2987ea5799921ed7bc45be54985c6d0296e9076e1798ee4ba7064",
           "package": "service_runtime"
         },
         {
@@ -2448,7 +2448,7 @@
           "source_location": "FindCare/SpecialtyFilter/specialty_filter_tool.py",
           "handler_type": "python_source",
           "disposition": "referenced",
-          "content_hash": "7a83fdd9ab45d44ffebd462f6f1af8c1ca45d7a14700abd8f7bc3a14f6078150",
+          "content_hash": "f2e9a5db96066f6933613cc7e6a6e2eb4ca398b2e6fdb3976e15f5b2c410e4a2",
           "package": "service_runtime"
         },
         {
@@ -3074,7 +3074,7 @@
           "source_location": "FindCare/SpecialtyFilter/specialty_filter_tool.py",
           "handler_type": "python_source",
           "disposition": "referenced",
-          "content_hash": "7a83fdd9ab45d44ffebd462f6f1af8c1ca45d7a14700abd8f7bc3a14f6078150",
+          "content_hash": "f2e9a5db96066f6933613cc7e6a6e2eb4ca398b2e6fdb3976e15f5b2c410e4a2",
           "package": "service_runtime"
         },
         {
@@ -3274,7 +3274,7 @@
           "source_location": "sharedServices/Code/AuthorizationsAndAuthentications/mintable_auth_token.py",
           "handler_type": "python_source",
           "disposition": "referenced",
-          "content_hash": "0517887ea1b56a1a4c8c9ad46bd3f29840cfdf900f7f9d6d7be3cb66d8bc6633",
+          "content_hash": "44423cfd355ce1f63af594cc213381fa1c1cc622635711a11177c0e660c99514",
           "package": "service_runtime"
         },
         {
@@ -3306,7 +3306,7 @@
           "source_location": "sharedServices/Code/AuthorizationsAndAuthentications/universal_navigation_tool.py",
           "handler_type": "python_source",
           "disposition": "referenced",
-          "content_hash": "4a60be5ffc8516735667297f27536b0674293306228237e9f54b4a67ffb81d9b",
+          "content_hash": "d086be532d8f486987a52f2c69ffba0a0f1829f45c1e699c654d7d1256a50b7d",
           "package": "service_runtime"
         },
         {
@@ -3394,7 +3394,7 @@
           "source_location": "sharedServices/Code/UtteranceManager/utterance_manager.py",
           "handler_type": "python_source",
           "disposition": "referenced",
-          "content_hash": "32b84a859fb194fc27abcf4af77b8326b3eeb07e06978f923704bda5f0b8b082",
+          "content_hash": "6e21fbaf8220b0783ef131c3801021cdd1de4d334f450d9089e68689a9adada7",
           "package": "service_runtime"
         },
         {
@@ -3402,7 +3402,7 @@
           "source_location": "sharedServices/Code/app.py",
           "handler_type": "python_source",
           "disposition": "referenced",
-          "content_hash": "ae8a6141d20e4288d8bece92227bbfb349db41605c968c94c75dc3f1a9dae457",
+          "content_hash": "c74671b2503cb4af41c685ae1fa1d42942bfe21bf2bf404c2179986611912a57",
           "package": "service_runtime"
         },
         {
@@ -3560,6 +3560,13 @@
             }
           ],
           "embedded_content": "\nFROM python:3.12-slim\n\nWORKDIR /app\n\nCOPY requirements.txt /app/requirements.txt\nRUN pip install --no-cache-dir -r /app/requirements.txt\n\nCOPY ChatHealthyLib /app/ChatHealthyLib\nRUN pip install --no-cache-dir /app/ChatHealthyLib\n\nCOPY build_info.json    /app/build_info.json\nCOPY app.py             /app/app.py\nCOPY healthcheck        /app/healthcheck\nCOPY displayChrome      /app/displayChrome\nCOPY authentication     /app/authentication\nCOPY SpecialtyFilter    /app/SpecialtyFilter\nCOPY AboutChatHealthy  /app/AboutChatHealthy\nCOPY externalInterface  /app/externalInterface\nCOPY secretsManager     /app/secretsManager\nCOPY UtteranceManager  /app/UtteranceManager\nCOPY CloseConnection200Tool  /app/CloseConnection200Tool\nCOPY LockoutTool  /app/LockoutTool\nCOPY ProviderSelection  /app/ProviderSelection\nCOPY ClinicalTrialSelection  /app/ClinicalTrialSelection\nCOPY UserParameters  /app/UserParameters\n\nENV PORT=7860     CERTS_DIR=/certs     SSL_CERTFILE=/certs/shared.crt SSL_KEYFILE=/certs/shared.key\nEXPOSE 7860\nCMD [\"python\", \"app.py\"]\n",
+          "package": "service_runtime"
+        },
+        {
+          "feature_id": "EPIC-008-F-012",
+          "source_location": "sharedServices/Code/sessionPdf/session_pdf.py",
+          "handler_type": "python_source",
+          "disposition": "referenced",
           "package": "service_runtime"
         }
       ],

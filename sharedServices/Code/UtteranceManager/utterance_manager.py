@@ -1549,6 +1549,15 @@ def _latest_person_utterance(deps: AgentDeps) -> str:
     return ""
 
 
+def _complaint_on(document) -> str:
+    """The complaint argument already carried by an intent entry."""
+    for entry in getattr(document, "intents", []) or []:
+        for arg in getattr(entry, "arguments", []) or []:
+            if arg.name == "complaint" and arg.value:
+                return str(arg.value).strip()
+    return ""
+
+
 def to_pending(out: Optional[PendingDisambiguationOut]) -> Optional[PendingDisambiguation]:
     if out is None:
         return None
@@ -1715,17 +1724,16 @@ class UtteranceManagerTool(ChatHealthyTool):
         target_action = llm_result.target_action
         complaint = (llm_result.complaint or "").strip()
 
-        # A narrowing turn carries the complaint already in force, not the
-        # one the model wrote for it. The model fills the field whatever it
-        # is told -- "general health care", then "Medicare-covered health
-        # services" -- and each invented value read downstream as a new
-        # question, throwing away the panel the person was reading. Leaving
-        # it empty instead is not available: findAProvider is not a valid
-        # intent without a complaint, so the turn failed to route at all.
-        if llm_result.narrows_current_search:
-            in_force = (deps.user_object.userParameters.complaint or "").strip()
-            if in_force:
-                complaint = in_force
+        # UM corrects spelling, routes, and asks when it cannot route. It
+        # decides nothing about the state of a search: whether a panel is
+        # stale is the specialty tool's to judge, because the tool holds the
+        # panel. What UM must not do is clobber -- a turn that answers "did
+        # you mean California?" is completing a slot on the intent already in
+        # hand, so the complaint already on that document stands and the
+        # model's fresh guess for it ("general health concern") is dropped.
+        if not complaint and prior is not None:
+            complaint = _complaint_on(prior)
+
         geography = llm_result.geography.model_dump() if llm_result.geography else {}
         user_location = (llm_result.user_location or "").strip() or None
         user_message = (llm_result.user_message or "").strip() or None

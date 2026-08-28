@@ -148,6 +148,11 @@ class GateRequest:
     client_ip: Optional[str] = None
 
 
+# Ops whose answer is a file. They are answered inside the one entrance;
+# a download is not a reason to open a second.
+FILE_OPS = frozenset({"session_pdf"})
+
+
 @dataclass
 class GateResponse:
     """What the orchestrator returns to /gate.
@@ -161,11 +166,15 @@ class GateResponse:
 
     body_kind == 'json' → body_data is a dict; /gate returns it as JSON.
 
+    body_kind == 'file' → body_data is {media_type, filename, content};
+    /gate returns the bytes as a download. A download is not a reason to
+    open a second entrance.
+
     Session continuity is carried client-side: ClientRouter holds the
     session GUID in JavaScript memory and threads it as body.session_guid
     on every /gate POST. No HTTP cookie is set or read.
     """
-    body_kind: Literal["ndjson_stream", "ndjson_bytes", "json"]
+    body_kind: Literal["ndjson_stream", "ndjson_bytes", "json", "file"]
     body_data: Any
 
 
@@ -225,104 +234,45 @@ def session_token_wire(user_object: UserObject) -> dict:
     return dict(st)
 
 
-def health_url_for(target_id: str) -> str | None:
-    """Where a target answers /health, 'self' for this process, or None.
+# The servers the application is made of, named as components. A target id
+# names where something is deployed, not what it is, and an operator reading
+# the session wants the component. Each is asked what build it carries; that
+# is the whole fact.
+COMPONENTS = (
+    ("FindCare Server", "FINDCARE_INTERNAL_URL", "https://ch-findcare:7860"),
+    ("EvaluateCare Server", "EVALCARE_INTERNAL_URL", "https://ch-evalcare:7860"),
+    ("SharedServices Server", "", ""),
+)
 
-    The addresses are the same deployment-supplied variables every other
-    peer call reads; only the binding from target_id to variable lives
-    here. A target absent from this map answers no health call.
+
+async def _build_of(env_var: str, default: str) -> str:
+    """What one server says it is running, asked directly.
+
+    Blank when it cannot say. A server that does not answer is a fact worth
+    seeing, and inventing a number for it would hide exactly the case this
+    section exists for.
     """
-    if target_id == "target_hf_space_shared_services":
-        return "self"
-    if target_id == "target_hf_space_findcare_backend":
-        return os.environ.get("FINDCARE_INTERNAL_URL") or "https://ch-findcare:7860"
-    if target_id == "target_hf_space_evaluatecare_backend":
-        return os.environ.get("EVALCARE_INTERNAL_URL") or "https://ch-evalcare:7860"
-    return None
-
-
-def _deployed_packages(env: str) -> list[dict]:
-    """What the deploy recorded as landed in this environment.
-
-    The servers are not listed here. frontEndAdmin.PackageBuilds already
-    holds one row per package the deploy put somewhere, and naming them a
-    second time in this file is how the two come to disagree. The newest
-    'deployed' row per (target, package) is what that target holds.
-    """
-    from chathealthy_lib.mongo_utilities import ChatHealthyMongoUtilities
-    client = ChatHealthyMongoUtilities().getConnection(
-        "frontendUser", "ChatHealthyFrontEnd")
-    rows = client["frontEndAdmin"]["PackageBuilds"].find(
-        {"event": "deployed", "env": env}, sort=[("at", -1)])
-    latest: dict[tuple[str, str], dict] = {}
-    for row in rows:
-        key = (row.get("target_id"), row.get("package_id"))
-        if key not in latest:
-            latest[key] = row
-    return [dict(v, target_id=k[0], package_id=k[1])
-            for k, v in sorted(latest.items())]
-
-
-async def _reported_build(target_id: str, health_url_for) -> dict:
-    """What a running server says it carries, or why it could not say.
-
-    A target with no health address is not an error: a CDN project serves
-    bytes and answers no call. It reports nothing and the row still shows
-    what the deploy recorded for it.
-    """
-    url = health_url_for(target_id)
-    if url is None:
-        return {}
-    if url == "self":
-        from healthcheck.health_endpoint import read_build_info
-        baked = read_build_info() or {}
-        return {"build": baked.get("build"), "commit": baked.get("commit")}
-    import httpx
+    if not env_var:
+        from healthcheck.health_endpoint import read_build_info  # noqa: PLC0415
+        return str((read_build_info() or {}).get("build") or "")
+    url = os.environ.get(env_var) or default
+    import httpx  # noqa: PLC0415
     try:
         async with httpx.AsyncClient(verify=False, timeout=10.0) as client:
             resp = await client.post(url + "/health")
             resp.raise_for_status()
-            body = resp.json()
-        return {"build": body.get("build"), "commit": body.get("commit")}
-    except Exception as exc:
-        return {"error": f"{type(exc).__name__}: {exc}"}
+            return str(resp.json().get("build") or "")
+    except Exception as exc:  # noqa: BLE001 - an unreachable server says so
+        log.info("build unknown for %s: %s", env_var, exc)
+        return ""
 
 
-async def deployment_facts(env: str, health_url_for) -> list[dict]:
-    """One row per deployed package: what the record says, what the server says.
-
-    Two separate facts, shown separately. A server carrying a build the
-    record does not know about is the failure this section exists to make
-    visible, and collapsing them into one number is what hid it.
-    """
-    try:
-        recorded = _deployed_packages(env)
-    except Exception as exc:
-        log.error("deployment_facts: PackageBuilds read failed: %s", exc,
-                  exc=ChatHealthyException(
-                      mode="deployment_facts_read_failed",
-                      message=f"PackageBuilds read failed: {exc}",
-                      component="UniversalNavigation",
-                      exception=exc), if_not_debug_log=True)
-        return []
-
-    said_all = await asyncio.gather(*[
-        _reported_build(row["target_id"], health_url_for) for row in recorded
-    ])
-
-    rows: list[dict] = []
-    for row, said in zip(recorded, said_all):
-        rows.append({
-            "target_id": row["target_id"],
-            "package_id": row["package_id"],
-            "env": env,
-            "deployed_build": row.get("build"),
-            "deployed_at": str(row.get("at")) if row.get("at") else "",
-            "reported_build": said.get("build"),
-            "reported_commit": said.get("commit"),
-            "error": said.get("error", ""),
-        })
-    return rows
+async def deployment_facts() -> list[dict]:
+    """Each component and the build it is running. Asked once per session."""
+    builds = await asyncio.gather(
+        *[_build_of(var, default) for _name, var, default in COMPONENTS])
+    return [{"component": name, "build": build}
+            for (name, _v, _d), build in zip(COMPONENTS, builds)]
 
 
 def session_data(user_object) -> dict[str, Any]:
@@ -450,6 +400,7 @@ class UniversalNavigationTool(ChatHealthyTool):
     _OP_HANDLERS = {
         "boot":                 "_handle_boot",
         "session_data":         "_handle_session_data",
+        "session_pdf":          "_handle_session_pdf",
         "record_ux_event":      "_handle_record_ux_event",
         "utterance":            "_handle_utterance",
         "provider-detail":      "_handle_provider_detail",
@@ -486,7 +437,7 @@ class UniversalNavigationTool(ChatHealthyTool):
 
     async def _handle_session_data(self, deps: AgentDeps, payload: dict[str, Any]) -> Response:
         data = session_data(deps.user_object)
-        data["deployment_facts"] = await deployment_facts(ENV, health_url_for)
+        data["deployment_facts"] = await deployment_facts()
         append_action(
             deps.user_object,
             tool_name="session_data_displayed",
@@ -495,6 +446,29 @@ class UniversalNavigationTool(ChatHealthyTool):
         )
         deps.stream({"kind": "session_data", "data": data})
         return Response(kind="session_data", result=data)
+
+    async def _handle_session_pdf(self, deps: AgentDeps, payload: dict[str, Any]) -> Response:
+        """The session as a file the person downloads.
+
+        The same projection the window renders, laid out for paper. It is a
+        download rather than the browser's print dialogue because a phone
+        has no usable print dialogue -- iOS shows a preview with no route to
+        a PDF, and a native shell has none at all.
+        """
+        from sessionPdf import session_pdf  # noqa: PLC0415
+        data = session_data(deps.user_object)
+        data["deployment_facts"] = await deployment_facts()
+        append_action(
+            deps.user_object,
+            tool_name="session_pdf_downloaded",
+            input_json={},
+            output_json={"filename": session_pdf.FILENAME},
+        )
+        return Response(kind="file", result={
+            "media_type": "application/pdf",
+            "filename": session_pdf.FILENAME,
+            "content": session_pdf.render(data),
+        })
 
     async def _handle_record_ux_event(self, deps: AgentDeps, payload: dict[str, Any]) -> Response:
         event_type = str(payload.get("event_type") or "").strip()
@@ -954,7 +928,11 @@ class UniversalNavigationTool(ChatHealthyTool):
             # specialty step is safe because it is keyed by the query, and
             # Apply Filter produces no new utterance -- so the panel the
             # user is choosing from is the panel they keep (2026-06-10).
-            await self._dispatch_target_action(deps, prior, "findAProvider")
+            # Apply Filter changes which boxes are ticked and nothing else.
+            # The complaint did not move, so the specialty filter is not
+            # handed off to and the panel on screen stands.
+            await self._dispatch_target_action(
+                deps, prior, "findAProvider", complaint_changed=False)
             return Response(
                 kind="apply_filter",
                 result={"target_action": "findAProvider"},
@@ -1291,9 +1269,16 @@ class UniversalNavigationTool(ChatHealthyTool):
         )
 
     async def _dispatch_target_action(self, deps: AgentDeps, document, target_action: str,
-                                      complaint_changed: bool = True) -> None:
+                                      complaint_changed: bool = False) -> None:
         """Dispatch the tool that owns this target_action. Tools may mutate
-        user_object.intent before returning; the caller loops and re-dispatches."""
+        user_object.intent before returning; the caller loops and re-dispatches.
+
+        complaint_changed defaults to False because re-running the specialty
+        filter is the exceptional case and must be asserted. It defaulted to
+        True, and Apply Filter -- a gesture that produces no utterance and
+        cannot change the complaint -- did not pass it, so every filter
+        application re-derived the panel the person was choosing from.
+        """
         import json as json
 
         target_intent_entry = next(
@@ -1476,21 +1461,23 @@ class UniversalNavigationTool(ChatHealthyTool):
         # narrowing landed on a list the person was not looking at -- 11 of
         # the Medicare providers were male on screen and the answer came back
         # 9.
-        if cached and not complaint_changed:
-            await self._set_specialties_parameter(deps, cached)
-            return cached
-
-        if cached and read_nucc_codes_query(document) == query:
-            # The panel is republished on the cache-hit path too. A consumer
-            # reads the parameter, not this return value, so a path that
-            # returns codes without setting the parameter would hand the
-            # provider search an empty panel and it would find nothing.
-            await self._set_specialties_parameter(deps, cached)
-            return cached
+        # A complaint that did not change asks the specialty filter nothing,
+        # so it is not handed off to. The panel in force stands.
+        #
+        # This used to be keyed on the verbatim utterance, which handed off
+        # on every turn whose words differed -- answering "yes" to "did you
+        # mean California?" was scored as a description of care, and a
+        # psychiatry panel of 45 came back as 57 codes with chiropractors in
+        # it and Psychologist gone.
+        if not complaint_changed:
+            in_force = cached or self._specialties_in_force(deps)
+            if in_force:
+                await self._set_specialties_parameter(deps, in_force)
+                return in_force
 
         from SpecialtyFilter import specialty_filter_tool
         fs = await specialty_filter_tool.TOOL.run_and_log(
-            deps, specialty_filter_tool.Request(query=query),
+            deps, specialty_filter_tool.Request(query=complaint),
         )
         if fs.error or not fs.specialties:
             return []
@@ -1547,6 +1534,14 @@ class UniversalNavigationTool(ChatHealthyTool):
             )
 
         return specialties
+
+    @staticmethod
+    def _specialties_in_force(deps) -> list:
+        """The panel the person is looking at, from live state."""
+        params = getattr(deps.user_object, "userParameters", None)
+        offered = list(getattr(params, "specialties", None) or []) if params else []
+        return [s.model_dump(exclude_none=True) if hasattr(s, "model_dump") else dict(s)
+                for s in offered]
 
     async def _set_specialties_parameter(
         self, deps: AgentDeps, specialties: list[dict],
@@ -1702,6 +1697,15 @@ class UniversalNavigationTool(ChatHealthyTool):
             stream=stream_sink,
         )
         nav_req = self.Request(op=gate_req.op, payload=gate_req.payload)
+
+        # An op whose answer is a file emits no events, so it does not go
+        # through the streaming pipeline. It still arrives here -- one
+        # entrance, one session validation, one place that hydrates the
+        # user -- and returns bytes instead of a stream.
+        if gate_req.op in FILE_OPS:
+            resp = await self.run(agent_deps, nav_req)
+            await authn.TOOL.persist(authn_deps, user_object, fresh_mint)
+            return GateResponse(body_kind="file", body_data=resp.result)
 
         # 7. Pipeline coroutine: run handler dispatch, persist, push the
         #    final_event, push the sentinel. Wrapped in try/finally so the

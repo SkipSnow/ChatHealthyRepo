@@ -8,6 +8,7 @@
 // HTML → ClientRouter.
 
 import { useEffect } from 'react'
+import { openPopup, closePopup } from './popupFrame'
 
 const TARGET = 'AboutChatHealtyPopUP'
 
@@ -54,7 +55,7 @@ function buildAboutHtml(data: any): string {
 
   return `
     <div style="font-family:system-ui,-apple-system,sans-serif;color:#1f2937;">
-      <h2 style="margin:0 0 0.5em 0;color:#0b7a75;font-size:1.25em;">About ChatHealthy.ai</h2>
+      <div class="ch-popup-drag"><h2 style="margin:0;color:#0b7a75;font-size:1.25em;">About ChatHealthy.ai</h2></div>
       <p style="margin:0 0 1em 0;line-height:1.55;">${company}</p>
 
       <h3 style="margin:1em 0 0.4em 0;color:#0b7a75;font-size:1em;border-bottom:0.125em solid #d8e2e1;padding-bottom:0.2em;">Build</h3>
@@ -128,12 +129,7 @@ export default function AboutChatHealthyWidget() {
 
       if (msg.type === 'router:event-broadcast' && msg.kind === 'about_chathealthy') {
         const html = buildAboutHtml(msg.data || {})
-        window.postMessage({
-          type: 'ch:popup',
-          target: TARGET,
-          title: 'About ChatHealthy',
-          content: html,
-        }, '*')
+        openPopup(TARGET, html)
       }
     }
     window.addEventListener('message', onMessage)

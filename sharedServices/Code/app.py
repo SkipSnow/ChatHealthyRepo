@@ -245,6 +245,7 @@ _TRIVIAL_GATE_OPS = frozenset({
 })
 
 
+
 # Module-level helpers for /gate response instrumentation. Kept out of
 # the gate() body so Rule-005 (no log call in a function body that also
 # raises ChatHealthyException) does not trip.
@@ -495,6 +496,15 @@ async def gate(
             resp = Response(
                 content=gate_resp.body_data, media_type="application/x-ndjson",
             )
+        elif gate_resp.body_kind == "file":
+            # A download, answered through the one entrance. body_data is
+            # {media_type, filename, content}.
+            f = gate_resp.body_data
+            resp = Response(
+                content=f["content"], media_type=f["media_type"],
+                headers={"Content-Disposition":
+                         f'attachment; filename="{f["filename"]}"'},
+            )
         else:  # "json"
             _gate_log_json_complete(op)
             resp = JSONResponse(content=gate_resp.body_data)
@@ -520,8 +530,55 @@ async def gate(
 
 @app.post("/auth/issue", operation_id="AuthIssue", response_model=SessionToken,
           openapi_extra=impl("MintableAuthToken", "authentication/mintable_auth_token.py"))
-def auth_issue():
-    return MintableAuthToken.manufacture(server_env=ENV).to_wire()
+async def auth_issue(request: Request):
+    """Stamp a token, resuming the session the page names.
+
+    The page passes back the GUID it holds. A GUID naming a session that is
+    in Mongo and has not expired is resumed; anything else is ignored and a
+    new session begins, so a GUID a caller invents buys nothing.
+
+    Before this, the body was empty and a new GUID was minted on every page
+    load. The session document stayed in Mongo, correct and complete, and
+    nothing could point at it again -- which is why a reload lost the
+    conversation and Apply Filter re-derived the whole specialty list.
+    """
+    try:
+        body = await request.json()
+    except Exception:  # noqa: BLE001 - an unparsable body is simply no guid
+        body = {}
+    offered = str((body or {}).get("session_guid") or "").strip()
+    resumed = _live_session_guid(offered) if offered else ""
+    return MintableAuthToken.manufacture(server_env=ENV, guid=resumed).to_wire()
+
+
+def _live_session_guid(guid: str) -> str:
+    """The guid, if it names a session that exists and has not expired.
+
+    Returns "" otherwise, and the caller mints. A session this cannot read
+    is not resumed: continuing on a GUID whose session is unknown would hand
+    the caller a token for state nobody can produce.
+    """
+    from datetime import datetime, timezone as _tz
+    try:
+        coll = authn.get_mongo_frontend()[authn.SESSION_DB][authn.SESSION_COLLECTION]
+        doc = coll.find_one({"_id": guid}, {"expires_at": 1})
+    except Exception as exc:  # noqa: BLE001 - unreadable session, mint instead
+        log.info("auth/issue could not read session %s: %s", guid[:8], exc)
+        return ""
+    if not doc:
+        return ""
+    expires = doc.get("expires_at")
+    if isinstance(expires, str):
+        try:
+            expires = datetime.fromisoformat(expires.replace("Z", "+00:00"))
+        except ValueError:
+            return ""
+    if isinstance(expires, datetime):
+        if expires.tzinfo is None:
+            expires = expires.replace(tzinfo=_tz.utc)
+        if expires <= datetime.now(_tz.utc):
+            return ""
+    return guid
 
 
 @app.get("/secrets/{key}", operation_id="SecretsEndpoint",

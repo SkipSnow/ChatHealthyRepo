@@ -185,7 +185,14 @@
     var content = (args && args.content) || '';
     var append = !!(args && args.append);
     var sink = _frameElement(target);
-    if (!sink) return;
+    if (!sink) {
+      // Silently dropping the content makes a page that never received it
+      // indistinguishable from a feature that does not work. A frame the
+      // page does not declare is a fault in the page, and it says so.
+      console.error('ClientRouter.render: no frame_' + target +
+                    ' in this page; content was not delivered');
+      return;
+    }
     if (append) {
       var tmp = document.createElement('div');
       tmp.innerHTML = content;
@@ -209,10 +216,40 @@
     var frame = _frameElement(target);
     if (!frame) return;
     var sink = frame.querySelector('#' + region);
-    if (!sink) return;
+    if (!sink) {
+      console.error('ClientRouter.merge: frame_' + target +
+                    ' has no region #' + region + '; content was not delivered');
+      return;
+    }
     sink.innerHTML = content;
     _bindActions(sink);
   }
+
+  // A window is moved by dragging its header. Position is the person's
+  // to set, so once they move one it stops being centred. This composes
+  // nothing -- it reads a pointer and writes two coordinates.
+  (function () {
+    var held = null, dx = 0, dy = 0;
+    document.addEventListener('pointerdown', function (ev) {
+      var handle = ev.target && ev.target.closest &&
+                   ev.target.closest('.ch-popup-drag');
+      if (!handle) return;
+      var win = handle.closest('.ch-popup');
+      if (!win) return;
+      var box = win.getBoundingClientRect();
+      win.classList.add('ch-moved');
+      win.style.left = box.left + 'px';
+      win.style.top = box.top + 'px';
+      held = win; dx = ev.clientX - box.left; dy = ev.clientY - box.top;
+      ev.preventDefault();
+    });
+    document.addEventListener('pointermove', function (ev) {
+      if (!held) return;
+      held.style.left = (ev.clientX - dx) + 'px';
+      held.style.top = (ev.clientY - dy) + 'px';
+    });
+    document.addEventListener('pointerup', function () { held = null; });
+  })();
 
   function _dispatchEvent(evt, caller) {
     if (!evt || typeof evt !== 'object') return;
@@ -397,6 +434,33 @@
         }
       });
       window['__unsub_' + msg.kind] = unsub;
+    } else if (msg.type === 'router:download') {
+      // Ask /gate for a file and let the browser save it. One entrance:
+      // the download is an op like any other. The print dialogue this
+      // replaces could not produce a PDF on a phone at all.
+      (function () {
+        var body = { op: msg.op, payload: msg.payload || {} };
+        if (_sessionToken) body.session_token = _sessionToken;
+        fetch(_sharedGateUrl() + '/gate', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(body),
+        }).then(function (resp) {
+          if (!resp.ok) throw new Error('download failed HTTP ' + resp.status);
+          return resp.blob();
+        }).then(function (blob) {
+          var url = URL.createObjectURL(blob);
+          var a = document.createElement('a');
+          a.href = url;
+          a.download = msg.filename || 'download';
+          document.body.appendChild(a);
+          a.click();
+          document.body.removeChild(a);
+          URL.revokeObjectURL(url);
+        }).catch(function (err) {
+          console.error('ClientRouter.download: ' + err);
+        });
+      })();
     } else if (msg.type === 'router:exec') {
       try { new Function(String(msg.code || ''))(); } catch (_) {}
     }
