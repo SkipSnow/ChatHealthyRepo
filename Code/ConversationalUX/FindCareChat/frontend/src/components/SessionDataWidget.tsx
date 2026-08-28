@@ -9,8 +9,8 @@ import { useEffect } from 'react'
 
 // Its own popup, beside About rather than painted over MainWindow.
 const TARGET = 'SessionInfoPopUp'
-// The element the PDF is taken from. Named here because the widget authors
-// it; ClientRouter is handed the id and prints what it is given.
+// The element the PDF is taken from. The popup is React's, so printing it
+// is React's too -- the wrapper needs no print handler.
 const SESSION_PRINT_ROOT = 'session_print_root'
 
 function _esc(s: any): string {
@@ -252,11 +252,12 @@ export default function SessionDataWidget() {
     }, '*')
 
     function postRender(content: string) {
-      window.parent.postMessage({
-        type: 'router:render',
+      // The popup is React's. Posting to this window rather than the
+      // parent is what keeps its chrome, and its printing, inside React.
+      window.postMessage({
+        type: 'ch:popup',
         target: TARGET,
-        append: false,
-        popup: true,
+        title: 'ChatHealthy session',
         content,
       }, '*')
     }
@@ -275,8 +276,8 @@ export default function SessionDataWidget() {
         return
       }
       if (msg.type === 'router:action' && msg.action === 'session_pdf') {
-        window.parent.postMessage({
-          type: 'router:print',
+        window.postMessage({
+          type: 'ch:popup-print',
           element: SESSION_PRINT_ROOT,
           title: 'ChatHealthy session ' + new Date().toISOString().slice(0, 19),
         }, '*')

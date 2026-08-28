@@ -42,6 +42,7 @@ from preflight_undefined_names import scan as _scan_undefined_names  # noqa: E40
 from devops_identity import establish_azure_identity  # noqa: E402
 from _build_chain import (
     _declared_packages,  # noqa: E402
+    package_install_order,
     materialize_build_structure,
     _build_one,
     _find_repo_root,
@@ -460,10 +461,11 @@ def main(argv: list[str] | None = None) -> int:
              "remain for kind-wide work and still require --package.",
     )
     parser.add_argument(
-        "--package", required=True,
-        help="Comma-separated package_id list. A build states which "
-             "capabilities inside those targets it is producing; there is no "
-             "'every package' shortcut.",
+        "--package", default="",
+        help="Deprecated and not needed. A build produces every package the "
+             "named targets declare, read from deployment_architecture.json. "
+             "Supplying a list that disagrees with the record is an illegal "
+             "state and stops the build.",
     )
     args = parser.parse_args(argv)
 
@@ -559,13 +561,48 @@ def _build_body(args, repo_root: Path, canonical_repo: Path, canonical_build_dir
     # Presence only. The value is never read into this process and never
     # reaches canonical_build_dir; a build directory is not a place a
     # credential belongs.
+    targets = _select_targets(coll, args.target)
+    if not targets:
+        raise ChatHealthyException(
+            mode="aborted",
+            component="build_chathealthy",
+            message=f"ERROR: no targets matched --target={args.target!r}")
+    # The record declares which packages a target carries. A package list
+    # supplied on the command line is a second declaration of the same fact,
+    # and two declarations of one fact drift: the build that produced a
+    # target could omit a package the target needs and nothing would object,
+    # because the thing that would have objected was the list the operator
+    # had just typed. The graph decides.
+    known = {p for t in targets for p in _declared_packages(t)}
+    if not known:
+        raise ChatHealthyException(
+            mode="aborted",
+            component="build_chathealthy",
+            message=f"ERROR: --target={args.target!r} declares no packages.")
+    packages_wanted = set(known)
+
+    supplied = {p.strip() for p in (args.package or "").split(",") if p.strip()}
+    if supplied and supplied != known:
+        raise ChatHealthyException(
+            mode="illegal_state",
+            component="build_chathealthy",
+            message=f"ERROR: --package={sorted(supplied)} disagrees with what "
+            f"--target={args.target!r} declares: {sorted(known)}. The record "
+            f"states which packages a target carries; a command line that "
+            f"states it differently is a second declaration of one fact. "
+            f"Drop --package and the build reads the record.")
+    for _t in targets:
+        _step(f"  {_t.target_id}: install order {package_install_order(_t)}")
+    _step(f"building every declared package {sorted(packages_wanted)} "
+          f"across {len(targets)} target(s)")
+
     import secret_preflight as _secret_preflight
     _named_targets = [t.strip() for t in args.target.split(",")
                       if t.strip().startswith("target_")]
     _secret_preflight.confirm_secrets_exist(
         coll, args.env, canonical_repo,
         target_ids=_named_targets or None,
-        packages={p.strip() for p in args.package.split(",") if p.strip()})
+        packages=set(packages_wanted))
 
     env_values_for_leak: set[str] = (
         SecretsResolver().env_values_for_leak_check(env_file)
@@ -599,30 +636,6 @@ def _build_body(args, repo_root: Path, canonical_repo: Path, canonical_build_dir
     else:
         build_n = _bump_build_counter(args.env)
 
-    targets = _select_targets(coll, args.target)
-    if not targets:
-        raise ChatHealthyException(
-            mode="aborted",
-            component="build_chathealthy",
-            message=f"ERROR: no targets matched --target={args.target!r}")
-
-    packages_wanted = {p.strip() for p in args.package.split(",") if p.strip()}
-    if not packages_wanted:
-        raise ChatHealthyException(
-            mode="aborted",
-            component="build_chathealthy",
-            message="ERROR: --package must name at least one package_id.")
-    known = {p for t in targets for p in _declared_packages(t)}
-    unknown = sorted(packages_wanted - known)
-    if unknown:
-        raise ChatHealthyException(
-            mode="aborted",
-            component="build_chathealthy",
-            message=f"ERROR: --package={sorted(unknown)} not declared by "
-            f"--target={args.target!r}. Declared: {sorted(known)}")
-    _step(f"building packages {sorted(packages_wanted)} "
-          f"across {len(targets)} target(s)")
-
     from version_counter import record_package_build
 
     built: list[Path] = []
@@ -651,7 +664,7 @@ def _build_body(args, repo_root: Path, canonical_repo: Path, canonical_build_dir
         # sibling. A site assembled from all its packages then had only the
         # one just built, and a single-package deploy could never produce a
         # complete tree.
-        selected = {p.strip() for p in args.package.split(",") if p.strip()}
+        selected = set(packages_wanted)
         exported: list[Path] = []
         for tgt in built:
             rel = tgt.relative_to(repo_root / "build")

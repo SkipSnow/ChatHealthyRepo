@@ -8,10 +8,12 @@
    render({target, append, popup, content})
      target  : string — name of a frame (Header, Footer, LeftPanel,
                RightPanel, UserMessage, UserPromptAndControl, MainWindow)
-               OR the name of a popup container (e.g. AboutChatHealtyPopUP).
      append  : boolean — true: append content; false: replace.
-     popup   : boolean — true: wrap content in a non-modal popup keyed by target.
      content : string — HTML fragment to inject.
+
+     Popups are React's. The overlay, its chrome and its close control used
+     to be built here, which is display authored outside React and is what
+     made the parent the only thing able to print the session window.
 
    getStreamedPayloads({op, payload, onEvent, onFinal, onError})
      Posts to SharedServices /gate as op + payload, reads the NDJSON
@@ -52,52 +54,6 @@
   function _frameElement(target) {
     var el = document.getElementById('frame_' + target);
     return el;
-  }
-
-  function _popupOverlay(target) {
-    var existing = document.getElementById('popup_' + target);
-    if (existing) return existing;
-    var overlay = document.createElement('div');
-    overlay.id = 'popup_' + target;
-    overlay.className = 'ch-popup-overlay';
-    overlay.style.cssText = [
-      'display:block', 'position:fixed',
-      'top:50%', 'left:50%', 'transform:translate(-50%,-50%)',
-      'min-width:32em', 'max-width:60em', 'max-height:80vh',
-      'overflow:auto', 'z-index:1000', 'background:#fff',
-      'border:0.25em solid #0b7a75',
-      'box-shadow:0 0.5em 2em rgba(0,0,0,0.25)',
-      'border-radius:0.5em', 'padding:0',
-    ].join(';');
-    var close = document.createElement('a');
-    close.href = '#';
-    close.textContent = '×';
-    close.title = 'Close';
-    close.setAttribute('aria-label', 'Close');
-    close.style.cssText = [
-      'position:absolute', 'top:0.25em', 'right:0.5em',
-      'font-size:1.75em', 'line-height:1', 'font-weight:700',
-      'color:#0b7a75', 'text-decoration:none', 'cursor:pointer',
-      'padding:0.1em 0.4em', 'border-radius:0.3em',
-    ].join(';');
-    close.addEventListener('mouseover', function () { close.style.background = '#f0fffe'; });
-    close.addEventListener('mouseout',  function () { close.style.background = 'transparent'; });
-    close.addEventListener('click', function (ev) {
-      ev.preventDefault();
-      overlay.parentNode && overlay.parentNode.removeChild(overlay);
-    });
-    overlay.appendChild(close);
-    var body = document.createElement('div');
-    body.className = 'ch-popup-body';
-    body.style.cssText = 'padding:1em';
-    overlay.appendChild(body);
-    document.body.appendChild(overlay);
-    return overlay;
-  }
-
-  function _popupBody(target) {
-    var overlay = _popupOverlay(target);
-    return overlay.querySelector('.ch-popup-body');
   }
 
   var _subscribers = {};
@@ -228,8 +184,7 @@
     if (!target) return;
     var content = (args && args.content) || '';
     var append = !!(args && args.append);
-    var popup = !!(args && args.popup);
-    var sink = popup ? _popupBody(target) : _frameElement(target);
+    var sink = _frameElement(target);
     if (!sink) return;
     if (append) {
       var tmp = document.createElement('div');
@@ -257,46 +212,6 @@
     if (!sink) return;
     sink.innerHTML = content;
     _bindActions(sink);
-  }
-
-  // print — hand the browser one element to print, which is how a page
-  // becomes a PDF without a PDF library on either side. Plumbing: the
-  // caller names the element and the document title (the browser offers
-  // that title as the filename); this function authors neither. Elements
-  // marked data-print-omit are controls, and a control printed onto paper
-  // is just a rectangle.
-  function printElement(args) {
-    var id = args && args.element;
-    if (!id) return;
-    var src = document.getElementById(id);
-    if (!src) return;
-    var clone = src.cloneNode(true);
-    var omit = clone.querySelectorAll('[data-print-omit]');
-    for (var i = 0; i < omit.length; i++) {
-      omit[i].parentNode && omit[i].parentNode.removeChild(omit[i]);
-    }
-    // Scrollable panes print as their visible slice unless released.
-    var panes = clone.querySelectorAll('*');
-    for (var j = 0; j < panes.length; j++) {
-      if (panes[j].style && panes[j].style.maxHeight) {
-        panes[j].style.maxHeight = 'none';
-        panes[j].style.overflow = 'visible';
-      }
-    }
-    var w = window.open('', '_blank');
-    if (!w) return;
-    var title = (args && args.title) || document.title || 'ChatHealthy';
-    w.document.open();
-    w.document.write(
-      '<!doctype html><html><head><meta charset="utf-8"><title>' +
-      String(title).split('<').join('').split('&').join('') +
-      '</title></head><body style="font-family:system-ui,sans-serif;">' +
-      clone.innerHTML + '</body></html>');
-    w.document.close();
-    w.focus();
-    // Give the new document a tick to lay out before the dialog opens;
-    // printing an unlaid-out document yields a blank first page.
-    w.setTimeout(function () { w.print(); }, 150);
   }
 
   function _dispatchEvent(evt, caller) {
@@ -427,7 +342,6 @@
       render({
         target: msg.target,
         append: msg.append,
-        popup: msg.popup,
         content: msg.content,
       });
     } else if (msg.type === 'router:merge') {
@@ -483,8 +397,6 @@
         }
       });
       window['__unsub_' + msg.kind] = unsub;
-    } else if (msg.type === 'router:print') {
-      printElement({ element: msg.element, title: msg.title });
     } else if (msg.type === 'router:exec') {
       try { new Function(String(msg.code || ''))(); } catch (_) {}
     }

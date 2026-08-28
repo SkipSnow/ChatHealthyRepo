@@ -28,11 +28,10 @@ export default function MobileNavDrawerWidget() {
       if (!msg || typeof msg !== 'object') return
       if (msg.type !== 'router:action') return
       if (msg.action !== 'toggle_mobile_nav') return
-      window.parent.postMessage({
-        type: 'router:render',
+      window.postMessage({
+        type: 'ch:popup',
         target: TARGET,
-        append: false,
-        popup: true,
+        title: 'Menu',
         content: buildDrawerHtml(),
       }, '*')
     }

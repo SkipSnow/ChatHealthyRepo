@@ -20,6 +20,14 @@
 # the heavy nav-tool graph. They satisfy EPIC-002-F-004-S-001 (universal
 # entrance) by keeping all client traffic on /gate.
 
+# Establish which component this process is and what the library will let it
+# load, before any other library capability is imported. The finder installed
+# here refuses a forbidden module at import, so a late import inside a
+# function is caught the same as one at the top of a file -- which only holds
+# if nothing has been imported ahead of this call.
+from chathealthy_lib.permissions import initialize as _ch_permissions_init
+_ch_permissions_init()
+
 import base64
 from chathealthy_lib import ChatHealthyLoggingService
 from chathealthy_lib.exceptions import ChatHealthyException
