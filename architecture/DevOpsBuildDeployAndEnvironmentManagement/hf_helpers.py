@@ -536,14 +536,28 @@ def _copy_tree(
     src_root: Path, dst_root: Path,
     src_rel: str, dst_rel: str,
 ) -> None:
-    """Copy a subtree into staging using the SAME exclusion rules
-    Builder uses to enumerate source_locations."""
+    """Copy a subtree, or one named file, into staging using the SAME
+    exclusion rules Builder uses to enumerate source_locations.
+
+    A src naming a file stages that file and nothing beside it. Without
+    it the smallest thing the record could say was "this directory", and
+    a directory holding two files the runtime reads and twenty-eight it
+    does not shipped all thirty -- which is how the firm's brain came to
+    sit inside a publicly pullable image.
+    """
     src = src_root / src_rel
+    if src.is_file():
+        out_path = (dst_root if dst_rel == "." else dst_root / dst_rel)
+        if dst_rel == ".":
+            out_path = dst_root / src_rel
+        out_path.parent.mkdir(parents=True, exist_ok=True)
+        shutil.copy2(src, out_path)
+        return
     if not src.is_dir():
         raise ChatHealthyException(
             mode="file_missing",
             component="hf_helpers",
-            message=f"source dir missing: {src}")
+            message=f"source path missing: {src}")
     dst = dst_root if dst_rel == "." else dst_root / dst_rel
     dst.mkdir(parents=True, exist_ok=True)
     for path in src.rglob("*"):

@@ -117,7 +117,7 @@ def _approved_register(source: str = "") -> tuple[dict[str, tuple], str]:
                 continue
             register[oid] = (
                 e.get("identity_id", ""),
-                e.get("description", ""),
+                "",  # descriptions are read from the directory, not from here
                 e.get("actor_type", ""),
                 e.get("entra_object_type", "") or e.get("identity_class", ""),
                 e.get("application", ""),
@@ -146,7 +146,7 @@ def _approved_register(source: str = "") -> tuple[dict[str, tuple], str]:
             oid = (e.get("object_id") or "").strip()
             if oid:
                 register[oid] = (
-                    e.get("identity_id", ""), e.get("description", ""),
+                    e.get("identity_id", ""), "",
                     e.get("actor_type", ""),
                     e.get("entra_object_type", "") or e.get("identity_class", ""),
                     e.get("application", ""), tuple(e.get("roles", []) or ()))
@@ -160,7 +160,7 @@ def _approved_register(source: str = "") -> tuple[dict[str, tuple], str]:
                 continue
             register[oid] = (
                 e.get("identity_id", ""),
-                e.get("description", ""),
+                "",  # descriptions are read from the directory, not from here
                 e.get("actor_type", ""),
                 e.get("entra_object_type", "") or e.get("identity_class", ""),
                 e.get("application", ""),
@@ -832,8 +832,15 @@ def _all_principals(token: str, credential, subscription_id: str) -> dict[str, d
             token):
         pid = (item.get("properties") or {}).get("principalId")
         if pid:
+            # A managed identity's service principal is owned by the resource
+            # that minted it and is not writable through Graph by anyone, so
+            # its description cannot live in the directory beside the others.
+            # It lives as a tag on the ARM resource, which is the enforcement
+            # surface for this kind of principal, and is read from there.
             found[pid] = {"name": item.get("name", pid), "kind": "ManagedIdentity",
-                          "origin": "user-assigned identity"}
+                          "origin": "user-assigned identity",
+                          "description": ((item.get("tags") or {})
+                                          .get("description", "")).strip()}
 
     for res in _get_all(
             f"{ARM}/subscriptions/{subscription_id}/resources"
@@ -861,9 +868,16 @@ def _all_principals(token: str, credential, subscription_id: str) -> dict[str, d
     # handful that matter under pages nobody reads. A principal is ours when the
     # tenant that owns its application is this one; Microsoft's carry Microsoft's.
     tenant = _tenant_id()
+    # description is selected here because the directory is where a principal's
+    # purpose is now read from. It used to come from IdentityCatalog in
+    # deployment_architecture.json -- the file this report audits, written by
+    # the same hands -- which meant the report could describe an identity as
+    # the manifest wished it were and say so with the same confidence as a
+    # fact it had observed. A description absent here renders blank, and that
+    # silence is a measurable gap rather than an invisible one.
     for kind, url in (("ServicePrincipal",
                        f"{GRAPH}/servicePrincipals"
-                       f"?$select=id,displayName,servicePrincipalType,appOwnerOrganizationId"),
+                       f"?$select=id,displayName,servicePrincipalType,appOwnerOrganizationId,description"),
                       ("User", f"{GRAPH}/users?$select=id,displayName,userPrincipalName")):
         page = url
         while page:
@@ -882,6 +896,7 @@ def _all_principals(token: str, credential, subscription_id: str) -> dict[str, d
                     "name": o.get("displayName") or o.get("userPrincipalName") or o["id"],
                     "kind": o.get("servicePrincipalType", kind),
                     "origin": "directory",
+                    "description": (o.get("description") or "").strip(),
                 }
             page = payload.get("@odata.nextLink") or ""
     return found
@@ -1365,7 +1380,9 @@ def collect() -> dict:
         entry = holders.setdefault(oid, {
             "object_id": oid,
             "name": approved[0] if approved else (known["name"] if known else ""),
-            "purpose": approved[1] if approved else "",
+            # From the directory, never from the register. The register says
+            # who is approved to exist; it does not get to say what they are.
+            "purpose": (known.get("description", "") if known else ""),
             # Group membership is the directory's own answer to "what kind of
             # thing is this" -- a person put it there. actor_type from the
             # register is the second opinion, and the two disagreeing is

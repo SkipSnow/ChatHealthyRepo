@@ -9,6 +9,9 @@ import { useEffect } from 'react'
 
 // Its own popup, beside About rather than painted over MainWindow.
 const TARGET = 'SessionInfoPopUp'
+// The element the PDF is taken from. Named here because the widget authors
+// it; ClientRouter is handed the id and prints what it is given.
+const SESSION_PRINT_ROOT = 'session_print_root'
 
 function _esc(s: any): string {
   return String(s == null ? '' : s)
@@ -62,6 +65,52 @@ function buildIdentityHtml(identity: any): string {
     <section style="margin-top:1em;">
       <h3 style="margin:0 0 0.5em 0;color:#0b7a75;">Identity</h3>
       <dl style="margin:0;display:grid;grid-template-columns:16.25em 1fr;gap:0.25em 1em;">${rows}</dl>
+    </section>
+  `
+}
+
+// Deployment Facts — the build every server carries, two ways. `deployed`
+// is what the deploy recorded; `running` is what the server says when it is
+// asked. They are shown side by side because the week they disagreed was
+// the week a Space reported one build while executing the code of another,
+// and a single number cannot show that.
+function buildDeploymentFactsHtml(rows: any[]): string {
+  if (!Array.isArray(rows) || !rows.length) {
+    return `
+      <section style="margin-top:1em;">
+        <h3 style="margin:0 0 0.25em 0;color:#0b7a75;">Deployment Facts</h3>
+        <p style="margin:0;color:#9ca3af;font-style:italic;">No deployment on record for this environment.</p>
+      </section>
+    `
+  }
+  const head = ['Server', 'Package', 'Deployed', 'Running', 'Commit']
+    .map(h => `<th style="text-align:left;padding:0.25em 0.75em 0.25em 0;color:#374151;border-bottom:0.125em solid #d1fae5;">${_esc(h)}</th>`)
+    .join('')
+  const body = rows.map(r => {
+    const deployed = r.deployed_build == null ? '—' : String(r.deployed_build)
+    const running  = r.error ? `unreachable`
+                   : r.reported_build == null ? '—' : String(r.reported_build)
+    const disagree = !r.error
+      && r.deployed_build != null && r.reported_build != null
+      && String(r.deployed_build) !== String(r.reported_build)
+    const runColor = r.error ? '#d97706' : disagree ? '#b91c1c' : '#1f2937'
+    const note = disagree ? ' ≠ deployed' : ''
+    const title = r.error ? ` title="${_esc(r.error)}"` : ''
+    return `<tr>
+      <td style="padding:0.25em 0.75em 0.25em 0;color:#1f2937;">${_esc(r.target_id)}</td>
+      <td style="padding:0.25em 0.75em 0.25em 0;color:#1f2937;">${_esc(r.package_id)}</td>
+      <td style="padding:0.25em 0.75em 0.25em 0;color:#1f2937;">${_esc(deployed)}</td>
+      <td style="padding:0.25em 0.75em 0.25em 0;color:${runColor};"${title}>${_esc(running + note)}</td>
+      <td style="padding:0.25em 0.75em 0.25em 0;color:#6b7280;">${_esc(r.reported_commit || '')}</td>
+    </tr>`
+  }).join('')
+  return `
+    <section style="margin-top:1em;">
+      <h3 style="margin:0 0 0.25em 0;color:#0b7a75;">Deployment Facts</h3>
+      <p style="color:#6b7280;margin:0 0 0.5em 0;">What the deploy recorded, beside what each server says it is running.</p>
+      <div style="overflow-x:auto;">
+        <table style="border-collapse:collapse;width:100%;"><thead><tr>${head}</tr></thead><tbody>${body}</tbody></table>
+      </div>
     </section>
   `
 }
@@ -177,10 +226,15 @@ function buildSessionHtml(data: any): string {
          ${buildThreadHtml('Actions',    actions,    buildActionRow)}
        </div>`
   return `
-    <div style="display:flex;flex-direction:column;height:100%;min-height:0;padding:1em;box-sizing:border-box;max-width:102.5em;margin:0 auto;text-align:left;line-height:1.35;">
-      <h2 style="margin:0 0 0.5em 0;color:#0b7a75;">Shared Services — User Object</h2>
+    <div id="${SESSION_PRINT_ROOT}" style="display:flex;flex-direction:column;height:100%;min-height:0;padding:1em;box-sizing:border-box;max-width:102.5em;margin:0 auto;text-align:left;line-height:1.35;">
+      <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:1em;">
+        <h2 style="margin:0 0 0.5em 0;color:#0b7a75;">Shared Services — User Object</h2>
+        <button type="button" data-router-action="session_pdf" data-print-omit="1"
+          style="flex:none;background:#0b7a75;color:#fff;border:none;border-radius:0.3em;padding:0.4em 0.9em;cursor:pointer;font:inherit;">PDF</button>
+      </div>
       <p style="color:#6b7280;margin:0 0 0.5em 0;">Live evidence that the entrance code completed. The cookie carries only the GUID; the user object lives in <code>admin.Sessions</code>.</p>
       ${buildIdentityHtml(identity)}
+      ${buildDeploymentFactsHtml((data && data.deployment_facts) || [])}
       ${buildParametersHtml((data && data.parameters) || {})}
       <section style="margin-top:1em;flex:1;min-height:0;display:flex;flex-direction:column;">
         <h3 style="margin:0 0 0.5em 0;color:#0b7a75;">Session Conversation History</h3>
@@ -217,6 +271,14 @@ export default function SessionDataWidget() {
           op: 'session_data',
           payload: {},
           call_id: 'session_data-' + Date.now(),
+        }, '*')
+        return
+      }
+      if (msg.type === 'router:action' && msg.action === 'session_pdf') {
+        window.parent.postMessage({
+          type: 'router:print',
+          element: SESSION_PRINT_ROOT,
+          title: 'ChatHealthy session ' + new Date().toISOString().slice(0, 19),
         }, '*')
         return
       }

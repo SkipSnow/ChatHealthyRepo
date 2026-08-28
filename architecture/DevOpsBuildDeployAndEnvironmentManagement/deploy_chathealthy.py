@@ -573,6 +573,37 @@ def _deploy_to_cloud(args, repo_root: Path) -> int:
                             package_selection=pkg_selection or None)
 
 
+def _record_what_landed(args, repo_root: Path) -> None:
+    """Record which build of which package now sits on which target.
+
+    version_counter has carried record_package_deploy since the counter was
+    written, and nothing has ever called it: every row in PackageBuilds says
+    'built' and none says 'deployed'. So the question the docstring there
+    promises to answer -- which build of this package is live in prod --
+    could only be answered by asking prod, which is the thing a record
+    exists to avoid.
+
+    Recorded after the deploy returned success, never before: a row saying a
+    package landed when it did not is worse than no row.
+    """
+    from _deploy_chain import package_build_facts  # noqa: PLC0415
+    from version_counter import record_package_deploy  # noqa: PLC0415
+    targets = [t.strip() for t in args.target.split(",") if t.strip()]
+    packages = [p.strip() for p in args.package.split(",") if p.strip()]
+    for target_id in targets:
+        for package in packages:
+            try:
+                facts = package_build_facts(repo_root, target_id, package)
+            except Exception:  # noqa: BLE001 - target may not carry this package
+                continue
+            if not facts:
+                continue
+            record_package_deploy(target_id, package,
+                                  int(facts.get("build") or 0), args.env)
+            _CH_LOG.info(f"[deploy] recorded deployed {target_id}/{package} "
+                         f"build={facts.get('build')} env={args.env}")
+
+
 def _execute_deploy(args, repo_root: Path, worker, approval) -> int:
     """Run the deploy and record what happened to it.
 
@@ -591,6 +622,8 @@ def _execute_deploy(args, repo_root: Path, worker, approval) -> int:
     finally:
         if worker is not None:
             worker.record_outcome(approval, "succeeded" if rc == 0 else "failed")
+    if rc == 0:
+        _record_what_landed(args, repo_root)
     return rc
 
 

@@ -941,11 +941,6 @@
         "CLOUDFLARE_ACCOUNT_ID": "local_env",
         "CLOUDFLARE_PIPELINE_AUTH_HEADER": "azure_key_vault"
       },
-      "secret_descriptions": {
-        "CLOUDFLARE_ACCOUNT_ID": "The Cloudflare account the website belongs to",
-        "CLOUDFLARE_API_TOKEN": "Cloudflare token for publishing the website",
-        "CLOUDFLARE_PIPELINE_AUTH_HEADER": "Header authorising calls to the Cloudflare worker"
-      },
       "entitlements": [
         {
           "kind": "cloudflare_api_token_scope",
@@ -957,7 +952,10 @@
             "Zone:Firewall Services:Edit"
           ]
         }
-      ]
+      ],
+      "secret_descriptions": {
+        "CLOUDFLARE_ACCOUNT_ID": "The Cloudflare account the website belongs to"
+      }
     },
     {
       "target_id": "target_hf_space_evaluatecare_backend",
@@ -1399,18 +1397,6 @@
         "PIPELINEEDITOR_AZURE_CLIENT_ID": "local_env",
         "PIPELINEEDITOR_AZURE_CLIENT_SECRET": "azure_key_vault"
       },
-      "secret_descriptions": {
-        "EVALCARE_SIGNING_KEY_B64": "The EvaluateCare signing key, encoded for transport",
-        "EVALCARE_SIGNING_KEY_PEM": "Key EvaluateCare signs its session tokens with",
-        "FRONTENDUSER_AZURE_CLIENT_ID": "Identifies frontendUser to Azure",
-        "FRONTENDUSER_AZURE_CLIENT_SECRET": "Proves frontendUser to Azure",
-        "FRONTENDUSER_AZURE_TENANT_ID": "The directory frontendUser belongs to",
-        "HF_TOKEN": "Hugging Face token for publishing to a Space",
-        "KEY_VAULT_URI": "Address of the key vault holding every credential",
-        "PIPELINEEDITOR_AZURE_CLIENT_ID": "Identifies pipelineEditor to Azure",
-        "PIPELINEEDITOR_AZURE_CLIENT_SECRET": "Proves pipelineEditor to Azure",
-        "PIPELINEEDITOR_AZURE_TENANT_ID": "The directory pipelineEditor belongs to"
-      },
       "entitlements": [
         {
           "kind": "hf_space_membership",
@@ -1439,6 +1425,10 @@
         "CH_LOG_LEVEL": "local_env",
         "MONGO_HOST_CHATHEALTHYFRONTEND": "literal:chathealthyfrontend.mdwahg.mongodb.net",
         "CH_MONGO_HOST_CHATHEALTHYFRONTEND": "rename_from:MONGO_HOST_CHATHEALTHYFRONTEND"
+      },
+      "secret_descriptions": {
+        "FRONTENDUSER_AZURE_CLIENT_ID": "Identifies frontendUser to Azure",
+        "FRONTENDUSER_AZURE_TENANT_ID": "The directory frontendUser belongs to"
       }
     },
     {
@@ -2854,27 +2844,6 @@
         "PIPELINEEDITOR_AZURE_CLIENT_ID": "local_env",
         "PIPELINEEDITOR_AZURE_CLIENT_SECRET": "azure_key_vault"
       },
-      "secret_descriptions": {
-        "ADMIN_UNLOCK_KEY": "Releases a user locked out by the safety check",
-        "ANTHROPIC_API_KEY": "Anthropic API key for language model calls",
-        "API_TOKEN_MAP": "Which token each calling service must present",
-        "FINDCARE_SIGNING_KEY_B64": "The FindCare signing key, encoded for transport",
-        "FINDCARE_SIGNING_KEY_PEM": "Key FindCare signs its session tokens with",
-        "FRONTENDUSER_AZURE_CLIENT_ID": "Identifies frontendUser to Azure",
-        "FRONTENDUSER_AZURE_CLIENT_SECRET": "Proves frontendUser to Azure",
-        "FRONTENDUSER_AZURE_TENANT_ID": "The directory frontendUser belongs to",
-        "GEMINI_API_KEY": "Google Gemini API key for language model calls",
-        "GOOGLE_API_KEY": "Google API key for geocoding provider addresses",
-        "HF_TOKEN": "Hugging Face token for publishing to a Space",
-        "KEY_VAULT_URI": "Address of the key vault holding every credential",
-        "NOTIFICATION_FROM_EMAIL": "Address notification email is sent from",
-        "NOTIFICATION_TO_EMAIL": "Address notification email is sent to",
-        "OPENAI_API_KEY": "OpenAI API key for language model and embedding calls",
-        "PIPELINEEDITOR_AZURE_CLIENT_ID": "Identifies pipelineEditor to Azure",
-        "PIPELINEEDITOR_AZURE_CLIENT_SECRET": "Proves pipelineEditor to Azure",
-        "PIPELINEEDITOR_AZURE_TENANT_ID": "The directory pipelineEditor belongs to",
-        "SPARKMAIL_API_KEY": "SparkPost key for sending notification email"
-      },
       "entitlements": [
         {
           "kind": "hf_space_membership",
@@ -2891,7 +2860,10 @@
           "src": "Code/Shared"
         },
         {
-          "src": "brain/machine_artifacts/content"
+          "src": "brain/machine_artifacts/content/controlled_vocabularies.json"
+        },
+        {
+          "src": "brain/machine_artifacts/content/prompts.json"
         },
         {
           "src": "Code/ConversationalUX/ChatHealthyWhoAmIChat/me"
@@ -2917,6 +2889,10 @@
         "CH_LOG_LEVEL": "local_env",
         "MONGO_HOST_CHATHEALTHYFRONTEND": "literal:chathealthyfrontend.mdwahg.mongodb.net",
         "CH_MONGO_HOST_CHATHEALTHYFRONTEND": "rename_from:MONGO_HOST_CHATHEALTHYFRONTEND"
+      },
+      "secret_descriptions": {
+        "FRONTENDUSER_AZURE_CLIENT_ID": "Identifies frontendUser to Azure",
+        "FRONTENDUSER_AZURE_TENANT_ID": "The directory frontendUser belongs to"
       }
     },
     {
@@ -3601,24 +3577,6 @@
         "PIPELINEEDITOR_AZURE_CLIENT_ID": "local_env",
         "PIPELINEEDITOR_AZURE_CLIENT_SECRET": "azure_key_vault"
       },
-      "secret_descriptions": {
-        "ANTHROPIC_API_KEY": "Anthropic API key for language model calls",
-        "FRONTENDUSER_AZURE_CLIENT_ID": "Identifies frontendUser to Azure",
-        "FRONTENDUSER_AZURE_CLIENT_SECRET": "Proves frontendUser to Azure",
-        "FRONTENDUSER_AZURE_TENANT_ID": "The directory frontendUser belongs to",
-        "GEMINI_API_KEY": "Google Gemini API key for language model calls",
-        "GOOGLE_API_KEY": "Google API key for geocoding provider addresses",
-        "GOOGLE_OAUTH_CLIENT_ID": "Identifies ChatHealthy to Google when a user signs in",
-        "GOOGLE_OAUTH_CLIENT_SECRET": "Proves ChatHealthy to Google when a user signs in",
-        "HF_TOKEN": "Hugging Face token for publishing to a Space",
-        "KEY_VAULT_URI": "Address of the key vault holding every credential",
-        "OPENAI_API_KEY": "OpenAI API key for language model and embedding calls",
-        "PIPELINEEDITOR_AZURE_CLIENT_ID": "Identifies pipelineEditor to Azure",
-        "PIPELINEEDITOR_AZURE_CLIENT_SECRET": "Proves pipelineEditor to Azure",
-        "PIPELINEEDITOR_AZURE_TENANT_ID": "The directory pipelineEditor belongs to",
-        "SHARED_SIGNING_KEY_B64": "The SharedServices signing key, encoded for transport",
-        "SHARED_SIGNING_KEY_PEM": "Key SharedServices signs its session tokens with"
-      },
       "entitlements": [
         {
           "kind": "hf_space_membership",
@@ -3663,6 +3621,11 @@
         "CH_LOG_LEVEL": "local_env",
         "MONGO_HOST_CHATHEALTHYFRONTEND": "literal:chathealthyfrontend.mdwahg.mongodb.net",
         "CH_MONGO_HOST_CHATHEALTHYFRONTEND": "rename_from:MONGO_HOST_CHATHEALTHYFRONTEND"
+      },
+      "secret_descriptions": {
+        "FRONTENDUSER_AZURE_CLIENT_ID": "Identifies frontendUser to Azure",
+        "FRONTENDUSER_AZURE_TENANT_ID": "The directory frontendUser belongs to",
+        "GOOGLE_OAUTH_CLIENT_ID": "Identifies ChatHealthy to Google when a user signs in"
       }
     },
     {
@@ -4159,17 +4122,17 @@
         "HF_TOKEN": "azure_key_vault",
         "ANTHROPIC_API_KEY": "azure_key_vault"
       },
+      "variables": {
+        "CHATHEALTHY_PROJECT_ROOT": "local_env",
+        "ENV_PREFIX": "local_env"
+      },
       "secret_descriptions": {
-        "ANTHROPIC_API_KEY": "Anthropic API key for language model calls",
-        "AZ_VM_ADMIN_SSH_PRIVATE_KEY_B64": "Private key used to reach the pipeline run host",
         "CHATHEALTHY_PROJECT_ROOT": "Where the project tree sits on the workstation",
         "CLOUDFLARE_ACCOUNT_ID": "The Cloudflare account the website belongs to",
-        "CLOUDFLARE_API_TOKEN": "Cloudflare token for publishing the website",
         "ENV_PREFIX": "Which environment this component is running as",
         "EVALCARE_URL": "Where EvaluateCare answers",
         "GITHUB_ACTIONS": "Marks that the code is running in a build pipeline",
         "GITHUB_SHA": "The commit the running build was made from",
-        "HF_TOKEN": "Hugging Face token for publishing to a Space",
         "PUSHOVER_TOKEN": "Pushover application token for operator alerts",
         "PUSHOVER_USER": "Pushover recipient key for operator alerts",
         "SHARED_SERVICES_URL": "Where SharedServices answers",
@@ -4177,10 +4140,6 @@
         "SMOKE_TEST_URL": "Address the smoke test calls",
         "SPACE_ID": "Which Hugging Face Space this component runs in",
         "WEBSITE_SITE_NAME": "Name Azure gives the running function app"
-      },
-      "variables": {
-        "CHATHEALTHY_PROJECT_ROOT": "local_env",
-        "ENV_PREFIX": "local_env"
       }
     },
     {
@@ -4406,7 +4365,6 @@
         "WEBSITE_SITE_NAME": "local_env"
       },
       "secret_descriptions": {
-        "AZ_VM_ADMIN_SSH_PRIVATE_KEY_B64": "Private key used to reach the pipeline run host",
         "CHATHEALTHY_PROJECT_ROOT": "Where the project tree sits on the workstation",
         "ENV_PREFIX": "Which environment this component is running as",
         "EVALCARE_URL": "Where EvaluateCare answers",
@@ -4475,29 +4433,6 @@
                 "ATLAS_PIPELINE_PUBLIC_KEY": "local_env",
                 "ATLAS_PIPELINE_PRIVATE_KEY": "local_env"
               },
-              "secret_descriptions": {
-                "ACTIVITY_WINDOW_MINUTES": "How long a cluster may idle before it is paused",
-                "ATLAS_PRIVATE_KEY": "MongoDB Atlas administrative API private key",
-                "ATLAS_PROJECT_ID": "The Atlas project the clusters belong to",
-                "ATLAS_PUBLIC_KEY": "MongoDB Atlas administrative API public key",
-                "AZ_AUTOMATION_ACCOUNT": "The automation account that runs scheduled work",
-                "AZ_AUTOMATION_RESOURCE_GROUP": "The resource group the automation account is in",
-                "AZ_RESOURCE_GROUP": "The resource group resources are created in",
-                "AZ_SUBSCRIPTION_ID": "The Azure subscription resources are created in",
-                "AZ_VM_ADMIN_SSH_PUBKEY": "Public key permitted to reach the pipeline run host",
-                "AZ_VM_ADMIN_USERNAME": "Administrative account on the pipeline run host",
-                "AZ_VM_LOCATION": "Region the pipeline run host is created in",
-                "AZ_VM_RESOURCE_GROUP": "Resource group the pipeline run host is created in",
-                "AZ_VM_SIZE": "Size of the machine the pipeline run is given",
-                "ENV_PREFIX": "Which environment this component is running as",
-                "NOTIFICATION_FROM_EMAIL": "Address notification email is sent from",
-                "NOTIFICATION_TO_EMAIL": "Address notification email is sent to",
-                "PIPELINE_CLUSTER": "Name of the Atlas cluster the pipeline writes to",
-                "SPARKMAIL_API_KEY": "SparkPost key for sending notification email",
-                "CH_LOG_DB": "Database the structured log records are written to",
-                "ATLAS_PIPELINE_PUBLIC_KEY": "Atlas API public key that may pause and resume the pipeline cluster",
-                "ATLAS_PIPELINE_PRIVATE_KEY": "Atlas API private key that may pause and resume the pipeline cluster"
-              },
               "config": {
                 "runbook_name": "ReservationReaper",
                 "schedule_names": [
@@ -4523,6 +4458,21 @@
                 ],
                 "automation_variables": [],
                 "node_address": "https://management.azure.com/subscriptions/7a17eec1-c477-4c7c-b1c1-d0662ce7a1ee/resourceGroups/rg-chathealthy-pipeline-dev/providers/Microsoft.Automation/automationAccounts/ChatHealthyJobManager/runbooks/ReservationReaper"
+              },
+              "secret_descriptions": {
+                "ACTIVITY_WINDOW_MINUTES": "How long a cluster may idle before it is paused",
+                "AZ_AUTOMATION_ACCOUNT": "The automation account that runs scheduled work",
+                "AZ_AUTOMATION_RESOURCE_GROUP": "The resource group the automation account is in",
+                "AZ_RESOURCE_GROUP": "The resource group resources are created in",
+                "AZ_SUBSCRIPTION_ID": "The Azure subscription resources are created in",
+                "AZ_VM_ADMIN_SSH_PUBKEY": "Public key permitted to reach the pipeline run host",
+                "AZ_VM_ADMIN_USERNAME": "Administrative account on the pipeline run host",
+                "AZ_VM_LOCATION": "Region the pipeline run host is created in",
+                "AZ_VM_RESOURCE_GROUP": "Resource group the pipeline run host is created in",
+                "AZ_VM_SIZE": "Size of the machine the pipeline run is given",
+                "ENV_PREFIX": "Which environment this component is running as",
+                "PIPELINE_CLUSTER": "Name of the Atlas cluster the pipeline writes to",
+                "CH_LOG_DB": "Database the structured log records are written to"
               }
             },
             {
@@ -4541,10 +4491,6 @@
               "secrets": {
                 "API_TOKEN_MAP": "local_env",
                 "CH_LOG_DB": "local_env"
-              },
-              "secret_descriptions": {
-                "API_TOKEN_MAP": "Which token each calling service must present",
-                "CH_LOG_DB": "Database the structured log records are written to"
               },
               "config": {
                 "runbook_name": "ChangeDBVersion",
@@ -4565,6 +4511,9 @@
                 ],
                 "automation_variables": [],
                 "node_address": "https://management.azure.com/subscriptions/7a17eec1-c477-4c7c-b1c1-d0662ce7a1ee/resourceGroups/rg-chathealthy-pipeline-dev/providers/Microsoft.Automation/automationAccounts/ChatHealthyJobManager/runbooks/ChangeDBVersion"
+              },
+              "secret_descriptions": {
+                "CH_LOG_DB": "Database the structured log records are written to"
               }
             },
             {
@@ -4599,25 +4548,6 @@
                 "ATLAS_PIPELINE_PRIVATE_KEY": "local_env",
                 "GEMINI_API_KEY": "local_env"
               },
-              "secret_descriptions": {
-                "ATLAS_PRIVATE_KEY": "MongoDB Atlas administrative API private key",
-                "ATLAS_PROJECT_ID": "The Atlas project the clusters belong to",
-                "ATLAS_PUBLIC_KEY": "MongoDB Atlas administrative API public key",
-                "AZURE_STORAGE_CONNECTION_STRING": "Connection string for the general storage account",
-                "AZ_VM_ADMIN_SSH_PUBKEY": "Public key permitted to reach the pipeline run host",
-                "KEY_VAULT_URI": "Address of the key vault holding every credential",
-                "PIPELINEEDITOR_AZURE_CLIENT_ID": "Identifies pipelineEditor to Azure",
-                "PIPELINEEDITOR_AZURE_CLIENT_SECRET": "Proves pipelineEditor to Azure",
-                "PIPELINEEDITOR_AZURE_TENANT_ID": "The directory pipelineEditor belongs to",
-                "PIPELINE_SECRET_NAMES": "Which vault secrets the pipeline run host is permitted to read",
-                "CH_LOG_DB": "Database the structured log records are written to",
-                "SPARKMAIL_API_KEY": "Proves ChatHealthy to the mail server",
-                "NOTIFICATION_FROM_EMAIL": "Address notification email is sent from",
-                "NOTIFICATION_TO_EMAIL": "Who pipeline failures are reported to",
-                "ATLAS_PIPELINE_PUBLIC_KEY": "Atlas API public key that may pause and resume the pipeline cluster",
-                "ATLAS_PIPELINE_PRIVATE_KEY": "Atlas API private key that may pause and resume the pipeline cluster",
-                "GEMINI_API_KEY": "Google Gemini key used to classify NPPES other-identifier phrases per state"
-              },
               "config": {
                 "runbook_name": "ProviderPipelineRunbook",
                 "schedule_names": [],
@@ -4646,6 +4576,11 @@
                   "kv_vault": "kv-chpipeline-dev",
                   "kv_secret_name": "PROVIDER-PIPELINE-WEBHOOK-URL"
                 }
+              },
+              "secret_descriptions": {
+                "AZ_VM_ADMIN_SSH_PUBKEY": "Public key permitted to reach the pipeline run host",
+                "PIPELINE_SECRET_NAMES": "Which vault secrets the pipeline run host is permitted to read",
+                "CH_LOG_DB": "Database the structured log records are written to"
               }
             },
             {
@@ -4670,16 +4605,6 @@
                 "PIPELINEEDITOR_AZURE_CLIENT_ID": "local_env",
                 "PIPELINEEDITOR_AZURE_CLIENT_SECRET": "local_env",
                 "CH_LOG_DB": "local_env"
-              },
-              "secret_descriptions": {
-                "AUTOMATION_ENV_PREFIX": "Which environment the automation job is running for",
-                "AUTOMATION_RESOURCE_GROUP": "The resource group the automation account is in",
-                "AUTOMATION_SUBSCRIPTION_ID": "The subscription the automation account is in",
-                "KEY_VAULT_URI": "Address of the key vault holding every credential",
-                "PIPELINEEDITOR_AZURE_CLIENT_ID": "Identifies pipelineEditor to Azure",
-                "PIPELINEEDITOR_AZURE_CLIENT_SECRET": "Proves pipelineEditor to Azure",
-                "PIPELINEEDITOR_AZURE_TENANT_ID": "The directory pipelineEditor belongs to",
-                "CH_LOG_DB": "Database the structured log records are written to"
               },
               "config": {
                 "runbook_name": "WatchdogRunbook",
@@ -4706,6 +4631,12 @@
                 ],
                 "automation_variables": [],
                 "node_address": "https://management.azure.com/subscriptions/7a17eec1-c477-4c7c-b1c1-d0662ce7a1ee/resourceGroups/rg-chathealthy-pipeline-dev/providers/Microsoft.Automation/automationAccounts/ChatHealthyJobManager/runbooks/WatchdogRunbook"
+              },
+              "secret_descriptions": {
+                "AUTOMATION_ENV_PREFIX": "Which environment the automation job is running for",
+                "AUTOMATION_RESOURCE_GROUP": "The resource group the automation account is in",
+                "AUTOMATION_SUBSCRIPTION_ID": "The subscription the automation account is in",
+                "CH_LOG_DB": "Database the structured log records are written to"
               }
             },
             {
@@ -4729,15 +4660,6 @@
                 "DEVOPSUSER_AZURE_TENANT_ID": "local_env",
                 "DEVOPSUSER_AZURE_CLIENT_ID": "local_env",
                 "DEVOPSUSER_AZURE_CLIENT_SECRET": "local_env"
-              },
-              "secret_descriptions": {
-                "ENTITLEMENT_REPORT_TO_EMAIL": "Who the daily entitlement report is sent to",
-                "NOTIFICATION_FROM_EMAIL": "Address notification email is sent from",
-                "SPARKMAIL_API_KEY": "SparkPost key for sending notification email",
-                "CH_LOG_DB": "Database the structured log records are written to",
-                "DEVOPSUSER_AZURE_TENANT_ID": "Tenant the report enumerates. Not a secret.",
-                "DEVOPSUSER_AZURE_CLIENT_ID": "Identity the report runs as. Not a secret.",
-                "DEVOPSUSER_AZURE_CLIENT_SECRET": "Credential the report authenticates with."
               },
               "config": {
                 "runbook_name": "EntitlementReport",
@@ -4788,6 +4710,12 @@
                 ],
                 "automation_variables": [],
                 "node_address": "https://management.azure.com/subscriptions/7a17eec1-c477-4c7c-b1c1-d0662ce7a1ee/resourceGroups/rg-chathealthy-pipeline-dev/providers/Microsoft.Automation/automationAccounts/ChatHealthyJobManager/runbooks/EntitlementReport"
+              },
+              "secret_descriptions": {
+                "ENTITLEMENT_REPORT_TO_EMAIL": "Who the daily entitlement report is sent to",
+                "CH_LOG_DB": "Database the structured log records are written to",
+                "DEVOPSUSER_AZURE_TENANT_ID": "Tenant the report enumerates. Not a secret.",
+                "DEVOPSUSER_AZURE_CLIENT_ID": "Identity the report runs as. Not a secret."
               }
             }
           ],
@@ -4857,30 +4785,6 @@
         "DEVOPSUSER_AZURE_CLIENT_ID": "local_env",
         "DEVOPSUSER_AZURE_CLIENT_SECRET": "azure_key_vault"
       },
-      "secret_descriptions": {
-        "ENTITLEMENT_REPORT_TO_EMAIL": "Who the daily entitlement report is sent to",
-        "AZ_VM_ADMIN_SSH_PUBKEY": "Public key permitted to reach the pipeline run host",
-        "AZ_VM_ADMIN_USERNAME": "Admin account name on the pipeline run host",
-        "AZ_VM_LOCATION": "Azure region the pipeline run host is created in",
-        "AZ_VM_RESOURCE_GROUP": "Resource group the pipeline run host is created in",
-        "AZ_VM_SIZE": "Virtual machine size of the pipeline run host",
-        "AZ_AUTOMATION_ACCOUNT": "Automation Account that runs the runbooks",
-        "AZ_AUTOMATION_RESOURCE_GROUP": "Resource group holding the Automation Account",
-        "AZ_RESOURCE_GROUP": "Resource group holding the pipeline estate",
-        "AZ_SUBSCRIPTION_ID": "Subscription the pipeline estate lives in",
-        "ENV_PREFIX": "Which environment a run belongs to",
-        "ACTIVITY_WINDOW_MINUTES": "How long a cluster may idle before it is paused",
-        "PIPELINE_CLUSTER": "Atlas cluster the pipeline coordinates on",
-        "AUTOMATION_ENV_PREFIX": "Environment the Automation Account runs as",
-        "AUTOMATION_RESOURCE_GROUP": "Resource group the runbooks address",
-        "AUTOMATION_SUBSCRIPTION_ID": "Subscription the runbooks address",
-        "PIPELINE_SECRET_NAMES": "Which vault secrets the pipeline run host is permitted to read",
-        "CH_LOG_DB": "Database the structured log records are written to",
-        "GEMINI_API_KEY": "Google Gemini key used to classify NPPES other-identifier phrases per state",
-        "DEVOPSUSER_AZURE_TENANT_ID": "Tenant the report enumerates. Not a secret.",
-        "DEVOPSUSER_AZURE_CLIENT_ID": "Identity the report runs as. Not a secret.",
-        "DEVOPSUSER_AZURE_CLIENT_SECRET": "Credential the report authenticates with."
-      },
       "entitlements": [
         {
           "kind": "azure_rbac_role_assignment",
@@ -4916,7 +4820,29 @@
       "provisioning": "deploy_provisioned",
       "allowed_roles": [
         "Automation Operator"
-      ]
+      ],
+      "secret_descriptions": {
+        "ENTITLEMENT_REPORT_TO_EMAIL": "Who the daily entitlement report is sent to",
+        "AZ_VM_ADMIN_SSH_PUBKEY": "Public key permitted to reach the pipeline run host",
+        "AZ_VM_ADMIN_USERNAME": "Admin account name on the pipeline run host",
+        "AZ_VM_LOCATION": "Azure region the pipeline run host is created in",
+        "AZ_VM_RESOURCE_GROUP": "Resource group the pipeline run host is created in",
+        "AZ_VM_SIZE": "Virtual machine size of the pipeline run host",
+        "AZ_AUTOMATION_ACCOUNT": "Automation Account that runs the runbooks",
+        "AZ_AUTOMATION_RESOURCE_GROUP": "Resource group holding the Automation Account",
+        "AZ_RESOURCE_GROUP": "Resource group holding the pipeline estate",
+        "AZ_SUBSCRIPTION_ID": "Subscription the pipeline estate lives in",
+        "ENV_PREFIX": "Which environment a run belongs to",
+        "ACTIVITY_WINDOW_MINUTES": "How long a cluster may idle before it is paused",
+        "PIPELINE_CLUSTER": "Atlas cluster the pipeline coordinates on",
+        "AUTOMATION_ENV_PREFIX": "Environment the Automation Account runs as",
+        "AUTOMATION_RESOURCE_GROUP": "Resource group the runbooks address",
+        "AUTOMATION_SUBSCRIPTION_ID": "Subscription the runbooks address",
+        "PIPELINE_SECRET_NAMES": "Which vault secrets the pipeline run host is permitted to read",
+        "CH_LOG_DB": "Database the structured log records are written to",
+        "DEVOPSUSER_AZURE_TENANT_ID": "Tenant the report enumerates. Not a secret.",
+        "DEVOPSUSER_AZURE_CLIENT_ID": "Identity the report runs as. Not a secret."
+      }
     },
     {
       "target_id": "target_azure_resource_group_pipeline",
@@ -4956,8 +4882,7 @@
           ]
         }
       ],
-      "files": [],
-      "secret_descriptions": {}
+      "files": []
     },
     {
       "target_id": "target_azure_key_vault_pipeline",
@@ -5028,57 +4953,6 @@
         "mongo-host-ChatHealthyDataPipelines": "literal:chathealthydatapipeline.mdwahg.mongodb.net",
         "mongo-attempts-ChatHealthyDataPipelines": "literal:3",
         "mongo-nocache-ChatHealthyDataPipelines": "literal:true"
-      },
-      "secret_descriptions": {
-        "ANTHROPIC_API_KEY": "Anthropic API key for language model calls",
-        "ATLAS_PRIVATE_KEY": "MongoDB Atlas administrative API private key",
-        "ATLAS_PROJECT_ID": "The Atlas project the clusters belong to",
-        "ATLAS_PUBLIC_KEY": "MongoDB Atlas administrative API public key",
-        "AZURE_STORAGE_CONNECTION_STRING": "Connection string for the general storage account",
-        "CLOUDFLARE_PIPELINE_AUTH_HEADER": "Header authorising calls to the Cloudflare worker",
-        "GEMINI_API_KEY": "Google Gemini API key for language model calls",
-        "GOOGLE_MAPS_API_KEY": "Google Maps key for geocoding provider addresses",
-        "KEY_VAULT_URI": "Address of the key vault holding every credential",
-        "NOTIFICATION_FROM_EMAIL": "Address notification email is sent from",
-        "NOTIFICATION_TO_EMAIL": "Address notification email is sent to",
-        "PIPELINEEDITOR_AZURE_CLIENT_ID": "Identifies pipelineEditor to Azure",
-        "PIPELINEEDITOR_AZURE_CLIENT_SECRET": "Proves pipelineEditor to Azure",
-        "PIPELINEEDITOR_AZURE_TENANT_ID": "The directory pipelineEditor belongs to",
-        "PIPELINE_STORAGE_CONNECTION_STRING": "Connection string for the pipeline storage account",
-        "SOURCE_URL_CENSUS_ZCTA_COUNTY": "Where census postcode-to-county data is downloaded from",
-        "SOURCE_URL_NPPES_NPI": "Where the national provider registry is downloaded from",
-        "SOURCE_URL_NUCC": "Where the provider taxonomy is downloaded from",
-        "SOURCE_URL_USDA_RUCC": "Where the rural-urban county codes are downloaded from",
-        "SPARKMAIL_API_KEY": "SparkPost key for sending notification email",
-        "SPECIALTY_CLASSIFICATION_CATALOG_URL": "Where the specialty catalogue is published",
-        "DEVOPSUSER-PASSWORD": "Password for the DevOpsUser MongoDB account",
-        "PROVIDER-PIPELINE-WEBHOOK-URL": "Webhook that starts a provider pipeline run",
-        "ca-bootstrap-complete": "Marker recording that the authority was initialised",
-        "ca-intermediate-cert": "Public intermediate certificate of the authority",
-        "ca-intermediate-privatekey": "Signing key of the intermediate authority",
-        "ca-root-cert": "Public root certificate of the ChatHealthy authority",
-        "ca-root-privatekey": "Signing key of the root authority; issues every certificate",
-        "cert-DevOpsUser": "Certificate identifying DevOpsUser to MongoDB",
-        "cert-frontendUser": "Certificate identifying frontendUser to MongoDB",
-        "cert-pipelineEditor": "Certificate identifying pipelineEditor to MongoDB",
-        "certs-pipeline-control": "Superseded control certificate; no longer read",
-        "certs-pipeline-control-key": "Superseded control private key; no longer read",
-        "certs-pipeline-runbook": "Superseded runbook certificate; no longer read",
-        "certs-pipeline-runbook-key": "Superseded runbook private key; no longer read",
-        "env-file": "Materialised environment file used to stand up locally",
-        "key-DevOpsUser": "Private key paired with cert-DevOpsUser",
-        "key-frontendUser": "Private key paired with cert-frontendUser",
-        "key-pipelineEditor": "Private key paired with cert-pipelineEditor",
-        "mongo-ca-cert": "Authority certificate used to verify the MongoDB server",
-        "mongo-client-cert-key-pipelineEditor": "Superseded pipelineEditor certificate and key",
-        "mongo-client-cert-pipelineEditor": "Superseded pipelineEditor client certificate",
-        "mongo-client-key-pipelineEditor": "Superseded pipelineEditor client key",
-        "ATLAS_PIPELINE_PUBLIC_KEY": "Atlas API public key that may pause and resume the pipeline cluster",
-        "ATLAS_PIPELINE_PRIVATE_KEY": "Atlas API private key that may pause and resume the pipeline cluster",
-        "mongo-host-ChatHealthyFrontEnd": "Atlas host the front-end cluster answers on",
-        "mongo-host-ChatHealthyDataPipelines": "Atlas host the pipeline cluster answers on",
-        "mongo-attempts-ChatHealthyDataPipelines": "Connect attempts; the cluster pauses",
-        "mongo-nocache-ChatHealthyDataPipelines": "Do not cache a client for this cluster"
       },
       "allowed_roles": [
         "Key Vault Secrets Officer"
@@ -5241,7 +5115,6 @@
         }
       ],
       "files": [],
-      "secret_descriptions": {},
       "allowed_roles": [
         "Storage Blob Data Contributor"
       ]
@@ -5405,8 +5278,7 @@
           ]
         }
       ],
-      "files": [],
-      "secret_descriptions": {}
+      "files": []
     },
     {
       "target_id": "target_identity_pipeline_editor",
@@ -5442,8 +5314,7 @@
           ]
         }
       ],
-      "files": [],
-      "secret_descriptions": {}
+      "files": []
     },
     {
       "target_id": "target_identity_devops_user",
@@ -5476,8 +5347,7 @@
           ]
         }
       ],
-      "files": [],
-      "secret_descriptions": {}
+      "files": []
     },
     {
       "target_id": "target_azure_container_registry_pipeline",
@@ -5516,7 +5386,6 @@
                 }
               ],
               "secrets": {},
-              "secret_descriptions": {},
               "config": {
                 "image_repository": "pipeline-control",
                 "dockerfile": "pipeline/deploy/Dockerfile.control",
@@ -5554,7 +5423,6 @@
         }
       ],
       "files": [],
-      "secret_descriptions": {},
       "allowed_roles": [
         "AcrPush",
         "AcrPull"
@@ -5761,8 +5629,7 @@
                 "OPENAI_API_KEY": "azure_key_vault"
               },
               "secret_descriptions": {
-                "CHATHEALTHY_PROJECT_ROOT": "Where the project tree sits on the workstation",
-                "OPENAI_API_KEY": "OpenAI API key for language model and embedding calls"
+                "CHATHEALTHY_PROJECT_ROOT": "Where the project tree sits on the workstation"
               }
             },
             {
@@ -5963,15 +5830,9 @@
       },
       "secret_descriptions": {
         "AZURE_CLIENT_ID": "Identifies the acting principal to Azure",
-        "AZURE_CLIENT_SECRET": "Proves the acting principal to Azure",
         "AZURE_TENANT_ID": "The Entra directory the principal belongs to",
         "CHATHEALTHY_PROJECT_ROOT": "Where the project tree sits on the workstation",
-        "CH_LOG_DB": "Database that runtime logs are written to",
-        "KEY_VAULT_URI": "Address of the key vault holding every credential",
-        "OPENAI_API_KEY": "OpenAI API key for language model and embedding calls",
-        "PIPELINEEDITOR_AZURE_CLIENT_ID": "Identifies pipelineEditor to Azure",
-        "PIPELINEEDITOR_AZURE_CLIENT_SECRET": "Proves pipelineEditor to Azure",
-        "PIPELINEEDITOR_AZURE_TENANT_ID": "The directory pipelineEditor belongs to"
+        "CH_LOG_DB": "Database that runtime logs are written to"
       }
     },
     {
@@ -5989,17 +5850,6 @@
         "PIPELINEEDITOR_AZURE_TENANT_ID": "local_env",
         "PIPELINEEDITOR_AZURE_CLIENT_ID": "local_env",
         "PIPELINEEDITOR_AZURE_CLIENT_SECRET": "azure_key_vault"
-      },
-      "secret_descriptions": {
-        "CH_LOG_DB": "Database the structured log records are written to",
-        "PIPELINETOFRONTENDPUBLICDATAMIGRATOR_AZURE_CLIENT_ID": "clientId of the migrator managed identity. Not a secret.",
-        "KEY_VAULT_URI": "Vault holding the migrator's certificate. Not a secret.",
-        "ATLAS_PROJECT_ID": "Atlas project the clusters live in. Not a secret.",
-        "ATLAS_PIPELINE_PUBLIC_KEY": "Atlas API key that resumes the source cluster.",
-        "ATLAS_PIPELINE_PRIVATE_KEY": "Secret half of the Atlas key that resumes the cluster.",
-        "PIPELINEEDITOR_AZURE_TENANT_ID": "Tenant of the identity that writes the log. Not a secret.",
-        "PIPELINEEDITOR_AZURE_CLIENT_ID": "Client id of the identity that writes the log. Not a secret.",
-        "PIPELINEEDITOR_AZURE_CLIENT_SECRET": "Secret of the identity that writes the runbook log."
       },
       "environments": [
         {
@@ -6038,17 +5888,6 @@
                 "PIPELINEEDITOR_AZURE_TENANT_ID": "local_env",
                 "PIPELINEEDITOR_AZURE_CLIENT_ID": "local_env",
                 "PIPELINEEDITOR_AZURE_CLIENT_SECRET": "local_env"
-              },
-              "secret_descriptions": {
-                "CH_LOG_DB": "Database the structured log records are written to",
-                "PIPELINETOFRONTENDPUBLICDATAMIGRATOR_AZURE_CLIENT_ID": "clientId of the migrator managed identity. Not a secret.",
-                "KEY_VAULT_URI": "Vault holding the migrator's certificate. Not a secret.",
-                "ATLAS_PROJECT_ID": "Atlas project the clusters live in. Not a secret.",
-                "ATLAS_PIPELINE_PUBLIC_KEY": "Atlas API key that resumes the source cluster.",
-                "ATLAS_PIPELINE_PRIVATE_KEY": "Secret half of the Atlas key that resumes the cluster.",
-                "PIPELINEEDITOR_AZURE_TENANT_ID": "Tenant of the identity that writes the log. Not a secret.",
-                "PIPELINEEDITOR_AZURE_CLIENT_ID": "Client id of the identity that writes the log. Not a secret.",
-                "PIPELINEEDITOR_AZURE_CLIENT_SECRET": "Secret of the identity that writes the runbook log."
               },
               "config": {
                 "runbook_name": "DataMigration",
@@ -6106,6 +5945,10 @@
                     "content_url": "https://files.pythonhosted.org/packages/26/9f/ad63fc0248c5379346306f8668cda6e2e2e9c95e01216d2b8ffd9ff037d0/typing_extensions-4.12.2-py3-none-any.whl"
                   }
                 ]
+              },
+              "secret_descriptions": {
+                "CH_LOG_DB": "Database the structured log records are written to",
+                "PIPELINETOFRONTENDPUBLICDATAMIGRATOR_AZURE_CLIENT_ID": "clientId of the migrator managed identity. Not a secret."
               }
             }
           ],
@@ -6158,7 +6001,11 @@
           "role": "Key Vault Secrets User",
           "scope": "/subscriptions/<subscription-id>/resourceGroups/<pipeline_rg>/providers/Microsoft.KeyVault/vaults/kv-chpipeline-dev/secrets/PipelineToFrontEndPublicDataMigrator"
         }
-      ]
+      ],
+      "secret_descriptions": {
+        "CH_LOG_DB": "Database the structured log records are written to",
+        "PIPELINETOFRONTENDPUBLICDATAMIGRATOR_AZURE_CLIENT_ID": "clientId of the migrator managed identity. Not a secret."
+      }
     },
     {
       "target_id": "target_github_repository_chathealthy",
@@ -6199,9 +6046,6 @@
       ],
       "secrets": {
         "GITHUB_DEPLOY_TOKEN": "azure_key_vault"
-      },
-      "secret_descriptions": {
-        "GITHUB_DEPLOY_TOKEN": "GitHub token that writes the workflow to the branch"
       }
     },
     {
@@ -6305,7 +6149,6 @@
         "Application.ReadWrite.OwnedBy",
         "Directory.Read.All"
       ],
-      "description": "The engineering agent that writes and deploys code, and administers the PipeLineServices subscription. Registers applications it then owns; cannot alter the directory beyond those.",
       "identity_provider": {
         "name": "Entra",
         "facts": [
@@ -6337,7 +6180,6 @@
         "role_governance_recorder"
       ],
       "target_id_ref": "target_identity_devops_user",
-      "description": "Builds and deploys, across every subscription the firm holds. Runs the entitlement report, which is why it reads the directory. Holds full control of the pipeline key vault, which exceeds what building requires.",
       "identity_provider": {
         "name": "Entra",
         "facts": [
@@ -6358,7 +6200,6 @@
       "roles": [
         "Key Vault Secrets User"
       ],
-      "description": "The front-end runtime. Reads its own certificate and nothing else.",
       "identity_provider": {
         "name": "Entra",
         "facts": [
@@ -6386,7 +6227,6 @@
         "Storage Blob Data Contributor"
       ],
       "target_id_ref": "target_identity_pipeline_editor",
-      "description": "Runs the pipeline. Reads twenty-three named secrets one grant at a time, because the estate has no group to grant once. Confined to the pipeline subscription and holds no directory permission.",
       "identity_provider": {
         "name": "Entra",
         "facts": [
@@ -6408,7 +6248,6 @@
         "Key Vault Secrets User",
         "role_data_migrator"
       ],
-      "description": "The one capability of the dataMigrator application: copies published collections from the pipeline cluster to the front-end cluster. Attached to its own Work Manager, PipelineToFrontEndPublicDataMigratorWorkManager, which holds its runbooks and no other identity's; carries no client secret, and reads one vault secret at the scope of that secret alone. Its name is identical in Entra, in Key Vault, in its certificate subject and in the environment variable the library derives.",
       "identity_provider": {
         "name": "Entra",
         "facts": [
@@ -6440,7 +6279,6 @@
   "CustomRoleCatalog": [
     {
       "role_id": "role_data_migrator",
-      "description": "Atlas custom database role dataMigratorRole. Reads the pipeline's published data and the front-end serving data; on the serving database only, may insert documents, create collections and create indexes. On pipelineAdmin it reads and writes the Authorizations record that releases a migration and the reservation that admits one job at a time, and may delete that reservation and nothing else. It holds no update, no delete and no drop over any data anywhere, so a migration can add and can never alter or remove what is already serving users.",
       "grants": [
         {
           "operation": "FIND",
@@ -6498,11 +6336,11 @@
           "operation": "REMOVE",
           "on": "target_atlas_pipeline/pipelineAdmin.DataMigrationServiceMutex"
         }
-      ]
+      ],
+      "description": "Atlas custom database role dataMigratorRole. Reads the pipeline's published data and the front-end serving data; on the serving database only, may insert documents, create collections and create indexes. On pipelineAdmin it reads and writes the Authorizations record that releases a migration and the reservation that admits one job at a time, and may delete that reservation and nothing else. It holds no update, no delete and no drop over any data anywhere, so a migration can add and can never alter or remove what is already serving users."
     },
     {
       "role_id": "role_governance_recorder",
-      "description": "Atlas custom database role. Writes the record that authorizes a promotion and the record that says what became of it, across DevOpsAdmin on the front-end cluster. No update, no delete, no drop: a governance record its own writer can alter is not evidence, so an outcome is appended, never edited.",
       "grants": [
         {
           "operation": "FIND",
@@ -6524,7 +6362,8 @@
           "operation": "LIST_INDEXES",
           "on": "target_atlas_frontend/DevOpsAdmin"
         }
-      ]
+      ],
+      "description": "Atlas custom database role. Writes the record that authorizes a promotion and the record that says what became of it, across DevOpsAdmin on the front-end cluster. No update, no delete, no drop: a governance record its own writer can alter is not evidence, so an outcome is appended, never edited."
     }
   ]
 }
