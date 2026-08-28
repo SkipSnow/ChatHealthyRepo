@@ -449,7 +449,7 @@
           "source_location": "Website/ClientRouter.js",
           "handler_type": "static_asset",
           "disposition": "referenced",
-          "content_hash": "ffb32b32b331db99254ccf458ceafd2ccb96a7c592b0842579d6bbd69fc564a3",
+          "content_hash": "d0745eebd0f519966d592923502c9a16417ded4dcf4d1c9af22381698cec0578",
           "package": "runtime_driver"
         },
         {
@@ -689,7 +689,7 @@
           "source_location": "Website/schemas/ChatHealthyDeploymentArchitectureSchema.json",
           "handler_type": "json",
           "disposition": "referenced",
-          "content_hash": "1a466f89ac67ba28560d60b4bf22bd35e8fb631e6190d62767a190ef9c260b54",
+          "content_hash": "b21aeda293d43663f3e96fa201e83f1cf60af012e5cb6ebd0091a6b179581f21",
           "package": "json_schemas"
         },
         {
@@ -1252,7 +1252,7 @@
           "source_location": "evaluateCare/Code/app.py",
           "handler_type": "python_source",
           "disposition": "referenced",
-          "content_hash": "cdd8d1a653191053422ecdb410d455a9e23312e5358d742ce627e37ac2dd9a84",
+          "content_hash": "1d7952c69fe785408ce892dd811e261c8db85a3e85097d7715eff1e70ae9f38e",
           "package": "service_runtime"
         },
         {
@@ -1424,7 +1424,9 @@
         "EVALCARE_CERT_PEM": "local_cert_file:Code/Shared/ops/certs/evalcare.crt",
         "CH_LOG_LEVEL": "local_env",
         "MONGO_HOST_CHATHEALTHYFRONTEND": "literal:chathealthyfrontend.mdwahg.mongodb.net",
-        "CH_MONGO_HOST_CHATHEALTHYFRONTEND": "rename_from:MONGO_HOST_CHATHEALTHYFRONTEND"
+        "CH_MONGO_HOST_CHATHEALTHYFRONTEND": "rename_from:MONGO_HOST_CHATHEALTHYFRONTEND",
+        "CH_COMPONENT": "literal:evaluatecare",
+        "CH_IDENTITY": "literal:frontendUser"
       },
       "secret_descriptions": {
         "FRONTENDUSER_AZURE_CLIENT_ID": "Identifies frontendUser to Azure",
@@ -1614,7 +1616,7 @@
           "source_location": "Code/ConversationalUX/FindCareChat/backend/app.py",
           "handler_type": "python_source",
           "disposition": "referenced",
-          "content_hash": "7a08e878c12029a944b1d55161dfe6956ef6ffb790c2957089cb756e0aa4112c",
+          "content_hash": "5693049ea7a452f6600c7530a6fa3c4616adf2a62db3302dd48d409f06bcba86",
           "package": "service_runtime"
         },
         {
@@ -2190,7 +2192,7 @@
           "source_location": "Code/ConversationalUX/FindCareChat/frontend/src/components/SessionDataWidget.tsx",
           "handler_type": "static_asset",
           "disposition": "referenced",
-          "content_hash": "647e351d0a0da0acbcd590b877b7b8ad5e75f73d7f2a8588a2d97660ee817500",
+          "content_hash": "afb776bef19361add85caded6b7eee8c5cda518b91814add6f116d4c3994b683",
           "package": "service_runtime"
         },
         {
@@ -2888,7 +2890,9 @@
         "EVALCARE_CERT_PEM": "local_cert_file:Code/Shared/ops/certs/evalcare.crt",
         "CH_LOG_LEVEL": "local_env",
         "MONGO_HOST_CHATHEALTHYFRONTEND": "literal:chathealthyfrontend.mdwahg.mongodb.net",
-        "CH_MONGO_HOST_CHATHEALTHYFRONTEND": "rename_from:MONGO_HOST_CHATHEALTHYFRONTEND"
+        "CH_MONGO_HOST_CHATHEALTHYFRONTEND": "rename_from:MONGO_HOST_CHATHEALTHYFRONTEND",
+        "CH_COMPONENT": "literal:findcare",
+        "CH_IDENTITY": "literal:frontendUser"
       },
       "secret_descriptions": {
         "FRONTENDUSER_AZURE_CLIENT_ID": "Identifies frontendUser to Azure",
@@ -3302,7 +3306,7 @@
           "source_location": "sharedServices/Code/AuthorizationsAndAuthentications/universal_navigation_tool.py",
           "handler_type": "python_source",
           "disposition": "referenced",
-          "content_hash": "c152b3cd3c468d76ada95aedc0e2db64b050f8e52fe41bc5a87e130272900a92",
+          "content_hash": "4a60be5ffc8516735667297f27536b0674293306228237e9f54b4a67ffb81d9b",
           "package": "service_runtime"
         },
         {
@@ -3398,7 +3402,7 @@
           "source_location": "sharedServices/Code/app.py",
           "handler_type": "python_source",
           "disposition": "referenced",
-          "content_hash": "46b946019d72c5a1c2c34f0f45f89b0f3f6f01fbfb23bb081442da7b3f8ef317",
+          "content_hash": "ae8a6141d20e4288d8bece92227bbfb349db41605c968c94c75dc3f1a9dae457",
           "package": "service_runtime"
         },
         {
@@ -3620,7 +3624,9 @@
         "EVALCARE_CERT_PEM": "local_cert_file:Code/Shared/ops/certs/evalcare.crt",
         "CH_LOG_LEVEL": "local_env",
         "MONGO_HOST_CHATHEALTHYFRONTEND": "literal:chathealthyfrontend.mdwahg.mongodb.net",
-        "CH_MONGO_HOST_CHATHEALTHYFRONTEND": "rename_from:MONGO_HOST_CHATHEALTHYFRONTEND"
+        "CH_MONGO_HOST_CHATHEALTHYFRONTEND": "rename_from:MONGO_HOST_CHATHEALTHYFRONTEND",
+        "CH_COMPONENT": "literal:sharedservices",
+        "CH_IDENTITY": "literal:frontendUser"
       },
       "secret_descriptions": {
         "FRONTENDUSER_AZURE_CLIENT_ID": "Identifies frontendUser to Azure",
@@ -4648,7 +4654,7 @@
                   "feature_id": "EPIC-002-F-003",
                   "handler_type": "python_source",
                   "disposition": "referenced",
-                  "content_hash": "11ae08026fde143376a15a6c0f1ba0b4b54feaa7f2927c3d6b4266d21f2b0708",
+                  "content_hash": "5bcf8f09a36f9a61c8f507cbfa5a962267f6632aaac6166b7f23034c5347e71d",
                   "package": "entitlement_report"
                 }
               ],

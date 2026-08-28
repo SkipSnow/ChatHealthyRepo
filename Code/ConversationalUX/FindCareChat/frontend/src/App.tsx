@@ -27,10 +27,12 @@ import LegalPanelWidget from './components/LegalPanelWidget'
 import OAuthLoginWidget from './components/OAuthLoginWidget'
 import FakeGoogleLoginWidget from './components/FakeGoogleLoginWidget'
 import AboutChatHealthyWidget from './components/AboutChatHealthyWidget'
+import PopupHost from './components/PopupHost'
 
 function App() {
   return (
     <>
+      <PopupHost />
       <HeaderWidget />
       <MobileNavDrawerWidget />
       <FooterWidget />

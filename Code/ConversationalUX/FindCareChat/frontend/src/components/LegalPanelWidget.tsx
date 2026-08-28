@@ -35,11 +35,10 @@ export default function LegalPanelWidget() {
       const title = String((msg.data && msg.data.title) || path)
       if (!path) return
       const target = 'LegalPanel_' + path.replace(/[^a-zA-Z0-9_-]/g, '_')
-      window.parent.postMessage({
-        type: 'router:render',
+      window.postMessage({
+        type: 'ch:popup',
         target,
-        append: false,
-        popup: true,
+        title: 'ChatHealthy',
         content: buildPopupContent(title, path),
       }, '*')
     }

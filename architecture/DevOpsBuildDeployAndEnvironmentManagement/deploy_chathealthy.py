@@ -421,15 +421,72 @@ def _refuse_bad_selection(args) -> None:
             message="ERROR: --target='all' no longer exists. Name the target_id(s) "
             "(comma-separated) and the package(s) you intend to deploy.")
     _GROUP_TARGETS = frozenset({"pipeline", "cloudflare", "hf", "azure", "aca"})
-    if not args.package.strip():
+
+
+def _declared_package_set(repo_root: Path, target_ids: list[str]) -> set[str]:
+    """Every package the named targets declare, read from the record.
+
+    The deploy used to require the operator to type this list, which is a
+    second declaration of a fact deployment_architecture.json already holds.
+    Two declarations of one fact drift, and the one that drifts silently is
+    the one nothing validates -- a package could be declared on a target and
+    simply never deployed, because the list the operator typed did not
+    mention it and nothing compared the two.
+    """
+    from record_loader import RecordLoader  # noqa: PLC0415
+    from _build_chain import _declared_packages  # noqa: PLC0415
+    brain = (repo_root / "brain" / "machine_artifacts" / "content"
+             / "deployment_architecture.json")
+    coll = RecordLoader().load_collection(brain)
+    wanted: set[str] = set()
+    for t in coll.targets:
+        if t.target_id in target_ids:
+            wanted.update(_declared_packages(t))
+    return wanted
+
+
+def _ordered_packages(repo_root: Path, target_ids: list[str],
+                      selection: set[str]) -> list[str]:
+    """The selected packages, in the order their dependencies require.
+
+    Derived from the declarations, never written into this program. A deploy
+    that installs a package before the one it requires has installed
+    something that cannot work, and finding that out at runtime is the whole
+    cost this avoids.
+    """
+    from record_loader import RecordLoader  # noqa: PLC0415
+    from _build_chain import package_install_order  # noqa: PLC0415
+    brain = (repo_root / "brain" / "machine_artifacts" / "content"
+             / "deployment_architecture.json")
+    coll = RecordLoader().load_collection(brain)
+    order: list[str] = []
+    for t in coll.targets:
+        if t.target_id not in target_ids:
+            continue
+        for pid in package_install_order(t):
+            if pid in selection and pid not in order:
+                order.append(pid)
+    for pid in sorted(selection):
+        if pid not in order:
+            order.append(pid)
+    return order
+
+
+def _packages_for(args, repo_root: Path, target_ids: list[str]) -> set[str]:
+    """What this deploy installs. The record decides; a command line that
+    disagrees with it is an illegal state, not an override."""
+    declared = _declared_package_set(repo_root, target_ids)
+    supplied = {p.strip() for p in (args.package or "").split(",") if p.strip()}
+    if supplied and declared and supplied != declared:
         raise ChatHealthyException(
-            mode="aborted",
+            mode="illegal_state",
             component="deploy_chathealthy",
-            message=f"ERROR: --package MUST be explicitly enumerated "
-            f"(comma-separated) for every deploy. No 'all packages' "
-            f"shortcut exists — name every package you intend to deploy. "
-            f"Example: --target target_hf_space_findcare_backend "
-            f"--package service_runtime")
+            message=f"ERROR: --package={sorted(supplied)} disagrees with what "
+            f"these targets declare: {sorted(declared)}. The record states "
+            f"which packages a target carries; a command line that states it "
+            f"differently is a second declaration of one fact. Drop --package "
+            f"and the deploy reads the record.")
+    return declared or supplied
 
 
 def _filter_to_selected_packages(target_ids: list[str],
@@ -519,7 +576,11 @@ def _authorize_deployment(repo_root: Path, args):
     from deploy_authorization_worker import (  # noqa: PLC0415
         DeployAuthorizationWorker, DeploymentFacts)
     targets = [t.strip() for t in args.target.split(",") if t.strip()]
-    packages = [p.strip() for p in args.package.split(",") if p.strip()]
+    # The page the operator approves names what the record says is being
+    # installed, not what was typed. Approving a list the deploy does not
+    # use is an approval of nothing.
+    packages = _ordered_packages(repo_root, targets,
+                                 _packages_for(args, repo_root, targets))
     build_number, commit = _build_identity(repo_root, targets, packages)
     worker = DeployAuthorizationWorker(DeploymentFacts(
         environment=args.env, targets=targets,
@@ -558,7 +619,7 @@ def _deploy_to_cloud(args, repo_root: Path) -> int:
     # --package filter: drop synth per-package targets (runbook/job) whose
     # package_id is not in the selected set. Host targets (KV, Storage, VNet,
     # MIs, ACR, ACA env, AA, RG) pass through so their shells stay verified.
-    pkg_selection = {p.strip() for p in args.package.split(",") if p.strip()}
+    pkg_selection = _packages_for(args, repo_root, target_ids)
     if pkg_selection:
         target_ids = _filter_to_selected_packages(
             target_ids, pkg_selection, args.target, args.package)
@@ -589,7 +650,8 @@ def _record_what_landed(args, repo_root: Path) -> None:
     from _deploy_chain import package_build_facts  # noqa: PLC0415
     from version_counter import record_package_deploy  # noqa: PLC0415
     targets = [t.strip() for t in args.target.split(",") if t.strip()]
-    packages = [p.strip() for p in args.package.split(",") if p.strip()]
+    packages = _ordered_packages(repo_root, targets,
+                                 _packages_for(args, repo_root, targets))
     for target_id in targets:
         for package in packages:
             try:

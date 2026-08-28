@@ -128,11 +128,10 @@ export default function AboutChatHealthyWidget() {
 
       if (msg.type === 'router:event-broadcast' && msg.kind === 'about_chathealthy') {
         const html = buildAboutHtml(msg.data || {})
-        window.parent.postMessage({
-          type: 'router:render',
+        window.postMessage({
+          type: 'ch:popup',
           target: TARGET,
-          append: false,
-          popup: true,
+          title: 'About ChatHealthy',
           content: html,
         }, '*')
       }

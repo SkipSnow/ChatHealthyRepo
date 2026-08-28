@@ -194,7 +194,7 @@
             },
             {
               "statement_number": 7,
-              "statement_body": "Display, plumbing and logic stay separate. React owns display authoring; authored .js outside the React source tree and authored .html author no display content and carry no business logic; and the React application changes no persistent state directly, every change originating from a /gate call dispatched through ClientRouter.",
+              "statement_body": "Display, plumbing and logic stay separate. React owns display authoring. The one exception is a static page: a file that deployment_architecture.json assigns to the static_pages package is a page, and a page authors its own display. Every other authored .js and .html authors no display content, including the wrapper's own runtime driver. Authored .js and .html carry no business logic wherever they live, and the React application changes no persistent state directly, every change originating from a /gate call dispatched through ClientRouter.",
               "req_id": "EPIC-008-F-002-S-016-REQ-B-001"
             },
             {
@@ -525,7 +525,6 @@
                   "_scan_display_authoring",
                   "excluded_exact",
                   [
-                    "Website/ClientRouter.js",
                     "architecture/EngineeringRuleEnforcement/tests/fixtures/separation_of_concerns/display_authoring/courier_clientrouter.js",
                     "architecture/EngineeringRuleEnforcement/tests/fixtures/separation_of_concerns/display_authoring/violation.html",
                     "architecture/EngineeringRuleEnforcement/tests/fixtures/separation_of_concerns/display_authoring/violation.js"

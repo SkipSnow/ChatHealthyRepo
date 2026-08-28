@@ -154,6 +154,60 @@ def _declared_packages(target: TargetRecord) -> list[str]:
     return seen
 
 
+def _package_dependencies(target: TargetRecord) -> dict[str, set[str]]:
+    """What each package declares it requires, by package_id."""
+    edges: dict[str, set[str]] = {p: set() for p in _declared_packages(target)}
+    for eb in target.environments:
+        for pkg in (eb.packages or []):
+            pid = pkg.get("package_id")
+            if not pid:
+                continue
+            edges.setdefault(pid, set()).update(pkg.get("depends_on") or [])
+    return edges
+
+
+def package_install_order(target: TargetRecord) -> list[str]:
+    """The order the declarations require, derived and never written down.
+
+    A dependency naming a package that does not exist stops the build, and so
+    does a cycle: an order that cannot exist must not be approximated by one
+    that happens to work today. Packages with no declared dependency keep
+    their declared order, so a record that declares nothing behaves exactly
+    as it did before this existed.
+    """
+    edges = _package_dependencies(target)
+    declared = list(edges)
+    unknown = {d for deps in edges.values() for d in deps} - set(declared)
+    if unknown:
+        raise ChatHealthyException(
+            mode="illegal_state",
+            component="_build_chain",
+            message=f"{target.target_id}: depends_on names package(s) the "
+                    f"target does not declare: {sorted(unknown)}")
+    order: list[str] = []
+    state: dict[str, int] = {}
+
+    def visit(node: str, trail: list[str]) -> None:
+        mark = state.get(node, 0)
+        if mark == 2:
+            return
+        if mark == 1:
+            cycle = " -> ".join(trail[trail.index(node):] + [node])
+            raise ChatHealthyException(
+                mode="illegal_state",
+                component="_build_chain",
+                message=f"{target.target_id}: package dependency cycle {cycle}")
+        state[node] = 1
+        for dep in sorted(edges.get(node, ())):
+            visit(dep, trail + [node])
+        state[node] = 2
+        order.append(node)
+
+    for pid in declared:
+        visit(pid, [])
+    return order
+
+
 def _package_build_dir(target_build_dir: Path, package_id: str) -> Path:
     return target_build_dir / package_id
 
@@ -195,7 +249,12 @@ def _stage_packages(repo_root: Path, target: TargetRecord,
     A file declared but absent from disk is a hard stop: the manifest
     promised bytes the build cannot produce.
     """
-    grouped = {k: v for k, v in _files_by_package(target).items()
+    by_package = _files_by_package(target)
+    # Staged in the order the dependency declarations require, so a package
+    # is never assembled before something it depends on.
+    order = [p for p in package_install_order(target) if p in by_package]
+    order += [p for p in by_package if p not in order]
+    grouped = {k: by_package[k] for k in order
                if selection is None or k in selection}
     staged = 0
     missing: list[str] = []

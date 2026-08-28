@@ -27,6 +27,8 @@ EPIC-008-F-002-S-016-REQ-B-004).
 """
 from __future__ import annotations
 
+import json
+
 import os
 import re
 import subprocess
@@ -162,14 +164,85 @@ def _strip_js_comments(source: str) -> str:
     return "".join(out)
 
 
+_STATIC_PAGE_PACKAGE = "static_pages"
+_static_pages_cache: set | None = None
+
+
+def _static_page_files() -> set:
+    """Every file the record assigns to the static-page package.
+
+    A static page authors its own display; that is what a page is. The
+    wrapper's runtime driver does not, and it lives in the same directory as
+    the pages, so a path cannot tell them apart -- Website/index.html belongs
+    to the runtime-driver package while Website/terms.html is a page. The
+    record already states which is which, so the rule reads it rather than
+    carrying a second list that drifts from it.
+    """
+    global _static_pages_cache
+    if _static_pages_cache is not None:
+        return _static_pages_cache
+    record = (PROJECT_ROOT / "brain" / "machine_artifacts" / "content"
+              / "deployment_architecture.json")
+    found: set = set()
+    try:
+        data = json.loads(record.read_text(encoding="utf-8"))
+    except Exception:  # noqa: BLE001 - an unreadable record waives nothing
+        _static_pages_cache = found
+        return found
+    for target in data.get("DeploymentTargetRecord", []):
+        for entry in target.get("files", []) or []:
+            if entry.get("package") == _STATIC_PAGE_PACKAGE:
+                found.add(entry.get("source_location", ""))
+        for binding in target.get("environments", []) or []:
+            for pkg in binding.get("packages", []) or []:
+                if pkg.get("package_id") != _STATIC_PAGE_PACKAGE:
+                    continue
+                for entry in pkg.get("files", []) or []:
+                    found.add(entry.get("source_location", ""))
+    _static_pages_cache = found
+    return found
+
+
+def _is_static_page(file_path: str) -> bool:
+    return file_path.replace("\\", "/") in _static_page_files()
+
+
+def _authored_right_hand_side(src: str, assign_end: int) -> bool:
+    """True when what is assigned is composed here rather than handed in.
+
+    Authoring is composing markup or visible text. `sink.innerHTML = content`,
+    where content arrived as an argument, composes nothing -- it carries
+    someone else's bytes into a frame, which is what a courier does. Treating
+    those as the same thing is what put the one file that couriers onto a
+    waiver list, and the waiver then covered the real authoring beside it.
+
+    The test is the expression, not the sink: a literal, a template literal or
+    a concatenation is authored; a bare name or property path is carried.
+    """
+    end = src.find(";", assign_end)
+    rhs = src[assign_end:end if end != -1 else assign_end + 200]
+    return any(ch in rhs for ch in ("'", '"', "`", "+"))
+
+
 def _find_display_violations(source: str) -> list[tuple[int, str]]:
     src = _strip_js_comments(source)
     hits: list[tuple[int, str]] = []
     for m in _DISPLAY_SINK_ASSIGN.finditer(src):
+        if not _authored_right_hand_side(src, m.end()):
+            continue
         hits.append((src.count("\n", 0, m.start()) + 1, m.group(1)))
     for m in _TEMPLATE_LITERAL_HTML.finditer(src):
         hits.append((src.count("\n", 0, m.start()) + 1, "template-literal-html"))
     for m in _CREATE_ELEMENT.finditer(src):
+        # The stated contract is "createElement chains carrying visible text".
+        # An element created and filled with content handed in is a container,
+        # not authored display, so the chain counts only when something
+        # composed here goes into it.
+        window = src[m.start():m.start() + 400]
+        composed = any(_authored_right_hand_side(window, a.end())
+                       for a in _DISPLAY_SINK_ASSIGN.finditer(window))
+        if not composed and not _TEMPLATE_LITERAL_HTML.search(window):
+            continue
         hits.append((src.count("\n", 0, m.start()) + 1, "createElement"))
     return hits
 
@@ -263,6 +336,8 @@ class ScanSeparationOfConcernsWorker(EnforcementWorker):
 
     def _scan_display_authoring(self, file_path: str) -> list[ViolationRecord]:
         if not self.is_in_scope(file_path, "_scan_display_authoring"):
+            return []
+        if _is_static_page(file_path):
             return []
         source = self._read(file_path)
         if source is None:

@@ -6,6 +6,14 @@
 # ARCH-001: All business logic in domain/ services. All config in PromptSystemMaker.
 # This file: FastAPI setup, service wiring, chat loop. Nothing else.
 
+# Establish which component this process is and what the library will let it
+# load, before any other library capability is imported. The finder installed
+# here refuses a forbidden module at import, so a late import inside a
+# function is caught the same as one at the top of a file -- which only holds
+# if nothing has been imported ahead of this call.
+from chathealthy_lib.permissions import initialize as _ch_permissions_init
+_ch_permissions_init()
+
 import asyncio
 import json
 from chathealthy_lib import ChatHealthyLoggingService
