@@ -4950,6 +4950,72 @@
               ]
             }
           ]
+        },
+        {
+          "env_binding": "qa",
+          "node_address": "https://kv-chpipeline-dev.vault.azure.net/",
+          "azure_key_vault": {
+            "vault_name": "kv-chpipeline-dev",
+            "resource_group": "rg-chathealthy-pipeline-dev",
+            "firewall_default_action": "Allow"
+          },
+          "packages": [],
+          "platforms": [
+            {
+              "name": "azure_key_vault",
+              "facts": [
+                {
+                  "name": "role",
+                  "value": "host"
+                },
+                {
+                  "name": "vault_name",
+                  "value": "kv-chpipeline-dev"
+                },
+                {
+                  "name": "resource_group",
+                  "value": "rg-chathealthy-pipeline-dev"
+                },
+                {
+                  "name": "firewall_default_action",
+                  "value": "Allow"
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "env_binding": "prod",
+          "node_address": "https://kv-chpipeline-dev.vault.azure.net/",
+          "azure_key_vault": {
+            "vault_name": "kv-chpipeline-dev",
+            "resource_group": "rg-chathealthy-pipeline-dev",
+            "firewall_default_action": "Allow"
+          },
+          "packages": [],
+          "platforms": [
+            {
+              "name": "azure_key_vault",
+              "facts": [
+                {
+                  "name": "role",
+                  "value": "host"
+                },
+                {
+                  "name": "vault_name",
+                  "value": "kv-chpipeline-dev"
+                },
+                {
+                  "name": "resource_group",
+                  "value": "rg-chathealthy-pipeline-dev"
+                },
+                {
+                  "name": "firewall_default_action",
+                  "value": "Allow"
+                }
+              ]
+            }
+          ]
         }
       ],
       "files": [],
