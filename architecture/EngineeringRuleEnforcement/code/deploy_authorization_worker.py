@@ -62,9 +62,21 @@ class DeploymentFacts:
     build_number: int
     commit: str
 
+    def named_packages(self) -> str:
+        """Every target, and the packages it is receiving, by name.
+
+        A count is not a description. "1 package to 1 target" is true of
+        every deployment ever made and tells the operator nothing about
+        which one they are approving.
+        """
+        return "; ".join(
+            f"{t}: {', '.join(self.packages.get(t) or ['(none)'])}"
+            for t in self.targets)
+
     def subject(self) -> str:
         return (f"{self.environment}: build {self.build_number} "
-                f"({self.commit[:12]}) to {len(self.targets)} target(s)")
+                f"({self.commit[:12] or 'commit unknown'}) to "
+                f"{self.named_packages()}")
 
 
 @dataclass
@@ -93,7 +105,14 @@ class DeploymentAuthorization:
     proof: dict = field(default_factory=dict)
 
     def to_document(self) -> dict:
-        return asdict(self)
+        doc = asdict(self)
+        # The record states in words what was approved, not only as nested
+        # data an auditor has to reassemble. A row saying "1 package to 1
+        # target" names no target and proves no authorization.
+        doc["deploying"] = "; ".join(
+            f"{t}: {', '.join(self.packages.get(t) or ['(none)'])}"
+            for t in self.targets)
+        return doc
 
 
 class DeployAuthorizationWorker:
@@ -107,16 +126,16 @@ class DeployAuthorizationWorker:
     def build_question(self) -> dict:
         """What the operator is being asked, in a deployment's own words."""
         f = self.facts
-        listed = ", ".join(f.targets) if len(f.targets) <= 3 else (
-            f"{len(f.targets)} targets")
+        # Names, never counts. The operator is approving specific packages
+        # going to specific targets, and cannot approve a number.
         return {
-            "collection": listed,
+            "collection": ", ".join(f.targets),
             "chip_label": "These targets will be changed",
             "source": {"Deploying": f"build {f.build_number}",
                        "From commit": f.commit[:12] or "(unknown)"},
             "destination": {"Environment": f.environment,
-                            "Targets": str(len(f.targets)),
-                            "Packages": str(sum(len(v) for v in f.packages.values()))},
+                            "Targets": ", ".join(f.targets),
+                            "Packages": f.named_packages()},
             "authorizer": self.operator,
         }
 
