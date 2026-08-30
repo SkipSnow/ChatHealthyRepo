@@ -473,20 +473,30 @@ def _ordered_packages(repo_root: Path, target_ids: list[str],
 
 
 def _packages_for(args, repo_root: Path, target_ids: list[str]) -> set[str]:
-    """What this deploy installs. The record decides; a command line that
-    disagrees with it is an illegal state, not an override."""
+    """What this deploy installs.
+
+    The record states which packages a target CAN carry. Which of them this
+    deployment installs is the operator's decision and cannot be derived --
+    a schema change has no business reshipping the pages beside it.
+
+    So a subset is legitimate and narrows the deploy. What is not legitimate
+    is naming a package the target does not declare: that is a second, and
+    contradictory, statement of what the target carries.
+    """
     declared = _declared_package_set(repo_root, target_ids)
     supplied = {p.strip() for p in (args.package or "").split(",") if p.strip()}
-    if supplied and declared and supplied != declared:
+    undeclared = supplied - declared if declared else set()
+    if undeclared:
         raise ChatHealthyException(
             mode="illegal_state",
             component="deploy_chathealthy",
-            message=f"ERROR: --package={sorted(supplied)} disagrees with what "
-            f"these targets declare: {sorted(declared)}. The record states "
-            f"which packages a target carries; a command line that states it "
-            f"differently is a second declaration of one fact. Drop --package "
-            f"and the deploy reads the record.")
-    return declared or supplied
+            message=f"ERROR: --package={sorted(undeclared)} names package(s) "
+            f"these targets do not declare. They carry {sorted(declared)}. "
+            f"The record states which packages a target carries; a command "
+            f"line that states it differently is a second declaration of one "
+            f"fact. Name only packages the target declares, or drop --package "
+            f"and the deploy installs every one of them.")
+    return supplied or declared
 
 
 def _filter_to_selected_packages(target_ids: list[str],
@@ -579,12 +589,19 @@ def _authorize_deployment(repo_root: Path, args):
     # The page the operator approves names what the record says is being
     # installed, not what was typed. Approving a list the deploy does not
     # use is an approval of nothing.
-    packages = _ordered_packages(repo_root, targets,
-                                 _packages_for(args, repo_root, targets))
+    selection = _packages_for(args, repo_root, targets)
+    packages = _ordered_packages(repo_root, targets, selection)
     build_number, commit = _build_identity(repo_root, targets, packages)
+    # Each target names only what IT is receiving. The union across targets
+    # told the operator a target was getting packages it does not carry, and
+    # an approval of a description the deploy does not follow approves nothing.
+    per_target = {
+        t: [p for p in _ordered_packages(repo_root, [t],
+                                         selection & _declared_package_set(repo_root, [t]))]
+        for t in targets}
     worker = DeployAuthorizationWorker(DeploymentFacts(
         environment=args.env, targets=targets,
-        packages={t: packages for t in targets},
+        packages=per_target,
         build_number=build_number, commit=commit))
     return worker, worker.authorize()
 
