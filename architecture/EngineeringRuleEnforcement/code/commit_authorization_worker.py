@@ -175,6 +175,31 @@ class CommitAuthorizationWorker(EnforcementWorker):
                 exception=exc)
         return out.decode("utf-8").strip()
 
+    def _staged_tree(self) -> str:
+        """The tree the pending commit will point at, or "" if git will not say."""
+        try:
+            out = subprocess.run(
+                ["git", "write-tree"], cwd=self._commit_repo(),
+                capture_output=True, text=True, check=True)
+            return out.stdout.strip()
+        except Exception:  # noqa: BLE001 - absence is recorded as absence
+            return ""
+
+    def _commit_subject(self) -> str:
+        """The first line of the message being approved."""
+        path = os.environ.get("CHATHEALTHY_COMMIT_MSG_PATH", "")
+        if not path:
+            path = os.path.join(self._commit_repo(), ".git", "COMMIT_EDITMSG")
+        try:
+            with open(path, encoding="utf-8") as f:
+                for line in f:
+                    line = line.strip()
+                    if line and not line.startswith("#"):
+                        return line[:200]
+        except Exception:  # noqa: BLE001
+            return ""
+        return ""
+
     def _staged_files(self) -> list[str]:
         try:
             out = subprocess.check_output(
@@ -598,7 +623,19 @@ class CommitAuthorizationWorker(EnforcementWorker):
         document["authorization_type"] = "commit"
         document["operator"] = os.environ.get("USERNAME", "unknown")
         document["branch"] = self._current_branch()
-        document["commit_subject"] = self._commit_repo()
+        # The repository, in a field that says repository. It was written to
+        # commit_subject, so the one human-readable field naming what was
+        # approved held a path instead, and an auditor reading the record
+        # alone could not tell what had been agreed to.
+        document["repository"] = self._commit_repo()
+        document["commit_subject"] = self._commit_subject()
+        # The commit does not exist yet -- this is commit-msg -- so there is
+        # no sha to record, and matching an approval to a commit was left to
+        # branch, file list and a timestamp within seconds. The tree does
+        # exist: the commit about to be written points at exactly this tree,
+        # so it names the approved content exactly and can be checked with
+        # `git rev-parse <sha>^{tree}` long afterwards.
+        document["tree"] = self._staged_tree()
         document["files"] = self._staged_files()
         authorization_record.append(document, tolerate_failure=True)
 

@@ -750,7 +750,6 @@ def provider_detail(
 
 
 REQUIRED_INDEXES = [
-    ("providers", providers_coll, ["provider_vector_index"]),
     ("SpecialtyMetaData", specialty_meta_coll, ["specialty_vector_index"]),
 ]
 
