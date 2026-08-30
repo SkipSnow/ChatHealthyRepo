@@ -447,10 +447,6 @@
             "6"
           ]
         },
-        "employer_identification_number_ein": {
-          "description": "Federal EIN for the organization. May be '<UNAVAIL>' if CMS could not obtain it. Organizations only; absent on entity_type_code '1'.",
-          "type": "string"
-        },
         "is_organization_subpart": {
           "description": "Whether this organization is a subpart of a larger organization ('Y'/'N'). Organizations only; absent on entity_type_code '1'.",
           "type": "string",
@@ -461,10 +457,6 @@
         },
         "parent_organization_lbn": {
           "description": "Legal business name of the parent organization. Organizations only; absent on entity_type_code '1'.",
-          "type": "string"
-        },
-        "parent_organization_tin": {
-          "description": "Tax Identification Number of the parent organization. Organizations only; absent on entity_type_code '1'.",
           "type": "string"
         },
         "authorized_official_last_name": {
@@ -543,22 +535,12 @@
                 },
                 {
                   "required": [
-                    "employer_identification_number_ein"
-                  ]
-                },
-                {
-                  "required": [
                     "is_organization_subpart"
                   ]
                 },
                 {
                   "required": [
                     "parent_organization_lbn"
-                  ]
-                },
-                {
-                  "required": [
-                    "parent_organization_tin"
                   ]
                 },
                 {
@@ -596,7 +578,7 @@
           }
         },
         {
-          "description": "Type 2 organizations: organization name + EIN + authorized-official quartet + is_organization_subpart required. Individual name, sex and sole-proprietor fields are forbidden -- they were absent from every Type 2 record sampled. Nested: if is_organization_subpart='Y', parent_organization_lbn and parent_organization_tin become required.",
+          "description": "Type 2 organizations: organization name + authorized-official quartet + is_organization_subpart required. Individual name, sex and sole-proprietor fields are forbidden. Nested: if is_organization_subpart='Y', parent_organization_lbn becomes required. The federal EIN and the parent organization's TIN are not carried: CMS returns '<UNAVAIL>' for both on every record it has ever sent us, and a tax identifier is not public health data even if that changes.",
           "if": {
             "properties": {
               "entity_type_code": {
@@ -610,7 +592,6 @@
           "then": {
             "required": [
               "provider_organization_name_legal_business_name",
-              "employer_identification_number_ein",
               "authorized_official_first_name",
               "authorized_official_last_name",
               "authorized_official_title_or_position",
@@ -631,8 +612,7 @@
                 },
                 "then": {
                   "required": [
-                    "parent_organization_lbn",
-                    "parent_organization_tin"
+                    "parent_organization_lbn"
                   ]
                 }
               }
