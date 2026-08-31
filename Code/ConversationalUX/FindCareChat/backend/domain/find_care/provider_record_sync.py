@@ -2,7 +2,7 @@
 # Licensed under the FindCare Evaluation License (FEL-1.0).
 """provider_record_sync — Provider Detail data-management cycle.
 
-Realizes EPIC-006-F-025-S-002. Owns the compare + write-back +
+Realizes EPIC-006-F-002-S-002. Owns the compare + write-back +
 provenance-stamp + embed-trigger logic the Provider Detail flow uses on
 every click.
 

@@ -2,7 +2,7 @@
 # Licensed under the FindCare Evaluation License (FEL-1.0).
 """Input/output Pydantic models for the ClinicalTrialsTool.
 
-EPIC-006-F-031-S-003-REQ-B-001 / REQ-B-002. Field set tracks the V7 in-scope
+EPIC-006-F-005-S-003-REQ-B-001 / REQ-B-002. Field set tracks the V7 in-scope
 attribute list (identification, status, sponsorCollaborators, oversight,
 description, conditions, design, armsInterventions, outcomes, eligibility,
 contactsLocations, references, ipdSharingStatement, derived/conditionBrowse,
@@ -267,8 +267,8 @@ class Trial(BaseModel):
 
 
 class Request(BaseModel):
-    # EPIC-006-F-031-S-001-REQ-B-069 (sex only — gender intentionally absent)
-    # EPIC-006-F-031-S-001-REQ-B-074 (geographic_scope: international | us)
+    # EPIC-006-F-005-S-001-REQ-B-069 (sex only — gender intentionally absent)
+    # EPIC-006-F-005-S-001-REQ-B-074 (geographic_scope: international | us)
     model_config = {"extra": "ignore"}
     condition: str
     user_location: Optional[str] = None
@@ -283,7 +283,7 @@ class SearchContext(BaseModel):
     """Echoes the actual query parameters the tool used to fetch this page.
     The iframe stores this and re-issues it verbatim on pagination so the
     user's natural-language utterance doesn't leak into the CT.gov call.
-    EPIC-006-F-031-S-001-REQ-B-071."""
+    EPIC-006-F-005-S-001-REQ-B-071."""
     condition: str = ""
     user_location: Optional[str] = None
     age_years: Optional[int] = None

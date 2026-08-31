@@ -267,7 +267,7 @@ class FindCareService:
     def _facet_query(self, collection, base_filter: dict, after_npi: str, safe_limit: int) -> tuple:
         """Single-query count + page using $facet. Returns (providers, total_count).
 
-        EPIC-006-F-002-S-002: results MUST NOT include institutions,
+        EPIC-006-F-003-S-002: results MUST NOT include institutions,
         facilities, agencies, or non-individual entries. Enforced two ways:
         (1) the Mongo query is forced to entity_type_code='1' (individuals);
         (2) after retrieval each returned doc is asserted as type-1 — if any
@@ -648,7 +648,7 @@ class FindCareService:
                                                                                        exception=_exc,
                                                                                    ))
 
-            # EPIC-006-F-002-S-002: the AI pipeline (incl. the
+            # EPIC-006-F-003-S-002: the AI pipeline (incl. the
             # homeopathic resolver) runs once during /classify; results
             # are cached client-side per S-003-REQ-T-010. Apply Filter
             # MUST be a parameterized DB query only — no further LLM calls.
@@ -669,7 +669,7 @@ class FindCareService:
         if specialty_query:
             codes = []
 
-            # EPIC-006-F-002-S-001: resolve codes via SpecialtyMetaData vector search only.
+            # EPIC-006-F-003-S-001: resolve codes via SpecialtyMetaData vector search only.
             # No regex, no classify call. SpecialtyService embeds the query and matches
             # against NUCC specialty embeddings via cosine similarity.
             spec_fn = find_specialty_fn or (self.identify_specialty if self._specialty else None)
@@ -763,7 +763,7 @@ class FindCareService:
 
     def identify_specialty(self, query: str) -> dict:
         """UAT Feature 2: Identify NUCC specialty codes via the two-stage
-        AI pipeline (EPIC-006-F-002-S-002)."""
+        AI pipeline (EPIC-006-F-003-S-002)."""
         if not self._specialty:
             return {"error": "SpecialtyFilter not configured"}
         return self._specialty.find_specialties(query)

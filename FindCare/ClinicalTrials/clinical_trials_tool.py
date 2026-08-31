@@ -1,6 +1,6 @@
 # Copyright (c) 2026 ChatHealthy.ai LLC. All rights reserved.
 # Licensed under the FindCare Evaluation License (FEL-1.0).
-"""ClinicalTrialsTool — EPIC-006-F-031.
+"""ClinicalTrialsTool — EPIC-006-F-005.
 
 Fetches recruiting trials from ClinicalTrials.gov v2 by condition and
 streams them to the client. No per-trial enrichment: NUCC-code
@@ -433,7 +433,7 @@ async def _fetch_ct_gov(
             agg_parts.append("sex:f")
     if agg_parts:
         params["aggFilters"] = ",".join(agg_parts)
-    # EPIC-006-F-031-S-001-REQ-B-074: geographic_scope='us' restricts to
+    # EPIC-006-F-005-S-001-REQ-B-074: geographic_scope='us' restricts to
     # country=United States via CT.gov's locStr-style filter; 'international'
     # (the default) applies NO geo filter so every record is in scope.
     if (geographic_scope or "").strip().lower() == "us":
@@ -452,7 +452,7 @@ async def _fetch_ct_gov(
 
 
 class ClinicalTrialsTool(ChatHealthyTool):
-    """EPIC-006-F-031 — Find Clinical Trials."""
+    """EPIC-006-F-005 — Find Clinical Trials."""
     TOOL_NAME = "clinical_trials"
     Request = Request
     Response = Response

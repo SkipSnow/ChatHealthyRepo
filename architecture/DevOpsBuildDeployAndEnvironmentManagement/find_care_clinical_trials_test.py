@@ -3,7 +3,7 @@
 #
 # find_care_clinical_trials_test.py
 # Standalone Playwright smoke test for the Find Clinical Trials display
-# requirements (EPIC-006-F-031-S-002). Covers every display REQ in S-002:
+# requirements (EPIC-006-F-005-S-002). Covers every display REQ in S-002:
 # REQ-B-066 through REQ-B-075. Test path mandated by REQ-T-100.
 #
 # Each test maps 1:1 to a REQ. The test names mirror the REQ ids so a

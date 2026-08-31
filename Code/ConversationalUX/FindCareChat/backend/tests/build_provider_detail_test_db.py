@@ -1,6 +1,6 @@
 # Copyright (c) 2026 ChatHealthy.ai LLC. All rights reserved.
 """Build the test database slice for the Provider Detail data-management
-pytest (EPIC-006-F-025-S-002).
+pytest (EPIC-006-F-002-S-002).
 
 Per design §14.3: copy every provider record from PublicHealthData.
 provider_v03 whose primary practice address ZIP equals the test
@@ -79,7 +79,7 @@ TEST_NPI = "1003199654"  # Stephanie Lauren Post — the divergence reference
 _BASELINE_PATH = (
     Path(__file__).resolve().parents[5]
     / "FindCare" / "architectureAndDesign"
-    / "EPIC-006-F-025-baseline-record-NPI-1003199654.json"
+    / "EPIC-006-F-002-baseline-record-NPI-1003199654.json"
 )
 
 

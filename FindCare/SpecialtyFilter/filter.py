@@ -1,7 +1,7 @@
 # Copyright (c) 2026 ChatHealthy.ai LLC. All rights reserved.
 # Licensed under the FindCare Evaluation License (FEL-1.0).
 #
-# SpecialtyFilter — EPIC-006-F-002
+# SpecialtyFilter — EPIC-006-F-003
 #
 # Stage-1 normalize + embed + vector search + Stage-2 AI filter.
 # Loaded as an in-process class by the FindCare app driver. No HTTP
@@ -131,7 +131,7 @@ class SpecialtyFilter:
             self._filter_prompt = load_prompt_text(FILTER_RECORD_ID)
 
     # ── private pipeline steps ──────────────────────────────────────────────
-    # Per EPIC-006-F-002-S-001-REQ-T-001 ("no fallback"), every stage MUST
+    # Per EPIC-006-F-003-S-001-REQ-T-001 ("no fallback"), every stage MUST
     # fail loudly with the actual upstream cause. No silent degradation,
     # no swallowed exceptions, no substitute values. find_specialties()
     # surfaces the real reason in {"error": ...}.

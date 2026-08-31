@@ -1,11 +1,11 @@
 """SpecialtyFilter feature — per-REQ Playwright regression suite.
 
-Source: EPIC-006-F-002 requirements testable from the browser front-end.
+Source: EPIC-006-F-003 requirements testable from the browser front-end.
 Tool-internal reqs (vector search, AI normalize, embedding, clinical
 relevance) are excluded except where they violate the Pydantic contract
 that the widget consumes (REQ-T-005: no institutions in the rendered list).
 
-Conventions per EPIC-006-F-002-S-006:
+Conventions per EPIC-006-F-003-S-006:
   REQ-T-001 — test file location is the per-service tests/ directory
   REQ-T-002 — one test per REQ, named by REQ id
 

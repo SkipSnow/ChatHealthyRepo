@@ -1,7 +1,7 @@
 # Copyright (c) 2026 ChatHealthy.ai LLC. All rights reserved.
 # Licensed under the FindCare Evaluation License (FEL-1.0).
 #
-# ProviderDetailService — EPIC-006-F-025 (data management + display).
+# ProviderDetailService — EPIC-006-F-002 (data management + display).
 #
 # Flow per S-002:
 #   1. Fetch the full live NPPES record by NPI.

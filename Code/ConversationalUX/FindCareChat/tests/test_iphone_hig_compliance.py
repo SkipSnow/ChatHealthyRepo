@@ -4,7 +4,7 @@ Source REQs:
   EPIC-008-F-001-S-001-REQ-B-003: reactive interface must support phones
     using an industry-standard style guide.
   EPIC-008-F-001-S-001: cite + comply with Apple HIG.
-  EPIC-006-F-002-S-001: filter must support Galaxy + iPhone 14+.
+  EPIC-006-F-003-S-001: filter must support Galaxy + iPhone 14+.
   EPIC-006-F-019-S-003-REQ-B-001/B-002/B-003/B-004: chat iframe fills
     viewport height; input above keyboard; provider cards readable at 360.
   EPIC-006-F-019-S-004-REQ-B-001: 44x44 touch target per Apple HIG.
