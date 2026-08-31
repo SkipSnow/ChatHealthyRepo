@@ -106,7 +106,7 @@ class IntentFindClinicalTrials(BaseModel):
     """Intent entry: user is looking for recruiting clinical trials.
     Carries the complaint (condition, required), and optional refinements:
     user_location, cursor (for paged retrieval), age_years, sex, and
-    geographic_scope. EPIC-006-F-031-S-003 (REQ-B-006 — UM extracts
+    geographic_scope. EPIC-006-F-005-S-003 (REQ-B-006 — UM extracts
     age_years/sex/user_location/geographic_scope; REQ-B-074 — geographic_scope)."""
 
     model_config = {"extra": "forbid"}

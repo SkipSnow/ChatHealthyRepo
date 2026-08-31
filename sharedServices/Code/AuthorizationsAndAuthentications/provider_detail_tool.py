@@ -7,7 +7,7 @@ Receives a click-path payload from the UniversalNavigation tool router
 endpoint, and returns the structured detail JSON to the orchestrator.
 No LLM. No utterance manager involvement — this is the click path.
 
-EPIC-006-F-025 'Provider Detail'.
+EPIC-006-F-002 'Provider Detail'.
 """
 from __future__ import annotations
 

@@ -609,7 +609,7 @@ def _require_db_for_classify():
 
 @app.post("/classify")
 async def classify(body: ClassifyRequest, request: Request):
-    """EPIC-006-F-002-S-001: specialty matching.
+    """EPIC-006-F-003-S-001: specialty matching.
 
     normalize -> embed -> $vectorSearch -> LLM filter. Semantic search
     carries recall; the LLM call carries precision. CAND_FLOOR is the
@@ -727,7 +727,7 @@ async def clinical_trials(body: _ClinicalTrialsRequest):
     return StreamingResponse(gen(), media_type="application/x-ndjson")
 
 
-# Provider Detail click-path endpoint (EPIC-006-F-025). Pure deterministic
+# Provider Detail click-path endpoint (EPIC-006-F-002). Pure deterministic
 # tool; no LLM. Input fields mirror the on-screen provider card.
 from ProviderDetail.provider_detail_models import (
     ProviderDetailInput, ProviderDetailOutput,

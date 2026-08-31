@@ -182,7 +182,7 @@ def _stamp_county(
 
     county.urban is derived from it by the urban_flag step (LLD 5.2.15),
     which runs after this one. The pipeline owns that marker --
-    EPIC-006-F-025 requires the Provider Detail panel to display it on every
+    EPIC-006-F-002 requires the Provider Detail panel to display it on every
     address row -- and it is stamped in its own step so its work and its
     failure are visible on the run."""
     entry: dict = {"fips": fips, "source": source}
@@ -357,7 +357,7 @@ def _load_rucc_by_fips(mongo, registry, run_id: str) -> dict[str, int]:
     Reads from the pipeline cluster's usda_rucc staging collection per
     the registry (dataset_versions[]). The raw integer (1..9) is kept on
     the address and county.urban is derived from it, because the marker is
-    the pipeline's to own: EPIC-006-F-025 has the Provider Detail panel
+    the pipeline's to own: EPIC-006-F-002 has the Provider Detail panel
     reading county.urban directly.
 
     RUCC integer semantics (from USDA ERS):

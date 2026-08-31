@@ -1315,7 +1315,7 @@ class UniversalNavigationTool(ChatHealthyTool):
             # emits the single canonical final event with full payload.
 
         elif target_action == "findClinicalTrials":
-            # EPIC-006-F-031 — dispatch to FindCare backend's
+            # EPIC-006-F-005 — dispatch to FindCare backend's
             # /clinical_trials endpoint via the SS-side dispatcher.
             # The clinical-trials tool itself lives in FindCare; SS
             # carries only the cross-service forwarder.

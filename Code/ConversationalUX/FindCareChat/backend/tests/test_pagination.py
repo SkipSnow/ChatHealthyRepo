@@ -446,7 +446,7 @@ class TestSearchResultPresentation(unittest.TestCase):
         from fastapi.testclient import TestClient
         cls.client = TestClient(app)
 
-    # ── EPIC-006-F-004-S-001-REQ-B-001: Use search term, not generic 'providers' ──
+    # ── EPIC-006-F-001-S-005-REQ-B-001: Use search term, not generic 'providers' ──
 
     def test_summary_uses_search_term(self):
         """summary_message must contain the user's search term, not 'providers'."""
@@ -457,7 +457,7 @@ class TestSearchResultPresentation(unittest.TestCase):
         self.assertIn("surgeons", msg)
         self.assertNotIn("providers", msg)
 
-    # ── EPIC-006-F-004-S-001-REQ-B-002: Remaining count, not total ──
+    # ── EPIC-006-F-001-S-005-REQ-B-002: Remaining count, not total ──
 
     def test_summary_shows_remaining_count(self):
         """summary_message must show remaining (total - displayed), not total."""
@@ -468,7 +468,7 @@ class TestSearchResultPresentation(unittest.TestCase):
         self.assertIn("17,253", msg)
         self.assertNotIn("17,278", msg)
 
-    # ── EPIC-006-F-004-S-001-REQ-B-003: Specialty type count ──
+    # ── EPIC-006-F-001-S-005-REQ-B-003: Specialty type count ──
 
     def test_summary_shows_specialty_count(self):
         """summary_message must state how many types of providers."""
@@ -479,7 +479,7 @@ class TestSearchResultPresentation(unittest.TestCase):
             specialty_searched="surgeons", specialization_options=opts)
         self.assertIn("12 types of providers", msg)
 
-    # ── EPIC-006-F-004-S-001-REQ-B-004: Filter link marker ──
+    # ── EPIC-006-F-001-S-005-REQ-B-004: Filter link marker ──
 
     def test_summary_contains_filter_link(self):
         """summary_message must contain a filter action link."""
@@ -491,7 +491,7 @@ class TestSearchResultPresentation(unittest.TestCase):
         self.assertIn("#action:filter", msg)
         self.assertIn("filter", msg.lower())
 
-    # ── EPIC-006-F-004-S-001-REQ-B-005: Next page link marker ──
+    # ── EPIC-006-F-001-S-005-REQ-B-005: Next page link marker ──
 
     def test_summary_contains_next_page_link(self):
         """summary_message must contain a next page action link."""
@@ -502,7 +502,7 @@ class TestSearchResultPresentation(unittest.TestCase):
         self.assertIn("#action:next-page", msg)
         self.assertIn("more 'surgeons'", msg)
 
-    # ── EPIC-006-F-004-S-001-REQ-B-006: Search term echoed in links ──
+    # ── EPIC-006-F-001-S-005-REQ-B-006: Search term echoed in links ──
 
     def test_summary_echoes_search_term_in_links(self):
         """summary_message must echo the search term in the action links."""
@@ -513,7 +513,7 @@ class TestSearchResultPresentation(unittest.TestCase):
         self.assertIn("more 'shrinks'", msg)
         self.assertIn("filter 'shrinks'", msg)
 
-    # ── EPIC-006-F-004-S-001: summary_message in /chat PaginationMeta ──
+    # ── EPIC-006-F-001-S-005: summary_message in /chat PaginationMeta ──
 
     def test_chat_returns_summary_message(self):
         """/chat must include summary_message in pagination metadata."""
@@ -531,7 +531,7 @@ class TestSearchResultPresentation(unittest.TestCase):
             self.assertIn("pediatrician", pagination["summary_message"].lower(),
                           "summary_message must contain the search term")
 
-    # ── EPIC-006-F-004-S-001: No summary when has_more is False ──
+    # ── EPIC-006-F-001-S-005: No summary when has_more is False ──
 
     def test_no_summary_when_no_more(self):
         """summary_message must be empty when has_more is False."""
@@ -541,7 +541,7 @@ class TestSearchResultPresentation(unittest.TestCase):
             specialty_searched="surgeons")
         self.assertEqual(msg, "")
 
-    # ── EPIC-006-F-004-S-001-REQ-B-003 edge: No specialty count when no options ──
+    # ── EPIC-006-F-001-S-005-REQ-B-003 edge: No specialty count when no options ──
 
     def test_no_specialty_count_when_no_options(self):
         """summary_message must not mention provider types when specialization_options is empty."""
@@ -552,7 +552,7 @@ class TestSearchResultPresentation(unittest.TestCase):
         self.assertNotIn("types of providers", msg)
         self.assertNotIn("#action:filter", msg)
 
-    # ── EPIC-006-F-004-S-002-REQ-B-001: summary_message in /search response ──
+    # ── EPIC-006-F-001-S-006-REQ-B-001: summary_message in /search response ──
 
     def test_search_returns_summary_message(self):
         """/search must include summary_message in response."""
@@ -564,7 +564,7 @@ class TestSearchResultPresentation(unittest.TestCase):
             self.assertIn("summary_message", data)
             self.assertTrue(len(data["summary_message"]) > 0)
 
-    # ── EPIC-006-F-004-S-002-REQ-B-002: Filter link is markdown action ──
+    # ── EPIC-006-F-001-S-006-REQ-B-002: Filter link is markdown action ──
 
     def test_filter_link_is_action_markdown(self):
         """Filter link must use #action:filter href for frontend interception."""
@@ -575,7 +575,7 @@ class TestSearchResultPresentation(unittest.TestCase):
             specialty_searched="surgeons", specialization_options=opts)
         self.assertIn("#action:filter", msg)
 
-    # ── EPIC-006-F-004-S-002-REQ-B-003: Next page link is markdown action ──
+    # ── EPIC-006-F-001-S-006-REQ-B-003: Next page link is markdown action ──
 
     def test_next_page_link_is_action_markdown(self):
         """Next page link must use #action:next-page href for frontend interception."""
@@ -651,7 +651,7 @@ class TestSearchResultPresentation(unittest.TestCase):
             self.assertIn(user_term, msg,
                           f"Summary must contain user's term '{user_term}'")
 
-    # ── EPIC-006-F-004-S-002: Frontend handles action links ──
+    # ── EPIC-006-F-001-S-006: Frontend handles action links ──
 
     def test_frontend_handles_action_links(self):
         """MessageBubble must intercept #action: links."""

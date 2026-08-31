@@ -8,7 +8,7 @@ ProviderDetailService orchestrates the construction but the conversion
 logic lives next to the type definition.
 
 Shape mirrors the provider record sections the panel renders per
-EPIC-006-F-025-S-001: identity + addresses[] + licenses[] + insurance[]
+EPIC-006-F-002-S-001: identity + addresses[] + licenses[] + insurance[]
 + taxonomies[] + research_sites. Empty arrays render as labeled empty
 sections per REQ-B-003 / REQ-B-006 — no fallback prose.
 """

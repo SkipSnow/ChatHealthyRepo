@@ -2,7 +2,7 @@
 # Licensed under the FindCare Evaluation License (FEL-1.0).
 #
 # Pydantic models for the specialty-query normalization step
-# (EPIC-006-F-002-S-001: AI normalization → vector search pipeline).
+# (EPIC-006-F-003-S-001: AI normalization → vector search pipeline).
 
 from pydantic import BaseModel, Field
 

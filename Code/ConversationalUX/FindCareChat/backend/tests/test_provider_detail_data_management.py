@@ -1,6 +1,6 @@
 # Copyright (c) 2026 ChatHealthy.ai LLC. All rights reserved.
 # Licensed under the FindCare Evaluation License (FEL-1.0).
-"""Story-level pytest for EPIC-006-F-025-S-002 Provider Detail data
+"""Story-level pytest for EPIC-006-F-002-S-002 Provider Detail data
 management and retrieval.
 
 ONE test function exercises the full data-management cycle described
@@ -76,7 +76,7 @@ def test_coll():
 
 
 def test_provider_detail_data_management_cycle(test_coll):
-    """Story-level test for EPIC-006-F-025-S-002.
+    """Story-level test for EPIC-006-F-002-S-002.
 
     Exercises:
       REQ-B-001 live NPPES fetch
