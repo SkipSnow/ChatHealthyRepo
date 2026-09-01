@@ -5296,7 +5296,7 @@
         "epic_id": "EPIC-006",
         "name": "FindCare",
         "status": "in_progress",
-        "description": "User journey for finding and selecting healthcare providers. Depends on EPIC-9 (UX Management) for reusable controls.",
+        "description": "This defines the requirements for ChatHealthy.ai's FindCare epic. FindCare lets users find care across three dimensions.\n\nCare givers: a care giver is a person whose licensed status is collected by the National Provider Identity's APIs and batch interfaces.\n\nFacilities: a facility is a legal entity, almost always associated with a set of physical locations, where consumers and providers and administrators of healthcare come together to deliver care. ChatHealthy.ai tracks facilities register\n\nClinical trial: a clinical trial is a sanctioned investigation of a treatment for pathology. ChatHealthy uses the ClinicalTrials.gov application, which is represented by an Application Programmers Interface that we use.\n\nFindCare derives a great deal of its capability from the overall architecture of ChatHealthy.ai, outsourcing many of its core services to Shared Services and to its Pipeline epic, from whence it gets its data.\n\nIn order for this epic to achieve its goals it must:\n- Deliver these requirements, realized as a set of stories within a set of features, no more and most importantly no less.\n- Comply with ChatHealthy.ai's overall architecture.\n- Ensure 100% parity between all metadata, code and data in regard to all machine-readable documentation and inline comments. The scope of this mandate is git-preserved artifacts.",
         "features": {
           "feature": [
             {
@@ -7357,7 +7357,478 @@
               "approval": "proposed",
               "due_date": "2026-06-12",
               "stories": {
-                "story": []
+                "story": [
+                  {
+                    "story_id": "EPIC-006-F-006-S-001",
+                    "name": "Facility search",
+                    "description": "Facility search",
+                    "size": "M",
+                    "status": "not_started",
+                    "approval": "proposed",
+                    "orphan": false,
+                    "requirements": {
+                      "requirement": [
+                        {
+                          "req_id": "EPIC-006-F-006-S-001-REQ-B-001",
+                          "name": "EPIC-006-F-006-S-001-REQ-B-001 — Return organizations only",
+                          "requirement": "A facility search MUST return only organizations. No individual provider MUST appear in a facility result set.\n\nCONFLICT: Provider search forces the individual entity type onto every query, restates the same literal on the single-record lookup and on the county route, and raises a compliance violation if any returned record is not an individual. There is no path through that file by which an organization can be returned. Stated, not resolved.",
+                          "priority": "must-have",
+                          "status": "not_started",
+                          "orphan": false,
+                          "tests": {
+                            "test": [
+                              {
+                                "test_type": "ORPHAN",
+                                "orphan": true,
+                                "file": "ORPHAN"
+                              }
+                            ]
+                          },
+                          "approval": "proposed",
+                          "depends_on": []
+                        },
+                        {
+                          "req_id": "EPIC-006-F-006-S-001-REQ-B-002",
+                          "name": "EPIC-006-F-006-S-001-REQ-B-002 — Match a facility on either of its names",
+                          "requirement": "The result set of a facility search naming a facility MUST be exactly those facilities whose legal business name or whose other organization name matches the name given.",
+                          "priority": "must-have",
+                          "status": "not_started",
+                          "orphan": false,
+                          "tests": {
+                            "test": [
+                              {
+                                "test_type": "ORPHAN",
+                                "orphan": true,
+                                "file": "ORPHAN"
+                              }
+                            ]
+                          },
+                          "approval": "proposed",
+                          "depends_on": []
+                        },
+                        {
+                          "req_id": "EPIC-006-F-006-S-001-REQ-B-003",
+                          "name": "EPIC-006-F-006-S-001-REQ-B-003 — Match a facility on what it does",
+                          "requirement": "The result set of a facility search naming one or more taxonomies MUST be exactly those facilities carrying at least one of them.",
+                          "priority": "must-have",
+                          "status": "not_started",
+                          "orphan": false,
+                          "tests": {
+                            "test": [
+                              {
+                                "test_type": "ORPHAN",
+                                "orphan": true,
+                                "file": "ORPHAN"
+                              }
+                            ]
+                          },
+                          "approval": "proposed",
+                          "depends_on": []
+                        },
+                        {
+                          "req_id": "EPIC-006-F-006-S-001-REQ-B-004",
+                          "name": "EPIC-006-F-006-S-001-REQ-B-004 — Match a facility on where it delivers care",
+                          "requirement": "The result set of a facility search naming a geography MUST be exactly those facilities holding at least one practice location in that geography. A business address MUST NOT place a facility in a geography.",
+                          "priority": "must-have",
+                          "status": "not_started",
+                          "orphan": false,
+                          "tests": {
+                            "test": [
+                              {
+                                "test_type": "ORPHAN",
+                                "orphan": true,
+                                "file": "ORPHAN"
+                              }
+                            ]
+                          },
+                          "approval": "proposed",
+                          "depends_on": []
+                        },
+                        {
+                          "req_id": "EPIC-006-F-006-S-001-REQ-B-005",
+                          "name": "EPIC-006-F-006-S-001-REQ-B-005 — Return no facility that is not active",
+                          "requirement": "A facility whose current state is inactive MUST NOT be returned by a facility search.",
+                          "priority": "must-have",
+                          "status": "not_started",
+                          "orphan": false,
+                          "tests": {
+                            "test": [
+                              {
+                                "test_type": "ORPHAN",
+                                "orphan": true,
+                                "file": "ORPHAN"
+                              }
+                            ]
+                          },
+                          "approval": "proposed",
+                          "depends_on": []
+                        },
+                        {
+                          "req_id": "EPIC-006-F-006-S-001-REQ-B-006",
+                          "name": "EPIC-006-F-006-S-001-REQ-B-006 — Return an empty set rather than a failure",
+                          "requirement": "A facility search matching no record MUST return an empty result set with a message the user sees.",
+                          "priority": "must-have",
+                          "status": "not_started",
+                          "orphan": false,
+                          "tests": {
+                            "test": [
+                              {
+                                "test_type": "ORPHAN",
+                                "orphan": true,
+                                "file": "ORPHAN"
+                              }
+                            ]
+                          },
+                          "approval": "proposed",
+                          "depends_on": []
+                        },
+                        {
+                          "req_id": "EPIC-006-F-006-S-001-REQ-B-007",
+                          "name": "EPIC-006-F-006-S-001-REQ-B-007 — Do not match on the administrative contact",
+                          "requirement": "A facility MUST NOT be returned by a search naming its authorized official.",
+                          "priority": "must-have",
+                          "status": "not_started",
+                          "orphan": false,
+                          "tests": {
+                            "test": [
+                              {
+                                "test_type": "ORPHAN",
+                                "orphan": true,
+                                "file": "ORPHAN"
+                              }
+                            ]
+                          },
+                          "approval": "proposed",
+                          "depends_on": []
+                        }
+                      ]
+                    }
+                  },
+                  {
+                    "story_id": "EPIC-006-F-006-S-002",
+                    "name": "Facility result display",
+                    "description": "Facility result display",
+                    "size": "M",
+                    "status": "not_started",
+                    "approval": "proposed",
+                    "orphan": false,
+                    "requirements": {
+                      "requirement": [
+                        {
+                          "req_id": "EPIC-006-F-006-S-002-REQ-B-001",
+                          "name": "EPIC-006-F-006-S-002-REQ-B-001 — Show exactly the row content set",
+                          "requirement": "A facility row MUST show exactly these values and no others: the legal business name; the other organization name where the record carries one; the NPI; one practice location; that location's county; the phone on that location; and the label of what kind of facility this is.",
+                          "priority": "must-have",
+                          "status": "not_started",
+                          "orphan": false,
+                          "tests": {
+                            "test": [
+                              {
+                                "test_type": "ORPHAN",
+                                "orphan": true,
+                                "file": "ORPHAN"
+                              }
+                            ]
+                          },
+                          "approval": "proposed",
+                          "depends_on": []
+                        },
+                        {
+                          "req_id": "EPIC-006-F-006-S-002-REQ-B-002",
+                          "name": "EPIC-006-F-006-S-002-REQ-B-002 — Show the location that matched the geography",
+                          "requirement": "When the search named a geography, the practice location on the row MUST be one that satisfies that geography.",
+                          "priority": "must-have",
+                          "status": "not_started",
+                          "orphan": false,
+                          "tests": {
+                            "test": [
+                              {
+                                "test_type": "ORPHAN",
+                                "orphan": true,
+                                "file": "ORPHAN"
+                              }
+                            ]
+                          },
+                          "approval": "proposed",
+                          "depends_on": []
+                        },
+                        {
+                          "req_id": "EPIC-006-F-006-S-002-REQ-B-003",
+                          "name": "EPIC-006-F-006-S-002-REQ-B-003 — Show the primary location when no geography was named",
+                          "requirement": "When the search named no geography, the practice location on the row MUST be the facility's primary practice location.",
+                          "priority": "must-have",
+                          "status": "not_started",
+                          "orphan": false,
+                          "tests": {
+                            "test": [
+                              {
+                                "test_type": "ORPHAN",
+                                "orphan": true,
+                                "file": "ORPHAN"
+                              }
+                            ]
+                          },
+                          "approval": "proposed",
+                          "depends_on": []
+                        },
+                        {
+                          "req_id": "EPIC-006-F-006-S-002-REQ-B-004",
+                          "name": "EPIC-006-F-006-S-002-REQ-B-004 — Show no person on a facility row",
+                          "requirement": "A facility row MUST show no person's name, no personal credential, no sex and no sole-proprietor marker.",
+                          "priority": "must-have",
+                          "status": "not_started",
+                          "orphan": false,
+                          "tests": {
+                            "test": [
+                              {
+                                "test_type": "ORPHAN",
+                                "orphan": true,
+                                "file": "ORPHAN"
+                              }
+                            ]
+                          },
+                          "approval": "proposed",
+                          "depends_on": []
+                        },
+                        {
+                          "req_id": "EPIC-006-F-006-S-002-REQ-B-005",
+                          "name": "EPIC-006-F-006-S-002-REQ-B-005 — Show one row per matching facility",
+                          "requirement": "Every facility matching the search MUST occupy one row of its own. A facility MUST NOT be shown nested inside another facility's row.",
+                          "priority": "must-have",
+                          "status": "not_started",
+                          "orphan": false,
+                          "tests": {
+                            "test": [
+                              {
+                                "test_type": "ORPHAN",
+                                "orphan": true,
+                                "file": "ORPHAN"
+                              }
+                            ]
+                          },
+                          "approval": "proposed",
+                          "depends_on": []
+                        },
+                        {
+                          "req_id": "EPIC-006-F-006-S-002-REQ-B-006",
+                          "name": "EPIC-006-F-006-S-002-REQ-B-006 — Show nothing in place of a value the record lacks",
+                          "requirement": "Where the record carries no value for a field on the row, the row MUST show nothing in its place.",
+                          "priority": "must-have",
+                          "status": "not_started",
+                          "orphan": false,
+                          "tests": {
+                            "test": [
+                              {
+                                "test_type": "ORPHAN",
+                                "orphan": true,
+                                "file": "ORPHAN"
+                              }
+                            ]
+                          },
+                          "approval": "proposed",
+                          "depends_on": []
+                        }
+                      ]
+                    }
+                  },
+                  {
+                    "story_id": "EPIC-006-F-006-S-003",
+                    "name": "Facility selection",
+                    "description": "Facility selection",
+                    "size": "M",
+                    "status": "not_started",
+                    "approval": "proposed",
+                    "orphan": false,
+                    "requirements": {
+                      "requirement": [
+                        {
+                          "req_id": "EPIC-006-F-006-S-003-REQ-B-001",
+                          "name": "EPIC-006-F-006-S-003-REQ-B-001 — Cap the selection at five",
+                          "requirement": "A user MUST NOT be able to hold more than five facilities selected at one time.",
+                          "priority": "must-have",
+                          "status": "not_started",
+                          "orphan": false,
+                          "tests": {
+                            "test": [
+                              {
+                                "test_type": "ORPHAN",
+                                "orphan": true,
+                                "file": "ORPHAN"
+                              }
+                            ]
+                          },
+                          "approval": "proposed",
+                          "depends_on": []
+                        },
+                        {
+                          "req_id": "EPIC-006-F-006-S-003-REQ-B-002",
+                          "name": "EPIC-006-F-006-S-003-REQ-B-002 — Show the refusal when the cap is reached",
+                          "requirement": "An attempt to select a sixth facility MUST be shown to the user as refused.",
+                          "priority": "must-have",
+                          "status": "not_started",
+                          "orphan": false,
+                          "tests": {
+                            "test": [
+                              {
+                                "test_type": "ORPHAN",
+                                "orphan": true,
+                                "file": "ORPHAN"
+                              }
+                            ]
+                          },
+                          "approval": "proposed",
+                          "depends_on": []
+                        },
+                        {
+                          "req_id": "EPIC-006-F-006-S-003-REQ-B-003",
+                          "name": "EPIC-006-F-006-S-003-REQ-B-003 — Remove a selected facility in one action",
+                          "requirement": "A user MUST be able to remove one selected facility in a single action.",
+                          "priority": "must-have",
+                          "status": "not_started",
+                          "orphan": false,
+                          "tests": {
+                            "test": [
+                              {
+                                "test_type": "ORPHAN",
+                                "orphan": true,
+                                "file": "ORPHAN"
+                              }
+                            ]
+                          },
+                          "approval": "proposed",
+                          "depends_on": []
+                        },
+                        {
+                          "req_id": "EPIC-006-F-006-S-003-REQ-B-004",
+                          "name": "EPIC-006-F-006-S-003-REQ-B-004 — Show exactly the selected-row content set",
+                          "requirement": "A row of the selected-facility set MUST show exactly the legal business name and the NPI.",
+                          "priority": "must-have",
+                          "status": "not_started",
+                          "orphan": false,
+                          "tests": {
+                            "test": [
+                              {
+                                "test_type": "ORPHAN",
+                                "orphan": true,
+                                "file": "ORPHAN"
+                              }
+                            ]
+                          },
+                          "approval": "proposed",
+                          "depends_on": []
+                        },
+                        {
+                          "req_id": "EPIC-006-F-006-S-003-REQ-B-005",
+                          "name": "EPIC-006-F-006-S-003-REQ-B-005 — Offer the selected facilities to the handoff",
+                          "requirement": "The selected-facility set MUST be available to the handoff on the same terms as the selected-provider set.\n\nCounterpart requirement belongs to: EPIC-002-F-014-S-001 states the handoff itself; whether a facility can be evaluated and what is evaluated about one is a requirement of EPIC-001. FindCare offers the set and requires nothing of what is done with it.",
+                          "priority": "must-have",
+                          "status": "not_started",
+                          "orphan": false,
+                          "tests": {
+                            "test": [
+                              {
+                                "test_type": "ORPHAN",
+                                "orphan": true,
+                                "file": "ORPHAN"
+                              }
+                            ]
+                          },
+                          "approval": "proposed",
+                          "depends_on": []
+                        }
+                      ]
+                    }
+                  },
+                  {
+                    "story_id": "EPIC-006-F-006-S-004",
+                    "name": "Facility list summary",
+                    "description": "Facility list summary",
+                    "size": "M",
+                    "status": "not_started",
+                    "approval": "proposed",
+                    "orphan": false,
+                    "requirements": {
+                      "requirement": [
+                        {
+                          "req_id": "EPIC-006-F-006-S-004-REQ-B-001",
+                          "name": "EPIC-006-F-006-S-004-REQ-B-001 — Summarise in the user's own words",
+                          "requirement": "The summary MUST use the words the user searched with.",
+                          "priority": "must-have",
+                          "status": "not_started",
+                          "orphan": false,
+                          "tests": {
+                            "test": [
+                              {
+                                "test_type": "ORPHAN",
+                                "orphan": true,
+                                "file": "ORPHAN"
+                              }
+                            ]
+                          },
+                          "approval": "proposed",
+                          "depends_on": []
+                        },
+                        {
+                          "req_id": "EPIC-006-F-006-S-004-REQ-B-002",
+                          "name": "EPIC-006-F-006-S-004-REQ-B-002 — State how many remain unseen",
+                          "requirement": "The summary MUST state how many facilities matched beyond those on screen.",
+                          "priority": "must-have",
+                          "status": "not_started",
+                          "orphan": false,
+                          "tests": {
+                            "test": [
+                              {
+                                "test_type": "ORPHAN",
+                                "orphan": true,
+                                "file": "ORPHAN"
+                              }
+                            ]
+                          },
+                          "approval": "proposed",
+                          "depends_on": []
+                        },
+                        {
+                          "req_id": "EPIC-006-F-006-S-004-REQ-B-003",
+                          "name": "EPIC-006-F-006-S-004-REQ-B-003 — Name exactly the geography used",
+                          "requirement": "The summary MUST name exactly the geography the search used, and no other.",
+                          "priority": "must-have",
+                          "status": "not_started",
+                          "orphan": false,
+                          "tests": {
+                            "test": [
+                              {
+                                "test_type": "ORPHAN",
+                                "orphan": true,
+                                "file": "ORPHAN"
+                              }
+                            ]
+                          },
+                          "approval": "proposed",
+                          "depends_on": []
+                        },
+                        {
+                          "req_id": "EPIC-006-F-006-S-004-REQ-B-004",
+                          "name": "EPIC-006-F-006-S-004-REQ-B-004 — Offer only the narrowings not yet used",
+                          "requirement": "The summary MUST offer exactly those ways of narrowing the search the user has not already used.\n\nCONFLICT: The care-giver analogue of this requirement is unmet: city and county are omitted when supplied but the postal code is offered back unconditionally.",
+                          "priority": "must-have",
+                          "status": "not_started",
+                          "orphan": false,
+                          "tests": {
+                            "test": [
+                              {
+                                "test_type": "ORPHAN",
+                                "orphan": true,
+                                "file": "ORPHAN"
+                              }
+                            ]
+                          },
+                          "approval": "proposed",
+                          "depends_on": []
+                        }
+                      ]
+                    }
+                  }
+                ]
               }
             },
             {
@@ -7371,7 +7842,1312 @@
               "approval": "proposed",
               "due_date": "2026-06-12",
               "stories": {
-                "story": []
+                "story": [
+                  {
+                    "story_id": "EPIC-006-F-007-S-001",
+                    "name": "Facility Detail display",
+                    "description": "Facility Detail display",
+                    "size": "M",
+                    "status": "not_started",
+                    "approval": "proposed",
+                    "orphan": false,
+                    "requirements": {
+                      "requirement": [
+                        {
+                          "req_id": "EPIC-006-F-007-S-001-REQ-B-001",
+                          "name": "EPIC-006-F-007-S-001-REQ-B-001 — Show a facility on the same terms as a provider",
+                          "requirement": "A Facility Detail MUST show every value it shows on the same terms EPIC-006-F-002-S-001 requires of a Provider Detail, except where this story states otherwise.\n\nDepends on: EPIC-006-F-002-S-001 in full. The audit of 2026-08-30 records several of those requirements as carrying status done while being unmet; this requirement inherits the requirement, not the implementation.",
+                          "priority": "must-have",
+                          "status": "not_started",
+                          "orphan": false,
+                          "tests": {
+                            "test": [
+                              {
+                                "test_type": "ORPHAN",
+                                "orphan": true,
+                                "file": "ORPHAN"
+                              }
+                            ]
+                          },
+                          "approval": "proposed",
+                          "depends_on": []
+                        },
+                        {
+                          "req_id": "EPIC-006-F-007-S-001-REQ-B-002",
+                          "name": "EPIC-006-F-007-S-001-REQ-B-002 — Show exactly the facility identity set",
+                          "requirement": "In place of a provider's personal identity, the panel MUST show exactly these values: the legal business name; the other organization name where the record carries one; the label of what kind of name that other name is; the NPI; the date the NPI was issued; and whether the facility is currently active.",
+                          "priority": "must-have",
+                          "status": "not_started",
+                          "orphan": false,
+                          "tests": {
+                            "test": [
+                              {
+                                "test_type": "ORPHAN",
+                                "orphan": true,
+                                "file": "ORPHAN"
+                              }
+                            ]
+                          },
+                          "approval": "proposed",
+                          "depends_on": []
+                        },
+                        {
+                          "req_id": "EPIC-006-F-007-S-001-REQ-B-003",
+                          "name": "EPIC-006-F-007-S-001-REQ-B-003 — Name the parent when the facility is a subpart",
+                          "requirement": "When the record marks the facility as a subpart, the panel MUST show the parent organization's legal business name.",
+                          "priority": "must-have",
+                          "status": "not_started",
+                          "orphan": false,
+                          "tests": {
+                            "test": [
+                              {
+                                "test_type": "ORPHAN",
+                                "orphan": true,
+                                "file": "ORPHAN"
+                              }
+                            ]
+                          },
+                          "approval": "proposed",
+                          "depends_on": []
+                        },
+                        {
+                          "req_id": "EPIC-006-F-007-S-001-REQ-B-004",
+                          "name": "EPIC-006-F-007-S-001-REQ-B-004 — Show no person attribute",
+                          "requirement": "The panel MUST show no person's name, no sex, no personal credential, no sole-proprietor status and no primary-care marker.",
+                          "priority": "must-have",
+                          "status": "not_started",
+                          "orphan": false,
+                          "tests": {
+                            "test": [
+                              {
+                                "test_type": "ORPHAN",
+                                "orphan": true,
+                                "file": "ORPHAN"
+                              }
+                            ]
+                          },
+                          "approval": "proposed",
+                          "depends_on": []
+                        },
+                        {
+                          "req_id": "EPIC-006-F-007-S-001-REQ-B-005",
+                          "name": "EPIC-006-F-007-S-001-REQ-B-005 — Never carry a tax identifier",
+                          "requirement": "The federal employer identification number and the parent organization's taxpayer identification number MUST NOT be shown, transmitted or stored, whatever any upstream response contains.",
+                          "priority": "must-have",
+                          "status": "not_started",
+                          "orphan": false,
+                          "tests": {
+                            "test": [
+                              {
+                                "test_type": "ORPHAN",
+                                "orphan": true,
+                                "file": "ORPHAN"
+                              }
+                            ]
+                          },
+                          "approval": "proposed",
+                          "depends_on": []
+                        },
+                        {
+                          "req_id": "EPIC-006-F-007-S-001-REQ-B-006",
+                          "name": "EPIC-006-F-007-S-001-REQ-B-006 — Offer a destination that confirms the enumeration",
+                          "requirement": "The panel MUST offer a destination at which the user can independently confirm that this NPI is enumerated and that the organization we name is the organization it is enumerated to.",
+                          "priority": "must-have",
+                          "status": "not_started",
+                          "orphan": false,
+                          "tests": {
+                            "test": [
+                              {
+                                "test_type": "ORPHAN",
+                                "orphan": true,
+                                "file": "ORPHAN"
+                              }
+                            ]
+                          },
+                          "approval": "proposed",
+                          "depends_on": []
+                        },
+                        {
+                          "req_id": "EPIC-006-F-007-S-001-REQ-B-007",
+                          "name": "EPIC-006-F-007-S-001-REQ-B-007 — Offer a destination that confirms the right to operate",
+                          "requirement": "The panel MUST offer a destination at the authority that licenses or certifies facilities in the state of the facility's primary practice location, at which the user can independently confirm the facility's standing to operate there. Every state, the District of Columbia and every outlying sovereignty in which a facility may hold a practice location MUST be covered.\n\nCounterpart requirement belongs to: Quality, ratings and complaint history are not offered here. Scoring and ranking care by quality measures is the business capability of EPIC-001, and a facility reaches it through the handoff at EPIC-006-F-006-S-003-REQ-B-005. Offering a quality destination from this panel would duplicate that capability.",
+                          "priority": "must-have",
+                          "status": "not_started",
+                          "orphan": false,
+                          "tests": {
+                            "test": [
+                              {
+                                "test_type": "ORPHAN",
+                                "orphan": true,
+                                "file": "ORPHAN"
+                              }
+                            ]
+                          },
+                          "approval": "proposed",
+                          "depends_on": []
+                        },
+                        {
+                          "req_id": "EPIC-006-F-007-S-001-REQ-B-008",
+                          "name": "EPIC-006-F-007-S-001-REQ-B-008 — Show in plain words what kind of place this is",
+                          "requirement": "For every kind of facility the record carries, the panel MUST show the classification label, the specialization where the record carries one, and the plain-language definition of that kind of facility.\n\nDepends on: The approved runtime record design carries this set on the record, resolved and labelled when the record is written. FindCare shows what the record carries and resolves nothing at the moment of display.",
+                          "priority": "must-have",
+                          "status": "not_started",
+                          "orphan": false,
+                          "tests": {
+                            "test": [
+                              {
+                                "test_type": "ORPHAN",
+                                "orphan": true,
+                                "file": "ORPHAN"
+                              }
+                            ]
+                          },
+                          "approval": "proposed",
+                          "depends_on": []
+                        }
+                      ]
+                    }
+                  },
+                  {
+                    "story_id": "EPIC-006-F-007-S-002",
+                    "name": "The authorized official",
+                    "description": "The authorized official",
+                    "size": "M",
+                    "status": "not_started",
+                    "approval": "proposed",
+                    "orphan": false,
+                    "requirements": {
+                      "requirement": [
+                        {
+                          "req_id": "EPIC-006-F-007-S-002-REQ-B-001",
+                          "name": "EPIC-006-F-007-S-002-REQ-B-001 — Show exactly the administrative contact set",
+                          "requirement": "The panel MUST show exactly these values of the authorized official and no others: last name; first name; middle name where the record carries one; title or position; credential.",
+                          "priority": "must-have",
+                          "status": "not_started",
+                          "orphan": false,
+                          "tests": {
+                            "test": [
+                              {
+                                "test_type": "ORPHAN",
+                                "orphan": true,
+                                "file": "ORPHAN"
+                              }
+                            ]
+                          },
+                          "approval": "proposed",
+                          "depends_on": []
+                        },
+                        {
+                          "req_id": "EPIC-006-F-007-S-002-REQ-B-002",
+                          "name": "EPIC-006-F-007-S-002-REQ-B-002 — Label the official as the record's authorized official",
+                          "requirement": "The section showing the authorized official MUST be labelled as the record's authorized official.\n\nDepends on: The approved runtime record design carries an administrative contact as a person distinct from the authorized official. Labelling the authorized official as the administrative contact would name one person with another's role.",
+                          "priority": "must-have",
+                          "status": "not_started",
+                          "orphan": false,
+                          "tests": {
+                            "test": [
+                              {
+                                "test_type": "ORPHAN",
+                                "orphan": true,
+                                "file": "ORPHAN"
+                              }
+                            ]
+                          },
+                          "approval": "proposed",
+                          "depends_on": []
+                        },
+                        {
+                          "req_id": "EPIC-006-F-007-S-002-REQ-B-003",
+                          "name": "EPIC-006-F-007-S-002-REQ-B-003 — Make the official unselectable",
+                          "requirement": "The authorized official MUST NOT be selectable.",
+                          "priority": "must-have",
+                          "status": "not_started",
+                          "orphan": false,
+                          "tests": {
+                            "test": [
+                              {
+                                "test_type": "ORPHAN",
+                                "orphan": true,
+                                "file": "ORPHAN"
+                              }
+                            ]
+                          },
+                          "approval": "proposed",
+                          "depends_on": []
+                        },
+                        {
+                          "req_id": "EPIC-006-F-007-S-002-REQ-B-004",
+                          "name": "EPIC-006-F-007-S-002-REQ-B-004 — Link the official to nothing",
+                          "requirement": "The authorized official's name MUST NOT link to any view of a care provider.",
+                          "priority": "must-have",
+                          "status": "not_started",
+                          "orphan": false,
+                          "tests": {
+                            "test": [
+                              {
+                                "test_type": "ORPHAN",
+                                "orphan": true,
+                                "file": "ORPHAN"
+                              }
+                            ]
+                          },
+                          "approval": "proposed",
+                          "depends_on": []
+                        },
+                        {
+                          "req_id": "EPIC-006-F-007-S-002-REQ-B-005",
+                          "name": "EPIC-006-F-007-S-002-REQ-B-005 — Count the official as no provider",
+                          "requirement": "The authorized official MUST NOT be included in any count of providers.",
+                          "priority": "must-have",
+                          "status": "not_started",
+                          "orphan": false,
+                          "tests": {
+                            "test": [
+                              {
+                                "test_type": "ORPHAN",
+                                "orphan": true,
+                                "file": "ORPHAN"
+                              }
+                            ]
+                          },
+                          "approval": "proposed",
+                          "depends_on": []
+                        },
+                        {
+                          "req_id": "EPIC-006-F-007-S-002-REQ-B-006",
+                          "name": "EPIC-006-F-007-S-002-REQ-B-006 — Withhold the official's telephone number",
+                          "requirement": "The authorized official's telephone number MUST NOT be shown to the user.",
+                          "priority": "must-have",
+                          "status": "not_started",
+                          "orphan": false,
+                          "tests": {
+                            "test": [
+                              {
+                                "test_type": "ORPHAN",
+                                "orphan": true,
+                                "file": "ORPHAN"
+                              }
+                            ]
+                          },
+                          "approval": "proposed",
+                          "depends_on": []
+                        }
+                      ]
+                    }
+                  },
+                  {
+                    "story_id": "EPIC-006-F-007-S-003",
+                    "name": "Facility Detail data management",
+                    "description": "Facility Detail data management",
+                    "size": "M",
+                    "status": "not_started",
+                    "approval": "proposed",
+                    "orphan": false,
+                    "requirements": {
+                      "requirement": [
+                        {
+                          "req_id": "EPIC-006-F-007-S-003-REQ-B-001",
+                          "name": "EPIC-006-F-007-S-003-REQ-B-001 — Maintain a facility record on the same terms as a provider",
+                          "requirement": "The record behind a Facility Detail MUST be maintained on the same terms EPIC-006-F-002-S-002 requires of an individual provider record.\n\nDepends on: EPIC-006-F-002-S-002 in full. The audit of 2026-08-30 records six of its fourteen requirements as implementation specifications rather than requirements; this requirement inherits the obligation and not those formulations.",
+                          "priority": "must-have",
+                          "status": "not_started",
+                          "orphan": false,
+                          "tests": {
+                            "test": [
+                              {
+                                "test_type": "ORPHAN",
+                                "orphan": true,
+                                "file": "ORPHAN"
+                              }
+                            ]
+                          },
+                          "approval": "proposed",
+                          "depends_on": []
+                        },
+                        {
+                          "req_id": "EPIC-006-F-007-S-003-REQ-B-002",
+                          "name": "EPIC-006-F-007-S-003-REQ-B-002 — Never write a person attribute onto a facility",
+                          "requirement": "No maintenance of a facility record MUST write an individual-only attribute onto it, whatever any upstream response contains.",
+                          "priority": "must-have",
+                          "status": "not_started",
+                          "orphan": false,
+                          "tests": {
+                            "test": [
+                              {
+                                "test_type": "ORPHAN",
+                                "orphan": true,
+                                "file": "ORPHAN"
+                              }
+                            ]
+                          },
+                          "approval": "proposed",
+                          "depends_on": []
+                        },
+                        {
+                          "req_id": "EPIC-006-F-007-S-003-REQ-B-003",
+                          "name": "EPIC-006-F-007-S-003-REQ-B-003 — Show no Facility Detail for a record that is not an organization",
+                          "requirement": "A Facility Detail MUST NOT be shown for an NPI the authoritative registry reports is not an organization.",
+                          "priority": "must-have",
+                          "status": "not_started",
+                          "orphan": false,
+                          "tests": {
+                            "test": [
+                              {
+                                "test_type": "ORPHAN",
+                                "orphan": true,
+                                "file": "ORPHAN"
+                              }
+                            ]
+                          },
+                          "approval": "proposed",
+                          "depends_on": []
+                        },
+                        {
+                          "req_id": "EPIC-006-F-007-S-003-REQ-B-004",
+                          "name": "EPIC-006-F-007-S-003-REQ-B-004 — Tell the user the facility was not found",
+                          "requirement": "When a Facility Detail is not shown for that reason, the user MUST be told the facility was not found.\n\nCounterpart requirement belongs to: What becomes of the stored record in that case is a data obligation of EPIC-010.",
+                          "priority": "must-have",
+                          "status": "not_started",
+                          "orphan": false,
+                          "tests": {
+                            "test": [
+                              {
+                                "test_type": "ORPHAN",
+                                "orphan": true,
+                                "file": "ORPHAN"
+                              }
+                            ]
+                          },
+                          "approval": "proposed",
+                          "depends_on": []
+                        }
+                      ]
+                    }
+                  }
+                ]
+              }
+            },
+            {
+              "feature_id": "EPIC-006-F-008",
+              "name": "Manage FindCare Parameters",
+              "description": "",
+              "orphan": false,
+              "status": "not_started",
+              "priority": "must-have",
+              "realized_by": [],
+              "approval": "proposed",
+              "due_date": "2026-06-12",
+              "stories": {
+                "story": [
+                  {
+                    "story_id": "EPIC-006-F-008-S-001",
+                    "name": "Parameter naming and the page namespace",
+                    "description": "Parameter naming and the page namespace",
+                    "size": "M",
+                    "status": "not_started",
+                    "approval": "proposed",
+                    "orphan": false,
+                    "requirements": {
+                      "requirement": [
+                        {
+                          "req_id": "EPIC-006-F-008-S-001-REQ-B-001",
+                          "name": "EPIC-006-F-008-S-001-REQ-B-001 — Qualify every parameter name by its page",
+                          "requirement": "Every parameter name MUST be a page and an attribute together.",
+                          "priority": "must-have",
+                          "status": "not_started",
+                          "orphan": false,
+                          "tests": {
+                            "test": [
+                              {
+                                "test_type": "ORPHAN",
+                                "orphan": true,
+                                "file": "ORPHAN"
+                              }
+                            ]
+                          },
+                          "approval": "proposed",
+                          "depends_on": []
+                        },
+                        {
+                          "req_id": "EPIC-006-F-008-S-001-REQ-B-002",
+                          "name": "EPIC-006-F-008-S-001-REQ-B-002 — Declare exactly four pages",
+                          "requirement": "The pages MUST be exactly these four and no others: facility, individualProvider, NUCC, clinicalTrial.",
+                          "priority": "must-have",
+                          "status": "not_started",
+                          "orphan": false,
+                          "tests": {
+                            "test": [
+                              {
+                                "test_type": "ORPHAN",
+                                "orphan": true,
+                                "file": "ORPHAN"
+                              }
+                            ]
+                          },
+                          "approval": "proposed",
+                          "depends_on": []
+                        },
+                        {
+                          "req_id": "EPIC-006-F-008-S-001-REQ-B-003",
+                          "name": "EPIC-006-F-008-S-001-REQ-B-003 — Refuse a name whose page is not one of the four",
+                          "requirement": "A parameter name naming a page that is not one of the four MUST be refused.",
+                          "priority": "must-have",
+                          "status": "not_started",
+                          "orphan": false,
+                          "tests": {
+                            "test": [
+                              {
+                                "test_type": "ORPHAN",
+                                "orphan": true,
+                                "file": "ORPHAN"
+                              }
+                            ]
+                          },
+                          "approval": "proposed",
+                          "depends_on": []
+                        },
+                        {
+                          "req_id": "EPIC-006-F-008-S-001-REQ-B-004",
+                          "name": "EPIC-006-F-008-S-001-REQ-B-004 — Refuse an attribute the page does not declare",
+                          "requirement": "A parameter name naming an attribute that page does not declare MUST be refused.",
+                          "priority": "must-have",
+                          "status": "not_started",
+                          "orphan": false,
+                          "tests": {
+                            "test": [
+                              {
+                                "test_type": "ORPHAN",
+                                "orphan": true,
+                                "file": "ORPHAN"
+                              }
+                            ]
+                          },
+                          "approval": "proposed",
+                          "depends_on": []
+                        },
+                        {
+                          "req_id": "EPIC-006-F-008-S-001-REQ-B-005",
+                          "name": "EPIC-006-F-008-S-001-REQ-B-005 — Keep pages independent",
+                          "requirement": "Setting, clearing or reading a parameter on one page MUST have no effect on any parameter of any other page.",
+                          "priority": "must-have",
+                          "status": "not_started",
+                          "orphan": false,
+                          "tests": {
+                            "test": [
+                              {
+                                "test_type": "ORPHAN",
+                                "orphan": true,
+                                "file": "ORPHAN"
+                              }
+                            ]
+                          },
+                          "approval": "proposed",
+                          "depends_on": []
+                        },
+                        {
+                          "req_id": "EPIC-006-F-008-S-001-REQ-B-006",
+                          "name": "EPIC-006-F-008-S-001-REQ-B-006 — Hold more than one page's answer at a time",
+                          "requirement": "A result set in force on one page MUST NOT be displaced by a result set produced for another page. A user MUST be able to hold a facility answer and an individual-provider answer at the same time.\n\nCounterpart requirement belongs to: Turning one thing a person said into both a facility request and a provider request is the utterance manager's work, and dispatching both is the router's. Those requirements belong to EPIC-002-F-010-S-001 and EPIC-002-F-004-S-001. FindCare requires only that both answers can stand at once.",
+                          "priority": "must-have",
+                          "status": "not_started",
+                          "orphan": false,
+                          "tests": {
+                            "test": [
+                              {
+                                "test_type": "ORPHAN",
+                                "orphan": true,
+                                "file": "ORPHAN"
+                              }
+                            ]
+                          },
+                          "approval": "proposed",
+                          "depends_on": []
+                        }
+                      ]
+                    }
+                  },
+                  {
+                    "story_id": "EPIC-006-F-008-S-002",
+                    "name": "Carry-over between pages",
+                    "description": "Carry-over between pages",
+                    "size": "M",
+                    "status": "not_started",
+                    "approval": "proposed",
+                    "orphan": false,
+                    "requirements": {
+                      "requirement": [
+                        {
+                          "req_id": "EPIC-006-F-008-S-002-REQ-B-001",
+                          "name": "EPIC-006-F-008-S-002-REQ-B-001 — Decide carry-over one parameter at a time",
+                          "requirement": "Whether a parameter carries over MUST be decided per parameter, per source page and per destination page. No page-wide or system-wide rule MUST override that decision.",
+                          "priority": "must-have",
+                          "status": "not_started",
+                          "orphan": false,
+                          "tests": {
+                            "test": [
+                              {
+                                "test_type": "ORPHAN",
+                                "orphan": true,
+                                "file": "ORPHAN"
+                              }
+                            ]
+                          },
+                          "approval": "proposed",
+                          "depends_on": []
+                        },
+                        {
+                          "req_id": "EPIC-006-F-008-S-002-REQ-B-002",
+                          "name": "EPIC-006-F-008-S-002-REQ-B-002 — Change carry-over without changing deployed code",
+                          "requirement": "A change to which parameters carry over MUST take effect without any change to deployed code.\n\nCounterpart requirement belongs to: The store that holds these decisions and serves them to a running session belongs to EPIC-002. FindCare requires that the decisions are data and states no requirement about where they are held.",
+                          "priority": "must-have",
+                          "status": "not_started",
+                          "orphan": false,
+                          "tests": {
+                            "test": [
+                              {
+                                "test_type": "ORPHAN",
+                                "orphan": true,
+                                "file": "ORPHAN"
+                              }
+                            ]
+                          },
+                          "approval": "proposed",
+                          "depends_on": []
+                        },
+                        {
+                          "req_id": "EPIC-006-F-008-S-002-REQ-B-003",
+                          "name": "EPIC-006-F-008-S-002-REQ-B-003 — Carry nothing that is not named",
+                          "requirement": "A parameter for which no carry-over is stated for a given source and destination MUST NOT carry over.",
+                          "priority": "must-have",
+                          "status": "not_started",
+                          "orphan": false,
+                          "tests": {
+                            "test": [
+                              {
+                                "test_type": "ORPHAN",
+                                "orphan": true,
+                                "file": "ORPHAN"
+                              }
+                            ]
+                          },
+                          "approval": "proposed",
+                          "depends_on": []
+                        },
+                        {
+                          "req_id": "EPIC-006-F-008-S-002-REQ-B-004",
+                          "name": "EPIC-006-F-008-S-002-REQ-B-004 — Treat a carried value as a change on the destination",
+                          "requirement": "A value arriving on a page by carry-over MUST be recorded as a parameter change on that page.",
+                          "priority": "must-have",
+                          "status": "not_started",
+                          "orphan": false,
+                          "tests": {
+                            "test": [
+                              {
+                                "test_type": "ORPHAN",
+                                "orphan": true,
+                                "file": "ORPHAN"
+                              }
+                            ]
+                          },
+                          "approval": "proposed",
+                          "depends_on": []
+                        },
+                        {
+                          "req_id": "EPIC-006-F-008-S-002-REQ-B-005",
+                          "name": "EPIC-006-F-008-S-002-REQ-B-005 — Never displace a value already in force",
+                          "requirement": "A carry-over MUST NOT replace a value already in force on the destination page.",
+                          "priority": "must-have",
+                          "status": "not_started",
+                          "orphan": false,
+                          "tests": {
+                            "test": [
+                              {
+                                "test_type": "ORPHAN",
+                                "orphan": true,
+                                "file": "ORPHAN"
+                              }
+                            ]
+                          },
+                          "approval": "proposed",
+                          "depends_on": []
+                        }
+                      ]
+                    }
+                  },
+                  {
+                    "story_id": "EPIC-006-F-008-S-003",
+                    "name": "The three routes in",
+                    "description": "The three routes in",
+                    "size": "M",
+                    "status": "not_started",
+                    "approval": "proposed",
+                    "orphan": false,
+                    "requirements": {
+                      "requirement": [
+                        {
+                          "req_id": "EPIC-006-F-008-S-003-REQ-B-001",
+                          "name": "EPIC-006-F-008-S-003-REQ-B-001 — Let a tool change a parameter",
+                          "requirement": "A tool MUST be able to set, clear and read any parameter its page declares.",
+                          "priority": "must-have",
+                          "status": "not_started",
+                          "orphan": false,
+                          "tests": {
+                            "test": [
+                              {
+                                "test_type": "ORPHAN",
+                                "orphan": true,
+                                "file": "ORPHAN"
+                              }
+                            ]
+                          },
+                          "approval": "proposed",
+                          "depends_on": []
+                        },
+                        {
+                          "req_id": "EPIC-006-F-008-S-003-REQ-B-002",
+                          "name": "EPIC-006-F-008-S-003-REQ-B-002 — Let the gateway change a parameter",
+                          "requirement": "The gateway MUST be able to set, clear and read any parameter, on its own initiative and without a tool having asked.\n\nCounterpart requirement belongs to: The gateway itself is EPIC-002-F-004-S-001. FindCare requires the route and states no requirement about the gateway.",
+                          "priority": "must-have",
+                          "status": "not_started",
+                          "orphan": false,
+                          "tests": {
+                            "test": [
+                              {
+                                "test_type": "ORPHAN",
+                                "orphan": true,
+                                "file": "ORPHAN"
+                              }
+                            ]
+                          },
+                          "approval": "proposed",
+                          "depends_on": []
+                        },
+                        {
+                          "req_id": "EPIC-006-F-008-S-003-REQ-B-003",
+                          "name": "EPIC-006-F-008-S-003-REQ-B-003 — Let the utterance manager change a parameter",
+                          "requirement": "The utterance manager MUST be able to set, clear and read any parameter.\n\nCounterpart requirement belongs to: The utterance manager itself is EPIC-002-F-010. FindCare requires the route and states no requirement about the manager.",
+                          "priority": "must-have",
+                          "status": "not_started",
+                          "orphan": false,
+                          "tests": {
+                            "test": [
+                              {
+                                "test_type": "ORPHAN",
+                                "orphan": true,
+                                "file": "ORPHAN"
+                              }
+                            ]
+                          },
+                          "approval": "proposed",
+                          "depends_on": []
+                        },
+                        {
+                          "req_id": "EPIC-006-F-008-S-003-REQ-B-004",
+                          "name": "EPIC-006-F-008-S-003-REQ-B-004 — Give the three routes one outcome",
+                          "requirement": "The same parameter request made by any of the three routes MUST produce the same stored value and the same refusal.",
+                          "priority": "must-have",
+                          "status": "not_started",
+                          "orphan": false,
+                          "tests": {
+                            "test": [
+                              {
+                                "test_type": "ORPHAN",
+                                "orphan": true,
+                                "file": "ORPHAN"
+                              }
+                            ]
+                          },
+                          "approval": "proposed",
+                          "depends_on": []
+                        },
+                        {
+                          "req_id": "EPIC-006-F-008-S-003-REQ-B-005",
+                          "name": "EPIC-006-F-008-S-003-REQ-B-005 — Record which route made each change",
+                          "requirement": "Every parameter change MUST record which of the three routes made it.",
+                          "priority": "must-have",
+                          "status": "not_started",
+                          "orphan": false,
+                          "tests": {
+                            "test": [
+                              {
+                                "test_type": "ORPHAN",
+                                "orphan": true,
+                                "file": "ORPHAN"
+                              }
+                            ]
+                          },
+                          "approval": "proposed",
+                          "depends_on": []
+                        },
+                        {
+                          "req_id": "EPIC-006-F-008-S-003-REQ-B-006",
+                          "name": "EPIC-006-F-008-S-003-REQ-B-006 — Record whether a value was determined or inferred",
+                          "requirement": "Every parameter change MUST record whether the value was determined by a rule or inferred by a model.",
+                          "priority": "must-have",
+                          "status": "not_started",
+                          "orphan": false,
+                          "tests": {
+                            "test": [
+                              {
+                                "test_type": "ORPHAN",
+                                "orphan": true,
+                                "file": "ORPHAN"
+                              }
+                            ]
+                          },
+                          "approval": "proposed",
+                          "depends_on": []
+                        },
+                        {
+                          "req_id": "EPIC-006-F-008-S-003-REQ-B-007",
+                          "name": "EPIC-006-F-008-S-003-REQ-B-007 — Admit no fourth writer",
+                          "requirement": "No component MUST change a parameter other than through those three routes.",
+                          "priority": "must-have",
+                          "status": "not_started",
+                          "orphan": false,
+                          "tests": {
+                            "test": [
+                              {
+                                "test_type": "ORPHAN",
+                                "orphan": true,
+                                "file": "ORPHAN"
+                              }
+                            ]
+                          },
+                          "approval": "proposed",
+                          "depends_on": []
+                        }
+                      ]
+                    }
+                  },
+                  {
+                    "story_id": "EPIC-006-F-008-S-004",
+                    "name": "Every change preserved in real time",
+                    "description": "Every change preserved in real time",
+                    "size": "M",
+                    "status": "not_started",
+                    "approval": "proposed",
+                    "orphan": false,
+                    "requirements": {
+                      "requirement": [
+                        {
+                          "req_id": "EPIC-006-F-008-S-004-REQ-B-001",
+                          "name": "EPIC-006-F-008-S-004-REQ-B-001 — Preserve a change before its answer leaves",
+                          "requirement": "A parameter change MUST be durably preserved in the user's session record before any answer reporting that change leaves the server.\n\nCounterpart requirement belongs to: The session record itself is EPIC-002-F-003-S-005. FindCare requires the durability of its own parameters within it and states no requirement about the record.\n\nCONFLICT: The session is written once, at the end of the turn, after every handler has run. A parameter set part way through a turn lives only in memory until then, so this requirement cannot be met by that shape.",
+                          "priority": "must-have",
+                          "status": "not_started",
+                          "orphan": false,
+                          "tests": {
+                            "test": [
+                              {
+                                "test_type": "ORPHAN",
+                                "orphan": true,
+                                "file": "ORPHAN"
+                              }
+                            ]
+                          },
+                          "approval": "proposed",
+                          "depends_on": []
+                        },
+                        {
+                          "req_id": "EPIC-006-F-008-S-004-REQ-B-002",
+                          "name": "EPIC-006-F-008-S-004-REQ-B-002 — Show a change to the next reader at once",
+                          "requirement": "A parameter change MUST be visible to the next read by any route within the same turn.",
+                          "priority": "must-have",
+                          "status": "not_started",
+                          "orphan": false,
+                          "tests": {
+                            "test": [
+                              {
+                                "test_type": "ORPHAN",
+                                "orphan": true,
+                                "file": "ORPHAN"
+                              }
+                            ]
+                          },
+                          "approval": "proposed",
+                          "depends_on": []
+                        },
+                        {
+                          "req_id": "EPIC-006-F-008-S-004-REQ-B-003",
+                          "name": "EPIC-006-F-008-S-004-REQ-B-003 — Report no change that was not preserved",
+                          "requirement": "A parameter change that was not durably preserved MUST NOT be reported as made.\n\nCONFLICT: A failure of the session write is caught and the turn continues, and the answer is still returned as successful.",
+                          "priority": "must-have",
+                          "status": "not_started",
+                          "orphan": false,
+                          "tests": {
+                            "test": [
+                              {
+                                "test_type": "ORPHAN",
+                                "orphan": true,
+                                "file": "ORPHAN"
+                              }
+                            ]
+                          },
+                          "approval": "proposed",
+                          "depends_on": []
+                        },
+                        {
+                          "req_id": "EPIC-006-F-008-S-004-REQ-B-004",
+                          "name": "EPIC-006-F-008-S-004-REQ-B-004 — Hold the prior value when a change fails",
+                          "requirement": "A parameter whose change was not preserved MUST hold the value it held before.",
+                          "priority": "must-have",
+                          "status": "not_started",
+                          "orphan": false,
+                          "tests": {
+                            "test": [
+                              {
+                                "test_type": "ORPHAN",
+                                "orphan": true,
+                                "file": "ORPHAN"
+                              }
+                            ]
+                          },
+                          "approval": "proposed",
+                          "depends_on": []
+                        },
+                        {
+                          "req_id": "EPIC-006-F-008-S-004-REQ-B-005",
+                          "name": "EPIC-006-F-008-S-004-REQ-B-005 — Tell the user a change did not take",
+                          "requirement": "When a parameter change is not preserved, the user MUST be told, and the parameter MUST be named.",
+                          "priority": "must-have",
+                          "status": "not_started",
+                          "orphan": false,
+                          "tests": {
+                            "test": [
+                              {
+                                "test_type": "ORPHAN",
+                                "orphan": true,
+                                "file": "ORPHAN"
+                              }
+                            ]
+                          },
+                          "approval": "proposed",
+                          "depends_on": []
+                        },
+                        {
+                          "req_id": "EPIC-006-F-008-S-004-REQ-B-006",
+                          "name": "EPIC-006-F-008-S-004-REQ-B-006 — Change all or none",
+                          "requirement": "A request changing more than one parameter MUST leave all of them changed or none of them changed.",
+                          "priority": "must-have",
+                          "status": "not_started",
+                          "orphan": false,
+                          "tests": {
+                            "test": [
+                              {
+                                "test_type": "ORPHAN",
+                                "orphan": true,
+                                "file": "ORPHAN"
+                              }
+                            ]
+                          },
+                          "approval": "proposed",
+                          "depends_on": []
+                        },
+                        {
+                          "req_id": "EPIC-006-F-008-S-004-REQ-B-007",
+                          "name": "EPIC-006-F-008-S-004-REQ-B-007 — Let the last preserved change stand",
+                          "requirement": "When two changes to one parameter are made in one turn, the value in force MUST be that of the last one preserved.",
+                          "priority": "must-have",
+                          "status": "not_started",
+                          "orphan": false,
+                          "tests": {
+                            "test": [
+                              {
+                                "test_type": "ORPHAN",
+                                "orphan": true,
+                                "file": "ORPHAN"
+                              }
+                            ]
+                          },
+                          "approval": "proposed",
+                          "depends_on": []
+                        }
+                      ]
+                    }
+                  },
+                  {
+                    "story_id": "EPIC-006-F-008-S-005",
+                    "name": "The parameter panel",
+                    "description": "The parameter panel",
+                    "size": "M",
+                    "status": "not_started",
+                    "approval": "proposed",
+                    "orphan": false,
+                    "requirements": {
+                      "requirement": [
+                        {
+                          "req_id": "EPIC-006-F-008-S-005-REQ-B-001",
+                          "name": "EPIC-006-F-008-S-005-REQ-B-001 — Show exactly the parameters in force",
+                          "requirement": "The panel MUST show exactly those parameters currently in force, with their values, and no others.",
+                          "priority": "must-have",
+                          "status": "not_started",
+                          "orphan": false,
+                          "tests": {
+                            "test": [
+                              {
+                                "test_type": "ORPHAN",
+                                "orphan": true,
+                                "file": "ORPHAN"
+                              }
+                            ]
+                          },
+                          "approval": "proposed",
+                          "depends_on": []
+                        },
+                        {
+                          "req_id": "EPIC-006-F-008-S-005-REQ-B-002",
+                          "name": "EPIC-006-F-008-S-005-REQ-B-002 — Show each parameter's page",
+                          "requirement": "Every parameter shown MUST be shown with the page it belongs to.",
+                          "priority": "must-have",
+                          "status": "not_started",
+                          "orphan": false,
+                          "tests": {
+                            "test": [
+                              {
+                                "test_type": "ORPHAN",
+                                "orphan": true,
+                                "file": "ORPHAN"
+                              }
+                            ]
+                          },
+                          "approval": "proposed",
+                          "depends_on": []
+                        },
+                        {
+                          "req_id": "EPIC-006-F-008-S-005-REQ-B-003",
+                          "name": "EPIC-006-F-008-S-005-REQ-B-003 — Group the panel by page",
+                          "requirement": "The panel MUST group the parameters it shows by page.",
+                          "priority": "must-have",
+                          "status": "not_started",
+                          "orphan": false,
+                          "tests": {
+                            "test": [
+                              {
+                                "test_type": "ORPHAN",
+                                "orphan": true,
+                                "file": "ORPHAN"
+                              }
+                            ]
+                          },
+                          "approval": "proposed",
+                          "depends_on": []
+                        },
+                        {
+                          "req_id": "EPIC-006-F-008-S-005-REQ-B-004",
+                          "name": "EPIC-006-F-008-S-005-REQ-B-004 — Clear one parameter alone",
+                          "requirement": "A user MUST be able to clear one parameter in a single action without changing any other.",
+                          "priority": "must-have",
+                          "status": "not_started",
+                          "orphan": false,
+                          "tests": {
+                            "test": [
+                              {
+                                "test_type": "ORPHAN",
+                                "orphan": true,
+                                "file": "ORPHAN"
+                              }
+                            ]
+                          },
+                          "approval": "proposed",
+                          "depends_on": []
+                        },
+                        {
+                          "req_id": "EPIC-006-F-008-S-005-REQ-B-005",
+                          "name": "EPIC-006-F-008-S-005-REQ-B-005 — Clear one page",
+                          "requirement": "A user MUST be able to clear every parameter of one page in a single action.",
+                          "priority": "must-have",
+                          "status": "not_started",
+                          "orphan": false,
+                          "tests": {
+                            "test": [
+                              {
+                                "test_type": "ORPHAN",
+                                "orphan": true,
+                                "file": "ORPHAN"
+                              }
+                            ]
+                          },
+                          "approval": "proposed",
+                          "depends_on": []
+                        },
+                        {
+                          "req_id": "EPIC-006-F-008-S-005-REQ-B-006",
+                          "name": "EPIC-006-F-008-S-005-REQ-B-006 — Clear every page",
+                          "requirement": "A user MUST be able to clear every parameter of every page in a single action.",
+                          "priority": "must-have",
+                          "status": "not_started",
+                          "orphan": false,
+                          "tests": {
+                            "test": [
+                              {
+                                "test_type": "ORPHAN",
+                                "orphan": true,
+                                "file": "ORPHAN"
+                              }
+                            ]
+                          },
+                          "approval": "proposed",
+                          "depends_on": []
+                        },
+                        {
+                          "req_id": "EPIC-006-F-008-S-005-REQ-B-007",
+                          "name": "EPIC-006-F-008-S-005-REQ-B-007 — Confirm a change in the same turn",
+                          "requirement": "After a parameter change is preserved, the panel MUST show the new value within the same turn.",
+                          "priority": "must-have",
+                          "status": "not_started",
+                          "orphan": false,
+                          "tests": {
+                            "test": [
+                              {
+                                "test_type": "ORPHAN",
+                                "orphan": true,
+                                "file": "ORPHAN"
+                              }
+                            ]
+                          },
+                          "approval": "proposed",
+                          "depends_on": []
+                        },
+                        {
+                          "req_id": "EPIC-006-F-008-S-005-REQ-B-008",
+                          "name": "EPIC-006-F-008-S-005-REQ-B-008 — Name where a carried value came from",
+                          "requirement": "A parameter in force on a page because it carried over MUST be shown with the page it came from.",
+                          "priority": "must-have",
+                          "status": "not_started",
+                          "orphan": false,
+                          "tests": {
+                            "test": [
+                              {
+                                "test_type": "ORPHAN",
+                                "orphan": true,
+                                "file": "ORPHAN"
+                              }
+                            ]
+                          },
+                          "approval": "proposed",
+                          "depends_on": []
+                        },
+                        {
+                          "req_id": "EPIC-006-F-008-S-005-REQ-B-009",
+                          "name": "EPIC-006-F-008-S-005-REQ-B-009 — Change a value where it is shown",
+                          "requirement": "A user MUST be able to change the value of any parameter in force from the panel that shows it.\n\nDepends on: EPIC-006-F-008-S-003-REQ-B-007. A change made in the panel is made through the same route as any other change; the panel is a surface, not a fourth writer.\n\nCounterpart requirement belongs to: Every such change reaches the server through the one entrance required by EPIC-002-F-004-S-001, and no persistent state changes anywhere else.",
+                          "priority": "must-have",
+                          "status": "not_started",
+                          "orphan": false,
+                          "tests": {
+                            "test": [
+                              {
+                                "test_type": "ORPHAN",
+                                "orphan": true,
+                                "file": "ORPHAN"
+                              }
+                            ]
+                          },
+                          "approval": "proposed",
+                          "depends_on": []
+                        }
+                      ]
+                    }
+                  },
+                  {
+                    "story_id": "EPIC-006-F-008-S-006",
+                    "name": "Replacing the flat-name model",
+                    "description": "Replacing the flat-name model",
+                    "size": "M",
+                    "status": "not_started",
+                    "approval": "proposed",
+                    "orphan": false,
+                    "requirements": {
+                      "requirement": [
+                        {
+                          "req_id": "EPIC-006-F-008-S-006-REQ-B-001",
+                          "name": "EPIC-006-F-008-S-006-REQ-B-001 — Refuse every unqualified name",
+                          "requirement": "A parameter named without its page MUST be refused.",
+                          "priority": "must-have",
+                          "status": "not_started",
+                          "orphan": false,
+                          "tests": {
+                            "test": [
+                              {
+                                "test_type": "ORPHAN",
+                                "orphan": true,
+                                "file": "ORPHAN"
+                              }
+                            ]
+                          },
+                          "approval": "proposed",
+                          "depends_on": []
+                        },
+                        {
+                          "req_id": "EPIC-006-F-008-S-006-REQ-B-002",
+                          "name": "EPIC-006-F-008-S-006-REQ-B-002 — Give every replaced name a disposition",
+                          "requirement": "Every parameter name the previous model accepted MUST have a stated disposition: a page-qualified successor, or withdrawal.",
+                          "priority": "must-have",
+                          "status": "not_started",
+                          "orphan": false,
+                          "tests": {
+                            "test": [
+                              {
+                                "test_type": "ORPHAN",
+                                "orphan": true,
+                                "file": "ORPHAN"
+                              }
+                            ]
+                          },
+                          "approval": "proposed",
+                          "depends_on": []
+                        },
+                        {
+                          "req_id": "EPIC-006-F-008-S-006-REQ-B-003",
+                          "name": "EPIC-006-F-008-S-006-REQ-B-003 — Split a value that was held once for every page",
+                          "requirement": "A value the previous model held once for the whole session, and that more than one page needs, MUST become one parameter per page.\n\nCONFLICT: The shared library's parameter model states the opposite as its design — that a parameter is defined once and means the same thing everywhere, with a geography read by a provider search and by a trial search given as the reason — and is a fixed-field class with one attribute per parameter, which cannot express a declaration held as data.",
+                          "priority": "must-have",
+                          "status": "not_started",
+                          "orphan": false,
+                          "tests": {
+                            "test": [
+                              {
+                                "test_type": "ORPHAN",
+                                "orphan": true,
+                                "file": "ORPHAN"
+                              }
+                            ]
+                          },
+                          "approval": "proposed",
+                          "depends_on": []
+                        },
+                        {
+                          "req_id": "EPIC-006-F-008-S-006-REQ-B-004",
+                          "name": "EPIC-006-F-008-S-006-REQ-B-004 — Declare exactly the parameters the requirements consume",
+                          "requirement": "A page MUST declare exactly those parameters its feature's requirements consume, and no others.",
+                          "priority": "must-have",
+                          "status": "not_started",
+                          "orphan": false,
+                          "tests": {
+                            "test": [
+                              {
+                                "test_type": "ORPHAN",
+                                "orphan": true,
+                                "file": "ORPHAN"
+                              }
+                            ]
+                          },
+                          "approval": "proposed",
+                          "depends_on": []
+                        },
+                        {
+                          "req_id": "EPIC-006-F-008-S-006-REQ-B-005",
+                          "name": "EPIC-006-F-008-S-006-REQ-B-005 — Declare no parameter that narrows nothing",
+                          "requirement": "A page MUST NOT declare a parameter whose value is the same for every record that page can return.",
+                          "priority": "must-have",
+                          "status": "not_started",
+                          "orphan": false,
+                          "tests": {
+                            "test": [
+                              {
+                                "test_type": "ORPHAN",
+                                "orphan": true,
+                                "file": "ORPHAN"
+                              }
+                            ]
+                          },
+                          "approval": "proposed",
+                          "depends_on": []
+                        }
+                      ]
+                    }
+                  },
+                  {
+                    "story_id": "EPIC-006-F-008-S-007",
+                    "name": "Position in a list",
+                    "description": "Position in a list",
+                    "size": "M",
+                    "status": "not_started",
+                    "approval": "proposed",
+                    "orphan": false,
+                    "requirements": {
+                      "requirement": [
+                        {
+                          "req_id": "EPIC-006-F-008-S-007-REQ-B-001",
+                          "name": "EPIC-006-F-008-S-007-REQ-B-001 — Page every list forward and back",
+                          "requirement": "Every FindCare list MUST be presentable one page at a time, forward and back.",
+                          "priority": "must-have",
+                          "status": "not_started",
+                          "orphan": false,
+                          "tests": {
+                            "test": [
+                              {
+                                "test_type": "ORPHAN",
+                                "orphan": true,
+                                "file": "ORPHAN"
+                              }
+                            ]
+                          },
+                          "approval": "proposed",
+                          "depends_on": []
+                        },
+                        {
+                          "req_id": "EPIC-006-F-008-S-007-REQ-B-002",
+                          "name": "EPIC-006-F-008-S-007-REQ-B-002 — Show twenty-five rows to a page",
+                          "requirement": "Every FindCare list MUST show twenty-five rows to a page.",
+                          "priority": "must-have",
+                          "status": "not_started",
+                          "orphan": false,
+                          "tests": {
+                            "test": [
+                              {
+                                "test_type": "ORPHAN",
+                                "orphan": true,
+                                "file": "ORPHAN"
+                              }
+                            ]
+                          },
+                          "approval": "proposed",
+                          "depends_on": []
+                        },
+                        {
+                          "req_id": "EPIC-006-F-008-S-007-REQ-B-003",
+                          "name": "EPIC-006-F-008-S-007-REQ-B-003 — Return the same records in the same order",
+                          "requirement": "The same search asked twice MUST return the same records in the same order.",
+                          "priority": "must-have",
+                          "status": "not_started",
+                          "orphan": false,
+                          "tests": {
+                            "test": [
+                              {
+                                "test_type": "ORPHAN",
+                                "orphan": true,
+                                "file": "ORPHAN"
+                              }
+                            ]
+                          },
+                          "approval": "proposed",
+                          "depends_on": []
+                        },
+                        {
+                          "req_id": "EPIC-006-F-008-S-007-REQ-B-004",
+                          "name": "EPIC-006-F-008-S-007-REQ-B-004 — Start at the first page when no position is given",
+                          "requirement": "A page request naming no position MUST return the first page.",
+                          "priority": "must-have",
+                          "status": "not_started",
+                          "orphan": false,
+                          "tests": {
+                            "test": [
+                              {
+                                "test_type": "ORPHAN",
+                                "orphan": true,
+                                "file": "ORPHAN"
+                              }
+                            ]
+                          },
+                          "approval": "proposed",
+                          "depends_on": []
+                        }
+                      ]
+                    }
+                  }
+                ]
               }
             }
           ]
