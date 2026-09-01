@@ -5353,26 +5353,6 @@
                           "depends_on": []
                         },
                         {
-                          "req_id": "EPIC-006-F-001-S-001-REQ-B-003",
-                          "requirement": "Results paginated with forward/back controls",
-                          "priority": "must-have",
-                          "status": "done",
-                          "orphan": false,
-                          "tests": {
-                            "test": [
-                              {
-                                "test_id": "EPIC-006-F-001-S-001-REQ-B-003-TEST-1",
-                                "test_type": "playwright",
-                                "orphan": false,
-                                "file": "Code/ConversationalUX/FindCareChat/backend/tests/test_findcare_search.py"
-                              }
-                            ]
-                          },
-                          "approval": "approved",
-                          "name": "Paginate results with forward and back controls",
-                          "depends_on": []
-                        },
-                        {
                           "req_id": "EPIC-006-F-001-S-001-REQ-B-004",
                           "requirement": "System identifies matching specialty types from search query",
                           "priority": "must-have",
@@ -5393,27 +5373,8 @@
                           "depends_on": []
                         },
                         {
-                          "req_id": "EPIC-006-F-001-S-001-REQ-B-005",
-                          "requirement": "Available provider cards show provider specialty on second row, matching the specialty from the filter that found them",
-                          "priority": "must-have",
-                          "status": "not_started",
-                          "orphan": false,
-                          "tests": {
-                            "test": [
-                              {
-                                "test_type": "ORPHAN",
-                                "orphan": true,
-                                "file": "ORPHAN"
-                              }
-                            ]
-                          },
-                          "approval": "approved",
-                          "name": "Show provider specialty on card second row, matching selected specialty filter",
-                          "depends_on": []
-                        },
-                        {
                           "req_id": "EPIC-006-F-001-S-001-REQ-B-006",
-                          "requirement": "The search timer must count elapsed seconds continuously from the moment the user submits a search until provider results are displayed. The timer must not stall, freeze, or clear between the AI classify call and the DB search call. Timer clears only when results render or an error is shown.",
+                          "requirement": "From the moment a user submits a search until results or an error are shown, the user MUST see continuously advancing evidence that the search is running. It MUST NOT stall, freeze or reset at any point in between.",
                           "priority": "must-have",
                           "status": "done",
                           "depends_on": [
@@ -5434,7 +5395,7 @@
                             ]
                           },
                           "approval": "approved",
-                          "name": "Search timer counts seconds continuously until results or error, never freezing"
+                          "name": "Show continuous progress until results or error"
                         }
                       ]
                     },
@@ -5444,14 +5405,139 @@
                   },
                   {
                     "story_id": "EPIC-006-F-001-S-002",
-                    "description": "User selects individual providers from search results before sending to EvaluateCare. Different UX paradigm from specialty filter.",
+                    "description": "A user picks providers out of the results. What is done with a selection, and what may be handed on, is EPIC-001's to decide and is not stated here.",
                     "size": "L",
                     "status": "done",
                     "requirements": {
                       "requirement": [
                         {
-                          "req_id": "EPIC-006-F-001-S-002-REQ-B-001",
-                          "requirement": "Main chat window splits vertically: top = available providers, bottom = selected providers (max 5)",
+                          "req_id": "EPIC-006-F-001-S-002-REQ-B-016",
+                          "orphan": false,
+                          "name": "Select a provider from the results",
+                          "requirement": "A user MUST be able to select any provider in the results for evaluation.",
+                          "priority": "must-have",
+                          "status": "done",
+                          "depends_on": [],
+                          "approval": "proposed",
+                          "tests": {
+                            "test": [
+                              {
+                                "orphan": true,
+                                "test_type": "ORPHAN",
+                                "file": "ORPHAN"
+                              }
+                            ]
+                          }
+                        },
+                        {
+                          "req_id": "EPIC-006-F-001-S-002-REQ-B-017",
+                          "orphan": false,
+                          "name": "Remove a provider from the selection",
+                          "requirement": "A user MUST be able to remove any provider from their selection.",
+                          "priority": "must-have",
+                          "status": "done",
+                          "depends_on": [],
+                          "approval": "proposed",
+                          "tests": {
+                            "test": [
+                              {
+                                "orphan": true,
+                                "test_type": "ORPHAN",
+                                "file": "ORPHAN"
+                              }
+                            ]
+                          }
+                        },
+                        {
+                          "req_id": "EPIC-006-F-001-S-002-REQ-B-018",
+                          "orphan": false,
+                          "name": "A selection stands until the user changes it",
+                          "requirement": "A provider a user has selected MUST remain selected until that user removes it or clears the selection.",
+                          "priority": "must-have",
+                          "status": "done",
+                          "depends_on": [],
+                          "approval": "proposed",
+                          "tests": {
+                            "test": [
+                              {
+                                "orphan": true,
+                                "test_type": "ORPHAN",
+                                "file": "ORPHAN"
+                              }
+                            ]
+                          }
+                        },
+                        {
+                          "req_id": "EPIC-006-F-001-S-002-REQ-B-019",
+                          "orphan": false,
+                          "name": "Show a selected provider the filter excludes",
+                          "requirement": "A selected provider that the specialty filter in force excludes MUST be shown to the user as excluded by it.",
+                          "priority": "must-have",
+                          "status": "in_progress",
+                          "depends_on": [],
+                          "approval": "proposed",
+                          "tests": {
+                            "test": [
+                              {
+                                "orphan": true,
+                                "test_type": "ORPHAN",
+                                "file": "ORPHAN"
+                              }
+                            ]
+                          }
+                        }
+                      ]
+                    },
+                    "orphan": false,
+                    "approval": "approved",
+                    "name": "Provider selection"
+                  },
+                  {
+                    "story_id": "EPIC-006-F-001-S-003",
+                    "description": "FindCare is reachable one way only. The gateway itself is defined by EPIC-002-F-004-S-001; this story states FindCare's dependency on it.",
+                    "size": "S",
+                    "status": "done",
+                    "requirements": {
+                      "requirement": [
+                        {
+                          "req_id": "EPIC-006-F-001-S-003-REQ-B-004",
+                          "orphan": false,
+                          "name": "Every request routes through the approved gateway",
+                          "requirement": "Every request FindCare receives MUST arrive through the one approved gateway for the environment it is running in. A request reaching any FindCare surface by any other route MUST be refused.",
+                          "priority": "must-have",
+                          "status": "in_progress",
+                          "depends_on": [
+                            {
+                              "story_id": "EPIC-002-F-004-S-001",
+                              "reason": "EPIC-002-F-004-S-001 defines the universal Gateway tool and states the gateway requirement itself at EPIC-002-F-004-S-001-REQ-B-001. FindCare states its dependency on it and does not restate it."
+                            }
+                          ],
+                          "approval": "proposed",
+                          "tests": {
+                            "test": [
+                              {
+                                "orphan": true,
+                                "test_type": "ORPHAN",
+                                "file": "ORPHAN"
+                              }
+                            ]
+                          }
+                        }
+                      ]
+                    },
+                    "orphan": false,
+                    "approval": "approved",
+                    "name": "Every request reaches FindCare through the approved gateway"
+                  },
+                  {
+                    "story_id": "EPIC-006-F-001-S-004",
+                    "description": "What a provider's specialty means on the face of a result.",
+                    "size": "S",
+                    "status": "not_started",
+                    "requirements": {
+                      "requirement": [
+                        {
+                          "requirement": "The specialty shown for a provider MUST be the specialty the user chose in the filter, not another specialty that provider holds.",
                           "priority": "must-have",
                           "status": "in_progress",
                           "orphan": false,
@@ -5464,365 +5550,10 @@
                               }
                             ]
                           },
-                          "approval": "approved",
-                          "name": "Chat window vertical split: top providers list, bottom selected (max 5)",
-                          "depends_on": []
-                        },
-                        {
-                          "req_id": "EPIC-006-F-001-S-002-REQ-B-002",
-                          "requirement": "User can drag and drop a provider from top list to bottom list to select",
-                          "priority": "must-have",
-                          "status": "done",
-                          "orphan": false,
-                          "tests": {
-                            "test": [
-                              {
-                                "test_id": "EPIC-006-F-001-S-002-REQ-B-002-TEST-1",
-                                "test_type": "analysis",
-                                "orphan": false,
-                                "file": "Code/ConversationalUX/FindCareChat/backend/tests/test_findcare_ui_requirements.py"
-                              },
-                              {
-                                "test_id": "EPIC-006-F-001-S-002-REQ-B-002-TEST-2",
-                                "test_type": "playwright",
-                                "orphan": false,
-                                "file": "Code/ConversationalUX/FindCareChat/backend/tests/test_findcare_ui_requirements.py"
-                              }
-                            ]
-                          },
-                          "approval": "approved",
-                          "name": "Enable drag and drop of provider from top to bottom list for selection",
-                          "depends_on": []
-                        },
-                        {
-                          "req_id": "EPIC-006-F-001-S-002-REQ-B-003",
-                          "requirement": "User can click an arrow button on a provider row to move it to selected list",
-                          "priority": "must-have",
-                          "status": "not_started",
-                          "orphan": false,
-                          "tests": {
-                            "test": [
-                              {
-                                "test_type": "ORPHAN",
-                                "orphan": true,
-                                "file": "ORPHAN"
-                              }
-                            ]
-                          },
-                          "approval": "approved",
-                          "name": "Arrow button moves provider row to selected list",
-                          "depends_on": []
-                        },
-                        {
-                          "req_id": "EPIC-006-F-001-S-002-REQ-B-004",
-                          "requirement": "Selected providers (bottom list) have a delete/erase icon to move back to top list",
-                          "priority": "must-have",
-                          "status": "not_started",
-                          "orphan": false,
-                          "tests": {
-                            "test": [
-                              {
-                                "test_type": "ORPHAN",
-                                "orphan": true,
-                                "file": "ORPHAN"
-                              }
-                            ]
-                          },
-                          "approval": "approved",
-                          "name": "Add delete icon to selected providers for moving them back to top list",
-                          "depends_on": []
-                        },
-                        {
-                          "req_id": "EPIC-006-F-001-S-002-REQ-B-005",
-                          "requirement": "Maximum 5 providers in selected list. Attempting to add a 6th is blocked with feedback",
-                          "priority": "must-have",
-                          "status": "not_started",
-                          "orphan": false,
-                          "tests": {
-                            "test": [
-                              {
-                                "test_type": "ORPHAN",
-                                "orphan": true,
-                                "file": "ORPHAN"
-                              }
-                            ]
-                          },
-                          "approval": "approved",
-                          "name": "Limit provider selection to 5; block and give feedback when exceeding limit",
-                          "depends_on": []
-                        },
-                        {
-                          "req_id": "EPIC-006-F-001-S-002-REQ-B-006",
-                          "requirement": "Click Evaluate Care with empty selected list shows popup: select at least one provider",
-                          "priority": "must-have",
-                          "status": "not_started",
-                          "orphan": false,
-                          "tests": {
-                            "test": [
-                              {
-                                "test_type": "ORPHAN",
-                                "orphan": true,
-                                "file": "ORPHAN"
-                              }
-                            ]
-                          },
-                          "approval": "approved",
-                          "name": "Show 'select at least one provider' popup if Evaluate Care clicked with no items",
-                          "depends_on": []
-                        },
-                        {
-                          "req_id": "EPIC-006-F-001-S-002-REQ-B-007",
-                          "requirement": "Only selected providers (bottom list) sent to EvaluateCare on handoff",
-                          "priority": "must-have",
-                          "status": "done",
-                          "orphan": false,
-                          "tests": {
-                            "test": [
-                              {
-                                "test_id": "EPIC-006-F-001-S-002-REQ-B-007-TEST-1",
-                                "test_type": "analysis",
-                                "orphan": false,
-                                "file": "Code/ConversationalUX/FindCareChat/backend/tests/test_findcare_ui_requirements.py"
-                              }
-                            ]
-                          },
-                          "approval": "approved",
-                          "name": "Send only bottom-list selected providers to EvaluateCare on handoff",
-                          "depends_on": []
-                        },
-                        {
-                          "req_id": "EPIC-006-F-001-S-002-REQ-B-008",
-                          "requirement": "Garbage icon on top list providers dismisses them from view. Garbage shows count badge",
-                          "priority": "must-have",
-                          "status": "not_started",
-                          "orphan": false,
-                          "tests": {
-                            "test": [
-                              {
-                                "test_type": "ORPHAN",
-                                "orphan": true,
-                                "file": "ORPHAN"
-                              }
-                            ]
-                          },
-                          "approval": "approved",
-                          "name": "Garbage icon removes providers from list and shows a count badge",
-                          "depends_on": []
-                        },
-                        {
-                          "req_id": "EPIC-006-F-001-S-002-REQ-B-009",
-                          "requirement": "Dismissed providers stay gone until user asks a new question in chat prompt",
-                          "priority": "must-have",
-                          "status": "not_started",
-                          "orphan": false,
-                          "tests": {
-                            "test": [
-                              {
-                                "test_type": "ORPHAN",
-                                "orphan": true,
-                                "file": "ORPHAN"
-                              }
-                            ]
-                          },
-                          "approval": "approved",
-                          "name": "Dismissed providers remain hidden until user submits new chat prompt",
-                          "depends_on": []
-                        },
-                        {
-                          "req_id": "EPIC-006-F-001-S-002-REQ-B-010",
-                          "requirement": "New chat question flushes garbage: count goes to 0, dismissed providers reappear, user sees it happen",
-                          "priority": "must-have",
-                          "status": "not_started",
-                          "orphan": false,
-                          "tests": {
-                            "test": [
-                              {
-                                "test_type": "ORPHAN",
-                                "orphan": true,
-                                "file": "ORPHAN"
-                              }
-                            ]
-                          },
-                          "approval": "approved",
-                          "name": "Flush question: count resets, dismissed providers reappear, update is visible to",
-                          "depends_on": []
-                        },
-                        {
-                          "req_id": "EPIC-006-F-001-S-002-REQ-B-011",
-                          "requirement": "When filter applied, top list re-renders with matching providers and all counts update",
-                          "priority": "must-have",
-                          "status": "not_started",
-                          "orphan": false,
-                          "tests": {
-                            "test": [
-                              {
-                                "test_type": "ORPHAN",
-                                "orphan": true,
-                                "file": "ORPHAN"
-                              }
-                            ]
-                          },
-                          "approval": "approved",
-                          "name": "Filter applies, list re-renders with matching providers and updated counts",
-                          "depends_on": []
-                        },
-                        {
-                          "req_id": "EPIC-006-F-001-S-002-REQ-B-012",
-                          "requirement": "If selected provider no longer matches active filter, row color changes and tooltip shows on hover: not in your filter",
-                          "priority": "must-have",
-                          "status": "not_started",
-                          "orphan": false,
-                          "tests": {
-                            "test": [
-                              {
-                                "test_type": "ORPHAN",
-                                "orphan": true,
-                                "file": "ORPHAN"
-                              }
-                            ]
-                          },
-                          "approval": "approved",
-                          "name": "Indicate with color and tooltip when provider is outside current filter",
-                          "depends_on": []
-                        },
-                        {
-                          "req_id": "EPIC-006-F-001-S-002-REQ-B-013",
-                          "requirement": "Click on filtered-out selected provider gives choice: keep or delete. Delete moves to garbage",
-                          "priority": "must-have",
-                          "status": "not_started",
-                          "orphan": false,
-                          "tests": {
-                            "test": [
-                              {
-                                "test_type": "ORPHAN",
-                                "orphan": true,
-                                "file": "ORPHAN"
-                              }
-                            ]
-                          },
-                          "approval": "approved",
-                          "name": "Filtered-out provider selection: choose keep or delete, delete moves to garbage",
-                          "depends_on": []
-                        },
-                        {
-                          "req_id": "EPIC-006-F-001-S-002-REQ-B-014",
-                          "requirement": "Selected list and garbage cache persist across pagination",
-                          "priority": "must-have",
-                          "status": "not_started",
-                          "orphan": false,
-                          "tests": {
-                            "test": [
-                              {
-                                "test_type": "ORPHAN",
-                                "orphan": true,
-                                "file": "ORPHAN"
-                              }
-                            ]
-                          },
-                          "approval": "approved",
-                          "name": "Persist selected list and garbage cache across pagination",
-                          "depends_on": []
-                        },
-                        {
-                          "req_id": "EPIC-006-F-001-S-002-REQ-B-015",
-                          "requirement": "Selected providers list (bottom) shows only provider name, specialty, and NPI. Full details (address, county, phone) shown in tooltip on hover.",
-                          "priority": "must-have",
-                          "status": "not_started",
-                          "orphan": false,
-                          "tests": {
-                            "test": [
-                              {
-                                "test_type": "ORPHAN",
-                                "orphan": true,
-                                "file": "ORPHAN"
-                              }
-                            ]
-                          },
-                          "approval": "approved",
-                          "name": "Show name, specialty, NPI in list; address, county, phone in hover tooltip",
-                          "depends_on": []
-                        }
-                      ]
-                    },
-                    "orphan": false,
-                    "approval": "approved",
-                    "name": "Provider selection"
-                  },
-                  {
-                    "story_id": "EPIC-006-F-001-S-003",
-                    "description": "index.html served on :80 redirects 301 to HTTPS. It is the sole exception to the 426 rule. Every other HTTP request returns 426 Upgrade Required.",
-                    "size": "S",
-                    "status": "done",
-                    "requirements": {
-                      "requirement": [
-                        {
-                          "req_id": "EPIC-006-F-001-S-003-REQ-B-003",
-                          "requirement": "Every other HTTP request to any path returns 426 Upgrade Required with message: This server refuses HTTP requests.",
-                          "priority": "must-have",
-                          "status": "done",
-                          "orphan": false,
-                          "tests": {
-                            "test": [
-                              {
-                                "test_id": "EPIC-006-F-001-S-003-REQ-B-003-TEST-1",
-                                "test_type": "ordinary",
-                                "orphan": false,
-                                "file": "Code/ConversationalUX/FindCareChat/backend/tests/test_https_security.py"
-                              }
-                            ]
-                          },
-                          "approval": "approved",
-                          "name": "Alternate HTTP requests return 426 with 'This server refuses HTTP requests'",
-                          "depends_on": []
-                        }
-                      ]
-                    },
-                    "orphan": false,
-                    "approval": "approved",
-                    "name": "index.html is the one and only HTTP-allowed page"
-                  },
-                  {
-                    "story_id": "EPIC-006-F-001-S-004",
-                    "description": "How provider information is displayed in the available and selected provider lists.",
-                    "size": "S",
-                    "status": "not_started",
-                    "requirements": {
-                      "requirement": [
-                        {
-                          "requirement": "After the provider name, the provider specialty MUST be displayed.",
-                          "priority": "must-have",
-                          "status": "not_started",
-                          "orphan": true,
-                          "tests": {
-                            "test": [
-                              {
-                                "test_type": "ORPHAN",
-                                "orphan": true,
-                                "file": "ORPHAN"
-                              }
-                            ]
-                          },
                           "approval": "proposed",
-                          "name": "Display provider specialty after provider name",
-                          "depends_on": []
-                        },
-                        {
-                          "requirement": "The specialty name displayed on a provider card MUST come from the user-selected specialty list (the filter), not from the NPI taxonomy record. This ensures consistency between what the user chose and what is displayed.",
-                          "priority": "must-have",
-                          "status": "not_started",
-                          "orphan": true,
-                          "tests": {
-                            "test": [
-                              {
-                                "test_type": "ORPHAN",
-                                "orphan": true,
-                                "file": "ORPHAN"
-                              }
-                            ]
-                          },
-                          "approval": "proposed",
-                          "name": "Display specialty from user-selected filter, not NPI taxonomy, on provider card",
-                          "depends_on": []
+                          "name": "Show the specialty the user chose",
+                          "depends_on": [],
+                          "req_id": "EPIC-006-F-001-S-004-REQ-B-001"
                         }
                       ]
                     },
@@ -5832,14 +5563,14 @@
                   },
                   {
                     "story_id": "EPIC-006-F-001-S-005",
-                    "description": "The backend must construct a summary_message string from the structured tool result fields (specialty_searched, total_count, count, specialization_options, state, city, county). This message is system-built per GOV-011 â€” the LLM does not write it. Template: \"There are N more '{term}' in '{state}'. We have included M types of providers. Shall I show you [more '{term}'] or would you like to [filter '{term}' by provider type]? You can also search by {zipcode, county, or city â€” omit the one they already used}.\"",
+                    "description": "The system tells the user what the search returned and what they can do next. The system writes it; a language model does not.",
                     "size": "M",
                     "status": "done",
                     "requirements": {
                       "requirement": [
                         {
                           "req_id": "EPIC-006-F-001-S-005-REQ-B-001",
-                          "requirement": "The summary must use the user's search term (specialty_searched), not the generic word 'providers'.",
+                          "requirement": "The summary MUST name what the user searched for in the user's own words, not in a generic noun.",
                           "priority": "must-have",
                           "status": "done",
                           "depends_on": [
@@ -5866,13 +5597,13 @@
                             ]
                           },
                           "approval": "approved",
-                          "name": "Summary uses user's specialty_searched term instead of 'providers'"
+                          "name": "Name what the user searched for in their own words"
                         },
                         {
                           "req_id": "EPIC-006-F-001-S-005-REQ-B-002",
-                          "requirement": "The summary must report the remaining count (total_count minus count of displayed providers), not the total count.",
+                          "requirement": "The summary MUST state how many providers matched beyond those on screen.",
                           "priority": "must-have",
-                          "status": "not_started",
+                          "status": "done",
                           "orphan": false,
                           "tests": {
                             "test": [
@@ -5884,14 +5615,14 @@
                             ]
                           },
                           "approval": "approved",
-                          "name": "Show remaining provider count as total_count minus displayed count in summary",
+                          "name": "State how many remain unseen",
                           "depends_on": []
                         },
                         {
                           "req_id": "EPIC-006-F-001-S-005-REQ-B-003",
-                          "requirement": "The summary must state how many types of specialists the results represent (len of specialization_options).",
+                          "requirement": "The summary MUST state how many kinds of provider the results represent.",
                           "priority": "must-have",
-                          "status": "not_started",
+                          "status": "done",
                           "orphan": false,
                           "tests": {
                             "test": [
@@ -5903,57 +5634,14 @@
                             ]
                           },
                           "approval": "approved",
-                          "name": "Summary must state the number of specialist types from specialization_options",
-                          "depends_on": []
-                        },
-                        {
-                          "req_id": "EPIC-006-F-001-S-005-REQ-B-004",
-                          "requirement": "The summary must include a marker for 'Filter' that the frontend can render as a clickable link to the specialty filter panel.",
-                          "priority": "must-have",
-                          "status": "not_started",
-                          "depends_on": [
-                            {
-                              "story_id": "EPIC-006-F-001-S-001",
-                              "reason": "Search must return results before filter can display"
-                            }
-                          ],
-                          "orphan": false,
-                          "tests": {
-                            "test": [
-                              {
-                                "test_type": "ORPHAN",
-                                "orphan": true,
-                                "file": "ORPHAN"
-                              }
-                            ]
-                          },
-                          "approval": "approved",
-                          "name": "Summary must show 'Filter' marker as clickable for specialty filter panel"
-                        },
-                        {
-                          "req_id": "EPIC-006-F-001-S-005-REQ-B-005",
-                          "requirement": "The summary must include a marker for 'next page' that the frontend can render as a clickable link to trigger pagination.",
-                          "priority": "must-have",
-                          "status": "not_started",
-                          "orphan": false,
-                          "tests": {
-                            "test": [
-                              {
-                                "test_type": "ORPHAN",
-                                "orphan": true,
-                                "file": "ORPHAN"
-                              }
-                            ]
-                          },
-                          "approval": "approved",
-                          "name": "Include 'next page' marker in summary for frontend clickable pagination link",
+                          "name": "State how many kinds of provider the results hold",
                           "depends_on": []
                         },
                         {
                           "req_id": "EPIC-006-F-001-S-005-REQ-B-006",
                           "requirement": "The summary must include the state in the message (e.g., \"in 'VA'\") when the user specified a state.",
                           "priority": "must-have",
-                          "status": "not_started",
+                          "status": "done",
                           "orphan": false,
                           "tests": {
                             "test": [
@@ -5969,34 +5657,10 @@
                           "depends_on": []
                         },
                         {
-                          "req_id": "EPIC-006-F-001-S-005-REQ-B-007",
-                          "requirement": "The summary must echo the user's search term in the action links (e.g., \"more 'shrinks'\", \"filter 'shrinks' by provider type\").",
-                          "priority": "must-have",
-                          "status": "not_started",
-                          "depends_on": [
-                            {
-                              "story_id": "FC-PIPE-SPEC-001",
-                              "reason": "Providers must be loaded"
-                            }
-                          ],
-                          "orphan": false,
-                          "tests": {
-                            "test": [
-                              {
-                                "test_type": "ORPHAN",
-                                "orphan": true,
-                                "file": "ORPHAN"
-                              }
-                            ]
-                          },
-                          "approval": "approved",
-                          "name": "Echo user's search term in summary action links"
-                        },
-                        {
                           "req_id": "EPIC-006-F-001-S-005-REQ-B-008",
                           "requirement": "The summary must offer location narrowing options (zipcode, county, city) but omit the dimension the user already specified.",
                           "priority": "must-have",
-                          "status": "not_started",
+                          "status": "in_progress",
                           "orphan": false,
                           "tests": {
                             "test": [
@@ -6010,87 +5674,31 @@
                           "approval": "approved",
                           "name": "Offer unselected location narrowing (zipcode, county, city) in summary",
                           "depends_on": []
+                        },
+                        {
+                          "req_id": "EPIC-006-F-001-S-005-REQ-B-009",
+                          "orphan": false,
+                          "name": "Show the summary with the results",
+                          "requirement": "The summary MUST be shown to the user together with the results it describes.",
+                          "priority": "must-have",
+                          "status": "in_progress",
+                          "depends_on": [],
+                          "approval": "proposed",
+                          "tests": {
+                            "test": [
+                              {
+                                "orphan": true,
+                                "test_type": "ORPHAN",
+                                "file": "ORPHAN"
+                              }
+                            ]
+                          }
                         }
                       ]
                     },
                     "orphan": false,
                     "approval": "approved",
-                    "name": "Build summary_message from structured search result data"
-                  },
-                  {
-                    "story_id": "EPIC-006-F-001-S-006",
-                    "description": "The frontend must display the system-built summary_message from PaginationMeta. Filter and next page markers must be rendered as clickable actions that trigger the filter panel and pagination respectively.",
-                    "size": "M",
-                    "status": "not_started",
-                    "requirements": {
-                      "requirement": [
-                        {
-                          "req_id": "EPIC-006-F-001-S-006-REQ-B-001",
-                          "requirement": "The frontend must display the summary_message from PaginationMeta as a separate system message after the LLM's provider listing.",
-                          "priority": "must-have",
-                          "status": "not_started",
-                          "orphan": false,
-                          "tests": {
-                            "test": [
-                              {
-                                "test_type": "ORPHAN",
-                                "orphan": true,
-                                "file": "ORPHAN"
-                              }
-                            ]
-                          },
-                          "approval": "approved",
-                          "name": "Display PaginationMeta summary_message after LLM provider listing as system msg",
-                          "depends_on": []
-                        },
-                        {
-                          "req_id": "EPIC-006-F-001-S-006-REQ-B-002",
-                          "requirement": "The [Filter] marker in summary_message must render as a clickable link that highlights or scrolls to the specialty filter panel.",
-                          "priority": "must-have",
-                          "status": "not_started",
-                          "depends_on": [
-                            {
-                              "story_id": "EPIC-006-F-001-S-001",
-                              "reason": "Search must return results before filter can display"
-                            }
-                          ],
-                          "orphan": false,
-                          "tests": {
-                            "test": [
-                              {
-                                "test_type": "ORPHAN",
-                                "orphan": true,
-                                "file": "ORPHAN"
-                              }
-                            ]
-                          },
-                          "approval": "approved",
-                          "name": "[Filter] marker links to and highlights specialty filter panel in summary"
-                        },
-                        {
-                          "req_id": "EPIC-006-F-001-S-006-REQ-B-003",
-                          "requirement": "The [next page] marker in summary_message must render as a clickable link that triggers loading the next page of results.",
-                          "priority": "must-have",
-                          "status": "not_started",
-                          "orphan": false,
-                          "tests": {
-                            "test": [
-                              {
-                                "test_type": "ORPHAN",
-                                "orphan": true,
-                                "file": "ORPHAN"
-                              }
-                            ]
-                          },
-                          "approval": "approved",
-                          "name": "[next page] marker renders as clickable link to load next results page",
-                          "depends_on": []
-                        }
-                      ]
-                    },
-                    "orphan": false,
-                    "approval": "approved",
-                    "name": "Frontend renders system summary with actionable links"
+                    "name": "Search summary"
                   }
                 ]
               },
@@ -6138,8 +5746,8 @@
                         {
                           "req_id": "EPIC-006-F-002-S-001-REQ-B-001",
                           "orphan": false,
-                          "name": "Display reads only from the provider record",
-                          "requirement": "Every Provider Detail render MUST read its fields from the Mongo provider record document for the clicked NPI. The rendering is independent of any maintenance done on the record by EPIC-006-F-002-S-002 â€” the display shows what is currently in the record at render time.",
+                          "name": "Show what is held for the provider now",
+                          "requirement": "Every Provider Detail MUST show the values held for the clicked NPI at the moment it is shown.",
                           "priority": "must-have",
                           "status": "done",
                           "approval": "approved",
@@ -6161,7 +5769,7 @@
                           "name": "Identity and credential fields",
                           "requirement": "The panel MUST display the provider's full name (prefix, first, middle, last), credentials, primary taxonomy (NUCC display name), NPI, status (active/inactive), and enumeration date. Missing fields render as empty placeholders â€” no fallback prose.",
                           "priority": "must-have",
-                          "status": "done",
+                          "status": "in_progress",
                           "approval": "approved",
                           "depends_on": [],
                           "tests": {
@@ -6178,10 +5786,10 @@
                         {
                           "req_id": "EPIC-006-F-002-S-001-REQ-B-003",
                           "orphan": false,
-                          "name": "All licenses, one row per licenses[] entry",
-                          "requirement": "The panel MUST display every entry in the record's normalized licenses[] array. Each row shows the licensing state and the license number. When a provider has multiple licenses in the same state, each is shown as its own row. When the licenses[] array is empty the License section is still labeled but shows an empty list â€” no fallback prose.",
+                          "name": "Show every licence",
+                          "requirement": "The panel MUST show every licence held for the provider, each with its issuing state and its licence number. Where the provider holds none, the licence section MUST be shown empty rather than replaced by prose.",
                           "priority": "must-have",
-                          "status": "done",
+                          "status": "in_progress",
                           "approval": "approved",
                           "depends_on": [],
                           "tests": {
@@ -6198,10 +5806,10 @@
                         {
                           "req_id": "EPIC-006-F-002-S-001-REQ-B-004",
                           "orphan": false,
-                          "name": "All addresses, labeled, business at the bottom",
-                          "requirement": "The panel MUST display every entry in the record's addresses[] array. Each row carries an explicit label (\"Practice\" for address_type='practice', \"Business\" for address_type='business'). Display order: all practice addresses first (in the order they appear on the record); all business addresses last. The fields per row are: street (line1 + line2 if present), city, state, ZIP, country, phone, and the enriched county info (see REQ-B-005).",
+                          "name": "Show every address, labelled",
+                          "requirement": "The panel MUST show every address held for the provider, each labelled as a practice location or as the business address, with its street, city, state, postal code, country and phone.",
                           "priority": "must-have",
-                          "status": "done",
+                          "status": "in_progress",
                           "approval": "approved",
                           "depends_on": [],
                           "tests": {
@@ -6218,10 +5826,10 @@
                         {
                           "req_id": "EPIC-006-F-002-S-001-REQ-B-005",
                           "orphan": false,
-                          "name": "Pipeline-enriched county info shown per address",
-                          "requirement": "For every address row the panel MUST display the county name (from county.name on the address) and the urban marker (from county.urban). When county.urban is absent on an address (e.g. a just-written-back new address whose urban workbook pass has not yet re-run) the panel renders the county name only, no urban marker. The county.fips and county.source fields are internal â€” not shown to the user.",
+                          "name": "Show county and urban standing per practice location",
+                          "requirement": "For every practice location the panel MUST show the county, and MUST show whether that county is urban where that is known.",
                           "priority": "must-have",
-                          "status": "done",
+                          "status": "not_started",
                           "approval": "approved",
                           "depends_on": [],
                           "tests": {
@@ -6238,10 +5846,10 @@
                         {
                           "req_id": "EPIC-006-F-002-S-001-REQ-B-006",
                           "orphan": false,
-                          "name": "Insurance section from the normalized insurance[] array",
-                          "requirement": "The panel MUST display an Insurance section rendering every entry in the record's normalized insurance[] array. Each row shows the insurance_type (human-readable, e.g. 'Medicaid', 'Medicare'), the brand (human-readable issuer with state suffix, e.g. 'State Medicaid Agency â€” AK'), the state, and the raw_value (the original identifier the issuer assigned). When insurance[] is empty the Insurance section is still labeled but shows an empty list â€” no fallback prose. The raw other_identifiers[] array is internal â€” not shown to the user.",
+                          "name": "Show every payer identifier",
+                          "requirement": "The panel MUST show every payer identifier held for the provider, each with the kind of coverage, the issuer, the state and the identifier itself. Where the provider holds none, the section MUST be shown empty rather than replaced by prose. A payer identifier MUST NOT be presented as membership of a network.",
                           "priority": "must-have",
-                          "status": "done",
+                          "status": "in_progress",
                           "approval": "approved",
                           "depends_on": [],
                           "tests": {
@@ -6258,56 +5866,16 @@
                         {
                           "req_id": "EPIC-006-F-002-S-001-REQ-B-007",
                           "orphan": false,
-                          "name": "External research links always rendered",
-                          "requirement": "Every render MUST include Healthgrades (search by name + state) and the NPI Registry (lookup by NPI). The panel MUST also render a third link to the appropriate state medical board for the provider's primary practice state, with coverage for every US state and the District of Columbia. For practice addresses in US territories and outlying sovereignties (PR, GU, VI, AS, MP, etc.) the panel MUST render the licensing authority link appropriate to that sovereignty. Each link MUST prefill suitable search criteria (provider name, license number, NPI) where the destination supports it so the user lands already scoped to the right provider. Each link carries a short guidance string explaining what the user will find at the destination.",
+                          "name": "Offer destinations that confirm enumeration and standing to practise",
+                          "requirement": "The panel MUST offer a destination at which the user can independently confirm the provider's enumeration, and a destination at the authority that licenses the provider in the state of their primary practice location. Every state, the District of Columbia and every outlying sovereignty in which a provider may hold a practice location MUST be covered.",
                           "priority": "must-have",
-                          "status": "done",
+                          "status": "in_progress",
                           "approval": "approved",
                           "depends_on": [],
                           "tests": {
                             "test": [
                               {
                                 "test_id": "EPIC-006-F-002-S-001-REQ-B-007-TEST-1",
-                                "orphan": false,
-                                "test_type": "playwright",
-                                "file": "architecture/DevOpsBuildDeployAndEnvironmentManagement/find_care_smoke_test.py"
-                              }
-                            ]
-                          }
-                        },
-                        {
-                          "req_id": "EPIC-006-F-002-S-001-REQ-B-008",
-                          "orphan": false,
-                          "name": "Page invocation contract",
-                          "requirement": "The panel MUST be invoked exclusively by the user clicking a Provider link. No utterance, no language-model call. The click payload carries the NPI and the link-as-shown snapshot (name, state, taxonomy) so the backend has the bare minimum to identify the record and run the data-management flow.",
-                          "priority": "must-have",
-                          "status": "done",
-                          "approval": "approved",
-                          "depends_on": [],
-                          "tests": {
-                            "test": [
-                              {
-                                "test_id": "EPIC-006-F-002-S-001-REQ-B-008-TEST-1",
-                                "orphan": false,
-                                "test_type": "playwright",
-                                "file": "architecture/DevOpsBuildDeployAndEnvironmentManagement/find_care_smoke_test.py"
-                              }
-                            ]
-                          }
-                        },
-                        {
-                          "req_id": "EPIC-006-F-002-S-001-REQ-B-009",
-                          "orphan": false,
-                          "name": "Rendering layer separation",
-                          "requirement": "The panel HTML template lives at Website/index.html (the host page). The FindCare iframe MUST send only structured data via a postMessage event carrying the provider record + the research-sites object. The host page owns the layout; the iframe owns the payload. No prose strings cross the postMessage boundary.",
-                          "priority": "must-have",
-                          "status": "done",
-                          "approval": "approved",
-                          "depends_on": [],
-                          "tests": {
-                            "test": [
-                              {
-                                "test_id": "EPIC-006-F-002-S-001-REQ-B-009-TEST-1",
                                 "orphan": false,
                                 "test_type": "playwright",
                                 "file": "architecture/DevOpsBuildDeployAndEnvironmentManagement/find_care_smoke_test.py"
@@ -6321,289 +5889,119 @@
                   {
                     "story_id": "EPIC-006-F-002-S-002",
                     "orphan": false,
-                    "name": "Provider Detail data management and retrieval",
-                    "description": "Every Provider Detail click triggers a four-step data-management cycle: (1) fetch the live NPPES record by NPI; (2) compare every NPPES-sourced field on the live response to the corresponding field on the provider record in our Mongo; (3) when divergence is detected, write the live values back into the provider record while preserving or re-running pipeline enrichments according to the per-enrichment rules below; (4) display proceeds from the current provider record via the display story. Our trust model is unchanged: NPPES is authoritative for NPPES-sourced fields; our pipeline owns the enrichments (county info, urban marker, can_prescribe, is_homeopathic, is_disqualified, active log, normalized licenses[], normalized insurance[], embedding). Insurance is sourced exclusively from NPPES other_identifiers and then normalized; there is no separate insurance feed.",
+                    "name": "Provider Detail data management",
+                    "description": "What Provider Detail management needs of the systems it depends on, stated as what FindCare asks for and what must come back. FindCare states nothing about how a partner produces an answer: not the NPI API, not the geocoding service, not the clinical-trials registry. The list is: a real-time query by NPI available to every Provider tool; a response carrying identity, taxonomies, addresses, other identifiers and current active state; county and urban standing for every address; a detail that shows the provider as the registry reports them at the moment it was opened; and a detail that is still shown when the query does not answer.",
                     "size": "L",
                     "status": "done",
                     "approval": "approved",
                     "requirements": {
                       "requirement": [
                         {
-                          "req_id": "EPIC-006-F-002-S-002-REQ-B-001",
+                          "req_id": "EPIC-006-F-002-S-002-REQ-B-015",
                           "orphan": false,
-                          "name": "Live NPPES fetch on every click",
-                          "requirement": "Every Provider Detail request MUST fetch the full NPI record from the NPPES Registry public API at https://npiregistry.cms.hhs.gov/api/?number={npi}&version=2.1 with a 10-second timeout. NPPES is the authoritative source for all NPPES-sourced fields: basic identity, taxonomies, addresses, other_identifiers, status, and enumeration date.",
+                          "name": "A real-time NPI query available to every Provider tool",
+                          "requirement": "A real-time query to the NPI API, by NPI, MUST be available to every Provider tool.",
                           "priority": "must-have",
-                          "status": "done",
-                          "approval": "approved",
-                          "depends_on": [],
+                          "status": "in_progress",
+                          "depends_on": [
+                            {
+                              "story_id": "EPIC-010-F-108-S-001",
+                              "reason": "EPIC-010 must provide the query and the record behind it. FindCare states what it asks for and what must come back, and states nothing about how the answer is produced."
+                            }
+                          ],
+                          "approval": "proposed",
                           "tests": {
                             "test": [
                               {
-                                "test_id": "EPIC-006-F-002-S-002-REQ-B-001-TEST-1",
-                                "orphan": false,
-                                "test_type": "integration",
-                                "file": "Code/ConversationalUX/FindCareChat/backend/tests/test_provider_detail_data_management.py"
+                                "orphan": true,
+                                "test_type": "ORPHAN",
+                                "file": "ORPHAN"
                               }
                             ]
                           }
                         },
                         {
-                          "req_id": "EPIC-006-F-002-S-002-REQ-B-002",
+                          "req_id": "EPIC-006-F-002-S-002-REQ-B-016",
                           "orphan": false,
-                          "name": "Compare live vs the provider record before writing",
-                          "requirement": "After the live fetch the backend MUST compare every NPPES-sourced field on the response to the corresponding field on the provider record. The comparison covers name, taxonomies (codes + primary switch), the full addresses array (line1, line2, city, state, ZIP, country, phone, address_type), the raw other_identifiers array, status, enumeration date, and active log. When every field matches, no write occurs and the flow proceeds directly to display.",
+                          "name": "What the NPI query must return",
+                          "requirement": "A response to that query MUST carry, for the NPI asked for: the provider's identity, every taxonomy, every address, every other identifier, and the provider's current active state.",
                           "priority": "must-have",
                           "status": "done",
-                          "approval": "approved",
-                          "depends_on": [],
+                          "depends_on": [
+                            {
+                              "story_id": "EPIC-010-F-108-S-001",
+                              "reason": "EPIC-010 must return this content."
+                            }
+                          ],
+                          "approval": "proposed",
                           "tests": {
                             "test": [
                               {
-                                "test_id": "EPIC-006-F-002-S-002-REQ-B-002-TEST-1",
-                                "orphan": false,
-                                "test_type": "integration",
-                                "file": "Code/ConversationalUX/FindCareChat/backend/tests/test_provider_detail_data_management.py"
+                                "orphan": true,
+                                "test_type": "ORPHAN",
+                                "file": "ORPHAN"
                               }
                             ]
                           }
                         },
                         {
-                          "req_id": "EPIC-006-F-002-S-002-REQ-B-003",
+                          "req_id": "EPIC-006-F-002-S-002-REQ-B-017",
                           "orphan": false,
-                          "name": "Write-back on divergence",
-                          "requirement": "When the comparison detects any divergence the backend MUST overwrite the NPPES-sourced fields on the provider record with the live values, then re-run or preserve pipeline enrichments per the rules in REQ-B-005 through REQ-B-011. The write is a single document update; the display read happens after the write succeeds.",
+                          "name": "County and urban standing available to every Provider tool",
+                          "requirement": "The county of every address, and whether that county is urban, MUST be available to every Provider tool.",
                           "priority": "must-have",
                           "status": "done",
-                          "approval": "approved",
-                          "depends_on": [],
+                          "depends_on": [
+                            {
+                              "story_id": "EPIC-010-F-108-S-001",
+                              "reason": "EPIC-010 must resolve county and urban standing and make them available. FindCare consumes them and resolves nothing itself."
+                            }
+                          ],
+                          "approval": "proposed",
                           "tests": {
                             "test": [
                               {
-                                "test_id": "EPIC-006-F-002-S-002-REQ-B-003-TEST-1",
-                                "orphan": false,
-                                "test_type": "integration",
-                                "file": "Code/ConversationalUX/FindCareChat/backend/tests/test_provider_detail_data_management.py"
+                                "orphan": true,
+                                "test_type": "ORPHAN",
+                                "file": "ORPHAN"
                               }
                             ]
                           }
                         },
                         {
-                          "req_id": "EPIC-006-F-002-S-002-REQ-B-004",
+                          "req_id": "EPIC-006-F-002-S-002-REQ-B-018",
                           "orphan": false,
-                          "name": "New-address county lookup via Google Maps only",
-                          "requirement": "When the live NPPES response includes an address NOT present on the provider record (a brand-new street + city + state), the backend MUST resolve the new address's county.fips and county.name by calling the Google Maps geocoding API exclusively. The pipeline's earlier-stage funnel (ZIP crosswalk, Census Geocoder, NPPES API) is NOT used in this path. The county.source on the new address MUST be stamped 'geocoder_pass4_maps' to record the resolution provenance. If Google does not return an authoritative result for the new address, the county object on that address MUST be omitted (the address ships without county info) and a WARNING MUST be logged naming the NPI and the unresolved address.",
+                          "name": "Show the provider as the registry reports them",
+                          "requirement": "A Provider Detail MUST show the provider as the NPI API reports them at the moment the user opened it.",
                           "priority": "must-have",
                           "status": "done",
-                          "approval": "approved",
                           "depends_on": [],
+                          "approval": "proposed",
                           "tests": {
                             "test": [
                               {
-                                "test_id": "EPIC-006-F-002-S-002-REQ-B-004-TEST-1",
-                                "orphan": false,
-                                "test_type": "integration",
-                                "file": "Code/ConversationalUX/FindCareChat/backend/tests/test_provider_detail_data_management.py"
+                                "orphan": true,
+                                "test_type": "ORPHAN",
+                                "file": "ORPHAN"
                               }
                             ]
                           }
                         },
                         {
-                          "req_id": "EPIC-006-F-002-S-002-REQ-B-005",
+                          "req_id": "EPIC-006-F-002-S-002-REQ-B-019",
                           "orphan": false,
-                          "name": "Urban marker left off on new addresses",
-                          "requirement": "When a new address is written back, county.urban MUST be left absent on the new address's county object. The urban marker is owned by the pipeline's USDA Rural-Urban Continuum Codes (RUCC) workbook pass and is re-stamped on the next full pipeline load. Until then the display story renders the new address with county name but no urban marker (per S-001-REQ-B-005).",
+                          "name": "Show the provider when the query does not answer",
+                          "requirement": "When the NPI query does not answer, the Provider Detail MUST still be shown from what FindCare already holds.",
                           "priority": "must-have",
                           "status": "done",
-                          "approval": "approved",
                           "depends_on": [],
+                          "approval": "proposed",
                           "tests": {
                             "test": [
                               {
-                                "test_id": "EPIC-006-F-002-S-002-REQ-B-005-TEST-1",
-                                "orphan": false,
-                                "test_type": "integration",
-                                "file": "Code/ConversationalUX/FindCareChat/backend/tests/test_provider_detail_data_management.py"
-                              }
-                            ]
-                          }
-                        },
-                        {
-                          "req_id": "EPIC-006-F-002-S-002-REQ-B-006",
-                          "orphan": false,
-                          "name": "Preserve county info on unchanged addresses",
-                          "requirement": "For every address on the live NPPES response that matches an existing address on the provider record, the backend MUST preserve the existing county object verbatim (county.fips, county.name, county.source, county.zip_ratio if present, county.urban if present). The county info is not re-computed; the prior pipeline run already paid the resolution cost and the inputs have not changed.",
-                          "priority": "must-have",
-                          "status": "done",
-                          "approval": "approved",
-                          "depends_on": [],
-                          "tests": {
-                            "test": [
-                              {
-                                "test_id": "EPIC-006-F-002-S-002-REQ-B-006-TEST-1",
-                                "orphan": false,
-                                "test_type": "integration",
-                                "file": "Code/ConversationalUX/FindCareChat/backend/tests/test_provider_detail_data_management.py"
-                              }
-                            ]
-                          }
-                        },
-                        {
-                          "req_id": "EPIC-006-F-002-S-002-REQ-B-007",
-                          "orphan": false,
-                          "name": "Re-run prescriber and homeopathic flags on taxonomy change",
-                          "requirement": "When the live NPPES taxonomies array differs from the provider record (any added, removed, or changed taxonomy code), the backend MUST recompute can_prescribe, is_homeopathic, and is_disqualified by ORing/ANDing across the new taxonomy set against the ProprietaryData.SpecialtyAndProviderFlags catalog (the same logic the pipeline's provider_flags_enrichment uses). When taxonomies are unchanged, these top-level flags MUST be preserved as-is.",
-                          "priority": "must-have",
-                          "status": "done",
-                          "approval": "approved",
-                          "depends_on": [],
-                          "tests": {
-                            "test": [
-                              {
-                                "test_id": "EPIC-006-F-002-S-002-REQ-B-007-TEST-1",
-                                "orphan": false,
-                                "test_type": "integration",
-                                "file": "Code/ConversationalUX/FindCareChat/backend/tests/test_provider_detail_data_management.py"
-                              }
-                            ]
-                          }
-                        },
-                        {
-                          "req_id": "EPIC-006-F-002-S-002-REQ-B-008",
-                          "orphan": false,
-                          "name": "Re-normalize licenses[] and insurance[] on write-back",
-                          "requirement": "On every write-back, the backend MUST replace BOTH the raw other_identifiers[] array (the NPPES-sourced data, exactly as the pipeline's normalize_provider_rows produces it) AND the normalized insurance[] array (the pipeline-derived form with insurance_type, brand, state, raw_value that the display consumes). Similarly the normalized licenses[] array MUST be regenerated from the live taxonomies' license fields so display and search consumers see consistent data. There is no enrichment of other_identifiers from any external insurance feed â€” NPPES is the only source.",
-                          "priority": "must-have",
-                          "status": "done",
-                          "approval": "approved",
-                          "depends_on": [],
-                          "tests": {
-                            "test": [
-                              {
-                                "test_id": "EPIC-006-F-002-S-002-REQ-B-008-TEST-1",
-                                "orphan": false,
-                                "test_type": "integration",
-                                "file": "Code/ConversationalUX/FindCareChat/backend/tests/test_provider_detail_data_management.py"
-                              }
-                            ]
-                          }
-                        },
-                        {
-                          "req_id": "EPIC-006-F-002-S-002-REQ-B-009",
-                          "orphan": false,
-                          "name": "Update active log if NPPES status changed",
-                          "requirement": "When the live NPPES basic.status, npi_deactivation_date, or npi_reactivation_date differs from the values represented by the last active[] log entry on the provider record, the backend MUST append a new event entry to active[] carrying the new event type (deactivated/reactivated), the date, the resulting is_active bool, and a source marker (nppes_deactivation_date / nppes_reactivation_date). When the status is unchanged, active[] is preserved verbatim.",
-                          "priority": "must-have",
-                          "status": "done",
-                          "approval": "approved",
-                          "depends_on": [],
-                          "tests": {
-                            "test": [
-                              {
-                                "test_id": "EPIC-006-F-002-S-002-REQ-B-009-TEST-1",
-                                "orphan": false,
-                                "test_type": "integration",
-                                "file": "Code/ConversationalUX/FindCareChat/backend/tests/test_provider_detail_data_management.py"
-                              }
-                            ]
-                          }
-                        },
-                        {
-                          "req_id": "EPIC-006-F-002-S-002-REQ-B-010",
-                          "orphan": false,
-                          "name": "Recompute quality flags after write-back",
-                          "requirement": "After write-back the backend MUST recompute the bad_data and out_of_scope flags from the new record state, using the same rules the pipeline's _mark_quality uses: bad_data {flagged: true, reason: 'no_address'} if addresses[] is empty; out_of_scope {flagged: true, reason: 'foreign_provider'} if the primary practice address country != 'US'; out_of_scope {flagged: true, reason: 'deactivated'} if the last active event is is_active=false. When inputs are unchanged the flags are preserved.",
-                          "priority": "must-have",
-                          "status": "done",
-                          "approval": "approved",
-                          "depends_on": [],
-                          "tests": {
-                            "test": [
-                              {
-                                "test_id": "EPIC-006-F-002-S-002-REQ-B-010-TEST-1",
-                                "orphan": false,
-                                "test_type": "integration",
-                                "file": "Code/ConversationalUX/FindCareChat/backend/tests/test_provider_detail_data_management.py"
-                              }
-                            ]
-                          }
-                        },
-                        {
-                          "req_id": "EPIC-006-F-002-S-002-REQ-B-011",
-                          "orphan": false,
-                          "name": "Stamp the provenance object on every successful write-back",
-                          "requirement": "On every successful write-back, the backend MUST set the provider record's sidecar provenance object as follows: provenance.origin = 'real_time_sync'; provenance.last_touched_at = the ISO timestamp of the write moment; provenance.real_time_sync_count is incremented by 1 if the field exists, otherwise initialized to 1. The four existing batch-ingest identifiers â€” load_id, loaded_at, chunk_id, row_index_in_chunk â€” MUST be preserved unchanged; they continue to identify the record's original pipeline ingest and are NEVER overwritten by a live write-back. The embedding, embedding_model, and embedding_version fields MUST also be preserved here; they are then superseded by REQ-B-014 when re-embedding completes.",
-                          "priority": "must-have",
-                          "status": "done",
-                          "approval": "approved",
-                          "depends_on": [],
-                          "tests": {
-                            "test": [
-                              {
-                                "test_id": "EPIC-006-F-002-S-002-REQ-B-011-TEST-1",
-                                "orphan": false,
-                                "test_type": "integration",
-                                "file": "Code/ConversationalUX/FindCareChat/backend/tests/test_provider_detail_data_management.py"
-                              }
-                            ]
-                          }
-                        },
-                        {
-                          "req_id": "EPIC-006-F-002-S-002-REQ-B-012",
-                          "orphan": false,
-                          "name": "Failure modes do not corrupt the record",
-                          "requirement": "When the NPPES live fetch fails (timeout, non-200, malformed response, zero results) OR the Google Maps geocoding call fails for a new address (covered separately by REQ-B-004), the backend MUST NOT write to the provider record. The display story is served from the existing (possibly stale) record. The failure is logged at WARNING. The user is not told the freshness sync failed â€” they see what we have.",
-                          "priority": "must-have",
-                          "status": "done",
-                          "approval": "approved",
-                          "depends_on": [],
-                          "tests": {
-                            "test": [
-                              {
-                                "test_id": "EPIC-006-F-002-S-002-REQ-B-012-TEST-1",
-                                "orphan": false,
-                                "test_type": "integration",
-                                "file": "Code/ConversationalUX/FindCareChat/backend/tests/test_provider_detail_data_management.py"
-                              }
-                            ]
-                          }
-                        },
-                        {
-                          "req_id": "EPIC-006-F-002-S-002-REQ-B-013",
-                          "orphan": false,
-                          "name": "One write per click, atomic, idempotent",
-                          "requirement": "When divergence is detected, the backend MUST issue exactly one MongoDB update against the provider record containing all the NPPES-sourced field updates plus the recomputed enrichment fields. Concurrent clicks for the same NPI MUST be safe â€” idempotent: the second write sees the same live response and either no-ops (because the first already wrote it) or produces identical fields.",
-                          "priority": "must-have",
-                          "status": "done",
-                          "approval": "approved",
-                          "depends_on": [],
-                          "tests": {
-                            "test": [
-                              {
-                                "test_id": "EPIC-006-F-002-S-002-REQ-B-013-TEST-1",
-                                "orphan": false,
-                                "test_type": "integration",
-                                "file": "Code/ConversationalUX/FindCareChat/backend/tests/test_provider_detail_data_management.py"
-                              }
-                            ]
-                          }
-                        },
-                        {
-                          "req_id": "EPIC-006-F-002-S-002-REQ-B-014",
-                          "orphan": false,
-                          "name": "Re-embed using the global embedding model on write-back",
-                          "requirement": "After a successful write-back, the backend MUST re-embed the record using the canonical global embedding model (per EPIC-008-F-011-S-004 and EPIC-002-F-005-S-012). The new embedding REPLACES the prior embedding, embedding_model, and embedding_version fields on the record. This keeps vector-search surfaces (provider search, specialty filter) consistent with the fresh field state after a live sync. If the embedding call fails, the prior embedding fields MUST be preserved and the write-back is still considered successful (the rest of the record is fresh; vector search will lag by one click until the next embedding attempt succeeds).",
-                          "priority": "must-have",
-                          "status": "done",
-                          "approval": "approved",
-                          "depends_on": [],
-                          "tests": {
-                            "test": [
-                              {
-                                "test_id": "EPIC-006-F-002-S-002-REQ-B-014-TEST-1",
-                                "orphan": false,
-                                "test_type": "integration",
-                                "file": "Code/ConversationalUX/FindCareChat/backend/tests/test_provider_detail_data_management.py"
+                                "orphan": true,
+                                "test_type": "ORPHAN",
+                                "file": "ORPHAN"
                               }
                             ]
                           }
@@ -6617,203 +6015,154 @@
             {
               "name": "Manage Front End Specialty Filter List",
               "status": "in_progress",
-              "description": "Filter search results by specialty type, prescriber status, and homeopathic status. The term 'Homeopathic' in this feature refers to a Homeopathic provider â€” it is not a new classification and is not an umbrella label for the broader CAM/holistic/integrative-medicine set. Six-story decomposition: Display Specification, Present Initial Filter, User Manages Filter, User Submits Filter, API Surface and Contracts, Test Coverage.",
+              "description": "The user is offered the specialties their healthcare request implies, narrows that list, and applies it to the provider list. The term 'Homeopathic' here means a Homeopathic provider; it is not a new classification and not an umbrella for the broader complementary or integrative set.",
               "stories": {
                 "story": [
                   {
                     "story_id": "EPIC-006-F-003-S-001",
-                    "description": "How the SpecialtyFilter LOOKS and behaves end-to-end as a panel. Anchors the comprehensive UX description that S-002, S-003, and S-004 reference.",
+                    "description": "The user is offered the specialties their request implies, narrows them, and applies the result to the provider list.",
                     "size": "L",
                     "status": "in_progress",
                     "requirements": {
                       "requirement": [
                         {
-                          "req_id": "EPIC-006-F-003-S-001-REQ-B-001",
-                          "requirement": "The header uses a light green background. {find actual coded RGB value, or the term the CSS style sheet uses}\nIt is divided into three rows: a title row, a 'count' row, and a 'controls' row.\nThe title row says 'Choose Specialties'.\nThe Count row has 3 values where the label for each value is over the actual value. From left to right, the three values are:\n\"All possible\": composed of the count of all the specialty types that can give care to the user based on the question they asked. This is regardless of whether or not a provider is available within the geographic boundary established by the user's question. In this group a specialty type must have a license but might not be homeopathic, or be able to prescribe.\n\"All prescribers\": the total number of specialty types from 'All possible' that are legally allowed to write prescriptions. This includes, for example, Nurse Practitioners, and is not limited to physicians.\n\"Your choices\": all the specialty types that the user has chosen. They might for example click the uncheck button and then check three specialties; in that case the number would be 3.\nMacro Controls\nThe third row has three controls: a button 'Uncheck all' and two checkboxes 'Prescribers' and 'Homeopathic'. The two checkboxes are stacked vertically whereas the Uncheck button takes up the entire vertical space in this row. The controls in this header row do NOT determine what is submitted when Apply Filter is clicked â€” the only criterion for what gets submitted is the list of checked specialties. The header controls affect that checked-list state, but their purpose is to control which specialties are checked or presented; they are not intended to control what is done when Apply Filter is applied. The behavior of these controls is:\nUncheck All\n\"Uncheck all\": this button unchecks any specialty type that is checked. Each time it is clicked it does this. If there are no specialties checked this button is greyed out, and a tool tip says, 'No specialties are checked'.\nAdditional requirement\nWhen fewer than 50% of the rows are unchecked, the button's label reads 'Check All'. When it is in this state, the action is to check all specialties.\nPrescribers\nThe list of checked specialists will have a particular state prior to the user clicking the Prescribers checkbox.\nFor all prescribers, Homeopathic and others, if the checkbox is unchecked it gets checked. If it is checked it remains checked.\nFor all non-prescribers, Homeopathic and non-Homeopath, if their checkbox is unchecked or checked, after this box is checked, the box becomes unchecked.\nHomeopathic\nThe list of checked specialists will have a particular state prior to the user clicking the 'Homeopathic' checkbox.\nFor all Homeopathic specialties that treat this disorder specifically, if their checkbox is unchecked it gets checked. If it is checked it remains checked.\nFor all non-Homeopathic, prescribers or non-prescribers, if their checkbox is unchecked or checked, after this box is checked, the box becomes unchecked.\nAdditional behavior:\nThe result set returned to this list upon initialization will have two lists.\nList one includes Homeopath specialties that specifically treat the class of problem that the user presented to the engine.\nList two includes all homeopathic specialties in this area or generalists that can treat this type of problem. The server will try to eliminate non-logical choices such as midwives to treat erectile dysfunction or gerontologists to treat a child.\nFrom a UX perspective there is only one list.\nScrollbar behavior\nIf there are more than 10 (configurable) then they are in a scroll bar, but all are available if the user scrolls.\nEach specialty has on its right a checkbox. By default, all are checked. A user can check or uncheck any specialty. And they can click the Uncheck all button to remove all from being checked. This is going to be a typical behavior; user unchecks all and then checks some.\n\"Apply Filter\" button: at the bottom of the control is a button labeled 'Apply Filter'. The scope of what gets applied is the specific specialties that are checked from the list of specialties. What is done with the controls in the header is not relevant to what specialties are submitted. Their purpose is to control which are checked or presented. They are not intended to control what is done when Apply Filter is applied. If any changes to the list of checked specialties have been made, then when this button is clicked:\nA list of providers (the default list) will be in the center panel. Below that, potentially some providers might have been selected.\nThe provider list subject to selection but not selected shall be turned 'white' i.e. no records shall show.\nA timer identical to the one that accompanied the original search shall be presented.\nThe selected provider window shall remain as is.\nThe prompt shall be available to the user.\nThe timer next to the prompt shall also show.\nMiddle-screen behavior on Apply Filter (per Skip clarification on the 'default list' / preservation question): the entire middle screen MUST be preserved as is from a business perspective. Specifically: the user's question is repainted; the Available Provider list is repainted; the Selected-for-evaluation panel never went away; the Prompt and 'send' never went away. Fine-grained technical requirements may be crafted from this baseline.\nTimers (per Skip clarification): there are two timers. One timer is shown immediately to the LEFT of the user-prompt input box. The second timer is on the main screen. The main-screen timer is correct on Apply Filter except that the user's selected providers panel must be preserved (per the middle-screen-behavior clarification above). The prompt-adjacent timer is correct as is.\nIf no changes to the filter have been made (changes meaning new checks have been made) then the button will not be hot but greyed out, and if a user clicks the button a non-modal popup with an 'OK' button must say: 'There are no changes to apply, try a new prompt if this is the wrong list. The AI agent will help you craft the right question' and no other action will be taken.\nCache Results on client: in order to enhance performance and in contradiction to the general requirement that all business logic must be done in ChatHealthy's servers in the data center, the list of specialists MUST be cached on the client. Each time a new list of specialists is produced by the FindCare server the entire cache content must be replaced with the new list of specialties.",
-                          "priority": "must-have",
-                          "status": "not_started",
+                          "req_id": "EPIC-006-F-003-S-001-REQ-B-002",
                           "orphan": false,
+                          "name": "Offer the specialties a request implies",
+                          "requirement": "When a user's healthcare request implies one or more specialties, the user MUST be offered the list of them.",
+                          "priority": "must-have",
+                          "status": "done",
+                          "depends_on": [],
+                          "approval": "proposed",
                           "tests": {
                             "test": [
                               {
-                                "test_id": "EPIC-006-F-003-S-001-REQ-B-001-TEST-1",
-                                "file": "Code/ConversationalUX/FindCareChat/tests/specialty_filter.spec.ts",
-                                "orphan": false,
-                                "test_type": "playwright"
-                              },
-                              {
-                                "test_id": "EPIC-006-F-003-S-001-REQ-B-001-TEST-2",
-                                "file": "Code/ConversationalUX/FindCareChat/tests/specialty_filter.spec.ts",
-                                "orphan": false,
-                                "test_type": "playwright"
+                                "orphan": true,
+                                "test_type": "ORPHAN",
+                                "file": "ORPHAN"
                               }
                             ]
-                          },
-                          "approval": "approved",
-                          "name": "Specialty Filter UX â€” comprehensive description of every control's behavior and content",
-                          "depends_on": []
-                        }
-                      ]
-                    },
-                    "orphan": false,
-                    "approval": "approved",
-                    "name": "Display Specification"
-                  },
-                  {
-                    "story_id": "EPIC-006-F-003-S-002",
-                    "description": "The system produces and displays the relevant specialty list in response to the user's healthcare request. WHAT shows up â€” quality, scope, and inclusion â€” plus the technical AI flow that produces the list.",
-                    "size": "L",
-                    "status": "in_progress",
-                    "requirements": {
-                      "requirement": [
+                          }
+                        },
                         {
-                          "req_id": "EPIC-006-F-003-S-002-REQ-B-001",
-                          "requirement": "The user-visible behavior of the SpecialtyFilter panel during initial presentation â€” the appearance of the panel when a healthcare request first produces a specialty list, the default checkbox states, the initial header counts, and the panel's place on the screen â€” MUST comply with the comprehensive UX described in EPIC-006-F-003-S-001-REQ-B-001 for the slice that covers initial presentation. The Present-Initial slice specifically covers: panel population on first query response, default checkbox state, the initial values of the three header counts, and the visible scope and inclusion rules of the returned specialty list.",
-                          "priority": "must-have",
-                          "status": "not_started",
+                          "req_id": "EPIC-006-F-003-S-001-REQ-B-003",
                           "orphan": false,
+                          "name": "Include or exclude any one specialty",
+                          "requirement": "A user MUST be able to include or exclude any specialty in the offered list.",
+                          "priority": "must-have",
+                          "status": "done",
+                          "depends_on": [],
+                          "approval": "proposed",
                           "tests": {
                             "test": [
                               {
-                                "test_id": "EPIC-006-F-003-S-002-REQ-B-001-TEST-1",
-                                "file": "Code/ConversationalUX/FindCareChat/tests/specialty_filter.spec.ts",
-                                "orphan": false,
-                                "test_type": "playwright"
-                              },
-                              {
-                                "test_id": "EPIC-006-F-003-S-002-REQ-B-001-TEST-2",
-                                "file": "Code/ConversationalUX/FindCareChat/tests/specialty_filter.spec.ts",
-                                "orphan": false,
-                                "test_type": "playwright"
+                                "orphan": true,
+                                "test_type": "ORPHAN",
+                                "file": "ORPHAN"
                               }
                             ]
-                          },
-                          "approval": "approved",
-                          "name": "Present-Initial UX MUST comply with EPIC-006-F-003-S-001-REQ-B-001",
-                          "depends_on": [
-                            {
-                              "story_id": "EPIC-006-F-003-S-001",
-                              "reason": "self"
-                            }
-                          ]
-                        }
-                      ]
-                    },
-                    "orphan": false,
-                    "approval": "approved",
-                    "name": "Present Initial Specialty Filter"
-                  },
-                  {
-                    "story_id": "EPIC-006-F-003-S-003",
-                    "description": "The user refines the displayed specialty list â€” toggles prescriber/homeopathic categories, unchecks individual specialties, watches the counts update. The panel persists across service-control transfers.",
-                    "size": "L",
-                    "status": "in_progress",
-                    "requirements": {
-                      "requirement": [
+                          }
+                        },
                         {
-                          "req_id": "EPIC-006-F-003-S-003-REQ-B-001",
-                          "requirement": "The user-visible behavior of the SpecialtyFilter panel while the user is refining the displayed specialty list â€” toggling individual checkboxes, toggling the Prescribers and Homeopathic category checkboxes, using the Uncheck All / Check All control, and watching the three header counts update reactively â€” MUST comply with the comprehensive UX described in EPIC-006-F-003-S-001-REQ-B-001 for the slice that covers user management of the filter. The Manage slice specifically covers: individual checkbox toggles, category-checkbox behavior, the Uncheck-All / Check-All control, count updates, and panel persistence across service-control transfers.",
-                          "priority": "must-have",
-                          "status": "not_started",
+                          "req_id": "EPIC-006-F-003-S-001-REQ-B-004",
                           "orphan": false,
+                          "name": "Include or exclude every prescriber at once",
+                          "requirement": "A user MUST be able to include or exclude every specialty that prescribes, together.",
+                          "priority": "must-have",
+                          "status": "done",
+                          "depends_on": [],
+                          "approval": "proposed",
                           "tests": {
                             "test": [
                               {
-                                "test_id": "EPIC-006-F-003-S-003-REQ-B-001-TEST-1",
-                                "file": "Code/ConversationalUX/FindCareChat/tests/specialty_filter.spec.ts",
-                                "orphan": false,
-                                "test_type": "playwright"
-                              },
-                              {
-                                "test_id": "EPIC-006-F-003-S-003-REQ-B-001-TEST-2",
-                                "file": "Code/ConversationalUX/FindCareChat/tests/specialty_filter.spec.ts",
-                                "orphan": false,
-                                "test_type": "playwright"
+                                "orphan": true,
+                                "test_type": "ORPHAN",
+                                "file": "ORPHAN"
                               }
                             ]
-                          },
-                          "approval": "approved",
-                          "name": "Manage-Filter UX MUST comply with EPIC-006-F-003-S-001-REQ-B-001",
-                          "depends_on": [
-                            {
-                              "story_id": "EPIC-006-F-003-S-001",
-                              "reason": "self"
-                            }
-                          ]
-                        }
-                      ]
-                    },
-                    "orphan": false,
-                    "approval": "approved",
-                    "name": "User Manages Filter"
-                  },
-                  {
-                    "story_id": "EPIC-006-F-003-S-004",
-                    "description": "The user commits the current selection by hitting Apply Filter. The Providers tab refreshes to reflect the new selection. Hand-off contract details live in S-005.",
-                    "size": "L",
-                    "status": "in_progress",
-                    "requirements": {
-                      "requirement": [
+                          }
+                        },
                         {
-                          "req_id": "EPIC-006-F-003-S-004-REQ-B-001",
-                          "requirement": "The user-visible behavior of the SpecialtyFilter panel when the user commits the current selection by clicking Apply Filter â€” the button's visibility and greyed/hot state, the no-changes non-modal popup, the clearing of the unpicked-providers list, the timer presentation, and the kick-off of a new provider query â€” MUST comply with the comprehensive UX described in EPIC-006-F-003-S-001-REQ-B-001 for the slice that covers Apply-Filter submission. The Submit slice specifically covers: Apply-Filter button visibility/state (greyed-when-no-changes per the master), the non-modal popup on click when no changes have been made, change detection between the current selection and the last submitted selection, clearing of the unpicked provider list, timer placement, and the trigger that kicks off the new provider query.",
-                          "priority": "must-have",
-                          "status": "not_started",
+                          "req_id": "EPIC-006-F-003-S-001-REQ-B-005",
                           "orphan": false,
+                          "name": "Include or exclude every homeopathic provider at once",
+                          "requirement": "A user MUST be able to include or exclude every homeopathic specialty, together.",
+                          "priority": "must-have",
+                          "status": "in_progress",
+                          "depends_on": [],
+                          "approval": "proposed",
                           "tests": {
                             "test": [
                               {
-                                "test_id": "EPIC-006-F-003-S-004-REQ-B-001-TEST-1",
-                                "file": "Code/ConversationalUX/FindCareChat/tests/specialty_filter.spec.ts",
-                                "orphan": false,
-                                "test_type": "playwright"
-                              },
-                              {
-                                "test_id": "EPIC-006-F-003-S-004-REQ-B-001-TEST-2",
-                                "file": "Code/ConversationalUX/FindCareChat/tests/specialty_filter.spec.ts",
-                                "orphan": false,
-                                "test_type": "playwright"
+                                "orphan": true,
+                                "test_type": "ORPHAN",
+                                "file": "ORPHAN"
                               }
                             ]
-                          },
-                          "approval": "approved",
-                          "name": "Submit-Filter UX MUST comply with EPIC-006-F-003-S-001-REQ-B-001",
-                          "depends_on": [
-                            {
-                              "story_id": "EPIC-006-F-003-S-001",
-                              "reason": "self"
-                            }
-                          ]
+                          }
+                        },
+                        {
+                          "req_id": "EPIC-006-F-003-S-001-REQ-B-006",
+                          "orphan": false,
+                          "name": "Show how many are offered, prescribe and are chosen",
+                          "requirement": "The user MUST be shown how many specialties are offered, how many of them prescribe, and how many the user has chosen.",
+                          "priority": "must-have",
+                          "status": "done",
+                          "depends_on": [],
+                          "approval": "proposed",
+                          "tests": {
+                            "test": [
+                              {
+                                "orphan": true,
+                                "test_type": "ORPHAN",
+                                "file": "ORPHAN"
+                              }
+                            ]
+                          }
+                        },
+                        {
+                          "req_id": "EPIC-006-F-003-S-001-REQ-B-007",
+                          "orphan": false,
+                          "name": "Apply the chosen specialties to the provider list",
+                          "requirement": "When a user applies their chosen specialties, the provider list MUST then show exactly the providers those specialties admit.",
+                          "priority": "must-have",
+                          "status": "done",
+                          "depends_on": [],
+                          "approval": "proposed",
+                          "tests": {
+                            "test": [
+                              {
+                                "orphan": true,
+                                "test_type": "ORPHAN",
+                                "file": "ORPHAN"
+                              }
+                            ]
+                          }
+                        },
+                        {
+                          "req_id": "EPIC-006-F-003-S-001-REQ-B-008",
+                          "orphan": false,
+                          "name": "A chosen set stands until the user changes it",
+                          "requirement": "A user's chosen set of specialties MUST remain in force until that user changes it.",
+                          "priority": "must-have",
+                          "status": "done",
+                          "depends_on": [],
+                          "approval": "proposed",
+                          "tests": {
+                            "test": [
+                              {
+                                "orphan": true,
+                                "test_type": "ORPHAN",
+                                "file": "ORPHAN"
+                              }
+                            ]
+                          }
                         }
                       ]
                     },
                     "orphan": false,
                     "approval": "approved",
-                    "name": "User Submits Filter to Provider Tab"
-                  },
-                  {
-                    "story_id": "EPIC-006-F-003-S-005",
-                    "description": "The technical contracts that bound the Specialty Filter feature: API visibility model, input contract, hand-off contract to Provider Search, and DOM frame placement.",
-                    "size": "L",
-                    "status": "in_progress",
-                    "requirements": {
-                      "requirement": []
-                    },
-                    "orphan": false,
-                    "approval": "approved",
-                    "name": "API Surface and Contracts"
-                  },
-                  {
-                    "story_id": "EPIC-006-F-003-S-006",
-                    "description": "Playwright UX test infrastructure for the SpecialtyFilter feature. Specifies where the tests live, how each REQ maps to a test_id, the current implementation status of the test file, and the end-to-end Playwright UX test that proves the per-story compliance REQ-Bs actually deliver Skip's comprehensive UX. Per Skip clarification in v4: Playwright scripts SHALL be allowed to cover business and user UX requirements (this is a significant refinement).",
-                    "size": "L",
-                    "status": "in_progress",
-                    "requirements": {
-                      "requirement": []
-                    },
-                    "orphan": false,
-                    "approval": "approved",
-                    "name": "Test Coverage"
+                    "name": "Specialty filter"
                   }
                 ]
               },
@@ -6850,80 +6199,61 @@
                     "requirements": {
                       "requirement": [
                         {
-                          "req_id": "EPIC-006-F-004-S-001-REQ-B-001",
-                          "name": "Center-panel trial detail: section anchors",
-                          "requirement": "Every section in the main-window trial detail MUST carry a stable anchor id of the form id=\"ct-sec-<slug>\" where <slug> is a lowercased hyphenated form of the section title. The anchors are the targets for right-panel section-list jump links (REQ-B-070).",
+                          "req_id": "EPIC-006-F-004-S-001-REQ-B-005",
+                          "orphan": false,
+                          "name": "Show a trial in full",
+                          "requirement": "When a user opens a trial, every section the trial holds MUST be shown.",
                           "priority": "must-have",
                           "status": "done",
-                          "orphan": false,
+                          "depends_on": [],
+                          "approval": "proposed",
                           "tests": {
                             "test": [
                               {
-                                "test_type": "ORPHAN",
                                 "orphan": true,
+                                "test_type": "ORPHAN",
                                 "file": "ORPHAN"
                               }
                             ]
-                          },
-                          "approval": "approved",
-                          "depends_on": []
+                          }
                         },
                         {
-                          "req_id": "EPIC-006-F-004-S-001-REQ-B-002",
-                          "name": "Right-panel section-list with smooth-scroll jumps",
-                          "requirement": "When a trial is displayed in the main window, the right panel MUST render a 'Trial sections' list with one clickable link per section in the current trial (linked to the anchor ids from REQ-B-069). Clicking a link MUST smooth-scroll the main-window center to that section's anchor.",
+                          "req_id": "EPIC-006-F-004-S-001-REQ-B-006",
+                          "orphan": false,
+                          "name": "Reach any section of a trial directly",
+                          "requirement": "A user MUST be able to reach any section of the trial they are viewing without reading through the sections before it.",
                           "priority": "must-have",
                           "status": "done",
-                          "orphan": false,
+                          "depends_on": [],
+                          "approval": "proposed",
                           "tests": {
                             "test": [
                               {
-                                "test_type": "ORPHAN",
                                 "orphan": true,
+                                "test_type": "ORPHAN",
                                 "file": "ORPHAN"
                               }
                             ]
-                          },
-                          "approval": "approved",
-                          "depends_on": []
+                          }
                         },
                         {
-                          "req_id": "EPIC-006-F-004-S-001-REQ-B-003",
-                          "name": "Immediate clear + timer on More / Back click",
-                          "requirement": "When the user clicks More or Back in the left panel, the system MUST immediately (before the network round-trip): clear the main-window trial detail, clear the right-panel section list, start a one-second-tick timer from zero, and render a loading banner. Then the network fetch is issued. The user must never see stale data while a new page is being fetched.",
+                          "req_id": "EPIC-006-F-004-S-001-REQ-B-007",
+                          "orphan": false,
+                          "name": "Show which trial is being viewed",
+                          "requirement": "A user viewing a trial MUST be able to tell, from the list they chose it from, which trial they are viewing.",
                           "priority": "must-have",
                           "status": "done",
-                          "orphan": false,
+                          "depends_on": [],
+                          "approval": "proposed",
                           "tests": {
                             "test": [
                               {
-                                "test_type": "ORPHAN",
                                 "orphan": true,
+                                "test_type": "ORPHAN",
                                 "file": "ORPHAN"
                               }
                             ]
-                          },
-                          "approval": "approved",
-                          "depends_on": []
-                        },
-                        {
-                          "req_id": "EPIC-006-F-004-S-001-REQ-B-004",
-                          "name": "Selected trial highlighted in left panel; click clears center+right immediately, then paints new trial",
-                          "requirement": "In the left-panel trial list, the trial currently displayed in frame_MainWindow MUST be visually distinguished (highlighted background) so the user always knows which card they are viewing. When the user clicks any trial card, the system MUST IMMEDIATELY blank frame_MainWindow and frame_RightPanel (paint empty content) BEFORE painting the new trial, so the user has an unambiguous visual confirmation that the click registered even when the new trial is fetched from the same in-memory page (no backend hop). The new trial's full detail is then painted into frame_MainWindow and its section-list into frame_RightPanel, and the left-panel highlight moves to the newly-selected card.",
-                          "priority": "must-have",
-                          "status": "done",
-                          "orphan": false,
-                          "tests": {
-                            "test": [
-                              {
-                                "test_type": "ORPHAN",
-                                "orphan": true,
-                                "file": "ORPHAN"
-                              }
-                            ]
-                          },
-                          "approval": "approved",
-                          "depends_on": []
+                          }
                         }
                       ]
                     }
@@ -6934,13 +6264,13 @@
             {
               "feature_id": "EPIC-006-F-005",
               "name": "Manage Front End Clinical Trial List",
-              "description": "Find recruiting clinical trials by condition. Decomposed into three stories (data retrieval, display, architecture). Stories and requirements pending operator approval of V5 draft in _oneshots/EPIC-006-F-005_FindClinicalTrials_FeatureDraft_V5.docx.",
+              "description": "Find clinical trials by condition and present them as a result list.",
               "stories": {
                 "story": [
                   {
                     "story_id": "EPIC-006-F-005-S-001",
-                    "name": "Find Clinical Trials data retrieval",
-                    "description": "ClinicalTrialsTool data-retrieval contract: CT.gov v2 search parameters, the geographic_scope filter (international or US-only), pagination defaults, demographic filters (age, sex), the canonical search_context echo, and the deterministic /gate op for pagination.",
+                    "name": "Find clinical trials",
+                    "description": "What a trial search asks of the clinical-trials registry, what must come back, and how a user narrows it. The registry is not ChatHealthy's and nothing here states how it produces an answer.",
                     "size": "M",
                     "status": "in_progress",
                     "orphan": false,
@@ -6948,164 +6278,150 @@
                     "requirements": {
                       "requirement": [
                         {
-                          "req_id": "EPIC-006-F-005-S-001-REQ-B-067",
-                          "name": "Request totalCount from CT.gov and surface the total to callers",
-                          "requirement": "ClinicalTrialsTool MUST send countTotal=true on every CT.gov v2 /studies request and parse payload.totalCount from the response. The total MUST be surfaced on Response.total_count for downstream display. CT.gov returns totalCount as an integer when countTotal=true.",
+                          "req_id": "EPIC-006-F-005-S-001-REQ-B-075",
+                          "orphan": false,
+                          "name": "Query the trials registry by condition",
+                          "requirement": "A query to the clinical-trials registry, by condition, MUST be available to FindCare.",
                           "priority": "must-have",
                           "status": "done",
-                          "orphan": false,
+                          "depends_on": [],
+                          "approval": "proposed",
                           "tests": {
                             "test": [
                               {
-                                "test_type": "ORPHAN",
                                 "orphan": true,
+                                "test_type": "ORPHAN",
                                 "file": "ORPHAN"
                               }
                             ]
-                          },
-                          "approval": "approved",
-                          "depends_on": []
+                          }
                         },
                         {
-                          "req_id": "EPIC-006-F-005-S-001-REQ-B-068",
-                          "name": "Default page size of 10 records",
-                          "requirement": "Request.page_size MUST default to 10 (down from 25). The user explicitly paginates with the cursor returned in Response.cursor; the wrapper's pagination control mirrors the providers pagination pattern.",
-                          "priority": "must-have",
-                          "status": "done",
+                          "req_id": "EPIC-006-F-005-S-001-REQ-B-076",
                           "orphan": false,
+                          "name": "What the trials query must return",
+                          "requirement": "A response to that query MUST carry, for each trial it returns, every value the trial list and the trial detail show, and MUST carry the number of trials matching the query.",
+                          "priority": "must-have",
+                          "status": "in_progress",
+                          "depends_on": [],
+                          "approval": "proposed",
                           "tests": {
                             "test": [
                               {
-                                "test_type": "ORPHAN",
                                 "orphan": true,
+                                "test_type": "ORPHAN",
                                 "file": "ORPHAN"
                               }
                             ]
-                          },
-                          "approval": "approved",
-                          "depends_on": []
+                          }
                         },
                         {
-                          "req_id": "EPIC-006-F-005-S-001-REQ-B-069",
-                          "name": "Accept optional participant demographics (age, sex)",
-                          "requirement": "Request MUST accept two optional participant-demographic fields: age_years (Optional[int]) and sex (Optional[str]). Condition remains the only required field. When age_years is supplied, ClinicalTrialsTool MUST map to CT.gov aggFilters using the canonical buckets: age<18 -> ages:child, 18<=age<65 -> ages:adult, age>=65 -> ages:older. When sex is supplied, ClinicalTrialsTool MUST resolve it to 'm' or 'f' (per S-003-REQ-B-007) and map to CT.gov sex:m or sex:f. Gender is intentionally NOT a parameter on this tool -- sex alone drives the CT.gov filter.",
+                          "req_id": "EPIC-006-F-005-S-001-REQ-B-077",
+                          "orphan": false,
+                          "name": "Condition is the only value a trial search requires",
+                          "requirement": "A trial search MUST run with a condition alone. No other value MUST be required of the user.",
                           "priority": "must-have",
                           "status": "done",
-                          "orphan": false,
+                          "depends_on": [],
+                          "approval": "proposed",
                           "tests": {
                             "test": [
                               {
-                                "test_type": "ORPHAN",
                                 "orphan": true,
+                                "test_type": "ORPHAN",
                                 "file": "ORPHAN"
                               }
                             ]
-                          },
-                          "approval": "approved",
-                          "depends_on": []
+                          }
                         },
                         {
-                          "req_id": "EPIC-006-F-005-S-001-REQ-B-070",
-                          "name": "Always emit a 'trials' stream event on every code path",
-                          "requirement": "ClinicalTrialsTool MUST emit a {kind:'trials', data:Response} stream event on every code path -- success, empty result set, error. The client relies on the trials event as the canonical end-of-search signal; silent paths previously caused 'no trials event in stream' user-visible failures.",
+                          "req_id": "EPIC-006-F-005-S-001-REQ-B-078",
+                          "orphan": false,
+                          "name": "Narrow trials by age",
+                          "requirement": "A user MUST be able to narrow a trial search to trials open to a person of their age.",
                           "priority": "must-have",
                           "status": "done",
-                          "orphan": false,
+                          "depends_on": [],
+                          "approval": "proposed",
                           "tests": {
                             "test": [
                               {
-                                "test_type": "ORPHAN",
                                 "orphan": true,
+                                "test_type": "ORPHAN",
                                 "file": "ORPHAN"
                               }
                             ]
-                          },
-                          "approval": "approved",
-                          "depends_on": []
+                          }
                         },
                         {
-                          "req_id": "EPIC-006-F-005-S-001-REQ-B-071",
-                          "name": "Echo authoritative SearchContext on every Response",
-                          "requirement": "ClinicalTrialsTool MUST populate Response.search_context with the exact {condition, user_location, age_years, sex, geographic_scope} actually used to fetch this page. The client uses search_context to re-issue pagination requests against the same canonical criteria, preventing the raw user utterance from leaking into the CT.gov call on subsequent pages.",
+                          "req_id": "EPIC-006-F-005-S-001-REQ-B-079",
+                          "orphan": false,
+                          "name": "Narrow trials by sex",
+                          "requirement": "A user MUST be able to narrow a trial search to trials open to a person of their sex.",
                           "priority": "must-have",
                           "status": "done",
-                          "orphan": false,
+                          "depends_on": [],
+                          "approval": "proposed",
                           "tests": {
                             "test": [
                               {
-                                "test_type": "ORPHAN",
                                 "orphan": true,
+                                "test_type": "ORPHAN",
                                 "file": "ORPHAN"
                               }
                             ]
-                          },
-                          "approval": "approved",
-                          "depends_on": []
+                          }
                         },
                         {
-                          "req_id": "EPIC-006-F-005-S-001-REQ-B-072",
-                          "name": "Routes API failures must be surfaced (no silent swallow)",
-                          "requirement": "When the Google Routes API call for a destination fails, the tool MUST log the failure as a Mode 2 ChatHealthyException in one of four named modes: routes_api_key_missing (GOOGLE_MAPS_API_KEY env var absent), routes_api_non_200 (HTTP response not 200), routes_api_empty (200 with empty routes[]), and routes_api_failed (exception during the call). Distance/duration MAY remain absent on the affected Location; the operator is notified via the log.",
+                          "req_id": "EPIC-006-F-005-S-001-REQ-B-080",
+                          "orphan": false,
+                          "name": "Restrict trials to the United States",
+                          "requirement": "A user MUST be able to restrict a trial search to the United States. A search in which they do not MUST return trials worldwide.",
                           "priority": "must-have",
                           "status": "done",
-                          "orphan": false,
+                          "depends_on": [],
+                          "approval": "proposed",
                           "tests": {
                             "test": [
                               {
-                                "test_type": "ORPHAN",
                                 "orphan": true,
+                                "test_type": "ORPHAN",
                                 "file": "ORPHAN"
                               }
                             ]
-                          },
-                          "approval": "approved",
-                          "depends_on": []
+                          }
                         },
                         {
-                          "req_id": "EPIC-006-F-005-S-001-REQ-B-073",
-                          "name": "Direct deterministic pagination op on /gate",
-                          "requirement": "SharedServices /gate MUST accept op='clinical_trials_page' with a payload matching ClinicalTrialsTool.Request (condition, user_location, age_years, sex, geographic_scope, cursor, page_size). UR dispatches to ClinicalTrialsTool with no LLM and no UtteranceManager hop. This is the deterministic path the client uses for More / Back pagination clicks (REQ-B-068).",
+                          "req_id": "EPIC-006-F-005-S-001-REQ-B-081",
+                          "orphan": false,
+                          "name": "Offer the refinements not yet given",
+                          "requirement": "A user who has named only a condition MUST be offered the ways of narrowing the search they have not yet used.",
                           "priority": "must-have",
                           "status": "done",
-                          "orphan": false,
+                          "depends_on": [
+                            {
+                              "story_id": "EPIC-002-F-010-S-001",
+                              "reason": "EPIC-002 owns turning what a person says into a request and asking them for what is missing. FindCare states which refinements exist."
+                            }
+                          ],
+                          "approval": "proposed",
                           "tests": {
                             "test": [
                               {
-                                "test_type": "ORPHAN",
                                 "orphan": true,
+                                "test_type": "ORPHAN",
                                 "file": "ORPHAN"
                               }
                             ]
-                          },
-                          "approval": "approved",
-                          "depends_on": []
-                        },
-                        {
-                          "req_id": "EPIC-006-F-005-S-001-REQ-B-074",
-                          "name": "Geographic scope: international (default) or US-only",
-                          "requirement": "Request MUST accept an optional geographic_scope field with values 'international' (default) or 'us'. ClinicalTrialsTool MUST honor it as follows: 'international' applies NO geographic filter to CT.gov (all records returned worldwide). 'us' MUST add the CT.gov v2 GEO filter restricting to country=United States. No other per-country scoping is supported in this iteration -- the only choices are international or US.",
-                          "priority": "must-have",
-                          "status": "done",
-                          "orphan": false,
-                          "tests": {
-                            "test": [
-                              {
-                                "test_type": "ORPHAN",
-                                "orphan": true,
-                                "file": "ORPHAN"
-                              }
-                            ]
-                          },
-                          "approval": "approved",
-                          "depends_on": []
+                          }
                         }
                       ]
                     }
                   },
                   {
                     "story_id": "EPIC-006-F-005-S-002",
-                    "name": "Clinical Trial List display",
-                    "description": "The left panel and the paging around it: the header band, the truncated summary, More/Back, the loading banner, and the error overlay. Selecting a trial belongs here; painting it belongs to Clinical Trial Detail.",
+                    "name": "Clinical trial list display",
+                    "description": "What the user sees of a set of trials.",
                     "size": "M",
                     "status": "in_progress",
                     "orphan": false,
@@ -7113,226 +6429,61 @@
                     "requirements": {
                       "requirement": [
                         {
-                          "req_id": "EPIC-006-F-005-S-002-REQ-B-001",
-                          "name": "Left-panel brief_summary truncated to first sentence with ellipsis",
-                          "requirement": "In the per-trial card in the left panel, the trial's brief_summary MUST be displayed truncated to its first sentence. When truncation occurs (the first sentence is shorter than the full summary), '...' MUST be appended to signal truncation. The user clicks the trial's NCT id to view the full detail in the main window.",
+                          "req_id": "EPIC-006-F-005-S-002-REQ-B-007",
+                          "orphan": false,
+                          "name": "Show enough of a trial to choose between them",
+                          "requirement": "Each trial in the list MUST show enough of itself for the user to tell it apart from the others without opening it.",
                           "priority": "must-have",
                           "status": "done",
-                          "orphan": false,
+                          "depends_on": [],
+                          "approval": "proposed",
                           "tests": {
                             "test": [
                               {
-                                "test_type": "ORPHAN",
                                 "orphan": true,
+                                "test_type": "ORPHAN",
                                 "file": "ORPHAN"
                               }
                             ]
-                          },
-                          "approval": "approved",
-                          "depends_on": []
+                          }
                         },
                         {
-                          "req_id": "EPIC-006-F-005-S-002-REQ-B-002",
-                          "name": "Left-panel header band: canonical query criteria + record range",
-                          "requirement": "The colored header band at the top of the left panel MUST display the canonical query criteria as echoed by the tool (Response.search_context). Format: 'Clinical trials -- condition: <X>, subject age: <Y>, subject sex: <Z>, <location>, scope: <international|US>'. When the tool returns a total_count, the band MUST also append ' -- showing <start> to <end> of <total>'. When total is unknown the band MUST NOT show a count (it MUST NOT imply a count it does not know).",
+                          "req_id": "EPIC-006-F-005-S-002-REQ-B-008",
+                          "orphan": false,
+                          "name": "Show the criteria that produced the list",
+                          "requirement": "The user MUST be shown the criteria that produced the trial list they are looking at.",
                           "priority": "must-have",
                           "status": "done",
-                          "orphan": false,
+                          "depends_on": [],
+                          "approval": "proposed",
                           "tests": {
                             "test": [
                               {
-                                "test_type": "ORPHAN",
                                 "orphan": true,
+                                "test_type": "ORPHAN",
                                 "file": "ORPHAN"
                               }
                             ]
-                          },
-                          "approval": "approved",
-                          "depends_on": []
+                          }
                         },
                         {
-                          "req_id": "EPIC-006-F-005-S-002-REQ-B-003",
-                          "name": "Left-panel More / Back pagination controls",
-                          "requirement": "The left panel MUST render a 'more trials' link when Response.cursor is non-null and a 'back' link when prior cursors exist (client-side history). Clicking either MUST round-trip through ClientRouter.getStreamedPayloads to /gate op='clinical_trials_page' (REQ-B-073) -- NOT through the LLM-routed utterance path. The pagination control mirrors the providers pagination pattern.",
-                          "priority": "must-have",
-                          "status": "done",
+                          "req_id": "EPIC-006-F-005-S-002-REQ-B-009",
                           "orphan": false,
+                          "name": "Say what was being attempted when it failed",
+                          "requirement": "When a trial list cannot be produced or extended, the user MUST be told what was being attempted when it failed.",
+                          "priority": "must-have",
+                          "status": "not_started",
+                          "depends_on": [],
+                          "approval": "proposed",
                           "tests": {
                             "test": [
                               {
-                                "test_type": "ORPHAN",
                                 "orphan": true,
+                                "test_type": "ORPHAN",
                                 "file": "ORPHAN"
                               }
                             ]
-                          },
-                          "approval": "approved",
-                          "depends_on": []
-                        },
-                        {
-                          "req_id": "EPIC-006-F-005-S-002-REQ-B-004",
-                          "name": "Loading banner content: canonical criteria + record range",
-                          "requirement": "The loading banner MUST display the canonical criteria (REQ-B-067 format, INCLUDING the geographic_scope) plus the record range being retrieved, e.g. 'condition: hepatitis B, subject age: 28, subject sex: male, Los Angeles, scope: US -- retrieving records 11-20 of 247'. The banner MUST NOT show only the raw user verb. The timer ticks every second next to or under the banner.",
-                          "priority": "must-have",
-                          "status": "done",
-                          "orphan": false,
-                          "tests": {
-                            "test": [
-                              {
-                                "test_type": "ORPHAN",
-                                "orphan": true,
-                                "file": "ORPHAN"
-                              }
-                            ]
-                          },
-                          "approval": "approved",
-                          "depends_on": []
-                        },
-                        {
-                          "req_id": "EPIC-006-F-005-S-002-REQ-B-005",
-                          "name": "Mid-stream loading-banner update from intent_classified",
-                          "requirement": "On a fresh utterance flow, when UR has finished classifying the utterance into a findClinicalTrials intent, UR MUST emit a {kind:'intent_classified'} stream event carrying the canonical criteria (action, condition, user_location, age_years, sex, geographic_scope). The client MUST replace the loading banner's raw utterance text with the canonical criteria as soon as that event arrives, so the user sees what the system actually understood, not the raw utterance.",
-                          "priority": "must-have",
-                          "status": "done",
-                          "orphan": false,
-                          "tests": {
-                            "test": [
-                              {
-                                "test_type": "ORPHAN",
-                                "orphan": true,
-                                "file": "ORPHAN"
-                              }
-                            ]
-                          },
-                          "approval": "approved",
-                          "depends_on": []
-                        },
-                        {
-                          "req_id": "EPIC-006-F-005-S-002-REQ-B-006",
-                          "name": "Pagination error overlay must include verb context",
-                          "requirement": "When a More / Back pagination fetch fails, the client error overlay MUST prepend a verb-context clause to the underlying error message: 'While trying to load more clinical trials: <err>' (for next) or 'While trying to go back to the previous page of clinical trials: <err>' (for prev). The user must always see what action was in flight when the error occurred.",
-                          "priority": "must-have",
-                          "status": "done",
-                          "orphan": false,
-                          "tests": {
-                            "test": [
-                              {
-                                "test_type": "ORPHAN",
-                                "orphan": true,
-                                "file": "ORPHAN"
-                              }
-                            ]
-                          },
-                          "approval": "approved",
-                          "depends_on": []
-                        }
-                      ]
-                    }
-                  },
-                  {
-                    "story_id": "EPIC-006-F-005-S-003",
-                    "name": "Find Clinical Trials architecture",
-                    "description": "Architecture contract between UtteranceManager, Universal Router, and ClinicalTrialsTool. UM prompts for refinements on first turn and extracts on follow-up; LLM (not regex) resolves the sex answer; condition is the only required field; UR thin pass-through for the deterministic pagination op.",
-                    "size": "M",
-                    "status": "in_progress",
-                    "orphan": false,
-                    "approval": "approved",
-                    "requirements": {
-                      "requirement": [
-                        {
-                          "req_id": "EPIC-006-F-005-S-003-REQ-B-005",
-                          "name": "UtteranceManager prompts for refinements on first clinical-trial turn",
-                          "requirement": "On the FIRST turn where the user expresses clinical-trial interest, UM MUST set target_action='closeConnection200' and emit a user_message that names EVERY refinement field not already known. The literal words 'age', 'sex', 'location', and 'scope' (asking international vs US) MUST appear in the user_message for each field that is missing. UM MUST tell the user that condition alone is enough -- they can answer 'skip' for any field. Park a pending_disambiguation with kind='clinical_trial_demographics'. UM MAY skip the ask and dispatch findClinicalTrials directly ONLY when all refinements are already known.",
-                          "priority": "must-have",
-                          "status": "done",
-                          "orphan": false,
-                          "tests": {
-                            "test": [
-                              {
-                                "test_type": "ORPHAN",
-                                "orphan": true,
-                                "file": "ORPHAN"
-                              }
-                            ]
-                          },
-                          "approval": "approved",
-                          "depends_on": []
-                        },
-                        {
-                          "req_id": "EPIC-006-F-005-S-003-REQ-B-006",
-                          "name": "UtteranceManager extracts age_years, sex, user_location, geographic_scope from follow-up",
-                          "requirement": "On the FOLLOW-UP turn after the prompt, UM MUST extract every refinement supplied. age_years (int) from 'I'm 28' / '28' / '28yo' / 'age 28'. sex (lowercased 'm' or 'f') per REQ-B-007. user_location (free-text) from any location mention. geographic_scope ('international' or 'us') from any 'international'/'worldwide'/'US only'/'United States only' mention. Populate all extracted fields as Arguments on the findClinicalTrials intent. If the user declines ('skip', 'no', 'just show me'), proceed with whatever fields are populated. Always set target_action='findClinicalTrials'.",
-                          "priority": "must-have",
-                          "status": "done",
-                          "orphan": false,
-                          "tests": {
-                            "test": [
-                              {
-                                "test_type": "ORPHAN",
-                                "orphan": true,
-                                "file": "ORPHAN"
-                              }
-                            ]
-                          },
-                          "approval": "approved",
-                          "depends_on": []
-                        },
-                        {
-                          "req_id": "EPIC-006-F-005-S-003-REQ-B-007",
-                          "name": "LLM-driven resolution of the user's sex answer to 'm' or 'f'",
-                          "requirement": "UM MUST resolve the user's answer to the sex prompt — or any sex signal in a free-text utterance — into the canonical lowercase token 'm' or 'f' via the classifier LLM. The LLM, not regex, MUST be authoritative. The LLM MUST recognize: (a) direct labels — 'Male', 'M', 'man', 'boy', 'masculino' → 'm'; 'Female', 'F', 'woman', 'girl' → 'f'; (b) male family / relationship words referring to the subject — 'son', 'brother', 'father', 'dad', 'uncle', 'nephew', 'grandfather', 'grandpa', 'husband', 'boyfriend', 'fiancé' → 'm'; (c) female family / relationship words — 'daughter', 'sister', 'mother', 'mom', 'aunt', 'niece', 'grandmother', 'grandma', 'wife', 'girlfriend', 'fiancée' → 'f'; (d) third-person pronouns about the subject when no contradicting label is present — 'he', 'his', 'him' → 'm'; 'she', 'her', 'hers' → 'f'. If the answer is ambiguous, non-binary, or mixes signals the LLM cannot reconcile, sex MUST be left None and the search dispatches without a sex filter. Gender is not a parameter in this iteration; we ask sex only. The same rules apply BOTH on the dedicated follow-up prompt AND on the first turn when the user volunteers the information ('clinical trial for my son who is 9' → sex='m', age_years=9).",
-                          "priority": "must-have",
-                          "status": "done",
-                          "orphan": false,
-                          "tests": {
-                            "test": [
-                              {
-                                "test_type": "ORPHAN",
-                                "orphan": true,
-                                "file": "ORPHAN"
-                              }
-                            ]
-                          },
-                          "approval": "approved",
-                          "depends_on": []
-                        },
-                        {
-                          "req_id": "EPIC-006-F-005-S-003-REQ-B-008",
-                          "name": "Condition is the ONLY required field for findClinicalTrials",
-                          "requirement": "Across the entire clinical-trials flow (UM extraction, UR dispatch, tool execution), condition is the ONLY required field. age_years, sex, user_location, and geographic_scope are ALL optional refinements of equal stature -- none is 'primary', none is 'bonus'. The search MUST dispatch with whatever the user provides, including no refinements at all if the user skips every field. Default scope when omitted is 'international' (REQ-B-074).",
-                          "priority": "must-have",
-                          "status": "done",
-                          "orphan": false,
-                          "tests": {
-                            "test": [
-                              {
-                                "test_type": "ORPHAN",
-                                "orphan": true,
-                                "file": "ORPHAN"
-                              }
-                            ]
-                          },
-                          "approval": "approved",
-                          "depends_on": []
-                        },
-                        {
-                          "req_id": "EPIC-006-F-005-S-003-REQ-B-009",
-                          "name": "Universal Router dispatches /gate op=clinical_trials_page as a thin pass-through",
-                          "requirement": "When /gate receives op='clinical_trials_page', UR MUST invoke _handle_clinical_trials_page which constructs a clinical_trials_tool.Request from the payload (Pydantic validates) and calls TOOL.run_and_log(deps, request). No biz logic in the handler -- all biz logic lives in ClinicalTrialsTool. UR also emits {kind:'intent_classified'} per REQ-B-073 on the LLM-routed findClinicalTrials dispatch path so the client can update its loading banner.",
-                          "priority": "must-have",
-                          "status": "done",
-                          "orphan": false,
-                          "tests": {
-                            "test": [
-                              {
-                                "test_type": "ORPHAN",
-                                "orphan": true,
-                                "file": "ORPHAN"
-                              }
-                            ]
-                          },
-                          "approval": "approved",
-                          "depends_on": []
+                          }
                         }
                       ]
                     }
@@ -7349,7 +6500,7 @@
             {
               "feature_id": "EPIC-006-F-006",
               "name": "Manage Front End Facility List",
-              "description": "NPI Type 2 organizations as a result list. Stories to be authored.",
+              "description": "Find organizations and present them as a result list. A facility is a legal entity, almost always associated with a set of physical locations, where consumers, providers and administrators of healthcare come together to deliver care. The architecture is the architecture of finding an individual provider: a list that carries little, and a detail that carries everything. Where a provider requirement already states that pattern this feature cites it rather than restating it.",
               "orphan": false,
               "status": "not_started",
               "priority": "must-have",
@@ -7370,8 +6521,8 @@
                       "requirement": [
                         {
                           "req_id": "EPIC-006-F-006-S-001-REQ-B-001",
-                          "name": "EPIC-006-F-006-S-001-REQ-B-001 — Return organizations only",
-                          "requirement": "A facility search MUST return only organizations. No individual provider MUST appear in a facility result set.\n\nCONFLICT: Provider search forces the individual entity type onto every query, restates the same literal on the single-record lookup and on the county route, and raises a compliance violation if any returned record is not an individual. There is no path through that file by which an organization can be returned. Stated, not resolved.",
+                          "name": "Return organizations only",
+                          "requirement": "A facility search MUST return only organizations.",
                           "priority": "must-have",
                           "status": "not_started",
                           "orphan": false,
@@ -7446,8 +6597,8 @@
                         },
                         {
                           "req_id": "EPIC-006-F-006-S-001-REQ-B-005",
-                          "name": "EPIC-006-F-006-S-001-REQ-B-005 — Return no facility that is not active",
-                          "requirement": "A facility whose current state is inactive MUST NOT be returned by a facility search.",
+                          "name": "Return only active facilities",
+                          "requirement": "A facility search MUST return only facilities that are currently active.",
                           "priority": "must-have",
                           "status": "not_started",
                           "orphan": false,
@@ -7464,42 +6615,23 @@
                           "depends_on": []
                         },
                         {
-                          "req_id": "EPIC-006-F-006-S-001-REQ-B-006",
-                          "name": "EPIC-006-F-006-S-001-REQ-B-006 — Return an empty set rather than a failure",
-                          "requirement": "A facility search matching no record MUST return an empty result set with a message the user sees.",
+                          "req_id": "EPIC-006-F-006-S-001-REQ-B-008",
+                          "orphan": false,
+                          "name": "Find a facility by naming its administrator",
+                          "requirement": "A user MUST be able to find a facility by naming the person who administers it, in whatever form the user gives that name.",
                           "priority": "must-have",
                           "status": "not_started",
-                          "orphan": false,
+                          "depends_on": [],
+                          "approval": "proposed",
                           "tests": {
                             "test": [
                               {
-                                "test_type": "ORPHAN",
                                 "orphan": true,
+                                "test_type": "ORPHAN",
                                 "file": "ORPHAN"
                               }
                             ]
-                          },
-                          "approval": "proposed",
-                          "depends_on": []
-                        },
-                        {
-                          "req_id": "EPIC-006-F-006-S-001-REQ-B-007",
-                          "name": "EPIC-006-F-006-S-001-REQ-B-007 — Do not match on the administrative contact",
-                          "requirement": "A facility MUST NOT be returned by a search naming its authorized official.",
-                          "priority": "must-have",
-                          "status": "not_started",
-                          "orphan": false,
-                          "tests": {
-                            "test": [
-                              {
-                                "test_type": "ORPHAN",
-                                "orphan": true,
-                                "file": "ORPHAN"
-                              }
-                            ]
-                          },
-                          "approval": "proposed",
-                          "depends_on": []
+                          }
                         }
                       ]
                     }
@@ -7507,7 +6639,7 @@
                   {
                     "story_id": "EPIC-006-F-006-S-002",
                     "name": "Facility result display",
-                    "description": "Facility result display",
+                    "description": "What one facility looks like in a result list. The row carries five things and the detail carries the rest.",
                     "size": "M",
                     "status": "not_started",
                     "approval": "proposed",
@@ -7515,118 +6647,23 @@
                     "requirements": {
                       "requirement": [
                         {
-                          "req_id": "EPIC-006-F-006-S-002-REQ-B-001",
-                          "name": "EPIC-006-F-006-S-002-REQ-B-001 — Show exactly the row content set",
-                          "requirement": "A facility row MUST show exactly these values and no others: the legal business name; the other organization name where the record carries one; the NPI; one practice location; that location's county; the phone on that location; and the label of what kind of facility this is.",
+                          "req_id": "EPIC-006-F-006-S-002-REQ-B-007",
+                          "orphan": false,
+                          "name": "Show exactly the facility row",
+                          "requirement": "A facility row MUST show exactly these five things and nothing else: the facility; how many practice addresses it has; its primary practice address; its facility type, being the label of its primary taxonomy; and a link to its detail.",
                           "priority": "must-have",
                           "status": "not_started",
-                          "orphan": false,
+                          "depends_on": [],
+                          "approval": "proposed",
                           "tests": {
                             "test": [
                               {
-                                "test_type": "ORPHAN",
                                 "orphan": true,
+                                "test_type": "ORPHAN",
                                 "file": "ORPHAN"
                               }
                             ]
-                          },
-                          "approval": "proposed",
-                          "depends_on": []
-                        },
-                        {
-                          "req_id": "EPIC-006-F-006-S-002-REQ-B-002",
-                          "name": "EPIC-006-F-006-S-002-REQ-B-002 — Show the location that matched the geography",
-                          "requirement": "When the search named a geography, the practice location on the row MUST be one that satisfies that geography.",
-                          "priority": "must-have",
-                          "status": "not_started",
-                          "orphan": false,
-                          "tests": {
-                            "test": [
-                              {
-                                "test_type": "ORPHAN",
-                                "orphan": true,
-                                "file": "ORPHAN"
-                              }
-                            ]
-                          },
-                          "approval": "proposed",
-                          "depends_on": []
-                        },
-                        {
-                          "req_id": "EPIC-006-F-006-S-002-REQ-B-003",
-                          "name": "EPIC-006-F-006-S-002-REQ-B-003 — Show the primary location when no geography was named",
-                          "requirement": "When the search named no geography, the practice location on the row MUST be the facility's primary practice location.",
-                          "priority": "must-have",
-                          "status": "not_started",
-                          "orphan": false,
-                          "tests": {
-                            "test": [
-                              {
-                                "test_type": "ORPHAN",
-                                "orphan": true,
-                                "file": "ORPHAN"
-                              }
-                            ]
-                          },
-                          "approval": "proposed",
-                          "depends_on": []
-                        },
-                        {
-                          "req_id": "EPIC-006-F-006-S-002-REQ-B-004",
-                          "name": "EPIC-006-F-006-S-002-REQ-B-004 — Show no person on a facility row",
-                          "requirement": "A facility row MUST show no person's name, no personal credential, no sex and no sole-proprietor marker.",
-                          "priority": "must-have",
-                          "status": "not_started",
-                          "orphan": false,
-                          "tests": {
-                            "test": [
-                              {
-                                "test_type": "ORPHAN",
-                                "orphan": true,
-                                "file": "ORPHAN"
-                              }
-                            ]
-                          },
-                          "approval": "proposed",
-                          "depends_on": []
-                        },
-                        {
-                          "req_id": "EPIC-006-F-006-S-002-REQ-B-005",
-                          "name": "EPIC-006-F-006-S-002-REQ-B-005 — Show one row per matching facility",
-                          "requirement": "Every facility matching the search MUST occupy one row of its own. A facility MUST NOT be shown nested inside another facility's row.",
-                          "priority": "must-have",
-                          "status": "not_started",
-                          "orphan": false,
-                          "tests": {
-                            "test": [
-                              {
-                                "test_type": "ORPHAN",
-                                "orphan": true,
-                                "file": "ORPHAN"
-                              }
-                            ]
-                          },
-                          "approval": "proposed",
-                          "depends_on": []
-                        },
-                        {
-                          "req_id": "EPIC-006-F-006-S-002-REQ-B-006",
-                          "name": "EPIC-006-F-006-S-002-REQ-B-006 — Show nothing in place of a value the record lacks",
-                          "requirement": "Where the record carries no value for a field on the row, the row MUST show nothing in its place.",
-                          "priority": "must-have",
-                          "status": "not_started",
-                          "orphan": false,
-                          "tests": {
-                            "test": [
-                              {
-                                "test_type": "ORPHAN",
-                                "orphan": true,
-                                "file": "ORPHAN"
-                              }
-                            ]
-                          },
-                          "approval": "proposed",
-                          "depends_on": []
+                          }
                         }
                       ]
                     }
@@ -7641,44 +6678,6 @@
                     "orphan": false,
                     "requirements": {
                       "requirement": [
-                        {
-                          "req_id": "EPIC-006-F-006-S-003-REQ-B-001",
-                          "name": "EPIC-006-F-006-S-003-REQ-B-001 — Cap the selection at five",
-                          "requirement": "A user MUST NOT be able to hold more than five facilities selected at one time.",
-                          "priority": "must-have",
-                          "status": "not_started",
-                          "orphan": false,
-                          "tests": {
-                            "test": [
-                              {
-                                "test_type": "ORPHAN",
-                                "orphan": true,
-                                "file": "ORPHAN"
-                              }
-                            ]
-                          },
-                          "approval": "proposed",
-                          "depends_on": []
-                        },
-                        {
-                          "req_id": "EPIC-006-F-006-S-003-REQ-B-002",
-                          "name": "EPIC-006-F-006-S-003-REQ-B-002 — Show the refusal when the cap is reached",
-                          "requirement": "An attempt to select a sixth facility MUST be shown to the user as refused.",
-                          "priority": "must-have",
-                          "status": "not_started",
-                          "orphan": false,
-                          "tests": {
-                            "test": [
-                              {
-                                "test_type": "ORPHAN",
-                                "orphan": true,
-                                "file": "ORPHAN"
-                              }
-                            ]
-                          },
-                          "approval": "proposed",
-                          "depends_on": []
-                        },
                         {
                           "req_id": "EPIC-006-F-006-S-003-REQ-B-003",
                           "name": "EPIC-006-F-006-S-003-REQ-B-003 — Remove a selected facility in one action",
@@ -7702,25 +6701,6 @@
                           "req_id": "EPIC-006-F-006-S-003-REQ-B-004",
                           "name": "EPIC-006-F-006-S-003-REQ-B-004 — Show exactly the selected-row content set",
                           "requirement": "A row of the selected-facility set MUST show exactly the legal business name and the NPI.",
-                          "priority": "must-have",
-                          "status": "not_started",
-                          "orphan": false,
-                          "tests": {
-                            "test": [
-                              {
-                                "test_type": "ORPHAN",
-                                "orphan": true,
-                                "file": "ORPHAN"
-                              }
-                            ]
-                          },
-                          "approval": "proposed",
-                          "depends_on": []
-                        },
-                        {
-                          "req_id": "EPIC-006-F-006-S-003-REQ-B-005",
-                          "name": "EPIC-006-F-006-S-003-REQ-B-005 — Offer the selected facilities to the handoff",
-                          "requirement": "The selected-facility set MUST be available to the handoff on the same terms as the selected-provider set.\n\nCounterpart requirement belongs to: EPIC-002-F-014-S-001 states the handoff itself; whether a facility can be evaluated and what is evaluated about one is a requirement of EPIC-001. FindCare offers the set and requires nothing of what is done with it.",
                           "priority": "must-have",
                           "status": "not_started",
                           "orphan": false,
@@ -7834,7 +6814,7 @@
             {
               "feature_id": "EPIC-006-F-007",
               "name": "Manage Front End Facility Detail",
-              "description": "One NPI Type 2 organization, presented in full. Stories to be authored.",
+              "description": "One organization, presented in full. The detail displays everything the record holds. This feature states what a facility's detail does that an individual provider's does not: the organization's identity, its relationship to a parent, the kind of place it is in plain words, the person who administers it, and the destinations at which a person can verify it independently. Everything the two have in common is required once, of the Provider Detail, and inherited here.",
               "orphan": false,
               "status": "not_started",
               "priority": "must-have",
@@ -7875,7 +6855,7 @@
                         {
                           "req_id": "EPIC-006-F-007-S-001-REQ-B-002",
                           "name": "EPIC-006-F-007-S-001-REQ-B-002 — Show exactly the facility identity set",
-                          "requirement": "In place of a provider's personal identity, the panel MUST show exactly these values: the legal business name; the other organization name where the record carries one; the label of what kind of name that other name is; the NPI; the date the NPI was issued; and whether the facility is currently active.",
+                          "requirement": "In place of a provider's personal identity, the panel MUST show the legal business name; the other organization name where the record carries one; the label of what kind of name that other name is; the NPI; the date the NPI was issued; and whether the facility is currently active.",
                           "priority": "must-have",
                           "status": "not_started",
                           "orphan": false,
@@ -7895,25 +6875,6 @@
                           "req_id": "EPIC-006-F-007-S-001-REQ-B-003",
                           "name": "EPIC-006-F-007-S-001-REQ-B-003 — Name the parent when the facility is a subpart",
                           "requirement": "When the record marks the facility as a subpart, the panel MUST show the parent organization's legal business name.",
-                          "priority": "must-have",
-                          "status": "not_started",
-                          "orphan": false,
-                          "tests": {
-                            "test": [
-                              {
-                                "test_type": "ORPHAN",
-                                "orphan": true,
-                                "file": "ORPHAN"
-                              }
-                            ]
-                          },
-                          "approval": "proposed",
-                          "depends_on": []
-                        },
-                        {
-                          "req_id": "EPIC-006-F-007-S-001-REQ-B-004",
-                          "name": "EPIC-006-F-007-S-001-REQ-B-004 — Show no person attribute",
-                          "requirement": "The panel MUST show no person's name, no sex, no personal credential, no sole-proprietor status and no primary-care marker.",
                           "priority": "must-have",
                           "status": "not_started",
                           "orphan": false,
@@ -8004,6 +6965,25 @@
                           },
                           "approval": "proposed",
                           "depends_on": []
+                        },
+                        {
+                          "req_id": "EPIC-006-F-007-S-001-REQ-B-009",
+                          "orphan": false,
+                          "name": "Display everything the record holds",
+                          "requirement": "A Facility Detail MUST display every value the record carries for the facility.",
+                          "priority": "must-have",
+                          "status": "not_started",
+                          "depends_on": [],
+                          "approval": "proposed",
+                          "tests": {
+                            "test": [
+                              {
+                                "orphan": true,
+                                "test_type": "ORPHAN",
+                                "file": "ORPHAN"
+                              }
+                            ]
+                          }
                         }
                       ]
                     }
@@ -8020,8 +7000,8 @@
                       "requirement": [
                         {
                           "req_id": "EPIC-006-F-007-S-002-REQ-B-001",
-                          "name": "EPIC-006-F-007-S-002-REQ-B-001 — Show exactly the administrative contact set",
-                          "requirement": "The panel MUST show exactly these values of the authorized official and no others: last name; first name; middle name where the record carries one; title or position; credential.",
+                          "name": "Show the administrator",
+                          "requirement": "The panel MUST show the authorized official's last name, first name, middle name where the record carries one, title or position, and credential.",
                           "priority": "must-have",
                           "status": "not_started",
                           "orphan": false,
@@ -8041,82 +7021,6 @@
                           "req_id": "EPIC-006-F-007-S-002-REQ-B-002",
                           "name": "EPIC-006-F-007-S-002-REQ-B-002 — Label the official as the record's authorized official",
                           "requirement": "The section showing the authorized official MUST be labelled as the record's authorized official.\n\nDepends on: The approved runtime record design carries an administrative contact as a person distinct from the authorized official. Labelling the authorized official as the administrative contact would name one person with another's role.",
-                          "priority": "must-have",
-                          "status": "not_started",
-                          "orphan": false,
-                          "tests": {
-                            "test": [
-                              {
-                                "test_type": "ORPHAN",
-                                "orphan": true,
-                                "file": "ORPHAN"
-                              }
-                            ]
-                          },
-                          "approval": "proposed",
-                          "depends_on": []
-                        },
-                        {
-                          "req_id": "EPIC-006-F-007-S-002-REQ-B-003",
-                          "name": "EPIC-006-F-007-S-002-REQ-B-003 — Make the official unselectable",
-                          "requirement": "The authorized official MUST NOT be selectable.",
-                          "priority": "must-have",
-                          "status": "not_started",
-                          "orphan": false,
-                          "tests": {
-                            "test": [
-                              {
-                                "test_type": "ORPHAN",
-                                "orphan": true,
-                                "file": "ORPHAN"
-                              }
-                            ]
-                          },
-                          "approval": "proposed",
-                          "depends_on": []
-                        },
-                        {
-                          "req_id": "EPIC-006-F-007-S-002-REQ-B-004",
-                          "name": "EPIC-006-F-007-S-002-REQ-B-004 — Link the official to nothing",
-                          "requirement": "The authorized official's name MUST NOT link to any view of a care provider.",
-                          "priority": "must-have",
-                          "status": "not_started",
-                          "orphan": false,
-                          "tests": {
-                            "test": [
-                              {
-                                "test_type": "ORPHAN",
-                                "orphan": true,
-                                "file": "ORPHAN"
-                              }
-                            ]
-                          },
-                          "approval": "proposed",
-                          "depends_on": []
-                        },
-                        {
-                          "req_id": "EPIC-006-F-007-S-002-REQ-B-005",
-                          "name": "EPIC-006-F-007-S-002-REQ-B-005 — Count the official as no provider",
-                          "requirement": "The authorized official MUST NOT be included in any count of providers.",
-                          "priority": "must-have",
-                          "status": "not_started",
-                          "orphan": false,
-                          "tests": {
-                            "test": [
-                              {
-                                "test_type": "ORPHAN",
-                                "orphan": true,
-                                "file": "ORPHAN"
-                              }
-                            ]
-                          },
-                          "approval": "proposed",
-                          "depends_on": []
-                        },
-                        {
-                          "req_id": "EPIC-006-F-007-S-002-REQ-B-006",
-                          "name": "EPIC-006-F-007-S-002-REQ-B-006 — Withhold the official's telephone number",
-                          "requirement": "The authorized official's telephone number MUST NOT be shown to the user.",
                           "priority": "must-have",
                           "status": "not_started",
                           "orphan": false,
@@ -8397,8 +7301,8 @@
                         },
                         {
                           "req_id": "EPIC-006-F-008-S-002-REQ-B-002",
-                          "name": "EPIC-006-F-008-S-002-REQ-B-002 — Change carry-over without changing deployed code",
-                          "requirement": "A change to which parameters carry over MUST take effect without any change to deployed code.\n\nCounterpart requirement belongs to: The store that holds these decisions and serves them to a running session belongs to EPIC-002. FindCare requires that the decisions are data and states no requirement about where they are held.",
+                          "name": "Change carry-over without a software release",
+                          "requirement": "A change to which parameters carry over from one page to another MUST take effect without a software release.",
                           "priority": "must-have",
                           "status": "not_started",
                           "orphan": false,
@@ -8508,7 +7412,7 @@
                           "name": "EPIC-006-F-008-S-003-REQ-B-002 — Let the gateway change a parameter",
                           "requirement": "The gateway MUST be able to set, clear and read any parameter, on its own initiative and without a tool having asked.\n\nCounterpart requirement belongs to: The gateway itself is EPIC-002-F-004-S-001. FindCare requires the route and states no requirement about the gateway.",
                           "priority": "must-have",
-                          "status": "not_started",
+                          "status": "in_progress",
                           "orphan": false,
                           "tests": {
                             "test": [
@@ -8527,7 +7431,7 @@
                           "name": "EPIC-006-F-008-S-003-REQ-B-003 — Let the utterance manager change a parameter",
                           "requirement": "The utterance manager MUST be able to set, clear and read any parameter.\n\nCounterpart requirement belongs to: The utterance manager itself is EPIC-002-F-010. FindCare requires the route and states no requirement about the manager.",
                           "priority": "must-have",
-                          "status": "not_started",
+                          "status": "in_progress",
                           "orphan": false,
                           "tests": {
                             "test": [
@@ -8546,7 +7450,7 @@
                           "name": "EPIC-006-F-008-S-003-REQ-B-004 — Give the three routes one outcome",
                           "requirement": "The same parameter request made by any of the three routes MUST produce the same stored value and the same refusal.",
                           "priority": "must-have",
-                          "status": "not_started",
+                          "status": "in_progress",
                           "orphan": false,
                           "tests": {
                             "test": [
@@ -8565,7 +7469,7 @@
                           "name": "EPIC-006-F-008-S-003-REQ-B-005 — Record which route made each change",
                           "requirement": "Every parameter change MUST record which of the three routes made it.",
                           "priority": "must-have",
-                          "status": "not_started",
+                          "status": "done",
                           "orphan": false,
                           "tests": {
                             "test": [
@@ -8584,7 +7488,7 @@
                           "name": "EPIC-006-F-008-S-003-REQ-B-006 — Record whether a value was determined or inferred",
                           "requirement": "Every parameter change MUST record whether the value was determined by a rule or inferred by a model.",
                           "priority": "must-have",
-                          "status": "not_started",
+                          "status": "done",
                           "orphan": false,
                           "tests": {
                             "test": [
@@ -8603,7 +7507,7 @@
                           "name": "EPIC-006-F-008-S-003-REQ-B-007 — Admit no fourth writer",
                           "requirement": "No component MUST change a parameter other than through those three routes.",
                           "priority": "must-have",
-                          "status": "not_started",
+                          "status": "done",
                           "orphan": false,
                           "tests": {
                             "test": [
@@ -8632,10 +7536,10 @@
                       "requirement": [
                         {
                           "req_id": "EPIC-006-F-008-S-004-REQ-B-001",
-                          "name": "EPIC-006-F-008-S-004-REQ-B-001 — Preserve a change before its answer leaves",
-                          "requirement": "A parameter change MUST be durably preserved in the user's session record before any answer reporting that change leaves the server.\n\nCounterpart requirement belongs to: The session record itself is EPIC-002-F-003-S-005. FindCare requires the durability of its own parameters within it and states no requirement about the record.\n\nCONFLICT: The session is written once, at the end of the turn, after every handler has run. A parameter set part way through a turn lives only in memory until then, so this requirement cannot be met by that shape.",
+                          "name": "A change reported as made is not lost",
+                          "requirement": "A parameter change reported to the user as made MUST still be in force on that user's next request.",
                           "priority": "must-have",
-                          "status": "not_started",
+                          "status": "in_progress",
                           "orphan": false,
                           "tests": {
                             "test": [
@@ -8651,10 +7555,10 @@
                         },
                         {
                           "req_id": "EPIC-006-F-008-S-004-REQ-B-002",
-                          "name": "EPIC-006-F-008-S-004-REQ-B-002 — Show a change to the next reader at once",
-                          "requirement": "A parameter change MUST be visible to the next read by any route within the same turn.",
+                          "name": "A change applies to everything that follows it",
+                          "requirement": "A parameter change MUST apply to every use of that parameter that follows it.",
                           "priority": "must-have",
-                          "status": "not_started",
+                          "status": "done",
                           "orphan": false,
                           "tests": {
                             "test": [
@@ -8670,10 +7574,10 @@
                         },
                         {
                           "req_id": "EPIC-006-F-008-S-004-REQ-B-003",
-                          "name": "EPIC-006-F-008-S-004-REQ-B-003 — Report no change that was not preserved",
-                          "requirement": "A parameter change that was not durably preserved MUST NOT be reported as made.\n\nCONFLICT: A failure of the session write is caught and the turn continues, and the answer is still returned as successful.",
+                          "name": "Report no change that did not take",
+                          "requirement": "A parameter change that did not take MUST NOT be reported to the user as made.",
                           "priority": "must-have",
-                          "status": "not_started",
+                          "status": "in_progress",
                           "orphan": false,
                           "tests": {
                             "test": [
@@ -8692,7 +7596,7 @@
                           "name": "EPIC-006-F-008-S-004-REQ-B-004 — Hold the prior value when a change fails",
                           "requirement": "A parameter whose change was not preserved MUST hold the value it held before.",
                           "priority": "must-have",
-                          "status": "not_started",
+                          "status": "in_progress",
                           "orphan": false,
                           "tests": {
                             "test": [
@@ -8746,10 +7650,10 @@
                         },
                         {
                           "req_id": "EPIC-006-F-008-S-004-REQ-B-007",
-                          "name": "EPIC-006-F-008-S-004-REQ-B-007 — Let the last preserved change stand",
-                          "requirement": "When two changes to one parameter are made in one turn, the value in force MUST be that of the last one preserved.",
+                          "name": "The later change stands",
+                          "requirement": "When two changes are made to one parameter, the value in force MUST be the later of the two.",
                           "priority": "must-have",
-                          "status": "not_started",
+                          "status": "done",
                           "orphan": false,
                           "tests": {
                             "test": [
@@ -9022,7 +7926,7 @@
                           "name": "EPIC-006-F-008-S-006-REQ-B-004 — Declare exactly the parameters the requirements consume",
                           "requirement": "A page MUST declare exactly those parameters its feature's requirements consume, and no others.",
                           "priority": "must-have",
-                          "status": "not_started",
+                          "status": "in_progress",
                           "orphan": false,
                           "tests": {
                             "test": [
@@ -9041,7 +7945,7 @@
                           "name": "EPIC-006-F-008-S-006-REQ-B-005 — Declare no parameter that narrows nothing",
                           "requirement": "A page MUST NOT declare a parameter whose value is the same for every record that page can return.",
                           "priority": "must-have",
-                          "status": "not_started",
+                          "status": "done",
                           "orphan": false,
                           "tests": {
                             "test": [
@@ -9073,26 +7977,7 @@
                           "name": "EPIC-006-F-008-S-007-REQ-B-001 — Page every list forward and back",
                           "requirement": "Every FindCare list MUST be presentable one page at a time, forward and back.",
                           "priority": "must-have",
-                          "status": "not_started",
-                          "orphan": false,
-                          "tests": {
-                            "test": [
-                              {
-                                "test_type": "ORPHAN",
-                                "orphan": true,
-                                "file": "ORPHAN"
-                              }
-                            ]
-                          },
-                          "approval": "proposed",
-                          "depends_on": []
-                        },
-                        {
-                          "req_id": "EPIC-006-F-008-S-007-REQ-B-002",
-                          "name": "EPIC-006-F-008-S-007-REQ-B-002 — Show twenty-five rows to a page",
-                          "requirement": "Every FindCare list MUST show twenty-five rows to a page.",
-                          "priority": "must-have",
-                          "status": "not_started",
+                          "status": "in_progress",
                           "orphan": false,
                           "tests": {
                             "test": [
@@ -9111,7 +7996,7 @@
                           "name": "EPIC-006-F-008-S-007-REQ-B-003 — Return the same records in the same order",
                           "requirement": "The same search asked twice MUST return the same records in the same order.",
                           "priority": "must-have",
-                          "status": "not_started",
+                          "status": "done",
                           "orphan": false,
                           "tests": {
                             "test": [
@@ -9130,7 +8015,7 @@
                           "name": "EPIC-006-F-008-S-007-REQ-B-004 — Start at the first page when no position is given",
                           "requirement": "A page request naming no position MUST return the first page.",
                           "priority": "must-have",
-                          "status": "not_started",
+                          "status": "done",
                           "orphan": false,
                           "tests": {
                             "test": [
