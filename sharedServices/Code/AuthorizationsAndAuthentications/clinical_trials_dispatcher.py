@@ -39,10 +39,6 @@ class Request(BaseModel):
     condition: str = Field(
         description="The condition to find trials for. The only required "
                     "field; every other field narrows the result.")
-    user_location: Optional[str] = Field(
-        default=None,
-        description="Where the person is, as prose. Trials are ranked by "
-                    "distance from it; absent means unranked.")
     age_years: Optional[int] = Field(
         default=None,
         description="Age in years, to drop trials whose eligibility excludes "
@@ -73,6 +69,9 @@ class ClinicalTrialsDispatcher(ChatHealthyTool):
     async def run(self, deps: AgentDeps, request: "Request") -> "Response":
         url = findcare_url() + "/clinical_trials"
         body = request.model_dump(exclude_none=True)
+        # The token this hop already holds, forwarded so FindCare can
+        # verify the SharedServices signature on it.
+        body["session_token"] = deps.session_token.model_dump(mode="json")
         try:
             async with httpx.AsyncClient(timeout=None, verify=False) as client:
                 async with client.stream("POST", url, json=body) as resp:

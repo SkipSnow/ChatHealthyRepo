@@ -74,6 +74,12 @@ def primary_county(p: dict) -> dict:
 
 DEFAULT_LIMIT = 25  # F-10: raised from 10
 
+# The registry's two kinds of enumerated entity. A page returns one of
+# them, and which one is a property of the page rather than a filter a
+# caller may pass.
+ENTITY_TYPE_INDIVIDUAL = "1"
+ENTITY_TYPE_ORGANIZATION = "2"
+
 class FindCareService:
     """FindCare Facade — single entry point for all FindCare capabilities.
 
@@ -82,32 +88,38 @@ class FindCareService:
     service, never internal components directly.
 
     UAT Features: 1 (Provider Search), 2 (Specialty Identification)
-    Dependencies: MongoDB (read-only), OpenAI embeddings, SpecialtyService.
+    Dependencies: MongoDB (read-only), SpecialtyService.
+
+    Provider search is deterministic. It filters registry facts on indexed
+    fields; it does not embed a provider and does not vector-search one.
     """
 
-    def __init__(self, get_db_fn, env_prefix: str, get_embedding_fn, specialty_service=None):
+    def __init__(self, get_db_fn, env_prefix: str, specialty_service=None):
         """
         Args:
             get_db_fn: callable returning MongoDB client or None
             env_prefix: environment prefix (dev/qa/prod)
-            get_embedding_fn: callable(text) -> list[float] or None
         """
         self._get_db = get_db_fn
         self._env = env_prefix
-        self._get_embedding = get_embedding_fn
         self._specialty = specialty_service
         self._taxonomy_name_cache = {}  # code -> Display Name
 
-    def _searchable(self, base_filter: dict) -> dict:
+    def _searchable(self, base_filter: dict, entity_type: str) -> dict:
         """The filter plus what every result is implicitly constrained to.
 
-        Individuals only, and never a provider NPPES has deactivated.
-        _facet_query applied these to its own copy, so anything computing
-        counts off the raw filter counted providers the search would not
-        return -- the panel promised 482 where the result held 477.
+        The entity type the page asked for, and never a provider NPPES has
+        deactivated. _facet_query applied these to its own copy, so anything
+        computing counts off the raw filter counted providers the search
+        would not return -- the panel promised 482 where the result held 477.
+
+        The entity type is written from what the caller was given rather than
+        as a literal, because a facility page and an individual-provider page
+        are the same query over the same collection differing in this one
+        clause. It is a property of the page, not a filter a caller may omit.
         """
         out = dict(base_filter)
-        out["entity_type_code"] = "1"
+        out["entity_type_code"] = entity_type
         # active[] is written only when NPPES carries a deactivation or
         # reactivation date, so its absence is the whole test.
         out["active"] = {"$exists": False}
@@ -171,6 +183,53 @@ class FindCareService:
             clause[field] = value if len(value) == 1 else {"$in": [value, value[0]]}
         return clause
 
+    def _facility_name_filter(self, name: str = "") -> dict:
+        """A facility named outright.
+
+        A person names an organization with one string and the registry
+        holds two names for it -- the legal business name and the other
+        organization name -- so the clause is a disjunction over both:
+        matching either is matching (EPIC-006-F-006-S-001-REQ-B-002).
+
+        "Exactly those" makes this a filter and not a ranking. The result
+        set is defined by the predicate, so no score orders it and nothing
+        is admitted for being close. Uppercased because NPPES stores names
+        that way; a case-insensitive match would make the index unusable.
+        """
+        wanted = (name or "").strip().upper()
+        if not wanted:
+            return {}
+        return {"$or": [
+            {"provider_organization_name_legal_business_name": wanted},
+            {"provider_other_organization_name": wanted},
+        ]}
+
+    def _administrator_name_filter(self, last: str = "", first: str = "",
+                                   middle: str = "") -> dict:
+        """The facility found by naming the person who administers it.
+
+        The record carries the authorized official's last, first and middle
+        names as separate fields. The person may give one name or several,
+        in either order, and is not required to say which is which: the
+        utterance manager decomposes what they said into the same
+        structured shape it already produces for a care giver's name, and
+        each part matches either the corresponding field or its initial
+        (EPIC-006-F-006-S-001-REQ-B-008).
+
+        A structured match on registry fields, not a text search.
+        """
+        clause: dict = {}
+        for field, value in (
+                ("authorized_official_last_name", last),
+                ("authorized_official_first_name", first),
+                ("authorized_official_middle_name", middle)):
+            value = (value or "").strip().upper()
+            if not value:
+                continue
+            clause[field] = (value if len(value) == 1
+                             else {"$in": [value, value[0]]})
+        return clause
+
     def _preference_filter(self, provider_sex: str = "",
                            sole_proprietor=None, insurance: str = "") -> dict:
         """Narrowings the person asked for, applied to an already-narrow set.
@@ -232,7 +291,38 @@ class FindCareService:
             return {}
         return {"practice_addresses": {"$elemMatch": elem}}
 
-    def _format_provider(self, p: dict) -> dict:
+    def _cache_taxonomy_names(self, options: list) -> None:
+        """Hold code -> display name for the codes the filter offered.
+
+        The row's chosen-specialty label is resolved server-side because the
+        server holds both the provider's taxonomy list and the chosen set;
+        the client holds only one of them.
+        """
+        for option in options or []:
+            code = option.get("code")
+            name = option.get("name")
+            if code and name:
+                self._taxonomy_name_cache[code] = name
+
+    def _matched_specialty(self, p: dict, selected_specialty_codes: list) -> tuple:
+        """The chosen code that admitted this provider, and its label.
+
+        A provider holds several taxonomies and the query admitted them on
+        the intersection of their taxonomy set with the chosen codes, so the
+        specialty shown is the first of the provider's taxonomies present in
+        the chosen set -- not another specialty that provider holds
+        (EPIC-006-F-001-S-004-REQ-B-001).
+        """
+        chosen = set(selected_specialty_codes or [])
+        if not chosen:
+            return "", ""
+        for t in p.get("taxonomies") or []:
+            code = t.get("code") if isinstance(t, dict) else None
+            if code and code in chosen:
+                return code, self._taxonomy_name_cache.get(code, "")
+        return "", ""
+
+    def _format_provider(self, p: dict, selected_specialty_codes: list = None) -> dict:
         if p.get("entity_type_code") == "1":
             parts = [
                 p.get("provider_name_prefix_text"), p.get("provider_first_name"),
@@ -253,10 +343,13 @@ class FindCareService:
         county_name = county_obj.get("name") or ""
         raw_phone = addr.get("phone", "")
         phone = f"({raw_phone[:3]}) {raw_phone[3:6]}-{raw_phone[6:]}" if len(raw_phone) == 10 else raw_phone
+        matched_code, matched_label = self._matched_specialty(p, selected_specialty_codes)
         return {
             "name": name,
             "npi": p.get("npi", ""),
             "taxonomy_code": primary.get("code", "") if primary else "",
+            "matched_specialty_code": matched_code,
+            "matched_specialty_label": matched_label,
             "address": address,
             "phone": phone,
             "county": county_name,
@@ -264,64 +357,132 @@ class FindCareService:
             "lng": addr.get("lng"),
         }
 
-    def _facet_query(self, collection, base_filter: dict, after_npi: str, safe_limit: int) -> tuple:
+    def _format_facility(self, p: dict, _unused=None) -> dict:
+        """The facility row: exactly five things and nothing else.
+
+        EPIC-006-F-006-S-002-REQ-B-007 fixes the row exactly, so the
+        projection is the enforcement point rather than the renderer -- a
+        renderer that is sent a sixth field is one edit away from painting
+        it.
+
+        The facility is its legal business name. The address count is the
+        length of the list the record already carries. The facility type is
+        the label of the primary taxonomy, resolved server-side against the
+        specialty catalogue for the same reason the chosen specialty is:
+        the server holds the catalogue. The link to the detail is the NPI,
+        which is what the detail is opened by.
+        """
+        addresses = [a for a in (p.get("practice_addresses") or [])
+                     if isinstance(a, dict)]
+        primary = primary_practice_address(p)
+        address = ", ".join(x for x in (primary.get("line1"), primary.get("city"),
+                                        primary.get("state"), primary.get("zip")) if x)
+        code = p.get("primary_taxonomy_code") or ""
+        return {
+            "facility": p.get("provider_organization_name_legal_business_name") or "",
+            "practice_address_count": len(addresses),
+            "primary_practice_address": address,
+            "facility_type": self._taxonomy_name_cache.get(code, ""),
+            "npi": p.get("npi", ""),
+        }
+
+    @staticmethod
+    def _format_selected_facility(p: dict) -> dict:
+        """A row of the selected-facility set: the legal business name and
+        the NPI, and nothing else (EPIC-006-F-006-S-003-REQ-B-004).
+
+        A second, narrower projection than the result row, because the
+        selected row is a reminder of what was chosen rather than a second
+        result row.
+        """
+        return {
+            "facility": p.get("provider_organization_name_legal_business_name") or "",
+            "npi": p.get("npi", ""),
+        }
+
+    def _facet_query(self, collection, base_filter: dict, cursor: str, safe_limit: int,
+                     entity_type: str, direction: str,
+                     selected_specialty_codes: list = None,
+                     row_formatter=None) -> tuple:
         """Single-query count + page using $facet. Returns (providers, total_count).
 
-        EPIC-006-F-003-S-002: results MUST NOT include institutions,
-        facilities, agencies, or non-individual entries. Enforced two ways:
-        (1) the Mongo query is forced to entity_type_code='1' (individuals);
-        (2) after retrieval each returned doc is asserted as type-1 — if any
-        is not, this is a data-integrity bug and we fail hard (no silent
-        filtering, per Skip's 'no allowances for mistakes' rule).
+        The order is the NPI, which is unique, so it is total and the same
+        search asked twice returns the same records in the same order
+        (EPIC-006-F-008-S-007-REQ-B-003). The position is therefore a key in
+        that order rather than an offset.
+
+        Forward takes the rows greater than the key in ascending order. Back
+        takes the rows less than it in descending order and reverses the page
+        before the row projection runs, so a backward page costs exactly what
+        a forward page costs and no history of the cursors walked is needed
+        (EPIC-006-F-008-S-007-REQ-B-001). An absent key is the top of the
+        list, which is what a page never visited means (REQ-B-004).
+
+        Every returned row is asserted to be the entity type the page asked
+        for; a row that is not is a data-integrity bug and we fail hard.
         """
-        base_filter = self._searchable(base_filter)
+        base_filter = self._searchable(base_filter, entity_type)
         query_filter = dict(base_filter)
-        if after_npi:
-            query_filter["npi"] = {"$gt": after_npi}
+        backward = direction == "back"
+        if cursor:
+            query_filter["npi"] = {"$lt": cursor} if backward else {"$gt": cursor}
+        sort_order = -1 if backward else 1
         pipeline = [
             {"$match": query_filter},
             {"$facet": {
-                "count": [{"$match": base_filter}, {"$count": "total"}] if not after_npi
+                "count": [{"$match": base_filter}, {"$count": "total"}] if not cursor
                           else [{"$count": "total"}],
-                "page": [{"$sort": {"npi": 1}}] +
+                "page": [{"$sort": {"npi": sort_order}}] +
                          ([{"$limit": safe_limit}] if safe_limit > 0 else []) +
                          [{"$project": self._PROJECTION}],
             }},
         ]
-        # For the count facet, we need the full base_filter count (not after_npi filtered)
-        # So we run count separately only when paginating
-        if after_npi:
+        # For the count facet, we need the full base_filter count (not cursor
+        # filtered). So we run count separately only when paginating.
+        if cursor:
             total_count = collection.count_documents(base_filter)
             result = list(collection.aggregate([
                 {"$match": query_filter},
-                {"$sort": {"npi": 1}},
+                {"$sort": {"npi": sort_order}},
             ] + ([{"$limit": safe_limit}] if safe_limit > 0 else []) + [
                 {"$project": self._PROJECTION},
             ]))
-            self._assert_individuals_only(result)
-            return [self._format_provider(p) for p in result], total_count
+            if backward:
+                result.reverse()
+            self._assert_entity_type(result, entity_type)
+            project = row_formatter or self._format_provider
+            return [project(p, selected_specialty_codes)
+                    for p in result], total_count
 
         result = list(collection.aggregate(pipeline))
         if not result:
             return [], 0
         total_count = result[0]["count"][0]["total"] if result[0]["count"] else 0
-        self._assert_individuals_only(result[0]["page"])
-        providers = [self._format_provider(p) for p in result[0]["page"]]
+        page = result[0]["page"]
+        if backward:
+            page = list(reversed(page))
+        self._assert_entity_type(page, entity_type)
+        project = row_formatter or self._format_provider
+        providers = [project(p, selected_specialty_codes) for p in page]
         return providers, total_count
 
-    def _assert_individuals_only(self, docs) -> None:
-        """REQ-T-005 fail-hard: every returned provider MUST be
-        entity_type_code='1'. A non-individual leaking through indicates a
-        data-integrity bug; the app must abend so the operator sees it.
+    def _assert_entity_type(self, docs, entity_type: str) -> None:
+        """Fail-hard: every returned row MUST be the entity type the page
+        asked for. A facility search returning a person is as much a
+        violation as a provider search returning an organization, so the
+        guard runs in both directions. A row that is not the asked-for type
+        indicates a data-integrity bug; the app must abend so the operator
+        sees it.
         """
         for p in docs:
             etc = p.get("entity_type_code")
-            if etc != "1":
+            if etc != entity_type:
                 raise ChatHealthyException(
                     mode="compliance_violation",
                     component="provider_search_service",
-                    message="REQ-T-005 violation: non-individual provider returned by /search "
-                    f"(npi={p.get('npi')!r}, entity_type_code={etc!r}). "
+                    message="entity-type violation: a row of a different entity type was "
+                    f"returned by /search (npi={p.get('npi')!r}, "
+                    f"entity_type_code={etc!r}, asked for {entity_type!r}). "
                     "Data-integrity bug — fail-hard per spec."
                 )
 
@@ -335,49 +496,11 @@ class FindCareService:
         "primary_taxonomy_code": 1,
     }
 
-    def _vector_search(self, embedding: list, state: str, city: str, county: str, limit: int) -> list:
-        db = self._get_db()
-        if db is None:
-            return []
-        # $vectorSearch.filter does not support $elemMatch; the pre-filter is
-        # lax on a dotted path and narrows candidates. The post-$match enforces
-        # the precise practice-address scope (state + city + county on the
-        # SAME array element) via $elemMatch through _practice_address_filter.
-        precise = self._practice_address_filter(state=state, city=city, county=county)
-        pipeline = [
-            {
-                "$vectorSearch": {
-                    "index": "provider_vector_index",
-                    "path": "embedding",
-                    "queryVector": embedding,
-                    "numCandidates": min(limit * 30, 300),
-                    "limit": min(limit * 6, 60),
-                    "filter": {"practice_addresses.state": state},
-                }
-            },
-            {"$match": precise or {"practice_addresses": {"$elemMatch": {"state": state}}}},
-        ]
-        pipeline += [{"$limit": limit}, {"$project": self._PROJECTION}]
-        try:
-            raw = list(providers_coll().aggregate(pipeline))
-            return [self._format_provider(p) for p in raw]
-        except Exception as e:
-            # Mode 2 (REQ-B-008): provider vector search failed; user gets
-            # empty results despite valid query. Search infrastructure
-            # issue — operator MUST know.
-            log.error("Vector search failed: %s", e, exc=ChatHealthyException(
-                                                        mode="vector_search_failed",
-                                                        message=f"Vector search failed: {e}",
-                                                        component="FindCareService",
-                                                        exception=e,
-                                                    ), if_not_debug_log=True)
-            return []
-
     @staticmethod
     def _build_summary_message(has_more: bool, total_count: int, page_count: int,
                                specialty_searched: str = "",
                                specialization_options: list = None,
-                               **kwargs) -> str:
+                               noun: str = "", **kwargs) -> str:
         """Build a system-generated summary message per GOV-011 / FC-RESULT-MSG.
 
         The system builds this message from structured data — the LLM does not write it.
@@ -385,18 +508,28 @@ class FindCareService:
         if not has_more:
             return ""
         remaining = total_count - page_count
-        search_term = specialty_searched or "results"
+        # The words the person searched with. One construction serves both
+        # pages; the page supplies its own noun for the case where the
+        # person named nothing to search with
+        # (EPIC-006-F-006-S-004-REQ-B-001).
+        search_term = specialty_searched or noun or "results"
         spec_count = len(specialization_options) if specialization_options else 0
-        # Build location narrowing options — omit the one they already used
+        # Build location narrowing options — offer exactly those dimensions
+        # the geography does not already carry, the postal code included.
+        # Appending zipcode unconditionally offered a person who searched by
+        # postal code the postal code back
+        # (EPIC-006-F-001-S-005-REQ-B-008, EPIC-006-F-006-S-004-REQ-B-004).
         state = kwargs.get("state", "")
         city = kwargs.get("city", "")
         county = kwargs.get("county", "")
+        zip = kwargs.get("zip", "")
         narrow_options = []
         if not city:
             narrow_options.append("city")
         if not county:
             narrow_options.append("county")
-        narrow_options.append("zipcode")
+        if not zip:
+            narrow_options.append("zipcode")
 
         parts = [f"There are {remaining:,} more '{search_term}'"]
         if state:
@@ -425,7 +558,8 @@ class FindCareService:
     SEX_LABELS = {"F": "Female", "M": "Male",
                   "X": "Neither Male nor Female", "U": "Undisclosed"}
 
-    def _refinements(self, collection, base_filter: dict, already: dict) -> dict:
+    def _refinements(self, collection, base_filter: dict, already: dict,
+                     entity_type: str) -> dict:
         """Per-choice counts for the dimensions not yet chosen."""
         # Every dimension is offered, including one already in force. Hiding
         # a chosen dimension left the person no way to undo it: the toggle
@@ -451,7 +585,7 @@ class FindCareService:
             return {}
         try:
             raw = next(iter(collection.aggregate(
-                [{"$match": self._searchable(base_filter)},
+                [{"$match": self._searchable(base_filter, entity_type)},
                  {"$facet": facets}], allowDiskUse=True)))
         except Exception as exc:
             # Mode 1: refinement counts are an aid, not the answer. A
@@ -494,6 +628,7 @@ class FindCareService:
         return out
 
     def _paginated_result(self, providers: list, search_mode: str, safe_limit: int,
+                          entity_type: str,
                           search_params: dict = None, total_count: int = 0,
                           page_start: int = 1, collection=None,
                           base_filter: dict = None, chosen: dict = None,
@@ -513,15 +648,17 @@ class FindCareService:
             has_more, total_count, len(providers),
             specialty_searched=extra.get("specialty_searched", ""),
             specialization_options=extra.get("specialization_options"),
+            noun=extra.get("noun", ""),
             state=extra.get("state", ""),
             city=(search_params or {}).get("city", ""),
             county=(search_params or {}).get("county", ""),
+            zip=(search_params or {}).get("zip", ""),
         )
         result = {
             "supported": True,
             "search_mode": search_mode,
             "refinements": (
-                self._refinements(collection, base_filter, chosen or {})
+                self._refinements(collection, base_filter, chosen or {}, entity_type)
                 if collection is not None and base_filter else {}),
             "count": len(providers),
             "total_count": total_count,
@@ -537,18 +674,26 @@ class FindCareService:
         result.update(extra)
         return result
 
-    def search_providers(self, specialty_query: str = "", state: str = "", city: str = "",
+    def search_providers(self, entity_type: str,
+                         specialty_query: str = "", state: str = "", city: str = "",
                          county: str = "", zip: str = "", limit: int = 25, npi: str = "", name: str = "",
                          nucc_codes: list[str] = None,
-                         after_npi: str = "",
+                         cursor: str = "", direction: str = "forward",
                          last_name: str = "", first_name: str = "", middle_name: str = "",
                          provider_sex: str = "", sole_proprietor=None, insurance: str = "",
+                         facility_name: str = "",
+                         administrator_last_name: str = "",
+                         administrator_first_name: str = "",
+                         administrator_middle_name: str = "",
                          find_specialty_fn=None) -> dict:
         """Search for providers. Main entry point.
 
         Facade pattern (GoF) — routes to the right search strategy based on args.
 
         Args:
+            entity_type: the entity type the page returns — a property of the
+                page the request was dispatched to, not a filter the caller
+                may omit. There is no default to fall through to.
             specialty_query: natural-language specialty intent; resolved by the
                 LLM tool to nucc_codes (no fuzzy matching anywhere).
             state: two-letter state code
@@ -559,7 +704,15 @@ class FindCareService:
             npi: exact NPI lookup
             name: provider name search
             nucc_codes: list of exact NUCC taxonomy codes to filter by
-            after_npi: keyset pagination — return results after this NPI (sorted by NPI ascending)
+            cursor: keyset position — the NPI the page is taken relative to.
+                Absent means the first page.
+            direction: forward for the rows after the cursor, back for those
+                before it.
+            facility_name: an organization named outright, matched against
+                its legal business name or its other organization name.
+            administrator_last_name / _first_name / _middle_name: the person
+                who administers the facility, decomposed by the utterance
+                manager into the same shape a care giver's name takes.
             find_specialty_fn: callable for taxonomy fallback (injected to avoid circular dep)
         """
         chosen = {"provider_sex": provider_sex, "sole_proprietor": sole_proprietor,
@@ -586,16 +739,61 @@ class FindCareService:
         safe_limit = int(limit)
         collection = providers_coll()
 
+        # ── Facility route: the page returns organizations ──
+        # Reached only when the page dispatched to is the facility page.
+        # It shares _searchable, _practice_address_filter and _facet_query
+        # with the care-giver routes and diverges only in the clauses a
+        # facility is named by and in the row it projects.
+        if entity_type == ENTITY_TYPE_ORGANIZATION and not npi:
+            base_filter = self._practice_address_filter(
+                state=state_upper, city=city, county=county, zip=zip)
+            named = self._facility_name_filter(facility_name)
+            if named:
+                base_filter.update(named)
+            administered_by = self._administrator_name_filter(
+                administrator_last_name, administrator_first_name,
+                administrator_middle_name)
+            if administered_by:
+                base_filter.update(administered_by)
+            if specialty_codes:
+                # At least one, not all -- identical in form to the
+                # care-giver taxonomy clause.
+                base_filter["taxonomies.code"] = {"$in": specialty_codes}
+
+            # The catalogue's non-individual section, which is where a
+            # facility type's label lives. Loaded before the query because
+            # the row projection reads the name cache this fills.
+            facility_types = self._facility_type_options(base_filter, specialty_codes)
+            self._cache_taxonomy_names(facility_types)
+
+            facilities, total_count = self._facet_query(
+                collection, base_filter, cursor, safe_limit, entity_type,
+                direction, specialty_codes,
+                row_formatter=self._format_facility)
+            log.info("search: facility route returned %d of %d in %s",
+                     len(facilities), total_count, state_upper or "all")
+            return self._paginated_result(
+                facilities, "facility", safe_limit, entity_type,
+                search_params=_search_params, total_count=total_count,
+                collection=collection, base_filter=base_filter, chosen=chosen,
+                state=state_upper,
+                specialty_searched=facility_name,
+                noun="facilities",
+                specialization_options=facility_types)
+
         # ── Route 1: NPI exact lookup ──
         if npi:
-            # REQ-T-005: individuals only. Filter at the query level so an
-            # institution-NPI lookup returns "no provider found", and assert
-            # post-fetch as a fail-hard guard against mislabeled records.
-            provider = collection.find_one({"npi": npi, "entity_type_code": "1"}, self._PROJECTION)
+            # The page's entity type at the query level, so an organization
+            # NPI on the provider page returns "no provider found" and the
+            # same lookup on the facility page finds the organization.
+            # Asserted post-fetch as a fail-hard guard against mislabeled
+            # records.
+            provider = collection.find_one({"npi": npi, "entity_type_code": entity_type},
+                                           self._PROJECTION)
             if provider:
-                self._assert_individuals_only([provider])
+                self._assert_entity_type([provider], entity_type)
                 return {"supported": True, "search_mode": "npi", "count": 1,
-                        "providers": [self._format_provider(provider)]}
+                        "providers": [self._format_provider(provider, specialty_codes)]}
             return {"supported": True, "providers": [], "message": f"No provider found for NPI {npi}."}
 
         # ── Route 2: Name search ──
@@ -608,8 +806,11 @@ class FindCareService:
             base_filter = self._practice_address_filter(state=state_upper, city=city, county=county, zip=zip)
             base_filter.update(named)
             base_filter.update(self._preference_filter(provider_sex, sole_proprietor, insurance))
-            providers, total_count = self._facet_query(collection, base_filter, after_npi, safe_limit)
-            return self._paginated_result(providers, "name", safe_limit, search_params=_search_params,
+            providers, total_count = self._facet_query(
+                collection, base_filter, cursor, safe_limit, entity_type, direction,
+                specialty_codes)
+            return self._paginated_result(providers, "name", safe_limit, entity_type,
+                                          search_params=_search_params,
                                           total_count=total_count,
                                           collection=collection, base_filter=base_filter,
                                           chosen=chosen)
@@ -620,11 +821,9 @@ class FindCareService:
             base_filter.update(self._practice_address_filter(state=state_upper, city=city, county=county, zip=zip))
             base_filter.update(self._preference_filter(provider_sex, sole_proprietor, insurance))
 
-            providers, total_count = self._facet_query(collection, base_filter, after_npi, safe_limit)
-            log.info("search: specialty_codes returned %d for %d codes in %s",
-                       len(providers), len(specialty_codes), state_upper or "all")
-
-            # Look up selected specialty names for the summary
+            # Look up selected specialty names for the summary, and for the
+            # per-row chosen-specialty label. Loaded before the query runs
+            # because the row projection reads the name cache this fills.
             specialization_options = []
             try:
                 meta_coll = specialty_meta_coll()
@@ -647,17 +846,23 @@ class FindCareService:
                                                                                        component="FindCareService",
                                                                                        exception=_exc,
                                                                                    ))
+            self._cache_taxonomy_names(specialization_options)
 
-            # EPIC-006-F-003-S-002: the AI pipeline (incl. the
-            # homeopathic resolver) runs once during /classify; results
-            # are cached client-side per S-003-REQ-T-010. Apply Filter
-            # MUST be a parameterized DB query only — no further LLM calls.
+            providers, total_count = self._facet_query(
+                collection, base_filter, cursor, safe_limit, entity_type, direction,
+                specialty_codes)
+            log.info("search: specialty_codes returned %d for %d codes in %s",
+                       len(providers), len(specialty_codes), state_upper or "all")
+
+            # EPIC-006-F-003-S-002: the specialty step runs once when the
+            # list is offered. Apply Filter MUST be a parameterized DB
+            # query only — no further LLM calls.
 
             # Build filtered search term from selected specialty names
             selected_names = [o["name"] for o in specialization_options if o.get("name")]
             filtered_term = ", ".join(selected_names) if selected_names else f"{len(specialty_codes)} selected specialties"
 
-            return self._paginated_result(providers, "specialty_codes", safe_limit,
+            return self._paginated_result(providers, "specialty_codes", safe_limit, entity_type,
                                           search_params=_search_params, total_count=total_count,
                                           state=state_upper, specialty_searched=filtered_term,
                                           specialization_options=specialization_options,
@@ -693,13 +898,15 @@ class FindCareService:
                     "homeopathic": s.get("homeopathic", False),
                     "rank": s.get("rank", 0),
                 })
+            self._cache_taxonomy_names(specialization_options)
 
             # Step 3: Database answers — deterministic taxonomy query
             base_filter = {"taxonomies.code": {"$in": codes}}
             base_filter.update(self._practice_address_filter(state=state_upper, city=city, county=county, zip=zip))
             base_filter.update(self._preference_filter(provider_sex, sole_proprietor, insurance))
 
-            providers, total_count = self._facet_query(collection, base_filter, after_npi, safe_limit)
+            providers, total_count = self._facet_query(
+                collection, base_filter, cursor, safe_limit, entity_type, direction, codes)
             log.info("search: specialty '%s' → %d codes → %d/%d providers in %s",
                        specialty_query, len(codes), len(providers), total_count, state_upper or "all")
 
@@ -731,7 +938,7 @@ class FindCareService:
             if city: replay_params["city"] = city
             if county: replay_params["county"] = county
             if zip: replay_params["zip"] = zip
-            return self._paginated_result(providers, "taxonomy", safe_limit,
+            return self._paginated_result(providers, "taxonomy", safe_limit, entity_type,
                                           search_params=replay_params, total_count=total_count,
                                           collection=collection, base_filter=base_filter,
                                           chosen=chosen,
@@ -741,7 +948,6 @@ class FindCareService:
         # ── Route 5: County fallback ──
         if county and state_upper:
             base_filter = {
-                "entity_type_code": "1",
                 # v4 promotes the primary taxonomy to the document, so the
                 # element match on the primary flag is a test of one scalar.
                 # $regex is not permitted in this tree; a prefix range does
@@ -750,9 +956,11 @@ class FindCareService:
             }
             base_filter.update(self._practice_address_filter(state=state_upper, county=county, zip=zip))
             base_filter.update(self._preference_filter(provider_sex, sole_proprietor, insurance))
-            providers, total_count = self._facet_query(collection, base_filter, after_npi, safe_limit)
+            providers, total_count = self._facet_query(
+                collection, base_filter, cursor, safe_limit, entity_type, direction,
+                specialty_codes)
             log.info("search: county fallback returned %d for '%s' in %s", len(providers), county, state_upper)
-            return self._paginated_result(providers, "county_physicians", safe_limit,
+            return self._paginated_result(providers, "county_physicians", safe_limit, entity_type,
                                           search_params=_search_params, total_count=total_count,
                                           collection=collection, base_filter=base_filter,
                                           chosen=chosen,
@@ -760,6 +968,38 @@ class FindCareService:
 
         return {"supported": True, "providers": [],
                 "message": f"No providers found matching the search criteria."}
+
+    def _facility_type_options(self, base_filter: dict,
+                               specialty_codes: list = None) -> list:
+        """The kinds of facility this result can carry, from the catalogue.
+
+        The catalogue holds a non-individual section and the facility page
+        reads that one, exactly as the care-giver page reads the individual
+        section. This is the only place a facility label is resolved, and
+        it is resolved server-side because the server holds the catalogue.
+        """
+        wanted = list(specialty_codes or [])
+        if not wanted:
+            # Nothing was named, so the labels needed are the ones the page
+            # can show: the primary taxonomy of each row it will return.
+            # Read from the catalogue's non-individual section.
+            wanted = [c for c in specialty_meta_coll().distinct(
+                "Code", {"Section": "Non-Individual"}) if c]
+        if not wanted:
+            return []
+        options = []
+        for doc in specialty_meta_coll().find(
+                {"Code": {"$in": wanted}, "Section": "Non-Individual"},
+                {"_id": 0, "Code": 1, "Display Name": 1, "Classification": 1,
+                 "Specialization": 1, "Definition": 1}):
+            options.append({
+                "code": doc.get("Code", ""),
+                "name": doc.get("Display Name", ""),
+                "classification": doc.get("Classification", ""),
+                "specialization": doc.get("Specialization", ""),
+                "definition": doc.get("Definition", ""),
+            })
+        return options
 
     def identify_specialty(self, query: str) -> dict:
         """UAT Feature 2: Identify NUCC specialty codes via the two-stage

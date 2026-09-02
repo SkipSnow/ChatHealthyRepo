@@ -220,7 +220,7 @@
           window._envServiceUrls.findcare     = (d && d.findcare)     || '';
           window._envServiceUrls.evaluatecare = (d && d.evaluatecare) || '';
           var iframe = document.getElementById('coreReactFrame');
-          if (iframe && window._envServiceUrls.findcare) {
+          if (iframe) {
             // Forward popup URL params (e.g. fake_google_login state/flow)
             // to the React iframe once it loads. Parameter passing only —
             // the React widget produces all display.
@@ -257,7 +257,11 @@
                 if (++tries >= 20) clearInterval(t);
               }, 100);
             });
-            iframe.src = window._envServiceUrls.findcare;
+            // The React application is served by this site, not by the
+            // FindCare Space. The Space's address is no longer a browser
+            // address at all: every route on it requires a SharedServices
+            // signature, and a bundle route could not.
+            iframe.src = '/app/';
           }
           // Mint a signed SessionToken before any non-trivial /gate call
           // fires. /gate validates the token on every non-trivial op, so

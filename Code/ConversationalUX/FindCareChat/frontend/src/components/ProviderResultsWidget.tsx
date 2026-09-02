@@ -28,12 +28,9 @@ function buildSearchingHtml(query: string, seconds: number): string {
   `
 }
 
-// code -> Display Name, filled from the specialties event the panel is
-// built from. The provider payload carries taxonomy_code only.
-const SPECIALTY_NAMES: Record<string, string> = {}
-
 function buildResultsAreaHtml(providers: any[], totalCount?: number,
-                              header?: string, hasMore?: boolean): string {
+                              header?: string, hasMore?: boolean,
+                              hasPrevious?: boolean): string {
   if (!providers.length) {
     return `<div style="padding:2em;color:#6b7280;font-style:italic;">No providers matched.</div>`
   }
@@ -48,15 +45,16 @@ function buildResultsAreaHtml(providers: any[], totalCount?: number,
   const rows = providers.map(p => {
     const name = _esc(p.name || '')
     const addrLine = _esc([p.address, p.city, p.state, p.zip].filter(Boolean).join(', '))
-    const spec = _esc(p.specialty || p.primary_specialty
-                      || SPECIALTY_NAMES[p.taxonomy_code] || p.taxonomy_code || '')
+    // The specialty the user chose in the filter, resolved on the server
+    // where both the provider's taxonomy list and the chosen set are held.
+    // The client holds no rule about which specialty is shown.
+    const spec = _esc(p.matched_specialty_label || '')
     const detailAttrs =
       `data-router-action="provider:detail"` +
       ` data-npi="${_esc(p.npi || '')}"` +
       ` data-name="${_esc(p.name || '')}"` +
-      ` data-specialty="${_esc(p.specialty || p.primary_specialty || '')}"` +
+      ` data-specialty="${spec}"` +
       ` data-address="${_esc(p.address || '')}"` +
-      ` data-county="${_esc(p.county || '')}"` +
       ` data-phone="${_esc(p.phone || '')}"` +
       ` data-state="${_esc(p.state || '')}"`
     return (
@@ -84,11 +82,19 @@ function buildResultsAreaHtml(providers: any[], totalCount?: number,
         `<span style="color:#6b7280;">${providers.length} available — drag to select</span>` +
       `</div>` +
       `<div data-testid="available-providers" style="flex:1;overflow:auto;">${rows}</div>` +
-      (hasMore
-        ? `<div style="padding:0.6em 1em;border-top:0.125em solid #eee;text-align:center;flex-shrink:0;">` +
-            `<button data-router-action="providers:next-page" data-testid="providers-next-page" ` +
-            `style="background:#fff;border:0.125em solid #0b7a75;color:#0b7a75;padding:0.4em 1.2em;` +
-            `border-radius:0.375em;cursor:pointer;font-weight:700;">Show more providers &rarr;</button>` +
+      // Forward and back, both keyset pages off the position in view.
+      (hasMore || hasPrevious
+        ? `<div style="padding:0.6em 1em;border-top:0.125em solid #eee;text-align:center;flex-shrink:0;display:flex;gap:0.75em;justify-content:center;">` +
+            (hasPrevious
+              ? `<button data-router-action="providers:previous-page" data-testid="providers-previous-page" ` +
+                `style="background:#fff;border:0.125em solid #0b7a75;color:#0b7a75;padding:0.4em 1.2em;` +
+                `border-radius:0.375em;cursor:pointer;font-weight:700;">&larr; Previous providers</button>`
+              : '') +
+            (hasMore
+              ? `<button data-router-action="providers:next-page" data-testid="providers-next-page" ` +
+                `style="background:#fff;border:0.125em solid #0b7a75;color:#0b7a75;padding:0.4em 1.2em;` +
+                `border-radius:0.375em;cursor:pointer;font-weight:700;">Show more providers &rarr;</button>`
+              : '') +
           `</div>`
         : '') +
     `</div>`
@@ -108,10 +114,12 @@ function buildScaffoldHtml(): string {
 }
 
 export default function ProviderResultsWidget() {
-  // Where this page ended, so the next one can be asked for. The server
-  // has always returned last_npi and has_more; nothing read them.
+  // Where this page begins and ends. Both keys are the position: back asks
+  // for the rows before the first, forward for those after the last.
+  let firstNpiRef = ''
   let lastNpiRef = ''
   let hasMoreRef = false
+  let hasPreviousRef = false
   useEffect(() => {
     // Widget claims MainWindow only when the server classifies the turn as
     // a provider search. Ownership arrives via kind:'intent_classified'
@@ -183,17 +191,20 @@ export default function ProviderResultsWidget() {
         }
         return
       }
-      if (msg.type === 'router:event-broadcast' && msg.kind === 'specialties') {
-        for (const s of ((msg.data || {}).specialties || [])) {
-          if (s && s.code) SPECIALTY_NAMES[s.code] = s.name || s.code
-        }
-        return
-      }
       if (msg.type === 'router:action' && msg.action === 'providers:next-page') {
         if (!lastNpiRef) return
         window.parent.postMessage({
           type: 'router:makeCall', op: 'provider_page',
-          payload: { after_npi: lastNpiRef },
+          payload: { cursor: lastNpiRef, direction: 'forward' },
+          call_id: 'provider-page-' + Date.now(),
+        }, '*')
+        return
+      }
+      if (msg.type === 'router:action' && msg.action === 'providers:previous-page') {
+        if (!firstNpiRef) return
+        window.parent.postMessage({
+          type: 'router:makeCall', op: 'provider_page',
+          payload: { cursor: firstNpiRef, direction: 'back' },
           call_id: 'provider-page-' + Date.now(),
         }, '*')
         return
@@ -207,11 +218,17 @@ export default function ProviderResultsWidget() {
         stopTimer()
         const data = msg.data || {}
         const providers = Array.isArray(data.providers) ? data.providers : []
+        firstNpiRef = String(data.first_npi || '')
         lastNpiRef = String(data.last_npi || '')
         hasMoreRef = Boolean(data.has_more)
+        // Back is offered wherever a position exists to page back from.
+        // It is the same keyset query with the comparison and the sort
+        // inverted, so nothing new is computed to decide it.
+        hasPreviousRef = Boolean(firstNpiRef)
         postRender(buildScaffoldHtml())
         postMergeResults(buildResultsAreaHtml(providers, data.total_count,
-                                              data.summary_message, hasMoreRef))
+                                              data.summary_message, hasMoreRef,
+                                              hasPreviousRef))
         return
       }
       if (msg.type === 'router:final') {

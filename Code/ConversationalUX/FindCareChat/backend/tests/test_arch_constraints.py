@@ -156,7 +156,10 @@ class TestArchConstraintVectorIndex:
 # (OpenAI text-embedding-3-large, vector dimension 3072).
 # ---------------------------------------------------------------------------
 
-CANONICAL_EMBED_MODEL = "text-embedding-3-large"
+# The model name is not written here. It is declared once for the firm in
+# deployment_architecture.json; a copy in a test is a fourth place the
+# value lives. Only the dimension is a property of the index rather than
+# of the declaration, so only the dimension stays.
 CANONICAL_EMBED_DIMS = 3072
 
 
@@ -247,140 +250,118 @@ def _iter_in_scope_py_files(repo_root):
             yield p
 
 
-def _slice_after(text, marker_idx, length=200):
-    """Return up to `length` chars starting at marker_idx (clamped)."""
-    return text[marker_idx:marker_idx + length]
-
-
 def _line_number_for_offset(text, offset):
     return text.count("\n", 0, offset) + 1
 
 
-def _file_defines_embed_model_canonical(text):
-    """True if the file defines EMBED_MODEL = "text-embedding-3-large"."""
-    # Plain string scan, no regex.
-    needle = 'EMBED_MODEL'
-    pos = 0
-    while True:
-        idx = text.find(needle, pos)
-        if idx == -1:
-            return False
-        # Look at up to 80 chars after the name for an assignment to canonical.
-        window = text[idx:idx + 100]
-        if "=" in window and CANONICAL_EMBED_MODEL in window:
-            # Make sure '=' precedes the model literal in the window.
-            eq_pos = window.find("=")
-            model_pos = window.find(CANONICAL_EMBED_MODEL)
-            if 0 <= eq_pos < model_pos:
-                return True
-        pos = idx + len(needle)
+# The canonical value is not written here. It is declared once for the
+# firm in deployment_architecture.json and read from the record, so this
+# test stops being another place the name is written. What the test
+# guards is the two things that make one declaration hold: that no
+# production file names an embedding model as a literal, and that every
+# target whose declared files reach the facade's embed() carries the
+# CH_EMBEDDING_MODEL binding.
+
+def _record():
+    import json
+    from pathlib import Path
+    return json.loads(
+        (Path(REPO_ROOT) / "brain" / "machine_artifacts" / "content"
+         / "deployment_architecture.json").read_text(encoding="utf-8"))
 
 
-def _file_imports_embed_model(text):
-    """True if file imports EMBED_MODEL from another module."""
-    # Look for 'import EMBED_MODEL' (covers `from X import EMBED_MODEL`).
-    return "import EMBED_MODEL" in text or " EMBED_MODEL," in text or ", EMBED_MODEL" in text
+def _declared_embedding_model():
+    """The firm's one declaration."""
+    model = (_record().get("firm") or {}).get("embedding_model")
+    assert model, (
+        "deployment_architecture.json firm block declares no embedding_model. "
+        "EPIC-008-F-011-S-004-REQ-B-001 requires one embedding model for the "
+        "application, declared once."
+    )
+    return model
 
 
-def _file_self_model_canonical(text):
-    """True if class __init__ sets self._model to canonical (literal or default).
+def test_no_production_file_names_an_embedding_model_literally():
+    """EPIC-008-F-011-S-004-REQ-B-001.
 
-    Accepts either:
-      - self._model = "text-embedding-3-large"
-      - self._model = config.get(..., EMBED_MODEL)  (when EMBED_MODEL is canonical here or imported)
-      - self._model = model  with `model = config.get(..., EMBED_MODEL)` earlier
+    The model is read from the binding the target carries, so a
+    production file naming one is a second declaration of a value that
+    has one home.
     """
-    if "self._model" not in text:
-        return False
-    # Direct literal assignment.
-    if f'self._model = "{CANONICAL_EMBED_MODEL}"' in text:
-        return True
-    if f"self._model = '{CANONICAL_EMBED_MODEL}'" in text:
-        return True
-    # Indirect: self._model = model, with `model = config.get(..., EMBED_MODEL)`.
-    if "self._model = model" in text and "EMBED_MODEL" in text:
-        if _file_defines_embed_model_canonical(text) or _file_imports_embed_model(text):
-            return True
-    return False
-
-
-def _extract_model_argument(window):
-    """Given a window of text starting at 'embeddings.create(', return the
-    raw substring of the model= argument (up to comma or close paren), or None.
-    """
-    key = "model="
-    k = window.find(key)
-    if k == -1:
-        return None
-    start = k + len(key)
-    # Stop at first comma or close-paren at depth 0.
-    depth = 0
-    i = start
-    while i < len(window):
-        ch = window[i]
-        if ch == "(":
-            depth += 1
-        elif ch == ")":
-            if depth == 0:
-                break
-            depth -= 1
-        elif ch == "," and depth == 0:
-            break
-        i += 1
-    return window[start:i].strip()
-
-
-def _model_arg_is_canonical(model_arg, text):
-    """Decide whether the model= argument resolves to the canonical model."""
-    if model_arg is None:
-        return False
-    arg = model_arg.strip()
-    # Literal forms.
-    if arg == f'"{CANONICAL_EMBED_MODEL}"' or arg == f"'{CANONICAL_EMBED_MODEL}'":
-        return True
-    # Symbolic: EMBED_MODEL — accept if defined-here or imported-here.
-    if arg == "EMBED_MODEL":
-        return _file_defines_embed_model_canonical(text) or _file_imports_embed_model(text)
-    # Symbolic: self._model — accept if init sets it canonical or defaults to EMBED_MODEL.
-    if arg == "self._model":
-        return _file_self_model_canonical(text)
-    return False
-
-
-def test_canonical_embedding_model_code_side():
-    """EPIC-008-F-011-S-004-REQ-B-001-PYTEST-2.
-
-    Walk in-scope production source files and assert every
-    `embeddings.create(...)` call uses the canonical model
-    (text-embedding-3-large), either as a literal or via the
-    EMBED_MODEL/self._model conventions documented in embedding_worker.py.
-    """
-    needle = "embeddings.create("
-    violations = []  # (file_path, line_number, found_model)
-
+    model = _declared_embedding_model()
+    violations = []
     for path in _iter_in_scope_py_files(REPO_ROOT):
         try:
             text = path.read_text(encoding="utf-8")
         except (OSError, UnicodeDecodeError):
             continue
-        if needle not in text:
-            continue
+        idx = text.find(model)
+        while idx != -1:
+            violations.append((str(path), _line_number_for_offset(text, idx)))
+            idx = text.find(model, idx + len(model))
 
-        pos = 0
-        while True:
-            idx = text.find(needle, pos)
-            if idx == -1:
-                break
-            window = _slice_after(text, idx, length=400)
-            model_arg = _extract_model_argument(window)
-            if not _model_arg_is_canonical(model_arg, text):
-                line_no = _line_number_for_offset(text, idx)
-                violations.append((str(path), line_no, model_arg if model_arg else "<no model= argument found>"))
-            pos = idx + len(needle)
-
-    formatted = "\n  ".join(f"{p}:{ln} -> model={m}" for p, ln, m in violations)
+    formatted = "\n  ".join(f"{f}:{ln}" for f, ln in violations)
     assert violations == [], (
-        "Non-canonical embedding model usage found "
-        "(EPIC-008-F-011-S-004-REQ-B-001 requires text-embedding-3-large):\n  "
+        f"An embedding model is named as a literal in production code. The "
+        f"model is declared once in the record's firm block and read from the "
+        f"CH_EMBEDDING_MODEL binding; a literal is a second declaration:\n  "
         + formatted
+    )
+
+
+EMBED_FACADE_MODULE = "ChatHealthyLib/src/chathealthy_lib/llm.py"
+EMBEDDING_BINDING = "CH_EMBEDDING_MODEL"
+
+
+def _targets_declaring(source_location):
+    for target in _record().get("DeploymentTargetRecord", []):
+        for entry in target.get("files") or []:
+            if entry.get("source_location") == source_location:
+                yield target
+                break
+
+
+def _reaches_embed(target):
+    """True when a file this target declares calls the facade's embed()."""
+    for entry in target.get("files") or []:
+        rel = entry.get("source_location") or ""
+        if not rel.endswith(".py"):
+            continue
+        from pathlib import Path
+        path = Path(REPO_ROOT) / rel
+        if not path.is_file():
+            continue
+        try:
+            text = path.read_text(encoding="utf-8")
+        except (OSError, UnicodeDecodeError):
+            continue
+        if "from chathealthy_lib.llm import" in text and "embed" in text:
+            return True
+    return False
+
+
+def test_every_embedding_target_carries_the_binding():
+    """EPIC-008-F-011-S-004-REQ-B-001.
+
+    embed() reads CH_EMBEDDING_MODEL and has no default. A target whose
+    declared code reaches it and does not carry the binding would fail at
+    the first embedding call rather than at the build.
+    """
+    _declared_embedding_model()
+    missing = []
+    for target in _record().get("DeploymentTargetRecord", []):
+        if not _reaches_embed(target):
+            continue
+        bindings = dict(target.get("variables") or {})
+        bindings.update(target.get("secrets") or {})
+        if EMBEDDING_BINDING not in bindings:
+            missing.append(target.get("target_id"))
+        elif bindings[EMBEDDING_BINDING] != "firm:embedding_model":
+            missing.append(
+                f"{target.get('target_id')} (binds {bindings[EMBEDDING_BINDING]!r}, "
+                "not the firm declaration)")
+
+    assert missing == [], (
+        "Targets whose declared code embeds but which do not carry "
+        f"{EMBEDDING_BINDING} bound to the firm declaration: " + ", ".join(missing)
     )

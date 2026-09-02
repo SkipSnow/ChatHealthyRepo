@@ -388,6 +388,63 @@ def read_nucc_codes_cache(document) -> Optional[list[dict]]:
 # ────────────────────────────────────────────────────────────────────
 
 
+# The four pages, named where the router dispatches to them. A parameter
+# is addressed as a page and an attribute together; there is no default
+# page, because a default page is the flat model with a longer spelling.
+FACILITY = "facility"
+INDIVIDUAL_PROVIDER = "individualProvider"
+NUCC = "NUCC"
+CLINICAL_TRIAL = "clinicalTrial"
+
+
+def geography_of(params, page: str):
+    """The geography in force on one page, as its model.
+
+    Values are held as plain shapes so a session round-trips through Mongo
+    unchanged; the model is rebuilt where it is read.
+    """
+    from chathealthy_lib.authentication.user_parameters import Geography
+    got = params.get(page, "geography") if params else None
+    if not got:
+        return None
+    return got if isinstance(got, Geography) else Geography(**dict(got))
+
+
+def provider_name_of(params):
+    from chathealthy_lib.authentication.user_parameters import ProviderName
+    got = params.get(INDIVIDUAL_PROVIDER, "providerName") if params else None
+    if not got:
+        return None
+    return got if isinstance(got, ProviderName) else ProviderName(**dict(got))
+
+
+def codes_in_force(params) -> list[str]:
+    """The codes the individual-provider search should run under.
+
+    No selection means the person has not narrowed, so the whole offered
+    set applies. This is a rule about one page, which is why it lives here
+    rather than on the container that holds every page.
+    """
+    if params is None:
+        return []
+    chosen = params.get(INDIVIDUAL_PROVIDER, "selectedSpecialtyCodes") or []
+    if chosen:
+        return [str(c) for c in chosen]
+    offered = params.get(NUCC, "offeredSpecialties") or []
+    return [s.get("code") for s in offered
+            if isinstance(s, dict) and s.get("code")]
+
+
+# Which page each dispatched action produces an answer on. Carry-over is
+# applied on dispatch to a page and nowhere else.
+_ACTION_PAGES = {
+    "findAProvider": INDIVIDUAL_PROVIDER,
+    "findAFacility": FACILITY,
+    "specialtySearch": NUCC,
+    "findClinicalTrials": CLINICAL_TRIAL,
+}
+
+
 class UniversalNavigationTool(ChatHealthyTool):
     """Receives the post-AuthN deps + a typed NavRequest (op + payload),
     dispatches to the right graph-node handler. The handler may invoke
@@ -419,8 +476,11 @@ class UniversalNavigationTool(ChatHealthyTool):
         # slices its cached chunks locally.
         "about_chathealthy":    "_handle_about_chathealthy",
         "provider_selection":   "_handle_provider_selection",
+        "facility_selection":   "_handle_facility_selection",
+        "facility_page":        "_handle_facility_page",
         "clinical_trial_selection": "_handle_clinical_trial_selection",
         "claim_oauth_result":   "_handle_claim_oauth_result",
+        "parameter_change":     "_handle_parameter_change",
     }
 
     async def run(self, deps: AgentDeps, request: "Request") -> "Response":
@@ -524,7 +584,7 @@ class UniversalNavigationTool(ChatHealthyTool):
         # complaint only when the turn named one, so comparing across the
         # call is how the router tells a new question from a narrowing of
         # the one already in force.
-        complaint_before = deps.user_object.userParameters.complaint
+        complaint_before = deps.user_object.userParameters.get(NUCC, "complaint")
 
         from UtteranceManager import utterance_manager as utterance_manager_module
         try:
@@ -542,7 +602,8 @@ class UniversalNavigationTool(ChatHealthyTool):
             )
 
         complaint_changed = (
-            deps.user_object.userParameters.complaint != complaint_before)
+            deps.user_object.userParameters.get(NUCC, "complaint")
+            != complaint_before)
 
         # "New is new" invariant: a fresh free-text utterance clears any
         # selected_nucc_codes carried over from a prior turn's apply_filter
@@ -575,15 +636,19 @@ class UniversalNavigationTool(ChatHealthyTool):
         # same decision -- an unchanged complaint keeps the ticks AND keeps
         # the panel, because the filter is not re-run at all.
         from UserParameters import user_parameters_tool
-        carried = ("page_cursors", "selected_provider_npi")
-        for name in (("selected_specialty_codes",) + carried
-                     if complaint_changed else carried):
-            await user_parameters_tool.TOOL.run_and_log(
-                deps,
-                user_parameters_tool.Request(
-                    verb="clear", name=name, origin="deterministic",
-                ),
-            )
+        carried = [(INDIVIDUAL_PROVIDER, "position"),
+                   (INDIVIDUAL_PROVIDER, "openNpi")]
+        if complaint_changed:
+            carried = [(NUCC, "selectedSpecialtyCodes"),
+                       (INDIVIDUAL_PROVIDER, "selectedSpecialtyCodes")] + carried
+        await user_parameters_tool.TOOL.run_and_log(
+            deps,
+            user_parameters_tool.Request(
+                verb="clear", route="gateway", origin="deterministic",
+                changes=[user_parameters_tool.Change(page=page, name=name)
+                         for page, name in carried],
+            ),
+        )
 
         last_target_action: Optional[str] = None
         for _hop in range(MAX_DISPATCH_HOPS):
@@ -639,8 +704,8 @@ class UniversalNavigationTool(ChatHealthyTool):
             await user_parameters_tool.TOOL.run_and_log(
                 deps,
                 user_parameters_tool.Request(
-                    verb="set", name="selected_provider_npi", value=npi,
-                    origin="deterministic",
+                    verb="set", page=INDIVIDUAL_PROVIDER, name="openNpi",
+                    value=npi, route="gateway", origin="deterministic",
                 ),
             )
         # No inner "final" emission — _run_pipeline_then_finalize emits
@@ -662,17 +727,20 @@ class UniversalNavigationTool(ChatHealthyTool):
         # silently return a list the person had already narrowed away.
         params = deps.user_object.userParameters
         if params is not None:
-            name = params.provider_name
+            name = provider_name_of(params)
             if name is not None and not name.is_empty():
                 fields.setdefault("last_name", name.last or None)
                 fields.setdefault("first_name", name.first or None)
                 fields.setdefault("middle_name", name.middle or None)
-            if params.provider_sex:
-                fields.setdefault("provider_sex", params.provider_sex)
-            if params.insurance:
-                fields.setdefault("insurance", params.insurance)
-            if params.sole_proprietor is not None:
-                fields.setdefault("sole_proprietor", params.sole_proprietor)
+            sex = params.get(INDIVIDUAL_PROVIDER, "providerSex")
+            if sex:
+                fields.setdefault("provider_sex", sex)
+            payer = params.get(INDIVIDUAL_PROVIDER, "insurance")
+            if payer:
+                fields.setdefault("insurance", payer)
+            sole = params.get(INDIVIDUAL_PROVIDER, "soleProprietor")
+            if sole is not None:
+                fields.setdefault("sole_proprietor", sole)
 
         from authentication import provider_search_tool
         resp = await provider_search_tool.TOOL.run_and_log(
@@ -692,7 +760,8 @@ class UniversalNavigationTool(ChatHealthyTool):
         against the query that produced it, because the page is what the
         user is looking at.
         """
-        npi = (deps.user_object.userParameters.selected_provider_npi or "").strip()
+        npi = str(deps.user_object.userParameters.get(
+            INDIVIDUAL_PROVIDER, "openNpi") or "").strip()
         if not npi:
             return
         presented = {str(p.get("npi") or "").strip()
@@ -721,7 +790,10 @@ class UniversalNavigationTool(ChatHealthyTool):
                             result={"ok": False, "error": f"unknown dimension {dimension!r}"})
 
         params = deps.user_object.userParameters
-        current = getattr(params, dimension, None)
+        attribute = {"provider_sex": "providerSex",
+                     "insurance": "insurance",
+                     "sole_proprietor": "soleProprietor"}[dimension]
+        current = params.get(INDIVIDUAL_PROVIDER, attribute)
         if dimension == "sole_proprietor":
             chosen = value.upper() == "Y"
             clearing = current is not None and bool(current) == chosen
@@ -734,9 +806,10 @@ class UniversalNavigationTool(ChatHealthyTool):
             deps,
             user_parameters_tool.Request(
                 verb="clear" if clearing else "set",
-                name=dimension,
+                page=INDIVIDUAL_PROVIDER,
+                name=attribute,
                 value=None if clearing else chosen,
-                origin="deterministic",
+                route="gateway", origin="deterministic",
             ),
         )
 
@@ -744,10 +817,10 @@ class UniversalNavigationTool(ChatHealthyTool):
                      "data": {"action": "findAProvider", "refining": dimension}})
 
         params = deps.user_object.userParameters
-        geo = params.geography
+        geo = geography_of(params, INDIVIDUAL_PROVIDER)
         await self._search_providers(
             deps,
-            specialty_codes=params.selected_or_all(),
+            specialty_codes=codes_in_force(params),
             state=geo.state if geo else None,
             city=geo.city if geo else None,
             county=geo.county if geo else None,
@@ -776,8 +849,8 @@ class UniversalNavigationTool(ChatHealthyTool):
         await user_parameters_tool.TOOL.run_and_log(
             deps,
             user_parameters_tool.Request(
-                verb="clear", name="selected_provider_npi",
-                origin="deterministic",
+                verb="clear", page=INDIVIDUAL_PROVIDER, name="openNpi",
+                route="gateway", origin="deterministic",
             ),
         )
         deps.stream({"kind": "provider_detail_close", "data": {"closed": True}})
@@ -800,7 +873,8 @@ class UniversalNavigationTool(ChatHealthyTool):
         call and cannot come back different from how it was left.
         """
         params = deps.user_object.userParameters
-        if not params.specialties:
+        offered = params.get(NUCC, "offeredSpecialties") or []
+        if not offered:
             deps.stream({"kind": "restore_findcare", "data": {"restored": False}})
             return Response(kind="restore_findcare", result={"restored": False})
 
@@ -808,22 +882,23 @@ class UniversalNavigationTool(ChatHealthyTool):
         deps.stream({
             "kind": "specialties",
             "data": {
-                "specialties": [s.model_dump(exclude_none=True)
-                                for s in params.specialties],
+                "specialties": [dict(s) for s in offered],
                 "homeopathic_generalists": [],
-                "selected_codes": list(params.selected_specialty_codes),
+                "selected_codes": list(
+                    params.get(NUCC, "selectedSpecialtyCodes") or []),
                 "restored": True,
             },
         })
 
-        geo = params.geography
-        codes = params.selected_or_all()
+        geo = geography_of(params, INDIVIDUAL_PROVIDER)
+        codes = codes_in_force(params)
 
         # Back to the page they were on, in one query. The search is ordered
         # by NPI, so the stored key IS the position: asking for the rows
         # after it returns that page directly. No key means the top, which
         # is where a list that was never paged belongs.
-        cursor = params.page_cursors.get("findAProvider", "")
+        position = params.get(INDIVIDUAL_PROVIDER, "position") or {}
+        cursor = str(position.get("first") or "")
         await self._search_providers(
             deps,
             specialty_codes=codes,
@@ -831,7 +906,8 @@ class UniversalNavigationTool(ChatHealthyTool):
             city=geo.city if geo else None,
             county=geo.county if geo else None,
             zip=geo.zip if geo else None,
-            after_npi=cursor or None,
+            cursor=cursor or None,
+            direction="forward" if not cursor else "back",
             limit=25,
         )
 
@@ -839,7 +915,8 @@ class UniversalNavigationTool(ChatHealthyTool):
         # that just painted. The search above already cleared it if not, so
         # re-reading the parameter here is what stops the restore from
         # putting back a panel the rule just took down.
-        detail_npi = deps.user_object.userParameters.selected_provider_npi
+        detail_npi = deps.user_object.userParameters.get(
+            INDIVIDUAL_PROVIDER, "openNpi")
         if detail_npi:
             await self._handle_provider_detail(deps, {"npi": detail_npi})
 
@@ -897,8 +974,18 @@ class UniversalNavigationTool(ChatHealthyTool):
         await user_parameters_tool.TOOL.run_and_log(
             deps,
             user_parameters_tool.Request(
-                verb="set", name="selected_specialty_codes",
-                value=selected_codes, origin="deterministic",
+                verb="set", route="gateway", origin="deterministic",
+                # What the person kept, and what the search is running
+                # under. They differ between choosing and applying; this is
+                # the moment they are made the same.
+                changes=[
+                    user_parameters_tool.Change(
+                        page=NUCC, name="selectedSpecialtyCodes",
+                        value=selected_codes),
+                    user_parameters_tool.Change(
+                        page=INDIVIDUAL_PROVIDER, name="selectedSpecialtyCodes",
+                        value=selected_codes),
+                ],
             ),
         )
 
@@ -908,7 +995,7 @@ class UniversalNavigationTool(ChatHealthyTool):
         # Read, never dug out of the document. Geography was never Apply
         # Filter's to carry: whoever set it last set it, and this gesture
         # does not change it.
-        live_geo = params.geography
+        live_geo = geography_of(params, INDIVIDUAL_PROVIDER)
         geography = (live_geo.model_dump(exclude_none=True) if live_geo else {})
 
         if self._geography_sufficient(geography) and prior is not None:
@@ -924,7 +1011,8 @@ class UniversalNavigationTool(ChatHealthyTool):
                 "kind": "search_running",
                 "data": {
                     "action": "findAProvider",
-                    "criteria": params.complaint or "your selected specialties",
+                    "criteria": params.get(NUCC, "complaint")
+                                or "your selected specialties",
                     "selected_specialty_count": len(selected_codes),
                 },
             })
@@ -947,8 +1035,9 @@ class UniversalNavigationTool(ChatHealthyTool):
             "missing_slot": "geography",
             "selected_specialty_count": len(selected_codes),
         }
-        if params.complaint:
-            reason["prior_complaint"] = params.complaint
+        prior_complaint = params.get(NUCC, "complaint")
+        if prior_complaint:
+            reason["prior_complaint"] = prior_complaint
         partial_geo = {k: v for k, v in (geography or {}).items() if v}
         if partial_geo:
             reason["prior_partial_geography"] = partial_geo
@@ -990,53 +1079,154 @@ class UniversalNavigationTool(ChatHealthyTool):
         )
 
     async def _handle_provider_page(self, deps: AgentDeps, payload: dict[str, Any]) -> Response:
-        """The next page of the search already in force.
+        """Another page of the search already in force, forward or back.
 
-        The server has always paged -- provider_search takes after_npi and
-        the result carries has_more and last_npi -- and nothing ever
-        exposed it, so a search returning 337 providers showed 25 and
-        offered no way to the rest.
+        The server has always paged -- the search takes a keyset position
+        and the result carries first_npi and last_npi -- and only forward
+        was ever exposed, so a person who paged past what they wanted had
+        no way back short of re-running the search.
 
         It is deterministic: same parameters, one more page. No LLM, no
         reclassification, and no announcement that would blank the frames.
         """
-        after_npi = str((payload or {}).get("after_npi") or "").strip()
-        if not after_npi:
+        cursor = str((payload or {}).get("cursor") or "").strip()
+        direction = str((payload or {}).get("direction") or "forward").strip()
+        if direction not in ("forward", "back"):
             return Response(kind="provider_page",
-                            result={"ok": False, "error": "after_npi required"})
+                            result={"ok": False,
+                                    "error": f"unknown direction {direction!r}"})
+        if not cursor:
+            return Response(kind="provider_page",
+                            result={"ok": False, "error": "cursor required"})
 
         params = deps.user_object.userParameters
-        geo = params.geography
-        codes = params.selected_or_all()
+        geo = geography_of(params, INDIVIDUAL_PROVIDER)
+        codes = codes_in_force(params)
         if not codes:
             return Response(kind="provider_page",
                             result={"ok": False, "error": "no specialties selected"})
 
-        await self._search_providers(
+        resp = await self._search_providers(
             deps,
             specialty_codes=codes,
             state=geo.state if geo else None,
             city=geo.city if geo else None,
             county=geo.county if geo else None,
             zip=geo.zip if geo else None,
-            after_npi=after_npi,
+            cursor=cursor,
+            direction=direction,
             limit=25,
         )
 
-        # Remember where they now are: this function's one key, replaced.
-        # Ten pages in is still one key, because the ordered query takes the
-        # position straight from it.
+        # Remember where they now are. The position is the first and last
+        # key of the page in view, which is what both directions need: back
+        # takes the rows before the first, forward those after the last.
+        await self._write_position(deps, "individualProvider",
+                                   resp.first_npi, resp.last_npi)
+        return Response(kind="provider_page",
+                        result={"cursor": cursor, "direction": direction})
+
+    async def _write_position(self, deps: AgentDeps, page: str,
+                              first_key, last_key) -> None:
+        """Record the page in view as its first and last key."""
         from UserParameters import user_parameters_tool
-        cursors = dict(params.page_cursors)
-        cursors["findAProvider"] = after_npi
         await user_parameters_tool.TOOL.run_and_log(
             deps,
             user_parameters_tool.Request(
-                verb="set", name="page_cursors", value=cursors,
-                origin="deterministic",
+                verb="set", page=page, name="position",
+                value={"first": first_key or "", "last": last_key or ""},
+                route="gateway", origin="deterministic",
             ),
         )
-        return Response(kind="provider_page", result={"after_npi": after_npi})
+
+    async def _handle_facility_selection(self, deps: AgentDeps, payload: dict[str, Any]) -> Response:
+        """Thin pass-through to the facility selection tool. The facility
+        set is its own, so choosing a facility disturbs no care-giver
+        answer (EPIC-006-F-008-S-001-REQ-B-006)."""
+        from FacilitySelection import facility_selection_tool
+        req = facility_selection_tool.Request(**(payload or {}))
+        resp = await facility_selection_tool.TOOL.run_and_log(deps, req)
+        return Response(kind="facility_selection",
+                        result=resp.model_dump(exclude_none=True))
+
+    async def _handle_facility_page(self, deps: AgentDeps, payload: dict[str, Any]) -> Response:
+        """Another page of the facility list, forward or back. The same
+        keyset paging the care-giver list uses, on the facility page's own
+        position."""
+        from FacilitySearch import facility_search_tool
+
+        cursor = str((payload or {}).get("cursor") or "").strip()
+        direction = str((payload or {}).get("direction") or "forward").strip()
+        if direction not in ("forward", "back"):
+            return Response(kind="facility_page",
+                            result={"ok": False,
+                                    "error": f"unknown direction {direction!r}"})
+        if not cursor:
+            return Response(kind="facility_page",
+                            result={"ok": False, "error": "cursor required"})
+
+        params = deps.user_object.userParameters
+        geo = geography_of(params, FACILITY)
+        administrator = params.get(FACILITY, "administratorName") or {}
+        resp = await facility_search_tool.TOOL.run_and_log(
+            deps,
+            facility_search_tool.Request(
+                facility_name=params.get(FACILITY, "facilityName") or None,
+                administrator_last_name=administrator.get("last") or None,
+                administrator_first_name=administrator.get("first") or None,
+                administrator_middle_name=administrator.get("middle") or None,
+                taxonomy_codes=list(
+                    params.get(FACILITY, "selectedTaxonomyCodes") or []),
+                state=geo.state if geo else None,
+                city=geo.city if geo else None,
+                county=geo.county if geo else None,
+                zip=geo.zip if geo else None,
+                cursor=cursor, direction=direction, limit=25,
+            ),
+        )
+        await self._write_position(deps, FACILITY, resp.first_npi, resp.last_npi)
+        return Response(kind="facility_page",
+                        result={"cursor": cursor, "direction": direction})
+
+    async def _handle_parameter_change(self, deps: AgentDeps, payload: dict[str, Any]) -> Response:
+        """A parameter change asked for from the panel that shows it.
+
+        The panel is a surface, not a fourth writer: this dispatches the
+        one parameters tool exactly as any other route does, so the same
+        validation and the same refusal apply. The gateway may address any
+        page, because it dispatches across pages and must clear a stale
+        position or an open detail no tool owns.
+
+        The response carries the new state and the panel repaints from it
+        in the same turn. It is not refetched: refetching would be a
+        second read that could disagree with what was just acknowledged.
+        """
+        from UserParameters import user_parameters_tool
+        verb = str((payload or {}).get("verb") or "").strip()
+        # read is one of the three things each route must be able to do
+        # (EPIC-006-F-008-S-003-REQ-B-001..003), so the gateway's op
+        # carries it alongside the writes.
+        if verb not in ("read", "set", "clear", "clear_page", "clear_all"):
+            return Response(kind="parameter_change",
+                            result={"ok": False,
+                                    "error": f"unknown verb {verb!r}"})
+        resp = await user_parameters_tool.TOOL.run_and_log(
+            deps,
+            user_parameters_tool.Request(
+                verb=verb,
+                page=(payload or {}).get("page"),
+                name=(payload or {}).get("name"),
+                value=(payload or {}).get("value"),
+                route="gateway", origin="deterministic",
+            ),
+        )
+        # Reported after the write is acknowledged, never before. A failed
+        # write emits the failure instead, naming the parameters that did
+        # not take.
+        deps.stream({"kind": "parameters_changed",
+                     "data": resp.model_dump(exclude_none=True)})
+        return Response(kind="parameter_change",
+                        result=resp.model_dump(exclude_none=True))
 
     async def _handle_about_chathealthy(self, deps: AgentDeps, payload: dict[str, Any]) -> Response:
         """Thin pass-through to AboutChatHealthyTool. Tool streams
@@ -1272,6 +1462,61 @@ class UniversalNavigationTool(ChatHealthyTool):
             ),
         )
 
+    # Which page an action dispatches to. Carry-over is applied per
+    # DESTINATION, which is what keeps it per destination: the same value
+    # carries to one page and not to another because the dispatch is to
+    # one page.
+    _CARRY_OVER_DESTINATION_OF: dict[str, str] = {}
+
+    async def _apply_carry_over(self, deps: AgentDeps,
+                                destination: Optional[str]) -> None:
+        """Fill the destination page's empty attributes from stated triples.
+
+        Carry-over is a set of stated triples -- parameter, source page,
+        destination page -- and nothing else produces it. The absence of a
+        triple is the refusal: there is no rule that a parameter of the
+        same name carries between pages.
+
+        It fills, it does not overwrite. A person who has already said
+        something about the destination page keeps what they said. Where it
+        does apply it is an ordinary write through the one write path, so
+        it validates like any other and is recorded like any other, naming
+        the page it came from.
+        """
+        if not destination:
+            return
+        from chathealthy_lib.runtime_data_collections import carry_over_triples
+        from UserParameters import user_parameters_tool
+
+        params = deps.user_object.userParameters
+        changes = []
+        sources: list[str] = []
+        for triple in carry_over_triples(destination):
+            attribute = triple.get("parameter")
+            source = triple.get("from")
+            if not attribute or not source:
+                continue
+            if params.has(destination, attribute):
+                continue
+            if not params.has(source, attribute):
+                continue
+            changes.append(user_parameters_tool.Change(
+                page=destination, name=attribute,
+                value=params.get(source, attribute)))
+            sources.append(source)
+        if not changes:
+            return
+        # One write per source page, so the entry can name the page the
+        # value came from -- which is what the panel shows.
+        for change, source in zip(changes, sources):
+            await user_parameters_tool.TOOL.run_and_log(
+                deps,
+                user_parameters_tool.Request(
+                    verb="set", route="gateway", origin="deterministic",
+                    carried_from=source, changes=[change],
+                ),
+            )
+
     async def _dispatch_target_action(self, deps: AgentDeps, document, target_action: str,
                                       complaint_changed: bool = False) -> None:
         """Dispatch the tool that owns this target_action. Tools may mutate
@@ -1288,6 +1533,10 @@ class UniversalNavigationTool(ChatHealthyTool):
         target_intent_entry = next(
             (i for i in document.intents if i.name == target_action), None,
         )
+
+        # Carry-over is applied at dispatch, per destination page, and
+        # nowhere else.
+        await self._apply_carry_over(deps, _ACTION_PAGES.get(target_action))
 
         if target_action == "safetyLockout":
             # UM judged the latest utterance signals immediate medical
@@ -1324,10 +1573,6 @@ class UniversalNavigationTool(ChatHealthyTool):
                 (a.value for a in target_intent_entry.arguments if a.name == "complaint"),
                 "",
             )
-            user_location = next(
-                (a.value for a in target_intent_entry.arguments if a.name == "user_location"),
-                None,
-            )
             age_years_raw = next(
                 (a.value for a in target_intent_entry.arguments if a.name == "age_years"),
                 None,
@@ -1352,7 +1597,6 @@ class UniversalNavigationTool(ChatHealthyTool):
                 "data": {
                     "action": "findClinicalTrials",
                     "condition": complaint,
-                    "user_location": user_location,
                     "age_years": age_years,
                     "sex": sex_filter,
                     "geographic_scope": geographic_scope,
@@ -1360,12 +1604,48 @@ class UniversalNavigationTool(ChatHealthyTool):
             })
             ct_req = clinical_trials_dispatcher.Request(
                 condition=complaint,
-                user_location=user_location,
                 age_years=age_years,
                 sex=sex_filter,
                 geographic_scope=geographic_scope,
             )
             await clinical_trials_dispatcher.TOOL.run_and_log(deps, ct_req)
+
+        elif target_action == "findAFacility":
+            # The facility page's caller of the one provider search. It
+            # reads the page's own parameters -- geography included, which
+            # may have arrived by the carry-over applied on dispatch just
+            # above -- and passes nothing the page does not declare.
+            from FacilitySearch import facility_search_tool
+
+            params = deps.user_object.userParameters
+            geo = geography_of(params, FACILITY)
+            administrator = params.get(FACILITY, "administratorName") or {}
+            deps.stream({
+                "kind": "intent_classified",
+                "data": {
+                    "action": "findAFacility",
+                    "criteria": (params.get(FACILITY, "facilityName")
+                                 or "facilities"),
+                },
+            })
+            resp = await facility_search_tool.TOOL.run_and_log(
+                deps,
+                facility_search_tool.Request(
+                    facility_name=params.get(FACILITY, "facilityName") or None,
+                    administrator_last_name=administrator.get("last") or None,
+                    administrator_first_name=administrator.get("first") or None,
+                    administrator_middle_name=administrator.get("middle") or None,
+                    taxonomy_codes=list(
+                        params.get(FACILITY, "selectedTaxonomyCodes") or []),
+                    state=geo.state if geo else None,
+                    city=geo.city if geo else None,
+                    county=geo.county if geo else None,
+                    zip=geo.zip if geo else None,
+                    limit=25,
+                ),
+            )
+            await self._write_position(deps, FACILITY,
+                                       resp.first_npi, resp.last_npi)
 
         elif target_action == "findAProvider":
             from authentication import provider_search_tool
@@ -1382,11 +1662,11 @@ class UniversalNavigationTool(ChatHealthyTool):
                 # nothing is dug back out of the intent, which is what lets
                 # geography named while looking at trials apply here.
                 params = deps.user_object.userParameters
-                geo = params.geography
+                geo = geography_of(params, INDIVIDUAL_PROVIDER)
 
                 # No selection means the user has not narrowed, so the whole
                 # offered panel applies. A selection narrows it.
-                specialty_codes = params.selected_or_all()
+                specialty_codes = codes_in_force(params)
 
                 await self._search_providers(
                     deps,
@@ -1532,8 +1812,9 @@ class UniversalNavigationTool(ChatHealthyTool):
             await user_parameters_tool.TOOL.run_and_log(
                 deps,
                 user_parameters_tool.Request(
-                    verb="set", name="complaint", value=fs.complaint,
-                    origin="non_deterministic",
+                    verb="set", page=NUCC, name="complaint",
+                    value=fs.complaint,
+                    route="gateway", origin="non_deterministic",
                 ),
             )
 
@@ -1543,7 +1824,7 @@ class UniversalNavigationTool(ChatHealthyTool):
     def _specialties_in_force(deps) -> list:
         """The panel the person is looking at, from live state."""
         params = getattr(deps.user_object, "userParameters", None)
-        offered = list(getattr(params, "specialties", None) or []) if params else []
+        offered = (params.get(NUCC, "offeredSpecialties") or []) if params else []
         return [s.model_dump(exclude_none=True) if hasattr(s, "model_dump") else dict(s)
                 for s in offered]
 
@@ -1566,8 +1847,9 @@ class UniversalNavigationTool(ChatHealthyTool):
         await user_parameters_tool.TOOL.run_and_log(
             deps,
             user_parameters_tool.Request(
-                verb="set", name="specialties", value=specialties,
-                origin="non_deterministic",
+                verb="set", page=NUCC, name="offeredSpecialties",
+                value=specialties,
+                route="gateway", origin="non_deterministic",
             ),
         )
         # ONLY when the user has not chosen yet. Seeding unconditionally
@@ -1579,14 +1861,23 @@ class UniversalNavigationTool(ChatHealthyTool):
         #
         # A choice is deterministic and outranks a default. The default
         # exists for the turn where there is nothing to outrank it.
-        if not deps.user_object.userParameters.selected_specialty_codes:
+        if not deps.user_object.userParameters.has(
+                NUCC, "selectedSpecialtyCodes"):
             prescribers = [s.get("code") for s in specialties
                            if s.get("can_prescribe") and s.get("code")]
             await user_parameters_tool.TOOL.run_and_log(
                 deps,
                 user_parameters_tool.Request(
-                    verb="set", name="selected_specialty_codes",
-                    value=prescribers, origin="deterministic",
+                    verb="set", route="gateway", origin="deterministic",
+                    changes=[
+                        user_parameters_tool.Change(
+                            page=NUCC, name="selectedSpecialtyCodes",
+                            value=prescribers),
+                        user_parameters_tool.Change(
+                            page=INDIVIDUAL_PROVIDER,
+                            name="selectedSpecialtyCodes",
+                            value=prescribers),
+                    ],
                 ),
             )
 

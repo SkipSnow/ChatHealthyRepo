@@ -1,0 +1,611 @@
+{
+  "$schema": "https://dev.chathealthy.ai/schemas/ChatHealthyRelaxedSchema.json",
+  "collection": "ChatHealthyConfig.ParameterDeclaration",
+  "description": "Seed content for ChatHealthyConfig.ParameterDeclaration on the ChatHealthyFrontEnd cluster. One document per env, keyed by env exactly as DBVersions is in the same database, and read at startup by the same bind_from_manifest that binds the collection slots. This file is the SEED, not the source of truth: the running declaration is the collection, so a change to which parameters carry over takes effect on the next turn without a build (EPIC-006-F-008-S-002-REQ-B-002). Content derived from FindCareDesignV1_1.docx sections 2.8.1 and 2.8.3. The four page names are fixed in code, not here, because EPIC-006-F-008-S-001-REQ-B-002 closes the set and a closed set held as data is a set an edit can open.",
+  "documents": [
+    {
+      "env": "local",
+      "pages": [
+        {
+          "page": "individualProvider",
+          "consumed_by": [
+            "EPIC-006-F-001",
+            "EPIC-006-F-002"
+          ],
+          "attributes": [
+            {
+              "name": "geography",
+              "value_type": "geography"
+            },
+            {
+              "name": "complaint",
+              "value_type": "string"
+            },
+            {
+              "name": "selectedSpecialtyCodes",
+              "value_type": "string_list"
+            },
+            {
+              "name": "providerName",
+              "value_type": "provider_name"
+            },
+            {
+              "name": "providerSex",
+              "value_type": "sex_code"
+            },
+            {
+              "name": "soleProprietor",
+              "value_type": "boolean"
+            },
+            {
+              "name": "insurance",
+              "value_type": "string"
+            },
+            {
+              "name": "selectedNpis",
+              "value_type": "string_list"
+            },
+            {
+              "name": "openNpi",
+              "value_type": "string"
+            },
+            {
+              "name": "position",
+              "value_type": "position"
+            }
+          ]
+        },
+        {
+          "page": "facility",
+          "consumed_by": [
+            "EPIC-006-F-006",
+            "EPIC-006-F-007"
+          ],
+          "attributes": [
+            {
+              "name": "geography",
+              "value_type": "geography"
+            },
+            {
+              "name": "facilityName",
+              "value_type": "string"
+            },
+            {
+              "name": "selectedTaxonomyCodes",
+              "value_type": "string_list"
+            },
+            {
+              "name": "administratorName",
+              "value_type": "provider_name"
+            },
+            {
+              "name": "selectedNpis",
+              "value_type": "string_list"
+            },
+            {
+              "name": "openNpi",
+              "value_type": "string"
+            },
+            {
+              "name": "position",
+              "value_type": "position"
+            }
+          ]
+        },
+        {
+          "page": "NUCC",
+          "consumed_by": [
+            "EPIC-006-F-003"
+          ],
+          "attributes": [
+            {
+              "name": "complaint",
+              "value_type": "string"
+            },
+            {
+              "name": "offeredSpecialties",
+              "value_type": "specialties"
+            },
+            {
+              "name": "selectedSpecialtyCodes",
+              "value_type": "string_list"
+            }
+          ]
+        },
+        {
+          "page": "clinicalTrial",
+          "consumed_by": [
+            "EPIC-006-F-005",
+            "EPIC-006-F-004"
+          ],
+          "attributes": [
+            {
+              "name": "condition",
+              "value_type": "string"
+            },
+            {
+              "name": "ageYears",
+              "value_type": "integer"
+            },
+            {
+              "name": "sex",
+              "value_type": "string"
+            },
+            {
+              "name": "unitedStatesOnly",
+              "value_type": "boolean"
+            },
+            {
+              "name": "openNctId",
+              "value_type": "string"
+            },
+            {
+              "name": "position",
+              "value_type": "position"
+            }
+          ]
+        }
+      ],
+      "carry_over": [
+        {
+          "parameter": "geography",
+          "from": "individualProvider",
+          "to": "facility"
+        }
+      ]
+    },
+    {
+      "env": "dev",
+      "pages": [
+        {
+          "page": "individualProvider",
+          "consumed_by": [
+            "EPIC-006-F-001",
+            "EPIC-006-F-002"
+          ],
+          "attributes": [
+            {
+              "name": "geography",
+              "value_type": "geography"
+            },
+            {
+              "name": "complaint",
+              "value_type": "string"
+            },
+            {
+              "name": "selectedSpecialtyCodes",
+              "value_type": "string_list"
+            },
+            {
+              "name": "providerName",
+              "value_type": "provider_name"
+            },
+            {
+              "name": "providerSex",
+              "value_type": "sex_code"
+            },
+            {
+              "name": "soleProprietor",
+              "value_type": "boolean"
+            },
+            {
+              "name": "insurance",
+              "value_type": "string"
+            },
+            {
+              "name": "selectedNpis",
+              "value_type": "string_list"
+            },
+            {
+              "name": "openNpi",
+              "value_type": "string"
+            },
+            {
+              "name": "position",
+              "value_type": "position"
+            }
+          ]
+        },
+        {
+          "page": "facility",
+          "consumed_by": [
+            "EPIC-006-F-006",
+            "EPIC-006-F-007"
+          ],
+          "attributes": [
+            {
+              "name": "geography",
+              "value_type": "geography"
+            },
+            {
+              "name": "facilityName",
+              "value_type": "string"
+            },
+            {
+              "name": "selectedTaxonomyCodes",
+              "value_type": "string_list"
+            },
+            {
+              "name": "administratorName",
+              "value_type": "provider_name"
+            },
+            {
+              "name": "selectedNpis",
+              "value_type": "string_list"
+            },
+            {
+              "name": "openNpi",
+              "value_type": "string"
+            },
+            {
+              "name": "position",
+              "value_type": "position"
+            }
+          ]
+        },
+        {
+          "page": "NUCC",
+          "consumed_by": [
+            "EPIC-006-F-003"
+          ],
+          "attributes": [
+            {
+              "name": "complaint",
+              "value_type": "string"
+            },
+            {
+              "name": "offeredSpecialties",
+              "value_type": "specialties"
+            },
+            {
+              "name": "selectedSpecialtyCodes",
+              "value_type": "string_list"
+            }
+          ]
+        },
+        {
+          "page": "clinicalTrial",
+          "consumed_by": [
+            "EPIC-006-F-005",
+            "EPIC-006-F-004"
+          ],
+          "attributes": [
+            {
+              "name": "condition",
+              "value_type": "string"
+            },
+            {
+              "name": "ageYears",
+              "value_type": "integer"
+            },
+            {
+              "name": "sex",
+              "value_type": "string"
+            },
+            {
+              "name": "unitedStatesOnly",
+              "value_type": "boolean"
+            },
+            {
+              "name": "openNctId",
+              "value_type": "string"
+            },
+            {
+              "name": "position",
+              "value_type": "position"
+            }
+          ]
+        }
+      ],
+      "carry_over": [
+        {
+          "parameter": "geography",
+          "from": "individualProvider",
+          "to": "facility"
+        }
+      ]
+    },
+    {
+      "env": "qa",
+      "pages": [
+        {
+          "page": "individualProvider",
+          "consumed_by": [
+            "EPIC-006-F-001",
+            "EPIC-006-F-002"
+          ],
+          "attributes": [
+            {
+              "name": "geography",
+              "value_type": "geography"
+            },
+            {
+              "name": "complaint",
+              "value_type": "string"
+            },
+            {
+              "name": "selectedSpecialtyCodes",
+              "value_type": "string_list"
+            },
+            {
+              "name": "providerName",
+              "value_type": "provider_name"
+            },
+            {
+              "name": "providerSex",
+              "value_type": "sex_code"
+            },
+            {
+              "name": "soleProprietor",
+              "value_type": "boolean"
+            },
+            {
+              "name": "insurance",
+              "value_type": "string"
+            },
+            {
+              "name": "selectedNpis",
+              "value_type": "string_list"
+            },
+            {
+              "name": "openNpi",
+              "value_type": "string"
+            },
+            {
+              "name": "position",
+              "value_type": "position"
+            }
+          ]
+        },
+        {
+          "page": "facility",
+          "consumed_by": [
+            "EPIC-006-F-006",
+            "EPIC-006-F-007"
+          ],
+          "attributes": [
+            {
+              "name": "geography",
+              "value_type": "geography"
+            },
+            {
+              "name": "facilityName",
+              "value_type": "string"
+            },
+            {
+              "name": "selectedTaxonomyCodes",
+              "value_type": "string_list"
+            },
+            {
+              "name": "administratorName",
+              "value_type": "provider_name"
+            },
+            {
+              "name": "selectedNpis",
+              "value_type": "string_list"
+            },
+            {
+              "name": "openNpi",
+              "value_type": "string"
+            },
+            {
+              "name": "position",
+              "value_type": "position"
+            }
+          ]
+        },
+        {
+          "page": "NUCC",
+          "consumed_by": [
+            "EPIC-006-F-003"
+          ],
+          "attributes": [
+            {
+              "name": "complaint",
+              "value_type": "string"
+            },
+            {
+              "name": "offeredSpecialties",
+              "value_type": "specialties"
+            },
+            {
+              "name": "selectedSpecialtyCodes",
+              "value_type": "string_list"
+            }
+          ]
+        },
+        {
+          "page": "clinicalTrial",
+          "consumed_by": [
+            "EPIC-006-F-005",
+            "EPIC-006-F-004"
+          ],
+          "attributes": [
+            {
+              "name": "condition",
+              "value_type": "string"
+            },
+            {
+              "name": "ageYears",
+              "value_type": "integer"
+            },
+            {
+              "name": "sex",
+              "value_type": "string"
+            },
+            {
+              "name": "unitedStatesOnly",
+              "value_type": "boolean"
+            },
+            {
+              "name": "openNctId",
+              "value_type": "string"
+            },
+            {
+              "name": "position",
+              "value_type": "position"
+            }
+          ]
+        }
+      ],
+      "carry_over": [
+        {
+          "parameter": "geography",
+          "from": "individualProvider",
+          "to": "facility"
+        }
+      ]
+    },
+    {
+      "env": "prod",
+      "pages": [
+        {
+          "page": "individualProvider",
+          "consumed_by": [
+            "EPIC-006-F-001",
+            "EPIC-006-F-002"
+          ],
+          "attributes": [
+            {
+              "name": "geography",
+              "value_type": "geography"
+            },
+            {
+              "name": "complaint",
+              "value_type": "string"
+            },
+            {
+              "name": "selectedSpecialtyCodes",
+              "value_type": "string_list"
+            },
+            {
+              "name": "providerName",
+              "value_type": "provider_name"
+            },
+            {
+              "name": "providerSex",
+              "value_type": "sex_code"
+            },
+            {
+              "name": "soleProprietor",
+              "value_type": "boolean"
+            },
+            {
+              "name": "insurance",
+              "value_type": "string"
+            },
+            {
+              "name": "selectedNpis",
+              "value_type": "string_list"
+            },
+            {
+              "name": "openNpi",
+              "value_type": "string"
+            },
+            {
+              "name": "position",
+              "value_type": "position"
+            }
+          ]
+        },
+        {
+          "page": "facility",
+          "consumed_by": [
+            "EPIC-006-F-006",
+            "EPIC-006-F-007"
+          ],
+          "attributes": [
+            {
+              "name": "geography",
+              "value_type": "geography"
+            },
+            {
+              "name": "facilityName",
+              "value_type": "string"
+            },
+            {
+              "name": "selectedTaxonomyCodes",
+              "value_type": "string_list"
+            },
+            {
+              "name": "administratorName",
+              "value_type": "provider_name"
+            },
+            {
+              "name": "selectedNpis",
+              "value_type": "string_list"
+            },
+            {
+              "name": "openNpi",
+              "value_type": "string"
+            },
+            {
+              "name": "position",
+              "value_type": "position"
+            }
+          ]
+        },
+        {
+          "page": "NUCC",
+          "consumed_by": [
+            "EPIC-006-F-003"
+          ],
+          "attributes": [
+            {
+              "name": "complaint",
+              "value_type": "string"
+            },
+            {
+              "name": "offeredSpecialties",
+              "value_type": "specialties"
+            },
+            {
+              "name": "selectedSpecialtyCodes",
+              "value_type": "string_list"
+            }
+          ]
+        },
+        {
+          "page": "clinicalTrial",
+          "consumed_by": [
+            "EPIC-006-F-005",
+            "EPIC-006-F-004"
+          ],
+          "attributes": [
+            {
+              "name": "condition",
+              "value_type": "string"
+            },
+            {
+              "name": "ageYears",
+              "value_type": "integer"
+            },
+            {
+              "name": "sex",
+              "value_type": "string"
+            },
+            {
+              "name": "unitedStatesOnly",
+              "value_type": "boolean"
+            },
+            {
+              "name": "openNctId",
+              "value_type": "string"
+            },
+            {
+              "name": "position",
+              "value_type": "position"
+            }
+          ]
+        }
+      ],
+      "carry_over": [
+        {
+          "parameter": "geography",
+          "from": "individualProvider",
+          "to": "facility"
+        }
+      ]
+    }
+  ]
+}

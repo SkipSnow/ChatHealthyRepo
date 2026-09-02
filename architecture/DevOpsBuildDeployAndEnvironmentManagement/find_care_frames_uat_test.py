@@ -427,9 +427,10 @@ def paged(page):
 
 
 class TestPagination:
-    """2026-08-26: the server had always paged — provider_search takes
-    after_npi, the result carries has_more and last_npi — and no op ever
-    exposed it, so 337 providers showed 25 with no way to the rest."""
+    """2026-08-26: the server had always paged — provider_search takes a
+    keyset cursor and a direction, and the result carries has_more,
+    first_npi and last_npi — and no op ever exposed it, so 337 providers
+    showed 25 with no way to the rest."""
 
     def test_next_page_control_present_when_more(self, paged):
         expect(paged.locator("[data-testid='providers-next-page']")).to_have_count(1)

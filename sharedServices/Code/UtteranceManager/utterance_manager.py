@@ -30,6 +30,7 @@ from chathealthy_lib.authentication.intent_document import (
     Argument,
     IntentCloseConnection200,
     IntentDocument,
+    IntentFindAFacility,
     IntentFindAProvider,
     IntentFindClinicalTrials,
     IntentSafetyLockout,
@@ -85,8 +86,8 @@ class ClassifierOutput(BaseModel):
     with minimal translation."""
 
     target_action: Literal[
-        "specialtySearch", "findAProvider", "findClinicalTrials",
-        "closeConnection200", "safetyLockout",
+        "specialtySearch", "findAProvider", "findAFacility",
+        "findClinicalTrials", "closeConnection200", "safetyLockout",
     ]
     complaint: Optional[str] = None
     geography: Optional[GeoFacts] = None
@@ -108,6 +109,23 @@ class ClassifierOutput(BaseModel):
     provider_middle_name: Optional[str] = None
     provider_sex: Optional[Literal["F", "M", "X", "U"]] = None
     insurance: Optional[str] = None
+    # The person's own phrase for what they were looking for -- "bone
+    # docs", "shrinks". Not the complaint, which is by definition the
+    # translation and never the words they used, and not the NUCC display
+    # name. The summary must say this back to them
+    # (EPIC-006-F-001-S-005-REQ-B-001). Interpreting what a person said is
+    # this component's single concern, and this is one more thing said.
+    search_phrase: Optional[str] = None
+    # findAFacility. A facility is named outright, or by the person who
+    # administers it, and either alone is enough to search on. The
+    # administrator's name is decomposed into the same structured shape a
+    # care giver's name takes, because the person may give one name or
+    # several, in either order, and is not required to say which is which
+    # (EPIC-006-F-006-S-001-REQ-B-008).
+    facility_name: Optional[str] = None
+    administrator_last_name: Optional[str] = None
+    administrator_first_name: Optional[str] = None
+    administrator_middle_name: Optional[str] = None
     sole_proprietor: Optional[bool] = None
     # Whether this turn narrows the search already running rather than
     # asking a new question. Asked outright because inferring it from an
@@ -148,14 +166,14 @@ STREAMING CONTRACT: every dispatched tool flushes the stream (awaits at least on
 
 MULTI-INTENT: intents[] can carry more than one entry. UM may have detected findAProvider on turn 1 (geography missing) and still be tracking that intent on turn 2 when the user provides the missing geography. UM may also have detected a secondary intent (e.g., a safety concern) in the same utterance. target_action is always the single intent UR actions this turn; the other intents remain in the document for future turns.
 
-CATALOG (this deploy's closed set): specialtySearch, findAProvider, closeConnection200, safetyLockout. UM clamps to one of these four; UR raises on any out-of-catalog target_action. safetyLockout is special — UR may dispatch it WITHOUT calling UM whenever user_object.is_locked_out is true (UR hydrates that flag from {env}_Safety.emergency_incidents by IP at /gate entry); UM only emits target_action=safetyLockout on a turn where the user is NOT yet locked out and the classifier judges the utterance signals immediate medical attention.",
+CATALOG (this deploy's closed set): specialtySearch, findAProvider, findAFacility, findClinicalTrials, closeConnection200, safetyLockout. UM clamps to one of these four; UR raises on any out-of-catalog target_action. safetyLockout is special — UR may dispatch it WITHOUT calling UM whenever user_object.is_locked_out is true (UR hydrates that flag from {env}_Safety.emergency_incidents by IP at /gate entry); UM only emits target_action=safetyLockout on a turn where the user is NOT yet locked out and the classifier judges the utterance signals immediate medical attention.",
   "type": "object",
   "additionalProperties": false,
   "required": ["target_action", "intents"],
   "properties": {
     "target_action": {
       "description": "The single action UR must dispatch next. UM picks one of the catalog values; UR's match/case is keyed off this field. MUST correspond to a name in intents[] — UM enforces that invariant before emitting. NOTE: when user_object.is_locked_out is true (UR stamps it from {env}_Safety.emergency_incidents during hydration), UR dispatches safetyLockout directly without calling UM at all; UM's only role for safetyLockout is to recognise immediate-medical-attention utterances on turns where the user is NOT yet locked out and emit target_action=safetyLockout so UR locks them.",
-      "enum": ["specialtySearch", "findAProvider", "closeConnection200", "safetyLockout"]
+      "enum": ["specialtySearch", "findAProvider", "findAFacility", "findClinicalTrials", "closeConnection200", "safetyLockout"]
     },
     "intents": {
       "type": "array",
@@ -734,6 +752,36 @@ DECISION RULES (apply in this order):
      not that you failed. Never guess, and never let prior context
      supply a meaning the utterance does not have.
 
+  2.5. A PLACE, NOT A PERSON. Decide first whether the person is asking
+     for somewhere care is delivered rather than someone who delivers
+     it. A facility is a legal entity -- a hospital, clinic, pharmacy,
+     dialysis centre, laboratory, nursing home, imaging centre, urgent
+     care, surgery centre, hospice, home health agency. A care giver is
+     a person: a doctor, nurse, therapist, dentist, specialist.
+
+     When the request is for a place, set target_action to
+     "findAFacility". Any ONE of the three ways of naming it is enough
+     and none of them is required alongside another:
+       - facility_name: the organization named outright ("Cedars-Sinai",
+         "Rite Aid"). Give it exactly as the person said it.
+       - complaint: the KIND of facility, when they named a kind rather
+         than one by name ("hospital", "dialysis centre", "pharmacy").
+       - administrator_last_name / _first_name / _middle_name: the
+         person who administers it, when the person names a human being
+         as the one who runs the place ("the clinic Susan Wey runs").
+         Decompose whatever they gave into these three; if you cannot
+         tell which part is which, put the single name you were given in
+         administrator_last_name.
+     Populate geography the same way rules 3-5 do for a care giver. A
+     facility search runs with geography alone and needs no complaint,
+     so do NOT downgrade to specialtySearch when a place is named
+     without a kind.
+
+     "Find me a hospital in Long Beach CA" -> findAFacility, complaint
+     "hospital", geography {state: CA, city: Long Beach}.
+     "Find me a doctor in Long Beach CA" -> findAProvider, because a
+     doctor is a person.
+
   3. If the utterance is a real request with a clear healthcare
      complaint AND a fully usable geography (zip, state, state+city, or
      state+county), set target_action to "findAProvider" and populate
@@ -1295,32 +1343,42 @@ def session_state_block(parameters) -> str:
 
     lines = []
 
-    if parameters.complaint:
-        lines.append(f"  They are looking for care for: {parameters.complaint}")
+    complaint = parameters.get("NUCC", "complaint")
+    if complaint:
+        lines.append(f"  They are looking for care for: {complaint}")
     else:
         lines.append("  We do NOT know what kind of care they want.")
 
-    geo = parameters.geography
+    geo = _geography_of(parameters, "individualProvider")
     if geo is not None and not geo.is_empty():
         where = ", ".join(v for v in (geo.city, geo.county, geo.state, geo.zip) if v)
         lines.append(f"  They are looking in: {where}")
     else:
         lines.append("  We do NOT know where they are looking.")
 
-    offered = len(parameters.specialties)
+    offered = len(parameters.get("NUCC", "offeredSpecialties") or [])
     if offered:
-        kept = len(parameters.selected_specialty_codes)
+        kept = len(parameters.get("NUCC", "selectedSpecialtyCodes") or [])
         lines.append(
             f"  We showed them {offered} kinds of provider and they kept "
             f"{kept if kept else 'all of them'}.")
 
-    if parameters.page_cursors:
+    if parameters.has("individualProvider", "position"):
         lines.append("  They have already paged past the first set of results.")
 
-    if parameters.selected_provider_npi:
+    if parameters.has("individualProvider", "openNpi"):
         lines.append("  They are reading one provider's details right now.")
 
     return "\n".join(lines)
+
+
+def _geography_of(parameters, page: str):
+    """The geography in force on one page, as its model."""
+    from chathealthy_lib.authentication.user_parameters import Geography
+    got = parameters.get(page, "geography") if parameters else None
+    if not got:
+        return None
+    return got if isinstance(got, Geography) else Geography(**dict(got))
 
 
 def _known_parameters_block(parameters) -> str:
@@ -1334,7 +1392,7 @@ def _known_parameters_block(parameters) -> str:
     """
     if parameters is None:
         return ""
-    geo = parameters.geography
+    geo = _geography_of(parameters, "individualProvider")
     if geo is None or geo.is_empty():
         return ""
     parts = [f"{name}={value}" for name, value
@@ -1438,6 +1496,39 @@ def build_find_a_provider_intent(
         arguments=args,
         pending_disambiguation=pending,
     )
+
+
+def build_find_a_facility_intent(
+    complaint: str = "",
+    geography: dict[str, Any] = None,
+    facility_name: str = "",
+    administrator_name: dict[str, str] = None,
+) -> IntentFindAFacility:
+    """The entry a facility search is dispatched from.
+
+    A facility is named in one of three ways and any of them alone is
+    enough to search on: the facility itself, the kind of facility, or the
+    person who administers it. Geography narrows all three. At least one
+    argument is always present because the classifier does not reach this
+    branch without one.
+    """
+    args: list[Argument] = []
+    if complaint:
+        args.append(Argument(name="complaint", value=complaint,
+                             type="string", required=False))
+    if facility_name:
+        args.append(Argument(name="facility_name", value=facility_name,
+                             type="string", required=False))
+    administrator = {k: v for k, v in (administrator_name or {}).items() if v}
+    if administrator:
+        args.append(Argument(name="administrator_name",
+                             value=json.dumps(administrator),
+                             type="object", required=False))
+    geo_compact = {k: v for k, v in (geography or {}).items() if v}
+    if geo_compact:
+        args.append(Argument(name="geography", value=json.dumps(geo_compact),
+                             type="object", required=False))
+    return IntentFindAFacility(name="findAFacility", arguments=args)
 
 
 def build_find_clinical_trials_intent(
@@ -1818,6 +1909,35 @@ class UtteranceManagerTool(ChatHealthyTool):
             ]
             new_doc = merge_intents(base_doc, built, target_action, user_message)
 
+        elif target_action == "findAFacility":
+            # Any one of the three ways of naming a facility is enough, so
+            # this branch refuses only the turn that named none of them.
+            facility_name = (llm_result.facility_name or "").strip()
+            administrator = {
+                "last": (llm_result.administrator_last_name or "").strip(),
+                "first": (llm_result.administrator_first_name or "").strip(),
+                "middle": (llm_result.administrator_middle_name or "").strip(),
+            }
+            if not (complaint or facility_name or any(administrator.values())):
+                raise ChatHealthyException(
+                    mode="um_classifier_findafacility_named_nothing",
+                    message=(
+                        "UtteranceManager classifier set target_action="
+                        "findAFacility but named neither a facility, a kind "
+                        "of facility, nor the person who administers one"
+                    ),
+                    component="UtteranceManager",
+                )
+            new_doc = merge_intents(
+                base_doc,
+                [build_find_a_facility_intent(
+                    complaint=complaint,
+                    geography=geography,
+                    facility_name=facility_name,
+                    administrator_name=administrator,
+                )],
+                target_action, user_message)
+
         elif target_action == "findClinicalTrials":
             if not complaint:
                 raise ChatHealthyException(
@@ -1912,11 +2032,16 @@ class UtteranceManagerTool(ChatHealthyTool):
             live_geo = await _structure_location(user_location)
         from UserParameters import user_parameters_tool
         if live_geo:
+            # Written to the page this classification is about. Whether it
+            # reaches the facility page is a stated carry-over triple and
+            # not a second write here: a parameter of the same name does
+            # not carry between pages by being called the same thing.
             await user_parameters_tool.TOOL.run_and_log(
                 deps,
                 user_parameters_tool.Request(
-                    verb="set", name="geography", value=live_geo,
-                    origin="non_deterministic",
+                    verb="set", page="individualProvider", name="geography",
+                    value=live_geo,
+                    route="utterance_manager", origin="non_deterministic",
                 ),
             )
 
@@ -1927,11 +2052,51 @@ class UtteranceManagerTool(ChatHealthyTool):
             await user_parameters_tool.TOOL.run_and_log(
                 deps,
                 user_parameters_tool.Request(
-                    verb="set", name="complaint", value=complaint,
-                    origin="non_deterministic",
+                    verb="set", page="NUCC", name="complaint",
+                    value=complaint,
+                    route="utterance_manager", origin="non_deterministic",
                 ),
             )
 
+        # The person's own phrase, on the page whose summary has to say it
+        # back to them. This is why no second model call re-reads the
+        # utterance: this component has already read it.
+        search_phrase = (llm_result.search_phrase or "").strip()
+        if search_phrase:
+            await user_parameters_tool.TOOL.run_and_log(
+                deps,
+                user_parameters_tool.Request(
+                    verb="set", page="individualProvider", name="complaint",
+                    value=search_phrase,
+                    route="utterance_manager", origin="non_deterministic",
+                ),
+            )
+
+
+        # What the person named a facility by. Written to the facility
+        # page, whose attributes these are.
+        facility_writes = []
+        if (llm_result.facility_name or "").strip():
+            facility_writes.append(user_parameters_tool.Change(
+                page="facility", name="facilityName",
+                value=llm_result.facility_name.strip()))
+        administrator_parts = {
+            "last": (llm_result.administrator_last_name or "").strip(),
+            "first": (llm_result.administrator_first_name or "").strip(),
+            "middle": (llm_result.administrator_middle_name or "").strip(),
+        }
+        if any(administrator_parts.values()):
+            facility_writes.append(user_parameters_tool.Change(
+                page="facility", name="administratorName",
+                value=administrator_parts))
+        if facility_writes:
+            await user_parameters_tool.TOOL.run_and_log(
+                deps,
+                user_parameters_tool.Request(
+                    verb="set", route="utterance_manager",
+                    origin="non_deterministic", changes=facility_writes,
+                ),
+            )
 
         # Narrowings the person stated in words. Same rule as geography:
         # written only when this turn named one, so "a female doctor" said
@@ -1946,34 +2111,40 @@ class UtteranceManagerTool(ChatHealthyTool):
             await user_parameters_tool.TOOL.run_and_log(
                 deps,
                 user_parameters_tool.Request(
-                    verb="set", name="provider_name", value=name_parts,
-                    origin="non_deterministic",
+                    verb="set", page="individualProvider", name="providerName",
+                    value=name_parts,
+                    route="utterance_manager", origin="non_deterministic",
                 ),
             )
         # A narrowing the turn removes. Absent means unchanged, so without
         # this a filter could be set by speech and never lifted by it.
-        CLEARABLE = {"provider_sex", "insurance", "sole_proprietor",
-                     "provider_name"}
+        CLEARABLE = {"provider_sex": "providerSex",
+                     "insurance": "insurance",
+                     "sole_proprietor": "soleProprietor",
+                     "provider_name": "providerName"}
         for field in (llm_result.cleared_narrowings or ()):
-            if field not in CLEARABLE:
+            attribute = CLEARABLE.get(field)
+            if attribute is None:
                 continue
             await user_parameters_tool.TOOL.run_and_log(
                 deps,
                 user_parameters_tool.Request(
-                    verb="clear", name=field, origin="non_deterministic",
+                    verb="clear", page="individualProvider", name=attribute,
+                    route="utterance_manager", origin="non_deterministic",
                 ),
             )
 
-        for field, value in (("provider_sex", llm_result.provider_sex),
-                             ("insurance", llm_result.insurance),
-                             ("sole_proprietor", llm_result.sole_proprietor)):
+        for attribute, value in (("providerSex", llm_result.provider_sex),
+                                 ("insurance", llm_result.insurance),
+                                 ("soleProprietor", llm_result.sole_proprietor)):
             if value is None or value == "":
                 continue
             await user_parameters_tool.TOOL.run_and_log(
                 deps,
                 user_parameters_tool.Request(
-                    verb="set", name=field, value=value,
-                    origin="non_deterministic",
+                    verb="set", page="individualProvider", name=attribute,
+                    value=value,
+                    route="utterance_manager", origin="non_deterministic",
                 ),
             )
 

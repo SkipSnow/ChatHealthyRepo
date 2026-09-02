@@ -124,6 +124,68 @@ def _build_manifest_for(repo_root: Path, target_id: str) -> dict:
         message=f"ERROR: no target {target_id!r} in deployment_architecture.json")
 
 
+def _resolve_declared_set(target: TargetRecord, env: str,
+                          resolver: SecretsResolver,
+                          package_selection: set[str] | None) -> None:
+    """Resolve every declared entry of one target, before installing any of it.
+
+    EPIC-008-F-012-S-004-REQ-B-009. Each name is resolved individually, by
+    the name the declaration gives it, from the store its qualifier binds
+    it to. There is no second source to fall through to and no path that
+    hands a target a file or a vault in place of the entries it declared.
+
+    A name that will not resolve fails the target here, naming the entry,
+    the store and the environment, and installs nothing.
+    """
+    declared: list[tuple[str, str]] = []
+    declared.extend((target.secrets or {}).items())
+    for binding in target.environments:
+        if binding.env_binding != env:
+            continue
+        for package in (binding.packages or []):
+            pid = package.get("package_id", "")
+            if package_selection and pid not in package_selection:
+                continue
+            declared.extend((package.get("secrets") or {}).items())
+
+    unresolvable: list[str] = []
+    checked: set[str] = set()
+    for name, qualifier in declared:
+        # Only a store-bound name has anything to read. The computed
+        # qualifiers -- a peer URL, the environment's own name, a
+        # certificate off disk, the firm's declaration -- are produced by
+        # the deploy and have no store to fail against.
+        if qualifier not in _sr.STORE_IDS or name in checked:
+            continue
+        checked.add(name)
+        present, detail = resolver.exists(name, env)
+        if not present:
+            unresolvable.append(f"{name} from {qualifier} in {env}: {detail}")
+    if unresolvable:
+        listed = "; ".join(unresolvable)
+        raise ChatHealthyException(
+            mode="aborted",
+            component="_deploy_chain",
+            message=f"ERROR: target {target.target_id!r} declares "
+                    f"{len(unresolvable)} entr(y/ies) that cannot be resolved "
+                    f"from the store bound to them, so nothing is installed: "
+                    f"{listed}")
+
+
+def _firm_block(repo_root: Path) -> dict:
+    """The record's firm block: facts true of the firm rather than of a
+    target. A `firm:` qualifier on a target dereferences one of these, so
+    the value has one home and changing it changes what every target
+    carrying the reference receives, in one edit."""
+    path = repo_root / ARCHITECTURE_REL
+    if not path.is_file():
+        raise ChatHealthyException(
+            mode="aborted",
+            component="_deploy_chain",
+            message=f"ERROR: {path} not found.")
+    return json.loads(path.read_text(encoding="utf-8")).get("firm", {})
+
+
 def package_build_facts(repo_root: Path, target_id: str,
                         package_id: str) -> dict:
     """What the build recorded about the package it produced.
@@ -770,6 +832,22 @@ def set_hf_config(
         if qualifier.startswith("peer_url:"):
             peer_target_id = qualifier.split(":", 1)[1]
             return rd._hf_peer_url_for_build(peer_target_id, env, build_n)
+        if qualifier.startswith("firm:"):
+            # Dereferences the one firm-level declaration, exactly as
+            # peer_url: dereferences another target record rather than
+            # restating its address. A target carrying this qualifier
+            # holds a reference, not a value, so two targets cannot
+            # diverge by a value edit.
+            firm_key = qualifier.split(":", 1)[1]
+            firm_block = _firm_block(repo_root)
+            if firm_key not in firm_block:
+                raise ChatHealthyException(
+                    mode="key_error",
+                    component="_deploy_chain",
+                    message=f"target {target_id!r}: entry {name!r} declared as "
+                            f"firm:{firm_key} but the record's firm block "
+                            f"declares no {firm_key!r}")
+            return str(firm_block[firm_key])
         if qualifier.startswith("rename_from:"):
             other_name = qualifier.split(":", 1)[1]
             other_qual = (target.secrets or {}).get(other_name)\
@@ -2587,6 +2665,22 @@ def entry_value(name, qualifier, target, env, resolver, repo_root=None):
     if qualifier.startswith("local_cert_file:") and repo_root is not None:
         rel = qualifier.split(":", 1)[1]
         return base64.b64encode((repo_root / rel).read_bytes()).decode("ascii")
+    if qualifier.startswith("firm:") and repo_root is not None:
+        # A fact declared once in the record's firm block. The deploy can
+        # read it in every environment, exactly as it reads a literal, so
+        # it belongs in the one grammar rather than only on the path that
+        # happened to need it first -- a container that never received it
+        # failed at the call site with the value simply unset.
+        firm_key = qualifier.split(":", 1)[1]
+        firm_block = _firm_block(repo_root)
+        if firm_key not in firm_block:
+            raise ChatHealthyException(
+                mode="key_error",
+                component="_deploy_chain",
+                message=f"target {target.target_id!r}: entry {name!r} declared "
+                        f"as firm:{firm_key} but the record's firm block "
+                        f"declares no {firm_key!r}")
+        return str(firm_block[firm_key])
     if qualifier.startswith("rename_from:"):
         other = qualifier.split(":", 1)[1]
         other_qual = ((target.secrets or {}).get(other)
@@ -3184,6 +3278,11 @@ def run_cloud_deploy(env: str, target_arg: str,
                 component="_deploy_chain",
                 message=f"target {target_id!r} binding {env!r} declares no "
                         "host. Every binding names the platform that runs it.")
+        # Every declared entry resolved before the handler is dispatched,
+        # so a name that will not resolve fails the target before anything
+        # has been installed. Resolving each value as the handler asks for
+        # it is what makes a partial install possible.
+        _resolve_declared_set(target, env, resolver, package_selection)
         try:
             result = deploy_one(
                 repo_root, target_id, host, env, resolver, coll,
@@ -3521,47 +3620,53 @@ class LocalDeploy:
                     message=f"ERROR: Dockerfile missing at {dockerfile_abs}. "
                     "V11 S-002-REQ-T-001 requires Dockerfile per backend.")
             build_ctx_abs = pkg
-            staged_lib = None
+            # The build stages the file list the target record declares,
+            # and that list now produces ChatHealthyLib, authentication and
+            # SpecialtyFilter in the package itself. This function used to
+            # copy all three in from the working tree and delete them again
+            # in its finally -- which, once the build produced them, meant
+            # the deploy destroyed the build's own output: the first deploy
+            # after a build worked and every one after it failed on a
+            # context missing what its Dockerfile COPYs.
+            #
+            # So it stages only what the package LACKS, and its finally
+            # removes only what it itself created. A path the build
+            # provided is left exactly as the build left it, which is also
+            # the point of building the image from the package rather than
+            # from the tree.
+            staged_by_deploy: list[Path] = []
+
+            def _stage_if_absent(destination: Path, source: Path,
+                                 ignore_patterns: tuple[str, ...]) -> None:
+                if destination.exists() or not source.is_dir():
+                    return
+                _shutil.copytree(
+                    source, destination,
+                    ignore=_shutil.ignore_patterns(*ignore_patterns))
+                staged_by_deploy.append(destination)
+
             if build_ctx_rel != ".":
-                staged_lib = build_ctx_abs / "ChatHealthyLib"
-                if staged_lib.exists():
-                    _shutil.rmtree(staged_lib)
-                _shutil.copytree(frontend_lib_src, staged_lib,
-                                 ignore=_shutil.ignore_patterns("__pycache__", "*.pyc"))
-            staged_auth = None
-            if container_name == "ch-sharedsvc" and auth_src.is_dir():
-                staged_auth = build_ctx_abs / "authentication"
-                if staged_auth.exists():
-                    _shutil.rmtree(staged_auth)
-                _shutil.copytree(
-                    auth_src, staged_auth,
-                    ignore=_shutil.ignore_patterns(
-                        "__pycache__", "*.pyc", "ArchitectureDesignAndAuditDocs",
-                    ),
-                )
-            staged_specialty_filter = None
-            if container_name == "ch-sharedsvc" and specialty_filter_src.is_dir():
-                staged_specialty_filter = build_ctx_abs / "SpecialtyFilter"
-                if staged_specialty_filter.exists():
-                    _shutil.rmtree(staged_specialty_filter)
-                _shutil.copytree(
-                    specialty_filter_src, staged_specialty_filter,
-                    ignore=_shutil.ignore_patterns(
-                        "__pycache__", "*.pyc", "*.docx", "*.tsx", "*.ts",
-                    ),
-                )
-            staged_clinical_trials = None
-            if container_name == "ch-sharedsvc" and clinical_trials_src.is_dir():
-                staged_clinical_trials = build_ctx_abs / "ClinicalTrials"
-                if staged_clinical_trials.exists():
-                    _shutil.rmtree(staged_clinical_trials)
-                _shutil.copytree(
-                    clinical_trials_src, staged_clinical_trials,
-                    ignore=_shutil.ignore_patterns(
-                        "__pycache__", "*.pyc", "*.docx", "*.tsx", "*.ts",
-                    ),
-                )
-            build_info_path = self._write_build_info(build_ctx_abs, container_name)
+                _stage_if_absent(build_ctx_abs / "ChatHealthyLib",
+                                 frontend_lib_src, ("__pycache__", "*.pyc"))
+            if container_name == "ch-sharedsvc":
+                _stage_if_absent(
+                    build_ctx_abs / "authentication", auth_src,
+                    ("__pycache__", "*.pyc", "ArchitectureDesignAndAuditDocs"))
+                _stage_if_absent(
+                    build_ctx_abs / "SpecialtyFilter", specialty_filter_src,
+                    ("__pycache__", "*.pyc", "*.docx", "*.tsx", "*.ts"))
+                _stage_if_absent(
+                    build_ctx_abs / "ClinicalTrials", clinical_trials_src,
+                    ("__pycache__", "*.pyc", "*.docx", "*.tsx", "*.ts"))
+
+            # The build writes a build_info.json into the package and the
+            # Dockerfile COPYs it. Deleting it after the build left the
+            # package unable to build a second time, so the build's copy is
+            # put back rather than removed.
+            build_info_path = build_ctx_abs / "build_info.json"
+            build_info_before = (
+                build_info_path.read_bytes() if build_info_path.is_file() else None)
+            self._write_build_info(build_ctx_abs, container_name)
             self._step_notice(
                 f"building image {image_tag} (-f {src_dir}/Dockerfile, "
                 f"context={build_ctx_rel})"
@@ -3572,24 +3677,29 @@ class LocalDeploy:
                      "-f", str(dockerfile_abs), str(build_ctx_abs)],
                     cwd=str(self.repo_root),
                     capture_output=True, text=True, creationflags=creation_flags(),
+                    # Docker emits bytes the Windows default codec cannot
+                    # decode, and the reader thread died on them -- taking the
+                    # build's own error message with it, so a failed build
+                    # reported a decoding fault instead of its cause.
+                    encoding="utf-8", errors="replace",
                 )
             finally:
-                if staged_lib is not None and staged_lib.exists():
-                    _shutil.rmtree(staged_lib)
-                if staged_auth is not None and staged_auth.exists():
-                    _shutil.rmtree(staged_auth)
-                if staged_specialty_filter is not None and staged_specialty_filter.exists():
-                    _shutil.rmtree(staged_specialty_filter)
-                if staged_clinical_trials is not None and staged_clinical_trials.exists():
-                    _shutil.rmtree(staged_clinical_trials)
-                if build_info_path.is_file():
-                    build_info_path.unlink()
+                # Only what this function created. Anything the build
+                # staged is the build's and is left alone.
+                for created in staged_by_deploy:
+                    if created.exists():
+                        _shutil.rmtree(created)
+                if build_info_before is None:
+                    if build_info_path.is_file():
+                        build_info_path.unlink()
+                else:
+                    build_info_path.write_bytes(build_info_before)
             if result.returncode != 0:
                 raise ChatHealthyException(
                     mode="aborted",
                     component="_deploy_chain",
                     message=f"ERROR: docker build failed for {image_tag}: "
-                    f"{result.stderr.strip()[:500]}")
+                    f"{result.stderr.strip()}")
 
     def _build_website_container(self) -> None:
         """Build the Website wrapper container per S-002-REQ-T-002 / T-007 /

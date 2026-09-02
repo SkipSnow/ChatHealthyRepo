@@ -141,6 +141,24 @@ LOG_COLLECTION = "Log"
 LOG_DB_ENV_VAR = "CH_LOG_DB"
 
 
+_mongo_log_collection: str = LOG_COLLECTION
+
+
+def set_mongo_log_collection(collection: str) -> None:
+    """Set the collection this process's records are written to.
+
+    Call before setting CH_LOG_DESTINATION="mongo". The database is a
+    deployed fact and is not settable; the collection is the caller's,
+    because the front-end application and the pipeline share this library
+    and are not one stream. A hardcoded collection made them one.
+
+    Args:
+        collection: collection name (e.g. "CGFrontEndLogs")
+    """
+    global _mongo_log_collection
+    _mongo_log_collection = collection
+
+
 def set_mongo_log_identity(identity: str) -> None:
     """Set the MongoDB identity for the logging handler.
 
@@ -209,10 +227,16 @@ class _MongoLogHandler(logging.Handler):
     sys.stderr and continues — that is the standard stdlib behavior for
     a handler that fails. No process kill, no policy decision."""
 
-    def __init__(self, env: str, target: str) -> None:
+    def __init__(self, env: str, target: str,
+                 collection: str = LOG_COLLECTION) -> None:
         super().__init__()
         self._env = env
         self._target = target
+        # Which stream this process's records belong to. The database is a
+        # deployed fact and stays one; the collection is the caller's, because
+        # the front-end application writes one stream and the pipeline writes
+        # another, and they share this library.
+        self._collection = collection
         # Deployed fact. No argument, no default: if the deployment did not
         # say where logs go, this process must not start pretending it logged.
         self._log_db = os.environ.get(LOG_DB_ENV_VAR, "").strip()
@@ -295,7 +319,7 @@ class _MongoLogHandler(logging.Handler):
                     # A per-env collection duplicates the env field and makes
                     # "what happened during run X" unanswerable across
                     # components.
-                    self._coll = raw_client[self._log_db][LOG_COLLECTION]
+                    self._coll = raw_client[self._log_db][self._collection]
         return self._coll
 
     def emit(self, record: logging.LogRecord) -> None:
@@ -412,7 +436,8 @@ def _build_mongo_handler() -> logging.Handler:
             component="ChatHealthyLoggingService",
             missing=",".join(missing),
         )
-    h = _MongoLogHandler(env=env, target=target)
+    h = _MongoLogHandler(env=env, target=target,
+                         collection=_mongo_log_collection)
     h.setFormatter(_Formatter(fmt=_FORMAT, datefmt=_DATEFMT))
     return h
 

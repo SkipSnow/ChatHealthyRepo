@@ -22,16 +22,22 @@ function _esc(s: any): string {
     .replace(/"/g, '&quot;').replace(/'/g, '&#39;')
 }
 
-function buildStripHtml(selected: string[], max: number, lookup: Record<string, any>): string {
+function buildStripHtml(selected: string[], max: number, lookup: Record<string, any>,
+                        excluded: Record<string, boolean>): string {
   const cards = selected.map(npi => {
     const p = lookup[npi] || { npi }
     const name = _esc(p.name || npi)
     const spec = _esc(p.specialty || p.primary_specialty || '')
+    // The specialty filter in force does not admit this provider. The row
+    // is kept and marked, never removed: the person chose it, and a filter
+    // that silently drops their own choice is what this state prevents.
+    const isExcluded = excluded[npi] === true
     return (
-      `<div data-testid="selected-card" style="display:flex;align-items:center;gap:0.5em;padding:0.5em 1em;border-bottom:0.0625em solid #f0f0f0;">` +
+      `<div data-testid="selected-card"${isExcluded ? ' data-excluded="true"' : ''} style="display:flex;align-items:center;gap:0.5em;padding:0.5em 1em;border-bottom:0.0625em solid #f0f0f0;${isExcluded ? 'background:#f9fafb;opacity:0.65;' : ''}">` +
         `<div style="flex:1;min-width:0;">` +
-          `<div style="font-weight:600;color:#0b7a75;">${name}</div>` +
+          `<div style="font-weight:600;color:${isExcluded ? '#6b7280' : '#0b7a75'};">${name}</div>` +
           (spec ? `<div style="font-size:0.85em;color:#6b7280;">${spec}</div>` : '') +
+          (isExcluded ? `<div data-testid="excluded-by-filter" style="font-size:0.85em;color:#b45309;">Excluded by the specialty filter in force</div>` : '') +
           `<div style="font-size:0.85em;color:#9ca3af;">NPI: ${_esc(npi)}</div>` +
         `</div>` +
         `<a href="#" data-router-action="provider:deselect" data-npi="${_esc(npi)}" title="Remove from selection" style="color:#dc2626;text-decoration:none;font-size:1.25em;font-weight:700;padding:0.25em 0.5em;">✕</a>` +
@@ -75,6 +81,7 @@ export default function SelectedProvidersWidget() {
     let providerLookup: Record<string, any> = {}
     let maxSelected = 5
     let selectedCache: string[] = []
+    let excludedByFilter: Record<string, boolean> = {}
     let lastQuery = ''
 
     function postMerge(content: string) {
@@ -120,7 +127,12 @@ export default function SelectedProvidersWidget() {
         const selected: string[] = Array.isArray(msg.data?.selected) ? msg.data.selected : []
         if (typeof msg.data?.max_selected === 'number') maxSelected = msg.data.max_selected
         selectedCache = selected
-        postMerge(buildStripHtml(selected, maxSelected, providerLookup))
+        // Computed on the server, where the selected provider's full
+        // taxonomy list is held. The widget renders the flag; it does not
+        // decide it.
+        excludedByFilter = (msg.data?.excluded_by_filter && typeof msg.data.excluded_by_filter === 'object')
+          ? msg.data.excluded_by_filter : {}
+        postMerge(buildStripHtml(selected, maxSelected, providerLookup, excludedByFilter))
         return
       }
 

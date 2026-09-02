@@ -241,3 +241,61 @@ def run_llm_sync(agent: Any, prompt: str, *, call_site: str,
     assert last_exc is not None
     raise_unavailable(provider, call_site, server, component,
                        model_name_str, last_exc)
+
+
+EMBEDDING_MODEL_ENV = "CH_EMBEDDING_MODEL"
+
+
+def embedding_model_name() -> str:
+    """The one embedding model, read from the binding the target carries.
+
+    There is one embedding model across the whole application, declared
+    once for the firm and bound to every target whose code embeds. There
+    is no default: a default would be a second declaration of the value
+    and is the thing this reading exists to remove.
+    """
+    name = os.environ.get(EMBEDDING_MODEL_ENV, "").strip()
+    if not name:
+        raise ChatHealthyException(
+            mode="config_error",
+            component="llm",
+            message=(f"{EMBEDDING_MODEL_ENV} is not set. The embedding model is "
+                     "declared once for the firm and bound to every target whose "
+                     "code embeds; this target carries no binding."),
+        )
+    return name
+
+
+def embed(text: str, *, call_site: str, provider: str, server: str,
+          component: str) -> list:
+    """Embeddings facade, on the same ladder as run_llm and run_llm_sync.
+
+    run_llm and run_llm_sync wrap pydantic-ai's Agent, which is an agent
+    abstraction and has no embeddings surface, so an embedding call has
+    nothing to route through without this. Same MAX_ATTEMPTS, same
+    TRANSIENT tuple, same jittered backoff, same raise_unavailable.
+
+    Takes no model argument. The model is the firm's one declaration,
+    read from the environment binding the target carries.
+    """
+    model_name_str = embedding_model_name()
+    last_exc: Exception | None = None
+    for attempt in range(1, MAX_ATTEMPTS + 1):
+        try:
+            if injected_failure(call_site):
+                raise ChatHealthyException(
+                    mode="remote_protocol",
+                    component="llm",
+                    message="CHATHEALTHY_INJECT_LLM_FAILURE: synthetic failure")
+            from openai import OpenAI
+            client = OpenAI(api_key=os.environ.get("OPENAI_API_KEY"))
+            response = client.embeddings.create(model=model_name_str, input=text)
+            return response.data[0].embedding
+        except TRANSIENT as exc:
+            last_exc = exc
+            if attempt < MAX_ATTEMPTS:
+                time.sleep(jittered(BACKOFF_SECONDS[attempt - 1]))
+                continue
+    assert last_exc is not None
+    raise_unavailable(provider, call_site, server, component,
+                       model_name_str, last_exc)

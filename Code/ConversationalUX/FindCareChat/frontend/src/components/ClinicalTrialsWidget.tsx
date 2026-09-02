@@ -52,8 +52,6 @@ function buildLeftPanel(
   if (ctx.condition) queryParts.push(`condition: ${ctx.condition}`)
   if (ctx.age_years != null) queryParts.push(`subject age: ${ctx.age_years}`)
   if (ctx.sex) queryParts.push(`subject sex: ${ctx.sex}`)
-  if (ctx.gender) queryParts.push(`subject gender: ${ctx.gender}`)
-  if (ctx.user_location) queryParts.push(`location: ${ctx.user_location}`)
   if (ctx.geographic_scope) {
     const scopeLabel = ctx.geographic_scope === 'us' ? 'US' : ctx.geographic_scope
     queryParts.push(`scope: ${scopeLabel}`)
@@ -289,6 +287,23 @@ export default function ClinicalTrialsWidget() {
     postSubscribe('clinical_trials_chunk')
     postSubscribe('intent_classified')
 
+    // What the person is told is decided where the failure happened. The
+    // mode names what was being attempted; the widget selects its wording
+    // from the mode and invents no text of its own.
+    const FAILURE_WORDING: Record<string, string> = {
+      clinical_trials_list_not_produced:
+        'The list of clinical trials for this condition could not be produced.',
+      clinical_trials_list_not_extended:
+        'The list of clinical trials could not be extended past what is shown.',
+    }
+
+    function renderFailure(mode: string) {
+      const wording = FAILURE_WORDING[mode]
+      if (!wording) return
+      postRender('LeftPanel',
+        `<div data-testid="clinical-trials-failure" style="padding:1em;color:#b45309;">${esc(wording)}</div>`)
+    }
+
     function renderSlice(start: number) {
       // start is 1-based pageStart per the existing UX. Convert to a 0-based
       // cache offset, slice page_size items, and paint the three panels.
@@ -322,10 +337,8 @@ export default function ClinicalTrialsWidget() {
         const ctx = data.search_context || lastQueryRef.current || {}
         lastQueryRef.current = {
           condition: ctx.condition || '',
-          user_location: ctx.user_location || null,
           age_years: ctx.age_years ?? null,
           sex: ctx.sex || null,
-          gender: ctx.gender || null,
           geographic_scope: ctx.geographic_scope || null,
         }
         // page_size locks to the first chunk's length so subsequent
@@ -366,6 +379,11 @@ export default function ClinicalTrialsWidget() {
       const msg = ev.data
       if (!msg || typeof msg !== 'object') return
 
+      if (msg.type === 'router:error') {
+        renderFailure(String(msg.mode || ''))
+        return
+      }
+
       if (msg.type === 'router:event-broadcast') {
         if (msg.kind === 'clinical_trials_chunk') {
           applyChunk(msg.data || {})
@@ -375,10 +393,8 @@ export default function ClinicalTrialsWidget() {
           if (d.action === 'findClinicalTrials') {
             lastQueryRef.current = {
               condition: d.condition || '',
-              user_location: d.user_location || null,
               age_years: d.age_years ?? null,
               sex: d.sex || null,
-              gender: d.gender || null,
               geographic_scope: d.geographic_scope || null,
             }
           }

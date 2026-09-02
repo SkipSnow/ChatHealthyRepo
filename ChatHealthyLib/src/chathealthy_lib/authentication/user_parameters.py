@@ -5,15 +5,16 @@ session_conversation_history is the HISTORY: an ordered list of tool
 invocations with their inputs and outputs, written by run_and_log. This is
 the STATE: what is true right now.
 
-Neither is derived from the other. Nothing reads the history to decide
-anything, and nothing keeps a version, a timestamp or a provenance field in
-here -- if you want to know how a value got where it is, the history names
-the tool that wrote it.
+A parameter name is a pair, not a string: the page and the attribute.
+There is no short form and no default page, because a default page is the
+flat model with a longer spelling -- a name that resolves without a page
+is a name whose scope depends on where it was written.
 
-A parameter is defined once and means the same thing everywhere. Geography
-is geography whether a provider search or a clinical-trial search reads it,
-which is what lets a user say "New York" while looking at trials and then
-ask for doctors without saying it again.
+Parameters are held in one map per page, so a write addresses one page's
+map and cannot reach another's; there is no shared slot for a write to
+collide in. Three values more than one page needs -- geography, the
+complaint and the chosen specialty codes -- are one parameter per page
+that needs them, and they are distinct values that happen to share a name.
 
 Every value is a validated model rather than JSON in a string. The shape
 this replaces carried geography as a JSON string inside an argument, so a
@@ -22,9 +23,17 @@ country instead of failing.
 """
 from __future__ import annotations
 
-from typing import Optional
+from typing import Any, Literal, Optional
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, model_validator
+
+
+# The four things a person can hold an answer about. The set is closed: a
+# fifth page is a new feature with its own requirements, so it is fixed in
+# the code that validates the declaration rather than held as data, since
+# a closed set held as data is a set an edit can open
+# (EPIC-006-F-008-S-001-REQ-B-002).
+PAGES: tuple[str, ...] = ("facility", "individualProvider", "NUCC", "clinicalTrial")
 
 
 class Geography(BaseModel):
@@ -71,103 +80,123 @@ class Specialty(BaseModel):
     rank: int = 0
 
 
-class UserParameters(BaseModel):
-    """Live values. Current only; no history, no metadata.
+class ParameterEntry(BaseModel):
+    """One parameter in force, and the facts about the write that set it.
 
-    A tool reads whichever keys it needs and writes none directly -- writes
-    go through the parameters tool, so validation happens in one place and
-    the change lands in the history for free.
-
-    Adding a refinement variable is a field here plus a read in the tool
-    that wants it. Nothing else moves, and no other structure carries a
-    second copy of it.
+    Route, determination and source page live here rather than in the
+    invocation history, which is what makes them readable at the moment
+    the parameter is read.
     """
 
-    geography: Optional[Geography] = None
+    value: Any = None
+    # Which of the three routes wrote it (S-003-REQ-B-005).
+    route: Literal["tool", "gateway", "utterance_manager"] = "gateway"
+    # Whether a rule determined it or a model inferred it (S-003-REQ-B-006).
+    # Independent of the route: the gateway can carry a model-inferred
+    # value and the utterance manager a rule-determined one.
+    determination: Literal["rule", "model"] = "rule"
+    # The source page when it arrived by carry-over (S-005-REQ-B-008).
+    # Absent when the person or a tool set it here.
+    carried_from: Optional[str] = None
 
-    # A provider named outright, rather than searched for by what they do.
-    # Stored uppercase because the records are: NPPES holds every name in
-    # upper case, so an uppercased term matches without the case-insensitive
-    # option that would make the index unusable.
-    provider_name: Optional[ProviderName] = None
 
-    # Which insurance the person carries. This narrows to providers who
-    # list that payer among their identifiers -- it does NOT establish that
-    # a plan's network includes them, and nothing in this data can.
-    insurance: Optional[str] = None
+# Every flat name the previous model accepted, and where it goes. A
+# name absent from this table was withdrawn: page_cursors was the flat
+# model expressing page scope inside a value, and a position is per
+# page and becomes each page's own position attribute.
+_DISPOSITION: dict[str, tuple[tuple[str, str], ...]] = {
+    "geography": (("individualProvider", "geography"),
+                  ("facility", "geography")),
+    "complaint": (("NUCC", "complaint"),
+                  ("individualProvider", "complaint")),
+    "specialties": (("NUCC", "offeredSpecialties"),),
+    "selected_specialty_codes": (("NUCC", "selectedSpecialtyCodes"),
+                                 ("individualProvider",
+                                  "selectedSpecialtyCodes")),
+    "provider_name": (("individualProvider", "providerName"),),
+    "insurance": (("individualProvider", "insurance"),),
+    "provider_sex": (("individualProvider", "providerSex"),),
+    "sole_proprietor": (("individualProvider", "soleProprietor"),),
+    "selected_provider_npi": (("individualProvider", "openNpi"),),
+}
 
-    # A stated preference about the provider, not a fact about the search.
-    # Absent means no preference, which is not the same as "any": a stated
-    # preference excludes everyone who does not match it, including
-    # providers who disclosed nothing.
-    #
-    #   F  Female        M  Male
-    #   X  Neither Male nor Female -- an affirmation the provider made
-    #   U  Undisclosed             -- a refusal to stipulate
-    #
-    # The two are never merged. One provider told us something and the
-    # other declined, and collapsing them would misrepresent both.
-    provider_sex: Optional[str] = None
 
-    # Y when the person wants a provider practising on their own account.
-    sole_proprietor: Optional[bool] = None
+class UserParameters(BaseModel):
+    """A map of page to a map of attribute to entry.
 
-    # The clinical concept the utterance manager translated the user's words
-    # into. NEVER the words themselves: "shrink" is something a person said
-    # and names no specialty a payer or a provider record recognises. What
-    # lands here is what it means -- "Psychological or psychiatric service
-    # provider" -- which is a fact the specialty step can act on.
-    #
-    # The utterance stays in the conversation. This is its translation, and
-    # the translation is the parameter.
-    complaint: str = ""
+    Setting, clearing or reading a parameter on one page has no effect on
+    any parameter of any other page, structurally rather than by a rule
+    applied on top: there is no shared slot for a write to collide in.
+    """
 
-    # What the specialty step offered, and what the user kept.
-    #
-    # These are the translated fact, not the words that produced it. "Shrink"
-    # is something a person said: it has no clinical or reimbursement
-    # meaning and cannot be queried. The utterance belongs to the
-    # conversation; the LLM turns it into NUCC codes -- which do mean
-    # something to a payer and to a provider record -- and those are the
-    # parameter.
-    #
-    # The universe is set by the specialty tool; the selection is set by the
-    # user. Neither recomputes the other.
-    specialties: list[Specialty] = Field(default_factory=list)
-    selected_specialty_codes: list[str] = Field(default_factory=list)
+    pages: dict[str, dict[str, ParameterEntry]] = Field(default_factory=dict)
 
-    # WHERE the user is in each list they are reading: one function, one
-    # key.
-    #
-    # A page number would name a place the query cannot go back to, because
-    # the searches are keyset-paged. But the key is enough on its own -- the
-    # query is ORDERED, so the key IS the position, and asking for the rows
-    # after it returns that page in one hop. A chain of every cursor walked
-    # to get there describes how the user arrived, which is not what
-    # returning needs.
-    #
-    # Keyed by the function that is paging -- findAProvider,
-    # findClinicalTrials -- so each holds its own place and moving between
-    # them disturbs neither. That is what makes switching back and forth
-    # survivable: every list is still where it was left.
-    #
-    # A missing key means the top of that list, which is where a function
-    # that has not been paged yet correctly starts.
-    page_cursors: dict[str, str] = Field(default_factory=dict)
+    @model_validator(mode="before")
+    @classmethod
+    def _convert_flat_shape(cls, data: Any) -> Any:
+        """A session already holding the old shape, converted on read.
 
-    # The provider whose detail is open, if one is. A detail is a place the
-    # user navigated to and expects to still be at when they come back;
-    # holding it anywhere but here would make it the one thing about their
-    # position that a context switch forgets.
-    selected_provider_npi: str = ""
-
-    def selected_or_all(self) -> list[str]:
-        """The codes a search should use.
-
-        No selection means the user has not narrowed, so the whole offered
-        set applies. An empty selection made deliberately is a different
-        thing and the caller decides how to treat it.
+        There is no migration job. Each flat name becomes its
+        page-qualified successor, a name whose disposition is withdrawal is
+        dropped, and the converted shape is written back by the next
+        ordinary write. A session never touched again expires holding the
+        old shape and is never read again, which is why converting on read
+        costs nothing and converting every document would.
         """
-        if self.selected_specialty_codes:
-            return list(self.selected_specialty_codes)
-        return [s.code for s in self.specialties if s.code]
+        if not isinstance(data, dict) or "pages" in data:
+            return data
+        pages: dict[str, dict[str, dict]] = {}
+        for flat_name, destinations in _DISPOSITION.items():
+            if flat_name not in data:
+                continue
+            value = data[flat_name]
+            if value is None or value == "" or value == [] or value == {}:
+                continue
+            for page, attribute in destinations:
+                pages.setdefault(page, {})[attribute] = {
+                    "value": value,
+                    # The route that hydrated it. The old shape recorded no
+                    # determination on the parameter, so the write it stands
+                    # for is a rule.
+                    "route": "gateway",
+                    "determination": "rule",
+                }
+        return {"pages": pages}
+
+    def get(self, page: str, attribute: str) -> Any:
+        """The value in force, or None."""
+        entry = (self.pages.get(page) or {}).get(attribute)
+        return entry.value if entry is not None else None
+
+    def entry(self, page: str, attribute: str) -> Optional[ParameterEntry]:
+        return (self.pages.get(page) or {}).get(attribute)
+
+    def has(self, page: str, attribute: str) -> bool:
+        """Whether the attribute carries a value. "In force" is having one."""
+        entry = self.entry(page, attribute)
+        if entry is None:
+            return False
+        value = entry.value
+        if value is None:
+            return False
+        if isinstance(value, (str, list, dict, tuple)) and len(value) == 0:
+            return False
+        return True
+
+    def set(self, page: str, attribute: str, entry: ParameterEntry) -> None:
+        self.pages.setdefault(page, {})[attribute] = entry
+
+    def clear(self, page: str, attribute: str) -> None:
+        (self.pages.get(page) or {}).pop(attribute, None)
+
+    def clear_page(self, page: str) -> list[str]:
+        cleared = sorted(self.pages.get(page) or {})
+        self.pages.pop(page, None)
+        return cleared
+
+    def clear_all(self) -> list[str]:
+        cleared = [f"{page}.{attribute}"
+                   for page, attributes in sorted(self.pages.items())
+                   for attribute in sorted(attributes)]
+        self.pages = {}
+        return cleared

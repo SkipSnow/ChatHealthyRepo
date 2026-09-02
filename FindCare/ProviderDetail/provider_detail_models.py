@@ -14,7 +14,7 @@ sections per REQ-B-003 / REQ-B-006 — no fallback prose.
 """
 from __future__ import annotations
 
-from typing import Optional
+from typing import ClassVar, Optional
 
 from pydantic import BaseModel, Field, HttpUrl
 
@@ -28,12 +28,21 @@ class ProviderDetailInput(BaseModel):
     context carries the NPI and no card -- and because the record, not a
     card that may have been painted some time ago, is what the name should
     come from.
+
+    The county the card used to send up is not here. It is never read, and
+    a county travelling upward from the client is a second source for a
+    value the record already holds on the address it belongs to.
     """
     name: Optional[str] = Field(default=None, description="Provider display name")
     npi: str = Field(..., description="National Provider Identifier")
+    # The gateway's signature, verified before anything else happens.
+    session_token: Optional[dict] = Field(default=None)
+    # Which page opened this detail. A property of the page, so the panel
+    # shows the identity that page's records carry and the registry check
+    # of EPIC-006-F-007-S-003-REQ-B-003 applies on the facility page.
+    entity_type: str = Field(default="1")
     specialty: Optional[str] = Field(default=None)
     address: Optional[str] = Field(default=None)
-    county: Optional[str] = Field(default=None)
     phone: Optional[str] = Field(default=None)
     state: Optional[str] = Field(default=None)
 
@@ -65,6 +74,144 @@ class Identity(BaseModel):
             status_active=status_active,
             enumeration_date=stored.get("provider_enumeration_date", "") or "",
         )
+
+
+# The registry writes this where it holds no value. It is the registry
+# saying the field is absent, not a value the record carries, so a panel
+# that printed it would be showing the person a placeholder as a fact.
+_REGISTRY_ABSENT = "<UNAVAIL>"
+
+
+def _present(value) -> str:
+    text = (value or "").strip() if isinstance(value, str) else ""
+    return "" if text.upper() == _REGISTRY_ABSENT else text
+
+
+class OrganizationIdentity(BaseModel):
+    """The identity block a facility shows in place of a person's.
+
+    EPIC-006-F-007-S-001-REQ-B-002 names six things. The other
+    organization name is conditional on the record carrying one, and its
+    kind is a coded field rendered as its label, because a code shown raw
+    tells the person nothing. The subpart's parent is named and never
+    identified (REQ-B-003).
+
+    The federal employer identification number and the parent
+    organization's taxpayer identification number are absent by
+    construction: this projection does not name them, which is the
+    display-side enforcement of REQ-B-005.
+    """
+
+    legal_business_name: str = ""
+    other_organization_name: str = ""
+    other_organization_name_kind: str = ""
+    npi: str = ""
+    enumeration_date: str = ""
+    status_active: bool = True
+    is_subpart: bool = False
+    parent_organization_name: str = ""
+
+    # What the registry's coded other-name types mean. A code is shown as
+    # its label so the person reads a kind of name rather than a number.
+    # A table the class carries, not a field it holds.
+    OTHER_NAME_KINDS: ClassVar[dict[str, str]] = {
+        "1": "Former legal business name",
+        "2": "Professional name",
+        "3": "Doing business as",
+        "4": "Former legal business name",
+        "5": "Other name",
+    }
+
+    @classmethod
+    def from_stored(cls, stored: dict) -> "OrganizationIdentity":
+        active = stored.get("active") or []
+        status_active = bool(active[-1].get("is_active", True)) if active else True
+        kind_code = str(
+            stored.get("provider_other_organization_name_type_code") or "").strip()
+        subpart = str(stored.get("is_organization_subpart") or "").strip().upper()
+        return cls(
+            legal_business_name=stored.get(
+                "provider_organization_name_legal_business_name", "") or "",
+            other_organization_name=_present(
+                stored.get("provider_other_organization_name")),
+            other_organization_name_kind=cls.OTHER_NAME_KINDS.get(kind_code, ""),
+            npi=stored.get("npi", "") or "",
+            enumeration_date=stored.get("provider_enumeration_date", "") or "",
+            status_active=status_active,
+            is_subpart=subpart == "Y",
+            parent_organization_name=_present(stored.get("parent_organization_lbn")),
+        )
+
+
+class AuthorizedOfficial(BaseModel):
+    """The person the registry recorded as the facility's authorized
+    official, per EPIC-006-F-007-S-002-REQ-B-001.
+
+    Five fields. The middle name is conditional on the record carrying
+    one; the other four are unconditional. The telephone number the record
+    also carries is NOT here: B-001 names five fields, and this is a named
+    person rather than a contact route the person is invited to use.
+    """
+
+    last_name: str = ""
+    first_name: str = ""
+    middle_name: str = ""
+    title_or_position: str = ""
+    credential: str = ""
+
+    @classmethod
+    def from_stored(cls, stored: dict) -> Optional["AuthorizedOfficial"]:
+        official = cls(
+            last_name=stored.get("authorized_official_last_name", "") or "",
+            first_name=stored.get("authorized_official_first_name", "") or "",
+            middle_name=stored.get("authorized_official_middle_name", "") or "",
+            title_or_position=stored.get(
+                "authorized_official_title_or_position", "") or "",
+            credential=stored.get("authorized_official_credential", "") or "",
+        )
+        if not any((official.last_name, official.first_name,
+                    official.title_or_position, official.credential)):
+            return None
+        return official
+
+
+class FacilityKind(BaseModel):
+    """One kind of facility the record carries, per
+    EPIC-006-F-007-S-001-REQ-B-008.
+
+    The classification label, the specialization where the record carries
+    one, and the plain-language definition. All three are read from what
+    the record holds; nothing is resolved while the panel paints, because
+    a lookup in the click path is a second dependency and the panel must
+    render when that dependency is unavailable.
+    """
+
+    code: str = ""
+    classification: str = ""
+    specialization: str = ""
+    definition: str = ""
+
+    @classmethod
+    def from_stored(cls, stored: dict) -> list["FacilityKind"]:
+        described = {
+            (d.get("code") or "").strip(): d
+            for d in (stored.get("facility_type_descriptions") or [])
+            if isinstance(d, dict)
+        }
+        kinds: list["FacilityKind"] = []
+        for taxonomy in stored.get("taxonomies") or []:
+            if not isinstance(taxonomy, dict):
+                continue
+            code = (taxonomy.get("code") or "").strip()
+            description = described.get(code, {})
+            kinds.append(cls(
+                code=code,
+                classification=(taxonomy.get("code_label")
+                                or description.get("classification_label") or ""),
+                specialization=description.get("specialization_label") or "",
+                definition=description.get("definition") or "",
+            ))
+        return kinds
 
 
 class County(BaseModel):
@@ -144,19 +291,27 @@ class License(BaseModel):
 
 
 class Insurance(BaseModel):
-    """Per S-001-REQ-B-006: every entry in normalized insurance[]."""
-    insurance_type: str = ""
-    brand: str = ""
+    """One payer identifier the provider carries, per S-001-REQ-B-006.
+
+    Four fields, so the person can see what the identifier is rather than
+    infer it: the kind of coverage, the issuer, the state and the
+    identifier itself. The registry records which payers issued an
+    identifier, and nothing in that datum establishes that a plan's network
+    includes the provider -- so this is never labelled as insurance
+    accepted or as network membership.
+    """
+    coverage_kind: str = ""
+    issuer: str = ""
     state: str = ""
-    raw_value: str = ""
+    identifier: str = ""
 
     @classmethod
     def from_stored(cls, insurance_record: dict) -> "Insurance":
         return cls(
-            insurance_type=(insurance_record.get("insurance_type") or "").strip(),
-            brand=(insurance_record.get("payer_name") or "").strip(),
+            coverage_kind=(insurance_record.get("insurance_type") or "").strip(),
+            issuer=(insurance_record.get("payer_name") or "").strip(),
             state=(insurance_record.get("state") or "").strip(),
-            raw_value=(insurance_record.get("issuer_raw") or "").strip(),
+            identifier=(insurance_record.get("payer_id") or "").strip(),
         )
 
 
@@ -192,6 +347,18 @@ class ProviderDetailOutput(BaseModel):
     insurance: list[Insurance] = Field(default_factory=list)
     taxonomies: list[Taxonomy] = Field(default_factory=list)
     research_sites: dict[str, ResearchSite] = Field(default_factory=dict)
+    # The practice state for which no licensing authority could be
+    # resolved. Empty when one was. Emitted in place of the destination so
+    # a gap in the table surfaces rather than removing a link.
+    unresolved_licensing_state: str = ""
+    # Which kind of entity this panel is showing. The panel is the provider
+    # panel with the identity block exchanged, so the renderer selects the
+    # identity to paint from this rather than from the shape of the data.
+    entity_type: str = "1"
+    # Present on a facility, absent on a care giver.
+    organization_identity: Optional[OrganizationIdentity] = None
+    authorized_official: Optional[AuthorizedOfficial] = None
+    facility_kinds: list[FacilityKind] = Field(default_factory=list)
 
     @classmethod
     def from_stored(
@@ -202,6 +369,7 @@ class ProviderDetailOutput(BaseModel):
         code_to_display: dict[str, str],
         primary_taxonomy_display: str,
         research_sites: dict[str, dict],
+        unresolved_licensing_state: str = "",
     ) -> "ProviderDetailOutput":
         if stored is None:
             return cls(
@@ -209,10 +377,20 @@ class ProviderDetailOutput(BaseModel):
                 npi=npi,
                 identity=Identity(npi=npi),
                 research_sites={k: ResearchSite(**v) for k, v in research_sites.items()},
+                unresolved_licensing_state=unresolved_licensing_state,
             )
+        is_organization = str(stored.get("entity_type_code") or "1") == "2"
         return cls(
             provider_name=provider_name,
             npi=npi,
+            unresolved_licensing_state=unresolved_licensing_state,
+            entity_type="2" if is_organization else "1",
+            organization_identity=(OrganizationIdentity.from_stored(stored)
+                                   if is_organization else None),
+            authorized_official=(AuthorizedOfficial.from_stored(stored)
+                                 if is_organization else None),
+            facility_kinds=(FacilityKind.from_stored(stored)
+                            if is_organization else []),
             identity=Identity.from_stored(stored, primary_taxonomy_display),
             addresses=Address.ordered_from_stored(stored),
             licenses=[License.from_stored(lic) for lic in stored.get("licenses") or []],

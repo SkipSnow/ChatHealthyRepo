@@ -81,6 +81,83 @@ STATE_BOARDS = {
     "WI": ("https://licensesearch.wi.gov/", "Wisconsin Medical Examining Board"),
     "WV": ("https://wvbom.wv.gov/public/search/index.asp", "West Virginia Board of Medicine"),
     "WY": ("https://wyomedboard.wyo.gov/consumers/license-lookup", "Wyoming Board of Medicine"),
+    # The outlying sovereignties. EPIC-006-F-002-S-001-REQ-B-007 fixes the
+    # table's domain as every jurisdiction the registry can write into a
+    # practice address, so the fifty states and DC do not complete it: a
+    # provider practising in Guam or the Virgin Islands was offered no
+    # licensing destination at all.
+    "AS": ("https://www.americansamoa.gov/health", "American Samoa Department of Health"),
+    "GU": ("https://ghs.guam.gov/guam-board-medical-examiners", "Guam Board of Medical Examiners"),
+    "MP": ("https://chcc.gov.mp/hcplb.php", "Commonwealth Healthcare Corporation Health Care Professions Licensing Board"),
+    "VI": ("https://dlca.vi.gov/business-licensing/", "United States Virgin Islands Board of Medical Examiners"),
+}
+
+
+# The authority that licenses or certifies a PLACE, per
+# EPIC-006-F-007-S-001-REQ-B-007. A second table beside STATE_BOARDS,
+# keyed the same way and complete over the same domain, because the
+# authority that licenses a person is generally not the authority that
+# licenses a facility: a state medical board licenses a physician and a
+# state health department licenses a hospital. Reusing the practitioner
+# table here would send a person to an authority that holds no record of
+# the facility.
+FACILITY_BOARDS = {
+    "AK": ("https://health.alaska.gov/dph/Director/Pages/facilities/default.aspx", "Alaska Health Facilities Licensing and Certification"),
+    "AL": ("https://www.alabamapublichealth.gov/providerstandards/", "Alabama Department of Public Health, Provider Standards"),
+    "AR": ("https://healthy.arkansas.gov/programs-services/topics/health-facility-services/", "Arkansas Department of Health, Health Facility Services"),
+    "AS": ("https://www.americansamoa.gov/health", "American Samoa Department of Health"),
+    "AZ": ("https://azdhs.gov/licensing/index.php", "Arizona Department of Health Services, Division of Licensing"),
+    "CA": ("https://www.cdph.ca.gov/Programs/CHCQ/LCP/Pages/LCP.aspx", "California Department of Public Health, Licensing and Certification"),
+    "CO": ("https://cdphe.colorado.gov/health-facility-licensing", "Colorado Department of Public Health and Environment, Health Facilities"),
+    "CT": ("https://portal.ct.gov/DPH/Facility-Licensing--Investigations/Facility-Licensing-and-Investigations-Section", "Connecticut Department of Public Health, Facility Licensing and Investigations"),
+    "DC": ("https://dchealth.dc.gov/service/health-care-facilities-licensing", "District of Columbia Department of Health, Health Care Facilities Division"),
+    "DE": ("https://www.dhss.delaware.gov/dhss/dltcrp/", "Delaware Division of Health Care Quality"),
+    "FL": ("https://ahca.myflorida.com/health-care-policy-and-oversight/bureau-of-health-facility-regulation", "Florida Agency for Health Care Administration"),
+    "GA": ("https://dch.georgia.gov/divisionsoffices/healthcare-facility-regulation", "Georgia Department of Community Health, Healthcare Facility Regulation"),
+    "GU": ("https://dphss.guam.gov/", "Guam Department of Public Health and Social Services"),
+    "HI": ("https://health.hawaii.gov/ohca/", "Hawaii Office of Health Care Assurance"),
+    "IA": ("https://hhs.iowa.gov/health-facilities", "Iowa Department of Health and Human Services, Health Facilities"),
+    "ID": ("https://healthandwelfare.idaho.gov/providers/licensing-certification", "Idaho Department of Health and Welfare, Licensing and Certification"),
+    "IL": ("https://dph.illinois.gov/topics-services/health-care-regulation.html", "Illinois Department of Public Health, Health Care Regulation"),
+    "IN": ("https://www.in.gov/health/hcq/", "Indiana Department of Health, Health Care Quality and Regulatory Commission"),
+    "KS": ("https://www.kdhe.ks.gov/216/Health-Facilities", "Kansas Department of Health and Environment, Health Facilities"),
+    "KY": ("https://www.chfs.ky.gov/agencies/os/oig/dhc/Pages/default.aspx", "Kentucky Division of Health Care, Office of Inspector General"),
+    "LA": ("https://ldh.la.gov/page/health-standards-section", "Louisiana Department of Health, Health Standards Section"),
+    "MA": ("https://www.mass.gov/orgs/bureau-of-health-care-safety-and-quality", "Massachusetts Bureau of Health Care Safety and Quality"),
+    "MD": ("https://health.maryland.gov/ohcq/Pages/home.aspx", "Maryland Office of Health Care Quality"),
+    "ME": ("https://www.maine.gov/dhhs/dlc", "Maine Division of Licensing and Certification"),
+    "MI": ("https://www.michigan.gov/lara/bureau-list/bchs", "Michigan Bureau of Community and Health Systems"),
+    "MN": ("https://www.health.state.mn.us/facilities/regulation/index.html", "Minnesota Department of Health, Health Regulation Division"),
+    "MO": ("https://health.mo.gov/safety/healthservicesregulation/", "Missouri Bureau of Health Services Regulation"),
+    "MP": ("https://chcc.gov.mp/", "Commonwealth Healthcare Corporation, Northern Mariana Islands"),
+    "MS": ("https://msdh.ms.gov/page/30,0,82.html", "Mississippi State Department of Health, Health Facilities Licensure"),
+    "MT": ("https://dphhs.mt.gov/qad/licensure/index", "Montana Department of Public Health and Human Services, Licensure Bureau"),
+    "NC": ("https://info.ncdhhs.gov/dhsr/", "North Carolina Division of Health Service Regulation"),
+    "ND": ("https://www.hhs.nd.gov/health-facilities", "North Dakota Health and Human Services, Health Facilities"),
+    "NE": ("https://dhhs.ne.gov/licensure/Pages/Health-Facilities.aspx", "Nebraska Division of Public Health, Health Facility Licensure"),
+    "NH": ("https://www.dhhs.nh.gov/programs-services/health-care-facility-licensing", "New Hampshire Health Facilities Administration"),
+    "NJ": ("https://www.nj.gov/health/healthfacilities/", "New Jersey Division of Health Facilities Survey and Field Operations"),
+    "NM": ("https://www.nmhealth.org/about/dhi/hflc/", "New Mexico Health Facility Licensing and Certification Bureau"),
+    "NV": ("https://dpbh.nv.gov/Reg/HealthFacilities/Health_Facilities_-_Home/", "Nevada Division of Public and Behavioral Health, Health Care Quality and Compliance"),
+    "NY": ("https://profiles.health.ny.gov/", "New York State Department of Health, Health Facility Profiles"),
+    "OH": ("https://odh.ohio.gov/know-our-programs/health-care-facility-regulation", "Ohio Department of Health, Health Care Facility Regulation"),
+    "OK": ("https://oklahoma.gov/health/protective-health/medical-facilities-service.html", "Oklahoma State Department of Health, Medical Facilities Service"),
+    "OR": ("https://www.oregon.gov/oha/PH/PROVIDERPARTNERRESOURCES/HEALTHCAREPROVIDERSFACILITIES/HEALTHCAREHEALTHCAREREGULATIONQUALITYIMPROVEMENT/Pages/index.aspx", "Oregon Health Care Regulation and Quality Improvement"),
+    "PA": ("https://www.pa.gov/agencies/health/programs/facilities.html", "Pennsylvania Department of Health, Division of Health Facilities"),
+    "PR": ("https://www.salud.pr.gov/", "Puerto Rico Department of Health, Secretaria Auxiliar de Reglamentacion y Acreditacion"),
+    "RI": ("https://health.ri.gov/licenses/", "Rhode Island Department of Health, Center for Health Facilities Regulation"),
+    "SC": ("https://dph.sc.gov/environment/health-regulation/healthcare-facility-licensing", "South Carolina Department of Public Health, Healthcare Facility Licensing"),
+    "SD": ("https://doh.sd.gov/providers/licensure/", "South Dakota Department of Health, Office of Licensure and Certification"),
+    "TN": ("https://www.tn.gov/health/health-program-areas/health-professional-boards/hcf-board.html", "Tennessee Board for Licensing Health Care Facilities"),
+    "TX": ("https://www.hhs.texas.gov/providers/health-care-facilities-regulation", "Texas Health and Human Services, Health Care Facilities Regulation"),
+    "UT": ("https://hslic.utah.gov/", "Utah Health Facility Licensing and Certification"),
+    "VA": ("https://www.vdh.virginia.gov/licensure-certification/", "Virginia Department of Health, Office of Licensure and Certification"),
+    "VI": ("https://doh.vi.gov/", "United States Virgin Islands Department of Health"),
+    "VT": ("https://www.healthvermont.gov/health-statistics-vital-records/health-care-systems-reporting/licensing-health-care-facilities", "Vermont Division of Licensing and Protection"),
+    "WA": ("https://doh.wa.gov/licenses-permits-and-certificates/facilities-new-renew-or-update", "Washington State Department of Health, Facility Licensing"),
+    "WI": ("https://www.dhs.wisconsin.gov/regulations/index.htm", "Wisconsin Division of Quality Assurance"),
+    "WV": ("https://ohflac.wvdhhr.org/", "West Virginia Office of Health Facility Licensure and Certification"),
+    "WY": ("https://health.wyo.gov/aging/hls/", "Wyoming Department of Health, Healthcare Licensing and Surveys"),
 }
 
 
@@ -143,6 +220,12 @@ class ProviderDetailService:
         """
         if not stored:
             return ""
+        # An organization's name is its legal business name. Assembling
+        # personal name parts for one yields an empty header, and the
+        # header is what the panel is titled with.
+        if str(stored.get("entity_type_code") or "1") == "2":
+            return (stored.get("provider_organization_name_legal_business_name")
+                    or "").strip()
         parts = [
             (stored.get("provider_first_name") or "").strip(),
             (stored.get("provider_middle_name") or "").strip(),
@@ -162,10 +245,26 @@ class ProviderDetailService:
         provider_coll=None,
         specialty_meta_coll=None,
         schedule_background_task=None,
+        entity_type: str = "1",
         **kwargs,
     ) -> dict:
         stored = None
         sync_summary = None
+
+        # EPIC-006-F-007-S-003-REQ-B-003: a Facility Detail is not shown
+        # for an NPI the authoritative registry reports is not an
+        # organization. The check is on the LIVE answer rather than on the
+        # stored record, because the stored record is what would be wrong
+        # in this case. It is distinct from the registry not answering,
+        # where the stored record is shown: not answering leaves us no
+        # reason to doubt the record; answering with a different entity
+        # type gives us one.
+        if npi and entity_type == "2":
+            live = self.fetch_live(npi)
+            if live is not None and self.live_entity_type(live) != "2":
+                # REQ-B-004: the person is told the facility was not found.
+                return {"not_found": True, "npi": npi,
+                        "message": f"No facility found for NPI {npi}."}
 
         if npi and provider_coll is not None:
             try:
@@ -234,10 +333,11 @@ class ProviderDetailService:
         # they would disagree with the rest of the panel.
         provider_name = provider_name or self.display_name(stored)
 
-        research_sites = self.build_research_sites(
+        research_sites, unresolved_state = self.build_research_sites(
             provider_name=provider_name,
             npi=npi,
             state=primary_state,
+            entity_type=entity_type,
         )
 
         return ProviderDetailOutput.from_stored(
@@ -247,7 +347,23 @@ class ProviderDetailService:
             code_to_display=code_to_display,
             primary_taxonomy_display=primary_display,
             research_sites=research_sites,
+            unresolved_licensing_state=unresolved_state,
         )
+
+    @staticmethod
+    def live_entity_type(live_record: dict) -> str:
+        """What the registry says this NPI is enumerated as.
+
+        The version=2.1 response states the enumeration type as NPI-1 for
+        an individual and NPI-2 for an organization. Anything else is
+        neither, and is reported as it was given rather than guessed at.
+        """
+        stated = str((live_record or {}).get("enumeration_type") or "").strip()
+        if stated == "NPI-2":
+            return "2"
+        if stated == "NPI-1":
+            return "1"
+        return stated
 
     def sync_cycle(self, npi: str, coll):
         """Returns (stored_record, sync_summary). stored_record is the
@@ -363,7 +479,14 @@ class ProviderDetailService:
         provider_name: str,
         npi: str,
         state: str,
-    ) -> dict:
+        entity_type: str = "1",
+    ) -> tuple[dict, str]:
+        """The destinations, and the practice state that resolved to none.
+
+        The second value is empty when the table covered the state. It is
+        the state itself when it did not, so a gap in the table surfaces
+        instead of quietly removing a link.
+        """
         name_q = urllib.parse.quote_plus(provider_name or "")
         sites = {
             "healthgrades": {
@@ -397,15 +520,25 @@ class ProviderDetailService:
             },
         }
         state_upper = (state or "").upper()
-        if state_upper in STATE_BOARDS:
-            board_url, board_name = STATE_BOARDS[state_upper]
+        # A place is licensed by a different authority from a person, so
+        # the table is chosen by what this panel is showing.
+        boards = FACILITY_BOARDS if entity_type == "2" else STATE_BOARDS
+        if state_upper in boards:
+            board_url, board_name = boards[state_upper]
             sites["state_medical_board"] = {
                 "url": board_url,
                 "name": board_name,
                 "guidance": (
+                    f"Verify standing to operate with the {board_name}."
+                    if entity_type == "2" else
                     f"Verify active licensure with the {board_name}. "
                     "Confirm board certification and check for "
                     "disciplinary actions."
                 ),
             }
-        return sites
+            return sites, ""
+        # A practice state absent from the table is a defect in the table,
+        # not an absence of an authority. Emitting the state we could not
+        # resolve surfaces the gap; silently omitting the destination
+        # removes a link and says nothing.
+        return sites, state_upper

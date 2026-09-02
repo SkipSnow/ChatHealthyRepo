@@ -31,6 +31,14 @@ log = ChatHealthyLoggingService()
 FINDCARE_INTERNAL_URL_ENV = "FINDCARE_INTERNAL_URL"
 FINDCARE_INTERNAL_URL_DEFAULT = "https://ch-findcare:7860"
 
+# The page this tool serves, and the entity type that page returns. The
+# entity type is a property of the page rather than a parameter of it
+# (EPIC-006-F-008-S-006-REQ-B-005): every record the individual-provider
+# page can return is an individual, so a caller can neither pass it nor
+# omit it.
+PAGE = "individualProvider"
+PAGE_ENTITY_TYPE = "1"
+
 
 class Request(BaseModel):
     specialty_codes: list[str] = Field(
@@ -55,12 +63,18 @@ class Request(BaseModel):
         description="Five-digit ZIP. Sufficient on its own.")
     limit: int = Field(
         default=25, description="How many providers this page returns.")
-    after_npi: Optional[str] = Field(
+    cursor: Optional[str] = Field(
         default=None,
-        description="Keyset cursor: return providers ordered after this NPI. "
+        description="Keyset position: the NPI this page is taken relative to. "
                     "Absent means the first page. This is how position in a "
                     "long result is carried, since results are ordered by NPI "
                     "rather than numbered.")
+    direction: str = Field(
+        default="forward",
+        description="forward for the providers after the cursor, back for "
+                    "those before it. Back inverts the comparison and the "
+                    "sort and reverses the page, so it costs what forward "
+                    "costs and needs no history of the cursors walked.")
     last_name: Optional[str] = Field(
         default=None,
         description="Surname, when a provider is named outright rather than "
@@ -120,6 +134,10 @@ class Response(BaseModel):
     search_params: Optional[dict] = None
     specialization_options: Optional[list[dict]] = None
     state: Optional[str] = None
+    # Built by the search from the structured result and never written by a
+    # model. It travels on the same envelope as the rows so the summary and
+    # the rows paint in one repaint (EPIC-006-F-001-S-005-REQ-B-009).
+    summary_message: Optional[str] = None
     # What the person may still narrow by, and what each choice would cost
     # them, counted over THIS result. The panel shows these so a preference
     # is made with its price visible rather than discovered afterwards.
@@ -155,8 +173,14 @@ class ProviderSearchTool(ChatHealthyTool):
             return resp
 
         body: dict[str, Any] = {
+            # The token this hop already holds, forwarded so FindCare can
+            # verify the SharedServices signature on it. Nothing upstream
+            # changes shape: the token is deps, not a new request field.
+            "session_token": deps.session_token.model_dump(mode="json"),
+            "entity_type": PAGE_ENTITY_TYPE,
             "nucc_codes": request.specialty_codes,
             "limit": request.limit,
+            "direction": request.direction,
         }
         if request.state:
             body["state"] = request.state
@@ -166,8 +190,8 @@ class ProviderSearchTool(ChatHealthyTool):
             body["county"] = request.county
         if request.zip:
             body["zip"] = request.zip
-        if request.after_npi:
-            body["after_npi"] = request.after_npi
+        if request.cursor:
+            body["cursor"] = request.cursor
         for field in ("last_name", "first_name", "middle_name",
                       "provider_sex", "insurance"):
             value = getattr(request, field, None)
@@ -217,6 +241,7 @@ class ProviderSearchTool(ChatHealthyTool):
             specialization_options=raw.get("specialization_options"),
             state=raw.get("state") or request.state,
             refinements=raw.get("refinements") or {},
+            summary_message=raw.get("summary_message"),
         )
         deps.stream({"kind": "providers", "data": resp.model_dump(exclude_none=True)})
         return resp

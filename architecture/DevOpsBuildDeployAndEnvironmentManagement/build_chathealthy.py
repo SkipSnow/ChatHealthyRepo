@@ -628,6 +628,13 @@ def _build_body(args, repo_root: Path, canonical_repo: Path, canonical_build_dir
     import secret_preflight as _secret_preflight
     _named_targets = [t.strip() for t in args.target.split(",")
                       if t.strip().startswith("target_")]
+    # Completeness before existence. Which values the code needs is the
+    # first question; whether those values can be read is the second, and
+    # there is no point asking the second before the first.
+    _secret_preflight.confirm_bindings_complete(
+        coll, args.env, canonical_repo,
+        target_ids=_named_targets or None,
+        packages=set(packages_wanted))
     _secret_preflight.confirm_secrets_exist(
         coll, args.env, canonical_repo,
         target_ids=_named_targets or None,

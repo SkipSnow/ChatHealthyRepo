@@ -142,6 +142,151 @@ def confirm_secrets_exist(coll, env: str, repo_root: Path,
     _log.info(f"[secrets] {env}: {len(checked)} declared secret(s) confirmed present")
 
 
+_ENVIRON_READERS = ("getenv", "environ")
+
+
+def _env_names_read(source: str) -> set[str]:
+    """Every environment name a Python source reads.
+
+    os.environ["X"], os.environ.get("X") and os.getenv("X") -- the three
+    forms this codebase uses. Parsed rather than matched, so a name inside
+    a comment or a string is not mistaken for a read.
+    """
+    import ast
+    try:
+        tree = ast.parse(source)
+    except SyntaxError:
+        return set()
+    names: set[str] = set()
+
+    def _literal(node) -> str | None:
+        return node.value if isinstance(node, ast.Constant) and isinstance(node.value, str) else None
+
+    for node in ast.walk(tree):
+        # os.environ["X"]
+        if isinstance(node, ast.Subscript):
+            target = node.value
+            if isinstance(target, ast.Attribute) and target.attr == "environ":
+                got = _literal(node.slice)
+                if got:
+                    names.add(got)
+        # os.getenv("X") and os.environ.get("X")
+        elif isinstance(node, ast.Call):
+            func = node.func
+            if not isinstance(func, ast.Attribute) or not node.args:
+                continue
+            if func.attr == "getenv":
+                got = _literal(node.args[0])
+                if got:
+                    names.add(got)
+            elif func.attr == "get":
+                inner = func.value
+                if isinstance(inner, ast.Attribute) and inner.attr == "environ":
+                    got = _literal(node.args[0])
+                    if got:
+                        names.add(got)
+    return names
+
+
+def _declared_binding_names(record, packages: set[str] | None) -> set[str]:
+    """Every name this target's record declares a value for.
+
+    The union of its secrets and variables blocks, its packages' secrets,
+    and the names a rename_from: qualifier produces -- a renamed entry is
+    delivered under the new name, so the new name is declared.
+    """
+    names: set[str] = set()
+    names.update(record.secrets or {})
+    names.update(record.variables or {})
+    for binding in record.environments:
+        for package in (binding.packages or []):
+            pid = package.get("package_id", "")
+            if packages and pid not in packages:
+                continue
+            names.update(package.get("secrets") or {})
+            names.update(package.get("variables") or {})
+    return names
+
+
+def confirm_bindings_complete(coll, env: str, repo_root: Path,
+                              target_ids: list[str] | None = None,
+                              packages: set[str] | None = None) -> None:
+    """Whether every value a target's declared code reads is declared for it.
+
+    Completeness asks which values the code needs; existence asks whether
+    those values can be read. There is no point asking the second before
+    the first, which is why this runs immediately before
+    confirm_secrets_exist.
+
+    One derivation over every target, indifferent to what the target is
+    for. Each name a declared Python file reads lands in one of three
+    places: declared by the record -- satisfied; named in the record's
+    host-supplied set for that target kind -- satisfied by the platform;
+    neither -- the refusal.
+
+    The refusal names three things: the target, the binding, and the
+    declared file whose read requires it. Naming the file is what makes
+    the failure actionable rather than a puzzle.
+    """
+    host_supplied = _host_supplied_bindings(repo_root)
+    undeclared: list[str] = []
+    checked_targets = 0
+    for record in coll:
+        if target_ids is not None and record.target_id not in target_ids:
+            continue
+        if not [b for b in record.environments if b.env_binding == env]:
+            continue
+        checked_targets += 1
+        declared = _declared_binding_names(record, packages)
+        exempt = set(host_supplied.get(record.target_kind) or ())
+        for entry in record.files:
+            data = entry.to_dict() if hasattr(entry, "to_dict") else entry
+            rel = data.get("source_location") or ""
+            if not rel.endswith(".py"):
+                continue
+            if packages and data.get("package") not in packages:
+                continue
+            path = repo_root / rel
+            if not path.is_file():
+                continue
+            for name in sorted(_env_names_read(path.read_text(encoding="utf-8",
+                                                              errors="replace"))):
+                if name in declared or name in exempt:
+                    continue
+                undeclared.append(f"{record.target_id}: {name} - read by {rel}")
+
+    if undeclared:
+        listed = "; ".join(undeclared)
+        raise ChatHealthyException(
+            mode="manifest_incomplete",
+            component="secret_preflight",
+            message=f"{len(undeclared)} binding(s) the declared code of a target "
+                    f"reads are declared nowhere for that target in env {env!r}, "
+                    f"so the target would be installed without a value it will "
+                    f"read: {listed}")
+    _log.info(f"[bindings] {env}: {checked_targets} target(s) carry every binding "
+              f"their declared code reads")
+
+
+def _host_supplied_bindings(repo_root: Path) -> dict:
+    """Names the platform supplies, by target kind.
+
+    Declared in the record rather than hardcoded here, because a list of
+    exemptions that lives in code is a list nobody reviews. It is the same
+    set for every target of a kind rather than a per-target allowance.
+    """
+    import json
+    path = (repo_root / "brain" / "machine_artifacts" / "content"
+            / "deployment_architecture.json")
+    if not path.is_file():
+        raise ChatHealthyException(
+            mode="file_missing",
+            component="secret_preflight",
+            message=f"{path} not found.")
+    return json.loads(path.read_text(encoding="utf-8")).get(
+        "HostSuppliedBindings", {})
+
+
 def confirm_secrets_match_local(coll, env: str, repo_root: Path,
                                 target_ids: list[str] | None = None,
                                 packages: set[str] | None = None) -> None:

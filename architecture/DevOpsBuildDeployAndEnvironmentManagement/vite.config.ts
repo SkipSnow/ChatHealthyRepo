@@ -16,6 +16,12 @@ import path from 'node:path'
 // at runtime resolves to the frontend directory.
 
 export default defineConfig({
+  // The bundle is served from the website, not from the FindCare Space.
+  // The Space then serves no browser-addressable surface at all, which is
+  // what lets every route on it require a SharedServices signature -- a
+  // bundle route that required one could not be loaded by the iframe that
+  // needs it.
+  base: '/app/',
   plugins: [react()],
   resolve: {
     alias: {

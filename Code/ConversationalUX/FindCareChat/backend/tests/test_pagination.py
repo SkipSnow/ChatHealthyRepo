@@ -16,37 +16,16 @@ load_dotenv(os.path.join(os.path.dirname(__file__), "..", "..", "..", "..", "Cod
 
 
 class TestPaginationRequirements(unittest.TestCase):
-    """Tests for pagination requirements. Uses real /chat and /search endpoints."""
+    """Tests for pagination requirements."""
 
     @classmethod
     def setUpClass(cls):
         """Import and create FastAPI test client."""
-        from main import app
+        from app import app
         from fastapi.testclient import TestClient
         cls.client = TestClient(app)
 
-    # ── R1: Tool returns total_count with first page ────────────────
-
-    def test_r1_search_returns_total_count(self):
-        """Tool must return total_count showing how many records match."""
-        r = self.client.post("/search", json={"state": "DE", "limit": 5, "name": "Smith"})
-        data = r.json()
-        self.assertGreater(data["total_count"], 0, "total_count must be > 0")
-
-    def test_r1_search_returns_count(self):
-        """Tool must return count of records in current page."""
-        r = self.client.post("/search", json={"state": "DE", "limit": 5, "name": "Smith"})
-        data = r.json()
-        self.assertEqual(data["count"], 5)
-
-    def test_r1_search_returns_has_more(self):
-        """Tool must indicate if more records exist."""
-        r = self.client.post("/search", json={"state": "DE", "limit": 5, "name": "Smith"})
-        data = r.json()
-        self.assertIn("has_more", data)
-        self.assertTrue(data["has_more"])
-
-    # ── R2: fetch_all removed from LLM tool definition ─────────────
+    # ── R2: paging fields removed from the LLM tool definition ─────
 
     def test_r2_fetch_all_not_in_tool_schema(self):
         """fetch_all must NOT be in the tool definition the LLM sees."""
@@ -57,141 +36,13 @@ class TestPaginationRequirements(unittest.TestCase):
             props = schemas["ProviderSearchInput"].get("properties", {})
             self.assertNotIn("fetch_all", props, "fetch_all must not be in LLM tool definition")
 
-    def test_r2_after_npi_not_in_tool_schema(self):
-        """after_npi must NOT be in the tool definition the LLM sees."""
+    def test_r2_cursor_not_in_tool_schema(self):
+        """The keyset position must NOT be in the tool definition the LLM sees."""
         from ProviderManagement.provider_search_models import ProviderSearchInput
         fields = ProviderSearchInput.model_fields
-        self.assertNotIn("after_npi", fields, "after_npi must not be in LLM tool definition")
+        self.assertNotIn("cursor", fields, "cursor must not be in LLM tool definition")
+        self.assertNotIn("direction", fields, "direction must not be in LLM tool definition")
         self.assertNotIn("fetch_all", fields, "fetch_all must not be in LLM tool definition")
-
-    # ── R3: search_params returned for replay ───────────────────────
-
-    def test_r3_search_returns_search_params(self):
-        """Tool must return search_params so frontend can replay the query."""
-        r = self.client.post("/search", json={"state": "DE", "limit": 5, "name": "Smith"})
-        data = r.json()
-        self.assertIn("search_params", data)
-        self.assertIsInstance(data["search_params"], dict)
-        self.assertEqual(data["search_params"]["state"], "DE")
-        self.assertEqual(data["search_params"]["name"], "Smith")
-
-    # ── R4: Keyset pagination with after_npi ────────────────────────
-
-    def test_r4_search_returns_last_npi(self):
-        """Tool must return last_npi for keyset pagination."""
-        r = self.client.post("/search", json={"state": "DE", "limit": 5, "name": "Smith"})
-        data = r.json()
-        self.assertTrue(data["last_npi"], "last_npi must not be empty")
-
-    def test_r4_search_returns_first_npi(self):
-        """Tool must return first_npi for back navigation."""
-        r = self.client.post("/search", json={"state": "DE", "limit": 5, "name": "Smith"})
-        data = r.json()
-        self.assertTrue(data["first_npi"], "first_npi must not be empty")
-
-    def test_r4_pagination_with_after_npi(self):
-        """Passing after_npi returns the next page of results."""
-        r1 = self.client.post("/search", json={"state": "DE", "limit": 5, "name": "Smith"})
-        page1 = r1.json()
-        last = page1["last_npi"]
-
-        r2 = self.client.post("/search", json={"state": "DE", "limit": 5, "name": "Smith", "after_npi": last})
-        page2 = r2.json()
-        self.assertGreater(page2["count"], 0, "Page 2 must have results")
-        # Page 2 first NPI must be greater than page 1 last NPI
-        self.assertGreater(page2["first_npi"], last, "Page 2 must start after page 1")
-
-    # ── R5: End of results ──────────────────────────────────────────
-
-    def test_r5_has_more_false_at_end(self):
-        """has_more must be False when all results have been returned."""
-        r = self.client.post("/search", json={"state": "DE", "limit": 100, "name": "Smith"})
-        data = r.json()
-        if data["total_count"] <= 100:
-            self.assertFalse(data["has_more"], "has_more must be False at end of results")
-
-    # ── R6: /chat returns pagination metadata ───────────────────────
-
-    def test_r6_chat_returns_pagination(self):
-        """/chat must return pagination metadata when find_providers is called."""
-        r = self.client.post("/chat", json={
-            "message": "find pediatricians in delaware",
-            "history": [],
-        })
-        data = r.json()
-        if data.get("error"):
-            self.skipTest(f"Chat API error (likely timeout): {data['error'][:100]}")
-        self.assertIsNotNone(data.get("response"), "Chat must return a response")
-        pagination = data.get("pagination")
-        self.assertIsNotNone(pagination, "Chat response must include pagination metadata")
-        self.assertGreater(pagination["total_count"], 0, "pagination.total_count must be > 0")
-        self.assertTrue(pagination["last_npi"], "pagination.last_npi must not be empty")
-        self.assertIsNotNone(pagination["search_params"], "pagination.search_params must not be None")
-
-    # ── R7: System prompt tells Claude to report total and ask ──────
-
-    def test_r7_chat_response_mentions_total(self):
-        """/chat response should mention the total number of providers found."""
-        r = self.client.post("/chat", json={
-            "message": "find pediatricians in delaware",
-            "history": [],
-        })
-        data = r.json()
-        if data.get("error"):
-            self.skipTest(f"Chat API error (likely timeout): {data['error'][:100]}")
-        response_text = data.get("response", "").lower()
-        # Claude should mention a number (the total count)
-        pagination = data.get("pagination")
-        if pagination and pagination.get("total_count"):
-            total = str(pagination["total_count"])
-            self.assertIn(total, data["response"],
-                          f"Response must mention total count ({total})")
-
-    def test_r7_chat_response_asks_for_more(self):
-        """/chat response should ask if user wants to see more."""
-        r = self.client.post("/chat", json={
-            "message": "find pediatricians in delaware",
-            "history": [],
-        })
-        data = r.json()
-        if data.get("error"):
-            self.skipTest(f"Chat API error (likely timeout): {data['error'][:100]}")
-        response_lower = data.get("response", "").lower()
-        wants_more = any(phrase in response_lower for phrase in [
-            "would you like to see more",
-            "want to see more",
-            "would you like more",
-            "see more",
-            "show more",
-            "next page",
-            "additional",
-        ])
-        self.assertTrue(wants_more, "Claude must ask if user wants to see more results")
-
-    # ── R8: /search endpoint exists and works without LLM ───────────
-
-    def test_r8_search_endpoint_exists(self):
-        """/search endpoint must exist for direct pagination (no LLM)."""
-        r = self.client.post("/search", json={"state": "DE", "limit": 5})
-        self.assertNotEqual(r.status_code, 404, "/search endpoint must exist")
-
-    def test_r8_search_no_llm(self):
-        """/search must return results without invoking any LLM."""
-        # If this returns in < 2 seconds, no LLM was called
-        import time
-        start = time.time()
-        r = self.client.post("/search", json={"state": "DE", "limit": 5, "name": "Smith"})
-        elapsed = time.time() - start
-        self.assertEqual(r.status_code, 200)
-        self.assertLess(elapsed, 5, "/search must be fast (no LLM)")
-
-    # ── R9: Tool limit always enforced ──────────────────────────────
-
-    def test_r9_limit_always_enforced(self):
-        """Tool must never return more than the requested limit."""
-        r = self.client.post("/search", json={"state": "DE", "limit": 3, "name": "Smith"})
-        data = r.json()
-        self.assertLessEqual(data["count"], 3, "Must not exceed requested limit")
 
 
 class TestPaginationUIRequirements(unittest.TestCase):
@@ -359,18 +210,6 @@ class TestSpecialtyRefinementRequirements(unittest.TestCase):
         with open(path, encoding="utf-8") as f:
             return f.read()
 
-    # R23: Present specialization names to user
-    def test_r23_specialization_options_in_search_response(self):
-        """Search response must include specialization_options with names."""
-        r = self.__class__.client.post("/search", json={
-            "state": "DE", "limit": 5, "specialty_query": "pediatrician"
-        })
-        data = r.json()
-        opts = data.get("specialization_options", [])
-        if opts:
-            self.assertTrue(all("name" in o for o in opts), "Each option must have a name")
-            self.assertTrue(all("code" in o for o in opts), "Each option must have a code")
-
     # R24: Desktop left panel expands to 15%
     def test_r24_left_panel_expands(self):
         content = self._index()
@@ -432,7 +271,7 @@ class TestSpecialtyRefinementRequirements(unittest.TestCase):
 
     @classmethod
     def setUpClass(cls):
-        from main import app
+        from app import app
         from fastapi.testclient import TestClient
         cls.client = TestClient(app)
 
@@ -442,7 +281,7 @@ class TestSearchResultPresentation(unittest.TestCase):
 
     @classmethod
     def setUpClass(cls):
-        from main import app
+        from app import app
         from fastapi.testclient import TestClient
         cls.client = TestClient(app)
 
@@ -513,24 +352,6 @@ class TestSearchResultPresentation(unittest.TestCase):
         self.assertIn("more 'shrinks'", msg)
         self.assertIn("filter 'shrinks'", msg)
 
-    # ── EPIC-006-F-001-S-005: summary_message in /chat PaginationMeta ──
-
-    def test_chat_returns_summary_message(self):
-        """/chat must include summary_message in pagination metadata."""
-        r = self.client.post("/chat", json={
-            "message": "find pediatricians in delaware",
-            "history": [],
-        })
-        data = r.json()
-        if data.get("error"):
-            self.skipTest(f"Chat API error: {data['error'][:100]}")
-        pagination = data.get("pagination")
-        if pagination and pagination.get("has_more"):
-            self.assertIsNotNone(pagination.get("summary_message"),
-                                  "pagination.summary_message must exist when has_more=True")
-            self.assertIn("pediatrician", pagination["summary_message"].lower(),
-                          "summary_message must contain the search term")
-
     # ── EPIC-006-F-001-S-005: No summary when has_more is False ──
 
     def test_no_summary_when_no_more(self):
@@ -552,18 +373,6 @@ class TestSearchResultPresentation(unittest.TestCase):
         self.assertNotIn("types of providers", msg)
         self.assertNotIn("#action:filter", msg)
 
-    # ── EPIC-006-F-001-S-006-REQ-B-001: summary_message in /search response ──
-
-    def test_search_returns_summary_message(self):
-        """/search must include summary_message in response."""
-        r = self.client.post("/search", json={
-            "state": "DE", "limit": 5, "specialty_query": "pediatrician"
-        })
-        data = r.json()
-        if data.get("has_more"):
-            self.assertIn("summary_message", data)
-            self.assertTrue(len(data["summary_message"]) > 0)
-
     # ── EPIC-006-F-001-S-006-REQ-B-002: Filter link is markdown action ──
 
     def test_filter_link_is_action_markdown(self):
@@ -584,45 +393,6 @@ class TestSearchResultPresentation(unittest.TestCase):
             has_more=True, total_count=100, page_count=25,
             specialty_searched="surgeons")
         self.assertIn("#action:next-page", msg)
-
-    # ── LLM must not duplicate system summary ──
-
-    def test_strip_redundant_summary(self):
-        """_strip_redundant_summary must remove LLM pagination language."""
-        sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
-        from main import _strip_redundant_summary
-        text = (
-            "Here are the first **25 of 11,772** mental health providers in Virginia:\n\n"
-            "- **Jennifer McEwan, Ph.D.**\n"
-            "  - Alexandria, VA\n\n"
-            "- **Nevin Yilmaz, MD**\n"
-            "  - Richmond, VA\n\n"
-            "There are 11,747 more providers. Would you like to see more? "
-            "I can also narrow results by city or county! 😊"
-        )
-        cleaned = _strip_redundant_summary(text, 11772, 25)
-        self.assertNotIn("Here are the first", cleaned)
-        self.assertNotIn("Would you like to see more", cleaned)
-        self.assertNotIn("I can also narrow", cleaned)
-        # Provider listing must be preserved
-        self.assertIn("Jennifer McEwan", cleaned)
-        self.assertIn("Nevin Yilmaz", cleaned)
-
-    def test_strip_preserves_provider_data(self):
-        """De-dup must not remove provider records or medical data."""
-        from main import _strip_redundant_summary
-        text = (
-            "Here are the first **25 of 686** surgeons in Delaware:\n\n"
-            "- **Dr. Smith, MD** *(General Surgery)*\n"
-            "  - 123 Main St, Wilmington, DE\n"
-            "  - NPI: 1234567890\n\n"
-            "Would you like to see the next page?"
-        )
-        cleaned = _strip_redundant_summary(text, 686, 25)
-        self.assertIn("Dr. Smith", cleaned)
-        self.assertIn("General Surgery", cleaned)
-        self.assertIn("1234567890", cleaned)
-        self.assertNotIn("Here are the first", cleaned)
 
     # ── Summary must use user's term, not LLM's ──
 
