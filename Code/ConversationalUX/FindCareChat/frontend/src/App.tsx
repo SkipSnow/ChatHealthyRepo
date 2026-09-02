@@ -13,6 +13,7 @@ import WelcomeWidget from './components/WelcomeWidget'
 import UserPromptWidget from './components/UserPromptWidget'
 import SystemMessageWidget from './components/SystemMessageWidget'
 import ProviderResultsWidget from './components/ProviderResultsWidget'
+import FacilityResultsWidget from './components/FacilityResultsWidget'
 import SelectedProvidersWidget from './components/SelectedProvidersWidget'
 import ProviderSearchRefinementWidget from './components/ProviderSearchRefinementWidget'
 import ProviderDetailWidget from './components/ProviderDetailWidget'
@@ -40,6 +41,7 @@ function App() {
       <UserPromptWidget />
       <SystemMessageWidget />
       <ProviderResultsWidget />
+      <FacilityResultsWidget />
       <SelectedProvidersWidget />
       <ProviderSearchRefinementWidget />
       <ProviderDetailWidget />

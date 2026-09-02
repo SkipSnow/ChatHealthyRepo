@@ -1620,11 +1620,52 @@ class UniversalNavigationTool(ChatHealthyTool):
             params = deps.user_object.userParameters
             geo = geography_of(params, FACILITY)
             administrator = params.get(FACILITY, "administratorName") or {}
+
+            # The kind of place the person asked for, resolved by the same
+            # four-stage funnel the care-giver path runs, pointed at the
+            # catalogue's organization partition. Individual codes never
+            # reach here: this reads the facility page's own attribute and
+            # writes it from this resolution alone.
+            # The kind of place the person asked for, in their own words.
+            # Read from the facility page's own attribute -- never from a
+            # complaint, which is what is wrong with a person.
+            facility_type = params.get(FACILITY, "facilityType") or ""
+            if facility_type:
+                from SpecialtyFilter import specialty_filter_tool
+                kinds = await specialty_filter_tool.TOOL.run_and_log(
+                    deps,
+                    specialty_filter_tool.Request(
+                        query=facility_type, section="Non-Individual"),
+                )
+                offered = [row.model_dump(exclude_none=True)
+                           for row in (kinds.specialties or [])]
+                codes = [row.get("code") for row in offered if row.get("code")]
+                if codes:
+                    from UserParameters import user_parameters_tool
+                    # What the funnel offered and what is in force, the
+                    # same pair the NUCC page holds for care givers.
+                    await user_parameters_tool.TOOL.run_and_log(
+                        deps,
+                        user_parameters_tool.Request(
+                            verb="set", route="gateway",
+                            origin="non_deterministic",
+                            changes=[
+                                user_parameters_tool.Change(
+                                    page=FACILITY, name="offeredFacilityTypes",
+                                    value=offered),
+                                user_parameters_tool.Change(
+                                    page=FACILITY, name="selectedTaxonomyCodes",
+                                    value=codes),
+                            ],
+                        ),
+                    )
+                    params = deps.user_object.userParameters
             deps.stream({
                 "kind": "intent_classified",
                 "data": {
                     "action": "findAFacility",
                     "criteria": (params.get(FACILITY, "facilityName")
+                                 or params.get(FACILITY, "facilityType")
                                  or "facilities"),
                 },
             })

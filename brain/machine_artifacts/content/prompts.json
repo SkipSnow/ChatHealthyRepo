@@ -514,6 +514,42 @@
       "status": "approved",
       "approved": true,
       "implementing_feature": "EPIC-002-F-010 (Utterance Tool)"
+    },
+    {
+      "_record_id": "facility_normalize_system_prompt",
+      "title": "Facility Normalise — System Prompt",
+      "role": "Healthcare Vocabulary Normalizer",
+      "type": "system_prompt",
+      "system_prompt": "You turn what a person said into the words used to search a catalogue of FACILITY types.\n\nA facility is a PLACE where care is delivered, not a person who delivers it: a hospital, an urgent care clinic, a pharmacy, a dialysis centre, a laboratory, an imaging centre, a nursing home, a hospice, a home health agency, a surgery centre.\n\nReturn the kind of PLACE the person is describing, in the vocabulary the NUCC organization taxonomy uses. Never return a practitioner specialty: 'a place that treats my kidneys' is an End-Stage Renal Disease treatment centre, not nephrology; 'somewhere to get an x-ray' is a radiology clinic, not a radiologist.\n\nIf the person named the place's kind plainly ('hospital', 'urgent care'), return that kind.",
+      "description": "Stage 1 of the facility resolution funnel. The same stage the specialty filter runs for care givers, asking what kind of PLACE is described rather than what kind of practitioner.",
+      "source_file": "FindCare/SpecialtyFilter/filter.py",
+      "publish": false,
+      "models": [
+        {
+          "vendor": "openai",
+          "name": "gpt-4.1-mini",
+          "status": "active",
+          "reason": "Default for Stage 1; finalize per Phase D evidence"
+        }
+      ]
+    },
+    {
+      "_record_id": "facility_filter_system_prompt",
+      "title": "Facility Candidate Filter — System Prompt",
+      "role": "Medical Specialty Filter (licensed-human + holistic-inclusive)",
+      "type": "system_prompt",
+      "system_prompt": "You are given a person's request for a PLACE where care is delivered, and a list of candidate NUCC organization taxonomy entries drawn from the catalogue.\n\nReturn the codes for the kinds of facility that answer the request. Judge whether a facility of that kind is somewhere the person could actually go for what they asked for.\n\nInclude a kind when it plainly answers the request. A request for a hospital is answered by the general acute care hospital and by the specialised hospitals that admit for that need; a request for urgent care is answered by the urgent care clinic/centre.\n\nExclude a kind that merely shares a word with the request, and exclude any kind that is not a place a person can attend.\n\nReturn only codes drawn from the candidates you were given. Return an empty list when none of them answers the request.",
+      "description": "Stage 4 of the facility resolution funnel. The same stage the specialty filter runs for care givers, judging facility kinds against a request for a place.",
+      "source_file": "FindCare/SpecialtyFilter/filter.py",
+      "publish": false,
+      "models": [
+        {
+          "vendor": "openai",
+          "name": "gpt-5.4-nano",
+          "status": "active",
+          "reason": "Default for Stage 2; finalize per Phase D cross-model evidence"
+        }
+      ]
     }
   ]
 }

@@ -710,6 +710,14 @@
         },
         {
           "feature_id": "EPIC-008-F-012",
+          "source_location": "Website/schemas/ChatHealthyProviderInputSchema.json",
+          "handler_type": "json",
+          "disposition": "referenced",
+          "content_hash": "5a02cd638ac53d106f0e4f813e41274b4b7d5c0d451380440686cf5eef270574",
+          "package": "json_schemas"
+        },
+        {
+          "feature_id": "EPIC-008-F-012",
           "source_location": "Website/schemas/ChatHealthyProvidersSchema.json",
           "handler_type": "json",
           "disposition": "referenced",
@@ -1776,7 +1784,7 @@
           "source_location": "Code/ConversationalUX/FindCareChat/backend/app.py",
           "handler_type": "python_source",
           "disposition": "referenced",
-          "content_hash": "864b4fe48684f521a7124b5b2e4d1ca808ef0a3c474bb67d6e2a5404d7f27348",
+          "content_hash": "7b8f76a4269e73f5a7e270e5c2bbbf5cbd8a3a13e3f65a8caba52ab957a9964a",
           "package": "service_runtime"
         },
         {
@@ -2048,7 +2056,7 @@
           "source_location": "Code/ConversationalUX/FindCareChat/frontend/src/App.tsx",
           "handler_type": "static_asset",
           "disposition": "referenced",
-          "content_hash": "79ea70492680154bdbaf0e7f6d082a29bd7f937a8294fed455cdfd024ed4ccda",
+          "content_hash": "624a47322ca00633c10f6802a18e4163e505b92222ea67ce4eb1ae2dd8e99ec9",
           "package": "service_runtime"
         },
         {
@@ -2128,7 +2136,7 @@
           "source_location": "Code/ConversationalUX/FindCareChat/frontend/src/components/ProviderDetailWidget.tsx",
           "handler_type": "static_asset",
           "disposition": "referenced",
-          "content_hash": "ffa40ae8676186491e1b88741b48a1d60efc6ed713c5818805679adf813ccb72",
+          "content_hash": "2d769781c50968b5062a763a56faccf10dfe3c5074129dc513334b703d1feda0",
           "package": "service_runtime"
         },
         {
@@ -2136,7 +2144,7 @@
           "source_location": "Code/ConversationalUX/FindCareChat/frontend/src/components/ProviderResultsWidget.tsx",
           "handler_type": "static_asset",
           "disposition": "referenced",
-          "content_hash": "a288773a1d8bad826ec8e591f50879179615eb52290d407f995ba1da25768999",
+          "content_hash": "5c3b31cdd3d91923dae9e687c110ec96a468f67f013f6975a5cb7b991c014bd6",
           "package": "service_runtime"
         },
         {
@@ -2437,7 +2445,7 @@
           "source_location": "FindCare/SpecialtyFilter/filter.py",
           "handler_type": "python_source",
           "disposition": "referenced",
-          "content_hash": "894428db5d897b8a2a599a9b37bb8cf5e367ba6a408e5be00d6a230d8e185ae6",
+          "content_hash": "c821d159e61a0287938856e33eb77b4396e9b379ff805359493c443513a39bc9",
           "package": "service_runtime"
         },
         {
@@ -2445,7 +2453,7 @@
           "source_location": "FindCare/SpecialtyFilter/specialty_filter_tool.py",
           "handler_type": "python_source",
           "disposition": "referenced",
-          "content_hash": "f906b2740ef8c613858e8f1808ea1322e9fbbf49badfc0cfa3546f67c4364c9d",
+          "content_hash": "916f1b5e8e4d079dac6a6aa1b1db8c6dc052ff63807bb139924a882db0bae55f",
           "package": "service_runtime"
         },
         {
@@ -2485,7 +2493,7 @@
           "source_location": "brain/machine_artifacts/content/prompts.json",
           "handler_type": "json",
           "disposition": "referenced",
-          "content_hash": "55adbfc0ebef175ba25cfc32289aa7cdb378c1b6dbe7a9548d409c6b07843a62",
+          "content_hash": "74bca91a1f3ec2153fa98c9dc627c7d277ee52787ac745cfce480eef9145dded",
           "package": "service_runtime"
         },
         {
@@ -3033,7 +3041,7 @@
           "source_location": "FindCare/SpecialtyFilter/filter.py",
           "handler_type": "python_source",
           "disposition": "referenced",
-          "content_hash": "894428db5d897b8a2a599a9b37bb8cf5e367ba6a408e5be00d6a230d8e185ae6",
+          "content_hash": "c821d159e61a0287938856e33eb77b4396e9b379ff805359493c443513a39bc9",
           "package": "service_runtime"
         },
         {
@@ -3041,7 +3049,7 @@
           "source_location": "FindCare/SpecialtyFilter/specialty_filter_tool.py",
           "handler_type": "python_source",
           "disposition": "referenced",
-          "content_hash": "f906b2740ef8c613858e8f1808ea1322e9fbbf49badfc0cfa3546f67c4364c9d",
+          "content_hash": "916f1b5e8e4d079dac6a6aa1b1db8c6dc052ff63807bb139924a882db0bae55f",
           "package": "service_runtime"
         },
         {
@@ -3153,7 +3161,7 @@
           "source_location": "sharedServices/Code/AuthorizationsAndAuthentications/universal_navigation_tool.py",
           "handler_type": "python_source",
           "disposition": "referenced",
-          "content_hash": "80f2851f645e92f6ba954069e255dec123457a396dceb24a47b0fe0b2f379bdc",
+          "content_hash": "1dfc111a5ffe43faed8535974b5280c82325a7561f189bfcfd77afcad2a95f66",
           "package": "service_runtime"
         },
         {
@@ -3414,7 +3422,7 @@
           "source_location": "sharedServices/Code/UtteranceManager/utterance_manager.py",
           "handler_type": "python_source",
           "disposition": "referenced",
-          "content_hash": "bc15e8d572ee8406d28e0788acf0e7b7e66d279a34190abc88c651f21ebd5f18",
+          "content_hash": "2d8db6c37c87a3299da0006783e37ea94b129b6226be72e886fa51fca69ea973",
           "package": "service_runtime"
         },
         {

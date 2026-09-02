@@ -33,8 +33,28 @@ log = ChatHealthyLoggingService()
 
 PROJECT_ROOT = Path(__file__).resolve().parents[2]
 PROMPTS_JSON_PATH = PROJECT_ROOT / "brain" / "machine_artifacts" / "content" / "prompts.json"
+# One funnel, two partitions. A resolution differs from the other in
+# exactly two things: the catalogue partition its query searches, and the
+# prompt text its two LLM stages use. Everything else -- the stage
+# sequence, the score floor, the intersection with the candidate set, the
+# single catch point -- is shared, so the two cannot drift.
 NORMALIZE_RECORD_ID = "specialty_normalize_system_prompt"
 FILTER_RECORD_ID = "specialty_filter_system_prompt"
+FACILITY_NORMALIZE_RECORD_ID = "facility_normalize_system_prompt"
+FACILITY_FILTER_RECORD_ID = "facility_filter_system_prompt"
+
+# The catalogue's own partition values. A care giver is an Individual; a
+# facility is not. Confirmed against SpecialtyMetaData rather than named
+# here by convention.
+SECTION_INDIVIDUAL = "Individual"
+SECTION_ORGANIZATION = "Non-Individual"
+
+# Which prompts each partition's stages read.
+_PROMPTS_FOR_SECTION = {
+    SECTION_INDIVIDUAL: (NORMALIZE_RECORD_ID, FILTER_RECORD_ID),
+    SECTION_ORGANIZATION: (FACILITY_NORMALIZE_RECORD_ID,
+                           FACILITY_FILTER_RECORD_ID),
+}
 
 # Cosine candidate floor passed to Stage-2 filter (S-002-T-004; floor
 # value is a design choice, not a REQ). 0.55 picked from Phase A/C/D
@@ -130,20 +150,30 @@ class SpecialtyFilter:
         # different prompts and two different output shapes. What they stop
         # keeping is a client, a credential, a retry policy and a vendor
         # quirk -- all of that is the facade's.
-        self._normalize_agent = None
-        self._filter_agent = None
+        # One agent pair per partition, because the two stages differ
+        # only in their prompt text.
+        self._normalize_agents: dict = {}
+        self._filter_agents: dict = {}
         # Lazily loaded so the class can be instantiated even if prompts.json
         # is briefly unreachable; the first find_specialties() call will load.
-        self._normalize_prompt: Optional[str] = None
-        self._filter_prompt: Optional[str] = None
+        self._prompts: dict = {}
 
-    def _ensure_normalize_agent(self):
-        if self._normalize_agent is None:
+    def _prompt_pair(self, section: str) -> tuple[str, str]:
+        """The two prompts this partition's LLM stages read."""
+        if section not in self._prompts:
+            normalize_id, filter_id = _PROMPTS_FOR_SECTION[section]
+            self._prompts[section] = (load_prompt_text(normalize_id),
+                                      load_prompt_text(filter_id))
+        return self._prompts[section]
+
+    def _ensure_normalize_agent(self, section: str):
+        if section not in self._normalize_agents:
             from pydantic_ai import Agent, ModelRetry
+            normalize_prompt, _ = self._prompt_pair(section)
             agent = Agent(
                 f"openai:{self._normalize_model}",
                 output_type=NormalizedRequest,
-                system_prompt=self._normalize_prompt + self._DUAL_INSTRUCTION,
+                system_prompt=normalize_prompt + self._DUAL_INSTRUCTION,
             )
 
             @agent.output_validator
@@ -151,28 +181,22 @@ class SpecialtyFilter:
                 if not result.search_term.strip():
                     raise ModelRetry(
                         "search_term was empty. Return the NUCC-aligned text "
-                        "to search specialties with.")
+                        "to search the catalogue with.")
                 return result
 
-            self._normalize_agent = agent
-        return self._normalize_agent
+            self._normalize_agents[section] = agent
+        return self._normalize_agents[section]
 
-    def _ensure_filter_agent(self):
-        if self._filter_agent is None:
+    def _ensure_filter_agent(self, section: str):
+        if section not in self._filter_agents:
             from pydantic_ai import Agent
-            self._filter_agent = Agent(
+            _, filter_prompt = self._prompt_pair(section)
+            self._filter_agents[section] = Agent(
                 f"openai:{self._filter_model}",
                 output_type=KeptCodes,
-                system_prompt=self._filter_prompt,
+                system_prompt=filter_prompt,
             )
-        return self._filter_agent
-
-    # ── private prompt loaders ──────────────────────────────────────────────
-    def _ensure_prompts_loaded(self) -> None:
-        if self._normalize_prompt is None:
-            self._normalize_prompt = load_prompt_text(NORMALIZE_RECORD_ID)
-        if self._filter_prompt is None:
-            self._filter_prompt = load_prompt_text(FILTER_RECORD_ID)
+        return self._filter_agents[section]
 
     # ── private pipeline steps ──────────────────────────────────────────────
     # Per EPIC-006-F-003-S-001-REQ-T-001 ("no fallback"), every stage MUST
@@ -209,14 +233,14 @@ name, never the words they used, never a place.
                                          complaint "bone problem"
 """
 
-    def normalize_query(self, raw_query: str) -> tuple[str, str]:
+    def normalize_query(self, raw_query: str,
+                        section: str = SECTION_INDIVIDUAL) -> tuple[str, str]:
         """Stage 1: (search_term, complaint) from the vernacular request.
 
         Raises on any failure (no fallback per REQ-T-001).
         """
-        self._ensure_prompts_loaded()
         result = run_llm_sync(
-            self._ensure_normalize_agent(), raw_query,
+            self._ensure_normalize_agent(section), raw_query,
             call_site="SpecialtyFilter.normalize_query",
             provider="openai", server="find_care", component="SpecialtyFilter")
         return result.output.search_term.strip(), result.output.complaint.strip()
@@ -231,14 +255,15 @@ name, never the words they used, never a place.
     def _is_inactive(row: dict) -> bool:
         return "inactive" in (row.get("Notes") or "").lower()
 
-    def vector_search(self, qvec: list[float]) -> list[dict]:
+    def vector_search(self, qvec: list[float],
+                      section: str = SECTION_INDIVIDUAL) -> list[dict]:
         """Stage 3: $vectorSearch SpecialtyMetaData. Returns ALL candidates
         with cosine ≥ _CAND_FLOOR, dropping Deactivated entries."""
         db = self._get_db()
         if db is None:
             return []
         coll = specialty_meta_coll()
-        total = coll.count_documents({"Section": "Individual"})
+        total = coll.count_documents({"Section": section})
         rows = list(coll.aggregate([
             {"$vectorSearch": {
                 "index": "specialty_vector_index",
@@ -246,7 +271,7 @@ name, never the words they used, never a place.
                 "queryVector": qvec,
                 "numCandidates": total,
                 "limit": total,
-                "filter": {"Section": "Individual"},
+                "filter": {"Section": section},
             }},
             {"$project": {"_id": 0, "Code": 1, "Display Name": 1,
                           "Grouping": 1, "Classification": 1,
@@ -260,9 +285,9 @@ name, never the words they used, never a place.
                 and r.get("score", 0) >= CAND_FLOOR]
 
     def filter_candidates(self, candidates: list[dict],
-                          raw_query: str, normalized: str) -> list[str]:
+                          raw_query: str, normalized: str,
+                          section: str = SECTION_INDIVIDUAL) -> list[str]:
         """Stage 4: LLM filter. Returns the final list of NUCC codes."""
-        self._ensure_prompts_loaded()
         if not candidates:
             return []
         # Every field the record carries that bears on the choice. NUCC gives
@@ -287,7 +312,7 @@ name, never the words they used, never a place.
             f"Candidate NUCC entries (highest cosine first):\n{cand_block}\n"
         )
         result = run_llm_sync(
-            self._ensure_filter_agent(), user_msg,
+            self._ensure_filter_agent(section), user_msg,
             call_site="SpecialtyFilter.filter_candidates",
             provider="openai", server="find_care", component="SpecialtyFilter")
         # The model chooses among registry facts and cannot invent one: its
@@ -299,7 +324,8 @@ name, never the words they used, never a place.
 
     # ── public-to-driver orchestration ──────────────────────────────────────
     def find_specialties(self, raw_query: str,
-                         chat_history: Optional[list[str]] = None) -> dict:
+                         chat_history: Optional[list[str]] = None,
+                         section: str = SECTION_INDIVIDUAL) -> dict:
         """End-to-end: normalize → embed → vector search → AI filter.
         Returns the structured payload the driver returns to the frontend.
         The driver decides what HTTP route exposes this — this class never
@@ -319,7 +345,7 @@ name, never the words they used, never a place.
         query_text = " ".join(parts)
 
         try:
-            normalized, complaint = self.normalize_query(query_text)
+            normalized, complaint = self.normalize_query(query_text, section)
         except Exception as exc:
             # Mode 2 (REQ-B-008): Stage-1 LLM normalize failed; user gets
             # graceful error dict that the tool surfaces back to the user.
@@ -346,7 +372,7 @@ name, never the words they used, never a place.
             return {"error": f"embed: {type(exc).__name__}: {exc}"}
 
         try:
-            candidates = self.vector_search(qvec)
+            candidates = self.vector_search(qvec, section)
         except Exception as exc:
             # Mode 2 (REQ-B-008): Stage-3 vector search failed; user gets
             # graceful error dict. Atlas $vectorSearch infra issue —
@@ -363,7 +389,8 @@ name, never the words they used, never a place.
                     "message": f"No matching specialty found for {raw_query!r}."}
 
         try:
-            kept_codes = self.filter_candidates(candidates, raw_query, normalized)
+            kept_codes = self.filter_candidates(candidates, raw_query,
+                                                normalized, section)
         except Exception as exc:
             # Mode 2 (REQ-B-008): Stage-4 LLM filter failed; user gets
             # graceful error dict. LLM provider issue — operator MUST know.
