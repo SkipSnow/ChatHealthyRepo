@@ -24,6 +24,12 @@ import os
 import pytest
 from playwright.sync_api import expect, sync_playwright
 
+# Navigation waits for the document, never for the network to fall idle.
+# /gate answers with a streamed NDJSON response and the wrapper opens one
+# on load, so a connection is deliberately held open and "networkidle"
+# can never be reached -- it timed out on every test in this file. What
+# says the page is ready is the readiness selector each fixture waits for
+# immediately after navigating, which is unchanged.
 BASE_URL = os.getenv("SMOKE_TEST_URL", "https://localhost")
 DEFAULT_TIMEOUT = 60_000
 LLM_TIMEOUT = 240_000          # a turn runs normalize + embed + vector + filter
@@ -205,7 +211,7 @@ def page():
     context = browser.new_context(ignore_https_errors=True)
     p = context.new_page()
     p.set_default_timeout(DEFAULT_TIMEOUT)
-    p.goto(BASE_URL, wait_until="networkidle")
+    p.goto(BASE_URL, wait_until="domcontentloaded")
     p.wait_for_selector("[data-router-action='about_chathealthy']", timeout=DEFAULT_TIMEOUT)
     yield p
     context.close()
@@ -226,7 +232,7 @@ def searched(page):
     A search per class costs seconds and buys independence -- each class
     starts from a session nothing else has touched.
     """
-    page.reload(wait_until="networkidle")
+    page.reload(wait_until="domcontentloaded")
     page.wait_for_selector("[data-router-action='about_chathealthy']",
                            timeout=DEFAULT_TIMEOUT)
     _ask(page, "find me a shrink in Long Beach CA")
@@ -244,7 +250,7 @@ def fresh(page):
     the other cases have been searching on -- their results are still up,
     and the first turn asserts there are none.
     """
-    page.reload(wait_until="networkidle")
+    page.reload(wait_until="domcontentloaded")
     page.wait_for_selector("[data-router-action='about_chathealthy']",
                            timeout=DEFAULT_TIMEOUT)
     return page
@@ -1002,7 +1008,7 @@ class TestACountySearch:
 
     @pytest.fixture(scope="class")
     def county(self, page):
-        page.reload(wait_until="networkidle")
+        page.reload(wait_until="domcontentloaded")
         page.wait_for_selector("[data-router-action='about_chathealthy']",
                                timeout=DEFAULT_TIMEOUT)
         _ask(page, "find me a shrink in Los Angeles County CA")
@@ -1048,7 +1054,7 @@ class TestSayingItOutLoudNarrows:
 
     @pytest.fixture(scope="class")
     def spoken(self, page):
-        page.reload(wait_until="networkidle")
+        page.reload(wait_until="domcontentloaded")
         page.wait_for_selector("[data-router-action='about_chathealthy']",
                                timeout=DEFAULT_TIMEOUT)
         _ask(page, "find me a psychiatrist in New Orleans LA")
@@ -1093,3 +1099,140 @@ class TestSayingItOutLoudNarrows:
         assert in_force.count() >= 1, (
             "a preference stated in words is not shown on the panel, so it "
             "cannot be seen or removed")
+
+
+# ─────────────────────────────────────────────────────────────────────
+# EPIC-006-F-006 / F-007 — a facility is a place, not a person.
+#
+# A facility search returned rows on the wire while the browser painted
+# nothing: the timer sat and expired because no component knew the
+# `facilities` kind. These assert what a person sees, which is the only
+# evidence that the feature exists.
+# ─────────────────────────────────────────────────────────────────────
+
+FACILITY_CARD = f"{RESULTS} [data-testid='facility-card']"
+FACILITY_FOUND = ("facilities found", "facility found")
+_FACILITY_FOUND_JS = " || ".join(
+    f"t.includes('{token}')" for token in FACILITY_FOUND)
+
+
+def _wait_for_facilities(page):
+    """The facility list is on screen, not the searching indicator.
+
+    Waiting on the card rather than on a count, because the count is the
+    heading and a card is the thing a person reads.
+    """
+    page.wait_for_function(
+        f"() => document.querySelectorAll(\"{FACILITY_CARD}\").length > 0",
+        timeout=LLM_TIMEOUT)
+
+
+@pytest.fixture(scope="class")
+def facilities(page):
+    """One facility search per class, from a session nothing has touched."""
+    page.reload(wait_until="domcontentloaded")
+    page.wait_for_selector("[data-router-action='about_chathealthy']",
+                           timeout=DEFAULT_TIMEOUT)
+    _ask(page, "find me an urgent care clinic in Los Angeles CA")
+    _wait_for_facilities(page)
+    _shot(page, "20_facility_results")
+    return page
+
+
+class TestAFacilitySearchPaintsSomething:
+    """The defect: 105 urgent care clinics on the wire, a blank screen and
+    a timer counting to nothing."""
+
+    def test_the_results_frame_shows_facility_rows(self, facilities):
+        cards = facilities.locator(FACILITY_CARD)
+        assert cards.count() > 0, (
+            "a facility search painted no rows; the person sees nothing")
+
+    def test_the_searching_timer_is_gone(self, facilities):
+        timer = facilities.locator(
+            f"{RESULTS} [data-testid='facility-searching-timer']")
+        assert timer.count() == 0, (
+            "the searching indicator is still on screen after the results "
+            "arrived, so the turn looks to the person like it never ended")
+
+    def test_the_heading_names_a_facility_count(self, facilities):
+        text = facilities.locator(RESULTS).inner_text()
+        assert any(token in text for token in FACILITY_FOUND), (
+            f"the results frame names no facility count: {text[:200]!r}")
+
+
+class TestTheFacilityRowShowsExactlyFiveThings:
+    """EPIC-006-F-006-S-002-REQ-B-007 fixes the row exactly. A sixth thing
+    on it is a defect, not a bonus."""
+
+    FIVE = ("facility-name", "facility-address-count", "facility-address",
+            "facility-type", "facility-detail-link")
+
+    def test_the_row_shows_each_of_the_five(self, facilities):
+        row = facilities.locator(FACILITY_CARD).first
+        for testid in self.FIVE:
+            assert row.locator(f"[data-testid='{testid}']").count() == 1, (
+                f"the row does not show {testid}, which the requirement names")
+
+    def test_the_row_shows_nothing_else(self, facilities):
+        """Every marked element in the row is one of the five."""
+        marked = facilities.evaluate(
+            "() => { const r = document.querySelector"
+            f"(\"{FACILITY_CARD}\");"
+            " return r ? Array.from(r.querySelectorAll('[data-testid]'))"
+            ".map(e => e.getAttribute('data-testid')) : []; }")
+        extra = [m for m in marked if m not in self.FIVE]
+        assert extra == [], (
+            f"the row shows {extra} beyond the five the requirement fixes")
+
+    def test_the_row_names_the_facility_and_its_kind(self, facilities):
+        row = facilities.locator(FACILITY_CARD).first
+        name = row.locator("[data-testid='facility-name']").inner_text().strip()
+        assert name, "the row names no facility"
+        count = row.locator(
+            "[data-testid='facility-address-count']").inner_text()
+        assert "practice address" in count, (
+            f"the row does not say how many practice addresses: {count!r}")
+
+
+class TestTheFacilityDetailOpensFromTheRow:
+    """The link is the fifth thing on the row, and it has to go somewhere."""
+
+    def test_clicking_the_link_opens_the_detail(self, facilities):
+        facilities.locator(
+            f"{FACILITY_CARD} [data-testid='facility-detail-link']").first.click()
+        facilities.wait_for_function(
+            "() => document.querySelector"
+            "(\"[data-testid='facility-identity']\") !== null",
+            timeout=LLM_TIMEOUT)
+        _shot(facilities, "21_facility_detail")
+
+    def test_the_detail_names_the_organization(self, facilities):
+        legal = facilities.locator("[data-testid='facility-legal-name']")
+        assert legal.count() == 1, "the detail shows no legal business name"
+        assert legal.inner_text().strip(), "the legal business name is empty"
+
+    def test_the_official_is_labelled_as_the_authorized_official(self, facilities):
+        block = facilities.locator("[data-testid='authorized-official']")
+        assert block.count() == 1, (
+            "the detail shows no authorized official section")
+        label = block.inner_text()
+        assert "authorized official" in label.lower(), (
+            "the section is not labelled as the record's authorized "
+            f"official, so it names one person with another's role: {label[:120]!r}")
+
+
+class TestTheProviderJourneyStillWorks:
+    """The facility work must not regress the care-giver path."""
+
+    def test_a_shrink_search_still_paints_the_panel_and_the_list(self, page):
+        page.reload(wait_until="domcontentloaded")
+        page.wait_for_selector("[data-router-action='about_chathealthy']",
+                               timeout=DEFAULT_TIMEOUT)
+        _ask(page, "find me a shrink in Long Beach CA")
+        _wait_for_panel(page)
+        _wait_for_results(page)
+        _shot(page, "22_provider_journey_intact")
+        assert _total(page) > 0, "the provider search returned nothing"
+        assert page.locator(PANEL_BOXES).count() > 0, (
+            "the specialty panel painted no rows")

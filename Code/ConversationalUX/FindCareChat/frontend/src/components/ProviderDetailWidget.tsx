@@ -80,6 +80,33 @@ function buildDetailHtml(data: any): string {
   // research_sites is a dict keyed by site slug ('healthgrades', etc.) with
   // {url, name, guidance}. Render each as a labeled link with the guidance
   // sentence underneath. Source: SS provider_detail_tool.Source schema.
+  // A facility shows its own identity in place of a person's, and the
+  // person the registry recorded as its authorized official -- labelled
+  // as that role and no other (EPIC-006-F-007-S-002-REQ-B-002).
+  const oi = p.organization_identity || null
+  const organization = oi
+    ? `<div data-testid="facility-identity" style="margin-top:0.75em;">
+         <div style="font-size:0.8em;font-weight:700;color:#0b7a75;text-transform:uppercase;letter-spacing:0.05em;">Organization</div>
+         <div style="font-size:0.9em;color:#374151;margin-top:0.2em;">
+           <div data-testid="facility-legal-name"><span style="font-weight:600;">Legal business name:</span> ${_esc(oi.legal_business_name || '')}</div>
+           ${oi.other_organization_name ? `<div>${_esc(oi.other_organization_name_kind || 'Other name')}: ${_esc(oi.other_organization_name)}</div>` : ''}
+           <div>NPI issued: ${_esc(oi.enumeration_date || '')}</div>
+           <div>${oi.status_active ? 'Currently active' : 'Not currently active'}</div>
+           ${oi.is_subpart ? `<div>Part of: ${_esc(oi.parent_organization_name || '')}</div>` : ''}
+         </div>
+       </div>`
+    : ''
+  const ao = p.authorized_official || null
+  const official = ao
+    ? `<div data-testid="authorized-official" style="margin-top:0.75em;">
+         <div style="font-size:0.8em;font-weight:700;color:#0b7a75;text-transform:uppercase;letter-spacing:0.05em;">The record's authorized official</div>
+         <div style="font-size:0.9em;color:#374151;margin-top:0.2em;">
+           <div data-testid="official-name">${_esc([ao.first_name, ao.middle_name, ao.last_name].filter(Boolean).join(' '))}</div>
+           ${ao.title_or_position ? `<div>${_esc(ao.title_or_position)}</div>` : ''}
+           ${ao.credential ? `<div>${_esc(ao.credential)}</div>` : ''}
+         </div>
+       </div>`
+    : ''
   const rs = p.research_sites || {}
   const rsEntries = Object.keys(rs)
     .map(k => rs[k])
@@ -106,6 +133,8 @@ function buildDetailHtml(data: any): string {
       </div>
       <div style="font-size:0.85em;color:#6b7280;">NPI: ${_esc(p.npi || '')}</div>
       <div style="font-size:0.85em;color:#374151;margin-top:0.2em;">${specialty}</div>
+      ${organization}
+      ${official}
       ${sect('Practice addresses', addrs)}
       ${sect('Licenses', licenses)}
       ${sect('Payer identifiers this provider carries', payerIdentifiers)}
@@ -176,6 +205,21 @@ export default function ProviderDetailWidget() {
         return
       }
 
+      // The facility list's link. Same panel, opened for the facility
+      // page, so the server projects the identity that page's records
+      // carry and applies the registry check for an organization.
+      if (msg.type === 'router:action' && msg.action === 'facility:detail') {
+        const npi = String((msg.data || {}).npi || '').trim()
+        if (!npi) return
+        open = true
+        postRender(buildLoadingHtml(npi))
+        window.parent.postMessage({
+          type: 'router:makeCall', op: 'provider-detail',
+          payload: { npi, entity_type: '2' },
+          call_id: 'fd-' + Date.now(),
+        }, '*')
+        return
+      }
       if (msg.type === 'router:action' && msg.action === 'provider:detail') {
         const d = msg.data || {}
         const npi  = String(d.npi  || '').trim()

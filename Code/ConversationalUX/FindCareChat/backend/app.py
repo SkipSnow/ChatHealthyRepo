@@ -645,6 +645,11 @@ class ClassifyRequest(BaseModel):
     """GOV-011: AI translates the user's question into structured search parameters.
     One AI call. System answers with DB query after."""
     message: str
+    # Which partition of the catalogue this resolution reads: the
+    # individual section for a care giver, the organization section for a
+    # facility. The same funnel runs either way; this is the one thing its
+    # queries differ by.
+    section: str = "Individual"
     # The gateway's signature, verified before anything else happens.
     session_token: Optional[dict] = None
 
@@ -689,7 +694,8 @@ async def classify(body: ClassifyRequest, request: Request):
 
     # find_specialties is synchronous and makes blocking model calls;
     # /classify is async and already inside an event loop.
-    result = await asyncio.to_thread(specialty_service.find_specialties, body.message)
+    result = await asyncio.to_thread(
+        specialty_service.find_specialties, body.message, None, body.section)
 
     if "error" in result:
         # REQ-B-002/B-003: sanitized outward, full detail kept server-side

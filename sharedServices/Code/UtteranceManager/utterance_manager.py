@@ -123,6 +123,11 @@ class ClassifierOutput(BaseModel):
     # several, in either order, and is not required to say which is which
     # (EPIC-006-F-006-S-001-REQ-B-008).
     facility_name: Optional[str] = None
+    # The KIND of place, in the person's own words -- "urgent care
+    # clinic". Never the complaint: a complaint is what is wrong with a
+    # person and a facility kind is what sort of place they want, and the
+    # two are different parameters on different pages.
+    facility_type: Optional[str] = None
     administrator_last_name: Optional[str] = None
     administrator_first_name: Optional[str] = None
     administrator_middle_name: Optional[str] = None
@@ -764,21 +769,35 @@ DECISION RULES (apply in this order):
      and none of them is required alongside another:
        - facility_name: the organization named outright ("Cedars-Sinai",
          "Rite Aid"). Give it exactly as the person said it.
-       - complaint: the KIND of facility, when they named a kind rather
-         than one by name ("hospital", "dialysis centre", "pharmacy").
+       - facility_type: the KIND of place, in the person's own words
+         ("hospital", "urgent care clinic", "pharmacy"). This is NOT a
+         complaint. A complaint is what is wrong with a person; a
+         facility kind is what sort of place they want. On a
+         findAFacility turn leave complaint NULL -- always, even when the
+         person named a kind of place. Putting a place into complaint
+         writes a building into the parameter that means an ailment.
        - administrator_last_name / _first_name / _middle_name: the
          person who administers it, when the person names a human being
          as the one who runs the place ("the clinic Susan Wey runs").
          Decompose whatever they gave into these three; if you cannot
          tell which part is which, put the single name you were given in
          administrator_last_name.
-     Populate geography the same way rules 3-5 do for a care giver. A
-     facility search runs with geography alone and needs no complaint,
+     ALWAYS populate geography on a findAFacility turn, by the same
+     reading rules 3-5 apply to a care giver. If THIS turn names a place,
+     put that place in geography -- it REPLACES whatever was established
+     before, and a turn that names a new city is naming a different
+     place. If this turn names none, repeat the established geography.
+     Returning null for geography on a facility turn is always wrong: it
+     leaves the search running on wherever the person was looking last,
+     which is not what they asked for.
+
+     A facility search runs with geography alone and needs no complaint,
      so do NOT downgrade to specialtySearch when a place is named
      without a kind.
 
-     "Find me a hospital in Long Beach CA" -> findAFacility, complaint
-     "hospital", geography {state: CA, city: Long Beach}.
+     "Find me a hospital in Long Beach CA" -> findAFacility,
+     facility_type "hospital", complaint null, geography
+     {state: CA, city: Long Beach}.
      "Find me a doctor in Long Beach CA" -> findAProvider, because a
      doctor is a person.
 
@@ -1499,7 +1518,7 @@ def build_find_a_provider_intent(
 
 
 def build_find_a_facility_intent(
-    complaint: str = "",
+    facility_type: str = "",
     geography: dict[str, Any] = None,
     facility_name: str = "",
     administrator_name: dict[str, str] = None,
@@ -1513,8 +1532,8 @@ def build_find_a_facility_intent(
     branch without one.
     """
     args: list[Argument] = []
-    if complaint:
-        args.append(Argument(name="complaint", value=complaint,
+    if facility_type:
+        args.append(Argument(name="facility_type", value=facility_type,
                              type="string", required=False))
     if facility_name:
         args.append(Argument(name="facility_name", value=facility_name,
@@ -1913,25 +1932,26 @@ class UtteranceManagerTool(ChatHealthyTool):
             # Any one of the three ways of naming a facility is enough, so
             # this branch refuses only the turn that named none of them.
             facility_name = (llm_result.facility_name or "").strip()
+            facility_type = (llm_result.facility_type or "").strip()
             administrator = {
                 "last": (llm_result.administrator_last_name or "").strip(),
                 "first": (llm_result.administrator_first_name or "").strip(),
                 "middle": (llm_result.administrator_middle_name or "").strip(),
             }
-            if not (complaint or facility_name or any(administrator.values())):
+            if not (facility_type or facility_name or any(administrator.values())):
                 raise ChatHealthyException(
                     mode="um_classifier_findafacility_named_nothing",
                     message=(
                         "UtteranceManager classifier set target_action="
                         "findAFacility but named neither a facility, a kind "
-                        "of facility, nor the person who administers one"
+                        "of place, nor the person who administers one"
                     ),
                     component="UtteranceManager",
                 )
             new_doc = merge_intents(
                 base_doc,
                 [build_find_a_facility_intent(
-                    complaint=complaint,
+                    facility_type=facility_type,
                     geography=geography,
                     facility_name=facility_name,
                     administrator_name=administrator,
@@ -2076,6 +2096,10 @@ class UtteranceManagerTool(ChatHealthyTool):
         # What the person named a facility by. Written to the facility
         # page, whose attributes these are.
         facility_writes = []
+        if (llm_result.facility_type or "").strip():
+            facility_writes.append(user_parameters_tool.Change(
+                page="facility", name="facilityType",
+                value=llm_result.facility_type.strip()))
         if (llm_result.facility_name or "").strip():
             facility_writes.append(user_parameters_tool.Change(
                 page="facility", name="facilityName",

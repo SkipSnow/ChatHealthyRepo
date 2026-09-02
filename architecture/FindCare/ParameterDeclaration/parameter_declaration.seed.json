@@ -71,6 +71,14 @@
               "value_type": "string"
             },
             {
+              "name": "facilityType",
+              "value_type": "string"
+            },
+            {
+              "name": "offeredFacilityTypes",
+              "value_type": "specialties"
+            },
+            {
               "name": "selectedTaxonomyCodes",
               "value_type": "string_list"
             },
@@ -220,6 +228,14 @@
             {
               "name": "facilityName",
               "value_type": "string"
+            },
+            {
+              "name": "facilityType",
+              "value_type": "string"
+            },
+            {
+              "name": "offeredFacilityTypes",
+              "value_type": "specialties"
             },
             {
               "name": "selectedTaxonomyCodes",
@@ -373,6 +389,14 @@
               "value_type": "string"
             },
             {
+              "name": "facilityType",
+              "value_type": "string"
+            },
+            {
+              "name": "offeredFacilityTypes",
+              "value_type": "specialties"
+            },
+            {
               "name": "selectedTaxonomyCodes",
               "value_type": "string_list"
             },
@@ -522,6 +546,14 @@
             {
               "name": "facilityName",
               "value_type": "string"
+            },
+            {
+              "name": "facilityType",
+              "value_type": "string"
+            },
+            {
+              "name": "offeredFacilityTypes",
+              "value_type": "specialties"
             },
             {
               "name": "selectedTaxonomyCodes",

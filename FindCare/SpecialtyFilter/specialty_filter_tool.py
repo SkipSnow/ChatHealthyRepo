@@ -53,6 +53,12 @@ class Request(BaseModel):
     Required and non-empty; SpecialtyFilter does not source from any other
     field on user_object."""
     model_config = {"extra": "ignore"}
+    section: str = Field(
+        default="Individual",
+        description="Which partition of the catalogue this resolution "
+                    "reads: Individual for a care giver, Non-Individual "
+                    "for a facility. The same funnel runs either way; this "
+                    "is the one thing its queries differ by.")
     query: str = Field(
         description="The kind of care wanted, in clinical terms rather than "
                     "the words the person used -- \"psychological problem\", "
@@ -85,6 +91,18 @@ def findcare_url() -> str:
 
 
 class SpecialtyFilterTool(ChatHealthyTool):
+    @staticmethod
+    def _broadcast(deps, section: str, event: dict) -> None:
+        """The offered-kinds panel belongs to the care-giver page.
+
+        A facility resolution runs the same funnel but paints no such
+        panel: emitting one would repaint the specialty panel the person
+        is looking at with facility kinds they never asked to choose
+        among.
+        """
+        if section == "Individual":
+            deps.stream(event)
+
     """Vernacular text → NUCC specialty codes. Consumes the UM-extracted
     complaint phrase via Request.query; HTTP-calls the existing /classify
     engine; emits a stream event so the FE renders the filter as soon as
@@ -113,6 +131,7 @@ class SpecialtyFilterTool(ChatHealthyTool):
                 # and the clinical-trials dispatcher do.
                 r = await client.post(url, json={
                     "message": text,
+                    "section": request.section,
                     "session_token": deps.session_token.model_dump(mode="json"),
                 })
                 r.raise_for_status()
@@ -122,7 +141,7 @@ class SpecialtyFilterTool(ChatHealthyTool):
             # tool returns a graceful Response.error to the user inline. NOT
             # a 503; do NOT tag fatal_error=True.
             resp = self.Response(error=f"classify_unavailable: {type(exc).__name__}")
-            deps.stream({"kind": "specialties", "data": resp.model_dump(exclude_none=True)})
+            self._broadcast(deps, request.section, {"kind": "specialties", "data": resp.model_dump(exclude_none=True)})
             return resp
 
         specialties = [SpecialtyRow(**s) for s in (raw.get("specialties") or [])]
@@ -134,7 +153,7 @@ class SpecialtyFilterTool(ChatHealthyTool):
             model=raw.get("model"),
             error=raw.get("error"),
         )
-        deps.stream({"kind": "specialties", "data": resp.model_dump(exclude_none=True)})
+        self._broadcast(deps, request.section, {"kind": "specialties", "data": resp.model_dump(exclude_none=True)})
         return resp
 
 

@@ -35,7 +35,14 @@ function buildResultsAreaHtml(providers: any[], totalCount?: number,
     return `<div style="padding:2em;color:#6b7280;font-style:italic;">No providers matched.</div>`
   }
   const count = totalCount || providers.length
-  const heading = header || `${count} provider${count === 1 ? '' : 's'} found`
+  // The heading names the count. The summary the server built is prose
+  // ABOUT that result and is painted beside it, not in place of it: a
+  // result that stops naming its own count is one a person cannot read
+  // at a glance.
+  const heading = `${count} provider${count === 1 ? '' : 's'} found`
+  const summary = header
+    ? `<div data-testid="provider-summary" style="padding:0.4em 1em;background:#fffdf7;border-bottom:0.0625em solid #eee;color:#374151;font-size:0.9em;flex-shrink:0;">${_esc(header)}</div>`
+    : ''
   // renderProviderRow ported verbatim from prod _oneshots/prod_index.html
   // line 1819-1835. Action data-* attributes carry the full card payload
   // the SS provider_detail_tool requires.
@@ -77,6 +84,7 @@ function buildResultsAreaHtml(providers: any[], totalCount?: number,
   return (
     `<div style="display:flex;flex-direction:column;height:100%;min-height:0;">` +
       `<div style="padding:0.5em 1em;background:#f0fffe;border-bottom:0.125em solid #d8e2e1;color:#0b7a75;font-weight:600;flex-shrink:0;">${_esc(heading)}</div>` +
+      summary +
       `<div style="display:flex;align-items:center;justify-content:space-between;padding:1em;background:#fafafa;border-bottom:0.125em solid #eee;flex-shrink:0;">` +
         `<span style="font-weight:600;color:#0b7a75;text-transform:uppercase;">Available Providers</span>` +
         `<span style="color:#6b7280;">${providers.length} available — drag to select</span>` +
