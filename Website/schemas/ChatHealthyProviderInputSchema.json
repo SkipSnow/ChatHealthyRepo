@@ -1,0 +1,1385 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://dev.chathealthy.ai/schemas/ChatHealthyProviderInputSchema.json",
+  "title": "ChatHealthy Provider Input (NPPES Dissemination Row)",
+  "description": "Provider data AS RECEIVED, before any ChatHealthy transformation. The source is the CMS National Plan and Provider Enumeration System (NPPES) Data Dissemination bundle, version 2 of the layout, as documented in the NPPES Data Dissemination Readme (Exhibit 2-1 Data File Layout, document updated May 12, 2026, held at _oneshots/nppes_NPPES_Data_Dissemination_Readme_v.2.pdf). The root object is one row of the main data file (one enumerated NPI record). $defs/practice_location_reference_row describes one row of the Practice Location Reference File (Exhibit 2-3), the second provider file from the same bundle that this pipeline ingests, which carries every non-primary practice location. This schema describes the INPUT only. It is not the runtime provider record: ChatHealthyProvidersSchema.json and ProviderRecordSchema.json describe what the pipeline produces, which is a different shape with snake_cased keys, collapsed arrays and pipeline-derived enrichment, and an input row will not validate against either. Where the row enters ChatHealthy: pipeline/Code/staging_loader.py, function _load_one_source, which streams the file through _iter_csv_rows / _iter_zipped_csv_rows (csv.DictReader, which preserves column names verbatim) and stores each row untouched under the staging document's raw subdocument via _wrap_row. Every value is a string because the file is CSV: NPPES quotes every value, so numbers, codes and dates all arrive as text and the pipeline stores the text unchanged. Where Exhibit 2-1 declares a logical NUMBER or DATE type, the field description says so. Absence versus emptiness: csv.DictReader yields every declared column as a key on every row, so a column the source has no value for arrives as the empty string rather than missing. Only NPI is listed in required, because only the record key can be established as always carrying a value; the ingest code guards every other column for emptiness, including Entity Type Code, which pipeline/Code/provider_record_builder.py line 74 tolerates being blank. additionalProperties is false because Exhibit 2-1 states it lists the column headers in the order present in the data file, so it is exhaustive for this layout version; a column outside it means CMS has changed the layout, and the catch-all in normalize_provider_rows.py lines 257-270 would silently carry it onto the provider record.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "NPI"
+  ],
+  "properties": {
+    "NPI": {
+      "type": "string",
+      "description": "The 10-digit National Provider Identifier. Readme Exhibit 2-1 declares max length 10, data type NUMBER; the CSV supplies it as text. This is the file's record key. staging_loader.py:_wrap_row lifts it to the staging document's indexed npi field via NPPES_NPI_COLUMN_CANDIDATES, and _ensure_indexes builds a UNIQUE index on it for source nppes_npi."
+    },
+    "Entity Type Code": {
+      "type": "string",
+      "description": "Whether the NPI enumerates a person or an organization. NPPES uses '1' for an individual and '2' for an organization. Readme max length 1, data type NUMBER. Read by pipeline/Code/provider_record_builder.py:build_provider_record line 74, which tolerates the column being empty - deactivated records carry it blank."
+    },
+    "Replacement NPI": {
+      "type": "string",
+      "description": "The NPI that replaces this one when CMS has superseded the record. Readme max length 10, data type NUMBER. Empty on every record of the sample. Carried onto the provider record by the catch-all in pipeline/Code/normalize_provider_rows.py:normalize_raw_record lines 257-270, which snake_cases the column name and drops the value when it is empty."
+    },
+    "Employer Identification Number (EIN)": {
+      "type": "string",
+      "description": "The organization's federal employer identification number. Readme max length 9, VARCHAR. CMS does not disseminate the value: the sample carries the literal '<UNAVAIL>' where it is populated at all. The pipeline ingests the column and the provider output schema deliberately does not carry it."
+    },
+    "Provider Organization Name (Legal Business Name)": {
+      "type": "string",
+      "description": "The organization's legal business name. Populated for Entity Type Code '2'. Readme max length 100, VARCHAR. Carried onto the provider record by the catch-all in pipeline/Code/normalize_provider_rows.py:normalize_raw_record lines 257-270, which snake_cases the column name and drops the value when it is empty."
+    },
+    "Provider Last Name (Legal Name)": {
+      "type": "string",
+      "description": "The individual's legal last name. Populated for Entity Type Code '1'. Readme max length 35, VARCHAR. Carried onto the provider record by the catch-all in pipeline/Code/normalize_provider_rows.py:normalize_raw_record lines 257-270, which snake_cases the column name and drops the value when it is empty."
+    },
+    "Provider First Name": {
+      "type": "string",
+      "description": "The individual's first name. Readme max length 35, VARCHAR. Carried onto the provider record by the catch-all in pipeline/Code/normalize_provider_rows.py:normalize_raw_record lines 257-270, which snake_cases the column name and drops the value when it is empty."
+    },
+    "Provider Middle Name": {
+      "type": "string",
+      "description": "The individual's middle name. Readme max length 20, VARCHAR. Carried onto the provider record by the catch-all in pipeline/Code/normalize_provider_rows.py:normalize_raw_record lines 257-270, which snake_cases the column name and drops the value when it is empty."
+    },
+    "Provider Name Prefix Text": {
+      "type": "string",
+      "description": "Name prefix such as MR or DR. Readme max length 5, VARCHAR. Carried onto the provider record by the catch-all in pipeline/Code/normalize_provider_rows.py:normalize_raw_record lines 257-270, which snake_cases the column name and drops the value when it is empty."
+    },
+    "Provider Name Suffix Text": {
+      "type": "string",
+      "description": "Name suffix such as JR or III. Readme max length 5, VARCHAR. Carried onto the provider record by the catch-all in pipeline/Code/normalize_provider_rows.py:normalize_raw_record lines 257-270, which snake_cases the column name and drops the value when it is empty."
+    },
+    "Provider Credential Text": {
+      "type": "string",
+      "description": "Credential text as the provider reported it, for example 'MD' or 'OTR/L'. Free text, not a controlled vocabulary. Readme max length 20, VARCHAR. Carried onto the provider record by the catch-all in pipeline/Code/normalize_provider_rows.py:normalize_raw_record lines 257-270, which snake_cases the column name and drops the value when it is empty."
+    },
+    "Provider Other Organization Name": {
+      "type": "string",
+      "description": "An additional organization name. Readme max length 100, VARCHAR. Readme section 2.2 notes that a type code of 6 means further names for that organization live in the Other Name Reference File, which this pipeline does not ingest. Carried onto the provider record by the catch-all in pipeline/Code/normalize_provider_rows.py:normalize_raw_record lines 257-270, which snake_cases the column name and drops the value when it is empty."
+    },
+    "Provider Other Organization Name Type Code": {
+      "type": "string",
+      "description": "Type code qualifying Provider Other Organization Name. Readme max length 1, VARCHAR. Carried onto the provider record by the catch-all in pipeline/Code/normalize_provider_rows.py:normalize_raw_record lines 257-270, which snake_cases the column name and drops the value when it is empty."
+    },
+    "Provider Other Last Name": {
+      "type": "string",
+      "description": "An additional last name for the individual, such as a former name. Readme max length 35, VARCHAR. Carried onto the provider record by the catch-all in pipeline/Code/normalize_provider_rows.py:normalize_raw_record lines 257-270, which snake_cases the column name and drops the value when it is empty."
+    },
+    "Provider Other First Name": {
+      "type": "string",
+      "description": "An additional first name for the individual. Readme max length 35, VARCHAR. Carried onto the provider record by the catch-all in pipeline/Code/normalize_provider_rows.py:normalize_raw_record lines 257-270, which snake_cases the column name and drops the value when it is empty."
+    },
+    "Provider Other Middle Name": {
+      "type": "string",
+      "description": "An additional middle name for the individual. Readme max length 20, VARCHAR. Carried onto the provider record by the catch-all in pipeline/Code/normalize_provider_rows.py:normalize_raw_record lines 257-270, which snake_cases the column name and drops the value when it is empty."
+    },
+    "Provider Other Name Prefix Text": {
+      "type": "string",
+      "description": "Name prefix accompanying the other name. Readme max length 5, VARCHAR. Carried onto the provider record by the catch-all in pipeline/Code/normalize_provider_rows.py:normalize_raw_record lines 257-270, which snake_cases the column name and drops the value when it is empty."
+    },
+    "Provider Other Name Suffix Text": {
+      "type": "string",
+      "description": "Name suffix accompanying the other name. Readme max length 5, VARCHAR. Carried onto the provider record by the catch-all in pipeline/Code/normalize_provider_rows.py:normalize_raw_record lines 257-270, which snake_cases the column name and drops the value when it is empty."
+    },
+    "Provider Other Credential Text": {
+      "type": "string",
+      "description": "Credential text accompanying the other name. Readme max length 20, VARCHAR. Carried onto the provider record by the catch-all in pipeline/Code/normalize_provider_rows.py:normalize_raw_record lines 257-270, which snake_cases the column name and drops the value when it is empty."
+    },
+    "Provider Other Last Name Type Code": {
+      "type": "string",
+      "description": "Type code qualifying Provider Other Last Name. Readme max length 1, data type NUMBER. Carried onto the provider record by the catch-all in pipeline/Code/normalize_provider_rows.py:normalize_raw_record lines 257-270, which snake_cases the column name and drops the value when it is empty."
+    },
+    "Provider First Line Business Mailing Address": {
+      "type": "string",
+      "description": "First line of the provider's business mailing address. Readme max length 55, VARCHAR. Read by normalize_provider_rows.py MAILING_ADDRESS_FIELDS (lines 76-85), which folds the eight mailing columns into the record's single business_address object."
+    },
+    "Provider Second Line Business Mailing Address": {
+      "type": "string",
+      "description": "Second line of the provider's business mailing address. Readme max length 55, VARCHAR. Read by normalize_provider_rows.py MAILING_ADDRESS_FIELDS (lines 76-85), which folds the eight mailing columns into the record's single business_address object."
+    },
+    "Provider Business Mailing Address City Name": {
+      "type": "string",
+      "description": "City of the provider's business mailing address. Readme max length 40, VARCHAR. Read by normalize_provider_rows.py MAILING_ADDRESS_FIELDS (lines 76-85), which folds the eight mailing columns into the record's single business_address object."
+    },
+    "Provider Business Mailing Address State Name": {
+      "type": "string",
+      "description": "State of the provider's business mailing address, a two-letter code for US addresses. Readme max length 40, VARCHAR. This column is also the pipeline's partition key: staging_loader.py indexes it as raw.<column> (line 330, _NPPES_STATE_COLUMN), filters ingest by it when a state scope is set (line 509), and provider_normalize_engine.py:per_state_normalize partitions the normalize fan-out on it because NPPES gives each NPI exactly one business mailing address. Read by normalize_provider_rows.py MAILING_ADDRESS_FIELDS (lines 76-85), which folds the eight mailing columns into the record's single business_address object."
+    },
+    "Provider Business Mailing Address Postal Code": {
+      "type": "string",
+      "description": "Postal code of the provider's business mailing address. NPPES supplies a 9-digit unhyphenated ZIP+4 for US addresses; normalize_provider_rows.py line 217 keeps only the first five characters. Readme max length 20, VARCHAR. Read by normalize_provider_rows.py MAILING_ADDRESS_FIELDS (lines 76-85), which folds the eight mailing columns into the record's single business_address object."
+    },
+    "Provider Business Mailing Address Country Code (If outside U.S.)": {
+      "type": "string",
+      "description": "Country code of the provider's business mailing address. Readme max length 2, VARCHAR. Populated as 'US' on domestic records in the sample despite the column name. Read by normalize_provider_rows.py MAILING_ADDRESS_FIELDS (lines 76-85), which folds the eight mailing columns into the record's single business_address object."
+    },
+    "Provider Business Mailing Address Telephone Number": {
+      "type": "string",
+      "description": "Telephone number for the provider's business mailing address, digits only in the sample. Readme max length 20, VARCHAR. Read by normalize_provider_rows.py MAILING_ADDRESS_FIELDS (lines 76-85), which folds the eight mailing columns into the record's single business_address object."
+    },
+    "Provider Business Mailing Address Fax Number": {
+      "type": "string",
+      "description": "Fax number for the provider's business mailing address. Readme max length 20, VARCHAR. Read by normalize_provider_rows.py MAILING_ADDRESS_FIELDS (lines 76-85), which folds the eight mailing columns into the record's single business_address object."
+    },
+    "Provider First Line Business Practice Location Address": {
+      "type": "string",
+      "description": "First line of the provider's primary practice location address. Readme max length 55, VARCHAR. Read by normalize_provider_rows.py PRACTICE_ADDRESS_FIELDS (lines 65-74), which folds the eight practice columns into the first entry of the record's practice_addresses[] array. Only the primary practice location is in this file; the rest arrive in the Practice Location Reference File described by $defs/practice_location_reference_row."
+    },
+    "Provider Second Line Business Practice Location Address": {
+      "type": "string",
+      "description": "Second line of the provider's primary practice location address. Readme max length 55, VARCHAR. Read by normalize_provider_rows.py PRACTICE_ADDRESS_FIELDS (lines 65-74), which folds the eight practice columns into the first entry of the record's practice_addresses[] array. Only the primary practice location is in this file; the rest arrive in the Practice Location Reference File described by $defs/practice_location_reference_row."
+    },
+    "Provider Business Practice Location Address City Name": {
+      "type": "string",
+      "description": "City of the provider's primary practice location address. Readme max length 40, VARCHAR. Read by normalize_provider_rows.py PRACTICE_ADDRESS_FIELDS (lines 65-74), which folds the eight practice columns into the first entry of the record's practice_addresses[] array. Only the primary practice location is in this file; the rest arrive in the Practice Location Reference File described by $defs/practice_location_reference_row."
+    },
+    "Provider Business Practice Location Address State Name": {
+      "type": "string",
+      "description": "State of the provider's primary practice location address, a two-letter code for US addresses. Readme max length 40, VARCHAR. Read by normalize_provider_rows.py PRACTICE_ADDRESS_FIELDS (lines 65-74), which folds the eight practice columns into the first entry of the record's practice_addresses[] array. Only the primary practice location is in this file; the rest arrive in the Practice Location Reference File described by $defs/practice_location_reference_row."
+    },
+    "Provider Business Practice Location Address Postal Code": {
+      "type": "string",
+      "description": "Postal code of the provider's primary practice location address. NPPES supplies a 9-digit unhyphenated ZIP+4 for US addresses; normalize_provider_rows.py line 204 keeps only the first five characters. Readme max length 20, VARCHAR. Read by normalize_provider_rows.py PRACTICE_ADDRESS_FIELDS (lines 65-74), which folds the eight practice columns into the first entry of the record's practice_addresses[] array. Only the primary practice location is in this file; the rest arrive in the Practice Location Reference File described by $defs/practice_location_reference_row."
+    },
+    "Provider Business Practice Location Address Country Code (If outside U.S.)": {
+      "type": "string",
+      "description": "Country code of the provider's primary practice location address. Readme max length 2, VARCHAR. Read by normalize_provider_rows.py PRACTICE_ADDRESS_FIELDS (lines 65-74), which folds the eight practice columns into the first entry of the record's practice_addresses[] array. Only the primary practice location is in this file; the rest arrive in the Practice Location Reference File described by $defs/practice_location_reference_row."
+    },
+    "Provider Business Practice Location Address Telephone Number": {
+      "type": "string",
+      "description": "Telephone number for the provider's primary practice location, digits only in the sample. Readme max length 20, VARCHAR. Read by normalize_provider_rows.py PRACTICE_ADDRESS_FIELDS (lines 65-74), which folds the eight practice columns into the first entry of the record's practice_addresses[] array. Only the primary practice location is in this file; the rest arrive in the Practice Location Reference File described by $defs/practice_location_reference_row."
+    },
+    "Provider Business Practice Location Address Fax Number": {
+      "type": "string",
+      "description": "Fax number for the provider's primary practice location. Readme max length 20, VARCHAR. Read by normalize_provider_rows.py PRACTICE_ADDRESS_FIELDS (lines 65-74), which folds the eight practice columns into the first entry of the record's practice_addresses[] array. Only the primary practice location is in this file; the rest arrive in the Practice Location Reference File described by $defs/practice_location_reference_row."
+    },
+    "Provider Enumeration Date": {
+      "type": "string",
+      "description": "The date CMS enumerated the NPI, formatted MM/DD/YYYY. Readme max length 10, data type DATE; the CSV supplies it as text and the pipeline stores the text unchanged. Carried onto the provider record by the catch-all in pipeline/Code/normalize_provider_rows.py:normalize_raw_record lines 257-270, which snake_cases the column name and drops the value when it is empty."
+    },
+    "Last Update Date": {
+      "type": "string",
+      "description": "The date the NPI record was last updated in NPPES, formatted MM/DD/YYYY. Readme max length 10, data type DATE. Carried onto the provider record by the catch-all in pipeline/Code/normalize_provider_rows.py:normalize_raw_record lines 257-270, which snake_cases the column name and drops the value when it is empty."
+    },
+    "NPI Deactivation Reason Code": {
+      "type": "string",
+      "description": "Reason CMS deactivated the NPI. Readme Exhibit 2-1 states the column is present in the layout but 'This is not publicly disseminated', and it is empty on every record of the sample. Carried onto the provider record by the catch-all in pipeline/Code/normalize_provider_rows.py:normalize_raw_record lines 257-270, which snake_cases the column name and drops the value when it is empty."
+    },
+    "NPI Deactivation Date": {
+      "type": "string",
+      "description": "The date CMS deactivated the NPI, formatted MM/DD/YYYY. Readme max length 10, data type DATE. Read by normalize_provider_rows.py lines 233-252, which turns a populated value into a 'deactivated' entry on the record's active[] event log."
+    },
+    "NPI Reactivation Date": {
+      "type": "string",
+      "description": "The date CMS reactivated a previously deactivated NPI, formatted MM/DD/YYYY. Readme max length 10, data type DATE. Read by normalize_provider_rows.py lines 233-252, which turns a populated value into a 'reactivated' entry on the record's active[] event log."
+    },
+    "Provider Sex Code": {
+      "type": "string",
+      "description": "The individual's sex as recorded in NPPES; the sample carries 'F' and 'M'. Readme max length 1, VARCHAR. Read by normalize_provider_rows.py lines 273-276, which attaches a decoded label via code_labels.sex_label_of."
+    },
+    "Authorized Official Last Name": {
+      "type": "string",
+      "description": "Last name of the organization's authorized official. Organizations only. Readme max length 35, VARCHAR. Carried onto the provider record by the catch-all in pipeline/Code/normalize_provider_rows.py:normalize_raw_record lines 257-270, which snake_cases the column name and drops the value when it is empty."
+    },
+    "Authorized Official First Name": {
+      "type": "string",
+      "description": "First name of the organization's authorized official. Readme max length 35, VARCHAR. Carried onto the provider record by the catch-all in pipeline/Code/normalize_provider_rows.py:normalize_raw_record lines 257-270, which snake_cases the column name and drops the value when it is empty."
+    },
+    "Authorized Official Middle Name": {
+      "type": "string",
+      "description": "Middle name of the organization's authorized official. Readme max length 20, VARCHAR. Carried onto the provider record by the catch-all in pipeline/Code/normalize_provider_rows.py:normalize_raw_record lines 257-270, which snake_cases the column name and drops the value when it is empty."
+    },
+    "Authorized Official Title or Position": {
+      "type": "string",
+      "description": "Title or position held by the organization's authorized official. Readme max length 35, VARCHAR. Carried onto the provider record by the catch-all in pipeline/Code/normalize_provider_rows.py:normalize_raw_record lines 257-270, which snake_cases the column name and drops the value when it is empty."
+    },
+    "Authorized Official Telephone Number": {
+      "type": "string",
+      "description": "Telephone number for the organization's authorized official, digits only in the sample. Readme max length 20, VARCHAR. Carried onto the provider record by the catch-all in pipeline/Code/normalize_provider_rows.py:normalize_raw_record lines 257-270, which snake_cases the column name and drops the value when it is empty."
+    },
+    "Healthcare Provider Taxonomy Code_1": {
+      "type": "string",
+      "description": "NUCC healthcare provider taxonomy code in slot 1 of 15. Readme max length 10, VARCHAR. Read by normalize_provider_rows.py lines 110-126 (TAX_CODE_PREFIX), which collects the non-empty slots into the record's taxonomies[] array."
+    },
+    "Provider License Number_1": {
+      "type": "string",
+      "description": "Provider licence number in slot 1 of 15, paired positionally with Provider License Number State Code_1. Readme max length 20, VARCHAR. Read by normalize_provider_rows.py lines 130-149 (LICENSE_NUMBER_PREFIX)."
+    },
+    "Provider License Number State Code_1": {
+      "type": "string",
+      "description": "Two-letter state code of the licence in slot 1 of 15. Readme max length 2, VARCHAR. Read by normalize_provider_rows.py lines 130-149 (LICENSE_STATE_PREFIX), which also attaches a decoded state label."
+    },
+    "Healthcare Provider Primary Taxonomy Switch_1": {
+      "type": "string",
+      "description": "Whether the taxonomy in slot 1 of 15 is the provider's primary taxonomy. NPPES sets 'Y' on at most one slot per NPI and 'N' or empty on the rest. Readme max length 1, VARCHAR. Read by normalize_provider_rows.py lines 119-126 (TAX_SWITCH_PREFIX), which lifts the 'Y' slot's code to the record's single primary_taxonomy_code field."
+    },
+    "Healthcare Provider Taxonomy Code_2": {
+      "type": "string",
+      "description": "NUCC healthcare provider taxonomy code in slot 2 of 15. Readme max length 10, VARCHAR. Read by normalize_provider_rows.py lines 110-126 (TAX_CODE_PREFIX), which collects the non-empty slots into the record's taxonomies[] array."
+    },
+    "Provider License Number_2": {
+      "type": "string",
+      "description": "Provider licence number in slot 2 of 15, paired positionally with Provider License Number State Code_2. Readme max length 20, VARCHAR. Read by normalize_provider_rows.py lines 130-149 (LICENSE_NUMBER_PREFIX)."
+    },
+    "Provider License Number State Code_2": {
+      "type": "string",
+      "description": "Two-letter state code of the licence in slot 2 of 15. Readme max length 2, VARCHAR. Read by normalize_provider_rows.py lines 130-149 (LICENSE_STATE_PREFIX), which also attaches a decoded state label."
+    },
+    "Healthcare Provider Primary Taxonomy Switch_2": {
+      "type": "string",
+      "description": "Whether the taxonomy in slot 2 of 15 is the provider's primary taxonomy. NPPES sets 'Y' on at most one slot per NPI and 'N' or empty on the rest. Readme max length 1, VARCHAR. Read by normalize_provider_rows.py lines 119-126 (TAX_SWITCH_PREFIX), which lifts the 'Y' slot's code to the record's single primary_taxonomy_code field."
+    },
+    "Healthcare Provider Taxonomy Code_3": {
+      "type": "string",
+      "description": "NUCC healthcare provider taxonomy code in slot 3 of 15. Readme max length 10, VARCHAR. Read by normalize_provider_rows.py lines 110-126 (TAX_CODE_PREFIX), which collects the non-empty slots into the record's taxonomies[] array."
+    },
+    "Provider License Number_3": {
+      "type": "string",
+      "description": "Provider licence number in slot 3 of 15, paired positionally with Provider License Number State Code_3. Readme max length 20, VARCHAR. Read by normalize_provider_rows.py lines 130-149 (LICENSE_NUMBER_PREFIX)."
+    },
+    "Provider License Number State Code_3": {
+      "type": "string",
+      "description": "Two-letter state code of the licence in slot 3 of 15. Readme max length 2, VARCHAR. Read by normalize_provider_rows.py lines 130-149 (LICENSE_STATE_PREFIX), which also attaches a decoded state label."
+    },
+    "Healthcare Provider Primary Taxonomy Switch_3": {
+      "type": "string",
+      "description": "Whether the taxonomy in slot 3 of 15 is the provider's primary taxonomy. NPPES sets 'Y' on at most one slot per NPI and 'N' or empty on the rest. Readme max length 1, VARCHAR. Read by normalize_provider_rows.py lines 119-126 (TAX_SWITCH_PREFIX), which lifts the 'Y' slot's code to the record's single primary_taxonomy_code field."
+    },
+    "Healthcare Provider Taxonomy Code_4": {
+      "type": "string",
+      "description": "NUCC healthcare provider taxonomy code in slot 4 of 15. Readme max length 10, VARCHAR. Read by normalize_provider_rows.py lines 110-126 (TAX_CODE_PREFIX), which collects the non-empty slots into the record's taxonomies[] array."
+    },
+    "Provider License Number_4": {
+      "type": "string",
+      "description": "Provider licence number in slot 4 of 15, paired positionally with Provider License Number State Code_4. Readme max length 20, VARCHAR. Read by normalize_provider_rows.py lines 130-149 (LICENSE_NUMBER_PREFIX)."
+    },
+    "Provider License Number State Code_4": {
+      "type": "string",
+      "description": "Two-letter state code of the licence in slot 4 of 15. Readme max length 2, VARCHAR. Read by normalize_provider_rows.py lines 130-149 (LICENSE_STATE_PREFIX), which also attaches a decoded state label."
+    },
+    "Healthcare Provider Primary Taxonomy Switch_4": {
+      "type": "string",
+      "description": "Whether the taxonomy in slot 4 of 15 is the provider's primary taxonomy. NPPES sets 'Y' on at most one slot per NPI and 'N' or empty on the rest. Readme max length 1, VARCHAR. Read by normalize_provider_rows.py lines 119-126 (TAX_SWITCH_PREFIX), which lifts the 'Y' slot's code to the record's single primary_taxonomy_code field."
+    },
+    "Healthcare Provider Taxonomy Code_5": {
+      "type": "string",
+      "description": "NUCC healthcare provider taxonomy code in slot 5 of 15. Readme max length 10, VARCHAR. Read by normalize_provider_rows.py lines 110-126 (TAX_CODE_PREFIX), which collects the non-empty slots into the record's taxonomies[] array."
+    },
+    "Provider License Number_5": {
+      "type": "string",
+      "description": "Provider licence number in slot 5 of 15, paired positionally with Provider License Number State Code_5. Readme max length 20, VARCHAR. Read by normalize_provider_rows.py lines 130-149 (LICENSE_NUMBER_PREFIX)."
+    },
+    "Provider License Number State Code_5": {
+      "type": "string",
+      "description": "Two-letter state code of the licence in slot 5 of 15. Readme max length 2, VARCHAR. Read by normalize_provider_rows.py lines 130-149 (LICENSE_STATE_PREFIX), which also attaches a decoded state label."
+    },
+    "Healthcare Provider Primary Taxonomy Switch_5": {
+      "type": "string",
+      "description": "Whether the taxonomy in slot 5 of 15 is the provider's primary taxonomy. NPPES sets 'Y' on at most one slot per NPI and 'N' or empty on the rest. Readme max length 1, VARCHAR. Read by normalize_provider_rows.py lines 119-126 (TAX_SWITCH_PREFIX), which lifts the 'Y' slot's code to the record's single primary_taxonomy_code field."
+    },
+    "Healthcare Provider Taxonomy Code_6": {
+      "type": "string",
+      "description": "NUCC healthcare provider taxonomy code in slot 6 of 15. Readme max length 10, VARCHAR. Read by normalize_provider_rows.py lines 110-126 (TAX_CODE_PREFIX), which collects the non-empty slots into the record's taxonomies[] array."
+    },
+    "Provider License Number_6": {
+      "type": "string",
+      "description": "Provider licence number in slot 6 of 15, paired positionally with Provider License Number State Code_6. Readme max length 20, VARCHAR. Read by normalize_provider_rows.py lines 130-149 (LICENSE_NUMBER_PREFIX)."
+    },
+    "Provider License Number State Code_6": {
+      "type": "string",
+      "description": "Two-letter state code of the licence in slot 6 of 15. Readme max length 2, VARCHAR. Read by normalize_provider_rows.py lines 130-149 (LICENSE_STATE_PREFIX), which also attaches a decoded state label."
+    },
+    "Healthcare Provider Primary Taxonomy Switch_6": {
+      "type": "string",
+      "description": "Whether the taxonomy in slot 6 of 15 is the provider's primary taxonomy. NPPES sets 'Y' on at most one slot per NPI and 'N' or empty on the rest. Readme max length 1, VARCHAR. Read by normalize_provider_rows.py lines 119-126 (TAX_SWITCH_PREFIX), which lifts the 'Y' slot's code to the record's single primary_taxonomy_code field."
+    },
+    "Healthcare Provider Taxonomy Code_7": {
+      "type": "string",
+      "description": "NUCC healthcare provider taxonomy code in slot 7 of 15. Readme max length 10, VARCHAR. Read by normalize_provider_rows.py lines 110-126 (TAX_CODE_PREFIX), which collects the non-empty slots into the record's taxonomies[] array."
+    },
+    "Provider License Number_7": {
+      "type": "string",
+      "description": "Provider licence number in slot 7 of 15, paired positionally with Provider License Number State Code_7. Readme max length 20, VARCHAR. Read by normalize_provider_rows.py lines 130-149 (LICENSE_NUMBER_PREFIX)."
+    },
+    "Provider License Number State Code_7": {
+      "type": "string",
+      "description": "Two-letter state code of the licence in slot 7 of 15. Readme max length 2, VARCHAR. Read by normalize_provider_rows.py lines 130-149 (LICENSE_STATE_PREFIX), which also attaches a decoded state label."
+    },
+    "Healthcare Provider Primary Taxonomy Switch_7": {
+      "type": "string",
+      "description": "Whether the taxonomy in slot 7 of 15 is the provider's primary taxonomy. NPPES sets 'Y' on at most one slot per NPI and 'N' or empty on the rest. Readme max length 1, VARCHAR. Read by normalize_provider_rows.py lines 119-126 (TAX_SWITCH_PREFIX), which lifts the 'Y' slot's code to the record's single primary_taxonomy_code field."
+    },
+    "Healthcare Provider Taxonomy Code_8": {
+      "type": "string",
+      "description": "NUCC healthcare provider taxonomy code in slot 8 of 15. Readme max length 10, VARCHAR. Read by normalize_provider_rows.py lines 110-126 (TAX_CODE_PREFIX), which collects the non-empty slots into the record's taxonomies[] array."
+    },
+    "Provider License Number_8": {
+      "type": "string",
+      "description": "Provider licence number in slot 8 of 15, paired positionally with Provider License Number State Code_8. Readme max length 20, VARCHAR. Read by normalize_provider_rows.py lines 130-149 (LICENSE_NUMBER_PREFIX)."
+    },
+    "Provider License Number State Code_8": {
+      "type": "string",
+      "description": "Two-letter state code of the licence in slot 8 of 15. Readme max length 2, VARCHAR. Read by normalize_provider_rows.py lines 130-149 (LICENSE_STATE_PREFIX), which also attaches a decoded state label."
+    },
+    "Healthcare Provider Primary Taxonomy Switch_8": {
+      "type": "string",
+      "description": "Whether the taxonomy in slot 8 of 15 is the provider's primary taxonomy. NPPES sets 'Y' on at most one slot per NPI and 'N' or empty on the rest. Readme max length 1, VARCHAR. Read by normalize_provider_rows.py lines 119-126 (TAX_SWITCH_PREFIX), which lifts the 'Y' slot's code to the record's single primary_taxonomy_code field."
+    },
+    "Healthcare Provider Taxonomy Code_9": {
+      "type": "string",
+      "description": "NUCC healthcare provider taxonomy code in slot 9 of 15. Readme max length 10, VARCHAR. Read by normalize_provider_rows.py lines 110-126 (TAX_CODE_PREFIX), which collects the non-empty slots into the record's taxonomies[] array."
+    },
+    "Provider License Number_9": {
+      "type": "string",
+      "description": "Provider licence number in slot 9 of 15, paired positionally with Provider License Number State Code_9. Readme max length 20, VARCHAR. Read by normalize_provider_rows.py lines 130-149 (LICENSE_NUMBER_PREFIX)."
+    },
+    "Provider License Number State Code_9": {
+      "type": "string",
+      "description": "Two-letter state code of the licence in slot 9 of 15. Readme max length 2, VARCHAR. Read by normalize_provider_rows.py lines 130-149 (LICENSE_STATE_PREFIX), which also attaches a decoded state label."
+    },
+    "Healthcare Provider Primary Taxonomy Switch_9": {
+      "type": "string",
+      "description": "Whether the taxonomy in slot 9 of 15 is the provider's primary taxonomy. NPPES sets 'Y' on at most one slot per NPI and 'N' or empty on the rest. Readme max length 1, VARCHAR. Read by normalize_provider_rows.py lines 119-126 (TAX_SWITCH_PREFIX), which lifts the 'Y' slot's code to the record's single primary_taxonomy_code field."
+    },
+    "Healthcare Provider Taxonomy Code_10": {
+      "type": "string",
+      "description": "NUCC healthcare provider taxonomy code in slot 10 of 15. Readme max length 10, VARCHAR. Read by normalize_provider_rows.py lines 110-126 (TAX_CODE_PREFIX), which collects the non-empty slots into the record's taxonomies[] array."
+    },
+    "Provider License Number_10": {
+      "type": "string",
+      "description": "Provider licence number in slot 10 of 15, paired positionally with Provider License Number State Code_10. Readme max length 20, VARCHAR. Read by normalize_provider_rows.py lines 130-149 (LICENSE_NUMBER_PREFIX)."
+    },
+    "Provider License Number State Code_10": {
+      "type": "string",
+      "description": "Two-letter state code of the licence in slot 10 of 15. Readme max length 2, VARCHAR. Read by normalize_provider_rows.py lines 130-149 (LICENSE_STATE_PREFIX), which also attaches a decoded state label."
+    },
+    "Healthcare Provider Primary Taxonomy Switch_10": {
+      "type": "string",
+      "description": "Whether the taxonomy in slot 10 of 15 is the provider's primary taxonomy. NPPES sets 'Y' on at most one slot per NPI and 'N' or empty on the rest. Readme max length 1, VARCHAR. Read by normalize_provider_rows.py lines 119-126 (TAX_SWITCH_PREFIX), which lifts the 'Y' slot's code to the record's single primary_taxonomy_code field."
+    },
+    "Healthcare Provider Taxonomy Code_11": {
+      "type": "string",
+      "description": "NUCC healthcare provider taxonomy code in slot 11 of 15. Readme max length 10, VARCHAR. Read by normalize_provider_rows.py lines 110-126 (TAX_CODE_PREFIX), which collects the non-empty slots into the record's taxonomies[] array."
+    },
+    "Provider License Number_11": {
+      "type": "string",
+      "description": "Provider licence number in slot 11 of 15, paired positionally with Provider License Number State Code_11. Readme max length 20, VARCHAR. Read by normalize_provider_rows.py lines 130-149 (LICENSE_NUMBER_PREFIX)."
+    },
+    "Provider License Number State Code_11": {
+      "type": "string",
+      "description": "Two-letter state code of the licence in slot 11 of 15. Readme max length 2, VARCHAR. Read by normalize_provider_rows.py lines 130-149 (LICENSE_STATE_PREFIX), which also attaches a decoded state label."
+    },
+    "Healthcare Provider Primary Taxonomy Switch_11": {
+      "type": "string",
+      "description": "Whether the taxonomy in slot 11 of 15 is the provider's primary taxonomy. NPPES sets 'Y' on at most one slot per NPI and 'N' or empty on the rest. Readme max length 1, VARCHAR. Read by normalize_provider_rows.py lines 119-126 (TAX_SWITCH_PREFIX), which lifts the 'Y' slot's code to the record's single primary_taxonomy_code field."
+    },
+    "Healthcare Provider Taxonomy Code_12": {
+      "type": "string",
+      "description": "NUCC healthcare provider taxonomy code in slot 12 of 15. Readme max length 10, VARCHAR. Read by normalize_provider_rows.py lines 110-126 (TAX_CODE_PREFIX), which collects the non-empty slots into the record's taxonomies[] array."
+    },
+    "Provider License Number_12": {
+      "type": "string",
+      "description": "Provider licence number in slot 12 of 15, paired positionally with Provider License Number State Code_12. Readme max length 20, VARCHAR. Read by normalize_provider_rows.py lines 130-149 (LICENSE_NUMBER_PREFIX)."
+    },
+    "Provider License Number State Code_12": {
+      "type": "string",
+      "description": "Two-letter state code of the licence in slot 12 of 15. Readme max length 2, VARCHAR. Read by normalize_provider_rows.py lines 130-149 (LICENSE_STATE_PREFIX), which also attaches a decoded state label."
+    },
+    "Healthcare Provider Primary Taxonomy Switch_12": {
+      "type": "string",
+      "description": "Whether the taxonomy in slot 12 of 15 is the provider's primary taxonomy. NPPES sets 'Y' on at most one slot per NPI and 'N' or empty on the rest. Readme max length 1, VARCHAR. Read by normalize_provider_rows.py lines 119-126 (TAX_SWITCH_PREFIX), which lifts the 'Y' slot's code to the record's single primary_taxonomy_code field."
+    },
+    "Healthcare Provider Taxonomy Code_13": {
+      "type": "string",
+      "description": "NUCC healthcare provider taxonomy code in slot 13 of 15. Readme max length 10, VARCHAR. Read by normalize_provider_rows.py lines 110-126 (TAX_CODE_PREFIX), which collects the non-empty slots into the record's taxonomies[] array."
+    },
+    "Provider License Number_13": {
+      "type": "string",
+      "description": "Provider licence number in slot 13 of 15, paired positionally with Provider License Number State Code_13. Readme max length 20, VARCHAR. Read by normalize_provider_rows.py lines 130-149 (LICENSE_NUMBER_PREFIX)."
+    },
+    "Provider License Number State Code_13": {
+      "type": "string",
+      "description": "Two-letter state code of the licence in slot 13 of 15. Readme max length 2, VARCHAR. Read by normalize_provider_rows.py lines 130-149 (LICENSE_STATE_PREFIX), which also attaches a decoded state label."
+    },
+    "Healthcare Provider Primary Taxonomy Switch_13": {
+      "type": "string",
+      "description": "Whether the taxonomy in slot 13 of 15 is the provider's primary taxonomy. NPPES sets 'Y' on at most one slot per NPI and 'N' or empty on the rest. Readme max length 1, VARCHAR. Read by normalize_provider_rows.py lines 119-126 (TAX_SWITCH_PREFIX), which lifts the 'Y' slot's code to the record's single primary_taxonomy_code field."
+    },
+    "Healthcare Provider Taxonomy Code_14": {
+      "type": "string",
+      "description": "NUCC healthcare provider taxonomy code in slot 14 of 15. Readme max length 10, VARCHAR. Read by normalize_provider_rows.py lines 110-126 (TAX_CODE_PREFIX), which collects the non-empty slots into the record's taxonomies[] array."
+    },
+    "Provider License Number_14": {
+      "type": "string",
+      "description": "Provider licence number in slot 14 of 15, paired positionally with Provider License Number State Code_14. Readme max length 20, VARCHAR. Read by normalize_provider_rows.py lines 130-149 (LICENSE_NUMBER_PREFIX)."
+    },
+    "Provider License Number State Code_14": {
+      "type": "string",
+      "description": "Two-letter state code of the licence in slot 14 of 15. Readme max length 2, VARCHAR. Read by normalize_provider_rows.py lines 130-149 (LICENSE_STATE_PREFIX), which also attaches a decoded state label."
+    },
+    "Healthcare Provider Primary Taxonomy Switch_14": {
+      "type": "string",
+      "description": "Whether the taxonomy in slot 14 of 15 is the provider's primary taxonomy. NPPES sets 'Y' on at most one slot per NPI and 'N' or empty on the rest. Readme max length 1, VARCHAR. Read by normalize_provider_rows.py lines 119-126 (TAX_SWITCH_PREFIX), which lifts the 'Y' slot's code to the record's single primary_taxonomy_code field."
+    },
+    "Healthcare Provider Taxonomy Code_15": {
+      "type": "string",
+      "description": "NUCC healthcare provider taxonomy code in slot 15 of 15. Readme max length 10, VARCHAR. Read by normalize_provider_rows.py lines 110-126 (TAX_CODE_PREFIX), which collects the non-empty slots into the record's taxonomies[] array."
+    },
+    "Provider License Number_15": {
+      "type": "string",
+      "description": "Provider licence number in slot 15 of 15, paired positionally with Provider License Number State Code_15. Readme max length 20, VARCHAR. Read by normalize_provider_rows.py lines 130-149 (LICENSE_NUMBER_PREFIX)."
+    },
+    "Provider License Number State Code_15": {
+      "type": "string",
+      "description": "Two-letter state code of the licence in slot 15 of 15. Readme max length 2, VARCHAR. Read by normalize_provider_rows.py lines 130-149 (LICENSE_STATE_PREFIX), which also attaches a decoded state label."
+    },
+    "Healthcare Provider Primary Taxonomy Switch_15": {
+      "type": "string",
+      "description": "Whether the taxonomy in slot 15 of 15 is the provider's primary taxonomy. NPPES sets 'Y' on at most one slot per NPI and 'N' or empty on the rest. Readme max length 1, VARCHAR. Read by normalize_provider_rows.py lines 119-126 (TAX_SWITCH_PREFIX), which lifts the 'Y' slot's code to the record's single primary_taxonomy_code field."
+    },
+    "Other Provider Identifier_1": {
+      "type": "string",
+      "description": "A non-NPI identifier the provider holds, in slot 1 of 50, with its type code, state and issuer in the matching slots. Readme max length 20, VARCHAR. Read by normalize_provider_rows.py lines 153-176 (OID_PREFIX), which collects the non-empty slots into the record's other_identifiers[] array; the pipeline derives insurance identifiers from this family and from no separate feed."
+    },
+    "Other Provider Identifier Type Code_1": {
+      "type": "string",
+      "description": "Type code qualifying Other Provider Identifier_1. Readme max length 2, VARCHAR. normalize_provider_rows.py OID_TYPE_DESCRIPTIONS (lines 60-63) decodes only '01' (OTHER) and '05' (MEDICAID), citing NPPES Data Dissemination Code Values section 1.11."
+    },
+    "Other Provider Identifier State_1": {
+      "type": "string",
+      "description": "Two-letter state code scoping Other Provider Identifier_1. Readme max length 2, VARCHAR. Read by normalize_provider_rows.py lines 153-176 (OID_STATE_PREFIX)."
+    },
+    "Other Provider Identifier Issuer_1": {
+      "type": "string",
+      "description": "Name of the body that issued Other Provider Identifier_1. Free text. Readme max length 80, VARCHAR. Read by normalize_provider_rows.py lines 153-176 (OID_ISSUER_PREFIX)."
+    },
+    "Other Provider Identifier_2": {
+      "type": "string",
+      "description": "A non-NPI identifier the provider holds, in slot 2 of 50, with its type code, state and issuer in the matching slots. Readme max length 20, VARCHAR. Read by normalize_provider_rows.py lines 153-176 (OID_PREFIX), which collects the non-empty slots into the record's other_identifiers[] array; the pipeline derives insurance identifiers from this family and from no separate feed."
+    },
+    "Other Provider Identifier Type Code_2": {
+      "type": "string",
+      "description": "Type code qualifying Other Provider Identifier_2. Readme max length 2, VARCHAR. normalize_provider_rows.py OID_TYPE_DESCRIPTIONS (lines 60-63) decodes only '01' (OTHER) and '05' (MEDICAID), citing NPPES Data Dissemination Code Values section 1.11."
+    },
+    "Other Provider Identifier State_2": {
+      "type": "string",
+      "description": "Two-letter state code scoping Other Provider Identifier_2. Readme max length 2, VARCHAR. Read by normalize_provider_rows.py lines 153-176 (OID_STATE_PREFIX)."
+    },
+    "Other Provider Identifier Issuer_2": {
+      "type": "string",
+      "description": "Name of the body that issued Other Provider Identifier_2. Free text. Readme max length 80, VARCHAR. Read by normalize_provider_rows.py lines 153-176 (OID_ISSUER_PREFIX)."
+    },
+    "Other Provider Identifier_3": {
+      "type": "string",
+      "description": "A non-NPI identifier the provider holds, in slot 3 of 50, with its type code, state and issuer in the matching slots. Readme max length 20, VARCHAR. Read by normalize_provider_rows.py lines 153-176 (OID_PREFIX), which collects the non-empty slots into the record's other_identifiers[] array; the pipeline derives insurance identifiers from this family and from no separate feed."
+    },
+    "Other Provider Identifier Type Code_3": {
+      "type": "string",
+      "description": "Type code qualifying Other Provider Identifier_3. Readme max length 2, VARCHAR. normalize_provider_rows.py OID_TYPE_DESCRIPTIONS (lines 60-63) decodes only '01' (OTHER) and '05' (MEDICAID), citing NPPES Data Dissemination Code Values section 1.11."
+    },
+    "Other Provider Identifier State_3": {
+      "type": "string",
+      "description": "Two-letter state code scoping Other Provider Identifier_3. Readme max length 2, VARCHAR. Read by normalize_provider_rows.py lines 153-176 (OID_STATE_PREFIX)."
+    },
+    "Other Provider Identifier Issuer_3": {
+      "type": "string",
+      "description": "Name of the body that issued Other Provider Identifier_3. Free text. Readme max length 80, VARCHAR. Read by normalize_provider_rows.py lines 153-176 (OID_ISSUER_PREFIX)."
+    },
+    "Other Provider Identifier_4": {
+      "type": "string",
+      "description": "A non-NPI identifier the provider holds, in slot 4 of 50, with its type code, state and issuer in the matching slots. Readme max length 20, VARCHAR. Read by normalize_provider_rows.py lines 153-176 (OID_PREFIX), which collects the non-empty slots into the record's other_identifiers[] array; the pipeline derives insurance identifiers from this family and from no separate feed."
+    },
+    "Other Provider Identifier Type Code_4": {
+      "type": "string",
+      "description": "Type code qualifying Other Provider Identifier_4. Readme max length 2, VARCHAR. normalize_provider_rows.py OID_TYPE_DESCRIPTIONS (lines 60-63) decodes only '01' (OTHER) and '05' (MEDICAID), citing NPPES Data Dissemination Code Values section 1.11."
+    },
+    "Other Provider Identifier State_4": {
+      "type": "string",
+      "description": "Two-letter state code scoping Other Provider Identifier_4. Readme max length 2, VARCHAR. Read by normalize_provider_rows.py lines 153-176 (OID_STATE_PREFIX)."
+    },
+    "Other Provider Identifier Issuer_4": {
+      "type": "string",
+      "description": "Name of the body that issued Other Provider Identifier_4. Free text. Readme max length 80, VARCHAR. Read by normalize_provider_rows.py lines 153-176 (OID_ISSUER_PREFIX)."
+    },
+    "Other Provider Identifier_5": {
+      "type": "string",
+      "description": "A non-NPI identifier the provider holds, in slot 5 of 50, with its type code, state and issuer in the matching slots. Readme max length 20, VARCHAR. Read by normalize_provider_rows.py lines 153-176 (OID_PREFIX), which collects the non-empty slots into the record's other_identifiers[] array; the pipeline derives insurance identifiers from this family and from no separate feed."
+    },
+    "Other Provider Identifier Type Code_5": {
+      "type": "string",
+      "description": "Type code qualifying Other Provider Identifier_5. Readme max length 2, VARCHAR. normalize_provider_rows.py OID_TYPE_DESCRIPTIONS (lines 60-63) decodes only '01' (OTHER) and '05' (MEDICAID), citing NPPES Data Dissemination Code Values section 1.11."
+    },
+    "Other Provider Identifier State_5": {
+      "type": "string",
+      "description": "Two-letter state code scoping Other Provider Identifier_5. Readme max length 2, VARCHAR. Read by normalize_provider_rows.py lines 153-176 (OID_STATE_PREFIX)."
+    },
+    "Other Provider Identifier Issuer_5": {
+      "type": "string",
+      "description": "Name of the body that issued Other Provider Identifier_5. Free text. Readme max length 80, VARCHAR. Read by normalize_provider_rows.py lines 153-176 (OID_ISSUER_PREFIX)."
+    },
+    "Other Provider Identifier_6": {
+      "type": "string",
+      "description": "A non-NPI identifier the provider holds, in slot 6 of 50, with its type code, state and issuer in the matching slots. Readme max length 20, VARCHAR. Read by normalize_provider_rows.py lines 153-176 (OID_PREFIX), which collects the non-empty slots into the record's other_identifiers[] array; the pipeline derives insurance identifiers from this family and from no separate feed."
+    },
+    "Other Provider Identifier Type Code_6": {
+      "type": "string",
+      "description": "Type code qualifying Other Provider Identifier_6. Readme max length 2, VARCHAR. normalize_provider_rows.py OID_TYPE_DESCRIPTIONS (lines 60-63) decodes only '01' (OTHER) and '05' (MEDICAID), citing NPPES Data Dissemination Code Values section 1.11."
+    },
+    "Other Provider Identifier State_6": {
+      "type": "string",
+      "description": "Two-letter state code scoping Other Provider Identifier_6. Readme max length 2, VARCHAR. Read by normalize_provider_rows.py lines 153-176 (OID_STATE_PREFIX)."
+    },
+    "Other Provider Identifier Issuer_6": {
+      "type": "string",
+      "description": "Name of the body that issued Other Provider Identifier_6. Free text. Readme max length 80, VARCHAR. Read by normalize_provider_rows.py lines 153-176 (OID_ISSUER_PREFIX)."
+    },
+    "Other Provider Identifier_7": {
+      "type": "string",
+      "description": "A non-NPI identifier the provider holds, in slot 7 of 50, with its type code, state and issuer in the matching slots. Readme max length 20, VARCHAR. Read by normalize_provider_rows.py lines 153-176 (OID_PREFIX), which collects the non-empty slots into the record's other_identifiers[] array; the pipeline derives insurance identifiers from this family and from no separate feed."
+    },
+    "Other Provider Identifier Type Code_7": {
+      "type": "string",
+      "description": "Type code qualifying Other Provider Identifier_7. Readme max length 2, VARCHAR. normalize_provider_rows.py OID_TYPE_DESCRIPTIONS (lines 60-63) decodes only '01' (OTHER) and '05' (MEDICAID), citing NPPES Data Dissemination Code Values section 1.11."
+    },
+    "Other Provider Identifier State_7": {
+      "type": "string",
+      "description": "Two-letter state code scoping Other Provider Identifier_7. Readme max length 2, VARCHAR. Read by normalize_provider_rows.py lines 153-176 (OID_STATE_PREFIX)."
+    },
+    "Other Provider Identifier Issuer_7": {
+      "type": "string",
+      "description": "Name of the body that issued Other Provider Identifier_7. Free text. Readme max length 80, VARCHAR. Read by normalize_provider_rows.py lines 153-176 (OID_ISSUER_PREFIX)."
+    },
+    "Other Provider Identifier_8": {
+      "type": "string",
+      "description": "A non-NPI identifier the provider holds, in slot 8 of 50, with its type code, state and issuer in the matching slots. Readme max length 20, VARCHAR. Read by normalize_provider_rows.py lines 153-176 (OID_PREFIX), which collects the non-empty slots into the record's other_identifiers[] array; the pipeline derives insurance identifiers from this family and from no separate feed."
+    },
+    "Other Provider Identifier Type Code_8": {
+      "type": "string",
+      "description": "Type code qualifying Other Provider Identifier_8. Readme max length 2, VARCHAR. normalize_provider_rows.py OID_TYPE_DESCRIPTIONS (lines 60-63) decodes only '01' (OTHER) and '05' (MEDICAID), citing NPPES Data Dissemination Code Values section 1.11."
+    },
+    "Other Provider Identifier State_8": {
+      "type": "string",
+      "description": "Two-letter state code scoping Other Provider Identifier_8. Readme max length 2, VARCHAR. Read by normalize_provider_rows.py lines 153-176 (OID_STATE_PREFIX)."
+    },
+    "Other Provider Identifier Issuer_8": {
+      "type": "string",
+      "description": "Name of the body that issued Other Provider Identifier_8. Free text. Readme max length 80, VARCHAR. Read by normalize_provider_rows.py lines 153-176 (OID_ISSUER_PREFIX)."
+    },
+    "Other Provider Identifier_9": {
+      "type": "string",
+      "description": "A non-NPI identifier the provider holds, in slot 9 of 50, with its type code, state and issuer in the matching slots. Readme max length 20, VARCHAR. Read by normalize_provider_rows.py lines 153-176 (OID_PREFIX), which collects the non-empty slots into the record's other_identifiers[] array; the pipeline derives insurance identifiers from this family and from no separate feed."
+    },
+    "Other Provider Identifier Type Code_9": {
+      "type": "string",
+      "description": "Type code qualifying Other Provider Identifier_9. Readme max length 2, VARCHAR. normalize_provider_rows.py OID_TYPE_DESCRIPTIONS (lines 60-63) decodes only '01' (OTHER) and '05' (MEDICAID), citing NPPES Data Dissemination Code Values section 1.11."
+    },
+    "Other Provider Identifier State_9": {
+      "type": "string",
+      "description": "Two-letter state code scoping Other Provider Identifier_9. Readme max length 2, VARCHAR. Read by normalize_provider_rows.py lines 153-176 (OID_STATE_PREFIX)."
+    },
+    "Other Provider Identifier Issuer_9": {
+      "type": "string",
+      "description": "Name of the body that issued Other Provider Identifier_9. Free text. Readme max length 80, VARCHAR. Read by normalize_provider_rows.py lines 153-176 (OID_ISSUER_PREFIX)."
+    },
+    "Other Provider Identifier_10": {
+      "type": "string",
+      "description": "A non-NPI identifier the provider holds, in slot 10 of 50, with its type code, state and issuer in the matching slots. Readme max length 20, VARCHAR. Read by normalize_provider_rows.py lines 153-176 (OID_PREFIX), which collects the non-empty slots into the record's other_identifiers[] array; the pipeline derives insurance identifiers from this family and from no separate feed."
+    },
+    "Other Provider Identifier Type Code_10": {
+      "type": "string",
+      "description": "Type code qualifying Other Provider Identifier_10. Readme max length 2, VARCHAR. normalize_provider_rows.py OID_TYPE_DESCRIPTIONS (lines 60-63) decodes only '01' (OTHER) and '05' (MEDICAID), citing NPPES Data Dissemination Code Values section 1.11."
+    },
+    "Other Provider Identifier State_10": {
+      "type": "string",
+      "description": "Two-letter state code scoping Other Provider Identifier_10. Readme max length 2, VARCHAR. Read by normalize_provider_rows.py lines 153-176 (OID_STATE_PREFIX)."
+    },
+    "Other Provider Identifier Issuer_10": {
+      "type": "string",
+      "description": "Name of the body that issued Other Provider Identifier_10. Free text. Readme max length 80, VARCHAR. Read by normalize_provider_rows.py lines 153-176 (OID_ISSUER_PREFIX)."
+    },
+    "Other Provider Identifier_11": {
+      "type": "string",
+      "description": "A non-NPI identifier the provider holds, in slot 11 of 50, with its type code, state and issuer in the matching slots. Readme max length 20, VARCHAR. Read by normalize_provider_rows.py lines 153-176 (OID_PREFIX), which collects the non-empty slots into the record's other_identifiers[] array; the pipeline derives insurance identifiers from this family and from no separate feed."
+    },
+    "Other Provider Identifier Type Code_11": {
+      "type": "string",
+      "description": "Type code qualifying Other Provider Identifier_11. Readme max length 2, VARCHAR. normalize_provider_rows.py OID_TYPE_DESCRIPTIONS (lines 60-63) decodes only '01' (OTHER) and '05' (MEDICAID), citing NPPES Data Dissemination Code Values section 1.11."
+    },
+    "Other Provider Identifier State_11": {
+      "type": "string",
+      "description": "Two-letter state code scoping Other Provider Identifier_11. Readme max length 2, VARCHAR. Read by normalize_provider_rows.py lines 153-176 (OID_STATE_PREFIX)."
+    },
+    "Other Provider Identifier Issuer_11": {
+      "type": "string",
+      "description": "Name of the body that issued Other Provider Identifier_11. Free text. Readme max length 80, VARCHAR. Read by normalize_provider_rows.py lines 153-176 (OID_ISSUER_PREFIX)."
+    },
+    "Other Provider Identifier_12": {
+      "type": "string",
+      "description": "A non-NPI identifier the provider holds, in slot 12 of 50, with its type code, state and issuer in the matching slots. Readme max length 20, VARCHAR. Read by normalize_provider_rows.py lines 153-176 (OID_PREFIX), which collects the non-empty slots into the record's other_identifiers[] array; the pipeline derives insurance identifiers from this family and from no separate feed."
+    },
+    "Other Provider Identifier Type Code_12": {
+      "type": "string",
+      "description": "Type code qualifying Other Provider Identifier_12. Readme max length 2, VARCHAR. normalize_provider_rows.py OID_TYPE_DESCRIPTIONS (lines 60-63) decodes only '01' (OTHER) and '05' (MEDICAID), citing NPPES Data Dissemination Code Values section 1.11."
+    },
+    "Other Provider Identifier State_12": {
+      "type": "string",
+      "description": "Two-letter state code scoping Other Provider Identifier_12. Readme max length 2, VARCHAR. Read by normalize_provider_rows.py lines 153-176 (OID_STATE_PREFIX)."
+    },
+    "Other Provider Identifier Issuer_12": {
+      "type": "string",
+      "description": "Name of the body that issued Other Provider Identifier_12. Free text. Readme max length 80, VARCHAR. Read by normalize_provider_rows.py lines 153-176 (OID_ISSUER_PREFIX)."
+    },
+    "Other Provider Identifier_13": {
+      "type": "string",
+      "description": "A non-NPI identifier the provider holds, in slot 13 of 50, with its type code, state and issuer in the matching slots. Readme max length 20, VARCHAR. Read by normalize_provider_rows.py lines 153-176 (OID_PREFIX), which collects the non-empty slots into the record's other_identifiers[] array; the pipeline derives insurance identifiers from this family and from no separate feed."
+    },
+    "Other Provider Identifier Type Code_13": {
+      "type": "string",
+      "description": "Type code qualifying Other Provider Identifier_13. Readme max length 2, VARCHAR. normalize_provider_rows.py OID_TYPE_DESCRIPTIONS (lines 60-63) decodes only '01' (OTHER) and '05' (MEDICAID), citing NPPES Data Dissemination Code Values section 1.11."
+    },
+    "Other Provider Identifier State_13": {
+      "type": "string",
+      "description": "Two-letter state code scoping Other Provider Identifier_13. Readme max length 2, VARCHAR. Read by normalize_provider_rows.py lines 153-176 (OID_STATE_PREFIX)."
+    },
+    "Other Provider Identifier Issuer_13": {
+      "type": "string",
+      "description": "Name of the body that issued Other Provider Identifier_13. Free text. Readme max length 80, VARCHAR. Read by normalize_provider_rows.py lines 153-176 (OID_ISSUER_PREFIX)."
+    },
+    "Other Provider Identifier_14": {
+      "type": "string",
+      "description": "A non-NPI identifier the provider holds, in slot 14 of 50, with its type code, state and issuer in the matching slots. Readme max length 20, VARCHAR. Read by normalize_provider_rows.py lines 153-176 (OID_PREFIX), which collects the non-empty slots into the record's other_identifiers[] array; the pipeline derives insurance identifiers from this family and from no separate feed."
+    },
+    "Other Provider Identifier Type Code_14": {
+      "type": "string",
+      "description": "Type code qualifying Other Provider Identifier_14. Readme max length 2, VARCHAR. normalize_provider_rows.py OID_TYPE_DESCRIPTIONS (lines 60-63) decodes only '01' (OTHER) and '05' (MEDICAID), citing NPPES Data Dissemination Code Values section 1.11."
+    },
+    "Other Provider Identifier State_14": {
+      "type": "string",
+      "description": "Two-letter state code scoping Other Provider Identifier_14. Readme max length 2, VARCHAR. Read by normalize_provider_rows.py lines 153-176 (OID_STATE_PREFIX)."
+    },
+    "Other Provider Identifier Issuer_14": {
+      "type": "string",
+      "description": "Name of the body that issued Other Provider Identifier_14. Free text. Readme max length 80, VARCHAR. Read by normalize_provider_rows.py lines 153-176 (OID_ISSUER_PREFIX)."
+    },
+    "Other Provider Identifier_15": {
+      "type": "string",
+      "description": "A non-NPI identifier the provider holds, in slot 15 of 50, with its type code, state and issuer in the matching slots. Readme max length 20, VARCHAR. Read by normalize_provider_rows.py lines 153-176 (OID_PREFIX), which collects the non-empty slots into the record's other_identifiers[] array; the pipeline derives insurance identifiers from this family and from no separate feed."
+    },
+    "Other Provider Identifier Type Code_15": {
+      "type": "string",
+      "description": "Type code qualifying Other Provider Identifier_15. Readme max length 2, VARCHAR. normalize_provider_rows.py OID_TYPE_DESCRIPTIONS (lines 60-63) decodes only '01' (OTHER) and '05' (MEDICAID), citing NPPES Data Dissemination Code Values section 1.11."
+    },
+    "Other Provider Identifier State_15": {
+      "type": "string",
+      "description": "Two-letter state code scoping Other Provider Identifier_15. Readme max length 2, VARCHAR. Read by normalize_provider_rows.py lines 153-176 (OID_STATE_PREFIX)."
+    },
+    "Other Provider Identifier Issuer_15": {
+      "type": "string",
+      "description": "Name of the body that issued Other Provider Identifier_15. Free text. Readme max length 80, VARCHAR. Read by normalize_provider_rows.py lines 153-176 (OID_ISSUER_PREFIX)."
+    },
+    "Other Provider Identifier_16": {
+      "type": "string",
+      "description": "A non-NPI identifier the provider holds, in slot 16 of 50, with its type code, state and issuer in the matching slots. Readme max length 20, VARCHAR. Read by normalize_provider_rows.py lines 153-176 (OID_PREFIX), which collects the non-empty slots into the record's other_identifiers[] array; the pipeline derives insurance identifiers from this family and from no separate feed."
+    },
+    "Other Provider Identifier Type Code_16": {
+      "type": "string",
+      "description": "Type code qualifying Other Provider Identifier_16. Readme max length 2, VARCHAR. normalize_provider_rows.py OID_TYPE_DESCRIPTIONS (lines 60-63) decodes only '01' (OTHER) and '05' (MEDICAID), citing NPPES Data Dissemination Code Values section 1.11."
+    },
+    "Other Provider Identifier State_16": {
+      "type": "string",
+      "description": "Two-letter state code scoping Other Provider Identifier_16. Readme max length 2, VARCHAR. Read by normalize_provider_rows.py lines 153-176 (OID_STATE_PREFIX)."
+    },
+    "Other Provider Identifier Issuer_16": {
+      "type": "string",
+      "description": "Name of the body that issued Other Provider Identifier_16. Free text. Readme max length 80, VARCHAR. Read by normalize_provider_rows.py lines 153-176 (OID_ISSUER_PREFIX)."
+    },
+    "Other Provider Identifier_17": {
+      "type": "string",
+      "description": "A non-NPI identifier the provider holds, in slot 17 of 50, with its type code, state and issuer in the matching slots. Readme max length 20, VARCHAR. Read by normalize_provider_rows.py lines 153-176 (OID_PREFIX), which collects the non-empty slots into the record's other_identifiers[] array; the pipeline derives insurance identifiers from this family and from no separate feed."
+    },
+    "Other Provider Identifier Type Code_17": {
+      "type": "string",
+      "description": "Type code qualifying Other Provider Identifier_17. Readme max length 2, VARCHAR. normalize_provider_rows.py OID_TYPE_DESCRIPTIONS (lines 60-63) decodes only '01' (OTHER) and '05' (MEDICAID), citing NPPES Data Dissemination Code Values section 1.11."
+    },
+    "Other Provider Identifier State_17": {
+      "type": "string",
+      "description": "Two-letter state code scoping Other Provider Identifier_17. Readme max length 2, VARCHAR. Read by normalize_provider_rows.py lines 153-176 (OID_STATE_PREFIX)."
+    },
+    "Other Provider Identifier Issuer_17": {
+      "type": "string",
+      "description": "Name of the body that issued Other Provider Identifier_17. Free text. Readme max length 80, VARCHAR. Read by normalize_provider_rows.py lines 153-176 (OID_ISSUER_PREFIX)."
+    },
+    "Other Provider Identifier_18": {
+      "type": "string",
+      "description": "A non-NPI identifier the provider holds, in slot 18 of 50, with its type code, state and issuer in the matching slots. Readme max length 20, VARCHAR. Read by normalize_provider_rows.py lines 153-176 (OID_PREFIX), which collects the non-empty slots into the record's other_identifiers[] array; the pipeline derives insurance identifiers from this family and from no separate feed."
+    },
+    "Other Provider Identifier Type Code_18": {
+      "type": "string",
+      "description": "Type code qualifying Other Provider Identifier_18. Readme max length 2, VARCHAR. normalize_provider_rows.py OID_TYPE_DESCRIPTIONS (lines 60-63) decodes only '01' (OTHER) and '05' (MEDICAID), citing NPPES Data Dissemination Code Values section 1.11."
+    },
+    "Other Provider Identifier State_18": {
+      "type": "string",
+      "description": "Two-letter state code scoping Other Provider Identifier_18. Readme max length 2, VARCHAR. Read by normalize_provider_rows.py lines 153-176 (OID_STATE_PREFIX)."
+    },
+    "Other Provider Identifier Issuer_18": {
+      "type": "string",
+      "description": "Name of the body that issued Other Provider Identifier_18. Free text. Readme max length 80, VARCHAR. Read by normalize_provider_rows.py lines 153-176 (OID_ISSUER_PREFIX)."
+    },
+    "Other Provider Identifier_19": {
+      "type": "string",
+      "description": "A non-NPI identifier the provider holds, in slot 19 of 50, with its type code, state and issuer in the matching slots. Readme max length 20, VARCHAR. Read by normalize_provider_rows.py lines 153-176 (OID_PREFIX), which collects the non-empty slots into the record's other_identifiers[] array; the pipeline derives insurance identifiers from this family and from no separate feed."
+    },
+    "Other Provider Identifier Type Code_19": {
+      "type": "string",
+      "description": "Type code qualifying Other Provider Identifier_19. Readme max length 2, VARCHAR. normalize_provider_rows.py OID_TYPE_DESCRIPTIONS (lines 60-63) decodes only '01' (OTHER) and '05' (MEDICAID), citing NPPES Data Dissemination Code Values section 1.11."
+    },
+    "Other Provider Identifier State_19": {
+      "type": "string",
+      "description": "Two-letter state code scoping Other Provider Identifier_19. Readme max length 2, VARCHAR. Read by normalize_provider_rows.py lines 153-176 (OID_STATE_PREFIX)."
+    },
+    "Other Provider Identifier Issuer_19": {
+      "type": "string",
+      "description": "Name of the body that issued Other Provider Identifier_19. Free text. Readme max length 80, VARCHAR. Read by normalize_provider_rows.py lines 153-176 (OID_ISSUER_PREFIX)."
+    },
+    "Other Provider Identifier_20": {
+      "type": "string",
+      "description": "A non-NPI identifier the provider holds, in slot 20 of 50, with its type code, state and issuer in the matching slots. Readme max length 20, VARCHAR. Read by normalize_provider_rows.py lines 153-176 (OID_PREFIX), which collects the non-empty slots into the record's other_identifiers[] array; the pipeline derives insurance identifiers from this family and from no separate feed."
+    },
+    "Other Provider Identifier Type Code_20": {
+      "type": "string",
+      "description": "Type code qualifying Other Provider Identifier_20. Readme max length 2, VARCHAR. normalize_provider_rows.py OID_TYPE_DESCRIPTIONS (lines 60-63) decodes only '01' (OTHER) and '05' (MEDICAID), citing NPPES Data Dissemination Code Values section 1.11."
+    },
+    "Other Provider Identifier State_20": {
+      "type": "string",
+      "description": "Two-letter state code scoping Other Provider Identifier_20. Readme max length 2, VARCHAR. Read by normalize_provider_rows.py lines 153-176 (OID_STATE_PREFIX)."
+    },
+    "Other Provider Identifier Issuer_20": {
+      "type": "string",
+      "description": "Name of the body that issued Other Provider Identifier_20. Free text. Readme max length 80, VARCHAR. Read by normalize_provider_rows.py lines 153-176 (OID_ISSUER_PREFIX)."
+    },
+    "Other Provider Identifier_21": {
+      "type": "string",
+      "description": "A non-NPI identifier the provider holds, in slot 21 of 50, with its type code, state and issuer in the matching slots. Readme max length 20, VARCHAR. Read by normalize_provider_rows.py lines 153-176 (OID_PREFIX), which collects the non-empty slots into the record's other_identifiers[] array; the pipeline derives insurance identifiers from this family and from no separate feed."
+    },
+    "Other Provider Identifier Type Code_21": {
+      "type": "string",
+      "description": "Type code qualifying Other Provider Identifier_21. Readme max length 2, VARCHAR. normalize_provider_rows.py OID_TYPE_DESCRIPTIONS (lines 60-63) decodes only '01' (OTHER) and '05' (MEDICAID), citing NPPES Data Dissemination Code Values section 1.11."
+    },
+    "Other Provider Identifier State_21": {
+      "type": "string",
+      "description": "Two-letter state code scoping Other Provider Identifier_21. Readme max length 2, VARCHAR. Read by normalize_provider_rows.py lines 153-176 (OID_STATE_PREFIX)."
+    },
+    "Other Provider Identifier Issuer_21": {
+      "type": "string",
+      "description": "Name of the body that issued Other Provider Identifier_21. Free text. Readme max length 80, VARCHAR. Read by normalize_provider_rows.py lines 153-176 (OID_ISSUER_PREFIX)."
+    },
+    "Other Provider Identifier_22": {
+      "type": "string",
+      "description": "A non-NPI identifier the provider holds, in slot 22 of 50, with its type code, state and issuer in the matching slots. Readme max length 20, VARCHAR. Read by normalize_provider_rows.py lines 153-176 (OID_PREFIX), which collects the non-empty slots into the record's other_identifiers[] array; the pipeline derives insurance identifiers from this family and from no separate feed."
+    },
+    "Other Provider Identifier Type Code_22": {
+      "type": "string",
+      "description": "Type code qualifying Other Provider Identifier_22. Readme max length 2, VARCHAR. normalize_provider_rows.py OID_TYPE_DESCRIPTIONS (lines 60-63) decodes only '01' (OTHER) and '05' (MEDICAID), citing NPPES Data Dissemination Code Values section 1.11."
+    },
+    "Other Provider Identifier State_22": {
+      "type": "string",
+      "description": "Two-letter state code scoping Other Provider Identifier_22. Readme max length 2, VARCHAR. Read by normalize_provider_rows.py lines 153-176 (OID_STATE_PREFIX)."
+    },
+    "Other Provider Identifier Issuer_22": {
+      "type": "string",
+      "description": "Name of the body that issued Other Provider Identifier_22. Free text. Readme max length 80, VARCHAR. Read by normalize_provider_rows.py lines 153-176 (OID_ISSUER_PREFIX)."
+    },
+    "Other Provider Identifier_23": {
+      "type": "string",
+      "description": "A non-NPI identifier the provider holds, in slot 23 of 50, with its type code, state and issuer in the matching slots. Readme max length 20, VARCHAR. Read by normalize_provider_rows.py lines 153-176 (OID_PREFIX), which collects the non-empty slots into the record's other_identifiers[] array; the pipeline derives insurance identifiers from this family and from no separate feed."
+    },
+    "Other Provider Identifier Type Code_23": {
+      "type": "string",
+      "description": "Type code qualifying Other Provider Identifier_23. Readme max length 2, VARCHAR. normalize_provider_rows.py OID_TYPE_DESCRIPTIONS (lines 60-63) decodes only '01' (OTHER) and '05' (MEDICAID), citing NPPES Data Dissemination Code Values section 1.11."
+    },
+    "Other Provider Identifier State_23": {
+      "type": "string",
+      "description": "Two-letter state code scoping Other Provider Identifier_23. Readme max length 2, VARCHAR. Read by normalize_provider_rows.py lines 153-176 (OID_STATE_PREFIX)."
+    },
+    "Other Provider Identifier Issuer_23": {
+      "type": "string",
+      "description": "Name of the body that issued Other Provider Identifier_23. Free text. Readme max length 80, VARCHAR. Read by normalize_provider_rows.py lines 153-176 (OID_ISSUER_PREFIX)."
+    },
+    "Other Provider Identifier_24": {
+      "type": "string",
+      "description": "A non-NPI identifier the provider holds, in slot 24 of 50, with its type code, state and issuer in the matching slots. Readme max length 20, VARCHAR. Read by normalize_provider_rows.py lines 153-176 (OID_PREFIX), which collects the non-empty slots into the record's other_identifiers[] array; the pipeline derives insurance identifiers from this family and from no separate feed."
+    },
+    "Other Provider Identifier Type Code_24": {
+      "type": "string",
+      "description": "Type code qualifying Other Provider Identifier_24. Readme max length 2, VARCHAR. normalize_provider_rows.py OID_TYPE_DESCRIPTIONS (lines 60-63) decodes only '01' (OTHER) and '05' (MEDICAID), citing NPPES Data Dissemination Code Values section 1.11."
+    },
+    "Other Provider Identifier State_24": {
+      "type": "string",
+      "description": "Two-letter state code scoping Other Provider Identifier_24. Readme max length 2, VARCHAR. Read by normalize_provider_rows.py lines 153-176 (OID_STATE_PREFIX)."
+    },
+    "Other Provider Identifier Issuer_24": {
+      "type": "string",
+      "description": "Name of the body that issued Other Provider Identifier_24. Free text. Readme max length 80, VARCHAR. Read by normalize_provider_rows.py lines 153-176 (OID_ISSUER_PREFIX)."
+    },
+    "Other Provider Identifier_25": {
+      "type": "string",
+      "description": "A non-NPI identifier the provider holds, in slot 25 of 50, with its type code, state and issuer in the matching slots. Readme max length 20, VARCHAR. Read by normalize_provider_rows.py lines 153-176 (OID_PREFIX), which collects the non-empty slots into the record's other_identifiers[] array; the pipeline derives insurance identifiers from this family and from no separate feed."
+    },
+    "Other Provider Identifier Type Code_25": {
+      "type": "string",
+      "description": "Type code qualifying Other Provider Identifier_25. Readme max length 2, VARCHAR. normalize_provider_rows.py OID_TYPE_DESCRIPTIONS (lines 60-63) decodes only '01' (OTHER) and '05' (MEDICAID), citing NPPES Data Dissemination Code Values section 1.11."
+    },
+    "Other Provider Identifier State_25": {
+      "type": "string",
+      "description": "Two-letter state code scoping Other Provider Identifier_25. Readme max length 2, VARCHAR. Read by normalize_provider_rows.py lines 153-176 (OID_STATE_PREFIX)."
+    },
+    "Other Provider Identifier Issuer_25": {
+      "type": "string",
+      "description": "Name of the body that issued Other Provider Identifier_25. Free text. Readme max length 80, VARCHAR. Read by normalize_provider_rows.py lines 153-176 (OID_ISSUER_PREFIX)."
+    },
+    "Other Provider Identifier_26": {
+      "type": "string",
+      "description": "A non-NPI identifier the provider holds, in slot 26 of 50, with its type code, state and issuer in the matching slots. Readme max length 20, VARCHAR. Read by normalize_provider_rows.py lines 153-176 (OID_PREFIX), which collects the non-empty slots into the record's other_identifiers[] array; the pipeline derives insurance identifiers from this family and from no separate feed."
+    },
+    "Other Provider Identifier Type Code_26": {
+      "type": "string",
+      "description": "Type code qualifying Other Provider Identifier_26. Readme max length 2, VARCHAR. normalize_provider_rows.py OID_TYPE_DESCRIPTIONS (lines 60-63) decodes only '01' (OTHER) and '05' (MEDICAID), citing NPPES Data Dissemination Code Values section 1.11."
+    },
+    "Other Provider Identifier State_26": {
+      "type": "string",
+      "description": "Two-letter state code scoping Other Provider Identifier_26. Readme max length 2, VARCHAR. Read by normalize_provider_rows.py lines 153-176 (OID_STATE_PREFIX)."
+    },
+    "Other Provider Identifier Issuer_26": {
+      "type": "string",
+      "description": "Name of the body that issued Other Provider Identifier_26. Free text. Readme max length 80, VARCHAR. Read by normalize_provider_rows.py lines 153-176 (OID_ISSUER_PREFIX)."
+    },
+    "Other Provider Identifier_27": {
+      "type": "string",
+      "description": "A non-NPI identifier the provider holds, in slot 27 of 50, with its type code, state and issuer in the matching slots. Readme max length 20, VARCHAR. Read by normalize_provider_rows.py lines 153-176 (OID_PREFIX), which collects the non-empty slots into the record's other_identifiers[] array; the pipeline derives insurance identifiers from this family and from no separate feed."
+    },
+    "Other Provider Identifier Type Code_27": {
+      "type": "string",
+      "description": "Type code qualifying Other Provider Identifier_27. Readme max length 2, VARCHAR. normalize_provider_rows.py OID_TYPE_DESCRIPTIONS (lines 60-63) decodes only '01' (OTHER) and '05' (MEDICAID), citing NPPES Data Dissemination Code Values section 1.11."
+    },
+    "Other Provider Identifier State_27": {
+      "type": "string",
+      "description": "Two-letter state code scoping Other Provider Identifier_27. Readme max length 2, VARCHAR. Read by normalize_provider_rows.py lines 153-176 (OID_STATE_PREFIX)."
+    },
+    "Other Provider Identifier Issuer_27": {
+      "type": "string",
+      "description": "Name of the body that issued Other Provider Identifier_27. Free text. Readme max length 80, VARCHAR. Read by normalize_provider_rows.py lines 153-176 (OID_ISSUER_PREFIX)."
+    },
+    "Other Provider Identifier_28": {
+      "type": "string",
+      "description": "A non-NPI identifier the provider holds, in slot 28 of 50, with its type code, state and issuer in the matching slots. Readme max length 20, VARCHAR. Read by normalize_provider_rows.py lines 153-176 (OID_PREFIX), which collects the non-empty slots into the record's other_identifiers[] array; the pipeline derives insurance identifiers from this family and from no separate feed."
+    },
+    "Other Provider Identifier Type Code_28": {
+      "type": "string",
+      "description": "Type code qualifying Other Provider Identifier_28. Readme max length 2, VARCHAR. normalize_provider_rows.py OID_TYPE_DESCRIPTIONS (lines 60-63) decodes only '01' (OTHER) and '05' (MEDICAID), citing NPPES Data Dissemination Code Values section 1.11."
+    },
+    "Other Provider Identifier State_28": {
+      "type": "string",
+      "description": "Two-letter state code scoping Other Provider Identifier_28. Readme max length 2, VARCHAR. Read by normalize_provider_rows.py lines 153-176 (OID_STATE_PREFIX)."
+    },
+    "Other Provider Identifier Issuer_28": {
+      "type": "string",
+      "description": "Name of the body that issued Other Provider Identifier_28. Free text. Readme max length 80, VARCHAR. Read by normalize_provider_rows.py lines 153-176 (OID_ISSUER_PREFIX)."
+    },
+    "Other Provider Identifier_29": {
+      "type": "string",
+      "description": "A non-NPI identifier the provider holds, in slot 29 of 50, with its type code, state and issuer in the matching slots. Readme max length 20, VARCHAR. Read by normalize_provider_rows.py lines 153-176 (OID_PREFIX), which collects the non-empty slots into the record's other_identifiers[] array; the pipeline derives insurance identifiers from this family and from no separate feed."
+    },
+    "Other Provider Identifier Type Code_29": {
+      "type": "string",
+      "description": "Type code qualifying Other Provider Identifier_29. Readme max length 2, VARCHAR. normalize_provider_rows.py OID_TYPE_DESCRIPTIONS (lines 60-63) decodes only '01' (OTHER) and '05' (MEDICAID), citing NPPES Data Dissemination Code Values section 1.11."
+    },
+    "Other Provider Identifier State_29": {
+      "type": "string",
+      "description": "Two-letter state code scoping Other Provider Identifier_29. Readme max length 2, VARCHAR. Read by normalize_provider_rows.py lines 153-176 (OID_STATE_PREFIX)."
+    },
+    "Other Provider Identifier Issuer_29": {
+      "type": "string",
+      "description": "Name of the body that issued Other Provider Identifier_29. Free text. Readme max length 80, VARCHAR. Read by normalize_provider_rows.py lines 153-176 (OID_ISSUER_PREFIX)."
+    },
+    "Other Provider Identifier_30": {
+      "type": "string",
+      "description": "A non-NPI identifier the provider holds, in slot 30 of 50, with its type code, state and issuer in the matching slots. Readme max length 20, VARCHAR. Read by normalize_provider_rows.py lines 153-176 (OID_PREFIX), which collects the non-empty slots into the record's other_identifiers[] array; the pipeline derives insurance identifiers from this family and from no separate feed."
+    },
+    "Other Provider Identifier Type Code_30": {
+      "type": "string",
+      "description": "Type code qualifying Other Provider Identifier_30. Readme max length 2, VARCHAR. normalize_provider_rows.py OID_TYPE_DESCRIPTIONS (lines 60-63) decodes only '01' (OTHER) and '05' (MEDICAID), citing NPPES Data Dissemination Code Values section 1.11."
+    },
+    "Other Provider Identifier State_30": {
+      "type": "string",
+      "description": "Two-letter state code scoping Other Provider Identifier_30. Readme max length 2, VARCHAR. Read by normalize_provider_rows.py lines 153-176 (OID_STATE_PREFIX)."
+    },
+    "Other Provider Identifier Issuer_30": {
+      "type": "string",
+      "description": "Name of the body that issued Other Provider Identifier_30. Free text. Readme max length 80, VARCHAR. Read by normalize_provider_rows.py lines 153-176 (OID_ISSUER_PREFIX)."
+    },
+    "Other Provider Identifier_31": {
+      "type": "string",
+      "description": "A non-NPI identifier the provider holds, in slot 31 of 50, with its type code, state and issuer in the matching slots. Readme max length 20, VARCHAR. Read by normalize_provider_rows.py lines 153-176 (OID_PREFIX), which collects the non-empty slots into the record's other_identifiers[] array; the pipeline derives insurance identifiers from this family and from no separate feed."
+    },
+    "Other Provider Identifier Type Code_31": {
+      "type": "string",
+      "description": "Type code qualifying Other Provider Identifier_31. Readme max length 2, VARCHAR. normalize_provider_rows.py OID_TYPE_DESCRIPTIONS (lines 60-63) decodes only '01' (OTHER) and '05' (MEDICAID), citing NPPES Data Dissemination Code Values section 1.11."
+    },
+    "Other Provider Identifier State_31": {
+      "type": "string",
+      "description": "Two-letter state code scoping Other Provider Identifier_31. Readme max length 2, VARCHAR. Read by normalize_provider_rows.py lines 153-176 (OID_STATE_PREFIX)."
+    },
+    "Other Provider Identifier Issuer_31": {
+      "type": "string",
+      "description": "Name of the body that issued Other Provider Identifier_31. Free text. Readme max length 80, VARCHAR. Read by normalize_provider_rows.py lines 153-176 (OID_ISSUER_PREFIX)."
+    },
+    "Other Provider Identifier_32": {
+      "type": "string",
+      "description": "A non-NPI identifier the provider holds, in slot 32 of 50, with its type code, state and issuer in the matching slots. Readme max length 20, VARCHAR. Read by normalize_provider_rows.py lines 153-176 (OID_PREFIX), which collects the non-empty slots into the record's other_identifiers[] array; the pipeline derives insurance identifiers from this family and from no separate feed."
+    },
+    "Other Provider Identifier Type Code_32": {
+      "type": "string",
+      "description": "Type code qualifying Other Provider Identifier_32. Readme max length 2, VARCHAR. normalize_provider_rows.py OID_TYPE_DESCRIPTIONS (lines 60-63) decodes only '01' (OTHER) and '05' (MEDICAID), citing NPPES Data Dissemination Code Values section 1.11."
+    },
+    "Other Provider Identifier State_32": {
+      "type": "string",
+      "description": "Two-letter state code scoping Other Provider Identifier_32. Readme max length 2, VARCHAR. Read by normalize_provider_rows.py lines 153-176 (OID_STATE_PREFIX)."
+    },
+    "Other Provider Identifier Issuer_32": {
+      "type": "string",
+      "description": "Name of the body that issued Other Provider Identifier_32. Free text. Readme max length 80, VARCHAR. Read by normalize_provider_rows.py lines 153-176 (OID_ISSUER_PREFIX)."
+    },
+    "Other Provider Identifier_33": {
+      "type": "string",
+      "description": "A non-NPI identifier the provider holds, in slot 33 of 50, with its type code, state and issuer in the matching slots. Readme max length 20, VARCHAR. Read by normalize_provider_rows.py lines 153-176 (OID_PREFIX), which collects the non-empty slots into the record's other_identifiers[] array; the pipeline derives insurance identifiers from this family and from no separate feed."
+    },
+    "Other Provider Identifier Type Code_33": {
+      "type": "string",
+      "description": "Type code qualifying Other Provider Identifier_33. Readme max length 2, VARCHAR. normalize_provider_rows.py OID_TYPE_DESCRIPTIONS (lines 60-63) decodes only '01' (OTHER) and '05' (MEDICAID), citing NPPES Data Dissemination Code Values section 1.11."
+    },
+    "Other Provider Identifier State_33": {
+      "type": "string",
+      "description": "Two-letter state code scoping Other Provider Identifier_33. Readme max length 2, VARCHAR. Read by normalize_provider_rows.py lines 153-176 (OID_STATE_PREFIX)."
+    },
+    "Other Provider Identifier Issuer_33": {
+      "type": "string",
+      "description": "Name of the body that issued Other Provider Identifier_33. Free text. Readme max length 80, VARCHAR. Read by normalize_provider_rows.py lines 153-176 (OID_ISSUER_PREFIX)."
+    },
+    "Other Provider Identifier_34": {
+      "type": "string",
+      "description": "A non-NPI identifier the provider holds, in slot 34 of 50, with its type code, state and issuer in the matching slots. Readme max length 20, VARCHAR. Read by normalize_provider_rows.py lines 153-176 (OID_PREFIX), which collects the non-empty slots into the record's other_identifiers[] array; the pipeline derives insurance identifiers from this family and from no separate feed."
+    },
+    "Other Provider Identifier Type Code_34": {
+      "type": "string",
+      "description": "Type code qualifying Other Provider Identifier_34. Readme max length 2, VARCHAR. normalize_provider_rows.py OID_TYPE_DESCRIPTIONS (lines 60-63) decodes only '01' (OTHER) and '05' (MEDICAID), citing NPPES Data Dissemination Code Values section 1.11."
+    },
+    "Other Provider Identifier State_34": {
+      "type": "string",
+      "description": "Two-letter state code scoping Other Provider Identifier_34. Readme max length 2, VARCHAR. Read by normalize_provider_rows.py lines 153-176 (OID_STATE_PREFIX)."
+    },
+    "Other Provider Identifier Issuer_34": {
+      "type": "string",
+      "description": "Name of the body that issued Other Provider Identifier_34. Free text. Readme max length 80, VARCHAR. Read by normalize_provider_rows.py lines 153-176 (OID_ISSUER_PREFIX)."
+    },
+    "Other Provider Identifier_35": {
+      "type": "string",
+      "description": "A non-NPI identifier the provider holds, in slot 35 of 50, with its type code, state and issuer in the matching slots. Readme max length 20, VARCHAR. Read by normalize_provider_rows.py lines 153-176 (OID_PREFIX), which collects the non-empty slots into the record's other_identifiers[] array; the pipeline derives insurance identifiers from this family and from no separate feed."
+    },
+    "Other Provider Identifier Type Code_35": {
+      "type": "string",
+      "description": "Type code qualifying Other Provider Identifier_35. Readme max length 2, VARCHAR. normalize_provider_rows.py OID_TYPE_DESCRIPTIONS (lines 60-63) decodes only '01' (OTHER) and '05' (MEDICAID), citing NPPES Data Dissemination Code Values section 1.11."
+    },
+    "Other Provider Identifier State_35": {
+      "type": "string",
+      "description": "Two-letter state code scoping Other Provider Identifier_35. Readme max length 2, VARCHAR. Read by normalize_provider_rows.py lines 153-176 (OID_STATE_PREFIX)."
+    },
+    "Other Provider Identifier Issuer_35": {
+      "type": "string",
+      "description": "Name of the body that issued Other Provider Identifier_35. Free text. Readme max length 80, VARCHAR. Read by normalize_provider_rows.py lines 153-176 (OID_ISSUER_PREFIX)."
+    },
+    "Other Provider Identifier_36": {
+      "type": "string",
+      "description": "A non-NPI identifier the provider holds, in slot 36 of 50, with its type code, state and issuer in the matching slots. Readme max length 20, VARCHAR. Read by normalize_provider_rows.py lines 153-176 (OID_PREFIX), which collects the non-empty slots into the record's other_identifiers[] array; the pipeline derives insurance identifiers from this family and from no separate feed."
+    },
+    "Other Provider Identifier Type Code_36": {
+      "type": "string",
+      "description": "Type code qualifying Other Provider Identifier_36. Readme max length 2, VARCHAR. normalize_provider_rows.py OID_TYPE_DESCRIPTIONS (lines 60-63) decodes only '01' (OTHER) and '05' (MEDICAID), citing NPPES Data Dissemination Code Values section 1.11."
+    },
+    "Other Provider Identifier State_36": {
+      "type": "string",
+      "description": "Two-letter state code scoping Other Provider Identifier_36. Readme max length 2, VARCHAR. Read by normalize_provider_rows.py lines 153-176 (OID_STATE_PREFIX)."
+    },
+    "Other Provider Identifier Issuer_36": {
+      "type": "string",
+      "description": "Name of the body that issued Other Provider Identifier_36. Free text. Readme max length 80, VARCHAR. Read by normalize_provider_rows.py lines 153-176 (OID_ISSUER_PREFIX)."
+    },
+    "Other Provider Identifier_37": {
+      "type": "string",
+      "description": "A non-NPI identifier the provider holds, in slot 37 of 50, with its type code, state and issuer in the matching slots. Readme max length 20, VARCHAR. Read by normalize_provider_rows.py lines 153-176 (OID_PREFIX), which collects the non-empty slots into the record's other_identifiers[] array; the pipeline derives insurance identifiers from this family and from no separate feed."
+    },
+    "Other Provider Identifier Type Code_37": {
+      "type": "string",
+      "description": "Type code qualifying Other Provider Identifier_37. Readme max length 2, VARCHAR. normalize_provider_rows.py OID_TYPE_DESCRIPTIONS (lines 60-63) decodes only '01' (OTHER) and '05' (MEDICAID), citing NPPES Data Dissemination Code Values section 1.11."
+    },
+    "Other Provider Identifier State_37": {
+      "type": "string",
+      "description": "Two-letter state code scoping Other Provider Identifier_37. Readme max length 2, VARCHAR. Read by normalize_provider_rows.py lines 153-176 (OID_STATE_PREFIX)."
+    },
+    "Other Provider Identifier Issuer_37": {
+      "type": "string",
+      "description": "Name of the body that issued Other Provider Identifier_37. Free text. Readme max length 80, VARCHAR. Read by normalize_provider_rows.py lines 153-176 (OID_ISSUER_PREFIX)."
+    },
+    "Other Provider Identifier_38": {
+      "type": "string",
+      "description": "A non-NPI identifier the provider holds, in slot 38 of 50, with its type code, state and issuer in the matching slots. Readme max length 20, VARCHAR. Read by normalize_provider_rows.py lines 153-176 (OID_PREFIX), which collects the non-empty slots into the record's other_identifiers[] array; the pipeline derives insurance identifiers from this family and from no separate feed."
+    },
+    "Other Provider Identifier Type Code_38": {
+      "type": "string",
+      "description": "Type code qualifying Other Provider Identifier_38. Readme max length 2, VARCHAR. normalize_provider_rows.py OID_TYPE_DESCRIPTIONS (lines 60-63) decodes only '01' (OTHER) and '05' (MEDICAID), citing NPPES Data Dissemination Code Values section 1.11."
+    },
+    "Other Provider Identifier State_38": {
+      "type": "string",
+      "description": "Two-letter state code scoping Other Provider Identifier_38. Readme max length 2, VARCHAR. Read by normalize_provider_rows.py lines 153-176 (OID_STATE_PREFIX)."
+    },
+    "Other Provider Identifier Issuer_38": {
+      "type": "string",
+      "description": "Name of the body that issued Other Provider Identifier_38. Free text. Readme max length 80, VARCHAR. Read by normalize_provider_rows.py lines 153-176 (OID_ISSUER_PREFIX)."
+    },
+    "Other Provider Identifier_39": {
+      "type": "string",
+      "description": "A non-NPI identifier the provider holds, in slot 39 of 50, with its type code, state and issuer in the matching slots. Readme max length 20, VARCHAR. Read by normalize_provider_rows.py lines 153-176 (OID_PREFIX), which collects the non-empty slots into the record's other_identifiers[] array; the pipeline derives insurance identifiers from this family and from no separate feed."
+    },
+    "Other Provider Identifier Type Code_39": {
+      "type": "string",
+      "description": "Type code qualifying Other Provider Identifier_39. Readme max length 2, VARCHAR. normalize_provider_rows.py OID_TYPE_DESCRIPTIONS (lines 60-63) decodes only '01' (OTHER) and '05' (MEDICAID), citing NPPES Data Dissemination Code Values section 1.11."
+    },
+    "Other Provider Identifier State_39": {
+      "type": "string",
+      "description": "Two-letter state code scoping Other Provider Identifier_39. Readme max length 2, VARCHAR. Read by normalize_provider_rows.py lines 153-176 (OID_STATE_PREFIX)."
+    },
+    "Other Provider Identifier Issuer_39": {
+      "type": "string",
+      "description": "Name of the body that issued Other Provider Identifier_39. Free text. Readme max length 80, VARCHAR. Read by normalize_provider_rows.py lines 153-176 (OID_ISSUER_PREFIX)."
+    },
+    "Other Provider Identifier_40": {
+      "type": "string",
+      "description": "A non-NPI identifier the provider holds, in slot 40 of 50, with its type code, state and issuer in the matching slots. Readme max length 20, VARCHAR. Read by normalize_provider_rows.py lines 153-176 (OID_PREFIX), which collects the non-empty slots into the record's other_identifiers[] array; the pipeline derives insurance identifiers from this family and from no separate feed."
+    },
+    "Other Provider Identifier Type Code_40": {
+      "type": "string",
+      "description": "Type code qualifying Other Provider Identifier_40. Readme max length 2, VARCHAR. normalize_provider_rows.py OID_TYPE_DESCRIPTIONS (lines 60-63) decodes only '01' (OTHER) and '05' (MEDICAID), citing NPPES Data Dissemination Code Values section 1.11."
+    },
+    "Other Provider Identifier State_40": {
+      "type": "string",
+      "description": "Two-letter state code scoping Other Provider Identifier_40. Readme max length 2, VARCHAR. Read by normalize_provider_rows.py lines 153-176 (OID_STATE_PREFIX)."
+    },
+    "Other Provider Identifier Issuer_40": {
+      "type": "string",
+      "description": "Name of the body that issued Other Provider Identifier_40. Free text. Readme max length 80, VARCHAR. Read by normalize_provider_rows.py lines 153-176 (OID_ISSUER_PREFIX)."
+    },
+    "Other Provider Identifier_41": {
+      "type": "string",
+      "description": "A non-NPI identifier the provider holds, in slot 41 of 50, with its type code, state and issuer in the matching slots. Readme max length 20, VARCHAR. Read by normalize_provider_rows.py lines 153-176 (OID_PREFIX), which collects the non-empty slots into the record's other_identifiers[] array; the pipeline derives insurance identifiers from this family and from no separate feed."
+    },
+    "Other Provider Identifier Type Code_41": {
+      "type": "string",
+      "description": "Type code qualifying Other Provider Identifier_41. Readme max length 2, VARCHAR. normalize_provider_rows.py OID_TYPE_DESCRIPTIONS (lines 60-63) decodes only '01' (OTHER) and '05' (MEDICAID), citing NPPES Data Dissemination Code Values section 1.11."
+    },
+    "Other Provider Identifier State_41": {
+      "type": "string",
+      "description": "Two-letter state code scoping Other Provider Identifier_41. Readme max length 2, VARCHAR. Read by normalize_provider_rows.py lines 153-176 (OID_STATE_PREFIX)."
+    },
+    "Other Provider Identifier Issuer_41": {
+      "type": "string",
+      "description": "Name of the body that issued Other Provider Identifier_41. Free text. Readme max length 80, VARCHAR. Read by normalize_provider_rows.py lines 153-176 (OID_ISSUER_PREFIX)."
+    },
+    "Other Provider Identifier_42": {
+      "type": "string",
+      "description": "A non-NPI identifier the provider holds, in slot 42 of 50, with its type code, state and issuer in the matching slots. Readme max length 20, VARCHAR. Read by normalize_provider_rows.py lines 153-176 (OID_PREFIX), which collects the non-empty slots into the record's other_identifiers[] array; the pipeline derives insurance identifiers from this family and from no separate feed."
+    },
+    "Other Provider Identifier Type Code_42": {
+      "type": "string",
+      "description": "Type code qualifying Other Provider Identifier_42. Readme max length 2, VARCHAR. normalize_provider_rows.py OID_TYPE_DESCRIPTIONS (lines 60-63) decodes only '01' (OTHER) and '05' (MEDICAID), citing NPPES Data Dissemination Code Values section 1.11."
+    },
+    "Other Provider Identifier State_42": {
+      "type": "string",
+      "description": "Two-letter state code scoping Other Provider Identifier_42. Readme max length 2, VARCHAR. Read by normalize_provider_rows.py lines 153-176 (OID_STATE_PREFIX)."
+    },
+    "Other Provider Identifier Issuer_42": {
+      "type": "string",
+      "description": "Name of the body that issued Other Provider Identifier_42. Free text. Readme max length 80, VARCHAR. Read by normalize_provider_rows.py lines 153-176 (OID_ISSUER_PREFIX)."
+    },
+    "Other Provider Identifier_43": {
+      "type": "string",
+      "description": "A non-NPI identifier the provider holds, in slot 43 of 50, with its type code, state and issuer in the matching slots. Readme max length 20, VARCHAR. Read by normalize_provider_rows.py lines 153-176 (OID_PREFIX), which collects the non-empty slots into the record's other_identifiers[] array; the pipeline derives insurance identifiers from this family and from no separate feed."
+    },
+    "Other Provider Identifier Type Code_43": {
+      "type": "string",
+      "description": "Type code qualifying Other Provider Identifier_43. Readme max length 2, VARCHAR. normalize_provider_rows.py OID_TYPE_DESCRIPTIONS (lines 60-63) decodes only '01' (OTHER) and '05' (MEDICAID), citing NPPES Data Dissemination Code Values section 1.11."
+    },
+    "Other Provider Identifier State_43": {
+      "type": "string",
+      "description": "Two-letter state code scoping Other Provider Identifier_43. Readme max length 2, VARCHAR. Read by normalize_provider_rows.py lines 153-176 (OID_STATE_PREFIX)."
+    },
+    "Other Provider Identifier Issuer_43": {
+      "type": "string",
+      "description": "Name of the body that issued Other Provider Identifier_43. Free text. Readme max length 80, VARCHAR. Read by normalize_provider_rows.py lines 153-176 (OID_ISSUER_PREFIX)."
+    },
+    "Other Provider Identifier_44": {
+      "type": "string",
+      "description": "A non-NPI identifier the provider holds, in slot 44 of 50, with its type code, state and issuer in the matching slots. Readme max length 20, VARCHAR. Read by normalize_provider_rows.py lines 153-176 (OID_PREFIX), which collects the non-empty slots into the record's other_identifiers[] array; the pipeline derives insurance identifiers from this family and from no separate feed."
+    },
+    "Other Provider Identifier Type Code_44": {
+      "type": "string",
+      "description": "Type code qualifying Other Provider Identifier_44. Readme max length 2, VARCHAR. normalize_provider_rows.py OID_TYPE_DESCRIPTIONS (lines 60-63) decodes only '01' (OTHER) and '05' (MEDICAID), citing NPPES Data Dissemination Code Values section 1.11."
+    },
+    "Other Provider Identifier State_44": {
+      "type": "string",
+      "description": "Two-letter state code scoping Other Provider Identifier_44. Readme max length 2, VARCHAR. Read by normalize_provider_rows.py lines 153-176 (OID_STATE_PREFIX)."
+    },
+    "Other Provider Identifier Issuer_44": {
+      "type": "string",
+      "description": "Name of the body that issued Other Provider Identifier_44. Free text. Readme max length 80, VARCHAR. Read by normalize_provider_rows.py lines 153-176 (OID_ISSUER_PREFIX)."
+    },
+    "Other Provider Identifier_45": {
+      "type": "string",
+      "description": "A non-NPI identifier the provider holds, in slot 45 of 50, with its type code, state and issuer in the matching slots. Readme max length 20, VARCHAR. Read by normalize_provider_rows.py lines 153-176 (OID_PREFIX), which collects the non-empty slots into the record's other_identifiers[] array; the pipeline derives insurance identifiers from this family and from no separate feed."
+    },
+    "Other Provider Identifier Type Code_45": {
+      "type": "string",
+      "description": "Type code qualifying Other Provider Identifier_45. Readme max length 2, VARCHAR. normalize_provider_rows.py OID_TYPE_DESCRIPTIONS (lines 60-63) decodes only '01' (OTHER) and '05' (MEDICAID), citing NPPES Data Dissemination Code Values section 1.11."
+    },
+    "Other Provider Identifier State_45": {
+      "type": "string",
+      "description": "Two-letter state code scoping Other Provider Identifier_45. Readme max length 2, VARCHAR. Read by normalize_provider_rows.py lines 153-176 (OID_STATE_PREFIX)."
+    },
+    "Other Provider Identifier Issuer_45": {
+      "type": "string",
+      "description": "Name of the body that issued Other Provider Identifier_45. Free text. Readme max length 80, VARCHAR. Read by normalize_provider_rows.py lines 153-176 (OID_ISSUER_PREFIX)."
+    },
+    "Other Provider Identifier_46": {
+      "type": "string",
+      "description": "A non-NPI identifier the provider holds, in slot 46 of 50, with its type code, state and issuer in the matching slots. Readme max length 20, VARCHAR. Read by normalize_provider_rows.py lines 153-176 (OID_PREFIX), which collects the non-empty slots into the record's other_identifiers[] array; the pipeline derives insurance identifiers from this family and from no separate feed."
+    },
+    "Other Provider Identifier Type Code_46": {
+      "type": "string",
+      "description": "Type code qualifying Other Provider Identifier_46. Readme max length 2, VARCHAR. normalize_provider_rows.py OID_TYPE_DESCRIPTIONS (lines 60-63) decodes only '01' (OTHER) and '05' (MEDICAID), citing NPPES Data Dissemination Code Values section 1.11."
+    },
+    "Other Provider Identifier State_46": {
+      "type": "string",
+      "description": "Two-letter state code scoping Other Provider Identifier_46. Readme max length 2, VARCHAR. Read by normalize_provider_rows.py lines 153-176 (OID_STATE_PREFIX)."
+    },
+    "Other Provider Identifier Issuer_46": {
+      "type": "string",
+      "description": "Name of the body that issued Other Provider Identifier_46. Free text. Readme max length 80, VARCHAR. Read by normalize_provider_rows.py lines 153-176 (OID_ISSUER_PREFIX)."
+    },
+    "Other Provider Identifier_47": {
+      "type": "string",
+      "description": "A non-NPI identifier the provider holds, in slot 47 of 50, with its type code, state and issuer in the matching slots. Readme max length 20, VARCHAR. Read by normalize_provider_rows.py lines 153-176 (OID_PREFIX), which collects the non-empty slots into the record's other_identifiers[] array; the pipeline derives insurance identifiers from this family and from no separate feed."
+    },
+    "Other Provider Identifier Type Code_47": {
+      "type": "string",
+      "description": "Type code qualifying Other Provider Identifier_47. Readme max length 2, VARCHAR. normalize_provider_rows.py OID_TYPE_DESCRIPTIONS (lines 60-63) decodes only '01' (OTHER) and '05' (MEDICAID), citing NPPES Data Dissemination Code Values section 1.11."
+    },
+    "Other Provider Identifier State_47": {
+      "type": "string",
+      "description": "Two-letter state code scoping Other Provider Identifier_47. Readme max length 2, VARCHAR. Read by normalize_provider_rows.py lines 153-176 (OID_STATE_PREFIX)."
+    },
+    "Other Provider Identifier Issuer_47": {
+      "type": "string",
+      "description": "Name of the body that issued Other Provider Identifier_47. Free text. Readme max length 80, VARCHAR. Read by normalize_provider_rows.py lines 153-176 (OID_ISSUER_PREFIX)."
+    },
+    "Other Provider Identifier_48": {
+      "type": "string",
+      "description": "A non-NPI identifier the provider holds, in slot 48 of 50, with its type code, state and issuer in the matching slots. Readme max length 20, VARCHAR. Read by normalize_provider_rows.py lines 153-176 (OID_PREFIX), which collects the non-empty slots into the record's other_identifiers[] array; the pipeline derives insurance identifiers from this family and from no separate feed."
+    },
+    "Other Provider Identifier Type Code_48": {
+      "type": "string",
+      "description": "Type code qualifying Other Provider Identifier_48. Readme max length 2, VARCHAR. normalize_provider_rows.py OID_TYPE_DESCRIPTIONS (lines 60-63) decodes only '01' (OTHER) and '05' (MEDICAID), citing NPPES Data Dissemination Code Values section 1.11."
+    },
+    "Other Provider Identifier State_48": {
+      "type": "string",
+      "description": "Two-letter state code scoping Other Provider Identifier_48. Readme max length 2, VARCHAR. Read by normalize_provider_rows.py lines 153-176 (OID_STATE_PREFIX)."
+    },
+    "Other Provider Identifier Issuer_48": {
+      "type": "string",
+      "description": "Name of the body that issued Other Provider Identifier_48. Free text. Readme max length 80, VARCHAR. Read by normalize_provider_rows.py lines 153-176 (OID_ISSUER_PREFIX)."
+    },
+    "Other Provider Identifier_49": {
+      "type": "string",
+      "description": "A non-NPI identifier the provider holds, in slot 49 of 50, with its type code, state and issuer in the matching slots. Readme max length 20, VARCHAR. Read by normalize_provider_rows.py lines 153-176 (OID_PREFIX), which collects the non-empty slots into the record's other_identifiers[] array; the pipeline derives insurance identifiers from this family and from no separate feed."
+    },
+    "Other Provider Identifier Type Code_49": {
+      "type": "string",
+      "description": "Type code qualifying Other Provider Identifier_49. Readme max length 2, VARCHAR. normalize_provider_rows.py OID_TYPE_DESCRIPTIONS (lines 60-63) decodes only '01' (OTHER) and '05' (MEDICAID), citing NPPES Data Dissemination Code Values section 1.11."
+    },
+    "Other Provider Identifier State_49": {
+      "type": "string",
+      "description": "Two-letter state code scoping Other Provider Identifier_49. Readme max length 2, VARCHAR. Read by normalize_provider_rows.py lines 153-176 (OID_STATE_PREFIX)."
+    },
+    "Other Provider Identifier Issuer_49": {
+      "type": "string",
+      "description": "Name of the body that issued Other Provider Identifier_49. Free text. Readme max length 80, VARCHAR. Read by normalize_provider_rows.py lines 153-176 (OID_ISSUER_PREFIX)."
+    },
+    "Other Provider Identifier_50": {
+      "type": "string",
+      "description": "A non-NPI identifier the provider holds, in slot 50 of 50, with its type code, state and issuer in the matching slots. Readme max length 20, VARCHAR. Read by normalize_provider_rows.py lines 153-176 (OID_PREFIX), which collects the non-empty slots into the record's other_identifiers[] array; the pipeline derives insurance identifiers from this family and from no separate feed."
+    },
+    "Other Provider Identifier Type Code_50": {
+      "type": "string",
+      "description": "Type code qualifying Other Provider Identifier_50. Readme max length 2, VARCHAR. normalize_provider_rows.py OID_TYPE_DESCRIPTIONS (lines 60-63) decodes only '01' (OTHER) and '05' (MEDICAID), citing NPPES Data Dissemination Code Values section 1.11."
+    },
+    "Other Provider Identifier State_50": {
+      "type": "string",
+      "description": "Two-letter state code scoping Other Provider Identifier_50. Readme max length 2, VARCHAR. Read by normalize_provider_rows.py lines 153-176 (OID_STATE_PREFIX)."
+    },
+    "Other Provider Identifier Issuer_50": {
+      "type": "string",
+      "description": "Name of the body that issued Other Provider Identifier_50. Free text. Readme max length 80, VARCHAR. Read by normalize_provider_rows.py lines 153-176 (OID_ISSUER_PREFIX)."
+    },
+    "Is Sole Proprietor": {
+      "type": "string",
+      "description": "Whether the individual is a sole proprietor. NPPES supplies 'Y', 'N' or empty. Readme max length 1, VARCHAR. Read by normalize_provider_rows.py lines 277-280, which attaches a decoded label via code_labels.yes_no_label_of."
+    },
+    "Is Organization Subpart": {
+      "type": "string",
+      "description": "Whether the organization is a subpart of a larger organization. NPPES supplies 'Y', 'N' or empty. Readme max length 1, VARCHAR. Carried onto the provider record by the catch-all in pipeline/Code/normalize_provider_rows.py:normalize_raw_record lines 257-270, which snake_cases the column name and drops the value when it is empty."
+    },
+    "Parent Organization LBN": {
+      "type": "string",
+      "description": "Legal business name of the parent organization when Is Organization Subpart is 'Y'. Readme max length 100, VARCHAR. Carried onto the provider record by the catch-all in pipeline/Code/normalize_provider_rows.py:normalize_raw_record lines 257-270, which snake_cases the column name and drops the value when it is empty."
+    },
+    "Parent Organization TIN": {
+      "type": "string",
+      "description": "Taxpayer identification number of the parent organization. Readme max length 9, VARCHAR. Empty on every record of the sample. The pipeline ingests the column and the provider output schema deliberately does not carry it."
+    },
+    "Authorized Official Name Prefix Text": {
+      "type": "string",
+      "description": "Name prefix for the organization's authorized official. Readme max length 5, VARCHAR. Carried onto the provider record by the catch-all in pipeline/Code/normalize_provider_rows.py:normalize_raw_record lines 257-270, which snake_cases the column name and drops the value when it is empty."
+    },
+    "Authorized Official Name Suffix Text": {
+      "type": "string",
+      "description": "Name suffix for the organization's authorized official. Readme max length 5, VARCHAR. Carried onto the provider record by the catch-all in pipeline/Code/normalize_provider_rows.py:normalize_raw_record lines 257-270, which snake_cases the column name and drops the value when it is empty."
+    },
+    "Authorized Official Credential Text": {
+      "type": "string",
+      "description": "Credential text for the organization's authorized official. Readme max length 20, VARCHAR. Carried onto the provider record by the catch-all in pipeline/Code/normalize_provider_rows.py:normalize_raw_record lines 257-270, which snake_cases the column name and drops the value when it is empty."
+    },
+    "Healthcare Provider Taxonomy Group_1": {
+      "type": "string",
+      "description": "NUCC taxonomy group in slot 1 of 15. Readme max length 10, VARCHAR. normalize_provider_rows.py line 110 adds this family to the consumed set so the catch-all skips it, and then never emits it: the column is ingested and discarded."
+    },
+    "Healthcare Provider Taxonomy Group_2": {
+      "type": "string",
+      "description": "NUCC taxonomy group in slot 2 of 15. Readme max length 10, VARCHAR. normalize_provider_rows.py line 110 adds this family to the consumed set so the catch-all skips it, and then never emits it: the column is ingested and discarded."
+    },
+    "Healthcare Provider Taxonomy Group_3": {
+      "type": "string",
+      "description": "NUCC taxonomy group in slot 3 of 15. Readme max length 10, VARCHAR. normalize_provider_rows.py line 110 adds this family to the consumed set so the catch-all skips it, and then never emits it: the column is ingested and discarded."
+    },
+    "Healthcare Provider Taxonomy Group_4": {
+      "type": "string",
+      "description": "NUCC taxonomy group in slot 4 of 15. Readme max length 10, VARCHAR. normalize_provider_rows.py line 110 adds this family to the consumed set so the catch-all skips it, and then never emits it: the column is ingested and discarded."
+    },
+    "Healthcare Provider Taxonomy Group_5": {
+      "type": "string",
+      "description": "NUCC taxonomy group in slot 5 of 15. Readme max length 10, VARCHAR. normalize_provider_rows.py line 110 adds this family to the consumed set so the catch-all skips it, and then never emits it: the column is ingested and discarded."
+    },
+    "Healthcare Provider Taxonomy Group_6": {
+      "type": "string",
+      "description": "NUCC taxonomy group in slot 6 of 15. Readme max length 10, VARCHAR. normalize_provider_rows.py line 110 adds this family to the consumed set so the catch-all skips it, and then never emits it: the column is ingested and discarded."
+    },
+    "Healthcare Provider Taxonomy Group_7": {
+      "type": "string",
+      "description": "NUCC taxonomy group in slot 7 of 15. Readme max length 10, VARCHAR. normalize_provider_rows.py line 110 adds this family to the consumed set so the catch-all skips it, and then never emits it: the column is ingested and discarded."
+    },
+    "Healthcare Provider Taxonomy Group_8": {
+      "type": "string",
+      "description": "NUCC taxonomy group in slot 8 of 15. Readme max length 10, VARCHAR. normalize_provider_rows.py line 110 adds this family to the consumed set so the catch-all skips it, and then never emits it: the column is ingested and discarded."
+    },
+    "Healthcare Provider Taxonomy Group_9": {
+      "type": "string",
+      "description": "NUCC taxonomy group in slot 9 of 15. Readme max length 10, VARCHAR. normalize_provider_rows.py line 110 adds this family to the consumed set so the catch-all skips it, and then never emits it: the column is ingested and discarded."
+    },
+    "Healthcare Provider Taxonomy Group_10": {
+      "type": "string",
+      "description": "NUCC taxonomy group in slot 10 of 15. Readme max length 10, VARCHAR. normalize_provider_rows.py line 110 adds this family to the consumed set so the catch-all skips it, and then never emits it: the column is ingested and discarded."
+    },
+    "Healthcare Provider Taxonomy Group_11": {
+      "type": "string",
+      "description": "NUCC taxonomy group in slot 11 of 15. Readme max length 10, VARCHAR. normalize_provider_rows.py line 110 adds this family to the consumed set so the catch-all skips it, and then never emits it: the column is ingested and discarded."
+    },
+    "Healthcare Provider Taxonomy Group_12": {
+      "type": "string",
+      "description": "NUCC taxonomy group in slot 12 of 15. Readme max length 10, VARCHAR. normalize_provider_rows.py line 110 adds this family to the consumed set so the catch-all skips it, and then never emits it: the column is ingested and discarded."
+    },
+    "Healthcare Provider Taxonomy Group_13": {
+      "type": "string",
+      "description": "NUCC taxonomy group in slot 13 of 15. Readme max length 10, VARCHAR. normalize_provider_rows.py line 110 adds this family to the consumed set so the catch-all skips it, and then never emits it: the column is ingested and discarded."
+    },
+    "Healthcare Provider Taxonomy Group_14": {
+      "type": "string",
+      "description": "NUCC taxonomy group in slot 14 of 15. Readme max length 10, VARCHAR. normalize_provider_rows.py line 110 adds this family to the consumed set so the catch-all skips it, and then never emits it: the column is ingested and discarded."
+    },
+    "Healthcare Provider Taxonomy Group_15": {
+      "type": "string",
+      "description": "NUCC taxonomy group in slot 15 of 15. Readme max length 10, VARCHAR. normalize_provider_rows.py line 110 adds this family to the consumed set so the catch-all skips it, and then never emits it: the column is ingested and discarded."
+    },
+    "Certification Date": {
+      "type": "string",
+      "description": "The date the provider last certified the accuracy of the NPPES record, formatted MM/DD/YYYY. Readme max length 10, data type DATE. Carried onto the provider record by the catch-all in pipeline/Code/normalize_provider_rows.py:normalize_raw_record lines 257-270, which snake_cases the column name and drops the value when it is empty."
+    }
+  },
+  "$defs": {
+    "practice_location_reference_row": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "NPI"
+      ],
+      "description": "One row of the NPPES Practice Location Reference File (pl_pfile), per Readme Exhibit 2-3. It holds the non-primary practice locations for an NPI; the primary practice location is on the main data-file row instead. There are many rows per NPI, so staging_loader.py:_ensure_indexes gives this source a non-unique NPI index (line 316). Read by pipeline/Code/attach_practice_addresses.py, which joins on NPI and merges each row into the provider record's practice_addresses[] array. Same string-only, empty-not-absent conventions as the main row.",
+      "properties": {
+        "NPI": {
+          "type": "string",
+          "description": "The 10-digit NPI this secondary practice location belongs to. Readme Exhibit 2-3 max length 10, data type NUMBER. staging_loader.py:_wrap_row lifts it to the staging document's indexed npi field for source pl_pfile; attach_practice_addresses.py joins on it."
+        },
+        "Provider Secondary Practice Location Address- Address Line 1": {
+          "type": "string",
+          "description": "First line of the secondary practice location address. Readme max length 55, VARCHAR. Read by attach_practice_addresses.py line 47 (_PL_ADDR1). The column name carries a hyphen and no space before it, exactly as spelled here."
+        },
+        "Provider Secondary Practice Location Address-  Address Line 2": {
+          "type": "string",
+          "description": "Second line of the secondary practice location address. Readme max length 55, VARCHAR. Read by attach_practice_addresses.py line 48 (_PL_ADDR2). The column name carries a hyphen followed by two spaces, exactly as spelled here."
+        },
+        "Provider Secondary Practice Location Address - City Name": {
+          "type": "string",
+          "description": "City of the secondary practice location. Readme max length 40, VARCHAR. Read by attach_practice_addresses.py line 49 (_PL_CITY)."
+        },
+        "Provider Secondary Practice Location Address - State Name": {
+          "type": "string",
+          "description": "State of the secondary practice location. Readme max length 40, VARCHAR. Read by attach_practice_addresses.py line 50 (_PL_STATE)."
+        },
+        "Provider Secondary Practice Location Address - Postal Code": {
+          "type": "string",
+          "description": "Postal code of the secondary practice location. The source mixes 5-digit, hyphenated ZIP+4 and 9-digit unhyphenated forms; attach_practice_addresses.py line 88 splits on the hyphen and keeps the first five characters. Readme max length 20, VARCHAR."
+        },
+        "Provider Secondary Practice Location Address - Country Code (If outside U.S.)": {
+          "type": "string",
+          "description": "Country code of the secondary practice location. Readme max length 2, VARCHAR. Read by attach_practice_addresses.py line 52 (_PL_COUNTRY)."
+        },
+        "Provider Secondary Practice Location Address - Telephone Number": {
+          "type": "string",
+          "description": "Telephone number for the secondary practice location. Readme max length 20, VARCHAR. Read by attach_practice_addresses.py line 53 (_PL_PHONE)."
+        },
+        "Provider Secondary Practice Location Address - Telephone Extension": {
+          "type": "string",
+          "description": "Telephone extension for the secondary practice location. Readme max length 5, VARCHAR, annotated in Exhibit 2-3 as 'Added with DUA #18577'. No pipeline code reads it."
+        },
+        "Provider Practice Location Address - Fax Number": {
+          "type": "string",
+          "description": "Fax number for the secondary practice location. Readme max length 20, VARCHAR. No pipeline code reads it. The column name omits the word Secondary that the other columns in this file carry."
+        }
+      }
+    }
+  }
+}
