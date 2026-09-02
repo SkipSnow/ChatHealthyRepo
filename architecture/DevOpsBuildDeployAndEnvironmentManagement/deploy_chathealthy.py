@@ -717,8 +717,16 @@ def main(argv: list[str] | None = None) -> int:
     # Nothing is deployed from a manifest that does not satisfy the published
     # schema. The deploy validated only inside one selection helper, so
     # whether it happened depended on which path ran.
+    #
+    # Validate the manifest being DEPLOYED, which for dev, qa and prod is the
+    # branch checkout this process is running from -- not the workstation.
+    # repository_root() answers with the workstation on purpose, because that
+    # is where .env and the build output live, and validation borrowed that
+    # answer. The effect was that an uncommitted edit on the workstation could
+    # fail a deploy of committed code it would never ship, which is the same
+    # confusion the build resolved with _get_build_source.
     from record_loader import RecordLoader as _RL
-    _RL.validate_architecture(repo_root)
+    _RL.validate_architecture(Path(__file__).resolve().parents[2])
     _enforce_env_branch_check(repo_root, args.env)
 
     worker, approval = _authorize_deployment(repo_root, args)
