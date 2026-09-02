@@ -385,7 +385,11 @@ def _establish_context() -> Path:
     # runs on the workstation against build output, and the manifest it needs
     # is this repository's.
     import hf_helpers as _hf
-    _hf.set_build_source(repo_root)
+    # The manifest comes from the tree the running code came from. On the
+    # workstation that is the workstation; in a re-executed run it is the
+    # branch checkout, which is what the deploy installs. repo_root stays the
+    # workstation because .env and the build output live there.
+    _hf.set_build_source(Path(__file__).resolve().parents[2])
 
     return repo_root
 
