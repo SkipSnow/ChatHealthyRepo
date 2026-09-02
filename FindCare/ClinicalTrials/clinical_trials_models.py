@@ -269,9 +269,11 @@ class Trial(BaseModel):
 class Request(BaseModel):
     # EPIC-006-F-005-S-001-REQ-B-069 (sex only — gender intentionally absent)
     # EPIC-006-F-005-S-001-REQ-B-074 (geographic_scope: international | us)
+    # No location of the person: no requirement asks a trial search to
+    # narrow by where the person is, and a parameter no requirement
+    # consumes is forbidden by EPIC-006-F-008-S-006-REQ-B-004.
     model_config = {"extra": "ignore"}
     condition: str
-    user_location: Optional[str] = None
     page_size: int = 10
     cursor: Optional[str] = None
     age_years: Optional[int] = None
@@ -283,9 +285,10 @@ class SearchContext(BaseModel):
     """Echoes the actual query parameters the tool used to fetch this page.
     The iframe stores this and re-issues it verbatim on pagination so the
     user's natural-language utterance doesn't leak into the CT.gov call.
-    EPIC-006-F-005-S-001-REQ-B-071."""
+    Every value echoed is a value that reached the registry, so a
+    narrowing that did not narrow anything cannot appear as though it had.
+    EPIC-006-F-005-S-002-REQ-B-008."""
     condition: str = ""
-    user_location: Optional[str] = None
     age_years: Optional[int] = None
     sex: Optional[str] = None
     geographic_scope: Optional[str] = "international"
@@ -298,3 +301,7 @@ class Response(BaseModel):
     page_size: Optional[int] = None
     error: Optional[str] = None
     search_context: SearchContext = Field(default_factory=SearchContext)
+    # The ways of narrowing the search the person has not yet used
+    # (EPIC-006-F-005-S-001-REQ-B-081). FindCare states which exist; the
+    # utterance manager owns asking for them.
+    refinements_not_used: list[str] = Field(default_factory=list)

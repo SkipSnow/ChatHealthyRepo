@@ -37,3 +37,25 @@ if "authentication" not in sys.modules:
     mod = importlib.util.module_from_spec(spec)  # type: ignore[arg-type]
     sys.modules["authentication"] = mod
     spec.loader.exec_module(mod)  # type: ignore[union-attr]
+
+
+# The parameters tool validates every write against the declaration the
+# runtime binds at startup from ChatHealthyConfig.ParameterDeclaration. A
+# unit test runs no startup, so it binds the same declaration from the
+# seed the operator loads into that collection. The content is the
+# record's, not this file's: a test that carried its own page list would
+# be a second declaration.
+import json as _json
+
+_DECLARATION_SEED = (
+    _REPO_ROOT / "architecture" / "FindCare" / "ParameterDeclaration"
+    / "parameter_declaration.seed.json"
+)
+
+
+def pytest_configure(config):  # noqa: ARG001 - pytest hook signature
+    from chathealthy_lib import runtime_data_collections as _rdc
+    seed = _json.loads(_DECLARATION_SEED.read_text(encoding="utf-8"))
+    document = next(d for d in seed["documents"] if d["env"] == "local")
+    _rdc._state.env = "local"
+    _rdc._state.parameter_declaration = document

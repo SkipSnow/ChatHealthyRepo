@@ -324,24 +324,6 @@
       ]
     },
     {
-      "_record_id": "gpt_specialty_ranker_system",
-      "title": "GPT-4.1-mini Specialty Ranker — System Prompt",
-      "role": "Healthcare Triage Expert",
-      "type": "system_prompt",
-      "system_prompt": "You are a healthcare triage expert. Rank specialties by clinical relevance to the patient's query. Return valid JSON only.",
-      "description": "Ranks specialty list by relevance to user search query. Called per search to sort the filter panel. Returns codes in ranked order.",
-      "source_file": "Code/ConversationalUX/FindCareChat/backend/domain/find_care/specialty_ranker.py",
-      "publish": false,
-      "models": [
-        {
-          "vendor": "openai",
-          "name": "gpt-4.1-mini",
-          "status": "active",
-          "reason": "Current model"
-        }
-      ]
-    },
-    {
       "_record_id": "gpt_crosswalk_drug_mapping_system",
       "title": "GPT-4.1-mini Drug Indication Mapper — System Prompt (DEPRECATED)",
       "role": "Pharmaceutical Reference",

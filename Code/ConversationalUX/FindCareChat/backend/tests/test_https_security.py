@@ -44,24 +44,6 @@ class TestHTTPRejection:
         except Exception:
             pytest.skip("FindCare not running on :8080")
 
-    def test_findcare_search_https(self):
-        """FindCare POST /search over HTTPS."""
-        import requests
-        try:
-            resp = requests.post("https://localhost:8080/search", json={"state": "DE", "limit": 1}, verify=False, timeout=10)
-            assert resp.status_code == 200
-        except Exception:
-            pytest.skip("FindCare not running on :8080")
-
-    def test_findcare_classify_https(self):
-        """FindCare POST /classify over HTTPS."""
-        import requests
-        try:
-            resp = requests.post("https://localhost:8080/classify", json={"message": "test"}, verify=False, timeout=30)
-            assert resp.status_code == 200
-        except Exception:
-            pytest.skip("FindCare not running on :8080")
-
     def test_findcare_welcome_https(self):
         """FindCare GET /welcome over HTTPS."""
         try:

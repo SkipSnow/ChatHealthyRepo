@@ -8,12 +8,17 @@ Realizes:
   - EPIC-010-F-102-S-006-REQ-B-001..REQ-B-005  shared embedding worker;
                                                text-embedding-3-large;
                                                write vector back to record
-  - EPIC-008-F-011-S-004-REQ-B-001             canonical embedding model
-                                               is text-embedding-3-large
+  - EPIC-008-F-011-S-004-REQ-B-001             one embedding model across
+                                               the application
 
 Contract:
-  Embedding model:    text-embedding-3-large (OpenAI)
-  Vector dimensions:  3072 (native for the canonical model)
+  Embedding model:    the firm's one declaration, read by the facade from
+                      the CH_EMBEDDING_MODEL binding this target carries.
+                      This module names no model: the pipeline writes the
+                      vectors and FindCare queries them, and if the two
+                      ever embedded under different models the search
+                      would return nonsense and nothing would raise.
+  Vector dimensions:  3072 (native for the declared model)
   Vector field:       SpecialtyMetaData_v<N>.embedding
   Version field:      SpecialtyMetaData_v<N>.embedding_model
   Timestamp:          SpecialtyMetaData_v<N>.embedding_generated_at
@@ -34,19 +39,18 @@ Public entry point: `generate_specialty_embeddings(config, mongo, blob)`.
 
 from __future__ import annotations
 from chathealthy_lib.logging_service import ChatHealthyLoggingService
-from chathealthy_lib.exceptions import ChatHealthyException
 
 
-import os
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from datetime import datetime, timezone
 from typing import Any
 
 from pymongo import UpdateOne
 
+from chathealthy_lib.llm import embed, embedding_model_name
+
 _log = ChatHealthyLoggingService()
 
-CANONICAL_MODEL = "text-embedding-3-large"
 CANONICAL_DIM = 3072
 DEFAULT_BATCH_SIZE = 96
 DEFAULT_MAX_IN_FLIGHT = 4
@@ -56,8 +60,8 @@ def _now_iso() -> str:
     return datetime.now(timezone.utc).isoformat()
 
 
-def _needs_embedding(doc: dict) -> bool:
-    if doc.get("embedding_model") != CANONICAL_MODEL:
+def _needs_embedding(doc: dict, model: str) -> bool:
+    if doc.get("embedding_model") != model:
         return True
     vec = doc.get("embedding")
     if not isinstance(vec, list) or len(vec) != CANONICAL_DIM:
@@ -65,26 +69,20 @@ def _needs_embedding(doc: dict) -> bool:
     return False
 
 
-def _build_openai_client(api_key: str | None):
-    key = api_key or os.environ.get("OPENAI_API_KEY", "")
-    if not key:
-        raise ChatHealthyException(mode="runtime_error", message="embedding_engine: OPENAI_API_KEY is not set")
-    try:
-        from openai import OpenAI
-    except ImportError as exc:
-        raise ChatHealthyException(mode="runtime_error", message="embedding_engine: openai package not installed; add to requirements",
-            exception=exc) from exc
-    return OpenAI(api_key=key)
-
-
-def _embed_batch(client, texts: list[str]) -> list[list[float]]:
-    resp = client.embeddings.create(model=CANONICAL_MODEL, input=texts)
-    return [d.embedding for d in resp.data]
+def _embed_batch(texts: list[str]) -> list[list[float]]:
+    """Through the facade, which owns the model, the credential and the
+    retry ladder. This module holds none of the three."""
+    return [
+        embed(text,
+              call_site="embedding_engine._embed_batch",
+              provider="openai", server="pipeline", component="EmbeddingEngine")
+        for text in texts
+    ]
 
 
 def _process_batch(
     *,
-    client,
+    model: str,
     coll,
     batch: list[tuple[Any, str]],
 ) -> tuple[int, int]:
@@ -93,7 +91,7 @@ def _process_batch(
         return 0, 0
     texts = [text for _id, text in batch]
     try:
-        vectors = _embed_batch(client, texts)
+        vectors = _embed_batch(texts)
     except Exception as exc:
         _log.warning("embedding_engine: batch of %d failed: %s", len(batch), exc)
         return 0, len(batch)
@@ -104,7 +102,10 @@ def _process_batch(
             {"_id": doc_id},
             {"$set": {
                 "embedding": vec,
-                "embedding_model": CANONICAL_MODEL,
+                # Stored on every row it writes, so a divergence that
+                # somehow reached the collection is legible in the row
+                # rather than only in the results.
+                "embedding_model": model,
                 "embedding_generated_at": now,
             }},
         ))
@@ -139,13 +140,12 @@ def generate_specialty_embeddings(
     *,
     mongo=None,
 ) -> dict[str, Any]:
-    """Generate text-embedding-3-large embeddings for every SMD row needing one.
+    """Generate embeddings for every SMD row needing one.
 
     Required config keys:
       - specialty_collection  (str "<db>.<coll>")
       - batch_size            (int, default 96)
       - max_in_flight         (int, default 4)
-      - openai_api_key        (str; falls back to OPENAI_API_KEY env)
 
     Iterates every doc in the target collection (no run_id filter — SMD
     is a full-replace snapshot per publish, not a running-accumulation).
@@ -158,14 +158,14 @@ def generate_specialty_embeddings(
     db_name, coll_name = specialty_collection.split(".", 1)
     coll = mongo[db_name][coll_name]
 
-    client = _build_openai_client(config.get("openai_api_key"))
+    model = embedding_model_name()
 
     batches: list[list[tuple[Any, str]]] = []
     current: list[tuple[Any, str]] = []
     candidate = 0
 
     for doc in coll.find({}):
-        if not _needs_embedding(doc):
+        if not _needs_embedding(doc, model):
             continue
         text = _compose_specialty_text(doc)
         if not text:
@@ -181,7 +181,7 @@ def generate_specialty_embeddings(
     updated = 0
     failed = 0
     with ThreadPoolExecutor(max_workers=max(1, max_in_flight)) as pool:
-        futs = [pool.submit(_process_batch, client=client, coll=coll, batch=b) for b in batches]
+        futs = [pool.submit(_process_batch, model=model, coll=coll, batch=b) for b in batches]
         for fut in as_completed(futs):
             u, f = fut.result()
             updated += u
@@ -191,6 +191,6 @@ def generate_specialty_embeddings(
         "candidate_count": candidate,
         "updated_count": updated,
         "failed_count": failed,
-        "model": CANONICAL_MODEL,
+        "model": model,
         "dimensions": CANONICAL_DIM,
     }

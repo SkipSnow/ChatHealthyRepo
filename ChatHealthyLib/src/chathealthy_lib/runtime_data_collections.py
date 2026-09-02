@@ -33,13 +33,17 @@ from pymongo.collection import Collection
 
 from .exceptions import ChatHealthyException
 from .mongo_utilities import ChatHealthyMongoUtilities
-from .logging_service import set_mongo_log_identity
+from .logging_service import set_mongo_log_collection, set_mongo_log_identity
 
 # The front-end services act as frontendUser, including when they write
 # their own logs. The Mongo log handler refuses to build without this, and
 # this module is imported by every service that resolves a data collection,
 # which makes it the front-end equivalent of pipeline_db.
 set_mongo_log_identity("frontendUser")
+# The whole front-end application is one log stream. The collection was a
+# constant in the logging service, which made the front end and the pipeline
+# the same stream; each caller now declares its own beside its identity.
+set_mongo_log_collection("CGFrontEndLogs")
 
 
 # The one spelling of a versioned collection. Shared with mongo_utilities,
@@ -51,6 +55,18 @@ _CONFIG_COLL = "DBVersions"
 
 _PROVIDER_SLOT = "PROVIDER_COLLECTION"
 _SPECIALTY_META_SLOT = "SPECIALTY_META_COLLECTION"
+
+# The parameter declaration: which attributes each page declares, and which
+# parameters carry over between which pages. A second document in the same
+# database, keyed by env exactly as DBVersions is, read by the same
+# connection under the same identity.
+#
+# It is data rather than code because a change to which parameters carry
+# over must take effect without a software release
+# (EPIC-006-F-008-S-002-REQ-B-002). The runtime already reads its own
+# configuration from a place an operator can change, so this needs no new
+# component.
+_PARAMETER_DECLARATION_COLL = "ParameterDeclaration"
 
 
 class _State:
@@ -66,6 +82,8 @@ class _State:
     # harder to see. A base is a fact the binding carries, not a fact
     # recovered from a string.
     bases: dict[tuple[str, str], str] = {}
+    # The parameter declaration for this env: pages[] and carry_over[].
+    parameter_declaration: dict = {}
 
 
 _state = _State()
@@ -256,6 +274,104 @@ def _coll_for(slot: str) -> Collection:
     return _mongo_client()[db_name][coll_name]
 
 
+def _read_parameter_declaration(env: str) -> dict:
+    """The env's parameter declaration, validated against the closed page set.
+
+    The four page names are not in the document. They are fixed in this
+    code because EPIC-006-F-008-S-001-REQ-B-002 closes the set, and a
+    closed set held as data is a set an edit can open.
+    """
+    from .authentication.user_parameters import PAGES
+    coll = _mongo_client()[_CONFIG_DB][_PARAMETER_DECLARATION_COLL]
+    doc = coll.find_one({"env": env})
+    if doc is None:
+        raise ChatHealthyException(
+            mode="config_error",
+            component="runtime_data_collections",
+            message=(
+                f"runtime_data_collections: {_CONFIG_DB}."
+                f"{_PARAMETER_DECLARATION_COLL} has no document for env={env!r}. "
+                "Seed the declaration before starting the runtime "
+                "(EPIC-006-F-008-S-001)."),
+        )
+    for page in doc.get("pages") or []:
+        name = page.get("page")
+        if name not in PAGES:
+            raise ChatHealthyException(
+                mode="config_error",
+                component="runtime_data_collections",
+                message=(
+                    f"parameter declaration for env={env!r} names page {name!r}, "
+                    f"which is not one of the four: {', '.join(PAGES)}."),
+            )
+    for triple in doc.get("carry_over") or []:
+        for key in ("from", "to"):
+            if triple.get(key) not in PAGES:
+                raise ChatHealthyException(
+                    mode="config_error",
+                    component="runtime_data_collections",
+                    message=(
+                        f"parameter declaration for env={env!r} states a "
+                        f"carry-over whose {key} page is {triple.get(key)!r}, "
+                        f"which is not one of the four: {', '.join(PAGES)}."),
+                )
+    return doc
+
+
+def parameter_declaration() -> dict:
+    """The declaration, read where it is used and held after the first read.
+
+    Read on first use rather than at startup. bind_from_manifest binds
+    collection slots, and services that bind slots are not the same set as
+    services that read a parameter: the provider backend binds slots and
+    never reads one, so reading the declaration there made it depend on a
+    collection it has no business touching. The parameters tool is the
+    only reader, and this is read where that tool runs.
+
+    Re-read on the bearer-gated rebind, so a change to which parameters
+    carry over takes effect on the next turn without a build
+    (EPIC-006-F-008-S-002-REQ-B-002).
+    """
+    if not _state.parameter_declaration:
+        env = _state.env or os.environ.get("ENV_PREFIX", "").strip()
+        if not env:
+            raise ChatHealthyException(
+                mode="config_error",
+                component="runtime_data_collections",
+                message=("runtime_data_collections: ENV_PREFIX is not set, so "
+                         "there is no environment whose parameter declaration "
+                         "could be read."),
+            )
+        _state.env = env
+        _state.parameter_declaration = _read_parameter_declaration(env)
+    return _state.parameter_declaration
+
+
+def declared_attributes(page: str) -> dict[str, str]:
+    """attribute -> value_type for one page, from the declaration.
+
+    The declaration is the allowlist: a write naming an attribute the page
+    does not declare is refused, exactly as one naming a fifth page is.
+    """
+    for entry in parameter_declaration().get("pages") or []:
+        if entry.get("page") == page:
+            return {a["name"]: a.get("value_type", "string")
+                    for a in (entry.get("attributes") or []) if a.get("name")}
+    return {}
+
+
+def carry_over_triples(destination: str) -> list[dict]:
+    """The stated triples whose destination is this page.
+
+    Carry-over is a set of stated triples and nothing else produces it.
+    The absence of a triple is the refusal (S-002-REQ-B-003): there is no
+    rule that a parameter of the same name carries between pages, because
+    that is precisely the system-wide rule S-002-REQ-B-001 forbids.
+    """
+    return [t for t in (parameter_declaration().get("carry_over") or [])
+            if t.get("to") == destination]
+
+
 def providers_coll() -> Collection:
     return _coll_for(_PROVIDER_SLOT)
 
@@ -331,6 +447,11 @@ def admin_swap(
         # startup binding would have refused.
         new_bindings[slot] = _binding_target(entry)
     _state.bindings = new_bindings
+    # The parameter declaration is dropped on the same rebind, so the next
+    # read picks up a change to which parameters carry over and it takes
+    # effect on the next turn without a build
+    # (EPIC-006-F-008-S-002-REQ-B-002).
+    _state.parameter_declaration = {}
     return {"status": "ok", "target_id": _state.target_id, "env": _state.env, "bindings": new_bindings}
 
 

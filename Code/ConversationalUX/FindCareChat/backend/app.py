@@ -223,8 +223,7 @@ specialty_service = SpecialtyFilter(
     get_db_fn=get_db, env_prefix=ENV_PREFIX,
     get_vector_fn=embedding_client.get_specialty_vector)
 find_care = FindCareService(
-    get_db_fn=get_db, env_prefix=ENV_PREFIX,
-    get_embedding_fn=embedding_client.get_query_embedding, specialty_service=specialty_service)
+    get_db_fn=get_db, env_prefix=ENV_PREFIX, specialty_service=specialty_service)
 
 clinical_trials_service = ClinicalTrialsService()
 provider_detail_service = ProviderDetailService()
@@ -532,8 +531,52 @@ class ChatResponse(BaseModel):
     # postMessage(type: "gui:initiate-oauth-google").
     oauth_init: Optional[str] = None
 
+SHARED_SERVICES_ORIGIN = "SharedServices"
+
+
+def require_gateway_signature(session_token: Optional[dict]) -> None:
+    """Refuse a request that did not arrive through the approved gateway.
+
+    EPIC-006-F-001-S-003-REQ-B-004 has two halves. Arriving through the
+    gateway is met by the client having no other address to call; refusing
+    a request that arrived by another route can only be met here, inside
+    FindCare, because the Space is a public HTTPS host and cannot require
+    a client certificate.
+
+    The mechanism is the one the application already carries: SharedServices
+    signs the session token with its own key and FindCare receives
+    SharedServices' certificate as SHARED_CERT_PEM at deploy time. FindCare
+    verifies that signature and does not re-validate the session -- /gate
+    has already done that, and a second validation with a different answer
+    would be worse than none.
+    """
+    if not session_token:
+        raise ChatHealthyException(
+            mode="http_error",
+            component="FindCareBackend",
+            message="request carries no session token; every FindCare route "
+                    "requires one bearing a SharedServices signature",
+            status_code=401,
+        )
+    token = SessionToken.model_validate(session_token)
+    if not token.verify(expected_origin=SHARED_SERVICES_ORIGIN):
+        raise ChatHealthyException(
+            mode="http_error",
+            component="FindCareBackend",
+            message="session token does not bear a valid SharedServices "
+                    "signature",
+            status_code=401,
+        )
+
+
 class SearchRequest(BaseModel):
-    """Direct provider search — bypasses Claude. Used for pagination."""
+    """Direct provider search. Used for pagination.
+
+    entity_type carries no default: it is a property of the page the request
+    was dispatched to, so a request that does not name it is refused rather
+    than falling through to one page's answer.
+    """
+    entity_type: str
     specialty_query: Optional[str] = None
     state: Optional[str] = None
     city: Optional[str] = None
@@ -541,8 +584,19 @@ class SearchRequest(BaseModel):
     zip: Optional[str] = None
     npi: Optional[str] = None
     nucc_codes: Optional[list[str]] = None
-    after_npi: Optional[str] = None
+    # The keyset position and which way the page is taken from it.
+    cursor: Optional[str] = None
+    direction: str = "forward"
     limit: int = 25
+    # The gateway's signature, verified before anything else happens.
+    session_token: Optional[dict] = None
+    # How a facility is named: outright, or by the person who administers
+    # it. Undeclared here they were dropped at this boundary, so a search
+    # that named an administrator returned every organization instead.
+    facility_name: Optional[str] = None
+    administrator_last_name: Optional[str] = None
+    administrator_first_name: Optional[str] = None
+    administrator_middle_name: Optional[str] = None
     # Named outright rather than searched for by what they do.
     last_name: Optional[str] = None
     first_name: Optional[str] = None
@@ -559,7 +613,9 @@ async def search(body: SearchRequest):
     Local catch with mode discrimination per EPIC-008-F-002-S-009-REQ-B-008.
     Catcher classifies caught ChatHealthyException by mode and acts per the
     three-mode taxonomy."""
+    require_gateway_signature(body.session_token)
     params = body.model_dump(exclude_none=True)
+    params.pop("session_token", None)
     try:
         return find_care.search_providers(**params)
     except ChatHealthyException as exc:
@@ -589,6 +645,8 @@ class ClassifyRequest(BaseModel):
     """GOV-011: AI translates the user's question into structured search parameters.
     One AI call. System answers with DB query after."""
     message: str
+    # The gateway's signature, verified before anything else happens.
+    session_token: Optional[dict] = None
 
 def _require_db_for_classify():
     """Guard extracted so /classify does not both raise and log in one body.
@@ -622,6 +680,7 @@ async def classify(body: ClassifyRequest, request: Request):
     instantiated and unreachable -- so this is a restoration, not a
     rewrite, and the stages below are untouched.
     """
+    require_gateway_signature(body.session_token)
     ip = request.headers.get("x-forwarded-for", "").split(",")[0].strip() or (
         request.client.host if request.client else "unknown")
 
@@ -681,7 +740,8 @@ def welcome():
 # forwards each line into the user's /gate stream.
 class _ClinicalTrialsRequest(BaseModel):
     condition: str
-    user_location: Optional[str] = None
+    # The gateway's signature, verified before anything else happens.
+    session_token: Optional[dict] = None
     age_years: Optional[int] = None
     sex: Optional[str] = None
     geographic_scope: Optional[str] = None
@@ -691,6 +751,7 @@ class _ClinicalTrialsRequest(BaseModel):
 
 @app.post("/clinical_trials")
 async def clinical_trials(body: _ClinicalTrialsRequest):
+    require_gateway_signature(body.session_token)
     import asyncio
     import json as _json
     from fastapi.responses import StreamingResponse
@@ -707,7 +768,9 @@ async def clinical_trials(body: _ClinicalTrialsRequest):
             queue.put_nowait(event)
 
     deps = _StreamCollector()
-    req = clinical_trials_tool.Request(**body.model_dump())
+    _tool_fields = body.model_dump()
+    _tool_fields.pop("session_token", None)
+    req = clinical_trials_tool.Request(**_tool_fields)
 
     async def runner():
         try:
@@ -738,7 +801,9 @@ def provider_detail(
     body: ProviderDetailInput,
     background_tasks: BackgroundTasks,
 ) -> ProviderDetailOutput:
+    require_gateway_signature(body.session_token)
     return provider_detail_service.lookup(
+        entity_type=body.entity_type,
         provider_name=body.name or "",
         npi=body.npi,
         state=body.state or "",
@@ -901,302 +966,13 @@ from chathealthy_lib.authentication import (
 ORIGIN = "FindCare"
 
 
-@app.post("/chat", response_model=ChatResponse)
-async def chat(body: ChatRequest, request: Request):
-    ip = request.headers.get("x-forwarded-for", "").split(",")[0].strip() or (
-        request.client.host if request.client else "unknown")
-    try:
-        return await chat_inner(body, request)
-    except Exception as e:
-        tb = traceback.format_exc()
-        # Mode 2 (REQ-B-008): /chat failed; endpoint returns ChatResponse with
-        # an error/error_type for the iframe to render gracefully. NOT 503;
-        # no fatal_error tag.
-        log.error("CHAT ERROR: %s\n%s", e, tb, exc=ChatHealthyException(
-                                                mode="chat_endpoint_failed",
-                                                message=f"CHAT ERROR: {e}",
-                                                component="FindCareBackend",
-                                                exception=e,
-                                            ), if_not_debug_log=True)
-        err_str = str(e)
-        if "429" in err_str or "rate_limit" in err_str.lower():
-            err_type, err_msg = "rate_limit", f"Rate limit hit — {err_str}"
-        elif "unavailable" in err_str.lower() or "connection" in err_str.lower():
-            err_type, err_msg = "db_unavailable", err_str
-        else:
-            err_type, err_msg = "internal", tb if DEBUG else err_str
-        debug_logger.log_chat(ip, body.message, len(body.history), 0, None, None, None, err_msg, body.history)
-        return ChatResponse(error=err_msg, error_type=err_type)
-
 # ---------------------------------------------------------------------------
-# GOV-011-STD-002: Extract user's search term from their message using small model.
-# "find me a bone doc in VA" → "bone doc"
-# "show me shrinks near Richmond" → "shrinks"
+# No browser-addressable surface
 # ---------------------------------------------------------------------------
-def extract_user_search_term(user_message: str) -> str:
-    """Use GPT-4.1-nano to extract the colloquial search term from user's message."""
-    try:
-        from openai import OpenAI
-        client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
-        resp = client.chat.completions.create(
-            model="gpt-4.1-mini",
-            max_tokens=50,
-            messages=[
-                {"role": "system", "content": "Extract ONLY the provider/specialty search term from the user message. Return the PLURAL form preserving the user's exact wording style. Keep possessives and colloquialisms intact. Examples: kid's doc -> kid's docs, bone doc -> bone docs, shrink -> shrinks, children's doctor -> children's doctors. Just the plural term, nothing else."},
-                {"role": "user", "content": user_message},
-            ],
-        )
-        term = resp.choices[0].message.content.strip().strip("'\"")
-        return term if term else user_message
-    except Exception as exc:
-        raise ChatHealthyException(
-            mode="gov_011_std_002_failed",
-            message=f"GOV-011-STD-002 query expansion failed: {exc}",
-            component="FindCareBackend",
-            exception=exc,
-        )
-
-
-# ---------------------------------------------------------------------------
-# GOV-011-STD-001: Strip redundant summary/pagination language from LLM text
-# when the system has already built a summary_message.
-# ---------------------------------------------------------------------------
-def strip_redundant_summary(text: str, total_count: int, page_count: int) -> str:
-    """GOV-011-STD-001: Use GPT-4.1-mini to strip LLM content that duplicates
-    the system summary. Keep only the provider listing. Remove all summary,
-    pagination, filter suggestions, and conversational fluff."""
-    try:
-        from openai import OpenAI
-        client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
-        resp = client.chat.completions.create(
-            model="gpt-4.1-mini",
-            max_tokens=4096,
-            messages=[
-                {"role": "system", "content": (
-                    "You are a content editor. The user will give you an AI response that contains "
-                    "a provider listing mixed with summary/navigation text. "
-                    "KEEP ONLY the provider listing (names, addresses, phones, NPIs). "
-                    "REMOVE everything else: introductions ('Here are the first...'), "
-                    "summaries ('There are N more...'), filter suggestions ('Which type...'), "
-                    "emoji bullet lists of provider types, pagination offers ('Would you like to see more...'), "
-                    "location narrowing offers ('Are you looking in a specific city...'), "
-                    "and any other conversational text that is not a provider record. "
-                    "Return ONLY the cleaned provider listing. Preserve markdown formatting."
-                )},
-                {"role": "user", "content": text},
-            ],
-        )
-        cleaned = resp.choices[0].message.content.strip()
-        return cleaned if cleaned else text
-    except Exception as exc:
-        raise ChatHealthyException(
-            mode="gov_011_std_001_failed",
-            message=f"GOV-011-STD-001 strip failed: {exc}",
-            component="FindCareBackend",
-            exception=exc,
-        )
-
-
-# ---------------------------------------------------------------------------
-# Chat handler — sequential implementation
-# ---------------------------------------------------------------------------
-sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", "..", "..", "Shared"))
-from llm_client import chat as llm_chat
-
-async def chat_inner(body: ChatRequest, request: Request):
-    ip = request.headers.get("x-forwarded-for", "").split(",")[0].strip() or (
-        request.client.host if request.client else "unknown")
-
-    if safety_service.try_admin_unlock(body.message, ip):
-        return ChatResponse(response="Session unlocked.")
-    if safety_service.is_ip_locked(ip):
-        return ChatResponse(response=EMERGENCY_RESPONSE, emergency=True)
-    if safety_service.is_emergency(body.message):
-        full_history = list(body.history) + [{"role": "user", "content": body.message}]
-        safety_service.lock_ip(ip, trigger_message=body.message, history=full_history)
-        return ChatResponse(response=EMERGENCY_RESPONSE, emergency=True)
-
-    # EPIC-002-F-003-S-004: register/sign-in intent → short-circuit the
-    # chat pipeline and hand control back to the wrapper, which owns
-    # the navigation to Google. Cheap keyword match for MVP.
-    _msg_lower = body.message.lower()
-    _REGISTER_PHRASES = (
-        "i want to register", "want to register",
-        "i want to sign in", "want to sign in",
-        "i want to sign up", "want to sign up",
-        "i want to log in", "want to log in",
-        "i want to login", "want to login",
-        "register me", "sign me in", "sign me up",
-        "log me in",
-    )
-    if any(p in _msg_lower for p in _REGISTER_PHRASES):
-        return ChatResponse(
-            response="Opening Google sign-in…",
-            oauth_init="google",
-        )
-
-    _CHAT_MODEL = os.getenv("CHAT_MODEL", "gpt-4.1")
-
-    user_msg_count = sum(1 for m in body.history if m.get("role") == "user")
-    system = system_prompt(follow_up_check=user_msg_count > 0 and user_msg_count % 5 == 0)
-    messages = list(body.history) + [{"role": "user", "content": body.message}]
-    total_in = total_out = 0
-
-    log.info("CHAT model=%s call=initial msgs=%d", _CHAT_MODEL, len(messages))
-    response = llm_chat(_CHAT_MODEL, messages, tools=anthropic_tools, system=system, max_tokens=4096)
-    total_in  += response.get("usage", {}).get("input_tokens", 0)
-    total_out += response.get("usage", {}).get("output_tokens", 0)
-
-    loop_iter = 0
-    last_provider_result = None
-    last_trials_result = None
-
-    while response.get("stop_reason") in ("tool_calls", "tool_use"):
-        tool_calls = response.get("tool_calls", [])
-        if not tool_calls:
-            break
-        tool_results = tool_router.handle_normalized_tool_calls(tool_calls, messages, format_chat_history)
-
-        for i, tc in enumerate(tool_calls):
-            tc_name = tc["function"]["name"]
-            if tc_name == "find_providers":
-                try:
-                    last_provider_result = json.loads(tool_results[i]["content"])
-                except (json.JSONDecodeError, KeyError, IndexError) as _exc:
-                    # Mode 1 (REQ-B-008): the per-iteration cache of the
-                    # provider tool result stays None; the chat loop still
-                    # continues. No user-facing failure.
-                    log.info("tool_result parse for find_providers failed (ignored): %s", _exc, exc=ChatHealthyException(
-                                                                                                    mode="tool_result_parse_failed",
-                                                                                                    message=f"tool_result parse for find_providers failed (ignored): {_exc}",
-                                                                                                    component="FindCareBackend",
-                                                                                                    exception=_exc,
-                                                                                                ))
-            elif tc_name == "search_clinical_trials":
-                try:
-                    last_trials_result = json.loads(tool_results[i]["content"])
-                except (json.JSONDecodeError, KeyError, IndexError) as _exc:
-                    # Mode 1 (REQ-B-008): the per-iteration cache of the
-                    # clinical-trials result stays None; the chat loop
-                    # still continues. No user-facing failure.
-                    log.info("tool_result parse for search_clinical_trials failed (ignored): %s", _exc, exc=ChatHealthyException(
-                                                                                                            mode="tool_result_parse_failed",
-                                                                                                            message=f"tool_result parse for search_clinical_trials failed (ignored): {_exc}",
-                                                                                                            component="FindCareBackend",
-                                                                                                            exception=_exc,
-                                                                                                        ))
-
-        assistant_msg = {"role": "assistant", "content": response.get("content", "")}
-        if tool_calls:
-            assistant_msg["tool_calls"] = [
-                {"id": tc["id"], "type": "function", "function": tc["function"]}
-                for tc in tool_calls
-            ]
-        messages.append(assistant_msg)
-        for tr in tool_results:
-            messages.append(tr)
-
-        loop_iter += 1
-        log.info("CHAT tool_loop iter=%d tools=%s", loop_iter, [tc["function"]["name"] for tc in tool_calls])
-        response = llm_chat(_CHAT_MODEL, messages, tools=anthropic_tools, system=system, max_tokens=4096)
-        total_in  += response.get("usage", {}).get("input_tokens", 0)
-        total_out += response.get("usage", {}).get("output_tokens", 0)
-
-    text = response.get("content", "")
-    # Replace bare "Skip Snow on LinkedIn" with its markdown link form,
-    # but only when it isn't already in markdown-link form
-    # (i.e., not surrounded by `[` and `]`). No regex per Rule-008.
-    _LI_TARGET = "Skip Snow on LinkedIn"
-    _LI_REPLACEMENT = "[Skip Snow on LinkedIn](https://linkedin.com/in/skipsnow)"
-    _li_out = []
-    _li_i = 0
-    while True:
-        _li_idx = text.find(_LI_TARGET, _li_i)
-        if _li_idx == -1:
-            _li_out.append(text[_li_i:])
-            break
-        _li_prev = text[_li_idx - 1] if _li_idx > 0 else ""
-        _li_after_idx = _li_idx + len(_LI_TARGET)
-        _li_next = text[_li_after_idx] if _li_after_idx < len(text) else ""
-        _li_out.append(text[_li_i:_li_idx])
-        if _li_prev == "[" and _li_next == "]":
-            _li_out.append(_LI_TARGET)
-        else:
-            _li_out.append(_LI_REPLACEMENT)
-        _li_i = _li_after_idx
-    text = "".join(_li_out)
-
-    pagination = None
-    if last_provider_result and isinstance(last_provider_result, dict):
-        total_count = last_provider_result.get("total_count", 0)
-        if total_count > 0:
-            from ProviderManagement.provider_search_service import FindCareService
-            user_term = extract_user_search_term(body.message)
-            user_summary = FindCareService._build_summary_message(
-                has_more=last_provider_result.get("has_more", False),
-                total_count=total_count,
-                page_count=last_provider_result.get("count", 0),
-                specialty_searched=user_term,
-                specialization_options=last_provider_result.get("specialization_options"),
-                state=last_provider_result.get("state", ""),
-                city=(last_provider_result.get("search_params") or {}).get("city", ""),
-                county=(last_provider_result.get("search_params") or {}).get("county", ""),
-            )
-            pagination = PaginationMeta(
-                has_more=last_provider_result.get("has_more", False),
-                first_npi=last_provider_result.get("first_npi"),
-                last_npi=last_provider_result.get("last_npi"),
-                count=last_provider_result.get("count", 0),
-                total_count=total_count,
-                page_start=last_provider_result.get("page_start", 1),
-                page_end=last_provider_result.get("page_end", 0),
-                search_params=last_provider_result.get("search_params"),
-                specialization_options=last_provider_result.get("specialization_options"),
-                summary_message=user_summary,
-            )
-
-    trials_meta = None
-    if last_trials_result and isinstance(last_trials_result, dict):
-        trial_list = last_trials_result.get("trials", [])
-        if trial_list:
-            trial_count = len(trial_list)
-            has_travel = any(t.get("travel_info") for t in trial_list)
-            user_msg = extract_user_search_term(body.message)
-            parts = [f"Found {trial_count} recruiting trial{'s' if trial_count != 1 else ''} for '{user_msg}'."]
-            if has_travel:
-                parts.append(" Travel times included.")
-            parts.append(f" [View all on ClinicalTrials.gov](https://clinicaltrials.gov/search?cond={requests_lib.utils.quote(user_msg)}&aggFilters=status:rec)")
-            trials_meta = TrialsMeta(
-                trial_count=trial_count,
-                condition=user_msg,
-                summary_message="".join(parts),
-            )
-
-    if pagination and pagination.summary_message and text:
-        text = strip_redundant_summary(text, pagination.total_count, pagination.count)
-
-    log.info("CHAT complete tokens_in=%d tokens_out=%d pagination=%s trials=%s",
-              total_in, total_out, bool(pagination), bool(trials_meta))
-    debug_logger.log_chat(ip, body.message, len(body.history), loop_iter, total_in, total_out, text, None)
-    return ChatResponse(response=text, tokens_in=total_in, tokens_out=total_out,
-                        pagination=pagination, trials=trials_meta)
-
-# ---------------------------------------------------------------------------
-# Static files
-# ---------------------------------------------------------------------------
-static_dir = os.path.join(os.path.dirname(__file__), "static")
-if os.path.isdir(static_dir):
-    from starlette.staticfiles import StaticFiles
-    from starlette.responses import FileResponse
-
-    # graph-exempt: static page render — no business logic; per BUG-ARCH-GRAPH-EXEMPT-001
-    @app.get("/")
-    async def serve_index():
-        return FileResponse(
-            os.path.join(static_dir, "index.html"),
-            headers={"Cache-Control": "no-cache, no-store, must-revalidate", "Pragma": "no-cache", "Expires": "0"})
-
-    app.mount("/assets", StaticFiles(directory=os.path.join(static_dir, "assets")), name="assets")
+# The React application is served by the website, not from here. This Space
+# therefore serves nothing a browser loads directly, which is what lets
+# every route on it require a SharedServices signature -- a bundle route
+# that required one could not be loaded by the iframe that needs it.
 
 if __name__ == "__main__":
     import uvicorn

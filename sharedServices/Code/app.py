@@ -144,7 +144,11 @@ async def _chathealthy_exception_to_response(request, exc: ChatHealthyException)
     log.error("%s %s -> %s  mode=%s component=%s  %s",
               request.method, request.url.path, status,
               exc.mode, exc.component or "-", exc.message)
-    return JSONResponse(status_code=status, content={"detail": exc.message})
+    # The mode travels with the response. It is what the panel that has to
+    # say what was being attempted selects its wording from, so the wording
+    # is decided where the failure happened and not on the client.
+    return JSONResponse(status_code=status,
+                        content={"detail": exc.message, "mode": exc.mode})
 
 import datetime as dt
 
@@ -510,6 +514,11 @@ async def gate(
             resp = JSONResponse(content=gate_resp.body_data)
 
         return resp
+    except ChatHealthyException:
+        # The failure was named where it happened. Wrapping it here would
+        # replace that name with this one, and the panel that has to say
+        # what was being attempted reads the name.
+        raise
     except Exception as exc:
         # REQ-T-009: any /gate exception MUST log the full stack with the
         # originating request shape. The browser sees HTTP 500 and renders

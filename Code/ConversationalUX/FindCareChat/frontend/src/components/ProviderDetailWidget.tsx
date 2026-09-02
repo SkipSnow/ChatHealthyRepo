@@ -43,19 +43,40 @@ function buildDetailHtml(data: any): string {
       const label = a.address_type
         ? (String(a.address_type).charAt(0).toUpperCase() + String(a.address_type).slice(1))
         : (i === 0 ? 'Primary' : `Address ${i + 1}`)
-      const line = [a.line1, a.line2, a.city, a.state, a.zip].filter(Boolean).map(_esc).join(', ')
+      const line = [a.line1, a.line2, a.city, a.state, a.zip, a.country].filter(Boolean).map(_esc).join(', ')
       const tail = a.phone ? `Phone: ${_esc(a.phone)}` : ''
+      // The county the address carries, and whether that county is urban
+      // where that is known. The flag is absent when enrichment did not
+      // resolve the address, and an absent flag renders as no urban
+      // statement rather than as a claim of rural.
+      const county = a.county || null
+      const countyName = county && county.name ? _esc(county.name) : ''
+      const urban = county && typeof county.urban === 'boolean'
+        ? (county.urban ? 'Urban' : 'Rural') : ''
+      const countyLine = countyName
+        ? `<div style="font-size:0.85em;color:#6b7280;">County: ${countyName}${urban ? ' &middot; ' + urban : ''}</div>`
+        : ''
       return `<div style="margin:0.3em 0;">
                 <span style="font-weight:600;">${_esc(label)}:</span> ${line}
                 ${tail ? `<div style="font-size:0.85em;color:#6b7280;">${tail}</div>` : ''}
+                ${countyLine}
               </div>`
     }).join('') || `<div style="color:#6b7280;font-style:italic;">No address on file.</div>`
   const licenses = (Array.isArray(p.licenses) ? p.licenses : [])
     .map((l: any) => `${_esc(l.state || '')} ${_esc(l.number || '')}`.trim())
     .filter(Boolean).join(' &middot; ') || 'None on file.'
-  const insurance = (Array.isArray(p.insurance) ? p.insurance : [])
-    .map((ins: any) => _esc(typeof ins === 'string' ? ins : (ins.payer || ins.identifier || '')))
-    .filter(Boolean).join(', ') || 'None on file.'
+  // Four fields per row, so the person can see what the identifier is
+  // rather than infer it. Never labelled as insurance accepted or as
+  // network membership: nothing in this datum establishes either.
+  const payerIdentifiers = (Array.isArray(p.insurance) ? p.insurance : [])
+    .map((ins: any) =>
+      `<div style="margin:0.3em 0;">
+         <span style="font-weight:600;">${_esc(ins.coverage_kind || '')}</span>
+         ${ins.issuer ? ' &middot; ' + _esc(ins.issuer) : ''}
+         ${ins.state ? ' &middot; ' + _esc(ins.state) : ''}
+         ${ins.identifier ? `<div style="font-size:0.85em;color:#6b7280;">Identifier: ${_esc(ins.identifier)}</div>` : ''}
+       </div>`)
+    .join('') || 'None on file.'
   // research_sites is a dict keyed by site slug ('healthgrades', etc.) with
   // {url, name, guidance}. Render each as a labeled link with the guidance
   // sentence underneath. Source: SS provider_detail_tool.Source schema.
@@ -87,8 +108,12 @@ function buildDetailHtml(data: any): string {
       <div style="font-size:0.85em;color:#374151;margin-top:0.2em;">${specialty}</div>
       ${sect('Practice addresses', addrs)}
       ${sect('Licenses', licenses)}
-      ${sect('Insurance', insurance)}
+      ${sect('Payer identifiers this provider carries', payerIdentifiers)}
       ${sect('Research', research)}
+      ${p.unresolved_licensing_state
+        ? sect('Licensing authority',
+               `No licensing authority is held for ${_esc(p.unresolved_licensing_state)}.`)
+        : ''}
     </div>
   `
 }
@@ -165,7 +190,6 @@ export default function ProviderDetailWidget() {
             npi, name,
             specialty: d.specialty || null,
             address:   d.address   || null,
-            county:    d.county    || null,
             phone:     d.phone     || null,
             state:     d.state     || null,
           },

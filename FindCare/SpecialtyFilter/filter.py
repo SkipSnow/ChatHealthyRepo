@@ -19,6 +19,9 @@ import os
 from pathlib import Path
 from typing import Optional
 
+from pydantic import BaseModel, Field
+
+from chathealthy_lib.llm import run_llm_sync
 from chathealthy_lib.runtime_data_collections import specialty_meta_coll
 
 # Resolve project root from this file's location:
@@ -40,6 +43,26 @@ FILTER_RECORD_ID = "specialty_filter_system_prompt"
 CAND_FLOOR = 0.55
 
 UNLICENSED_GROUPS = {"Other Service Providers", "Student, Health Care"}
+
+
+class NormalizedRequest(BaseModel):
+    """Stage 1's answer. Typed, so a malformed answer is rejected by
+    pydantic-ai and re-asked rather than hand-parsed here."""
+    search_term: str = Field(
+        description="The NUCC-aligned text to search specialties with.")
+    complaint: str = Field(
+        default="",
+        description="The same request restated as the kind of problem the "
+                    "person has, in two to four words of plain clinical "
+                    "language.")
+
+
+class KeptCodes(BaseModel):
+    """Stage 4's answer: the NUCC codes the request implies."""
+    codes: list[str] = Field(
+        default_factory=list,
+        description="NUCC taxonomy codes drawn from the candidate set. "
+                    "Empty when the request implies none of them.")
 
 
 
@@ -103,25 +126,46 @@ class SpecialtyFilter:
         self._get_vector = get_vector_fn
         self._normalize_model = normalize_model
         self._filter_model = filter_model
-        # OpenAI client created on first use (so the class can be instantiated
-        # at module-load time before env vars are set).
-        self._oai = None
+        # Two agents, because the two stages are two different asks with two
+        # different prompts and two different output shapes. What they stop
+        # keeping is a client, a credential, a retry policy and a vendor
+        # quirk -- all of that is the facade's.
+        self._normalize_agent = None
+        self._filter_agent = None
         # Lazily loaded so the class can be instantiated even if prompts.json
         # is briefly unreachable; the first find_specialties() call will load.
         self._normalize_prompt: Optional[str] = None
         self._filter_prompt: Optional[str] = None
 
-    def _ensure_openai_client(self):
-        if self._oai is None:
-            api_key = os.environ.get("OPENAI_API_KEY", "")
-            if not api_key:
-                raise ChatHealthyException(
-            mode="runtime_error",
-            component="filter",
-            message="OPENAI_API_KEY missing from environment")
-            from openai import OpenAI
-            self._oai = OpenAI(api_key=api_key)
-        return self._oai
+    def _ensure_normalize_agent(self):
+        if self._normalize_agent is None:
+            from pydantic_ai import Agent, ModelRetry
+            agent = Agent(
+                f"openai:{self._normalize_model}",
+                output_type=NormalizedRequest,
+                system_prompt=self._normalize_prompt + self._DUAL_INSTRUCTION,
+            )
+
+            @agent.output_validator
+            def _require_search_term(result: NormalizedRequest) -> NormalizedRequest:
+                if not result.search_term.strip():
+                    raise ModelRetry(
+                        "search_term was empty. Return the NUCC-aligned text "
+                        "to search specialties with.")
+                return result
+
+            self._normalize_agent = agent
+        return self._normalize_agent
+
+    def _ensure_filter_agent(self):
+        if self._filter_agent is None:
+            from pydantic_ai import Agent
+            self._filter_agent = Agent(
+                f"openai:{self._filter_model}",
+                output_type=KeptCodes,
+                system_prompt=self._filter_prompt,
+            )
+        return self._filter_agent
 
     # ── private prompt loaders ──────────────────────────────────────────────
     def _ensure_prompts_loaded(self) -> None:
@@ -171,56 +215,17 @@ name, never the words they used, never a place.
         Raises on any failure (no fallback per REQ-T-001).
         """
         self._ensure_prompts_loaded()
-        self._ensure_openai_client()
-        r = self._oai.chat.completions.create(
-            model=self._normalize_model, max_tokens=300,
-            response_format={"type": "json_object"},
-            messages=[
-                {"role": "system",
-                 "content": self._normalize_prompt + self._DUAL_INSTRUCTION},
-                {"role": "user", "content": raw_query},
-            ],
-        )
-        text = (r.choices[0].message.content or "").strip()
-        if not text:
-            raise ChatHealthyException(
-            mode="runtime_error",
-            component="filter",
-            message=f"normalize step returned empty text from model "
-                f"{self._normalize_model!r} for query {raw_query!r}")
-        try:
-            parsed = json.loads(text)
-            search_term = str(parsed["search_term"]).strip()
-            complaint = str(parsed.get("complaint") or "").strip()
-        except (ValueError, KeyError, TypeError) as exc:
-            raise ChatHealthyException(
-                mode="runtime_error",
-                component="filter",
-                message=f"normalize step returned no search_term from model "
-                        f"{self._normalize_model!r} for query {raw_query!r}: "
-                        f"{text[:200]}",
-                exception=exc) from exc
-        if not search_term:
-            raise ChatHealthyException(
-                mode="runtime_error",
-                component="filter",
-                message=f"normalize step returned an empty search_term for "
-                        f"query {raw_query!r}")
-        return search_term, complaint
+        result = run_llm_sync(
+            self._ensure_normalize_agent(), raw_query,
+            call_site="SpecialtyFilter.normalize_query",
+            provider="openai", server="find_care", component="SpecialtyFilter")
+        return result.output.search_term.strip(), result.output.complaint.strip()
 
     def embed_query(self, text: str) -> list[float]:
         """Stage 2: embed the normalized text with the canonical model
         (declared at EPIC-008-F-011-S-004-REQ-B-001). Raises if the
         injected embedding function returns no vector (no fallback)."""
-        qvec = self._get_vector(text)
-        if not qvec:
-            raise ChatHealthyException(
-            mode="runtime_error",
-            component="filter",
-            message="embedding step returned no vector — upstream embedding "
-                "client failed (see container logs for the OpenAI/HTTP "
-                "error). This is fatal per REQ-T-001 (no fallback).")
-        return qvec
+        return self._get_vector(text)
 
     @staticmethod
     def _is_inactive(row: dict) -> bool:
@@ -281,28 +286,16 @@ name, never the words they used, never a place.
             f"Normalized request (from upstream LLM): {normalized!r}\n\n"
             f"Candidate NUCC entries (highest cosine first):\n{cand_block}\n"
         )
-        kwargs = dict(
-            model=self._filter_model,
-            messages=[
-                {"role": "system", "content": self._filter_prompt},
-                {"role": "user", "content": user_msg},
-            ],
-        )
-        # gpt-5.x family rejects max_tokens; use max_completion_tokens
-        if self._filter_model.startswith("gpt-5"):
-            kwargs["max_completion_tokens"] = 400
-        else:
-            kwargs["max_tokens"] = 400
-        self._ensure_openai_client()
-        r = self._oai.chat.completions.create(**kwargs)
-        raw = (r.choices[0].message.content or "").strip()
-        # Parse codes — comma or newline separated, NONE means empty
-        raw = raw.replace("\n", ",").replace(";", ",")
-        codes = [c.strip() for c in raw.split(",")
-                 if c.strip() and c.strip().upper() != "NONE"]
-        # Defensive: keep only codes actually in the candidate set
+        result = run_llm_sync(
+            self._ensure_filter_agent(), user_msg,
+            call_site="SpecialtyFilter.filter_candidates",
+            provider="openai", server="find_care", component="SpecialtyFilter")
+        # The model chooses among registry facts and cannot invent one: its
+        # answer is intersected with the candidate set the catalogue
+        # actually returned. That intersection is what makes the semantic
+        # step safe to have at all.
         valid = {c["Code"] for c in candidates}
-        return [c for c in codes if c in valid]
+        return [c for c in result.output.codes if c in valid]
 
     # ── public-to-driver orchestration ──────────────────────────────────────
     def find_specialties(self, raw_query: str,

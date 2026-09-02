@@ -302,9 +302,15 @@
       body: JSON.stringify(body),
     }).then(function (resp) {
       if (!resp.ok || !resp.body) {
-        var err = new Error('ClientRouter.getStreamedPayloads: gate failed HTTP ' + resp.status + ' for op=' + op);
-        if (args && typeof args.onError === 'function') args.onError(err);
-        throw err;
+        // The failure's mode is carried, not composed. It rides on the
+        // error so the panel that renders it can select its wording from
+        // what the server named.
+        return resp.json().catch(function () { return {}; }).then(function (b) {
+          var err = new Error('ClientRouter.getStreamedPayloads: gate failed HTTP ' + resp.status + ' for op=' + op);
+          err.mode = (b && b.mode) || '';
+          if (args && typeof args.onError === 'function') args.onError(err);
+          throw err;
+        });
       }
       var reader = resp.body.getReader();
       var decoder = new TextDecoder();
@@ -425,6 +431,7 @@
               type: 'router:error',
               call_id: msg.call_id,
               error: (err && err.message) || String(err),
+              mode: (err && err.mode) || '',
             }, '*');
           }
         },

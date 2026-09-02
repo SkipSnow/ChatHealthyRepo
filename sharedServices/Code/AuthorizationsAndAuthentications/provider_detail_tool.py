@@ -48,8 +48,12 @@ class Request(BaseModel):
                     "already holds.")
     specialty: Optional[str] = Field(default=None, description="Card echo.")
     address: Optional[str] = Field(default=None, description="Card echo.")
-    county: Optional[str] = Field(default=None, description="Card echo.")
     phone: Optional[str] = Field(default=None, description="Card echo.")
+    entity_type: str = Field(
+        default="1",
+        description="Which page opened this detail: 1 for the "
+                    "individual-provider page, 2 for the facility page. A "
+                    "property of the page, not a filter the caller chooses.")
     state: Optional[str] = Field(
         default=None,
         description="Two-letter USPS code, used only to build external "
@@ -98,10 +102,12 @@ class LicenseRow(BaseModel):
 
 
 class InsuranceRow(BaseModel):
-    insurance_type: str = ""
-    brand: str = ""
+    """One payer identifier the provider carries. Four fields, never
+    presented as coverage accepted or as network membership."""
+    coverage_kind: str = ""
+    issuer: str = ""
     state: str = ""
-    raw_value: str = ""
+    identifier: str = ""
 
 
 class TaxonomyRow(BaseModel):
@@ -110,15 +116,56 @@ class TaxonomyRow(BaseModel):
     primary: bool = False
 
 
+class OrganizationIdentityRow(BaseModel):
+    """The identity a facility shows in place of a person's. No tax
+    identifier is declared here, which is the transmission-side half of
+    EPIC-006-F-007-S-001-REQ-B-005."""
+    legal_business_name: str = ""
+    other_organization_name: str = ""
+    other_organization_name_kind: str = ""
+    npi: str = ""
+    enumeration_date: str = ""
+    status_active: bool = True
+    is_subpart: bool = False
+    parent_organization_name: str = ""
+
+
+class AuthorizedOfficialRow(BaseModel):
+    """The person the registry recorded as the facility's authorized
+    official. Five fields; the telephone number the record also carries is
+    deliberately not among them."""
+    last_name: str = ""
+    first_name: str = ""
+    middle_name: str = ""
+    title_or_position: str = ""
+    credential: str = ""
+
+
+class FacilityKindRow(BaseModel):
+    code: str = ""
+    classification: str = ""
+    specialization: str = ""
+    definition: str = ""
+
+
 class Response(BaseModel):
     provider_name: str = ""
     npi: str = ""
+    # Which panel this is. The renderer selects the identity block from
+    # this rather than from the shape of the data.
+    entity_type: str = "1"
+    organization_identity: Optional[OrganizationIdentityRow] = None
+    authorized_official: Optional[AuthorizedOfficialRow] = None
+    facility_kinds: list[FacilityKindRow] = Field(default_factory=list)
     identity: Optional[IdentityRow] = None
     addresses: list[AddressRow] = Field(default_factory=list)
     licenses: list[LicenseRow] = Field(default_factory=list)
     insurance: list[InsuranceRow] = Field(default_factory=list)
     taxonomies: list[TaxonomyRow] = Field(default_factory=list)
     research_sites: dict[str, ResearchSiteRow] = Field(default_factory=dict)
+    # The practice state for which no licensing authority resolved, emitted
+    # in place of the destination so a gap in the table surfaces.
+    unresolved_licensing_state: str = ""
     error: Optional[str] = None
 
 
@@ -133,6 +180,9 @@ class ProviderDetailTool(ChatHealthyTool):
 
     async def run(self, deps: AgentDeps, request: "Request") -> "Response":
         body: dict[str, Any] = request.model_dump(exclude_none=True)
+        # The token this hop already holds, forwarded so FindCare can
+        # verify the SharedServices signature on it.
+        body["session_token"] = deps.session_token.model_dump(mode="json")
         url = findcare_url() + "/provider-detail"
         try:
             async with httpx.AsyncClient(timeout=30.0, verify=False) as client:

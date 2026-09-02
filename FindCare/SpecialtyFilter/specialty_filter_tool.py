@@ -106,7 +106,15 @@ class SpecialtyFilterTool(ChatHealthyTool):
         url = findcare_url() + "/classify"
         try:
             async with httpx.AsyncClient(timeout=30.0, verify=False) as client:
-                r = await client.post(url, json={"message": text})
+                # The token this hop already holds, forwarded so FindCare
+                # can verify the SharedServices signature on it. This is
+                # the fourth cross-service hop, and it needs the token for
+                # the same reason the provider search, the provider detail
+                # and the clinical-trials dispatcher do.
+                r = await client.post(url, json={
+                    "message": text,
+                    "session_token": deps.session_token.model_dump(mode="json"),
+                })
                 r.raise_for_status()
                 raw = r.json()
         except Exception as exc:

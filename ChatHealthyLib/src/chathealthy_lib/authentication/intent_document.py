@@ -102,6 +102,26 @@ class IntentFindAProvider(BaseModel):
     pending_disambiguation: Optional[PendingDisambiguation] = None
 
 
+class IntentFindAFacility(BaseModel):
+    """Intent entry: the user is looking for a place where care is
+    delivered rather than a person who delivers it.
+
+    A facility is named in one of three ways and any of them alone is
+    enough: the facility itself (facility_name), the kind of facility
+    (complaint, which the specialty step turns into taxonomy codes), or
+    the person who administers it (administrator_name). geography narrows
+    all three and is carried the same way findAProvider carries it.
+
+    EPIC-006-F-006-S-001.
+    """
+
+    model_config = {"extra": "forbid"}
+
+    name: Literal["findAFacility"]
+    arguments: list[Argument] = Field(min_length=1, max_length=5)
+    pending_disambiguation: Optional[PendingDisambiguation] = None
+
+
 class IntentFindClinicalTrials(BaseModel):
     """Intent entry: user is looking for recruiting clinical trials.
     Carries the complaint (condition, required), and optional refinements:
@@ -149,6 +169,7 @@ IntentEntry = Annotated[
     Union[
         IntentSpecialtySearch,
         IntentFindAProvider,
+        IntentFindAFacility,
         IntentFindClinicalTrials,
         IntentCloseConnection200,
         IntentSafetyLockout,
@@ -166,6 +187,7 @@ TargetAction = Literal[
     "nonsense",
     "specialtySearch",
     "findAProvider",
+    "findAFacility",
     "findClinicalTrials",
     "closeConnection200",
     "safetyLockout",

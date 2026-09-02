@@ -572,16 +572,73 @@ def _source_set_for(target_id: str) -> list[tuple[str, str | None]]:
             message=f"manifest has no target {target_id!r}.")
 
 
-def _findcare_source_set(repo_root: Path) -> list[tuple[str, str | None]]:
-    return _source_set_for("target_hf_space_findcare_backend")
+def _staged_destination(src_rel: str,
+                        source_set: list[tuple[str, str | None]]) -> str:
+    """Where one declared file lands inside the build context.
+
+    The source set no longer decides WHAT ships -- the declared file list
+    does -- but it still decides WHERE, because a Space expects some
+    subtrees remapped (sharedServices/Code arrives at the context root,
+    its authentication package under `authentication`). The most specific
+    prefix wins, so a file under a remapped subtree is not also matched by
+    a shorter one.
+    """
+    src_posix = src_rel.replace("\\", "/")
+    best_src = ""
+    best_dst: str | None = None
+    for entry_src, entry_dst in source_set:
+        entry_posix = entry_src.replace("\\", "/")
+        if src_posix == entry_posix or src_posix.startswith(entry_posix + "/"):
+            if len(entry_posix) > len(best_src):
+                best_src, best_dst = entry_posix, entry_dst
+    if not best_src:
+        return ""
+    if best_dst is None:
+        return src_posix
+    remainder = src_posix[len(best_src):].lstrip("/")
+    if best_dst == ".":
+        return remainder or Path(src_posix).name
+    return f"{best_dst}/{remainder}" if remainder else best_dst
 
 
-def _evaluatecare_source_set(repo_root: Path) -> list[tuple[str, str | None]]:
-    return _source_set_for("target_hf_space_evaluatecare_backend")
+def _stage_declared_files(repo_root: Path, build_dir: Path,
+                          declared: list[str],
+                          source_set: list[tuple[str, str | None]],
+                          ) -> tuple[int, list[str]]:
+    """Stage exactly the files the target record declares.
 
+    The manifest is the instruction, not an audit trail taken after a
+    subtree walk. The two can therefore no longer disagree without
+    failing: a declared file that is not on disk stops the build instead
+    of producing a package without it, and a file nothing declares does
+    not ship.
 
-def _sharedservices_source_set(repo_root: Path) -> list[tuple[str, str | None]]:
-    return _source_set_for("target_hf_space_shared_services")
+    Returns (staged, outside_context). A declared file lying under none
+    of the target's context subtrees is a build-time input rather than a
+    shipped byte -- the canonical vite config is the one instance -- and
+    it is named in the return so the caller reports it rather than
+    letting it pass unremarked.
+    """
+    staged = 0
+    outside: list[str] = []
+    for src_rel in declared:
+        src = repo_root / src_rel
+        if not src.is_file():
+            raise ChatHealthyException(
+                mode="file_missing",
+                component="hf_helpers",
+                message=f"the target record declares {src_rel!r} and it is not "
+                        "on disk. A build does not produce a package without a "
+                        "file the record says it carries.")
+        dst_rel = _staged_destination(src_rel, source_set)
+        if not dst_rel:
+            outside.append(src_rel)
+            continue
+        out_path = build_dir / dst_rel
+        out_path.parent.mkdir(parents=True, exist_ok=True)
+        shutil.copy2(src, out_path)
+        staged += 1
+    return staged, outside
 
 
 def _copy_tree(
@@ -629,7 +686,17 @@ def _copy_tree(
 
 
 # ── React frontend build (FindCare only) ──────────────────────────────
-def _build_react_frontend(repo_root: Path, env: str) -> None:
+def _build_react_frontend(repo_root: Path, evalcare_peer: str,
+                          sharedservices_peer: str) -> None:
+    """Compile the React application against the peer addresses it is given.
+
+    The peers are RESOLVED BY THE CALLER, not looked up here. Building a
+    bundle is not a HuggingFace concern: local runs four docker
+    containers and has no Space at all, so asking this function for a
+    Space identity made a local build depend on a fact that is not true
+    of local. The caller knows the environment it is building and reads
+    the addressable location the record states for it.
+    """
     frontend = repo_root / "Code" / "ConversationalUX" / "FindCareChat" / "frontend"
     if not (frontend / "package.json").is_file():
         raise ChatHealthyException(
@@ -646,8 +713,6 @@ def _build_react_frontend(repo_root: Path, env: str) -> None:
             message=f"canonical vite config missing at {canonical_vite}")
     vite_copy = frontend / "vite.config.ts"
     shutil.copy2(canonical_vite, vite_copy)
-    evalcare_peer = _hf_peer_url("target_hf_space_evaluatecare_backend", env)
-    sharedservices_peer = _hf_peer_url("target_hf_space_shared_services", env)
     env_for_build = dict(os.environ)
     env_for_build["VITE_API_URL"] = ""
     env_for_build["VITE_EVALCARE_URL"] = evalcare_peer

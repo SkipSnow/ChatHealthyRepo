@@ -677,6 +677,14 @@ def _build_github_repository(repo_root: Path, target: TargetRecord,
         destination.write_bytes(source.read_bytes())
 
 
+# The website package the React application is served from, and the
+# repo-relative root inside a website package directory. The bundle moved
+# here from the FindCare Space so the Space serves no browser-addressable
+# surface and every route on it can require a signature.
+WEBSITE_APP_PACKAGE = "static_pages"
+WEBSITE_SOURCE_ROOT = "Website"
+
+
 def _build_cloudflare(repo_root: Path, target: TargetRecord, build_dir: Path,
                      env: str, build_n: int,
                      selection: set[str] | None = None) -> None:
@@ -711,61 +719,88 @@ def _build_cloudflare(repo_root: Path, target: TargetRecord, build_dir: Path,
     _substitute_hf_urls_in_index_html(
         repo_root, build_dir, env, build_n, declared_indexes
     )
+
+    # The React application is served by the website, not by the FindCare
+    # Space, so it is built here and staged under the static_pages package
+    # at the path the wrapper's iframe names.
+    #
+    # Staged LAST, after the two passes above. Both of those walk the whole
+    # target directory and both are statements about the DECLARED pages:
+    # one inlines the font snippet into them, the other requires the staged
+    # index.html count to equal the count the manifest declares. The bundle
+    # is generated output rather than a declared source file, and its own
+    # index.html is written by vite and had its fonts inlined at build
+    # time, so counting it would make the build produce more than the
+    # manifest declares and fail on a page nothing declared.
+    if selection is None or WEBSITE_APP_PACKAGE in selection:
+        # The peers the bundle talks to, resolved by the one function that
+        # already knows how an environment is addressed -- localhost ports
+        # for local, the Space host for dev, qa and prod. Local resolves no
+        # Space identity, because local has none.
+        rd._build_react_frontend(
+            repo_root,
+            _compute_hf_space_url_for_build(
+                repo_root, "target_hf_space_evaluatecare_backend", env, build_n),
+            _compute_hf_space_url_for_build(
+                repo_root, "target_hf_space_shared_services", env, build_n),
+        )
+        dist = (repo_root / "Code" / "ConversationalUX" / "FindCareChat"
+                / "frontend" / "dist")
+        if not dist.is_dir():
+            raise ChatHealthyException(
+                mode="aborted",
+                component="_build_chain",
+                message=f"ERROR: React dist missing at {dist}")
+        app_dst = build_dir / WEBSITE_APP_PACKAGE / WEBSITE_SOURCE_ROOT / "app"
+        if app_dst.exists():
+            shutil.rmtree(app_dst, ignore_errors=True)
+        shutil.copytree(dist, app_dst)
+        _step(f"  stage  React application -> {WEBSITE_APP_PACKAGE}/"
+              f"{WEBSITE_SOURCE_ROOT}/app")
     # Managed bytes are written by _materialize_managed_files after this
     # returns, and that one is package-aware. Materializing here as well
     # wrote the managed Dockerfile at the target root, creating a directory
     # named after its source path that no package declares.
 
 
-def _build_hf_space(repo_root: Path, target: TargetRecord, build_dir: Path) -> None:
-    """Stage the HF Space's source set into build_dir, build React frontend
-    (FindCare only), materialize managed bytes, copy the Dockerfile to root.
+def _build_hf_space(repo_root: Path, target: TargetRecord, build_dir: Path,
+                    selection: set[str] | None = None) -> None:
+    """Stage the HF Space's declared files into build_dir, build the React
+    frontend (FindCare only), materialize managed bytes, copy the
+    Dockerfile to root.
 
-    build_dir contains the docker build context that local_deploy passes
-    to `docker build`. Per Skip's framing: build = source bytes for that
-    target; deploy does the install procedure (docker build/push, HF API,
-    git push to Space repo).
+    What ships is the file list the target record declares for the
+    package being built, not a walk of whatever happens to sit under a
+    subtree. The subtree list survives only to say WHERE each file lands
+    in the context.
+
+    build_dir contains the docker build context that the deploy passes
+    to `docker build`. build = source bytes for that target; deploy does
+    the install procedure (docker build/push, HF API, git push to the
+    Space repo).
     """
     build_dir.mkdir(parents=True, exist_ok=True)
 
     target_id = target.target_id
-    if target_id == "target_hf_space_findcare_backend":
-        source_set = rd._findcare_source_set(repo_root)
-        # React frontend dist is consumed by the FindCare backend's static/
-        # serving path. Build now so the copy below picks up fresh bytes.
-        rd._build_react_frontend(repo_root, "dev")
-    elif target_id == "target_hf_space_evaluatecare_backend":
-        source_set = rd._evaluatecare_source_set(repo_root)
-    elif target_id == "target_hf_space_shared_services":
-        source_set = rd._sharedservices_source_set(repo_root)
-    else:
-        raise ChatHealthyException(
-            mode="runtime_error",
-            component="_build_chain",
-            message=f"unknown hf_space target {target_id!r}")
-
-    for src_rel, dst_rel in source_set:
-        _step(f"  stage  {src_rel} -> {dst_rel}")
-        rd._copy_tree(repo_root, build_dir, src_rel, dst_rel or src_rel)
+    source_set = rd._source_set_for(target_id)
+    # A managed file's bytes are written by the extractor from the record
+    # itself, not copied off disk, so it is not staged here.
+    declared = [
+        d["source_location"]
+        for pid, entries in _files_by_package(target).items()
+        if selection is None or pid in selection
+        for d in entries
+        if d.get("disposition") != "managed"
+    ]
+    staged, outside = rd._stage_declared_files(
+        repo_root, build_dir, declared, source_set)
+    _step(f"  stage  {staged} declared files")
+    for src_rel in outside:
+        _step(f"  build-time input, not staged into the context: {src_rel}")
 
     _apply_dependency_pins(repo_root, build_dir)
 
     rd._write_hf_build_info(build_dir, target_id, "dev")
-
-    if target_id == "target_hf_space_findcare_backend":
-        # FindCare React dist -> backend static/.
-        dist = (repo_root / "Code" / "ConversationalUX" / "FindCareChat"
-                / "frontend" / "dist")
-        static_dst = (build_dir / "Code" / "ConversationalUX"
-                      / "FindCareChat" / "backend" / "static")
-        if static_dst.exists():
-            shutil.rmtree(static_dst, ignore_errors=True)
-        if not dist.is_dir():
-            raise ChatHealthyException(
-                mode="aborted",
-                component="_build_chain",
-                message=f"ERROR: React dist missing at {dist}")
-        shutil.copytree(dist, static_dst)
 
     Extractor().materialize(target, build_dir)
 
@@ -1577,7 +1612,7 @@ def _build_one(repo_root: Path, target: TargetRecord, build_n: int, build_sha: s
     elif target.target_kind == "github_repository":
         _build_github_repository(repo_root, target, build_dir, selected)
     elif target.target_kind == "hf_space":
-        _build_hf_space(repo_root, target, build_dir)
+        _build_hf_space(repo_root, target, build_dir, selected)
     elif target.target_kind == "azure_function_app":
         _build_azure_function_app(repo_root, target, build_dir)
     elif target.target_kind == "azure_container_app":

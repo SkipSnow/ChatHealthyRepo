@@ -99,9 +99,14 @@ function withWebsite(rows: any[]): any[] {
           { component: 'Website', build: build ? String(build) : '' }]
 }
 
-const PARAMETER_ORDER = [
-  'geography', 'complaint', 'specialties', 'selected_specialty_codes',
+// The order attributes read best in within a page. Anything a page
+// declares beyond these follows, alphabetically.
+const ATTRIBUTE_ORDER = [
+  'geography', 'complaint', 'offeredSpecialties', 'selectedSpecialtyCodes',
 ]
+
+// The pages, in the order the panel groups them.
+const PAGE_ORDER = ['individualProvider', 'facility', 'NUCC', 'clinicalTrial']
 
 function fmtParameter(name: string, value: any): string {
   if (value === null || value === undefined) return '(not set)'
@@ -110,13 +115,13 @@ function fmtParameter(name: string, value: any): string {
       .filter(k => value[k]).map(k => `${k}: ${value[k]}`)
     return parts.length ? parts.join(', ') : '(not set)'
   }
-  if (name === 'specialties') {
+  if (name === 'offeredSpecialties') {
     if (!Array.isArray(value) || !value.length) return '(none offered yet)'
     return value.map((s: any) =>
       `${s.name || '?'} (${s.code})${s.can_prescribe ? ' Rx' : ''}${s.homeopathic ? ' homeo' : ''}`
     ).join(', ')
   }
-  if (name === 'selected_specialty_codes') {
+  if (name === 'selectedSpecialtyCodes') {
     if (!Array.isArray(value) || !value.length) return '(nothing narrowed - all offered apply)'
     return value.join(', ')
   }
@@ -124,16 +129,61 @@ function fmtParameter(name: string, value: any): string {
   return _fmt(value)
 }
 
+// Only attributes carrying a value are shown: "in force" is having one,
+// and showing every declared attribute would make this a form rather than
+// a statement of what is true.
+function inForce(entry: any): boolean {
+  if (!entry) return false
+  const v = entry.value
+  if (v === null || v === undefined) return false
+  if (typeof v === 'string' && v.trim() === '') return false
+  if (Array.isArray(v) && v.length === 0) return false
+  if (typeof v === 'object' && !Array.isArray(v) && Object.keys(v).length === 0) return false
+  return true
+}
+
+function buildPageHtml(page: string, attributes: any): string {
+  const names = ATTRIBUTE_ORDER.filter(k => k in attributes && inForce(attributes[k]))
+    .concat(Object.keys(attributes)
+      .filter(k => !ATTRIBUTE_ORDER.includes(k) && inForce(attributes[k]))
+      .sort())
+  if (!names.length) return ''
+  const rows = names.map(k => {
+    const entry = attributes[k]
+    // A value that arrived by carry-over is shown with the page it came
+    // from. That is a fact the change record already stored, not an
+    // inference made here.
+    const from = entry.carried_from
+      ? `<span style="color:#b45309;"> (carried from ${_esc(entry.carried_from)})</span>` : ''
+    return `<dt style="font-weight:600;color:#374151;">${_esc(k)}</dt>` +
+      `<dd style="margin:0;color:#1f2937;white-space:pre-wrap;overflow-wrap:anywhere;">` +
+      `${_esc(fmtParameter(k, entry.value))}${from}` +
+      `<a href="#" data-router-action="parameter:clear" data-page="${_esc(page)}" data-name="${_esc(k)}" ` +
+      `style="margin-left:0.5em;color:#0b7a75;font-size:0.85em;">clear</a>` +
+      `</dd>`
+  }).join('')
+  return (
+    `<div style="margin-top:0.5em;">` +
+      `<h4 style="margin:0 0 0.15em 0;color:#0b7a75;">${_esc(page)}` +
+        `<a href="#" data-router-action="parameter:clear-page" data-page="${_esc(page)}" ` +
+        `style="margin-left:0.5em;color:#0b7a75;font-size:0.8em;font-weight:400;">clear page</a>` +
+      `</h4>` +
+      `<dl style="margin:0;display:grid;grid-template-columns:16.25em 1fr;gap:0.25em 1em;">${rows}</dl>` +
+    `</div>`
+  )
+}
+
 function buildParametersHtml(parameters: any): string {
-  const params = parameters || {}
-  const names = PARAMETER_ORDER.filter(k => k in params)
-    .concat(Object.keys(params).filter(k => !PARAMETER_ORDER.includes(k)))
-  const rows = names.map(k =>
-    `<dt style="font-weight:600;color:#374151;">${_esc(k)}</dt>` +
-    `<dd style="margin:0;color:#1f2937;white-space:pre-wrap;overflow-wrap:anywhere;">${_esc(fmtParameter(k, params[k]))}</dd>`
-  ).join('')
-  const body = rows
-    ? `<dl style="margin:0;display:grid;grid-template-columns:16.25em 1fr;gap:0.25em 1em;">${rows}</dl>`
+  // The panel renders the parameter state as it is held: grouped by page,
+  // because that is its shape, and every parameter shown with the page it
+  // belongs to.
+  const pages = (parameters && parameters.pages) || {}
+  const ordered = PAGE_ORDER.filter(p => p in pages)
+    .concat(Object.keys(pages).filter(p => !PAGE_ORDER.includes(p)).sort())
+  const groups = ordered.map(p => buildPageHtml(p, pages[p] || {})).join('')
+  const body = groups
+    ? groups + `<p style="margin:0.5em 0 0 0;">` +
+        `<a href="#" data-router-action="parameter:clear-all" style="color:#0b7a75;">clear every parameter of every page</a></p>`
     : `<p style="margin:0;color:#9ca3af;font-style:italic;">Nothing set yet.</p>`
   return `
     <section style="margin-top:1em;">
@@ -234,6 +284,10 @@ export default function SessionDataWidget() {
       type: 'router:subscribe-broadcast',
       kind: 'session_data',
     }, '*')
+    window.parent.postMessage({
+      type: 'router:subscribe-broadcast',
+      kind: 'parameters_changed',
+    }, '*')
 
     function postRender(content: string) {
       openPopup(TARGET, content)
@@ -259,6 +313,43 @@ export default function SessionDataWidget() {
           op: 'session_pdf',
           filename: 'chatHealthySessionInfo.pdf',
         }, '*')
+        return
+      }
+      // The panel is a surface, not a fourth writer. A control on it
+      // sends a request through the gateway, which addresses the
+      // parameters tool exactly as any other route does, so the same
+      // validation and the same refusal apply.
+      if (msg.type === 'router:action' && msg.action === 'parameter:clear') {
+        window.parent.postMessage({
+          type: 'router:makeCall', op: 'parameter_change',
+          payload: { verb: 'clear', page: String((msg.data || {}).page || ''),
+                     name: String((msg.data || {}).name || '') },
+          call_id: 'parameter-clear-' + Date.now(),
+        }, '*')
+        return
+      }
+      if (msg.type === 'router:action' && msg.action === 'parameter:clear-page') {
+        window.parent.postMessage({
+          type: 'router:makeCall', op: 'parameter_change',
+          payload: { verb: 'clear_page', page: String((msg.data || {}).page || '') },
+          call_id: 'parameter-clear-page-' + Date.now(),
+        }, '*')
+        return
+      }
+      if (msg.type === 'router:action' && msg.action === 'parameter:clear-all') {
+        window.parent.postMessage({
+          type: 'router:makeCall', op: 'parameter_change',
+          payload: { verb: 'clear_all' },
+          call_id: 'parameter-clear-all-' + Date.now(),
+        }, '*')
+        return
+      }
+      // The response to a parameter change carries the new state and the
+      // panel repaints from it in the same turn that made the change. It
+      // is not refetched: a second read could disagree with what was just
+      // acknowledged.
+      if (msg.type === 'router:event-broadcast' && msg.kind === 'parameters_changed') {
+        postRender(buildSessionHtml(msg.data || {}))
         return
       }
       if (msg.type === 'router:website-build') {

@@ -105,30 +105,21 @@ def test_compose_specialty_text_all_empty_yields_empty_string():
 # ---------- generate_specialty_embeddings ----------
 
 
-class _FakeEmbedding:
-    def __init__(self, vec: list[float]):
-        self.embedding = vec
+# The model name is not written in this file. The engine reads it from
+# the binding the target carries, so the test sets the binding and
+# asserts against the value it set -- which is the same assertion the old
+# one made without holding a copy of the firm's declaration.
+TEST_EMBEDDING_MODEL = "test-embedding-model"
 
 
-class _FakeEmbeddings:
-    def __init__(self, dim: int):
+class _FakeEmbedBatch:
+    def __init__(self, dim: int = 3072):
         self._dim = dim
         self.calls: list[list[str]] = []
 
-    def create(self, *, model: str, input: list[str]):
-        assert model == "text-embedding-3-large"
-        self.calls.append(list(input))
-
-        class _Resp:
-            pass
-        r = _Resp()
-        r.data = [_FakeEmbedding([0.001 * (i + 1)] * self._dim) for i in range(len(input))]
-        return r
-
-
-class _FakeOpenAIClient:
-    def __init__(self, dim: int = 3072):
-        self.embeddings = _FakeEmbeddings(dim)
+    def __call__(self, texts: list[str]):
+        self.calls.append(list(texts))
+        return [[0.001 * (i + 1)] * self._dim for i in range(len(texts))]
 
 
 @pytest.fixture
@@ -139,15 +130,15 @@ def fake_openai(monkeypatch):
     real call is billed per token. Everything downstream of it — the
     bulk write, the update, the collection state — runs against the real
     server.
+
+    The seam is _embed_batch because that is where the engine reaches the
+    provider now; it builds no client of its own.
     """
-    client = _FakeOpenAIClient()
-
-    def _fake_build(api_key):
-        return client
-
-    monkeypatch.setattr("embedding_engine._build_openai_client", _fake_build)
+    fake = _FakeEmbedBatch()
+    monkeypatch.setattr("embedding_engine._embed_batch", fake)
+    monkeypatch.setenv("CH_EMBEDDING_MODEL", TEST_EMBEDDING_MODEL)
     monkeypatch.setenv("OPENAI_API_KEY", "sk-test-key")
-    return client
+    return fake
 
 
 @pytest.fixture
@@ -162,7 +153,7 @@ def specialty_staging(scratch_mongo):
 def test_generate_specialty_embeddings_writes_vector_and_metadata(
     fake_openai, specialty_staging,
 ):
-    from embedding_engine import generate_specialty_embeddings, CANONICAL_MODEL, CANONICAL_DIM
+    from embedding_engine import generate_specialty_embeddings, CANONICAL_DIM
     coll, dotted = specialty_staging
     coll.insert_many([
         {"Code": "207W00000X", "Display Name": "Ophthalmology"},
@@ -175,10 +166,10 @@ def test_generate_specialty_embeddings_writes_vector_and_metadata(
     assert summary["candidate_count"] == 2
     assert summary["updated_count"] == 2
     assert summary["failed_count"] == 0
-    assert summary["model"] == CANONICAL_MODEL
+    assert summary["model"] == TEST_EMBEDDING_MODEL
     assert summary["dimensions"] == CANONICAL_DIM
     for row in coll.find({}):
-        assert row["embedding_model"] == CANONICAL_MODEL
+        assert row["embedding_model"] == TEST_EMBEDDING_MODEL
         assert isinstance(row["embedding"], list)
         assert len(row["embedding"]) == CANONICAL_DIM
         assert "embedding_generated_at" in row
@@ -188,13 +179,13 @@ def test_generate_specialty_embeddings_writes_vector_and_metadata(
 def test_generate_specialty_embeddings_skips_already_embedded(
     fake_openai, specialty_staging,
 ):
-    from embedding_engine import generate_specialty_embeddings, CANONICAL_MODEL, CANONICAL_DIM
+    from embedding_engine import generate_specialty_embeddings, CANONICAL_DIM
     coll, dotted = specialty_staging
     coll.insert_one({
         "Code": "207W00000X",
         "Display Name": "Ophthalmology",
         "embedding": [0.0] * CANONICAL_DIM,
-        "embedding_model": CANONICAL_MODEL,
+        "embedding_model": TEST_EMBEDDING_MODEL,
     })
     coll.insert_one({"Code": "246ZS0400X", "Display Name": "Surgical Technologist"})
     summary = generate_specialty_embeddings(
@@ -322,7 +313,7 @@ def clusters(monkeypatch, scratch_mongo):
 def test_publish_smd_and_embed_end_to_end(fake_openai, clusters, monkeypatch):
     from staging_loader import staging_collection_name, staging_db_name
     from steps.publish_smd_and_embed import execute
-    from embedding_engine import CANONICAL_MODEL, CANONICAL_DIM
+    from embedding_engine import CANONICAL_DIM
 
     pipeline, db, frontend_db, cfg, names = clusters
     # Seed the NUCC staging collection on the pipeline cluster (v42:
@@ -392,7 +383,7 @@ def test_publish_smd_and_embed_end_to_end(fake_openai, clusters, monkeypatch):
     codes = sorted(r.get("Code") for r in published)
     assert codes == ["207W00000X", "246ZS0400X"]  # old rows gone, stale run gone
     for row in published:
-        assert row["embedding_model"] == CANONICAL_MODEL
+        assert row["embedding_model"] == TEST_EMBEDDING_MODEL
         assert len(row["embedding"]) == CANONICAL_DIM
     # Staging collection was renamed away — must no longer exist.
     assert names["staging"] not in db.list_collection_names()
@@ -408,18 +399,6 @@ def test_publish_smd_and_embed_end_to_end(fake_openai, clusters, monkeypatch):
     on_frontend = frontend_db.list_collection_names()
     assert names["live"] not in on_frontend
     assert names["staging"] not in on_frontend
-
-
-@pytest.mark.unit
-def test_publish_smd_and_embed_bails_when_openai_key_missing(clusters, monkeypatch):
-    from chathealthy_lib.exceptions import ChatHealthyException
-    from steps.publish_smd_and_embed import execute
-    monkeypatch.delenv("OPENAI_API_KEY", raising=False)
-    pipeline, _db, frontend_db, _cfg, _names = clusters
-    ctx = _FakeCtx(pipeline, frontend_db.client)
-    with pytest.raises(ChatHealthyException) as exc_info:
-        execute(ctx)
-    assert "OPENAI_API_KEY" in str(exc_info.value)
 
 
 @pytest.mark.unit

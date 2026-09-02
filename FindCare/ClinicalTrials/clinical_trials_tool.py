@@ -45,17 +45,11 @@ log = ChatHealthyLoggingService()
 
 CT_GOV_URL = "https://clinicaltrials.gov/api/v2/studies"
 
-# Pre-filter cap: how many recruiting trials the tool will pull from
-# CT.gov in one call, before applying the per-trial age safety net.
-# When CT.gov's unfiltered totalCount exceeds this cap, the widget shows
-# "of many" instead of an exact total because the true filtered total
-# is unknown without fetching beyond the cap.
-_PREFILTER_CAP = 150
-
-# Page size the CT.gov v2 call requests per cursor step. The widget
-# caches the whole returned set and paginates client-side, so this is
-# the CT.gov page size, not a display page size.
-_CT_GOV_PAGE_SIZE = 10
+# Page size the registry is asked for per cursor step. The registry
+# pages by the token it returns and the tool follows that token, so this
+# is how much of the result arrives per hop and not how much of it the
+# tool will ever see.
+_CT_GOV_PAGE_SIZE = 100
 
 
 def _s(v) -> str:
@@ -460,27 +454,22 @@ class ClinicalTrialsTool(ChatHealthyTool):
     async def run(self, deps: AgentDeps, request: "Request") -> "Response":
         try:
             return await self._run_inner(deps, request)
+        except ChatHealthyException:
+            raise
         except Exception as exc:
-            # Mode 2 (REQ-B-008): CT.gov upstream temporarily unavailable;
-            # tool returns Response(trials=[], error=...) inline. NOT 503;
-            # no fatal_error tag.
-            log.error(
-                "ClinicalTrialsTool caught exception; returning empty response: %s",
-                exc,
-                exc=ChatHealthyException(
-                    mode="clinical_trials_tool_failed",
-                    message=f"ClinicalTrialsTool caught exception: {exc}",
-                    component="ClinicalTrialsTool",
-                    exception=exc,
-                ),
-                if_not_debug_log=True,
-            )
-            return Response(
-                trials=[],
-                error=(
-                    "I couldn't reach ClinicalTrials.gov right now. "
-                    "Please try again in a minute."
-                ),
+            # The failure is named where it happened, so the panel can say
+            # what was being attempted rather than show a status code. A
+            # request carrying a cursor was extending a list that already
+            # exists; one without was producing a list for a condition.
+            mode = ("clinical_trials_list_not_extended" if request.cursor
+                    else "clinical_trials_list_not_produced")
+            raise ChatHealthyException(
+                mode=mode,
+                component="ClinicalTrialsTool",
+                message=(f"clinical trials registry call failed for condition "
+                         f"{(request.condition or '').strip()!r}: "
+                         f"{type(exc).__name__}: {exc}"),
+                exception=exc,
             )
 
     async def _run_inner(self, deps: AgentDeps, request: "Request") -> "Response":
@@ -488,7 +477,6 @@ class ClinicalTrialsTool(ChatHealthyTool):
         # pagination requests against the same context.
         search_context = SearchContext(
             condition=(request.condition or "").strip(),
-            user_location=request.user_location,
             age_years=request.age_years,
             sex=request.sex,
             geographic_scope=(request.geographic_scope or "international"),
@@ -522,73 +510,92 @@ class ClinicalTrialsTool(ChatHealthyTool):
             })
             return result
 
-        # Single CT.gov fetch up to the pre-filter cap. Pagination after
-        # this point is client-side state slicing in the React widget; SS
-        # remains stateless.
-        trials, _next_cursor, ct_total_count = await _fetch_ct_gov(
-            condition,
-            _PREFILTER_CAP,
-            None,
-            age_years=request.age_years,
-            sex=request.sex,
-            geographic_scope=request.geographic_scope,
-        )
+        # How far the registry is paged depends on whether an age was
+        # given, and the two cases are different problems.
+        #
+        # With no age, no trial is dropped after the fetch, so the count
+        # the registry returns with countTotal is exact and the tool pages
+        # only as far as the person reads: one registry page per request,
+        # carrying the registry's own token onward.
+        #
+        # With an age, the local eligibility test below removes trials the
+        # registry counted, so the count must be counted rather than asked
+        # for -- and the age bucket has already cut the set, which is what
+        # makes paging it to exhaustion a bounded cost.
+        target_age = request.age_years if isinstance(request.age_years, int) else None
 
-        # Age-range safety net. CT.gov's aggFilters bucket trials by
-        # std-eligibility-tag (Child/Adult/Older Adult), but study
-        # eligibility_module minAge/maxAge can still slip a non-matching
-        # trial through. When the caller supplied an age, drop trials
-        # whose declared minimum_age is above the target age or whose
-        # declared maximum_age is below it.
-        if isinstance(request.age_years, int):
-            target = request.age_years
-            trials = [t for t in trials
-                      if _age_in_range(target, t.minimum_age, t.maximum_age)]
-
-        total_eligible = len(trials)
-        is_partial = (
-            isinstance(ct_total_count, int) and ct_total_count > _PREFILTER_CAP
-        )
-
-        if not trials:
-            deps.stream({
-                "kind": "clinical_trials_chunk",
-                "data": {
-                    "trials": [],
-                    "chunk_index": 0,
-                    "is_final": True,
-                    "total_eligible": 0,
-                    "is_partial": is_partial,
-                    "search_context": search_context.model_dump(exclude_none=True),
-                },
-            })
-            return Response(
-                trials=[],
-                total_count=0,
-                page_size=_CT_GOV_PAGE_SIZE,
-                search_context=search_context,
+        if target_age is None:
+            trials, next_cursor, ct_total_count = await _fetch_ct_gov(
+                condition,
+                request.page_size or _CT_GOV_PAGE_SIZE,
+                request.cursor,
+                age_years=None,
+                sex=request.sex,
+                geographic_scope=request.geographic_scope,
             )
+            established_count = ct_total_count
+        else:
+            trials = []
+            next_cursor = None
+            cursor: Optional[str] = None
+            while True:
+                page, cursor, _ = await _fetch_ct_gov(
+                    condition,
+                    _CT_GOV_PAGE_SIZE,
+                    cursor,
+                    age_years=target_age,
+                    sex=request.sex,
+                    geographic_scope=request.geographic_scope,
+                )
+                # The registry's buckets are coarser than "open to a person
+                # of their age": a trial the bucket admitted and the
+                # declared range excludes is dropped. This step is required
+                # and not defensive.
+                trials.extend(t for t in page
+                              if _age_in_range(target_age, t.minimum_age, t.maximum_age))
+                if not cursor:
+                    break
+            established_count = len(trials)
 
-        # Stream every trial in one shot and close. The widget caches the
-        # full set client-side and paginates locally; there is no server-
-        # side work left to do, so the connection closes here and the
-        # input prompt re-enables immediately.
+        # The count reported is the count actually established -- the
+        # number the person is being shown the remainder of. The
+        # registry's own total is never presented as ours where a local
+        # test has removed trials it counted.
         data: dict[str, Any] = {
             "trials": [t.model_dump() for t in trials],
             "chunk_index": 0,
             "is_final": True,
             "search_context": search_context.model_dump(exclude_none=True),
-            "total_eligible": total_eligible,
-            "is_partial": is_partial,
+            "total_eligible": established_count,
+            "cursor": next_cursor,
+            # What the person may still narrow by: the three refinements
+            # this search offers, less those the parameters already carry
+            # (EPIC-006-F-005-S-001-REQ-B-081). FindCare states which
+            # exist; the utterance manager puts them into words.
+            "refinements_not_used": self._refinements_not_used(request),
         }
         deps.stream({"kind": "clinical_trials_chunk", "data": data})
 
         return Response(
             trials=trials,
-            total_count=total_eligible,
-            page_size=_CT_GOV_PAGE_SIZE,
+            cursor=next_cursor,
+            total_count=established_count,
+            page_size=request.page_size or _CT_GOV_PAGE_SIZE,
             search_context=search_context,
+            refinements_not_used=data["refinements_not_used"],
         )
+
+    @staticmethod
+    def _refinements_not_used(request: "Request") -> list[str]:
+        """The ways of narrowing this search the person has not yet used."""
+        offered = []
+        if request.age_years is None:
+            offered.append("age")
+        if not request.sex:
+            offered.append("sex")
+        if (request.geographic_scope or "international").strip().lower() != "us":
+            offered.append("united_states_only")
+        return offered
 
 
 TOOL = ClinicalTrialsTool()

@@ -8,6 +8,7 @@ from typing import Optional
 
 
 class ProviderSearchInput(BaseModel):
+    entity_type: str = Field(..., description="The entity type the page returns. A property of the page, not a filter the caller may omit.")
     specialty_query: str = Field("", description="What kind of provider to find (natural language)")
     state: str = Field("", description="Two-letter state code")
     city: str = Field("", description="Optional city filter")

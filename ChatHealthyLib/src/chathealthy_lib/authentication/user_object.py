@@ -241,6 +241,12 @@ class UserObject(BaseModel):
     selected_providers: Annotated[
         list[str], MergeRole.GUEST_WINS,
     ] = Field(default_factory=list)
+    # The facilities the person has chosen. Its own set, because a
+    # facility answer and a care-giver answer stand together and neither
+    # displaces the other (EPIC-006-F-008-S-001-REQ-B-006).
+    selected_facilities: Annotated[
+        list[str], MergeRole.GUEST_WINS,
+    ] = Field(default_factory=list)
     selected_clinical_trials: Annotated[
         list[str], MergeRole.GUEST_WINS,
     ] = Field(default_factory=list)
