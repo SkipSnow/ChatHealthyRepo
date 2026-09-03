@@ -350,6 +350,12 @@ class FindCareService:
             "taxonomy_code": primary.get("code", "") if primary else "",
             "matched_specialty_code": matched_code,
             "matched_specialty_label": matched_label,
+            # Every taxonomy this provider holds, not only the primary.
+            # A record that travels answers questions about itself where
+            # it lands; without this a receiver had to reopen the
+            # collection to recover what it had just been sent (C-26).
+            "taxonomy_codes": [t.get("code") for t in (p.get("taxonomies") or [])
+                               if isinstance(t, dict) and t.get("code")],
             "address": address,
             "phone": phone,
             "county": county_name,
@@ -677,7 +683,8 @@ class FindCareService:
 
     def search_providers(self, entity_type: str,
                          specialty_query: str = "", state: str = "", city: str = "",
-                         county: str = "", zip: str = "", limit: int = 25, npi: str = "", name: str = "",
+                         county: str = "", zip: str = "", limit: int = 25, npi: str = "",
+                         npis: list = None, name: str = "",
                          nucc_codes: list[str] = None,
                          cursor: str = "", direction: str = "forward",
                          last_name: str = "", first_name: str = "", middle_name: str = "",
@@ -789,7 +796,21 @@ class FindCareService:
                 noun="facilities",
                 specialization_options=facility_types)
 
-        # ── Route 1: NPI exact lookup ──
+        # ── Route 1: lookup by identity ──
+        # An array is the general shape and a single npi is a case of it,
+        # so both arrive here and one query serves them (C-26).
+        wanted_npis = [n for n in (list(npis) if npis else []) if n]
+        if npi and npi not in wanted_npis:
+            wanted_npis.append(npi)
+        if len(wanted_npis) > 1:
+            found = list(collection.find(
+                {"npi": {"$in": wanted_npis}, "entity_type_code": entity_type},
+                self._PROJECTION))
+            self._assert_entity_type(found, entity_type)
+            return {"supported": True, "search_mode": "npis",
+                    "count": len(found),
+                    "providers": [self._format_provider(f, specialty_codes)
+                                  for f in found]}
         if npi:
             # The page's entity type at the query level, so an organization
             # NPI on the provider page returns "no provider found" and the
@@ -996,8 +1017,12 @@ class FindCareService:
         missing = {c for c in missing if c}
         if not missing:
             return
+        # Whatever section the code lives in. REQ-B-007 asks for the label
+        # of the row's primary taxonomy and puts no section on it: an
+        # organization may be primary in an individual-section taxonomy,
+        # and those rows showed no type at all.
         for doc in specialty_meta_coll().find(
-                {"Code": {"$in": sorted(missing)}, "Section": "Non-Individual"},
+                {"Code": {"$in": sorted(missing)}},
                 {"_id": 0, "Code": 1, "Display Name": 1}):
             code = doc.get("Code", "")
             name = doc.get("Display Name", "")

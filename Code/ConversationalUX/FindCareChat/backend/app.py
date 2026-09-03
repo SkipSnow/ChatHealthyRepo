@@ -583,6 +583,10 @@ class SearchRequest(BaseModel):
     county: Optional[str] = None
     zip: Optional[str] = None
     npi: Optional[str] = None
+    # A set of records addressed by identity. The general shape; a single
+    # npi is a case of it. A caller holding several identities asks once
+    # rather than opening the collection itself (C-26).
+    npis: Optional[list[str]] = None
     nucc_codes: Optional[list[str]] = None
     # The keyset position and which way the page is taken from it.
     cursor: Optional[str] = None
