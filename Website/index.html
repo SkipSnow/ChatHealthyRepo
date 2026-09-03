@@ -91,25 +91,28 @@
       flex: 1; min-height: 0; overflow: auto;
       background: var(--surface);
     }
-    /* A phone is a window onto the desktop arrangement, not a smaller
-       version of it. The three panels keep the widths they have on a
-       computer -- 237px, 707px, 237px -- and the row that holds them
-       overflows the screen, so a person slides the row to bring a panel
-       into view instead of three columns being squeezed into 360px, where
-       the side panels took 69px each and held nothing. Vertically it is
-       still exactly the viewport; only the horizontal overflows.
+    /* A phone is a window onto the arrangement, and the strip is only as
+       wide as there is something to see. Each panel that holds anything is
+       one screen wide, so the row is one screen when only the list exists,
+       two once a specialty filter has been offered, three once a detail has
+       been opened. A panel holding nothing takes no width at all -- which
+       is what :empty says -- so a person can never slide onto a blank
+       screen. Nothing tracks this: a panel becomes visible by being given
+       content and stops being visible by being emptied, which is what
+       React already does to it.
 
+       Vertically it is exactly the viewport; only the horizontal overflows.
        The scroll is the browser's own, so the swipe carries its momentum
-       and its rubber-banding on both platforms and nothing here handles a
+       and rubber-banding on both platforms and nothing here handles a
        gesture. The borders already on the side panels are the lines
-       between them, visible now because a neighbour is partly on screen --
-       which is what makes the swipe discoverable at all. (C-27) */
+       between them. (C-27) */
     @media (max-width: 720px) {
       main { max-width: none; padding: 0.5em; gap: 0.5em; }
       .content-row { overflow-x: auto; overflow-y: hidden;
                      -webkit-overflow-scrolling: touch; }
-      .content-row > aside.side-panel { flex: 0 0 auto; width: 237px; }
-      .content-row > .center-column   { flex: 0 0 auto; width: 707px; }
+      .content-row > aside.side-panel,
+      .content-row > .center-column { flex: 0 0 100%; width: auto; }
+      .content-row > aside.side-panel:empty { display: none; }
     }
 
     #frame_UserMessage         { flex: 0 0 auto; background: var(--surface); border-top: 0.0625em solid #e5e7eb; }
