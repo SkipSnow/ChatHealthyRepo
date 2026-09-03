@@ -2136,7 +2136,7 @@
           "source_location": "Code/ConversationalUX/FindCareChat/frontend/src/components/ProviderDetailWidget.tsx",
           "handler_type": "static_asset",
           "disposition": "referenced",
-          "content_hash": "2d769781c50968b5062a763a56faccf10dfe3c5074129dc513334b703d1feda0",
+          "content_hash": "f6835e07ce631b280f53de11b395ab317c49bfcce607868bb0569677082fe8f2",
           "package": "service_runtime"
         },
         {
@@ -2144,7 +2144,7 @@
           "source_location": "Code/ConversationalUX/FindCareChat/frontend/src/components/ProviderResultsWidget.tsx",
           "handler_type": "static_asset",
           "disposition": "referenced",
-          "content_hash": "5c3b31cdd3d91923dae9e687c110ec96a468f67f013f6975a5cb7b991c014bd6",
+          "content_hash": "f8b9104799527d6864ee9ae929af4bb8fc61766a2e298992b498e385efa89358",
           "package": "service_runtime"
         },
         {
@@ -2429,7 +2429,7 @@
           "source_location": "FindCare/ProviderManagement/provider_search_service.py",
           "handler_type": "python_source",
           "disposition": "referenced",
-          "content_hash": "029253233901ce6215b0247d8ba29728dfae63ee3fe8c769322d2d797a472dd3",
+          "content_hash": "9be9a41e45eb632f4d335697f80d36dd01e7a6dc0e172cc594ed7dfe5ceb1012",
           "package": "service_runtime"
         },
         {
@@ -3161,7 +3161,7 @@
           "source_location": "sharedServices/Code/AuthorizationsAndAuthentications/universal_navigation_tool.py",
           "handler_type": "python_source",
           "disposition": "referenced",
-          "content_hash": "1dfc111a5ffe43faed8535974b5280c82325a7561f189bfcfd77afcad2a95f66",
+          "content_hash": "b6ca90ad4fabedbfb0996078247a3d917e0c19d44bee8053edec97f051930cd2",
           "package": "service_runtime"
         },
         {
@@ -6073,6 +6073,60 @@
       "promote_chain_bound": false,
       "environments": [
         {
+          "env_binding": "local",
+          "node_address": "chathealthyfrontend",
+          "atlas": {
+            "cluster": {
+              "cluster_name": "ChatHealthyFrontEnd",
+              "runtime_consumers": [
+                {
+                  "identity_target_id": "target_identity_devops_user",
+                  "operation": "mongo_write"
+                }
+              ]
+            }
+          },
+          "platforms": [
+            {
+              "name": "atlas",
+              "facts": [
+                {
+                  "name": "role",
+                  "value": "host"
+                },
+                {
+                  "name": "cluster",
+                  "facts": [
+                    {
+                      "name": "cluster_name",
+                      "value": "ChatHealthyFrontEnd"
+                    },
+                    {
+                      "name": "runtime_consumer",
+                      "facts": [
+                        {
+                          "name": "identity_target_id",
+                          "value": "target_identity_devops_user"
+                        },
+                        {
+                          "name": "operation",
+                          "value": "mongo_write"
+                        }
+                      ]
+                    }
+                  ]
+                }
+              ]
+            }
+          ],
+          "packages": [
+            {
+              "package_id": "parameter_declaration",
+              "kind": "file_set"
+            }
+          ]
+        },
+        {
           "env_binding": "dev",
           "node_address": "chathealthyfrontend",
           "atlas": {
@@ -6118,10 +6172,132 @@
                 }
               ]
             }
+          ],
+          "packages": [
+            {
+              "package_id": "parameter_declaration",
+              "kind": "file_set"
+            }
+          ]
+        },
+        {
+          "env_binding": "qa",
+          "node_address": "chathealthyfrontend",
+          "atlas": {
+            "cluster": {
+              "cluster_name": "ChatHealthyFrontEnd",
+              "runtime_consumers": [
+                {
+                  "identity_target_id": "target_identity_devops_user",
+                  "operation": "mongo_write"
+                }
+              ]
+            }
+          },
+          "platforms": [
+            {
+              "name": "atlas",
+              "facts": [
+                {
+                  "name": "role",
+                  "value": "host"
+                },
+                {
+                  "name": "cluster",
+                  "facts": [
+                    {
+                      "name": "cluster_name",
+                      "value": "ChatHealthyFrontEnd"
+                    },
+                    {
+                      "name": "runtime_consumer",
+                      "facts": [
+                        {
+                          "name": "identity_target_id",
+                          "value": "target_identity_devops_user"
+                        },
+                        {
+                          "name": "operation",
+                          "value": "mongo_write"
+                        }
+                      ]
+                    }
+                  ]
+                }
+              ]
+            }
+          ],
+          "packages": [
+            {
+              "package_id": "parameter_declaration",
+              "kind": "file_set"
+            }
+          ]
+        },
+        {
+          "env_binding": "prod",
+          "node_address": "chathealthyfrontend",
+          "atlas": {
+            "cluster": {
+              "cluster_name": "ChatHealthyFrontEnd",
+              "runtime_consumers": [
+                {
+                  "identity_target_id": "target_identity_devops_user",
+                  "operation": "mongo_write"
+                }
+              ]
+            }
+          },
+          "platforms": [
+            {
+              "name": "atlas",
+              "facts": [
+                {
+                  "name": "role",
+                  "value": "host"
+                },
+                {
+                  "name": "cluster",
+                  "facts": [
+                    {
+                      "name": "cluster_name",
+                      "value": "ChatHealthyFrontEnd"
+                    },
+                    {
+                      "name": "runtime_consumer",
+                      "facts": [
+                        {
+                          "name": "identity_target_id",
+                          "value": "target_identity_devops_user"
+                        },
+                        {
+                          "name": "operation",
+                          "value": "mongo_write"
+                        }
+                      ]
+                    }
+                  ]
+                }
+              ]
+            }
+          ],
+          "packages": [
+            {
+              "package_id": "parameter_declaration",
+              "kind": "file_set"
+            }
           ]
         }
       ],
-      "files": []
+      "files": [
+        {
+          "feature_id": "EPIC-006-F-008",
+          "source_location": "FindCare/ParameterDeclaration/parameter_declaration.json",
+          "handler_type": "json",
+          "disposition": "referenced",
+          "package": "parameter_declaration"
+        }
+      ]
     }
   ],
   "firm": {

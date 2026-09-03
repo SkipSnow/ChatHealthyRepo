@@ -70,7 +70,6 @@ function buildResultsHtml(facilities: any[], totalCount?: number,
   return (
     `<div style="display:flex;flex-direction:column;height:100%;min-height:0;">` +
       `<div data-testid="facility-heading" style="padding:0.5em 1em;background:#f0fffe;border-bottom:0.125em solid #d8e2e1;color:#0b7a75;font-weight:600;flex-shrink:0;">${_esc(heading)}</div>` +
-      summary +
       `<div data-testid="available-facilities" style="flex:1;overflow:auto;">${rows}</div>` +
       (hasMore || hasPrevious
         ? `<div style="padding:0.6em 1em;border-top:0.125em solid #eee;text-align:center;flex-shrink:0;display:flex;gap:0.75em;justify-content:center;">` +

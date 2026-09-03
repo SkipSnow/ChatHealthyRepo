@@ -48,8 +48,8 @@ if "authentication" not in sys.modules:
 import json as _json
 
 _DECLARATION_SEED = (
-    _REPO_ROOT / "architecture" / "FindCare" / "ParameterDeclaration"
-    / "parameter_declaration.seed.json"
+    _REPO_ROOT / "FindCare" / "ParameterDeclaration"
+    / "parameter_declaration.json"
 )
 
 

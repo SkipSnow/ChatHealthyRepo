@@ -65,9 +65,21 @@ function buildChipHtml(dim: string, row: Record<string, any>): string {
 function buildHintsHtml(
   refinements: Record<string, Array<Record<string, any>>>,
   total: number,
+  summary?: string,
 ): string {
+  // The summary the server wrote about this result. It belongs beside the
+  // results and not among them: EPIC-006-F-001-S-005-REQ-B-009 requires it
+  // be shown with the results it describes, and REQ-B-010 forbids it being
+  // rendered among the elements of the list. This frame is where the
+  // system already speaks to the person about their query, so it is shown
+  // here and the list keeps its frame whole.
+  const summaryHtml = summary
+    ? `<div data-testid="provider-summary" style="padding:0.5em 0.8em;` +
+      `border-top:0.25em solid ${TEAL};background:#fffdf7;box-sizing:border-box;` +
+      `font-size:0.85em;color:#374151;">${_esc(summary)}</div>`
+    : ''
   const dims = Object.keys(refinements).filter(k => (refinements[k] || []).length)
-  if (!dims.length) return ''
+  if (!dims.length) return summaryHtml
   const blocks = dims.map(dim => {
     const chips = (refinements[dim] || []).map(r => buildChipHtml(dim, r)).join('')
     return (
@@ -78,6 +90,7 @@ function buildHintsHtml(
     )
   }).join('')
   return (
+    summaryHtml +
     `<div data-testid="provider-search-refinements" style="padding:0.5em 0.8em;` +
     `border-top:0.25em solid ${TEAL};background:${TEAL_LIGHT_BG};` +
     `box-sizing:border-box;">` +
@@ -145,7 +158,8 @@ export default function ProviderSearchRefinementWidget() {
       if (msg.type === 'router:event-broadcast' && msg.kind === 'providers') {
         const data = msg.data || {}
         paint(buildHintsHtml(data.refinements || {},
-                             Number(data.total_count || 0)))
+                             Number(data.total_count || 0),
+                             String(data.summary_message || '')))
         return
       }
 

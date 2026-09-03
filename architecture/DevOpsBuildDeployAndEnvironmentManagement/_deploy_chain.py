@@ -2697,6 +2697,112 @@ def entry_value(name, qualifier, target, env, resolver, repo_root=None):
     return None
 
 
+def _identity_name(coll: "DeploymentCollection", identity_target_id: str,
+                   env: str) -> str:
+    """The identity a target authenticates as in this environment.
+
+    The manifest addresses an identity by its target id; the name it
+    authenticates under is a fact on that target's env binding. Reading it
+    here means a caller never has to know both.
+    """
+    for record in coll:
+        if record.target_id != identity_target_id:
+            continue
+        for eb in record.environments:
+            if eb.env_binding == env and eb.identity:
+                name = eb.identity.get("name") or ""
+                if name:
+                    return name
+    raise ChatHealthyException(
+        mode="runtime_error",
+        component="_deploy_chain",
+        message=f"{identity_target_id} names no identity for env={env!r}")
+
+
+def apply_config_documents(build_dir: Path, target: TargetRecord, env: str,
+                           coll: "DeploymentCollection",
+                           package_selection: set[str] | None = None) -> None:
+    """Write each config document this target declares into its collection.
+
+    A cluster target holds documents the runtime cannot start without. The
+    parameter declaration is one: design C-13b puts it in ChatHealthyConfig
+    keyed by env exactly as DBVersions is, and the runtime reads it on the
+    first parameter it touches. Nothing was writing it, so an environment
+    could be deployed complete and still answer every utterance with a
+    clarification, which is what dev did on build 2244.
+
+    The document names its own collection, so this function decides nothing
+    about where bytes land. It reads only the build output, per
+    EPIC-008-F-012-S-004: a deploy that read the source could install a file
+    the build never saw.
+
+    The identity is read from the target's declared mongo_write runtime
+    consumer rather than named here, so who may write is stated once, in the
+    manifest, and a deploy cannot quietly use an identity the record does not
+    declare. A file declaring no document for this env is a file that has
+    nothing to say here, not an error.
+    """
+    from chathealthy_lib.mongo_utilities import ChatHealthyMongoUtilities
+    from cluster_host import host_for as _cluster_host
+
+    declared = [f for f in target.files
+                if f.handler_type == "json"
+                and (package_selection is None or f.package in package_selection)]
+    if not declared:
+        return
+    cluster = ""
+    consumers: list[dict] = []
+    for eb in target.environments:
+        if eb.env_binding == env:
+            block = (eb.atlas or {}).get("cluster") or {}
+            cluster = block.get("cluster_name", "")
+            consumers = block.get("runtime_consumers") or []
+    if not cluster:
+        raise ChatHealthyException(
+            mode="runtime_error",
+            component="_deploy_chain",
+            message=f"{target.target_id} declares config documents but names "
+                    f"no cluster for env={env!r}")
+    writers = [con.get("identity_target_id") for con in consumers
+               if con.get("operation") == "mongo_write"]
+    if len(writers) != 1:
+        raise ChatHealthyException(
+            mode="runtime_error",
+            component="_deploy_chain",
+            message=f"{target.target_id} env={env!r} declares {len(writers)} "
+                    f"mongo_write runtime consumer(s); installing a config "
+                    f"document needs exactly one identity to write as")
+    identity = _identity_name(coll, writers[0], env)
+    client = ChatHealthyMongoUtilities().getConnection(
+        identity, cluster, host=_cluster_host(cluster))
+    step(f"  config documents written as {identity} (declared by "
+         f"{target.target_id})")
+    for entry in declared:
+        staged = build_dir / entry.package / entry.source_location
+        if not staged.is_file():
+            raise ChatHealthyException(
+                mode="runtime_error",
+                component="_deploy_chain",
+                message=f"{target.target_id} declares {entry.source_location} "
+                        f"and the build did not stage it at {staged}")
+        payload = json.loads(staged.read_text(encoding="utf-8"))
+        address = payload.get("collection") or ""
+        if address.count(".") != 1:
+            raise ChatHealthyException(
+                mode="runtime_error",
+                component="_deploy_chain",
+                message=f"{entry.source_location} must name its destination as "
+                        f"'Database.Collection'; it names {address!r}")
+        database, collection = address.split(".")
+        wanted = [doc for doc in payload.get("documents") or []
+                  if doc.get("env") == env]
+        for doc in wanted:
+            client[database][collection].replace_one(
+                {"env": env}, doc, upsert=True)
+        step(f"  {address} env={env}: {len(wanted)} document(s) written "
+             f"from {entry.source_location}")
+
+
 def deploy_one(
     repo_root: Path,
     target_id: str,
@@ -2739,7 +2845,9 @@ def deploy_one(
         pad.ensure_vnet_private_endpoints(target, env, coll)
         return result
     if target_kind == "atlas":
-        return pad.verify_atlas(target, env)
+        result = pad.verify_atlas(target, env)
+        apply_config_documents(build_dir, target, env, coll, package_selection)
+        return result
     if target_kind == "identity":
         return pad.ensure_managed_identity(target, env)
     if target_kind == "entra_directory":

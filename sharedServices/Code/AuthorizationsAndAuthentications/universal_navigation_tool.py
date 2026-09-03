@@ -638,9 +638,24 @@ class UniversalNavigationTool(ChatHealthyTool):
         from UserParameters import user_parameters_tool
         carried = [(INDIVIDUAL_PROVIDER, "position"),
                    (INDIVIDUAL_PROVIDER, "openNpi")]
+        # A page's displayed state does not survive a turn about another
+        # page. A facility detail left open while the person went back to
+        # looking for a care giver stayed on screen beside a care-giver
+        # list -- an organization in Long Beach beside psychiatrists in San
+        # Francisco -- because only this page's own position and open
+        # record were cleared. Every page a turn is not about is cleared of
+        # what it was showing.
+        carried += [(FACILITY, "position"), (FACILITY, "openNpi"),
+                    (CLINICAL_TRIAL, "position"), (CLINICAL_TRIAL, "openNctId")]
         if complaint_changed:
             carried = [(NUCC, "selectedSpecialtyCodes"),
                        (INDIVIDUAL_PROVIDER, "selectedSpecialtyCodes")] + carried
+        # Whether another page had a record open before this turn cleared
+        # it. Read before the clear, because after it there is nothing left
+        # to say the panel is showing something.
+        other_page_was_open = bool(
+            deps.user_object.userParameters.get(FACILITY, "openNpi")
+            or deps.user_object.userParameters.get(CLINICAL_TRIAL, "openNctId"))
         await user_parameters_tool.TOOL.run_and_log(
             deps,
             user_parameters_tool.Request(
@@ -649,6 +664,11 @@ class UniversalNavigationTool(ChatHealthyTool):
                          for page, name in carried],
             ),
         )
+        # Clearing the parameter does not unpaint the frame. The panel comes
+        # down when the server says so, which is the same event the deliberate
+        # close already uses (EPIC-006-F-008-S-002-REQ-B-006).
+        if other_page_was_open:
+            deps.stream({"kind": "provider_detail_close", "data": {"closed": True}})
 
         last_target_action: Optional[str] = None
         for _hop in range(MAX_DISPATCH_HOPS):
@@ -701,10 +721,17 @@ class UniversalNavigationTool(ChatHealthyTool):
         npi = str((payload or {}).get("npi") or "").strip()
         if npi:
             from UserParameters import user_parameters_tool
+            # The record is recorded on the page it belongs to. Both pages
+            # open a detail through this one handler, and it wrote every
+            # open record to the care-giver page -- so a facility was held
+            # open there, no page ever knew a facility was on screen, and
+            # nothing could take it down when the person moved on.
+            entity_type = str((payload or {}).get("entity_type") or "").strip()
+            page = FACILITY if entity_type == "2" else INDIVIDUAL_PROVIDER
             await user_parameters_tool.TOOL.run_and_log(
                 deps,
                 user_parameters_tool.Request(
-                    verb="set", page=INDIVIDUAL_PROVIDER, name="openNpi",
+                    verb="set", page=page, name="openNpi",
                     value=npi, route="gateway", origin="deterministic",
                 ),
             )

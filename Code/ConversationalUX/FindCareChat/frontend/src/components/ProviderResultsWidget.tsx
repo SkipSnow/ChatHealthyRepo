@@ -40,9 +40,11 @@ function buildResultsAreaHtml(providers: any[], totalCount?: number,
   // result that stops naming its own count is one a person cannot read
   // at a glance.
   const heading = `${count} provider${count === 1 ? '' : 's'} found`
-  const summary = header
-    ? `<div data-testid="provider-summary" style="padding:0.4em 1em;background:#fffdf7;border-bottom:0.0625em solid #eee;color:#374151;font-size:0.9em;flex-shrink:0;">${_esc(header)}</div>`
-    : ''
+  // The list is the principal content of the page and nothing drawn in
+  // this frame may displace it (EPIC-006-F-001-S-005-REQ-B-009). The
+  // server's summary named every resolved specialty three times over and
+  // took the frame the providers belong in, so it is not drawn here. It
+  // still arrives on the broadcast payload, so nothing that has it is lost.
   // renderProviderRow ported verbatim from prod _oneshots/prod_index.html
   // line 1819-1835. Action data-* attributes carry the full card payload
   // the SS provider_detail_tool requires.
@@ -84,7 +86,6 @@ function buildResultsAreaHtml(providers: any[], totalCount?: number,
   return (
     `<div style="display:flex;flex-direction:column;height:100%;min-height:0;">` +
       `<div style="padding:0.5em 1em;background:#f0fffe;border-bottom:0.125em solid #d8e2e1;color:#0b7a75;font-weight:600;flex-shrink:0;">${_esc(heading)}</div>` +
-      summary +
       `<div style="display:flex;align-items:center;justify-content:space-between;padding:1em;background:#fafafa;border-bottom:0.125em solid #eee;flex-shrink:0;">` +
         `<span style="font-weight:600;color:#0b7a75;text-transform:uppercase;">Available Providers</span>` +
         `<span style="color:#6b7280;">${providers.length} available — drag to select</span>` +
