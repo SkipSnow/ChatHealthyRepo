@@ -95,8 +95,7 @@ def render(data: dict[str, Any]) -> bytes:
           [(r.get("component", ""), r.get("build") or "did not answer")
            for r in (data.get("deployment_facts") or [])], Table, grid)
     _rows(story, styles, "User Parameters",
-          [(k, _flat(v)) for k, v in (data.get("parameters") or {}).items()],
-          Table, grid)
+          _parameter_pairs(data.get("parameters") or {}), Table, grid)
 
     threads = data.get("threads") or {}
     _rows(story, styles, "Utterances",
@@ -146,10 +145,24 @@ def _parameter_pairs(parameters: Any) -> list:
             if not attributes:
                 rows.append((str(page_name), "(nothing set)"))
             for attribute, value in attributes.items():
-                rows.append((f"{page_name}.{attribute}", _flat(value)))
+                rows.extend(_attribute_rows(f"{page_name}.{attribute}", value))
         else:
-            rows.append((str(page_name), _flat(page_value)))
+            rows.extend(_attribute_rows(str(page_name), page_value))
     return others + rows
+
+
+def _attribute_rows(name: str, value: Any) -> list:
+    """One pair per value, so no cell can outgrow a page.
+
+    A parameter holding a list -- the specialties a funnel offered, the
+    kinds of place a facility search can return -- is one value but many
+    lines, and flattened into a single cell it was 700 points tall against
+    a frame of 693. Each element is addressed by its position, which is
+    also how a person reads back which one they chose.
+    """
+    if isinstance(value, list) and value:
+        return [(f"{name}[{i}]", _flat(item)) for i, item in enumerate(value)]
+    return [(name, _flat(value))]
 
 
 def _flat(value: Any) -> str:
