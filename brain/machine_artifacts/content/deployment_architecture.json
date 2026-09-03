@@ -2192,7 +2192,7 @@
           "source_location": "Code/ConversationalUX/FindCareChat/frontend/src/components/WelcomeWidget.tsx",
           "handler_type": "static_asset",
           "disposition": "referenced",
-          "content_hash": "11f6717fda0ce2d66fc6c666478ed7057ef8471c864e1bddfb2b0a5fa29e3b7d",
+          "content_hash": "aafff47f582c99c00f3c8b1e71b26c196b46826e946c9165fbdcc18b15ec2071",
           "package": "service_runtime"
         },
         {
@@ -2272,7 +2272,7 @@
           "source_location": "Code/Shared/prompt_system_maker.py",
           "handler_type": "python_source",
           "disposition": "referenced",
-          "content_hash": "9a7922e6e9040337a07e0931c2362e57bb0bfeb0796eaf9b717152881ea887c7",
+          "content_hash": "1ac7238daa9d6cca29b4ea3e2da824e3cd8d2f7d160bcd597e816ba9a96c9135",
           "package": "service_runtime"
         },
         {
