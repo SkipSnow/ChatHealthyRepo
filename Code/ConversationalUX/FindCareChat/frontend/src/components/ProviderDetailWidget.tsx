@@ -161,6 +161,15 @@ export default function ProviderDetailWidget() {
       type: 'router:subscribe-broadcast',
       kind: 'provider_detail_close',
     }, '*')
+    // A turn about another page takes this panel down
+    // (EPIC-006-F-008-S-002-REQ-B-006). The server clears the record the
+    // other page held open, but a parameter going away does not unpaint a
+    // frame, so a facility detail stayed on screen beside a list of care
+    // givers in another city until something else replaced it.
+    window.parent.postMessage({
+      type: 'router:subscribe-broadcast',
+      kind: 'intent_classified',
+    }, '*')
 
     function postRender(content: string) {
       window.parent.postMessage({
@@ -200,6 +209,18 @@ export default function ProviderDetailWidget() {
       // clears when told, not when clicked.
       if (msg.type === 'router:event-broadcast' &&
           msg.kind === 'provider_detail_close') {
+        open = false
+        postRender(BLANK)
+        return
+      }
+
+      // A new question is a new page in view, and the record this panel
+      // holds belongs to the one being left. It goes with it. Not gated on
+      // this widget believing a detail is open: the flag tracks the panel
+      // this widget last painted, and a detail opened from the facility
+      // list on an earlier turn outlived it.
+      if (msg.type === 'router:event-broadcast' &&
+          msg.kind === 'intent_classified') {
         open = false
         postRender(BLANK)
         return

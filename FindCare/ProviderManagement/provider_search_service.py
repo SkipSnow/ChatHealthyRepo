@@ -384,6 +384,7 @@ class FindCareService:
             "primary_practice_address": address,
             "facility_type": self._taxonomy_name_cache.get(code, ""),
             "npi": p.get("npi", ""),
+            "_primary_taxonomy_code": code,
         }
 
     @staticmethod
@@ -770,6 +771,13 @@ class FindCareService:
                 collection, base_filter, cursor, safe_limit, entity_type,
                 direction, specialty_codes,
                 row_formatter=self._format_facility)
+            # A row shows the label of ITS primary taxonomy
+            # (EPIC-006-F-006-S-001... see S-002-REQ-B-007), which is not
+            # always one of the codes the search named: a facility carrying
+            # several taxonomies matches on one and is primary in another.
+            # Loading labels only for the searched codes left those rows
+            # showing an empty type, and a different set of rows each run.
+            self._label_rows_by_own_taxonomy(facilities)
             log.info("search: facility route returned %d of %d in %s",
                      len(facilities), total_count, state_upper or "all")
             return self._paginated_result(
@@ -858,9 +866,15 @@ class FindCareService:
             # list is offered. Apply Filter MUST be a parameterized DB
             # query only — no further LLM calls.
 
-            # Build filtered search term from selected specialty names
-            selected_names = [o["name"] for o in specialization_options if o.get("name")]
-            filtered_term = ", ".join(selected_names) if selected_names else f"{len(specialty_codes)} selected specialties"
+            # What the person searched for, in the person's own words
+            # (EPIC-006-F-001-S-005-REQ-B-001). Naming the resolved
+            # taxonomies instead put all nineteen labels in the summary, and
+            # the summary names the term three times, so a search for "a
+            # shrink" answered with fifty-seven label names and pushed the
+            # providers off the screen. The labels are what the panel is
+            # for; the summary is about what was asked.
+            filtered_term = (specialty_query
+                             or f"{len(specialty_codes)} selected specialties")
 
             return self._paginated_result(providers, "specialty_codes", safe_limit, entity_type,
                                           search_params=_search_params, total_count=total_count,
@@ -968,6 +982,35 @@ class FindCareService:
 
         return {"supported": True, "providers": [],
                 "message": f"No providers found matching the search criteria."}
+
+    def _label_rows_by_own_taxonomy(self, rows: list) -> None:
+        """Fill the facility type on any row the option set did not label.
+
+        The row's type is the label of the row's own primary taxonomy. The
+        option cache holds the codes the search named, so a facility that
+        matched on one taxonomy and is primary in another arrives unlabelled.
+        Reads the catalogue once for exactly the codes still missing.
+        """
+        missing = {r.get("_primary_taxonomy_code") for r in rows
+                   if isinstance(r, dict) and not r.get("facility_type")}
+        missing = {c for c in missing if c}
+        if not missing:
+            return
+        for doc in specialty_meta_coll().find(
+                {"Code": {"$in": sorted(missing)}, "Section": "Non-Individual"},
+                {"_id": 0, "Code": 1, "Display Name": 1}):
+            code = doc.get("Code", "")
+            name = doc.get("Display Name", "")
+            if code and name:
+                self._taxonomy_name_cache[code] = name
+        for row in rows:
+            if not isinstance(row, dict) or row.get("facility_type"):
+                continue
+            row["facility_type"] = self._taxonomy_name_cache.get(
+                row.get("_primary_taxonomy_code") or "", "")
+        for row in rows:
+            if isinstance(row, dict):
+                row.pop("_primary_taxonomy_code", None)
 
     def _facility_type_options(self, base_filter: dict,
                                specialty_codes: list = None) -> list:
