@@ -490,15 +490,25 @@ def request_authorization(action: str, subject: str,
         ChatHealthyLoggingService().error(
             "authorization page could not be opened; open %s to decide", url)
 
+    # Said when the page opens, because this is the only moment at which
+    # it is true. The line after the wait reports a decision already
+    # made, and reading that one as a request is how an operator gets
+    # asked to approve something they approved minutes ago.
+    from chathealthy_lib.logging_service import ChatHealthyLoggingService
+    ChatHealthyLoggingService().info(
+        "AWAITING AUTHORIZATION: %s -- decide at %s", subject, url)
+
     started = time.monotonic()
     deadline = started + timeout_seconds
     while decision["verdict"] is None and time.monotonic() < deadline:
         time.sleep(_POLL_SECONDS)
     waited = time.monotonic() - started
-    from chathealthy_lib.logging_service import ChatHealthyLoggingService
+    verdict = decision["verdict"]
+    outcome = ("TIMED OUT, treated as rejected" if verdict is None
+               else f"{verdict} by the operator")
     ChatHealthyLoggingService().info(
-        "authorization page opened=%s raised_to_front=%s waited=%.1fs",
-        opened, bool(_raised), waited)
+        "AUTHORIZATION %s: %s (page opened=%s raised_to_front=%s "
+        "waited=%.1fs)", outcome, subject, opened, bool(_raised), waited)
     server.shutdown()
     server.server_close()
 

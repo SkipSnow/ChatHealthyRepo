@@ -16,8 +16,10 @@
 // kind:'providers' as `refinements`.
 
 import { useEffect } from 'react'
+import { openPopup } from './popupFrame'
 
 const TARGET = 'UserMessage'
+const POPUP = 'NarrowPopUp'
 const CONTAINER = 'provider_search_refinements'
 const TEAL = '#0b7a75'
 const TEAL_LIGHT_BG = '#e6f5ec'
@@ -89,12 +91,51 @@ function buildHintsHtml(
       `<div>${chips}</div></div>`
     )
   }).join('')
+  // On a phone the same chips are a window rather than a block beneath
+  // the results, reached by the button below, so the vertical space they
+  // took goes back to the list and the selector (C-27). One builder
+  // serves both, so the two can never offer different narrowings.
+  const heading = `${Number(total) || 0} found — you can narrow by:`
   return (
     summaryHtml +
-    `<div data-testid="provider-search-refinements" style="padding:0.5em 0.8em;` +
-    `border-top:0.25em solid ${TEAL};background:${TEAL_LIGHT_BG};` +
-    `box-sizing:border-box;">` +
+    `<style>
+       .ch-narrow-button { display: none; }
+       @media (max-width: 720px) {
+         .ch-narrow-inline { display: none; }
+         .ch-narrow-button { display: block; }
+       }
+     </style>` +
+    `<div class="ch-narrow-inline" data-testid="provider-search-refinements"` +
+    ` style="padding:0.5em 0.8em;border-top:0.25em solid ${TEAL};` +
+    `background:${TEAL_LIGHT_BG};box-sizing:border-box;">` +
     `<div style="font-size:0.85em;color:#1f2937;font-weight:700;">` +
+    `${_esc(heading)}</div>${blocks}</div>` +
+    `<button type="button" class="ch-narrow-button"` +
+    ` data-router-action="narrow_open" data-testid="provider-narrow-button"` +
+    ` style="width:100%;padding:0.6em 0.8em;border:none;border-top:0.25em solid ${TEAL};` +
+    `background:${TEAL_LIGHT_BG};color:#1f2937;font-weight:700;font-size:0.85em;` +
+    `text-align:left;cursor:pointer;">${_esc(heading)}</button>`
+  )
+}
+
+// What the window holds: the heading and the chips, nothing else.
+function buildNarrowWindowHtml(
+  refinements: Record<string, Array<Record<string, any>>>,
+  total: number,
+): string {
+  const dims = Object.keys(refinements).filter(k => (refinements[k] || []).length)
+  const blocks = dims.map(dim => {
+    const chips = (refinements[dim] || []).map(r => buildChipHtml(dim, r)).join('')
+    return (
+      `<div style="margin-top:0.6em;">` +
+      `<div style="font-size:0.75em;color:#6b7280;text-transform:uppercase;` +
+      `letter-spacing:0.03em;">${_esc(DIMENSION_TITLES[dim] || dim)}</div>` +
+      `<div>${chips}</div></div>`
+    )
+  }).join('')
+  return (
+    `<div data-testid="provider-narrow-window">` +
+    `<div style="font-size:0.95em;color:#1f2937;font-weight:700;">` +
     `${Number(total) || 0} found — you can narrow by:</div>${blocks}</div>`
   )
 }
@@ -115,6 +156,11 @@ export default function ProviderSearchRefinementWidget() {
     // what is inside it, so paging updates the counts instead of stacking
     // another copy under them.
     let laid = false
+    // The last counts seen, so the window can be opened from the button
+    // and repainted as the list narrows without asking the server again.
+    let lastRefinements: Record<string, Array<Record<string, any>>> = {}
+    let lastTotal = 0
+    let windowOpen = false
     // The correction line is written with a whole-frame replace, which
     // happens after the counts on a turn that corrects a spelling -- so the
     // hints were being wiped by it. Holding them means they go back under
@@ -157,9 +203,27 @@ export default function ProviderSearchRefinementWidget() {
 
       if (msg.type === 'router:event-broadcast' && msg.kind === 'providers') {
         const data = msg.data || {}
-        paint(buildHintsHtml(data.refinements || {},
-                             Number(data.total_count || 0),
+        lastRefinements = data.refinements || {}
+        lastTotal = Number(data.total_count || 0)
+        paint(buildHintsHtml(lastRefinements, lastTotal,
                              String(data.summary_message || '')))
+        // A choice made in the window narrows the list and the counts
+        // change with it. Repainting an open window is what makes it
+        // operate on the list in real time rather than going stale the
+        // moment it is used.
+        if (windowOpen) openPopup(POPUP, buildNarrowWindowHtml(lastRefinements, lastTotal))
+        return
+      }
+
+      // The button under the results on a phone.
+      if (msg.type === 'router:action' && msg.action === 'narrow_open') {
+        windowOpen = true
+        openPopup(POPUP, buildNarrowWindowHtml(lastRefinements, lastTotal))
+        return
+      }
+      if (msg.type === 'router:action' && msg.action === 'popup_close'
+          && String((msg.data || {}).target || '') === POPUP) {
+        windowOpen = false
         return
       }
 
