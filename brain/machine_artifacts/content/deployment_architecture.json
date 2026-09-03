@@ -2453,7 +2453,7 @@
           "source_location": "FindCare/SpecialtyFilter/specialty_filter_tool.py",
           "handler_type": "python_source",
           "disposition": "referenced",
-          "content_hash": "916f1b5e8e4d079dac6a6aa1b1db8c6dc052ff63807bb139924a882db0bae55f",
+          "content_hash": "a58315fbff0e429c9d24b2329c19cde47899bbb12cb15fe12fdca0b2bdbe4e29",
           "package": "service_runtime"
         },
         {
@@ -3049,7 +3049,7 @@
           "source_location": "FindCare/SpecialtyFilter/specialty_filter_tool.py",
           "handler_type": "python_source",
           "disposition": "referenced",
-          "content_hash": "916f1b5e8e4d079dac6a6aa1b1db8c6dc052ff63807bb139924a882db0bae55f",
+          "content_hash": "a58315fbff0e429c9d24b2329c19cde47899bbb12cb15fe12fdca0b2bdbe4e29",
           "package": "service_runtime"
         },
         {
@@ -3161,7 +3161,7 @@
           "source_location": "sharedServices/Code/AuthorizationsAndAuthentications/universal_navigation_tool.py",
           "handler_type": "python_source",
           "disposition": "referenced",
-          "content_hash": "bf981f0aae57897ed7a25348158938e967ec3c6ad137bb06e6e5181ad11fae58",
+          "content_hash": "e334bb8acabb235965f1ca5e13f6f727d8cc86e83636bd93f7db078337297342",
           "package": "service_runtime"
         },
         {
@@ -4039,24 +4039,14 @@
       "secrets": {
         "ANTHROPIC_API_KEY": "azure_key_vault",
         "AZ_VM_ADMIN_SSH_PRIVATE_KEY_B64": "azure_key_vault",
-        "CHATHEALTHY_PROJECT_ROOT": "local_env",
         "CLOUDFLARE_ACCOUNT_ID": "local_env",
         "CLOUDFLARE_API_TOKEN": "azure_key_vault",
         "ENV_PREFIX": "local_env",
-        "EVALCARE_URL": "local_env",
-        "GITHUB_ACTIONS": "local_env",
-        "GITHUB_SHA": "local_env",
         "HF_TOKEN": "azure_key_vault",
         "PUSHOVER_TOKEN": "azure_key_vault",
-        "PUSHOVER_USER": "azure_key_vault",
-        "SHARED_SERVICES_URL": "local_env",
-        "SMOKE_TEST_ENV": "local_env",
-        "SMOKE_TEST_URL": "local_env",
-        "SPACE_ID": "local_env",
-        "WEBSITE_SITE_NAME": "local_env"
+        "PUSHOVER_USER": "azure_key_vault"
       },
       "variables": {
-        "CHATHEALTHY_PROJECT_ROOT": "local_env",
         "ENV_PREFIX": "local_env"
       },
       "secret_descriptions": {
@@ -4300,18 +4290,9 @@
       ],
       "secrets": {
         "AZ_VM_ADMIN_SSH_PRIVATE_KEY_B64": "azure_key_vault",
-        "CHATHEALTHY_PROJECT_ROOT": "local_env",
         "ENV_PREFIX": "local_env",
-        "EVALCARE_URL": "local_env",
-        "GITHUB_ACTIONS": "local_env",
-        "GITHUB_SHA": "local_env",
         "PUSHOVER_TOKEN": "azure_key_vault",
-        "PUSHOVER_USER": "azure_key_vault",
-        "SHARED_SERVICES_URL": "local_env",
-        "SMOKE_TEST_ENV": "local_env",
-        "SMOKE_TEST_URL": "local_env",
-        "SPACE_ID": "local_env",
-        "WEBSITE_SITE_NAME": "local_env"
+        "PUSHOVER_USER": "azure_key_vault"
       },
       "secret_descriptions": {
         "CHATHEALTHY_PROJECT_ROOT": "Where the project tree sits on the workstation",
@@ -5643,7 +5624,6 @@
               "package_id": "conversation_archive",
               "kind": "file_set",
               "secrets": {
-                "CHATHEALTHY_PROJECT_ROOT": "local_env",
                 "OPENAI_API_KEY": "azure_key_vault"
               },
               "secret_descriptions": {
@@ -5838,9 +5818,7 @@
         }
       ],
       "secrets": {
-        "AZURE_CLIENT_ID": "local_env",
         "AZURE_CLIENT_SECRET": "azure_key_vault",
-        "AZURE_TENANT_ID": "local_env",
         "KEY_VAULT_URI": "local_env",
         "PIPELINEEDITOR_AZURE_CLIENT_ID": "local_env",
         "PIPELINEEDITOR_AZURE_CLIENT_SECRET": "azure_key_vault",
@@ -6581,13 +6559,24 @@
       "IDENTITY_HEADER"
     ],
     "host_os_process": [
-      "MSI_ENDPOINT",
-      "MSI_SECRET",
+      "AZURE_CLIENT_ID",
+      "AZURE_TENANT_ID",
+      "CERTS_DIR",
+      "CHATHEALTHY_PROJECT_ROOT",
+      "EVALCARE_URL",
+      "GITHUB_ACTIONS",
+      "GITHUB_SHA",
       "IDENTITY_ENDPOINT",
       "IDENTITY_HEADER",
+      "MSI_ENDPOINT",
+      "MSI_SECRET",
+      "SHARED_SERVICES_URL",
+      "SMOKE_TEST_ENV",
+      "SMOKE_TEST_URL",
+      "SPACE_ID",
       "SSL_CERTFILE",
       "SSL_KEYFILE",
-      "CERTS_DIR"
+      "WEBSITE_SITE_NAME"
     ],
     "azure_function_app": [
       "MSI_ENDPOINT",
