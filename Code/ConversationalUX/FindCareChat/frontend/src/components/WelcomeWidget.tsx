@@ -17,7 +17,7 @@ const TARGET = 'MainWindow'
 const FALLBACK_WELCOME_HTML =
   '<div style="margin-top:10vh;">' +
     '<p style="text-align:center;font-family:Georgia,\'Times New Roman\',serif;font-size:2em;line-height:1.3;margin:0;">' +
-      'Find care in the US &amp; clinical trials globally,<br>' +
+      'Find care with Caregivers, or at a facility in the United States, or find a clinical trial anywhere in the world.<br>' +
       "Let's talk about it." +
     '</p>' +
   '</div>'
