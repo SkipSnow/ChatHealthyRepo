@@ -1998,7 +1998,16 @@ class UniversalNavigationTool(ChatHealthyTool):
                     # deserialized into a UserObject — user loses their
                     # state and gets fresh-minted as guest on this turn.
                     # User-affecting → log.error + always-log.
-                    pass
+                    log.error("UR: persisted session could not be read; the "
+                              "user is fresh-minted as a guest this turn: %s",
+                              exc,
+                              exc=ChatHealthyException(
+                                  mode="ur_session_unreadable",
+                                  message=f"UR: persisted session could not be "
+                                          f"read, user fresh-minted: {exc}",
+                                  component="UniversalNavigationTool",
+                                  exception=exc if isinstance(exc, Exception) else None,
+                              ))
 
         if loaded_user_object is not None:
             auth_intent = "manage_session"
@@ -2086,10 +2095,25 @@ class UniversalNavigationTool(ChatHealthyTool):
                     # the failure to the user via the final ok:false stream
                     # event (NOT a 503). Per the taxonomy, only the catch-
                     # all @app.exception_handler does Mode 3 fatal_error.
+                    #
+                    # It is recorded here because this is the catch site, and
+                    # a catch that says nothing is a failure nobody can see:
+                    # a tool raised, the turn answered final ok:false, the
+                    # screen did not change and the log held nothing at all.
+                    # Selecting a provider failed this way and was invisible
+                    # until an operator clicked and nothing happened.
+                    #
                     # This catch needs follow-on work: discriminate on
                     # exc.mode for known ChatHealthyException modes (Mode 1
                     # or Mode 2 per mode); for non-ChatHealthyException,
                     # re-raise so the safety net handles it as Mode 3.
+                    log.error("UR: op=%s failed: %s", gate_req.op, exc,
+                              exc=ChatHealthyException(
+                                  mode="ur_operation_failed",
+                                  message=f"UR: op={gate_req.op!r} failed: {exc}",
+                                  component="UniversalNavigationTool",
+                                  exception=exc if isinstance(exc, Exception) else None,
+                              ))
 
                 session_token_proj = session_token_wire(user_object)
                 if nav_exc_local is not None:
@@ -2124,7 +2148,15 @@ class UniversalNavigationTool(ChatHealthyTool):
                     # Stream continues so the user sees this turn's result,
                     # but next turn will rehydrate stale state. Operator
                     # must know. log.exception (ERROR+traceback) + always-log.
-                    pass
+                    log.error("UR: session persist failed; this turn is shown "
+                              "but the next rehydrates stale state: %s", exc,
+                              exc=ChatHealthyException(
+                                  mode="ur_session_persist_failed",
+                                  message=f"UR: session persist failed, next "
+                                          f"turn rehydrates stale state: {exc}",
+                                  component="UniversalNavigationTool",
+                                  exception=exc if isinstance(exc, Exception) else None,
+                              ))
 
                 event_queue.put_nowait(final_event_local)
             finally:
