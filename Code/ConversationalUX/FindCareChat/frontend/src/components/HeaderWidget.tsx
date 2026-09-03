@@ -13,14 +13,20 @@ function buildHeaderHtml(): string {
   return `
     <style>
       .ch-header-nav-desktop { display: flex; }
+      .ch-brand-note         { font-size: 0.85em; }
       .ch-header-hamburger   { display: none; }
       @media (max-width: 720px) {
         .ch-header-nav-desktop { display: none; }
         .ch-header-hamburger   { display: inline-flex; }
+        /* The mark, the wordmark and the Pre-Alpha label are all sized
+           in em, so one rule on each carries the whole brand up by a
+           tenth without any of its proportions changing. */
+        .ch-brand      { font-size: 110%; }
+        .ch-brand-note { font-size: 0.935em; }
       }
     </style>
     <div style="display:flex;align-items:center;gap:1.5em;padding:0.5em 1em;height:100%;box-sizing:border-box;">
-      <a href="/" style="display:flex;align-items:center;gap:0.6em;text-decoration:none;">
+      <a href="/" class="ch-brand" style="display:flex;align-items:center;gap:0.6em;text-decoration:none;">
         <span style="display:inline-flex;align-items:center;justify-content:center;
                      width:2.2em;height:2.2em;border-radius:50%;background:#0b7a75;color:#fff;">
           <svg viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg" width="1.2em" height="1.2em" fill="currentColor">
@@ -32,8 +38,8 @@ function buildHeaderHtml(): string {
           Chat<span style="color:#1f2937;">Healthy</span>.ai
         </span>
       </a>
-      <span style="font-family:'DM Serif Display',serif;font-style:italic;color:#e05a8a;
-                   font-size:0.85em;transform:rotate(-8deg);display:inline-block;">Pre-Alpha</span>
+      <span class="ch-brand-note" style="font-family:'DM Serif Display',serif;font-style:italic;color:#e05a8a;
+                   transform:rotate(-8deg);display:inline-block;">Pre-Alpha</span>
       <nav class="ch-header-nav-desktop" style="font-size:0.9em;align-items:center;">
         <a href="#" data-router-action="goto_home"
            style="color:#0b7a75;text-decoration:underline;margin-left:3vw;">Home</a>

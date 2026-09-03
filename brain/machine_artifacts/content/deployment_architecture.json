@@ -2096,7 +2096,7 @@
           "source_location": "Code/ConversationalUX/FindCareChat/frontend/src/components/FooterWidget.tsx",
           "handler_type": "static_asset",
           "disposition": "referenced",
-          "content_hash": "4e512afaef0c60440fd8571dffab4e66eb6b09607209b1597b8c93c6afd4cf69",
+          "content_hash": "39ea89c788f4d1f361c3fdcfd96813b31c53c7aa93243a1be1a8e3b5137b4bee",
           "package": "service_runtime"
         },
         {
@@ -2104,7 +2104,7 @@
           "source_location": "Code/ConversationalUX/FindCareChat/frontend/src/components/HeaderWidget.tsx",
           "handler_type": "static_asset",
           "disposition": "referenced",
-          "content_hash": "09bd55bcd8202b3312bad51c157022eb5e3caab5008770826fddf4525168f1f7",
+          "content_hash": "d46659814717436aad158d6df62a0c2e1ef1f367ae7d99e2bf249e331779a23b",
           "package": "service_runtime"
         },
         {
@@ -2120,7 +2120,7 @@
           "source_location": "Code/ConversationalUX/FindCareChat/frontend/src/components/MobileNavDrawerWidget.tsx",
           "handler_type": "static_asset",
           "disposition": "referenced",
-          "content_hash": "968189a886cc198893948142162f796c279fb9551dbe4b23128377efba04d8e1",
+          "content_hash": "609d3edc384d2d5414bb8db3f72bb160c6a1d9c8d44231ff47937fdbfda97dc7",
           "package": "service_runtime"
         },
         {
