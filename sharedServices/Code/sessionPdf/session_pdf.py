@@ -116,6 +116,42 @@ def render(data: dict[str, Any]) -> bytes:
     return buf.getvalue()
 
 
+def _parameter_pairs(parameters: Any) -> list:
+    """One pair per parameter, addressed by the page that holds it.
+
+    Every parameter used to arrive as a single pair keyed 'pages', so the
+    whole set rendered into one table cell. A table splits between rows and
+    never inside one, so once the pages carried real values that cell grew
+    past the height of a page and the document could not be laid out at
+    all: 'tallest cell 904.0 points, too large on page 2'. It is also the
+    wrong shape to read -- a parameter is addressed by its page and its
+    name, and that is how it is shown.
+    """
+    if not isinstance(parameters, dict):
+        return [("parameters", _flat(parameters))]
+    pages = parameters.get("pages")
+    others = [(k, _flat(v)) for k, v in parameters.items() if k != "pages"]
+    if pages is None:
+        return others + [("pages", "(not set)")]
+    rows = []
+    if isinstance(pages, dict):
+        items = pages.items()
+    elif isinstance(pages, list):
+        items = [(str((p or {}).get("page", i)), p) for i, p in enumerate(pages)]
+    else:
+        return others + [("pages", _flat(pages))]
+    for page_name, page_value in items:
+        if isinstance(page_value, dict):
+            attributes = {k: v for k, v in page_value.items() if k != "page"}
+            if not attributes:
+                rows.append((str(page_name), "(nothing set)"))
+            for attribute, value in attributes.items():
+                rows.append((f"{page_name}.{attribute}", _flat(value)))
+        else:
+            rows.append((str(page_name), _flat(page_value)))
+    return others + rows
+
+
 def _flat(value: Any) -> str:
     """A parameter as one readable line."""
     if value is None or value == "":
