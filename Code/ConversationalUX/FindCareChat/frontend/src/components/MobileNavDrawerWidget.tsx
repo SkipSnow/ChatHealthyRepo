@@ -9,6 +9,16 @@ import { openPopup, closePopup } from './popupFrame'
 
 const TARGET = 'MobileNavDrawer'
 
+// The links that sit in the footer on a wider screen. On a phone the
+// footer keeps only the copyright, so the menu is where they are reached.
+const footerLink = (action: string, label: string, extra = '') =>
+  `<button type="button" data-router-action="${action}" ${extra}
+           style="background:transparent;border:none;color:#0b7a75;cursor:pointer;
+                  padding:0.5em 1em;text-align:left;text-decoration:underline;">${label}</button>`
+
+const panelLink = (path: string, title: string) =>
+  footerLink('open_panel', title, `data-path="${path}" data-title="${title}"`)
+
 function buildDrawerHtml(): string {
   return `
     <div style="display:flex;flex-direction:column;gap:0.5em;padding:0.5em 0;font-family:system-ui,-apple-system,sans-serif;">
@@ -18,6 +28,11 @@ function buildDrawerHtml(): string {
               style="background:#0b7a75;border:none;color:#fff;cursor:pointer;padding:0.5em 1em;border-radius:0.25em;text-align:left;">Login &amp; Registration</button>
       <button type="button" data-router-action="open_panel" data-path="products.html" data-title="Products &amp; Services"
               style="background:transparent;border:0.0625em solid #0b7a75;color:#0b7a75;cursor:pointer;padding:0.5em 1em;border-radius:0.25em;text-align:left;">Products &amp; Services</button>
+      <hr style="border:none;border-top:0.0625em solid #e5e7eb;margin:0.25em 1em;">
+      ${footerLink('about_chathealthy', 'About ChatHealthy.ai')}
+      ${panelLink('privacy.html', 'Privacy Policy')}
+      ${panelLink('terms.html', 'Terms of Use')}
+      ${panelLink('architecture.html', 'Architecture')}
     </div>
   `
 }
