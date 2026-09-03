@@ -79,6 +79,18 @@ import pytest
 from playwright.sync_api import sync_playwright
 
 BASE_URL = os.getenv("SMOKE_TEST_URL", "https://localhost")
+
+# Which form factor this run is about. "360x800" is a phone; the default
+# is the computer.
+_vp = os.getenv("UAT_VIEWPORT", "1600x1000").lower().split("x")
+VIEWPORT = {"width": int(_vp[0]), "height": int(_vp[1])}
+IS_PHONE = VIEWPORT["width"] <= 720
+
+# What says the page is ready, at either width. The footer's About link
+# was the gate, and a phone moves that link into the menu -- so the gate
+# waited for something the form factor had deliberately hidden. The brand
+# is in the header at every width.
+READY = ".ch-brand"
 DEFAULT_TIMEOUT = 60_000
 
 # A turn runs normalize + embed + vector + specialty filter. Measured on
@@ -263,8 +275,25 @@ def _ask(page, text: str) -> None:
 
 
 def _ready(page) -> None:
-    page.wait_for_selector("[data-router-action='about_chathealthy']",
-                           timeout=DEFAULT_TIMEOUT)
+    page.wait_for_selector(READY, timeout=DEFAULT_TIMEOUT)
+
+
+def _open_about(page) -> None:
+    """Reach About the way the form factor offers it.
+
+    A computer carries the link in the footer. A phone moves it into the
+    menu, so the menu is opened first. The capability is the same either
+    way; only the route to it differs, which is the whole of what a phone
+    changes here.
+    """
+    if IS_PHONE:
+        page.locator("[data-router-action='toggle_mobile_nav']").first.click()
+        page.wait_for_selector("#frame_MobileNavDrawer", state="visible",
+                               timeout=DEFAULT_TIMEOUT)
+        page.locator("#frame_MobileNavDrawer "
+                     "[data-router-action='about_chathealthy']").first.click()
+        return
+    page.locator("[data-router-action='about_chathealthy']").first.click()
 
 
 def _fresh(page):
@@ -372,8 +401,15 @@ def page():
     # A fixed viewport, because four of the assertions below are geometry
     # against a percentage of it. A viewport that varies between runs
     # makes those tests measure the window manager.
+    #
+    # UAT_VIEWPORT names the form factor: the default is the computer and
+    # 360x800 is a Galaxy-class phone. The application arranges itself
+    # differently below 720px, so the same cases have to be able to run
+    # against both -- a suite that only ever sees one of them cannot say
+    # anything about the other (EPIC-002-F-008-S-005).
     context = browser.new_context(ignore_https_errors=True,
-                                  viewport={"width": 1600, "height": 1000})
+                                  viewport=VIEWPORT,
+                                  is_mobile=IS_PHONE, has_touch=IS_PHONE)
     p = context.new_page()
     p.set_default_timeout(DEFAULT_TIMEOUT)
     p.goto(BASE_URL, wait_until="domcontentloaded")
@@ -1257,7 +1293,7 @@ class TestTheAboutAndSessionWindows:
     @pytest.fixture(scope="class")
     def windows_open(self, page):
         _fresh(page)
-        page.locator("[data-router-action='about_chathealthy']").first.click()
+        _open_about(page)
         page.wait_for_selector("#frame_AboutChatHealtyPopUP",
                                state="visible", timeout=DEFAULT_TIMEOUT)
         page.wait_for_timeout(1_500)

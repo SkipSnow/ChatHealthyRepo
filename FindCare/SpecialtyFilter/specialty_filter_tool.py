@@ -140,6 +140,20 @@ class SpecialtyFilterTool(ChatHealthyTool):
             # Mode 2 (REQ-B-008): LLM /classify temporarily unavailable; the
             # tool returns a graceful Response.error to the user inline. NOT
             # a 503; do NOT tag fatal_error=True.
+            #
+            # Recorded because the graceful answer is indistinguishable on
+            # screen from a search that found nothing: the panel paints its
+            # chrome around no rows, no codes are produced, and no provider
+            # search follows. A person sees an empty filter and an empty
+            # list, and nothing anywhere says why.
+            log.error("specialty classify failed for section=%s: %s: %s",
+                      request.section, type(exc).__name__, exc,
+                      exc=ChatHealthyException(
+                          mode="specialty_classify_unavailable",
+                          message=f"specialty classify failed: {exc}",
+                          component="SpecialtyFilterTool",
+                          exception=exc if isinstance(exc, Exception) else None,
+                      ))
             resp = self.Response(error=f"classify_unavailable: {type(exc).__name__}")
             self._broadcast(deps, request.section, {"kind": "specialties", "data": resp.model_dump(exclude_none=True)})
             return resp

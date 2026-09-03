@@ -252,23 +252,47 @@ async def _build_of(env_var: str, default: str) -> str:
     seeing, and inventing a number for it would hide exactly the case this
     section exists for.
     """
+    # A build cannot change inside a process's lifetime: a new build is a
+    # new container and therefore a new process. So the answer is asked
+    # for once and held, and a session opened a second time costs no
+    # call at all. Asking per session put three requests on the peers
+    # every time anyone looked, and Hugging Face answered 429 Too Many
+    # Requests -- which read on screen as every server refusing to say
+    # what it was running.
+    #
+    # Only an answer is held. A peer that was mid-restart when it was
+    # first asked would otherwise read as unreachable for the life of
+    # this process, which is the opposite of what this section is for.
+    cached = _BUILD_ANSWERS.get(env_var or "")
+    if cached:
+        return cached
     if not env_var:
         from buildIdentity.build_identity import build_number  # noqa: PLC0415
         # A component that cannot say which build it carries names the
         # reason. Blank is not an answer: a server mid-restart and a server
         # running an image with no build identity in it looked identical,
         # and both read as the feature being broken.
-        return build_number() or "image carries no build identity"
+        answer = build_number() or "image carries no build identity"
+        _BUILD_ANSWERS[""] = answer
+        return answer
     url = os.environ.get(env_var) or default
     import httpx  # noqa: PLC0415
     try:
         async with httpx.AsyncClient(verify=False, timeout=10.0) as client:
             resp = await client.post(url + "/health")
             resp.raise_for_status()
-            return str(resp.json().get("build") or "")
+            answer = str(resp.json().get("build") or "")
+            if answer:
+                _BUILD_ANSWERS[env_var] = answer
+            return answer
     except Exception as exc:  # noqa: BLE001 - an unreachable server says so
         log.info("build unknown for %s: %s", env_var, exc)
         return f"did not answer ({type(exc).__name__})"
+
+
+# component -> the build it answered with. Held for the life of the
+# process; see _build_of.
+_BUILD_ANSWERS: dict[str, str] = {}
 
 
 async def deployment_facts() -> list[dict]:
@@ -1575,6 +1599,24 @@ class UniversalNavigationTool(ChatHealthyTool):
             await lockout_tool.TOOL.run_and_log(deps, lockout_tool.Request())
 
         elif target_action == "closeConnection200":
+            # A turn that ends by asking still knows what kind of care
+            # giver the person wants, so the panel is painted before the
+            # question. "Find me a shrink in San Fransisco" gets the
+            # specialties for a shrink AND the question about the state;
+            # the list waits for the answer, and when it comes the search
+            # runs on the specialties already on screen.
+            #
+            # Done here rather than trusted to the classifier. It is meant
+            # to fall through to specialtySearch plus a question, and when
+            # it closes instead the person was left with a corrected
+            # sentence, an empty filter and nothing to answer -- no
+            # results and no question, which is neither of the two things
+            # a turn is allowed to end as.
+            complaint_in_force = (
+                deps.user_object.userParameters.get(NUCC, "complaint") or "")
+            if complaint_in_force and not self._specialties_in_force(deps):
+                await self._run_or_cache_specialty_filter(
+                    deps, complaint_in_force, complaint_changed=True)
             from CloseConnection200Tool import close_connection_200_tool
             await close_connection_200_tool.TOOL.run_and_log(
                 deps, close_connection_200_tool.Request(),
