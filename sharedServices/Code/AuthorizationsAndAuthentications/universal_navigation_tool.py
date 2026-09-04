@@ -625,6 +625,11 @@ class UniversalNavigationTool(ChatHealthyTool):
         # the one already in force.
         complaint_before = deps.user_object.userParameters.get(NUCC, "complaint")
 
+        # Whether the system had asked the person something and is now
+        # hearing the answer. Read before UM runs, because UM replaces the
+        # document and the question it had pending goes with it.
+        answering_a_question = any_pending_disambiguation(deps.user_object.intent)
+
         from UtteranceManager import utterance_manager as utterance_manager_module
         try:
             await utterance_manager_module.TOOL.run_and_log(
@@ -640,8 +645,20 @@ class UniversalNavigationTool(ChatHealthyTool):
                         "mode": "llm_unavailable"},
             )
 
+        # A turn that answers a question the system asked is not a new
+        # question, whatever the words were. Saying "California" to "did
+        # you mean California?" is the same search with its place filled
+        # in, so the panel the person is choosing from stands.
+        #
+        # Without this the decision rested on string equality over prose
+        # a model rewrites every turn: the complaint came back as a
+        # different phrasing of the same thing, the filter re-ran, and
+        # the answer turn handed back a panel of nine where the person
+        # had ticked twelve -- four of their choices dropped for saying
+        # the state out loud.
         complaint_changed = (
-            deps.user_object.userParameters.get(NUCC, "complaint")
+            not answering_a_question
+            and deps.user_object.userParameters.get(NUCC, "complaint")
             != complaint_before)
 
         # "New is new" invariant: a fresh free-text utterance clears any
