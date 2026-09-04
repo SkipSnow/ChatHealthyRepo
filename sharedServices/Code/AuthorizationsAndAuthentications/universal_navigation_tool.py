@@ -266,6 +266,15 @@ async def _build_of(env_var: str, default: str) -> str:
     cached = _BUILD_ANSWERS.get(env_var or "")
     if cached:
         return cached
+    # A refusal is remembered too, briefly. Retrying a peer that has just
+    # said "too many requests" on every session is what turns a burst into
+    # a wall: the probe becomes the load. The refusal is held long enough
+    # for the far side to recover and then asked again, so a peer that
+    # comes back is picked up without anyone restarting anything.
+    import time as _time
+    refused_at = _BUILD_REFUSALS.get(env_var or "")
+    if refused_at and (_time.monotonic() - refused_at) < _REFUSAL_HELD_SECONDS:
+        return "did not answer (waiting before asking again)"
     if not env_var:
         from buildIdentity.build_identity import build_number  # noqa: PLC0415
         # A component that cannot say which build it carries names the
@@ -286,6 +295,8 @@ async def _build_of(env_var: str, default: str) -> str:
                 _BUILD_ANSWERS[env_var] = answer
             return answer
     except Exception as exc:  # noqa: BLE001 - an unreachable server says so
+        import time as _time
+        _BUILD_REFUSALS[env_var] = _time.monotonic()
         log.info("build unknown for %s: %s", env_var, exc)
         return f"did not answer ({type(exc).__name__})"
 
@@ -293,6 +304,10 @@ async def _build_of(env_var: str, default: str) -> str:
 # component -> the build it answered with. Held for the life of the
 # process; see _build_of.
 _BUILD_ANSWERS: dict[str, str] = {}
+
+# component -> when it last refused. Held for this long before asking again.
+_BUILD_REFUSALS: dict[str, float] = {}
+_REFUSAL_HELD_SECONDS = 300.0
 
 
 async def deployment_facts() -> list[dict]:
