@@ -283,6 +283,15 @@ def _ask(page, text: str) -> None:
 
 def _ready(page) -> None:
     page.wait_for_selector(READY, timeout=DEFAULT_TIMEOUT)
+    # The brand is painted before the session token exists. A turn asked
+    # in that gap is refused by /gate with a 401, and a refusal at that
+    # layer paints nothing -- so the test sat for its whole timeout on a
+    # question the server never accepted. Waiting for the token is
+    # waiting for the page to be able to ask anything at all. Local wins
+    # this race on its own; dev's round trip does not.
+    page.wait_for_function(
+        "() => !!(window.ClientRouter && window.ClientRouter.getSessionToken())",
+        timeout=DEFAULT_TIMEOUT)
 
 
 def _open_about(page) -> None:
