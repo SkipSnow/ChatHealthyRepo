@@ -64,6 +64,34 @@ function buildChipHtml(dim: string, row: Record<string, any>): string {
   )
 }
 
+// The filter, exactly once. The web display of it is the one that is
+// right, so it is built here and used unchanged in both places: shown
+// inline on a computer, shown inside the popup on a phone. It was built
+// twice -- once for the page and once for the window -- and two builders
+// for one thing is two things that drift apart.
+function buildFilterHtml(
+  refinements: Record<string, Array<Record<string, any>>>,
+  total: number,
+): string {
+  const dims = Object.keys(refinements).filter(k => (refinements[k] || []).length)
+  if (!dims.length) return ''
+  const blocks = dims.map(dim => {
+    const chips = (refinements[dim] || []).map(r => buildChipHtml(dim, r)).join('')
+    return (
+      `<div style="margin-top:0.35em;">` +
+      `<div style="font-size:0.75em;color:#6b7280;text-transform:uppercase;` +
+      `letter-spacing:0.03em;">${_esc(DIMENSION_TITLES[dim] || dim)}</div>` +
+      `<div>${chips}</div></div>`
+    )
+  }).join('')
+  return (
+    `<div data-testid="provider-search-refinements"` +
+    ` style="padding:0.5em 0.8em;box-sizing:border-box;">` +
+    `<div style="font-size:0.85em;color:#1f2937;font-weight:700;">` +
+    `${Number(total) || 0} found — you can narrow by:</div>${blocks}</div>`
+  )
+}
+
 function buildHintsHtml(
   refinements: Record<string, Array<Record<string, any>>>,
   total: number,
@@ -80,63 +108,36 @@ function buildHintsHtml(
       `border-top:0.25em solid ${TEAL};background:#fffdf7;box-sizing:border-box;` +
       `font-size:0.85em;color:#374151;">${_esc(summary)}</div>`
     : ''
-  const dims = Object.keys(refinements).filter(k => (refinements[k] || []).length)
-  if (!dims.length) return summaryHtml
-  const blocks = dims.map(dim => {
-    const chips = (refinements[dim] || []).map(r => buildChipHtml(dim, r)).join('')
-    return (
-      `<div style="margin-top:0.35em;">` +
-      `<div style="font-size:0.75em;color:#6b7280;text-transform:uppercase;` +
-      `letter-spacing:0.03em;">${_esc(DIMENSION_TITLES[dim] || dim)}</div>` +
-      `<div>${chips}</div></div>`
-    )
-  }).join('')
-  // On a phone the same chips are a window rather than a block beneath
-  // the results, reached by the button below, so the vertical space they
-  // took goes back to the list and the selector (C-27). One builder
-  // serves both, so the two can never offer different narrowings.
-  const heading = `${Number(total) || 0} found — you can narrow by:`
+  const filter = buildFilterHtml(refinements, total)
+  if (!filter) return summaryHtml
+  // A computer shows the filter where it is; a phone shows a button that
+  // opens it, and the vertical space the filter took goes back to the
+  // list. The bar is as thin as it can be around a target a finger can
+  // hit -- 2.75em is the tap size, and nothing else is in the bar.
   return (
     summaryHtml +
     `<style>
        .ch-narrow-button { display: none; }
+       .ch-narrow-inline { border-top: 0.25em solid ${TEAL};
+                           background: ${TEAL_LIGHT_BG}; }
        @media (max-width: 720px) {
          .ch-narrow-inline { display: none; }
-         .ch-narrow-button { display: block; }
+         .ch-narrow-button { display: flex; }
        }
      </style>` +
-    `<div class="ch-narrow-inline" data-testid="provider-search-refinements"` +
-    ` style="padding:0.5em 0.8em;border-top:0.25em solid ${TEAL};` +
-    `background:${TEAL_LIGHT_BG};box-sizing:border-box;">` +
-    `<div style="font-size:0.85em;color:#1f2937;font-weight:700;">` +
-    `${_esc(heading)}</div>${blocks}</div>` +
-    `<button type="button" class="ch-narrow-button"` +
+    `<div class="ch-narrow-inline">${filter}</div>` +
+    `<div class="ch-narrow-button" style="border-top:0.25em solid ${TEAL};` +
+    `background:${TEAL_LIGHT_BG};padding:0.25em 0.5em;` +
+    `align-items:center;justify-content:center;">` +
+    `<button type="button"` +
     ` data-router-action="narrow_open" data-testid="provider-narrow-button"` +
-    ` style="width:100%;padding:0.6em 0.8em;border:none;border-top:0.25em solid ${TEAL};` +
-    `background:${TEAL_LIGHT_BG};color:#1f2937;font-weight:700;font-size:0.85em;` +
-    `text-align:left;cursor:pointer;">${_esc(heading)}</button>`
-  )
-}
-
-// What the window holds: the heading and the chips, nothing else.
-function buildNarrowWindowHtml(
-  refinements: Record<string, Array<Record<string, any>>>,
-  total: number,
-): string {
-  const dims = Object.keys(refinements).filter(k => (refinements[k] || []).length)
-  const blocks = dims.map(dim => {
-    const chips = (refinements[dim] || []).map(r => buildChipHtml(dim, r)).join('')
-    return (
-      `<div style="margin-top:0.6em;">` +
-      `<div style="font-size:0.75em;color:#6b7280;text-transform:uppercase;` +
-      `letter-spacing:0.03em;">${_esc(DIMENSION_TITLES[dim] || dim)}</div>` +
-      `<div>${chips}</div></div>`
-    )
-  }).join('')
-  return (
-    `<div data-testid="provider-narrow-window">` +
-    `<div style="font-size:0.95em;color:#1f2937;font-weight:700;">` +
-    `${Number(total) || 0} found — you can narrow by:</div>${blocks}</div>`
+    // 44px, not an em. Every other length here scales with the type
+    // because it is type; a fingertip does not, so a target sized in em
+    // shrank to 22px the moment the font scale came down.
+    ` style="width:100%;min-height:44px;border:0.0625em solid ${TEAL};` +
+    `border-radius:0.4em;background:#fff;color:${TEAL};font-weight:700;` +
+    `font-size:0.9em;text-align:center;cursor:pointer;">` +
+    `Narrow ${Number(total) || 0} results</button></div>`
   )
 }
 
@@ -211,14 +212,14 @@ export default function ProviderSearchRefinementWidget() {
         // change with it. Repainting an open window is what makes it
         // operate on the list in real time rather than going stale the
         // moment it is used.
-        if (windowOpen) openPopup(POPUP, buildNarrowWindowHtml(lastRefinements, lastTotal))
+        if (windowOpen) openPopup(POPUP, buildFilterHtml(lastRefinements, lastTotal))
         return
       }
 
       // The button under the results on a phone.
       if (msg.type === 'router:action' && msg.action === 'narrow_open') {
         windowOpen = true
-        openPopup(POPUP, buildNarrowWindowHtml(lastRefinements, lastTotal))
+        openPopup(POPUP, buildFilterHtml(lastRefinements, lastTotal))
         return
       }
       if (msg.type === 'router:action' && msg.action === 'popup_close'

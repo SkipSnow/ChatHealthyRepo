@@ -269,7 +269,14 @@ def _marks(census: dict, window_id: str) -> dict:
 
 # ── Driving the app the way a person does ────────────────────────────
 
+# What the person came for, as they last said it. Held so that a wait
+# which meets a question instead of an answer knows what the person
+# wanted and can reply as them.
+_GOAL: dict[int, str] = {}
+
+
 def _ask(page, text: str) -> None:
+    _GOAL.setdefault(id(page), text)
     page.locator(PROMPT).fill(text)
     page.locator(PROMPT).press("Enter")
 
@@ -302,17 +309,116 @@ def _fresh(page):
     return page
 
 
+# ── Being the person on the other side of the question ───────────────
+# A turn ends having shown something or having asked something. A test
+# that only ever waits for the first of those calls the second a hang,
+# and reports a working conversation as twenty-two failures. So when the
+# system asks, the test answers -- as the person whose goal it is
+# carrying -- and the scenario goes on.
+
+ANSWER_MODEL = os.getenv("UAT_ANSWER_MODEL", "anthropic:claude-opus-5")
+MAX_REPLIES = 3
+
+_ANSWER_AGENT = None
+
+
+def _answer_agent():
+    """The person the test is standing in for.
+
+    Built once. The reply is authored rather than looked up because the
+    question is authored -- a table of expected questions would pass only
+    for the phrasings someone thought of, which is the same defect as
+    hardcoding the question.
+    """
+    global _ANSWER_AGENT
+    if _ANSWER_AGENT is None:
+        from pydantic_ai import Agent
+        _ANSWER_AGENT = Agent(
+            ANSWER_MODEL,
+            output_type=str,
+            system_prompt=(
+                "You are a person using a healthcare search site. You are "
+                "shown the goal you came with and the question the site "
+                "just asked you. Reply exactly as that person would: one "
+                "short sentence, plain words, answering the question and "
+                "nothing else. Never mention that you are a model, never "
+                "explain yourself, never ask a question back. If the site "
+                "asks you to choose among options it named, choose the "
+                "one that matches your goal."
+            ),
+        )
+    return _ANSWER_AGENT
+
+
+def _reply_to(question: str, goal: str) -> str:
+    import sys
+    sys.path.insert(0, os.path.join(
+        os.path.dirname(os.path.abspath(__file__)), "..", "..",
+        "ChatHealthyLib", "src"))
+    from chathealthy_lib.llm import run_llm_sync
+    result = run_llm_sync(
+        _answer_agent(),
+        f"THE GOAL YOU CAME WITH: {goal}\n\n"
+        f"WHAT THE SITE JUST ASKED YOU:\n{question}\n\n"
+        "Reply as that person, in one short sentence.",
+        call_site="uat._answer_agent", provider="anthropic",
+        server="uat", component="find_care_windows_uat_test")
+    return (result.output or "").strip()
+
+
+def _said_to_the_person(page) -> str:
+    return page.evaluate(
+        "() => ((document.querySelector('#frame_UserMessage') || {})"
+        ".innerText || '').trim()")
+
+
+def _wait_for(page, ready_js: str, what: str) -> None:
+    """Wait for what was asked for, answering the system if it asks first.
+
+    Every wait in this suite used to wait only for the answer. When the
+    system asked a question instead -- which is a turn doing its job --
+    the wait sat for five minutes and the whole class errored at setup.
+    So the wait settles for either outcome: the thing arrived, or the
+    system said something new. If it said something, the person replies
+    and the wait goes round again.
+
+    ready_js is an expression over `d` (the document) that is true once
+    the thing is on screen.
+    """
+    goal = _GOAL.get(id(page), "")
+    for reply in range(MAX_REPLIES + 1):
+        before = _said_to_the_person(page)
+        page.wait_for_function(
+            "(before) => { const d = document;"
+            f" const ready = {ready_js};"
+            " const said = ((d.querySelector('#frame_UserMessage') || {})"
+            "   .innerText || '').trim();"
+            " return ready || (said && said !== before); }",
+            arg=before, timeout=LLM_TIMEOUT)
+        if page.evaluate(f"() => {{ const d = document; return {ready_js}; }}"):
+            return
+        question = _said_to_the_person(page)
+        if reply == MAX_REPLIES:
+            pytest.fail(
+                f"after {MAX_REPLIES} replies the system is still asking "
+                f"rather than showing {what}. Goal: {goal!r}. Last question: "
+                f"{question[:300]!r}")
+        _ask(page, _reply_to(question, goal))
+
+
 def _wait_for_panel(page) -> None:
-    page.wait_for_function(
-        f"() => document.querySelectorAll(\"{PANEL_BOXES}\").length > 0",
-        timeout=LLM_TIMEOUT)
+    _wait_for(page, f"d.querySelectorAll(\"{PANEL_BOXES}\").length > 0",
+              "the specialty panel")
+
+
+_RESULTS_READY_JS = (
+    "(() => { const t = ((d.querySelector('#frame_MainWindow') || {})"
+    f".textContent || ''); return {_FOUND_JS}; }})()"
+)
 
 
 def _wait_for_results(page) -> None:
-    page.wait_for_function(
-        "() => { const t = (document.querySelector('#frame_MainWindow')"
-        f" || {{}}).textContent || ''; return {_FOUND_JS}; }}",
-        timeout=LLM_TIMEOUT)
+    _wait_for(page, _RESULTS_READY_JS, "the results")
 
 
 def _wait_for_facilities(page) -> None:
@@ -321,9 +427,9 @@ def _wait_for_facilities(page) -> None:
     A row is the thing a person reads; the heading can be on screen while
     the list under it is still empty.
     """
-    page.wait_for_function(
-        "() => document.querySelectorAll(\"[data-testid='facility-card']\")"
-        ".length > 0", timeout=LLM_TIMEOUT)
+    _wait_for(page,
+              "d.querySelectorAll(\"[data-testid='facility-card']\").length > 0",
+              "the facilities")
 
 
 def _total(page) -> int:
@@ -1805,3 +1911,116 @@ class TestAPageTheTurnIsNotAboutShowsNothing:
                 lingering[wid] = digest[:160]
         assert lingering == {}, (
             f"the previous page's city is still on screen: {lingering}")
+
+
+# ── FLOW 10 — the narrow filter, and what each form factor does with it ──
+# The filter itself is one thing, built once. What differs is where it is
+# put: a computer has the room to show it under the results, a phone does
+# not, so a phone shows a thin bar with a button and puts the filter in a
+# popup over the list. Both are asserted here, in one class, because the
+# thing being protected is that they stay the SAME filter -- the two used
+# to be built by two functions and drifted apart.
+
+NARROW_BUTTON = "[data-testid='provider-narrow-button']"
+NARROW_INLINE = ".ch-narrow-inline"
+NARROW_POPUP = "#frame_NarrowPopUp"
+NARROW_FILTER = "[data-testid='provider-search-refinements']"
+POPUP_CLOSE = f"{NARROW_POPUP} .ch-popup-close"
+
+
+def _shown(page, selector: str) -> bool:
+    loc = page.locator(selector)
+    return loc.count() > 0 and loc.first.is_visible()
+
+
+class TestTheNarrowFilterOnEitherFormFactor:
+    """The filter is one filter. A computer shows it inline; a phone shows
+    a button that opens it in a popup with an X. Neither form factor may
+    show the other's arrangement, and the popup must hold the same filter
+    the computer shows rather than a second one built to look like it."""
+
+    @pytest.fixture(scope="class")
+    def searched(self, page):
+        _fresh(page)
+        _ask(page, "find me a shrink in Long Beach CA")
+        _wait_for_panel(page)
+        _wait_for_results(page)
+        page.wait_for_timeout(3_000)
+        _record(page, "10a_narrow_filter_at_rest")
+        return page
+
+    def test_the_filter_is_placed_the_way_this_form_factor_places_it(self, searched):
+        inline, button = _shown(searched, NARROW_INLINE), _shown(searched, NARROW_BUTTON)
+        if IS_PHONE:
+            assert button and not inline, (
+                f"a phone shows a button and not the inline filter; "
+                f"button={button} inline={inline}")
+        else:
+            assert inline and not button, (
+                f"a computer shows the filter inline and offers no button; "
+                f"inline={inline} button={button}")
+
+    def test_no_popup_is_open_until_something_opens_it(self, searched):
+        assert not _shown(searched, NARROW_POPUP), (
+            "the narrow popup is open before anyone asked for it")
+
+    @pytest.mark.skipif(IS_PHONE, reason="the popup is the phone's arrangement")
+    def test_a_computer_never_puts_the_filter_in_a_popup(self, searched):
+        assert _shown(searched, NARROW_FILTER), (
+            "the filter is not on screen on a computer")
+        assert searched.locator(f"{NARROW_POPUP} {NARROW_FILTER}").count() == 0, (
+            "a computer put the filter in a popup; the popup is the phone's "
+            "arrangement and a computer shows the filter inline")
+
+    @pytest.mark.skipif(not IS_PHONE, reason="the bar is the phone's arrangement")
+    def test_the_bar_is_thin_and_the_button_takes_a_finger(self, searched):
+        button = searched.locator(NARROW_BUTTON).first.bounding_box()
+        assert button is not None, "the narrow button has no box"
+        assert button["height"] >= 40, (
+            f"the button is {button['height']}px tall; a finger needs at "
+            f"least 40")
+        bar = searched.locator(".ch-narrow-button").first.bounding_box()
+        assert bar["height"] <= button["height"] + 16, (
+            f"the bar is {bar['height']}px around a {button['height']}px "
+            f"button; it carries more than the button")
+
+    @pytest.mark.skipif(not IS_PHONE, reason="the popup is the phone's arrangement")
+    def test_the_button_opens_the_filter_in_a_popup(self, searched):
+        searched.locator(NARROW_BUTTON).first.click()
+        searched.wait_for_selector(NARROW_POPUP, state="visible",
+                                   timeout=DEFAULT_TIMEOUT)
+        _record(searched, "10b_narrow_popup_open")
+        assert searched.locator(f"{NARROW_POPUP} {NARROW_FILTER}").count() > 0, (
+            "the popup opened without the filter in it")
+        assert searched.locator(
+            f"{NARROW_POPUP} [data-testid='provider-search-refine-chip']"
+        ).count() > 0, "the popup holds no choices to make"
+
+    @pytest.mark.skipif(not IS_PHONE, reason="the popup is the phone's arrangement")
+    def test_the_popup_carries_a_close_control(self, searched):
+        assert _shown(searched, POPUP_CLOSE), (
+            "the popup has no X to close it")
+
+    @pytest.mark.skipif(not IS_PHONE, reason="the popup is the phone's arrangement")
+    def test_the_popup_operates_on_the_list_in_real_time(self, searched):
+        before = _total(searched)
+        chip = searched.locator(
+            f"{NARROW_POPUP} [data-testid='provider-search-refine-chip']"
+            "[data-in-force='0']").first
+        chip.click()
+        searched.wait_for_timeout(6_000)
+        after = _total(searched)
+        assert after <= before, (
+            f"narrowing from inside the popup widened the list: "
+            f"{before} -> {after}")
+
+    @pytest.mark.skipif(not IS_PHONE, reason="the popup is the phone's arrangement")
+    def test_closing_the_popup_leaves_the_results_standing(self, searched):
+        searched.locator(POPUP_CLOSE).first.click()
+        searched.wait_for_timeout(1_500)
+        assert not _shown(searched, NARROW_POPUP), (
+            "the X did not close the popup")
+        assert searched.locator("[data-testid='provider-card']").count() > 0, (
+            "closing the popup took the results with it")
+        assert _shown(searched, NARROW_BUTTON), (
+            "the button to reopen the filter is gone after closing it once")
