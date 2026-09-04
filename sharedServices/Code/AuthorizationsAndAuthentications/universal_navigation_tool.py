@@ -1528,6 +1528,78 @@ class UniversalNavigationTool(ChatHealthyTool):
             ),
         )
 
+    # The ops that are a turn: the person said or gestured something and is
+    # owed an answer. Everything else -- boot, session reads, selection
+    # bookkeeping -- is not a turn and is allowed to be silent.
+    _TURN_OPS = frozenset({
+        "utterance", "apply_filter", "provider_page", "facility_page",
+    })
+
+    # An event that puts something on a window or says something to the
+    # person. intent_classified and search_running are not answers: the
+    # first blanks the windows and the second says a search is running.
+    _ANSWERING_KINDS = frozenset({
+        "prompt", "specialties", "providers", "facilities",
+        "clinical_trials_chunk", "provider-detail", "evalcare-splash",
+        "about_chathealthy", "show_welcome",
+    })
+
+    async def _ensure_the_turn_answered(
+        self, deps: AgentDeps, op: str, kinds_seen: set[str],
+    ) -> None:
+        """A turn ends having shown something or having asked something.
+
+        Ending silent is neither, and it is what the person sees as a dead
+        screen with no error on it. When a turn reaches here having put
+        nothing on any window and said nothing, the answer is the question
+        -- authored by UM's manufacture path (EPIC-002-F-010-S-003) from
+        the facts naming why there was nothing, so the person can say the
+        thing that would let the search run.
+
+        This sits at the one place every event passes through rather than
+        on each branch that can come up empty, because the branch that
+        comes up empty is exactly the branch nobody thought of.
+        """
+        if op not in self._TURN_OPS:
+            return
+        if kinds_seen & self._ANSWERING_KINDS:
+            return
+
+        params = deps.user_object.userParameters
+        reason: dict[str, Any] = {
+            "gesture": op,
+            "outcome": "the turn produced nothing for any window",
+        }
+        complaint = params.get(NUCC, "complaint")
+        if complaint:
+            reason["prior_complaint"] = complaint
+        geography = geography_of(params, INDIVIDUAL_PROVIDER)
+        stated_geography = {
+            k: v for k, v in
+            (geography.model_dump(exclude_none=True) if geography else {}).items()
+            if v
+        }
+        if stated_geography:
+            reason["prior_partial_geography"] = stated_geography
+        else:
+            reason["missing_slot"] = "geography"
+        in_force = self._specialties_in_force(deps)
+        if in_force:
+            reason["specialties_in_force"] = len(in_force)
+
+        log.warning(
+            "UR: op=%s ended with nothing on any window; asking instead. %s",
+            op, reason)
+
+        from UtteranceManager import utterance_manager as utterance_manager_module
+        await utterance_manager_module.TOOL.run_and_log(
+            deps,
+            utterance_manager_module.Request(
+                trigger_type="manufacture",
+                manufacture_utterance_reason=reason,
+            ),
+        )
+
     # Which page an action dispatches to. Carry-over is applied per
     # DESTINATION, which is what keeps it per destination: the same value
     # carries to one page and not to another because the dispatch is to
@@ -2115,7 +2187,12 @@ class UniversalNavigationTool(ChatHealthyTool):
         event_queue: asyncio.Queue = asyncio.Queue()
         _SENTINEL = object()
 
+        kinds_seen: set[str] = set()
+
         def stream_sink(event: dict) -> None:
+            kind = event.get("kind")
+            if isinstance(kind, str):
+                kinds_seen.add(kind)
             event_queue.put_nowait(event)
 
         agent_deps = AgentDeps(
@@ -2171,6 +2248,27 @@ class UniversalNavigationTool(ChatHealthyTool):
                                   component="UniversalNavigationTool",
                                   exception=exc if isinstance(exc, Exception) else None,
                               ))
+
+                if nav_exc_local is None:
+                    try:
+                        await self._ensure_the_turn_answered(
+                            agent_deps, gate_req.op, kinds_seen)
+                    except Exception as exc:
+                        # Failing to ask must not also cost the turn its
+                        # final event -- that would leave the stream with
+                        # no terminator and the client waiting forever.
+                        log.error(
+                            "UR: op=%s ended with nothing shown and the "
+                            "question could not be authored: %s",
+                            gate_req.op, exc,
+                            exc=ChatHealthyException(
+                                mode="ur_turn_answered_nothing",
+                                message=f"UR: op={gate_req.op!r} ended with "
+                                        f"nothing on any window and the "
+                                        f"manufactured question failed: {exc}",
+                                component="UniversalNavigationTool",
+                                exception=exc if isinstance(exc, Exception) else None,
+                            ))
 
                 session_token_proj = session_token_wire(user_object)
                 if nav_exc_local is not None:

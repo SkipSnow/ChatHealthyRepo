@@ -200,9 +200,16 @@ class SpecialtyFilterTool(ChatHealthyTool):
                           component="SpecialtyFilterTool",
                           exception=exc if isinstance(exc, Exception) else None,
                       ))
-            resp = self.Response(error=f"classify_unavailable: {type(exc).__name__}")
-            self._broadcast(deps, request.section, {"kind": "specialties", "data": resp.model_dump(exclude_none=True)})
-            return resp
+            # Nothing is broadcast. "I have nothing to say about this
+            # surface" and "this surface is now empty" are different
+            # statements and must not share a payload: emitting the
+            # error as a specialties event painted an empty panel over a
+            # good one, and the turn then ended with no list, no panel
+            # and nothing said. Saying nothing here leaves the panel as
+            # it was and leaves the turn with no answer, which is what
+            # UR's end-of-turn check reads to ask the person instead.
+            return self.Response(
+                error=f"classify_unavailable: {type(exc).__name__}")
 
         specialties = [SpecialtyRow(**s) for s in (raw.get("specialties") or [])]
         homeo = [SpecialtyRow(**s) for s in (raw.get("homeopathic_generalists") or [])]
@@ -213,7 +220,15 @@ class SpecialtyFilterTool(ChatHealthyTool):
             model=raw.get("model"),
             error=raw.get("error"),
         )
-        self._broadcast(deps, request.section, {"kind": "specialties", "data": resp.model_dump(exclude_none=True)})
+        # Same rule as the failure path above: a panel is painted when
+        # there are rows to paint. A run that matched nothing says
+        # nothing about the panel, so what the person is looking at
+        # stays, and the turn -- having shown nothing new -- ends by
+        # asking rather than by going quiet.
+        if specialties or homeo:
+            self._broadcast(
+                deps, request.section,
+                {"kind": "specialties", "data": resp.model_dump(exclude_none=True)})
         return resp
 
 
