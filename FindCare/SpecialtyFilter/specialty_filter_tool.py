@@ -90,6 +90,55 @@ def findcare_url() -> str:
     return os.environ.get(FINDCARE_INTERNAL_URL_ENV) or FINDCARE_INTERNAL_URL_DEFAULT
 
 
+# How many times a refused call is tried again, and how long it waits.
+# A host that answers 429 is saying "later", not "no", and one refusal
+# used to end the turn: no specialties, therefore no codes, therefore no
+# search and no providers. A person saw an empty filter beside an empty
+# list. Waiting a moment is the difference between a slow answer and no
+# answer at all.
+#
+# Jittered so that several turns refused at once do not return together
+# and reproduce the burst that caused the refusal.
+_RETRY_ON = (429, 500, 502, 503, 504)
+_ATTEMPTS = 5
+_FIRST_WAIT_SECONDS = 1.0
+
+
+async def _post_retrying(url: str, body: dict) -> dict:
+    """POST, and try again while the far side is saying "later"."""
+    import asyncio
+    import random
+    wait = _FIRST_WAIT_SECONDS
+    last: Exception = ChatHealthyException(
+        mode="runtime_error", component="specialty_filter_tool",
+        message="no attempt was made")
+    for attempt in range(1, _ATTEMPTS + 1):
+        try:
+            async with httpx.AsyncClient(timeout=30.0, verify=False) as client:
+                r = await client.post(url, json=body)
+                if r.status_code in _RETRY_ON and attempt < _ATTEMPTS:
+                    log.info("classify answered %s; attempt %d of %d, "
+                             "waiting %.1fs", r.status_code, attempt,
+                             _ATTEMPTS, wait)
+                    await asyncio.sleep(wait + random.uniform(0, wait / 2))
+                    wait *= 2
+                    continue
+                r.raise_for_status()
+                return r.json()
+        except httpx.HTTPStatusError:
+            raise
+        except Exception as exc:            # a connection that never landed
+            last = exc
+            if attempt >= _ATTEMPTS:
+                break
+            log.info("classify unreachable (%s); attempt %d of %d, "
+                     "waiting %.1fs", type(exc).__name__, attempt,
+                     _ATTEMPTS, wait)
+            await asyncio.sleep(wait + random.uniform(0, wait / 2))
+            wait *= 2
+    raise last
+
+
 class SpecialtyFilterTool(ChatHealthyTool):
     @staticmethod
     def _broadcast(deps, section: str, event: dict) -> None:
@@ -123,19 +172,16 @@ class SpecialtyFilterTool(ChatHealthyTool):
 
         url = findcare_url() + "/classify"
         try:
-            async with httpx.AsyncClient(timeout=30.0, verify=False) as client:
-                # The token this hop already holds, forwarded so FindCare
-                # can verify the SharedServices signature on it. This is
-                # the fourth cross-service hop, and it needs the token for
-                # the same reason the provider search, the provider detail
-                # and the clinical-trials dispatcher do.
-                r = await client.post(url, json={
-                    "message": text,
-                    "section": request.section,
-                    "session_token": deps.session_token.model_dump(mode="json"),
-                })
-                r.raise_for_status()
-                raw = r.json()
+            # The token this hop already holds, forwarded so FindCare can
+            # verify the SharedServices signature on it. This is the fourth
+            # cross-service hop, and it needs the token for the same reason
+            # the provider search, the provider detail and the
+            # clinical-trials dispatcher do.
+            raw = await _post_retrying(url, {
+                "message": text,
+                "section": request.section,
+                "session_token": deps.session_token.model_dump(mode="json"),
+            })
         except Exception as exc:
             # Mode 2 (REQ-B-008): LLM /classify temporarily unavailable; the
             # tool returns a graceful Response.error to the user inline. NOT
