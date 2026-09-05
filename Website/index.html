@@ -110,21 +110,16 @@
       main { max-width: none; padding: 0.5em; gap: 0.5em; }
       .content-row { overflow-x: auto; overflow-y: hidden;
                      -webkit-overflow-scrolling: touch; }
-      /* A panel takes the whole width when it is the only one there.
-         Nothing is beside it, so leaving room to see a neighbour leaves
-         a strip of nothing and takes width off the only thing on
-         screen. */
+      /* Alone, a panel takes the whole width. */
       .content-row > aside.side-panel,
       .content-row > .center-column { flex: 0 0 100%; width: auto; }
-      /* When a side panel does hold something there IS a neighbour, and
-         each panel gives up an eighth of the window so the edge of that
-         neighbour shows. At exactly 100% it sits off-screen and the
-         swipe is a capability only the person who built it knows about.
-         The border already on each side panel is the line between them;
-         showing its edge is what makes the swipe discoverable. */
-      .content-row:has(> aside.side-panel:not(:empty)) > aside.side-panel,
+      /* Two or three: each as wide as its content needs, at the widths
+         the computer arrangement uses, and the row scrolls. */
+      .content-row:has(> aside.side-panel:not(:empty)) > aside.side-panel {
+        flex: 0 0 auto; width: 27em;
+      }
       .content-row:has(> aside.side-panel:not(:empty)) > .center-column {
-        flex: 0 0 88%;
+        flex: 0 0 auto; width: 78em;
       }
       .content-row > aside.side-panel:empty { display: none; }
     }

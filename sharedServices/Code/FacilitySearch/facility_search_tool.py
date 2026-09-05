@@ -139,12 +139,11 @@ class FacilitySearchTool(ChatHealthyTool):
                           component="FacilitySearchTool",
                           exception=exc,
                       ), if_not_debug_log=True)
-            resp = self.Response(
+            # Nothing is streamed: an empty list would paint over what
+            # the person is reading. UR asks instead.
+            return self.Response(
                 error="Facility search is taking longer than usual. "
                       "Please try the same search again in a moment.")
-            deps.stream({"kind": "facilities",
-                         "data": resp.model_dump(exclude_none=True)})
-            return resp
 
         resp = self.Response(
             facilities=raw.get("providers") or [],
@@ -159,8 +158,9 @@ class FacilitySearchTool(ChatHealthyTool):
             state=raw.get("state") or request.state,
             summary_message=raw.get("summary_message"),
         )
-        deps.stream({"kind": "facilities",
-                     "data": resp.model_dump(exclude_none=True)})
+        if resp.facilities:
+            deps.stream({"kind": "facilities",
+                         "data": resp.model_dump(exclude_none=True)})
         return resp
 
 

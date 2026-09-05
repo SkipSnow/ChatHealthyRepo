@@ -33,40 +33,6 @@ def primary_practice_address(p: dict) -> dict:
     return {}
 
 
-def matching_practice_address(p: dict, state: str = "", city: str = "",
-                              county: str = "", zip: str = "") -> dict:
-    """The practice address that satisfied the search, not merely the first.
-
-    v03 held one practice address, so "the practice address" and "the first
-    one" were the same thing. v4 holds several, and the query matches when
-    ANY element satisfies the geography -- so a San Francisco search can
-    return a provider whose element zero is in Wyoming, and displaying [0]
-    shows an address that has nothing to do with what was asked for.
-
-    Falls back to the first element when no criterion was given, which is
-    the NPI and name routes where there is no geography to match.
-    """
-    wanted_state = (state or "").strip().upper()
-    wanted_city = (city or "").strip().upper()
-    wanted_county = (county or "").strip()
-    wanted_zip = (zip or "").strip()[:5]
-    if not (wanted_state or wanted_city or wanted_county or wanted_zip):
-        return primary_practice_address(p)
-    for a in p.get("practice_addresses") or []:
-        if not isinstance(a, dict):
-            continue
-        if wanted_zip and (a.get("zip") or "")[:5] != wanted_zip:
-            continue
-        if wanted_state and (a.get("state") or "").upper() != wanted_state:
-            continue
-        if wanted_city and (a.get("city") or "").upper() != wanted_city:
-            continue
-        if wanted_county and (a.get("county") or {}).get("name") != wanted_county:
-            continue
-        return a
-    return primary_practice_address(p)
-
-
 def primary_county(p: dict) -> dict:
     """Return the county sub-doc on the primary practice address."""
     return primary_practice_address(p).get("county") or {}

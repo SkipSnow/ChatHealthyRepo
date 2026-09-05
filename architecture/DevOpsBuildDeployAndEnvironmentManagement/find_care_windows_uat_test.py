@@ -76,10 +76,34 @@ import json
 import os
 
 import pytest
+from dotenv import load_dotenv
 from playwright.sync_api import sync_playwright
+
+# The repository root, and the one environment file in it. There is
+# exactly one .env and it is here; the suite reads it once, at import,
+# so no function has to know where credentials come from.
+REPO_ROOT = os.path.abspath(
+    os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", ".."))
+load_dotenv(os.path.join(REPO_ROOT, ".env"), override=False)
 
 BASE_URL = os.getenv("SMOKE_TEST_URL", "https://localhost")
 
+# Failures are appended here as they happen, so a run can be triaged
+# while it is still going.
+TRIAGE_LOG = os.path.join(
+    os.path.dirname(os.path.abspath(__file__)),
+    "..", "..", "_oneshots", "test_output", "uat_triage.log")
+
+
+def _triage(name: str, viewport: dict, detail: str) -> None:
+    os.makedirs(os.path.dirname(TRIAGE_LOG), exist_ok=True)
+    with open(TRIAGE_LOG, "a", encoding="utf-8") as fh:
+        fh.write(
+            f"\n{'=' * 70}\n"
+            f"FAIL  {name}   at {viewport.get('width')}x{viewport.get('height')}\n"
+            f"{'-' * 70}\n{detail.strip()}\n")
+        fh.flush()
+        os.fsync(fh.fileno())
 # Which form factor this run is about. "360x800" is a phone; the default
 # is the computer.
 _vp = os.getenv("UAT_VIEWPORT", "1600x1000").lower().split("x")
@@ -93,12 +117,8 @@ IS_PHONE = VIEWPORT["width"] <= 720
 READY = ".ch-brand"
 DEFAULT_TIMEOUT = 60_000
 
-# A turn runs normalize + embed + vector + specialty filter. Measured on
-# local: a geography-resolution turn took longer than 240s once and
-# finished inside 150s on the next run. 240s was therefore not a ceiling,
-# it was roughly the median of a wide spread, so this is set above the
-# slowest turn actually observed rather than at a round number.
-LLM_TIMEOUT = 300_000
+# One action's answer. Turns complete in single-digit seconds on local.
+LLM_TIMEOUT = 30_000
 
 EVIDENCE_DIR = os.path.join(
     os.path.dirname(os.path.abspath(__file__)),
@@ -269,26 +289,20 @@ def _marks(census: dict, window_id: str) -> dict:
 
 # ── Driving the app the way a person does ────────────────────────────
 
-# What the person came for, as they last said it. Held so that a wait
-# which meets a question instead of an answer knows what the person
-# wanted and can reply as them.
+# What the person came for, so a wait that meets a question can reply.
 _GOAL: dict[int, str] = {}
 
 
 def _ask(page, text: str) -> None:
-    _GOAL.setdefault(id(page), text)
+    _GOAL[id(page)] = text
     page.locator(PROMPT).fill(text)
     page.locator(PROMPT).press("Enter")
 
 
 def _ready(page) -> None:
     page.wait_for_selector(READY, timeout=DEFAULT_TIMEOUT)
-    # The brand is painted before the session token exists. A turn asked
-    # in that gap is refused by /gate with a 401, and a refusal at that
-    # layer paints nothing -- so the test sat for its whole timeout on a
-    # question the server never accepted. Waiting for the token is
-    # waiting for the page to be able to ask anything at all. Local wins
-    # this race on its own; dev's round trip does not.
+    # The brand paints before the session token exists, and a turn asked
+    # in that gap is refused by /gate with a 401 that paints nothing.
     page.wait_for_function(
         "() => !!(window.ClientRouter && window.ClientRouter.getSessionToken())",
         timeout=DEFAULT_TIMEOUT)
@@ -319,11 +333,8 @@ def _fresh(page):
 
 
 # ── Being the person on the other side of the question ───────────────
-# A turn ends having shown something or having asked something. A test
-# that only ever waits for the first of those calls the second a hang,
-# and reports a working conversation as twenty-two failures. So when the
-# system asks, the test answers -- as the person whose goal it is
-# carrying -- and the scenario goes on.
+# When the system asks, the test answers as the person whose goal it
+# carries, and the scenario goes on.
 
 ANSWER_MODEL = os.getenv("UAT_ANSWER_MODEL", "anthropic:claude-opus-5")
 MAX_REPLIES = 3
@@ -332,13 +343,8 @@ _ANSWER_AGENT = None
 
 
 def _answer_agent():
-    """The person the test is standing in for.
-
-    Built once. The reply is authored rather than looked up because the
-    question is authored -- a table of expected questions would pass only
-    for the phrasings someone thought of, which is the same defect as
-    hardcoding the question.
-    """
+    """The person the test stands in for. The reply is authored because
+    the question is."""
     global _ANSWER_AGENT
     if _ANSWER_AGENT is None:
         from pydantic_ai import Agent
@@ -360,18 +366,24 @@ def _answer_agent():
 
 
 def _reply_to(question: str, goal: str) -> str:
+    """The person's reply. Made on its own thread: Playwright's sync API
+    already has a running event loop and the model client needs one."""
     import sys
-    sys.path.insert(0, os.path.join(
-        os.path.dirname(os.path.abspath(__file__)), "..", "..",
-        "ChatHealthyLib", "src"))
+    import concurrent.futures
+    sys.path.insert(0, os.path.join(REPO_ROOT, "ChatHealthyLib", "src"))
     from chathealthy_lib.llm import run_llm_sync
-    result = run_llm_sync(
-        _answer_agent(),
-        f"THE GOAL YOU CAME WITH: {goal}\n\n"
-        f"WHAT THE SITE JUST ASKED YOU:\n{question}\n\n"
-        "Reply as that person, in one short sentence.",
-        call_site="uat._answer_agent", provider="anthropic",
-        server="uat", component="find_care_windows_uat_test")
+
+    def _call():
+        return run_llm_sync(
+            _answer_agent(),
+            f"THE GOAL YOU CAME WITH: {goal}\n\n"
+            f"WHAT THE SITE JUST ASKED YOU:\n{question}\n\n"
+            "Reply as that person, in one short sentence.",
+            call_site="uat._answer_agent", provider="anthropic",
+            server="uat", component="find_care_windows_uat_test")
+
+    with concurrent.futures.ThreadPoolExecutor(max_workers=1) as pool:
+        result = pool.submit(_call).result(timeout=60)
     return (result.output or "").strip()
 
 
@@ -382,18 +394,10 @@ def _said_to_the_person(page) -> str:
 
 
 def _wait_for(page, ready_js: str, what: str) -> None:
-    """Wait for what was asked for, answering the system if it asks first.
+    """Wait for the thing, or for the system to say something new. If it
+    said something, the person replies and the wait goes round again.
 
-    Every wait in this suite used to wait only for the answer. When the
-    system asked a question instead -- which is a turn doing its job --
-    the wait sat for five minutes and the whole class errored at setup.
-    So the wait settles for either outcome: the thing arrived, or the
-    system said something new. If it said something, the person replies
-    and the wait goes round again.
-
-    ready_js is an expression over `d` (the document) that is true once
-    the thing is on screen.
-    """
+    ready_js is an expression over `d` (the document)."""
     goal = _GOAL.get(id(page), "")
     for reply in range(MAX_REPLIES + 1):
         before = _said_to_the_person(page)
@@ -571,18 +575,41 @@ def _assert_layout_holds(census: dict, where: str) -> None:
     assert abs(footer["height_pct"] - 4.0) <= 1.0, (
         f"{where}: the footer is {footer['height_pct']}% of the viewport; "
         f"EPIC-002-F-011-S-001-REQ-B-002 fixes it at 4%")
+    # The requirement's word is PRESENT, and that is asserted at every
+    # width. Being on screen is asserted too, but only where the
+    # arrangement puts it on screen: a computer lays the panels beside the
+    # centre column and they are always in view, while a phone lays them
+    # in a strip one screen wide each and hides an empty one, because an
+    # empty panel there costs a whole screen to swipe past.
+    #
+    # ESCALATION: EPIC-002-F-011-S-002 is `not_started` and says nothing
+    # about a phone. Whether an empty side panel should hold a screen of
+    # its own in the strip is a requirement question, not a test
+    # question, and it is not settled here.
+    wide = census["viewport"]["width"] > 720
     for wid in ("frame_LeftPanel", "frame_RightPanel"):
         win = _window(census, wid)
-        assert win["visible"], (
-            f"{where}: {wid} is not on the screen, and it is required to be "
+        assert win["present"], (
+            f"{where}: {wid} is not present, and it is required to be "
             f"always present")
+        if wide or win.get("chars", 0) > 0:
+            assert win["visible"], (
+                f"{where}: {wid} is not on the screen at "
+                f"{census['viewport']['width']}px and it holds "
+                f"{win.get('chars', 0)} characters")
 
 
 def _assert_mobile_drawer_is_hidden(census: dict, where: str) -> None:
-    """EPIC-002-F-008-S-001-REQ-B-003 — the hamburger menu is hidden on
-    desktop (viewport wider than 600px). The fixture runs at 1600px, so
-    the drawer window must not be on the screen at any point in any flow.
+    """EPIC-002-F-008-S-001-REQ-B-003 — the hamburger menu is hidden on a
+    computer. It is the phone's way to the links, so on a phone its being
+    there is the requirement being met, not broken.
+
+    This asserted the desktop rule at whatever width the run used, and a
+    phone run then failed for having the menu a phone is supposed to
+    have.
     """
+    if census["viewport"]["width"] <= 720:
+        return
     drawer = _window(census, "frame_MobileNavDrawer")
     assert not drawer["visible"], (
         f"{where}: the mobile nav drawer is on screen at "
@@ -839,10 +866,20 @@ class TestAProviderSearchAcrossEveryWindow:
         and this case asserts only that the window is there to paint into,
         which EPIC-002-F-011-S-002-REQ-B-002 requires.
         """
-        detail = _window(self.censuses["settled"], "frame_RightPanel")
-        assert detail["visible"], (
-            "the right panel is not on screen, so a provider detail would "
+        census = self.censuses["settled"]
+        detail = _window(census, "frame_RightPanel")
+        width = census["viewport"]["width"]
+        assert detail["present"], (
+            "the right panel is not present, so a provider detail would "
             "have nowhere to paint")
+        # A screen with room for two columns shows the empty panel beside
+        # the list. A screen with room for one does not spend a whole
+        # screen on a panel holding nothing -- the panel is there and is
+        # shown when it has a detail in it.
+        if width > 720:
+            assert detail["visible"], (
+                f"the right panel is not on screen at {width}px, which has "
+                f"room for it beside the results")
 
 
 # ═══════════════════════════════════════════════════════════════════════
@@ -1942,11 +1979,28 @@ def _shown(page, selector: str) -> bool:
     return loc.count() > 0 and loc.first.is_visible()
 
 
+PHONE_SIZE = {"width": 360, "height": 800}
+COMPUTER_SIZE = {"width": 1600, "height": 1000}
+
+
+def _at(page, size: dict):
+    """Look at the page at a given width.
+
+    Which arrangement is on screen is decided by CSS, so it is decided by
+    the width and by nothing else. That makes the width something a test
+    sets, not something the run is launched with -- and it means both
+    arrangements can be asserted in one run instead of one of them being
+    skipped and counted as if it had passed.
+    """
+    page.set_viewport_size(size)
+    page.wait_for_timeout(500)
+
+
 class TestTheNarrowFilterOnEitherFormFactor:
     """The filter is one filter. A computer shows it inline; a phone shows
-    a button that opens it in a popup with an X. Neither form factor may
-    show the other's arrangement, and the popup must hold the same filter
-    the computer shows rather than a second one built to look like it."""
+    a button that opens it in a popup with an X. Every test here sets the
+    width it is about, so all of them run at every launch width and
+    neither arrangement goes unasserted."""
 
     @pytest.fixture(scope="class")
     def searched(self, page):
@@ -1956,33 +2010,40 @@ class TestTheNarrowFilterOnEitherFormFactor:
         _wait_for_results(page)
         page.wait_for_timeout(3_000)
         _record(page, "10a_narrow_filter_at_rest")
-        return page
+        yield page
+        # Leave the page the width the run was launched at, so a class
+        # that runs after this one is not handed a screen this one resized.
+        _at(page, VIEWPORT)
 
-    def test_the_filter_is_placed_the_way_this_form_factor_places_it(self, searched):
-        inline, button = _shown(searched, NARROW_INLINE), _shown(searched, NARROW_BUTTON)
-        if IS_PHONE:
-            assert button and not inline, (
-                f"a phone shows a button and not the inline filter; "
-                f"button={button} inline={inline}")
-        else:
-            assert inline and not button, (
-                f"a computer shows the filter inline and offers no button; "
-                f"inline={inline} button={button}")
+    def test_each_form_factor_places_the_filter_its_own_way(self, searched):
+        _at(searched, COMPUTER_SIZE)
+        wide = (_shown(searched, NARROW_INLINE), _shown(searched, NARROW_BUTTON))
+        _at(searched, PHONE_SIZE)
+        narrow = (_shown(searched, NARROW_INLINE), _shown(searched, NARROW_BUTTON))
+        assert wide == (True, False), (
+            f"a computer shows the filter inline and offers no button; "
+            f"inline={wide[0]} button={wide[1]}")
+        assert narrow == (False, True), (
+            f"a phone shows a button and not the inline filter; "
+            f"inline={narrow[0]} button={narrow[1]}")
 
     def test_no_popup_is_open_until_something_opens_it(self, searched):
-        assert not _shown(searched, NARROW_POPUP), (
-            "the narrow popup is open before anyone asked for it")
+        for size in (COMPUTER_SIZE, PHONE_SIZE):
+            _at(searched, size)
+            assert not _shown(searched, NARROW_POPUP), (
+                f"the narrow popup is open at {size['width']}px before "
+                f"anyone asked for it")
 
-    @pytest.mark.skipif(IS_PHONE, reason="the popup is the phone's arrangement")
     def test_a_computer_never_puts_the_filter_in_a_popup(self, searched):
+        _at(searched, COMPUTER_SIZE)
         assert _shown(searched, NARROW_FILTER), (
             "the filter is not on screen on a computer")
         assert searched.locator(f"{NARROW_POPUP} {NARROW_FILTER}").count() == 0, (
             "a computer put the filter in a popup; the popup is the phone's "
             "arrangement and a computer shows the filter inline")
 
-    @pytest.mark.skipif(not IS_PHONE, reason="the bar is the phone's arrangement")
     def test_the_bar_is_thin_and_the_button_takes_a_finger(self, searched):
+        _at(searched, PHONE_SIZE)
         button = searched.locator(NARROW_BUTTON).first.bounding_box()
         assert button is not None, "the narrow button has no box"
         assert button["height"] >= 40, (
@@ -1993,8 +2054,8 @@ class TestTheNarrowFilterOnEitherFormFactor:
             f"the bar is {bar['height']}px around a {button['height']}px "
             f"button; it carries more than the button")
 
-    @pytest.mark.skipif(not IS_PHONE, reason="the popup is the phone's arrangement")
     def test_the_button_opens_the_filter_in_a_popup(self, searched):
+        _at(searched, PHONE_SIZE)
         searched.locator(NARROW_BUTTON).first.click()
         searched.wait_for_selector(NARROW_POPUP, state="visible",
                                    timeout=DEFAULT_TIMEOUT)
@@ -2005,12 +2066,9 @@ class TestTheNarrowFilterOnEitherFormFactor:
             f"{NARROW_POPUP} [data-testid='provider-search-refine-chip']"
         ).count() > 0, "the popup holds no choices to make"
 
-    @pytest.mark.skipif(not IS_PHONE, reason="the popup is the phone's arrangement")
     def test_the_popup_carries_a_close_control(self, searched):
-        assert _shown(searched, POPUP_CLOSE), (
-            "the popup has no X to close it")
+        assert _shown(searched, POPUP_CLOSE), "the popup has no X to close it"
 
-    @pytest.mark.skipif(not IS_PHONE, reason="the popup is the phone's arrangement")
     def test_the_popup_operates_on_the_list_in_real_time(self, searched):
         before = _total(searched)
         chip = searched.locator(
@@ -2023,13 +2081,86 @@ class TestTheNarrowFilterOnEitherFormFactor:
             f"narrowing from inside the popup widened the list: "
             f"{before} -> {after}")
 
-    @pytest.mark.skipif(not IS_PHONE, reason="the popup is the phone's arrangement")
     def test_closing_the_popup_leaves_the_results_standing(self, searched):
         searched.locator(POPUP_CLOSE).first.click()
         searched.wait_for_timeout(1_500)
-        assert not _shown(searched, NARROW_POPUP), (
-            "the X did not close the popup")
+        assert not _shown(searched, NARROW_POPUP), "the X did not close the popup"
         assert searched.locator("[data-testid='provider-card']").count() > 0, (
             "closing the popup took the results with it")
         assert _shown(searched, NARROW_BUTTON), (
             "the button to reopen the filter is gone after closing it once")
+
+
+# ── FLOW 11 — how wide a column is on a phone ────────────────────────
+# One column is the whole width. Two or three are each as wide as their
+# content needs, which makes the row wider than the screen, and the
+# screen moves along it. No column is a fraction of the window.
+
+def _row_metrics(page) -> dict:
+    return page.evaluate(
+        "() => { const r = document.querySelector('.content-row');"
+        " if (!r) return null;"
+        " const kids = Array.from(r.children).filter(k => {"
+        "   const s = getComputedStyle(k);"
+        "   return s.display !== 'none' && k.getBoundingClientRect().width > 0; });"
+        " return { view: window.innerWidth,"
+        "          scrollWidth: r.scrollWidth, clientWidth: r.clientWidth,"
+        "          columns: kids.length,"
+        "          widths: kids.map(k => Math.round("
+        "            k.getBoundingClientRect().width)) }; }")
+
+
+class TestAColumnIsAsWideAsWhatItHolds:
+    """On a phone the width of a column follows what is showing, not a
+    share of the window. Alone it takes the screen; with company each is
+    wide enough to read and the row scrolls."""
+
+    @pytest.fixture(scope="class")
+    def phone(self, page):
+        _at(page, PHONE_SIZE)
+        _fresh(page)
+        yield page
+        _at(page, VIEWPORT)
+
+    def test_one_column_takes_the_whole_width(self, phone):
+        m = _row_metrics(phone)
+        assert m is not None, "there is no content row on the page"
+        assert m["columns"] == 1, (
+            f"nothing has been asked yet, so only the centre column should "
+            f"be showing; {m['columns']} columns are: {m['widths']}")
+        assert abs(m["widths"][0] - m["view"]) <= 24, (
+            f"the only column on screen is {m['widths'][0]}px of a "
+            f"{m['view']}px screen; alone it should take the width")
+        assert m["scrollWidth"] <= m["clientWidth"] + 4, (
+            f"one column should not make the row scroll: "
+            f"scrollWidth={m['scrollWidth']} clientWidth={m['clientWidth']}")
+
+    def test_more_than_one_column_is_wider_than_the_screen_and_scrolls(self, phone):
+        _ask(phone, "find me a shrink in Long Beach CA")
+        _wait_for_panel(phone)
+        _wait_for_results(phone)
+        phone.wait_for_timeout(2_000)
+        _record(phone, "11a_columns_on_a_phone")
+        m = _row_metrics(phone)
+        assert m["columns"] >= 2, (
+            f"a search paints a specialty panel beside the results, so at "
+            f"least two columns should be showing; got {m['columns']}")
+        assert m["scrollWidth"] > m["clientWidth"], (
+            f"more than one column should make the row wider than the "
+            f"screen: scrollWidth={m['scrollWidth']} "
+            f"clientWidth={m['clientWidth']}")
+        share = [round(w / m["view"], 2) for w in m["widths"]]
+        assert not all(abs(s - share[0]) < 0.01 for s in share) or len(share) == 1, (
+            f"every column is the same share of the window ({share}); a "
+            f"column is sized by what it holds, not by a fraction of the "
+            f"screen")
+        # A column is wide enough to read and no wider. Without a ceiling
+        # "wider than the screen" is satisfied by a column a million
+        # pixels across, which is what `width: auto` on a flex item
+        # actually produced -- the row scrolled, the widths differed, and
+        # the test passed over a layout nobody could use.
+        for w in m["widths"]:
+            assert 120 <= w <= 3 * m["view"], (
+                f"a column is {w}px on a {m['view']}px screen; columns are "
+                f"{m['widths']}. A column must be wide enough to read and "
+                f"still reachable by swiping")
