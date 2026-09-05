@@ -127,7 +127,13 @@ function buildHintsHtml(
             results, not in the bar. On a phone the bar carries the button
             and nothing else. */
          .ch-summary { display: none; }
-         .ch-narrow-button { display: flex; }
+         /* The bar is chrome, not a column. Its frame sits inside the
+            centre column, which is as wide as the results need, so a
+            button centred in that frame landed at x=340 on a 360px
+            screen. Pinned to the screen it stays in view and the button
+            centres in what the person can actually see. */
+         .ch-narrow-button { display: flex; position: sticky; left: 0;
+                             width: 100vw; box-sizing: border-box; }
        }
      </style>` +
     `<div class="ch-narrow-inline">${filter}</div>` +
