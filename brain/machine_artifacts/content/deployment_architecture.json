@@ -2493,7 +2493,7 @@
           "source_location": "brain/machine_artifacts/content/prompts.json",
           "handler_type": "json",
           "disposition": "referenced",
-          "content_hash": "74bca91a1f3ec2153fa98c9dc627c7d277ee52787ac745cfce480eef9145dded",
+          "content_hash": "5478bf5af9a55150c3cf1c45df2f05ec717d25f969533322f06ae390be0f7aa1",
           "package": "service_runtime"
         },
         {

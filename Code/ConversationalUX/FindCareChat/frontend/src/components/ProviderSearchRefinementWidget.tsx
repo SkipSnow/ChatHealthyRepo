@@ -104,7 +104,8 @@ function buildHintsHtml(
   // system already speaks to the person about their query, so it is shown
   // here and the list keeps its frame whole.
   const summaryHtml = summary
-    ? `<div data-testid="provider-summary" style="padding:0.5em 0.8em;` +
+    ? `<div data-testid="provider-summary" class="ch-summary"` +
+      ` style="padding:0.5em 0.8em;` +
       `border-top:0.25em solid ${TEAL};background:#fffdf7;box-sizing:border-box;` +
       `font-size:0.85em;color:#374151;">${_esc(summary)}</div>`
     : ''
@@ -122,19 +123,23 @@ function buildHintsHtml(
                            background: ${TEAL_LIGHT_BG}; }
        @media (max-width: 720px) {
          .ch-narrow-inline { display: none; }
+         /* The summary is prose about the result and belongs beside the
+            results, not in the bar. On a phone the bar carries the button
+            and nothing else. */
+         .ch-summary { display: none; }
          .ch-narrow-button { display: flex; }
        }
      </style>` +
     `<div class="ch-narrow-inline">${filter}</div>` +
     `<div class="ch-narrow-button" style="border-top:0.25em solid ${TEAL};` +
-    `background:${TEAL_LIGHT_BG};padding:0.25em 0.5em;` +
+    `background:${TEAL_LIGHT_BG};padding:0.15em 0.5em;` +
     `align-items:center;justify-content:center;">` +
     `<button type="button"` +
     ` data-router-action="narrow_open" data-testid="provider-narrow-button"` +
     // 44px, not an em. Every other length here scales with the type
     // because it is type; a fingertip does not, so a target sized in em
     // shrank to 22px the moment the font scale came down.
-    ` style="width:100%;min-height:44px;border:0.0625em solid ${TEAL};` +
+    ` style="width:75%;min-height:44px;border:0.0625em solid ${TEAL};` +
     `border-radius:0.4em;background:#fff;color:${TEAL};font-weight:700;` +
     `font-size:0.9em;text-align:center;cursor:pointer;">` +
     `Narrow ${Number(total) || 0} results</button></div>`
