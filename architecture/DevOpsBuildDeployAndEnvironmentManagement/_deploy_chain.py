@@ -2845,7 +2845,19 @@ def deploy_one(
         pad.ensure_vnet_private_endpoints(target, env, coll)
         return result
     if target_kind == "atlas":
-        result = pad.verify_atlas(target, env)
+        # A target that only writes documents is not provisioning anything,
+        # so it is not gated on the control plane. verify_atlas reconciles
+        # projects, clusters and private endpoints through the Atlas admin
+        # API, which the pipeline cluster needs and the front-end cluster
+        # does not: its one package is a document written over a
+        # certificate-authenticated connection. Gating it there meant an
+        # admin credential that could not see the project stopped a write
+        # that never needed the admin API.
+        staged = [f for f in target.files
+                  if package_selection is None or f.package in package_selection]
+        document_only = bool(staged) and all(
+            f.handler_type == "json" for f in staged)
+        result = None if document_only else pad.verify_atlas(target, env)
         apply_config_documents(build_dir, target, env, coll, package_selection)
         return result
     if target_kind == "identity":

@@ -1914,7 +1914,7 @@ class TestAPageTheTurnIsNotAboutShowsNothing:
     @pytest.fixture(scope="class")
     def after_switching(self, page):
         _fresh(page)
-        _ask(page, "find me an urgent care clinic in Long Beach CA")
+        _ask(page, "find me an urgent care clinic in Lakewood CA")
         _wait_for_facilities(page)
         page.wait_for_timeout(1_500)
         page.locator("[data-testid='facility-detail-link']").first.click()
@@ -1946,14 +1946,14 @@ class TestAPageTheTurnIsNotAboutShowsNothing:
             f"a page the turn was not about is still showing: {showing}")
 
     def test_no_window_still_names_the_facility_city(self, after_switching):
-        """The detail was a Long Beach organization and the search is for
-        San Francisco. Long Beach on screen is the previous page."""
+        """The detail was a Lakewood organization and the search is for
+        San Francisco. Lakewood on screen is the previous page."""
         lingering = {}
         for wid, win in after_switching["windows"].items():
             if not (win.get("present") and win.get("visible")):
                 continue
             digest = (win.get("digest") or "").upper()
-            if "LONG BEACH" in digest:
+            if "LAKEWOOD" in digest:
                 lingering[wid] = digest[:160]
         assert lingering == {}, (
             f"the previous page's city is still on screen: {lingering}")
