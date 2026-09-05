@@ -368,8 +368,8 @@ def any_pending_disambiguation(document) -> bool:
     """True when any intent entry on the document carries a
     pending_disambiguation marker. UR uses this to suppress closeConnection200
     chaining (REQ-B-004) so the connection remains logically open across the
-    user's next turn."""
-    for entry in document.intents:
+    user's next turn. No document means nothing is pending."""
+    for entry in getattr(document, "intents", None) or []:
         if getattr(entry, "pending_disambiguation", None) is not None:
             return True
     return False
@@ -1703,24 +1703,8 @@ class UniversalNavigationTool(ChatHealthyTool):
             await lockout_tool.TOOL.run_and_log(deps, lockout_tool.Request())
 
         elif target_action == "closeConnection200":
-            # A turn that ends by asking still knows what kind of care
-            # giver the person wants, so the panel is painted before the
-            # question. "Find me a shrink in San Fransisco" gets the
-            # specialties for a shrink AND the question about the state;
-            # the list waits for the answer, and when it comes the search
-            # runs on the specialties already on screen.
-            #
-            # Done here rather than trusted to the classifier. It is meant
-            # to fall through to specialtySearch plus a question, and when
-            # it closes instead the person was left with a corrected
-            # sentence, an empty filter and nothing to answer -- no
-            # results and no question, which is neither of the two things
-            # a turn is allowed to end as.
-            complaint_in_force = (
-                deps.user_object.userParameters.get(NUCC, "complaint") or "")
-            if complaint_in_force and not self._specialties_in_force(deps):
-                await self._run_or_cache_specialty_filter(
-                    deps, complaint_in_force, complaint_changed=True)
+            # Only a changed complaint or Apply Filter runs the
+            # specialty filter. The panel in force stands.
             from CloseConnection200Tool import close_connection_200_tool
             await close_connection_200_tool.TOOL.run_and_log(
                 deps, close_connection_200_tool.Request(),
