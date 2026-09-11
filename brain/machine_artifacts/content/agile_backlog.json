@@ -669,7 +669,7 @@
                         },
                         {
                           "req_id": "EPIC-002-F-001-S-012-REQ-B-003",
-                          "requirement": "Every client REST call must check for HTTP 426 (Upgrade Required) or 403 (Forbidden) â€” if received, fail immediately with a clear security error. Do not retry, do not silently continue. This specific code means HTTP was used when HTTPS was required.",
+                          "requirement": "Every client REST call must check for HTTP 426 (Upgrade Required) or 403 (Forbidden) \u00e2\u20ac\u201d if received, fail immediately with a clear security error. Do not retry, do not silently continue. This specific code means HTTP was used when HTTPS was required.",
                           "priority": "must-have",
                           "status": "done",
                           "orphan": false,
@@ -704,7 +704,7 @@
                             ]
                           },
                           "approval": "approved",
-                          "name": "Enforce HTTPS-only â€” no HTTP URLs in code, CORS, or config",
+                          "name": "Enforce HTTPS-only \u00e2\u20ac\u201d no HTTP URLs in code, CORS, or config",
                           "depends_on": []
                         },
                         {
@@ -768,10 +768,10 @@
                         }
                       ]
                     },
-                    "description": "HTTPS everywhere â€” reject HTTP on all services",
+                    "description": "HTTPS everywhere \u00e2\u20ac\u201d reject HTTP on all services",
                     "orphan": false,
                     "approval": "approved",
-                    "name": "HTTPS everywhere â€” reject HTTP on all services"
+                    "name": "HTTPS everywhere \u00e2\u20ac\u201d reject HTTP on all services"
                   }
                 ]
               },
@@ -874,7 +874,7 @@
                 "story": [
                   {
                     "story_id": "EPIC-002-F-003-S-001",
-                    "name": "GUID â€” stable per-session auth credential",
+                    "name": "GUID \u00e2\u20ac\u201d stable per-session auth credential",
                     "description": "The stable 32-char session identifier carried inside the security token. Manufactured once per page session and preserved across every cross-service hop.",
                     "size": "M",
                     "status": "done",
@@ -886,7 +886,7 @@
                   },
                   {
                     "story_id": "EPIC-002-F-003-S-002",
-                    "name": "NONCE â€” fresh-per-hop replay defense",
+                    "name": "NONCE \u00e2\u20ac\u201d fresh-per-hop replay defense",
                     "description": "The 17-char timestamp stamped freshly by every server on receive. Defends against replay per NIST 800-53 SC-23. Distinct from the GUID; only the nonce changes per hop.",
                     "size": "M",
                     "status": "done",
@@ -925,7 +925,7 @@
                   },
                   {
                     "story_id": "EPIC-002-F-003-S-003",
-                    "name": "Security Token â€” signed wire envelope",
+                    "name": "Security Token \u00e2\u20ac\u201d signed wire envelope",
                     "description": "The wire object and its content exchanged between services: { origin, token (CH{nonce}{created}{guid}), signature, created_at, signed, server_env }. Binds the GUID and nonce under an RSA PKCS1v15 SHA256 signature by the current stamping origin.",
                     "size": "M",
                     "status": "done",
@@ -1344,7 +1344,7 @@
                         {
                           "req_id": "EPIC-002-F-003-S-004-REQ-B-020",
                           "name": "Pre-alpha authorized-registrant allow-list is hardcoded in application code",
-                          "requirement": "The pre-alpha allow-list of authorized registrants MUST be 100% hardcoded in the application code. No database collection, no env var, no manifest entry â€” to add or remove an authorized pre-alpha user the operator edits the code and redeploys.",
+                          "requirement": "The pre-alpha allow-list of authorized registrants MUST be 100% hardcoded in the application code. No database collection, no env var, no manifest entry \u00e2\u20ac\u201d to add or remove an authorized pre-alpha user the operator edits the code and redeploys.",
                           "priority": "must-have",
                           "status": "done",
                           "orphan": false,
@@ -1369,7 +1369,7 @@
                   {
                     "story_id": "EPIC-002-F-003-S-005",
                     "name": "User State",
-                    "description": "Defines the User State object â€” the in-session and post-session representation of a ChatHealthy user.",
+                    "description": "Defines the User State object \u00e2\u20ac\u201d the in-session and post-session representation of a ChatHealthy user.",
                     "size": "M",
                     "status": "in_progress",
                     "requirements": {
@@ -2106,7 +2106,7 @@
                     "story_id": "EPIC-002-F-004-S-002",
                     "orphan": false,
                     "name": "Implement unique FindCare Universal Router requirements",
-                    "description": "This story specifies the Universal Router (UR) behavior that is specific to FindCare's two action types â€” findAProvider and specialtySearch â€” beyond what the general Universal Router story (EPIC-002-F-004-S-001) defines. It covers the SpecialtyFilter output as the cached upstream result carried as nucc_codes on each FindCare intent entry, the UR-side write and re-read of nucc_codes across turns so SpecialtyFilter does not run twice on the same complaint, and the schema sufficiency rule that gates UR dispatch of ProviderSearch so the provider search executes only when geography is fully specified. UR behavior shared with non-FindCare actions is out of scope for this story.",
+                    "description": "This story specifies the Universal Router (UR) behavior that is specific to FindCare's two action types \u00e2\u20ac\u201d findAProvider and specialtySearch \u00e2\u20ac\u201d beyond what the general Universal Router story (EPIC-002-F-004-S-001) defines. It covers the SpecialtyFilter output as the cached upstream result carried as nucc_codes on each FindCare intent entry, the UR-side write and re-read of nucc_codes across turns so SpecialtyFilter does not run twice on the same complaint, and the schema sufficiency rule that gates UR dispatch of ProviderSearch so the provider search executes only when geography is fully specified. UR behavior shared with non-FindCare actions is out of scope for this story.",
                     "size": "M",
                     "status": "in_progress",
                     "approval": "approved",
@@ -2140,7 +2140,7 @@
                           "req_id": "EPIC-002-F-004-S-002-REQ-B-002",
                           "orphan": false,
                           "name": "ProviderSearch fires only when geography is sufficient",
-                          "requirement": "ProviderSearch executes only when target_action is findAProvider and the geography on the IntentFindAProvider entry passes the schema sufficiency rule â€” zip alone, state alone, state plus city, or state plus county. On any turn where the Utterance Manager (UM) holds target_action at specialtySearch because of pending geography disambiguation, ProviderSearch does not fire; the Universal Router (UR) streams the specialties event and the user_message event and emits its terminal final event without provider results.",
+                          "requirement": "ProviderSearch executes only when target_action is findAProvider and the geography on the IntentFindAProvider entry passes the schema sufficiency rule \u00e2\u20ac\u201d zip alone, state alone, state plus city, or state plus county. On any turn where the Utterance Manager (UM) holds target_action at specialtySearch because of pending geography disambiguation, ProviderSearch does not fire; the Universal Router (UR) streams the specialties event and the user_message event and emits its terminal final event without provider results.",
                           "priority": "must-have",
                           "status": "in_progress",
                           "approval": "approved",
@@ -2343,7 +2343,7 @@
                     },
                     "orphan": false,
                     "approval": "approved",
-                    "name": "Core backend infrastructure â€” notifications, audit, logging, CORS"
+                    "name": "Core backend infrastructure \u00e2\u20ac\u201d notifications, audit, logging, CORS"
                   },
                   {
                     "story_id": "EPIC-002-F-005-S-002",
@@ -2355,7 +2355,7 @@
                     },
                     "orphan": false,
                     "approval": "approved",
-                    "name": "URL Guardian â€” validate and sanitize URLs in LLM responses"
+                    "name": "URL Guardian \u00e2\u20ac\u201d validate and sanitize URLs in LLM responses"
                   },
                   {
                     "story_id": "EPIC-002-F-005-S-003",
@@ -2391,7 +2391,7 @@
                     },
                     "orphan": false,
                     "approval": "approved",
-                    "name": "Tool Router â€” GOV-004 allowlist enforcement"
+                    "name": "Tool Router \u00e2\u20ac\u201d GOV-004 allowlist enforcement"
                   },
                   {
                     "story_id": "EPIC-002-F-005-S-006",
@@ -2444,7 +2444,7 @@
                     },
                     "orphan": false,
                     "approval": "approved",
-                    "name": "Lead Capture â€” contact record creation with consent (UAT Feature 6)"
+                    "name": "Lead Capture \u00e2\u20ac\u201d contact record creation with consent (UAT Feature 6)"
                   },
                   {
                     "story_id": "EPIC-002-F-005-S-007",
@@ -2583,7 +2583,7 @@
                     },
                     "orphan": false,
                     "approval": "approved",
-                    "name": "Consent Framework â€” two-tier HIPAA consent (UAT Feature 7)"
+                    "name": "Consent Framework \u00e2\u20ac\u201d two-tier HIPAA consent (UAT Feature 7)"
                   },
                   {
                     "story_id": "EPIC-002-F-005-S-010",
@@ -2636,7 +2636,7 @@
                     },
                     "orphan": false,
                     "approval": "approved",
-                    "name": "About Content â€” Skip Snow and ChatHealthy context (UAT Feature 4)"
+                    "name": "About Content \u00e2\u20ac\u201d Skip Snow and ChatHealthy context (UAT Feature 4)"
                   },
                   {
                     "story_id": "EPIC-002-F-005-S-011",
@@ -2648,7 +2648,7 @@
                     },
                     "orphan": false,
                     "approval": "approved",
-                    "name": "Debug Logging â€” chat call metadata to MongoDB"
+                    "name": "Debug Logging \u00e2\u20ac\u201d chat call metadata to MongoDB"
                   },
                   {
                     "story_id": "EPIC-002-F-005-S-012",
@@ -2660,7 +2660,7 @@
                     },
                     "orphan": false,
                     "approval": "approved",
-                    "name": "Embedding Infrastructure â€” centralized AI embedding and query expansion"
+                    "name": "Embedding Infrastructure \u00e2\u20ac\u201d centralized AI embedding and query expansion"
                   }
                 ]
               },
@@ -2721,7 +2721,7 @@
                   },
                   {
                     "story_id": "EPIC-002-F-006-S-002",
-                    "description": "The 57-word keyword substring match produces false positives on provider search queries containing emergency terms (e.g. 'find me a doctor for chest pain'). The AI classifier (gpt-4.1-mini) with its three-gate prompt is precise. Remove keywords as a primary trigger â€” let the model carry detection. Keywords remain as fallback ONLY when the AI classifier API fails.",
+                    "description": "The 57-word keyword substring match produces false positives on provider search queries containing emergency terms (e.g. 'find me a doctor for chest pain'). The AI classifier (gpt-4.1-mini) with its three-gate prompt is precise. Remove keywords as a primary trigger \u00e2\u20ac\u201d let the model carry detection. Keywords remain as fallback ONLY when the AI classifier API fails.",
                     "size": "S",
                     "status": "in_progress",
                     "requirements": {
@@ -2923,8 +2923,8 @@
             },
             {
               "feature_id": "EPIC-002-F-008",
-              "name": "Mobile Phone Support â€” Galaxy and iPhone 14+",
-              "description": "Full mobile support for Samsung Galaxy and iPhone 14 forward. Hamburger navigation on all pages, responsive layouts, touch-friendly controls. ChatHealthy.ai must be fully usable on a phone â€” not a degraded experience.",
+              "name": "Mobile Phone Support \u00e2\u20ac\u201d Galaxy and iPhone 14+",
+              "description": "Full mobile support for Samsung Galaxy and iPhone 14 forward. Hamburger navigation on all pages, responsive layouts, touch-friendly controls. ChatHealthy.ai must be fully usable on a phone \u00e2\u20ac\u201d not a degraded experience.",
               "priority": "HIGH",
               "status": "not_started",
               "stories": {
@@ -2952,7 +2952,7 @@
                             ]
                           },
                           "approval": "approved",
-                          "name": "Hamburger menu visible on static HTML pages except index.html at â‰¤600px width",
+                          "name": "Hamburger menu visible on static HTML pages except index.html at \u00e2\u2030\u00a4600px width",
                           "depends_on": []
                         },
                         {
@@ -3224,7 +3224,7 @@
             },
             {
               "feature_id": "EPIC-002-F-009",
-              "name": "Native Mobile Apps â€” Apple App Store and Google Play",
+              "name": "Native Mobile Apps \u00e2\u20ac\u201d Apple App Store and Google Play",
               "description": "Publish ChatHealthy.ai as a native app on Apple App Store (iOS) and Google Play Store (Android). PWA wrapper or React Native shell around the existing web experience. Due before November 2026.",
               "priority": "HIGH",
               "status": "not_started",
@@ -3242,7 +3242,7 @@
             {
               "feature_id": "EPIC-002-F-010",
               "name": "Utterance Tool",
-              "description": "This feature defines the requirements for the handling of every user interaction with ChatHealthy.ai's core front-end application that requires LLM-mediated routing or prose. The Utterance Manager (UM) has two responsibilities. (a) Interpret â€” when the user types free-text into the prompt, UM classifies the latest utterance, builds the canonical IntentDocument, and may author a user_message prompt the user back. This is the 'interpret an utterance' path. (b) Manufacture â€” when the user clicks a structured UI control (Apply Filter, future selected-for-evaluation gates, future pagination edges) that requires the system to ask the user something before it can act, the Universal Router (UR) dispatches UM with a synthetic trigger. UM reads the carried IntentDocument's slot state and authors a brief LLM-generated user_message requesting whatever slot is missing. No free-text utterance was typed; UM is manufacturing an utterance the system needs to deliver. Both paths end the same way: UM writes an IntentDocument back to user_object.intent, optionally streams user_message as kind:'prompt', and returns. UR validates and dispatches the resulting target_action. This feature is complete when every user-facing chat prose in the application is either (a) interpreted from a free-text utterance via path (a) or (b) manufactured by UM via path (b) â€” and no tool authors its own chat strings.",
+              "description": "This feature defines the requirements for the handling of every user interaction with ChatHealthy.ai's core front-end application that requires LLM-mediated routing or prose. The Utterance Manager (UM) has two responsibilities. (a) Interpret \u00e2\u20ac\u201d when the user types free-text into the prompt, UM classifies the latest utterance, builds the canonical IntentDocument, and may author a user_message prompt the user back. This is the 'interpret an utterance' path. (b) Manufacture \u00e2\u20ac\u201d when the user clicks a structured UI control (Apply Filter, future selected-for-evaluation gates, future pagination edges) that requires the system to ask the user something before it can act, the Universal Router (UR) dispatches UM with a synthetic trigger. UM reads the carried IntentDocument's slot state and authors a brief LLM-generated user_message requesting whatever slot is missing. No free-text utterance was typed; UM is manufacturing an utterance the system needs to deliver. Both paths end the same way: UM writes an IntentDocument back to user_object.intent, optionally streams user_message as kind:'prompt', and returns. UR validates and dispatches the resulting target_action. This feature is complete when every user-facing chat prose in the application is either (a) interpreted from a free-text utterance via path (a) or (b) manufactured by UM via path (b) \u00e2\u20ac\u201d and no tool authors its own chat strings.",
               "priority": "must-have",
               "status": "in_progress",
               "orphan": false,
@@ -3323,7 +3323,7 @@
                           "depends_on": [
                             {
                               "story_id": "EPIC-002-F-004",
-                              "reason": "Universal Navigation feature â€” defines the universal router"
+                              "reason": "Universal Navigation feature \u00e2\u20ac\u201d defines the universal router"
                             }
                           ],
                           "tests": {
@@ -3341,7 +3341,7 @@
                           "req_id": "EPIC-002-F-010-S-001-REQ-B-004",
                           "orphan": false,
                           "name": "UtteranceManager obtains tool metadata from the router and caches it at runtime",
-                          "requirement": "UtteranceManager MUST obtain downstream-tool metadata from the universal router's metadata API. UtteranceManager MUST cache the retrieved metadata at runtime â€” the API call is for cache population on startup (or on cache invalidation), not a per-utterance lookup. The router's registry is the source of truth; UtteranceManager holds a runtime copy.",
+                          "requirement": "UtteranceManager MUST obtain downstream-tool metadata from the universal router's metadata API. UtteranceManager MUST cache the retrieved metadata at runtime \u00e2\u20ac\u201d the API call is for cache population on startup (or on cache invalidation), not a per-utterance lookup. The router's registry is the source of truth; UtteranceManager holds a runtime copy.",
                           "priority": "must-have",
                           "status": "in_progress",
                           "approval": "approved",
@@ -3381,7 +3381,7 @@
                           "req_id": "EPIC-002-F-010-S-001-REQ-B-006",
                           "orphan": false,
                           "name": "Classifier input is the last N user utterances",
-                          "requirement": "The Utterance Manager (UM) classifier input is up to the last 10 user utterances drawn from user_object.session_conversation_history.utterances. The cap is a maximum, not a target â€” fewer turns are passed when the session has not accumulated that many. Tool-invocation entries and LLM-clarification bridge entries are excluded from the window so the classifier sees only what the human said.",
+                          "requirement": "The Utterance Manager (UM) classifier input is up to the last 10 user utterances drawn from user_object.session_conversation_history.utterances. The cap is a maximum, not a target \u00e2\u20ac\u201d fewer turns are passed when the session has not accumulated that many. Tool-invocation entries and LLM-clarification bridge entries are excluded from the window so the classifier sees only what the human said.",
                           "priority": "must-have",
                           "status": "in_progress",
                           "approval": "approved",
@@ -3457,7 +3457,7 @@
                           "req_id": "EPIC-002-F-010-S-001-REQ-B-010",
                           "orphan": false,
                           "name": "LLM authors all user-facing chat prose",
-                          "requirement": "The Utterance Manager (UM) classifier's structured output includes a user_message field. The LLM writes every user-facing chat line â€” clarification questions, follow-ups, friendly framing, error explanations â€” and UM streams whatever the LLM produced. No hardcoded clarification or chat string appears in UM, CloseConnection200Tool, or any other component on the dispatch path. The LLM owns the prose; the runtime owns the transport.",
+                          "requirement": "The Utterance Manager (UM) classifier's structured output includes a user_message field. The LLM writes every user-facing chat line \u00e2\u20ac\u201d clarification questions, follow-ups, friendly framing, error explanations \u00e2\u20ac\u201d and UM streams whatever the LLM produced. No hardcoded clarification or chat string appears in UM, CloseConnection200Tool, or any other component on the dispatch path. The LLM owns the prose; the runtime owns the transport.",
                           "priority": "must-have",
                           "status": "in_progress",
                           "approval": "approved",
@@ -3496,7 +3496,7 @@
                           "req_id": "EPIC-002-F-010-S-001-REQ-B-012",
                           "orphan": false,
                           "name": "User utterances MUST NOT propagate a fatal exception",
-                          "requirement": "No user utterance â€” regardless of content, length, language, malformedness, ambiguity, or spelling â€” CAN cause the Utterance Manager to propagate a fatal application exception to the user. The classifier MUST always produce a valid IntentDocument with a usable target_action (typically closeConnection200 with a brief friendly clarification when no other action can be derived). No exception within the Utterance Manager tool can throw. Any unhandled exception inside UM MUST be caught within the UM tool and converted to an appropriate user message.",
+                          "requirement": "No user utterance \u00e2\u20ac\u201d regardless of content, length, language, malformedness, ambiguity, or spelling \u00e2\u20ac\u201d CAN cause the Utterance Manager to propagate a fatal application exception to the user. The classifier MUST always produce a valid IntentDocument with a usable target_action (typically closeConnection200 with a brief friendly clarification when no other action can be derived). No exception within the Utterance Manager tool can throw. Any unhandled exception inside UM MUST be caught within the UM tool and converted to an appropriate user message.",
                           "priority": "must-have",
                           "status": "done",
                           "approval": "approved",
@@ -3544,7 +3544,7 @@
                     "story_id": "EPIC-002-F-010-S-002",
                     "orphan": false,
                     "name": "Implement unique FindCare Utterance Manager requirements",
-                    "description": "This story specifies the Utterance Manager (UM) behavior that is specific to FindCare's two action types â€” findAProvider and specialtySearch â€” beyond what the general Utterance Manager story (EPIC-002-F-010-S-001) defines. It covers the geography slot as the ambiguous-but-resolvable disambiguation slot when the user names a city or county without a state, the UM-side handling of the corresponding pending_disambiguation marker on the IntentDocument's findAProvider intent entry, and the LLM-authored user_message proposing the candidate state to the user. UM behavior shared with non-FindCare actions (closeConnection200) is out of scope for this story.",
+                    "description": "This story specifies the Utterance Manager (UM) behavior that is specific to FindCare's two action types \u00e2\u20ac\u201d findAProvider and specialtySearch \u00e2\u20ac\u201d beyond what the general Utterance Manager story (EPIC-002-F-010-S-001) defines. It covers the geography slot as the ambiguous-but-resolvable disambiguation slot when the user names a city or county without a state, the UM-side handling of the corresponding pending_disambiguation marker on the IntentDocument's findAProvider intent entry, and the LLM-authored user_message proposing the candidate state to the user. UM behavior shared with non-FindCare actions (closeConnection200) is out of scope for this story.",
                     "size": "M",
                     "status": "in_progress",
                     "approval": "approved",
@@ -3578,7 +3578,7 @@
                           "req_id": "EPIC-002-F-010-S-002-REQ-B-002",
                           "orphan": false,
                           "name": "Apply Filter with insufficient geography routes through UM as a manufacture turn",
-                          "requirement": "When UR receives op='apply_filter' with a payload containing the new nucc_codes set, UR reads the carried IntentDocument's geography from user_object.intent. If geography is sufficient (per the same sufficiency rule findAProvider applies â€” zip, state, state+city, or state+county), UR builds the IntentDocument deterministically with target_action=findAProvider using the new nucc_codes set, and dispatches ProviderSearch without calling UM. If geography is insufficient, UR populates a manufacture_utterance_reason dict with at minimum gesture='apply_filter' and missing_slot='geography', optionally adds session-derived facts (prior complaint, prior partial geography candidate, etc.) it deems useful, and dispatches UM as a manufacture-trigger Request per EPIC-002-F-010-S-003. UR does NOT specify the prose; UM authors it per EPIC-002-F-010-S-003-REQ-B-003.",
+                          "requirement": "When UR receives op='apply_filter' with a payload containing the new nucc_codes set, UR reads the carried IntentDocument's geography from user_object.intent. If geography is sufficient (per the same sufficiency rule findAProvider applies \u00e2\u20ac\u201d zip, state, state+city, or state+county), UR builds the IntentDocument deterministically with target_action=findAProvider using the new nucc_codes set, and dispatches ProviderSearch without calling UM. If geography is insufficient, UR populates a manufacture_utterance_reason dict with at minimum gesture='apply_filter' and missing_slot='geography', optionally adds session-derived facts (prior complaint, prior partial geography candidate, etc.) it deems useful, and dispatches UM as a manufacture-trigger Request per EPIC-002-F-010-S-003. UR does NOT specify the prose; UM authors it per EPIC-002-F-010-S-003-REQ-B-003.",
                           "priority": "must-have",
                           "status": "not_started",
                           "approval": "approved",
@@ -3605,7 +3605,7 @@
                     "story_id": "EPIC-002-F-010-S-003",
                     "orphan": false,
                     "name": "Manufacture utterances for non-free-text triggers",
-                    "description": "Defines UM's manufacture-path responsibility. When UR receives a structured UI gesture instead of a free-text utterance, UR dispatches UM with a synthetic trigger Request carrying a structured manufacture_utterance_reason â€” a set of hardcoded, non-user-facing facts UR has assembled about why a manufactured utterance is needed (e.g., gesture='apply_filter', missing_slot='geography', plus any session-state facts UR thinks relevant). UM uses a distinct, narrower prompt template that takes those facts AND the prior dialogue from session_conversation_history and authors a brief user-facing user_message sensitive to the conversational context â€” NOT a phrase the operator could have hardcoded. UM then morphs the IntentDocument's target_action to closeConnection200 (the user-facing prose is the answer for this turn; the user's next free-text utterance comes back through the interpret path and resolves any pending slot via the normal disambiguation mechanism). The manufacture prompt is distinct from the classifier prompt and is governed by its own output schema constraints.",
+                    "description": "Defines UM's manufacture-path responsibility. When UR receives a structured UI gesture instead of a free-text utterance, UR dispatches UM with a synthetic trigger Request carrying a structured manufacture_utterance_reason \u00e2\u20ac\u201d a set of hardcoded, non-user-facing facts UR has assembled about why a manufactured utterance is needed (e.g., gesture='apply_filter', missing_slot='geography', plus any session-state facts UR thinks relevant). UM uses a distinct, narrower prompt template that takes those facts AND the prior dialogue from session_conversation_history and authors a brief user-facing user_message sensitive to the conversational context \u00e2\u20ac\u201d NOT a phrase the operator could have hardcoded. UM then morphs the IntentDocument's target_action to closeConnection200 (the user-facing prose is the answer for this turn; the user's next free-text utterance comes back through the interpret path and resolves any pending slot via the normal disambiguation mechanism). The manufacture prompt is distinct from the classifier prompt and is governed by its own output schema constraints.",
                     "size": "M",
                     "status": "not_started",
                     "approval": "approved",
@@ -3615,7 +3615,7 @@
                           "req_id": "EPIC-002-F-010-S-003-REQ-B-001",
                           "orphan": false,
                           "name": "UM accepts two trigger types",
-                          "requirement": "UM's Request shape carries a discriminator field trigger_type with values 'utterance' (the free-text classifier path) and 'manufacture' (the manufacture path). When trigger_type='utterance' UM reads the latest person utterance from user_object.session_conversation_history and runs the classifier prompt as today. When trigger_type='manufacture' UM does NOT read free-text; it reads the synthetic trigger context off the Request and runs the manufacture prompt. UM's Response shape is unchanged â€” an IntentDocument written to user_object.intent.",
+                          "requirement": "UM's Request shape carries a discriminator field trigger_type with values 'utterance' (the free-text classifier path) and 'manufacture' (the manufacture path). When trigger_type='utterance' UM reads the latest person utterance from user_object.session_conversation_history and runs the classifier prompt as today. When trigger_type='manufacture' UM does NOT read free-text; it reads the synthetic trigger context off the Request and runs the manufacture prompt. UM's Response shape is unchanged \u00e2\u20ac\u201d an IntentDocument written to user_object.intent.",
                           "priority": "must-have",
                           "status": "not_started",
                           "approval": "approved",
@@ -3634,7 +3634,7 @@
                           "req_id": "EPIC-002-F-010-S-003-REQ-B-002",
                           "orphan": false,
                           "name": "Manufacture path uses a distinct prompt template that always ends in closeConnection200",
-                          "requirement": "The manufacture prompt is narrower than the classifier prompt: it does not classify intents (the manufacture trigger and reason already name the intent context), it authors a brief user-facing user_message responsive to the supplied manufacture_utterance_reason and the prior dialogue. Hardcoded chat strings remain forbidden everywhere; the LLM authors all manufacture-path user_message text. After authoring the user_message, UM MUST set target_action=closeConnection200 on the emitted IntentDocument â€” the manufactured utterance IS the turn's answer; UR closes the connection and the user's next free-text utterance returns through the interpret path. The IntentDocument's intents[] array may carry forward intent entries (e.g. cached nucc_codes, partial geography, pending_disambiguation markers) so the next-turn interpret path can resolve naturally; only the target_action is constrained.",
+                          "requirement": "The manufacture prompt is narrower than the classifier prompt: it does not classify intents (the manufacture trigger and reason already name the intent context), it authors a brief user-facing user_message responsive to the supplied manufacture_utterance_reason and the prior dialogue. Hardcoded chat strings remain forbidden everywhere; the LLM authors all manufacture-path user_message text. After authoring the user_message, UM MUST set target_action=closeConnection200 on the emitted IntentDocument \u00e2\u20ac\u201d the manufactured utterance IS the turn's answer; UR closes the connection and the user's next free-text utterance returns through the interpret path. The IntentDocument's intents[] array may carry forward intent entries (e.g. cached nucc_codes, partial geography, pending_disambiguation markers) so the next-turn interpret path can resolve naturally; only the target_action is constrained.",
                           "priority": "must-have",
                           "status": "not_started",
                           "approval": "approved",
@@ -3658,7 +3658,7 @@
                           "req_id": "EPIC-002-F-010-S-003-REQ-B-003",
                           "orphan": false,
                           "name": "Manufactured user_message must be context-sensitive, not formulaic",
-                          "requirement": "The manufacture path EXISTS because the user-facing prose is too context-dependent to hardcode. UM's manufacture prompt MUST consult the prior dialogue (recent transcript window) AND the manufacture_utterance_reason facts together when authoring the user_message. The result must read as a natural continuation of the conversation, not as a generic templated phrase. A prose output that ignores prior dialogue and could have been hardcoded in UR is a regression on this REQ â€” the whole reason the path is LLM-mediated is that UR cannot author this prose deterministically.",
+                          "requirement": "The manufacture path EXISTS because the user-facing prose is too context-dependent to hardcode. UM's manufacture prompt MUST consult the prior dialogue (recent transcript window) AND the manufacture_utterance_reason facts together when authoring the user_message. The result must read as a natural continuation of the conversation, not as a generic templated phrase. A prose output that ignores prior dialogue and could have been hardcoded in UR is a regression on this REQ \u00e2\u20ac\u201d the whole reason the path is LLM-mediated is that UR cannot author this prose deterministically.",
                           "priority": "must-have",
                           "status": "not_started",
                           "approval": "approved",
@@ -4248,8 +4248,8 @@
             },
             {
               "feature_id": "EPIC-002-F-013",
-              "name": "Control Frame â€” Pagination and Filter Controls",
-              "description": "7% control frame canvas that renders pagination and filter controls on demand. 3D raised button style. Deterministic paging via /search â€” no LLM round-trip after first page.",
+              "name": "Control Frame \u00e2\u20ac\u201d Pagination and Filter Controls",
+              "description": "7% control frame canvas that renders pagination and filter controls on demand. 3D raised button style. Deterministic paging via /search \u00e2\u20ac\u201d no LLM round-trip after first page.",
               "priority": "HIGH",
               "status": "not_started",
               "stories": {
@@ -4338,7 +4338,7 @@
                         },
                         {
                           "req_id": "EPIC-002-F-013-S-001-REQ-B-005",
-                          "requirement": "User sends new chat message â€” controls disappear and pagination state is cleared",
+                          "requirement": "User sends new chat message \u00e2\u20ac\u201d controls disappear and pagination state is cleared",
                           "priority": "must-have",
                           "status": "not_started",
                           "orphan": false,
@@ -4568,7 +4568,7 @@
                         },
                         {
                           "req_id": "EPIC-002-F-014-S-001-REQ-B-002",
-                          "requirement": "When no providers are selected, the button displays in a cold/dimmed visual state â€” visually distinct from the active state.",
+                          "requirement": "When no providers are selected, the button displays in a cold/dimmed visual state \u00e2\u20ac\u201d visually distinct from the active state.",
                           "priority": "must-have",
                           "status": "not_started",
                           "orphan": false,
@@ -4678,7 +4678,7 @@
         "name": "ChatHealthy FrontEnd libary",
         "type": "operational",
         "status": "in_progress",
-        "description": "Shared Python library distributed as the pip package `chathealthy-lib` (repo root: `ChatHealthyLib/`). Owns the code consumed in common by ChatHealthy.ai's front-end-facing services (FindCare, EvaluateCare, SharedServices) and the wrapper. Scope is FRONT-END application code only â€” devops, data pipelines, and analytics are explicitly out of scope. Operating-model intent: a separate team with its own P&L manages this library; consumers depend on it via versioned releases (`pip install chathealthy-lib==X.Y.Z`) following standard industry convention for shared libraries, including the boundary that the package mints no auth tokens â€” auth-token MANUFACTURE belongs 100% to SharedServices; only auth-token MANAGEMENT (verification, parsing, nonce advancement) is shared and lives here.",
+        "description": "Shared Python library distributed as the pip package `chathealthy-lib` (repo root: `ChatHealthyLib/`). Owns the code consumed in common by ChatHealthy.ai's front-end-facing services (FindCare, EvaluateCare, SharedServices) and the wrapper. Scope is FRONT-END application code only \u00e2\u20ac\u201d devops, data pipelines, and analytics are explicitly out of scope. Operating-model intent: a separate team with its own P&L manages this library; consumers depend on it via versioned releases (`pip install chathealthy-lib==X.Y.Z`) following standard industry convention for shared libraries, including the boundary that the package mints no auth tokens \u00e2\u20ac\u201d auth-token MANUFACTURE belongs 100% to SharedServices; only auth-token MANAGEMENT (verification, parsing, nonce advancement) is shared and lives here.",
         "approval": "approved",
         "features": {
           "feature": [
@@ -4686,7 +4686,7 @@
               "feature_id": "EPIC-003-F-001",
               "orphan": false,
               "name": "Shared front-end UX widget library",
-              "description": "Distribution mechanism + source-of-truth for the display-only UX widgets currently inlined in Website/index.html and the FindCare React iframe. Includes the chFatalError full-screen overlay, the non-prod env banner, the non-prod security panel (right-side rightSecurity panel), and any future widget shared by more than one front-end consumer. The library carries NO business logic â€” peer selection, mutual-auth pairing, service routing, ownership state, and any other biz-logic concerns are explicitly excluded and live in the backend per the no-biz-logic-on-client rule. Distribution channel TBD (npm package, CDN-hosted versioned bundle, or repo-internal copy at deploy time) â€” to be decided as part of the first story under this feature. Owned by the same EPIC-003 team that owns chathealthy-lib (Python).",
+              "description": "Distribution mechanism + source-of-truth for the display-only UX widgets currently inlined in Website/index.html and the FindCare React iframe. Includes the chFatalError full-screen overlay, the non-prod env banner, the non-prod security panel (right-side rightSecurity panel), and any future widget shared by more than one front-end consumer. The library carries NO business logic \u00e2\u20ac\u201d peer selection, mutual-auth pairing, service routing, ownership state, and any other biz-logic concerns are explicitly excluded and live in the backend per the no-biz-logic-on-client rule. Distribution channel TBD (npm package, CDN-hosted versioned bundle, or repo-internal copy at deploy time) \u00e2\u20ac\u201d to be decided as part of the first story under this feature. Owned by the same EPIC-003 team that owns chathealthy-lib (Python).",
               "priority": "must-have",
               "status": "not_started",
               "approval": "approved",
@@ -4704,7 +4704,7 @@
               "feature_id": "EPIC-003-F-002",
               "orphan": false,
               "name": "Backend orchestration that supports the shared front-end UX widgets",
-              "description": "Backend endpoints + service-layer code that own all the business logic that today lives inline in Website/index.html and the FindCare React iframe â€” peer selection (which backend's /health to call), mutual-auth pairing (the /session-then-/verify-token sequence currently driven from the wrapper), service-routing/ownership-state (gotoFindCare/gotoEvaluateCare/gotoSharedServices and the underlying ownership transition), and any other biz-logic decision the wrapper is making today. The widgets in EPIC-003-F-001 then become pure display: each widget consumes ONE clean data endpoint per render. This feature exists so that the no-biz-logic-on-client rule can actually be enforced; without it, extracting widgets only relocates the violation, not removes it. Per the auth caveat, token MANUFACTURE belongs 100% to SharedServices and any orchestration here MUST respect that boundary.",
+              "description": "Backend endpoints + service-layer code that own all the business logic that today lives inline in Website/index.html and the FindCare React iframe \u00e2\u20ac\u201d peer selection (which backend's /health to call), mutual-auth pairing (the /session-then-/verify-token sequence currently driven from the wrapper), service-routing/ownership-state (gotoFindCare/gotoEvaluateCare/gotoSharedServices and the underlying ownership transition), and any other biz-logic decision the wrapper is making today. The widgets in EPIC-003-F-001 then become pure display: each widget consumes ONE clean data endpoint per render. This feature exists so that the no-biz-logic-on-client rule can actually be enforced; without it, extracting widgets only relocates the violation, not removes it. Per the auth caveat, token MANUFACTURE belongs 100% to SharedServices and any orchestration here MUST respect that boundary.",
               "priority": "must-have",
               "status": "not_started",
               "approval": "approved",
@@ -4722,7 +4722,7 @@
               "feature_id": "EPIC-003-F-003",
               "orphan": false,
               "name": "Manage Errors",
-              "description": "This feature defines the requirements to manage errors that the ChatHealthy.ai's application code encounters. It defines a unified deliberate-exception model across the ChatHealthy.ai codebase. Every exception explicitly managed shares an exception class â€” ChatHealthyException. This exception class has a mode discriminator and structured context dict. Catch sites discriminate on mode, not on exception type. External exceptions (httpx, pymongo, etc.) remain as their native types and are converted to ChatHealthyException at well-defined boundaries. The default behavior is and remains, when an exception occurs, fail hard and fast. But that policy is mitigated by the need to handle expected errors from users and external systems gracefully.",
+              "description": "This feature defines the requirements to manage errors that the ChatHealthy.ai's application code encounters. It defines a unified deliberate-exception model across the ChatHealthy.ai codebase. Every exception explicitly managed shares an exception class \u00e2\u20ac\u201d ChatHealthyException. This exception class has a mode discriminator and structured context dict. Catch sites discriminate on mode, not on exception type. External exceptions (httpx, pymongo, etc.) remain as their native types and are converted to ChatHealthyException at well-defined boundaries. The default behavior is and remains, when an exception occurs, fail hard and fast. But that policy is mitigated by the need to handle expected errors from users and external systems gracefully.",
               "priority": "must-have",
               "status": "in_progress",
               "approval": "approved",
@@ -5121,7 +5121,7 @@
                         },
                         {
                           "req_id": "EPIC-005-F-001-S-005-REQ-B-002",
-                          "requirement": "Retry for up to 10 minutes (60 attempts Ã— 10s) before showing error",
+                          "requirement": "Retry for up to 10 minutes (60 attempts \u00c3\u2014 10s) before showing error",
                           "priority": "must-have",
                           "status": "not_started",
                           "orphan": false,
@@ -5135,7 +5135,7 @@
                             ]
                           },
                           "approval": "approved",
-                          "name": "Retry for up to 10 minutes (60 attempts Ã— 10s) before error display",
+                          "name": "Retry for up to 10 minutes (60 attempts \u00c3\u2014 10s) before error display",
                           "depends_on": []
                         }
                       ]
@@ -5444,7 +5444,7 @@
                   },
                   {
                     "story_id": "EPIC-005-F-004-S-008",
-                    "description": "A report on the quality of the Pipeline backlog hierarchy â€” orphan counts at every level (Epic, Feature, Story, Requirement, Pytest, Bug) so the CTO and Claude can systematically address gaps.",
+                    "description": "A report on the quality of the Pipeline backlog hierarchy \u00e2\u20ac\u201d orphan counts at every level (Epic, Feature, Story, Requirement, Pytest, Bug) so the CTO and Claude can systematically address gaps.",
                     "size": "M",
                     "status": "done",
                     "orphan": false,
@@ -5490,7 +5490,7 @@
             }
           ]
         },
-        "description": "Testing infrastructure â€” Playwright SIT tests, regression suites, and quality assurance tooling.",
+        "description": "Testing infrastructure \u00e2\u20ac\u201d Playwright SIT tests, regression suites, and quality assurance tooling.",
         "orphan": false,
         "approval": "proposed",
         "type": "operational"
@@ -5989,7 +5989,7 @@
                           "req_id": "EPIC-006-F-002-S-001-REQ-B-002",
                           "orphan": false,
                           "name": "Identity and credential fields",
-                          "requirement": "The panel MUST display the provider's full name (prefix, first, middle, last), credentials, primary taxonomy (NUCC display name), NPI, status (active/inactive), and enumeration date. Missing fields render as empty placeholders â€” no fallback prose.",
+                          "requirement": "The panel MUST display the provider's full name (prefix, first, middle, last), credentials, primary taxonomy (NUCC display name), NPI, status (active/inactive), and enumeration date. Missing fields render as empty placeholders \u00e2\u20ac\u201d no fallback prose.",
                           "priority": "must-have",
                           "status": "in_progress",
                           "approval": "approved",
@@ -6738,7 +6738,7 @@
                         },
                         {
                           "req_id": "EPIC-006-F-006-S-001-REQ-B-002",
-                          "name": "EPIC-006-F-006-S-001-REQ-B-002 — Match a facility on either of its names",
+                          "name": "EPIC-006-F-006-S-001-REQ-B-002 \u2014 Match a facility on either of its names",
                           "requirement": "The result set of a facility search naming a facility MUST be exactly those facilities whose legal business name or whose other organization name matches the name given.",
                           "priority": "must-have",
                           "status": "not_started",
@@ -6757,7 +6757,7 @@
                         },
                         {
                           "req_id": "EPIC-006-F-006-S-001-REQ-B-003",
-                          "name": "EPIC-006-F-006-S-001-REQ-B-003 — Match a facility on what it does",
+                          "name": "EPIC-006-F-006-S-001-REQ-B-003 \u2014 Match a facility on what it does",
                           "requirement": "The result set of a facility search naming one or more taxonomies MUST be exactly those facilities carrying at least one of them.",
                           "priority": "must-have",
                           "status": "not_started",
@@ -6776,7 +6776,7 @@
                         },
                         {
                           "req_id": "EPIC-006-F-006-S-001-REQ-B-004",
-                          "name": "EPIC-006-F-006-S-001-REQ-B-004 — Match a facility on where it delivers care",
+                          "name": "EPIC-006-F-006-S-001-REQ-B-004 \u2014 Match a facility on where it delivers care",
                           "requirement": "The result set of a facility search naming a geography MUST be exactly those facilities holding at least one practice location in that geography. A business address MUST NOT place a facility in a geography.",
                           "priority": "must-have",
                           "status": "not_started",
@@ -6878,7 +6878,7 @@
                       "requirement": [
                         {
                           "req_id": "EPIC-006-F-006-S-003-REQ-B-003",
-                          "name": "EPIC-006-F-006-S-003-REQ-B-003 — Remove a selected facility in one action",
+                          "name": "EPIC-006-F-006-S-003-REQ-B-003 \u2014 Remove a selected facility in one action",
                           "requirement": "A user MUST be able to remove one selected facility in a single action.",
                           "priority": "must-have",
                           "status": "not_started",
@@ -6897,7 +6897,7 @@
                         },
                         {
                           "req_id": "EPIC-006-F-006-S-003-REQ-B-004",
-                          "name": "EPIC-006-F-006-S-003-REQ-B-004 — Show exactly the selected-row content set",
+                          "name": "EPIC-006-F-006-S-003-REQ-B-004 \u2014 Show exactly the selected-row content set",
                           "requirement": "A row of the selected-facility set MUST show exactly the legal business name and the NPI.",
                           "priority": "must-have",
                           "status": "not_started",
@@ -6929,7 +6929,7 @@
                       "requirement": [
                         {
                           "req_id": "EPIC-006-F-006-S-004-REQ-B-001",
-                          "name": "EPIC-006-F-006-S-004-REQ-B-001 — Summarise in the user's own words",
+                          "name": "EPIC-006-F-006-S-004-REQ-B-001 \u2014 Summarise in the user's own words",
                           "requirement": "The summary MUST use the words the user searched with.",
                           "priority": "must-have",
                           "status": "not_started",
@@ -6948,7 +6948,7 @@
                         },
                         {
                           "req_id": "EPIC-006-F-006-S-004-REQ-B-002",
-                          "name": "EPIC-006-F-006-S-004-REQ-B-002 — State how many remain unseen",
+                          "name": "EPIC-006-F-006-S-004-REQ-B-002 \u2014 State how many remain unseen",
                           "requirement": "The summary MUST state how many facilities matched beyond those on screen.",
                           "priority": "must-have",
                           "status": "not_started",
@@ -6967,7 +6967,7 @@
                         },
                         {
                           "req_id": "EPIC-006-F-006-S-004-REQ-B-003",
-                          "name": "EPIC-006-F-006-S-004-REQ-B-003 — Name exactly the geography used",
+                          "name": "EPIC-006-F-006-S-004-REQ-B-003 \u2014 Name exactly the geography used",
                           "requirement": "The summary MUST name exactly the geography the search used, and no other.",
                           "priority": "must-have",
                           "status": "not_started",
@@ -6986,7 +6986,7 @@
                         },
                         {
                           "req_id": "EPIC-006-F-006-S-004-REQ-B-004",
-                          "name": "EPIC-006-F-006-S-004-REQ-B-004 — Offer only the narrowings not yet used",
+                          "name": "EPIC-006-F-006-S-004-REQ-B-004 \u2014 Offer only the narrowings not yet used",
                           "requirement": "The summary MUST offer exactly those ways of narrowing the search the user has not already used.\n\nCONFLICT: The care-giver analogue of this requirement is unmet: city and county are omitted when supplied but the postal code is offered back unconditionally.",
                           "priority": "must-have",
                           "status": "not_started",
@@ -7033,7 +7033,7 @@
                       "requirement": [
                         {
                           "req_id": "EPIC-006-F-007-S-001-REQ-B-001",
-                          "name": "EPIC-006-F-007-S-001-REQ-B-001 — Show a facility on the same terms as a provider",
+                          "name": "EPIC-006-F-007-S-001-REQ-B-001 \u2014 Show a facility on the same terms as a provider",
                           "requirement": "A Facility Detail MUST show every value it shows on the same terms EPIC-006-F-002-S-001 requires of a Provider Detail, except where this story states otherwise.\n\nDepends on: EPIC-006-F-002-S-001 in full. The audit of 2026-08-30 records several of those requirements as carrying status done while being unmet; this requirement inherits the requirement, not the implementation.",
                           "priority": "must-have",
                           "status": "not_started",
@@ -7052,7 +7052,7 @@
                         },
                         {
                           "req_id": "EPIC-006-F-007-S-001-REQ-B-002",
-                          "name": "EPIC-006-F-007-S-001-REQ-B-002 — Show exactly the facility identity set",
+                          "name": "EPIC-006-F-007-S-001-REQ-B-002 \u2014 Show exactly the facility identity set",
                           "requirement": "In place of a provider's personal identity, the panel MUST show the legal business name; the other organization name where the record carries one; the label of what kind of name that other name is; the NPI; the date the NPI was issued; and whether the facility is currently active.",
                           "priority": "must-have",
                           "status": "not_started",
@@ -7071,7 +7071,7 @@
                         },
                         {
                           "req_id": "EPIC-006-F-007-S-001-REQ-B-003",
-                          "name": "EPIC-006-F-007-S-001-REQ-B-003 — Name the parent when the facility is a subpart",
+                          "name": "EPIC-006-F-007-S-001-REQ-B-003 \u2014 Name the parent when the facility is a subpart",
                           "requirement": "When the record marks the facility as a subpart, the panel MUST show the parent organization's legal business name.",
                           "priority": "must-have",
                           "status": "not_started",
@@ -7090,7 +7090,7 @@
                         },
                         {
                           "req_id": "EPIC-006-F-007-S-001-REQ-B-005",
-                          "name": "EPIC-006-F-007-S-001-REQ-B-005 — Never carry a tax identifier",
+                          "name": "EPIC-006-F-007-S-001-REQ-B-005 \u2014 Never carry a tax identifier",
                           "requirement": "The federal employer identification number and the parent organization's taxpayer identification number MUST NOT be shown, transmitted or stored, whatever any upstream response contains.",
                           "priority": "must-have",
                           "status": "not_started",
@@ -7109,7 +7109,7 @@
                         },
                         {
                           "req_id": "EPIC-006-F-007-S-001-REQ-B-006",
-                          "name": "EPIC-006-F-007-S-001-REQ-B-006 — Offer a destination that confirms the enumeration",
+                          "name": "EPIC-006-F-007-S-001-REQ-B-006 \u2014 Offer a destination that confirms the enumeration",
                           "requirement": "The panel MUST offer a destination at which the user can independently confirm that this NPI is enumerated and that the organization we name is the organization it is enumerated to.",
                           "priority": "must-have",
                           "status": "not_started",
@@ -7128,7 +7128,7 @@
                         },
                         {
                           "req_id": "EPIC-006-F-007-S-001-REQ-B-007",
-                          "name": "EPIC-006-F-007-S-001-REQ-B-007 — Offer a destination that confirms the right to operate",
+                          "name": "EPIC-006-F-007-S-001-REQ-B-007 \u2014 Offer a destination that confirms the right to operate",
                           "requirement": "The panel MUST offer a destination at the authority that licenses or certifies facilities in the state of the facility's primary practice location, at which the user can independently confirm the facility's standing to operate there. Every state, the District of Columbia and every outlying sovereignty in which a facility may hold a practice location MUST be covered.\n\nCounterpart requirement belongs to: Quality, ratings and complaint history are not offered here. Scoring and ranking care by quality measures is the business capability of EPIC-001, and a facility reaches it through the handoff at EPIC-006-F-006-S-003-REQ-B-005. Offering a quality destination from this panel would duplicate that capability.",
                           "priority": "must-have",
                           "status": "not_started",
@@ -7147,7 +7147,7 @@
                         },
                         {
                           "req_id": "EPIC-006-F-007-S-001-REQ-B-008",
-                          "name": "EPIC-006-F-007-S-001-REQ-B-008 — Show in plain words what kind of place this is",
+                          "name": "EPIC-006-F-007-S-001-REQ-B-008 \u2014 Show in plain words what kind of place this is",
                           "requirement": "For every kind of facility the record carries, the panel MUST show the classification label, the specialization where the record carries one, and the plain-language definition of that kind of facility.\n\nDepends on: The approved runtime record design carries this set on the record, resolved and labelled when the record is written. FindCare shows what the record carries and resolves nothing at the moment of display.",
                           "priority": "must-have",
                           "status": "not_started",
@@ -7217,7 +7217,7 @@
                         },
                         {
                           "req_id": "EPIC-006-F-007-S-002-REQ-B-002",
-                          "name": "EPIC-006-F-007-S-002-REQ-B-002 — Label the official as the record's authorized official",
+                          "name": "EPIC-006-F-007-S-002-REQ-B-002 \u2014 Label the official as the record's authorized official",
                           "requirement": "The section showing the authorized official MUST be labelled as the record's authorized official.\n\nDepends on: The approved runtime record design carries an administrative contact as a person distinct from the authorized official. Labelling the authorized official as the administrative contact would name one person with another's role.",
                           "priority": "must-have",
                           "status": "not_started",
@@ -7249,7 +7249,7 @@
                       "requirement": [
                         {
                           "req_id": "EPIC-006-F-007-S-003-REQ-B-001",
-                          "name": "EPIC-006-F-007-S-003-REQ-B-001 — Maintain a facility record on the same terms as a provider",
+                          "name": "EPIC-006-F-007-S-003-REQ-B-001 \u2014 Maintain a facility record on the same terms as a provider",
                           "requirement": "The record behind a Facility Detail MUST be maintained on the same terms EPIC-006-F-002-S-002 requires of an individual provider record.\n\nDepends on: EPIC-006-F-002-S-002 in full. The audit of 2026-08-30 records six of its fourteen requirements as implementation specifications rather than requirements; this requirement inherits the obligation and not those formulations.",
                           "priority": "must-have",
                           "status": "not_started",
@@ -7268,7 +7268,7 @@
                         },
                         {
                           "req_id": "EPIC-006-F-007-S-003-REQ-B-002",
-                          "name": "EPIC-006-F-007-S-003-REQ-B-002 — Never write a person attribute onto a facility",
+                          "name": "EPIC-006-F-007-S-003-REQ-B-002 \u2014 Never write a person attribute onto a facility",
                           "requirement": "No maintenance of a facility record MUST write an individual-only attribute onto it, whatever any upstream response contains.",
                           "priority": "must-have",
                           "status": "not_started",
@@ -7287,7 +7287,7 @@
                         },
                         {
                           "req_id": "EPIC-006-F-007-S-003-REQ-B-003",
-                          "name": "EPIC-006-F-007-S-003-REQ-B-003 — Show no Facility Detail for a record that is not an organization",
+                          "name": "EPIC-006-F-007-S-003-REQ-B-003 \u2014 Show no Facility Detail for a record that is not an organization",
                           "requirement": "A Facility Detail MUST NOT be shown for an NPI the authoritative registry reports is not an organization.",
                           "priority": "must-have",
                           "status": "not_started",
@@ -7306,7 +7306,7 @@
                         },
                         {
                           "req_id": "EPIC-006-F-007-S-003-REQ-B-004",
-                          "name": "EPIC-006-F-007-S-003-REQ-B-004 — Tell the user the facility was not found",
+                          "name": "EPIC-006-F-007-S-003-REQ-B-004 \u2014 Tell the user the facility was not found",
                           "requirement": "When a Facility Detail is not shown for that reason, the user MUST be told the facility was not found.\n\nCounterpart requirement belongs to: What becomes of the stored record in that case is a data obligation of EPIC-010.",
                           "priority": "must-have",
                           "status": "not_started",
@@ -7353,7 +7353,7 @@
                       "requirement": [
                         {
                           "req_id": "EPIC-006-F-008-S-001-REQ-B-001",
-                          "name": "EPIC-006-F-008-S-001-REQ-B-001 — Qualify every parameter name by its page",
+                          "name": "EPIC-006-F-008-S-001-REQ-B-001 \u2014 Qualify every parameter name by its page",
                           "requirement": "Every parameter name MUST be a page and an attribute together.",
                           "priority": "must-have",
                           "status": "not_started",
@@ -7372,7 +7372,7 @@
                         },
                         {
                           "req_id": "EPIC-006-F-008-S-001-REQ-B-002",
-                          "name": "EPIC-006-F-008-S-001-REQ-B-002 — Declare exactly four pages",
+                          "name": "EPIC-006-F-008-S-001-REQ-B-002 \u2014 Declare exactly four pages",
                           "requirement": "The pages MUST be exactly these four and no others: facility, individualProvider, NUCC, clinicalTrial.",
                           "priority": "must-have",
                           "status": "not_started",
@@ -7391,7 +7391,7 @@
                         },
                         {
                           "req_id": "EPIC-006-F-008-S-001-REQ-B-003",
-                          "name": "EPIC-006-F-008-S-001-REQ-B-003 — Refuse a name whose page is not one of the four",
+                          "name": "EPIC-006-F-008-S-001-REQ-B-003 \u2014 Refuse a name whose page is not one of the four",
                           "requirement": "A parameter name naming a page that is not one of the four MUST be refused.",
                           "priority": "must-have",
                           "status": "not_started",
@@ -7410,7 +7410,7 @@
                         },
                         {
                           "req_id": "EPIC-006-F-008-S-001-REQ-B-004",
-                          "name": "EPIC-006-F-008-S-001-REQ-B-004 — Refuse an attribute the page does not declare",
+                          "name": "EPIC-006-F-008-S-001-REQ-B-004 \u2014 Refuse an attribute the page does not declare",
                           "requirement": "A parameter name naming an attribute that page does not declare MUST be refused.",
                           "priority": "must-have",
                           "status": "not_started",
@@ -7429,7 +7429,7 @@
                         },
                         {
                           "req_id": "EPIC-006-F-008-S-001-REQ-B-005",
-                          "name": "EPIC-006-F-008-S-001-REQ-B-005 — Keep pages independent",
+                          "name": "EPIC-006-F-008-S-001-REQ-B-005 \u2014 Keep pages independent",
                           "requirement": "Setting, clearing or reading a parameter on one page MUST have no effect on any parameter of any other page.",
                           "priority": "must-have",
                           "status": "not_started",
@@ -7448,7 +7448,7 @@
                         },
                         {
                           "req_id": "EPIC-006-F-008-S-001-REQ-B-006",
-                          "name": "EPIC-006-F-008-S-001-REQ-B-006 — Hold more than one page's answer at a time",
+                          "name": "EPIC-006-F-008-S-001-REQ-B-006 \u2014 Hold more than one page's answer at a time",
                           "requirement": "A result set in force on one page MUST NOT be displaced by a result set produced for another page. A user MUST be able to hold a facility answer and an individual-provider answer at the same time.\n\nCounterpart requirement belongs to: Turning one thing a person said into both a facility request and a provider request is the utterance manager's work, and dispatching both is the router's. Those requirements belong to EPIC-002-F-010-S-001 and EPIC-002-F-004-S-001. FindCare requires only that both answers can stand at once.",
                           "priority": "must-have",
                           "status": "not_started",
@@ -7480,7 +7480,7 @@
                       "requirement": [
                         {
                           "req_id": "EPIC-006-F-008-S-002-REQ-B-001",
-                          "name": "EPIC-006-F-008-S-002-REQ-B-001 — Decide carry-over one parameter at a time",
+                          "name": "EPIC-006-F-008-S-002-REQ-B-001 \u2014 Decide carry-over one parameter at a time",
                           "requirement": "Whether a parameter carries over MUST be decided per parameter, per source page and per destination page. No page-wide or system-wide rule MUST override that decision.",
                           "priority": "must-have",
                           "status": "not_started",
@@ -7518,7 +7518,7 @@
                         },
                         {
                           "req_id": "EPIC-006-F-008-S-002-REQ-B-003",
-                          "name": "EPIC-006-F-008-S-002-REQ-B-003 — Carry nothing that is not named",
+                          "name": "EPIC-006-F-008-S-002-REQ-B-003 \u2014 Carry nothing that is not named",
                           "requirement": "A parameter for which no carry-over is stated for a given source and destination MUST NOT carry over.",
                           "priority": "must-have",
                           "status": "not_started",
@@ -7537,7 +7537,7 @@
                         },
                         {
                           "req_id": "EPIC-006-F-008-S-002-REQ-B-004",
-                          "name": "EPIC-006-F-008-S-002-REQ-B-004 — Treat a carried value as a change on the destination",
+                          "name": "EPIC-006-F-008-S-002-REQ-B-004 \u2014 Treat a carried value as a change on the destination",
                           "requirement": "A value arriving on a page by carry-over MUST be recorded as a parameter change on that page.",
                           "priority": "must-have",
                           "status": "not_started",
@@ -7556,7 +7556,7 @@
                         },
                         {
                           "req_id": "EPIC-006-F-008-S-002-REQ-B-005",
-                          "name": "EPIC-006-F-008-S-002-REQ-B-005 — Never displace a value already in force",
+                          "name": "EPIC-006-F-008-S-002-REQ-B-005 \u2014 Never displace a value already in force",
                           "requirement": "A carry-over MUST NOT replace a value already in force on the destination page.",
                           "priority": "must-have",
                           "status": "not_started",
@@ -7607,7 +7607,7 @@
                       "requirement": [
                         {
                           "req_id": "EPIC-006-F-008-S-003-REQ-B-001",
-                          "name": "EPIC-006-F-008-S-003-REQ-B-001 — Let a tool change a parameter",
+                          "name": "EPIC-006-F-008-S-003-REQ-B-001 \u2014 Let a tool change a parameter",
                           "requirement": "A tool MUST be able to set, clear and read any parameter its page declares.",
                           "priority": "must-have",
                           "status": "not_started",
@@ -7626,7 +7626,7 @@
                         },
                         {
                           "req_id": "EPIC-006-F-008-S-003-REQ-B-002",
-                          "name": "EPIC-006-F-008-S-003-REQ-B-002 — Let the gateway change a parameter",
+                          "name": "EPIC-006-F-008-S-003-REQ-B-002 \u2014 Let the gateway change a parameter",
                           "requirement": "The gateway MUST be able to set, clear and read any parameter, on its own initiative and without a tool having asked.\n\nCounterpart requirement belongs to: The gateway itself is EPIC-002-F-004-S-001. FindCare requires the route and states no requirement about the gateway.",
                           "priority": "must-have",
                           "status": "in_progress",
@@ -7645,7 +7645,7 @@
                         },
                         {
                           "req_id": "EPIC-006-F-008-S-003-REQ-B-003",
-                          "name": "EPIC-006-F-008-S-003-REQ-B-003 — Let the utterance manager change a parameter",
+                          "name": "EPIC-006-F-008-S-003-REQ-B-003 \u2014 Let the utterance manager change a parameter",
                           "requirement": "The utterance manager MUST be able to set, clear and read any parameter.\n\nCounterpart requirement belongs to: The utterance manager itself is EPIC-002-F-010. FindCare requires the route and states no requirement about the manager.",
                           "priority": "must-have",
                           "status": "in_progress",
@@ -7664,7 +7664,7 @@
                         },
                         {
                           "req_id": "EPIC-006-F-008-S-003-REQ-B-004",
-                          "name": "EPIC-006-F-008-S-003-REQ-B-004 — Give the three routes one outcome",
+                          "name": "EPIC-006-F-008-S-003-REQ-B-004 \u2014 Give the three routes one outcome",
                           "requirement": "The same parameter request made by any of the three routes MUST produce the same stored value and the same refusal.",
                           "priority": "must-have",
                           "status": "in_progress",
@@ -7683,7 +7683,7 @@
                         },
                         {
                           "req_id": "EPIC-006-F-008-S-003-REQ-B-005",
-                          "name": "EPIC-006-F-008-S-003-REQ-B-005 — Record which route made each change",
+                          "name": "EPIC-006-F-008-S-003-REQ-B-005 \u2014 Record which route made each change",
                           "requirement": "Every parameter change MUST record which of the three routes made it.",
                           "priority": "must-have",
                           "status": "done",
@@ -7702,7 +7702,7 @@
                         },
                         {
                           "req_id": "EPIC-006-F-008-S-003-REQ-B-006",
-                          "name": "EPIC-006-F-008-S-003-REQ-B-006 — Record whether a value was determined or inferred",
+                          "name": "EPIC-006-F-008-S-003-REQ-B-006 \u2014 Record whether a value was determined or inferred",
                           "requirement": "Every parameter change MUST record whether the value was determined by a rule or inferred by a model.",
                           "priority": "must-have",
                           "status": "done",
@@ -7721,7 +7721,7 @@
                         },
                         {
                           "req_id": "EPIC-006-F-008-S-003-REQ-B-007",
-                          "name": "EPIC-006-F-008-S-003-REQ-B-007 — Admit no fourth writer",
+                          "name": "EPIC-006-F-008-S-003-REQ-B-007 \u2014 Admit no fourth writer",
                           "requirement": "No component MUST change a parameter other than through those three routes.",
                           "priority": "must-have",
                           "status": "done",
@@ -7810,7 +7810,7 @@
                         },
                         {
                           "req_id": "EPIC-006-F-008-S-004-REQ-B-004",
-                          "name": "EPIC-006-F-008-S-004-REQ-B-004 — Hold the prior value when a change fails",
+                          "name": "EPIC-006-F-008-S-004-REQ-B-004 \u2014 Hold the prior value when a change fails",
                           "requirement": "A parameter whose change was not preserved MUST hold the value it held before.",
                           "priority": "must-have",
                           "status": "in_progress",
@@ -7829,7 +7829,7 @@
                         },
                         {
                           "req_id": "EPIC-006-F-008-S-004-REQ-B-005",
-                          "name": "EPIC-006-F-008-S-004-REQ-B-005 — Tell the user a change did not take",
+                          "name": "EPIC-006-F-008-S-004-REQ-B-005 \u2014 Tell the user a change did not take",
                           "requirement": "When a parameter change is not preserved, the user MUST be told, and the parameter MUST be named.",
                           "priority": "must-have",
                           "status": "not_started",
@@ -7848,7 +7848,7 @@
                         },
                         {
                           "req_id": "EPIC-006-F-008-S-004-REQ-B-006",
-                          "name": "EPIC-006-F-008-S-004-REQ-B-006 — Change all or none",
+                          "name": "EPIC-006-F-008-S-004-REQ-B-006 \u2014 Change all or none",
                           "requirement": "A request changing more than one parameter MUST leave all of them changed or none of them changed.",
                           "priority": "must-have",
                           "status": "not_started",
@@ -7899,7 +7899,7 @@
                       "requirement": [
                         {
                           "req_id": "EPIC-006-F-008-S-005-REQ-B-001",
-                          "name": "EPIC-006-F-008-S-005-REQ-B-001 — Show exactly the parameters in force",
+                          "name": "EPIC-006-F-008-S-005-REQ-B-001 \u2014 Show exactly the parameters in force",
                           "requirement": "The panel MUST show exactly those parameters currently in force, with their values, and no others.",
                           "priority": "must-have",
                           "status": "not_started",
@@ -7918,7 +7918,7 @@
                         },
                         {
                           "req_id": "EPIC-006-F-008-S-005-REQ-B-002",
-                          "name": "EPIC-006-F-008-S-005-REQ-B-002 — Show each parameter's page",
+                          "name": "EPIC-006-F-008-S-005-REQ-B-002 \u2014 Show each parameter's page",
                           "requirement": "Every parameter shown MUST be shown with the page it belongs to.",
                           "priority": "must-have",
                           "status": "not_started",
@@ -7937,7 +7937,7 @@
                         },
                         {
                           "req_id": "EPIC-006-F-008-S-005-REQ-B-003",
-                          "name": "EPIC-006-F-008-S-005-REQ-B-003 — Group the panel by page",
+                          "name": "EPIC-006-F-008-S-005-REQ-B-003 \u2014 Group the panel by page",
                           "requirement": "The panel MUST group the parameters it shows by page.",
                           "priority": "must-have",
                           "status": "not_started",
@@ -7956,7 +7956,7 @@
                         },
                         {
                           "req_id": "EPIC-006-F-008-S-005-REQ-B-004",
-                          "name": "EPIC-006-F-008-S-005-REQ-B-004 — Clear one parameter alone",
+                          "name": "EPIC-006-F-008-S-005-REQ-B-004 \u2014 Clear one parameter alone",
                           "requirement": "A user MUST be able to clear one parameter in a single action without changing any other.",
                           "priority": "must-have",
                           "status": "not_started",
@@ -7975,7 +7975,7 @@
                         },
                         {
                           "req_id": "EPIC-006-F-008-S-005-REQ-B-005",
-                          "name": "EPIC-006-F-008-S-005-REQ-B-005 — Clear one page",
+                          "name": "EPIC-006-F-008-S-005-REQ-B-005 \u2014 Clear one page",
                           "requirement": "A user MUST be able to clear every parameter of one page in a single action.",
                           "priority": "must-have",
                           "status": "not_started",
@@ -7994,7 +7994,7 @@
                         },
                         {
                           "req_id": "EPIC-006-F-008-S-005-REQ-B-006",
-                          "name": "EPIC-006-F-008-S-005-REQ-B-006 — Clear every page",
+                          "name": "EPIC-006-F-008-S-005-REQ-B-006 \u2014 Clear every page",
                           "requirement": "A user MUST be able to clear every parameter of every page in a single action.",
                           "priority": "must-have",
                           "status": "not_started",
@@ -8013,7 +8013,7 @@
                         },
                         {
                           "req_id": "EPIC-006-F-008-S-005-REQ-B-007",
-                          "name": "EPIC-006-F-008-S-005-REQ-B-007 — Confirm a change in the same turn",
+                          "name": "EPIC-006-F-008-S-005-REQ-B-007 \u2014 Confirm a change in the same turn",
                           "requirement": "After a parameter change is preserved, the panel MUST show the new value within the same turn.",
                           "priority": "must-have",
                           "status": "not_started",
@@ -8032,7 +8032,7 @@
                         },
                         {
                           "req_id": "EPIC-006-F-008-S-005-REQ-B-008",
-                          "name": "EPIC-006-F-008-S-005-REQ-B-008 — Name where a carried value came from",
+                          "name": "EPIC-006-F-008-S-005-REQ-B-008 \u2014 Name where a carried value came from",
                           "requirement": "A parameter in force on a page because it carried over MUST be shown with the page it came from.",
                           "priority": "must-have",
                           "status": "not_started",
@@ -8051,7 +8051,7 @@
                         },
                         {
                           "req_id": "EPIC-006-F-008-S-005-REQ-B-009",
-                          "name": "EPIC-006-F-008-S-005-REQ-B-009 — Change a value where it is shown",
+                          "name": "EPIC-006-F-008-S-005-REQ-B-009 \u2014 Change a value where it is shown",
                           "requirement": "A user MUST be able to change the value of any parameter in force from the panel that shows it.\n\nDepends on: EPIC-006-F-008-S-003-REQ-B-007. A change made in the panel is made through the same route as any other change; the panel is a surface, not a fourth writer.\n\nCounterpart requirement belongs to: Every such change reaches the server through the one entrance required by EPIC-002-F-004-S-001, and no persistent state changes anywhere else.",
                           "priority": "must-have",
                           "status": "not_started",
@@ -8083,7 +8083,7 @@
                       "requirement": [
                         {
                           "req_id": "EPIC-006-F-008-S-006-REQ-B-001",
-                          "name": "EPIC-006-F-008-S-006-REQ-B-001 — Refuse every unqualified name",
+                          "name": "EPIC-006-F-008-S-006-REQ-B-001 \u2014 Refuse every unqualified name",
                           "requirement": "A parameter named without its page MUST be refused.",
                           "priority": "must-have",
                           "status": "not_started",
@@ -8102,7 +8102,7 @@
                         },
                         {
                           "req_id": "EPIC-006-F-008-S-006-REQ-B-002",
-                          "name": "EPIC-006-F-008-S-006-REQ-B-002 — Give every replaced name a disposition",
+                          "name": "EPIC-006-F-008-S-006-REQ-B-002 \u2014 Give every replaced name a disposition",
                           "requirement": "Every parameter name the previous model accepted MUST have a stated disposition: a page-qualified successor, or withdrawal.",
                           "priority": "must-have",
                           "status": "not_started",
@@ -8121,8 +8121,8 @@
                         },
                         {
                           "req_id": "EPIC-006-F-008-S-006-REQ-B-003",
-                          "name": "EPIC-006-F-008-S-006-REQ-B-003 — Split a value that was held once for every page",
-                          "requirement": "A value the previous model held once for the whole session, and that more than one page needs, MUST become one parameter per page.\n\nCONFLICT: The shared library's parameter model states the opposite as its design — that a parameter is defined once and means the same thing everywhere, with a geography read by a provider search and by a trial search given as the reason — and is a fixed-field class with one attribute per parameter, which cannot express a declaration held as data.",
+                          "name": "EPIC-006-F-008-S-006-REQ-B-003 \u2014 Split a value that was held once for every page",
+                          "requirement": "A value the previous model held once for the whole session, and that more than one page needs, MUST become one parameter per page.\n\nCONFLICT: The shared library's parameter model states the opposite as its design \u2014 that a parameter is defined once and means the same thing everywhere, with a geography read by a provider search and by a trial search given as the reason \u2014 and is a fixed-field class with one attribute per parameter, which cannot express a declaration held as data.",
                           "priority": "must-have",
                           "status": "not_started",
                           "orphan": false,
@@ -8140,7 +8140,7 @@
                         },
                         {
                           "req_id": "EPIC-006-F-008-S-006-REQ-B-004",
-                          "name": "EPIC-006-F-008-S-006-REQ-B-004 — Declare exactly the parameters the requirements consume",
+                          "name": "EPIC-006-F-008-S-006-REQ-B-004 \u2014 Declare exactly the parameters the requirements consume",
                           "requirement": "A page MUST declare exactly those parameters its feature's requirements consume, and no others.",
                           "priority": "must-have",
                           "status": "in_progress",
@@ -8159,7 +8159,7 @@
                         },
                         {
                           "req_id": "EPIC-006-F-008-S-006-REQ-B-005",
-                          "name": "EPIC-006-F-008-S-006-REQ-B-005 — Declare no parameter that narrows nothing",
+                          "name": "EPIC-006-F-008-S-006-REQ-B-005 \u2014 Declare no parameter that narrows nothing",
                           "requirement": "A page MUST NOT declare a parameter whose value is the same for every record that page can return.",
                           "priority": "must-have",
                           "status": "done",
@@ -8191,7 +8191,7 @@
                       "requirement": [
                         {
                           "req_id": "EPIC-006-F-008-S-007-REQ-B-001",
-                          "name": "EPIC-006-F-008-S-007-REQ-B-001 — Page every list forward and back",
+                          "name": "EPIC-006-F-008-S-007-REQ-B-001 \u2014 Page every list forward and back",
                           "requirement": "Every FindCare list MUST be presentable one page at a time, forward and back.",
                           "priority": "must-have",
                           "status": "in_progress",
@@ -8210,7 +8210,7 @@
                         },
                         {
                           "req_id": "EPIC-006-F-008-S-007-REQ-B-003",
-                          "name": "EPIC-006-F-008-S-007-REQ-B-003 — Return the same records in the same order",
+                          "name": "EPIC-006-F-008-S-007-REQ-B-003 \u2014 Return the same records in the same order",
                           "requirement": "The same search asked twice MUST return the same records in the same order.",
                           "priority": "must-have",
                           "status": "done",
@@ -8229,7 +8229,7 @@
                         },
                         {
                           "req_id": "EPIC-006-F-008-S-007-REQ-B-004",
-                          "name": "EPIC-006-F-008-S-007-REQ-B-004 — Start at the first page when no position is given",
+                          "name": "EPIC-006-F-008-S-007-REQ-B-004 \u2014 Start at the first page when no position is given",
                           "requirement": "A page request naming no position MUST return the first page.",
                           "priority": "must-have",
                           "status": "done",
@@ -8382,7 +8382,7 @@
         "epic_id": "EPIC-008",
         "name": "Architecture",
         "status": "not_started",
-        "description": "Architecture governance â€” ensures technical architecture is documented, validated, and enforced. Architecture decisions must be traceable, architecture documents must be current, and architecture violations must be detected and resolved.",
+        "description": "Architecture governance \u00e2\u20ac\u201d ensures technical architecture is documented, validated, and enforced. Architecture decisions must be traceable, architecture documents must be current, and architecture violations must be detected and resolved.",
         "features": {
           "feature": [
             {
@@ -8497,7 +8497,7 @@
                   {
                     "story_id": "EPIC-008-F-002-S-003",
                     "name": "Rules infrastructure: manager, base worker, lock, timeout, telemetry, exit-code aggregation",
-                    "description": "ChatHealthyEnforcementManager + EnforcementWorker (abstract base) deliver the framework: read-only rules-registry load, hook-filtered enforcement dispatch, manager-owned mutex coordination, per-worker subprocess timeout, structured violation/telemetry envelopes, and worst-code-wins aggregation. Per V20 Â§4.4. The manager is invoked by every Git and Claude Code hook with a single hook_name argument.",
+                    "description": "ChatHealthyEnforcementManager + EnforcementWorker (abstract base) deliver the framework: read-only rules-registry load, hook-filtered enforcement dispatch, manager-owned mutex coordination, per-worker subprocess timeout, structured violation/telemetry envelopes, and worst-code-wins aggregation. Per V20 \u00c2\u00a74.4. The manager is invoked by every Git and Claude Code hook with a single hook_name argument.",
                     "size": "L",
                     "status": "done",
                     "approval": "approved",
@@ -8526,7 +8526,7 @@
                         {
                           "req_id": "EPIC-008-F-002-S-003-REQ-B-002",
                           "name": "Enforcement at hook moment",
-                          "requirement": "Enforcement runs at the moment a violation can occur â€” the relevant Git or Claude Code hook â€” not on a separate cadence. There is no nightly job that catches yesterday's mistake.",
+                          "requirement": "Enforcement runs at the moment a violation can occur \u00e2\u20ac\u201d the relevant Git or Claude Code hook \u00e2\u20ac\u201d not on a separate cadence. There is no nightly job that catches yesterday's mistake.",
                           "priority": "must-have",
                           "status": "done",
                           "approval": "approved",
@@ -8602,7 +8602,7 @@
                         {
                           "req_id": "EPIC-008-F-002-S-003-REQ-B-006",
                           "name": "Additive enforcement",
-                          "requirement": "Adding the next enforcement MUST be a small, additive change. New enforcement entries get a new enforcement_id and â€” if needed â€” a new worker subclass; existing rules and workers are not touched.",
+                          "requirement": "Adding the next enforcement MUST be a small, additive change. New enforcement entries get a new enforcement_id and \u00e2\u20ac\u201d if needed \u00e2\u20ac\u201d a new worker subclass; existing rules and workers are not touched.",
                           "priority": "must-have",
                           "status": "done",
                           "approval": "approved",
@@ -8659,7 +8659,7 @@
                         {
                           "req_id": "EPIC-008-F-002-S-003-REQ-B-009",
                           "name": "Filesystem mirrors operating model",
-                          "requirement": "The architecture MUST be aligned with the EPIC / Feature / Story tree. Filesystem mirrors operating model. The home for this feature is projectRoot/architecture/EngineeringRuleEnforcement/. crossEpicConcerns/ holds shared business artifacts only â€” no code lives there.",
+                          "requirement": "The architecture MUST be aligned with the EPIC / Feature / Story tree. Filesystem mirrors operating model. The home for this feature is projectRoot/architecture/EngineeringRuleEnforcement/. crossEpicConcerns/ holds shared business artifacts only \u00e2\u20ac\u201d no code lives there.",
                           "priority": "must-have",
                           "status": "done",
                           "approval": "approved",
@@ -8719,7 +8719,7 @@
                   {
                     "story_id": "EPIC-008-F-002-S-004",
                     "name": "Scanning: file enumeration on hooks, SCOPES evaluation, scope precedence",
-                    "description": "Per V20 Â§4.5 and Â§4.9. Workers receive resource candidates (staged or about-to-push files for the V1 ScanFilesEnforcementWorker), evaluate each via the base-class is_in_scope walk against the SCOPES rows on the enforcement entry, and dispatch matched check methods. Scope precedence is fixed and lives entirely in the base class.",
+                    "description": "Per V20 \u00c2\u00a74.5 and \u00c2\u00a74.9. Workers receive resource candidates (staged or about-to-push files for the V1 ScanFilesEnforcementWorker), evaluate each via the base-class is_in_scope walk against the SCOPES rows on the enforcement entry, and dispatch matched check methods. Scope precedence is fixed and lives entirely in the base class.",
                     "size": "M",
                     "status": "done",
                     "approval": "approved",
@@ -8730,7 +8730,7 @@
                           "req_id": "EPIC-008-F-002-S-004-REQ-B-001",
                           "orphan": false,
                           "name": "Scan must test this content",
-                          "requirement": "The scan rule Must test for: (a) Font compliance â€” see EPIC-008-F-011-S-003-REQ-B-004 (Scan of all relevant files must test font compliance); (b) JSON Schema validation â€” see EPIC-008-F-002-S-012 (JSON validation: _validate_json check, $schema web-fetch resolver, meta-schema carve-out, in-run cache); (c) HTTPS compliance â€” see EPIC-008-F-002-S-012 (HTTP vs HTTPS: _scan_http check and allowed_pattern URL handling).",
+                          "requirement": "The scan rule Must test for: (a) Font compliance \u00e2\u20ac\u201d see EPIC-008-F-011-S-003-REQ-B-004 (Scan of all relevant files must test font compliance); (b) JSON Schema validation \u00e2\u20ac\u201d see EPIC-008-F-002-S-012 (JSON validation: _validate_json check, $schema web-fetch resolver, meta-schema carve-out, in-run cache); (c) HTTPS compliance \u00e2\u20ac\u201d see EPIC-008-F-002-S-012 (HTTP vs HTTPS: _scan_http check and allowed_pattern URL handling).",
                           "priority": "must-have",
                           "status": "in_progress",
                           "approval": "approved",
@@ -8786,7 +8786,7 @@
                           "req_id": "EPIC-008-F-002-S-009-REQ-B-001",
                           "orphan": false,
                           "name": "ChatHealthyException class definition",
-                          "requirement": "The chathealthy-lib package MUST define a class ChatHealthyException that inherits from the standard library Exception. The constructor signature is (mode: str, message: str, **context). Message is used for logging, and not for end user communications. Context is a dict; its keys vary by mode. The instance exposes attributes mode (str), message (str), context (dict), and exception (Exception â€” the original wrapped exception, when ChatHealthyException is being raised as a boundary conversion of an external library exception; None when this is an originating raise from our own code). The class lives at a stable import path within the package so every consumer service can import it.",
+                          "requirement": "The chathealthy-lib package MUST define a class ChatHealthyException that inherits from the standard library Exception. The constructor signature is (mode: str, message: str, **context). Message is used for logging, and not for end user communications. Context is a dict; its keys vary by mode. The instance exposes attributes mode (str), message (str), context (dict), and exception (Exception \u00e2\u20ac\u201d the original wrapped exception, when ChatHealthyException is being raised as a boundary conversion of an external library exception; None when this is an originating raise from our own code). The class lives at a stable import path within the package so every consumer service can import it.",
                           "priority": "must-have",
                           "status": "in_progress",
                           "approval": "approved",
@@ -8896,7 +8896,7 @@
                           "req_id": "EPIC-008-F-002-S-009-REQ-B-006",
                           "orphan": false,
                           "name": "Pre-commit gate forbids deliberate raises of built-in types",
-                          "requirement": "A new engineering rule (Rule-NNN, operator picks the number) MUST gate pre-commit. The worker scans every staged Python file under ChatHealthy.ai's authored directories (sharedServices/, FindCare/, evaluateCare/, Code/, ChatHealthyLib/, architecture/) and rejects any line matching a deliberate raise of ValueError, RuntimeError, AssertionError, KeyError, TypeError. Exempted: re-raises with no expression, test files asserting expected behavior, and external-library calls that we do not author. Any violation found — new or legacy — is rejected. No carve-outs for historical code.",
+                          "requirement": "A new engineering rule (Rule-NNN, operator picks the number) MUST gate pre-commit. The worker scans every staged Python file under ChatHealthy.ai's authored directories (sharedServices/, FindCare/, evaluateCare/, Code/, ChatHealthyLib/, architecture/) and rejects any line matching a deliberate raise of ValueError, RuntimeError, AssertionError, KeyError, TypeError. Exempted: re-raises with no expression, test files asserting expected behavior, and external-library calls that we do not author. Any violation found \u2014 new or legacy \u2014 is rejected. No carve-outs for historical code.",
                           "priority": "must-have",
                           "status": "in_progress",
                           "approval": "approved",
@@ -8952,7 +8952,7 @@
                           "req_id": "EPIC-008-F-002-S-009-REQ-B-008",
                           "orphan": false,
                           "name": "Exception Management Modes",
-                          "requirement": "Every catch site that catches a ChatHealthyException MUST classify the caught exception into exactly one of three modes and act accordingly. Mode 1 â€” expected and easily handled (retry, fallback, alternate path): catcher logs at INFO with the if_debug flag set so the record is emitted only when in debug; caller continues via the recovery mechanism; user sees nothing. Mode 2 â€” expected and probably attributable to user error OR to a resource temporarily unavailable: catcher logs at ERROR (always emitted, no debug gate), surfaces an appropriate user-facing message describing the problem, and does NOT return HTTP 503. Mode 3 â€” unhandled, NOT expected (a bug): the safety-net @app.exception_handler returns HTTP 503 to the user and logs the unhandled exception so we can track it down and fix it; Mode 3 is the ONLY case where the user sees an HTTP 503; the architectural goal is for Mode 3 occurrences to be RARE â€” every observed Mode 3 instance MUST become a local catch with Mode 1 or Mode 2 handling. Throw-side rule: when a catch site converts a library exception (httpx, pymongo, etc.) into a ChatHealthyException, that site MUST clean up the underlying resource (close the connection / cursor / file handle, abort the request, release the pool slot, etc.) before raising the ChatHealthyException, so a leaked resource does not produce a delayed second failure (e.g., a 100-second-later timeout from a connection that was never closed).",
+                          "requirement": "Every catch site that catches a ChatHealthyException MUST classify the caught exception into exactly one of three modes and act accordingly. Mode 1 \u00e2\u20ac\u201d expected and easily handled (retry, fallback, alternate path): catcher logs at INFO with the if_debug flag set so the record is emitted only when in debug; caller continues via the recovery mechanism; user sees nothing. Mode 2 \u00e2\u20ac\u201d expected and probably attributable to user error OR to a resource temporarily unavailable: catcher logs at ERROR (always emitted, no debug gate), surfaces an appropriate user-facing message describing the problem, and does NOT return HTTP 503. Mode 3 \u00e2\u20ac\u201d unhandled, NOT expected (a bug): the safety-net @app.exception_handler returns HTTP 503 to the user and logs the unhandled exception so we can track it down and fix it; Mode 3 is the ONLY case where the user sees an HTTP 503; the architectural goal is for Mode 3 occurrences to be RARE \u00e2\u20ac\u201d every observed Mode 3 instance MUST become a local catch with Mode 1 or Mode 2 handling. Throw-side rule: when a catch site converts a library exception (httpx, pymongo, etc.) into a ChatHealthyException, that site MUST clean up the underlying resource (close the connection / cursor / file handle, abort the request, release the pool slot, etc.) before raising the ChatHealthyException, so a leaked resource does not produce a delayed second failure (e.g., a 100-second-later timeout from a connection that was never closed).",
                           "priority": "must-have",
                           "status": "done",
                           "approval": "approved",
@@ -9458,7 +9458,7 @@
                         {
                           "req_id": "EPIC-008-F-002-S-012-REQ-B-001",
                           "name": "http: legitimate-content allowance",
-                          "requirement": "Files that are intended to carry plain text \"http:\" as legitimate content â€” for example, JSON files whose purpose is to record example URLs, configuration files that list http endpoints by design, fixtures, and similar data files â€” MUST be allowed to contain the term \"http:\". These files are listed on the enforcement entry's allowed by exact match rows, or matched by the enforcement entry's allowed by pattern rows, and they will not be flagged as a violation.",
+                          "requirement": "Files that are intended to carry plain text \"http:\" as legitimate content \u00e2\u20ac\u201d for example, JSON files whose purpose is to record example URLs, configuration files that list http endpoints by design, fixtures, and similar data files \u00e2\u20ac\u201d MUST be allowed to contain the term \"http:\". These files are listed on the enforcement entry's allowed by exact match rows, or matched by the enforcement entry's allowed by pattern rows, and they will not be flagged as a violation.",
                           "priority": "must-have",
                           "status": "done",
                           "approval": "approved",
@@ -9558,19 +9558,20 @@
                     "name": "Rule-006 - Constrain Claude Code's use of tools via the Anthropic preTool hook",
                     "description": "The requirements for constraining Claude Code's use of tools through Anthropic's PreToolUse hook. This story is the sole statement of requirement for Rule-006; Rule-006 itself carries no enforcement and no implementing code, and its own rule_statements are a record of a withdrawn design rather than requirements.\n\nThe twelve requirements below entered the backlog as the statements of Rule-064, which denied Claude tool actions (Bash, Write, Edit, NotebookEdit) targeting the legacy project tree. Rule-064 and its worker were deleted on 2026-08-10: it and Rule-006 covered one concern through one hook, and neither had constrained a tool call since 2026-08-04. The requirement bodies are unchanged and still state what must be true.",
                     "size": "M",
-                    "status": "in_progress",
+                    "status": "done",
                     "approval": "approved",
                     "orphan": false,
                     "requirements": {
                       "requirement": [
                         {
                           "req_id": "EPIC-008-F-002-S-013-REQ-B-001",
-                          "name": "Deny Bash commands naming the legacy project root",
-                          "requirement": "Bash command containing the substring `{CHATHEALTHY_PROJECT_ROOT}` or `{CHATHEALTHY_PROJECT_ROOT}` (case-insensitive) MUST be denied at PreToolUse.",
+                          "name": "Constrain Claude Code's ungoverned changes of state in Git Repositories",
+                          "requirement": "Each and every time Claude Code issues a command to change the state of a ChatHealtly Git repo a human human must approve. When a promote from Local to Dev two governnce gates must be invoked, a promote gate where the human user May change the commit note. and the commit gate that is always invoked by another Governance gate. For all other changes to the remote Repo One and only one governance gates Can occer. As with all Governace gates, a pre approval must occer in which the user must prove via 'mouse movemnet' or other irrifutable evidence of a human action that a human approved. One audit record must be made upon the appoval, recording that Claude asked, whether the human answered, and what the answer was.",
                           "priority": "must-have",
-                          "status": "in_progress",
+                          "status": "done",
                           "approval": "approved",
                           "orphan": false,
+                          "depends_on": [],
                           "tests": {
                             "test": [
                               {
@@ -9579,217 +9580,7 @@
                                 "file": "ORPHAN"
                               }
                             ]
-                          },
-                          "depends_on": []
-                        },
-                        {
-                          "req_id": "EPIC-008-F-002-S-013-REQ-B-002",
-                          "name": "Deny Bash commands naming the legacy Resources tree",
-                          "requirement": "Bash command containing the substring `c:/chatHealthy/Resources` or `c:\\chatHealthy\\Resources` (case-insensitive) MUST be denied at PreToolUse.",
-                          "priority": "must-have",
-                          "status": "in_progress",
-                          "approval": "approved",
-                          "orphan": false,
-                          "tests": {
-                            "test": [
-                              {
-                                "test_type": "ORPHAN",
-                                "orphan": true,
-                                "file": "ORPHAN"
-                              }
-                            ]
-                          },
-                          "depends_on": []
-                        },
-                        {
-                          "req_id": "EPIC-008-F-002-S-013-REQ-B-003",
-                          "name": "Deny Bash commands targeting any path under the legacy tree",
-                          "requirement": "Bash command targeting any path under `c:\\chatHealthy\\` other than `c:\\CHATHealthyLLC\\` (case-insensitive) MUST be denied at PreToolUse.",
-                          "priority": "must-have",
-                          "status": "in_progress",
-                          "approval": "approved",
-                          "orphan": false,
-                          "tests": {
-                            "test": [
-                              {
-                                "test_type": "ORPHAN",
-                                "orphan": true,
-                                "file": "ORPHAN"
-                              }
-                            ]
-                          },
-                          "depends_on": []
-                        },
-                        {
-                          "req_id": "EPIC-008-F-002-S-013-REQ-B-004",
-                          "name": "Deny Write when file_path names the legacy project root",
-                          "requirement": "Write tool with `file_path` containing the substring `{CHATHEALTHY_PROJECT_ROOT}` or `{CHATHEALTHY_PROJECT_ROOT}` (case-insensitive) MUST be denied at PreToolUse.",
-                          "priority": "must-have",
-                          "status": "in_progress",
-                          "approval": "approved",
-                          "orphan": false,
-                          "tests": {
-                            "test": [
-                              {
-                                "test_type": "ORPHAN",
-                                "orphan": true,
-                                "file": "ORPHAN"
-                              }
-                            ]
-                          },
-                          "depends_on": []
-                        },
-                        {
-                          "req_id": "EPIC-008-F-002-S-013-REQ-B-005",
-                          "name": "Deny Write when file_path names the legacy Resources tree",
-                          "requirement": "Write tool with `file_path` containing the substring `c:/chatHealthy/Resources` or `c:\\chatHealthy\\Resources` (case-insensitive) MUST be denied at PreToolUse.",
-                          "priority": "must-have",
-                          "status": "in_progress",
-                          "approval": "approved",
-                          "orphan": false,
-                          "tests": {
-                            "test": [
-                              {
-                                "test_type": "ORPHAN",
-                                "orphan": true,
-                                "file": "ORPHAN"
-                              }
-                            ]
-                          },
-                          "depends_on": []
-                        },
-                        {
-                          "req_id": "EPIC-008-F-002-S-013-REQ-B-006",
-                          "name": "Deny Write when file_path is under the legacy tree",
-                          "requirement": "Write tool with `file_path` under `c:\\chatHealthy\\` other than `c:\\CHATHealthyLLC\\` (case-insensitive) MUST be denied at PreToolUse.",
-                          "priority": "must-have",
-                          "status": "in_progress",
-                          "approval": "approved",
-                          "orphan": false,
-                          "tests": {
-                            "test": [
-                              {
-                                "test_type": "ORPHAN",
-                                "orphan": true,
-                                "file": "ORPHAN"
-                              }
-                            ]
-                          },
-                          "depends_on": []
-                        },
-                        {
-                          "req_id": "EPIC-008-F-002-S-013-REQ-B-007",
-                          "name": "Deny Write when the content carries the legacy project root",
-                          "requirement": "Write tool with `content` containing the substring `{CHATHEALTHY_PROJECT_ROOT}` or `{CHATHEALTHY_PROJECT_ROOT}` (case-insensitive) MUST be denied at PreToolUse.",
-                          "priority": "must-have",
-                          "status": "in_progress",
-                          "approval": "approved",
-                          "orphan": false,
-                          "tests": {
-                            "test": [
-                              {
-                                "test_type": "ORPHAN",
-                                "orphan": true,
-                                "file": "ORPHAN"
-                              }
-                            ]
-                          },
-                          "depends_on": []
-                        },
-                        {
-                          "req_id": "EPIC-008-F-002-S-013-REQ-B-008",
-                          "name": "Deny Edit when file_path names the legacy project root",
-                          "requirement": "Edit tool with `file_path` containing the substring `{CHATHEALTHY_PROJECT_ROOT}` or `{CHATHEALTHY_PROJECT_ROOT}` (case-insensitive) MUST be denied at PreToolUse.",
-                          "priority": "must-have",
-                          "status": "in_progress",
-                          "approval": "approved",
-                          "orphan": false,
-                          "tests": {
-                            "test": [
-                              {
-                                "test_type": "ORPHAN",
-                                "orphan": true,
-                                "file": "ORPHAN"
-                              }
-                            ]
-                          },
-                          "depends_on": []
-                        },
-                        {
-                          "req_id": "EPIC-008-F-002-S-013-REQ-B-009",
-                          "name": "Deny Edit when file_path names the legacy Resources tree",
-                          "requirement": "Edit tool with `file_path` containing the substring `c:/chatHealthy/Resources` or `c:\\chatHealthy\\Resources` (case-insensitive) MUST be denied at PreToolUse.",
-                          "priority": "must-have",
-                          "status": "in_progress",
-                          "approval": "approved",
-                          "orphan": false,
-                          "tests": {
-                            "test": [
-                              {
-                                "test_type": "ORPHAN",
-                                "orphan": true,
-                                "file": "ORPHAN"
-                              }
-                            ]
-                          },
-                          "depends_on": []
-                        },
-                        {
-                          "req_id": "EPIC-008-F-002-S-013-REQ-B-010",
-                          "name": "Deny Edit when the replacement text carries the legacy project root",
-                          "requirement": "Edit tool with `new_string` containing the substring `{CHATHEALTHY_PROJECT_ROOT}` or `{CHATHEALTHY_PROJECT_ROOT}` (case-insensitive) MUST be denied at PreToolUse.",
-                          "priority": "must-have",
-                          "status": "in_progress",
-                          "approval": "approved",
-                          "orphan": false,
-                          "tests": {
-                            "test": [
-                              {
-                                "test_type": "ORPHAN",
-                                "orphan": true,
-                                "file": "ORPHAN"
-                              }
-                            ]
-                          },
-                          "depends_on": []
-                        },
-                        {
-                          "req_id": "EPIC-008-F-002-S-013-REQ-B-011",
-                          "name": "Deny NotebookEdit when notebook_path is under the legacy tree",
-                          "requirement": "NotebookEdit tool with `notebook_path` under `c:\\chatHealthy\\` other than `c:\\CHATHealthyLLC\\` (case-insensitive) MUST be denied at PreToolUse.",
-                          "priority": "must-have",
-                          "status": "in_progress",
-                          "approval": "approved",
-                          "orphan": false,
-                          "tests": {
-                            "test": [
-                              {
-                                "test_type": "ORPHAN",
-                                "orphan": true,
-                                "file": "ORPHAN"
-                              }
-                            ]
-                          },
-                          "depends_on": []
-                        },
-                        {
-                          "req_id": "EPIC-008-F-002-S-013-REQ-B-012",
-                          "name": "Maintenance obligation when the legacy tree moves",
-                          "requirement": "Maintenance obligation: if the legacy tree is renamed, removed, or relocated in the future, the patterns in block_legacy_path_worker.py and the corresponding statements above MUST be updated. Skip will track this explicitly; this statement exists to make the maintenance contract visible.",
-                          "priority": "must-have",
-                          "status": "in_progress",
-                          "approval": "approved",
-                          "orphan": false,
-                          "tests": {
-                            "test": [
-                              {
-                                "test_type": "ORPHAN",
-                                "orphan": true,
-                                "file": "ORPHAN"
-                              }
-                            ]
-                          },
-                          "depends_on": []
+                          }
                         }
                       ]
                     }
@@ -9957,7 +9748,7 @@
                         },
                         {
                           "req_id": "EPIC-008-F-003-S-001-REQ-B-002",
-                          "requirement": "Each Claude Code session MUST complete a deterministic, non-circumventable boot sequence before any other work. The sequence is: (1) load the governance brain and run compliance checks; (2) at the end of boot, ask the user exactly two questions in order and block all other assistant output until both are answered â€” Q1: mode selection per REQ-010; Q2: orphan triage per REQ-011. The sequence MUST NOT be skippable, paraphrasable, summarizable, or deferrable by Claude Code. Implementation MAY use any hook topology (SessionStart, UserPromptSubmit, Stop-hook validator, blocking-reply pattern) so long as the user-observable behavior holds: every new session begins with those two questions presented verbatim, in order, with no other assistant output preceding them.",
+                          "requirement": "Each Claude Code session MUST complete a deterministic, non-circumventable boot sequence before any other work. The sequence is: (1) load the governance brain and run compliance checks; (2) at the end of boot, ask the user exactly two questions in order and block all other assistant output until both are answered \u00e2\u20ac\u201d Q1: mode selection per REQ-010; Q2: orphan triage per REQ-011. The sequence MUST NOT be skippable, paraphrasable, summarizable, or deferrable by Claude Code. Implementation MAY use any hook topology (SessionStart, UserPromptSubmit, Stop-hook validator, blocking-reply pattern) so long as the user-observable behavior holds: every new session begins with those two questions presented verbatim, in order, with no other assistant output preceding them.",
                           "priority": "must-have",
                           "status": "in_progress",
                           "orphan": false,
@@ -9997,7 +9788,7 @@
                         },
                         {
                           "req_id": "EPIC-008-F-003-S-001-REQ-B-004",
-                          "requirement": "Orphan triage is the second of the two boot questions. After the user answers REQ-010, Claude Code MUST ask a single yes/no question: 'Triage orphan bugs?' If the user answers no, boot completes and normal work begins. If the user answers yes, Claude Code MUST present the orphan bug table and the user chooses how many to triage this boot â€” one, several, or all. Triaging an orphan means assigning it a req_id or closing it. There is no per-orphan defer option and no obligation to triage every orphan; the single yes/no gate governs whether the list is shown at all, and within 'yes' the user drives how many get worked.",
+                          "requirement": "Orphan triage is the second of the two boot questions. After the user answers REQ-010, Claude Code MUST ask a single yes/no question: 'Triage orphan bugs?' If the user answers no, boot completes and normal work begins. If the user answers yes, Claude Code MUST present the orphan bug table and the user chooses how many to triage this boot \u00e2\u20ac\u201d one, several, or all. Triaging an orphan means assigning it a req_id or closing it. There is no per-orphan defer option and no obligation to triage every orphan; the single yes/no gate governs whether the list is shown at all, and within 'yes' the user drives how many get worked.",
                           "priority": "must-have",
                           "status": "in_progress",
                           "orphan": false,
@@ -10063,7 +9854,7 @@
                   },
                   {
                     "story_id": "EPIC-008-F-003-S-002",
-                    "description": "Runtime requirements for the brain â€” specifically WHERE ChatHealthy.AI brain content is persisted on disk and WHERE it must be at runtime (i.e. loaded into Claude's active context). Brain content lives under brain/machine_artifacts/content/. Files outside that tree, including Claude Code's and Cursor's harness-managed Markdown files (CLAUDE.md, CLAUDE.local.md,.claude/CLAUDE.md,.claude/rules/*.md, MEMORY.md and Claude's auto-memory topic files under ~/.claude/projects/<project>/memory/), are NOT brain storage regardless of their content type. At runtime, brain content MUST be accessible to Claude without a disk Read (context-resident, per EPIC-008-F-003-S-001). The mechanism is harness-level @-imports from a project-root file (CLAUDE.md) that point at the brain JSONs and derived JSON views of brain JSONs.",
+                    "description": "Runtime requirements for the brain \u00e2\u20ac\u201d specifically WHERE ChatHealthy.AI brain content is persisted on disk and WHERE it must be at runtime (i.e. loaded into Claude's active context). Brain content lives under brain/machine_artifacts/content/. Files outside that tree, including Claude Code's and Cursor's harness-managed Markdown files (CLAUDE.md, CLAUDE.local.md,.claude/CLAUDE.md,.claude/rules/*.md, MEMORY.md and Claude's auto-memory topic files under ~/.claude/projects/<project>/memory/), are NOT brain storage regardless of their content type. At runtime, brain content MUST be accessible to Claude without a disk Read (context-resident, per EPIC-008-F-003-S-001). The mechanism is harness-level @-imports from a project-root file (CLAUDE.md) that point at the brain JSONs and derived JSON views of brain JSONs.",
                     "size": "S",
                     "status": "in_progress",
                     "requirements": {
@@ -10096,7 +9887,7 @@
                         },
                         {
                           "req_id": "EPIC-008-F-003-S-002-REQ-B-002",
-                          "requirement": "Before creating any requirement, story, feature, or epic in brain/machine_artifacts/content/agile_backlog.json, Claude MUST search the backlog for a semantically duplicate or closely-related existing entry and update the existing record rather than create a new one when a match is found. Updates MUST focus on conciseness, accuracy, and fidelity to the evidence. When the entry is novel, Claude MUST insert it under a logical parent â€” requirement under story, story under feature, feature under epic. When no logical parent exists: in Normal or Idiot Mode (v4-004) Claude MUST escalate to human and wait for a decision before inserting; in Unattended Mode Claude MUST insert the entry with orphan = true under the nearest ancestor, flag it for human's async review, and proceed with its work.",
+                          "requirement": "Before creating any requirement, story, feature, or epic in brain/machine_artifacts/content/agile_backlog.json, Claude MUST search the backlog for a semantically duplicate or closely-related existing entry and update the existing record rather than create a new one when a match is found. Updates MUST focus on conciseness, accuracy, and fidelity to the evidence. When the entry is novel, Claude MUST insert it under a logical parent \u00e2\u20ac\u201d requirement under story, story under feature, feature under epic. When no logical parent exists: in Normal or Idiot Mode (v4-004) Claude MUST escalate to human and wait for a decision before inserting; in Unattended Mode Claude MUST insert the entry with orphan = true under the nearest ancestor, flag it for human's async review, and proceed with its work.",
                           "priority": "must-have",
                           "status": "in_progress",
                           "orphan": false,
@@ -10334,7 +10125,7 @@
                           "req_id": "EPIC-008-F-004-S-005-REQ-B-002",
                           "orphan": false,
                           "name": "MongoDB certificate registry maps DN to vault secret names",
-                          "requirement": "A MongoDB collection in ChatHealthyConfig.CertificateRegistry MUST map each subject Distinguished Name to the vault secret names where its public certificate and private key are stored separately. Each DN entry MUST support multiple certificates for rotation and versioning. DN lookup MUST be deterministic — the same DN always resolves to the same registry entry.",
+                          "requirement": "A MongoDB collection in ChatHealthyConfig.CertificateRegistry MUST map each subject Distinguished Name to the vault secret names where its public certificate and private key are stored separately. Each DN entry MUST support multiple certificates for rotation and versioning. DN lookup MUST be deterministic \u2014 the same DN always resolves to the same registry entry.",
                           "priority": "must-have",
                           "status": "done",
                           "depends_on": [],
@@ -10382,7 +10173,7 @@
             },
             {
               "feature_id": "EPIC-008-F-005",
-              "name": "Audit â€” Technical, Business, Regulatory and Corporate Governance",
+              "name": "Audit \u00e2\u20ac\u201d Technical, Business, Regulatory and Corporate Governance",
               "status": "in_progress",
               "description": "This feature encompasses all the audits that must be done to maintain technical and business history, integrity and regulatory and corporate governance.",
               "realized_by": [
@@ -10392,7 +10183,7 @@
                 "story": [
                   {
                     "story_id": "EPIC-008-F-005-S-001",
-                    "description": "A deterministic Python orchestrator dispatches disposable AI workers to analyze git history, brain artifacts, and current code to identify lost capabilities, undocumented changes, and gaps between intent and implementation. The orchestrator is 100% deterministic â€” all state is on disk, all decisions are file-existence checks. AI is used only inside workers for code analysis. Audits MUST NOT create state changes â€” they only maintain their own notes and documents, and produce findings and recommendations. The orchestrator loops until all jobs are complete or a human sets the stop command in the control file.",
+                    "description": "A deterministic Python orchestrator dispatches disposable AI workers to analyze git history, brain artifacts, and current code to identify lost capabilities, undocumented changes, and gaps between intent and implementation. The orchestrator is 100% deterministic \u00e2\u20ac\u201d all state is on disk, all decisions are file-existence checks. AI is used only inside workers for code analysis. Audits MUST NOT create state changes \u00e2\u20ac\u201d they only maintain their own notes and documents, and produce findings and recommendations. The orchestrator loops until all jobs are complete or a human sets the stop command in the control file.",
                     "size": "L",
                     "status": "in_progress",
                     "requirements": {
@@ -10761,19 +10552,19 @@
                     },
                     "orphan": false,
                     "approval": "approved",
-                    "name": "Codebase History Audit â€” Deterministic Agent"
+                    "name": "Codebase History Audit \u00e2\u20ac\u201d Deterministic Agent"
                   },
                   {
                     "story_id": "EPIC-008-F-005-S-002",
                     "size": "M",
                     "status": "not_started",
-                    "description": "Two-pass scanner: Pass 1 streams every source file, builds a map of all definitions (classes, methods, functions) and all references (calls, imports, attribute access). Pass 2 reconciles â€” anything defined but never referenced is dead and must be deleted. Two modes: check-in (staged files only, fast) and full regression (entire codebase).",
+                    "description": "Two-pass scanner: Pass 1 streams every source file, builds a map of all definitions (classes, methods, functions) and all references (calls, imports, attribute access). Pass 2 reconciles \u00e2\u20ac\u201d anything defined but never referenced is dead and must be deleted. Two modes: check-in (staged files only, fast) and full regression (entire codebase).",
                     "requirements": {
                       "requirement": []
                     },
                     "orphan": false,
                     "approval": "approved",
-                    "name": "Dead code scanner â€” two-pass symbol analysis"
+                    "name": "Dead code scanner \u00e2\u20ac\u201d two-pass symbol analysis"
                   }
                 ]
               },
@@ -10983,7 +10774,7 @@
             {
               "feature_id": "EPIC-008-F-011",
               "name": "Common features of ChatHealthy.AI Front End Application",
-              "description": "This feature defines the stories and requirements that ChatHealthy.ai's Front End application must comply with in all cases. If there are any conflicts in the requirements that contradicted the requirements in this feature. The requirements in this feature take precedence in all cases. (In addtrion and Furthermore, it is required that agents run at every boot sequence to scrutinize the firm's requirements in agile_Backlog.json to find such contradictions and surface them. This requirement is a known known gap in the requirements of EPIC-008-F-002 â€” Engineering Rules Enforcement)",
+              "description": "This feature defines the stories and requirements that ChatHealthy.ai's Front End application must comply with in all cases. If there are any conflicts in the requirements that contradicted the requirements in this feature. The requirements in this feature take precedence in all cases. (In addtrion and Furthermore, it is required that agents run at every boot sequence to scrutinize the firm's requirements in agile_Backlog.json to find such contradictions and surface them. This requirement is a known known gap in the requirements of EPIC-008-F-002 \u00e2\u20ac\u201d Engineering Rules Enforcement)",
               "priority": "CRITICAL",
               "status": "in_progress",
               "orphan": false,
@@ -10991,10 +10782,10 @@
               "due_date": "2026-05-28",
               "realized_by": [
                 "Website/index.html",
-                "HuggingFace Space: SkipSnow/ChatHealthySpace (FindCare backend â€” all envs)",
+                "HuggingFace Space: SkipSnow/ChatHealthySpace (FindCare backend \u00e2\u20ac\u201d all envs)",
                 "HuggingFace Space: SkipSnow/EvaluateCareSpace (all envs)",
                 "HuggingFace Space: SkipSnow/SharedServicesSpace (all envs)",
-                "Cloudflare: chathealthy.ai (all envs â€” dev, qa, prod)",
+                "Cloudflare: chathealthy.ai (all envs \u00e2\u20ac\u201d dev, qa, prod)",
                 "Local development environments"
               ],
               "stories": {
@@ -11012,7 +10803,7 @@
                         {
                           "req_id": "EPIC-008-F-011-S-001-REQ-B-001",
                           "name": "Fatal error full-screen display in index.html",
-                          "requirement": "For every error that is fatal â€” meaning any error condition whatsoever that is not explicitly required in a written requirement to be less than fatal â€” index.html is to display the following: In a large font and centered: 'HTTP 503: Fatal Error, this service is not available.' In a smaller font and centered: Line 1: link to HTTPS://{current environment}.chathealthy.ai. Line 2: If you get this error repeatedly and wish to call our team, please call Skip Snow @ 646 408 8999. Line 3: If you prefer email skip's email is: skip@chatHealthy.ai. Line 4: smaller text that wraps, the error message returned from an API. If the error is from the JavaScript without a call to an API then the error message will be 'JS routine {failed}'. Line 5: we apologize for this problem.",
+                          "requirement": "For every error that is fatal \u00e2\u20ac\u201d meaning any error condition whatsoever that is not explicitly required in a written requirement to be less than fatal \u00e2\u20ac\u201d index.html is to display the following: In a large font and centered: 'HTTP 503: Fatal Error, this service is not available.' In a smaller font and centered: Line 1: link to HTTPS://{current environment}.chathealthy.ai. Line 2: If you get this error repeatedly and wish to call our team, please call Skip Snow @ 646 408 8999. Line 3: If you prefer email skip's email is: skip@chatHealthy.ai. Line 4: smaller text that wraps, the error message returned from an API. If the error is from the JavaScript without a call to an API then the error message will be 'JS routine {failed}'. Line 5: we apologize for this problem.",
                           "priority": "must-have",
                           "status": "done",
                           "orphan": false,
@@ -11290,7 +11081,7 @@
                   {
                     "story_id": "EPIC-008-F-011-S-005",
                     "name": "Uniform application logging",
-                    "description": "App-wide rules for runtime logging â€” uniform logging surface, framework choice, environment-driven configuration. Tool subclasses inherit logging from the base class; no per-tool ad-hoc logging or third-party logger calls.",
+                    "description": "App-wide rules for runtime logging \u00e2\u20ac\u201d uniform logging surface, framework choice, environment-driven configuration. Tool subclasses inherit logging from the base class; no per-tool ad-hoc logging or third-party logger calls.",
                     "size": "S",
                     "status": "in_progress",
                     "orphan": false,
@@ -11301,7 +11092,7 @@
                           "req_id": "EPIC-008-F-011-S-005-REQ-B-001",
                           "orphan": false,
                           "name": "ChatHealthyTool base class implements uniform tool-invocation logging via Python's stdlib logging",
-                          "requirement": "The ChatHealthyTool base class MUST be the sole logging surface for every tool invocation. Every concrete subclass is logged uniformly by the base class â€” no concrete tool implements its own logging path, and no concrete tool emits print(), ad-hoc file writes, or third-party logger calls inside the dispatch chain. The base class MUST use Python's standard library logging module; logger configuration MUST be via logging.config.dictConfig so handlers, formatters, and per-environment behavior are declarative. Log messages MUST be suppressible by level via environment variable â€” the operator sets LOG_LEVEL (DEBUG / INFO / WARNING / ERROR / CRITICAL) in the runtime environment, and the logger MUST respect that threshold and drop lower-priority messages. The logger MUST support writing to both stdout and stderr (configurable per level â€” e.g., errors to stderr, normal logs to stdout). Third-party logging libraries (loguru, structlog) are forbidden in the tool dispatch path. Each log entry MUST include tool_name, redacted input args, output result, duration in ms, and any exception with traceback.",
+                          "requirement": "The ChatHealthyTool base class MUST be the sole logging surface for every tool invocation. Every concrete subclass is logged uniformly by the base class \u00e2\u20ac\u201d no concrete tool implements its own logging path, and no concrete tool emits print(), ad-hoc file writes, or third-party logger calls inside the dispatch chain. The base class MUST use Python's standard library logging module; logger configuration MUST be via logging.config.dictConfig so handlers, formatters, and per-environment behavior are declarative. Log messages MUST be suppressible by level via environment variable \u00e2\u20ac\u201d the operator sets LOG_LEVEL (DEBUG / INFO / WARNING / ERROR / CRITICAL) in the runtime environment, and the logger MUST respect that threshold and drop lower-priority messages. The logger MUST support writing to both stdout and stderr (configurable per level \u00e2\u20ac\u201d e.g., errors to stderr, normal logs to stdout). Third-party logging libraries (loguru, structlog) are forbidden in the tool dispatch path. Each log entry MUST include tool_name, redacted input args, output result, duration in ms, and any exception with traceback.",
                           "priority": "must-have",
                           "status": "in_progress",
                           "approval": "approved",

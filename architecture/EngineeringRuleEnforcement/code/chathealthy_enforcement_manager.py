@@ -75,6 +75,7 @@ class RefusalReport:
     def __init__(self) -> None:
         self._violations: list[dict[str, Any]] = []
         self._failures: list[tuple[str, int]] = []
+        self._decisions: list[dict[str, Any]] = []
 
     def read_worker_stdout(self, text: str) -> None:
         for line in text.splitlines():
@@ -87,6 +88,24 @@ class RefusalReport:
                 continue
             if payload.get("kind") == "violation":
                 self._violations.append(payload)
+            # A tool hook refuses by naming the decision, not by its exit
+            # code. The manager used to read worker stdout only for
+            # violation records and discard the rest, so a worker's refusal
+            # never reached the harness: a rejected git command was audited
+            # as rejected and then ran. Carried verbatim -- the worker owns
+            # the wording of its own refusal.
+            elif "hookSpecificOutput" in payload:
+                self._decisions.append(payload)
+
+    def decisions(self) -> list[dict[str, Any]]:
+        """The refusals workers named, for reporting -- not for emitting.
+
+        The spawn site already echoes worker stdout verbatim, so a decision
+        reaches the harness by that route and must not be written a second
+        time here. Measured 2026-09-11: forwarding it again put two
+        identical decision objects on stdout.
+        """
+        return list(self._decisions)
 
     def note_failure(self, enforcement_id: str, exit_code: int) -> None:
         if exit_code != 0:
