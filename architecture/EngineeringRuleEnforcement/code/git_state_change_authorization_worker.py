@@ -78,15 +78,30 @@ APPROVAL_TIMEOUT_SECONDS = 600
 # gated -- status, log, diff, show, rev-parse, ls-files and the rest.
 MUTATING_SUBCOMMANDS = frozenset({
     "add", "am", "apply", "branch", "cherry-pick", "checkout", "clean",
-    "commit", "fetch", "filter-branch", "filter-repo", "gc", "merge", "mv",
+    "commit", "filter-branch", "filter-repo", "gc", "merge", "mv",
     "notes", "prune", "pull", "push", "rebase", "reflog", "remote", "repack",
     "replace", "reset", "restore", "revert", "rm", "stash", "submodule",
     "switch", "symbolic-ref", "tag", "update-ref", "worktree",
 })
 
+# fetch is deliberately absent. It writes only remote-tracking refs -- this
+# machine's note of what the remote holds. It alters no branch, no working
+# tree and nothing on the remote, and every promote must read origin/<branch>
+# to establish its baseline, so gating fetch stops the chain surface that
+# carries its own two gates. `pull` stays gated: it fetches AND merges into
+# the branch you are on, which is a real change to local state.
+
 # Commands that already meet a governance gate. Passing them through is the
 # requirement's own instruction, not a convenience.
-ALREADY_GATED_SUBCOMMANDS = frozenset({"commit"})
+#
+# `add` is here because staging is part of making a commit, and the commit
+# is what the commit-msg gate authorises -- it shows the operator the files
+# before recording them. Gating the staging too made two gates for one act,
+# which is the double governance the requirement forbids. The index is also
+# not a governed outcome: nothing is recorded until the commit, and a
+# staged file can be unstaged. Measured 2026-09-11: the operator asked for
+# a normal commit and got the tool gate on the `git add` first.
+ALREADY_GATED_SUBCOMMANDS = frozenset({"add", "commit"})
 ALREADY_GATED_SURFACES = (
     "promote_chathealthy.py",
     "build_chathealthy.py",
@@ -234,6 +249,53 @@ def _is_read_only_form(segment: str, subcommand: str) -> bool:
     return False
 
 
+ANCESTRY_DEPTH_LIMIT = 24
+
+
+def _ancestor_chain_surface() -> str:
+    """The chain surface that this process descends from, or "".
+
+    A promote does not hand its git commands to the Bash tool -- it runs
+    them itself, as its own subprocesses. So the surface cannot always be
+    read off the command line: the command may be a bare `git push` whose
+    ORIGIN is promote_chathealthy.py several processes up. Asking who our
+    ancestors are is the only way to tell a change the operator issued from
+    one a gated surface issued on their behalf.
+
+    Bounded by ANCESTRY_DEPTH_LIMIT and by a visited set, because a process
+    table read under a race can present a cycle, and a gate that hangs is a
+    gate that stops work.
+    """
+    try:
+        import psutil                                       # noqa: PLC0415
+    except ImportError:
+        return ""
+    try:
+        current = psutil.Process()
+    except Exception:                                        # noqa: BLE001
+        return ""
+
+    seen: set[int] = set()
+    for _ in range(ANCESTRY_DEPTH_LIMIT):
+        try:
+            parent = current.parent()
+        except Exception:                                    # noqa: BLE001
+            return ""
+        if parent is None or parent.pid in seen:
+            return ""
+        seen.add(parent.pid)
+        try:
+            line = " ".join(parent.cmdline())
+        except Exception:                                    # noqa: BLE001
+            line = ""
+        lowered = line.replace("\\", "/").lower()
+        for surface in ALREADY_GATED_SURFACES:
+            if surface.lower() in lowered:
+                return surface
+        current = parent
+    return ""
+
+
 def _already_gated(segment: str, subcommand: str) -> str:
     if subcommand in ALREADY_GATED_SUBCOMMANDS:
         return "the commit-msg gate authorises this commit"
@@ -241,6 +303,9 @@ def _already_gated(segment: str, subcommand: str) -> str:
     for surface in ALREADY_GATED_SURFACES:
         if program == surface.lower():
             return f"{surface} carries its own authorization gate"
+    ancestor = _ancestor_chain_surface()
+    if ancestor:
+        return f"issued by {ancestor}, which carries its own gate"
     return ""
 
 
