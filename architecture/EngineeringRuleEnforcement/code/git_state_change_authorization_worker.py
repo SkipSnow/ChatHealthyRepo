@@ -79,10 +79,17 @@ APPROVAL_TIMEOUT_SECONDS = 600
 MUTATING_SUBCOMMANDS = frozenset({
     "add", "am", "apply", "branch", "cherry-pick", "checkout", "clean",
     "commit", "filter-branch", "filter-repo", "gc", "merge", "mv",
-    "notes", "prune", "pull", "push", "rebase", "reflog", "remote", "repack",
+    "notes", "prune", "pull", "rebase", "reflog", "remote", "repack",
     "replace", "reset", "restore", "revert", "rm", "stash", "submodule",
     "switch", "symbolic-ref", "tag", "update-ref", "worktree",
 })
+
+# push is absent because the requirement excludes it in terms: "Git push
+# commands are excluded from this requirement." That covers every form,
+# --force included. Stated here rather than left to inference, because a
+# force-push is what rewrote this repository's history on 2026-09-10 with
+# nothing asking, and a reader of this set would otherwise reasonably
+# assume the omission was an oversight. It was a decision.
 
 # fetch is deliberately absent. It writes only remote-tracking refs -- this
 # machine's note of what the remote holds. It alters no branch, no working
@@ -111,7 +118,7 @@ ALREADY_GATED_SURFACES = (
 # A rewrite or a remote write cannot be undone from this workstation. Named
 # so the operator sees which kind of act they are being asked to authorise.
 IRREVERSIBLE = frozenset({
-    "filter-repo", "filter-branch", "push", "reset", "gc", "prune",
+    "filter-repo", "filter-branch", "reset", "gc", "prune",
     "reflog", "update-ref", "replace",
 })
 
