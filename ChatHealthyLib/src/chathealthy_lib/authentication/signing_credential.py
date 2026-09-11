@@ -65,11 +65,18 @@ def _env() -> str:
 
 
 def _registry_row(identity: str, reader: str) -> dict:
-    env = _env()
+    """The credential registered to this identity.
+
+    Not per environment. The registry's unique index is on subject_dn alone,
+    so it holds one credential per identity and cannot hold a second for the
+    same subject; and the vault carries one session-signing-cert, not one for
+    each environment. A query that also matched on environment therefore
+    selected between rows that do not exist, and every server outside local
+    abended at startup for want of a row nothing could create.
+    """
     utilities = ChatHealthyMongoUtilities()
     client = utilities.getConnection(reader, CONFIG_CLUSTER)
     row = client[CONFIG_DATABASE][REGISTRY].find_one({
-        "env": env,
         "identity": identity,
         "purpose": "token_signing",
         "status": "active",
@@ -78,11 +85,11 @@ def _registry_row(identity: str, reader: str) -> dict:
         raise ChatHealthyException(
             mode="security_violation",
             message=(f"{CONFIG_DATABASE}.{REGISTRY} names no active "
-                     f"token_signing credential for {identity!r} in env "
-                     f"{env!r}. A server with no registered credential "
-                     f"cannot sign and cannot be verified."),
+                     f"token_signing credential for {identity!r}. A server "
+                     f"with no registered credential cannot sign and cannot "
+                     f"be verified."),
             component=COMPONENT,
-            context={"env": env, "identity": identity})
+            context={"identity": identity})
     return row
 
 
