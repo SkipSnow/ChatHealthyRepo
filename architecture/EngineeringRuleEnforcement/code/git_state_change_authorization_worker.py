@@ -15,11 +15,18 @@ WHAT REACHES THE OPERATOR.
     at a host git talks to
 
 WHAT DOES NOT.
-  PERMITTED_PROGRAMS        the chain surfaces, each carrying its own gate
   PASSED_THROUGH            push and fetch, excluded by the requirement;
                             add and commit, held by the commit-msg gate
   READ_ONLY_SUBCOMMANDS     git subcommands that only read
   READ_ONLY_PROGRAMS        programs that read and report
+
+NO DOUBLE GOVERNANCE IS SATISFIED BY THE EXEMPTIONS, NOT BY THIS CODE. The
+requirement allows a promote local->dev two gates and every other change
+exactly one, so the programs that carry their own gate must never reach
+here. They are declared in the scopes array on Rule-006-ENF-001 in
+engineering_rules.json. This class does not name them and cannot tell that
+a command came from one: that half of the requirement is met by the
+exemption being honoured before this worker is dispatched.
 
 THE DECISION AND ITS RECORD ARE ONE ACT. `authorize` writes the audit and
 returns the outcome in the same step: there is no path through this class
@@ -94,14 +101,6 @@ class GitStateChangeAuthorization:
     # act.
     PASSED_THROUGH = frozenset({"push", "fetch", "add", "commit"})
 
-    # The permitted programs: each carries its own authorization gate, so
-    # the git commands it issues are already answered for.
-    PERMITTED_PROGRAMS = (
-        "promote_chathealthy.py",
-        "build_chathealthy.py",
-        "deploy_chathealthy.py",
-    )
-
     # Programs that read and report. The requirement governs CHANGES, so a
     # read is out of scope however often it names a tracked file.
     READ_ONLY_PROGRAMS = frozenset({
@@ -143,7 +142,8 @@ class GitStateChangeAuthorization:
     WALK_DEPTH_LIMIT = 16
 
     SEPARATORS = ("&&", "||", ";", "|", "\n")
-    ANCESTRY_DEPTH_LIMIT = 24
+
+    ENFORCEMENT_ID = "Rule-006-ENF-001"
 
     def __init__(self, payload: dict) -> None:
         self.payload = payload
@@ -152,6 +152,32 @@ class GitStateChangeAuthorization:
         self.project_root = next(
             (p for p in _HERE.parents if (p / ".git").exists()),
             _HERE.parents[-1])
+        self.exempt = self._exempt_programs()
+
+    def _exempt_programs(self) -> frozenset[str]:
+        """The programs this enforcement is told never to examine.
+
+        Read from the scopes rows on this enforcement in
+        engineering_rules.json. The rule holds the list; this class holds
+        none, so exempting a program is an edit to the rule and never to
+        the code.
+        """
+        rules = (self.project_root / "brain" / "machine_artifacts"
+                 / "content" / "engineering_rules.json")
+        try:
+            content = json.loads(rules.read_text(encoding="utf-8"))
+        except (OSError, ValueError):
+            return frozenset()
+        names: set[str] = set()
+        for rule in content.get("rules", {}).get("rule", []):
+            enforcements = (rule.get("enforcements") or {}).get("enforcement", [])
+            for enforcement in enforcements:
+                if enforcement.get("enforcement_id") != self.ENFORCEMENT_ID:
+                    continue
+                for row in enforcement.get("scopes") or []:
+                    if len(row) == 3 and row[1] == "excluded_exact":
+                        names.update(str(term).lower() for term in row[2])
+        return frozenset(names)
 
     # ── the one entry point ──────────────────────────────────────────────
     def authorize(self) -> int:
@@ -255,9 +281,9 @@ class GitStateChangeAuthorization:
                 found.append({"segment": "inline script", "subcommand": why})
 
         for segment in self.segments(self.command):
-            covered = self.permitted_program_for(segment)
-            if covered:
-                log.info("passed through: %s", covered)
+            # An exempt program is not examined at all. The rule says which,
+            # and a program it names never reaches the checks below.
+            if self.invoked_program(segment) in self.exempt:
                 continue
 
             subcommand = self.git_subcommand(segment)
@@ -358,13 +384,43 @@ class GitStateChangeAuthorization:
         return bodies
 
     def segments(self, command: str) -> list[str]:
-        """The command split at shell separators, so nothing hides behind &&."""
-        parts = [self.without_heredoc_bodies(command)]
-        for separator in self.SEPARATORS:
-            nxt: list[str] = []
-            for part in parts:
-                nxt.extend(part.split(separator))
-            parts = nxt
+        """The command split at shell separators, so nothing hides behind &&.
+
+        Separators inside quotes are text, not separators. Splitting through
+        them tore `grep "a\\|b"` into a fragment beginning `b"`, which is no
+        program anyone allowed, so a search became a question.
+        """
+        text = self.without_heredoc_bodies(command)
+        parts: list[str] = []
+        current: list[str] = []
+        quote = ""
+        index = 0
+        while index < len(text):
+            char = text[index]
+            if quote:
+                current.append(char)
+                if char == quote:
+                    quote = ""
+                index += 1
+                continue
+            if char in ("'", '"'):
+                quote = char
+                current.append(char)
+                index += 1
+                continue
+            matched = ""
+            for separator in self.SEPARATORS:
+                if text.startswith(separator, index):
+                    matched = separator
+                    break
+            if matched:
+                parts.append("".join(current))
+                current = []
+                index += len(matched)
+                continue
+            current.append(char)
+            index += 1
+        parts.append("".join(current))
         return [p.strip() for p in parts if p.strip()]
 
     def git_subcommand(self, segment: str) -> str:
@@ -442,54 +498,6 @@ class GitStateChangeAuthorization:
             return True
         return False
 
-    # ── who issued it ────────────────────────────────────────────────────
-    def permitted_program_for(self, segment: str) -> str:
-        """The permitted program covering this segment, or ""."""
-        program = self.invoked_program(segment)
-        for permitted in self.PERMITTED_PROGRAMS:
-            if program == permitted.lower():
-                return f"{permitted} carries its own authorization gate"
-        ancestor = self.ancestor_permitted_program()
-        if ancestor:
-            return f"issued by {ancestor}, which carries its own gate"
-        return ""
-
-    def ancestor_permitted_program(self) -> str:
-        """The permitted program this process descends from, or "".
-
-        A promote runs its git commands as its own subprocesses, so the
-        surface cannot always be read off the command line.
-        """
-        try:
-            import psutil                                    # noqa: PLC0415
-        except ImportError:
-            return ""
-        try:
-            current = psutil.Process()
-        except Exception:                                    # noqa: BLE001
-            return ""
-        seen: set[int] = set()
-        for _ in range(self.ANCESTRY_DEPTH_LIMIT):
-            try:
-                parent = current.parent()
-            except Exception:                                # noqa: BLE001
-                return ""
-            if parent is None or parent.pid in seen:
-                return ""
-            seen.add(parent.pid)
-            try:
-                line = " ".join(parent.cmdline())
-            except Exception:                                # noqa: BLE001
-                line = ""
-            # What the ancestor RUNS, not what its command line mentions: a
-            # substring test turned the gate off for any process whose line
-            # merely contained a permitted name.
-            program = self.invoked_program(line)
-            for permitted in self.PERMITTED_PROGRAMS:
-                if program == permitted.lower():
-                    return permitted
-            current = parent
-        return ""
 
     # ── what it reaches ──────────────────────────────────────────────────
     def remote_hosts(self) -> tuple[str, ...]:
