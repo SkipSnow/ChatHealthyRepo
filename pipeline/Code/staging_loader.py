@@ -1,0 +1,643 @@
+# Copyright (c) 2026 ChatHealthy.ai LLC. All rights reserved.
+# Licensed under the FindCare Evaluation License (FEL-1.0).
+
+"""Staging loader for the Provider Pipeline — LLD v23 §4.6.
+
+Loads fetched source files (already present in `{env}-pipeline-transients/
+{run_id}/{source}/{filename}`) into the per-source staging collections on
+the pipeline cluster, in as-is shape.
+
+Realizes:
+
+  - EPIC-010-F-102-S-004-REQ-T-003  source CSV is byte-offset indexed
+                                    before any record processing
+  - EPIC-010-F-102-S-004-REQ-T-004  pre-indexing pairs every secondary-source
+                                    row with its NPI key
+  - EPIC-010-F-103-S-002-REQ-B-001, REQ-B-002  NPPES base and canonical NPI key
+  - EPIC-010-F-103-S-003          multi-address (pl_pfile)
+  - EPIC-010-F-103-S-004          Census ZCTA-to-County crosswalk
+  - EPIC-010-F-103-S-005          USDA RUCC classification workbook
+
+Target staging collections per LLD §6.4 (pipeline cluster
+`PipelinePublicHealthData`):
+
+  pipeline_sources_nppes_npi
+  pipeline_sources_pl_pfile
+  pipeline_sources_nucc_taxonomy
+  pipeline_sources_zip_county_crosswalk
+  pipeline_sources_rucc
+  pipeline_sources_specialty_catalog
+
+Load semantics per LLD §4.6:
+  - NPPES NPI load is serial single-PID. The other sources load in
+    parallel across sources; within one source, rows are batched and
+    written with `bulk_write(ordered=False)`.
+  - Every staged document carries the `run_id` and `_source_row_index`
+    (byte-offset-ordered row index) so downstream stages can partition
+    deterministically and re-drive individual rows.
+  - Secondary-source rows (pl_pfile) get an indexed `npi` field per REQ-T-004
+    so the join in §4.9 is index-driven.
+  - Each source runs behind a drop-then-load switch keyed on `run_id`: on
+    re-drive of the same run_id, the same rows are re-inserted with the
+    same _source_row_index, giving the loader an idempotent contract.
+
+Public entry point: `load_staging(config, mongo, blob)`.
+"""
+
+from __future__ import annotations
+from chathealthy_lib.logging_service import ChatHealthyLoggingService
+from chathealthy_lib.exceptions import ChatHealthyException
+
+import csv
+import io
+import json
+
+import tempfile
+import zipfile
+from concurrent.futures import ThreadPoolExecutor, as_completed
+from datetime import datetime, timezone
+from typing import Any, Iterator
+
+from pymongo import ASCENDING, InsertOne
+
+from pipeline_dataset_registry import PipelineDatasetRegistry
+from chathealthy_lib.mongo_utilities import ChatHealthyMongoUtilities
+
+_log = ChatHealthyLoggingService()
+
+
+def staging_collection_name(registry: PipelineDatasetRegistry, source_name: str) -> str:
+    """Return the fully-versioned staging collection base name for
+    source_name (e.g. "StagingNucc_v_3"). Delegates to the registry so
+    the source-to-collection map lives in one place: dataset_versions[]
+    in brain/machine_artifacts/content/pipeline_config.json."""
+    if not isinstance(registry, PipelineDatasetRegistry):
+        raise ChatHealthyException(
+            mode="staging_loader_registry_wrong_type",
+            message=(
+                "staging_loader.staging_collection_name: registry MUST be a "
+                f"PipelineDatasetRegistry; got {type(registry).__name__}."
+            ),
+            source_name=source_name,
+        )
+    return registry.staging_collection_name(source_name)
+
+
+def staging_db_name(registry: PipelineDatasetRegistry, source_name: str) -> str:
+    """Return the staging DB name for source_name (e.g. "PublicStaging").
+    Split off from staging_collection_name so callers that need the
+    fully-qualified db.coll can compose without re-parsing."""
+    if not isinstance(registry, PipelineDatasetRegistry):
+        raise ChatHealthyException(
+            mode="staging_loader_registry_wrong_type",
+            message=(
+                "staging_loader.staging_db_name: registry MUST be a "
+                f"PipelineDatasetRegistry; got {type(registry).__name__}."
+            ),
+            source_name=source_name,
+        )
+    return registry.by_source_name(source_name).staging_db
+
+
+DEFAULT_BATCH_SIZE = 1000
+DEFAULT_STAGING_CONCURRENCY = 4
+NPPES_NPI_COLUMN_CANDIDATES = ("NPI", "npi", "National Provider Identifier")
+
+
+def _now_iso() -> str:
+    return datetime.now(timezone.utc).isoformat()
+
+
+def _download_blob_to_tempfile(blob, container_name: str, blob_name: str) -> str:
+    """Download blob to a local temp file; return its path."""
+    if blob is None:
+        raise ChatHealthyException(mode="runtime_error", message="staging_loader: blob client is required")
+    container = blob.get_container_client(container_name)
+    blob_client = container.get_blob_client(blob_name)
+    tmp = tempfile.NamedTemporaryFile(delete=False, prefix="staging_", suffix=".bin")
+    try:
+        downloader = blob_client.download_blob()
+        with open(tmp.name, "wb") as fh:
+            for chunk in downloader.chunks():
+                fh.write(chunk)
+    finally:
+        tmp.close()
+    return tmp.name
+
+
+def _iter_csv_rows(local_path: str, *, delimiter: str = ",") -> Iterator[dict[str, str]]:
+    """Iterate rows of a CSV as dicts; preserves column names verbatim."""
+    with open(local_path, "r", encoding="utf-8-sig", newline="") as fh:
+        reader = csv.DictReader(fh, delimiter=delimiter)
+        for row in reader:
+            yield row
+
+
+def _iter_zipped_csv_rows(local_zip_path: str, inner_name_hint: str | None = None) -> Iterator[dict[str, str]]:
+    """Iterate rows of the first (or hint-matched) CSV inside a zip."""
+    with zipfile.ZipFile(local_zip_path) as zf:
+        candidates = [n for n in zf.namelist() if n.lower().endswith(".csv")]
+        if not candidates:
+            raise ChatHealthyException(mode="runtime_error", message=f"staging_loader: no CSV inside {local_zip_path}")
+        target = None
+        if inner_name_hint:
+            for c in candidates:
+                if inner_name_hint.lower() in c.lower():
+                    target = c
+                    break
+        if target is None:
+            target = candidates[0]
+        with zf.open(target) as inner:
+            text = io.TextIOWrapper(inner, encoding="utf-8-sig", newline="")
+            reader = csv.DictReader(text)
+            for row in reader:
+                yield row
+
+
+def _iter_json_rows(local_path: str) -> Iterator[dict[str, Any]]:
+    """Iterate a JSON list, a JSON object wrapping a list (F-105 shape:
+    {\"classifications\": [...]}), or line-delimited JSON."""
+    with open(local_path, "r", encoding="utf-8") as fh:
+        first = fh.read(1)
+        fh.seek(0)
+        if first == "[":
+            data = json.load(fh)
+            if not isinstance(data, list):
+                raise ChatHealthyException(mode="runtime_error", message="staging_loader: expected JSON array")
+            for row in data:
+                yield row
+        elif first == "{":
+            data = json.load(fh)
+            if not isinstance(data, dict):
+                raise ChatHealthyException(mode="runtime_error", message="staging_loader: expected JSON object")
+            list_val = None
+            for k in ("classifications", "rows", "items", "data", "records"):
+                v = data.get(k)
+                if isinstance(v, list):
+                    list_val = v
+                    break
+            if list_val is None:
+                for v in data.values():
+                    if isinstance(v, list):
+                        list_val = v
+                        break
+            if list_val is None:
+                raise ChatHealthyException(
+                    mode="runtime_error",
+                    message="staging_loader: JSON object has no list-valued key to iterate",
+                )
+            for row in list_val:
+                yield row
+        else:
+            for line in fh:
+                line = line.strip()
+                if not line:
+                    continue
+                yield json.loads(line)
+
+
+def _iter_xlsx_rows(local_path: str) -> Iterator[dict[str, str]]:
+    """Iterate rows of a .xlsx file as dicts keyed by the header row of
+    the first sheet. Requires openpyxl (already a pipeline dep for
+    embeddings). Fails loud if the file cannot be opened or the sheet
+    is empty.
+
+    Reads the file into BytesIO so openpyxl detects format via magic
+    bytes (zipfile signature) rather than filename extension. Source
+    fetches (e.g. usda_rucc from data.ers.usda.gov) sometimes land
+    with a .bin extension when the download URL does not end in .xlsx;
+    passing a file-like object bypasses openpyxl's extension check.
+    """
+    from io import BytesIO  # noqa: PLC0415
+    from openpyxl import load_workbook  # noqa: PLC0415
+    with open(local_path, "rb") as fh:
+        buf = BytesIO(fh.read())
+    wb = load_workbook(buf, read_only=True, data_only=True)
+    ws = wb.active
+    rows = ws.iter_rows(values_only=True)
+    try:
+        header = [str(h) if h is not None else "" for h in next(rows)]
+    except StopIteration:
+        wb.close()
+        return
+    for row in rows:
+        record: dict[str, str] = {}
+        for i, val in enumerate(row):
+            key = header[i] if i < len(header) else f"_col{i}"
+            record[key] = "" if val is None else str(val)
+        yield record
+    wb.close()
+
+
+def _resolve_iter(source_name: str, spec: dict, local_path: str) -> Iterator[dict[str, Any]]:
+    fmt = spec.get("format", "csv").lower()
+    if fmt == "csv":
+        yield from _iter_csv_rows(local_path, delimiter=spec.get("delimiter", ","))
+    elif fmt == "zip_csv":
+        yield from _iter_zipped_csv_rows(local_path, inner_name_hint=spec.get("inner_name_hint"))
+    elif fmt == "json":
+        yield from _iter_json_rows(local_path)
+    elif fmt == "xlsx":
+        yield from _iter_xlsx_rows(local_path)
+    else:
+        raise ChatHealthyException(mode="runtime_error", message=f"staging_loader[{source_name}]: unsupported format {fmt!r}")
+
+
+def _first_present(row: dict, keys: tuple[str, ...]) -> str | None:
+    for k in keys:
+        v = row.get(k)
+        if v is not None and str(v).strip() != "":
+            return str(v).strip()
+    return None
+
+
+def _wrap_row(
+    row: dict,
+    *,
+    source_name: str,
+    row_index: int,
+    run_id: str,
+    npi_hint_keys: tuple[str, ...] | None,
+) -> dict:
+    """Compose a staging document per LLD §4.6."""
+    doc: dict[str, Any] = {
+        "run_id": run_id,
+        "source_name": source_name,
+        "_source_row_index": row_index,
+        "raw": row,
+        "loaded_at": _now_iso(),
+    }
+    if npi_hint_keys:
+        npi = _first_present(row, npi_hint_keys)
+        if npi:
+            doc["npi"] = npi.zfill(10) if npi.isdigit() else npi
+    if source_name == "nucc":
+        code = _first_present(row, ("Code", "code"))
+        if code:
+            doc["code"] = code
+    if source_name == "census_zcta_county":
+        zcta = _first_present(row, ("ZCTA5", "zcta5", "ZCTA"))
+        if zcta:
+            doc["zcta5"] = zcta.zfill(5)
+    if source_name == "usda_rucc":
+        fips = _first_present(row, ("FIPS", "fips"))
+        if fips:
+            doc["fips"] = fips.zfill(5)
+    return doc
+
+
+def _ensure_indexes(coll, source_name: str) -> None:
+    """Create indexes on the versioned staging collection.
+
+    NPPES gets a UNIQUE index on npi. Any duplicate NPI insert raises
+    BulkWriteError, which propagates out of _load_one_source and fails
+    the step. NO retry, NO try/except swallow. That is the failure
+    surface that catches the exact 34M-row inflation that happened with
+    the prior non-unique index.
+
+    pl_pfile has multiple rows per NPI (one per practice location); its
+    index cannot be unique on npi alone.
+
+    All other sources get non-unique indexes on their natural key for
+    downstream lookup performance.
+    """
+    coll.create_index([("run_id", ASCENDING), ("_source_row_index", ASCENDING)])
+    if source_name == "nppes_npi":
+        coll.create_index([("npi", ASCENDING)], unique=True, name="npi_unique")
+        # per_state_normalize (51-way fanout) filters staging by run_id
+        # + business mailing state. Compound index avoids COLLSCAN over
+        # ~9M rows × 51 workers concurrent — without this the workers
+        # time out on staging cursor iteration.
+        coll.create_index(
+            [("run_id", ASCENDING), (f"raw.{_NPPES_STATE_COLUMN}", ASCENDING)],
+            name="run_id_business_state",
+        )
+    elif source_name == "pl_pfile":
+        coll.create_index([("npi", ASCENDING)])
+    elif source_name == "nucc":
+        coll.create_index([("code", ASCENDING)])
+    elif source_name == "census_zcta_county":
+        coll.create_index([("zcta5", ASCENDING)])
+    elif source_name == "usda_rucc":
+        coll.create_index([("fips", ASCENDING)])
+
+
+def _drop_prior_run_rows(coll, run_id: str) -> int:
+    res = coll.delete_many({"run_id": run_id})
+    return res.deleted_count if res else 0
+
+
+_NPPES_STATE_COLUMN = "Provider Business Mailing Address State Name"
+
+
+def _require_mongo(mongo) -> None:
+    if mongo is None:
+        raise ChatHealthyException(mode="runtime_error", message="staging_loader: mongo client is required")
+
+
+def _drop_prior_state_scoped_rows(coll, source_name: str, states: tuple[str, ...]) -> int:
+    """Full-load hygiene: delete EVERY existing row from every source's
+    staging collection (full drain each run). Rows from prior runs are
+    never preserved regardless of state_scope overlap. Returns the delete
+    count.
+
+    Applies to every source. The non-NPPES sources are all small (nucc
+    ~530 KB, specialty_catalog ~230 KB, census ~7 MB, usda ~160 KB,
+    pl_pfile carried inside the NPPES zip). Reloading them wholesale
+    each fire is cheap and prevents cross-fire schema-drift crashes
+    (surfaced 2026-08-01: prior fires' StagingSpecialtyCatalog rows
+    with lowercase raw.code broke provider_flags_enrichment when the
+    engine walked the collection without a run_id filter)."""
+    res = coll.delete_many({})
+    return int(res.deleted_count or 0)
+
+
+# Reference sources are non-partitioned reference tables (NUCC taxonomy,
+# NPPES pl_pfile secondary practice locations, Census ZCTA-to-County
+# crosswalk, USDA RUCC classification, ChatHealthy F-105 catalog). Each
+# load MUST replace the collection wholesale -- there is no run-scoped
+# retention. Prior to this fix, prior runs stacked (BUG surfaced 2026-08-01:
+# StagingNucc_v_3 held 30,022 rows across ~34 pipeline fires instead of
+# the ~883-row NUCC taxonomy each run should contain).
+_REFERENCE_SOURCE_NAMES = frozenset({
+    "nucc", "pl_pfile", "census_zcta_county", "usda_rucc", "specialty_catalog",
+})
+
+
+def _drop_prior_reference_rows(coll, source_name: str) -> int:
+    """Wholesale drain of a reference-source staging collection before
+    the fresh load. Returns delete count."""
+    if source_name not in _REFERENCE_SOURCE_NAMES:
+        return 0
+    res = coll.delete_many({})
+    return int(res.deleted_count or 0)
+
+
+def _stream_sha256(local_path: str) -> str:
+    """Streaming SHA256 of the downloaded source file. Used for skip-if-
+    content-unchanged (BUG surfaced 2026-08-01: reference-source loads
+    always re-fetched + re-parsed + re-inserted even when content had
+    not changed since the prior load)."""
+    import hashlib
+    h = hashlib.sha256()
+    with open(local_path, "rb") as f:
+        for chunk in iter(lambda: f.read(1 << 16), b""):
+            h.update(chunk)
+    return h.hexdigest()
+
+
+
+
+
+
+def _prior_content_hash(mongo, coll_name: str) -> str | None:
+    """Read the previously-loaded content hash for the given staging
+    collection. Returns None if no record exists."""
+    row = ChatHealthyMongoUtilities().getConnection("pipelineEditor", "ChatHealthyFrontEnd")["pipelineAdmin"]["staging_source_hashes"].find_one({"_id": coll_name})
+    return (row or {}).get("content_hash")
+
+
+def _record_content_hash(mongo, coll_name: str, content_hash: str, row_count: int) -> None:
+    """Upsert the freshly-loaded content hash so the next run can skip
+    reload if the source hasn't changed."""
+    ChatHealthyMongoUtilities().getConnection("pipelineEditor", "ChatHealthyFrontEnd")["pipelineAdmin"]["staging_source_hashes"].replace_one(
+        {"_id": coll_name},
+        {
+            "_id": coll_name,
+            "content_hash": content_hash,
+            "row_count": row_count,
+            "loaded_at": _now_iso(),
+        },
+        upsert=True,
+    )
+
+
+def _load_one_source(
+    *,
+    source_name: str,
+    spec: dict,
+    run_id: str,
+    env_prefix: str,
+    mongo,
+    blob,
+    batch_size: int,
+    registry: PipelineDatasetRegistry,
+    states: tuple[str, ...] = (),
+    incremental: bool = False,
+) -> dict[str, Any]:
+    """Load one source into its versioned staging collection.
+
+    Target: mongo[<staging_db>][<staging_collection>] on the pipeline
+    cluster, both derived from the registry so the source->collection
+    map lives in dataset_versions[] only.
+
+    states: 2-letter state codes to keep for NPPES rows. Empty => keep all
+        (equivalent to state_scope=ALL). Only applied to source_name ==
+        'nppes_npi'. Other sources (reference tables, pl_pfile) always
+        load in full.
+    incremental: when False (full load) AND states is non-empty AND
+        source is NPPES, additionally delete every existing row in the
+        staging collection whose state is in `states` BEFORE inserting
+        the fresh rows. Records from out-of-scope states are preserved.
+    """
+    coll_name = staging_collection_name(registry, source_name)
+    db_name = staging_db_name(registry, source_name)
+    _require_mongo(mongo)
+    db = mongo[db_name]
+    coll = db[coll_name]
+
+    _ensure_indexes(coll, source_name)
+    deleted_current_run = _drop_prior_run_rows(coll, run_id)
+    deleted_state_scoped = (
+        0 if incremental else _drop_prior_state_scoped_rows(coll, source_name, states)
+    )
+
+    container_name = spec["blob_container"]
+    blob_name = spec["blob_path"]
+    local_path = _download_blob_to_tempfile(blob, container_name, blob_name)
+
+    # Skip-if-content-unchanged for reference sources (bug fix 2026-08-01).
+    # If the downloaded source hash matches what we loaded last time AND
+    # the collection is non-empty, skip drain + reload entirely. Only
+    # applies to reference sources on full loads.
+    if source_name in _REFERENCE_SOURCE_NAMES and not incremental:
+        current_hash = _stream_sha256(local_path)
+        prior_hash = _prior_content_hash(mongo, coll_name)
+        existing_row_count = coll.count_documents({})
+        if prior_hash == current_hash and existing_row_count > 0:
+            _log.info(
+                "staging_loader[%s]: source content unchanged (sha256=%s, %d rows already loaded) -- skipping reload",
+                source_name, current_hash[:16], existing_row_count,
+            )
+            try:
+                import os
+                os.unlink(local_path)
+            except OSError:
+                pass
+            return {
+                "source_name": source_name,
+                "collection": coll_name,
+                "inserted": 0,
+                "skipped_reason": "content_unchanged",
+                "content_hash": current_hash,
+                "existing_row_count": existing_row_count,
+                "deleted_prior_rows_for_run": deleted_current_run,
+                "deleted_prior_rows_for_states": deleted_state_scoped,
+                "skipped_out_of_scope_rows": 0,
+                "row_count": existing_row_count,
+            }
+        # Content changed (or first load) -> drain wholesale before reload.
+        deleted_reference = _drop_prior_reference_rows(coll, source_name)
+    else:
+        current_hash = None
+        deleted_reference = 0
+
+    npi_hint = NPPES_NPI_COLUMN_CANDIDATES if source_name in ("nppes_npi", "pl_pfile") else None
+
+    state_filter: set[str] = set()
+    if source_name == "nppes_npi" and states:
+        state_filter = {s.upper() for s in states if s}
+
+    inserted = 0
+    skipped_out_of_scope = 0
+    ops: list[InsertOne] = []
+    row_index = 0
+
+    try:
+        for row in _resolve_iter(source_name, spec, local_path):
+            if state_filter:
+                row_state = (row.get(_NPPES_STATE_COLUMN) or "").strip().upper()
+                if row_state not in state_filter:
+                    row_index += 1
+                    skipped_out_of_scope += 1
+                    continue
+            doc = _wrap_row(
+                row,
+                source_name=source_name,
+                row_index=row_index,
+                run_id=run_id,
+                npi_hint_keys=npi_hint,
+            )
+            row_index += 1
+            ops.append(InsertOne(doc))
+            if len(ops) >= batch_size:
+                res = coll.bulk_write(ops, ordered=False)
+                inserted += (res.inserted_count or 0)
+                ops = []
+        if ops:
+            res = coll.bulk_write(ops, ordered=False)
+            inserted += (res.inserted_count or 0)
+    finally:
+        try:
+            import os
+            os.unlink(local_path)
+        except OSError:
+            pass
+
+    return {
+        "source_name": source_name,
+        "collection": coll_name,
+        "inserted": inserted,
+        "deleted_prior_rows_for_run": deleted_current_run,
+        "deleted_prior_rows_for_states": deleted_state_scoped,
+        "skipped_out_of_scope_rows": skipped_out_of_scope,
+        "row_count": row_index,
+    }
+
+
+def load_staging(
+    config: dict,
+    *,
+    mongo=None,
+    blob=None,
+) -> dict[str, Any]:
+    """Load every source in `config["sources"]` into its staging collection.
+
+    Required config keys:
+      - sources: dict[source_name -> spec]
+          spec fields:
+            blob_container    (str)
+            blob_path         (str)
+            format            ("csv" | "zip_csv" | "json")
+            delimiter         (str, csv only)
+            inner_name_hint   (str, zip_csv only)
+      - run_id                (str)
+      - env                   (str)
+      - staging_concurrency   (int, default 4; NPPES NPI is always serial)
+      - batch_size            (int, default 1000)
+
+    Returns:
+      {
+        "results":       list of per-source result records,
+        "total_inserted": int,
+      }
+    """
+    sources = config.get("sources") or {}
+    if not sources:
+        raise ChatHealthyException(mode="runtime_error", message="staging_loader: config['sources'] is empty")
+
+    run_id = config["run_id"]
+    env_prefix = config.get("env", "dev")
+    batch_size = int(config.get("batch_size", DEFAULT_BATCH_SIZE))
+    concurrency = int(config.get("staging_concurrency", DEFAULT_STAGING_CONCURRENCY))
+    states: tuple[str, ...] = tuple(s for s in (config.get("states") or ()) if s)
+    incremental: bool = bool(config.get("incremental"))
+    dv = config.get("data_version")
+    if not isinstance(dv, int) or dv < 1:
+        raise ChatHealthyException(
+            mode="value_error",
+            message="staging_loader: config['data_version'] must be int >= 1",
+            data_version=repr(dv),
+        )
+    data_version: int = dv
+
+    # Registry is the single source of truth for source -> (staging_db,
+    # staging_coll_base) mapping. Built once at load_staging entry so
+    # every _load_one_source call shares one validated view of the config.
+    registry = PipelineDatasetRegistry(config, data_version, mongo)
+
+    results: list[dict[str, Any]] = []
+
+    nppes_spec = sources.get("nppes_npi")
+    if nppes_spec:
+        results.append(_load_one_source(
+            source_name="nppes_npi",
+            spec=nppes_spec,
+            run_id=run_id,
+            env_prefix=env_prefix,
+            mongo=mongo,
+            blob=blob,
+            batch_size=batch_size,
+            registry=registry,
+            states=states,
+            incremental=incremental,
+        ))
+
+    parallel_sources = {n: s for n, s in sources.items() if n != "nppes_npi"}
+    if parallel_sources:
+        with ThreadPoolExecutor(max_workers=max(1, concurrency)) as pool:
+            futures = {
+                pool.submit(
+                    _load_one_source,
+                    source_name=name,
+                    spec=spec,
+                    run_id=run_id,
+                    env_prefix=env_prefix,
+                    mongo=mongo,
+                    blob=blob,
+                    batch_size=batch_size,
+                    registry=registry,
+                    states=states,
+                    incremental=incremental,
+                ): name for name, spec in parallel_sources.items()
+            }
+            for fut in as_completed(futures):
+                name = futures[fut]
+                # No swallowing. If a Worker future raises, .result()
+                # re-raises here and propagates out of load_staging so
+                # the step fails loud. Operator directive: "if we fail
+                # we fail" - no fallbacks, no retries.
+                results.append(fut.result())
+
+    total = sum(int(r.get("inserted", 0)) for r in results)
+    return {"results": results, "total_inserted": total}
