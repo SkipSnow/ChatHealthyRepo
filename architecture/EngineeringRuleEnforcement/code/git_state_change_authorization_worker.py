@@ -11,14 +11,16 @@ WHAT REACHES THE OPERATOR.
   a git subcommand that writes
   a gh command
   a script that can invoke git, itself or through what it imports
-  any other program, able to write, aimed at a tracked path, at .git, or
-    at a host git talks to
+  an HTTP client aimed at a host git talks to, which is the Git API
 
-WHAT DOES NOT.
+WHAT DOES NOT. Anything that is not one of those four. A command is judged
+on the program it runs, never on the files it names: git is the only thing
+that changes repository state, so a program that is not git and cannot
+reach git is out of scope no matter which path appears on its line.
+
   PASSED_THROUGH            push and fetch, excluded by the requirement;
                             add and commit, held by the commit-msg gate
   READ_ONLY_SUBCOMMANDS     git subcommands that only read
-  READ_ONLY_PROGRAMS        programs that read and report
 
 NO DOUBLE GOVERNANCE IS SATISFIED BY THE EXEMPTIONS, NOT BY THIS CODE. The
 requirement allows a promote local->dev two gates and every other change
@@ -101,15 +103,11 @@ class GitStateChangeAuthorization:
     # act.
     PASSED_THROUGH = frozenset({"push", "fetch", "add", "commit"})
 
-    # Programs that read and report. The requirement governs CHANGES, so a
-    # read is out of scope however often it names a tracked file.
-    READ_ONLY_PROGRAMS = frozenset({
-        "ls", "dir", "cat", "head", "tail", "less", "more", "nl", "od",
-        "grep", "egrep", "fgrep", "rg", "find", "wc", "sort", "uniq", "cut",
-        "tr", "awk", "jq", "diff", "cmp", "comm", "stat", "file", "du",
-        "basename", "dirname", "realpath", "readlink", "which", "where",
-        "echo", "printf", "pwd", "test", "true", "false",
-        "get-content", "get-childitem", "select-string", "test-path",
+    # Programs that speak HTTP. One of these aimed at a host git talks to is
+    # the Git API, which the requirement puts in scope alongside the command.
+    NETWORK_CLIENTS = frozenset({
+        "curl", "wget", "http", "httpie",
+        "invoke-webrequest", "invoke-restmethod", "iwr", "irm",
     })
 
     # Programs that run a script file handed to them. A script named
@@ -276,7 +274,7 @@ class GitStateChangeAuthorization:
         # A script fed to an interpreter on stdin lives in the command and in
         # no file, so the file walk has nothing to open. It is read here.
         for body in self.heredoc_bodies(self.command):
-            why = self.why_source_can_run_git(body, "the inline script")
+            why = self.why_content_can_run_git(body, "the inline script")
             if why:
                 found.append({"segment": "inline script", "subcommand": why})
 
@@ -315,7 +313,7 @@ class GitStateChangeAuthorization:
                                   "subcommand": f"{program}: {why}"})
                 continue
 
-            reaches = self.touches_the_repository(segment)
+            reaches = self.reaches_the_git_api(segment)
             if reaches:
                 found.append({"segment": segment,
                               "subcommand": f"{program}: {reaches}"})
@@ -389,8 +387,15 @@ class GitStateChangeAuthorization:
         Separators inside quotes are text, not separators. Splitting through
         them tore `grep "a\\|b"` into a fragment beginning `b"`, which is no
         program anyone allowed, so a search became a question.
+
+        A backslash at end of line continues the command, so the newline
+        after it is not a separator. Treating it as one turned every
+        continued argument into an apparent command: a `git log` whose paths
+        were listed one per line became several segments, and a path ending
+        .py read as a script being executed, so a read was walked and gated.
         """
         text = self.without_heredoc_bodies(command)
+        text = text.replace("\\\r\n", " ").replace("\\\n", " ")
         parts: list[str] = []
         current: list[str] = []
         quote = ""
@@ -518,44 +523,21 @@ class GitStateChangeAuthorization:
                     hosts.add(word.split("@", 1)[1].split(":", 1)[0].lower())
         return tuple(sorted(hosts))
 
-    def tracked_paths(self, candidates: list[str]) -> list[str]:
-        """Which of these paths git tracks, asked of git."""
-        if not candidates:
-            return []
-        try:
-            result = subprocess.run(
-                ["git", "ls-files", "--"] + candidates,
-                cwd=str(self.project_root),
-                capture_output=True, text=True, timeout=10,
-            )
-        except (OSError, subprocess.SubprocessError):
-            return candidates
-        return [line for line in result.stdout.splitlines() if line.strip()]
+    def reaches_the_git_api(self, segment: str) -> str:
+        """Why this segment reaches the Git API over the network, or "".
 
-    def touches_the_repository(self, segment: str) -> str:
-        """Why this segment changes repository state, or "".
-
-        Two things must hold: the program can write, and the target is
-        something git owns.
+        The requirement puts the Git API in scope beside the command, and an
+        HTTP client aimed at a host git talks to is that API. Both halves are
+        required: a client that names no such host is doing something else,
+        and a host named by anything other than a client is a string, not a
+        request.
         """
-        words = [w.strip("'\"()") for w in segment.split()
-                 if not w.startswith("-")]
+        if self.invoked_program(segment) not in self.NETWORK_CLIENTS:
+            return ""
         lowered = segment.replace("\\", "/").lower()
-
         for host in self.remote_hosts():
             if host and host in lowered:
                 return f"reaches {host}"
-
-        if self.invoked_program(segment) in self.READ_ONLY_PROGRAMS:
-            return ""
-
-        if ".git/" in lowered or any(w in (".git", "./.git") for w in words):
-            return "reaches .git"
-
-        paths = [w for w in words[1:] if "/" in w or "." in w]
-        tracked = self.tracked_paths(paths)
-        if tracked:
-            return f"writes a tracked file: {tracked[0]}"
         return ""
 
     # ── what a script would do ───────────────────────────────────────────
@@ -626,51 +608,37 @@ class GitStateChangeAuthorization:
                 break
         return found
 
-    def why_source_can_run_git(self, source: str, label: str) -> str:
-        """Why this python source can run git, or "" when it cannot."""
-        try:
-            tree = ast.parse(source)
-        except SyntaxError as exc:
-            return f"{label} could not be parsed: {exc}"
-        for node in ast.walk(tree):
-            if not isinstance(node, ast.Call):
-                continue
-            name = self.called_name(node)
-            if name in self.DYNAMIC_CALLS:
-                return f"{label} executes text at runtime via {name}"
-            if name in self.PROCESS_CALLS:
-                if self.names_git(node):
-                    return f"{label} runs git"
-                return f"{label} starts a process via {name}"
-        return ""
+    def why_content_can_run_git(self, source: str, label: str,
+                                origin: Path | None = None) -> str:
+        """Why this content can run git, or "" when it cannot.
 
-    def why_script_can_run_git(self, script: Path) -> str:
-        """Why this script, or anything local it imports, can run git.
+        The one place content is judged. A command's inline script and a
+        script file are the same question asked of different bytes, and a
+        file's imports are more content, so all three arrive here. Nothing
+        else inspects content: a second judge is a second answer waiting to
+        disagree with this one.
 
-        Python is parsed. Any other language is unprovable here and is
-        reported as able to run git.
+        `origin` is where the content was read from, and is None for content
+        that lives in the command rather than a file. Imports are followed
+        only when there is an origin to resolve them against.
         """
-        if not script.is_file():
-            return f"{script} is not a readable file"
-        if script.suffix.lower() != ".py":
-            return f"{script.suffix or 'this'} is not a language this parses"
-
-        queue: list[tuple[Path, int]] = [(script, 0)]
+        queue: list[tuple[str, str, Path | None, int]] = [
+            (source, label, origin, 0)]
         seen: set[Path] = set()
         nodes = 0
         while queue:
-            path, depth = queue.pop(0)
-            resolved = path.resolve()
-            if resolved in seen:
-                continue
-            seen.add(resolved)
+            text, tag, path, depth = queue.pop(0)
+            if path is not None:
+                resolved = path.resolve()
+                if resolved in seen:
+                    continue
+                seen.add(resolved)
             if depth > self.WALK_DEPTH_LIMIT:
-                return f"{path.name} is deeper than the walk follows"
+                return f"{tag} is deeper than the walk follows"
             try:
-                source = path.read_text(encoding="utf-8", errors="replace")
-                tree = ast.parse(source)
-            except (OSError, SyntaxError) as exc:
-                return f"{path.name} could not be read: {exc}"
+                tree = ast.parse(text)
+            except SyntaxError as exc:
+                return f"{tag} could not be parsed: {exc}"
 
             for node in ast.walk(tree):
                 nodes += 1
@@ -680,15 +648,38 @@ class GitStateChangeAuthorization:
                     continue
                 name = self.called_name(node)
                 if name in self.DYNAMIC_CALLS:
-                    return f"{path.name} executes text at runtime via {name}"
+                    return f"{tag} executes text at runtime via {name}"
                 if name in self.PROCESS_CALLS:
                     if self.names_git(node):
-                        return f"{path.name} runs git"
-                    return f"{path.name} starts a process via {name}"
+                        return f"{tag} runs git"
+                    return f"{tag} starts a process via {name}"
 
+            if path is None:
+                continue
             for dependency in self.local_imports(tree, path):
-                queue.append((dependency, depth + 1))
+                try:
+                    read = dependency.read_text(encoding="utf-8",
+                                                errors="replace")
+                except OSError as exc:
+                    return f"{dependency.name} could not be read: {exc}"
+                queue.append((read, dependency.name, dependency, depth + 1))
         return ""
+
+    def why_script_can_run_git(self, script: Path) -> str:
+        """A script file, read and handed to the one content check.
+
+        Python is parsed. Any other language is unprovable here and is
+        reported as able to run git.
+        """
+        if not script.is_file():
+            return f"{script} is not a readable file"
+        if script.suffix.lower() != ".py":
+            return f"{script.suffix or 'this'} is not a language this parses"
+        try:
+            source = script.read_text(encoding="utf-8", errors="replace")
+        except OSError as exc:
+            return f"{script.name} could not be read: {exc}"
+        return self.why_content_can_run_git(source, script.name, script)
 
     # ── the human ────────────────────────────────────────────────────────
     def escape(self, text: str) -> str:
