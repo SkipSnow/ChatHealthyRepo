@@ -1,0 +1,49 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://dev.chathealthy.ai/schemas/ChatHealthyBuildArchitectureSchema.json",
+  "title": "ChatHealthy Build Architecture",
+  "description": "Facts the build needs about where source is read from. Distinct from deployment_architecture.json, which records what is deployed and where it goes. A build that carries business paths in its own source breaks whenever the business layout moves, which is what a refactor does.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["$schema", "collection", "react_applications"],
+  "properties": {
+    "$schema": { "type": "string" },
+    "collection": { "const": "build_architecture" },
+    "description": { "type": "string" },
+    "react_applications": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["name", "source_root", "dist", "serves_at", "entry", "html"],
+        "properties": {
+          "name": {
+            "type": "string",
+            "description": "The application's name, as the build reports it."
+          },
+          "source_root": {
+            "type": "string",
+            "description": "Repository-relative directory holding the application's html and src. Vite's root."
+          },
+          "dist": {
+            "type": "string",
+            "description": "Repository-relative directory vite writes the bundle to. Derived, gitignored."
+          },
+          "serves_at": {
+            "type": "string",
+            "description": "Path under the website's publish root where the built bundle is served, without slashes. 'app' serves at /app/."
+          },
+          "entry": {
+            "type": "string",
+            "description": "The module the html loads, relative to source_root."
+          },
+          "html": {
+            "type": "string",
+            "description": "The html document at source_root that vite treats as the entry document."
+          }
+        }
+      }
+    }
+  }
+}
