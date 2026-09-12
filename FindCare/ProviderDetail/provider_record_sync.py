@@ -675,7 +675,7 @@ def embed_after_response(coll, npi: str) -> None:
     logged (the response has already returned).
     """
     try:
-        from infrastructure.embeddings.embedding_client import EmbeddingClient
+        from embedding_client import EmbeddingClient
     except ImportError as _imp:
         # Mode 1 (REQ-B-008): EmbeddingClient not importable; skip re-embed.
         log.info(

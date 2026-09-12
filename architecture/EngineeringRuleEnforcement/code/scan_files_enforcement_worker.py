@@ -469,7 +469,7 @@ class ScanFilesEnforcementWorker(EnforcementWorker):
         """Load .env values via SecretsResolver. Cached per worker run."""
         if hasattr(self, "_env_values_cache"):
             return self._env_values_cache  # type: ignore[attr-defined]
-        env_file = PROJECT_ROOT / "Code" / ".env"
+        env_file = PROJECT_ROOT / ".env"
         if not env_file.is_file():
             self._env_values_cache: set[str] = set()  # type: ignore[attr-defined]
             return self._env_values_cache
@@ -557,8 +557,39 @@ class ScanFilesEnforcementWorker(EnforcementWorker):
         if schema_url in self._fetched_schema_cache:
             return self._fetched_schema_cache[schema_url], None
 
-        # 3. Web fetch.
+        # 3. The schema in this commit, when the commit is what publishes it.
+        #
+        # A schema reaches its URL by being deployed, and a deploy reads the
+        # committed tree -- so the first commit of a new brain file and its
+        # schema can never pass a web fetch. The file being committed is the
+        # authority on itself: if the repository holds the schema the URL
+        # names, that copy is used. A schema absent from both the web and
+        # the commit is still a violation.
+        in_commit = self._schema_from_this_commit(schema_url)
+        if in_commit is not None:
+            self._fetched_schema_cache[schema_url] = in_commit
+            return in_commit, None
+
+        # 4. Web fetch.
         return self._fetch_schema_from_url(file_path, schema_url)
+
+    def _schema_from_this_commit(self, schema_url: str) -> dict[str, Any] | None:
+        """The schema as this repository holds it, or None.
+
+        Published schemas live under Website/schemas and are served at
+        {env}.chathealthy.ai/schemas/<name>, so the URL's last segment is
+        the file name.
+        """
+        name = schema_url.rstrip("/").rsplit("/", 1)[-1]
+        if not name.endswith(".json"):
+            return None
+        candidate = PROJECT_ROOT / "Website" / "schemas" / name
+        if not candidate.is_file():
+            return None
+        try:
+            return json.loads(candidate.read_text(encoding="utf-8"))
+        except (OSError, json.JSONDecodeError):
+            return None
 
     def _fetch_schema_from_url(
         self,

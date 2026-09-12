@@ -8486,8 +8486,8 @@
               "status": "not_started",
               "description": "This feature specifies the rules that must be enforced by the chatHealthy.ai dev ops infrastructure utilizing the Anthopic Hooks as event triggers. \nIt specifies the concrete DevOps surface that wires Claude Code's hook architecture into ChatHealthy governance. Hosts SessionStart / PostCompact / UserPromptSubmit / Stop enforcement entries declared in engineering_rules.json, the chathealthy_devops_boot program (Rule-002), and the conversation-log persistence path (Rule-001). Owns the operator-visible boot lifecycle: conversation context replay and agile_backlog taxonomy injection on both new-session begin and post-compaction restart.",
               "realized_by": [
-                "Code/Shared/ops/tools/chathealthy_devops_boot.py",
-                "Code/Shared/ops/tools/chathealthy_enforcement_manager.py",
+                "architecture/EngineeringRuleEnforcement/code/chathealthy_devops_boot.py",
+                "architecture/EngineeringRuleEnforcement/code/chathealthy_enforcement_manager.py",
                 "brain/machine_artifacts/content/engineering_rules.json",
                 ".claude/settings.json",
                 "MongoDB ClaudeCodeLog.conversation_log_archive"
@@ -9566,7 +9566,7 @@
                         {
                           "req_id": "EPIC-008-F-002-S-013-REQ-B-001",
                           "name": "Constrain Claude Code's ungoverned changes of state in Git Repositories",
-                          "requirement": "Each time Claude Code issues a command to change the state of any of ChatHealtly.ai\u2019s Git repos a human must approve. When a \u2018promote\u2019 from Local to Dev two governance gates must be invoked, a promote gate where the human user May change the commit note and the commit gate this double approve is governed by a different enforcement. Git push commands are excluded from this requirement. For all other changes to the remote Repo only one governance gates can be invoked. As with all ChatHealthy.ai governance gates, all approvals must only when a user proves via 'mouse movement' or other irrefutable evidence of a human action that a human approved. An audit record must be made upon the approval time out or disapproval of the Code Bot request.",
+                          "requirement": "Each time Claude Code issues a command to change the state of any of ChatHealtly.ai\u2019s Git repos a human must approve. This includes direct commands envoking Git or embedded commands within software not excluded because they are permitted. When a \u2018promote\u2019 from Local to Dev two governance gates must be invoked, a promote gate where the human user May change the commit note and the commit gate this double approve is governed by a different enforcement. Git push commands are excluded from this requirement. For all other changes to the remote Repo only one governance gates can be invoked. As with all ChatHealthy.ai governance gates, all approvals must only when a user proves via 'mouse movement' or other irrefutable evidence of a human action that a human approved. An audit record must be made upon the approval time out or disapproval of the Code Bot request.",
                           "priority": "must-have",
                           "status": "done",
                           "approval": "approved",
@@ -9575,9 +9575,10 @@
                           "tests": {
                             "test": [
                               {
-                                "test_type": "ORPHAN",
-                                "orphan": true,
-                                "file": "ORPHAN"
+                                "test_id": "EPIC-008-F-002-S-013-REQ-B-001-TEST-UNSUPPORTABLE",
+                                "test_type": "Unsupportable",
+                                "orphan": false,
+                                "file": "Unsupportable"
                               }
                             ]
                           }

@@ -19,7 +19,8 @@ from pathlib import Path
 import pytest
 
 BOOT = (Path(__file__).resolve().parents[3]
-        / "Code" / "Shared" / "ops" / "tools" / "chathealthy_devops_boot.py")
+        / "architecture" / "EngineeringRuleEnforcement" / "code"
+        / "chathealthy_devops_boot.py")
 
 
 def _run(payload: dict) -> subprocess.CompletedProcess:

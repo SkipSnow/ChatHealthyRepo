@@ -2,8 +2,6 @@
 *.env          # any name ENDING .env, not just a file named .env.
                # c<U+F03A>CHATHealthyLLC.env reached 5da7817d because
                # `.env` and `**/.env` match the NAME .env only.
-code/.env
-Code/.env
 **/.env
 
 # Managed deployment-fact files (Deployment Architecture v14 Ch 3.2 /
@@ -43,19 +41,15 @@ __pycache__/
 .claude/mcp-needs-auth-cache.json
 .claude/scheduled_tasks.lock
 
-Code/ConversationalUX/FindCareChat/frontend/vite.config.ts
 
 *.http
 
-Code/DataPipelines/pipeline_files.json
-Code/DataPipelines/pipeline_code_review.json
 
 !.evv/
 !.evv/**
 
 node_modules/
 dist/
-Code/ConversationalUX/FindCareChat/backend/static/
 .env.local
 
 **/bin/
@@ -66,13 +60,11 @@ Code/ConversationalUX/FindCareChat/backend/static/
 
 brain/BusinessArtifacts/
 
-Code/Shared/ops/certs/
 
 /test_*.png
 /umls_signup.png
 _oneshots/test_output/
 
-Code/Shared/ops/tools/caddy.exe
 
 Analysis/*.mp4
 

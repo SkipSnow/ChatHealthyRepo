@@ -373,11 +373,10 @@ class TestNoHTTPInCode:
     """EPIC-002-F-001-S-012-REQ-B-004: No http://localhost in production code."""
 
     SCAN_DIRS = [
-        "Code/ConversationalUX/FindCareChat/backend",
-        "Code/ConversationalUX/FindCareChat/frontend/src",
+        "FindCare/Code",
+        "Website/FindCareChat/src",
         "evaluateCare/Code",
         "sharedServices/Code",
-        "Code/Shared/ops/Caddyfile",
         "Website/index.html",
     ]
 

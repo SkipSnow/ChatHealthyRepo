@@ -27,7 +27,6 @@ _SCAN_ROOTS = (
     "sharedServices/Code",
     "FindCare",
     "evaluateCare/Code",
-    "Code/ConversationalUX/FindCareChat/backend",
     "ChatHealthyLib/src/chathealthy_lib",
     "pipeline/Code",
 )

@@ -744,8 +744,7 @@ def _build_cloudflare(repo_root: Path, target: TargetRecord, build_dir: Path,
             _compute_hf_space_url_for_build(
                 repo_root, "target_hf_space_shared_services", env, build_n),
         )
-        dist = (repo_root / "Code" / "ConversationalUX" / "FindCareChat"
-                / "frontend" / "dist")
+        dist = repo_root / react_application(repo_root, "FindCareChat")["dist"]
         if not dist.is_dir():
             raise ChatHealthyException(
                 mode="aborted",
@@ -761,6 +760,36 @@ def _build_cloudflare(repo_root: Path, target: TargetRecord, build_dir: Path,
     # returns, and that one is package-aware. Materializing here as well
     # wrote the managed Dockerfile at the target root, creating a directory
     # named after its source path that no package declares.
+
+
+BUILD_ARCHITECTURE_REL = ("brain/machine_artifacts/content/"
+                          "build_architecture.json")
+
+
+def react_application(repo_root: Path, name: str) -> dict:
+    """The declared build facts for one React application.
+
+    Its source root was spelled in three build files, so moving the
+    application broke the build in three places and the repair was an edit
+    to build source. The build must not depend on the business layout, so
+    the layout is declared and read.
+    """
+    path = repo_root / BUILD_ARCHITECTURE_REL
+    if not path.is_file():
+        raise ChatHealthyException(
+            mode="aborted",
+            component="_build_chain",
+            message=f"ERROR: {BUILD_ARCHITECTURE_REL} not found; the build "
+                    "cannot know where source is read from.")
+    declared = json.loads(path.read_text(encoding="utf-8"))
+    for app in declared.get("react_applications") or []:
+        if app.get("name") == name:
+            return app
+    raise ChatHealthyException(
+        mode="aborted",
+        component="_build_chain",
+        message=f"ERROR: {BUILD_ARCHITECTURE_REL} declares no react "
+                f"application named {name!r}.")
 
 
 def _build_hf_space(repo_root: Path, target: TargetRecord, build_dir: Path,

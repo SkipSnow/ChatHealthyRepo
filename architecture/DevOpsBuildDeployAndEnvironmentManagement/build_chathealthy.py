@@ -626,9 +626,17 @@ def _build_body(args, repo_root: Path, canonical_repo: Path, canonical_build_dir
     # moments later, and the deploy then rejected every file this build had
     # just packaged.
     hash_root = canonical_repo if args.env == "local" else repo_root
-    _refresh_content_hashes(
-        hash_root / "brain" / "machine_artifacts" / "content"
-        / "deployment_architecture.json", hash_root)
+    refreshed_record = (hash_root / "brain" / "machine_artifacts" / "content"
+                        / "deployment_architecture.json")
+    _refresh_content_hashes(refreshed_record, hash_root)
+    # The build reads its record from the materialised copy, and that copy was
+    # taken before the refresh above -- so the refresh landed in the working
+    # tree while Crosswalk compared against the pre-refresh bytes. Every first
+    # build after editing a referenced file rejected, and the same build
+    # repeated passed. The refreshed record is carried into the copy the
+    # build actually reads.
+    if refreshed_record.resolve() != brain_path.resolve():
+        shutil.copy2(refreshed_record, brain_path)
 
     backlog = AgileBacklogLoader().load(backlog_path)
     # Scope schema validation to the single target being built when a

@@ -16,10 +16,22 @@
     "isolatedModules": true,
     "noEmit": true,
     "jsx": "react-jsx",
-    "strict": true
+    "strict": true,
+    "baseUrl": ".",
+    "paths": {
+      "@shared/*": [
+        "sharedServices/Code/*"
+      ],
+      "@providers/*": [
+        "FindCare/ProviderManagement/*"
+      ],
+      "@findcare/*": [
+        "FindCare/*"
+      ]
+    }
   },
   "include": [
-    "Code/ConversationalUX/FindCareChat/frontend/src",
+    "Website/FindCareChat/src",
     "FindCare/**/*.tsx",
     "FindCare/**/*.ts",
     "sharedServices/Code/**/*.tsx",

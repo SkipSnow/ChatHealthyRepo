@@ -46,6 +46,8 @@ class Authorization:
     # What the operator typed in place of the offered text, if anything.
     # Empty means they left it alone and the caller's own text stands.
     message: str = ""
+    # The pointer travel the page actually measured before the press.
+    pointer_travel_px: int = 0
 
     @property
     def approved(self) -> bool:
@@ -124,8 +126,14 @@ def _click_proof(token: str) -> str:
         # send() never defined, so neither button did anything.
         "var el=document.getElementById('message');"
         "var msg=el?el.value:'';"
+        # The travel the page measured is sent, not just the verdict it
+        # gated on. Every proof recorded zero while asserting the press was
+        # trusted, because nothing carried the number off the page -- so the
+        # one field whose only purpose is evidence held a value no browser
+        # produced.
         "fetch('/decide',{method:'POST',body:new URLSearchParams("
-        "{token:TOKEN,verdict:v,human_click:hc,message:msg})})"
+        "{token:TOKEN,verdict:v,human_click:hc,message:msg,"
+        "pointer_travel:String(Math.round(moved))})})"
         ".then(function(){document.body.innerHTML='<h1>Recorded.</h1>';"
         "try{window.close();}catch(e){}});}"
         "document.getElementById('btn_approve').addEventListener('click',"
@@ -368,7 +376,8 @@ def request_authorization(action: str, subject: str,
         port = probe.getsockname()[1]
 
     token = secrets.token_urlsafe(8)
-    decision: dict = {"verdict": None, "human_click": False, "message": ""}
+    decision: dict = {"verdict": None, "human_click": False, "message": "",
+                      "pointer_travel_px": 0}
     if transfer:
         by = transfer.get("authorizer") or ""
         now = datetime.datetime.now().astimezone()
@@ -423,6 +432,11 @@ def request_authorization(action: str, subject: str,
             decision["verdict"] = verdict
             decision["human_click"] = True
             decision["message"] = fields.get("message", [""])[0].strip()
+            try:
+                decision["pointer_travel_px"] = int(
+                    float(fields.get("pointer_travel", ["0"])[0] or 0))
+            except ValueError:
+                decision["pointer_travel_px"] = 0
             self._send(200, _ACK)
 
     url = f"http://127.0.0.1:{port}/prompt"
@@ -515,4 +529,5 @@ def request_authorization(action: str, subject: str,
     if decision["verdict"] is None:
         return Authorization(TIMEOUT, False, subject, url, waited)
     return Authorization(decision["verdict"], decision["human_click"],
-                         subject, url, waited, decision["message"])
+                         subject, url, waited, decision["message"],
+                         decision["pointer_travel_px"])

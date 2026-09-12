@@ -37,11 +37,11 @@
         "hooks": [
           {
             "type": "command",
-            "command": "python \"$CLAUDE_PROJECT_DIR/Code/Shared/ops/tools/boot_probe.py\" --event SessionStart"
+            "command": "python \"$CLAUDE_PROJECT_DIR/architecture/EngineeringRuleEnforcement/code/boot_probe.py\" --event SessionStart"
           },
           {
             "type": "command",
-            "command": "python \"$CLAUDE_PROJECT_DIR/Code/Shared/ops/tools/capture_brain_hashes.py\""
+            "command": "python \"$CLAUDE_PROJECT_DIR/architecture/EngineeringRuleEnforcement/code/capture_brain_hashes.py\""
           },
           {
             "type": "command",
@@ -65,7 +65,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "python \"$CLAUDE_PROJECT_DIR/Code/Shared/ops/tools/boot_probe.py\" --event UserPromptSubmit"
+            "command": "python \"$CLAUDE_PROJECT_DIR/architecture/EngineeringRuleEnforcement/code/boot_probe.py\" --event UserPromptSubmit"
           },
           {
             "type": "command",

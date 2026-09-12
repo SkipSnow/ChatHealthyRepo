@@ -71,6 +71,10 @@ class PromotionFacts:
     commit_subject: str
     commits_ahead: int
     files: int = 0
+    # The message this promotion proposes to write. commit_subject is the
+    # subject of the tip being promoted -- a different fact. They were one
+    # field, so the record could not say which it held.
+    offered_message: str = ""
 
     def subject(self) -> str:
         return (f"{self.source_environment} to {self.destination_environment}: "
@@ -108,6 +112,7 @@ class AuthorizationRecord:
     decided_at: str
     verdict: str
     seconds_waited: int
+    offered_message: str = ""
     operator_message: str = ""
     proof: dict = field(default_factory=dict)
     outcome: str = "pending"
@@ -139,7 +144,8 @@ class PromoteAuthorizationWorker:
         """
         f = self.facts
         return {
-            "collection": f.commit_subject or "(no message given)",
+            "collection": (f.offered_message or f.commit_subject
+                           or "(no message given)"),
             "chip_label": "This commit message will be recorded on dev",
             "source": {"Promoting": f.source_environment,
                        "What": f"the working tree, all {f.files} files"},
@@ -179,9 +185,9 @@ class PromoteAuthorizationWorker:
 
         self.last_verdict = decision.verdict
         typed = (getattr(decision, "message", "") or "").strip()
-        self.operator_message = (
-            "" if typed == (self.facts.commit_subject or "").strip()
-            else typed)
+        offered = (self.facts.offered_message
+                   or self.facts.commit_subject or "").strip()
+        self.operator_message = "" if typed == offered else typed
 
         proof = HumanPresenceProof(
             is_trusted=bool(getattr(decision, "human_click", False)),
@@ -196,6 +202,7 @@ class PromoteAuthorizationWorker:
             destination_branch=f.destination_branch,
             commit=f.commit,
             commit_subject=f.commit_subject,
+            offered_message=f.offered_message,
             commits_ahead=f.commits_ahead,
             operator=self.operator,
             decided_at=datetime.now(timezone.utc).isoformat(),
@@ -228,7 +235,8 @@ class PromoteAuthorizationWorker:
         return authorization_record.append(record.to_document(),
                                            tolerate_failure)
 
-    def record_outcome(self, record_id, outcome: str) -> None:
+    def record_outcome(self, record_id, outcome: str,
+                       commit_message: str = "") -> None:
         """Append what happened, rather than altering what was authorized.
 
         The record of an authorization is not edited once written - the same
@@ -247,6 +255,12 @@ class PromoteAuthorizationWorker:
             "destination_environment": f.destination_environment,
             "commit": f.commit,
             "outcome": outcome,
+            # The message the commit actually carries. The authorization
+            # record holds commit_subject, which is the subject of the tip
+            # being promoted -- a different string from the one this
+            # promote writes. Without this the log cannot name the commit
+            # it authorized by anything a person chose.
+            "commit_message": commit_message,
             "recorded_at": datetime.now(timezone.utc).isoformat(),
         }
         try:

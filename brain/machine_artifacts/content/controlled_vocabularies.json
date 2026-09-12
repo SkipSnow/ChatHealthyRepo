@@ -443,7 +443,7 @@
       "invoked_by": {
         "source_files": [
           {
-            "file": "Code/Shared/ops/tools/chathealthy_devops_boot.py",
+            "file": "architecture/EngineeringRuleEnforcement/code/chathealthy_devops_boot.py",
             "function": "chathealthy_devops_boot",
             "note": "Governance matrix reads labels to determine compliance response per JSON per action event."
           }

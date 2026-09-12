@@ -1,0 +1,15 @@
+{
+  "$schema": "https://dev.chathealthy.ai/schemas/ChatHealthyBuildArchitectureSchema.json",
+  "collection": "build_architecture",
+  "description": "Where the build reads source from, and where it writes. The React application's source root used to be written into three build files -- vite.config.ts as its root and outDir, _build_chain.py as the dist it stages, hf_helpers.py as the dist it inlines fonts into -- all spelling Code/ConversationalUX/FindCareChat/frontend. Moving the application, which is what refactoring the business layout does, broke the build in three places. The build was depending on the business architecture. dist is under build/ and not beside the source: a build that writes into the business tree leaves derived bytes among authored ones, and the first draft of this file had vite emitting into Website/FindCareChat/dist.",
+  "react_applications": [
+    {
+      "name": "FindCareChat",
+      "source_root": "Website/FindCareChat",
+      "dist": "build/react/FindCareChat",
+      "serves_at": "app",
+      "entry": "src/main.tsx",
+      "html": "index.html"
+    }
+  ]
+}

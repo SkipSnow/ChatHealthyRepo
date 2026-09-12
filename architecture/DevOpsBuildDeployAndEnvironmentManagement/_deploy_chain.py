@@ -3754,10 +3754,15 @@ class LocalDeploy:
         self.env = "local"
         self.repo_root = Path(os.environ[REPO_ROOT_ENV]).resolve()
         self.deploy_dir = Path(__file__).resolve().parent
-        self.frontend_dir = (self.repo_root / "Code" / "ConversationalUX"
-                             / "FindCareChat" / "frontend")
-        self.backend_dir = (self.repo_root / "Code" / "ConversationalUX"
-                            / "FindCareChat" / "backend")
+        # Read, never spelled. These were Code/ConversationalUX/FindCareChat,
+        # so the deploy broke the moment the business layout moved -- the same
+        # coupling the build carried in three places. build_architecture.json
+        # says where source is and where the bundle lands.
+        from _build_chain import react_application   # noqa: PLC0415
+        _react = react_application(self.repo_root, "FindCareChat")
+        self.frontend_dir = self.repo_root / _react["source_root"]
+        self.react_dist = self.repo_root / _react["dist"]
+        self.backend_dir = self.repo_root / "FindCare" / "Code"
         # Local deploy reads from the per-target build_dir produced by
         # build_chathealthy.py — that's where build-time substitutions
         # (placeholders for per-build HF Space URLs etc.) have been applied.
@@ -3841,7 +3846,7 @@ class LocalDeploy:
                     killed_pids.add(pid)
                 except psutil.NoSuchProcess:
                     pass
-        for stale in (self.frontend_dir / "dist",
+        for stale in (self.react_dist,
                       self.frontend_dir / "node_modules" / ".vite"):
             if stale.exists():
                 shutil.rmtree(stale)
@@ -4191,7 +4196,12 @@ class LocalDeploy:
         env["VITE_EVALCARE_URL"] = evalcare_url
         env["VITE_SHAREDSERVICES_URL"] = sharedservices_url
         canonical_vite = self.deploy_dir / "vite.config.ts"
-        vite_copy = self.repo_root / "vite.config.ts"
+        # Into the build directory, not the repo root. At the root it was
+        # a generated file in the business tree, staged by any promote
+        # that ran inside the window before the finally removed it.
+        vite_copy = self.repo_root / "build" / "vite.config.ts"
+        vite_copy.parent.mkdir(parents=True, exist_ok=True)
+        env["CH_REPO_ROOT"] = str(self.repo_root)
         if not canonical_vite.is_file():
             raise ChatHealthyException(
                 mode="aborted",
@@ -4205,7 +4215,8 @@ class LocalDeploy:
                 shell=(sys.platform == "win32"),
             )
             subprocess.run(
-                ["npm", "run", "build"],
+                ["npm", "run", "build", "--",
+                 "--config", "build/vite.config.ts"],
                 cwd=self.repo_root, env=env, check=True,
                 shell=(sys.platform == "win32"),
             )
@@ -4218,7 +4229,7 @@ class LocalDeploy:
         finally:
             if vite_copy.is_file():
                 vite_copy.unlink()
-        dist_index = self.frontend_dir / "dist" / "index.html"
+        dist_index = self.react_dist / "index.html"
         if not dist_index.is_file():
             raise ChatHealthyException(
                 mode="aborted",
@@ -4229,23 +4240,30 @@ class LocalDeploy:
                 mode="aborted",
                 component="_deploy_chain",
                 message=f"ERROR: CH_FONTS marker not found in {dist_index}")
-        backend_static = self.backend_dir / "static"
-        for old in ("assets", "index.html"):
-            old_path = backend_static / old
-            if old_path.is_dir():
-                shutil.rmtree(old_path)
-            elif old_path.is_file():
-                old_path.unlink()
-        backend_static.mkdir(parents=True, exist_ok=True)
-        for item in (self.frontend_dir / "dist").iterdir():
-            if item.is_dir():
-                shutil.copytree(item, backend_static / item.name)
-            else:
-                shutil.copy2(item, backend_static / item.name)
+        # The bundle stays in the build directory. It used to be copied into
+        # FindCare/Code/static as well, where nothing served it: FindCare's
+        # app.py mounts no static tree and the served bundle comes from the
+        # website's own staging. The copy put generated files in the business
+        # tree, rode into the image on COPY FindCare, and was staged by the
+        # promote's git add -A, which is what refused a promote on minified
+        # React.
 
     def _start_backend_processes(self) -> None:
         """V11 S-002-REQ-T-001 docker run + S-002-REQ-T-002 host-OS Website."""
+        # The instant the old containers are torn down. Every log record the
+        # new ones write is after it, so it is the window the logging check
+        # asks about. Without a window that check counted records from any
+        # time, and 6,306 of them already existed -- it could not fail.
+        # Stored naive because that is how the handler stores timeStamp.
+        self._log_window_start = datetime.now(timezone.utc).replace(tzinfo=None)
         certs_host = str(self.certs_dir).replace("\\", "/")
+        # Mongo is the log of record, and it is the only one the
+        # services had -- so an unreachable cluster lost the records
+        # that would say why. The file destination sits beside it and
+        # outside the repo, because the build deletes its own root.
+        logs_dir = Path(tempfile.gettempdir()) / "chathealthy_logs"
+        logs_dir.mkdir(parents=True, exist_ok=True)
+        logs_host = str(logs_dir).replace("\\", "/")
         env_file = self.repo_root / ".env"
         if not env_file.is_file():
             raise ChatHealthyException(
@@ -4330,7 +4348,8 @@ class LocalDeploy:
                  "--name", container_name,
                  "--add-host", "host.docker.internal:host-gateway",
                  "-p", f"{host_port}:7860",
-                 "-v", f"{certs_host}:/certs:ro"]
+                 "-v", f"{certs_host}:/certs:ro",
+                 "-v", f"{logs_host}:/logs"]
                 + env_args + extra_env + [container_name]
             )
             run_result = subprocess.run(
@@ -4564,17 +4583,30 @@ class LocalDeploy:
             client = ChatHealthyMongoUtilities().getConnection(
                 "DevOpsUser", "ChatHealthyFrontEnd")
             coll = client[database][collection]
-            recent = coll.count_documents({"env": env}, limit=1)
-            if not recent:
+            # Bounded to this deploy. Counting every record carrying the env
+            # asked "has anything ever logged here", which 6,306 existing
+            # local records answered yes to before the containers even
+            # started -- so the check could not fail, whatever the services
+            # did. The window opens when the old containers are torn down.
+            since = getattr(self, "_log_window_start", None)
+            if since is None:
                 record(f"logging_to_mongo_{env}", False,
-                       f"{database}.{collection} holds no record carrying env={env!r}; "
-                       f"this environment's services answered and logged nowhere "
-                       f"a reader of {env!r} would look")
+                       "no log window was recorded, so nothing distinguishes "
+                       "this deploy's records from every earlier one")
                 return
-            newest = coll.find({"env": env}).sort([("_id", -1)]).limit(1)
+            query = {"env": env, "timeStamp": {"$gte": since}}
+            if not coll.count_documents(query, limit=1):
+                record(f"logging_to_mongo_{env}", False,
+                       f"{database}.{collection} holds no record carrying "
+                       f"env={env!r} written since {since.isoformat()}Z; these "
+                       f"services answered and logged nothing a reader of "
+                       f"{env!r} would find for this deploy")
+                return
+            newest = coll.find(query).sort([("_id", -1)]).limit(1)
             stamp = next(iter(newest), {}).get("timeStamp", "unknown")
             record(f"logging_to_mongo_{env}", True,
-                   f"{database}.{collection} env={env} latest={stamp}")
+                   f"{database}.{collection} env={env} "
+                   f"since={since.isoformat()}Z latest={stamp}")
         except Exception as exc:                                # noqa: BLE001
             record(f"logging_to_mongo_{env}", False,
                    f"could not read {database}.{collection}: {type(exc).__name__}: {exc}")
@@ -4618,6 +4650,15 @@ class LocalDeploy:
             + (f"; failed={failed}" if failed else "")
         )
         if failed:
+            # Each failure said why, and nothing said it out loud: the detail
+            # lived only in self.results, and run() writes that file AFTER
+            # this method -- so raising here discarded every explanation and
+            # left the operator the names alone.
+            for entry in v:
+                if not entry["ok"]:
+                    _CH_LOG.error("verification FAILED %s: %s",
+                                  entry["name"], entry["detail"])
+            self._write_structured_output()
             raise ChatHealthyException(
                 mode="aborted",
                 component="_deploy_chain",

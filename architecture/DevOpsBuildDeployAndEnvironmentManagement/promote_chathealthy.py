@@ -423,8 +423,15 @@ def _promote_local_to_dev(repo_root: Path, label: str | None = None) -> int:
     # authorization, and the record has to say so: the outcome is written
     # against the same record the approval created, so an approval with no
     # outcome is always an unfinished promote rather than a silent one.
+    # Composed before the question, because the operator cannot approve a
+    # message that does not exist yet. It used to be built after the gate,
+    # and the page offered the subject of the previous commit instead --
+    # so leaving the box alone stored nothing and the commit fell back to
+    # --label, which is the agent's string, not the operator's.
+    auto = f"promote local -> dev ({datetime.now(timezone.utc).isoformat()})"
+    offered = label or auto
     gate, record_id = _authorize_promotion(
-        "local", "dev", "dev", "dev", repo_root)
+        "local", "dev", "dev", "dev", repo_root, offered_message=offered)
     if record_id is None:
         # A refusal and an unanswered page are different facts, and the log
         # said "refused by the operator" for both.
@@ -432,8 +439,8 @@ def _promote_local_to_dev(repo_root: Path, label: str | None = None) -> int:
                      f"nothing staged")
         return 1
 
-    def _finish(outcome: str, rc: int) -> int:
-        gate.record_outcome(record_id, outcome)
+    def _finish(outcome: str, rc: int, commit_message: str = "") -> int:
+        gate.record_outcome(record_id, outcome, commit_message)
         return rc
 
     # Nothing may hide from the capture. Empties the stash stack for good.
@@ -461,24 +468,22 @@ def _promote_local_to_dev(repo_root: Path, label: str | None = None) -> int:
         _CH_LOG.info(f"[promote] governance FAILED (exit {rc}) — nothing committed")
         return _finish("refused_by_governance", rc)
 
-    auto = f"promote local -> dev ({datetime.now(timezone.utc).isoformat()})"
-    # The operator may rewrite the message on the approval page. Typing
-    # something replaces the label; leaving it alone keeps it. The trailer
-    # naming the promotion and its time is added either way.
-    subject = gate.operator_message or label
-    message = (subject + chr(10) + chr(10) + auto) if subject else auto
+    # Typing something replaces the offered message; leaving it alone keeps
+    # it. Either way the trailer naming the promotion and its time stands.
+    subject = gate.operator_message or offered
+    message = subject if subject == auto else (subject + chr(10) * 2 + auto)
     _CH_LOG.info(f"[promote] commit: {message.splitlines()[0]}")
     rc = subprocess.run(["git", "commit", "--allow-empty", "-m", message],
                         cwd=str(repo_root)).returncode
     if rc != 0:
         _CH_LOG.info(f"[promote] commit refused (exit {rc}); nothing pushed")
-        return _finish("refused_at_commit", rc)
+        return _finish("refused_at_commit", rc, message)
 
     _require_tree_fully_committed(repo_root)
     _CH_LOG.info("[promote] push origin dev")
     rc = subprocess.run(["git", "push", "origin", "dev"],
                         cwd=str(repo_root)).returncode
-    return _finish("promoted" if rc == 0 else "failed_push", rc)
+    return _finish("promoted" if rc == 0 else "failed_push", rc, message)
 
 def _promote_branch_to_branch(repo_root: Path, source_env: str, target_env: str) -> int:
     """Fully automated: fetch, then push origin/<source> to <target> on
@@ -529,7 +534,7 @@ def _promote_branch_to_branch(repo_root: Path, source_env: str, target_env: str)
 
 
 def _authorize_promotion(source_env, target_env, source_branch,
-                         target_branch, repo_root):
+                         target_branch, repo_root, offered_message=None):
     """Ask a human, record the answer, and return the record it wrote.
 
     Returns (worker, record_id). A record_id of None means the promotion is
@@ -551,7 +556,9 @@ def _authorize_promotion(source_env, target_env, source_branch,
     worker = PromoteAuthorizationWorker(PromotionFacts(
         source_environment=source_env, destination_environment=target_env,
         source_branch=source_branch, destination_branch=target_branch,
-        commit=tip, commit_subject=subject, commits_ahead=int(ahead),
+        commit=tip, commit_subject=subject,
+        offered_message=offered_message or "",
+        commits_ahead=int(ahead),
         files=len(baseline_files(repo_root))))
     return worker, worker.authorize()
 

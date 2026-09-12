@@ -87,7 +87,7 @@
               "enforcement_id": "Rule-002-ENF-001",
               "title": "Boot the session on SessionStart",
               "hook": "SessionStart",
-              "executable_path": "Code/Shared/ops/tools/chathealthy_devops_boot.py",
+              "executable_path": "architecture/EngineeringRuleEnforcement/code/chathealthy_devops_boot.py",
               "requires_lock": false,
               "scopes": [],
               "timeout": 30
@@ -96,7 +96,7 @@
               "enforcement_id": "Rule-002-ENF-002",
               "title": "Boot the session again after a context compaction",
               "hook": "PostCompact",
-              "executable_path": "Code/Shared/ops/tools/chathealthy_devops_boot.py",
+              "executable_path": "architecture/EngineeringRuleEnforcement/code/chathealthy_devops_boot.py",
               "requires_lock": false,
               "scopes": [],
               "timeout": 30

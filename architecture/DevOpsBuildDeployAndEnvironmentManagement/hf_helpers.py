@@ -733,8 +733,12 @@ def _build_react_frontend(repo_root: Path, evalcare_peer: str,
             ["npm", "run", "build"], cwd=str(frontend), env=env_for_build,
             check=True, shell=(sys.platform == "win32"),
         )
-        dist_index = (repo_root / "Code" / "ConversationalUX"
-                      / "FindCareChat" / "frontend" / "dist"
+        from _build_chain import react_application   # noqa: PLC0415
+        # Where the bundle landed is the record's to say, not this
+        # file's. Spelled here as well as in two other build files, it
+        # made moving the application a three-file repair.
+        dist_index = (repo_root
+                      / react_application(repo_root, "FindCareChat")["dist"]
                       / "index.html")
         if not dist_index.is_file():
             raise ChatHealthyException(
