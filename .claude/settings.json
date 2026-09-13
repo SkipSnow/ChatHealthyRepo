@@ -86,12 +86,10 @@
     ],
     "PreToolUse": [
       {
-        "matcher": "Bash",
         "hooks": [
           {
             "type": "command",
-            "command": "python \"$CLAUDE_PROJECT_DIR/architecture/EngineeringRuleEnforcement/code/chathealthy_enforcement_manager.py\" --hook PreToolUse",
-            "timeout": 900
+            "command": "python \"$CLAUDE_PROJECT_DIR/architecture/EngineeringRuleEnforcement/code/chathealthy_enforcement_manager.py\" --hook PreToolUse"
           }
         ]
       }

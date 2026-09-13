@@ -83,7 +83,15 @@ _PRECEDENCE = (
     EXIT_OK,
 )
 
-DEFAULT_TIMEOUT_SECONDS = 30
+# The one timeout, taken from where it is declared. This driver is the
+# second thing that spawns workers, and it held a number of its own --
+# which is the defect the single value exists to remove.
+from chathealthy_enforcement_manager import (  # noqa: E402
+    ChatHealthyEnforcementManager as _Manager,
+    TIMEOUT_ENV,
+)
+
+DEFAULT_TIMEOUT_SECONDS = _Manager.DEFAULT_TIMEOUT_SECONDS
 
 
 # ── the working-tree duties, moved here from promote ─────────────────────────
@@ -212,6 +220,8 @@ class CommitGovernanceDriver:
         payload = "\n".join(self.files) + "\n"
 
         try:
+            worker_env = dict(os.environ)
+            worker_env[TIMEOUT_ENV] = str(timeout)
             proc = subprocess.run(
                 [sys.executable, str(worker), enforcement_id],
                 cwd=str(PROJECT_ROOT),
@@ -222,6 +232,7 @@ class CommitGovernanceDriver:
                 errors="surrogateescape",
                 timeout=timeout,
                 check=False,
+                env=worker_env,
             )
         except subprocess.TimeoutExpired:
             return {

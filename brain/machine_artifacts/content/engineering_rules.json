@@ -33,8 +33,7 @@
               "hook": "UserPromptSubmit",
               "executable_path": "architecture/ClaudeCodeConversationPersistence/conversation_log_writer.py",
               "requires_lock": false,
-              "scopes": [],
-              "timeout": 10
+              "scopes": []
             },
             {
               "enforcement_id": "Rule-001-ENF-002",
@@ -42,8 +41,7 @@
               "hook": "Stop",
               "executable_path": "architecture/ClaudeCodeConversationPersistence/conversation_log_writer.py",
               "requires_lock": false,
-              "scopes": [],
-              "timeout": 10
+              "scopes": []
             }
           ]
         }
@@ -89,8 +87,7 @@
               "hook": "SessionStart",
               "executable_path": "architecture/EngineeringRuleEnforcement/code/chathealthy_devops_boot.py",
               "requires_lock": false,
-              "scopes": [],
-              "timeout": 30
+              "scopes": []
             },
             {
               "enforcement_id": "Rule-002-ENF-002",
@@ -98,8 +95,7 @@
               "hook": "PostCompact",
               "executable_path": "architecture/EngineeringRuleEnforcement/code/chathealthy_devops_boot.py",
               "requires_lock": false,
-              "scopes": [],
-              "timeout": 30
+              "scopes": []
             }
           ]
         }
@@ -170,8 +166,7 @@
                     "deploy_chathealthy.py"
                   ]
                 ]
-              ],
-              "timeout": 900
+              ]
             }
           ]
         }
@@ -237,8 +232,7 @@
               "hook": "commit-msg",
               "executable_path": "architecture/EngineeringRuleEnforcement/code/commit_authorization_worker.py",
               "requires_lock": false,
-              "scopes": [],
-              "timeout": 900
+              "scopes": []
             },
             {
               "enforcement_id": "Rule-065-ENF-002",
@@ -268,8 +262,7 @@
                     "\\.ico$"
                   ]
                 ]
-              ],
-              "timeout": 30
+              ]
             },
             {
               "enforcement_id": "Rule-065-ENF-003",
@@ -342,8 +335,7 @@
                     "architecture/EngineeringRuleEnforcement/code/scan_mongo_client_direct_access_worker.py"
                   ]
                 ]
-              ],
-              "timeout": 30
+              ]
             },
             {
               "enforcement_id": "Rule-065-ENF-004",
@@ -380,8 +372,7 @@
                     "ChatHealthyLib/src/chathealthy_lib/logging_service.py"
                   ]
                 ]
-              ],
-              "timeout": 30
+              ]
             },
             {
               "enforcement_id": "Rule-065-ENF-005",
@@ -389,8 +380,7 @@
               "hook": "commit-msg",
               "executable_path": "architecture/EngineeringRuleEnforcement/code/identity_approval_worker.py",
               "requires_lock": false,
-              "scopes": [],
-              "timeout": 900
+              "scopes": []
             },
             {
               "enforcement_id": "Rule-065-ENF-006",
@@ -509,8 +499,7 @@
                     ".+"
                   ]
                 ]
-              ],
-              "timeout": 60
+              ]
             },
             {
               "enforcement_id": "Rule-065-ENF-007",
@@ -611,8 +600,7 @@
                     "architecture/EngineeringRuleEnforcement/tests/fixtures/separation_of_concerns/business_logic/violation.js"
                   ]
                 ]
-              ],
-              "timeout": 120
+              ]
             },
             {
               "enforcement_id": "Rule-065-ENF-008",
@@ -620,8 +608,7 @@
               "hook": "pre-commit",
               "executable_path": "architecture/EngineeringRuleEnforcement/code/scan_entrypoint_uniqueness_worker.py",
               "requires_lock": false,
-              "scopes": [],
-              "timeout": 10
+              "scopes": []
             },
             {
               "enforcement_id": "Rule-065-ENF-009",
@@ -629,8 +616,7 @@
               "hook": "pre-commit",
               "executable_path": "architecture/EngineeringRuleEnforcement/code/scan_data_migration_compliance_worker.py",
               "requires_lock": false,
-              "scopes": [],
-              "timeout": 300
+              "scopes": []
             }
           ]
         }

@@ -72,8 +72,9 @@ _CH_LOG = ChatHealthyLoggingService()
 _AGENT_MARKERS = ("CLAUDECODE", "CLAUDE_AGENT_SDK_VERSION", "CLAUDE_CODE_ENTRYPOINT")
 
 # Web-prompt timeout (seconds).
-_BROWSER_TIMEOUT_SECONDS = 600
-
+# The budget the manager handed down; this worker holds no
+# number of its own. An expiry is a rejection.
+_BROWSER_TIMEOUT_SECONDS = int(os.environ.get("CHATHEALTHY_ENFORCEMENT_TIMEOUT_SECONDS") or 0)
 # EPIC-008-F-012-S-001-REQ-B-013: commits land on this branch and no other.
 # qa and prod receive code only through promote_chathealthy.py.
 _COMMIT_BRANCH = "dev"

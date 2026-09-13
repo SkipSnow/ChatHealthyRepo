@@ -51,7 +51,9 @@ _log = ChatHealthyLoggingService()
 
 AUTHORIZATION_TYPE = "promotion"
 
-TIMEOUT_SECONDS = 600
+# The budget the manager handed down; this worker holds no
+# number of its own. An expiry is a rejection.
+TIMEOUT_SECONDS = int(os.environ.get("CHATHEALTHY_ENFORCEMENT_TIMEOUT_SECONDS") or 0)
 ADJACENT_PAIRS = (("local", "dev"), ("dev", "qa"), ("qa", "prod"))
 
 

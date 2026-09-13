@@ -14,11 +14,18 @@ Owns:
   • _emit_violation / _emit_telemetry — structured stdout
   • Exit-code semantics       — 0 clean, 1 violations, 2 worker error
 
-Workers MUST NOT install signal handlers, watchdog threads, or any in-process
-timeout mechanism. Per design V19 §4.3.2, timeout enforcement is exclusively
-the manager's responsibility — the worker does not see the timeout value, and
-the manager hard-kills the worker subprocess on the wall-clock budget.
-Adding any in-process timeout primitive here is a contract violation.
+The timeout is one value, declared once in the manager and handed to every
+worker through TIMEOUT_ENV. A worker reads it from this base class as
+self.timeout_seconds and holds no number of its own.
+
+A worker that waits on a human MUST expire on that budget itself, refuse,
+and record the refusal. It must not rely on the manager's kill: a kill is
+not a refusal -- on a hook that expresses refusal as a decision rather than
+an exit code the command proceeds -- and a killed worker writes no audit
+record. The manager's budget is therefore a ceiling above this worker's own
+expiry, never the thing that ends the wait.
+
+Workers MUST NOT install signal handlers or watchdog threads.
 """
 
 from __future__ import annotations
@@ -46,6 +53,11 @@ for _d in _pl.Path(__file__).resolve().parents:
 import os as _ch_os
 _ch_os.environ["CH_LOG_DESTINATION"] = "stderr"
 from chathealthy_lib.exceptions import ChatHealthyException
+
+# The environment name the manager hands the one timeout down through.
+# Defined here because every worker inherits from this module; the manager
+# imports it rather than restating the string.
+TIMEOUT_ENV = "CHATHEALTHY_ENFORCEMENT_TIMEOUT_SECONDS"
 from chathealthy_lib.logging_service import ChatHealthyLoggingService
 
 _CH_LOG = ChatHealthyLoggingService()
@@ -141,10 +153,37 @@ class EnforcementWorker(abc.ABC):
         self.executable_path: str = self.entry.get("executable_path", "")
         self.rule_id: str = self.entry.get("rule_id", "")
         self.hook: str = self.entry.get("hook", "")
+        self.timeout_seconds: int = self._load_timeout()
         self.scopes: list[list[Any]] = self._load_scopes()
         self._files: list[str] | None = None
         # Validate that every function_name in scopes is a real method.
         self._validate_scope_function_names()
+
+    # ────────────────────────────────────────────────────────────────────────
+    # The timeout, handed down by the manager
+    # ────────────────────────────────────────────────────────────────────────
+    def _load_timeout(self) -> int:
+        """The budget this worker has, as the manager set it.
+
+        One value, declared in the manager and passed to every worker. A
+        worker that waits on a human needs its own budget so it can expire,
+        refuse and record: the manager's kill is not a refusal and writes
+        nothing. Every subclass reads it here rather than holding a number
+        of its own.
+
+        Absent means this was not launched by the manager. That is a
+        misconfiguration, not a default to invent, so it raises.
+        """
+        raw = _ch_os.environ.get(TIMEOUT_ENV, "").strip()
+        if not raw.isdigit() or int(raw) <= 0:
+            raise ChatHealthyException(
+                "timeout_not_supplied",
+                f"{TIMEOUT_ENV} is not set to a positive integer; this worker "
+                "was not launched by the enforcement manager and has no budget",
+                component="EnforcementWorker",
+                enforcement_id=self.enforcement_id,
+            )
+        return int(raw)
 
     # ────────────────────────────────────────────────────────────────────────
     # The file array, handed down by the driver

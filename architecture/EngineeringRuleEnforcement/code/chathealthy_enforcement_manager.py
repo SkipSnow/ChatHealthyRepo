@@ -60,6 +60,11 @@ PROJECT_ROOT = _THIS_FILE.parents[3]
 # is relative). Workers are spawned with cwd=PROJECT_ROOT, which erases that
 # signal, so it is captured here at launch and forwarded to every worker.
 HOOK_CWD_ENV = "CHATHEALTHY_HOOK_CWD"
+
+# The one timeout is handed to every worker through this name. It is
+# defined by the base class every worker inherits from, and imported here
+# rather than restated, so the name exists in one place.
+from enforcement_worker import TIMEOUT_ENV  # noqa: E402
 LAUNCH_CWD = os.getcwd()
 
 
@@ -169,7 +174,12 @@ class ChatHealthyEnforcementManager:
     EXIT_WORKER_INTERNAL_ERROR: int = 5
 
     # ── Timeouts (V19 §4.3.2 / Table 5) ──────────────────────────────────────
-    DEFAULT_TIMEOUT_SECONDS: int = 30
+    # The one timeout. Five hours is the approval window a human is given;
+    # this is that window plus a minute of grace, so a worker waiting on a
+    # person always expires and denies on its own rather than being killed
+    # here -- a kill returns a code that is not a deny, so the command runs
+    # and nothing is recorded. No enforcement entry declares its own.
+    DEFAULT_TIMEOUT_SECONDS: int = 18000
 
     # Aggregation precedence — highest wins (TR-2).
     # 2 > 3 > 5 > 4 > 1 > 0
@@ -209,6 +219,27 @@ class ChatHealthyEnforcementManager:
         codes = self._dispatch(enforcements)
         for enforcement, code in zip(enforcements, codes):
             self.report.note_failure(enforcement["enforcement_id"], code)
+
+        # A timeout is a refusal. This hook expresses a refusal as a
+        # decision on stdout rather than as an exit code, so a non-zero
+        # exit here would let the command run. Emitted by the manager
+        # because the worker that would have said it has been killed.
+        # What timed out is not named: this dispatches on the hook's
+        # protocol and knows nothing about any enforcement.
+        if (self.hook_name == "PreToolUse"
+                and self.EXIT_WORKER_TIMEOUT in codes):
+            sys.stdout.write(json.dumps({
+                "hookSpecificOutput": {
+                    "hookEventName": "PreToolUse",
+                    "permissionDecision": "deny",
+                    "permissionDecisionReason":
+                        "An enforcement timed out, and a timeout is a refusal.",
+                },
+            }) + chr(10))
+            sys.stdout.flush()
+            self._report(self._aggregate(codes))
+            return self.EXIT_OK
+
         return self._report(self._aggregate(codes))
 
     def _report(self, exit_code: int) -> int:
@@ -350,6 +381,7 @@ class ChatHealthyEnforcementManager:
             try:
                 worker_env = dict(os.environ)
                 worker_env[HOOK_CWD_ENV] = LAUNCH_CWD
+                worker_env[TIMEOUT_ENV] = str(timeout_value)
                 completed = subprocess.run(
                     [sys.executable, str(executable_path), enforcement_id],
                     timeout=timeout_value,

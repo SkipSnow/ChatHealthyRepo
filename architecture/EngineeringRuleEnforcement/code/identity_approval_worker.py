@@ -58,8 +58,9 @@ from chathealthy_lib.exceptions import ChatHealthyException
 
 
 _AGENT_MARKERS = ("CLAUDECODE", "CLAUDE_AGENT_SDK_VERSION", "CLAUDE_CODE_ENTRYPOINT")
-_BROWSER_TIMEOUT_SECONDS = 600
-
+# The budget the manager handed down; this worker holds no
+# number of its own. An expiry is a rejection.
+_BROWSER_TIMEOUT_SECONDS = int(os.environ.get("CHATHEALTHY_ENFORCEMENT_TIMEOUT_SECONDS") or 0)
 _MANIFEST_REL = "brain/machine_artifacts/content/deployment_architecture.json"
 
 _AUDIT_LOG_PATH = (

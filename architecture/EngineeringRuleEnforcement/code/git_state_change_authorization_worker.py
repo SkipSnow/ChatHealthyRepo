@@ -44,6 +44,7 @@ from __future__ import annotations
 
 import ast
 import json
+import os
 import secrets
 import socket
 import socketserver
@@ -85,7 +86,14 @@ class GitStateChangeAuthorization:
     EXIT_ALLOW = 0
     EXIT_AFTER_DENY = 0
 
-    APPROVAL_TIMEOUT_SECONDS = 600
+    # The budget the manager handed down. One value, declared once, in
+    # the manager; this class holds no number of its own. An expiry is a
+    # rejection: the command does not run and the refusal is recorded.
+    #
+    # Read from the environment rather than inherited because this class
+    # has no base class, by instruction.
+    APPROVAL_TIMEOUT_SECONDS = int(
+        os.environ.get("CHATHEALTHY_ENFORCEMENT_TIMEOUT_SECONDS") or 0)
     AUDIT_UNRECORDED = "CH-GATE-001 audit record could not be written to MongoDB"
 
     # Git subcommands that only read.
@@ -179,8 +187,15 @@ class GitStateChangeAuthorization:
 
     # ── the one entry point ──────────────────────────────────────────────
     def authorize(self) -> int:
-        """Decide, record, and return the exit code. Recording is not optional."""
-        if self.tool not in ("Bash", "PowerShell") or not self.command.strip():
+        """Decide, record, and return the exit code. Recording is not optional.
+
+        Every command is judged, whatever tool carried it. Naming the tools
+        this governs was the defect: the name list here and the matcher in
+        the hook wiring were two statements of one scope, and the wiring
+        silently won -- so this claimed PowerShell and never saw it. A tool
+        call with no command has nothing to judge and passes.
+        """
+        if not self.command.strip():
             return self.EXIT_ALLOW
 
         findings = self.findings()
@@ -811,6 +826,9 @@ class GitStateChangeAuthorization:
         while time.time() < deadline and state["verdict"] is None:
             time.sleep(0.25)
         server.shutdown()
+        # An unanswered request is a rejection. Silence is never consent:
+        # the command does not run, and the refusal is recorded with the
+        # same audit record an explicit reject gets.
         return (state["verdict"] or "timeout"), state["evidence"]
 
 
