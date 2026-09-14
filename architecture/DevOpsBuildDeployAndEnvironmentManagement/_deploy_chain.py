@@ -3455,9 +3455,22 @@ def _hf_space_live_url_for_target(coll: DeploymentCollection, env: str, target_i
 
 def _verify_hf_space_live(coll: DeploymentCollection, env: str, target_id: str, build_n: int,
                             timeout_s: int = 120) -> tuple[bool, str]:
-    """End-to-end probe: curl the Space's public /health endpoint and
-    confirm HTTP 200 AND `build` field equals `build_n`. Polls every 5
-    seconds up to timeout_s. Returns (ok, detail)."""
+    """Probe the Space's public /health and confirm HTTP 200 AND `build`
+    equals `build_n`. Returns (ok, detail).
+
+    Proves only that this Space answers the deploy. It cannot see the call
+    the application makes between components; `_verify_peer_path` does that.
+
+    The wait between polls grows. Every poll spends the same per-account
+    request budget the running application draws on, and a fixed five
+    seconds made a slow converge ~24 probes per target -- enough to exhaust
+    the budget the deploy was about to hand to users.
+
+    A 429 is counted and named. The host answering "too many requests" is a
+    healthy host refusing, which is not the same fact as an unreachable one,
+    and a throttle that clears before the timeout used to leave no trace in
+    a passing verify.
+    """
     import json as _json
     import time as _time
     import urllib.error
@@ -3471,6 +3484,8 @@ def _verify_hf_space_live(coll: DeploymentCollection, env: str, target_id: str, 
     ctx.verify_mode = ssl.CERT_NONE
     t0 = _time.time()
     last_detail = ""
+    throttled = 0
+    wait = 5
     while _time.time() - t0 < timeout_s:
         try:
             req = urllib.request.Request(url + "/health", method="POST")
@@ -3481,16 +3496,101 @@ def _verify_hf_space_live(coll: DeploymentCollection, env: str, target_id: str, 
                         d = _json.loads(body)
                         served = d.get("build")
                         if int(served) == int(build_n):
-                            return (True, f"{url}/health build={served}")
+                            note = (f"; host throttled {throttled}x during verify"
+                                    if throttled else "")
+                            return (True, f"{url}/health build={served}{note}")
                         last_detail = f"{url}/health build={served} (waiting for {build_n})"
                     except Exception:
                         last_detail = f"{url}/health 200 but unparseable body"
                 else:
                     last_detail = f"{url}/health HTTP {r.status}"
+        except urllib.error.HTTPError as exc:
+            if exc.code == 429:
+                throttled += 1
+            last_detail = f"{url}/health HTTP {exc.code}"
         except Exception as exc:
             last_detail = f"{url}/health {type(exc).__name__}: {exc}"
-        _time.sleep(5)
-    return (False, f"timeout after {timeout_s}s; last: {last_detail}")
+        _time.sleep(wait)
+        wait = min(wait * 2, 40)
+    return (False, f"timeout after {timeout_s}s; last: {last_detail}"
+                   + (f"; host throttled {throttled}x" if throttled else ""))
+
+
+def _verify_peer_path(coll: DeploymentCollection, env: str) -> tuple[bool, str]:
+    """Ask SharedServices to reach each peer, the way the application does.
+
+    A per-Space /health probe asks a Space about itself, from here. The
+    application asks a different question: SharedServices calls FindCare
+    and EvaluateCare across the public internet, from a different origin,
+    against a different request budget. That is the call the session panel
+    reports and the call a user's search depends on, and it failed on dev
+    while every per-Space probe passed -- so a deploy certified green while
+    both peers read as dead on screen.
+
+    Asked through /gate op=peer_health, which is the application's own
+    surface for the question. `unreachable` is the peer's own answer and is
+    a failure here. An answer this cannot read is also a failure: a shape
+    it does not recognise must not be mistaken for health.
+
+    /auth/issue is the one unauthenticated door and establishes a session,
+    so this writes one session record per deploy. That is the cost of
+    asking the question the way the application asks it.
+    """
+    import json as _json
+    import ssl
+    import urllib.error
+    import urllib.request
+
+    base = _hf_space_live_url_for_target(
+        coll, env, "target_hf_space_shared_services")
+    if base is None:
+        return (False, f"no resolvable SharedServices Space URL for env={env}")
+    ctx = ssl.create_default_context()
+    ctx.check_hostname = False
+    ctx.verify_mode = ssl.CERT_NONE
+
+    def _post(path: str, body: dict) -> tuple[int, str]:
+        req = urllib.request.Request(
+            base + path, method="POST",
+            data=_json.dumps(body).encode("utf-8"),
+            headers={"content-type": "application/json"})
+        try:
+            with urllib.request.urlopen(req, context=ctx, timeout=45) as r:
+                return (r.status, r.read().decode("utf-8", errors="replace"))
+        except urllib.error.HTTPError as exc:
+            return (exc.code, exc.read().decode("utf-8", errors="replace"))
+
+    status, body = _post("/auth/issue", {})
+    if status != 200:
+        return (False, f"/auth/issue HTTP {status}: {body[:200]}")
+    try:
+        token = _json.loads(body)
+    except Exception:
+        return (False, f"/auth/issue 200 but unparseable body: {body[:200]}")
+
+    for peer in ("findcare", "evaluatecare"):
+        status, body = _post("/gate", {
+            "op": "peer_health",
+            "payload": {"peer": peer},
+            "session_token": token,
+        })
+        if status != 200:
+            return (False, f"/gate peer_health {peer} HTTP {status}: {body[:200]}")
+        try:
+            answer = _json.loads(body)
+        except Exception:
+            return (False, f"/gate peer_health {peer} unparseable: {body[:200]}")
+        # The wire may carry the peer's answer at the top level or under a
+        # result envelope. Read both, and fail on neither: a status this
+        # cannot find has not been shown to be healthy.
+        found = answer.get("status")
+        if found is None and isinstance(answer.get("result"), dict):
+            found = answer["result"].get("status")
+        if found is None:
+            return (False, f"/gate peer_health {peer}: no status in {body[:240]}")
+        if found != "ok":
+            return (False, f"SharedServices cannot reach {peer}: {body[:240]}")
+    return (True, "SharedServices reaches findcare and evaluatecare")
 
 
 def run_cloud_deploy(env: str, target_arg: str,
@@ -3549,6 +3649,10 @@ def run_cloud_deploy(env: str, target_arg: str,
     succeeded: list[str] = []
     failed: list[tuple[str, str]] = []  # (target_id, error_message)
     any_hf_failed = False
+    # Whether the peer-path check has anything to ask about. A deploy of
+    # only the wrapper or only Atlas moves no backend, and asking then
+    # would report on components this run did not touch.
+    any_hf_deployed = False
     # A runtime reads its configuration at startup. If the target
     # that writes it failed, everything after it would install and
     # come up against configuration that is absent or stale, which
@@ -3649,6 +3753,7 @@ def run_cloud_deploy(env: str, target_arg: str,
             component="_deploy_chain",
             message=f"post-deploy verify failed: {detail}")
                 step(f"  verified {target_id}: {detail}")
+                any_hf_deployed = True
             succeeded.append(result)
         except SystemExit as exc:
             msg = str(exc.code) if exc.code else "sys.exit() with no message"
@@ -3679,6 +3784,18 @@ def run_cloud_deploy(env: str, target_arg: str,
     # match the manifest is a security fact, and a security fact is not
     # optional. It aborts.
     apply_explicit_permissions_from_manifest(coll, env)
+    # Asked once, after every backend is live, because the question needs
+    # all of them up. Not caught: a deploy whose components cannot reach
+    # one another is a failed deploy, and the per-Space probes above cannot
+    # see that.
+    if not failed and any_hf_deployed:
+        ok, detail = _verify_peer_path(coll, env)
+        if not ok:
+            raise ChatHealthyException(
+                mode="runtime_error",
+                component="_deploy_chain",
+                message=f"post-deploy peer-path verify failed: {detail}")
+        step(f"  verified peer path: {detail}")
     if succeeded:
         step(f"deployed {len(succeeded)} target(s):")
         for d in succeeded:

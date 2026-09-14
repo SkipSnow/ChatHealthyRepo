@@ -43,6 +43,7 @@ machine from anything that merely posts the form.
 from __future__ import annotations
 
 import ast
+import importlib.util
 import json
 import os
 import secrets
@@ -168,11 +169,19 @@ class GitStateChangeAuthorization:
         none, so exempting a program is an edit to the rule and never to
         the code.
         """
-        rules = (self.project_root / "brain" / "machine_artifacts"
-                 / "content" / "engineering_rules.json")
+        # Read from HEAD, never the working tree. An exemption in the tree
+        # is a sentence the constrained actor wrote a moment ago; one at
+        # HEAD has passed the human-gated commit. Slipping an exception
+        # into the file therefore buys nothing until a human approves the
+        # commit that carries it. Unreadable means no exemptions.
         try:
-            content = json.loads(rules.read_text(encoding="utf-8"))
-        except (OSError, ValueError):
+            shown = subprocess.run(
+                ["git", "show",
+                 "HEAD:brain/machine_artifacts/content/engineering_rules.json"],
+                cwd=str(self.project_root), capture_output=True, text=True,
+                timeout=10)
+            content = json.loads(shown.stdout)
+        except (OSError, ValueError, subprocess.SubprocessError):
             return frozenset()
         names: set[str] = set()
         for rule in content.get("rules", {}).get("rule", []):
@@ -192,15 +201,32 @@ class GitStateChangeAuthorization:
         Every command is judged, whatever tool carried it. Naming the tools
         this governs was the defect: the name list here and the matcher in
         the hook wiring were two statements of one scope, and the wiring
-        silently won -- so this claimed PowerShell and never saw it. A tool
-        call with no command has nothing to judge and passes.
-        """
-        if not self.command.strip():
-            return self.EXIT_ALLOW
+        silently won -- so this claimed PowerShell and never saw it.
 
+        There is one evaluation. findings() judges every tool call --
+        command or file write -- and this method carries any finding
+        through the one ask/record/deny sequence. A second decision branch
+        here is how the file-tool bypass survived the first rewrite.
+        """
         findings = self.findings()
         if not findings:
             return self.EXIT_ALLOW
+
+        # Untestable software is not Claude's to run and not a human's to
+        # bless from a popup: a yes cannot make the unprovable proven. It
+        # denies outright, recorded, and the one way back is the exception
+        # list on Rule-006-ENF-001 -- an edit that itself takes a
+        # human-approved commit before this gate honours it.
+        untestable = [f for f in findings if f.get("untestable")]
+        if untestable:
+            if not self.record("untestable", {}, findings):
+                return self.deny(self.AUDIT_UNRECORDED, "unrecorded")
+            what = "; ".join(sorted({f["subcommand"] for f in untestable}))
+            return self.deny(
+                f"this executes software the walk cannot fully test: {what}. "
+                "Untestable software may not run; the remedy is the "
+                "exception list on Rule-006-ENF-001, via an approved commit.",
+                "untestable")
 
         verdict, evidence = self.ask_the_operator(findings)
 
@@ -283,15 +309,30 @@ class GitStateChangeAuthorization:
 
     # ── what the command is ──────────────────────────────────────────────
     def findings(self) -> list[dict]:
-        """Every part of the command no allowance covers."""
+        """Every part of the tool call no allowance covers.
+
+        The one evaluation. A call with no command is judged on its path;
+        a call with a command is judged segment by segment, and every
+        script it executes is walked to its last leaf with every reason
+        collected -- stopping at the first would leave the rest of the
+        tree untested and the operator deciding on a partial account.
+        """
         found: list[dict] = []
+
+        if not self.command.strip():
+            reach = self.file_write_into_git()
+            if reach:
+                found.append({"segment": reach,
+                              "subcommand": "writes inside .git"})
+            return found
 
         # A script fed to an interpreter on stdin lives in the command and in
         # no file, so the file walk has nothing to open. It is read here.
         for body in self.heredoc_bodies(self.command):
-            why = self.why_content_can_run_git(body, "the inline script")
-            if why:
-                found.append({"segment": "inline script", "subcommand": why})
+            for why, untestable in self.why_content_can_run_git(
+                    body, "the inline script"):
+                found.append({"segment": "inline script", "subcommand": why,
+                              "untestable": untestable})
 
         for segment in self.segments(self.command):
             # An exempt program is not examined at all. The rule says which,
@@ -320,12 +361,19 @@ class GitStateChangeAuthorization:
             if not program:
                 continue
 
+            interpreter = self.interpreter_head(segment)
+            if interpreter:
+                for why, untestable in self.inline_execution(segment):
+                    found.append({"segment": segment,
+                                  "subcommand": f"{interpreter}: {why}",
+                                  "untestable": untestable})
+
             script = self.script_argument(segment)
             if script is not None:
-                why = self.why_script_can_run_git(script)
-                if why:
+                for why, untestable in self.why_script_can_run_git(script):
                     found.append({"segment": segment,
-                                  "subcommand": f"{program}: {why}"})
+                                  "subcommand": f"{program}: {why}",
+                                  "untestable": untestable})
                 continue
 
             reaches = self.reaches_the_git_api(segment)
@@ -333,6 +381,93 @@ class GitStateChangeAuthorization:
                 found.append({"segment": segment,
                               "subcommand": f"{program}: {reaches}"})
         return found
+
+    def inline_execution(self, segment: str) -> list[tuple[str, bool]]:
+        """Code an interpreter runs that lives in no script file.
+
+        -c hands the interpreter source on the command line and -m hands
+        it a module name. Both execute software, so both are read: python
+        -c source is parsed like any other content, a -m module is
+        resolved to its file and walked, and what cannot be read or
+        resolved is untestable. Another interpreter's -c/-e is a language
+        this cannot parse, so it is untestable too.
+        """
+        words = segment.split()
+        program = self.interpreter_head(segment)
+        is_python = program.startswith("py")
+        reasons: list[tuple[str, bool]] = []
+
+        for flag in ("-c", "-e"):
+            if flag not in words:
+                continue
+            if not is_python:
+                reasons.append(
+                    (f"{flag} hands {program} code this walk cannot parse",
+                     True))
+                continue
+            marker = f" {flag} "
+            code = segment.split(marker, 1)[1].strip() if marker in segment \
+                else ""
+            code = code.strip("'\"")
+            if not code:
+                reasons.append((f"{flag} with nothing after it", True))
+            else:
+                reasons.extend(
+                    self.why_content_can_run_git(code, f"the {flag} code"))
+
+        if "-m" in words:
+            index = words.index("-m")
+            module = words[index + 1] if index + 1 < len(words) else ""
+            if not is_python or not module:
+                reasons.append(("-m names software this walk cannot resolve",
+                                True))
+            elif module.split(".")[0] in sys.stdlib_module_names:
+                pass
+            else:
+                tail = module.split(".")[-1]
+                matches = [p for p in self.project_root.rglob(f"{tail}.py")
+                           if ".venv" not in p.parts
+                           and "site-packages" not in p.parts
+                           and "node_modules" not in p.parts]
+                if not matches:
+                    installed = self.installed_module_file(module)
+                    if installed is not None:
+                        matches.append(installed)
+                if not matches:
+                    reasons.append(
+                        (f"-m {module} resolves to no file this walk can "
+                         "read", True))
+                for match in matches:
+                    reasons.extend(self.why_script_can_run_git(match))
+        return reasons
+
+    def file_write_into_git(self) -> str:
+        """The .git path this tool call writes, or "" when it writes none.
+
+        Judged the way a command is: on the program and the target. The
+        allowance names the tools that only read -- everything else that
+        aims a path under .git gates, so a writing tool this list has
+        never heard of fails closed instead of passing unnamed. The path
+        is judged resolved, so a relative spelling or a traversal cannot
+        hide the destination.
+        """
+        if self.tool in ("Read", "Grep", "Glob"):
+            return ""
+        tool_input = self.payload.get("tool_input") or {}
+        for field in ("file_path", "notebook_path", "path"):
+            raw = str(tool_input.get(field) or "").strip()
+            if not raw:
+                continue
+            candidate = Path(raw)
+            if not candidate.is_absolute():
+                candidate = self.project_root / raw
+            try:
+                resolved = candidate.resolve()
+            except OSError:
+                return raw
+            if ".git" in resolved.parts:
+                return str(resolved)
+        return ""
 
     # ── reading the command ──────────────────────────────────────────────
     def without_heredoc_bodies(self, command: str) -> str:
@@ -481,6 +616,23 @@ class GitStateChangeAuthorization:
             return word.lower()
         return "gh"
 
+    def interpreter_head(self, segment: str) -> str:
+        """The interpreter this segment starts with, or "".
+
+        invoked_program looks through an interpreter to name the script it
+        runs, which is right for exemptions and wrong for spotting -c and
+        -m: those have no script, so looking through the interpreter
+        returns whatever word follows the flag. This reads the literal
+        head and nothing else.
+        """
+        words = segment.split()
+        while words and "=" in words[0] and not words[0].startswith("-"):
+            words = words[1:]
+        if not words:
+            return ""
+        head = words[0].replace("\\", "/").rsplit("/", 1)[-1].lower()
+        return head if head in self.INTERPRETERS else ""
+
     def invoked_program(self, segment: str) -> str:
         """The program this segment runs, bare of its directory."""
         words = segment.split()
@@ -600,8 +752,19 @@ class GitStateChangeAuthorization:
             return target.id
         return ""
 
-    def local_imports(self, tree: ast.AST, source: Path) -> list[Path]:
-        """Files in this repository that this module imports."""
+    def local_imports(self, tree: ast.AST,
+                      source: Path) -> tuple[list[Path], list[str]]:
+        """Every import, accounted: the files to walk, and the names that
+        cannot be.
+
+        Each import lands in exactly one of three places. A module the
+        project holds is a branch and is walked -- every file matching the
+        name, because picking one of several is guessing which branch
+        grows here. A module of the interpreter's own standard library is
+        the platform, not project code, and is the one boundary the walk
+        accepts. Everything else is a limb this walk cannot parse, and an
+        unparsed limb is a failure, not a pass.
+        """
         modules: list[str] = []
         for node in ast.walk(tree):
             if isinstance(node, ast.Import):
@@ -609,23 +772,57 @@ class GitStateChangeAuthorization:
             elif isinstance(node, ast.ImportFrom) and node.module:
                 modules.append(node.module)
         found: list[Path] = []
+        unparseable: list[str] = []
         for dotted in modules:
+            top = dotted.split(".")[0]
+            if top in sys.stdlib_module_names:
+                continue
             tail = dotted.split(".")[-1]
+            matches: list[Path] = []
             beside = source.parent / f"{tail}.py"
             if beside.is_file():
-                found.append(beside)
-                continue
+                matches.append(beside)
             for candidate in self.project_root.rglob(f"{tail}.py"):
                 if (".venv" in candidate.parts
-                        or "site-packages" in candidate.parts):
+                        or "site-packages" in candidate.parts
+                        or "node_modules" in candidate.parts):
                     continue
-                found.append(candidate)
-                break
-        return found
+                matches.append(candidate)
+            if not matches:
+                # Not the project's and not the interpreter's: installed
+                # code. Installed Python is still Python and is read like
+                # any other branch. Only a module with no source file to
+                # read is truly unparseable.
+                installed = self.installed_module_file(dotted)
+                if installed is not None:
+                    matches.append(installed)
+            if matches:
+                found.extend(matches)
+            else:
+                unparseable.append(dotted)
+        return found, unparseable
+
+    def installed_module_file(self, dotted: str) -> Path | None:
+        """The source file of an installed module, or None.
+
+        Located without importing it: importing executes, and the walk
+        must never run what it is reading. Compiled extensions and
+        namespace packages have no source to read and return None, which
+        the caller reports as unparseable.
+        """
+        try:
+            spec = importlib.util.find_spec(dotted.split(".")[0])
+        except (ImportError, ValueError, AttributeError):
+            return None
+        origin = getattr(spec, "origin", None) if spec else None
+        if not origin or not str(origin).endswith(".py"):
+            return None
+        return Path(origin)
 
     def why_content_can_run_git(self, source: str, label: str,
-                                origin: Path | None = None) -> str:
-        """Why this content can run git, or "" when it cannot.
+                                origin: Path | None = None
+                                ) -> list[tuple[str, bool]]:
+        """Every reason this content can run git; empty when it cannot.
 
         The one place content is judged. A command's inline script and a
         script file are the same question asked of different bytes, and a
@@ -633,10 +830,23 @@ class GitStateChangeAuthorization:
         else inspects content: a second judge is a second answer waiting to
         disagree with this one.
 
+        The walk parses the tree to its most remote branch and leaf and
+        tests every command it holds. It does not stop at the first
+        finding: a partial walk is a partial account, and the operator
+        decides on the whole of it.
+
+        Each reason carries whether it is untestable. A literal git call is
+        provable and a human may approve it. Text executed at runtime, a
+        process built at runtime, a limb that cannot be read, resolved or
+        parsed -- none of these can be tested, and untestable software may
+        not run: those deny without asking, and the remedy is the rule's
+        exception list, not a popup.
+
         `origin` is where the content was read from, and is None for content
         that lives in the command rather than a file. Imports are followed
         only when there is an origin to resolve them against.
         """
+        reasons: list[tuple[str, bool]] = []
         queue: list[tuple[str, str, Path | None, int]] = [
             (source, label, origin, 0)]
         seen: set[Path] = set()
@@ -649,51 +859,67 @@ class GitStateChangeAuthorization:
                     continue
                 seen.add(resolved)
             if depth > self.WALK_DEPTH_LIMIT:
-                return f"{tag} is deeper than the walk follows"
+                reasons.append((f"{tag} is deeper than the walk follows", True))
+                continue
             try:
                 tree = ast.parse(text)
             except SyntaxError as exc:
-                return f"{tag} could not be parsed: {exc}"
+                reasons.append((f"{tag} could not be parsed: {exc}", True))
+                continue
 
             for node in ast.walk(tree):
                 nodes += 1
                 if nodes > self.WALK_NODE_LIMIT:
-                    return "the dependency tree is larger than the walk follows"
+                    reasons.append(
+                        ("the dependency tree is larger than the walk follows",
+                         True))
+                    return reasons
                 if not isinstance(node, ast.Call):
                     continue
                 name = self.called_name(node)
                 if name in self.DYNAMIC_CALLS:
-                    return f"{tag} executes text at runtime via {name}"
-                if name in self.PROCESS_CALLS:
+                    reasons.append(
+                        (f"{tag} executes text at runtime via {name}", True))
+                elif name in self.PROCESS_CALLS:
                     if self.names_git(node):
-                        return f"{tag} runs git"
-                    return f"{tag} starts a process via {name}"
+                        reasons.append((f"{tag} runs git", False))
+                    else:
+                        reasons.append(
+                            (f"{tag} builds a process at runtime via {name}",
+                             True))
 
             if path is None:
                 continue
-            for dependency in self.local_imports(tree, path):
+            walkable, unparseable = self.local_imports(tree, path)
+            for dotted in unparseable:
+                reasons.append(
+                    (f"{tag} imports {dotted}, which this walk cannot parse",
+                     True))
+            for dependency in walkable:
                 try:
                     read = dependency.read_text(encoding="utf-8",
                                                 errors="replace")
                 except OSError as exc:
-                    return f"{dependency.name} could not be read: {exc}"
+                    reasons.append(
+                        (f"{dependency.name} could not be read: {exc}", True))
+                    continue
                 queue.append((read, dependency.name, dependency, depth + 1))
-        return ""
+        return reasons
 
-    def why_script_can_run_git(self, script: Path) -> str:
+    def why_script_can_run_git(self, script: Path) -> list[tuple[str, bool]]:
         """A script file, read and handed to the one content check.
 
-        Python is parsed. Any other language is unprovable here and is
-        reported as able to run git.
+        Python is parsed. Any other language is untestable here.
         """
         if not script.is_file():
-            return f"{script} is not a readable file"
+            return [(f"{script} is not a readable file", True)]
         if script.suffix.lower() != ".py":
-            return f"{script.suffix or 'this'} is not a language this parses"
+            return [(f"{script.suffix or 'this'} is not a language this "
+                     "parses", True)]
         try:
             source = script.read_text(encoding="utf-8", errors="replace")
         except OSError as exc:
-            return f"{script.name} could not be read: {exc}"
+            return [(f"{script.name} could not be read: {exc}", True)]
         return self.why_content_can_run_git(source, script.name, script)
 
     # ── the human ────────────────────────────────────────────────────────

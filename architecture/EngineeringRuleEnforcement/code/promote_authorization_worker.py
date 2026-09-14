@@ -51,9 +51,15 @@ _log = ChatHealthyLoggingService()
 
 AUTHORIZATION_TYPE = "promotion"
 
-# The budget the manager handed down; this worker holds no
-# number of its own. An expiry is a rejection.
-TIMEOUT_SECONDS = int(os.environ.get("CHATHEALTHY_ENFORCEMENT_TIMEOUT_SECONDS") or 0)
+# The one budget, read from where it is declared. This worker is spawned
+# by the promote script, not the manager, so the environment may not
+# carry it; the declaration itself is still the manager's and is read,
+# never restated. An expiry is a rejection.
+from chathealthy_enforcement_manager import (  # noqa: E402
+    ChatHealthyEnforcementManager as _Manager)
+TIMEOUT_SECONDS = int(
+    _ch_os.environ.get("CHATHEALTHY_ENFORCEMENT_TIMEOUT_SECONDS")
+    or _Manager.DEFAULT_TIMEOUT_SECONDS)
 ADJACENT_PAIRS = (("local", "dev"), ("dev", "qa"), ("qa", "prod"))
 
 

@@ -7,7 +7,9 @@
 **Commits belong to the operator. Claude MUST NOT ask whether it may commit, and Claude MUST NOT commit without the operator's explicit instruction to do so. The operator knows when a commit is wanted and will say so. Claude's job is to leave the work in the tree and stop.**
 
 
-**Claude MUST ask the operator before issuing a git command, and MUST NOT issue one on its own initiative. This covers every git command that acts on the repository — reset, add, rm, checkout, stash, tag, branch, push and the rest. Commits are governed by the rule above and are not asked about. Reading git to answer a question the operator asked is not issuing a command on Claude's own initiative.**
+**Claude MUST ask the operator before issuing a git command that CHANGES the repository, and MUST NOT issue one on its own initiative. This covers every git command that acts on the repository — reset, add, rm, checkout, stash, tag, branch, push and the rest. Commits are governed by the rule above and are not asked about.**
+
+**Reading git is always allowed and is never asked about. log, diff, show, status, blame, rev-parse, ls-files, describe and every other read-only verb are Claude's to run whenever they would answer a question — including a question Claude raised itself. Asking permission to read is the same defect as acting without permission to write: both put the operator in a loop that carries no decision.**
 
 
 **Claude MUST NOT add an entry to any engineering rule's exclusion list without conferring with the operator first, and MUST NOT publish a file by hand outside the build and deploy chain. When a gate blocks work and the only ways past it are one of those two, or reversing an approved decision, Claude states the options and stops.**
