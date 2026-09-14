@@ -4727,7 +4727,434 @@
               "status": "in_progress",
               "approval": "approved",
               "stories": {
-                "story": []
+                "story": [
+                  {
+                    "story_id": "EPIC-003-F-003-S-001",
+                    "orphan": false,
+                    "name": "Specification for Shared Exception library",
+                    "description": "This story specifies the requirements for the ChatHealthyException class.",
+                    "size": "S",
+                    "status": "done",
+                    "approval": "approved",
+                    "requirements": {
+                      "requirement": [
+                        {
+                          "req_id": "EPIC-003-F-003-S-001-REQ-B-001",
+                          "orphan": false,
+                          "name": "Failures are discriminated by mode",
+                          "requirement": "The exception class MUST carry a mode string discriminator so that catch sites branch on what kind of failure occurred, never on the exception's type.",
+                          "priority": "must-have",
+                          "status": "done",
+                          "depends_on": [],
+                          "approval": "approved",
+                          "tests": {
+                            "test": [
+                              {
+                                "orphan": false,
+                                "test_type": "unit",
+                                "file": "ChatHealthyLib/tests/test_llm_facade.py",
+                                "test_id": "EPIC-003-F-003-S-001-REQ-B-001-TEST-1"
+                              }
+                            ]
+                          }
+                        },
+                        {
+                          "req_id": "EPIC-003-F-003-S-001-REQ-B-002",
+                          "orphan": false,
+                          "name": "A logging message",
+                          "requirement": "The exception class MUST carry a message used for the log record. The message is never used for end-user communication.",
+                          "priority": "must-have",
+                          "status": "done",
+                          "depends_on": [],
+                          "approval": "approved",
+                          "tests": {
+                            "test": [
+                              {
+                                "orphan": false,
+                                "test_type": "unit",
+                                "file": "ChatHealthyLib/tests/test_exception_class.py",
+                                "test_id": "EPIC-003-F-003-S-001-REQ-B-002-TEST-1"
+                              }
+                            ]
+                          }
+                        },
+                        {
+                          "req_id": "EPIC-003-F-003-S-001-REQ-B-003",
+                          "orphan": false,
+                          "name": "The throwing server is named",
+                          "requirement": "The exception class MUST carry a server attribute naming the deployed process that threw (for example shared_services or find_care), readable directly without parsing the context dict.",
+                          "priority": "must-have",
+                          "status": "done",
+                          "depends_on": [],
+                          "approval": "approved",
+                          "tests": {
+                            "test": [
+                              {
+                                "orphan": false,
+                                "test_type": "unit",
+                                "file": "ChatHealthyLib/tests/test_llm_facade.py",
+                                "test_id": "EPIC-003-F-003-S-001-REQ-B-003-TEST-1"
+                              }
+                            ]
+                          }
+                        },
+                        {
+                          "req_id": "EPIC-003-F-003-S-001-REQ-B-004",
+                          "orphan": false,
+                          "name": "The throwing component is named",
+                          "requirement": "The exception class MUST carry a component attribute naming the logical owner inside that process that threw (for example UM, SpecialtyFilter, or UR), readable directly without parsing the context dict.",
+                          "priority": "must-have",
+                          "status": "done",
+                          "depends_on": [],
+                          "approval": "approved",
+                          "tests": {
+                            "test": [
+                              {
+                                "orphan": false,
+                                "test_type": "unit",
+                                "file": "ChatHealthyLib/tests/test_llm_facade.py",
+                                "test_id": "EPIC-003-F-003-S-001-REQ-B-004-TEST-1"
+                              }
+                            ]
+                          }
+                        },
+                        {
+                          "req_id": "EPIC-003-F-003-S-001-REQ-B-005",
+                          "orphan": false,
+                          "name": "The original exception is wrapped and preserved",
+                          "requirement": "The exception class MUST carry an exception attribute holding the original external-library error whole when the instance is a boundary conversion, and None when our own code originated the failure.",
+                          "priority": "must-have",
+                          "status": "done",
+                          "depends_on": [],
+                          "approval": "approved",
+                          "tests": {
+                            "test": [
+                              {
+                                "orphan": false,
+                                "test_type": "unit",
+                                "file": "ChatHealthyLib/tests/test_llm_facade.py",
+                                "test_id": "EPIC-003-F-003-S-001-REQ-B-005-TEST-1"
+                              }
+                            ]
+                          }
+                        },
+                        {
+                          "req_id": "EPIC-003-F-003-S-001-REQ-B-006",
+                          "orphan": false,
+                          "name": "Structured context travels with the failure",
+                          "requirement": "The exception class MUST carry a context dict of per-mode facts (for example provider, call_site, attempts), open in its keys so each mode can carry what that mode needs.",
+                          "priority": "must-have",
+                          "status": "done",
+                          "depends_on": [],
+                          "approval": "approved",
+                          "tests": {
+                            "test": [
+                              {
+                                "orphan": false,
+                                "test_type": "unit",
+                                "file": "ChatHealthyLib/tests/test_llm_facade.py",
+                                "test_id": "EPIC-003-F-003-S-001-REQ-B-006-TEST-1"
+                              }
+                            ]
+                          }
+                        },
+                        {
+                          "req_id": "EPIC-003-F-003-S-001-REQ-B-007",
+                          "orphan": false,
+                          "name": "The stack is captured at construction",
+                          "requirement": "The exception class MUST capture the caller's stack at construction time, so that an instance that is logged but never raised still renders a traceback from where it was built.",
+                          "priority": "must-have",
+                          "status": "done",
+                          "depends_on": [],
+                          "approval": "approved",
+                          "tests": {
+                            "test": [
+                              {
+                                "orphan": false,
+                                "test_type": "unit",
+                                "file": "ChatHealthyLib/tests/test_exception_class.py",
+                                "test_id": "EPIC-003-F-003-S-001-REQ-B-007-TEST-1"
+                              }
+                            ]
+                          }
+                        },
+                        {
+                          "req_id": "EPIC-003-F-003-S-001-REQ-B-008",
+                          "orphan": false,
+                          "name": "Catchable as an ordinary Exception",
+                          "requirement": "The exception class MUST inherit from the standard Exception so that ordinary except Exception blocks catch it.",
+                          "priority": "must-have",
+                          "status": "done",
+                          "depends_on": [],
+                          "approval": "approved",
+                          "tests": {
+                            "test": [
+                              {
+                                "orphan": false,
+                                "test_type": "unit",
+                                "file": "ChatHealthyLib/tests/test_exception_class.py",
+                                "test_id": "EPIC-003-F-003-S-001-REQ-B-008-TEST-1"
+                              }
+                            ]
+                          }
+                        },
+                        {
+                          "req_id": "EPIC-003-F-003-S-001-REQ-B-009",
+                          "orphan": false,
+                          "name": "The exception renders itself completely",
+                          "requirement": "The exception class MUST render itself with its mode, message, server, component, every context key, and the wrapped original exception, so that a single repr states the whole failure.",
+                          "priority": "must-have",
+                          "status": "done",
+                          "depends_on": [],
+                          "approval": "approved",
+                          "tests": {
+                            "test": [
+                              {
+                                "orphan": false,
+                                "test_type": "unit",
+                                "file": "ChatHealthyLib/tests/test_exception_class.py",
+                                "test_id": "EPIC-003-F-003-S-001-REQ-B-009-TEST-1"
+                              }
+                            ]
+                          }
+                        }
+                      ]
+                    }
+                  },
+                  {
+                    "story_id": "EPIC-003-F-003-S-002",
+                    "orphan": false,
+                    "name": "Manage ChatHealthy Exception Usage",
+                    "description": "This story specifies how all ChatHealthy code shall use the exception class.",
+                    "size": "S",
+                    "status": "done",
+                    "approval": "approved",
+                    "requirements": {
+                      "requirement": [
+                        {
+                          "req_id": "EPIC-003-F-003-S-002-REQ-B-001",
+                          "orphan": false,
+                          "name": "Every deliberate raise uses ChatHealthyException",
+                          "requirement": "Every deliberate raise of an exception authored in ChatHealthy.ai code MUST construct ChatHealthyException with an appropriate mode discriminator. Deliberate raises of built-in Python exception types are forbidden.",
+                          "priority": "must-have",
+                          "status": "done",
+                          "depends_on": [],
+                          "approval": "approved",
+                          "tests": {
+                            "test": [
+                              {
+                                "orphan": false,
+                                "test_type": "Unsupportable",
+                                "file": "",
+                                "test_id": "EPIC-003-F-003-S-002-REQ-B-001-TEST-UNSUPPORTABLE"
+                              }
+                            ]
+                          }
+                        },
+                        {
+                          "req_id": "EPIC-003-F-003-S-002-REQ-B-002",
+                          "orphan": false,
+                          "name": "A re-raise authors nothing and is always allowed",
+                          "requirement": "A bare re-raise, and a re-raise of a bound name, are always allowed, since neither authors an exception and both preserve the original type and call stack.",
+                          "priority": "must-have",
+                          "status": "done",
+                          "depends_on": [],
+                          "approval": "approved",
+                          "tests": {
+                            "test": [
+                              {
+                                "orphan": false,
+                                "test_type": "Unsupportable",
+                                "file": "",
+                                "test_id": "EPIC-003-F-003-S-002-REQ-B-002-TEST-UNSUPPORTABLE"
+                              }
+                            ]
+                          }
+                        },
+                        {
+                          "req_id": "EPIC-003-F-003-S-002-REQ-B-003",
+                          "orphan": false,
+                          "name": "The one library exception: ModelRetry inside an output validator",
+                          "requirement": "Inside a function registered as a pydantic-ai output validator, a raise of ModelRetry is allowed and no other. The function MUST carry the output_validator decorator and the class raised MUST be ModelRetry; the object never enters ChatHealthy code and no catch site of ours ever sees it.",
+                          "priority": "must-have",
+                          "status": "done",
+                          "depends_on": [],
+                          "approval": "approved",
+                          "tests": {
+                            "test": [
+                              {
+                                "orphan": false,
+                                "test_type": "Unsupportable",
+                                "file": "",
+                                "test_id": "EPIC-003-F-003-S-002-REQ-B-003-TEST-UNSUPPORTABLE"
+                              }
+                            ]
+                          }
+                        },
+                        {
+                          "req_id": "EPIC-003-F-003-S-002-REQ-B-004",
+                          "orphan": false,
+                          "name": "External exceptions convert only at boundaries, carrying the original",
+                          "requirement": "An external-library exception keeps its native type until a defined boundary converts it to ChatHealthyException, and the conversion MUST carry the original in the exception attribute so the original failure is never lost.",
+                          "priority": "must-have",
+                          "status": "done",
+                          "depends_on": [],
+                          "approval": "approved",
+                          "tests": {
+                            "test": [
+                              {
+                                "orphan": false,
+                                "test_type": "Unsupportable",
+                                "file": "",
+                                "test_id": "EPIC-003-F-003-S-002-REQ-B-004-TEST-UNSUPPORTABLE"
+                              }
+                            ]
+                          }
+                        },
+                        {
+                          "req_id": "EPIC-003-F-003-S-002-REQ-B-005",
+                          "orphan": false,
+                          "name": "Catch sites discriminate on mode, never on type",
+                          "requirement": "Code that catches ChatHealthyException MUST discriminate on the mode attribute. There are no subclasses, and no catch site tests isinstance against one.",
+                          "priority": "must-have",
+                          "status": "done",
+                          "depends_on": [],
+                          "approval": "approved",
+                          "tests": {
+                            "test": [
+                              {
+                                "orphan": false,
+                                "test_type": "Unsupportable",
+                                "file": "",
+                                "test_id": "EPIC-003-F-003-S-002-REQ-B-005-TEST-UNSUPPORTABLE"
+                              }
+                            ]
+                          }
+                        },
+                        {
+                          "req_id": "EPIC-003-F-003-S-002-REQ-B-006",
+                          "orphan": false,
+                          "name": "The mode taxonomy is operator-governed",
+                          "requirement": "The set of valid modes lives in the feature's design documentation, and adding a mode is a design edit the operator approves, never a code-only change.",
+                          "priority": "must-have",
+                          "status": "done",
+                          "depends_on": [],
+                          "approval": "approved",
+                          "tests": {
+                            "test": [
+                              {
+                                "orphan": false,
+                                "test_type": "Unsupportable",
+                                "file": "",
+                                "test_id": "EPIC-003-F-003-S-002-REQ-B-006-TEST-UNSUPPORTABLE"
+                              }
+                            ]
+                          }
+                        },
+                        {
+                          "req_id": "EPIC-003-F-003-S-002-REQ-B-007",
+                          "orphan": false,
+                          "name": "Every catch classifies into one of three modes and acts on it",
+                          "requirement": "Every catch site MUST classify the caught exception as expected-and-handled (log at INFO under debug, recover, user sees nothing), expected-and-surfaced (log at ERROR, user-facing message, never a 503), or unexpected (the safety net returns 503 and logs it; every observed instance becomes a local catch). A site converting a library exception MUST clean up the underlying resource before raising.",
+                          "priority": "must-have",
+                          "status": "done",
+                          "depends_on": [],
+                          "approval": "approved",
+                          "tests": {
+                            "test": [
+                              {
+                                "orphan": false,
+                                "test_type": "Unsupportable",
+                                "file": "",
+                                "test_id": "EPIC-003-F-003-S-002-REQ-B-007-TEST-UNSUPPORTABLE"
+                              }
+                            ]
+                          }
+                        },
+                        {
+                          "req_id": "EPIC-003-F-003-S-002-REQ-B-008",
+                          "orphan": false,
+                          "name": "The thrower never logs; the catcher logs",
+                          "requirement": "A function that raises ChatHealthyException MUST NOT also log; the catch site logs, and any exception argument handed to the logger is a ChatHealthyException.",
+                          "priority": "must-have",
+                          "status": "done",
+                          "depends_on": [],
+                          "approval": "approved",
+                          "tests": {
+                            "test": [
+                              {
+                                "orphan": false,
+                                "test_type": "Unsupportable",
+                                "file": "",
+                                "test_id": "EPIC-003-F-003-S-002-REQ-B-008-TEST-UNSUPPORTABLE"
+                              }
+                            ]
+                          }
+                        },
+                        {
+                          "req_id": "EPIC-003-F-003-S-002-REQ-B-009",
+                          "orphan": false,
+                          "name": "These rules are enforced by the governance gate that monitors ChatHealthy Code",
+                          "requirement": "These rules must be enforced by the governance gate that monitors ChatHealthy Code.",
+                          "priority": "must-have",
+                          "status": "done",
+                          "depends_on": [],
+                          "approval": "approved",
+                          "tests": {
+                            "test": [
+                              {
+                                "orphan": false,
+                                "test_type": "Unsupportable",
+                                "file": "",
+                                "test_id": "EPIC-003-F-003-S-002-REQ-B-009-TEST-UNSUPPORTABLE"
+                              }
+                            ]
+                          }
+                        },
+                        {
+                          "req_id": "EPIC-003-F-003-S-002-REQ-B-010",
+                          "orphan": false,
+                          "name": "All timeouts raise exceptions; governance timeouts are fatal; user-facing timeouts explain themselves",
+                          "requirement": "All timeouts must raise exceptions. Governance timeouts must be fatal, and any governance gate that does time out must fail. All other timeouts must aggressively log, as errors, to the Mongo repository that the component logs all facts to. All such timeouts, if they are associated with end-user applications, MUST explain in layman's language what timed out and, to whatever extent possible, why - and, where appropriate, ask the user to try again.",
+                          "priority": "must-have",
+                          "status": "done",
+                          "depends_on": [],
+                          "approval": "approved",
+                          "tests": {
+                            "test": [
+                              {
+                                "orphan": false,
+                                "test_type": "Unsupportable",
+                                "file": "",
+                                "test_id": "EPIC-003-F-003-S-002-REQ-B-010-TEST-UNSUPPORTABLE"
+                              }
+                            ]
+                          }
+                        },
+                        {
+                          "req_id": "EPIC-003-F-003-S-002-REQ-B-011",
+                          "orphan": false,
+                          "name": "Every exception logs; a disrupted user is told what went wrong, traceably",
+                          "requirement": "All exceptions MUST log. If an exception disrupts a user's flow, the user MUST be shown, in layman's language, what went wrong and, to whatever extent possible, why, with instructions on what to do about it. The user message MUST convey sufficient information for a help-desk worker to find the logging associated with the session; in particular the message MUST include the user's GUID. Ask the user to try again.",
+                          "priority": "must-have",
+                          "status": "done",
+                          "depends_on": [],
+                          "approval": "approved",
+                          "tests": {
+                            "test": [
+                              {
+                                "orphan": false,
+                                "test_type": "Unsupportable",
+                                "file": "",
+                                "test_id": "EPIC-003-F-003-S-002-REQ-B-011-TEST-UNSUPPORTABLE"
+                              }
+                            ]
+                          }
+                        }
+                      ]
+                    }
+                  }
+                ]
               },
               "due_date": "2026-06-12",
               "realized_by": [
@@ -9566,7 +9993,7 @@
                         {
                           "req_id": "EPIC-008-F-002-S-013-REQ-B-001",
                           "name": "Constrain Claude Code's ungoverned changes of state in Git Repositories",
-                          "requirement": "Each time Claude Code issues a command to change the state of any of ChatHealtly.ai’s Git repos a human must approve. This includes direct commands envoking Git or embedded commands within software not excluded because they are permitted. When a ‘promote’ from Local to Dev two governance gates must be invoked, a promote gate where the human user May change the commit note and the commit gate this double approve is governed by a different enforcement. Git push commands are excluded from this requirement. For all other changes to the remote Repo only one governance gates can be invoked. As with all ChatHealthy.ai governance gates, all approvals must only when a user proves via 'mouse movement' or other irrefutable evidence of a human action that a human approved. An audit record must be made upon the approval time out or disapproval of the Code Bot request. An approval time out is always a rejection and the command does not run. There is one time out for every governance gate, it is five hours, and no enforcement declares its own.",
+                          "requirement": "Each time Claude Code issues a command to change the state of any of ChatHealtly.ai\u2019s Git repos a human must approve. This includes direct commands envoking Git or embedded commands within software not excluded because they are permitted. When a \u2018promote\u2019 from Local to Dev two governance gates must be invoked, a promote gate where the human user May change the commit note and the commit gate this double approve is governed by a different enforcement. Git push commands are excluded from this requirement. For all other changes to the remote Repo only one governance gates can be invoked. As with all ChatHealthy.ai governance gates, all approvals must only when a user proves via 'mouse movement' or other irrefutable evidence of a human action that a human approved. An audit record must be made upon the approval time out or disapproval of the Code Bot request. An approval time out is always a rejection and the command does not run. There is one time out for every governance gate, it is five hours, and no enforcement declares its own. All requirements from EPIC-003-F-003 must be complied with.",
                           "priority": "must-have",
                           "status": "done",
                           "approval": "approved",
