@@ -805,6 +805,14 @@
           "package": "json_schemas"
         },
         {
+          "content_hash": "46f734d81f6a975d2917ba52b55bbc4bfb16dabc57ea50b2381823b5601ce7c7",
+          "disposition": "referenced",
+          "feature_id": "EPIC-008-F-012",
+          "handler_type": "json",
+          "package": "json_schemas",
+          "source_location": "Website/schemas/ChatHealthyToolRegistrySchema.json"
+        },
+        {
           "feature_id": "EPIC-008-F-012",
           "source_location": "Website/schemas/ChatHealthyUserStateSchema.json",
           "handler_type": "json",
