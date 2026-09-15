@@ -1,0 +1,340 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://dev.chathealthy.ai/schemas/ChatHealthyToolRegistrySchema.json",
+  "title": "ChatHealthyToolRegistrySchema",
+  "description": "The one navigation map for the ChatHealthy.ai front application. Generated from source at build time, so it cannot name a tool or route the build does not carry. It combines the four artifacts that previously carried the map's job: the tool contracts (tool_registry.py), the dispatch table (_OP_HANDLERS in code), the allowlist (ToolRouter registrations), and the UtteranceManager's routing semantics (prompt fragments). Presence in this registry IS the allowlist; subscriptions ARE the dispatch table; the utterance_manager_prompt fragments assemble the routing table; may_call IS the declared who-may-call-whom map. Rules the generator enforces that JSON Schema cannot: (1) every entry in a tool's subscriptions names a route_name declared in routes; (2) every entry in a tool's may_call names a tool_name declared in tools; (3) the may_call graph is non-circular; (4) tool_name values are unique; (5) route_name values are unique; (6) every route of call_type third_party_callback carries proof.method api_key with a credential_name; (7) every route of call_type internal_callback carries proof.method our_signature; (8) every route of call_type client_sessioned carries proof.method session_token; (9) every route of call_type static_witness carries proof.method none; (10) every entry of tool_type tool declares in source exactly one of UTTERANCE_MANAGER_PROMPT or NOT_UTTERANCE_ROUTABLE — a tool silent on both refuses the build, so absence from the routing table is always a decision and never an accident.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "version",
+    "instance",
+    "tools",
+    "routes"
+  ],
+  "properties": {
+    "$schema": {
+      "type": "string",
+      "title": "Schema URL",
+      "description": "The published address of this schema."
+    },
+    "version": {
+      "type": "string",
+      "title": "Registry format version",
+      "pattern": "^[0-9]+\\.[0-9]+$",
+      "description": "The version of the registry document format itself, not of any tool.",
+      "examples": [
+        "1.0"
+      ]
+    },
+    "tools": {
+      "type": "array",
+      "minItems": 1,
+      "title": "The tool entries",
+      "description": "Every tool and pseudo tool the build carries. Nothing outside this list may be dispatched to, called, or routed to: presence here is the allowlist.",
+      "items": {
+        "$ref": "#/$defs/tool"
+      }
+    },
+    "routes": {
+      "type": "array",
+      "title": "The route entries",
+      "description": "Every way a call enters, as data. The five call types are the closed set of ways traffic arrives; a route reaches a tool only through that tool's subscription to it.",
+      "items": {
+        "$ref": "#/$defs/route"
+      }
+    },
+    "instance": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "build",
+        "commit",
+        "env",
+        "live"
+      ],
+      "title": "Instance",
+      "description": "The identity and state of this registry instance: the build that generated it, the commit that build read its source from, the environment it serves, and whether it is the live registry for that environment. One live instance per environment; the deploy that appends a new live instance retires the predecessor's live flag — the only field ever mutated on an existing document.",
+      "properties": {
+        "build": {
+          "type": "integer",
+          "minimum": 1,
+          "description": "The build number. The registry describes exactly that build's tree and no other."
+        },
+        "commit": {
+          "type": "string",
+          "minLength": 7,
+          "maxLength": 40,
+          "description": "The git commit the generating build read its source from.",
+          "examples": [
+            "27607c0da"
+          ]
+        },
+        "env": {
+          "type": "string",
+          "enum": [
+            "local",
+            "dev",
+            "qa",
+            "prod"
+          ],
+          "description": "The environment this instance serves."
+        },
+        "live": {
+          "type": "boolean",
+          "description": "True on exactly one instance per environment: the registry that environment's running build reads."
+        }
+      }
+    }
+  },
+  "$defs": {
+    "tool": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "tool_name",
+        "tool_type",
+        "description",
+        "input",
+        "output",
+        "subscriptions",
+        "may_call"
+      ],
+      "properties": {
+        "tool_name": {
+          "type": "string",
+          "pattern": "^[a-z][a-z0-9_]{1,63}$",
+          "title": "Tool name",
+          "description": "The name every other declaration refers to this tool by. Lowercase words joined by underscores; unique across the registry.",
+          "examples": [
+            "provider_search",
+            "utterance_manager",
+            "gate"
+          ]
+        },
+        "tool_type": {
+          "type": "string",
+          "enum": [
+            "tool",
+            "pseudo_tool"
+          ],
+          "title": "Tool type",
+          "description": "tool: a ChatHealthyTool subclass doing business work. pseudo_tool: a participant in the map that is not a tool — the gateway is the first; anything that must appear in routes or may_call without being dispatchable business logic enters this way."
+        },
+        "class_name": {
+          "type": "string",
+          "minLength": 1,
+          "title": "Class name",
+          "description": "The implementing class, as read from source by the generator. Absent for a pseudo_tool with no class.",
+          "examples": [
+            "ProviderSearchTool"
+          ]
+        },
+        "source_location": {
+          "type": "string",
+          "minLength": 1,
+          "title": "Source location",
+          "description": "Repository-relative path of the file the generator read this entry from.",
+          "examples": [
+            "sharedServices/Code/AuthorizationsAndAuthentications/provider_search_tool.py"
+          ]
+        },
+        "docstring": {
+          "type": "string",
+          "title": "Docstring",
+          "description": "The class docstring as read from source. May be empty; distinct from description, which is declared."
+        },
+        "description": {
+          "type": "string",
+          "minLength": 1,
+          "title": "Description",
+          "description": "The declared statement of what the tool does. Declared in source as the TOOL_DESCRIPTION class attribute on the ChatHealthyTool subclass; the generator reads it by AST, never by import. Required for every entry: an undescribed tool is unroutable and unreviewable. For a pseudo_tool with no class, the generator's own declaration table supplies it."
+        },
+        "utterance_manager_prompt": {
+          "type": "string",
+          "minLength": 1,
+          "title": "UtteranceManager prompt fragment",
+          "description": "The fragment this tool declares to teach the UtteranceManager to route to it. Declared in source as the UTTERANCE_MANAGER_PROMPT class attribute on the ChatHealthyTool subclass; the generator reads it by AST, never by import. The routing table assembles itself from these fragments — no hand-maintained routing prompt exists. A tool without this attribute is not utterance-routable and is reached only by subscription or may_call. Optional here because unroutable tools must not carry one; the generator's rule 10 makes the choice explicit in source either way. On the utterance_manager's own entry the value is the preamble, not a fragment: the cached system prompt explaining how to use all the stipulations and how to parallelize based on the dependencies in the rest of the schema. The call is preamble plus every fragment in, routes out; the agent running the UtteranceManager dispatches them.",
+          "examples": [
+            "The user wants to find a care giver, doctor, or specialist near a place."
+          ]
+        },
+        "input": {
+          "type": "array",
+          "title": "Input fields",
+          "description": "The tool's input contract. The required flags are the tool's prerequisites: the UniversalNavigator's completeness test compares the passed document against them before dispatch.",
+          "items": {
+            "$ref": "#/$defs/field"
+          }
+        },
+        "output": {
+          "type": "array",
+          "title": "Output fields",
+          "description": "The tool's output contract, same shape as input.",
+          "items": {
+            "$ref": "#/$defs/field"
+          }
+        },
+        "subscriptions": {
+          "type": "array",
+          "uniqueItems": true,
+          "title": "Subscriptions",
+          "description": "The route_names this tool serves. This replaces the dispatch table: an arriving call on a route is dispatched only to a tool subscribed to that route. Empty means the tool is reached only through may_call or utterance routing.",
+          "items": {
+            "type": "string",
+            "pattern": "^[a-z][a-z0-9_]{1,63}$"
+          }
+        },
+        "may_call": {
+          "type": "array",
+          "uniqueItems": true,
+          "title": "May call",
+          "description": "The tool_names this tool may call, directly or through a navigator. The union of all may_call arrays is the declared who-may-call-whom map; the generator refuses a registry whose map contains a circle. Empty means the tool calls no other tool.",
+          "items": {
+            "type": "string",
+            "pattern": "^[a-z][a-z0-9_]{1,63}$"
+          }
+        }
+      }
+    },
+    "route": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "route_name",
+        "call_type",
+        "proof"
+      ],
+      "properties": {
+        "route_name": {
+          "type": "string",
+          "pattern": "^[a-z][a-z0-9_]{1,63}$",
+          "title": "Route name",
+          "description": "The name tools subscribe to. Unique across the registry.",
+          "examples": [
+            "client_gate",
+            "oauth_google_callback",
+            "static_page_witness",
+            "tool_completion"
+          ]
+        },
+        "call_type": {
+          "type": "string",
+          "enum": [
+            "tool_to_tool",
+            "third_party_callback",
+            "static_witness",
+            "client_sessioned",
+            "internal_callback"
+          ],
+          "title": "Call type",
+          "description": "The five types of incoming calls, all mapped. tool_to_tool: one tool calling another. third_party_callback: an external party calling us back on their initiative, carrying a credential we keep. static_witness: the onload witness of a static page we own — log at frame pop, log static errors when they occur. client_sessioned: a client we served index.html and established a session with. internal_callback: a tool that finished working calling back into the SharedServices UniversalNavigator."
+        },
+        "proof": {
+          "$ref": "#/$defs/proof"
+        },
+        "timeout_facts": {
+          "$ref": "#/$defs/timeout_facts"
+        }
+      }
+    },
+    "proof": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "method"
+      ],
+      "title": "Proof of legitimacy",
+      "description": "How an arrival on this route proves itself. The gate's check is mechanical: route known, proof named, verify or refuse.",
+      "properties": {
+        "method": {
+          "type": "string",
+          "enum": [
+            "none",
+            "api_key",
+            "session_token",
+            "our_signature"
+          ],
+          "description": "none: nothing to verify (static_witness only — the route accepts a page name, logs, decides nothing). api_key: a credential from the external party, kept as OAuth's are. session_token: the full signed session token with per-hop nonce. our_signature: we signed the dispatch out and verify the signature coming back."
+        },
+        "credential_name": {
+          "type": "string",
+          "minLength": 1,
+          "title": "Credential name",
+          "description": "The vault name of the kept credential, for api_key routes. The name only — a value here is a violation.",
+          "examples": [
+            "GOOGLE-OAUTH-CLIENT-SECRET"
+          ]
+        },
+        "signing_key_name": {
+          "type": "string",
+          "minLength": 1,
+          "title": "Signing key name",
+          "description": "The vault name of the signing key, for our_signature routes. The name only.",
+          "examples": [
+            "SHARED-SIGNING-KEY"
+          ]
+        }
+      }
+    },
+    "timeout_facts": {
+      "type": "object",
+      "additionalProperties": false,
+      "title": "Timeout facts",
+      "description": "The configurable set of timeout facts the render ledger races against work on this route. A timeout raises; governance timeouts are fatal; user-facing timeouts explain themselves in layman's language per the exception-usage requirements.",
+      "properties": {
+        "render_timeout_seconds": {
+          "type": "integer",
+          "minimum": 1,
+          "description": "Dispatched work on this route owes a rendered page within this budget, or the UniversalNavigator responds."
+        },
+        "callback_timeout_seconds": {
+          "type": "integer",
+          "minimum": 1,
+          "description": "A tool's completion callback on this route is owed within this budget of its dispatch."
+        },
+        "external_call_timeout_seconds": {
+          "type": "integer",
+          "minimum": 1,
+          "description": "An outbound external call made in service of this route is answered within this budget."
+        }
+      }
+    },
+    "field": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "name",
+        "type",
+        "required"
+      ],
+      "title": "Contract field",
+      "description": "One field of a tool's input or output contract.",
+      "properties": {
+        "name": {
+          "type": "string",
+          "pattern": "^[A-Za-z_][A-Za-z0-9_]{0,63}$",
+          "description": "The field's name in the passed document."
+        },
+        "type": {
+          "type": "string",
+          "minLength": 1,
+          "description": "The declared type, as source states it.",
+          "examples": [
+            "str",
+            "Optional[str]",
+            "list[str]",
+            "IntentDocument"
+          ]
+        },
+        "required": {
+          "type": "boolean",
+          "description": "True makes this field a prerequisite: the completeness test refuses dispatch without it."
+        },
+        "description": {
+          "type": "string",
+          "description": "What the field means. Empty is legal and discouraged."
+        }
+      }
+    }
+  }
+}
