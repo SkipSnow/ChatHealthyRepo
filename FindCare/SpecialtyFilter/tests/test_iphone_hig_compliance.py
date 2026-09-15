@@ -52,7 +52,12 @@ def env(request):
             ),
         )
         page = ctx.new_page()
-        page.goto(BASE_URL, wait_until="networkidle")
+        # networkidle is unreachable by design: a /gate turn is a long-lived
+        # NDJSON stream, so a streaming response stays in-flight and the
+        # network never goes idle. Load the document, then wait on the
+        # concrete DOM signal that the chat surface has mounted.
+        page.goto(BASE_URL, wait_until="domcontentloaded")
+        page.locator("#coreChatFrame").wait_for(state="visible", timeout=30000)
         yield {"page": page, "viewport": viewport, "label": label, "browser": browser}
         browser.close()
 
