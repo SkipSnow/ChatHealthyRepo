@@ -2,14 +2,15 @@
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "https://dev.chathealthy.ai/schemas/ChatHealthyToolRegistrySchema.json",
   "title": "ChatHealthyToolRegistrySchema",
-  "description": "The one navigation map for the ChatHealthy.ai front application. Generated from source at build time, so it cannot name a tool or route the build does not carry. It combines the four artifacts that previously carried the map's job: the tool contracts (tool_registry.py), the dispatch table (_OP_HANDLERS in code), the allowlist (ToolRouter registrations), and the UtteranceManager's routing semantics (prompt fragments). Presence in this registry IS the allowlist; subscriptions ARE the dispatch table; the utterance_manager_prompt fragments assemble the routing table; may_call IS the declared who-may-call-whom map. Rules the generator enforces that JSON Schema cannot: (1) every entry in a tool's subscriptions names a route_name declared in routes; (2) every entry in a tool's may_call names a tool_name declared in tools; (3) the may_call graph is non-circular; (4) tool_name values are unique; (5) route_name values are unique; (6) every route of call_type third_party_callback carries proof.method api_key with a credential_name; (7) every route of call_type internal_callback carries proof.method our_signature; (8) every route of call_type client_sessioned carries proof.method session_token; (9) every route of call_type static_witness carries proof.method none; (10) every entry of tool_type tool declares in source exactly one of UTTERANCE_MANAGER_PROMPT or NOT_UTTERANCE_ROUTABLE — a tool silent on both refuses the build, so absence from the routing table is always a decision and never an accident.",
+  "description": "The one navigation map for the ChatHealthy.ai front application. Generated from source at build time, so it cannot name a tool or route the build does not carry. It combines the four artifacts that previously carried the map's job: the tool contracts (tool_registry.py), the dispatch table (_OP_HANDLERS in code), the allowlist (ToolRouter registrations), and the UtteranceManager's routing semantics (prompt fragments). Presence in this registry IS the allowlist; subscriptions ARE the dispatch table; the utterance_manager_prompt fragments assemble the routing table; may_call IS the declared who-may-call-whom map. Rules the generator enforces that JSON Schema cannot: (1) every entry in a tool's subscriptions names a route_name declared in routes; (2) every entry in a tool's may_call names a tool_name declared in tools; (3) the may_call graph is non-circular; (4) tool_name values are unique; (5) route_name values are unique; (6) every route of call_type third_party_callback carries proof.method api_key with a credential_name; (7) every route of call_type internal_callback carries proof.method our_signature; (8) every route of call_type client_sessioned carries proof.method session_token; (9) every route of call_type static_witness carries proof.method none; (10) every entry of tool_type tool declares in source exactly one of UTTERANCE_MANAGER_PROMPT or NOT_UTTERANCE_ROUTABLE — a tool silent on both refuses the build, so absence from the routing table is always a decision and never an accident. (11) every page.members entry names a declared tool_name; (12) every page.required_members entry is a member of that same page; (13) page_name values are unique; (14) a page's completeness is the render ledger's to manage: it reconciles the page when every required_member closes or the completeness.render_timeout_seconds budget expires, whichever wins, and a page-merge conflict or a dead required member raises and is instrumented.",
   "type": "object",
   "additionalProperties": false,
   "required": [
     "version",
     "instance",
     "tools",
-    "routes"
+    "routes",
+    "pages"
   ],
   "properties": {
     "$schema": {
@@ -84,6 +85,15 @@
           "description": "True on exactly one instance per environment: the registry that environment's running build reads."
         }
       }
+    },
+    "pages": {
+      "type": "array",
+      "uniqueItems": true,
+      "items": {
+        "$ref": "#/$defs/page"
+      },
+      "title": "Pages",
+      "description": "Every page the front application constructs. First-class so the UniversalNavigator can determine the requested page, scope mining, and reconcile completeness from data rather than code."
     }
   },
   "$defs": {
@@ -333,6 +343,92 @@
         "description": {
           "type": "string",
           "description": "What the field means. Empty is legal and discouraged."
+        }
+      }
+    },
+    "page": {
+      "type": "object",
+      "additionalProperties": false,
+      "title": "Page",
+      "description": "A page the UniversalNavigator constructs and reconciles. The UN determines which page an incoming request is building, scopes UtteranceManager mining to this page's members on refinement (page-scoped mining), records the required members as the render-ledger expectation, and reconciles the page when they close or the completeness budget expires.",
+      "required": [
+        "page_name",
+        "members",
+        "required_members",
+        "completeness"
+      ],
+      "properties": {
+        "page_name": {
+          "type": "string",
+          "minLength": 1,
+          "pattern": "^[a-z][a-z0-9_]*$",
+          "title": "Page name",
+          "description": "Unique name of the page the UniversalNavigator triages a request onto."
+        },
+        "subject": {
+          "type": "string",
+          "title": "Subject",
+          "description": "What the page is about (e.g. care_giver, facility, clinical_trial, provider_detail)."
+        },
+        "description": {
+          "type": "string",
+          "title": "Description",
+          "description": "Declared statement of what the page shows."
+        },
+        "members": {
+          "type": "array",
+          "uniqueItems": true,
+          "items": {
+            "type": "string"
+          },
+          "title": "Member tools",
+          "description": "The tool_names that compose this page. The UniversalNavigator scopes UtteranceManager mining to these on refinement; the generator checks each names a declared tool."
+        },
+        "required_members": {
+          "type": "array",
+          "uniqueItems": true,
+          "items": {
+            "type": "string"
+          },
+          "title": "Required members",
+          "description": "The subset of members the page needs to be complete. The render ledger reconciles the page when every required member's ledger entry closes; the generator checks this is a subset of members."
+        },
+        "completeness": {
+          "type": "object",
+          "additionalProperties": false,
+          "title": "Page completeness / error management",
+          "description": "The error management around the page. The render ledger races these facts against the members' completion callbacks.",
+          "required": [
+            "render_timeout_seconds",
+            "on_timeout",
+            "on_conflict",
+            "on_missing_required"
+          ],
+          "properties": {
+            "render_timeout_seconds": {
+              "type": "integer",
+              "minimum": 1,
+              "title": "Page render budget",
+              "description": "The page must be rendered within this budget. A timeout fact races the members' callbacks; if the page is not complete in time, the UniversalNavigator responds anyway."
+            },
+            "on_timeout": {
+              "type": "string",
+              "title": "On timeout",
+              "description": "The user-facing explanation, in layman's terms, of what timed out on the page and, where useful, a prompt to retry. A governance page timeout is fatal; a user-facing one explains."
+            },
+            "on_conflict": {
+              "type": "string",
+              "const": "raise",
+              "title": "On conflict",
+              "description": "A parameter or state conflict while merging this page's returning documents raises a ChatHealthyException, caught and classified by the UniversalNavigator."
+            },
+            "on_missing_required": {
+              "type": "string",
+              "const": "raise",
+              "title": "On missing required member",
+              "description": "A required member that dies or never calls back leaves the page unreconcilable; the render ledger raises and the UniversalNavigator instruments it with timings at a severity matching impact."
+            }
+          }
         }
       }
     }
