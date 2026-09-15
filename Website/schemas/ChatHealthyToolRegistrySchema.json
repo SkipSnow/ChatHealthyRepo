@@ -112,7 +112,7 @@
       "properties": {
         "tool_name": {
           "type": "string",
-          "pattern": "^[a-z][a-z0-9_]{1,63}$",
+          "pattern": "^[A-Za-z][A-Za-z0-9_]{0,63}$",
           "title": "Tool name",
           "description": "The name every other declaration refers to this tool by. Lowercase words joined by underscores; unique across the registry.",
           "examples": [
@@ -217,7 +217,7 @@
       "properties": {
         "route_name": {
           "type": "string",
-          "pattern": "^[a-z][a-z0-9_]{1,63}$",
+          "pattern": "^[A-Za-z][A-Za-z0-9_]{0,63}$",
           "title": "Route name",
           "description": "The name tools subscribe to. Unique across the registry.",
           "examples": [
@@ -361,14 +361,14 @@
         "page_name": {
           "type": "string",
           "minLength": 1,
-          "pattern": "^[a-z][a-z0-9_]*$",
+          "pattern": "^[A-Za-z][A-Za-z0-9_]{0,63}$",
           "title": "Page name",
           "description": "Unique name of the page the UniversalNavigator triages a request onto."
         },
         "subject": {
           "type": "string",
           "title": "Subject",
-          "description": "What the page is about (e.g. care_giver, facility, clinical_trial, provider_detail)."
+          "description": "What the page is about (e.g. individualProvider, facility, NUCC, clinicalTrial)."
         },
         "description": {
           "type": "string",
