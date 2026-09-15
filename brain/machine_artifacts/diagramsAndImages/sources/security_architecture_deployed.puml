@@ -1,4 +1,4 @@
-@startuml Security_Architecture_Deployed
+@startuml
 !theme plain
 title ChatHealthy.ai — Deployed Security Architecture\ndev / qa / prod\n2026-04-06
 

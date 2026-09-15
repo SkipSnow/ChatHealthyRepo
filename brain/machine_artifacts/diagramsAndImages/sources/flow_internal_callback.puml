@@ -1,0 +1,74 @@
+@startuml
+skinparam shadowing false
+skinparam defaultFontName Segoe UI
+skinparam defaultFontSize 11
+skinparam ArrowColor #0b7a75
+skinparam SequenceLifeLineBorderColor #6b7280
+skinparam ParticipantBorderColor #0b7a75
+skinparam ParticipantBackgroundColor #fdfdfd
+skinparam NoteBackgroundColor #f3f4f6
+skinparam NoteBorderColor #9ca3af
+
+title Internal callback  —  incoming-call type 5\nA finished satellite tool calls back; the navigator verifies our own signature, closes the render-ledger entry, and folds the document into the page
+
+participant "satellite tool\n(FindCare, e.g. provider_detail)" as TOOL
+participant "UniversalNavigatorProxy\n(satellite)" as PXY
+participant "Gate (facade)\n(SharedServices transport)" as GATE
+participant "UniversalNavigator\n(SharedServices)" as UN
+database "render ledger + sessions\n(repo rows)" as REPO
+participant "Client stream\n(the waiting person)" as CLIENT
+
+note over UN, REPO
+  Earlier this turn the navigator SIGNED the page's dispatch out
+  (our_signature) and recorded each required_member as a
+  render-ledger expectation. A completeness budget is now racing
+  the callbacks.
+end note
+
+== the satellite finishes and calls back ==
+TOOL -> TOOL : work complete (recursion-guarded)
+TOOL --> PXY : return document
+PXY -> GATE : POST across the wire\nroute tool_completion, our_signature attached
+note right of GATE
+  The gate is dumb transport: it collects
+  the head and params and hands them on.
+  It verifies nothing and owns no route.
+end note
+GATE -> UN : pass(head, params, signature)
+
+== triage — which of the five call types? ==
+UN -> UN : route is known in the map;\ncall_type = internal_callback;\ndeclared proof = our_signature
+
+alt signature verifies (SHARED-SIGNING-KEY)
+  UN -> REPO : ledger: close this required_member's entry
+  UN -> UN : serial deterministic merge (shared-lib fold)
+  break page-merge conflict   (on_conflict = raise)
+    UN -> REPO : instrument conflict\n(timings, severity = impact)
+    UN -> UN : RAISE ChatHealthyException
+  end
+  UN -> REPO : reconcile page vs required_members
+  alt every required_member closed within budget
+    UN -> GATE : stream the reconciled page
+    GATE -> CLIENT : event: page rendered
+  else render budget expired first
+    UN -> REPO : instrument timeout\n(timings, severity = impact)
+    UN -> GATE : respond anyway — layman on_timeout explanation
+    GATE -> CLIENT : event: partial page + explanation
+  end
+else bad or absent signature
+  UN -> REPO : instrument bad-signature\n(timings, severity = impact)
+  UN -> UN : RAISE ChatHealthyException
+end
+
+== or the required callback never arrives ==
+REPO -> UN : callback_timeout wins the race\n(the required member never closed)
+UN -> REPO : instrument missing-required\n(timings, severity = impact)
+UN -> UN : RAISE ChatHealthyException  (on_missing_required = raise)
+
+note over TOOL, CLIENT #f3f4f6
+  A satellite's answer returns only as the internal callback. Every throw ends in
+  the navigator — a middle tool re-raises, never swallows. The navigator is the
+  one merge point: it sequences callbacks serially and its gate writes the one
+  stream to the person.
+end note
+@enduml

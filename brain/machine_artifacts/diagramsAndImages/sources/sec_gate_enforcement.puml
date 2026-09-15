@@ -12,30 +12,39 @@ skinparam state {
   FontSize 13
 }
 
-title The Gate decides on what it can observe: the address, then the method
+title The Gate decides nothing: it collects and passes; the UniversalNavigator proves every arrival from the registry
 
-[*] --> Received
+[*] --> AtGate
 
-state "Request at the edge" as Received
-state "The one Gate op address" as Op
-state "A registered callback address" as Callback
-state "A bare domain name" as Bare
+state "Request at the Gate" as AtGate
+state "Handed to the UniversalNavigator" as AtNav
+state "Matched against the live registry" as Resolve
+state "The proof the route names is verified" as Prove
 state "Refused" as Refused #FDF2F2
-state "Dispatched to the tool that handles it" as Dispatched #F2F9F4
+state "Dispatched to the subscribed tool" as Dispatched #F2F9F4
 
-Received --> Op : the URI is the Gate op address
-Received --> Callback : the URI is an address\nthe Gate registered\nwith a third party
-Received --> Bare : the URI is a bare\ndomain name
-Received --> Refused : any other URI — **404**
+AtGate --> AtNav : collect the session token, the HTTP head,\nand the POST/GET parameters — each if present.\nThe Gate verifies nothing; it knows only transport.
 
-Op --> Dispatched : **POST**\nverify the token,\ncollect the facts,\ndispatch
-Op --> Refused : **GET** — this address serves\nonly traffic the firm originates,\nand the firm requires POST
+AtNav --> Resolve : the UniversalNavigator is the only\nnode that accepts external traffic
 
-Callback --> Dispatched : **the sender's method, whatever it is**\nverify the signed state it carries,\ncollect the facts, dispatch
+Resolve --> Refused : the arrival matches\nno route — **refuse**
+Resolve --> Prove : a route matches; its call_type\nnames the proof required
 
-Bare --> Op : redirect to the Gate
+Prove --> Refused : proof missing or invalid — **refuse**
+Prove --> Dispatched : proof holds — dispatch by subscription
 
 Refused --> [*]
 Dispatched --> [*]
+
+note right of Prove
+  <b>Proof by call type (from the registry route)</b>
+  static_witness  →  none — log the frame pop, decide nothing
+  client_sessioned  →  session_token — signed, per-hop nonce
+  third_party_callback  →  api_key — a credential we keep in the vault
+  internal_callback  →  our_signature — we signed the dispatch out
+
+  tool_to_tool is internal: relayed tool to tool through the
+  UniversalNavigatorProxy, and never reaches the Gate.
+end note
 
 @enduml

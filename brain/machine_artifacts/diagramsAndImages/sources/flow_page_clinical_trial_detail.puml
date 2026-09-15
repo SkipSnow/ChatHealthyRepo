@@ -1,0 +1,91 @@
+@startuml
+skinparam shadowing false
+skinparam defaultFontName Segoe UI
+skinparam defaultFontSize 11
+skinparam ArrowColor #0b7a75
+skinparam SequenceLifeLineBorderColor #6b7280
+skinparam ParticipantBorderColor #0b7a75
+skinparam ParticipantBackgroundColor #fdfdfd
+skinparam NoteBackgroundColor #f3f4f6
+skinparam NoteBorderColor #9ca3af
+
+title Clinical trial detail page: one trial, laid out in its section anchors\nA click opens it, the trial record is an external registry's, and the page reconciles on its one required member
+
+actor "Person / Client" as P
+participant "Gate\n(transport facade)" as GATE
+participant "UniversalNavigator\n(SharedServices)" as UN
+database "sessions + render ledger\n(repo rows)" as REPO
+participant "UniversalNavigatorProxy\n(FindCare)" as PXY
+participant "clinical_trial_detail tool\n(FindCare)" as CTD
+participant "Prose tool\n(SharedServices)" as PROSE
+participant "ClinicalTrials.gov\n(external registry)" as CTG
+
+P -> GATE : click a trial's link (gesture)\naction 'clinical_trial_detail', params {nctId}\nAccept: application/x-ndjson
+note right of GATE
+  The gate is dumb transport: it collects the session
+  token, the HTTP head and the params, streams the
+  answer back, verifies nothing and owns no route.
+end note
+GATE -> UN : pass(session_token, head, params)
+
+== Triage: which of the five call types ==
+UN -> UN : the arrival carries a session token\n-> client_sessioned route (proof: session_token)
+UN -> REPO : load session by GUID
+UN -> UN : verify token + restamp nonce\n(session-security helpers)
+note right of UN
+  Triage is by declared proof. A session token means a
+  client we served index.html -- not tool_to_tool (none),
+  not third_party_callback (api_key), not static_witness
+  (none), not internal_callback (our_signature).
+end note
+
+== Determine page + record the render ledger ==
+UN -> UN : read the map: this request builds the\nclinical_trial_detail page (subject: clinical_trial)
+UN -> REPO : ledger: record required_members = [clinical_trial_detail];\nmembers also include prose
+note left of REPO
+  Dispatch records the page's required_members as
+  expectations; each completion callback (our_signature)
+  closes one; the completeness budget races them. This
+  is a gesture, so no UtteranceManager mining runs --
+  the click already names the trial.
+end note
+
+== Dispatch: the required member, then prose on its facts ==
+UN -> PXY : dispatch clinical_trial_detail (tool_to_tool)
+PXY -> CTD : relay locally (function call)
+CTD -> CTG : query the trial by NCT id\n(external registry, not ours)
+CTG --> CTD : trial record, or nothing
+CTD -> CTD : lay the trial into its section anchors\n(recursion-guarded)
+CTD --> PXY : trial detail document
+PXY --> UN : internal_callback (proof: our_signature)
+UN -> REPO : ledger: close clinical_trial_detail (required);\nmerge serially -- a conflict RAISES
+
+UN -> PROSE : dispatch prose with the trial facts\n(member, not required)
+PROSE -> PROSE : compose the user-facing sentence\n(one model call, pydantic-ai)
+PROSE --> UN : answers directly (co-resident with the main)
+UN -> REPO : ledger: close prose; merge serially
+
+== Reconcile + respond ==
+alt required member closed within the completeness budget
+  UN -> UN : page reconciled\n(required_members all closed)
+  UN -> GATE : stream the page events\n(the gate owns the one stream)
+  GATE --> P : the trial in its sections, with prose
+else the required member times out, dies, or a merge conflicts
+  UN -> REPO : ledger raises: on_missing_required / on_conflict;\nor the render_timeout_seconds budget expires
+  UN -> GATE : stream the layman on_timeout explanation
+  GATE --> P : plain-English "we could not load this trial in time"
+end
+
+note over UN, REPO #f3f4f6
+  Page error management, all instrumented with timings at a severity
+  matching impact:
+  - timeout -> the navigator responds anyway with the layman on_timeout text
+  - conflict -> merging the returning documents raises (on_conflict = raise)
+  - missing required -> a dead or never-returning clinical_trial_detail raises
+    (on_missing_required = raise). prose is not required, so its absence
+    does not block the page.
+  Every throw ends here in the UniversalNavigator; the FindCare proxy
+  re-raises, never swallows.
+end note
+
+@enduml

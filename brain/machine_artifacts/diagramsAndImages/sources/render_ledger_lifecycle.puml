@@ -1,0 +1,47 @@
+@startuml
+title The render ledger — the life of one entry: dispatch owes a page
+
+skinparam shadowing false
+skinparam defaultFontName Segoe UI
+skinparam defaultFontSize 11
+skinparam ArrowColor #0b7a75
+skinparam StateBorderColor #0b7a75
+skinparam StateBackgroundColor #fdfdfd
+skinparam NoteBackgroundColor #f3f4f6
+skinparam NoteBorderColor #9ca3af
+
+[*] --> Expected : navigator dispatches;\nrecords the expectation
+
+state Expected #fdfdfd
+state "Closed" as Closed #eef6f5
+state "Timed out" as TimedOut #f9efef
+state Responded #fdfdfd
+
+Expected --> Closed : internal_callback arrives,\nour_signature verified
+Expected --> TimedOut : a timeout fact wins\nthe race (render /\ncallback / external_call)
+
+Closed --> Responded : merged (serial, deterministic);\na conflict is an exception
+TimedOut --> Responded : the navigator answers\nwhether or not the page rendered
+
+Responded --> [*]
+
+note right of Expected
+  One entry per dispatched piece of work.
+  The completion callback closes it, or a
+  configurable timeout fact closes it first —
+  whichever wins the race.
+end note
+
+note right of TimedOut
+  A governance timeout is fatal.
+  A user-facing timeout explains, in
+  layman's terms, what timed out and,
+  where useful, asks the person to retry.
+end note
+
+note bottom of Responded
+  A page is complete when its entries are.
+  The navigator holds the ledger; a satellite's
+  tools answer through the proxy as callbacks.
+end note
+@enduml

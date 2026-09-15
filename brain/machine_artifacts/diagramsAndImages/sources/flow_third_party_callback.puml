@@ -1,0 +1,55 @@
+@startuml
+skinparam shadowing false
+skinparam defaultFontName Segoe UI
+skinparam defaultFontSize 11
+skinparam ArrowColor #0b7a75
+skinparam SequenceLifeLineBorderColor #6b7280
+skinparam ParticipantBorderColor #0b7a75
+skinparam ParticipantBackgroundColor #fdfdfd
+skinparam NoteBackgroundColor #f3f4f6
+skinparam NoteBorderColor #9ca3af
+
+title Third-party callback (request-type)\nAn external party calls us back on its own initiative; we prove it with a credential we keep, witness it, and merge
+
+actor "Third-party\n(e.g. OAuth provider)" as TP
+participant "Gate\n(facade)" as Gate
+participant "UniversalNavigator\n(SharedServices)" as UN
+participant "callback tool\n(route subscriber)" as Tool
+
+TP -> Gate : inbound callback\nHTTP head + POST/GET params (no session token)
+note over Gate : Dumb transport: collects head + params,\nstreams the answer back.\nVerifies nothing, owns no route.
+Gate -> UN : hand over head + params
+
+note over UN : TRIAGE by declared proof.\nNo session_token, no our_signature;\nthe named route's proof.method = api_key\n=> call_type third_party_callback
+
+UN -> UN : read live registry: resolve the route\nand its proof.credential_name
+note right of UN : api_key is a credential WE KEEP:\nresolved by vault name, never in the clear\n(same custody as OAuth)
+UN -> UN : witness: verify the carried credential\nagainst the kept one
+
+alt witness fails
+  UN --> Gate : refuse (instrumented, with timings)
+  Gate --> TP : reject
+else witnessed
+  note over UN : Determine the page this callback constructs;\nrecord its required_members as render-ledger expectations
+  UN -> Tool : dispatch on the third_party_callback route\n(dispatch signed out: our_signature)
+  Tool -> TP : exchange the code using the kept credential (outbound)
+  TP --> Tool : tokens / profile
+  Tool -> UN : internal_callback: completion carries our_signature back
+  note over UN : verify our_signature;\nclose this member's render-ledger entry
+  UN -> UN : merge the returning document serially\n(shared deterministic merge)
+
+  alt merge conflict
+    UN -> UN : on_conflict = raise\nChatHealthyException, classified + instrumented
+  else a required member dies / never returns
+    UN -> UN : on_missing_required = raise\ninstrumented, timings at a severity matching impact
+  else render budget expires first
+    UN --> Gate : respond anyway with the layman on_timeout explanation
+  else required members closed within budget
+    UN -> UN : reconcile the page
+    UN --> Gate : witnessed + merged result
+  end
+  Gate --> TP : acknowledge
+end
+
+note over Gate, UN : Later (infrastructure migration): this route couples with mTLS — out of this refactor
+@enduml

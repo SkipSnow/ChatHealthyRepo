@@ -1,0 +1,138 @@
+@startuml
+skinparam shadowing false
+skinparam defaultFontName Segoe UI
+skinparam defaultFontSize 11
+skinparam ArrowColor #0b7a75
+skinparam SequenceLifeLineBorderColor #6b7280
+skinparam ParticipantBorderColor #0b7a75
+skinparam ParticipantBackgroundColor #fdfdfd
+skinparam NoteBackgroundColor #f3f4f6
+skinparam NoteBorderColor #9ca3af
+skinparam DatabaseBorderColor #6b7280
+
+title Facility Detail page (page-type flow)\nOpening one organization on the same terms as a provider: brought to live freshness, still shown when the registry is silent, reconciled against its one required member.
+
+actor "Person / Client" as User
+participant "Gate\n(facade, transport only)" as Gate
+participant "UniversalNavigator\n(SharedServices main)" as UN
+database "Repository\nsession, render ledger, page state" as Repo
+participant "facility_detail\n(tool, required member)" as FD
+participant "Authoritative registry\n(live query by NPI)" as NPPES
+database "Facility record\ncollection" as DB
+participant "Prose tool\n(member, authors the sentence)" as Prose
+
+User -> Gate : click a facility card's link\n{ session_token, head, params(openNpi) }
+activate Gate
+note over Gate
+  A click, not an utterance. The gate collects the session token,
+  the HTTP head, and the parameters, each if present, and hands
+  them on. It owns no route and verifies nothing.
+end note
+Gate -> UN : navigate(session_token, head, params)
+activate UN
+
+note right of UN
+  TRIAGE by declared proof. Five ways a call may arrive:
+  tool_to_tool (none), client_sessioned (session_token),
+  third_party_callback (api_key), static_witness (none),
+  internal_callback (our_signature). A session token is
+  present -> this is a client_sessioned arrival.
+end note
+UN -> Repo : verify session_token, advance the nonce
+Repo --> UN : session ok
+
+note right of UN
+  DETERMINE THE PAGE from the live registry map: openNpi names
+  a record whose entity is an organization -> the facility page.
+  The UN holds no data; the map is the registry, page state a
+  repository row.
+end note
+UN -> Repo : page state = facility page shows this NPI
+
+note right of UN
+  OPEN THE RENDER LEDGER. Record the page's required_members
+  as the expectation and race the completeness budget against
+  the completion callback:
+    members          = { facility_detail, prose }
+    required_members = { facility_detail }
+    budget           = completeness.render_timeout_seconds
+end note
+UN -> Repo : record ledger expectation { facility_detail }, start the budget
+
+alt facility_detail returns within the budget
+  UN -> FD : dispatch(openNpi)
+  activate FD
+
+  FD -> NPPES : query by NPI (live freshness on open)
+  activate NPPES
+  NPPES --> FD : live record, or nothing
+  deactivate NPPES
+
+  alt the authoritative registry answered
+    alt the NPI is an organization
+      FD -> DB : read the stored record
+      DB --> FD : record as we hold it
+      FD -> FD : project both onto the registry-owned fields and compare;\nmerge from OUR record, applying only the registry's fields\n(never a person attribute onto a facility; never a tax identifier)
+      opt the merge changed something real
+        FD -> DB : replace the record, read it back
+        DB --> FD : the record as now stored
+      end
+    else the NPI is not an organization
+      FD -> Prose : author "facility not found"
+      Prose --> FD : the not-found sentence
+      note right of FD
+        No Facility Detail is shown for an NPI the authoritative
+        registry reports is not an organization; the user is told
+        the facility was not found.
+      end note
+    end
+  else the authoritative registry did not answer
+    FD -> DB : read the stored record
+    DB --> FD : record as we hold it (shown with no comparison)
+    note right of FD
+      A detail is still shown when the source does not answer.
+      Not answering leaves us no reason to doubt the record.
+    end note
+  end
+
+  FD -> FD : build the panel\n- legal business name; other name and its label; NPI; NPI issue date; active\n- parent's legal business name when the facility is a subpart\n- classification label, specialization, plain-language definition\n- authorized official (last, first, middle, title, credential), so labelled\n- destinations to confirm the enumeration and the right to operate
+  FD --> UN : internal_callback { panel }  proof our_signature
+  deactivate FD
+
+  UN -> Repo : close the ledger entry for facility_detail
+  UN -> UN : RECONCILE - every required member closed;\nserial deterministic merge of returning documents\n(a parameter/state conflict RAISES -> on_conflict)
+  opt prose member
+    UN -> Prose : author the panel's summary, with the facts
+    activate Prose
+    Prose --> UN : the user-facing sentence
+    deactivate Prose
+  end
+  UN --> Gate : the reconciled facility panel
+
+else the budget expires first  (on_timeout)
+  UN -> Prose : author the layman on_timeout explanation
+  activate Prose
+  Prose --> UN : "we could not bring this facility up in time - please try again"
+  deactivate Prose
+  UN --> Gate : respond anyway, the page unrendered
+  note right of UN
+    The completeness timeout races the callback. On expiry the
+    UN responds in layman's terms, instrumented with timings at
+    a severity matching impact.
+  end note
+
+else facility_detail dies or never calls back  (on_missing_required)
+  UN -> UN : render ledger RAISES - the one required member is missing;\ncatch, classify, log with timings
+  UN --> Gate : ChatHealthyException surfaced
+  note right of UN
+    Every throw ends in a UniversalNavigator. A required member
+    that dies or never returns leaves the page unreconcilable.
+  end note
+end
+
+[<-- Gate : the one stream the gate writes
+deactivate UN
+Gate --> User : the facility as the registry reports it now
+deactivate Gate
+
+@enduml

@@ -1,0 +1,43 @@
+@startuml
+skinparam shadowing false
+skinparam defaultFontName Segoe UI
+skinparam defaultFontSize 11
+skinparam ArrowColor #0b7a75
+skinparam SequenceLifeLineBorderColor #6b7280
+skinparam ParticipantBorderColor #0b7a75
+skinparam ParticipantBackgroundColor #fdfdfd
+skinparam NoteBackgroundColor #f3f4f6
+skinparam NoteBorderColor #9ca3af
+
+title flow_static_witness — request-type triage\nA static page we own fires onload; the UniversalNavigator witnesses and logs it, and decides nothing.
+
+actor "Person/Client\n(static page we own)" as Client
+participant "Gate\n(facade)" as Gate
+participant "UniversalNavigator\n(SharedServices)" as UN
+
+Client -> Gate : onload event fires in our frame\n(page name, no session token)
+activate Gate
+
+note over Gate : Dumb transport only.\nCollect session token (none),\nHTTP head, POST/GET params.\nVerify nothing; own no route.
+
+Gate -> UN : forward(page name, head, params)
+deactivate Gate
+activate UN
+
+note over UN : TRIAGE by declared proof\nroute = static_page_witness\ncall_type = static_witness\nproof.method = none  -> nothing to verify\nOnly node that accepts external traffic.
+
+UN -> UN : log "frame popped"\n(page name, timings)
+
+alt static error reported on the page
+  UN -> UN : log static error\n(severity matching impact)
+end
+
+note over UN : No session. No UtteranceManager.\nNo page determined, no render ledger,\nno reconciliation, no merge.\nA pure witness/log path — DECIDES NOTHING.
+
+UN --> Gate : 204 acknowledged (witnessed)
+activate Gate
+Gate --> Client : stream ack back
+deactivate Gate
+deactivate UN
+
+@enduml

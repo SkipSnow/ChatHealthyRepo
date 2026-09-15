@@ -14,26 +14,29 @@ skinparam ArtifactBorderColor #6b7280
 
 title A requirement is stated against a tool; a value lives on a page. SpecialtyFilter serves two pages and holds different values on each.
 
-package "The declaration — ToolConfiguration" {
-  component "tool: SpecialtyFilter\nserved at /specialty/find" as Tool #dcfce7
+package "The declaration — the registry entry\n(one record, generated from source at build)" {
+  component "tool: SpecialtyFilter\n(its entry in the registry)" as Tool #dcfce7
 
-  artifact "complaint — Required" as PComplaint
-  artifact "offeredSpecialties — Optional" as POffered
-  artifact "selectedSpecialtyCodes — Optional" as PSelected
+  artifact "complaint — input field, Required" as PComplaint
+  artifact "offeredSpecialties — input field, Optional" as POffered
+  artifact "selectedSpecialtyCodes — input field, Optional" as PSelected
 
   component "page: individualProvider\nProviderSearch, SpecialtyFilter,\nProviderDetail, ProviderSelection" as PageIP #f3f4f6
   component "page: NUCC\nSpecialtyFilter" as PageNUCC #f3f4f6
 }
 
-PComplaint -down-> Tool : subscribed to
-POffered -down-> Tool : subscribed to
-PSelected -down-> Tool : subscribed to
+PComplaint -down-> Tool : input field of
+POffered -down-> Tool : input field of
+PSelected -down-> Tool : input field of
 
 Tool -down-> PageIP : composed into
 Tool -down-> PageNUCC : composed into
 
 note right of Tool
   Stated once, against the tool, and never against a page.
+  The required flags are the tool's prerequisites: the
+  UniversalNavigator's completeness test reads the passed
+  document against them before it dispatches.
   A page carries several tools — a search, a chooser, a
   detail, a selection — each with its own answer, and the
   search runs before any record is opened. Requiring the
@@ -54,23 +57,24 @@ Session -down-> VNUCC
 PageIP ..> VIP : its scope
 PageNUCC ..> VNUCC : its scope
 
-component "/provider/find" as RIP
-component "/specialty/find" as RNUCC
+component "/provider/find\nclient_sessioned route" as RIP
+component "/specialty/find\nclient_sessioned route" as RNUCC
 
 RIP -up-> VIP : writes complaint and\nselectedSpecialtyCodes here
 RNUCC -up-> VNUCC : writes complaint, offeredSpecialties\nand selectedSpecialtyCodes here
 
-component "Router\ncodes_in_force()" as Reader
+component "UniversalNavigator\ncodes_in_force() — parameters + state" as Reader
 
 Reader -up-> VIP : reads selectedSpecialtyCodes first
 Reader -up-> VNUCC : falls back to offeredSpecialties
 
 note bottom of Reader
-  The same three names on two pages, holding two different
-  answers. Nothing chosen on the care-giver page means the
-  person has not narrowed, so the whole set the NUCC panel
-  offered still applies. Neither page could express that if
-  a value had one home.
+  The navigator tracks all parameters and their state; a
+  conflict is an exception. The same three names on two
+  pages hold two different answers. Nothing chosen on the
+  care-giver page means the person has not narrowed, so the
+  whole set the NUCC panel offered still applies. Neither
+  page could express that if a value had one home.
 end note
 
 note bottom of VIP

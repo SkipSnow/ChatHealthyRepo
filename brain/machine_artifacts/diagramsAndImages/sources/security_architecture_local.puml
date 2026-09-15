@@ -1,87 +1,90 @@
-@startuml Security_Architecture_Local
-!theme plain
-title ChatHealthy.ai — Local Security Architecture\n2026-04-06
-
+@startuml
 skinparam componentStyle rectangle
-skinparam backgroundColor white
-skinparam component {
-  BackgroundColor #F5F5F5
-  BorderColor #333333
-  FontSize 10
-}
-skinparam package {
-  FontSize 12
-  BorderThickness 2
-}
+skinparam shadowing false
+skinparam defaultFontName Segoe UI
+skinparam defaultFontSize 11
+skinparam ArrowColor #0b7a75
+skinparam ComponentBorderColor #0b7a75
+skinparam DatabaseBorderColor #6b7280
+skinparam NoteBackgroundColor #f3f4f6
+skinparam NoteBorderColor #9ca3af
 
+title ChatHealthy.ai — Local Security Architecture\nProof-per-route front application in Docker — 2026-09-14
+
+' ── the five incoming call types originate outside the host ──
 actor "Consumer\n(Browser)" as user
+actor "Third party\n(OAuth callback)" as third
+actor "Our static\npages (onload)" as static
 
-package "Skip's PC (localhost)" as env_local <<physical>> #EEEEFF {
+package "Skip's PC — Docker (localhost)" as host <<physical>> #eef6f5 {
 
-  component [Caddy\nTLS termination\nmTLS enforcement\nRoute dispatch\nBasic auth (admin)] as caddy
-
-  package "Frontend Services" as local_fe {
-    component [Public Website :80] as website
-    component [Admin Website :443\nAuth-gated] as admin
-    component [React App :5173] as react
-    component [Secure Cookie Mgr\nAES-256 encrypted\n90-day TTL] as cookie
+  package "SharedServices container :8002" as c_ss #fdfdfd {
+    component [Gate — transport facade\nTLS term • collect token + head + params\nproof: route known? verify or refuse\nthe only node knowing transport exists] as gate_ss
+    component [UniversalNavigator (the main)\nthe only node accepting external traffic\nsessions • timeouts • render ledger\nserial deterministic merge\ninstruments every failure] as nav
+    component [UtteranceManager\npreamble + registry fragments\n→ dispatch set (parallel)] as um
+    component [ProseTool\nfacts → user sentence] as prose
+    component [Shared tools\nSafety • Consent • Lead\nUnknownQ • About • URLGuardian] as shared
+    component [SecretManager\nx509 → Key Vault • in-memory only] as secrets
+    component [ChatHealthyMongoUtilities] as mongo_util
   }
 
-  package "FindCare :8000" as local_fc {
-    component [FindCareFacade\nChatOrchestrator\nToolRouter\nProviderSearch\nSpecialty] as fc
-    component [EvalCare Gateway] as fc_gw
+  package "FindCare container :8000" as c_fc #fdfdfd {
+    component [Gate\nour_signature internal traffic only\n(never a client session)] as gate_fc
+    component [UniversalNavigatorProxy\ntool-to-tool relay • metadata slice\nrefuses stale metadata] as proxy_fc
+    component [FindCare tools\nProviderSearch • Specialty] as fc_tools
   }
 
-  package "EvaluateCare :8001" as local_ec {
-    component [EvaluateCareFacade\nScoringEngine\nUserContextResolver\nScreenPainter] as ec
-  }
-
-  package "Shared Services :8002" as local_ss {
-    component [SharedServicesFacade] as ss
-    component [SecretManager\nx509 cert → Key Vault\nIn-memory only\nNever writes to disk] as secrets
-    component [ChatHealthyMongoUtilities\nConn strings from SecretManager] as mongo_util
-    component [SafetyService\nConsentService\nLeadService\nUnknownQuestionService\nAboutService\nURLGuardian] as shared_svcs
-  }
-
-  package "The Brain (App 4)" as local_brain {
-    component [Claude Code CLI] as claude
-    component [brain/ JSON\n22 collections] as brain
+  package "EvaluateCare container :8001" as c_ec #fdfdfd {
+    component [Gate\nour_signature internal traffic only] as gate_ec
+    component [UniversalNavigatorProxy\ntool-to-tool relay\nrefuses stale metadata] as proxy_ec
+    component [EvaluateCare tools\nScoring • UserContext • ScreenPainter] as ec_tools
   }
 }
 
-package "Azure — ChatHealthySecurity" as env_sec <<physical>> #FFE8E8 {
-  component [Azure Key Vault\nFedRAMP High\nHIPAA BAA\nFIPS 140-2 L2\nPublic access disabled\n---\nAll secrets:\nMongo conn strings\nAPI keys (Anthropic,\nOpenAI, SparkPost)\nmTLS certs\nOAuth secrets] as kv
-}
+database "Front-end Mongo\nToolRegistry — one live doc / env\nSessions • RenderLedger rows" as mongo
+component [Azure Key Vault\nFedRAMP High • HIPAA BAA • public access off\n----\nsession signing key\ninternal-callback signing key\nOAuth api_key secrets\nMongo conn strings\nmodel API keys • x509 certs] as kv #f3f4f6
+actor "Deploying\nidentity" as deployer
 
-' ── Security flows ──
+' ── incoming external calls: each proven at the gate ──
+user   --> gate_ss : client_sessioned\nsession_token (per-hop nonce)
+third  --> gate_ss : third_party_callback\napi_key (kept in vault)
+static ..> gate_ss : static_witness\nproof none — log only
 
-user --> caddy : "TLS"
-caddy --> website : "HTTP"
-caddy --> admin : "Basic auth"
-caddy --> react : "TLS"
-caddy -[#red]-> fc : "<<mTLS>>"
-caddy -[#red]-> ec : "<<mTLS>>"
-caddy -[#red]-> ss : "<<mTLS>>"
+gate_ss --> nav : token + head + params
 
-fc -[#red]-> ss : "<<mTLS>>\nSecrets + shared services"
-ec -[#red]-> ss : "<<mTLS>>\nSecrets + shared services"
-fc_gw -[#red]-> ec : "<<mTLS>>\nHandoff"
+' ── the main reads the map and drives the route ──
+nav --> um : utterance → routes
+nav --> prose : facts
+nav --> shared : dispatch (tool_to_tool)
 
-secrets -[#red,bold]-> kv : "<<x509 cert>>\nAzure AD cert auth\nPrivate key on local disk\nNever in git (.gitignore)"
+' ── cross the wire to a satellite: signed out, signed back ──
+nav --> gate_fc : dispatch signed out\ninternal_callback (our_signature)
+gate_fc --> proxy_fc
+proxy_fc --> fc_tools
+fc_tools ..> nav : completion (our_signature)
 
-mongo_util --> secrets : "Conn strings\nin-memory"
+nav --> gate_ec : dispatch signed out\ninternal_callback (our_signature)
+gate_ec --> proxy_ec
+proxy_ec --> ec_tools
+ec_tools ..> nav : completion (our_signature)
 
-claude --> brain
+' ── state, secrets, and registry write governance ──
+nav --> mongo : sessions • render ledger\nreads live registry at startup
+mongo_util --> secrets : conn strings (in-memory)
+secrets   -[#6b7280]-> kv : x509 cert auth\nprivate key never on disk/git
+deployer  -[#6b7280]-> mongo : registry sole writer\n(runtime identities read-only)
 
-note bottom of env_local
-  **Local security posture:**
-  - All inter-service traffic: mTLS (no plaintext)
-  - All secrets: fetched from Key Vault via x509
-  - Zero .env files with credentials
-  - Private key in .gitignore, never committed
-  - Caddy enforces mTLS — direct port access rejected
-  - Cookie: AES-256 encrypted, 90-day auto-delete
-  - Admin site: auth-gated (Perplexity F-13 fix)
+note right of kv
+  **Local security posture**
+  - Proof-per-route: session_token, api_key,
+    our_signature, or none — verified or refused.
+  - All secrets fetched from Key Vault via x509;
+    zero .env credentials, no key in git.
+  - Registry: one live doc per env, deploying
+    identity the only writer, full history kept.
+  - Transport security (mTLS between containers)
+    couples at the infrastructure migration —
+    separate and later than this refactor.
 end note
 
 @enduml

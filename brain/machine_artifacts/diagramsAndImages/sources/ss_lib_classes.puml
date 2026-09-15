@@ -10,12 +10,16 @@ skinparam NoteBorderColor #9ca3af
 skinparam ClassBorderColor #0b7a75
 skinparam ClassBackgroundColor #ffffff
 
-title What ChatHealthyLib gives every service, and what a concrete tool has to supply in return
+title What ChatHealthyLib gives every service, and what a concrete tool must supply in return
 
 package "chathealthy_lib" {
 
   abstract class ChatHealthyTool {
     {static} TOOL_NAME : ClassVar[str]
+    {static} TOOL_DESCRIPTION : ClassVar[str]
+    {static} UTTERANCE_MANAGER_PROMPT : ClassVar[str]
+    {static} .. exactly one of ..
+    {static} NOT_UTTERANCE_ROUTABLE : marker
     {static} Request : ClassVar[Type[BaseModel]]
     {static} Response : ClassVar[Type[BaseModel]]
     --
@@ -47,6 +51,11 @@ package "chathealthy_lib" {
     + getConnection(identity, cluster, host="") : TimedClient
   }
 
+  class "merge_returning_document()" as Merge <<lib function>> {
+    serial and deterministic
+    the sole merge site
+  }
+
   class AgentDeps <<dataclass>> {
     + user_object : UserObject
     + session_token : SessionToken
@@ -56,43 +65,63 @@ package "chathealthy_lib" {
   }
 }
 
+class "ToolRegistry" as Registry <<Mongo doc>> {
+  one document per build per env
+  one live instance per env
+  presence IS the allowlist
+  subscriptions ARE the dispatch table
+  may_call IS the call map
+}
+
 package "SharedServices" {
-  class UniversalNavigationTool {
-    TOOL_NAME = "universal_navigation"
-    Request = op + payload
-    Response = kind + result
+  class UniversalNavigator {
+    TOOL_NAME = "universal_navigator"
+    NOT_UTTERANCE_ROUTABLE
     --
     + run(deps, request)
-    + handle_gate(gate_req) : GateResponse
+    .. the main; holds no data ..
   }
 
-  class UtteranceManagerTool {
-    TOOL_NAME
-    Request = trigger_type + reason
-    Response
+  class UtteranceManager {
+    TOOL_NAME = "utterance_manager"
+    UTTERANCE_MANAGER_PROMPT = preamble
     --
-    + run(deps, request)
+    + run(deps, utterance) : dispatch set
+  }
+}
+
+package "satellite server" {
+  class UniversalNavigatorProxy {
+    + relay(tool_name, request)
+    + apply_metadata_change(slice)
+    .. tool-to-tool traffic only ..
   }
 }
 
 Exception <|-- ChatHealthyException
-ChatHealthyTool <|-- UniversalNavigationTool
-ChatHealthyTool <|-- UtteranceManagerTool
+ChatHealthyTool <|-- UniversalNavigator
+ChatHealthyTool <|-- UtteranceManager
 
 ChatHealthyTool ..> AgentDeps : run(deps, ...)
 ChatHealthyTool ..> ChatHealthyException : raises when a subclass\nomits a class attribute
 ChatHealthyLoggingService ..> ChatHealthyException : exc= must be one
+UniversalNavigator ..> Merge : merges every\nreturning document
+UniversalNavigator ..> Registry : reads the live\ndoc at startup
+UniversalNavigator ..> UniversalNavigatorProxy : hands the metadata slice;\ninternal callbacks return here
+UtteranceManager ..> Registry : preamble + every fragment\nassemble the routing table
 
 note right of ChatHealthyTool #f3f4f6
-  A subclass supplies three class attributes and one
+  A subclass supplies its class attributes and one run
   method. __init_subclass__ refuses the class at import
-  if any attribute is missing, so a tool cannot be half
-  declared and discovered at dispatch time.
+  if any is missing, so a tool cannot be half declared
+  and discovered at dispatch time. Exactly one of
+  UTTERANCE_MANAGER_PROMPT or NOT_UTTERANCE_ROUTABLE is
+  required -- silence refuses the build. The build-time
+  generator reads TOOL_DESCRIPTION and that choice from
+  source by AST into the one registry document.
 
-  run_and_log records the invocation on the session
-  whether the run returned or raised. The run used to sit
-  outside the guard, so a tool that raised appended
-  nothing and the action log simply stopped.
+  run_and_log records the invocation whether run
+  returned or raised.
 end note
 
 note bottom of ChatHealthyMongoUtilities #f3f4f6
@@ -109,6 +138,35 @@ note bottom of ChatHealthyException #f3f4f6
   boundary converts them, and the conversion carries the
   original in exception= so the mode says what kind of
   failure it was and the original says what failed.
+end note
+
+note right of UniversalNavigator #f3f4f6
+  The main, and the only node that accepts external
+  traffic. Reads the registry map and drives the route;
+  tests parameter completeness (a conflict is an
+  exception); owns the render ledger (dispatch records the
+  expectation, the completion callback closes it, the
+  timeout facts race it); merges returning documents
+  serially via the lib; manages sessions and external
+  calls; hands the proxies their metadata and propagates
+  runtime changes; instruments every failure.
+end note
+
+note bottom of UtteranceManager #f3f4f6
+  Classify only, non-blocking: sees an utterance, answers
+  with the dispatch set, knows no parameters. The old
+  classifier is gone -- preamble plus every tool's fragment
+  in, routes out, the agent dispatches. User-facing prose
+  is a separate tool the navigator dispatches with the facts.
+end note
+
+note bottom of UniversalNavigatorProxy #f3f4f6
+  One per satellite server. Relays tool-to-tool traffic
+  both ways -- local is a function call, remote crosses the
+  wire to the main. Holds the metadata slice the main gave
+  it; refuses work on stale metadata. No sessions, no
+  ledger, no merge, no external calls. Instruments every
+  failed relay.
 end note
 
 @enduml

@@ -4,7 +4,7 @@
 # the pre-load baseline the InstructionsLoaded logger compares
 # against to detect hash_mismatch.
 #
-# Output: _oneshots/test_output/brain_precompact_hashes.json
+# Output: brain/Sessionstart/brain_precompact_hashes.json
 #   { "session_id": "...", "timestamp": epoch,
 #     "<full_path>": {"sha256": "...", "size_bytes": N, "valid_json": bool,
 #                      "error": "..."}}
@@ -26,7 +26,7 @@ for _ch_d in _ch_pl.Path(__file__).resolve().parents:
 from chathealthy_lib.exceptions import ChatHealthyException  # noqa: E402
 
 PROJECT = Path(os.environ.get("CLAUDE_PROJECT_DIR", "."))
-OUT = PROJECT / "_oneshots/test_output" / "brain_precompact_hashes.json"
+OUT = PROJECT / "brain" / "Sessionstart" / "brain_precompact_hashes.json"
 BRAIN = PROJECT / "brain" / "machine_artifacts" / "content"
 
 BRAIN_JSONS = ("bugs.json", "engineering_rules.json", "agile_backlog.json")

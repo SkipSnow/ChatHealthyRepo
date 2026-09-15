@@ -1,0 +1,71 @@
+@startuml
+skinparam shadowing false
+skinparam defaultFontName Segoe UI
+skinparam defaultFontSize 11
+skinparam ArrowColor #0b7a75
+skinparam SequenceLifeLineBorderColor #6b7280
+skinparam ParticipantBorderColor #0b7a75
+skinparam ParticipantBackgroundColor #fdfdfd
+skinparam NoteBackgroundColor #f3f4f6
+skinparam NoteBorderColor #9ca3af
+
+title flow_client_gesture — request-type triage (client-sessioned, structured gesture)\nA person clicks a control — apply filter, a pagination edge — so the route comes straight from the map; NO model is asked.
+
+actor "Person/Client\n(structured gesture,\nno free text)" as Client
+participant "Gate\n(facade)" as Gate
+participant "UniversalNavigator\n(SharedServices)" as UN
+participant "tool\n(gesture's mapped target,\ne.g. provider_search)" as Tool
+participant "Prose tool" as Prose
+
+Client -> Gate : apply filter / page edge\n(session token, HTTP head, POST/GET params)
+activate Gate
+note over Gate : Dumb transport only.\nCollect token + head + params, stream back.\nVerify nothing; own no route.
+Gate -> UN : forward(token, head, params)
+deactivate Gate
+activate UN
+
+note over UN : TRIAGE by declared proof\nroute = client_gate  ·  call_type = client_sessioned\nproof.method = session_token -> verify signature + per-hop nonce\nOnly node that accepts external traffic.
+
+== Route — straight from the map (no model call) ==
+note over UN : The gesture names its route in the registry.\nNO UtteranceManager, NO model call — the whole\ncontrast with the utterance flow. UN determines\nWHICH PAGE the gesture is constructing, then runs\nthe completeness test: passed document vs the\ntarget tool's required inputs.
+
+alt a required slot is missing (manufacture path)
+  UN -> Prose : author brief user_message\n(the facts — which slot is missing)
+  activate Prose
+  Prose --> UN : user-facing sentence
+  deactivate Prose
+  note over UN : morph target_action -> closeConnection200.\nNo page built this turn; the next free-text reply\ncomes back through the utterance flow.
+  UN --> Gate : stream the prompt
+  activate Gate
+  Gate --> Client : one stream (asks for the slot)
+  deactivate Gate
+
+else all required slots present (build & reconcile the page)
+  note over UN : RENDER LEDGER — record the page's\nrequired_members as open expectations.
+  UN -> Tool : dispatch (signed out · our_signature)\n+ the passed document
+  activate Tool
+  note over Tool : re-runs with the gesture's params\n(new filter / next page)
+
+  Tool --> UN : completion callback\ncall_type = internal_callback · our_signature verified
+  deactivate Tool
+  note over UN : Closes that required_member's ledger entry.\nMerge returning documents SERIALLY with the\nshared deterministic merge function.
+
+  alt every required_member closed within render_timeout_seconds
+    note over UN : Page reconciled.
+    UN --> Gate : stream rendered page
+    activate Gate
+    Gate --> Client : one stream (updated page)
+    deactivate Gate
+  else completeness budget expires first
+    note over UN #fde2e1 : on_timeout -> respond ANYWAY with the\nlayman explanation; instrument timings (severity by impact).
+    UN --> Gate : stream layman on_timeout explanation
+    activate Gate
+    Gate --> Client : one stream (explains the delay)
+    deactivate Gate
+  else merge conflict  /  required member dies or never returns
+    note over UN #fde2e1 : on_conflict -> RAISE  ·  on_missing_required -> RAISE\nChatHealthyException caught, classified, logged with timings.\nEvery throw ends here in the UniversalNavigator.
+  end
+end
+deactivate UN
+
+@enduml

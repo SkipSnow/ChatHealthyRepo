@@ -1,4 +1,5 @@
 @startuml
+skinparam componentStyle rectangle
 skinparam shadowing false
 skinparam defaultFontName Segoe UI
 skinparam defaultFontSize 11
@@ -11,86 +12,101 @@ skinparam NoteBorderColor #9ca3af
 skinparam ParticipantBorderColor #0b7a75
 skinparam SequenceLifeLineBorderColor #9ca3af
 
-title One FindCare search end to end: the router carries the words, the page mines them, writes them, reads back what is in force, and either searches or asks
+title One FindCare search end to end, target architecture: the gate is a dumb facade,\nthe UniversalNavigator drives the map, tools call tools, and prose is its own tool
 
-participant "Router\nuniversal_navigation_tool" as UR
-participant "Search route\n/facility/find" as Route
+participant "Gate\n(facade, transport only)" as Gate
+participant "UniversalNavigator\n(SharedServices main)" as UN
+participant "UtteranceManager\n(classify only)" as UM
+participant "Prose tool\n(authors the sentence)" as Prose
+database "Registry\n(the one live map)" as Reg
+database "Repository\nsessions, ledger, params" as Repo
+participant "facility_search\n(tool)" as FS
 participant "Miner\nmine_facility_parameters" as Miner
-participant "SpecialtyFilter\nNon-Individual partition" as Cat
-database "Session\nuserParameters.pages.facility" as Session
-participant "Declaration\nToolConfiguration" as Decl
+participant "SpecialtyFilter\nNon-Individual" as Cat
 database "Provider\ncollection" as Providers
 
-note over UR, Route
-  Reference implementation: /facility/find in
-  Code/ConversationalUX/FindCareChat/backend/app.py.
-  The individual-provider and NUCC pages are the same
-  six steps against their own page and their own tool.
+[-> Gate : POST /  { session_token, head,\nparams(utterance, history) }  client_sessioned
+activate Gate
+note over Gate
+  The gate knows only transport. It collects the token, the HTTP
+  head, and the POST/GET parameters, each if present, and hands
+  them to the navigator. It has no routes of its own; one generic
+  gate module serves every container.
 end note
 
-UR -> UR : latest_utterance_and_prior_dialogue()\nthe last thing said, and the talk before it
-note left of UR
-  The router reads no parameter and forms no opinion
-  about what the words mean. Its whole part in a mining
-  turn is producing those two things.
+Gate -> UN : navigate(session_token, head, params)
+activate UN
+UN -> Reg : the live map for this env\n(routes, may_call, required inputs)
+Reg --> UN : routes + dependencies
+note left of UN
+  The navigator holds no data. The map is the registry,
+  parameters ride the passed document, the session and the
+  render ledger are repository rows. It is the only node
+  that accepts external traffic.
+end note
+UN -> Repo : verify session_token, advance nonce,\nload parameters in force
+Repo --> UN : session ok, in-force parameters
+
+UN -> UM : classify(utterance, history)
+activate UM
+UM --> UN : dispatch set { facility_search }
+deactivate UM
+note right of UM
+  One model call: the cached preamble plus every tool's registry
+  fragment in, routes out. It knows no parameters and never waits
+  on a tool - it returns the set; parallelism is the point.
 end note
 
-UR -> Route : POST { session_token, utterance, history }
-activate Route
-Route -> Route : require_gateway_signature()
-
-Route -> Miner : mine(utterance, history)
+UN -> Repo : record the render-ledger expectation
+UN -> FS : dispatch { utterance, history, in-force params }
+activate FS
+FS -> Miner : mine(utterance, history)
 activate Miner
-Miner --> Route : geography, facilityType,\nfacilityName
+Miner --> FS : geography, facilityType, facilityName
 deactivate Miner
-
 alt a kind of place was named
-  Route -> Cat : find_specialties(facilityType,\nSection = Non-Individual)
+  FS -> Cat : find_specialties(facilityType, Non-Individual)
   activate Cat
-  Cat --> Route : offered kinds + codes
+  Cat --> FS : offered kinds + codes
   deactivate Cat
 end
-
-Route -> Session : $set pages.facility.<attribute>\nroute = tool, determination = model
-note right of Session
-  Written before the search runs, so what the answer
-  was produced under is on the session whatever the
-  search then does.
+FS -> Providers : state of the ZIP, when no state was said
+Providers --> FS : derived state
+note over FS, Cat
+  Tools call tools directly along the non-circular may_call map,
+  with recursion guards. A tool in the middle re-raises and never
+  swallows; every throw ends in a navigator, which catches,
+  classifies, logs with timings, and answers.
 end note
+FS --> UN : completion callback { mined document }\ninternal_callback, proof our_signature
+deactivate FS
+UN -> Repo : close the ledger entry, then serial deterministic\nmerge into parameter state (a conflict is an exception)
+UN -> UN : completeness test - the passed document\nagainst the registry's required inputs
 
-Route -> Session : read every parameter this page holds
-Session --> Route : in_force
-note right of Route
-  What the search runs on is what is in force, not what
-  this turn happened to say. A person who named a city
-  one turn and a state the next has given both.
-end note
-
-Route -> Providers : state of the ZIP, when no state was said
-Providers --> Route : derived state
-note right of Route
-  Derived for the requirement check only. The query is
-  still built from what was asked for: the ZIP is
-  narrower than the state it implies.
-end note
-
-Route -> Decl : required_parameters("FacilitySearch")
-Decl --> Route : state, selectedTaxonomyCodes
-Route -> Route : unmet = those not in force
-
-alt nothing unmet
-  Route -> Providers : search_providers(entity_type = "2", codes, place)
-  Providers --> Route : rows + total
-else something unmet
-  Route -> Route : ask_for_missing(tool, unmet,\noptional, in_force, utterance)
-  note right of Route
-    The tool authors the question because the tool holds
-    the requirement. Making a parameter Required is an
-    edit to the record and a deploy, not a line of code.
+alt required inputs all in force
+  UN -> FS : dispatch { search: codes, place }
+  activate FS
+  FS -> Providers : search_providers(entity_type = "2", codes, place)
+  Providers --> FS : rows + total
+  FS --> UN : completion callback { rows }\ninternal_callback, proof our_signature
+  deactivate FS
+  UN -> Repo : close the ledger entry, serial merge the rows
+else a required input is unmet
+  UN -> Prose : author refinement { unmet, in force, utterance }
+  activate Prose
+  Prose --> UN : the user-facing sentence
+  deactivate Prose
+  note right of Prose
+    User-facing prose is its own tool. The navigator dispatches it
+    with the facts; it returns one sentence. No tool authors its
+    own chat strings; making a parameter required is an edit to the
+    registry and a deploy, not a line of code.
   end note
 end
 
-Route --> UR : rows, mined, unmet_requirements,\nrefinement_question
-deactivate Route
+UN --> Gate : the merged answer, sequenced
+deactivate UN
+[<-- Gate : the one stream the gate writes
+deactivate Gate
 
 @enduml

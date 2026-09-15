@@ -22,4 +22,4 @@ The boot class in `architecture/EngineeringRuleEnforcement/code/chathealthy_devo
 
 @brain/machine_artifacts/content/bugs.json
 @brain/machine_artifacts/content/engineering_rules.json
-@_oneshots/test_output/backlog_stories.json
+@brain/Sessionstart/backlog_stories.json

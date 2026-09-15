@@ -1,5 +1,5 @@
 @startuml
-title ToolConfiguration — three lists, and the join that decides what a tool may ask for
+title Tool Registry — the one navigation map, generated from source at build
 
 skinparam shadowing false
 skinparam defaultFontName Segoe UI
@@ -10,74 +10,96 @@ skinparam NoteBackgroundColor #f3f4f6
 skinparam NoteBorderColor #9ca3af
 hide circle
 
-entity "PAGE" as PAGE {
-  page : string  <<key>>
+entity "REGISTRY" as REG {
+  version : string
   --
-  the scope a VALUE lives in
-}
-
-entity "PAGE_TOOL" as PT {
-  page : string  <<fk>>
-  tool : string  <<fk>>
-  --
-  which tools compose a page
+  instance.build  : int
+  instance.commit : string
+  instance.env    : local | dev | qa | prod
+  instance.live   : bool
 }
 
 entity "TOOL" as TOOL {
-  tool : string  <<key>>
+  tool_name : string  <<key>>
   --
-  server : string
-  endpoint : string
+  tool_type : tool | pseudo_tool
+  class_name / source_location
+  description  <<TOOL_DESCRIPTION>>
+  utterance_manager_prompt
 }
 
-entity "PARAMETER" as PARAM {
-  name : string  <<key>>
+entity "FIELD" as FIELD {
+  name : string
   --
-  value_type : string
-  description : string
+  type : string
+  required : bool
+  io : input | output
+  description
 }
 
-entity "SUBSCRIPTION" as SUB {
-  parameter : string  <<fk>>
-  tool : string  <<fk>>
+entity "ROUTE" as ROUTE {
+  route_name : string  <<key>>
   --
-  use : Required | Optional
+  call_type : one of five
 }
 
-entity "PARAMETER_VALUE" as VAL {
-  page : string  <<fk>>
-  name : string  <<fk>>
+entity "PROOF" as PROOF {
+  method : none | api_key |
+  \tsession_token | our_signature
   --
-  value
-  route : tool | gateway | utterance_manager
-  determination : model | rule | person
+  credential_name   (api_key)
+  signing_key_name  (our_signature)
 }
 
-PAGE ||--o{ PT
-TOOL ||--o{ PT
-PARAM ||--o{ SUB
-TOOL ||--o{ SUB
-PAGE ||--o{ VAL
-PARAM ||--o{ VAL
+entity "TIMEOUT_FACTS" as TF {
+  render_timeout_seconds
+  callback_timeout_seconds
+  external_call_timeout_seconds
+}
 
-note bottom of SUB
-  Required  the tool cannot run without it,
-            so it refuses and asks
-  Optional  it is used when present and
-            never demanded
-  absent    the tool has no business with it
+REG   ||--o{ TOOL
+REG   ||--o{ ROUTE
+TOOL  ||--o{ FIELD
+TOOL  ||--o{ TOOL  : may_call
+TOOL  }o--o{ ROUTE : subscribes
+ROUTE ||--|| PROOF
+ROUTE ||--o| TF
+
+note top of REG
+  One record, generated from source at build, so it
+  cannot name a tool or route the build does not carry.
+  It combines the four artifacts that carried the map:
+  the tool contracts, the _OP_HANDLERS dispatch table,
+  the ToolRouter allowlist, and the UtteranceManager prompt.
+  One document per build per environment; exactly one live
+  per env; the deploy retires the predecessor's live flag —
+  the only field ever mutated on an existing document.
 end note
 
-note bottom of VAL
-  One name, one value per page. The
-  geography on the care-giver page is
-  not the geography on the facility page.
+note right of TOOL
+  Presence IS the allowlist. Every tool declares
+  UTTERANCE_MANAGER_PROMPT or NOT_UTTERANCE_ROUTABLE —
+  silence refuses the build. The gateway enters as a
+  pseudo_tool. On the utterance_manager's own entry the
+  prompt is the preamble, not a fragment.
 end note
 
-note top of PAGE
-  Requirements are per TOOL and never per
-  PAGE: a page carries a search, a filter,
-  a detail and a selection, and the search
-  runs before any record is opened.
+note bottom of FIELD
+  required inputs are the prerequisites: the
+  UniversalNavigator's completeness test compares
+  the passed document against them before dispatch.
+end note
+
+note left of TOOL
+  may_call IS the who-may-call-whom map.
+  The generator refuses a circle — a DAG.
+end note
+
+note bottom of ROUTE
+  subscriptions ARE the dispatch table: a call routes
+  only to a tool subscribed to it. call_type is one of
+  tool_to_tool, third_party_callback, static_witness,
+  client_sessioned, internal_callback — each proof method
+  fixed by its type.
 end note
 @enduml

@@ -1,4 +1,5 @@
 @startuml
+skinparam componentStyle rectangle
 skinparam shadowing false
 skinparam defaultFontName Segoe UI
 skinparam defaultFontSize 11
@@ -8,82 +9,73 @@ skinparam DatabaseBorderColor #6b7280
 skinparam NoteBackgroundColor #f3f4f6
 skinparam NoteBorderColor #9ca3af
 skinparam ActivityBorderColor #0b7a75
-skinparam ActivityBackgroundColor #ffffff
+skinparam ActivityBackgroundColor #fdfdfd
 skinparam ActivityDiamondBorderColor #0b7a75
 
-title What a capability does when it is asked to search: mine, write, read back what is in force, then ask or run
+title Asked to search: the Gate hands off, the UniversalNavigator drives the route,\nthe tools do the work, and one stream returns
 
 start
 
-:the gateway posts the utterance and the
-talk before it to the page that owns it
-(POST /provider/find);
-
-:mine the parameters out of the utterance
-(mine_individual_provider_parameters);
-
-if (the turn named a complaint?) then (yes)
-  :resolve the kinds of care giver
-  that treat it, and tick a default set;
-else (no)
-endif
-
-:WRITE what was mined onto this page
-(_write_page_parameters);
+:**Gate** (transport facade)
+collects the session token, the HTTP head, and the
+POST/GET parameters (each if present), and passes
+them to the UniversalNavigator. It knows nothing else;
 note right #f3f4f6
-  Written before the search, so what an answer
-  was produced under is on the session whatever
-  the search then does. A page writes its own
-  page and no other, ever.
+  One generic gate module, no routes of its own,
+  the only component that knows transport exists.
+  The client arrives on the client_sessioned route.
 end note
 
-:READ BACK everything this page holds
-(_parameters_in_force);
+:**UniversalNavigator**, the only node that accepts
+external traffic, verifies the session-token proof,
+maintains the session, and takes the utterance;
+
+:**UtteranceManager**: one model call. The cached
+preamble plus every tool's registry fragment in, the
+dispatch SET out. Non-blocking, and it knows no parameters;
 note right #f3f4f6
-  This read is what makes an answer ADD to a
-  request rather than replace it. Searching on
-  the mined values alone threw away the city
-  given a turn earlier and returned the whole
-  of New York.
+  The classifier is gone; this IS the classifier.
+  It answers with routes, it never commands.
 end note
 
-:work out what is KNOWN as against
-what was asked for
-(_geography_known: a ZIP names its state);
+:**UniversalNavigator** validates the selection
+against the may_call map and drives the route;
 
-:ask the declaration which parameters
-this tool cannot run without
-(required_parameters(tool));
+:domain tools mine the parameter values out of the
+utterance, and if a complaint was named a specialty
+tool resolves the kinds of care giver that treat it;
+note right #f3f4f6
+  Tool answers ride the passed document. The
+  UniversalNavigator tracks parameter state and
+  raises if two values conflict.
+end note
+
+:**UniversalNavigator** completeness test:
+compare the passed document against the search
+tool's required input fields, from the live registry;
 note left #f3f4f6
-  Read from tool_configuration, per TOOL and never
-  per page: a page carries a search, a filter, a
-  detail and a selection, and the search runs before
-  any record is opened. Making a parameter required
-  is an edit to the record and a deploy, not code.
+  The required flags in the registry are the tool's
+  prerequisites. A value present but empty is not in
+  force: an empty string and a missing one are the
+  same absence to the person who did not say it.
 end note
 
-:subtract what is in force
-(_unmet_requirements);
-note right #f3f4f6
-  A value present but empty is not in force. An empty
-  string and a missing string are the same absence to
-  the person who did not say it.
-end note
-
-if (any requirement unmet?) then (yes)
-  :return their names
-  as unmet_requirements;
-  :author the question that asks for
-  exactly those, by name
-  (_question_for);
-  :the gateway streams it as kind 'prompt'
-  and appends it to the transcript;
+if (any required field unmet?) then (yes)
+  :**UniversalNavigator** dispatches the **prose tool**
+  with the facts: the names of the missing fields;
+  :**prose tool** authors the user-facing question,
+  returned as an internal callback;
+  :**UniversalNavigator** merges the answer, and its
+  **Gate** writes the one stream as kind 'prompt';
   stop
 else (no)
-  :run the search on what is in force
-  (find_care.search_providers);
-  :return the rows, the panel they were
-  narrowed by, and what was mined;
+  :**UniversalNavigator** dispatches the **provider search tool**
+  on what the passed document holds;
+  :**search tool** runs and returns the rows
+  as an internal callback;
+  :**UniversalNavigator** merges as the ledger entry closes
+  (timeout facts race the callback), and its
+  **Gate** writes the one stream;
   stop
 endif
 

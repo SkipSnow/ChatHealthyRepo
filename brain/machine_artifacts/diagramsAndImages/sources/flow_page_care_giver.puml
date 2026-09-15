@@ -1,0 +1,123 @@
+@startuml
+skinparam shadowing false
+skinparam defaultFontName Segoe UI
+skinparam defaultFontSize 11
+skinparam ArrowColor #0b7a75
+skinparam SequenceLifeLineBorderColor #6b7280
+skinparam ParticipantBorderColor #0b7a75
+skinparam ParticipantBackgroundColor #fdfdfd
+skinparam NoteBackgroundColor #f3f4f6
+skinparam NoteBorderColor #9ca3af
+
+title Flow: care giver page (individual provider)\nConstruct the page from a sessioned utterance — triage, scope mining to the page's members, dispatch, reconcile on provider_search, respond
+
+actor "Person / Client" as P
+participant "Gate\n(facade, transport only)" as GATE
+participant "UniversalNavigator\n(SharedServices main)" as UN
+database "Registry\n(the one live map)" as REG
+database "Repository\nsessions, ledger, params" as REPO
+participant "UtteranceManager\n(classify only)" as UM
+participant "Prose tool\n(authors the sentence)" as PROSE
+participant "UniversalNavigatorProxy\n(FindCare satellite)" as PXY
+participant "specialty_filter\n(tool)" as SF
+participant "provider_search\n(tool)" as PS
+
+P -> GATE : POST /  { session_token, head,\nparams(utterance, history) }
+activate GATE
+note over GATE
+  The gate knows only transport: it collects the token, the HTTP
+  head, and the POST/GET params, each if present, and hands them
+  on. No routes of its own, verifies nothing.
+end note
+GATE -> UN : pass(session_token, head, params)
+activate UN
+deactivate GATE
+
+== Triage: which type of call is this ==
+UN -> REG : read the live map for this env
+REG --> UN : routes, may_call, pages, required inputs
+UN -> UN : proof is a session_token ->\ncall_type = client_sessioned
+UN -> REPO : verify token, advance nonce,\nload in-force parameters
+REPO --> UN : session ok, params in force
+note left of UN
+  The UniversalNavigator is the only node that takes external
+  traffic. It triages every arrival by its declared proof.
+  session_token here; a bad or missing proof is refused.
+end note
+
+== Determine the page and scope mining ==
+UN -> UN : this request constructs\npage = care_giver\nmembers: provider_search, specialty_filter,\nprovider_detail, prose ; required: provider_search
+UN -> UM : classify(utterance, history)\nfragments scoped to care_giver members
+activate UM
+UM --> UN : dispatch set { specialty_filter, provider_search }
+deactivate UM
+note right of UM
+  One model call: cached preamble plus the page members'
+  registry fragments in, routes out. Knows no parameters,
+  never waits on a tool. The assembled fragments ARE the
+  classifier.
+end note
+
+== Render ledger: record what the page owes ==
+UN -> REPO : record expectation = required_members\n{ provider_search } ; start render_timeout budget
+note left of REPO
+  Dispatch records the page's required_members as ledger
+  expectations. Each completion callback closes one; the
+  completeness.render_timeout_seconds budget races them.
+end note
+
+== Dispatch: specialty_filter feeds nucc_codes ==
+UN -> PXY : dispatch specialty_filter { complaint }\n(satellite, our_signature signed out)
+activate PXY
+PXY -> SF : relay locally (function call)
+activate SF
+SF --> PXY : { nucc_codes }
+deactivate SF
+PXY --> UN : internal_callback { nucc_codes }\nproof: our_signature verified
+deactivate PXY
+UN -> REPO : merge serially (deterministic);\na state conflict RAISES
+
+alt geography is sufficient
+  UN -> PXY : dispatch provider_search\n{ nucc_codes, geography }
+  activate PXY
+  PXY -> PS : relay locally (function call)
+  activate PS
+  PS --> PXY : { rows, total }
+  deactivate PS
+  PXY --> UN : internal_callback { rows }\nproof: our_signature verified
+  deactivate PXY
+  alt required member closes within render_timeout_seconds
+    UN -> REPO : close provider_search entry;\nserial merge (conflict RAISES)
+    UN -> UN : page reconciled -\nrequired_members all closed
+  else render_timeout budget expires first
+    UN -> UN : ledger race lost -> layman on_timeout\nexplanation (instrumented, timings)
+  end
+else geography insufficient - required input unmet
+  UN -> PROSE : author refinement\n{ need geography, in-force, utterance }
+  activate PROSE
+  PROSE --> UN : one user-facing sentence
+  deactivate PROSE
+  note right of PROSE
+    provider_search does not dispatch without sufficient
+    geography. Prose is its own tool; no tool authors its
+    own chat strings. The page waits; the person's next
+    utterance resolves geography through the same path.
+  end note
+end
+
+note over UN, REPO
+  Page error management, all instrumented with timings at a
+  severity matching impact:
+  * timeout  -> respond with the layman on_timeout explanation
+  * parameter / state merge conflict -> RAISE
+  * a required member that dies or never calls back -> RAISE
+  Every throw ends in a UniversalNavigator; the proxy re-raises.
+end note
+
+UN -> GATE : stream the merged answer, sequenced\n(the gate owns the one stream)
+activate GATE
+GATE -> P : the one stream the gate writes
+deactivate GATE
+deactivate UN
+
+@enduml

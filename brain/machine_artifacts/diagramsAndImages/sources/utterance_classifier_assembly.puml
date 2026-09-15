@@ -1,0 +1,54 @@
+@startuml
+title The classifier goes away — and this is the classifier: preamble + fragments, one call
+
+skinparam componentStyle rectangle
+skinparam shadowing false
+skinparam defaultFontName Segoe UI
+skinparam defaultFontSize 11
+skinparam ArrowColor #0b7a75
+skinparam ComponentBorderColor #0b7a75
+skinparam DatabaseBorderColor #6b7280
+skinparam NoteBackgroundColor #f3f4f6
+skinparam NoteBorderColor #9ca3af
+
+database "ToolRegistry\n(the live record for this env)" as REG #eef6f5
+
+package "Per tool, declared in source" #fdfdfd {
+  [ProviderSearch\nUTTERANCE_MANAGER_PROMPT] as F1
+  [SpecialtyFilter\nUTTERANCE_MANAGER_PROMPT] as F2
+  [LockoutTool\nNOT_UTTERANCE_ROUTABLE] as F3
+}
+
+[UtteranceManager\nown entry = the preamble\n(cached system prompt)] as UM
+[One model call] as CALL
+[UniversalNavigator\nvalidates routes against may_call,\nthen dispatches] as UN
+[Dispatch\n(parallel, non-blocking)] as DISP
+
+F1 -down-> REG : fragment
+F2 -down-> REG : fragment
+F3 -[#9ca3af]down-> REG : declares itself\nunreachable
+
+REG -down-> UM : the assembled fragments
+UM -down-> CALL : preamble + every fragment + the utterance
+CALL -down-> UN : routes out — the dispatch set
+UN -down-> DISP
+
+note right of UM
+  The UtteranceManager knows NO parameters.
+  It sees an utterance and answers with routes.
+end note
+
+note right of F3
+  A tool declares exactly one of the two.
+  Silence refuses the build, so a safety
+  tool's unreachability is a decision.
+end note
+
+note bottom of UN
+  First pass mines broadly; refinement is
+  narrower and more rigorous. The scoping —
+  which fragments, page-first or broad, how
+  rigor climbs per pass — lives in the
+  navigator's dispatch code, not in the model.
+end note
+@enduml

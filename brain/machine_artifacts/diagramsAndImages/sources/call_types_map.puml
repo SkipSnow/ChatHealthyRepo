@@ -1,0 +1,54 @@
+@startuml
+title The five incoming call types — each mapped: source, route, proof, terminal
+
+skinparam componentStyle rectangle
+skinparam shadowing false
+skinparam defaultFontName Segoe UI
+skinparam defaultFontSize 11
+skinparam ArrowColor #0b7a75
+skinparam ComponentBorderColor #0b7a75
+skinparam DatabaseBorderColor #6b7280
+skinparam NoteBackgroundColor #f3f4f6
+skinparam NoteBorderColor #9ca3af
+left to right direction
+
+package "Sources" #fdfdfd {
+  [Another tool] as S1
+  [A third party\n(their initiative)] as S2
+  [A static page\nwe own] as S3
+  [Our client\n(has a session)] as S4
+  [A tool we\ndispatched] as S5
+}
+
+package "Route + proof (declared in the registry)" #fbfdfd {
+  [tool_to_tool\nproof: carried in the document] as R1
+  [third_party_callback\nproof: api_key · vault credential\n(mTLS at the infra migration)] as R2
+  [static_witness\nproof: none · onload · log only] as R3
+  [client_sessioned\nproof: signed session token · per-hop nonce] as R4
+  [internal_callback\nproof: our_signature · signed out, verified back] as R5
+}
+
+package "Terminal" #fdfdfd {
+  [A UniversalNavigatorProxy\nor the navigator] as T1
+  [The Gate\n-> the UniversalNavigator] as TG
+}
+
+S1 --> R1
+S2 --> R2
+S3 --> R3
+S4 --> R4
+S5 --> R5
+
+R1 --> T1 : never touches the Gate
+R2 --> TG
+R3 --> TG
+R4 --> TG
+R5 --> TG
+
+note bottom of TG
+  Four types cross the Gate; only tool_to_tool
+  stays internal. The Gate's check is mechanical:
+  route known, proof named — verify or refuse.
+  An arrival on an unmapped route is an exception.
+end note
+@enduml

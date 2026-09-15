@@ -1,0 +1,48 @@
+@startuml
+title The tool registry — one record per build per env, one live, append-only history
+
+skinparam componentStyle rectangle
+skinparam shadowing false
+skinparam defaultFontName Segoe UI
+skinparam defaultFontSize 11
+skinparam ArrowColor #0b7a75
+skinparam ComponentBorderColor #0b7a75
+skinparam DatabaseBorderColor #6b7280
+skinparam NoteBackgroundColor #f3f4f6
+skinparam NoteBorderColor #9ca3af
+
+[BUILD\ngenerates the record from source\nat one commit, and validates it] as BUILD
+
+database "Mongo · registry collection\nappend-only · full history" as COLL {
+  [instance{build,commit,env,live:true}\nthe live record for this env] as LIVE
+  [older instances · live:false] as HIST
+}
+
+[DEPLOY\nthe ONLY writer.\nOne transaction, one library function:\nvalidate -> insert new live ->\nretire the predecessor's live flag\n(the sole field ever mutated)] as DEPLOY
+
+[UniversalNavigator\nreads its env's live record at startup;\na runtime metadata change is a\nnew appended record] as UN
+
+package "Guards" #fbfdfd {
+  [Unique partial index\ninstance.env where live=true\n-> the DB refuses a second live] as G1
+  [$jsonSchema on the collection] as G2
+  [Pre-commit scan\nno other writer] as G3
+  [Audit sweep\nasserts the history invariant] as G4
+}
+
+BUILD -down-> DEPLOY : the validated record
+DEPLOY -down-> LIVE : insert new live
+DEPLOY -[#9ca3af]right-> HIST : retire the old live flag
+UN -up-> LIVE : reads at startup
+G1 .up.> COLL
+G2 .up.> COLL
+G3 .up.> DEPLOY
+G4 .up.> COLL
+
+note right of DEPLOY
+  The record is a projection of source,
+  never a source. Written only by the
+  deploying identity; every runtime
+  identity reads. History is kept, so
+  rollback is redeploying an older build.
+end note
+@enduml

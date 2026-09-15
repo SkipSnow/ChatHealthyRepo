@@ -10,13 +10,13 @@ skinparam NoteBorderColor #9ca3af
 skinparam StateBorderColor #0b7a75
 skinparam StateBackgroundColor #ffffff
 
-title The life of one session token: minted once, re-stamped on every hop, verified only at the gate
+title The life of one session token: minted once, re-stamped on every hop,\nverified at the UniversalNavigator — the gate only carries it
 
 [*] --> NoSession
 
 state "No session" as NoSession
 
-state "Minting at POST /auth/issue" as Mint {
+state "Minting — session establishment" as Mint {
   state "GUID decided" as MintGuid
   state "Token assembled and signed" as MintSign
   MintGuid --> MintSign
@@ -24,19 +24,19 @@ state "Minting at POST /auth/issue" as Mint {
 
 state "Live session" as Live {
   state "Held by the browser" as Held
-  state "Verified at /gate" as Verify
+  state "Verified at the UniversalNavigator" as Verify
   state "Re-stamped" as Restamp
-  state "Persisted" as Persist
+  state "Persisted as a repository row" as Persist
 
-  Held --> Verify : every /gate POST carries\nsession_token in the body
+  Held --> Verify : the Gate collects session_token\nand passes it to the UniversalNavigator
   Verify --> Restamp : signature verifies
-  Restamp --> Persist : AuthN manage_session\ncalls put_nonce(origin)
-  Persist --> Held : new token returned\non the final event
+  Restamp --> Persist : the UniversalNavigator's session\nhelper calls put_nonce(origin)
+  Persist --> Held : new token returned on the final\nevent; the gate writes the one stream
 }
 
 state "401" as Denied
 
-NoSession --> Mint : the page posts /auth/issue,\noffering the GUID it holds
+NoSession --> Mint : the client asks to establish a session,\noffering the GUID it holds
 
 MintGuid : a live, unexpired GUID is resumed
 MintGuid : anything else begins a new session
@@ -51,9 +51,9 @@ Denied --> [*]
 
 Live --> NoSession : expires_at passed,\nor the nonce is older than 300s
 
-Verify : SessionToken.verify(expected_origin)
-Verify : loads shared.crt, checks origin and length,
-Verify : returns false on InvalidSignature
+Verify : the client_sessioned call type — proof is the signed
+Verify : session token; SessionToken.verify(expected_origin)
+Verify : loads shared.crt, checks origin and length
 
 Restamp : Nonce.restamp keeps the ORIGINAL stamp
 Restamp : and replaces the LATEST one, so the token
@@ -67,13 +67,15 @@ note right of Denied #f3f4f6
   cannot buy itself an answer by naming a harmless
   gesture. Cookies are not used: HuggingFace's edge
   proxy strips credentials from OPTIONS preflights,
-  so ClientRouter threads the token in the body.
+  so the token rides in the body the gate forwards.
 end note
 
 note bottom of Live #f3f4f6
-  Peers do not carry SharedServices signing material.
-  A peer holding a token asks the verify_token op,
-  which is what keeps verification one component's job.
+  The UniversalNavigator is the only node that accepts
+  external traffic; session verification, maintenance and
+  timeouts are its helper functions, and the session is a
+  repository row. Proxies carry tool-to-tool traffic only —
+  no sessions.
 end note
 
 @enduml

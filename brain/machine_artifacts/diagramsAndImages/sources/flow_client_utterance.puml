@@ -1,0 +1,85 @@
+@startuml
+skinparam shadowing false
+skinparam defaultFontName Segoe UI
+skinparam defaultFontSize 11
+skinparam ArrowColor #0b7a75
+skinparam SequenceLifeLineBorderColor #6b7280
+skinparam ParticipantBorderColor #0b7a75
+skinparam ParticipantBackgroundColor #fdfdfd
+skinparam NoteBackgroundColor #f3f4f6
+skinparam NoteBorderColor #9ca3af
+
+title flow_client_utterance -- client-sessioned, free text\nA person types a request; the navigator triages the session, determines the page, mines it, dispatches the set, reconciles the page, and answers.
+
+actor "Person / Client" as P
+participant "Gate\n(facade)" as GATE
+participant "UniversalNavigator\n(SharedServices)" as UN
+database "render ledger\n+ sessions (repo rows)" as REPO
+participant "UtteranceManager" as UM
+participant "co-resident tool\n(SharedServices)" as CT
+participant "UniversalNavigatorProxy\n(satellite)" as PXY
+participant "satellite tool" as ST
+participant "Prose tool" as PROSE
+
+P -> GATE : POST free-text utterance\nsession_token + head + params\nAccept: application/x-ndjson
+note right of GATE
+  Dumb transport. The gate collects
+  the token, head and params, streams
+  the answer back, verifies nothing,
+  owns no route.
+end note
+GATE -> UN : pass(token, head, params)
+
+== Triage: which of the five types is this? ==
+UN -> UN : route is **client_sessioned**\nproof = session_token
+UN -> REPO : load session by GUID
+UN -> UN : verify token + restamp per-hop nonce
+note right of UN
+  The UniversalNavigator is the only node
+  that takes external traffic. It triages
+  every arrival by its declared proof.
+end note
+
+== Determine the page ==
+UN -> UN : read the map: this request\nconstructs page **care_giver**
+UN -> REPO : ledger: record the page's\n**required_members** as expectations
+
+== Mine (one model call, page-scoped) ==
+UN -> UM : preamble + THIS page's member fragments\n(page-scoped mining)
+UM -> UM : one model call; knows no parameters
+UM --> UN : the dispatch **set** of routes (non-blocking)
+UN -> UN : validate the set against the **may_call** DAG
+
+== Dispatch the set in parallel ==
+UN -> CT : dispatch (co-resident = direct call)
+UN -> PXY : dispatch across the wire (tool_to_tool)
+PXY -> ST : relay locally (function call)
+
+CT --> UN : internal_callback (proof: our_signature)
+UN -> REPO : ledger: close entry; merge serially
+ST --> PXY : result document
+PXY --> UN : internal_callback (proof: our_signature)
+UN -> REPO : ledger: close entry; merge serially
+
+note over UN, REPO
+  Serial deterministic merge (shared lib). A parameter/state
+  conflict RAISES (on_conflict). A required member that dies
+  or never returns RAISES (on_missing_required). Every throw
+  ends here in the navigator, instrumented with timings.
+end note
+
+== Reconcile the page ==
+alt every required_member closed within the budget
+  UN -> UN : page reconciled
+else completeness budget expires first
+  UN -> UN : page NOT rendered in time\n-> answer with layman **on_timeout** explanation
+end
+
+UN -> PROSE : dispatch with the facts
+PROSE --> UN : the user-facing sentence
+
+UN -> REPO : persist the mutated user_object
+UN -> GATE : stream events + final\n(the gate owns the one stream)
+GATE -> P : rendered page / final\n{ok, guid, time_remaining, session_token}
+
+@enduml

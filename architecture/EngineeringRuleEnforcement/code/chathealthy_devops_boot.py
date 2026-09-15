@@ -62,7 +62,9 @@ _log = ChatHealthyLoggingService()
 
 
 BRAIN_DIR = PROJECT_ROOT / "brain" / "machine_artifacts" / "content"
-TEST_OUTPUT_DIR = PROJECT_ROOT / "_oneshots" / "test_output"
+# The utterance transport is Sessionstart state, not scratch: it is
+# written at boot, read once, and deleted by the reader.
+SESSIONSTART_DIR = PROJECT_ROOT / "brain" / "Sessionstart"
 
 CONVERSATION_LOAD_COUNT = 170
 MONGO_DB = "ClaudeCodeUtterances"
@@ -112,8 +114,8 @@ def load_recent_utterances(n: int = CONVERSATION_LOAD_COUNT) -> list[dict]:
 
 
 def write_utterances_file(utterances: list[dict]) -> Path:
-    TEST_OUTPUT_DIR.mkdir(parents=True, exist_ok=True)
-    out = TEST_OUTPUT_DIR / "recent_utterances.json"
+    SESSIONSTART_DIR.mkdir(parents=True, exist_ok=True)
+    out = SESSIONSTART_DIR / "recent_utterances.json"
     out.write_text(
         json.dumps(
             [{"actor": u.get("role") or u.get("actor"), "content": u["content"]}
@@ -175,8 +177,13 @@ def build_story_tree(backlog: dict) -> dict:
 
 
 def write_backlog_stories_file() -> Path:
-    TEST_OUTPUT_DIR.mkdir(parents=True, exist_ok=True)
-    out = TEST_OUTPUT_DIR / "backlog_stories.json"
+    # The derived view CLAUDE.md @-imports at session start. It lives in
+    # brain/Sessionstart, its own directory: a projection of
+    # agile_backlog.json, explicitly gitignored, regenerated here on every
+    # boot so it can never serve stale taxonomy.
+    out_dir = PROJECT_ROOT / "brain" / "Sessionstart"
+    out_dir.mkdir(parents=True, exist_ok=True)
+    out = out_dir / "backlog_stories.json"
     backlog = json.loads((BRAIN_DIR / "agile_backlog.json").read_text(encoding="utf-8"))
     tree = build_story_tree(backlog)
     out.write_text(json.dumps(tree, indent=2, ensure_ascii=False), encoding="utf-8")

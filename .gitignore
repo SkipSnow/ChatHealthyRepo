@@ -89,6 +89,9 @@ architecture/DevOpsBuildDeployAndEnvironmentManagement/localBuild/
 # and rebuilt on every `build_chathealthy.py` invocation; `deploy_
 # chathealthy.py` reads from here only.
 /build/
+# In-project scratch for transient command-output captures (operator directive
+# 2026-09-15: keep temp files inside the project, not the OS temp folder).
+/tmp/
 .claude/worktrees/
 
 architecture/EngineeringRuleEnforcement/ArchitectureDesignAndAuditDocs/commit_authorization.log
@@ -123,3 +126,15 @@ architecture/EngineeringRuleEnforcement/tests/_cold_start_seconds.txt
 # Operator-only tooling. Never committed, never built, never deployed.
 _operator/
 **/_operator/
+
+# Derived view of agile_backlog.json, @-imported by CLAUDE.md at session
+# start. A projection, never a source: tracking it would commit a second
+# statement of backlog truth that drifts from the one that governs.
+brain/Sessionstart/backlog_stories.json
+brain/Sessionstart/recent_utterances.json
+brain/Sessionstart/brain_precompact_hashes.json
+
+# The local website docroot, staged by the deploy and mounted read-only
+# into ch-website. Deploy output, never source. Interim until the
+# infrastructure migration bakes the content into the image.
+/deployment/

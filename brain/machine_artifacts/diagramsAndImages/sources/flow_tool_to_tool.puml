@@ -1,0 +1,66 @@
+@startuml
+skinparam shadowing false
+skinparam defaultFontName Segoe UI
+skinparam defaultFontSize 11
+skinparam ArrowColor #0b7a75
+skinparam SequenceLifeLineBorderColor #6b7280
+skinparam ParticipantBorderColor #0b7a75
+skinparam ParticipantBackgroundColor #fdfdfd
+skinparam NoteBackgroundColor #f3f4f6
+skinparam NoteBorderColor #9ca3af
+
+title Tool-to-tool call (request type)\nOne tool calls another along the declared may_call map — a direct in-process call, or relayed across the wire; no session, no ledger, no merge.
+
+participant "Tool A\n(caller)" as A
+participant "UniversalNavigatorProxy\n(satellite)" as P
+participant "UniversalNavigator\n(SharedServices, main)" as UN
+participant "Tool B\n(callee)" as B
+
+A -> P : ask for Tool B along may_call\n(identical tool code either way)
+note over P
+  TRIAGE by the route's declared proof = none (internal):
+  classify this call as tool_to_tool.
+  Internal traffic — no session, no render ledger, no merge.
+  Read the may_call map: A -> B is declared and non-circular.
+  Recursion guard: may_call depth is within bound.
+end note
+
+alt Co-resident — Tool B in the same process
+  P -> B : direct function call
+  alt B answers
+    B --> P : result document
+    P --> A : result
+  else B raises ChatHealthyException
+    B --> P : raise (a middle tool never swallows)
+    note over P
+      The proxy is a navigator: a throw ends here.
+      Classify and log with timings at a
+      severity matching impact.
+    end note
+    P --> A : ChatHealthyException surfaces to the caller
+  end
+
+else Satellite — Tool B across the wire
+  P -> UN : relay across the wire (internal)
+  note over UN
+    The main accepts the internal wire traffic.
+    Re-affirm triage: proof = none, tool_to_tool;
+    confirm the may_call map and recursion guard.
+  end note
+  UN -> B : dispatch (B co-resident with the main)
+  alt B answers
+    B --> UN : result document
+    UN --> P : relay back (internal callback)
+    P --> A : result
+  else B raises ChatHealthyException
+    B --> UN : raise (a middle tool never swallows)
+    note over UN
+      Every throw ends in a navigator:
+      catch, classify, log with timings
+      at a severity matching impact.
+    end note
+    UN --> P : re-raise across the wire
+    P --> A : ChatHealthyException surfaces\nto the caller's navigator
+  end
+end
+@enduml

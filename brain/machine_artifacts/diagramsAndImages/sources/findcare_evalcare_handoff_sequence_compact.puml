@@ -1,92 +1,136 @@
-@startuml FindCare_EvaluateCare_Handoff_Compact
-!theme plain
-title FindCare → EvaluateCare Handoff Sequence\n2026-04-06
+@startuml
+skinparam componentStyle rectangle
+skinparam shadowing false
+skinparam defaultFontName Segoe UI
+skinparam defaultFontSize 11
+skinparam ArrowColor #0b7a75
+skinparam ComponentBorderColor #0b7a75
+skinparam DatabaseBorderColor #6b7280
+skinparam NoteBackgroundColor #f3f4f6
+skinparam NoteBorderColor #9ca3af
 
 skinparam backgroundColor white
-skinparam maxMessageSize 200
+skinparam maxMessageSize 210
+skinparam sequence {
+  ParticipantBorderColor #0b7a75
+  ParticipantBackgroundColor #fdfdfd
+  ActorBorderColor #0b7a75
+  ActorBackgroundColor #fdfdfd
+  LifeLineBorderColor #9ca3af
+  DividerBackgroundColor #eef6f5
+  DividerBorderColor #0b7a75
+  GroupBackgroundColor #eef6f5
+  GroupBorderColor #0b7a75
+}
+
+title FindCare provider search + EvaluateCare handoff\nTarget front-application architecture · 2026-09-14
 
 actor "Consumer" as user
-participant "React\n(:5173)" as react
-participant "Cookie\n(encrypted)" as cookie
-participant "FindCare\n(:8000)" as fc
-participant "EvalCare\n(:8001)" as ec
-database "MongoDB\nFrontend" as db
-participant "Claude\nAPI" as llm
 
-== 1. Provider Search ==
+participant "React\nclient" as react
+
+box "SharedServices  (main)" #eef6f5
+participant "Gate\n(facade)" as gate
+participant "Universal\nNavigator" as nav
+participant "Utterance\nManager" as um
+participant "Prose\ntool" as prose
+end box
+
+box "FindCare  (satellite)" #f3f4f6
+participant "Nav\nProxy" as fcpx
+participant "provider_\nsearch" as ps
+end box
+
+box "EvaluateCare  (satellite)" #f3f4f6
+participant "Nav\nProxy" as ecpx
+participant "evaluate_\nproviders" as ev
+end box
+
+database "MongoDB\nFrontend" as db
+participant "Model\n(pydantic-ai)" as llm
+
+== 1. Utterance arrives ==
 
 user -> react : "Find cardiologist in VA"
-react -> fc : POST /chat
-fc -> llm : Chat + tool_call
-llm -> fc : find_providers({specialty, state})
-fc -> db : Vector search Providers
-db -> fc : 25 providers
-fc -> llm : Tool result
-llm -> fc : "Here are 25 cardiologists..."
-fc -> react : {message, providers[], total: 347}
-
-react -> cookie : Read visit cookie
-note right of cookie
-  Encrypted, HttpOnly, Secure
-  {visits: [{date, queries}...]}
-  Auto-delete if > 90 days
+react -> gate : POST + session token\n(call_type client_sessioned)
+gate -> nav : session + head + params\n(nothing else)
+note right of gate
+  Transport-only proxy.
+  Collects token/head/params,
+  streams the one answer back.
 end note
-cookie -> react : {visit_count: 3, queries: 11}
-react -> cookie : Increment current queries
 
-react -> user : Display providers
+== 2. Classify (routes, not commands) ==
 
-== 2. Offer Evaluation ==
+nav -> um : dispatch(utterance)
+um -> llm : preamble + fragments\n(one model call)
+llm -> um : routes
+um -> nav : dispatch set {provider_search}
+note right of um
+  Non-blocking; parallel set.
+  Knows no parameters.
+  The registry assembles the prompt.
+end note
 
-react -> user : "Evaluate these providers\nagainst what we know?"
+== 3. Search — tool-to-tool via proxy ==
+
+nav -> nav : completeness test vs contract;\nrecord render-ledger expectation
+nav -> fcpx : dispatch provider_search
+fcpx -> ps : local call
+ps -> db : vector search Providers
+db -> ps : 25 providers (347 total)
+ps -> fcpx : result
+fcpx -[#0b7a75]> nav : internal_callback (our_signature)\ncloses ledger entry
+
+== 4. Prose is a separate tool ==
+
+nav -> prose : dispatch(facts)
+prose -> llm : author sentence
+llm -> prose : "Here are 25 cardiologists..."
+prose -[#0b7a75]> nav : internal_callback\ncloses ledger entry
+nav -> nav : serial deterministic merge
+nav -> gate : merged document
+gate -> react : one stream
+react -> user : Providers + "Evaluate these?"
+
+== 5. Consumer accepts — second turn ==
+
 user -> react : "Yes"
+react -> gate : POST + session token
+gate -> nav : session + head + params
+nav -> um : dispatch(utterance)
+um -> nav : dispatch set {evaluate_providers}
+nav -> nav : merge params + session state\n(a conflict raises)
+note right of nav
+  Session, ledger, merge live only
+  here. Every throw ends in a
+  navigator; middle tools re-raise.
+end note
 
-== 3. Build Handoff ==
+== 6. Evaluate — tool-to-tool via proxy ==
 
-react -> react : Build payload
+nav -> ecpx : dispatch evaluate_providers
+ecpx -> ev : local call
+ev -> db : read user + quality signals per NPI
+db -> ev : facts (certs, scores, actions)
+ev -> ev : score + rank\n(ScoringEngine)
+ev -[#0b7a75]> nav : internal_callback (our_signature)\ncloses ledger entry
 
-alt Paid User (OAuth authenticated)
-  react -> react : user_db_ref = "usr_8a3f..."
-else Anonymous User
-  react -> react : user_db_ref = null
-end
+== 7. Render — prose + the one stream ==
 
-react -> fc : POST /evaluate-handoff\n{chat_history, providers,\n user_db_ref, cookie_stats}
+nav -> prose : dispatch(ranked facts)
+prose -> llm : author summary
+llm -> prose : user-facing sentence
+prose -[#0b7a75]> nav : internal_callback
+nav -> nav : serial merge
+nav -> gate : merged document
+gate -> react : one stream\n(the main's gate writes it)
+react -> user : Ranked cards + summary + context
 
-== 4. FindCare → EvaluateCare (mTLS) ==
-
-fc -> fc : Validate + decrypt cookie
-fc -[#red]> ec : POST /evaluate/providers <<mTLS>>\n{chat_history, providers,\n user_db_ref, cookie_stats,\n question_summary}
-
-== 5. EvaluateCare Processes ==
-
-alt Paid user (user_db_ref != null)
-  ec -> db : Read user record
-  db -> ec : {insurance, location, prefs}
-end
-
-ec -> ec : Parse cookie:\n3 visits, 11 queries
-
-loop Each provider
-  ec -> db : Read quality signals for NPI
-  db -> ec : {certs, scores, actions}
-  ec -> ec : ScoringEngine.score()
-end
-
-ec -> ec : Rank by composite score
-
-== 6. Paint Screen ==
-
-ec -> ec : ScreenPainter formats:\n1. Ranked provider list\n2. Question summary\n3. Known user facts
-
-ec -[#blue]> react : {type: "eval-render",\n ranked_providers,\n question_summary,\n user_facts}
-
-react -> user : Evaluation displayed:\n- Ranked cards + scores\n- "Why evaluate" summary\n- User context sidebar
-
-note over user, ec
-  GOV-011: AI translated intent.
-  System answered with real data.
-  All facts from data layer.
+note over user, llm
+  The UtteranceManager translated intent into routes; tools answered
+  with real data, every fact from the data layer. The UniversalNavigator
+  merged serially and its gate wrote the single stream.
 end note
 
 @enduml

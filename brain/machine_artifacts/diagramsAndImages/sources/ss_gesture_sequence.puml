@@ -10,59 +10,73 @@ skinparam NoteBorderColor #9ca3af
 skinparam ParticipantBorderColor #0b7a75
 skinparam SequenceLifeLineBorderColor #9ca3af
 
-title A person opens a provider detail: the whole path from click to paint, with no model in it
+title A person opens a provider detail: click to paint, no model on the path
 
 actor "Person" as P
 participant "ProviderDetailWidget\n(React, in the iframe)" as W
 participant "ClientRouter\n(wrapper)" as CR
-participant "POST /gate\n(app.py)" as GATE
-participant "UniversalNavigationTool" as UR
-participant "ProviderDetailTool" as PDT
-participant "FindCare" as FC
-database "Users.sessions" as SESS
+participant "Gate\n(facade)" as GATE
+participant "UniversalNavigator\n(SharedServices)" as UN
+database "sessions + render ledger\n(repo rows)" as REPO
+participant "UniversalNavigatorProxy\n(FindCare)" as PXY
+participant "provider_detail tool\n(FindCare)" as PDT
 
 P -> W : clicks the detail link on a provider card
-W -> CR : postMessage router:makeCall\nop 'provider-detail', payload {npi}
-CR -> GATE : POST /gate\n{op, payload, session_token}\nAccept: application/x-ndjson
+W -> CR : postMessage router:makeCall\naction 'provider_detail', payload {npi}
+CR -> GATE : POST  (route: client_sessioned)\nsession_token + head + params\nAccept: application/x-ndjson
 
-GATE -> GATE : _verify_session_or_401(session_token)
 note right of GATE
-  /gate is the only session-validation site.
-  A body with no valid token is answered 401
-  whatever op it names; downstream services
-  do not re-validate.
+  The gate knows only transport. It
+  collects the token, head and params
+  and hands them on. It has no routes
+  and decides nothing.
 end note
 
-GATE -> UR : handle_gate(GateRequest)
-UR -> SESS : find_one by session GUID
-UR -> UR : AuthN manage_session\n(restamp the nonce)
-UR -> UR : _OP_HANDLERS['provider-detail']\n-> _handle_provider_detail
+GATE -> UN : pass(token, head, params)
 
-UR -> PDT : run_and_log(deps, Request(**payload))
-PDT -> FC : POST findcare_url() + /provider-detail
-FC --> PDT : structured detail JSON
-PDT -> CR : deps.stream({kind 'provider-detail', data})
-CR -> W : router:event-broadcast\nkind 'provider-detail'
+UN -> REPO : load session by GUID
+UN -> UN : verify + restamp nonce\n(session-security helpers)
+note right of UN
+  Session security lives in the navigator
+  now, not in app.py. The gate never
+  validates.
+end note
+
+UN -> UN : route from the map (registry);\nparameters vs state -- a conflict raises
+UN -> UN : subscription dispatch:\nroute -> provider_detail
+
+UN -> REPO : ledger: record the expectation
+note left of REPO
+  Dispatch records the expectation; the
+  completion callback closes it; timeout
+  facts race the callback. If the page is
+  not rendered in time, the navigator
+  responds.
+end note
+
+UN -> PXY : dispatch across the wire\n(tool_to_tool)
+PXY -> PDT : relay locally (function call)
+PDT -> PDT : build the detail\n(recursion-guarded)
+PDT --> PXY : detail document
+PXY --> UN : internal_callback\n(proof: our_signature)
+
+UN -> REPO : ledger: close the entry;\nmerge serially (shared lib)
+UN -> GATE : stream the event\n(the gate owns the one stream)
+GATE -> CR : event: provider_detail
+CR -> W : router:event-broadcast
 W -> W : renders the panel it claimed
 
-PDT --> UR : Response
-UR -> FC : POST /page/detail-open\n{page, record_id}
-note left of UR
-  Which page holds an open record is a routing
-  fact. Which of that page's parameters carries
-  it is the page's own, so no parameter name
-  crosses this call.
-end note
+UN -> REPO : persist the mutated user_object
+UN -> GATE : final {ok, guid,\ntime_remaining_seconds, session_token}
+GATE -> CR : router:final
+CR -> W : turn complete
 
-UR -> SESS : persist the mutated user_object
-UR -> CR : {kind 'final', ok, guid,\ntime_remaining_seconds, session_token}
-CR -> W : router:final
-
-note over P, FC #f3f4f6
-  No language model runs anywhere on this path. The person named
-  the record by working a control, so there is nothing to interpret:
-  the op is dispatched, one declared endpoint is called, and the
-  answer is streamed. UtteranceManager is not reached.
+note over P, PDT #f3f4f6
+  No language model runs anywhere on this path. The person named the
+  record by working a control, so there is nothing to interpret: the
+  gesture is dispatched by subscription, one tool answers through its
+  proxy, and the gate writes the one stream. The UtteranceManager is
+  not reached.
 end note
 
 @enduml

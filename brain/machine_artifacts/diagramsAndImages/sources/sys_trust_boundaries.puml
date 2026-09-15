@@ -1,4 +1,5 @@
 @startuml
+skinparam componentStyle rectangle
 skinparam shadowing false
 skinparam defaultFontName Segoe UI
 skinparam defaultFontSize 11
@@ -10,23 +11,26 @@ skinparam NoteBorderColor #9ca3af
 
 title What ChatHealthy.ai trusts at each step, and what is allowed to cross
 
-rectangle "Untrusted — the person's browser" #fff1f2 {
+rectangle "Untrusted — the person's browser and the static pages we own" #fff1f2 {
   component "ClientRouter.js\nthe only file in Website/ that calls a service" as CR
-  artifact "sessionStorage\nch_session_guid" as SS
+  artifact "sessionStorage\nthe signed session token" as SS
+  component "static pages we own\nwitnessed by an onload event, no session" as STATIC
   CR -- SS
 }
 
-rectangle "The entrance — SharedServices, the only host a browser calls" #fef9c3 {
-  component "POST /auth/issue\nthe one unauthenticated door;\nmints and signs a SessionToken" as ISSUE
-  component "POST /gate\nverifies the signature, then dispatches" as GATE
-  component "universal_navigation_tool\nGateRequest in, GateResponse out" as UNT
-  component "auxiliary routes\n/health, /secrets/{key},\n/auth/google/start, /auth/google/callback" as AUX
-  GATE --> UNT
+cloud "Third parties\nOAuth and other callbacks" as TP
+
+rectangle "The entrance — SharedServices, the only host that accepts external traffic" #fef9c3 {
+  component "Gate\na dumb web-server facade — the only\ncomponent that knows transport exists.\nCollects the session token, the HTTP head,\nand the GET/POST parameters, passes them\nto the UniversalNavigator, streams the one\nanswer back. Verifies nothing itself." as GATE
+  component "UniversalNavigator (the main)\nthe only node that accepts external traffic" as UN
+  component "UtteranceManager\nan utterance in, a dispatch set out" as UM
+  GATE --> UN
+  UN --> UM
 }
 
-rectangle "Server to server — each component verifies the SharedServices signature" #ecfeff {
-  component "FindCare backend\nrequire_gateway_signature on every route" as FC
-  component "EvaluateCare backend" as EC
+rectangle "Server to server — tool-to-tool only, proven by our own signature" #ecfeff {
+  component "FindCare container\nGate facade + UniversalNavigatorProxy + tools" as FC
+  component "EvaluateCare container\nGate facade + UniversalNavigatorProxy + tools" as EC
   artifact "CERTS_DIR = /tmp/ch_certs\nshared.crt, findcare.crt,\nevalcare.crt, ca.crt\ndecoded at startup from Space secrets" as CERTS
   FC .. CERTS
   EC .. CERTS
@@ -34,7 +38,7 @@ rectangle "Server to server — each component verifies the SharedServices signa
 
 rectangle "The data region — reached only with a certificate" #dcfce7 {
   component "ChatHealthyMongoUtilities\ngetConnection(identity, cluster)" as MU
-  database "Atlas ChatHealthyFrontEnd\nPublicHealthData, ChatHealthyConfig,\npipelineAdmin, DevOpsAdmin" as ATF
+  database "Atlas ChatHealthyFrontEnd\nPublicHealthData, ChatHealthyConfig\n(the live registry document),\npipelineAdmin, DevOpsAdmin" as ATF
   database "Atlas ChatHealthyDataPipelines\nPipelinePublicHealthData, staging" as ATP
   MU --> ATF
   MU --> ATP
@@ -42,24 +46,38 @@ rectangle "The data region — reached only with a certificate" #dcfce7 {
 
 cloud "Azure Key Vault\nkv-chpipeline-dev" as KV
 
-CR --> ISSUE : a session GUID and nothing else.\nNo signature is required or possible here.
-CR --> GATE : op, payload, intent, session_guid\nand the signed SessionToken.\nOrigins are restricted by CORS to\nlocalhost and *.chathealthy.ai
-CR --> AUX
+CR --> GATE : the signed session token (client_sessioned).\nProof is a session_token.\nOrigins restricted by CORS to\nlocalhost and *.chathealthy.ai
+STATIC --> GATE : a page name only (static_witness).\nProof method is none — it logs, decides nothing
+TP --> GATE : a credential we keep (third_party_callback).\nProof is an api_key named in the vault
 
-UNT --> FC : HTTPS POST carrying the same\nsigned token in the JSON body
-UNT --> EC : HTTPS POST carrying the same\nsigned token in the JSON body
+UN --> FC : we sign the dispatch out (tool_to_tool);\nthe reply returns as an internal_callback,\nverified by our_signature
+UN --> EC : we sign the dispatch out (tool_to_tool);\nthe reply returns as an internal_callback,\nverified by our_signature
 
-UNT --> MU
+UN --> MU
 FC --> MU
 EC --> MU
 
 MU --> KV : an Azure token issued to this identity alone,\nexchanged for that identity's cert and key
 
-note right of GATE
-  Session validity is established here once.
-  Downstream components verify who sent the
-  request, not who the person is, so the session
-  is not re-litigated at every hop.
+note right of UN
+  Proof-checking and session security moved here off the gate.
+  The UniversalNavigator proves every arrival by the route's
+  declared proof, establishes the session once, drives the
+  route from the registry map, keeps the render ledger, merges
+  every returning answer serially, and is the client that logs
+  every downstream failure. It holds no data: the map is the
+  registry, the parameters ride the passed document, the
+  sessions and the ledger are repository rows. Satellites carry
+  tool-to-tool traffic only and trust our signature, so the
+  session is never re-litigated per hop.
+end note
+
+note bottom of ATF
+  The navigation map is one Mongo document per build per
+  environment; exactly one is live per environment. Writable by
+  the deploying identity alone; every runtime identity reads it.
+  The UniversalNavigator reads its environment's live document
+  at startup and hands each proxy its need-to-know slice.
 end note
 
 note bottom of CERTS

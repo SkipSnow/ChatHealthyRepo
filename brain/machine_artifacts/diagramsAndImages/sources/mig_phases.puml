@@ -16,49 +16,64 @@ start
 Measure the twelve cells: three capabilities
 by search, vocabulary, detail, selection.
 For each cell report whether a tool class exists,
-whether anything dispatches it, and where its
-routes live. Today that reads 6 live, 2 declared
-and dead, 1 borrowed, 3 absent;
+whether anything is subscribed to dispatch it, and
+where its route lives. Today that reads 6 live,
+2 declared and dead, 1 borrowed, 3 absent;
 note right
   Built first because it is the only thing that
   can say a later phase finished. Without a number
-  that moves, "the routes were moved" is a claim
+  that moves, "the map was rebuilt" is a claim
   nobody can check afterwards.
 end note
 
 fork
   :**Phase 1 — the tool contract in the library**
   One shape every capability tool satisfies, so
-  search, vocabulary, detail and selection mean
-  the same thing in all three capabilities.
-  ChatHealthyTool and the unsubclassed
-  CapabilitySearchTool are what exists to build on;
+  search, vocabulary, detail and selection mean the
+  same thing in all three capabilities. Each tool
+  declares in source what the build reads to generate
+  the registry: TOOL_DESCRIPTION, its subscriptions
+  and may_call, and exactly one of
+  UTTERANCE_MANAGER_PROMPT or NOT_UTTERANCE_ROUTABLE.
+  ChatHealthyTool is the shape they build on;
 fork again
-  :**Phase 2 — split app.py by capability**
-  The 14 routes in
-  Code/ConversationalUX/FindCareChat/backend/app.py
-  leave for the FindCare/ feature directory that
-  already holds their service;
+  :**Phase 2 — collapse the three app.py into one gate**
+  The per-service app.py files in FindCare,
+  EvaluateCare and SharedServices become one generic
+  gate module. The gate keeps no routes of its own:
+  it collects the session token, HTTP head and
+  GET/POST parameters — each if present — hands them
+  to the UniversalNavigator, and streams the answer
+  back. It is the only node that knows transport exists;
 end fork
 
-:**Phase 3 — the router dispatches tools**
+:**Phase 3 — the router becomes the UniversalNavigator**
 The three inline branches — specialtySearch,
-findAFacility, findAProvider — stop building
-httpx calls and stream events and call a tool
-by name. FacilitySearchTool already holds the
-work findAFacility duplicates;
+findAFacility, findAProvider — stop building httpx
+calls and streaming events. The _OP_HANDLERS op-map
+retires: the navigator reads the build's registry and
+dispatches each of the five call types to whatever tool
+subscribes to its route. A UniversalNavigatorProxy
+fronts each satellite server; a finished tool returns
+as an internal callback to the main, which owns the
+render ledger, the serial deterministic merge, and
+every session and timeout;
 note right
-  Needs Phase 1 for the contract to dispatch
-  against, and Phase 2 so the route the tool
-  reaches is at its final address.
+  Needs Phase 1 for the contract the registry is
+  generated from, and Phase 2 so the gate that
+  reaches the navigator is at its final address.
 end note
 
-:**Phase 4 — fill the missing tools**
-facility vocabulary, trial vocabulary and
-trial detail do not exist. Facility detail is
-served by ProviderDetailTool with entity_type=2
-and gets its own tool or a stated decision
-that sharing one is correct;
+:**Phase 4 — fill and reshape the tools**
+facility vocabulary, trial vocabulary and trial
+detail do not exist. Facility detail is served by
+ProviderDetailTool with entity_type=2 and gets its
+own tool or a stated decision that sharing one is
+correct. The classifier retires into the
+UtteranceManager — preamble plus the registry's
+fragments, one model call, the dispatch set back —
+and user-facing prose becomes its own tool the
+navigator dispatches with the facts;
 
 :**Phase 5 — retire the rest of Code/**
 Frontend shell, the iPhone tests, the
@@ -71,8 +86,8 @@ stop
 floating note left
   Phase 0 is not a step in this sequence so much as
   the instrument the sequence is read with. Every
-  phase below it ends by the gate reporting a
-  different number, and a phase that moves no number
+  phase below it ends by the conformance gate reporting
+  a different number, and a phase that moves no number
   did not do what it said.
 end note
 

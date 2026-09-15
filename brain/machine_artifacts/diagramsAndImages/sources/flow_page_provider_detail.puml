@@ -1,0 +1,114 @@
+@startuml
+skinparam shadowing false
+skinparam defaultFontName Segoe UI
+skinparam defaultFontSize 11
+skinparam ArrowColor #0b7a75
+skinparam SequenceLifeLineBorderColor #6b7280
+skinparam ParticipantBorderColor #0b7a75
+skinparam ParticipantBackgroundColor #fdfdfd
+skinparam NoteBackgroundColor #f3f4f6
+skinparam NoteBorderColor #9ca3af
+
+title flow_page_provider_detail — page construction & reconciliation\nOne provider detail, brought to live-NPPES freshness on open, reconciled, and still shown when the registry does not answer.
+
+actor "Person/Client" as P
+participant "Gate\n(facade)" as GATE
+participant "UniversalNavigator\n(SharedServices)" as UN
+participant "UtteranceManager" as UM
+database "render ledger + session\n(repo rows)" as REPO
+participant "Prose tool\n(co-resident)" as PROSE
+participant "UniversalNavigatorProxy\n(FindCare)" as PXY
+participant "provider_detail tool\n(FindCare)" as PDT
+participant "NPPES\n(live query by NPI)" as NPPES
+
+P -> GATE : open the provider detail\n(session token, head, params {npi})
+activate GATE
+note over GATE
+  Dumb transport only. Collect session token,
+  HTTP head, POST/GET params; stream back.
+  Verify nothing; own no route.
+end note
+GATE -> UN : forward(token, head, params)
+deactivate GATE
+activate UN
+
+note over UN
+  TRIAGE by declared proof
+  route call_type = client_sessioned
+  proof.method = session_token  ->  verify + restamp nonce
+  The only node that accepts external traffic.
+end note
+UN -> REPO : load session by GUID; verify
+
+UN -> UN : read the map — this request constructs\npage = provider_detail\nmembers {provider_detail, prose}\nrequired_members {provider_detail}
+
+UN -> UM : mine, scoped to the page's members\n(preamble + fragments for {provider_detail, prose})
+activate UM
+note over UM
+  Classifies only: one model call —
+  preamble + the scoped fragments in,
+  the dispatch set out. Knows no parameters.
+  The assembled fragments ARE the classifier.
+end note
+UM --> UN : dispatch set = {provider_detail, prose}
+deactivate UM
+
+UN -> REPO : render ledger — record expectations for\nrequired_members {provider_detail}; start completeness budget
+note over REPO
+  Dispatch records the expectation; each completion
+  callback (our_signature) closes one entry;
+  completeness.render_timeout_seconds races them.
+end note
+
+par dispatch the page's members
+  UN -> PXY : dispatch provider_detail across the wire (tool_to_tool)
+  activate PXY
+  PXY -> PDT : relay locally (function call)
+  activate PDT
+  PDT -> NPPES : live query by NPI
+  activate NPPES
+  NPPES --> PDT : live record, or nothing
+  deactivate NPPES
+  alt NPPES answered
+    PDT -> PDT : reconcile — start from OUR record,\napply only the registry's fields
+  else NPPES did not answer
+    PDT -> PDT : show the stored record as we hold it
+    note right of PDT
+      A page can reconcile a degraded detail.
+      Not answering leaves no reason to doubt
+      the record — it is still shown.
+    end note
+  end
+  PDT --> PXY : detail document
+  deactivate PDT
+  PXY --> UN : internal_callback (proof: our_signature)\ncloses the required ledger entry
+  deactivate PXY
+else and, in parallel
+  UN -> PROSE : dispatch prose with the facts\n(co-resident — answers directly)
+  activate PROSE
+  PROSE --> UN : user-facing sentence\ncloses its (non-required) entry
+  deactivate PROSE
+end
+
+UN -> REPO : reconcile — merge returning documents\nserially (shared-lib deterministic merge)
+
+alt required_members closed within the budget
+  note over UN
+    provider_detail closed. The page reconciles
+    once every required member's entry closes.
+  end note
+else render_timeout_seconds expired first
+  UN -> UN : respond anyway with the page's\nlayman on_timeout explanation
+else merge conflict  (on_conflict = raise)
+  UN -> UN : raise ChatHealthyException;\ninstrument with timings (severity by impact)
+else required member died / never returned\n(on_missing_required = raise)
+  UN -> UN : render ledger raises;\ninstrument with timings
+end
+
+UN --> GATE : the reconciled page (the gate writes the one stream)
+activate GATE
+GATE --> P : the provider detail as the registry reports it now
+deactivate GATE
+deactivate UN
+
+@enduml

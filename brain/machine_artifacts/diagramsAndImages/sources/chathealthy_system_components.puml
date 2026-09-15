@@ -12,35 +12,34 @@ skinparam NoteBackgroundColor #f3f4f6
 skinparam NoteBorderColor #9ca3af
 
 package "The browser" #fdfdfd {
-  [Wrapper site\nCloudflare Pages] as WRAP
+  [Wrapper site\nCloudflare Pages · static] as WRAP
   [ClientRouter] as CR
   [Widgets\none per frame] as W
 }
 
 package "SharedServices  ·  Hugging Face Space" #fdfdfd {
-  [/gate\nthe one entrance] as GATE
-  [UniversalNavigationTool] as UR
-  [UtteranceManager] as UM
-  [Session and authorization] as AUTH
-  [Parameters] as PARAM
+  [Gate\na facade — the one entrance;\nthe only node that knows transport;\nproxy for the navigator] as GATE
+  [UniversalNavigator\nreads the map, drives the route,\nledger · merge · sessions · security;\nthe only node that takes outside traffic] as UN
+  [UtteranceManager\nutterance -> the set of tools to\ndispatch to; preamble + fragments,\none model call, routes out] as UM
+  [Prose tool\nturns facts into the user sentence] as PROSE
 }
 
 package "FindCare  ·  Hugging Face Space" #fdfdfd {
+  [UniversalNavigatorProxy\nrelays tool-to-tool both ways] as FCPX
   [Find an individual] as FCP
   [Find a facility] as FCF
   [Find a clinical trial] as FCT
 }
 
 package "EvaluateCare  ·  Hugging Face Space" #fdfdfd {
+  [UniversalNavigatorProxy\nrelays tool-to-tool both ways] as ECPX
   [Scoring and ranking] as EC
 }
 
-component "ChatHealthyLib\nthe tool contract, exceptions,\nlogging, database access" as LIB #eef6f5
-
 database "Atlas — front end" as FE {
+  [ToolRegistry\none record per build per env] as REG
+  [Sessions and render ledger] as SESS
   [PublicHealthData] as PHD
-  [ChatHealthyConfig] as CFG
-  [Sessions] as SESS
 }
 
 database "Atlas — pipelines" as PIPE {
@@ -52,41 +51,71 @@ package "Azure" #fdfdfd {
   [Key Vault\ncertificates and secrets] as KV
 }
 
-CR -down-> GATE : every call, one POST
+component "ChatHealthyLib\ntool contract · exceptions · logging ·\ndatabase access · model facade ·\nthe deterministic merge" as LIB #eef6f5
+
+' --- the request spine ---
 WRAP -right-> CR
 CR -right-> W
-GATE -down-> AUTH
-GATE -down-> UR
-UR -right-> UM
-UR -down-> FCP
-UR -down-> FCF
-UR -down-> FCT
-UR -down-> EC
-UR -left-> PARAM
+CR -down-> GATE : every call, one POST
+GATE -down-> UN : token, head, params
+UN -right-> UM : classify the utterance
+UN -down-> PROSE : facts -> a sentence
+
+' --- dispatch across the wire to the satellites ---
+UN -right-> FCPX : dispatch
+UN -down-> ECPX : dispatch
+FCPX -down-> FCP
+FCPX -down-> FCF
+FCPX -down-> FCT
+ECPX -down-> EC
+
+' --- what the navigator reads and writes ---
+UN -down-> REG : reads the live map at startup
+UN -down-> SESS : sessions, the render ledger
 FCP -down-> PHD
 FCF -down-> PHD
 FCT -right-> [clinicaltrials.gov] : not ours
-PARAM -down-> CFG
-PARAM -down-> SESS
+
+' --- pipelines and the release-only migration ---
 AUTO -up-> PPHD
 AUTO ..> PHD : migration, on release only
-KV .up.> GATE : certificates
-KV .up.> FCP
+AUTO ..> REG : the deploy writes the map
 
-LIB .up. GATE
-LIB .up. FCP
-LIB .up. EC
-LIB .up. AUTO
+' --- shared library, anchored once; the note carries the rest ---
+LIB .up.> UN
 
 note right of GATE
-  The only place a session is
-  validated. Everything that must
-  happen on every call happens here.
+  Knows transport exists; nothing else does.
+  Collects the session token, the HTTP head
+  and the POST/GET parameters, hands them to
+  the navigator, and streams the one answer
+  back. A finished tool answers as an internal
+  callback the navigator sequences onto that stream.
+end note
+
+note bottom of UN
+  Holds no data of its own: the map is the
+  registry, parameters ride the passed document,
+  sessions and the ledger are rows. Five call
+  types enter, all mapped: tool-to-tool,
+  third-party callback, static witness,
+  client-sessioned, internal callback.
+end note
+
+note bottom of LIB
+  Linked by every component — the gate, every
+  tool, and both proxies. The navigator is
+  built in-house; pydantic-ai carries the
+  model call inside tools.
 end note
 
 note bottom of PPHD
-  Data reaches the front end only by
-  migration, and only when a person
-  releases it.
+  Data reaches the front end only by migration,
+  and only when a person releases it.
+end note
+
+note bottom of KV
+  Issues certificates to the gate and to both
+  proxies; holds every secret by vault name.
 end note
 @enduml

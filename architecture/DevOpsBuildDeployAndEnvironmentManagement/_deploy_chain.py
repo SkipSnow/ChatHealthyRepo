@@ -3892,10 +3892,18 @@ class LocalDeploy:
         # be Code/Shared/ops/certs, which put a CA private key in the source
         # tree and mounted the working directory into every running server.
         self.certs_dir = self.repo_root / "build" / "_tls"
-        self.output_dir = self.repo_root / "_oneshots/test_output" / "deploy"
+        # Deploy records are operational records, not scratch: they live in
+        # the runtime area beside the docroot, never in _oneshots, which is
+        # sweepable at any moment.
+        self.output_dir = self.repo_root / "deployment" / "records"
         self.output_dir.mkdir(parents=True, exist_ok=True)
         ts = datetime.now(timezone.utc).strftime("%Y%m%d_%H%M%SZ")
-        self.website_staging_dir = self.output_dir / f"website_{ts}"
+        # The served site's docroot. A stable, named runtime directory --
+        # never a timestamped scratch path under _oneshots, which put the
+        # live site's bytes in a directory sweeps delete and Docker's open
+        # handle made undeletable. Interim home until the infrastructure
+        # migration bakes content into the image itself.
+        self.website_staging_dir = self.repo_root / "deployment" / "web"
         self.output_path = (self.output_dir / f"deploy_local_{ts}.json")
         self.results: dict = {
             "env": self.env,
@@ -4295,11 +4303,14 @@ class LocalDeploy:
                 f"{result.stderr.strip()[:500]}")
 
     def _stage_wrapper_website(self) -> None:
+        if self.website_staging_dir.exists():
+            shutil.rmtree(self.website_staging_dir)
         n = ch_fonts_inliner.stage_and_inline(
             self.website_dir, self.website_staging_dir
         )
         self._step_notice(
-            f"website staged -> {self.website_staging_dir} (CH_FONTS inlined in {n} pages)"
+            f"website staged -> {self.website_staging_dir} "
+            f"(CH_FONTS inlined in {n} pages)"
         )
 
     # REQ-T-008 — React frontend build (high-miss step)
@@ -4482,9 +4493,10 @@ class LocalDeploy:
                 f"docker run {container_name} -> host port {host_port}"
             )
         # Website wrapper runs as a Docker container per S-002-REQ-T-002 +
-        # REQ-T-007. Mount certs read-only at /certs; mount the website
-        # staging dir read-only at /website (the Dockerfile's ENTRYPOINT
-        # reads these paths). Map host ports 80 + 443 directly.
+        # REQ-T-007. Mount certs read-only at /certs; mount the docroot at
+        # deployment/web read-only at /website. Interim shape: the content
+        # rides a mount until the infrastructure migration bakes it into
+        # the image. Map host ports 80 + 443 directly.
         certs_host = str(self.certs_dir).replace("\\", "/")
         website_host = str(self.website_staging_dir).replace("\\", "/")
         subprocess.run(

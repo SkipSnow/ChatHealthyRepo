@@ -1,120 +1,88 @@
-@startuml ChatHealthy_Servers_Component_v1
-!theme plain
-title ChatHealthy.ai — Servers Component Diagram (v1)\n2026-07-03 — companion to frontend_technical_design_v1.docx
+@startuml
+title ChatHealthy.ai - Servers Component Diagram (v2)\n2026-09-14 - target front-application architecture
 
 skinparam componentStyle rectangle
-skinparam backgroundColor white
-skinparam linetype ortho
-
-skinparam component {
-  BackgroundColor #F5F5F5
-  BorderColor #333333
-  FontSize 10
-}
-skinparam package {
-  FontSize 12
-  BorderThickness 2
-}
-skinparam database {
-  BackgroundColor #E8E8E8
-  BorderColor #444444
-}
+skinparam shadowing false
+skinparam defaultFontName Segoe UI
+skinparam defaultFontSize 11
+skinparam ArrowColor #0b7a75
+skinparam ComponentBorderColor #0b7a75
+skinparam DatabaseBorderColor #6b7280
+skinparam NoteBackgroundColor #f3f4f6
+skinparam NoteBorderColor #9ca3af
+skinparam componentBackgroundColor #fdfdfd
+skinparam packageStyle rectangle
 
 actor "User\n(Browser)" as user
 
-package "Wrapper page (Website)" as wrapper #EFEFFF {
-  component [index.html\nHeader / Footer / Panels] as indexhtml
-  component [ClientRouter.js\nSingle client-side call surface\nBroadcasts /gate stream to iframes] as router
-  component [iframe: SS React app] as if_ss
-  component [iframe: FindCare React app] as if_fc
-  component [iframe: EvalCare React app] as if_ec
+package "SharedServices container - the main" as ss #eef6f5 {
+  component "Gate (facade)\nweb-server transport only\nthe only node that knows transport exists\nenters the registry as a pseudo_tool" as gate_ss
+  component "UniversalNavigator (main)\nreads the map, drives the route\nparameters + state, render ledger,\ndeterministic merge, sessions, external calls\nthe ONLY node that accepts external traffic\nholds no data" as nav
+  component "UtteranceManager (tool)\nutterance -> dispatch set (non-blocking)\npreamble + registry fragments, one model call\nknows no parameters" as um
+  component "user_message (tool)\nthe navigator hands it the facts\nreturns the user-facing sentence" as prose
 }
 
-package "SharedServices container" as ss #FFF0F0 {
-  component [/gate endpoint\nSession token verified here\nOnly session-validation site] as gate
-  component [UtteranceManager (UM)\nClassifies utterance\nBuilds IntentDocument] as um
-  component [UniversalRouter (UR)\nDispatches to tool by target_action] as ur
-  component [Tool: provider_search\nSS -> FindCare /search] as t_search
-  component [Tool: provider_detail\nSS -> FindCare /provider-detail] as t_pd
-  component [Tool: clinical_trials\nSS -> FindCare /clinical_trials] as t_ct
-  component [Tool: evaluate_providers\nSS -> EvalCare /evaluate/providers\nNEW under 2026-07-03 fix] as t_ep
-  component [Tool: evalcare_splash\nSS -> EvalCare /splash] as t_es
-  component [SS React app\n/static/assets/\nSS-owned widgets] as ss_react
+package "FindCare container - satellite" as fc #fdfdfd {
+  component "Gate (facade)" as gate_fc
+  component "UniversalNavigatorProxy\nrelays both ways, tool-to-tool only\nholds its metadata slice\nrefuses stale metadata" as proxy_fc
+  component "provider_search" as t_search
+  component "provider_detail" as t_pd
+  component "clinical_trials" as t_ct
 }
 
-package "FindCare container" as fc #F0FFF0 {
-  component [/search endpoint\nProvider search] as fc_search
-  component [/clinical_trials endpoint\nClinical trials stream] as fc_ct
-  component [/provider-detail endpoint\nSingle NPI drill-down] as fc_pd
-  component [FindCare tools\nProviderSearch, ClinicalTrials, ...] as fc_tools
-  component [FindCare React app\n/static/assets/\nFindCare-owned widgets] as fc_react
+package "EvaluateCare container - satellite" as ec #fdfdfd {
+  component "Gate (facade)" as gate_ec
+  component "UniversalNavigatorProxy\nrelays both ways, tool-to-tool only\nholds its metadata slice\nrefuses stale metadata" as proxy_ec
+  component "evaluate_providers" as t_ep
+  component "evalcare_splash" as t_es
 }
 
-package "EvaluateCare container" as ec #F0F0FF {
-  component [/evaluate/providers endpoint\nAccepts SS S2S POST\nNo re-validation of token] as ec_ep
-  component [/splash endpoint] as ec_splash
-  component [EvalCare tools\nProviderFacilityEvaluation, ClinicalTrialsEvaluation] as ec_tools
-  component [EvalCare React app\n/static/assets/\nEvalCare-owned widgets] as ec_react
-}
+database "Tool Registry\none live doc per env" as registry
+database "MongoDB FrontEnd\nsessions + render ledger rows" as mongo_fe
+database "MongoDB Pipeline\nprovider / specialty" as mongo_pipe
 
-database "MongoDB\nFrontEnd cluster" as mongo_fe
-database "MongoDB\nPipeline cluster" as mongo_pipe
+user --> gate_ss : client session / static witness /\nthird-party callback
+gate_ss --> nav : token + head + params
+nav ..> gate_ss : stream the one answer back
 
-user --> router : click / submit
-router --> gate : POST /gate (NDJSON)\nUser State on the wire
-gate --> um : classify
-um --> ur
-ur --> t_search
-ur --> t_pd
-ur --> t_ct
-ur --> t_ep
-ur --> t_es
+nav --> um : dispatch (utterance)
+um --> nav : dispatch set (routes)
+nav --> prose : facts
+prose ..> nav : sentence (internal callback)
 
-t_search --> fc_search : HTTPS POST (S2S)
-t_pd --> fc_pd : HTTPS POST (S2S)
-t_ct --> fc_ct : HTTPS POST (streamed NDJSON)
-t_ep --> ec_ep : HTTPS POST (S2S)\nNEW under 2026-07-03 fix
-t_es --> ec_splash : HTTPS POST (S2S)
+nav ..> registry : reads live doc at startup
+nav --> mongo_fe : sessions, ledger, merge
 
-fc_search --> fc_tools
-fc_ct --> fc_tools
-fc_pd --> fc_tools
-ec_ep --> ec_tools
-ec_splash --> ec_tools
+gate_ss --> gate_fc : wire: dispatch out /\ninternal callback / metadata
+gate_ss --> gate_ec : wire: dispatch out /\ninternal callback / metadata
+gate_fc --> proxy_fc
+gate_ec --> proxy_ec
 
-fc_tools --> mongo_fe : session read/write
-fc_tools --> mongo_pipe : provider/specialty search
-ec_tools --> mongo_fe : session read/write
-gate --> mongo_fe : hydrate/persist User State
+proxy_fc --> t_search : function call
+proxy_fc --> t_pd
+proxy_fc --> t_ct
+proxy_ec --> t_ep
+proxy_ec --> t_es
 
-gate ..> router : stream events (/gate NDJSON)
-router ..> if_ss : postMessage broadcast
-router ..> if_fc : postMessage broadcast
-router ..> if_ec : postMessage broadcast
+t_pd ..> proxy_fc : may_call (a DAG)
 
-if_ss ..> ss_react : bundle load
-if_fc ..> fc_react : bundle load
-if_ec ..> ec_react : bundle load
+t_search --> mongo_pipe : provider / specialty
+t_pd --> mongo_pipe
+t_ct --> mongo_pipe
 
-note right of gate
-  Session validation happens here and
-  ONLY here. Downstream S2S hops do not
-  re-validate.
+note right of nav
+  Five incoming call types, all mapped:
+  tool_to_tool, third_party_callback,
+  static_witness, client_sessioned,
+  internal_callback. Each route carries
+  its proof and its timeout facts.
 end note
 
-note right of t_ep
-  Prior to 2026-07-03 the browser POSTed
-  directly to EvalCare /evaluate/providers,
-  bypassing the gateway. This new dispatcher
-  brings the flow into the SS -> peer pattern
-  used by every other tool.
-end note
-
-note right of if_fc
-  Wrapper broadcasts every /gate stream
-  event to all three iframes. Each React
-  app's widgets subscribe to the kinds
-  they care about; the rest are ignored.
+note bottom of registry
+  One record generated from source at build.
+  Presence is the allowlist; subscriptions are
+  the dispatch table; may_call is the call map;
+  prompt fragments assemble the routing table.
 end note
 
 @enduml

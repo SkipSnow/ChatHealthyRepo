@@ -1,0 +1,110 @@
+@startuml
+skinparam shadowing false
+skinparam defaultFontName Segoe UI
+skinparam defaultFontSize 11
+skinparam ArrowColor #0b7a75
+skinparam SequenceLifeLineBorderColor #6b7280
+skinparam ParticipantBorderColor #0b7a75
+skinparam ParticipantBackgroundColor #fdfdfd
+skinparam NoteBackgroundColor #f3f4f6
+skinparam NoteBorderColor #9ca3af
+
+title Page flow: clinical trial\nA client utterance builds the clinical-trial page against an external registry we do not own
+
+actor "Person / Client" as P
+participant "Gate\n(facade, transport only)" as Gate
+participant "UniversalNavigator\n(SharedServices main)" as UN
+database "Registry\n(the one live map)" as Reg
+database "Repository\nsessions, ledger, params" as Repo
+participant "UtteranceManager\n(classify only)" as UM
+participant "UniversalNavigatorProxy\n(FindCare satellite)" as PXY
+participant "clinical_trials\n(tool, required member)" as CT
+participant "Prose tool\n(authors the sentence)" as Prose
+participant "ClinicalTrials.gov\n(external registry, not ours)" as REG
+
+P -> Gate : POST /  { session_token, head,\nparams(utterance, history) }
+activate Gate
+note over Gate
+  Transport only. The gate collects the token, the HTTP head and
+  the POST/GET params, each if present, and hands them on. It owns
+  no route and verifies nothing.
+end note
+
+Gate -> UN : navigate(session_token, head, params)
+activate UN
+
+note left of UN
+  TRIAGE by declared proof: a session_token is present, so this is a
+  client_sessioned call. The UN is the only node that takes external
+  traffic; it verifies the proof, no one upstream does.
+end note
+UN -> Repo : verify session_token, advance nonce,\nload parameters in force
+Repo --> UN : session ok, in-force parameters
+UN -> Reg : the live map for this env\n(routes, may_call, pages)
+Reg --> UN : routes + dependencies + page definitions
+
+UN -> UN : determine page = clinical_trial\nmembers { clinical_trials, clinical_trial_detail, prose }\nrequired_members { clinical_trials }
+
+UN -> UM : classify(utterance, history)\nscoped to the clinical_trial members
+activate UM
+UM --> UN : dispatch set { clinical_trials }
+deactivate UM
+note right of UM
+  One model call: cached preamble plus the page's fragments in,
+  routes out. On refinement the UN scopes mining to this page's
+  members. The UM knows no parameters and never waits on a tool.
+end note
+
+UN -> Repo : render ledger: record required_members\n{ clinical_trials } as the page expectation
+note left of Repo
+  Page lifecycle: dispatch records the expectation; the completion
+  callback closes it; the render_timeout budget races the callback.
+end note
+
+UN -> PXY : dispatch clinical_trials\n{ condition, age?, sex?, us_only? }  tool_to_tool
+activate PXY
+PXY -> CT : relay locally (function call)
+activate CT
+CT -> REG : query by condition\n(narrowed by age / sex / US when given)
+activate REG
+REG --> CT : matching trials + total count
+deactivate REG
+note over CT, REG
+  The registry is external and not ChatHealthy's (EPIC-006-F-005).
+  A condition alone suffices; nothing else is required of the user.
+  We state what we ask and what must come back, not how it answers.
+end note
+CT --> PXY : trials document
+deactivate CT
+PXY --> UN : completion callback { trials }\ninternal_callback, proof our_signature
+deactivate PXY
+
+UN -> Repo : close the ledger entry, then serial\ndeterministic merge (a conflict RAISES)
+UN -> UN : reconcile - required member clinical_trials\nclosed within budget => page complete
+
+note over UN, Repo
+  Page error management (render ledger):
+  - timeout: budget expires -> UN responds with the layman on_timeout text
+  - conflict: a parameter/state merge conflict -> raise
+  - missing-required: clinical_trials dead or never returning -> raise
+  Every case instrumented with timings, at a severity matching impact.
+  Every throw ends here in the UN; a middle tool re-raises, never swallows.
+end note
+
+alt only a condition was given
+  UN -> Prose : author refinement\n{ narrowings not yet used: age, sex, US }
+  activate Prose
+  Prose --> UN : the user-facing sentence
+  deactivate Prose
+  note right of Prose
+    Prose is its own tool (no tool authors its own chat strings).
+    Offering the refinements not yet given is EPIC-006-F-005-S-001.
+  end note
+end
+
+UN --> Gate : the reconciled page, sequenced
+deactivate UN
+P <-- Gate : the one stream the gate writes
+deactivate Gate
+
+@enduml

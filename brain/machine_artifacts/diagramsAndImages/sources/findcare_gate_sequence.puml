@@ -1,5 +1,5 @@
 @startuml
-title One request, and the branch that decides whether a model is asked
+title One request: the gate proxies, the UniversalNavigator drives the map
 
 skinparam shadowing false
 skinparam defaultFontName Segoe UI
@@ -10,64 +10,79 @@ skinparam NoteBackgroundColor #f3f4f6
 skinparam NoteBorderColor #9ca3af
 
 actor Person
-participant "ClientRouter" as CR
-participant "POST /gate" as GATE
-participant "UniversalNavigationTool" as UR
+participant "Gate\n(facade)" as GATE
+participant "UniversalNavigator\n(SharedServices)" as UN
 participant "UtteranceManager" as UM
-participant "Tool" as TOOL
-participant "FindCare" as FC
-participant "Widget" as W
+participant "Tool\n(local)" as LOC
+participant "NavigatorProxy\n(satellite)" as PXY
+participant "Tool\n(satellite)" as SAT
+participant "Prose tool" as PROSE
 
-Person -> CR : types, or works a control
-CR -> GATE : POST { op, payload, session_token }
+Person -> GATE : session token, HTTP head,\nPOST/GET params  (each if present)
 activate GATE
-
-GATE -> GATE : verify the SharedServices signature
-note right
-  Fails here and the answer is 401,
-  whatever the op named. This is the
-  only place a session is validated.
+note over GATE #eef6f5
+  The only component that knows transport exists.
+  Collects, passes on, later writes the one stream.
+  No routes of its own, no session check, no routing.
 end note
-GATE -> GATE : state the request facts\ntoken, body, headers
-GATE -> UR : GateRequest\nop, payload, session GUID, client IP
-deactivate GATE
-activate UR
+GATE -> UN : token, head, params
+activate UN
 
-alt op = "utterance" -- the person used words
-  UR -> UM : the last thing said,\nand the talk before it
+UN -> UN : session maintain / timeout / security\n(helper functions)
+note right of UN #f3f4f6
+  Session is validated here, not at the gate.
+  Reads its env's live registry at startup and
+  holds no data: the map is the registry,
+  parameters ride the document, sessions and
+  the ledger are repository rows.
+end note
+
+alt op is an utterance -- the person used words
+  UN -> UM : the utterance  (no parameters)
   activate UM
-  UM -> UM : classify into an IntentDocument
-  UM --> UR : target_action\nand any prose to show
+  UM -> UM : preamble + every tool's fragment\n= one model call
+  UM --> UN : the dispatch SET of routes\nnon-blocking, built for parallelism
   deactivate UM
-  note right of UM
-    A model runs here and nowhere
-    else on this path. It names an
-    action; it does not perform one.
+  note right of UM #f3f4f6
+    The classifier is gone -- this is it.
+    Answers with routes; commands nothing.
   end note
-
-  UR -> FC : the search the named page owns,\ncarrying the utterance
-  activate FC
-  FC -> FC : mine the parameters, write them\nto the page, read what is in force
-  FC -> FC : which declared parameters\nare not in force
-  FC --> UR : rows, or what is still needed
-  deactivate FC
-
-else every other op -- the person worked a control
-  UR -> TOOL : the tool that owns this gesture
-  activate TOOL
-  TOOL -> FC : the declared endpoint
-  FC --> TOOL : rows
-  TOOL --> UR : a typed response
-  deactivate TOOL
-  note right of TOOL
-    No model. A control already says
-    what was meant, so nothing has to
-    work out what was meant.
-  end note
+else structured gesture -- the person worked a control
+  UN -> UN : route straight from the map\nno model is asked
 end
 
-UR -> W : one event per kind\nintent_classified, specialties, providers
-UR -> W : final
-deactivate UR
-W -> Person : each frame paints what it owns
+UN -> UN : validate the selection against may_call (a DAG);\ncompleteness: passed params vs prerequisites\n(a parameter/state conflict raises);\nrecord the render-ledger expectations;\nsign the dispatch out
+
+par co-resident tool -- a direct function call
+  UN -> LOC : dispatch (signed)
+  activate LOC
+  LOC -> LOC : work; may call another tool directly;\nre-raises on throw, never swallows
+  LOC --> UN : internal callback (our signature)
+  deactivate LOC
+else satellite tool -- across the wire, via its proxy
+  UN -> PXY : dispatch (signed) crosses the wire
+  activate PXY
+  PXY -> SAT : relay -- a local function call
+  activate SAT
+  SAT --> PXY : answer, or re-raised throw
+  deactivate SAT
+  PXY --> UN : internal callback (our signature)
+  deactivate PXY
+end
+
+note over UN #eef6f5
+  Serial deterministic merge via the shared library
+  as each callback closes its ledger entry; the
+  timeout facts race the callback; a conflict raises.
+end note
+
+UN -> PROSE : the facts to say
+activate PROSE
+PROSE --> UN : the user-facing sentence
+deactivate PROSE
+
+UN --> GATE : sequenced events, one at a time
+deactivate UN
+GATE -> Person : the one stream\n(the gate that opened it writes it)
+deactivate GATE
 @enduml

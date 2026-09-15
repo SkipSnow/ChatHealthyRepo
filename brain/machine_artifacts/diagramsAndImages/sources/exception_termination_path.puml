@@ -1,0 +1,45 @@
+@startuml
+title Every throw ends in a navigator — a tool in the middle re-raises, never swallows
+
+skinparam shadowing false
+skinparam defaultFontName Segoe UI
+skinparam defaultFontSize 11
+skinparam ArrowColor #0b7a75
+skinparam SequenceLifeLineBorderColor #6b7280
+skinparam ParticipantBorderColor #0b7a75
+skinparam ParticipantBackgroundColor #fdfdfd
+skinparam NoteBackgroundColor #f3f4f6
+skinparam NoteBorderColor #9ca3af
+
+participant "UniversalNavigator\n(or Proxy)" as UN
+participant "Tool A" as A
+participant "Tool B" as B
+participant "Tool C" as C
+
+UN -> A : dispatch
+activate A
+A -> B : may_call (declared, acyclic)
+activate B
+B -> C : may_call
+activate C
+C -->> B : throw (ChatHealthyException)
+deactivate C
+note right of B #f9efef
+  re-raises — never catches,
+  never logs. A bare re-raise
+  authors nothing.
+end note
+B -->> A : re-raised
+deactivate B
+A -->> UN : re-raised
+deactivate A
+
+note over UN #eef6f5
+  The catch site. The navigator is the client to
+  every server and service, so it — not a tool in
+  the middle — catches, classifies the mode, logs
+  (with timings, severity matched to impact), and
+  answers. A recursion guard bounds the may_call
+  depth so a cycle cannot run.
+end note
+@enduml

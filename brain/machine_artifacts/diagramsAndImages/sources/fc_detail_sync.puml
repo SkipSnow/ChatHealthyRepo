@@ -11,39 +11,50 @@ skinparam NoteBorderColor #9ca3af
 skinparam ParticipantBorderColor #0b7a75
 skinparam SequenceLifeLineBorderColor #9ca3af
 
-title Opening one record: a click with no model in it, a live registry answer, and a write-back that cannot take away what only we know
+title Opening one record: a click with no model in it, a live registry answer,\nand a write-back that cannot take away what only we know
 
 actor "Person" as User
-participant "Router\nop = provider-detail" as UR
+participant "Gate\ntransport facade" as Gate
+participant "UniversalNavigator\nSharedServices" as UN
 participant "ProviderDetail tool" as Tool
-participant "Detail route\n/provider-detail" as Route
 participant "ProviderDetailService" as Svc
 participant "NPPES\nlive query by NPI" as NPPES
 database "Provider\ncollection" as DB
-database "Session\npages.<page>.openNpi" as Session
+database "Session row\npages.<page>.openNpi" as Session
 
-User -> UR : click the record's link
-note right of UR
-  A click, not an utterance. No classifier and no model
-  run on this path: the card already names the record, and
-  everything shown is read from the record that NPI names.
+User -> Gate : click the record's link
+note right of Gate
+  A click, not an utterance. No UtteranceManager, no
+  classifier and no model run on this path: the card already
+  names the record, and everything shown is read from the
+  record that NPI names. The gate takes the session token,
+  head and parameters, hands them on, and knows nothing else.
 end note
 
-UR -> Session : this page is showing this record
+Gate -> UN : session token, head, parameters
+note right of UN
+  A client_sessioned arrival. The navigator verifies the
+  session, resolves the detail route to the tool subscribed
+  to it in the live registry — no op table — checks the
+  parameters against the tool's contract, and records the
+  render-ledger expectation before it dispatches.
+end note
+
+UN -> Session : this page is showing this record
 note right of Session
-  Recorded on the page the record belongs to — facility
-  when entity_type is "2", care giver otherwise. Writing
-  every open record to the care-giver page meant nothing
-  could take a facility down when the person moved on.
+  Page state is the navigator's, not the tool's. Recorded on
+  the page the record belongs to — facility when entity_type
+  is "2", care giver otherwise. Writing every open record to
+  the care-giver page meant nothing could take a facility
+  down when the person moved on.
 
   openNpi is written here and is not one of the parameters
   the record declares. openNctId, its trial equivalent, is.
 end note
 
-UR -> Tool : Request(npi, entity_type, card fields)
-Tool -> Route : POST /provider-detail
-activate Route
-Route -> Svc : lookup(npi, entity_type)
+UN -> Tool : dispatch(npi, entity_type, card fields)
+activate Tool
+Tool -> Svc : lookup(npi, entity_type)
 activate Svc
 
 alt the facility page opened it
@@ -124,21 +135,28 @@ else the registry answered
   end
 end
 
-Svc --> Route : the panel's projection
-deactivate Svc
-
 alt the embedding text changed
-  Route -> Route : schedule the re-embed to run\nafter the response has gone
-  note right of Route
+  Svc -> Svc : schedule the re-embed to run\nafter the response has gone
+  note right of Svc
     Scheduled rather than awaited: the person is waiting for
     a panel, and the vector matters to the next search
     rather than to this one.
   end note
 end
 
-Route --> Tool : detail
-deactivate Route
-Tool --> UR : detail
-UR --> User : the record as the registry reports it now
+Svc --> Tool : the panel's projection
+deactivate Svc
+
+Tool --> UN : internal_callback: detail\n(render-ledger entry closed)
+deactivate Tool
+note right of UN
+  The finished tool calls back into the SharedServices
+  navigator, proven by our own signature. The navigator
+  closes the render-ledger entry; a lone panel needs no
+  merge; its gate writes the one stream.
+end note
+
+UN --> Gate : the panel
+Gate --> User : the record as the registry reports it now
 
 @enduml

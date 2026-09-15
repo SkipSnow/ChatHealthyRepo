@@ -1,0 +1,87 @@
+@startuml
+skinparam shadowing false
+skinparam defaultFontName Segoe UI
+skinparam defaultFontSize 11
+skinparam ArrowColor #0b7a75
+skinparam SequenceLifeLineBorderColor #6b7280
+skinparam ParticipantBorderColor #0b7a75
+skinparam ParticipantBackgroundColor #fdfdfd
+skinparam NoteBackgroundColor #f3f4f6
+skinparam NoteBorderColor #9ca3af
+
+title Page flow — facility (client-sessioned utterance)\nA person's free text builds the facility page; the navigator triages, scopes mining, reconciles against required_members, and responds
+
+actor "Person / Client" as P
+participant "Gate\n(facade)" as GATE
+participant "UniversalNavigator\n(SharedServices)" as UN
+database "sessions +\nrender ledger" as REPO
+participant "UtteranceManager\n(classifier)" as UM
+participant "UniversalNavigatorProxy\n(FindCare)" as PXY
+participant "facility_search tool\n(FindCare)" as FS
+participant "Prose tool" as PR
+
+P -> GATE : free text\ne.g. "dialysis centers near Cleveland"
+GATE -> UN : pass(session_token, head, params)
+note right of GATE
+  Dumb transport. Collects token, head
+  and params; verifies nothing; owns
+  no route; streams back.
+end note
+
+== triage: which of the five call types ==
+UN -> REPO : load session by GUID
+UN -> UN : proof = session_token present + signed\n-> call_type = client_sessioned\n(no api_key, no our_signature, not static)
+note right of UN
+  Only the navigator takes external
+  traffic. It triages by the route's
+  declared PROOF, then routes from
+  the map.
+end note
+
+== determine page & scope mining ==
+UN -> UN : read the map -> this request\nconstructs page = facility (NPI Type 2)
+UN -> UM : classify\n(preamble + fragments scoped to facility members:\nfacility_search, facility_detail, prose)
+note right of UM
+  One model call, page-scoped on
+  refinement. Returns the dispatch set
+  only — knows no parameters. The
+  assembled fragments ARE the classifier.
+end note
+UM --> UN : dispatch set -> {facility_search, prose}
+
+== render ledger: record required_members ==
+UN -> REPO : ledger: expect required_members = {facility_search}
+note left of REPO
+  Dispatch records the page's
+  required_members as expectations;
+  each completion callback closes one;
+  the render_timeout budget races them.
+end note
+
+== dispatch (tool_to_tool, via proxy) ==
+UN -> PXY : dispatch facility_search
+PXY -> FS : relay locally (function call)
+FS -> FS : match organizations only, active,\nby name / taxonomy / practice-location\ngeography / administrator (recursion-guarded)
+FS --> PXY : facility list document
+PXY --> UN : internal_callback (proof: our_signature)
+
+== reconcile ==
+UN -> REPO : ledger: close facility_search;\nmerge serially (shared lib) — a conflict RAISES
+UN -> PR : author prose from the facts
+PR --> UN : user-facing sentence
+UN -> REPO : page reconciled\n(required_members closed within budget)
+
+== respond ==
+UN -> GATE : stream events (list + prose);\nfinal {ok, guid, session_token}
+GATE -> P : rendered facility page
+
+note over UN, REPO #f3f4f6
+  Page error management (all instrumented with timings, severity to impact):
+  • timeout — render budget wins the race -> UN responds anyway with the
+    layman on_timeout explanation.
+  • conflict — a parameter/state merge conflict -> raise (ChatHealthyException).
+  • missing required — facility_search dies or never calls back -> raise.
+  Every throw ends here in the UniversalNavigator; the proxy re-raises.
+end note
+
+@enduml

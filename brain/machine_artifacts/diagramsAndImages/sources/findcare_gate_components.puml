@@ -4,7 +4,7 @@ title FindCare — what serves a request, and what each part owns
 skinparam componentStyle rectangle
 skinparam shadowing false
 skinparam defaultFontName Segoe UI
-skinparam defaultFontSize 12
+skinparam defaultFontSize 11
 skinparam ArrowColor #0b7a75
 skinparam ComponentBorderColor #0b7a75
 skinparam DatabaseBorderColor #6b7280
@@ -12,54 +12,47 @@ skinparam NoteBackgroundColor #f3f4f6
 skinparam NoteBorderColor #9ca3af
 
 package "Browser" #fdfdfd {
-  [ClientRouter] as CR
-  [Widgets\n(one per frame)] as W
+  [Client\nwe served index.html,\nestablished a session] as CLIENT
 }
 
-package "SharedServices" #fdfdfd {
-  [POST /gate\nthe one entrance] as GATE
-  [UniversalNavigationTool\nthe router] as UR
-  [UtteranceManager\nclassifies what was said] as UM
-  [Tools\nlockout, closeConnection200,\nparameters, selection, detail] as TOOLS
+package "SharedServices — the main server" #eef6f5 {
+  [Gate\na web-server facade.\nCollects the session token, head,\nGET/POST params; streams the answer.\nThe only part that knows transport.] as GATE
+  [UniversalNavigator\nreads the map and drives the route.\nCompleteness · render ledger · merge ·\nexternal calls · session security.\nThe ONLY node that takes external traffic.\nHolds no data.] as UN
+  [UtteranceManager\nclassify only: preamble + every\ntool fragment in, dispatch set out.\nOne model call. Knows no parameters.] as UM
+  [Prose tool\nUN hands it the facts,\nit returns the sentence] as PROSE
 }
 
-package "FindCare" #fdfdfd {
-  [Declared endpoints\n/provider/find  /facility/find\n/specialty/find  /trial/find\n/provider-detail] as FC
-  [Search, filter and detail services] as SVC
+package "FindCare — a satellite server" #fdfdfd {
+  [UniversalNavigatorProxy\nrelays tool-to-tool both ways.\nHolds the metadata slice the main gave it.\nNo sessions, no ledger, no merge.\nRefuses work on stale metadata.] as PROXY
+  [FindCare tools\nprovider search, specialty filter,\nprovider detail] as TOOLS
 }
 
-database "ChatHealthyFrontEnd" as MONGO {
-  [ToolConfiguration\npages, tools, parameters] as CFG
-  [Session and page parameters] as SESS
-  [PublicHealthData\nthe registry records] as PHD
+database "ChatHealthyFrontEnd (Mongo)" as MONGO {
+  [Registry\none document per build per env;\ninstance {build, commit, env, live}.\nThe map: presence = allowlist,\nsubscriptions = dispatch, may_call = DAG] as REG
+  [Sessions] as SESS
+  [Render ledger\ndispatch records the expectation,\nthe callback closes it] as LEDGER
 }
 
-CR -down-> GATE : one POST per gesture\nop + payload + session_token
-GATE -down-> UR : GateRequest\nafter the signature verifies
-UR -right-> UM : op = "utterance" only
-UM -left-> UR : IntentDocument\ncarrying target_action
-UR -down-> TOOLS : every other op
-UR -down-> FC : the search a page owns,\ncarrying the utterance
-TOOLS -down-> FC
-FC -down-> SVC
-SVC -down-> PHD
-UR -up-> W : NDJSON stream\none event per kind
-W -[hidden]- CR
-UR ..> CFG : what each tool requires
-UR ..> SESS : the values in force
-FC ..> CFG
-FC ..> SESS
+CLIENT -down-> GATE : (4) client_sessioned\nsigned session token
+GATE -down-> UN : token + head + params\npassed on, no validation
+UN -down-> UM : the utterance
+UM -up-> UN : the dispatch set (routes)
+UN -down-> PROXY : (1) tool_to_tool\ncrosses the wire to the satellite
+PROXY -down-> TOOLS : a local function call
+UN -right-> PROSE : the facts
+TOOLS -up-> UN : (5) internal_callback\nour_signature, back to the main
+UN -up-> GATE : the one stream\nthe gate writes it
 
-note right of GATE
-  Verifies the SharedServices
-  signature. The only session
-  validation in the system;
-  nothing downstream repeats it.
-end note
+UN ..> REG : reads the live doc at startup
+UN ..> SESS : session maintenance
+UN ..> LEDGER : opens and closes entries
+UN ..> PROXY : metadata at startup,\nruntime changes propagated
 
-note bottom of CFG
-  A tool says what it cannot run
-  without. No page holds a rule
-  of its own.
+note right of UN
+  Five incoming call types, all mapped as routes:
+  (1) tool_to_tool  (2) third_party_callback (api_key)
+  (3) static_witness (none)  (4) client_sessioned (session)
+  (5) internal_callback (our_signature). A tool throws;
+  the navigator that called catches, logs, and answers.
 end note
 @enduml

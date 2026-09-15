@@ -1301,31 +1301,6 @@ async def _run_agent(deps, agent, prompt: str, *, call_site: str):
     return result
 
 
-async def _structure_location(text: str) -> dict:
-    """Turn a free-text place into the geography parameter's shape.
-
-    The trials path reports a place as prose because that is what its own
-    tool consumes. The parameter is structured, so it is structured here
-    rather than stored as a second shape of the same fact.
-
-    Never fatal: a place that cannot be structured leaves geography as it
-    was, which is the same outcome as a turn that named no place.
-    """
-    try:
-        from chathealthy_lib.geo_extractor import extract_location
-        located = await asyncio.to_thread(extract_location, text)
-        return located.model_dump(exclude_none=True)
-    except Exception as exc:
-        log.info("could not structure %r as geography: %s", text, exc,
-                 exc=ChatHealthyException(
-                     mode="geography_not_structured",
-                     message=f"could not structure {text!r} as geography: {exc}",
-                     component="UtteranceManager",
-                     exception=exc if isinstance(exc, Exception) else None,
-                 ))
-        return {}
-
-
 def tool_contracts_block() -> str:
     """What the system can be asked to do, and what comes back.
 
@@ -2022,17 +1997,12 @@ class UtteranceManagerTool(ChatHealthyTool):
         # Written only when this turn named a place: a turn that names none
         # must not erase the place already set, which is what lets the user
         # say it once.
-        live_geo = geography
-        if not live_geo and user_location:
-            live_geo = await _structure_location(user_location)
         from UserParameters import user_parameters_tool
-        if live_geo:
-            # Written to the page this classification is about. Whether it
-            # reaches the facility page is a stated carry-over triple and
-            # not a second write here: a parameter of the same name does
-            # not carry between pages by being called the same thing.
-            stated = live_geo if isinstance(live_geo, dict) else (
-                live_geo.model_dump() if hasattr(live_geo, "model_dump") else {})
+        if geography:
+            # Structured geography -- the classifier already parsed a place in
+            # a provider context -- is written to individualProvider directly.
+            stated = geography if isinstance(geography, dict) else (
+                geography.model_dump() if hasattr(geography, "model_dump") else {})
             changes = [
                 user_parameters_tool.Change(
                     page="individualProvider", name=part, value=value)
@@ -2047,6 +2017,17 @@ class UtteranceManagerTool(ChatHealthyTool):
                         origin="non_deterministic",
                     ),
                 )
+        elif user_location:
+            # A place named as free text is resolved by the Geo tool. Geo is
+            # page-scoped -- geography is two parameters, not one -- so it is
+            # dispatched once per page it services, individualProvider and
+            # facility, and each gets its own geography in parallel with the
+            # specialty resolution rather than a carry-over of the other's.
+            from Geo import geo_tool
+            for _page in ("individualProvider", "facility"):
+                await geo_tool.TOOL.run_and_log(
+                    deps,
+                    geo_tool.Request(page=_page, utterance=user_location))
 
         # The classifier already produced this. It reads the utterance and
         # emits what the user is asking about, which is the definition of
