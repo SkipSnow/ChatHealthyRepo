@@ -1,0 +1,28 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://dev.chathealthy.ai/schemas/ChatHealthyFacilityTaxonomyBucketSchema.json",
+  "title": "ChatHealthy Facility Taxonomy Bucket",
+  "description": "A hand-curated membership set of NUCC taxonomy codes for one facility-filter macro-bucket (e.g. Psychiatric). A taxonomy is in the bucket iff its code appears in codes[]; editing codes[] retunes the bucket with no code change.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["bucket", "codes"],
+  "properties": {
+    "_note": {
+      "type": "string",
+      "description": "Human curation note. Not consumed at runtime."
+    },
+    "bucket": {
+      "type": "string",
+      "description": "The facility-filter macro-bucket this set defines."
+    },
+    "codes": {
+      "type": "array",
+      "description": "NUCC taxonomy codes that belong to the bucket.",
+      "uniqueItems": true,
+      "items": {
+        "type": "string",
+        "minLength": 1
+      }
+    }
+  }
+}
