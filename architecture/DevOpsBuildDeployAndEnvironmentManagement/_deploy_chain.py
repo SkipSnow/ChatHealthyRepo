@@ -2867,7 +2867,12 @@ def reconcile_config_collections(target: TargetRecord, env: str,
                              for field in entry.get("identity_key") or []})
 
     cluster, identity = _config_write_identity(target, env, coll)
-    client = ChatHealthyMongoUtilities().getConnection(
+    # manage_versions=False: a deploy names the physical collection it writes,
+    # so a literal '_v_N' address lands on that exact generation. The version-
+    # managing client refuses an explicit version when no binding is held, and
+    # the deploy holds none. Base (unversioned) names are returned unchanged in
+    # both modes, so every flat config_collections declaration is unaffected.
+    client = ChatHealthyMongoUtilities(manage_versions=False).getConnection(
         identity, cluster, host=_cluster_host(cluster))
     step(f"  governing {len(governed)} collection(s) as {identity} "
          f"(declared by {target.target_id})")

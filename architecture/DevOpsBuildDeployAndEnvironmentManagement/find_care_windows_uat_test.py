@@ -57,13 +57,26 @@
 #                                 the welcome splash, EvaluateCare splash
 #      frame_RightPanel           ProviderDetailWidget, and the facility
 #                                 detail, which reuses its close control
-#      frame_UserMessage          SystemMessageWidget — the system's prose
-#                                 AND, measured 2026-09-02, the search
-#                                 refinement chips
+#      frame_UserMessage          TranscriptWidget — the running per-speaker
+#                                 conversation surface #ch_transcript
+#                                 (data-testid='conversation-transcript'),
+#                                 plus a subordinate region
+#                                 #ch_result_attachments that holds the
+#                                 result summary and the refinement chips
 #      frame_UserPromptAndControl the single <input>, and the turn timer
-#  * The refinement chips are in frame_UserMessage carrying
-#    data-testid='provider-search-refine-chip'. They are NOT in
-#    frame_LeftPanel and the action is 'provider_search:refine'. The older
+#  * The conversation lives in #ch_transcript as data-testid='transcript-turn'
+#    rows, each carrying data-speaker='user' (the person's own words, shown
+#    "YOU") or data-speaker='machine' (the model's prose answers and
+#    questions, shown "FINDCARE AI"). The transcript PERSISTS and accumulates
+#    across the whole session — it rehydrates from Mongo on load — so a later
+#    flow legitimately shows earlier turns too, and "what the system said"
+#    means the machine-speaker turns, never the whole frame (which now also
+#    carries the person's own turns and the summary).
+#  * The result summary and the refinement chips are NOT conversation turns.
+#    They live in #ch_result_attachments within frame_UserMessage: the summary
+#    carries data-testid='provider-summary', the chips carry
+#    data-testid='provider-search-refine-chip' with action
+#    'provider_search:refine'. They are NOT in frame_LeftPanel. The older
 #    suite looks for 'filter:refine' under #frame_LeftPanel and finds
 #    nothing there.
 #  * Panel checkboxes carry pointer-events:none. The click target is the
@@ -317,6 +330,25 @@ PANEL = "#frame_LeftPanel"
 RESULTS = "#frame_MainWindow"
 DETAIL = "#frame_RightPanel"
 MESSAGE = "#frame_UserMessage"
+
+# The conversation surface inside frame_UserMessage, and the subordinate
+# region beside it that holds the result summary and the refinement chips.
+# The model's prose — its answers and its questions — is the machine-speaker
+# turns of the transcript; the person's own utterances are the user-speaker
+# turns; the summary is not a turn at all. Reading "what the system said"
+# therefore reads the machine turns, not the whole frame.
+TRANSCRIPT = "#ch_transcript"
+ATTACHMENTS = "#ch_result_attachments"
+MACHINE_TURNS = (f"{TRANSCRIPT} [data-testid='transcript-turn']"
+                 "[data-speaker='machine']")
+# A JS expression, over the document `d`, yielding the machine prose as one
+# string. Kept as a fragment so both _said_to_the_person and the _wait_for
+# predicate compute the identical quantity — if they diverged, the reply
+# loop's before/after comparison would never settle.
+_MACHINE_SAID_JS = (
+    "Array.from(d.querySelectorAll(\"" + MACHINE_TURNS + "\"))"
+    ".map(t => (t.innerText || '').trim())"
+    ".filter(s => s.length > 0).join(String.fromCharCode(10)).trim()")
 
 PANEL_BOXES = f"{PANEL} input[type='checkbox']"
 PANEL_ROWS = f"{PANEL} tr[data-code]"
@@ -592,8 +624,46 @@ def _reply_to(question: str, goal: str) -> str:
 
 
 def _said_to_the_person(page) -> str:
+    """What the SYSTEM has said, as the transcript now carries it.
+
+    The model's prose — its answers and its questions — is the machine-speaker
+    turns of #ch_transcript (TranscriptWidget). The person's own utterances are
+    user-speaker turns in the same surface and the result summary sits in a
+    subordinate region beside it; neither is the system speaking. Reading the
+    whole frame, as this used to, made the person's own echoed turn and the
+    summary's "Shall I show you more?" look like fresh replies, so the answer
+    loop chased them and a facility flow could hang restating itself. Only the
+    machine turns are read, which is the faithful equivalent of the prose the
+    deleted SystemMessageWidget used to hold.
+    """
+    return page.evaluate("() => { const d = document; return " +
+                         _MACHINE_SAID_JS + "; }")
+
+
+def _last_machine_said(page) -> str:
+    """Just the latest machine-speaker turn — the system's most recent prose.
+
+    The transcript accumulates across the whole session, so a turn-specific
+    question ("Did you mean San Francisco, California?") is the LAST machine
+    turn, not somewhere in a growing pile of earlier ones. Matching the last
+    turn keeps a later flow from reading an earlier flow's question.
+    """
     return page.evaluate(
-        "() => ((document.querySelector('#frame_UserMessage') || {})"
+        "() => { const ts = Array.from(document.querySelectorAll(\""
+        + MACHINE_TURNS + "\")); const last = ts[ts.length - 1];"
+        " return last ? (last.innerText || '').trim() : ''; }")
+
+
+def _transcript_text(page) -> str:
+    """The whole conversation surface #ch_transcript, uncapped.
+
+    Read from the live page rather than the census, because the census text
+    is sliced to its first 4000 characters and the newest turns — the ones a
+    content match like "corrected from 'san fransisco'" needs — are at the
+    end, which is exactly what that slice drops once the session is long.
+    """
+    return page.evaluate(
+        "() => ((document.querySelector('#ch_transcript') || {})"
         ".innerText || '').trim()")
 
 
@@ -678,8 +748,7 @@ def _wait_for(page, ready_js: str, what: str) -> None:
             page.wait_for_function(
                 "(before) => { const d = document;"
                 f" const ready = {ready_js};"
-                " const said = ((d.querySelector('#frame_UserMessage') || {})"
-                "   .innerText || '').trim();"
+                f" const said = {_MACHINE_SAID_JS};"
                 " return ready || (said && said !== before); }",
                 arg=before, timeout=LLM_TIMEOUT)
         except Exception:
@@ -692,6 +761,12 @@ def _wait_for(page, ready_js: str, what: str) -> None:
             raise
         if page.evaluate(f"() => {{ const d = document; return {ready_js}; }}"):
             return
+        # The system's prose changed. It may be a question to answer, or a
+        # correction/restatement the person would confirm; either way the
+        # person on the other side responds, and that response is what nudges
+        # a turn the system left waiting on a confirmation. `said`/`before`
+        # are the machine turns only, so the person's own echoed turn never
+        # trips this — the endless self-reply that hung the facility flow.
         question = _said_to_the_person(page)
         if reply == MAX_REPLIES:
             pytest.fail(
@@ -1151,11 +1226,12 @@ class TestAProviderSearchAcrossEveryWindow:
         """RECORDED, not asserted beyond the layout.
 
         The mid-flight census shows frame_MainWindow still holding the
-        welcome splash and frame_UserMessage empty. No approved
-        requirement states what the results window must hold WHILE a
-        search runs — REQ-B-006 requires advancing evidence somewhere, and
-        the prompt-window timer provides it. So this case asserts only
-        that the layout survives the turn, and records the rest.
+        welcome splash and frame_UserMessage carrying only the person's own
+        just-submitted turn in the transcript, with no results and no model
+        prose yet. No approved requirement states what the results window
+        must hold WHILE a search runs — REQ-B-006 requires advancing evidence
+        somewhere, and the prompt-window timer provides it. So this case
+        asserts only that the layout survives the turn, and records the rest.
         """
         mid = self.censuses["mid"]
         _assert_layout_holds(mid, "mid-search")
@@ -1534,6 +1610,12 @@ class TestNuccFilterAcrossBothPages:
         _ask(page, "Find me a hospital in Albequierque NM")
         _wait_for_facilities(page)
         _wait_for_panel(page)
+        # The misspelled city draws a correction the person confirms, which
+        # runs the facility search a second time. Reading the count before
+        # that second search settles read a mid-churn 63 that the settled 66
+        # then "widened" past. Wait for the turn to end so before_total is
+        # the settled full count, the same baseline the narrowing acts on.
+        _wait_for_the_turn_to_end(page)
         page.wait_for_timeout(2_000)
         type(self).fac["before_total"] = _facility_total(page)
         ticked = _ticked_codes(page)
@@ -2201,6 +2283,9 @@ class TestACityWithoutAStateAcrossEveryWindow:
     censuses = {}
     path = ""
     rows_before = []
+    last_machine = ""
+    transcript_text = ""
+    system_spoke_this_turn = False
 
     @pytest.fixture(scope="class")
     def turn(self, page):
@@ -2212,32 +2297,50 @@ class TestACityWithoutAStateAcrossEveryWindow:
         # the search was still running -- so the census was taken of a
         # half-painted screen and three tests then asserted against it as
         # though it were where the turn had stopped.
+        # What the system had said BEFORE this utterance, captured by _ask.
+        # The transcript rehydrates the whole session on _fresh, so the frame
+        # is never empty and "the frame holds text" no longer tells this turn
+        # apart from the ones before it. This turn painted something iff it
+        # put a specialty panel or a provider list on screen, or the system
+        # spoke a NEW machine turn — measured against the baseline, not
+        # against an accumulated surface.
+        said_before = _SAID_AT_ASK.get(id(page), "")
         ended = _wait_for_the_turn_to_end(page)
         # A turn that never ends put nothing on screen for the person, and
         # that is the outcome most worth recording rather than crashing on.
-        painted = ended and bool(page.evaluate(
+        system_spoke = ended and (_said_to_the_person(page) != said_before)
+        painted = ended and (bool(page.evaluate(
             "() => document.querySelectorAll"
             "(\"#frame_LeftPanel input[type='checkbox']\").length > 0"
-            " || ((document.querySelector('#frame_UserMessage') || {})"
-            ".innerText || '').trim().length > 0"
             " || document.querySelectorAll"
             "(\"[data-testid='provider-card']\").length > 0"))
+            or system_spoke)
 
         census = _record(page, "07_city_without_a_state")
         census["recorded_turn_ended"] = ended
         cards = _marks(census, "frame_MainWindow").get("provider-card", 0)
-        message = _window(census, "frame_UserMessage")["text"]
+        # The system's prose for THIS turn is the latest machine turn — a
+        # question ends with "?", a correction echo does not. Reading the
+        # whole frame would catch the summary's "Shall I show you more?" and
+        # call every resolved search "pending".
+        last_machine = _last_machine_said(page)
+        transcript_text = _transcript_text(page)
         if not painted:
             path = "nothing"
         elif cards > 0:
             path = "resolved"
-        elif "?" in message:
+        elif "?" in last_machine:
             path = "pending"
         else:
             path = "neither"
         census["recorded_path"] = path
         census["recorded_painted_something"] = painted
+        census["recorded_system_spoke_this_turn"] = bool(system_spoke)
+        census["recorded_last_machine_prose"] = last_machine
         type(self).path = path
+        type(self).last_machine = last_machine
+        type(self).transcript_text = transcript_text
+        type(self).system_spoke_this_turn = bool(system_spoke)
         type(self).censuses["turn"] = census
         type(self).rows_before = _rows(page)
         with open(os.path.join(EVIDENCE_DIR, "07_city_without_a_state.json"),
@@ -2291,16 +2394,24 @@ class TestACityWithoutAStateAcrossEveryWindow:
         if cards > 0:
             _assert_results_and_summary_together(census, "city without a state")
         else:
-            assert message["visible"] and message["chars"] > 0, (
-                f"the results window holds no providers and the message "
-                f"window says nothing, so nothing on the screen tells the "
+            # No results. The transcript surface must carry the system's own
+            # explanation for THIS turn — read the machine prose, not the
+            # whole frame, whose accumulated turns and result summary would
+            # answer for a turn that said nothing.
+            assert message["visible"], (
+                f"the conversation surface is not on screen, so nothing can "
+                f"tell the person the geography was not resolved. Path taken: "
+                f"{self.path!r}")
+            assert self.system_spoke_this_turn and self.last_machine, (
+                f"the results window holds no providers and the system spoke "
+                f"no prose this turn, so nothing on the screen tells the "
                 f"person the geography was not resolved. Path taken: "
                 f"{self.path!r}")
-            assert "?" in message["text"], (
-                f"the geography was not resolved and the message window "
-                f"does not ask the person anything, so the turn ended with "
-                f"no results and no question. Path taken: {self.path!r}. "
-                f"Message window holds: {message['text'][:300]!r}")
+            assert "?" in self.last_machine, (
+                f"the geography was not resolved and the system's prose does "
+                f"not ask the person anything, so the turn ended with no "
+                f"results and no question. Path taken: {self.path!r}. The "
+                f"system last said: {self.last_machine[:300]!r}")
 
     def test_the_specialty_window_paints_on_either_path(self, turn):
         """EPIC-002-F-010-S-002-REQ-B-001 — where geography is pending,
@@ -2326,14 +2437,21 @@ class TestACityWithoutAStateAcrossEveryWindow:
 
         The utterance typed "san fransisco". Measured, every run that
         painted anything carried the marker, on both paths.
+
+        Read from the live transcript captured in the fixture, not the census
+        text: the census is sliced to its first 4000 characters and, once the
+        session has run a while, the newest turns — the ones carrying this
+        correction — fall off the end that slice keeps. "san fransisco" is
+        unique to this flow's utterance, so a content match on the whole
+        transcript names this turn's correction and no other.
         """
-        text = _window(self.censuses["turn"], "frame_UserMessage")["text"]
+        text = self.transcript_text
         assert "corrected from" in text, (
-            f"the utterance was misspelled and the message window carries "
-            f"no correction marker: {text[:300]!r}")
+            f"the utterance was misspelled and the transcript carries "
+            f"no correction marker: {text[-300:]!r}")
         assert "fransisco" in text.lower(), (
             f"the correction marker does not carry what the user actually "
-            f"typed: {text[:300]!r}")
+            f"typed: {text[-300:]!r}")
 
     def test_the_layout_holds_on_a_turn_that_may_answer_with_a_question(self, turn):
         """EPIC-002-F-011-S-001-REQ-B-001, -REQ-B-002,
@@ -2371,12 +2489,11 @@ class TestACityWithoutAStateAcrossEveryWindow:
         the defect is the turn that ended, not the summary that is absent.
         """
         if self.path in ("neither", "nothing"):
-            message = _window(self.censuses["turn"], "frame_UserMessage")["text"]
             pytest.fail(
                 f"the first turn ended on the {self.path!r} path — no "
                 f"provider results and no question — so the person has "
                 f"nothing to answer and the geography can never be "
-                f"resolved. The message window holds: {message[:300]!r}")
+                f"resolved. The system last said: {self.last_machine[:300]!r}")
 
         if self.path == "resolved":
             _assert_results_and_summary_together(
@@ -3341,6 +3458,8 @@ class TestACityWithoutAStateIsAskedAbout:
     words themselves.
     """
 
+    machine_prose = ""
+
     @pytest.fixture(scope="class")
     def asked(self, page):
         _new_session(page)
@@ -3350,6 +3469,11 @@ class TestACityWithoutAStateIsAskedAbout:
         # and the census is of a half-painted screen, too long and every
         # run pays for the worst case. Wait for the turn to say it is done.
         _wait_for_the_turn_to_end(page)
+        # The system's prose is the machine-speaker turns of the transcript,
+        # not the whole frame. _new_session starts a fresh conversation, so
+        # these turns are this flow's alone. Captured from the live page here
+        # because the tests hold only the census, whose text is capped.
+        type(self).machine_prose = _said_to_the_person(page)
         return _record(page, "20a_no_state_asks")
 
     def test_no_search_ran(self, asked):
@@ -3359,7 +3483,7 @@ class TestACityWithoutAStateIsAskedAbout:
             f"screen; which state decides which board licenses them")
 
     def test_the_person_is_asked_a_question(self, asked):
-        message = _window(asked, "frame_UserMessage")["digest"]
+        message = self.machine_prose
         assert "?" in message, (
             f"the turn asked nothing, so the person has nothing to answer: "
             f"{message!r}")
@@ -3375,14 +3499,14 @@ class TestACityWithoutAStateIsAskedAbout:
         asks about, never the words themselves", and the body was
         asserting a word. A state named is a state proposed.
         """
-        message = _window(asked, "frame_UserMessage")["digest"].lower()
+        message = self.machine_prose.lower()
         named = sorted(name for name in _STATE_NAMES if name in message)
         assert named or "state" in message, (
             f"the question neither names a state nor asks for one, so the "
             f"person is offered nothing to confirm: {message!r}")
 
     def test_a_spelling_note_is_not_offered_as_the_answer(self, asked):
-        message = _window(asked, "frame_UserMessage")["digest"]
+        message = self.machine_prose
         assert not ("corrected from" in message.lower() and "?" not in message), (
             "the turn ended having told the person how their spelling was "
             "read, which answers nothing they asked")

@@ -1935,7 +1935,7 @@
           "source_location": "FindCare/ProviderDetail/ProviderDetailWidget.tsx",
           "handler_type": "static_asset",
           "disposition": "referenced",
-          "content_hash": "327807a61a33eec1891fb4959cab13d12d940fc2166c6dcc4c59b2233b61e4bd",
+          "content_hash": "8b8d369ac5b0057c846dae449593ba1e8064b3b533c43cc2e755d66ef825bfc9",
           "package": "service_runtime"
         },
         {
@@ -1967,7 +1967,7 @@
           "source_location": "FindCare/SpecialtyFilter/SpecialtyFilterWidget.tsx",
           "handler_type": "static_asset",
           "disposition": "referenced",
-          "content_hash": "23794555f99d8f55b08281ad993bc8dd35fcec210c8446667dbb769d37733fdf",
+          "content_hash": "4a470db013ca0c4d317ee4d83d6ee2c9992698c04d9119827ba9c15ec0c02fa8",
           "package": "service_runtime"
         },
         {
@@ -2087,7 +2087,7 @@
           "source_location": "FindCare/ProviderDetail/provider_detail_models.py",
           "handler_type": "python_source",
           "disposition": "referenced",
-          "content_hash": "8aa212b222cbffb9fdd9435cd864001cb638b9d0e0de817ae8e59bc6e1597b9a",
+          "content_hash": "b5b0d9ef1967836a56b799fa011f2f4a43beb9813b96f049ec9e52779160dcc1",
           "package": "service_runtime"
         },
         {
@@ -2170,7 +2170,7 @@
           "source_location": "FindCare/SpecialtyFilter/facility_psychiatric_taxonomy_codes.json",
           "handler_type": "json",
           "disposition": "referenced",
-          "content_hash": "8da4ae4c733cf68e9558ac20f79090117866026185cd3c951ab85e5cae085146",
+          "content_hash": "9defed350e59140e582087d13dc4f931527ca858630c5ec983de058f6467b099",
           "package": "service_runtime"
         },
         {
@@ -2929,7 +2929,7 @@
           "source_location": "sharedServices/Code/AuthorizationsAndAuthentications/universal_navigation_tool.py",
           "handler_type": "python_source",
           "disposition": "referenced",
-          "content_hash": "394e64b7fe7c3c31878e0d1b4f92b4084a3d08f2267a9a7ac3b9e1831c3f3f2a",
+          "content_hash": "854dda432ac40824c17c3164f26566b0897eb6648c0b7c2bd91e945c55303024",
           "package": "service_runtime"
         },
         {
@@ -5965,6 +5965,11 @@
                           "collection_environment_name": "SPECIALTY_META_COLLECTION",
                           "collection_base": "PublicHealthData.SpecialtyMetaData",
                           "version": 4
+                        },
+                        {
+                          "collection_environment_name": "TOOL_REGISTRY_COLLECTION",
+                          "collection_base": "ChatHealthyConfig.ToolRegistry",
+                          "version": 1
                         }
                       ]
                     }
@@ -6507,6 +6512,641 @@
                   "status": "active"
                 }
               ]
+            },
+            {
+              "address": "ChatHealthyConfig.ToolRegistry_v_1",
+              "identity_key": [
+                "version"
+              ],
+              "records": [
+                {
+                  "version": "1.0",
+                  "tools": [
+                    {
+                      "tool_name": "ProviderSearch",
+                      "tool_type": "tool",
+                      "description": "ProviderSearch on find_care (/provider/find).",
+                      "input": [
+                        {
+                          "name": "state",
+                          "type": "string",
+                          "required": true,
+                          "description": "The two-letter USPS code. Healthcare is regulated per state, so this is not a narrowing: it decides which board licenses"
+                        },
+                        {
+                          "name": "city",
+                          "type": "string",
+                          "required": false,
+                          "description": "Written by its real name, not by the letters the person typed: a stored address is matched letter for letter, so a missp"
+                        },
+                        {
+                          "name": "zip",
+                          "type": "string",
+                          "required": false,
+                          "description": "zip"
+                        },
+                        {
+                          "name": "county",
+                          "type": "string",
+                          "required": false,
+                          "description": "Held with the kind-word appended and it varies by state -- County, Parish, Borough, Municipio. The name alone is what is"
+                        },
+                        {
+                          "name": "complaint",
+                          "type": "string",
+                          "required": false,
+                          "description": "What the person needs care for, in clinical terms rather than the words they used. A named kind of care giver is itself "
+                        },
+                        {
+                          "name": "selectedSpecialtyCodes",
+                          "type": "string_list",
+                          "required": true,
+                          "description": "The NUCC codes in force. A search runs under these and shows what it ran under."
+                        },
+                        {
+                          "name": "providerName",
+                          "type": "provider_name",
+                          "required": false,
+                          "description": "providerName"
+                        },
+                        {
+                          "name": "providerSex",
+                          "type": "sex_code",
+                          "required": false,
+                          "description": "providerSex"
+                        },
+                        {
+                          "name": "soleProprietor",
+                          "type": "boolean",
+                          "required": false,
+                          "description": "soleProprietor"
+                        },
+                        {
+                          "name": "insurance",
+                          "type": "string",
+                          "required": false,
+                          "description": "A payer identifier the care giver carries. It is not a statement that they accept that insurance."
+                        },
+                        {
+                          "name": "npi",
+                          "type": "string",
+                          "required": false,
+                          "description": "One record, named. The only thing a detail needs: everything it shows is read from the record this names, so what it sho"
+                        },
+                        {
+                          "name": "position",
+                          "type": "position",
+                          "required": false,
+                          "description": "Where in a list the person is. Held as the first and last key on screen, which is what both directions of paging need."
+                        }
+                      ],
+                      "output": [],
+                      "subscriptions": [],
+                      "may_call": []
+                    },
+                    {
+                      "tool_name": "ProviderDetail",
+                      "tool_type": "tool",
+                      "description": "ProviderDetail on find_care (/provider-detail).",
+                      "input": [
+                        {
+                          "name": "npi",
+                          "type": "string",
+                          "required": true,
+                          "description": "One record, named. The only thing a detail needs: everything it shows is read from the record this names, so what it sho"
+                        }
+                      ],
+                      "output": [],
+                      "subscriptions": [],
+                      "may_call": []
+                    },
+                    {
+                      "tool_name": "FacilitySearch",
+                      "tool_type": "tool",
+                      "description": "FacilitySearch on find_care (/facility/find).",
+                      "input": [
+                        {
+                          "name": "state",
+                          "type": "string",
+                          "required": true,
+                          "description": "The two-letter USPS code. Healthcare is regulated per state, so this is not a narrowing: it decides which board licenses"
+                        },
+                        {
+                          "name": "city",
+                          "type": "string",
+                          "required": false,
+                          "description": "Written by its real name, not by the letters the person typed: a stored address is matched letter for letter, so a missp"
+                        },
+                        {
+                          "name": "zip",
+                          "type": "string",
+                          "required": false,
+                          "description": "zip"
+                        },
+                        {
+                          "name": "county",
+                          "type": "string",
+                          "required": false,
+                          "description": "Held with the kind-word appended and it varies by state -- County, Parish, Borough, Municipio. The name alone is what is"
+                        },
+                        {
+                          "name": "npi",
+                          "type": "string",
+                          "required": false,
+                          "description": "One record, named. The only thing a detail needs: everything it shows is read from the record this names, so what it sho"
+                        },
+                        {
+                          "name": "position",
+                          "type": "position",
+                          "required": false,
+                          "description": "Where in a list the person is. Held as the first and last key on screen, which is what both directions of paging need."
+                        },
+                        {
+                          "name": "facilityName",
+                          "type": "string",
+                          "required": false,
+                          "description": "facilityName"
+                        },
+                        {
+                          "name": "facilityType",
+                          "type": "string",
+                          "required": false,
+                          "description": "The kind of place, in the person's own words. Resolved to taxonomy codes by the tool, not by the person."
+                        },
+                        {
+                          "name": "offeredFacilityTypes",
+                          "type": "specialties",
+                          "required": false,
+                          "description": "offeredFacilityTypes"
+                        },
+                        {
+                          "name": "selectedTaxonomyCodes",
+                          "type": "string_list",
+                          "required": true,
+                          "description": "selectedTaxonomyCodes"
+                        },
+                        {
+                          "name": "administratorName",
+                          "type": "provider_name",
+                          "required": false,
+                          "description": "The person who administers the organization."
+                        }
+                      ],
+                      "output": [],
+                      "subscriptions": [],
+                      "may_call": []
+                    },
+                    {
+                      "tool_name": "FacilityDetail",
+                      "tool_type": "tool",
+                      "description": "FacilityDetail on find_care (/provider-detail).",
+                      "input": [
+                        {
+                          "name": "npi",
+                          "type": "string",
+                          "required": true,
+                          "description": "One record, named. The only thing a detail needs: everything it shows is read from the record this names, so what it sho"
+                        }
+                      ],
+                      "output": [],
+                      "subscriptions": [],
+                      "may_call": []
+                    },
+                    {
+                      "tool_name": "SpecialtyFilter",
+                      "tool_type": "tool",
+                      "description": "SpecialtyFilter on find_care (/specialty/find).",
+                      "input": [
+                        {
+                          "name": "complaint",
+                          "type": "string",
+                          "required": true,
+                          "description": "What the person needs care for, in clinical terms rather than the words they used. A named kind of care giver is itself "
+                        },
+                        {
+                          "name": "offeredSpecialties",
+                          "type": "specialties",
+                          "required": false,
+                          "description": "The kinds of care giver the complaint resolved to. Offered, not chosen."
+                        },
+                        {
+                          "name": "selectedSpecialtyCodes",
+                          "type": "string_list",
+                          "required": false,
+                          "description": "The NUCC codes in force. A search runs under these and shows what it ran under."
+                        }
+                      ],
+                      "output": [],
+                      "subscriptions": [],
+                      "may_call": []
+                    },
+                    {
+                      "tool_name": "ClinicalTrials",
+                      "tool_type": "tool",
+                      "description": "ClinicalTrials on find_care (/trial/find).",
+                      "input": [
+                        {
+                          "name": "state",
+                          "type": "string",
+                          "required": false,
+                          "description": "The two-letter USPS code. Healthcare is regulated per state, so this is not a narrowing: it decides which board licenses"
+                        },
+                        {
+                          "name": "city",
+                          "type": "string",
+                          "required": false,
+                          "description": "Written by its real name, not by the letters the person typed: a stored address is matched letter for letter, so a missp"
+                        },
+                        {
+                          "name": "zip",
+                          "type": "string",
+                          "required": false,
+                          "description": "zip"
+                        },
+                        {
+                          "name": "position",
+                          "type": "position",
+                          "required": false,
+                          "description": "Where in a list the person is. Held as the first and last key on screen, which is what both directions of paging need."
+                        },
+                        {
+                          "name": "condition",
+                          "type": "string",
+                          "required": true,
+                          "description": "The condition trials are sought for. A symptom is expanded to the conditions it commonly names, because a symptom string"
+                        },
+                        {
+                          "name": "ageYears",
+                          "type": "integer",
+                          "required": false,
+                          "description": "ageYears"
+                        },
+                        {
+                          "name": "sex",
+                          "type": "string",
+                          "required": false,
+                          "description": "The subject's sex, as the registry records eligibility. Distinct from providerSex, which is a preference about the care "
+                        },
+                        {
+                          "name": "unitedStatesOnly",
+                          "type": "boolean",
+                          "required": false,
+                          "description": "Absent means every trial worldwide, which is the widest answer and the one to give somebody who did not say. It is never"
+                        },
+                        {
+                          "name": "openNctId",
+                          "type": "string",
+                          "required": false,
+                          "description": "The trial whose detail is on screen. The trial analogue of npi."
+                        }
+                      ],
+                      "output": [],
+                      "subscriptions": [],
+                      "may_call": []
+                    },
+                    {
+                      "tool_name": "ProviderSelection",
+                      "tool_type": "tool",
+                      "description": "ProviderSelection on shared_services (provider_selection).",
+                      "input": [
+                        {
+                          "name": "selectedSpecialtyCodes",
+                          "type": "string_list",
+                          "required": false,
+                          "description": "The NUCC codes in force. A search runs under these and shows what it ran under."
+                        },
+                        {
+                          "name": "selectedNpis",
+                          "type": "string_list",
+                          "required": true,
+                          "description": "The set the person curated for evaluation."
+                        }
+                      ],
+                      "output": [],
+                      "subscriptions": [],
+                      "may_call": []
+                    },
+                    {
+                      "tool_name": "Gate",
+                      "tool_type": "pseudo_tool",
+                      "description": "Transport facade: collects token/head/params, streams back, verifies nothing, owns no route.",
+                      "input": [],
+                      "output": [],
+                      "subscriptions": [],
+                      "may_call": []
+                    },
+                    {
+                      "tool_name": "UniversalNavigator",
+                      "tool_type": "tool",
+                      "description": "The main. Triages every incoming call by proof, determines the page, drives dispatch, owns the render ledger and serial merge. NOT_UTTERANCE_ROUTABLE.",
+                      "input": [],
+                      "output": [],
+                      "subscriptions": [],
+                      "may_call": []
+                    },
+                    {
+                      "tool_name": "UtteranceManager",
+                      "tool_type": "tool",
+                      "description": "Classify-only: preamble + registry fragments, one model call, returns the dispatch set.",
+                      "input": [],
+                      "output": [],
+                      "subscriptions": [],
+                      "may_call": []
+                    },
+                    {
+                      "tool_name": "Prose",
+                      "tool_type": "tool",
+                      "description": "Authors the user-facing sentence from the facts the navigator hands it.",
+                      "input": [],
+                      "output": [],
+                      "subscriptions": [],
+                      "may_call": []
+                    },
+                    {
+                      "tool_name": "Geo",
+                      "tool_type": "tool",
+                      "description": "Resolves geography from the utterance (state/city/zip/county/position) and the city-without-state disambiguation. No display until maps are built; a parallel dependency of the search alongside SpecialtyFilter.",
+                      "input": [
+                        {
+                          "name": "utterance",
+                          "type": "string",
+                          "required": true,
+                          "description": "free text the location is extracted from"
+                        }
+                      ],
+                      "output": [
+                        {
+                          "name": "state",
+                          "type": "string",
+                          "required": false,
+                          "description": "state"
+                        },
+                        {
+                          "name": "city",
+                          "type": "string",
+                          "required": false,
+                          "description": "city"
+                        },
+                        {
+                          "name": "zip",
+                          "type": "string",
+                          "required": false,
+                          "description": "zip"
+                        },
+                        {
+                          "name": "county",
+                          "type": "string",
+                          "required": false,
+                          "description": "county"
+                        },
+                        {
+                          "name": "position",
+                          "type": "string",
+                          "required": false,
+                          "description": "position"
+                        }
+                      ],
+                      "subscriptions": [],
+                      "may_call": []
+                    }
+                  ],
+                  "routes": [
+                    {
+                      "route_name": "clientGate",
+                      "call_type": "client_sessioned",
+                      "proof": {
+                        "method": "session_token"
+                      },
+                      "timeout_facts": {
+                        "render_timeout_seconds": 30
+                      }
+                    },
+                    {
+                      "route_name": "toolCompletion",
+                      "call_type": "internal_callback",
+                      "proof": {
+                        "method": "our_signature",
+                        "signing_key_name": "internal-callback-signing-key"
+                      }
+                    },
+                    {
+                      "route_name": "oauthCallback",
+                      "call_type": "third_party_callback",
+                      "proof": {
+                        "method": "api_key",
+                        "credential_name": "oauth-idp-client-secret"
+                      }
+                    },
+                    {
+                      "route_name": "architecture",
+                      "call_type": "static_witness",
+                      "proof": {
+                        "method": "none"
+                      }
+                    },
+                    {
+                      "route_name": "bootstrapError",
+                      "call_type": "static_witness",
+                      "proof": {
+                        "method": "none"
+                      }
+                    },
+                    {
+                      "route_name": "chatAppDesign",
+                      "call_type": "static_witness",
+                      "proof": {
+                        "method": "none"
+                      }
+                    },
+                    {
+                      "route_name": "embeddingDesign",
+                      "call_type": "static_witness",
+                      "proof": {
+                        "method": "none"
+                      }
+                    },
+                    {
+                      "route_name": "labFilter1",
+                      "call_type": "static_witness",
+                      "proof": {
+                        "method": "none"
+                      }
+                    },
+                    {
+                      "route_name": "labFilter10",
+                      "call_type": "static_witness",
+                      "proof": {
+                        "method": "none"
+                      }
+                    },
+                    {
+                      "route_name": "labFilter2",
+                      "call_type": "static_witness",
+                      "proof": {
+                        "method": "none"
+                      }
+                    },
+                    {
+                      "route_name": "labFilter3",
+                      "call_type": "static_witness",
+                      "proof": {
+                        "method": "none"
+                      }
+                    },
+                    {
+                      "route_name": "labFilter4",
+                      "call_type": "static_witness",
+                      "proof": {
+                        "method": "none"
+                      }
+                    },
+                    {
+                      "route_name": "labFilter5",
+                      "call_type": "static_witness",
+                      "proof": {
+                        "method": "none"
+                      }
+                    },
+                    {
+                      "route_name": "labFilter6",
+                      "call_type": "static_witness",
+                      "proof": {
+                        "method": "none"
+                      }
+                    },
+                    {
+                      "route_name": "labFilter7",
+                      "call_type": "static_witness",
+                      "proof": {
+                        "method": "none"
+                      }
+                    },
+                    {
+                      "route_name": "labFilter8",
+                      "call_type": "static_witness",
+                      "proof": {
+                        "method": "none"
+                      }
+                    },
+                    {
+                      "route_name": "labFilter9",
+                      "call_type": "static_witness",
+                      "proof": {
+                        "method": "none"
+                      }
+                    },
+                    {
+                      "route_name": "opsManagerDesign",
+                      "call_type": "static_witness",
+                      "proof": {
+                        "method": "none"
+                      }
+                    },
+                    {
+                      "route_name": "privacy",
+                      "call_type": "static_witness",
+                      "proof": {
+                        "method": "none"
+                      }
+                    },
+                    {
+                      "route_name": "products",
+                      "call_type": "static_witness",
+                      "proof": {
+                        "method": "none"
+                      }
+                    },
+                    {
+                      "route_name": "providerDataLoad",
+                      "call_type": "static_witness",
+                      "proof": {
+                        "method": "none"
+                      }
+                    },
+                    {
+                      "route_name": "securityArchitecture",
+                      "call_type": "static_witness",
+                      "proof": {
+                        "method": "none"
+                      }
+                    },
+                    {
+                      "route_name": "terms",
+                      "call_type": "static_witness",
+                      "proof": {
+                        "method": "none"
+                      }
+                    },
+                    {
+                      "route_name": "unsupportedLocal",
+                      "call_type": "static_witness",
+                      "proof": {
+                        "method": "none"
+                      }
+                    }
+                  ],
+                  "pages": [
+                    {
+                      "page_name": "individualProvider",
+                      "subject": "individualProvider",
+                      "description": "The individual-provider page.",
+                      "members": [
+                        "ProviderSearch",
+                        "SpecialtyFilter",
+                        "ProviderDetail",
+                        "ProviderSelection",
+                        "Geo"
+                      ],
+                      "required_members": [
+                        "ProviderSearch"
+                      ],
+                      "completeness": {
+                        "render_timeout_seconds": 30,
+                        "on_timeout": "This page took too long to build. Please try again.",
+                        "on_conflict": "raise",
+                        "on_missing_required": "raise"
+                      }
+                    },
+                    {
+                      "page_name": "facility",
+                      "subject": "facility",
+                      "description": "The facility page.",
+                      "members": [
+                        "FacilitySearch",
+                        "FacilityDetail",
+                        "Geo"
+                      ],
+                      "required_members": [
+                        "FacilitySearch"
+                      ],
+                      "completeness": {
+                        "render_timeout_seconds": 30,
+                        "on_timeout": "This page took too long to build. Please try again.",
+                        "on_conflict": "raise",
+                        "on_missing_required": "raise"
+                      }
+                    },
+                    {
+                      "page_name": "clinicalTrial",
+                      "subject": "clinicalTrial",
+                      "description": "The clinical-trial page.",
+                      "members": [
+                        "ClinicalTrials",
+                        "Geo"
+                      ],
+                      "required_members": [
+                        "ClinicalTrials"
+                      ],
+                      "completeness": {
+                        "render_timeout_seconds": 30,
+                        "on_timeout": "This page took too long to build. Please try again.",
+                        "on_conflict": "raise",
+                        "on_missing_required": "raise"
+                      }
+                    }
+                  ]
+                }
+              ]
             }
           ]
         },
@@ -6585,6 +7225,11 @@
                           "collection_environment_name": "SPECIALTY_META_COLLECTION",
                           "collection_base": "PublicHealthData.SpecialtyMetaData",
                           "version": 4
+                        },
+                        {
+                          "collection_environment_name": "TOOL_REGISTRY_COLLECTION",
+                          "collection_base": "ChatHealthyConfig.ToolRegistry",
+                          "version": 1
                         }
                       ]
                     }
@@ -7082,6 +7727,641 @@
                   "env": "dev"
                 }
               ]
+            },
+            {
+              "address": "ChatHealthyConfig.ToolRegistry_v_1",
+              "identity_key": [
+                "version"
+              ],
+              "records": [
+                {
+                  "version": "1.0",
+                  "tools": [
+                    {
+                      "tool_name": "ProviderSearch",
+                      "tool_type": "tool",
+                      "description": "ProviderSearch on find_care (/provider/find).",
+                      "input": [
+                        {
+                          "name": "state",
+                          "type": "string",
+                          "required": true,
+                          "description": "The two-letter USPS code. Healthcare is regulated per state, so this is not a narrowing: it decides which board licenses"
+                        },
+                        {
+                          "name": "city",
+                          "type": "string",
+                          "required": false,
+                          "description": "Written by its real name, not by the letters the person typed: a stored address is matched letter for letter, so a missp"
+                        },
+                        {
+                          "name": "zip",
+                          "type": "string",
+                          "required": false,
+                          "description": "zip"
+                        },
+                        {
+                          "name": "county",
+                          "type": "string",
+                          "required": false,
+                          "description": "Held with the kind-word appended and it varies by state -- County, Parish, Borough, Municipio. The name alone is what is"
+                        },
+                        {
+                          "name": "complaint",
+                          "type": "string",
+                          "required": false,
+                          "description": "What the person needs care for, in clinical terms rather than the words they used. A named kind of care giver is itself "
+                        },
+                        {
+                          "name": "selectedSpecialtyCodes",
+                          "type": "string_list",
+                          "required": true,
+                          "description": "The NUCC codes in force. A search runs under these and shows what it ran under."
+                        },
+                        {
+                          "name": "providerName",
+                          "type": "provider_name",
+                          "required": false,
+                          "description": "providerName"
+                        },
+                        {
+                          "name": "providerSex",
+                          "type": "sex_code",
+                          "required": false,
+                          "description": "providerSex"
+                        },
+                        {
+                          "name": "soleProprietor",
+                          "type": "boolean",
+                          "required": false,
+                          "description": "soleProprietor"
+                        },
+                        {
+                          "name": "insurance",
+                          "type": "string",
+                          "required": false,
+                          "description": "A payer identifier the care giver carries. It is not a statement that they accept that insurance."
+                        },
+                        {
+                          "name": "npi",
+                          "type": "string",
+                          "required": false,
+                          "description": "One record, named. The only thing a detail needs: everything it shows is read from the record this names, so what it sho"
+                        },
+                        {
+                          "name": "position",
+                          "type": "position",
+                          "required": false,
+                          "description": "Where in a list the person is. Held as the first and last key on screen, which is what both directions of paging need."
+                        }
+                      ],
+                      "output": [],
+                      "subscriptions": [],
+                      "may_call": []
+                    },
+                    {
+                      "tool_name": "ProviderDetail",
+                      "tool_type": "tool",
+                      "description": "ProviderDetail on find_care (/provider-detail).",
+                      "input": [
+                        {
+                          "name": "npi",
+                          "type": "string",
+                          "required": true,
+                          "description": "One record, named. The only thing a detail needs: everything it shows is read from the record this names, so what it sho"
+                        }
+                      ],
+                      "output": [],
+                      "subscriptions": [],
+                      "may_call": []
+                    },
+                    {
+                      "tool_name": "FacilitySearch",
+                      "tool_type": "tool",
+                      "description": "FacilitySearch on find_care (/facility/find).",
+                      "input": [
+                        {
+                          "name": "state",
+                          "type": "string",
+                          "required": true,
+                          "description": "The two-letter USPS code. Healthcare is regulated per state, so this is not a narrowing: it decides which board licenses"
+                        },
+                        {
+                          "name": "city",
+                          "type": "string",
+                          "required": false,
+                          "description": "Written by its real name, not by the letters the person typed: a stored address is matched letter for letter, so a missp"
+                        },
+                        {
+                          "name": "zip",
+                          "type": "string",
+                          "required": false,
+                          "description": "zip"
+                        },
+                        {
+                          "name": "county",
+                          "type": "string",
+                          "required": false,
+                          "description": "Held with the kind-word appended and it varies by state -- County, Parish, Borough, Municipio. The name alone is what is"
+                        },
+                        {
+                          "name": "npi",
+                          "type": "string",
+                          "required": false,
+                          "description": "One record, named. The only thing a detail needs: everything it shows is read from the record this names, so what it sho"
+                        },
+                        {
+                          "name": "position",
+                          "type": "position",
+                          "required": false,
+                          "description": "Where in a list the person is. Held as the first and last key on screen, which is what both directions of paging need."
+                        },
+                        {
+                          "name": "facilityName",
+                          "type": "string",
+                          "required": false,
+                          "description": "facilityName"
+                        },
+                        {
+                          "name": "facilityType",
+                          "type": "string",
+                          "required": false,
+                          "description": "The kind of place, in the person's own words. Resolved to taxonomy codes by the tool, not by the person."
+                        },
+                        {
+                          "name": "offeredFacilityTypes",
+                          "type": "specialties",
+                          "required": false,
+                          "description": "offeredFacilityTypes"
+                        },
+                        {
+                          "name": "selectedTaxonomyCodes",
+                          "type": "string_list",
+                          "required": true,
+                          "description": "selectedTaxonomyCodes"
+                        },
+                        {
+                          "name": "administratorName",
+                          "type": "provider_name",
+                          "required": false,
+                          "description": "The person who administers the organization."
+                        }
+                      ],
+                      "output": [],
+                      "subscriptions": [],
+                      "may_call": []
+                    },
+                    {
+                      "tool_name": "FacilityDetail",
+                      "tool_type": "tool",
+                      "description": "FacilityDetail on find_care (/provider-detail).",
+                      "input": [
+                        {
+                          "name": "npi",
+                          "type": "string",
+                          "required": true,
+                          "description": "One record, named. The only thing a detail needs: everything it shows is read from the record this names, so what it sho"
+                        }
+                      ],
+                      "output": [],
+                      "subscriptions": [],
+                      "may_call": []
+                    },
+                    {
+                      "tool_name": "SpecialtyFilter",
+                      "tool_type": "tool",
+                      "description": "SpecialtyFilter on find_care (/specialty/find).",
+                      "input": [
+                        {
+                          "name": "complaint",
+                          "type": "string",
+                          "required": true,
+                          "description": "What the person needs care for, in clinical terms rather than the words they used. A named kind of care giver is itself "
+                        },
+                        {
+                          "name": "offeredSpecialties",
+                          "type": "specialties",
+                          "required": false,
+                          "description": "The kinds of care giver the complaint resolved to. Offered, not chosen."
+                        },
+                        {
+                          "name": "selectedSpecialtyCodes",
+                          "type": "string_list",
+                          "required": false,
+                          "description": "The NUCC codes in force. A search runs under these and shows what it ran under."
+                        }
+                      ],
+                      "output": [],
+                      "subscriptions": [],
+                      "may_call": []
+                    },
+                    {
+                      "tool_name": "ClinicalTrials",
+                      "tool_type": "tool",
+                      "description": "ClinicalTrials on find_care (/trial/find).",
+                      "input": [
+                        {
+                          "name": "state",
+                          "type": "string",
+                          "required": false,
+                          "description": "The two-letter USPS code. Healthcare is regulated per state, so this is not a narrowing: it decides which board licenses"
+                        },
+                        {
+                          "name": "city",
+                          "type": "string",
+                          "required": false,
+                          "description": "Written by its real name, not by the letters the person typed: a stored address is matched letter for letter, so a missp"
+                        },
+                        {
+                          "name": "zip",
+                          "type": "string",
+                          "required": false,
+                          "description": "zip"
+                        },
+                        {
+                          "name": "position",
+                          "type": "position",
+                          "required": false,
+                          "description": "Where in a list the person is. Held as the first and last key on screen, which is what both directions of paging need."
+                        },
+                        {
+                          "name": "condition",
+                          "type": "string",
+                          "required": true,
+                          "description": "The condition trials are sought for. A symptom is expanded to the conditions it commonly names, because a symptom string"
+                        },
+                        {
+                          "name": "ageYears",
+                          "type": "integer",
+                          "required": false,
+                          "description": "ageYears"
+                        },
+                        {
+                          "name": "sex",
+                          "type": "string",
+                          "required": false,
+                          "description": "The subject's sex, as the registry records eligibility. Distinct from providerSex, which is a preference about the care "
+                        },
+                        {
+                          "name": "unitedStatesOnly",
+                          "type": "boolean",
+                          "required": false,
+                          "description": "Absent means every trial worldwide, which is the widest answer and the one to give somebody who did not say. It is never"
+                        },
+                        {
+                          "name": "openNctId",
+                          "type": "string",
+                          "required": false,
+                          "description": "The trial whose detail is on screen. The trial analogue of npi."
+                        }
+                      ],
+                      "output": [],
+                      "subscriptions": [],
+                      "may_call": []
+                    },
+                    {
+                      "tool_name": "ProviderSelection",
+                      "tool_type": "tool",
+                      "description": "ProviderSelection on shared_services (provider_selection).",
+                      "input": [
+                        {
+                          "name": "selectedSpecialtyCodes",
+                          "type": "string_list",
+                          "required": false,
+                          "description": "The NUCC codes in force. A search runs under these and shows what it ran under."
+                        },
+                        {
+                          "name": "selectedNpis",
+                          "type": "string_list",
+                          "required": true,
+                          "description": "The set the person curated for evaluation."
+                        }
+                      ],
+                      "output": [],
+                      "subscriptions": [],
+                      "may_call": []
+                    },
+                    {
+                      "tool_name": "Gate",
+                      "tool_type": "pseudo_tool",
+                      "description": "Transport facade: collects token/head/params, streams back, verifies nothing, owns no route.",
+                      "input": [],
+                      "output": [],
+                      "subscriptions": [],
+                      "may_call": []
+                    },
+                    {
+                      "tool_name": "UniversalNavigator",
+                      "tool_type": "tool",
+                      "description": "The main. Triages every incoming call by proof, determines the page, drives dispatch, owns the render ledger and serial merge. NOT_UTTERANCE_ROUTABLE.",
+                      "input": [],
+                      "output": [],
+                      "subscriptions": [],
+                      "may_call": []
+                    },
+                    {
+                      "tool_name": "UtteranceManager",
+                      "tool_type": "tool",
+                      "description": "Classify-only: preamble + registry fragments, one model call, returns the dispatch set.",
+                      "input": [],
+                      "output": [],
+                      "subscriptions": [],
+                      "may_call": []
+                    },
+                    {
+                      "tool_name": "Prose",
+                      "tool_type": "tool",
+                      "description": "Authors the user-facing sentence from the facts the navigator hands it.",
+                      "input": [],
+                      "output": [],
+                      "subscriptions": [],
+                      "may_call": []
+                    },
+                    {
+                      "tool_name": "Geo",
+                      "tool_type": "tool",
+                      "description": "Resolves geography from the utterance (state/city/zip/county/position) and the city-without-state disambiguation. No display until maps are built; a parallel dependency of the search alongside SpecialtyFilter.",
+                      "input": [
+                        {
+                          "name": "utterance",
+                          "type": "string",
+                          "required": true,
+                          "description": "free text the location is extracted from"
+                        }
+                      ],
+                      "output": [
+                        {
+                          "name": "state",
+                          "type": "string",
+                          "required": false,
+                          "description": "state"
+                        },
+                        {
+                          "name": "city",
+                          "type": "string",
+                          "required": false,
+                          "description": "city"
+                        },
+                        {
+                          "name": "zip",
+                          "type": "string",
+                          "required": false,
+                          "description": "zip"
+                        },
+                        {
+                          "name": "county",
+                          "type": "string",
+                          "required": false,
+                          "description": "county"
+                        },
+                        {
+                          "name": "position",
+                          "type": "string",
+                          "required": false,
+                          "description": "position"
+                        }
+                      ],
+                      "subscriptions": [],
+                      "may_call": []
+                    }
+                  ],
+                  "routes": [
+                    {
+                      "route_name": "clientGate",
+                      "call_type": "client_sessioned",
+                      "proof": {
+                        "method": "session_token"
+                      },
+                      "timeout_facts": {
+                        "render_timeout_seconds": 30
+                      }
+                    },
+                    {
+                      "route_name": "toolCompletion",
+                      "call_type": "internal_callback",
+                      "proof": {
+                        "method": "our_signature",
+                        "signing_key_name": "internal-callback-signing-key"
+                      }
+                    },
+                    {
+                      "route_name": "oauthCallback",
+                      "call_type": "third_party_callback",
+                      "proof": {
+                        "method": "api_key",
+                        "credential_name": "oauth-idp-client-secret"
+                      }
+                    },
+                    {
+                      "route_name": "architecture",
+                      "call_type": "static_witness",
+                      "proof": {
+                        "method": "none"
+                      }
+                    },
+                    {
+                      "route_name": "bootstrapError",
+                      "call_type": "static_witness",
+                      "proof": {
+                        "method": "none"
+                      }
+                    },
+                    {
+                      "route_name": "chatAppDesign",
+                      "call_type": "static_witness",
+                      "proof": {
+                        "method": "none"
+                      }
+                    },
+                    {
+                      "route_name": "embeddingDesign",
+                      "call_type": "static_witness",
+                      "proof": {
+                        "method": "none"
+                      }
+                    },
+                    {
+                      "route_name": "labFilter1",
+                      "call_type": "static_witness",
+                      "proof": {
+                        "method": "none"
+                      }
+                    },
+                    {
+                      "route_name": "labFilter10",
+                      "call_type": "static_witness",
+                      "proof": {
+                        "method": "none"
+                      }
+                    },
+                    {
+                      "route_name": "labFilter2",
+                      "call_type": "static_witness",
+                      "proof": {
+                        "method": "none"
+                      }
+                    },
+                    {
+                      "route_name": "labFilter3",
+                      "call_type": "static_witness",
+                      "proof": {
+                        "method": "none"
+                      }
+                    },
+                    {
+                      "route_name": "labFilter4",
+                      "call_type": "static_witness",
+                      "proof": {
+                        "method": "none"
+                      }
+                    },
+                    {
+                      "route_name": "labFilter5",
+                      "call_type": "static_witness",
+                      "proof": {
+                        "method": "none"
+                      }
+                    },
+                    {
+                      "route_name": "labFilter6",
+                      "call_type": "static_witness",
+                      "proof": {
+                        "method": "none"
+                      }
+                    },
+                    {
+                      "route_name": "labFilter7",
+                      "call_type": "static_witness",
+                      "proof": {
+                        "method": "none"
+                      }
+                    },
+                    {
+                      "route_name": "labFilter8",
+                      "call_type": "static_witness",
+                      "proof": {
+                        "method": "none"
+                      }
+                    },
+                    {
+                      "route_name": "labFilter9",
+                      "call_type": "static_witness",
+                      "proof": {
+                        "method": "none"
+                      }
+                    },
+                    {
+                      "route_name": "opsManagerDesign",
+                      "call_type": "static_witness",
+                      "proof": {
+                        "method": "none"
+                      }
+                    },
+                    {
+                      "route_name": "privacy",
+                      "call_type": "static_witness",
+                      "proof": {
+                        "method": "none"
+                      }
+                    },
+                    {
+                      "route_name": "products",
+                      "call_type": "static_witness",
+                      "proof": {
+                        "method": "none"
+                      }
+                    },
+                    {
+                      "route_name": "providerDataLoad",
+                      "call_type": "static_witness",
+                      "proof": {
+                        "method": "none"
+                      }
+                    },
+                    {
+                      "route_name": "securityArchitecture",
+                      "call_type": "static_witness",
+                      "proof": {
+                        "method": "none"
+                      }
+                    },
+                    {
+                      "route_name": "terms",
+                      "call_type": "static_witness",
+                      "proof": {
+                        "method": "none"
+                      }
+                    },
+                    {
+                      "route_name": "unsupportedLocal",
+                      "call_type": "static_witness",
+                      "proof": {
+                        "method": "none"
+                      }
+                    }
+                  ],
+                  "pages": [
+                    {
+                      "page_name": "individualProvider",
+                      "subject": "individualProvider",
+                      "description": "The individual-provider page.",
+                      "members": [
+                        "ProviderSearch",
+                        "SpecialtyFilter",
+                        "ProviderDetail",
+                        "ProviderSelection",
+                        "Geo"
+                      ],
+                      "required_members": [
+                        "ProviderSearch"
+                      ],
+                      "completeness": {
+                        "render_timeout_seconds": 30,
+                        "on_timeout": "This page took too long to build. Please try again.",
+                        "on_conflict": "raise",
+                        "on_missing_required": "raise"
+                      }
+                    },
+                    {
+                      "page_name": "facility",
+                      "subject": "facility",
+                      "description": "The facility page.",
+                      "members": [
+                        "FacilitySearch",
+                        "FacilityDetail",
+                        "Geo"
+                      ],
+                      "required_members": [
+                        "FacilitySearch"
+                      ],
+                      "completeness": {
+                        "render_timeout_seconds": 30,
+                        "on_timeout": "This page took too long to build. Please try again.",
+                        "on_conflict": "raise",
+                        "on_missing_required": "raise"
+                      }
+                    },
+                    {
+                      "page_name": "clinicalTrial",
+                      "subject": "clinicalTrial",
+                      "description": "The clinical-trial page.",
+                      "members": [
+                        "ClinicalTrials",
+                        "Geo"
+                      ],
+                      "required_members": [
+                        "ClinicalTrials"
+                      ],
+                      "completeness": {
+                        "render_timeout_seconds": 30,
+                        "on_timeout": "This page took too long to build. Please try again.",
+                        "on_conflict": "raise",
+                        "on_missing_required": "raise"
+                      }
+                    }
+                  ]
+                }
+              ]
             }
           ]
         },
@@ -7160,6 +8440,11 @@
                           "collection_environment_name": "SPECIALTY_META_COLLECTION",
                           "collection_base": "PublicHealthData.SpecialtyMetaData",
                           "version": 4
+                        },
+                        {
+                          "collection_environment_name": "TOOL_REGISTRY_COLLECTION",
+                          "collection_base": "ChatHealthyConfig.ToolRegistry",
+                          "version": 1
                         }
                       ]
                     }
@@ -7657,6 +8942,641 @@
                   "env": "qa"
                 }
               ]
+            },
+            {
+              "address": "ChatHealthyConfig.ToolRegistry_v_1",
+              "identity_key": [
+                "version"
+              ],
+              "records": [
+                {
+                  "version": "1.0",
+                  "tools": [
+                    {
+                      "tool_name": "ProviderSearch",
+                      "tool_type": "tool",
+                      "description": "ProviderSearch on find_care (/provider/find).",
+                      "input": [
+                        {
+                          "name": "state",
+                          "type": "string",
+                          "required": true,
+                          "description": "The two-letter USPS code. Healthcare is regulated per state, so this is not a narrowing: it decides which board licenses"
+                        },
+                        {
+                          "name": "city",
+                          "type": "string",
+                          "required": false,
+                          "description": "Written by its real name, not by the letters the person typed: a stored address is matched letter for letter, so a missp"
+                        },
+                        {
+                          "name": "zip",
+                          "type": "string",
+                          "required": false,
+                          "description": "zip"
+                        },
+                        {
+                          "name": "county",
+                          "type": "string",
+                          "required": false,
+                          "description": "Held with the kind-word appended and it varies by state -- County, Parish, Borough, Municipio. The name alone is what is"
+                        },
+                        {
+                          "name": "complaint",
+                          "type": "string",
+                          "required": false,
+                          "description": "What the person needs care for, in clinical terms rather than the words they used. A named kind of care giver is itself "
+                        },
+                        {
+                          "name": "selectedSpecialtyCodes",
+                          "type": "string_list",
+                          "required": true,
+                          "description": "The NUCC codes in force. A search runs under these and shows what it ran under."
+                        },
+                        {
+                          "name": "providerName",
+                          "type": "provider_name",
+                          "required": false,
+                          "description": "providerName"
+                        },
+                        {
+                          "name": "providerSex",
+                          "type": "sex_code",
+                          "required": false,
+                          "description": "providerSex"
+                        },
+                        {
+                          "name": "soleProprietor",
+                          "type": "boolean",
+                          "required": false,
+                          "description": "soleProprietor"
+                        },
+                        {
+                          "name": "insurance",
+                          "type": "string",
+                          "required": false,
+                          "description": "A payer identifier the care giver carries. It is not a statement that they accept that insurance."
+                        },
+                        {
+                          "name": "npi",
+                          "type": "string",
+                          "required": false,
+                          "description": "One record, named. The only thing a detail needs: everything it shows is read from the record this names, so what it sho"
+                        },
+                        {
+                          "name": "position",
+                          "type": "position",
+                          "required": false,
+                          "description": "Where in a list the person is. Held as the first and last key on screen, which is what both directions of paging need."
+                        }
+                      ],
+                      "output": [],
+                      "subscriptions": [],
+                      "may_call": []
+                    },
+                    {
+                      "tool_name": "ProviderDetail",
+                      "tool_type": "tool",
+                      "description": "ProviderDetail on find_care (/provider-detail).",
+                      "input": [
+                        {
+                          "name": "npi",
+                          "type": "string",
+                          "required": true,
+                          "description": "One record, named. The only thing a detail needs: everything it shows is read from the record this names, so what it sho"
+                        }
+                      ],
+                      "output": [],
+                      "subscriptions": [],
+                      "may_call": []
+                    },
+                    {
+                      "tool_name": "FacilitySearch",
+                      "tool_type": "tool",
+                      "description": "FacilitySearch on find_care (/facility/find).",
+                      "input": [
+                        {
+                          "name": "state",
+                          "type": "string",
+                          "required": true,
+                          "description": "The two-letter USPS code. Healthcare is regulated per state, so this is not a narrowing: it decides which board licenses"
+                        },
+                        {
+                          "name": "city",
+                          "type": "string",
+                          "required": false,
+                          "description": "Written by its real name, not by the letters the person typed: a stored address is matched letter for letter, so a missp"
+                        },
+                        {
+                          "name": "zip",
+                          "type": "string",
+                          "required": false,
+                          "description": "zip"
+                        },
+                        {
+                          "name": "county",
+                          "type": "string",
+                          "required": false,
+                          "description": "Held with the kind-word appended and it varies by state -- County, Parish, Borough, Municipio. The name alone is what is"
+                        },
+                        {
+                          "name": "npi",
+                          "type": "string",
+                          "required": false,
+                          "description": "One record, named. The only thing a detail needs: everything it shows is read from the record this names, so what it sho"
+                        },
+                        {
+                          "name": "position",
+                          "type": "position",
+                          "required": false,
+                          "description": "Where in a list the person is. Held as the first and last key on screen, which is what both directions of paging need."
+                        },
+                        {
+                          "name": "facilityName",
+                          "type": "string",
+                          "required": false,
+                          "description": "facilityName"
+                        },
+                        {
+                          "name": "facilityType",
+                          "type": "string",
+                          "required": false,
+                          "description": "The kind of place, in the person's own words. Resolved to taxonomy codes by the tool, not by the person."
+                        },
+                        {
+                          "name": "offeredFacilityTypes",
+                          "type": "specialties",
+                          "required": false,
+                          "description": "offeredFacilityTypes"
+                        },
+                        {
+                          "name": "selectedTaxonomyCodes",
+                          "type": "string_list",
+                          "required": true,
+                          "description": "selectedTaxonomyCodes"
+                        },
+                        {
+                          "name": "administratorName",
+                          "type": "provider_name",
+                          "required": false,
+                          "description": "The person who administers the organization."
+                        }
+                      ],
+                      "output": [],
+                      "subscriptions": [],
+                      "may_call": []
+                    },
+                    {
+                      "tool_name": "FacilityDetail",
+                      "tool_type": "tool",
+                      "description": "FacilityDetail on find_care (/provider-detail).",
+                      "input": [
+                        {
+                          "name": "npi",
+                          "type": "string",
+                          "required": true,
+                          "description": "One record, named. The only thing a detail needs: everything it shows is read from the record this names, so what it sho"
+                        }
+                      ],
+                      "output": [],
+                      "subscriptions": [],
+                      "may_call": []
+                    },
+                    {
+                      "tool_name": "SpecialtyFilter",
+                      "tool_type": "tool",
+                      "description": "SpecialtyFilter on find_care (/specialty/find).",
+                      "input": [
+                        {
+                          "name": "complaint",
+                          "type": "string",
+                          "required": true,
+                          "description": "What the person needs care for, in clinical terms rather than the words they used. A named kind of care giver is itself "
+                        },
+                        {
+                          "name": "offeredSpecialties",
+                          "type": "specialties",
+                          "required": false,
+                          "description": "The kinds of care giver the complaint resolved to. Offered, not chosen."
+                        },
+                        {
+                          "name": "selectedSpecialtyCodes",
+                          "type": "string_list",
+                          "required": false,
+                          "description": "The NUCC codes in force. A search runs under these and shows what it ran under."
+                        }
+                      ],
+                      "output": [],
+                      "subscriptions": [],
+                      "may_call": []
+                    },
+                    {
+                      "tool_name": "ClinicalTrials",
+                      "tool_type": "tool",
+                      "description": "ClinicalTrials on find_care (/trial/find).",
+                      "input": [
+                        {
+                          "name": "state",
+                          "type": "string",
+                          "required": false,
+                          "description": "The two-letter USPS code. Healthcare is regulated per state, so this is not a narrowing: it decides which board licenses"
+                        },
+                        {
+                          "name": "city",
+                          "type": "string",
+                          "required": false,
+                          "description": "Written by its real name, not by the letters the person typed: a stored address is matched letter for letter, so a missp"
+                        },
+                        {
+                          "name": "zip",
+                          "type": "string",
+                          "required": false,
+                          "description": "zip"
+                        },
+                        {
+                          "name": "position",
+                          "type": "position",
+                          "required": false,
+                          "description": "Where in a list the person is. Held as the first and last key on screen, which is what both directions of paging need."
+                        },
+                        {
+                          "name": "condition",
+                          "type": "string",
+                          "required": true,
+                          "description": "The condition trials are sought for. A symptom is expanded to the conditions it commonly names, because a symptom string"
+                        },
+                        {
+                          "name": "ageYears",
+                          "type": "integer",
+                          "required": false,
+                          "description": "ageYears"
+                        },
+                        {
+                          "name": "sex",
+                          "type": "string",
+                          "required": false,
+                          "description": "The subject's sex, as the registry records eligibility. Distinct from providerSex, which is a preference about the care "
+                        },
+                        {
+                          "name": "unitedStatesOnly",
+                          "type": "boolean",
+                          "required": false,
+                          "description": "Absent means every trial worldwide, which is the widest answer and the one to give somebody who did not say. It is never"
+                        },
+                        {
+                          "name": "openNctId",
+                          "type": "string",
+                          "required": false,
+                          "description": "The trial whose detail is on screen. The trial analogue of npi."
+                        }
+                      ],
+                      "output": [],
+                      "subscriptions": [],
+                      "may_call": []
+                    },
+                    {
+                      "tool_name": "ProviderSelection",
+                      "tool_type": "tool",
+                      "description": "ProviderSelection on shared_services (provider_selection).",
+                      "input": [
+                        {
+                          "name": "selectedSpecialtyCodes",
+                          "type": "string_list",
+                          "required": false,
+                          "description": "The NUCC codes in force. A search runs under these and shows what it ran under."
+                        },
+                        {
+                          "name": "selectedNpis",
+                          "type": "string_list",
+                          "required": true,
+                          "description": "The set the person curated for evaluation."
+                        }
+                      ],
+                      "output": [],
+                      "subscriptions": [],
+                      "may_call": []
+                    },
+                    {
+                      "tool_name": "Gate",
+                      "tool_type": "pseudo_tool",
+                      "description": "Transport facade: collects token/head/params, streams back, verifies nothing, owns no route.",
+                      "input": [],
+                      "output": [],
+                      "subscriptions": [],
+                      "may_call": []
+                    },
+                    {
+                      "tool_name": "UniversalNavigator",
+                      "tool_type": "tool",
+                      "description": "The main. Triages every incoming call by proof, determines the page, drives dispatch, owns the render ledger and serial merge. NOT_UTTERANCE_ROUTABLE.",
+                      "input": [],
+                      "output": [],
+                      "subscriptions": [],
+                      "may_call": []
+                    },
+                    {
+                      "tool_name": "UtteranceManager",
+                      "tool_type": "tool",
+                      "description": "Classify-only: preamble + registry fragments, one model call, returns the dispatch set.",
+                      "input": [],
+                      "output": [],
+                      "subscriptions": [],
+                      "may_call": []
+                    },
+                    {
+                      "tool_name": "Prose",
+                      "tool_type": "tool",
+                      "description": "Authors the user-facing sentence from the facts the navigator hands it.",
+                      "input": [],
+                      "output": [],
+                      "subscriptions": [],
+                      "may_call": []
+                    },
+                    {
+                      "tool_name": "Geo",
+                      "tool_type": "tool",
+                      "description": "Resolves geography from the utterance (state/city/zip/county/position) and the city-without-state disambiguation. No display until maps are built; a parallel dependency of the search alongside SpecialtyFilter.",
+                      "input": [
+                        {
+                          "name": "utterance",
+                          "type": "string",
+                          "required": true,
+                          "description": "free text the location is extracted from"
+                        }
+                      ],
+                      "output": [
+                        {
+                          "name": "state",
+                          "type": "string",
+                          "required": false,
+                          "description": "state"
+                        },
+                        {
+                          "name": "city",
+                          "type": "string",
+                          "required": false,
+                          "description": "city"
+                        },
+                        {
+                          "name": "zip",
+                          "type": "string",
+                          "required": false,
+                          "description": "zip"
+                        },
+                        {
+                          "name": "county",
+                          "type": "string",
+                          "required": false,
+                          "description": "county"
+                        },
+                        {
+                          "name": "position",
+                          "type": "string",
+                          "required": false,
+                          "description": "position"
+                        }
+                      ],
+                      "subscriptions": [],
+                      "may_call": []
+                    }
+                  ],
+                  "routes": [
+                    {
+                      "route_name": "clientGate",
+                      "call_type": "client_sessioned",
+                      "proof": {
+                        "method": "session_token"
+                      },
+                      "timeout_facts": {
+                        "render_timeout_seconds": 30
+                      }
+                    },
+                    {
+                      "route_name": "toolCompletion",
+                      "call_type": "internal_callback",
+                      "proof": {
+                        "method": "our_signature",
+                        "signing_key_name": "internal-callback-signing-key"
+                      }
+                    },
+                    {
+                      "route_name": "oauthCallback",
+                      "call_type": "third_party_callback",
+                      "proof": {
+                        "method": "api_key",
+                        "credential_name": "oauth-idp-client-secret"
+                      }
+                    },
+                    {
+                      "route_name": "architecture",
+                      "call_type": "static_witness",
+                      "proof": {
+                        "method": "none"
+                      }
+                    },
+                    {
+                      "route_name": "bootstrapError",
+                      "call_type": "static_witness",
+                      "proof": {
+                        "method": "none"
+                      }
+                    },
+                    {
+                      "route_name": "chatAppDesign",
+                      "call_type": "static_witness",
+                      "proof": {
+                        "method": "none"
+                      }
+                    },
+                    {
+                      "route_name": "embeddingDesign",
+                      "call_type": "static_witness",
+                      "proof": {
+                        "method": "none"
+                      }
+                    },
+                    {
+                      "route_name": "labFilter1",
+                      "call_type": "static_witness",
+                      "proof": {
+                        "method": "none"
+                      }
+                    },
+                    {
+                      "route_name": "labFilter10",
+                      "call_type": "static_witness",
+                      "proof": {
+                        "method": "none"
+                      }
+                    },
+                    {
+                      "route_name": "labFilter2",
+                      "call_type": "static_witness",
+                      "proof": {
+                        "method": "none"
+                      }
+                    },
+                    {
+                      "route_name": "labFilter3",
+                      "call_type": "static_witness",
+                      "proof": {
+                        "method": "none"
+                      }
+                    },
+                    {
+                      "route_name": "labFilter4",
+                      "call_type": "static_witness",
+                      "proof": {
+                        "method": "none"
+                      }
+                    },
+                    {
+                      "route_name": "labFilter5",
+                      "call_type": "static_witness",
+                      "proof": {
+                        "method": "none"
+                      }
+                    },
+                    {
+                      "route_name": "labFilter6",
+                      "call_type": "static_witness",
+                      "proof": {
+                        "method": "none"
+                      }
+                    },
+                    {
+                      "route_name": "labFilter7",
+                      "call_type": "static_witness",
+                      "proof": {
+                        "method": "none"
+                      }
+                    },
+                    {
+                      "route_name": "labFilter8",
+                      "call_type": "static_witness",
+                      "proof": {
+                        "method": "none"
+                      }
+                    },
+                    {
+                      "route_name": "labFilter9",
+                      "call_type": "static_witness",
+                      "proof": {
+                        "method": "none"
+                      }
+                    },
+                    {
+                      "route_name": "opsManagerDesign",
+                      "call_type": "static_witness",
+                      "proof": {
+                        "method": "none"
+                      }
+                    },
+                    {
+                      "route_name": "privacy",
+                      "call_type": "static_witness",
+                      "proof": {
+                        "method": "none"
+                      }
+                    },
+                    {
+                      "route_name": "products",
+                      "call_type": "static_witness",
+                      "proof": {
+                        "method": "none"
+                      }
+                    },
+                    {
+                      "route_name": "providerDataLoad",
+                      "call_type": "static_witness",
+                      "proof": {
+                        "method": "none"
+                      }
+                    },
+                    {
+                      "route_name": "securityArchitecture",
+                      "call_type": "static_witness",
+                      "proof": {
+                        "method": "none"
+                      }
+                    },
+                    {
+                      "route_name": "terms",
+                      "call_type": "static_witness",
+                      "proof": {
+                        "method": "none"
+                      }
+                    },
+                    {
+                      "route_name": "unsupportedLocal",
+                      "call_type": "static_witness",
+                      "proof": {
+                        "method": "none"
+                      }
+                    }
+                  ],
+                  "pages": [
+                    {
+                      "page_name": "individualProvider",
+                      "subject": "individualProvider",
+                      "description": "The individual-provider page.",
+                      "members": [
+                        "ProviderSearch",
+                        "SpecialtyFilter",
+                        "ProviderDetail",
+                        "ProviderSelection",
+                        "Geo"
+                      ],
+                      "required_members": [
+                        "ProviderSearch"
+                      ],
+                      "completeness": {
+                        "render_timeout_seconds": 30,
+                        "on_timeout": "This page took too long to build. Please try again.",
+                        "on_conflict": "raise",
+                        "on_missing_required": "raise"
+                      }
+                    },
+                    {
+                      "page_name": "facility",
+                      "subject": "facility",
+                      "description": "The facility page.",
+                      "members": [
+                        "FacilitySearch",
+                        "FacilityDetail",
+                        "Geo"
+                      ],
+                      "required_members": [
+                        "FacilitySearch"
+                      ],
+                      "completeness": {
+                        "render_timeout_seconds": 30,
+                        "on_timeout": "This page took too long to build. Please try again.",
+                        "on_conflict": "raise",
+                        "on_missing_required": "raise"
+                      }
+                    },
+                    {
+                      "page_name": "clinicalTrial",
+                      "subject": "clinicalTrial",
+                      "description": "The clinical-trial page.",
+                      "members": [
+                        "ClinicalTrials",
+                        "Geo"
+                      ],
+                      "required_members": [
+                        "ClinicalTrials"
+                      ],
+                      "completeness": {
+                        "render_timeout_seconds": 30,
+                        "on_timeout": "This page took too long to build. Please try again.",
+                        "on_conflict": "raise",
+                        "on_missing_required": "raise"
+                      }
+                    }
+                  ]
+                }
+              ]
             }
           ]
         },
@@ -7735,6 +9655,11 @@
                           "collection_environment_name": "SPECIALTY_META_COLLECTION",
                           "collection_base": "PublicHealthData.SpecialtyMetaData",
                           "version": 4
+                        },
+                        {
+                          "collection_environment_name": "TOOL_REGISTRY_COLLECTION",
+                          "collection_base": "ChatHealthyConfig.ToolRegistry",
+                          "version": 1
                         }
                       ]
                     }
@@ -8230,6 +10155,641 @@
                     }
                   ],
                   "env": "prod"
+                }
+              ]
+            },
+            {
+              "address": "ChatHealthyConfig.ToolRegistry_v_1",
+              "identity_key": [
+                "version"
+              ],
+              "records": [
+                {
+                  "version": "1.0",
+                  "tools": [
+                    {
+                      "tool_name": "ProviderSearch",
+                      "tool_type": "tool",
+                      "description": "ProviderSearch on find_care (/provider/find).",
+                      "input": [
+                        {
+                          "name": "state",
+                          "type": "string",
+                          "required": true,
+                          "description": "The two-letter USPS code. Healthcare is regulated per state, so this is not a narrowing: it decides which board licenses"
+                        },
+                        {
+                          "name": "city",
+                          "type": "string",
+                          "required": false,
+                          "description": "Written by its real name, not by the letters the person typed: a stored address is matched letter for letter, so a missp"
+                        },
+                        {
+                          "name": "zip",
+                          "type": "string",
+                          "required": false,
+                          "description": "zip"
+                        },
+                        {
+                          "name": "county",
+                          "type": "string",
+                          "required": false,
+                          "description": "Held with the kind-word appended and it varies by state -- County, Parish, Borough, Municipio. The name alone is what is"
+                        },
+                        {
+                          "name": "complaint",
+                          "type": "string",
+                          "required": false,
+                          "description": "What the person needs care for, in clinical terms rather than the words they used. A named kind of care giver is itself "
+                        },
+                        {
+                          "name": "selectedSpecialtyCodes",
+                          "type": "string_list",
+                          "required": true,
+                          "description": "The NUCC codes in force. A search runs under these and shows what it ran under."
+                        },
+                        {
+                          "name": "providerName",
+                          "type": "provider_name",
+                          "required": false,
+                          "description": "providerName"
+                        },
+                        {
+                          "name": "providerSex",
+                          "type": "sex_code",
+                          "required": false,
+                          "description": "providerSex"
+                        },
+                        {
+                          "name": "soleProprietor",
+                          "type": "boolean",
+                          "required": false,
+                          "description": "soleProprietor"
+                        },
+                        {
+                          "name": "insurance",
+                          "type": "string",
+                          "required": false,
+                          "description": "A payer identifier the care giver carries. It is not a statement that they accept that insurance."
+                        },
+                        {
+                          "name": "npi",
+                          "type": "string",
+                          "required": false,
+                          "description": "One record, named. The only thing a detail needs: everything it shows is read from the record this names, so what it sho"
+                        },
+                        {
+                          "name": "position",
+                          "type": "position",
+                          "required": false,
+                          "description": "Where in a list the person is. Held as the first and last key on screen, which is what both directions of paging need."
+                        }
+                      ],
+                      "output": [],
+                      "subscriptions": [],
+                      "may_call": []
+                    },
+                    {
+                      "tool_name": "ProviderDetail",
+                      "tool_type": "tool",
+                      "description": "ProviderDetail on find_care (/provider-detail).",
+                      "input": [
+                        {
+                          "name": "npi",
+                          "type": "string",
+                          "required": true,
+                          "description": "One record, named. The only thing a detail needs: everything it shows is read from the record this names, so what it sho"
+                        }
+                      ],
+                      "output": [],
+                      "subscriptions": [],
+                      "may_call": []
+                    },
+                    {
+                      "tool_name": "FacilitySearch",
+                      "tool_type": "tool",
+                      "description": "FacilitySearch on find_care (/facility/find).",
+                      "input": [
+                        {
+                          "name": "state",
+                          "type": "string",
+                          "required": true,
+                          "description": "The two-letter USPS code. Healthcare is regulated per state, so this is not a narrowing: it decides which board licenses"
+                        },
+                        {
+                          "name": "city",
+                          "type": "string",
+                          "required": false,
+                          "description": "Written by its real name, not by the letters the person typed: a stored address is matched letter for letter, so a missp"
+                        },
+                        {
+                          "name": "zip",
+                          "type": "string",
+                          "required": false,
+                          "description": "zip"
+                        },
+                        {
+                          "name": "county",
+                          "type": "string",
+                          "required": false,
+                          "description": "Held with the kind-word appended and it varies by state -- County, Parish, Borough, Municipio. The name alone is what is"
+                        },
+                        {
+                          "name": "npi",
+                          "type": "string",
+                          "required": false,
+                          "description": "One record, named. The only thing a detail needs: everything it shows is read from the record this names, so what it sho"
+                        },
+                        {
+                          "name": "position",
+                          "type": "position",
+                          "required": false,
+                          "description": "Where in a list the person is. Held as the first and last key on screen, which is what both directions of paging need."
+                        },
+                        {
+                          "name": "facilityName",
+                          "type": "string",
+                          "required": false,
+                          "description": "facilityName"
+                        },
+                        {
+                          "name": "facilityType",
+                          "type": "string",
+                          "required": false,
+                          "description": "The kind of place, in the person's own words. Resolved to taxonomy codes by the tool, not by the person."
+                        },
+                        {
+                          "name": "offeredFacilityTypes",
+                          "type": "specialties",
+                          "required": false,
+                          "description": "offeredFacilityTypes"
+                        },
+                        {
+                          "name": "selectedTaxonomyCodes",
+                          "type": "string_list",
+                          "required": true,
+                          "description": "selectedTaxonomyCodes"
+                        },
+                        {
+                          "name": "administratorName",
+                          "type": "provider_name",
+                          "required": false,
+                          "description": "The person who administers the organization."
+                        }
+                      ],
+                      "output": [],
+                      "subscriptions": [],
+                      "may_call": []
+                    },
+                    {
+                      "tool_name": "FacilityDetail",
+                      "tool_type": "tool",
+                      "description": "FacilityDetail on find_care (/provider-detail).",
+                      "input": [
+                        {
+                          "name": "npi",
+                          "type": "string",
+                          "required": true,
+                          "description": "One record, named. The only thing a detail needs: everything it shows is read from the record this names, so what it sho"
+                        }
+                      ],
+                      "output": [],
+                      "subscriptions": [],
+                      "may_call": []
+                    },
+                    {
+                      "tool_name": "SpecialtyFilter",
+                      "tool_type": "tool",
+                      "description": "SpecialtyFilter on find_care (/specialty/find).",
+                      "input": [
+                        {
+                          "name": "complaint",
+                          "type": "string",
+                          "required": true,
+                          "description": "What the person needs care for, in clinical terms rather than the words they used. A named kind of care giver is itself "
+                        },
+                        {
+                          "name": "offeredSpecialties",
+                          "type": "specialties",
+                          "required": false,
+                          "description": "The kinds of care giver the complaint resolved to. Offered, not chosen."
+                        },
+                        {
+                          "name": "selectedSpecialtyCodes",
+                          "type": "string_list",
+                          "required": false,
+                          "description": "The NUCC codes in force. A search runs under these and shows what it ran under."
+                        }
+                      ],
+                      "output": [],
+                      "subscriptions": [],
+                      "may_call": []
+                    },
+                    {
+                      "tool_name": "ClinicalTrials",
+                      "tool_type": "tool",
+                      "description": "ClinicalTrials on find_care (/trial/find).",
+                      "input": [
+                        {
+                          "name": "state",
+                          "type": "string",
+                          "required": false,
+                          "description": "The two-letter USPS code. Healthcare is regulated per state, so this is not a narrowing: it decides which board licenses"
+                        },
+                        {
+                          "name": "city",
+                          "type": "string",
+                          "required": false,
+                          "description": "Written by its real name, not by the letters the person typed: a stored address is matched letter for letter, so a missp"
+                        },
+                        {
+                          "name": "zip",
+                          "type": "string",
+                          "required": false,
+                          "description": "zip"
+                        },
+                        {
+                          "name": "position",
+                          "type": "position",
+                          "required": false,
+                          "description": "Where in a list the person is. Held as the first and last key on screen, which is what both directions of paging need."
+                        },
+                        {
+                          "name": "condition",
+                          "type": "string",
+                          "required": true,
+                          "description": "The condition trials are sought for. A symptom is expanded to the conditions it commonly names, because a symptom string"
+                        },
+                        {
+                          "name": "ageYears",
+                          "type": "integer",
+                          "required": false,
+                          "description": "ageYears"
+                        },
+                        {
+                          "name": "sex",
+                          "type": "string",
+                          "required": false,
+                          "description": "The subject's sex, as the registry records eligibility. Distinct from providerSex, which is a preference about the care "
+                        },
+                        {
+                          "name": "unitedStatesOnly",
+                          "type": "boolean",
+                          "required": false,
+                          "description": "Absent means every trial worldwide, which is the widest answer and the one to give somebody who did not say. It is never"
+                        },
+                        {
+                          "name": "openNctId",
+                          "type": "string",
+                          "required": false,
+                          "description": "The trial whose detail is on screen. The trial analogue of npi."
+                        }
+                      ],
+                      "output": [],
+                      "subscriptions": [],
+                      "may_call": []
+                    },
+                    {
+                      "tool_name": "ProviderSelection",
+                      "tool_type": "tool",
+                      "description": "ProviderSelection on shared_services (provider_selection).",
+                      "input": [
+                        {
+                          "name": "selectedSpecialtyCodes",
+                          "type": "string_list",
+                          "required": false,
+                          "description": "The NUCC codes in force. A search runs under these and shows what it ran under."
+                        },
+                        {
+                          "name": "selectedNpis",
+                          "type": "string_list",
+                          "required": true,
+                          "description": "The set the person curated for evaluation."
+                        }
+                      ],
+                      "output": [],
+                      "subscriptions": [],
+                      "may_call": []
+                    },
+                    {
+                      "tool_name": "Gate",
+                      "tool_type": "pseudo_tool",
+                      "description": "Transport facade: collects token/head/params, streams back, verifies nothing, owns no route.",
+                      "input": [],
+                      "output": [],
+                      "subscriptions": [],
+                      "may_call": []
+                    },
+                    {
+                      "tool_name": "UniversalNavigator",
+                      "tool_type": "tool",
+                      "description": "The main. Triages every incoming call by proof, determines the page, drives dispatch, owns the render ledger and serial merge. NOT_UTTERANCE_ROUTABLE.",
+                      "input": [],
+                      "output": [],
+                      "subscriptions": [],
+                      "may_call": []
+                    },
+                    {
+                      "tool_name": "UtteranceManager",
+                      "tool_type": "tool",
+                      "description": "Classify-only: preamble + registry fragments, one model call, returns the dispatch set.",
+                      "input": [],
+                      "output": [],
+                      "subscriptions": [],
+                      "may_call": []
+                    },
+                    {
+                      "tool_name": "Prose",
+                      "tool_type": "tool",
+                      "description": "Authors the user-facing sentence from the facts the navigator hands it.",
+                      "input": [],
+                      "output": [],
+                      "subscriptions": [],
+                      "may_call": []
+                    },
+                    {
+                      "tool_name": "Geo",
+                      "tool_type": "tool",
+                      "description": "Resolves geography from the utterance (state/city/zip/county/position) and the city-without-state disambiguation. No display until maps are built; a parallel dependency of the search alongside SpecialtyFilter.",
+                      "input": [
+                        {
+                          "name": "utterance",
+                          "type": "string",
+                          "required": true,
+                          "description": "free text the location is extracted from"
+                        }
+                      ],
+                      "output": [
+                        {
+                          "name": "state",
+                          "type": "string",
+                          "required": false,
+                          "description": "state"
+                        },
+                        {
+                          "name": "city",
+                          "type": "string",
+                          "required": false,
+                          "description": "city"
+                        },
+                        {
+                          "name": "zip",
+                          "type": "string",
+                          "required": false,
+                          "description": "zip"
+                        },
+                        {
+                          "name": "county",
+                          "type": "string",
+                          "required": false,
+                          "description": "county"
+                        },
+                        {
+                          "name": "position",
+                          "type": "string",
+                          "required": false,
+                          "description": "position"
+                        }
+                      ],
+                      "subscriptions": [],
+                      "may_call": []
+                    }
+                  ],
+                  "routes": [
+                    {
+                      "route_name": "clientGate",
+                      "call_type": "client_sessioned",
+                      "proof": {
+                        "method": "session_token"
+                      },
+                      "timeout_facts": {
+                        "render_timeout_seconds": 30
+                      }
+                    },
+                    {
+                      "route_name": "toolCompletion",
+                      "call_type": "internal_callback",
+                      "proof": {
+                        "method": "our_signature",
+                        "signing_key_name": "internal-callback-signing-key"
+                      }
+                    },
+                    {
+                      "route_name": "oauthCallback",
+                      "call_type": "third_party_callback",
+                      "proof": {
+                        "method": "api_key",
+                        "credential_name": "oauth-idp-client-secret"
+                      }
+                    },
+                    {
+                      "route_name": "architecture",
+                      "call_type": "static_witness",
+                      "proof": {
+                        "method": "none"
+                      }
+                    },
+                    {
+                      "route_name": "bootstrapError",
+                      "call_type": "static_witness",
+                      "proof": {
+                        "method": "none"
+                      }
+                    },
+                    {
+                      "route_name": "chatAppDesign",
+                      "call_type": "static_witness",
+                      "proof": {
+                        "method": "none"
+                      }
+                    },
+                    {
+                      "route_name": "embeddingDesign",
+                      "call_type": "static_witness",
+                      "proof": {
+                        "method": "none"
+                      }
+                    },
+                    {
+                      "route_name": "labFilter1",
+                      "call_type": "static_witness",
+                      "proof": {
+                        "method": "none"
+                      }
+                    },
+                    {
+                      "route_name": "labFilter10",
+                      "call_type": "static_witness",
+                      "proof": {
+                        "method": "none"
+                      }
+                    },
+                    {
+                      "route_name": "labFilter2",
+                      "call_type": "static_witness",
+                      "proof": {
+                        "method": "none"
+                      }
+                    },
+                    {
+                      "route_name": "labFilter3",
+                      "call_type": "static_witness",
+                      "proof": {
+                        "method": "none"
+                      }
+                    },
+                    {
+                      "route_name": "labFilter4",
+                      "call_type": "static_witness",
+                      "proof": {
+                        "method": "none"
+                      }
+                    },
+                    {
+                      "route_name": "labFilter5",
+                      "call_type": "static_witness",
+                      "proof": {
+                        "method": "none"
+                      }
+                    },
+                    {
+                      "route_name": "labFilter6",
+                      "call_type": "static_witness",
+                      "proof": {
+                        "method": "none"
+                      }
+                    },
+                    {
+                      "route_name": "labFilter7",
+                      "call_type": "static_witness",
+                      "proof": {
+                        "method": "none"
+                      }
+                    },
+                    {
+                      "route_name": "labFilter8",
+                      "call_type": "static_witness",
+                      "proof": {
+                        "method": "none"
+                      }
+                    },
+                    {
+                      "route_name": "labFilter9",
+                      "call_type": "static_witness",
+                      "proof": {
+                        "method": "none"
+                      }
+                    },
+                    {
+                      "route_name": "opsManagerDesign",
+                      "call_type": "static_witness",
+                      "proof": {
+                        "method": "none"
+                      }
+                    },
+                    {
+                      "route_name": "privacy",
+                      "call_type": "static_witness",
+                      "proof": {
+                        "method": "none"
+                      }
+                    },
+                    {
+                      "route_name": "products",
+                      "call_type": "static_witness",
+                      "proof": {
+                        "method": "none"
+                      }
+                    },
+                    {
+                      "route_name": "providerDataLoad",
+                      "call_type": "static_witness",
+                      "proof": {
+                        "method": "none"
+                      }
+                    },
+                    {
+                      "route_name": "securityArchitecture",
+                      "call_type": "static_witness",
+                      "proof": {
+                        "method": "none"
+                      }
+                    },
+                    {
+                      "route_name": "terms",
+                      "call_type": "static_witness",
+                      "proof": {
+                        "method": "none"
+                      }
+                    },
+                    {
+                      "route_name": "unsupportedLocal",
+                      "call_type": "static_witness",
+                      "proof": {
+                        "method": "none"
+                      }
+                    }
+                  ],
+                  "pages": [
+                    {
+                      "page_name": "individualProvider",
+                      "subject": "individualProvider",
+                      "description": "The individual-provider page.",
+                      "members": [
+                        "ProviderSearch",
+                        "SpecialtyFilter",
+                        "ProviderDetail",
+                        "ProviderSelection",
+                        "Geo"
+                      ],
+                      "required_members": [
+                        "ProviderSearch"
+                      ],
+                      "completeness": {
+                        "render_timeout_seconds": 30,
+                        "on_timeout": "This page took too long to build. Please try again.",
+                        "on_conflict": "raise",
+                        "on_missing_required": "raise"
+                      }
+                    },
+                    {
+                      "page_name": "facility",
+                      "subject": "facility",
+                      "description": "The facility page.",
+                      "members": [
+                        "FacilitySearch",
+                        "FacilityDetail",
+                        "Geo"
+                      ],
+                      "required_members": [
+                        "FacilitySearch"
+                      ],
+                      "completeness": {
+                        "render_timeout_seconds": 30,
+                        "on_timeout": "This page took too long to build. Please try again.",
+                        "on_conflict": "raise",
+                        "on_missing_required": "raise"
+                      }
+                    },
+                    {
+                      "page_name": "clinicalTrial",
+                      "subject": "clinicalTrial",
+                      "description": "The clinical-trial page.",
+                      "members": [
+                        "ClinicalTrials",
+                        "Geo"
+                      ],
+                      "required_members": [
+                        "ClinicalTrials"
+                      ],
+                      "completeness": {
+                        "render_timeout_seconds": 30,
+                        "on_timeout": "This page took too long to build. Please try again.",
+                        "on_conflict": "raise",
+                        "on_missing_required": "raise"
+                      }
+                    }
+                  ]
                 }
               ]
             }
