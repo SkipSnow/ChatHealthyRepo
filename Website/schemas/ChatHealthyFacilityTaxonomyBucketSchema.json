@@ -7,6 +7,10 @@
   "additionalProperties": false,
   "required": ["bucket", "codes"],
   "properties": {
+    "$schema": {
+      "type": "string",
+      "description": "URL of the schema this document declares itself against."
+    },
     "_note": {
       "type": "string",
       "description": "Human curation note. Not consumed at runtime."
