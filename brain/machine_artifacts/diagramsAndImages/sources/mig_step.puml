@@ -63,12 +63,17 @@ partition "deploy_chathealthy.py" {
 stop
 
 floating note left
-  Nothing in the build refuses a file that
-  exists on disk and is declared nowhere -- an
-  undeclared file is silently not shipped. That
-  is BUG-011, and it is why a migration step
-  needs the conformance gate rather than the
-  build alone to say the move is complete.
+  The build enforces neither direction of the
+  file-per-target exact-truth contract. A file a
+  runtime path needs but that is declared nowhere is
+  silently not shipped; a file that is declared and
+  shipped but that no runtime path on the target
+  reaches rides along dead -- that shipped-but-unused
+  direction is BUG-011. The bidirectional requirement,
+  the analogue of the env-var and entitlement
+  contracts, is unauthored (C3 Q3). That gap is why a
+  migration step needs the conformance gate, not the
+  build alone, to say the move is complete.
 end note
 
 @enduml

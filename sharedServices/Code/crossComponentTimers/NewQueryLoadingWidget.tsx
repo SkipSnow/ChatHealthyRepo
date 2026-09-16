@@ -99,23 +99,16 @@ export default function NewQueryLoadingWidget() {
     // pastel blue by default) does not show through an empty innerHTML.
     const WHITE_FILL = '<div style="height:100%;width:100%;background:#fff;"></div>'
 
-    function whiteOutAndEcho(prompt: string) {
+    function whiteOut() {
       // Blank the three content frames per Change C. Solid white, not
       // an empty div — otherwise the frame's default background color
       // shows and the surface looks pastel-blue, not blank.
+      // UserMessage is NOT touched here: it is the conversation transcript,
+      // owned by TranscriptWidget, and the person's turn is shown there from
+      // the agent's record rather than echoed as a separate div.
       postRender('LeftPanel', WHITE_FILL)
       postRender('RightPanel', WHITE_FILL)
       postRender('MainWindow', buildMainWindowTimer())
-      // Echo the (possibly corrected) prompt into UserMessage.
-      // Rule-008 statement 4 forbids regex in executable front-end code,
-      // so escaping uses split/join instead of .replace(/.../g).
-      const safe = String(prompt || '')
-        .split('&').join('&amp;')
-        .split('<').join('&lt;')
-        .split('>').join('&gt;')
-      postRender('UserMessage',
-        `<div style="padding:0.5em 1em;color:#374151;font-style:italic;">${safe}</div>`
-      )
     }
 
     window.parent.postMessage({
@@ -138,13 +131,10 @@ export default function NewQueryLoadingWidget() {
       }
 
       if (msg.type === 'router:event-broadcast' && msg.kind === 'intent_classified') {
-        const d = msg.data || {}
-        // Prefer the classifier's corrected text; fall back to the raw
-        // utterance the user typed.
-        const echoed = String(
-          d.corrected_text || d.corrected || d.text || d.utterance || ''
-        )
-        whiteOutAndEcho(echoed)
+        // The moment UM understands the new query, blank the content frames
+        // so the tool runs against a clean surface. The person's turn is
+        // already in the transcript from the agent's record.
+        whiteOut()
         // startTicking() is idempotent — if user:submit already started
         // the timer, this call is a no-op relative to the timer state
         // (stopTicking + startTicking resets t0). Guard so the timer

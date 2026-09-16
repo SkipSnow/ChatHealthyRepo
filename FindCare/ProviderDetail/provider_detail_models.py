@@ -355,6 +355,10 @@ class ProviderDetailOutput(BaseModel):
     # panel with the identity block exchanged, so the renderer selects the
     # identity to paint from this rather than from the shape of the data.
     entity_type: str = "1"
+    # Whether this panel is showing a facility (entity_type "2"). The server
+    # decides it here so the renderer reads a boolean it was handed rather
+    # than working it out from entity_type on the client.
+    is_facility: bool = False
     # Present on a facility, absent on a care giver.
     organization_identity: Optional[OrganizationIdentity] = None
     authorized_official: Optional[AuthorizedOfficial] = None
@@ -385,6 +389,7 @@ class ProviderDetailOutput(BaseModel):
             npi=npi,
             unresolved_licensing_state=unresolved_licensing_state,
             entity_type="2" if is_organization else "1",
+            is_facility=is_organization,
             organization_identity=(OrganizationIdentity.from_stored(stored)
                                    if is_organization else None),
             authorized_official=(AuthorizedOfficial.from_stored(stored)

@@ -12,17 +12,18 @@ skinparam NoteBorderColor #9ca3af
 skinparam ParticipantBorderColor #0b7a75
 skinparam SequenceLifeLineBorderColor #9ca3af
 
-title One FindCare search end to end, target architecture: the gate is a dumb facade,\nthe UniversalNavigator drives the map, tools call tools, and prose is its own tool
+title One FindCare search end to end, target architecture: the gate is a dumb facade,\nthe UniversalNavigator drives the map, tools call tools, Geo resolves geography in parallel\nwith the specialty filter, and who authors the user-facing prose is an open question
 
 participant "Gate\n(facade, transport only)" as Gate
 participant "UniversalNavigator\n(SharedServices main)" as UN
 participant "UtteranceManager\n(classify only)" as UM
-participant "Prose tool\n(authors the sentence)" as Prose
+participant "Prose\n(authors the sentence -\nsee OPEN QUESTION)" as Prose
 database "Registry\n(the one live map)" as Reg
 database "Repository\nsessions, ledger, params" as Repo
 participant "facility_search\n(tool)" as FS
 participant "Miner\nmine_facility_parameters" as Miner
 participant "SpecialtyFilter\nNon-Individual" as Cat
+participant "Geo\n(page-scoped tool)" as Geo
 database "Provider\ncollection" as Providers
 
 [-> Gate : POST /  { session_token, head,\nparams(utterance, history) }  client_sessioned
@@ -62,21 +63,31 @@ UN -> FS : dispatch { utterance, history, in-force params }
 activate FS
 FS -> Miner : mine(utterance, history)
 activate Miner
-Miner --> FS : geography, facilityType, facilityName
+Miner --> FS : geography(free text), facilityType, facilityName
 deactivate Miner
-alt a kind of place was named
-  FS -> Cat : find_specialties(facilityType, Non-Individual)
-  activate Cat
-  Cat --> FS : offered kinds + codes
-  deactivate Cat
+
+par SpecialtyFilter resolves the kind of place
+  alt a kind of place was named
+    FS -> Cat : find_specialties(facilityType, Non-Individual)
+    activate Cat
+    Cat --> FS : offered kinds + codes
+    deactivate Cat
+  end
+else Geo resolves geography, in parallel
+  FS -> Geo : resolve(free-text geography)
+  activate Geo
+  Geo --> FS : normalized place (state, ZIP, county),\nmisspellings and city/county-without-state repaired
+  deactivate Geo
 end
-FS -> Providers : state of the ZIP, when no state was said
-Providers --> FS : derived state
-note over FS, Cat
-  Tools call tools directly along the non-circular may_call map,
-  with recursion guards. A tool in the middle re-raises and never
-  swallows; every throw ends in a navigator, which catches,
-  classifies, logs with timings, and answers.
+note over FS, Geo
+  Geo is a page-scoped member (individualProvider + facility), running
+  parallel to the specialty/NUCC filter. It resolves free-text geography
+  including misspellings and a city or county named without a state -
+  it replaces the old ad-hoc "derive the state from the ZIP" step.
+  Tools call tools directly along the non-circular may_call map, with
+  recursion guards. A tool in the middle re-raises and never swallows;
+  every throw ends in a navigator, which catches, classifies, logs with
+  timings, and answers.
 end note
 FS --> UN : completion callback { mined document }\ninternal_callback, proof our_signature
 deactivate FS
@@ -97,10 +108,15 @@ else a required input is unmet
   Prose --> UN : the user-facing sentence
   deactivate Prose
   note right of Prose
-    User-facing prose is its own tool. The navigator dispatches it
-    with the facts; it returns one sentence. No tool authors its
-    own chat strings; making a parameter required is an edit to the
-    registry and a deploy, not a line of code.
+    OPEN ARCHITECTURAL QUESTION - not resolved by this diagram.
+    Whether authoring a user-facing question is the UtteranceManager's
+    own scope or a separate "Prose" tool is undecided. Three approved
+    requirements place prose and parameters inside the UtteranceManager
+    (EPIC-002-F-010-S-001, EPIC-002-F-010-S-003, EPIC-006-F-008-S-003);
+    the registry instance also carries a "Prose" route name. The Prose
+    participant here draws the step only and picks no side. Settled
+    either way: no tool authors its own chat strings, and making a
+    parameter required is a registry edit and a deploy, not code.
   end note
 end
 

@@ -71,9 +71,19 @@ ProviderDetailTool with entity_type=2 and gets its
 own tool or a stated decision that sharing one is
 correct. The classifier retires into the
 UtteranceManager — preamble plus the registry's
-fragments, one model call, the dispatch set back —
-and user-facing prose becomes its own tool the
-navigator dispatches with the facts;
+fragments, one model call, the dispatch set back.
+Where user-facing prose lives is an OPEN question
+this phase must not prejudge (see note);
+note right
+  OPEN ARCHITECTURAL QUESTION — do not resolve here.
+  Is asking the user a question the UtteranceManager's
+  own scope, or a separate "Prose" tool the navigator
+  dispatches with the facts? Three approved requirements
+  place prose inside the UtteranceManager
+  (EPIC-002-F-010-S-001, -S-003, EPIC-006-F-008-S-003);
+  the registry instance carries a Prose route name.
+  Evidence points both ways; the operator decides.
+end note
 
 :**Phase 5 — retire the rest of Code/**
 Frontend shell, the iPhone tests, the
@@ -82,6 +92,15 @@ Code/Shared/ops. Then the six build-tooling
 paths change and the tree is deleted;
 
 stop
+
+floating note right
+  UNSCHEDULED — no phase owns it.
+  The secrets and debug routes are marked for
+  deletion, but no phase above schedules removing
+  them: Phase 5 retires Code/ files, not routes.
+  The owning phase is the operator's / C6 Refactor
+  Plan's to assign.
+end note
 
 floating note left
   Phase 0 is not a step in this sequence so much as

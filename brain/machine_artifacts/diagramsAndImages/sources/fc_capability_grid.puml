@@ -11,53 +11,83 @@ skinparam NoteBorderColor #9ca3af
 skinparam componentStyle rectangle
 skinparam PackageBorderColor #9ca3af
 
-title FindCare: three capabilities, four tools each, and which of the twelve the code and the record actually carry
+title FindCare: three pages and their members — which the tool registry and the running code actually carry
 
 legend top right
-|<#dcfce7>   | declared in ToolConfiguration and dispatched by running code |
-|<#fef3c7>   | the work happens, but no tool is declared for it |
+|<#dcfce7>   | declared in the tool registry and dispatched by running code |
+|<#fef3c7>   | the work happens, but no tool is declared/dispatched for it |
 |<#fee2e2>   | declared, and the file that would serve it is imported by nothing |
 |<#e5e7eb>   | no tool, no endpoint |
 endlegend
 
 package "Find an individual care giver\npage: individualProvider" {
-  component "ProviderSearch\nsearch\n/provider/find" as PS #dcfce7
-  component "SpecialtyFilter\nvocabulary chooser\n/specialty/find" as SF #dcfce7
+  component "ProviderSearch (required)\nsearch\n/provider/find" as PS #dcfce7
+  component "SpecialtyFilter\nNUCC/specialty chooser\n/specialty/find\nmacro-toggles: Prescribers | Homeopathic" as SF #dcfce7
+  component "Geo\ngeography resolver (page-scoped)\nparallel to SpecialtyFilter" as PGeo #fef3c7
   component "ProviderDetail\ndetail\n/provider-detail" as PD #dcfce7
   component "ProviderSelection\nselection\nprovider_selection" as PSel #dcfce7
 }
 
 package "Find a facility\npage: facility" {
-  component "FacilitySearch\nsearch\n/facility/find" as FS #dcfce7
-  component "facility kinds\nvocabulary chooser\ninside /facility/find" as FVoc #fef3c7
-  component "FacilityDetail\ndetail\n/provider-detail" as FD #dcfce7
+  component "FacilitySearch (required)\nsearch\n/facility/find" as FS #dcfce7
+  component "facility NUCC filter\nNUCC/kinds chooser\ninside /facility/find\nmacro-toggles: Ambulatory | Psychiatric | Inpatient" as FVoc #fef3c7
+  component "Geo\ngeography resolver (page-scoped)\nparallel to the facility NUCC filter" as FGeo #fef3c7
+  component "FacilityDetail\ndetail\n/provider-detail (entity_type '2')" as FD #dcfce7
   component "FacilitySelection\nselection\nfacility_selection" as FSel #dcfce7
 }
 
 package "Find a clinical trial\npage: clinicalTrial" {
-  component "ClinicalTrials\nsearch\n/trial/find" as CT #dcfce7
+  component "ClinicalTrials (required)\nsearch\n/trial/find" as CT #dcfce7
   component "condition wording\nvocabulary chooser\nmining prompt only" as CVoc #e5e7eb
   component "trial detail\ndetail" as CD #e5e7eb
   component "ClinicalTrialSelection\nselection\nclinical_trial_selection" as CSel #dcfce7
 }
 
 component "facility_search_tool.py\nshipped, imported by nothing" as FSdead #fee2e2
+component "GeoExtractorTool\ndeclared, zero call sites" as GEdead #fee2e2
 
 FS .right. FSdead
+PGeo .down. GEdead
 
-' Stack the three subjects vertically so the grid is four across, not twelve.
+' Stack the three subjects vertically so the grid reads page-by-page, not as one flat list.
 PS -[hidden]down- FS
 FS -[hidden]down- CT
 
+note bottom of SF
+  The individual page's chooser funnels the utterance
+  onto the Individual NUCC partition. Its macro-toggles
+  Prescribers and Homeopathic are the pattern the
+  facility NUCC filter mirrors.
+end note
+
+note bottom of PGeo
+  Geo is a page-scoped member on individualProvider and
+  facility (current iteration), running parallel to the
+  specialty/NUCC chooser; it resolves free-text
+  geography including misspellings. No dispatched tool
+  serves it today: the declared GeoExtractorTool has
+  zero call sites, and the resolution is a live model
+  call in the shared library (geo_extractor.py). That
+  shared-library placement is BUG-003 / the C5 §2.7
+  boundary question (N27). The built registry instance
+  (build 2292) lists Geo differently across pages; the
+  current iteration scopes it to these two pages.
+end note
+
 note bottom of FVoc
-  A facility's kinds are resolved by the same
-  SpecialtyFilter funnel on the Non-Individual
-  partition, called from _facility_kinds inside the
-  search route. Because it is not a tool, no
-  requirement can be stated against it:
-  offeredFacilityTypes and selectedTaxonomyCodes are
-  declared against FacilitySearch instead, so the
-  chooser cannot be asked for on its own.
+  Current iteration: the facility page carries a NUCC
+  filter with Ambulatory / Psychiatric / Inpatient
+  macro-toggles, mirroring the individual page's
+  Prescribers / Homeopathic filter. As built today the
+  kinds are resolved by the same SpecialtyFilter funnel
+  on the Non-Individual partition, called from
+  _facility_kinds inside the search route. Because it
+  is not a tool, no requirement can be stated against
+  it: offeredFacilityTypes and selectedTaxonomyCodes
+  are declared against FacilitySearch instead, so the
+  chooser cannot be asked for on its own. The built
+  registry instance (build 2292) does not yet list this
+  filter member.
 end note
 
 note bottom of CVoc

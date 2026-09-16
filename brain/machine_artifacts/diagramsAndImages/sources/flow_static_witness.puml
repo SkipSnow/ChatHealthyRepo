@@ -24,11 +24,11 @@ Gate -> UN : forward(page name, head, params)
 deactivate Gate
 activate UN
 
-note over UN : TRIAGE by declared proof\nroute = static_page_witness\ncall_type = static_witness\nproof.method = none  -> nothing to verify\nOnly node that accepts external traffic.
+note over UN : TRIAGE by declared proof (live tool registry)\nroute_name = the page's own route\n(e.g. privacy, terms, architecture, products)\ncall_type = static_witness\nproof.method = none  -> nothing to verify\nOnly node that accepts external traffic.
 
 UN -> UN : log "frame popped"\n(page name, timings)
 
-alt static error reported on the page
+alt static error reported on the page (route bootstrapError)
   UN -> UN : log static error\n(severity matching impact)
 end
 

@@ -21,7 +21,7 @@ package "Sources" #fdfdfd {
 }
 
 package "Route + proof (declared in the registry)" #fbfdfd {
-  [tool_to_tool\nproof: carried in the document] as R1
+  [tool_to_tool\nproof: none (internal)\nrelayed, never at the Gate] as R1
   [third_party_callback\nproof: api_key · vault credential\n(mTLS at the infra migration)] as R2
   [static_witness\nproof: none · onload · log only] as R3
   [client_sessioned\nproof: signed session token · per-hop nonce] as R4
@@ -29,8 +29,8 @@ package "Route + proof (declared in the registry)" #fbfdfd {
 }
 
 package "Terminal" #fdfdfd {
-  [A UniversalNavigatorProxy\nor the navigator] as T1
-  [The Gate\n-> the UniversalNavigator] as TG
+  [The UniversalNavigatorProxy\n(satellite) or the navigator] as T1
+  [The Gate (transport only)\n-> the UniversalNavigator\n(proves every arrival)] as TG
 }
 
 S1 --> R1
@@ -46,9 +46,13 @@ R4 --> TG
 R5 --> TG
 
 note bottom of TG
-  Four types cross the Gate; only tool_to_tool
-  stays internal. The Gate's check is mechanical:
-  route known, proof named — verify or refuse.
-  An arrival on an unmapped route is an exception.
+  The Gate is the single client entrance and verifies nothing:
+  it collects the session token, HTTP head and parameters and
+  passes them to the UniversalNavigator — the only node that
+  accepts external traffic. The navigator matches the route in
+  the live registry and verifies the proof the route names:
+  verify or refuse. An arrival on an unmapped route is refused.
+  Only tool_to_tool stays internal, relayed via the
+  UniversalNavigatorProxy, never reaching the Gate.
 end note
 @enduml

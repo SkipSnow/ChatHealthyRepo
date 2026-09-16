@@ -41,7 +41,7 @@ note right of UN
 end note
 
 == Determine the page ==
-UN -> UN : read the map: this request\nconstructs page **care_giver**
+UN -> UN : read the map: this request\nconstructs page **individualProvider**
 UN -> REPO : ledger: record the page's\n**required_members** as expectations
 
 == Mine (one model call, page-scoped) ==
@@ -75,7 +75,17 @@ else completeness budget expires first
   UN -> UN : page NOT rendered in time\n-> answer with layman **on_timeout** explanation
 end
 
-UN -> PROSE : dispatch with the facts
+note over UM, PROSE #fff3cd
+  **OPEN ARCHITECTURAL QUESTION -- not resolved here.**
+  Is authoring the user-facing sentence the **UtteranceManager's**
+  own scope (classify + prose in one component), or a **separate
+  "Prose" tool** dispatched like any other member?
+  The registry instance carries a `Prose` route name (evidence,
+  not a decision); three approved requirements place prose inside
+  the UtteranceManager. This diagram draws the separate-tool shape
+  for legibility only -- it does NOT pick a side.
+end note
+UN -> PROSE : dispatch with the facts\n(**or** UtteranceManager authors it -- see open question)
 PROSE --> UN : the user-facing sentence
 
 UN -> REPO : persist the mutated user_object

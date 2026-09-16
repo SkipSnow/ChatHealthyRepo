@@ -1069,6 +1069,14 @@ classifier_agent = Agent(
     LLM_MODEL,
     output_type=ClassifierOutput,
     system_prompt=CLASSIFIER_SYSTEM_PROMPT,
+    # Pinned deterministic. The safety classification (safetyLockout vs a
+    # provider search) must not flip on identical input. At the model's
+    # default temperature it did -- "I'm in severe pain" sometimes slipped
+    # through as a provider search instead of locking the person out.
+    # Temperature 0 removes that sampling variance; the crowd-sourced
+    # learned-lockout list (Users.UserLockOutUtterances) makes exact repeats
+    # deterministic beyond what the model alone decides.
+    model_settings={"temperature": 0.0},
     # The classifier had none, so it took the default of one attempt. The
     # our other agents carry 3 and 5.
     retries=3,

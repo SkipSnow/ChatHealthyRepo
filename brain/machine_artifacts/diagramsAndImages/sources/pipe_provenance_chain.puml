@@ -20,14 +20,14 @@ R -right-> RUN : run identifier
 RUN -right-> REG : source name\nand version
 REG -right-> BYTES : content hash
 
-note bottom of R
+note bottom of R #ffd6d6
   HOP 1 BREAKS. The record carries a run
   identifier only -- no snapshot hash and no
   build time. Two runs of the same source are
   indistinguishable from the record.
 end note
 
-note bottom of BYTES
+note bottom of BYTES #ffd6d6
   HOP 4 BREAKS. Two generations are retained.
   An older record reaches a hash whose bytes
   have been deleted.

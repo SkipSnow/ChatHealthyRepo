@@ -9,7 +9,7 @@ skinparam ParticipantBackgroundColor #fdfdfd
 skinparam NoteBackgroundColor #f3f4f6
 skinparam NoteBorderColor #9ca3af
 
-title Page flow: clinical trial\nA client utterance builds the clinical-trial page against an external registry we do not own
+title Page flow: clinicalTrial\nA client utterance builds the clinicalTrial page against an external registry we do not own
 
 actor "Person / Client" as P
 participant "Gate\n(facade, transport only)" as Gate
@@ -18,8 +18,8 @@ database "Registry\n(the one live map)" as Reg
 database "Repository\nsessions, ledger, params" as Repo
 participant "UtteranceManager\n(classify only)" as UM
 participant "UniversalNavigatorProxy\n(FindCare satellite)" as PXY
-participant "clinical_trials\n(tool, required member)" as CT
-participant "Prose tool\n(authors the sentence)" as Prose
+participant "ClinicalTrials\n(tool, required member)" as CT
+participant "Prose\n(OPEN: own tool, or the\nUtteranceManager's scope?)" as Prose
 participant "ClinicalTrials.gov\n(external registry, not ours)" as REG
 
 P -> Gate : POST /  { session_token, head,\nparams(utterance, history) }
@@ -43,11 +43,20 @@ Repo --> UN : session ok, in-force parameters
 UN -> Reg : the live map for this env\n(routes, may_call, pages)
 Reg --> UN : routes + dependencies + page definitions
 
-UN -> UN : determine page = clinical_trial\nmembers { clinical_trials, clinical_trial_detail, prose }\nrequired_members { clinical_trials }
+UN -> UN : determine page = clinicalTrial\nmembers { ClinicalTrials, clinical_trial_detail }\nrequired_members { ClinicalTrials }
 
-UN -> UM : classify(utterance, history)\nscoped to the clinical_trial members
+note over UN
+  Three pages only: individualProvider, facility, clinicalTrial.
+  clinical_trial_detail is a VIEW / member of this page, not a page,
+  and today it is painted by the cached React widget - no tool and
+  no route serve it (EPIC-006-F-004-S-001 is the gap).
+  Geo is NOT a member here: free-text geography resolution is scoped
+  to individualProvider + facility; this page takes only us_only.
+end note
+
+UN -> UM : classify(utterance, history)\nscoped to the clinicalTrial members
 activate UM
-UM --> UN : dispatch set { clinical_trials }
+UM --> UN : dispatch set { ClinicalTrials }
 deactivate UM
 note right of UM
   One model call: cached preamble plus the page's fragments in,
@@ -55,13 +64,13 @@ note right of UM
   members. The UM knows no parameters and never waits on a tool.
 end note
 
-UN -> Repo : render ledger: record required_members\n{ clinical_trials } as the page expectation
+UN -> Repo : render ledger: record required_members\n{ ClinicalTrials } as the page expectation
 note left of Repo
   Page lifecycle: dispatch records the expectation; the completion
   callback closes it; the render_timeout budget races the callback.
 end note
 
-UN -> PXY : dispatch clinical_trials\n{ condition, age?, sex?, us_only? }  tool_to_tool
+UN -> PXY : dispatch ClinicalTrials\n{ condition, age?, sex?, us_only? }  tool_to_tool
 activate PXY
 PXY -> CT : relay locally (function call)
 activate CT
@@ -80,25 +89,33 @@ PXY --> UN : completion callback { trials }\ninternal_callback, proof our_signat
 deactivate PXY
 
 UN -> Repo : close the ledger entry, then serial\ndeterministic merge (a conflict RAISES)
-UN -> UN : reconcile - required member clinical_trials\nclosed within budget => page complete
+UN -> UN : reconcile - required member ClinicalTrials\nclosed within budget => page complete
 
 note over UN, Repo
   Page error management (render ledger):
   - timeout: budget expires -> UN responds with the layman on_timeout text
   - conflict: a parameter/state merge conflict -> raise
-  - missing-required: clinical_trials dead or never returning -> raise
+  - missing-required: ClinicalTrials dead or never returning -> raise
   Every case instrumented with timings, at a severity matching impact.
   Every throw ends here in the UN; a middle tool re-raises, never swallows.
 end note
 
 alt only a condition was given
-  UN -> Prose : author refinement\n{ narrowings not yet used: age, sex, US }
+  UN -> Prose : author refinement sentence\n{ narrowings not yet used: age, sex, US }
   activate Prose
   Prose --> UN : the user-facing sentence
   deactivate Prose
   note right of Prose
-    Prose is its own tool (no tool authors its own chat strings).
-    Offering the refinements not yet given is EPIC-006-F-005-S-001.
+    OPEN ARCHITECTURAL QUESTION (not resolved here):
+    is authoring this sentence the UtteranceManager's own
+    scope, or a separate "Prose" tool? Three approved
+    requirements place prose inside the UtteranceManager
+    (EPIC-002-F-010-S-001, -S-003, EPIC-006-F-008-S-003);
+    the registry instance also carries a "Prose" route.
+    Drawn as one participant on purpose - the firm has not
+    picked a side. Either way, no tool authors its own chat
+    strings. Offering refinements not yet given is
+    EPIC-006-F-005-S-001.
   end note
 end
 

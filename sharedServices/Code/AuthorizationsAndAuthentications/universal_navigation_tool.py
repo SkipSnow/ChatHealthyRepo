@@ -389,6 +389,46 @@ def session_data(user_object) -> dict[str, Any]:
     }
 
 
+def conversation_record(user_object) -> dict[str, Any]:
+    """The conversation record the single transcript surface displays.
+
+    The agent owns this answer: which utterances are conversational turns,
+    who spoke each one, and their order are all decided here, read from the
+    session's Mongo-backed session_conversation_history. The client does not
+    decide any of it -- it receives this and paints it.
+
+    `speaker` is the stable attribution the client maps to a style: the
+    person's own words are `user`, everything the system says is `machine`.
+    The vocabulary is left open on purpose so a Talk-About-Care room can
+    attribute several machine speakers later without the client changing.
+
+    `append` is the paint directive. It is False here: the answer is the
+    whole record and the surface replaces what it holds with it, so a
+    reload or a mid-turn repaint both land on the same authoritative state.
+    """
+    turns: list[dict[str, str]] = []
+    for u in user_object.session_conversation_history.utterances:
+        actor = getattr(u, "actor", None) or (
+            u.get("actor") if isinstance(u, dict) else None)
+        text = getattr(u, "text", None) or (
+            u.get("text") if isinstance(u, dict) else "")
+        if actor == "person":
+            speaker = "user"
+        elif actor == "system":
+            speaker = "machine"
+        else:
+            continue
+        turns.append({"speaker": speaker, "text": str(text)})
+    return {"turns": turns, "append": False}
+
+
+def stream_conversation_record(deps: AgentDeps) -> None:
+    """Push the agent's conversation-record answer onto the stream so the
+    single transcript surface repaints. One place computes the record; the
+    client only paints what arrives on kind:'transcript'."""
+    deps.stream({"kind": "transcript", "data": conversation_record(deps.user_object)})
+
+
 def any_pending_disambiguation(document) -> bool:
     """True when any intent entry on the document carries a
     pending_disambiguation marker. UR uses this to suppress closeConnection200
@@ -597,12 +637,14 @@ class UniversalNavigationTool(ChatHealthyTool):
     # getattr(self, name). Adding a new op = new method + new dict entry.
     _OP_HANDLERS = {
         "session_data":         "_handle_session_data",
+        "conversation_record":  "_handle_conversation_record",
         "session_pdf":          "_handle_session_pdf",
         "record_ux_event":      "_handle_record_ux_event",
         "utterance":            "_handle_utterance",
         "provider-detail":      "_handle_provider_detail",
         "provider_detail_close": "_handle_provider_detail_close",
         "apply_filter":         "_handle_apply_filter",
+        "apply_facility_filter": "_handle_apply_facility_filter",
         "refine_search":        "_handle_refine_search",
         "provider_page":        "_handle_provider_page",
         "restore_findcare":     "_handle_restore_findcare",
@@ -654,6 +696,16 @@ class UniversalNavigationTool(ChatHealthyTool):
         )
         deps.stream({"kind": "session_data", "data": data})
         return Response(kind="session_data", result=data)
+
+    async def _handle_conversation_record(self, deps: AgentDeps, payload: dict[str, Any]) -> Response:
+        """The transcript surface asks the agent for the conversation record;
+        this is the agent method that answers. Read-only: it reports the turns
+        and their attribution from session_conversation_history and records
+        nothing. The client calls it on load to rehydrate the dialogue after a
+        reload, and paints whatever comes back."""
+        data = conversation_record(deps.user_object)
+        deps.stream({"kind": "transcript", "data": data})
+        return Response(kind="transcript", result=data)
 
     async def _handle_session_pdf(self, deps: AgentDeps, payload: dict[str, Any]) -> Response:
         """The session as a file the person downloads.
@@ -712,6 +764,11 @@ class UniversalNavigationTool(ChatHealthyTool):
         # LockoutTool) read it from the canonical place
         # (session_conversation_history.utterances[-1]).
         deps.user_object.persist_user_state(text)
+
+        # The person's own words are now in the record, so the transcript
+        # shows them at once -- before the model has answered. The agent
+        # pushes the record; the client only paints it.
+        stream_conversation_record(deps)
 
         # safetyLockout pre-UM gate. UR hydrates user_object.is_locked_out +
         # user_object.lockout from {env}_Safety.emergency_incidents by IP. If
@@ -1058,6 +1115,7 @@ class UniversalNavigationTool(ChatHealthyTool):
         deps.stream({
             "kind": "specialties",
             "data": {
+                "is_facility": False,
                 "specialties": [dict(s) for s in offered],
                 "homeopathic_generalists": [],
                 "selected_codes": list(
@@ -1262,6 +1320,100 @@ class UniversalNavigationTool(ChatHealthyTool):
         return Response(
             kind="apply_filter",
             result={"target_action": "closeConnection200"},
+        )
+
+    async def _handle_apply_facility_filter(
+            self, deps: AgentDeps, payload: dict[str, Any]) -> Response:
+        """UR dispatch for op == 'apply_facility_filter'.
+
+        The facility mirror of _handle_apply_filter. Apply Filter on the
+        facility panel is a parameter change, not a flow: the person narrowed
+        which kinds of place the search runs under and nothing else moved. So
+        this writes one parameter -- the facility page's selected taxonomy
+        codes -- and re-runs the facility search on the parameters in force.
+
+        It does NOT take the utterance path, which would hand the utterance
+        to the facility page and re-mine a facility type from the previous
+        turn's words, replacing the person's ticks with a freshly resolved
+        set they never chose (the shape of the care-giver 2026-06-10 defect).
+        Apply changes which boxes are ticked and nothing else, so the panel
+        on screen stands and only the search runs again.
+
+        The re-run reaches the search through /search with entity_type "2" --
+        the same parameter-based search the care-giver Apply reaches through
+        provider_search_tool -- so no facility domain logic is duplicated
+        here. When the facility page has no state in force yet the search
+        cannot run; the selection is recorded and the panel is left standing
+        (the geography-insufficient manufacture prompt is a later tuning).
+        """
+        nucc_codes = (payload.get("selected_codes")
+                      or payload.get("nucc_codes") or [])
+        if not isinstance(nucc_codes, list):
+            return Response(
+                kind="apply_facility_filter",
+                result={"ok": False, "error": "selected_codes must be a list"},
+            )
+        selected_codes = [c for c in nucc_codes if isinstance(c, str)]
+
+        from UserParameters import user_parameters_tool
+        await user_parameters_tool.TOOL.run_and_log(
+            deps,
+            user_parameters_tool.Request(
+                verb="set", route="gateway", origin="deterministic",
+                changes=[
+                    user_parameters_tool.Change(
+                        page=FACILITY, name="selectedTaxonomyCodes",
+                        value=selected_codes),
+                ],
+            ),
+        )
+
+        params = deps.user_object.userParameters
+        geo = geography_of(params, FACILITY)
+        if not (geo and geo.state):
+            # The facility search is regulated per state and cannot run
+            # without one. The selection is on the session for the next turn
+            # to read; the panel the person is filtering with stays.
+            return Response(
+                kind="apply_facility_filter",
+                result={"target_action": "findAFacility",
+                        "note": "state_not_in_force"},
+            )
+
+        # Nothing ticked means nothing was narrowed, so the whole offered set
+        # applies -- the same rule the facility page's own search runs under.
+        codes = selected_codes or [
+            s.get("code")
+            for s in (params.get(FACILITY, "offeredFacilityTypes") or [])
+            if isinstance(s, dict) and s.get("code")]
+
+        # NOT intent_classified: that kind blanks the panels. A narrowing of
+        # the query already in force says only that a search is running; the
+        # panel stays and the results pane repaints when the facilities land.
+        deps.stream({
+            "kind": "search_running",
+            "data": {
+                "action": "findAFacility",
+                "criteria": params.get(FACILITY, "facilityType") or "facilities",
+                "selected_specialty_count": len(selected_codes),
+            },
+        })
+
+        raw = await self._tell_page(deps, "/search", {
+            "entity_type": "2",
+            "nucc_codes": codes,
+            "state": geo.state or "",
+            "city": geo.city or "",
+            "county": geo.county or "",
+            "zip": geo.zip or "",
+            "facility_name": str(params.get(FACILITY, "facilityName") or ""),
+        })
+        self._stream_facilities(deps, raw)
+        await self._write_position(deps, FACILITY,
+                                   raw.get("first_npi"), raw.get("last_npi"))
+        return Response(
+            kind="apply_facility_filter",
+            result={"target_action": "findAFacility"},
         )
 
     async def _handle_provider_page(self, deps: AgentDeps, payload: dict[str, Any]) -> Response:
@@ -1705,7 +1857,8 @@ class UniversalNavigationTool(ChatHealthyTool):
     # owed an answer. Everything else -- session reads, selection
     # bookkeeping -- is not a turn and is allowed to be silent.
     _TURN_OPS = frozenset({
-        "utterance", "apply_filter", "provider_page", "facility_page",
+        "utterance", "apply_filter", "apply_facility_filter",
+        "provider_page", "facility_page",
     })
 
     # An event that puts something on a window or says something to the
@@ -1819,6 +1972,7 @@ class UniversalNavigationTool(ChatHealthyTool):
         "provider_page": (INDIVIDUAL_PROVIDER, "ProviderSearch"),
         "facility_page": (FACILITY, "FacilitySearch"),
         "apply_filter": (INDIVIDUAL_PROVIDER, "ProviderSearch"),
+        "apply_facility_filter": (FACILITY, "FacilitySearch"),
         "utterance": (INDIVIDUAL_PROVIDER, "ProviderSearch"),
     }
 
@@ -2033,6 +2187,7 @@ class UniversalNavigationTool(ChatHealthyTool):
                 deps.stream({
                     "kind": "specialties",
                     "data": {
+                        "is_facility": False,
                         "specialties": specialties,
                         "homeopathic_generalists": [],
                         "selected_codes": raw.get("selected_codes") or [],
@@ -2119,6 +2274,31 @@ class UniversalNavigationTool(ChatHealthyTool):
                                  or "facilities"),
                 },
             })
+            # The facility-type filter panel, painted the same way the
+            # care-giver specialty panel is: same widget, same broadcast
+            # kind, carrying filter_mode="facility" and the facility group
+            # code-sets so the panel renders its Ambulatory / Psychiatric /
+            # Inpatient toggles instead of Prescribers / Homeopathic. Carried
+            # here, not read: which codes are in a set is the page's answer.
+            facility_types = raw.get("offered_facility_types") or []
+            if facility_types:
+                deps.stream({
+                    "kind": "specialties",
+                    "data": {
+                        "filter_mode": "facility",
+                        "is_facility": True,
+                        "specialties": facility_types,
+                        "homeopathic_generalists": [],
+                        "selected_codes": raw.get("selected_facility_codes") or [],
+                        "complaint": raw.get("facility_type") or "",
+                        "all_codes": raw.get("all_codes") or [],
+                        "ambulatory_codes": raw.get("ambulatory_codes") or [],
+                        "inpatient_codes": raw.get("inpatient_codes") or [],
+                        "psychiatric_codes": raw.get("psychiatric_codes") or [],
+                        "default_selected_codes":
+                            raw.get("default_selected_codes") or [],
+                    },
+                })
             self._stream_facilities(deps, raw)
             await self._write_position(deps, FACILITY,
                                        raw.get("first_npi"), raw.get("last_npi"))
@@ -2138,6 +2318,7 @@ class UniversalNavigationTool(ChatHealthyTool):
                 deps.stream({
                     "kind": "specialties",
                     "data": {
+                        "is_facility": False,
                         "specialties": specialties,
                         "homeopathic_generalists": [],
                         "selected_codes": raw.get("selected_specialty_codes") or [],
@@ -2610,6 +2791,15 @@ class UniversalNavigationTool(ChatHealthyTool):
                                 component="UniversalNavigationTool",
                                 exception=exc if isinstance(exc, Exception) else None,
                             ))
+
+                    # The agent owns the conversation record. Whatever this
+                    # turn did -- a typed utterance, a manufactured prompt off
+                    # a gesture, a lockout reminder, a question authored when
+                    # nothing else was shown -- its utterances are now in
+                    # session_conversation_history, so one push here repaints
+                    # the single transcript from the authoritative state. The
+                    # client decides nothing; it paints this answer.
+                    stream_conversation_record(agent_deps)
 
                 session_token_proj = session_token_wire(user_object)
                 if nav_exc_local is not None:

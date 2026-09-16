@@ -18,13 +18,24 @@ package "Browser" #fdfdfd {
 package "SharedServices — the main server" #eef6f5 {
   [Gate\na web-server facade.\nCollects the session token, head,\nGET/POST params; streams the answer.\nThe only part that knows transport.] as GATE
   [UniversalNavigator\nreads the map and drives the route.\nCompleteness · render ledger · merge ·\nexternal calls · session security.\nThe ONLY node that takes external traffic.\nHolds no data.] as UN
-  [UtteranceManager\nclassify only: preamble + every\ntool fragment in, dispatch set out.\nOne model call. Knows no parameters.] as UM
+  [UtteranceManager\nclassify: preamble + every\ntool fragment in, dispatch set out.\nOne model call. Knows no parameters.] as UM
   [Prose tool\nUN hands it the facts,\nit returns the sentence] as PROSE
 }
 
+note bottom of PROSE
+  OPEN ARCHITECTURAL QUESTION — do not resolve.
+  Is asking the user a question the UtteranceManager's own
+  scope (classify + prose in one node), or this separate
+  Prose tool? Three approved requirements place prose inside
+  the UtteranceManager (EPIC-002-F-010-S-001/-S-003,
+  EPIC-006-F-008-S-003); the registry instance carries a
+  "Prose" route. Drawn here as a separate tool pending the
+  operator's decision; neither side is settled.
+end note
+
 package "FindCare — a satellite server" #fdfdfd {
   [UniversalNavigatorProxy\nrelays tool-to-tool both ways.\nHolds the metadata slice the main gave it.\nNo sessions, no ledger, no merge.\nRefuses work on stale metadata.] as PROXY
-  [FindCare tools\nprovider search, specialty filter,\nprovider detail] as TOOLS
+  [FindCare tools\nProviderSearch · SpecialtyFilter · Geo ·\nProviderDetail · ProviderSelection ·\nFacilitySearch · FacilityDetail · ClinicalTrials\n(page-scoped members; Geo runs parallel\nto the specialty/NUCC filter)] as TOOLS
 }
 
 database "ChatHealthyFrontEnd (Mongo)" as MONGO {
@@ -54,5 +65,24 @@ note right of UN
   (3) static_witness (none)  (4) client_sessioned (session)
   (5) internal_callback (our_signature). A tool throws;
   the navigator that called catches, logs, and answers.
+end note
+
+note bottom of GATE
+  OPEN QUESTION — REQ-B-001 dispatch location (do not resolve).
+  This design makes the Gate transport-only and the
+  UniversalNavigator the dispatcher. If REQ-B-001's text
+  places the dispatch on the Gate, the requirement and the
+  design disagree; the requirement is authoritative. The
+  reconciliation is the operator's (see the Refactor Plan).
+end note
+
+note bottom of SESS
+  OPEN QUESTION — where is a session issued? (do not resolve).
+  An unauthenticated op on the Gate keeps one entrance but
+  makes one op exempt from auth; a separate endpoint keeps
+  every op authenticated but adds a second entrance. Minting
+  a session confers nothing; RESUMING one must require
+  proof-of-possession of the prior token, not knowledge of
+  its id — orthogonal, and it holds either way.
 end note
 @enduml

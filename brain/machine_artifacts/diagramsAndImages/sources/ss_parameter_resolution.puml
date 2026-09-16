@@ -19,7 +19,8 @@ start
 :**Gate** (transport facade)
 collects the session token, the HTTP head, and the
 POST/GET parameters (each if present), and passes
-them to the UniversalNavigator. It knows nothing else;
+them through the **UniversalNavigatorProxy** to the
+UniversalNavigator. It knows nothing else;
 note right #f3f4f6
   One generic gate module, no routes of its own,
   the only component that knows transport exists.
@@ -42,12 +43,16 @@ end note
 against the may_call map and drives the route;
 
 :domain tools mine the parameter values out of the
-utterance, and if a complaint was named a specialty
-tool resolves the kinds of care giver that treat it;
+utterance. Running in parallel: **SpecialtyFilter**
+resolves the kinds of provider that treat a named
+complaint, and **Geo** resolves the free-text
+geography (misspellings included);
 note right #f3f4f6
   Tool answers ride the passed document. The
   UniversalNavigator tracks parameter state and
-  raises if two values conflict.
+  raises if two values conflict. SpecialtyFilter and
+  Geo are page-scoped members of individualProvider,
+  not pages; they run side by side.
 end note
 
 :**UniversalNavigator** completeness test:
@@ -61,17 +66,31 @@ note left #f3f4f6
 end note
 
 if (any required field unmet?) then (yes)
-  :**UniversalNavigator** dispatches the **prose tool**
-  with the facts: the names of the missing fields;
-  :**prose tool** authors the user-facing question,
-  returned as an internal callback;
+  :**UniversalNavigator** dispatches the author of the
+  user-facing question with the facts: the names of the
+  missing fields;
+  note right #fff7ed
+    **OPEN ARCHITECTURAL QUESTION — not resolved here.**
+    Is authoring the user-facing question the
+    **UtteranceManager's** own scope, or a separate
+    **Prose** tool? Both positions are live and the
+    diagram picks neither. Three approved requirements
+    place prose inside the UtteranceManager
+    (EPIC-002-F-010-S-001 author user_message,
+    EPIC-002-F-010-S-003 manufacture path,
+    EPIC-006-F-008-S-003 parameter writer); the tool
+    registry instance carries a 'Prose' route name.
+    The operator resolves which stands.
+  end note
+  :the question is authored and returned
+  as an internal callback;
   :**UniversalNavigator** merges the answer, and its
   **Gate** writes the one stream as kind 'prompt';
   stop
 else (no)
-  :**UniversalNavigator** dispatches the **provider search tool**
+  :**UniversalNavigator** dispatches **ProviderSearch**
   on what the passed document holds;
-  :**search tool** runs and returns the rows
+  :**ProviderSearch** runs and returns the rows
   as an internal callback;
   :**UniversalNavigator** merges as the ledger entry closes
   (timeout facts race the callback), and its

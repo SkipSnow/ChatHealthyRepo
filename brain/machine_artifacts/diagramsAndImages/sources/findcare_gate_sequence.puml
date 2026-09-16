@@ -16,7 +16,7 @@ participant "UtteranceManager" as UM
 participant "Tool\n(local)" as LOC
 participant "NavigatorProxy\n(satellite)" as PXY
 participant "Tool\n(satellite)" as SAT
-participant "Prose tool" as PROSE
+participant "Prose\n(own tool? or UM scope -- open)" as PROSE
 
 Person -> GATE : session token, HTTP head,\nPOST/GET params  (each if present)
 activate GATE
@@ -27,6 +27,13 @@ note over GATE #eef6f5
 end note
 GATE -> UN : token, head, params
 activate UN
+
+note over GATE, UN #fff7ed
+  OPEN (REQ-B-001, handed to C6): the requirement text may place
+  dispatch on the Gate. This design makes the Gate transport-only
+  and the UniversalNavigator the sole dispatcher. Requirement is
+  authoritative; the reconciliation is the operator's, not settled here.
+end note
 
 UN -> UN : session maintain / timeout / security\n(helper functions)
 note right of UN #f3f4f6
@@ -80,6 +87,16 @@ UN -> PROSE : the facts to say
 activate PROSE
 PROSE --> UN : the user-facing sentence
 deactivate PROSE
+note over UM, PROSE #fff7ed
+  OPEN ARCHITECTURAL QUESTION (not resolved here): is authoring the
+  user-facing prose -- and asking the user a question -- the
+  UtteranceManager's own scope, or a separate "Prose" tool?
+  Drawn here as two participants only to show both halves; that
+  layout is NOT a decision. Three approved requirements place prose
+  and the manufacture path inside UtteranceManager
+  (EPIC-002-F-010-S-001, -S-003, EPIC-006-F-008-S-003). The
+  registry instance also carries a "Prose" route. Operator's to settle.
+end note
 
 UN --> GATE : sequenced events, one at a time
 deactivate UN

@@ -64,6 +64,66 @@ CAND_FLOOR = 0.55
 
 UNLICENSED_GROUPS = {"Other Service Providers", "Student, Health Care"}
 
+# ── Facility macro-toggle buckets (EPIC-006-F-003, facility variant) ─────────
+# The facility filter offers three macro-toggles — Ambulatory, Inpatient,
+# Psychiatric — the way the care-giver filter offers Prescribers and
+# Homeopathic. Each is a MEMBERSHIP set, never a derivation and never a
+# regex (the specialty/RAG path forbids regex): a facility taxonomy is in a
+# bucket because its Grouping is in the bucket's Grouping set, or because its
+# code is in the curated psychiatric list. Equality and set membership only.
+AMBULATORY_GROUPING = "Ambulatory Health Care Facilities"
+INPATIENT_GROUPINGS = frozenset({
+    "Hospitals",
+    "Hospital Units",
+    "Nursing & Custodial Care Facilities",
+    "Residential Treatment Facilities",
+    "Respite Care Facility",
+})
+# The curated psychiatric set lives in data next to this module so the
+# curation can be tuned without a code change (see the file's own _note).
+FACILITY_PSYCHIATRIC_CODES_PATH = (
+    Path(__file__).resolve().parent / "facility_psychiatric_taxonomy_codes.json")
+
+
+def _facility_psychiatric_codes() -> frozenset[str]:
+    """The curated psychiatric/behavioral/substance-use facility codes.
+
+    Membership, not derivation: psychiatric cross-cuts NUCC Grouping, so it
+    is a hand-curated code list rather than a Grouping test. Read from the
+    config file next to this module; a psychiatric bucket that could not be
+    read is an empty bucket, not a fallback to some other rule.
+    """
+    with FACILITY_PSYCHIATRIC_CODES_PATH.open(encoding="utf-8") as f:
+        d = json.load(f)
+    return frozenset(str(c) for c in d.get("codes", []))
+
+
+def facility_groups(offered: list[dict]) -> dict:
+    """The facility macro-toggle code-sets the panel ticks as one gesture.
+
+    `offered` rows carry `code` and `grouping` (the SpecialtyMetaData
+    Grouping the funnel already projected). Each set is computed by
+    membership only: ambulatory and inpatient by Grouping equality/set
+    membership, psychiatric by the curated code list intersected with what
+    was offered. default_selected_codes is the whole offered set — a fresh
+    facility panel searches every offered type until the person narrows it
+    with a toggle, mirroring how the facility search already runs on every
+    offered code.
+    """
+    psych = _facility_psychiatric_codes()
+    all_codes = [r["code"] for r in offered if r.get("code")]
+    return {
+        "all_codes": all_codes,
+        "ambulatory_codes": [r["code"] for r in offered
+                             if r.get("code")
+                             and r.get("grouping") == AMBULATORY_GROUPING],
+        "inpatient_codes": [r["code"] for r in offered
+                            if r.get("code")
+                            and r.get("grouping") in INPATIENT_GROUPINGS],
+        "psychiatric_codes": [c for c in all_codes if c in psych],
+        "default_selected_codes": all_codes,
+    }
+
 
 class NormalizedRequest(BaseModel):
     """Stage 1's answer. Typed, so a malformed answer is rejected by
@@ -417,6 +477,10 @@ name, never the words they used, never a place.
                 "Display Name": doc.get("Display Name", ""),
                 "can_prescribe": doc.get("can_prescribe", False),
                 "homeopathic": doc.get("is_homeopathic", False),
+                # Carried so the facility variant can bucket by it via
+                # membership. The care-giver path never reads it; an extra
+                # key on the row costs it nothing.
+                "Grouping": doc.get("Grouping", ""),
                 "rank": rank,
             })
         log.info("filter: query=%r -> %d kept (from %d candidates)",

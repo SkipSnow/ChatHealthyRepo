@@ -15,6 +15,7 @@ actor "Third-party\n(e.g. OAuth provider)" as TP
 participant "Gate\n(facade)" as Gate
 participant "UniversalNavigator\n(SharedServices)" as UN
 participant "callback tool\n(route subscriber)" as Tool
+participant "UniversalNavigatorProxy\n(satellite)" as PXY
 
 TP -> Gate : inbound callback\nHTTP head + POST/GET params (no session token)
 note over Gate : Dumb transport: collects head + params,\nstreams the answer back.\nVerifies nothing, owns no route.
@@ -34,7 +35,9 @@ else witnessed
   UN -> Tool : dispatch on the third_party_callback route\n(dispatch signed out: our_signature)
   Tool -> TP : exchange the code using the kept credential (outbound)
   TP --> Tool : tokens / profile
-  Tool -> UN : internal_callback: completion carries our_signature back
+  Tool --> PXY : return document (our_signature attached)
+  PXY -> Gate : POST across the wire\nroute tool_completion, call_type internal_callback
+  Gate -> UN : pass(head, params, signature)
   note over UN : verify our_signature;\nclose this member's render-ledger entry
   UN -> UN : merge the returning document serially\n(shared deterministic merge)
 

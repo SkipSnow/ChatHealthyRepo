@@ -74,6 +74,7 @@ from find_care_facade import FindCareFacade
 from ProviderManagement.provider_search_service import FindCareService
 from SpecialtyFilter.filter import (
     SpecialtyFilter, SECTION_INDIVIDUAL, SECTION_ORGANIZATION,
+    facility_groups,
 )
 from ClinicalTrials.clinical_trials_service import ClinicalTrialsService
 from ProviderDetail.provider_detail_service import ProviderDetailService
@@ -654,6 +655,10 @@ def _facility_kinds(facility_type: str) -> list[dict]:
     return [{"code": row["Code"], "name": row["Display Name"],
              "can_prescribe": row.get("can_prescribe", False),
              "homeopathic": row.get("homeopathic", False),
+             # The Grouping the facility macro-toggles bucket by. Carried on
+             # the row so facility_groups reads membership off what the panel
+             # already holds, never a clinical field.
+             "grouping": row.get("Grouping", ""),
              "rank": row.get("rank", 0)}
             for row in resolved.get("specialties", [])]
 
@@ -774,6 +779,21 @@ async def facility_find(body: FacilityFindRequest):
             result["refinement_question"] = _question_for(
                 FACILITY_SEARCH_TOOL, unmet, known,
                 body.utterance, body.history)
+        # The facility-type filter panel, the facility mirror of the
+        # care-giver /specialty/find and /provider/find panels. A turn that
+        # named no facility type has not withdrawn the one already in force,
+        # so the panel is the offered set this turn produced or the one held
+        # on the session, and the group code-sets it ticks by gesture are
+        # computed here from Grouping membership + the curated psychiatric
+        # list (facility_groups; no regex).
+        panel_offered = offered or list(
+            in_force.get("offeredFacilityTypes") or [])
+        if panel_offered:
+            result["offered_facility_types"] = panel_offered
+            result["selected_facility_codes"] = codes
+            result["facility_type"] = (
+                mined.facility_type or str(in_force.get("facilityType") or ""))
+            result.update(facility_groups(panel_offered))
         return result
     except ChatHealthyException as exc:
         if exc.mode == "mongo_query_timeout":

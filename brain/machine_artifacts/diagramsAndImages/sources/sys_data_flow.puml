@@ -37,15 +37,27 @@ on every practice address;
 :urban_flag
 derives the urban marker from that RUCC;
 :post_load_reconciliation;
+note right
+  Full load only. The incremental path upserts present rows
+  and has no diff step, so an absent record's meaning is
+  undecided (delete-on-absence vs keep). Open -- BUG-006 / N58.
+end note
 :publish_provider
 renameCollection(dropTarget) swaps
 Provider_staging_v_N into place;
 :PipelinePublicHealthData.Provider_v_N
-PipelinePublicHealthData.SpecialtyMetaData_v_N|
+PipelinePublicHealthData.SpecialtyMetaData_v_N;
 note right
-  Every pipeline step writes here and nowhere else.
-  No pipeline code holds a credential for the
-  serving cluster, so it cannot reach it at all.
+  Core-business data family: in essence a PROVIDER table and a
+  NUCC / SpecialtyMetaData table, each with tunable parameters
+  used to find the right providers. The other two DB families,
+  technical/configuration and user/session, are out of this flow.
+  Cross-cutting: generations are VERSIONED (the _v_N suffix) in
+  real time. The served generation is a record value, not an
+  environment.
+  Every pipeline step writes here and nowhere else. No pipeline
+  code holds a credential for the serving cluster, so it cannot
+  reach it at all.
 end note
 
 |#e5e7eb|Release — a person decides|
@@ -79,18 +91,34 @@ as PipelineToFrontEndPublicDataMigrator;
 :insert_many into PublicHealthData under the same name
 create-only: it refuses if the destination exists;
 note right
-  This is the only path between the two clusters,
-  and the migrator holds no update, no delete and
-  no drop on either. A fault here can add data and
-  can never alter what is already serving people.
+  This is the only cross-cluster path, and the migrator holds no
+  update, no delete and no drop on either. A fault in the migrator
+  can add data and can never alter or remove what is already
+  served. Other writers are a separate, open question -- see below.
 end note
 :PublicHealthData.Provider_v_N
-PublicHealthData.SpecialtyMetaData_v_N|
+PublicHealthData.SpecialtyMetaData_v_N;
+note right
+  Legacy env-prefixed FindCare databases (dev_/qa_/prod_
+  PublicHealthData, *_System, qa_repo, *_Debug) are the residue of
+  the pre-versioning era. Under real-time versioning they are
+  garbage and MUST be pruned (N12).
+  OPEN (N19): does served data have two writers by design? The app
+  request path writes the served record on detail-open
+  (EPIC-006-F-002-S-002-REQ-B-018) against migration-only
+  (EPIC-010-F-108-S-001-REQ-B-002). Both approved and done.
+  Not resolved here.
+end note
 
 |FindCare|
 :runtime_data_collections reads
 ChatHealthyConfig.DBVersions to learn which
 version this environment serves;
+note right
+  OPEN (N20): two records claim to say "what is published" --
+  ChatHealthyConfig.DBVersions (read here) and the tool-registry
+  instance. Which is authoritative is unresolved.
+end note
 fork
   :SpecialtyFilter runs $vectorSearch
 on specialty_vector_index;

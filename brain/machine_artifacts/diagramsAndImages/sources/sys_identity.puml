@@ -129,6 +129,18 @@ note bottom of CCA
   capability is reachable by a second, unconditioned
   assignment at a higher scope, so the condition is
   applied and governs nothing.
+  ----
+  OPEN DECISION (the operator's, not settled here):
+  is the intended privilege the declared constrained
+  chatHealthyAgent role, or the held union — the same
+  role plus unconditioned Owner and User Access
+  Administrator? The picture states the divergence; it
+  does not choose.
+  If the constrained role is what is meant, three
+  ordered acts close it:
+  (1) restore the withheld actions on the role definition,
+  (2) remove the unconditioned subscription-scope assignment,
+  (3) remove the tenant-root assignment.
 end note
 
 note bottom of CCU

@@ -108,20 +108,28 @@ function buildDetailHtml(data: any): string {
        </div>`
     : ''
   const rs = p.research_sites || {}
+  // A facility detail (entity_type "2") shows the Research header with no
+  // links under it: facility research is a later iteration, and the
+  // per-site destinations (Healthgrades, NPI Registry, state health
+  // departments) are the care-giver detail's. The individual detail
+  // (entity_type "1") keeps its links unchanged.
+  const isFacility = Boolean(p.is_facility)
   // Every destination carries a URL: the detail service builds a site
   // only when it has one, and surfaces an unresolved state separately
   // rather than emitting a destination that goes nowhere.
   const rsEntries = Object.keys(rs).map(k => rs[k])
-  const research = rsEntries.length
-    ? rsEntries.map((s: any) =>
-        `<div style="margin:0.3em 0;">
-           <a href="${_esc(s.url || '')}" target="_blank" rel="noopener noreferrer"
-              style="color:#0b7a75;text-decoration:underline;font-weight:600;">${_esc(s.name || '')}</a>
-           ${s.guidance
-             ? `<div style="font-size:0.85em;color:#6b7280;margin-top:0.1em;">${_esc(s.guidance)}</div>`
-             : ''}
-         </div>`).join('')
-    : '<div style="color:#6b7280;font-style:italic;">None on file.</div>'
+  const research = isFacility
+    ? ''
+    : (rsEntries.length
+      ? rsEntries.map((s: any) =>
+          `<div style="margin:0.3em 0;">
+             <a href="${_esc(s.url || '')}" target="_blank" rel="noopener noreferrer"
+                style="color:#0b7a75;text-decoration:underline;font-weight:600;">${_esc(s.name || '')}</a>
+             ${s.guidance
+               ? `<div style="font-size:0.85em;color:#6b7280;margin-top:0.1em;">${_esc(s.guidance)}</div>`
+               : ''}
+           </div>`).join('')
+      : '<div style="color:#6b7280;font-style:italic;">None on file.</div>')
   return `
     <div style="padding:0.75em 1em;">
       <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:0.5em;">

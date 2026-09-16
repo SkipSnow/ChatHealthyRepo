@@ -1,0 +1,133 @@
+@startuml
+skinparam shadowing false
+skinparam defaultFontName Segoe UI
+skinparam defaultFontSize 11
+skinparam ArrowColor #0b7a75
+skinparam ComponentBorderColor #0b7a75
+skinparam DatabaseBorderColor #6b7280
+skinparam NoteBackgroundColor #f3f4f6
+skinparam NoteBorderColor #9ca3af
+skinparam ClassBorderColor #0b7a75
+skinparam ClassBackgroundColor #ffffff
+skinparam PackageBorderColor #6b7280
+
+title The logical data model — the data ChatHealthy preserves, grouped by family. Front-end cluster OBSERVED read-only 2026-09-15; the ChatHealthyDataPipelines cluster was PAUSED and could not be enumerated.
+
+legend top left
+  <b>Families</b> (colour = family)
+  <back:#e8f3f1>Config / technical</back>   <back:#eef2ff>User / session</back>   <back:#eafaf0>Core business (versioned)</back>
+  <back:#fef9e7>Operational facts</back>   <back:#fdecea>Legacy / migration (prune)</back>
+endlegend
+
+package "Atlas cluster  ChatHealthyFrontEnd  —  OBSERVED (read-only, claudeCodeAgent, 2026-09-15)" as FE {
+
+  class "ChatHealthyConfig" as CFG #e8f3f1 {
+    <b>DBVersions</b>  — the version binding rows
+    ToolRegistry / ToolConfiguration  — live tool/route/page map
+    ParameterDeclaration
+    LibraryPermissions
+    CertificateRegistry
+    security_test
+  }
+
+  class "Users" as USR #eef2ff {
+    users
+    sessions
+    prospects
+    UserLockOutUtterances  — UPPERCASED utterance + count
+    _probe_ch / security_test
+    <i>NEVER drop</i>
+  }
+
+  class "PublicHealthData" as PHD #eafaf0 {
+    <b>Provider_v_4</b>  — the PROVIDER table
+    <b>SpecialtyMetaData_v_4</b>  — the NUCC table
+    <i>versioned (_v_N), bound by DBVersions — NEVER drop</i>
+  }
+
+  class "ClaudeCodeUtterances" as CCU #fef9e7 {
+    utterances  — conversation archive
+  }
+  class "DevOpsAdmin" as DOA #fef9e7 {
+    Authorizations
+    GrantProbe
+  }
+  class "frontEndAdmin" as FEA #fef9e7 {
+    BuildVersions
+    PackageBuilds
+  }
+  class "pipelineAdmin  (20 collections)" as PAD #fef9e7 {
+    Authorizations, CertificateRegistry, Counters
+    DataMigrationServiceMutex, DataSourceRegistry
+    Log, PipelineConfig, cluster_lifecycle
+    pipeline.*  ...
+  }
+  class "chathealthypipelines" as CHP #fef9e7 {
+    pipeline.discrepancy_reports
+    pipeline.run_counters
+  }
+  class "FrontEndLogs" as FEL #fef9e7 {
+    ChatHealthyLogs_dev
+    ChatHealthyLogs_local
+  }
+
+  class "Legacy env-prefixed DBs" as LEG #fdecea {
+    dev_/qa_/prod_/local_  AboutUs
+    dev_/qa_/prod_/local_  Debug
+    dev_/qa_/prod_/local_  Safety
+    dev_/qa_  System   ·   *_admin
+    provider_v03 / providers (in PublicHealthData)
+    <i>constructed at runtime as {env}_*</i>
+  }
+}
+
+package "Atlas cluster  ChatHealthyDataPipelines  —  PAUSED (reaper down); NOT OBSERVED" as PIPE #fdf2f2 {
+  class "PipelinePublicHealthData  (build store)" as BUILD #eafaf0 {
+    <i>the staging/build side of the core-business tables</i>
+    <i>DECLARED from deployment_architecture.json and code;</i>
+    <i>live enumeration blocked by Rule-006-ENF-001</i>
+  }
+}
+
+CFG ..> PHD : DBVersions selects the served generation in real time
+PHD ..> BUILD : migration lifts one generation, front cluster <- pipeline cluster
+CFG .[#6b7280].> BUILD : ChatHealthyConfig referenced against BOTH clusters — host unconfirmed
+
+note right of PHD
+  Core business reduces to two tables with tunable
+  parameters: a PROVIDER table and a NUCC / SpecialtyMetaData
+  table. The specialty + geo funnel selects from them to
+  present the right providers. The same shape is argued to
+  carry EvaluateCare (subject table + quality-measure
+  catalogue + a mixing board).
+end note
+
+note bottom of BUILD
+  <b>STANDING DEFICIENCY — the physical model is DECLARED, not observed for this cluster.</b>
+  The front-end cluster above is
+  the observed truth (00_observed_inventory.md). This cluster
+  was paused for cost and the read-only enumeration was
+  refused by the tool-use gate, so nothing here asserts a live
+  collection's contents.
+end note
+
+note bottom of LEG
+  The residue of the no-data-management era, before real-time
+  versioning. Under versioning the served generation is a
+  binding-row choice, never a database name, so every
+  env-prefixed store is garbage. Prune per family AFTER the
+  code that still writes {env}_* is retired.
+  (prod_Safety.emergency_incidents and prod_AboutUs are REAL
+  and are never dropped.)
+end note
+
+note as OPS
+  <b>Operational facts</b> live on the always-up front-end
+  cluster on purpose — run records, reservations, locks,
+  findings, build/deploy facts, logs and the conversation
+  archive must be readable while the build store is paused.
+end note
+PAD .. OPS
+CCU .. OPS
+
+@enduml

@@ -23,7 +23,7 @@ skinparam sequence {
   GroupBorderColor #0b7a75
 }
 
-title FindCare provider search + EvaluateCare handoff\nTarget front-application architecture · 2026-09-14
+title FindCare provider search + EvaluateCare handoff\nTarget front-application architecture · 2026-09-15
 
 actor "Consumer" as user
 
@@ -37,12 +37,12 @@ participant "Prose\ntool" as prose
 end box
 
 box "FindCare  (satellite)" #f3f4f6
-participant "Nav\nProxy" as fcpx
+participant "Universal\nNavigator\nProxy" as fcpx
 participant "provider_\nsearch" as ps
 end box
 
 box "EvaluateCare  (satellite)" #f3f4f6
-participant "Nav\nProxy" as ecpx
+participant "Universal\nNavigator\nProxy" as ecpx
 participant "evaluate_\nproviders" as ev
 end box
 
@@ -82,7 +82,18 @@ db -> ps : 25 providers (347 total)
 ps -> fcpx : result
 fcpx -[#0b7a75]> nav : internal_callback (our_signature)\ncloses ledger entry
 
-== 4. Prose is a separate tool ==
+== 4. Prose — user-facing sentence ==
+
+note over um, prose #fff3cd
+  OPEN ARCHITECTURAL QUESTION (not resolved here):
+  is authoring user-facing prose / asking the user a
+  question the UtteranceManager's own scope, or a
+  separate Prose tool? Three approved requirements
+  place prose+params inside the UtteranceManager
+  (EPIC-002-F-010-S-001, -S-003, EPIC-006-F-008-S-003).
+  This diagram draws Prose as a separate tool; it does
+  NOT settle which side stands.
+end note
 
 nav -> prose : dispatch(facts)
 prose -> llm : author sentence

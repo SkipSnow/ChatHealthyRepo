@@ -54,11 +54,37 @@ end note
 note as ABSENCE #fff4e5
   The absences are the subject.
 
-  There is no arrow from source to a running target,
-  no arrow from a commit to an environment, and no
-  fifth act. Anything that reaches a remote system by
-  another path is outside this model -- and what the
-  firm found is that such paths existed and no gate
-  objected, because every gate asks whether what SHIPS
-  is declared and none asks whether what RUNS is.
+  There is no arrow from source to a running target and
+  no arrow from a commit to an environment. These four
+  acts govern CODE only.
+
+  Data reaches a served store by ONE further governed
+  act -- a data migration (EPIC-010-F-108): human-released,
+  server-side, moving a published generation from the
+  pipeline cluster to the served cluster under its own
+  name. It is governed by the Data Architecture chapter,
+  NOT by this chain. It is a sanctioned separate path,
+  not a fifth code act -- so it is not one of the defects
+  below.
+
+  Every OTHER path that reaches a remote system is outside
+  this model. The firm found such paths existed -- hand
+  edits to Azure, Atlas, Key Vault, runbooks -- and no gate
+  objected, because every gate asks whether what SHIPS is
+  declared and none asks whether what RUNS is. That reverse
+  direction is BUG-008 and is still open (N32, N38, N56).
 end note
+
+note as AUTH #eef2ff
+  OPEN (G-1, register row 2) -- not resolved here.
+  Each authorisation above is a value the governed
+  process supplies on the same workstation that issues
+  the act. What channel carries an authorisation the
+  workstation cannot originate is unsettled; one function
+  stands behind commit, promote, deploy AND the data
+  migration, so one decision fixes all four.
+  Drawn forgeable in pipe_release_gate (gate 1) and
+  sys_identity. Owned by chapter C1.
+end note
+
+@enduml

@@ -12,7 +12,7 @@ skinparam componentStyle rectangle
 skinparam PackageBorderColor #9ca3af
 skinparam ArtifactBorderColor #6b7280
 
-title A requirement is stated against a tool; a value lives on a page. SpecialtyFilter serves two pages and holds different values on each.
+title A requirement is stated against a tool; a value lives on a page.\nThe SpecialtyFilter funnel serves two pages — individualProvider and facility — and holds different values on each.
 
 package "The declaration — the registry entry\n(one record, generated from source at build)" {
   component "tool: SpecialtyFilter\n(its entry in the registry)" as Tool #dcfce7
@@ -21,8 +21,8 @@ package "The declaration — the registry entry\n(one record, generated from sou
   artifact "offeredSpecialties — input field, Optional" as POffered
   artifact "selectedSpecialtyCodes — input field, Optional" as PSelected
 
-  component "page: individualProvider\nProviderSearch, SpecialtyFilter,\nProviderDetail, ProviderSelection" as PageIP #f3f4f6
-  component "page: NUCC\nSpecialtyFilter" as PageNUCC #f3f4f6
+  component "page: individualProvider\nProviderSearch, SpecialtyFilter,\nProviderDetail, ProviderSelection, Geo" as PageIP #f3f4f6
+  component "page: facility\nFacilitySearch, SpecialtyFilter\n(facility NUCC filter),\nFacilityDetail, Geo" as PageFAC #f3f4f6
 }
 
 PComplaint -down-> Tool : input field of
@@ -30,51 +30,59 @@ POffered -down-> Tool : input field of
 PSelected -down-> Tool : input field of
 
 Tool -down-> PageIP : composed into
-Tool -down-> PageNUCC : composed into
+Tool -down-> PageFAC : composed into
 
 note right of Tool
   Stated once, against the tool, and never against a page.
   The required flags are the tool's prerequisites: the
   UniversalNavigator's completeness test reads the passed
   document against them before it dispatches.
-  A page carries several tools — a search, a chooser, a
-  detail, a selection — each with its own answer, and the
-  search runs before any record is opened. Requiring the
-  detail's parameter of the page would stop the search that
-  comes first.
+  A page carries several tools — a search, the specialty
+  funnel, a Geo resolver, a detail, a selection — each with
+  its own answer, and the search runs before any record is
+  opened. Requiring the detail's parameter of the page would
+  stop the search that comes first.
+  Detail and Geo are MEMBERS of a page, never pages
+  themselves; the only pages are individualProvider,
+  facility and clinicalTrial.
 end note
 
 database "The session\nuserParameters.pages" as Session
 
 package "values, one set per page" {
-  artifact "pages.individualProvider\n  complaint\n  selectedSpecialtyCodes\n  state / city / county / zip\n  providerName, providerSex,\n  soleProprietor, insurance\n  openNpi" as VIP #fef3c7
-  artifact "pages.NUCC\n  complaint\n  offeredSpecialties\n  selectedSpecialtyCodes" as VNUCC #fef3c7
+  artifact "pages.individualProvider\n  complaint\n  selectedSpecialtyCodes\n    (Prescribers / Homeopathic toggles,\n     Individual partition)\n  state / city / county / zip\n  providerName, providerSex,\n  soleProprietor, insurance\n  openNpi" as VIP #fef3c7
+  artifact "pages.facility\n  complaint\n  offeredFacilityTypes\n  selectedTaxonomyCodes\n    (Ambulatory / Psychiatric / Inpatient\n     toggles, Non-Individual partition)\n  state / city / county / zip\n  facilityName, administratorName\n  openNpi" as VFAC #fef3c7
 }
 
 Session -down-> VIP
-Session -down-> VNUCC
+Session -down-> VFAC
 
 PageIP ..> VIP : its scope
-PageNUCC ..> VNUCC : its scope
+PageFAC ..> VFAC : its scope
 
 component "/provider/find\nclient_sessioned route" as RIP
-component "/specialty/find\nclient_sessioned route" as RNUCC
+component "/facility/find\nclient_sessioned route" as RFAC
+component "/specialty/find\nclient_sessioned route\n(the shared funnel)" as RSF
 
-RIP -up-> VIP : writes complaint and\nselectedSpecialtyCodes here
-RNUCC -up-> VNUCC : writes complaint, offeredSpecialties\nand selectedSpecialtyCodes here
+RIP -up-> VIP : writes complaint and\nprovider search parameters here
+RFAC -up-> VFAC : writes facility search\nparameters here
+RSF -up-> VIP : ticks selectedSpecialtyCodes\non the active provider page
+RSF -up-> VFAC : ticks selectedTaxonomyCodes\non the active facility page
 
 component "UniversalNavigator\ncodes_in_force() — parameters + state" as Reader
 
 Reader -up-> VIP : reads selectedSpecialtyCodes first
-Reader -up-> VNUCC : falls back to offeredSpecialties
+Reader -up-> VFAC : reads selectedTaxonomyCodes first
 
 note bottom of Reader
   The navigator tracks all parameters and their state; a
-  conflict is an exception. The same three names on two
-  pages hold two different answers. Nothing chosen on the
-  care-giver page means the person has not narrowed, so the
-  whole set the NUCC panel offered still applies. Neither
-  page could express that if a value had one home.
+  conflict is an exception. The one SpecialtyFilter funnel,
+  ticked on two partitions, produces two answers held under
+  two different field names. Nothing chosen means the person
+  has not narrowed, so the whole offered set still applies —
+  offeredSpecialties on the provider page, offeredFacilityTypes
+  on the facility page. Neither page could express that if a
+  value had one home.
 end note
 
 note bottom of VIP
@@ -83,13 +91,31 @@ note bottom of VIP
   trial equivalent, is declared. Drawn as the code does it.
 end note
 
-note bottom of RNUCC
-  This page finds nobody. It is where a person waits while
-  their geography is not yet usable, so what it produces is
-  the panel and the codes it is ticked with, and nothing
-  else. A turn naming no complaint does not withdraw the one
-  already in force — repainting the panel empty would take
-  the person's choices away.
+note bottom of VFAC
+  The facility page mirrors the individual page: its NUCC
+  filter offers three macro-toggles — Ambulatory, Psychiatric,
+  Inpatient — over the Non-Individual taxonomy partition, as
+  the individual page offers Prescribers and Homeopathic over
+  the Individual partition. Geo runs parallel to the funnel on
+  both pages, resolving free-text geography including
+  misspellings; it paints nothing until maps are built.
+end note
+
+note bottom of RSF
+  OPEN (for chapter C5, not settled here): the ability for
+  more than one route to write a parameter is fixed by
+  approved requirement, but the practice is not. Whether the
+  two live write paths converge to one, and whether a value
+  carries over between pages, are the operator's to decide;
+  the diagram shows the paths as the code runs them today.
+end note
+
+note as Footnote #eef2ff
+  Depicts the current architecture iteration. The built
+  registry instance (build 2292, commit 55c6060e0) lists
+  SpecialtyFilter as a member of individualProvider only; the
+  facility NUCC filter member post-dates that instance and is
+  shown here per the current iteration.
 end note
 
 @enduml

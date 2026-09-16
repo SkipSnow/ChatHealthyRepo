@@ -10,26 +10,30 @@ skinparam StateBackgroundColor #fdfdfd
 skinparam NoteBackgroundColor #f3f4f6
 skinparam NoteBorderColor #9ca3af
 
-[*] --> Expected : navigator dispatches;\nrecords the expectation
+[*] --> Expected : UniversalNavigator dispatches;\nrecords the expectation in the ledger
 
 state Expected #fdfdfd
 state "Closed" as Closed #eef6f5
 state "Timed out" as TimedOut #f9efef
 state Responded #fdfdfd
+state "Raised" as Raised #f6e0e0
 
 Expected --> Closed : internal_callback arrives,\nour_signature verified
-Expected --> TimedOut : a timeout fact wins\nthe race (render /\ncallback / external_call)
+Expected --> TimedOut : completeness.render_timeout_seconds\nwins the race (render /\ncallback / external_call)
+Expected --> Raised : a REQUIRED member dies\n(raise + instrumented)
 
-Closed --> Responded : merged (serial, deterministic);\na conflict is an exception
+Closed --> Responded : merged (serial, deterministic)
+Closed --> Raised : page-merge conflict\n(raise + instrumented)
 TimedOut --> Responded : the navigator answers\nwhether or not the page rendered
 
 Responded --> [*]
+Raised --> [*]
 
 note right of Expected
   One entry per dispatched piece of work.
-  The completion callback closes it, or a
-  configurable timeout fact closes it first —
-  whichever wins the race.
+  The completion callback closes it, or the
+  page's completeness.render_timeout_seconds
+  closes it first — whichever wins the race.
 end note
 
 note right of TimedOut
@@ -39,9 +43,19 @@ note right of TimedOut
   where useful, asks the person to retry.
 end note
 
+note right of Raised
+  Two conditions raise and are instrumented:
+  a page-merge conflict, and a dead REQUIRED
+  member. Both are governance exceptions,
+  not user-facing prose.
+end note
+
 note bottom of Responded
-  A page is complete when its entries are.
-  The navigator holds the ledger; a satellite's
-  tools answer through the proxy as callbacks.
+  A page reconciles when every required_member
+  closes OR render_timeout_seconds expires
+  (per the registry page's completeness).
+  The UniversalNavigator holds the ledger;
+  a satellite's tools answer through the
+  UniversalNavigatorProxy as callbacks.
 end note
 @enduml

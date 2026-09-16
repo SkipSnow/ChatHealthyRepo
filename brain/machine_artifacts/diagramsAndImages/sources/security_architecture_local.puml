@@ -9,7 +9,7 @@ skinparam DatabaseBorderColor #6b7280
 skinparam NoteBackgroundColor #f3f4f6
 skinparam NoteBorderColor #9ca3af
 
-title ChatHealthy.ai — Local Security Architecture\nProof-per-route front application in Docker — 2026-09-14
+title ChatHealthy.ai — Local Security Architecture\nProof-per-route front application in Docker — 2026-09-15
 
 ' ── the five incoming call types originate outside the host ──
 actor "Consumer\n(Browser)" as user
@@ -21,8 +21,8 @@ package "Skip's PC — Docker (localhost)" as host <<physical>> #eef6f5 {
   package "SharedServices container :8002" as c_ss #fdfdfd {
     component [Gate — transport facade\nTLS term • collect token + head + params\nproof: route known? verify or refuse\nthe only node knowing transport exists] as gate_ss
     component [UniversalNavigator (the main)\nthe only node accepting external traffic\nsessions • timeouts • render ledger\nserial deterministic merge\ninstruments every failure] as nav
-    component [UtteranceManager\npreamble + registry fragments\n→ dispatch set (parallel)] as um
-    component [ProseTool\nfacts → user sentence] as prose
+    component [UtteranceManager\nclassify: preamble + registry fragments\n→ dispatch set (parallel)] as um
+    component [Prose\nfacts → user sentence\n(open: own tool, or UM's scope?)] as prose
     component [Shared tools\nSafety • Consent • Lead\nUnknownQ • About • URLGuardian] as shared
     component [SecretManager\nx509 → Key Vault • in-memory only] as secrets
     component [ChatHealthyMongoUtilities] as mongo_util
@@ -56,6 +56,17 @@ gate_ss --> nav : token + head + params
 nav --> um : utterance → routes
 nav --> prose : facts
 nav --> shared : dispatch (tool_to_tool)
+
+note bottom of prose
+  **OPEN ARCHITECTURAL QUESTION — not resolved here**
+  Is asking the user a question a separate Prose tool
+  (drawn), or the UtteranceManager's own scope
+  (classify + prose)? Three approved requirements place
+  prose/manufacture/parameters inside UM. The registry
+  instance also carries a `Prose` route name. The
+  architecture will not move a requirement; the side is
+  the operator's to pick.
+end note
 
 ' ── cross the wire to a satellite: signed out, signed back ──
 nav --> gate_fc : dispatch signed out\ninternal_callback (our_signature)

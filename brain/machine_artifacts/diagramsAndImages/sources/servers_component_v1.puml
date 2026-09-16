@@ -1,5 +1,5 @@
 @startuml
-title ChatHealthy.ai - Servers Component Diagram (v2)\n2026-09-14 - target front-application architecture
+title ChatHealthy.ai - Servers Component Diagram (v3)\n2026-09-15 - target front-application architecture (current iteration)
 
 skinparam componentStyle rectangle
 skinparam shadowing false
@@ -18,16 +18,21 @@ actor "User\n(Browser)" as user
 package "SharedServices container - the main" as ss #eef6f5 {
   component "Gate (facade)\nweb-server transport only\nthe only node that knows transport exists\nenters the registry as a pseudo_tool" as gate_ss
   component "UniversalNavigator (main)\nreads the map, drives the route\nparameters + state, render ledger,\ndeterministic merge, sessions, external calls\nthe ONLY node that accepts external traffic\nholds no data" as nav
-  component "UtteranceManager (tool)\nutterance -> dispatch set (non-blocking)\npreamble + registry fragments, one model call\nknows no parameters" as um
-  component "user_message (tool)\nthe navigator hands it the facts\nreturns the user-facing sentence" as prose
+  component "UtteranceManager (tool)\nclassify only: utterance -> dispatch set (non-blocking)\npreamble + registry fragments, one model call\nknows no parameters" as um
+  component "user_message / Prose (tool?)\nnavigator hands it the facts,\nreturns the user-facing sentence\n** placement is an OPEN QUESTION - see note **" as prose
 }
 
 package "FindCare container - satellite" as fc #fdfdfd {
   component "Gate (facade)" as gate_fc
   component "UniversalNavigatorProxy\nrelays both ways, tool-to-tool only\nholds its metadata slice\nrefuses stale metadata" as proxy_fc
-  component "provider_search" as t_search
-  component "provider_detail" as t_pd
-  component "clinical_trials" as t_ct
+  component "provider_search\nindividualProvider (required)" as t_search
+  component "specialty_filter\nNUCC funnel - member of\nindividualProvider (Prescribers/Homeopathic)\nAND facility (Ambulatory/Psychiatric/Inpatient)" as t_sf
+  component "provider_detail\nindividualProvider\n(also serves facility_detail via entity_type '2')" as t_pd
+  component "provider_selection\nindividualProvider" as t_psel
+  component "geo\npage-scoped: individualProvider + facility\nresolves free-text geography incl. misspellings\nruns parallel to specialty_filter" as t_geo
+  component "facility_search\nfacility (required)" as t_fs
+  component "facility_detail\nfacility (view/member)" as t_fd
+  component "clinical_trials\nclinicalTrial (required)" as t_ct
 }
 
 package "EvaluateCare container - satellite" as ec #fdfdfd {
@@ -37,9 +42,10 @@ package "EvaluateCare container - satellite" as ec #fdfdfd {
   component "evalcare_splash" as t_es
 }
 
-database "Tool Registry\none live doc per env" as registry
-database "MongoDB FrontEnd\nsessions + render ledger rows" as mongo_fe
-database "MongoDB Pipeline\nprovider / specialty" as mongo_pipe
+database "Tool Registry\nChatHealthyConfig.ToolConfiguration\none live doc per env\ntools + routes + PAGES (members /\nrequired_members / completeness)\ninstance{build,commit,env,live}" as registry
+database "MongoDB FrontEnd\nChatHealthyFrontEnd.Users\nsessions + render ledger rows" as mongo_fe
+database "Served data\nChatHealthyFrontEnd.PublicHealthData\nProvider + SpecialtyMetaData\nversion-bound via ChatHealthyConfig.DBVersions" as mongo_served
+database "Pipeline (build side)\nChatHealthyDataPipelines.PipelinePublicHealthData\nNOT read at runtime" as mongo_pipe
 
 user --> gate_ss : client session / static witness /\nthird-party callback
 gate_ss --> nav : token + head + params
@@ -59,16 +65,26 @@ gate_fc --> proxy_fc
 gate_ec --> proxy_ec
 
 proxy_fc --> t_search : function call
+proxy_fc --> t_sf
 proxy_fc --> t_pd
+proxy_fc --> t_psel
+proxy_fc --> t_geo
+proxy_fc --> t_fs
+proxy_fc --> t_fd
 proxy_fc --> t_ct
 proxy_ec --> t_ep
 proxy_ec --> t_es
 
 t_pd ..> proxy_fc : may_call (a DAG)
 
-t_search --> mongo_pipe : provider / specialty
-t_pd --> mongo_pipe
-t_ct --> mongo_pipe
+t_search --> mongo_served : provider / specialty (served, version-bound)
+t_sf --> mongo_served
+t_pd --> mongo_served
+t_fs --> mongo_served
+t_fd --> mongo_served
+t_ct --> mongo_served
+
+mongo_pipe ..> mongo_served : migration (human-released, name-preserving)\nEPIC-010-F-108 - not a runtime path
 
 note right of nav
   Five incoming call types, all mapped:
@@ -76,6 +92,9 @@ note right of nav
   static_witness, client_sessioned,
   internal_callback. Each route carries
   its proof and its timeout facts.
+  Render ledger governs paint: reconciles a
+  page when every required_member closes OR
+  completeness.render_timeout_seconds expires.
 end note
 
 note bottom of registry
@@ -83,6 +102,38 @@ note bottom of registry
   Presence is the allowlist; subscriptions are
   the dispatch table; may_call is the call map;
   prompt fragments assemble the routing table.
+  Pages carry members / required_members /
+  completeness (three pages: individualProvider,
+  facility, clinicalTrial - details/filter/geo
+  are page members, never pages).
+end note
+
+note top of prose
+  OPEN ARCHITECTURAL QUESTION (do not resolve here):
+  is asking the user a question the UtteranceManager's
+  own scope, or a separate "Prose" tool? Three approved
+  requirements place prose + parameters inside the UM:
+  EPIC-002-F-010-S-001 (author user_message),
+  EPIC-002-F-010-S-003 (manufacture path),
+  EPIC-006-F-008-S-003 (a parameter writer).
+  Drawn here as a separate tool = the target position,
+  NOT a decision. Operator's to settle.
+end note
+
+note bottom of fc
+  Current-state caveats (targets shown above):
+  - facility page is newly added; its NUCC filter
+    (Ambulatory/Psychiatric/Inpatient) is the
+    specialty_filter funnel on the Non-Individual
+    partition, mirroring Prescribers/Homeopathic
+    on individualProvider - it is not a separate tool.
+  - facility_search_tool.py currently ships dead and
+    facility tools live under sharedServices/Code, not
+    FindCare/ (no feature directory yet) - N44/N47.
+  - facility_detail has no own tool today: served by
+    provider_detail with entity_type '2'.
+  - geo currently sits in the shared library every
+    front-end component installs (BUG-003 / N27, open).
 end note
 
 @enduml

@@ -1,5 +1,5 @@
 @startuml
-title The classifier goes away — and this is the classifier: preamble + fragments, one call
+title The classifier goes away — and this is the classifier: preamble + fragments, one call (temperature 0)
 
 skinparam componentStyle rectangle
 skinparam shadowing false
@@ -11,7 +11,7 @@ skinparam DatabaseBorderColor #6b7280
 skinparam NoteBackgroundColor #f3f4f6
 skinparam NoteBorderColor #9ca3af
 
-database "ToolRegistry\n(the live record for this env)" as REG #eef6f5
+database "ToolRegistry\n(the live record for this env:\ninstance{build,commit,env,live})" as REG #eef6f5
 
 package "Per tool, declared in source" #fdfdfd {
   [ProviderSearch\nUTTERANCE_MANAGER_PROMPT] as F1
@@ -19,10 +19,12 @@ package "Per tool, declared in source" #fdfdfd {
   [LockoutTool\nNOT_UTTERANCE_ROUTABLE] as F3
 }
 
-[UtteranceManager\nown entry = the preamble\n(cached system prompt)] as UM
-[One model call] as CALL
+[UtteranceManager\nown entry = the preamble\n(cached system prompt)\nclassify + prose only] as UM
+[One model call\ntemperature 0] as CALL
 [UniversalNavigator\nvalidates routes against may_call,\nthen dispatches] as UN
 [Dispatch\n(parallel, non-blocking)] as DISP
+
+database "Users.UserLockOutUtterances\n(UPPERCASED utterance + count)" as LOCK #eef6f5
 
 F1 -down-> REG : fragment
 F2 -down-> REG : fragment
@@ -33,15 +35,34 @@ UM -down-> CALL : preamble + every fragment + the utterance
 CALL -down-> UN : routes out — the dispatch set
 UN -down-> DISP
 
+' Safety lockout is layered — deterministic on the known, temperature-0 model on the unknown
+LOCK -[#b45309]right-> CALL : exact UPPERCASED repeat =\ndeterministic lockout (no model)
+CALL -[#b45309]down-> LOCK : an enforced lockout records\nthe UPPERCASED utterance (+count)
+
 note right of UM
   The UtteranceManager knows NO parameters.
   It sees an utterance and answers with routes.
+  ---
+  OPEN ARCHITECTURAL QUESTION (unresolved):
+  is asking the user a question the UtteranceManager's
+  own scope (classify + prose here), or a separate
+  "Prose" tool? Three approved requirements place prose
+  inside it (EPIC-002-F-010-S-001 / -S-003, EPIC-006-F-008-S-003);
+  the operator's to decide. Do not pick a side.
 end note
 
 note right of F3
   A tool declares exactly one of the two.
   Silence refuses the build, so a safety
   tool's unreachability is a decision.
+  ---
+  Safety lockout is layered, not one
+  non-deterministic call. The model decides
+  the UNKNOWN (temperature 0). A curated,
+  crowd-sourced exact-match list decides the
+  KNOWN: ChatHealthy staff review a monthly
+  frequency-ordered report and promote learned
+  utterances to trusted deterministic triggers.
 end note
 
 note bottom of UN

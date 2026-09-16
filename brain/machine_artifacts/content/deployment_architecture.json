@@ -1751,7 +1751,7 @@
           "source_location": "FindCare/Code/app.py",
           "handler_type": "python_source",
           "disposition": "referenced",
-          "content_hash": "95f4aabf5099b6e94b7504ac7dc1dea38da8f1a01ab2ecd59e7342fe48c86f49",
+          "content_hash": "95dac41c7f318697e0be7c5bb2d4f41dad049170400020cef63b717315fc3235",
           "package": "service_runtime"
         },
         {
@@ -1855,7 +1855,7 @@
           "source_location": "Website/FindCareChat/src/App.tsx",
           "handler_type": "static_asset",
           "disposition": "referenced",
-          "content_hash": "d2c67598034619ff20a81ac5d363e8558d35bad8d0b583b0576bca0b86cf951d",
+          "content_hash": "8148f7872144859d9f0b4e2f7b1b5c7cf551843157f2ad0328c2dbdcc7176788",
           "package": "service_runtime"
         },
         {
@@ -1935,7 +1935,7 @@
           "source_location": "FindCare/ProviderDetail/ProviderDetailWidget.tsx",
           "handler_type": "static_asset",
           "disposition": "referenced",
-          "content_hash": "f73488b0a3b971a5fae64ff0f302118a3fd031a99922f9e712b486cadbbdb786",
+          "content_hash": "327807a61a33eec1891fb4959cab13d12d940fc2166c6dcc4c59b2233b61e4bd",
           "package": "service_runtime"
         },
         {
@@ -1967,15 +1967,15 @@
           "source_location": "FindCare/SpecialtyFilter/SpecialtyFilterWidget.tsx",
           "handler_type": "static_asset",
           "disposition": "referenced",
-          "content_hash": "950d6707fd4a5f92da2d1b60c656315cec11ea991aced25bcbff6ded37807944",
+          "content_hash": "23794555f99d8f55b08281ad993bc8dd35fcec210c8446667dbb769d37733fdf",
           "package": "service_runtime"
         },
         {
           "feature_id": "EPIC-002-F-010",
-          "source_location": "sharedServices/Code/UtteranceManager/SystemMessageWidget.tsx",
+          "source_location": "sharedServices/Code/UtteranceManager/TranscriptWidget.tsx",
           "handler_type": "static_asset",
           "disposition": "referenced",
-          "content_hash": "89ea56404be8ffbdf6e1fa3694a40921d8e9107e57a57aa453f08441252e61d3",
+          "content_hash": "e22573515a5ee8620eed3c40b5ce220e9f59e15c42c07e1343762cfe6f3bb261",
           "package": "service_runtime"
         },
         {
@@ -1991,7 +1991,7 @@
           "source_location": "sharedServices/Code/displayChrome/WelcomeWidget.tsx",
           "handler_type": "static_asset",
           "disposition": "referenced",
-          "content_hash": "fb184c602860bcb43a37c63f0aeb8886a48a8ad5039b0bc6ce21025197d60d11",
+          "content_hash": "2e134889b3900a7cb726edb34c56dccef0a60f68624b86deb136320fdbfad4ae",
           "package": "service_runtime"
         },
         {
@@ -2162,7 +2162,15 @@
           "source_location": "FindCare/SpecialtyFilter/filter.py",
           "handler_type": "python_source",
           "disposition": "referenced",
-          "content_hash": "c821d159e61a0287938856e33eb77b4396e9b379ff805359493c443513a39bc9",
+          "content_hash": "ddd9d48d6e1bae4ae22c87727375977dc2c565fdc80cc9021e65c30bcd896959",
+          "package": "service_runtime"
+        },
+        {
+          "feature_id": "EPIC-008-F-012",
+          "source_location": "FindCare/SpecialtyFilter/facility_psychiatric_taxonomy_codes.json",
+          "handler_type": "json",
+          "disposition": "referenced",
+          "content_hash": "8da4ae4c733cf68e9558ac20f79090117866026185cd3c951ab85e5cae085146",
           "package": "service_runtime"
         },
         {
@@ -2226,7 +2234,7 @@
           "source_location": "brain/machine_artifacts/diagramsAndImages/rendered/findcare_evalcare_handoff_sequence.png",
           "handler_type": "static_asset",
           "disposition": "referenced",
-          "content_hash": "98aac50c5fddaa63e0c213584cba6b3c4d07d9edee0275d90360ec11e38ff82f",
+          "content_hash": "34984a269b6755bd055f25b5d7dced08b64cb1841f897f98dd78d3a5d2561bd4",
           "package": "service_runtime"
         },
         {
@@ -2234,7 +2242,7 @@
           "source_location": "brain/machine_artifacts/diagramsAndImages/rendered/findcare_evalcare_handoff_sequence.svg",
           "handler_type": "static_asset",
           "disposition": "referenced",
-          "content_hash": "b04b0c38fca1aa81a4ef72b6ba98b4aab2df483397281c6ff6eac6378364e305",
+          "content_hash": "44e5475188d57ae7b69e824bbffb070f965224ff140dd3f5e8d031aa8610ec66",
           "package": "service_runtime"
         },
         {
@@ -2242,7 +2250,7 @@
           "source_location": "brain/machine_artifacts/diagramsAndImages/rendered/local_architecture_component.png",
           "handler_type": "static_asset",
           "disposition": "referenced",
-          "content_hash": "937b065447228a83d77f7d065b3bd02612b7562076293f8389e0d4c61b3334b5",
+          "content_hash": "1285d13b9b086c151adedbcec5a2288a37db0b5a572b1cb84c544491ca501582",
           "package": "service_runtime"
         },
         {
@@ -2266,7 +2274,7 @@
           "source_location": "brain/machine_artifacts/diagramsAndImages/rendered/security_architecture_local.png",
           "handler_type": "static_asset",
           "disposition": "referenced",
-          "content_hash": "33e2cba671246a40e23be1a3eaa3cc7e3ee6268d850313ff6f776d18f5c848e5",
+          "content_hash": "a12eb84e2f041fdf11c9f8c0d016e2b5a8c381659978dcb11173924dacca0849",
           "package": "service_runtime"
         },
         {
@@ -2274,7 +2282,7 @@
           "source_location": "brain/machine_artifacts/diagramsAndImages/rendered/security_architecture_local.svg",
           "handler_type": "static_asset",
           "disposition": "referenced",
-          "content_hash": "0a991732935db7fe422077ad01807c1bf6648cd18e0da0d613a93671c90b68cb",
+          "content_hash": "74ac3cbb859d746fe638687e8d59ccc112d695e81db6c13635bd8f7081a24c85",
           "package": "service_runtime"
         },
         {
@@ -2282,7 +2290,7 @@
           "source_location": "brain/machine_artifacts/diagramsAndImages/sources/findcare_evalcare_handoff_sequence.puml",
           "handler_type": "static_asset",
           "disposition": "referenced",
-          "content_hash": "f8a4f449e71874483361ebd2fa3aa067cf30db97122bd9d8752b242b63945b87",
+          "content_hash": "320758a3cc32dec4d150c4d1c5b635ed927d7b6a00c40ba98d07beb41385d844",
           "package": "service_runtime"
         },
         {
@@ -2290,7 +2298,7 @@
           "source_location": "brain/machine_artifacts/diagramsAndImages/sources/findcare_evalcare_handoff_sequence_compact.puml",
           "handler_type": "static_asset",
           "disposition": "referenced",
-          "content_hash": "39c93464567e47636cde41444627dada4688d6632fec8e1baf0638d074df2d8f",
+          "content_hash": "bb5bc2f7720426fcdc54bbe361e57595fd17ffbd8955b3310abf069e1ae30d2b",
           "package": "service_runtime"
         },
         {
@@ -2306,7 +2314,7 @@
           "source_location": "brain/machine_artifacts/diagramsAndImages/sources/local_architecture_component.puml",
           "handler_type": "static_asset",
           "disposition": "referenced",
-          "content_hash": "679c397e0b3ace3335da6035a5daef1ed361f8c47fc3ec751a9cfd18b5b78a5a",
+          "content_hash": "e7e6963f8bb12f2bc489d5ef860c832d3ccef6594c8d66b96867055128625e00",
           "package": "service_runtime"
         },
         {
@@ -2314,7 +2322,7 @@
           "source_location": "brain/machine_artifacts/diagramsAndImages/sources/security_architecture_deployed.puml",
           "handler_type": "static_asset",
           "disposition": "referenced",
-          "content_hash": "5c97973168c3e370d6b6f30894b19ade0f80c0ed9af8d0a5e1777520d99aa1a1",
+          "content_hash": "fc710e45c6baccd2cde6189e36e3d0e9f148cc9815296e35a773685c996e54c2",
           "package": "service_runtime"
         },
         {
@@ -2322,7 +2330,7 @@
           "source_location": "brain/machine_artifacts/diagramsAndImages/sources/security_architecture_local.puml",
           "handler_type": "static_asset",
           "disposition": "referenced",
-          "content_hash": "14d10bb21bdddfd1f6099387f480abb87bc030f96ba06ef39a2e6618cc47262c",
+          "content_hash": "ca08a2fbb65c3f6cbab951db99a6b259562f42504221188b0fb085d5032ffa51",
           "package": "service_runtime"
         },
         {
@@ -2809,7 +2817,7 @@
           "source_location": "FindCare/SpecialtyFilter/filter.py",
           "handler_type": "python_source",
           "disposition": "referenced",
-          "content_hash": "c821d159e61a0287938856e33eb77b4396e9b379ff805359493c443513a39bc9",
+          "content_hash": "ddd9d48d6e1bae4ae22c87727375977dc2c565fdc80cc9021e65c30bcd896959",
           "package": "service_runtime"
         },
         {
@@ -2921,7 +2929,7 @@
           "source_location": "sharedServices/Code/AuthorizationsAndAuthentications/universal_navigation_tool.py",
           "handler_type": "python_source",
           "disposition": "referenced",
-          "content_hash": "851e8c28ab7b4c169af96bfcadb2f7eca5e6cadcb3a6a1bbc68c31a94143b8b4",
+          "content_hash": "394e64b7fe7c3c31878e0d1b4f92b4084a3d08f2267a9a7ac3b9e1831c3f3f2a",
           "package": "service_runtime"
         },
         {
@@ -3001,7 +3009,7 @@
           "source_location": "sharedServices/Code/LockoutTool/lockout_tool.py",
           "handler_type": "python_source",
           "disposition": "referenced",
-          "content_hash": "b1471f6def122c85a917c27eac08442714a90380f86c0d3bef51a1cd3ec51399",
+          "content_hash": "152eb0fbc865f237d7840c7999ae5af60f9fb00bbeae9abf2353c6a09b4bfb8f",
           "package": "service_runtime"
         },
         {
@@ -3065,7 +3073,7 @@
           "source_location": "sharedServices/Code/UtteranceManager/utterance_manager.py",
           "handler_type": "python_source",
           "disposition": "referenced",
-          "content_hash": "ba145211f1a4a639b3929bd633017f209bffd062b14f76465ccae99ced20ee0d",
+          "content_hash": "f6a460b89a72b27039af94dd3a5315a404690f96865374a3a687eb6db11358e4",
           "package": "service_runtime"
         },
         {

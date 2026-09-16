@@ -22,8 +22,8 @@ cloud "Third parties\nOAuth and other callbacks" as TP
 
 rectangle "The entrance — SharedServices, the only host that accepts external traffic" #fef9c3 {
   component "Gate\na dumb web-server facade — the only\ncomponent that knows transport exists.\nCollects the session token, the HTTP head,\nand the GET/POST parameters, passes them\nto the UniversalNavigator, streams the one\nanswer back. Verifies nothing itself." as GATE
-  component "UniversalNavigator (the main)\nthe only node that accepts external traffic" as UN
-  component "UtteranceManager\nan utterance in, a dispatch set out" as UM
+  component "UniversalNavigator (the main)\ntriage / route / render-ledger / merge —\nthe only node that accepts external traffic" as UN
+  component "UtteranceManager\nclassify + prose only — it authors no dispatch" as UM
   GATE --> UN
   UN --> UM
 }
@@ -38,13 +38,17 @@ rectangle "Server to server — tool-to-tool only, proven by our own signature" 
 
 rectangle "The data region — reached only with a certificate" #dcfce7 {
   component "ChatHealthyMongoUtilities\ngetConnection(identity, cluster)" as MU
-  database "Atlas ChatHealthyFrontEnd\nPublicHealthData, ChatHealthyConfig\n(the live registry document),\npipelineAdmin, DevOpsAdmin" as ATF
-  database "Atlas ChatHealthyDataPipelines\nPipelinePublicHealthData, staging" as ATP
+  database "Atlas ChatHealthyFrontEnd\nPublicHealthData (served, version-bound),\nProprietaryData, Users, ChatHealthyConfig\n(the live registry document), Debug" as ATF
+  database "Atlas ChatHealthyDataPipelines\nPipelinePublicHealthData, staging generations,\npipelineAdmin" as ATP
   MU --> ATF
   MU --> ATP
 }
 
 cloud "Azure Key Vault\nkv-chpipeline-dev" as KV
+
+cloud "Model vendors — three live\nOpenAI, Anthropic, Google" as LLM
+
+cloud "Platform liveness probe\n(Azure / Hugging Face)" as PLAT
 
 CR --> GATE : the signed session token (client_sessioned).\nProof is a session_token.\nOrigins restricted by CORS to\nlocalhost and *.chathealthy.ai
 STATIC --> GATE : a page name only (static_witness).\nProof method is none — it logs, decides nothing
@@ -58,6 +62,12 @@ FC --> MU
 EC --> MU
 
 MU --> KV : an Azure token issued to this identity alone,\nexchanged for that identity's cert and key
+
+PLAT --> GATE : GET /health — no session token, no proof;\nanswered from Mongo. OPEN: is a platform's\nliveness probe the firm's traffic at all? (N31)
+
+UM --> LLM : typed text + recent conversation crosses out
+FC --> LLM
+EC --> LLM
 
 note right of UN
   Proof-checking and session security moved here off the gate.
@@ -100,6 +110,34 @@ note right of KV
   serving every identity would let the workstation
   read the front end's certificate, and the front
   end's read the pipeline's.
+end note
+
+note bottom of LLM
+  OPEN ARCHITECTURAL QUESTION (do not resolve here):
+  which classes of data may cross to which of the three
+  live vendors is undeclared. Every typed sentence reaches
+  at least one vendor, carrying the recent conversation
+  with it. Not an engineering gap — a firm position not
+  yet taken. (N23 / C5 Q6, C2 D-7'.)
+end note
+
+note left of UM
+  OPEN ARCHITECTURAL QUESTION (do not resolve here):
+  whether asking the user a question is the
+  UtteranceManager's own scope or a separate "Prose"
+  tool. Three approved requirements place prose inside
+  UM; the registry instance carries a Prose route name.
+  Recorded, not decided. (N7 / C5 Q8.)
+end note
+
+note top of ATF
+  Data is versioned in real time, NOT environment-segregated:
+  the served generation is a record value in
+  ChatHealthyConfig.DBVersions, resolved at connect. There are
+  no dev_/qa_/prod_ databases; legacy env-prefixed FindCare DBs
+  are the residue of the pre-versioning era and are pruning
+  candidates. Migration PipelinePublicHealthData -> PublicHealthData
+  is name-preserving and human-released. (N11 / C4.)
 end note
 
 @enduml

@@ -9,7 +9,7 @@ skinparam ParticipantBackgroundColor #fdfdfd
 skinparam NoteBackgroundColor #f3f4f6
 skinparam NoteBorderColor #9ca3af
 
-title Flow: care giver page (individual provider)\nConstruct the page from a sessioned utterance — triage, scope mining to the page's members, dispatch, reconcile on provider_search, respond
+title Flow: individualProvider page\nConstruct the page from a sessioned utterance — triage, scope mining to the page's members, dispatch (specialty_filter and geo in parallel), reconcile on provider_search, respond
 
 actor "Person / Client" as P
 participant "Gate\n(facade, transport only)" as GATE
@@ -17,9 +17,10 @@ participant "UniversalNavigator\n(SharedServices main)" as UN
 database "Registry\n(the one live map)" as REG
 database "Repository\nsessions, ledger, params" as REPO
 participant "UtteranceManager\n(classify only)" as UM
-participant "Prose tool\n(authors the sentence)" as PROSE
+participant "author-the-question?\n(UM scope OR separate Prose tool\n— OPEN, see note)" as PROSE
 participant "UniversalNavigatorProxy\n(FindCare satellite)" as PXY
 participant "specialty_filter\n(tool)" as SF
+participant "geo\n(tool: resolves free-text\ngeography incl. misspellings)" as GEO
 participant "provider_search\n(tool)" as PS
 
 P -> GATE : POST /  { session_token, head,\nparams(utterance, history) }
@@ -33,29 +34,30 @@ GATE -> UN : pass(session_token, head, params)
 activate UN
 deactivate GATE
 
-== Triage: which type of call is this ==
+== Triage: which of the five call types is this ==
 UN -> REG : read the live map for this env
-REG --> UN : routes, may_call, pages, required inputs
+REG --> UN : routes, may_call, pages, required_members
 UN -> UN : proof is a session_token ->\ncall_type = client_sessioned
 UN -> REPO : verify token, advance nonce,\nload in-force parameters
 REPO --> UN : session ok, params in force
 note left of UN
   The UniversalNavigator is the only node that takes external
-  traffic. It triages every arrival by its declared proof.
-  session_token here; a bad or missing proof is refused.
+  traffic. It triages every arrival by its declared proof
+  (one of five call types). client_sessioned here; a bad or
+  missing proof is refused.
 end note
 
 == Determine the page and scope mining ==
-UN -> UN : this request constructs\npage = care_giver\nmembers: provider_search, specialty_filter,\nprovider_detail, prose ; required: provider_search
-UN -> UM : classify(utterance, history)\nfragments scoped to care_giver members
+UN -> UN : page = individualProvider\nmembers: provider_search (required),\nspecialty_filter, provider_detail,\nprovider_selection, geo
+UN -> UM : classify(utterance, history)\nfragments scoped to individualProvider members
 activate UM
-UM --> UN : dispatch set { specialty_filter, provider_search }
+UM --> UN : dispatch set { specialty_filter, geo, provider_search }
 deactivate UM
 note right of UM
   One model call: cached preamble plus the page members'
   registry fragments in, routes out. Knows no parameters,
   never waits on a tool. The assembled fragments ARE the
-  classifier.
+  classifier. Classify only.
 end note
 
 == Render ledger: record what the page owes ==
@@ -66,18 +68,21 @@ note left of REPO
   completeness.render_timeout_seconds budget races them.
 end note
 
-== Dispatch: specialty_filter feeds nucc_codes ==
-UN -> PXY : dispatch specialty_filter { complaint }\n(satellite, our_signature signed out)
-activate PXY
-PXY -> SF : relay locally (function call)
-activate SF
-SF --> PXY : { nucc_codes }
-deactivate SF
-PXY --> UN : internal_callback { nucc_codes }\nproof: our_signature verified
-deactivate PXY
+== Dispatch: specialty_filter and geo run in parallel ==
+par
+  UN -> PXY : dispatch specialty_filter { complaint }\n(satellite, our_signature signed out)
+  PXY -> SF : relay locally (function call)
+  SF --> PXY : { nucc_codes }
+  PXY --> UN : internal_callback { nucc_codes }\nproof: our_signature verified
+else
+  UN -> PXY : dispatch geo { free-text geography }\n(satellite, our_signature signed out)
+  PXY -> GEO : relay locally (function call)
+  GEO --> PXY : { geography resolved, or\npending_disambiguation }
+  PXY --> UN : internal_callback { geography }\nproof: our_signature verified
+end
 UN -> REPO : merge serially (deterministic);\na state conflict RAISES
 
-alt geography is sufficient
+alt geography resolved by geo (required input met)
   UN -> PXY : dispatch provider_search\n{ nucc_codes, geography }
   activate PXY
   PXY -> PS : relay locally (function call)
@@ -92,16 +97,22 @@ alt geography is sufficient
   else render_timeout budget expires first
     UN -> UN : ledger race lost -> layman on_timeout\nexplanation (instrumented, timings)
   end
-else geography insufficient - required input unmet
+else geography unresolved / ambiguous - required input unmet
   UN -> PROSE : author refinement\n{ need geography, in-force, utterance }
   activate PROSE
   PROSE --> UN : one user-facing sentence
   deactivate PROSE
   note right of PROSE
-    provider_search does not dispatch without sufficient
-    geography. Prose is its own tool; no tool authors its
-    own chat strings. The page waits; the person's next
-    utterance resolves geography through the same path.
+    OPEN ARCHITECTURAL QUESTION (do not resolve): is authoring
+    the user-facing question the UtteranceManager's own scope,
+    or a separate "Prose" tool? Three approved requirements
+    place both prose and parameters inside the UM; the registry
+    instance also carries a Prose route. Drawn here as a
+    distinct lane only to keep the question visible, NOT as a
+    decision. Whichever stands, no tool authors its own chat
+    strings; provider_search does not dispatch without geo
+    having resolved geography; the page waits; the person's
+    next utterance resolves geography through the same path.
   end note
 end
 

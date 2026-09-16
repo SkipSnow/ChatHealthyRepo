@@ -804,6 +804,68 @@ def _apply(page) -> None:
         "read next is the list from before the apply")
 
 
+PANEL_CHECKED = f"{PANEL} input[type='checkbox']:checked"
+
+
+def _apply_enabled(page) -> bool:
+    """Whether Apply Filter is live (the panel is dirty) at this moment.
+
+    The button carries the HTML `disabled` attribute when the current
+    selection equals the one in force; a macro-toggle that changes the
+    selection MUST clear it. Reading `.disabled` is reading exactly what
+    the person's pointer would find.
+    """
+    return bool(page.evaluate(
+        "() => { const b = document.querySelector"
+        f"(\"{APPLY}\"); return !!b && !b.disabled; }}"))
+
+
+def _toggle_macro(page, action: str) -> None:
+    """Click a macro-toggle label and wait for the panel to repaint.
+
+    The click is a postMessage the parent answers with a re-render, so the
+    change lands a frame after the click, not on it. Waiting for the
+    repaint — the checked-box count settling to a new value, or Apply going
+    live — keeps the reading that follows off the pre-click paint. Whether
+    Apply actually went live is the caller's to assert; this only waits for
+    the panel to have moved.
+    """
+    before = page.locator(PANEL_CHECKED).count()
+    page.locator(f"{PANEL} [data-router-action='{action}']").first.click()
+    try:
+        page.wait_for_function(
+            "(before) => { const b = document.querySelector(\"" + APPLY + "\");"
+            " const c = document.querySelectorAll(\"" + PANEL_CHECKED
+            + "\").length;"
+            " return (!!b && !b.disabled) || c !== before; }",
+            arg=before, timeout=DEFAULT_TIMEOUT)
+    except Exception:
+        # The panel did not move within the timeout. That is itself the
+        # defect a macro-toggle test is looking for; let the caller's
+        # assertion on _apply_enabled report it rather than crashing here.
+        pass
+
+
+def _facility_total(page) -> int:
+    """The facility count on screen right now.
+
+    The facility list heading agrees with its number — "1 facility found",
+    "160 facilities found" — so both the singular and the plural are read,
+    the same way _total reads the provider heading.
+    """
+    page.wait_for_function(
+        "() => { const t = (document.querySelector('#frame_MainWindow')"
+        " || {}).innerText || '';"
+        " return t.includes('facilities found') || t.includes('facility found'); }",
+        timeout=LLM_TIMEOUT)
+    text = page.locator(RESULTS).inner_text()
+    for token in FACILITIES_FOUND:
+        if token in text:
+            head = text.split(token)[0].strip().split()[-1]
+            return int(head.replace(",", ""))
+    pytest.fail(f"the results window names no facility count: {text[:200]!r}")
+
+
 def _digits(text: str) -> str:
     """The digit run in a count element, without a regular expression.
 
@@ -1244,120 +1306,267 @@ class TestAProviderSearchAcrossEveryWindow:
 
 
 # ═══════════════════════════════════════════════════════════════════════
-# FLOW 2 — the specialty filter: narrow, apply, and prove the apply
-#          destroyed no other window
+# FLOW 2 — the NUCC filter, on BOTH the pages it serves
 #
-# This is the defect that shipped: Apply Filter emitted intent_classified,
-# which means "a new query was classified", and the widget answering that
-# blanks LeftPanel, RightPanel and MainWindow. Filtering wiped the panel
-# being filtered with. A one-frame test cannot see it; a census can.
+# The specialty/facility TYPE filter is one mechanism painted into
+# frame_LeftPanel by one widget (SpecialtyFilterWidget). It offers the
+# NUCC codes the request implied, lets the person narrow them with the
+# macro-toggles and the rows, and applies the narrowed set. It serves two
+# pages: the care-giver page (Prescribers / Homeopathic macros) and the
+# facility page (Ambulatory / Psychiatric / Inpatient macros).
+#
+# This one class is the isolatable home for every NUCC-filter assertion
+# across both pages, so the whole of it runs under
+#   -k TestNuccFilterAcrossBothPages
+# It carries the two defects this file was extended to prove:
+#   BUG 1 — on the care-giver page, a macro-toggle changed the selection
+#           but left Apply Filter DISABLED, so the change could not be
+#           applied.
+#   BUG 2 — the facility search did not run at all, so the facility TYPE
+#           filter never painted and no facility list appeared.
+#
+# The original FLOW-2 defect it also still proves: Apply Filter must not
+# emit intent_classified (which blanks LeftPanel/RightPanel/MainWindow) —
+# filtering must not wipe the panel being filtered with. A one-frame test
+# cannot see that; a census can.
+#
+# EPIC-006-F-006/F-007 (facilities) carry approval `proposed`, not
+# `approved`; the facility cases here assert anyway, following the
+# precedent already set in this file and in find_care_frames_uat_test.py,
+# and each such case says so.
 # ═══════════════════════════════════════════════════════════════════════
 
-class TestTheSpecialtyFilterAcrossEveryWindow:
-    """Narrow the specialties, apply, and census every window either side.
+class TestNuccFilterAcrossBothPages:
+    """The NUCC filter, gathered for both pages it serves — care-giver and
+    facility — with the two regression defects (BUG 1, BUG 2) among them.
 
-    Utterance: "find me a shrink in Long Beach CA", from the archive.
+    Utterances:
+      care-giver — "find me a shrink in Long Beach CA", from the archive.
+      facility   — "Find me a hospital in Albequierque NM", the operator's
+                   own verbatim misspelling, which the facility path must
+                   resolve to Albuquerque NM and search.
     """
 
-    censuses = {}
+    ind = {}
+    fac = {}
     chosen = []
 
+    # ── the care-giver specialty filter ───────────────────────────────
+
     @pytest.fixture(scope="class")
-    def filtered(self, page):
+    def individual_panel(self, page):
+        """A fresh care-giver search, settled at the painted panel with
+        nothing yet changed — so the first reading is a clean baseline."""
         _fresh(page)
         _ask(page, "find me a shrink in Long Beach CA")
         _wait_for_panel(page)
         _wait_for_results(page)
         page.wait_for_timeout(2_000)
-        type(self).censuses["before"] = _record(page, "02a_before_apply")
-        type(self).censuses["before_total"] = _total(page)
+        return page
+
+    def test_the_care_giver_search_offers_the_nucc_specialty_filter(self, individual_panel):
+        """EPIC-006-F-003-S-001-REQ-B-002 — the user is offered the list of
+        specialties their request implies.
+        EPIC-006-F-003-S-001-REQ-B-006 — and the three counts (all
+        possible, all prescribers, your choices)."""
+        _assert_specialty_panel_intact(
+            _record(individual_panel, "nucc_00_care_giver_panel"),
+            "the care-giver specialty filter")
+
+    def test_a_care_giver_macro_toggle_enables_apply(self, individual_panel):
+        """BUG 1 — on the care-giver page a Prescribers macro-toggle changed
+        the selection but Apply Filter stayed DISABLED, so the change could
+        not be applied.
+
+        EPIC-006-F-003-S-001-REQ-B-008 — the user's chosen set of
+        specialties must remain in force until the user changes it; a macro-
+        toggle IS the user changing it, and Apply Filter going live is the
+        only way the change reaches the search. A macro-toggle that leaves
+        Apply disabled strands the change on the panel.
+
+        The utterance names a prescribing specialty (a shrink), so the
+        Prescribers set is non-empty and toggling it genuinely changes the
+        selection — the case where the macro would be a no-op is excluded by
+        construction.
+        """
+        page = individual_panel
+        assert not _apply_enabled(page), (
+            "Apply Filter is already live before anything was changed, so "
+            "this cannot tell an enabling macro-toggle apart from a panel "
+            "that was already dirty")
+        _toggle_macro(page, "filter:macro-prescribers")
+        assert _apply_enabled(page), (
+            "after the Prescribers macro-toggle changed the selection, Apply "
+            "Filter is still disabled, so the person cannot apply the change "
+            "they just made (BUG 1)")
+
+    @pytest.fixture(scope="class")
+    def individual_filtered(self, page):
+        """A care-giver search, narrowed by one row and applied, censused
+        either side of the apply."""
+        _fresh(page)
+        _ask(page, "find me a shrink in Long Beach CA")
+        _wait_for_panel(page)
+        _wait_for_results(page)
+        page.wait_for_timeout(2_000)
+        type(self).ind["before"] = _record(page, "nucc_01_care_giver_before_apply")
+        type(self).ind["before_total"] = _total(page)
 
         ticked = _ticked_codes(page)
         assert len(ticked) > 1, (
             "the panel seeds fewer than two specialties, so there is no "
             "selection to narrow")
-        # Untick one. A change, so Apply Filter becomes enabled, and one
-        # the user plainly made -- which is what REQ-B-008 is about.
         _click_row(page, ticked[0])
         type(self).chosen = _ticked_codes(page)
         _apply(page)
         page.wait_for_timeout(2_000)
-        type(self).censuses["after"] = _record(page, "02b_after_apply")
+        type(self).ind["after"] = _record(page, "nucc_02_care_giver_after_apply")
         return page
 
-    def test_the_specialty_window_survives_its_own_apply(self, filtered):
-        """EPIC-006-F-003-S-001-REQ-B-002 and -REQ-B-006 — after applying,
-        the user is still offered the list and still shown the three
-        counts. This is the window that the defect destroyed.
-        """
-        _assert_specialty_panel_intact(self.censuses["after"], "after apply")
+    def test_the_care_giver_panel_survives_its_own_apply(self, individual_filtered):
+        """EPIC-006-F-003-S-001-REQ-B-002, -REQ-B-006 — after applying, the
+        user is still offered the list and still shown the three counts.
+        This is the window the original FLOW-2 defect destroyed."""
+        _assert_specialty_panel_intact(self.ind["after"], "after apply")
 
-    def test_the_selection_the_user_made_is_the_selection_in_force(self, filtered):
-        """EPIC-006-F-003-S-001-REQ-B-008 — a user's chosen set of
-        specialties MUST remain in force until that user changes it.
-
-        Applying is not the user changing it, so the set that comes back
-        is the set that went in. A default seeded on the way back through
-        overwrites the choice and this is what says so.
-        """
-        assert _ticked_codes(filtered) == self.chosen, (
+    def test_the_care_giver_selection_stays_in_force(self, individual_filtered):
+        """EPIC-006-F-003-S-001-REQ-B-008 — the user's chosen set of
+        specialties remains in force until they change it; applying is not
+        changing it, so the set that comes back is the set that went in."""
+        assert _ticked_codes(individual_filtered) == self.chosen, (
             f"the panel came back from Apply Filter holding "
-            f"{_ticked_codes(filtered)} against the {self.chosen} the user "
-            f"chose")
+            f"{_ticked_codes(individual_filtered)} against the {self.chosen} "
+            f"the user chose")
 
-    def test_the_results_window_survives_the_apply(self, filtered):
-        """EPIC-006-F-001-S-005-REQ-B-009 — the summary is still shown
-        together with the results it describes, after the apply."""
-        _assert_results_and_summary_together(self.censuses["after"],
-                                             "after apply")
-
-    def test_applying_a_narrower_set_does_not_widen_the_result(self, filtered):
-        """EPIC-006-F-003-S-001-REQ-B-007 — when a user applies their
-        chosen specialties, the provider list shows exactly the providers
-        those specialties admit.
-
-        Deliberately "must not grow" rather than "must shrink": a code the
-        panel offers can have no provider in this geography, so removing
-        one correctly leaves the total unchanged, which a strict-decrease
-        assertion would report as a defect.
-        """
-        after = _total(filtered)
-        before = self.censuses["before_total"]
+    def test_the_care_giver_apply_does_not_widen_the_result(self, individual_filtered):
+        """EPIC-006-F-003-S-001-REQ-B-007 — the list shows exactly the
+        providers the chosen specialties admit. "Must not grow" rather than
+        "must shrink": a code can have no provider in this geography, so
+        removing one may leave the total unchanged."""
+        after = _total(individual_filtered)
+        before = self.ind["before_total"]
         assert after <= before, (
             f"removing a specialty took the result from {before} to {after}; "
             f"a narrower set admitted more providers")
 
-    def test_the_apply_destroyed_no_layout_window(self, filtered):
-        """EPIC-002-F-011-S-001-REQ-B-001, -REQ-B-002,
-        EPIC-002-F-011-S-002-REQ-B-001, -REQ-B-002 — the header, footer
-        and both panels are still on the screen after the apply."""
-        _assert_layout_holds(self.censuses["after"], "after apply")
-
-    def test_every_window_that_held_something_still_does(self, filtered):
-        """The census either side of the apply, compared window by window.
-
-        Each window named here is named because a requirement cited above
-        says it must hold something at this moment:
-          frame_LeftPanel  — REQ-B-002 / REQ-B-006 (specialties, counts)
-          frame_MainWindow — EPIC-006-F-001-S-005-REQ-B-009 (summary+list)
-          frame_Header     — EPIC-002-F-011-S-001-REQ-B-001
-          frame_Footer     — EPIC-002-F-011-S-001-REQ-B-002
-
-        frame_UserMessage is deliberately NOT in that list. It carries the
-        refinement chips, and no approved requirement states they must be
-        there or must survive an apply. Whether it went blank is RECORDED
-        in the census and reported, not asserted.
-        """
-        before = self.censuses["before"]
-        after = self.censuses["after"]
-        emptied = []
-        for wid in ("frame_LeftPanel", "frame_MainWindow",
-                    "frame_Header", "frame_Footer"):
-            if _window(before, wid)["chars"] > 0 and _window(after, wid)["chars"] == 0:
-                emptied.append(wid)
+    def test_the_care_giver_apply_destroyed_no_window(self, individual_filtered):
+        """EPIC-006-F-003-S-001-REQ-B-002/-006 (LeftPanel),
+        EPIC-006-F-001-S-005-REQ-B-009 (MainWindow),
+        EPIC-002-F-011-S-001-REQ-B-001/-002 (Header/Footer) — none of the
+        windows a requirement says must hold something went blank across the
+        apply. This is the original FLOW-2 census defense."""
+        _assert_layout_holds(self.ind["after"], "after apply")
+        _assert_results_and_summary_together(self.ind["after"], "after apply")
+        before, after = self.ind["before"], self.ind["after"]
+        emptied = [wid for wid in ("frame_LeftPanel", "frame_MainWindow",
+                                   "frame_Header", "frame_Footer")
+                   if _window(before, wid)["chars"] > 0
+                   and _window(after, wid)["chars"] == 0]
         assert emptied == [], (
             f"applying the filter emptied {emptied}, each of which a "
             f"requirement says must hold something at this moment")
+
+    # ── the facility TYPE filter ──────────────────────────────────────
+
+    @pytest.fixture(scope="class")
+    def facility_panel(self, page):
+        """A fresh facility search from the operator's verbatim misspelling,
+        settled with the facility list and the facility TYPE filter painted.
+
+        EPIC-006-F-006-S-001 (facility search) carries approval `proposed`;
+        asserted anyway per this file's precedent."""
+        _fresh(page)
+        _ask(page, "Find me a hospital in Albequierque NM")
+        _wait_for_facilities(page)
+        _wait_for_panel(page)
+        page.wait_for_timeout(2_000)
+        return page
+
+    def test_the_facility_search_paints_the_filter_panel_and_results(self, facility_panel):
+        """BUG 2 — the facility search did not run at all: the facility TYPE
+        filter never painted and no facility list appeared.
+
+        EPIC-006-F-006-S-001 (facility search, `proposed`) — the verbatim
+        misspelling "Albequierque" must resolve and the search must run,
+        painting BOTH the facility TYPE filter (its "Choose Facility Type"
+        heading and the Ambulatory / Psychiatric / Inpatient macro-toggles)
+        AND the facility list.
+        """
+        census = _record(facility_panel, "nucc_03_facility_panel")
+        panel = _window(census, "frame_LeftPanel")
+        assert panel["visible"], (
+            "the facility TYPE filter did not paint; the facility search did "
+            "not run (BUG 2)")
+        assert "Choose Facility Type" in panel.get("text", ""), (
+            f"the facility panel does not head itself 'Choose Facility "
+            f"Type'; it holds {panel.get('text','')[:160]!r} (BUG 2)")
+        actions = panel.get("actions", {})
+        for macro in ("filter:macro-ambulatory", "filter:macro-psychiatric",
+                      "filter:macro-inpatient"):
+            assert actions.get(macro, 0) == 1, (
+                f"the facility panel does not offer the {macro} toggle; it "
+                f"holds {actions} (BUG 2)")
+        assert _marks(census, "frame_MainWindow").get("facility-card", 0) > 0, (
+            "the facility search painted no facility list (BUG 2)")
+
+    def test_a_facility_macro_toggle_enables_apply(self, facility_panel):
+        """BUG 1's facility mirror — a facility macro-toggle must enable Apply
+        Filter the same way a care-giver macro-toggle does, so the fix does
+        not hold only on the page it was reported from.
+
+        EPIC-006-F-006-S-001 (`proposed`). A hospital search offers inpatient
+        facility types, so the Inpatient set is non-empty and toggling it
+        genuinely changes the selection.
+        """
+        page = facility_panel
+        assert not _apply_enabled(page), (
+            "Apply Filter is already live on the facility panel before "
+            "anything was changed")
+        _toggle_macro(page, "filter:macro-inpatient")
+        assert _apply_enabled(page), (
+            "after the Inpatient macro-toggle changed the selection, Apply "
+            "Filter is still disabled on the facility panel")
+
+    @pytest.fixture(scope="class")
+    def facility_filtered(self, page):
+        """A facility search, narrowed by one row and applied."""
+        _fresh(page)
+        _ask(page, "Find me a hospital in Albequierque NM")
+        _wait_for_facilities(page)
+        _wait_for_panel(page)
+        page.wait_for_timeout(2_000)
+        type(self).fac["before_total"] = _facility_total(page)
+        ticked = _ticked_codes(page)
+        assert len(ticked) > 1, (
+            "the facility panel seeds fewer than two types, so there is no "
+            "selection to narrow")
+        _click_row(page, ticked[0])
+        _apply(page)
+        page.wait_for_timeout(2_000)
+        type(self).fac["after"] = _record(page, "nucc_04_facility_after_apply")
+        return page
+
+    def test_the_facility_apply_does_not_widen_the_result(self, facility_filtered):
+        """EPIC-006-F-006-S-001 (`proposed`) — applying a narrower set of
+        facility types shows exactly the facilities those types admit; the
+        count must not grow. Proves the facility Apply (op
+        apply_facility_filter) runs and narrows rather than re-running the
+        care-giver search."""
+        after = _facility_total(facility_filtered)
+        before = self.fac["before_total"]
+        assert after <= before, (
+            f"removing a facility type took the result from {before} to "
+            f"{after}; a narrower set admitted more facilities")
+
+    def test_the_facility_apply_destroyed_no_window(self, facility_filtered):
+        """EPIC-002-F-011-S-001-REQ-B-001/-002, -S-002-REQ-B-001/-002 — the
+        facility Apply, like the care-giver Apply, destroys none of the
+        layout windows."""
+        _assert_layout_holds(self.fac["after"], "after facility apply")
+        panel = _window(self.fac["after"], "frame_LeftPanel")
+        assert panel["visible"] and panel["chars"] > 0, (
+            "the facility Apply blanked the facility TYPE filter it was "
+            "applied from")
 
 
 # ═══════════════════════════════════════════════════════════════════════

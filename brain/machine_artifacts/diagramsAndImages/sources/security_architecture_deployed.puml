@@ -1,6 +1,6 @@
 @startuml
 !theme plain
-title ChatHealthy.ai — Deployed Security Architecture\ndev / qa / prod\n2026-04-06
+title ChatHealthy.ai — Deployed Security Architecture\ndev / qa / prod\n2026-09-15
 
 skinparam componentStyle rectangle
 skinparam backgroundColor white
@@ -38,7 +38,7 @@ package "Azure — ChatHealthySecurity" as env_sec <<physical>> #FFE8E8 {
   component [Azure Key Vault\nFedRAMP High\nHIPAA BAA eligible\nFIPS 140-2 Level 2\nSoft-delete + purge protection\nPublic access disabled\n---\nAuth: x509 (HF Spaces)\nManaged Identity (Azure)\nNo bearer tokens] as kv
 
   package "Azure VNet" as vnet {
-    component [Azure Firewall\nDeny-all default\nAllow: Mongo, Anthropic,\nOpenAI, HF, SparkPost\nAudit logging] as fw
+    component [Azure Firewall\nDeny-all default\nAllow: Mongo, Anthropic,\nOpenAI, Google, HF, SparkPost\nAudit logging] as fw
     component [Subnet: DataPipelines\nNSG restricted] as sub_pipe
     component [Subnet: BIZOperations\nNSG restricted] as sub_biz
     component [Subnet: Private Endpoints] as sub_pe
@@ -66,7 +66,11 @@ package "Anthropic" as env_anth <<physical>> #F8F0FF {
 }
 
 package "OpenAI" as env_oai <<physical>> #FFF8F0 {
-  component [Embeddings\n+ Safety classifier\nAPI key from Key Vault] as api_oai
+  component [Embeddings\n+ Safety classifier (temp 0)\nAPI key from Key Vault] as api_oai
+}
+
+package "Google" as env_goog <<physical>> #F0F5FF {
+  component [Gemini API\nAPI key from Key Vault] as api_goog
 }
 
 ' ── Consumer flow ──
@@ -74,7 +78,8 @@ package "OpenAI" as env_oai <<physical>> #FFF8F0 {
 user --> cf_dns : "HTTPS"
 cf_dns --> cf_pub
 cf_dns --> cf_admin : "Cloudflare Access\n(authenticated)"
-cf_pub --> hf_fc_svc : "iframe"
+cf_pub --> hf_fc_svc : "iframe (UI assets)"
+cf_pub -[#blue,bold]-> hf_ss_svc : "/gate\n(single client entrance)"
 
 ' ── HF inter-service (mTLS) ──
 
@@ -96,6 +101,7 @@ hf_ss_svc -[#orange]-> mongo_fe : "TLS\nIP allowlisted"
 
 hf_fc_svc -[#purple]-> api_claude : "API key\nfrom Key Vault"
 hf_fc_svc -[#purple]-> api_oai : "API key\nfrom Key Vault"
+hf_fc_svc -[#purple]-> api_goog : "API key\nfrom Key Vault"
 
 ' ── Azure Functions → VNet ──
 
@@ -123,6 +129,19 @@ az_func --> az_blob
 ' ── Pipeline promotion ──
 
 mongo_pipe .[#gray,dashed].> mongo_fe : "CopyToFrontEnd"
+
+' ── Open architectural question (N23) ──
+
+note as N_vendor_data_class #FFFCEB
+  **OPEN ARCHITECTURAL QUESTION — do not resolve here (N23; C2 to settle)**
+  Three model vendors are live: **Anthropic, OpenAI, Google**.
+  Every typed utterance reaches at least one, carrying recent conversation.
+  No declaration states **which classes of data may cross to which vendor**,
+  nor whether a requirement should compel that declaration, nor whether the
+  vendors are under contractual terms. This is a firm position not yet taken.
+end note
+
+api_goog .. N_vendor_data_class
 
 note bottom of env_sec
   **Deployed security posture:**

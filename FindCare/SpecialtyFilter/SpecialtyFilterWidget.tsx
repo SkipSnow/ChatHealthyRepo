@@ -23,10 +23,19 @@ const TEAL_LIGHT_BG = '#e6f5ec'
 const TEAL_LIGHT_BORDER = '#c9e0d3'
 const ROW_DIVIDER = '#f0f0f0'
 
+// is_facility selects which macro-toggles the panel offers: the care-giver
+// variant (false) offers Prescribers / Homeopathic; the facility variant
+// (true) offers Ambulatory / Psychiatric / Inpatient. Which variant this is
+// is the server's answer, carried here — this panel groups by nothing and
+// classifies nothing, it ticks the codes it was handed.
 interface SpecialtyGroups {
+  is_facility: boolean
   all_codes: string[]
   prescriber_codes: string[]
   homeopathic_codes: string[]
+  ambulatory_codes: string[]
+  inpatient_codes: string[]
+  psychiatric_codes: string[]
   default_selected_codes: string[]
 }
 
@@ -56,6 +65,9 @@ function buildFilterHtml(
   const allCodes         = groups.all_codes
   const prescriberCodes  = groups.prescriber_codes
   const homeopathicCodes = groups.homeopathic_codes
+  const ambulatoryCodes  = groups.ambulatory_codes
+  const inpatientCodes   = groups.inpatient_codes
+  const psychiatricCodes = groups.psychiatric_codes
   const allPossible    = allCodes.length
   const allPrescribers = prescriberCodes.length
   const yourChoices    = allCodes.filter(c => checked[c]).length
@@ -102,16 +114,66 @@ function buildFilterHtml(
       </tr>`
   }).join('')
 
-  const applyBtnBg = isDirty
-    ? `linear-gradient(180deg, #0b9a94, ${TEAL})`
-    : '#e5e7eb'
-  const applyBtnColor  = isDirty ? '#fff' : '#6b7280'
-  const applyBtnBorder = isDirty ? 'none' : '0.125em solid #cbd5d5'
-  const applyBtnCursor = isDirty ? 'pointer' : 'not-allowed'
-  const applyDisabled  = isDirty ? '' : 'disabled'
+  // A macro-toggle cell: a labelled checkbox that ticks/unticks a whole
+  // code-set at once. Same control for every set in either mode; only the
+  // router action and the label change.
+  const macroCell = (action: string, testid: string, label: string,
+                     isChecked: boolean, padLeft: string, padRight: string) => `
+    <td style="padding:0.5em ${padRight} 0.6em ${padLeft};vertical-align:middle;">
+      <label data-router-action="${action}"
+             style="display:flex;align-items:center;gap:0.4em;color:#1f2937;cursor:pointer;user-select:none;font-size:0.9em;">
+        <input type="checkbox" ${isChecked ? 'checked' : ''} data-testid="${testid}"
+               style="width:1.2em;height:1.2em;accent-color:${TEAL};margin:0;pointer-events:none;" />
+        ${_esc(label)}
+      </label>
+    </td>`
 
-  return `
-    <div style="display:flex;flex-direction:column;height:100%;width:100%;background:#fff;box-sizing:border-box;">
+  const toggleAllButton = `
+    <button type="button" data-router-action="filter:toggle-all" data-testid="toggle-all-button"
+            ${toggleAllDisabled ? 'disabled' : ''}
+            style="width:100%;background:#ffffff;border:0.125em solid ${TEAL};border-radius:0.4em;font-size:0.9em;font-weight:700;color:${TEAL};cursor:${toggleAllDisabled ? 'not-allowed' : 'pointer'};padding:0.5em 0.4em;opacity:${toggleAllDisabled ? 0.45 : 1};">
+      ${toggleAllLabel}
+    </button>`
+
+  // The facility variant offers three macro-toggles, so Check All takes its
+  // own full-width row and the three toggles sit on a row of their own. The
+  // care-giver variant keeps its original single control row (Check All plus
+  // two toggles) untouched.
+  const isFacility = groups.is_facility
+  const ambulatoryChecked = ambulatoryCodes.length > 0 &&
+    ambulatoryCodes.every(c => checked[c])
+  const psychiatricChecked = psychiatricCodes.length > 0 &&
+    psychiatricCodes.every(c => checked[c])
+  const inpatientChecked = inpatientCodes.length > 0 &&
+    inpatientCodes.every(c => checked[c])
+
+  const headerTable = isFacility
+    ? `
+      <table style="width:100%;border-collapse:separate;border-spacing:0;table-layout:fixed;background:${TEAL_LIGHT_BG};border-bottom:0.25em solid ${TEAL};">
+        <tbody>
+          <tr>
+            <td colspan="3" style="padding:0.6em 0.8em;">
+              <span style="font-size:1.2em;font-weight:700;color:${TEAL};">Choose Facility Type</span>
+            </td>
+          </tr>
+          <tr>
+            ${countCell('count-all-possible', 'All possible', allPossible, '#1f2937', 0)}
+            ${countCell('count-your-choices', 'Your choices', yourChoices, TEAL, 2)}
+            <td style="width:33.333%;border-right:0.5em solid ${TEAL_LIGHT_BG};"></td>
+          </tr>
+          <tr>
+            ${macroCell('filter:macro-ambulatory', 'macro-ambulatory', 'Ambulatory', ambulatoryChecked, '0.8em', '0.4em')}
+            ${macroCell('filter:macro-psychiatric', 'macro-psychiatric', 'Psychiatric', psychiatricChecked, '0.4em', '0.4em')}
+            ${macroCell('filter:macro-inpatient', 'macro-inpatient', 'Inpatient', inpatientChecked, '0.4em', '0.8em')}
+          </tr>
+          <tr>
+            <td colspan="3" style="padding:0.2em 0.8em 0.6em 0.8em;vertical-align:middle;">
+              ${toggleAllButton}
+            </td>
+          </tr>
+        </tbody>
+      </table>`
+    : `
       <table style="width:100%;border-collapse:separate;border-spacing:0;table-layout:fixed;background:${TEAL_LIGHT_BG};border-bottom:0.25em solid ${TEAL};">
         <tbody>
           <tr>
@@ -126,31 +188,25 @@ function buildFilterHtml(
           </tr>
           <tr>
             <td style="padding:0.5em 0.4em 0.6em 0.8em;vertical-align:middle;width:33.333%;">
-              <button type="button" data-router-action="filter:toggle-all" data-testid="toggle-all-button"
-                      ${toggleAllDisabled ? 'disabled' : ''}
-                      style="width:100%;background:#ffffff;border:0.125em solid ${TEAL};border-radius:0.4em;font-size:0.9em;font-weight:700;color:${TEAL};cursor:${toggleAllDisabled ? 'not-allowed' : 'pointer'};padding:0.5em 0.4em;opacity:${toggleAllDisabled ? 0.45 : 1};">
-                ${toggleAllLabel}
-              </button>
+              ${toggleAllButton}
             </td>
-            <td style="padding:0.5em 0.4em 0.6em 0.4em;vertical-align:middle;width:33.333%;">
-              <label data-router-action="filter:macro-prescribers"
-                     style="display:flex;align-items:center;gap:0.4em;color:#1f2937;cursor:pointer;user-select:none;font-size:0.9em;">
-                <input type="checkbox" ${prescribersChecked ? 'checked' : ''} data-testid="macro-prescribers"
-                       style="width:1.2em;height:1.2em;accent-color:${TEAL};margin:0;pointer-events:none;" />
-                Prescribers
-              </label>
-            </td>
-            <td style="padding:0.5em 0.8em 0.6em 0.4em;vertical-align:middle;width:33.333%;">
-              <label data-router-action="filter:macro-homeopathic"
-                     style="display:flex;align-items:center;gap:0.4em;color:#1f2937;cursor:pointer;user-select:none;font-size:0.9em;">
-                <input type="checkbox" ${homeopathicChecked ? 'checked' : ''} data-testid="macro-homeopathic"
-                       style="width:1.2em;height:1.2em;accent-color:${TEAL};margin:0;pointer-events:none;" />
-                Homeopathic
-              </label>
-            </td>
+            ${macroCell('filter:macro-prescribers', 'macro-prescribers', 'Prescribers', prescribersChecked, '0.4em', '0.4em')}
+            ${macroCell('filter:macro-homeopathic', 'macro-homeopathic', 'Homeopathic', homeopathicChecked, '0.4em', '0.8em')}
           </tr>
         </tbody>
-      </table>
+      </table>`
+
+  const applyBtnBg = isDirty
+    ? `linear-gradient(180deg, #0b9a94, ${TEAL})`
+    : '#e5e7eb'
+  const applyBtnColor  = isDirty ? '#fff' : '#6b7280'
+  const applyBtnBorder = isDirty ? 'none' : '0.125em solid #cbd5d5'
+  const applyBtnCursor = isDirty ? 'pointer' : 'not-allowed'
+  const applyDisabled  = isDirty ? '' : 'disabled'
+
+  return `
+    <div style="display:flex;flex-direction:column;height:100%;width:100%;background:#fff;box-sizing:border-box;">
+      ${headerTable}
 
       <div data-testid="specialty-list"
            style="flex:1 1 auto;min-height:0;overflow-y:auto;overflow-x:hidden;">
@@ -185,8 +241,10 @@ export default function SpecialtyFilterWidget() {
   // What the tool said the sets are. Held so every gesture answers from
   // the same lists the panel was painted with.
   const groupsRef = useRef<SpecialtyGroups>({
-    all_codes: [], prescriber_codes: [],
-    homeopathic_codes: [], default_selected_codes: [],
+    is_facility: false,
+    all_codes: [], prescriber_codes: [], homeopathic_codes: [],
+    ambulatory_codes: [], inpatient_codes: [], psychiatric_codes: [],
+    default_selected_codes: [],
   })
   const checkedRef = useRef<Record<string, boolean>>({})
   const pristineRef = useRef<Record<string, boolean>>({})
@@ -237,9 +295,13 @@ export default function SpecialtyFilterWidget() {
         // return from EvaluateCare repainted the panel with the default
         // selection and silently discarded what they had chosen.
         groupsRef.current = {
+          is_facility: Boolean(data.is_facility),
           all_codes: Array.isArray(data.all_codes) ? data.all_codes : [],
           prescriber_codes: Array.isArray(data.prescriber_codes) ? data.prescriber_codes : [],
           homeopathic_codes: Array.isArray(data.homeopathic_codes) ? data.homeopathic_codes : [],
+          ambulatory_codes: Array.isArray(data.ambulatory_codes) ? data.ambulatory_codes : [],
+          inpatient_codes: Array.isArray(data.inpatient_codes) ? data.inpatient_codes : [],
+          psychiatric_codes: Array.isArray(data.psychiatric_codes) ? data.psychiatric_codes : [],
           default_selected_codes: Array.isArray(data.default_selected_codes)
             ? data.default_selected_codes : [],
         }
@@ -295,17 +357,51 @@ export default function SpecialtyFilterWidget() {
         return
       }
 
+      // The facility variant's three macro-toggles. Same mechanism as the
+      // care-giver toggles above: tick the whole set if any is unticked,
+      // otherwise untick it. Which codes are in each set is the server's,
+      // carried on groupsRef.
+      if (msg.action === 'filter:macro-ambulatory') {
+        const codes = groupsRef.current.ambulatory_codes
+        const allOn = codes.length > 0 && codes.every(c => checkedRef.current[c])
+        toggleCodes(codes, !allOn)
+        repaint()
+        return
+      }
+
+      if (msg.action === 'filter:macro-psychiatric') {
+        const codes = groupsRef.current.psychiatric_codes
+        const allOn = codes.length > 0 && codes.every(c => checkedRef.current[c])
+        toggleCodes(codes, !allOn)
+        repaint()
+        return
+      }
+
+      if (msg.action === 'filter:macro-inpatient') {
+        const codes = groupsRef.current.inpatient_codes
+        const allOn = codes.length > 0 && codes.every(c => checkedRef.current[c])
+        toggleCodes(codes, !allOn)
+        repaint()
+        return
+      }
+
       if (msg.action === 'filter:apply') {
         const chosen = groupsRef.current.all_codes.filter(c => checkedRef.current[c])
+        // The facility panel narrows the facility search and the care-giver
+        // panel narrows the provider search; they are two different searches
+        // on two different pages, so Apply names the op for the page it
+        // belongs to. Sending the facility selection through apply_filter
+        // would re-run the individual-provider search instead.
+        const isFacility = groupsRef.current.is_facility
         window.parent.postMessage({
           type: 'router:makeCall',
-          op: 'apply_filter',
+          op: isFacility ? 'apply_facility_filter' : 'apply_filter',
           // Only the selection. The panel is not sent back: the server
           // holds it on the intent and reuses it because the query has not
           // changed. Sending it would be a second copy of one fact, and the
           // two would drift.
           payload: { selected_codes: chosen },
-          call_id: 'filter-apply-' + Date.now(),
+          call_id: (isFacility ? 'facility-filter-apply-' : 'filter-apply-') + Date.now(),
         }, '*')
         pristineRef.current = { ...checkedRef.current }
         repaint()

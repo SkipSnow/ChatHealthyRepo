@@ -30,7 +30,7 @@ rectangle "FRAME B — narrow scope  (state_scope = DE)" as B #fdf6f6 {
   end note
 }
 
-A -[hidden]down- B
+A -[hidden]right- B
 
 note as CAP #fff4e5
   The rename does not look at scope.
@@ -39,5 +39,5 @@ note as CAP #fff4e5
   guard, no requirement, no test.
 end note
 
-B -[hidden]down- CAP
+A -[hidden]down- CAP
 @enduml

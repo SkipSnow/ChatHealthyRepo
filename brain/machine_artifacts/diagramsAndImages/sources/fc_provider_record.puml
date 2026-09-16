@@ -52,11 +52,25 @@ note right of Stored
   from the live one.
 end note
 
-class "Result row — care giver" as Row #f3f4f6 {
+note left of Stored
+  This is the core-business PROVIDER table — one of the two
+  tables (with the NUCC / SpecialtyMetaData table) that the
+  tunable specialty + geo funnel selects from to present the
+  right providers. Enrichments live alongside in
+  ProprietaryData.SpecialtyAndProviderFlags.
+  The served record is a generation (Provider_v_<N>) chosen
+  in real time by ChatHealthyConfig.DBVersions — versioned,
+  not environment-segregated. (Data-Architecture framing;
+  chapter C4 owns it.)
+end note
+
+class "Result row — individualProvider (care giver)" as Row #f3f4f6 {
   name
   npi
   taxonomy_code
-  matched_specialty_code / matched_specialty_label
+  matched_specialty_code (derived) / matched_specialty_label
+  reported_specialty_code
+  specialty_authority_tag (reported | derived)
   taxonomy_codes[]
   address (one line, the matched practice address)
   phone
@@ -80,7 +94,7 @@ end note
 
 class "ProviderDetailOutput" as Detail #ffffff {
   provider_name, npi
-  entity_type ("1" care giver, "2" facility)
+  entity_type ("1" individual / care giver, "2" organization / facility)
   unresolved_licensing_state
 }
 
@@ -113,6 +127,9 @@ class Insurance {
 }
 class Taxonomy {
   code, display_name, primary
+  reported_code, resolved_code
+  resolution_status (enum, not a boolean)
+  which_is_authoritative
 }
 class AuthorizedOfficial {
   last, first, middle
@@ -126,9 +143,9 @@ class ResearchSite {
   url, name, guidance
 }
 
-Stored ..> Row : projected for a care-giver list
-Stored ..> FRow : projected for a facility list
-Stored ..> Detail : projected for one open record
+Stored ..> Row : projected for the individualProvider result list
+Stored ..> FRow : projected for the facility result list
+Stored ..> Detail : projected for one open record (ProviderDetail / FacilityDetail member)
 
 Detail *-- Identity
 Detail *-- OrganizationIdentity
@@ -161,5 +178,40 @@ note bottom of County
   address written back from a live registry answer has a
   county name from the geocoder and no urban standing.
 end note
+
+note bottom of Taxonomy
+  resolution_status is an ENUM, not a boolean (chapter C4).
+  Six values must survive: current; retired but once
+  standard; present in records but never published by the
+  standard; locally authored; observed but not yet triaged;
+  confirmed invalid. The store keeps BOTH the reported code
+  and the resolved (repaired) code and names which is
+  authoritative; the result row carries the tags.
+end note
+
+note as N22
+  <b>OPEN QUESTION — do not resolve (N22).</b>
+  When a record matched through a REPAIRED code, does the
+  display show the reported value, the derived value, or
+  both? Two approved requirements pull against each other
+  (EPIC-006-F-001-S-004-REQ-B-001 "show the specialty the
+  person chose" vs the non-conversion rule "never present a
+  repair as though it were the report"). Store keeps both +
+  authority and the row carries the tags either way; which
+  value RENDERS is the operator's to decide (chapter C5).
+end note
+Row .. N22
+
+note as N25
+  <b>OPEN QUESTION — do not resolve (N25).</b>
+  Result-row width. Two approved requirements close this at
+  two different widths: a facility row at exactly five
+  things, an individualProvider (care-giver) row at eight
+  elements plus headings and paging controls. Whether the
+  firm ACCEPTS two widths is the operator's call (chapter
+  C5). The projection — not the renderer — is where each
+  width is enforced.
+end note
+FRow .. N25
 
 @enduml

@@ -63,9 +63,22 @@ package "chathealthy_lib" {
     + server_env : str
     + stream : StreamSink
   }
+
+  class "extract_location()" as Geo <<lib function>> {
+    single-purpose model call
+    mines a geography from an utterance
+    resolves free-text geo incl. misspellings
+  }
 }
 
 class "ToolRegistry" as Registry <<Mongo doc>> {
+  ChatHealthyToolRegistrySchema
+  --
+  tools + routes + pages
+  a page carries members,
+  required_members, completeness
+  instance{build, commit, env, live}
+  --
   one document per build per env
   one live instance per env
   presence IS the allowlist
@@ -156,8 +169,26 @@ note bottom of UtteranceManager #f3f4f6
   Classify only, non-blocking: sees an utterance, answers
   with the dispatch set, knows no parameters. The old
   classifier is gone -- preamble plus every tool's fragment
-  in, routes out, the agent dispatches. User-facing prose
-  is a separate tool the navigator dispatches with the facts.
+  in, routes out, the agent dispatches.
+
+  OPEN ARCHITECTURAL QUESTION (unresolved): is asking the
+  user a question this manager's own scope, or a separate
+  "Prose" tool the navigator dispatches with the facts?
+  Three approved requirements place prose inside the
+  manager; the registry instance carries a Prose route.
+  Not decided here.
+end note
+
+note bottom of Geo #f3f4f6
+  OPEN ARCHITECTURAL QUESTION (unresolved): does location
+  extraction stay in the shared library every front-end
+  component installs? It is a live single-purpose model
+  call and fails test 2 of the boundary rule; it is the
+  template for four other single-purpose model-call modules
+  in the same position. Either move it out to a page-scoped
+  Geo tool (individualProvider + facility, parallel to the
+  specialty/NUCC filter), or grant the boundary a stated
+  exception.
 end note
 
 note bottom of UniversalNavigatorProxy #f3f4f6

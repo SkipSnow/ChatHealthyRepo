@@ -2,11 +2,11 @@
 // Licensed under the FindCare Evaluation License (FEL-1.0).
 //
 // ProviderSearchRefinementWidget — the display half of ProviderSearchTool's
-// refinements. That frame is where the system speaks to the person about
-// their query: SystemMessageWidget writes the correction line there on
-// kind:'prompt', replacing the frame, and this widget appends beneath it
-// on kind:'providers'. Appending is what keeps the two independent -- no
-// other widget is touched and no scaffold is shared.
+// refinements. These are result-narrowing controls and the server's result
+// summary, NOT conversation turns, so they render into the transcript
+// surface's subordinate attachments region (ch_result_attachments, laid
+// down by TranscriptWidget) — never into the single conversation record.
+// The region is stable, so each page of results is a plain replace.
 //
 // This is where the system tells the person how to narrow what they are
 // looking at. Every choice carries its count over the current result,
@@ -20,7 +20,7 @@ import { openPopup } from '@shared/displayChrome/popupFrame'
 
 const TARGET = 'UserMessage'
 const POPUP = 'NarrowPopUp'
-const CONTAINER = 'provider_search_refinements'
+const ATTACHMENTS_REGION = 'ch_result_attachments'
 const TEAL = '#0b7a75'
 const TEAL_LIGHT_BG = '#e6f5ec'
 
@@ -154,60 +154,39 @@ export default function ProviderSearchRefinementWidget() {
   useEffect(() => {
     window.parent.postMessage(
       { type: 'router:subscribe-broadcast', kind: 'providers' }, '*')
-    // The frame is replaced on each new question by whoever writes the
-    // correction line, taking this widget's container with it. Watching the
-    // same event is how this widget knows to lay a fresh one down, without
-    // reaching into the widget that owns the frame.
+    // A new query invalidates the narrowings of the last one. Watching the
+    // classify event is how this widget clears its region for a clean
+    // surface while the new search runs, now that no prose write replaces
+    // the frame out from under it.
     window.parent.postMessage(
-      { type: 'router:subscribe-broadcast', kind: 'prompt' }, '*')
+      { type: 'router:subscribe-broadcast', kind: 'intent_classified' }, '*')
 
-    // kind:'providers' arrives once per page of results. The first lays the
-    // container down beneath the correction line; every later one replaces
-    // what is inside it, so paging updates the counts instead of stacking
-    // another copy under them.
-    let laid = false
     // The last counts seen, so the window can be opened from the button
     // and repainted as the list narrows without asking the server again.
     let lastRefinements: Record<string, Array<Record<string, any>>> = {}
     let lastTotal = 0
     let windowOpen = false
-    // The correction line is written with a whole-frame replace, which
-    // happens after the counts on a turn that corrects a spelling -- so the
-    // hints were being wiped by it. Holding them means they go back under
-    // the corrected sentence rather than disappearing at exactly the moment
-    // the system had something to say.
-    let held = ''
 
+    // The narrowing controls + result summary render into the transcript
+    // surface's stable attachments region. A plain replace on each page of
+    // results updates the counts; nothing is stacked and no other widget's
+    // frame is touched.
     function paint(content: string) {
-      if (!content) return
-      held = content
-      if (laid) {
-        window.parent.postMessage({
-          type: 'router:merge', target: TARGET, region: CONTAINER, content,
-        }, '*')
-        return
-      }
       window.parent.postMessage({
-        type: 'router:render', target: TARGET, append: true, popup: false,
-        content: `<div id="${CONTAINER}">${content}</div>`,
+        type: 'router:merge', target: TARGET, region: ATTACHMENTS_REGION,
+        content: content || '',
       }, '*')
-      laid = true
     }
 
     function onMessage(ev: MessageEvent) {
       const msg = ev.data
       if (!msg || typeof msg !== 'object') return
 
-      if (msg.type === 'router:event-broadcast' && msg.kind === 'prompt') {
-        // The frame was just replaced, so the container is gone. Lay the
-        // held counts back under the sentence rather than leaving the
-        // person with nothing where the narrowings were.
-        laid = false
-        if (held) {
-          const back = held
-          held = ''
-          paint(back)
-        }
+      if (msg.type === 'router:event-broadcast' && msg.kind === 'intent_classified') {
+        // New query — clear last query's narrowings from the surface.
+        lastRefinements = {}
+        lastTotal = 0
+        paint('')
         return
       }
 

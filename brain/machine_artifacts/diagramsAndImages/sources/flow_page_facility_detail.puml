@@ -10,16 +10,24 @@ skinparam NoteBackgroundColor #f3f4f6
 skinparam NoteBorderColor #9ca3af
 skinparam DatabaseBorderColor #6b7280
 
-title Facility Detail page (page-type flow)\nOpening one organization on the same terms as a provider: brought to live freshness, still shown when the registry is silent, reconciled against its one required member.
+title flow_page_facility_detail — the facility detail, a member of the facility page (not a page of its own)\nOpening one organization on the same terms as a provider: brought to live-registry freshness on open, still shown when the registry is silent, reconciled against its one required member.
 
 actor "Person / Client" as User
 participant "Gate\n(facade, transport only)" as Gate
 participant "UniversalNavigator\n(SharedServices main)" as UN
 database "Repository\nsession, render ledger, page state" as Repo
-participant "facility_detail\n(tool, required member)" as FD
+participant "UniversalNavigatorProxy\n(FindCare)" as PXY
+participant "facility_detail\n(member of the facility page,\nrequired for this view)" as FD
 participant "Authoritative registry\n(live query by NPI)" as NPPES
 database "Facility record\ncollection" as DB
-participant "Prose tool\n(member, authors the sentence)" as Prose
+participant "Prose\n(authors the sentence)" as Prose
+
+note over User, Prose #eef6f5
+  THREE pages exist: individualProvider, facility, clinicalTrial. This flow does NOT
+  construct a fourth. It constructs the facility page's DETAIL view; facility_detail
+  is a MEMBER of the facility page, never a page. (Registry: facility members =
+  FacilitySearch[required], FacilityDetail, Geo.)
+end note
 
 User -> Gate : click a facility card's link\n{ session_token, head, params(openNpi) }
 activate Gate
@@ -32,27 +40,26 @@ Gate -> UN : navigate(session_token, head, params)
 activate UN
 
 note right of UN
-  TRIAGE by declared proof. Five ways a call may arrive:
+  TRIAGE by declared proof. Five call types, each with a required proof:
   tool_to_tool (none), client_sessioned (session_token),
-  third_party_callback (api_key), static_witness (none),
-  internal_callback (our_signature). A session token is
-  present -> this is a client_sessioned arrival.
+  third_party_callback (api_key+credential), static_witness (none),
+  internal_callback (our_signature). A session token is present
+  -> this is a client_sessioned arrival.
 end note
 UN -> Repo : verify session_token, advance the nonce
 Repo --> UN : session ok
 
 note right of UN
-  DETERMINE THE PAGE from the live registry map: openNpi names
-  a record whose entity is an organization -> the facility page.
-  The UN holds no data; the map is the registry, page state a
-  repository row.
+  DETERMINE THE PAGE from the registry map: openNpi names a record
+  whose entity is an organization -> the facility page. The click already
+  names the NPI, so NO UtteranceManager classification runs on this path.
+  The UN holds no data; the map is the registry, page state a repository row.
 end note
-UN -> Repo : page state = facility page shows this NPI
+UN -> Repo : page state = facility page, detail view for this NPI
 
 note right of UN
-  OPEN THE RENDER LEDGER. Record the page's required_members
-  as the expectation and race the completeness budget against
-  the completion callback:
+  OPEN THE RENDER LEDGER. Record the page's required_members as the
+  expectation and race the completeness budget against the completion callback:
     members          = { facility_detail, prose }
     required_members = { facility_detail }
     budget           = completeness.render_timeout_seconds
@@ -60,7 +67,9 @@ end note
 UN -> Repo : record ledger expectation { facility_detail }, start the budget
 
 alt facility_detail returns within the budget
-  UN -> FD : dispatch(openNpi)
+  UN -> PXY : dispatch facility_detail across the wire (tool_to_tool, proof none)
+  activate PXY
+  PXY -> FD : relay locally (function call)
   activate FD
 
   FD -> NPPES : query by NPI (live freshness on open)
@@ -96,15 +105,16 @@ alt facility_detail returns within the budget
   end
 
   FD -> FD : build the panel\n- legal business name; other name and its label; NPI; NPI issue date; active\n- parent's legal business name when the facility is a subpart\n- classification label, specialization, plain-language definition\n- authorized official (last, first, middle, title, credential), so labelled\n- destinations to confirm the enumeration and the right to operate
-  FD --> UN : internal_callback { panel }  proof our_signature
+  FD --> PXY : facility detail panel
   deactivate FD
+  PXY --> UN : internal_callback { panel }  proof our_signature\ncloses the required ledger entry
+  deactivate PXY
 
-  UN -> Repo : close the ledger entry for facility_detail
   UN -> UN : RECONCILE - every required member closed;\nserial deterministic merge of returning documents\n(a parameter/state conflict RAISES -> on_conflict)
   opt prose member
     UN -> Prose : author the panel's summary, with the facts
     activate Prose
-    Prose --> UN : the user-facing sentence
+    Prose --> UN : the user-facing sentence\ncloses its (non-required) entry
     deactivate Prose
   end
   UN --> Gate : the reconciled facility panel
@@ -134,5 +144,20 @@ end
 deactivate UN
 Gate --> User : the facility as the registry reports it now
 deactivate Gate
+
+note over UN, Prose #fff3cd
+  OPEN ARCHITECTURAL QUESTION (not resolved here): is authoring the user-facing
+  sentence the UtteranceManager's own scope, or a separate "Prose" tool? Three
+  approved requirements place prose inside the UtteranceManager; the registry
+  instance also carries a "Prose" route name. This diagram draws Prose as the
+  sentence author WITHOUT deciding which owns the scope. The operator resolves it.
+end note
+
+note over FD #fbe9e7
+  CURRENT-STATE GAP (target draws facility_detail as its own member): today there is
+  no facility_detail_tool.py — the facility detail is served by the ProviderDetail tool
+  with entity_type "2", and facility tools live under sharedServices/Code, not FindCare/.
+  See fc_capability_grid / mig_after / mig_code_tree.
+end note
 
 @enduml

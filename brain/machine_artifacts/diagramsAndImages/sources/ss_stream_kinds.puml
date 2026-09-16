@@ -14,13 +14,13 @@ skinparam ranksep 16
 title Every streamed kind and the widget that claims it:\nthe main merges serially, its gate writes the one stream -- the server names an event, never a frame
 
 package "Tools (SharedServices) -- produce events, then call back" #fdfdfd {
-  [UtteranceManager\nclassify-only: returns the dispatch set] as UM
+  [UtteranceManager\nclassify; today also authors the\nuser-facing prompt (user_message)] as UM
   [ProviderSearchTool] as PST
   [ProviderDetailTool] as PDT
   [EvalCareSplashTool] as ESP
   [AboutChatHealthyTool] as ABT
-  [ProseTool\nauthors user-facing prose] as PROSE
-  [Selection tools\nprovider / facility / trial] as SEL
+  [Prose (proposed tool)\nOPEN QUESTION -- see note] as PROSE #fff7ed
+  [Selection tools\nProviderSelectionTool /\nFacilitySelectionTool /\nClinicalTrialSelectionTool] as SEL
   [ClinicalTrialsDispatcher] as CTD
   [LockoutTool] as LOCK
   [CloseConnection200Tool] as CLOSE
@@ -79,12 +79,12 @@ package "Widgets (each claims its own kinds)" #fdfdfd {
   WH -[hidden]down- WNQ
 }
 
-UM --> NAV
+UM --> NAV : prompt (user_message)
 PST --> NAV
 PDT --> NAV
 ESP --> NAV
 ABT --> NAV
-PROSE --> NAV
+PROSE ..> NAV : prompt (if it exists)
 SEL --> NAV
 CTD --> NAV
 LOCK --> NAV
@@ -113,12 +113,30 @@ SUB --> WNQ : intent_classified
 
 note right of NAV #f3f4f6
   Tools no longer write the wire. A finished tool
-  calls back into the main UniversalNavigator as an
-  internal callback; the main sequences the callbacks,
-  merges each returning document serially with the
-  shared-library merge function, and closes its
-  render-ledger entry. A merge conflict raises. Its
-  gate then writes the ONE stream for the session.
+  calls back into the main UniversalNavigator --
+  reached in-process through the
+  UniversalNavigatorProxy -- as an internal callback;
+  the main sequences the callbacks, merges each
+  returning document serially with the shared-library
+  merge function, and closes its render-ledger entry.
+  A merge conflict raises. Its gate (the single client
+  entrance) then writes the ONE stream for the session.
+end note
+
+note bottom of PROSE #fff7ed
+  OPEN ARCHITECTURAL QUESTION -- do NOT resolve here.
+  Is authoring the user-facing prompt the
+  UtteranceManager's own scope, or a separate "Prose"
+  tool? Not decided. Evidence pulls both ways:
+  - Today UM authors user_message in code and streams
+    it as {kind:'prompt'}; no ProseTool class exists.
+  - The tool-registry instance carries a 'Prose' route
+    name.
+  - Three approved requirements place both inside UM:
+    EPIC-002-F-010-S-001, EPIC-002-F-010-S-003,
+    EPIC-006-F-008-S-003.
+  The dashed Prose box is drawn only to mark the
+  contending position, not to adopt it.
 end note
 
 note right of ROUTER #f3f4f6
@@ -141,6 +159,16 @@ note right of SUB #f3f4f6
   restore_findcare, ux_event_recorded.
   A kind with no subscriber is dispatched
   and lands nowhere.
+end note
+
+note bottom of LOCK #f3f4f6
+  LockoutTool is a deterministic producer, not a
+  probabilistic gate: the classifier runs at
+  temperature 0 and lockout is crowd-sourced --
+  Users.UserLockOutUtterances holds each lockout
+  utterance UPPERCASED with a count, an exact repeat
+  is a deterministic lockout, then staff-curated.
+  Mechanism + monthly frequency report live in C2.
 end note
 
 @enduml

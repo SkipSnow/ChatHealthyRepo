@@ -8,107 +8,157 @@ skinparam ParticipantBorderColor #0b7a75
 skinparam ParticipantBackgroundColor #fdfdfd
 skinparam NoteBackgroundColor #f3f4f6
 skinparam NoteBorderColor #9ca3af
+skinparam DatabaseBorderColor #6b7280
 
-title flow_page_provider_detail — page construction & reconciliation\nOne provider detail, brought to live-NPPES freshness on open, reconciled, and still shown when the registry does not answer.
+title Provider detail — a VIEW / MEMBER of the individualProvider page, NOT a page\nOpening one provider on the same terms as a facility: brought to live-NPPES freshness on open, still shown when the registry is silent, reconciled against its one required member.
 
-actor "Person/Client" as P
-participant "Gate\n(facade)" as GATE
-participant "UniversalNavigator\n(SharedServices)" as UN
-participant "UtteranceManager" as UM
-database "render ledger + session\n(repo rows)" as REPO
-participant "Prose tool\n(co-resident)" as PROSE
-participant "UniversalNavigatorProxy\n(FindCare)" as PXY
-participant "provider_detail tool\n(FindCare)" as PDT
+actor "Person / Client" as P
+participant "Gate\n(facade, transport only)" as GATE
+participant "UniversalNavigator\n(SharedServices main)" as UN
+database "Registry\n(the one live map)" as REG
+database "Repository\nsession, render ledger, page state" as REPO
+participant "UniversalNavigatorProxy\n(FindCare satellite)" as PXY
+participant "provider_detail\n(tool, required member)" as PDT
 participant "NPPES\n(live query by NPI)" as NPPES
+database "Provider record\ncollection" as DB
+participant "Prose tool\n(authors the sentence)" as PROSE
 
-P -> GATE : open the provider detail\n(session token, head, params {npi})
+note over UN, PROSE #fde68a
+  OPEN ARCHITECTURAL QUESTION (not resolved here):
+  whether authoring a user-facing sentence — the summary, the
+  not-found line, the timeout line — is the UtteranceManager's OWN
+  scope, or a SEPARATE "Prose" tool as drawn. Three approved
+  requirements place prose and the manufacture path inside the
+  UtteranceManager; the registry instance also carries a "Prose"
+  route. The architecture will not move a requirement; which stands
+  is the operator's to say. Drawn one way only to be concrete.
+end note
+
+P -> GATE : click a provider card's link\n{ session_token, head, params(openNpi) }
 activate GATE
 note over GATE
-  Dumb transport only. Collect session token,
-  HTTP head, POST/GET params; stream back.
-  Verify nothing; own no route.
+  A click, not an utterance. The gate collects the session token,
+  the HTTP head, and the parameters, each if present, and hands
+  them on. It is the single client entrance; it owns no route
+  and verifies nothing.
 end note
-GATE -> UN : forward(token, head, params)
-deactivate GATE
+GATE -> UN : navigate(session_token, head, params)
 activate UN
+deactivate GATE
 
-note over UN
-  TRIAGE by declared proof
-  route call_type = client_sessioned
-  proof.method = session_token  ->  verify + restamp nonce
-  The only node that accepts external traffic.
+note right of UN
+  TRIAGE by declared proof. Five ways a call may arrive:
+  tool_to_tool (none), client_sessioned (session_token),
+  third_party_callback (api_key), static_witness (none),
+  internal_callback (our_signature). A session token is
+  present -> this is a client_sessioned arrival. The
+  UniversalNavigator is the only node that takes external traffic.
 end note
-UN -> REPO : load session by GUID; verify
+UN -> REPO : verify session_token, advance the nonce
+REPO --> UN : session ok
 
-UN -> UN : read the map — this request constructs\npage = provider_detail\nmembers {provider_detail, prose}\nrequired_members {provider_detail}
-
-UN -> UM : mine, scoped to the page's members\n(preamble + fragments for {provider_detail, prose})
-activate UM
-note over UM
-  Classifies only: one model call —
-  preamble + the scoped fragments in,
-  the dispatch set out. Knows no parameters.
-  The assembled fragments ARE the classifier.
+note right of UN
+  DETERMINE THE PAGE from the live registry map: openNpi names a
+  record whose entity is an individual -> the individualProvider page.
+  provider_detail is a VIEW / MEMBER of that page, never a page itself.
+  The UN holds no data; the map is the registry, page state a repo row.
 end note
-UM --> UN : dispatch set = {provider_detail, prose}
-deactivate UM
+UN -> REG : read the live map for this env
+REG --> UN : pages, members, required_members, may_call
+UN -> REPO : page state = individualProvider page shows this NPI
 
-UN -> REPO : render ledger — record expectations for\nrequired_members {provider_detail}; start completeness budget
-note over REPO
-  Dispatch records the expectation; each completion
-  callback (our_signature) closes one entry;
-  completeness.render_timeout_seconds races them.
+note right of UN
+  OPEN THE RENDER LEDGER. Record the required member for this
+  detail-open as the expectation and race the completeness budget:
+    members          = { provider_detail, prose }
+    required_members = { provider_detail }
+    budget           = completeness.render_timeout_seconds
 end note
+UN -> REPO : record ledger expectation { provider_detail }, start the budget
 
-par dispatch the page's members
-  UN -> PXY : dispatch provider_detail across the wire (tool_to_tool)
+alt provider_detail returns within the budget
+  UN -> PXY : dispatch provider_detail(openNpi)\nacross the wire (tool_to_tool, our_signature signed out)
   activate PXY
   PXY -> PDT : relay locally (function call)
   activate PDT
-  PDT -> NPPES : live query by NPI
+
+  PDT -> NPPES : query by NPI (live freshness on open)
   activate NPPES
   NPPES --> PDT : live record, or nothing
   deactivate NPPES
-  alt NPPES answered
-    PDT -> PDT : reconcile — start from OUR record,\napply only the registry's fields
-  else NPPES did not answer
-    PDT -> PDT : show the stored record as we hold it
+
+  alt the registry answered
+    alt the NPI is an individual
+      PDT -> DB : read the stored record
+      DB --> PDT : record as we hold it
+      PDT -> PDT : start from OUR record; apply only the registry's fields\n(identity, credentials, taxonomies, every address, licenses,\nother identifiers, active state — never an organization attribute)
+      opt the freshness merge changed something real
+        PDT -> DB : replace the record, read it back
+        DB --> PDT : the record as now stored
+        note right of PDT
+          Whether this per-open freshness write targets the SERVED
+          collection or a non-served store is the open two-writers
+          question (C4/C5: served-data writers). Not settled here.
+        end note
+      end
+    else the NPI is not an individual
+      PDT -> PROSE : author "provider not found"
+      PROSE --> PDT : the not-found sentence
+      note right of PDT
+        No Provider Detail is shown for an NPI the registry reports
+        is not an individual; the user is told the provider was not found.
+      end note
+    end
+  else the registry did not answer
+    PDT -> DB : read the stored record
+    DB --> PDT : record as we hold it (shown with no comparison)
     note right of PDT
-      A page can reconcile a degraded detail.
-      Not answering leaves no reason to doubt
-      the record — it is still shown.
+      A detail is still shown when the source does not answer.
+      Not answering leaves us no reason to doubt the record.
     end note
   end
-  PDT --> PXY : detail document
+
+  PDT -> PDT : build the panel\n- identity, credentials; every practice and business address, labelled and ordered\n- every license; insurance identifiers; active state\n- county info + urban marker (pipeline enrichment)\n- external research links to verify the provider independently
+  PDT --> PXY : internal_callback { panel }  proof our_signature
   deactivate PDT
-  PXY --> UN : internal_callback (proof: our_signature)\ncloses the required ledger entry
+  PXY --> UN : internal_callback closes the required ledger entry
   deactivate PXY
-else and, in parallel
-  UN -> PROSE : dispatch prose with the facts\n(co-resident — answers directly)
+
+  UN -> REPO : close the ledger entry for provider_detail
+  UN -> UN : RECONCILE — every required member closed;\nserial deterministic merge of returning documents\n(a parameter/state conflict RAISES -> on_conflict)
+  opt prose member
+    UN -> PROSE : author the panel's summary, with the facts
+    activate PROSE
+    PROSE --> UN : the user-facing sentence
+    deactivate PROSE
+  end
+  UN --> GATE : the reconciled provider panel
+
+else the budget expires first  (on_timeout)
+  UN -> PROSE : author the layman on_timeout explanation
   activate PROSE
-  PROSE --> UN : user-facing sentence\ncloses its (non-required) entry
+  PROSE --> UN : "we could not bring this provider up in time — please try again"
   deactivate PROSE
-end
-
-UN -> REPO : reconcile — merge returning documents\nserially (shared-lib deterministic merge)
-
-alt required_members closed within the budget
-  note over UN
-    provider_detail closed. The page reconciles
-    once every required member's entry closes.
+  UN --> GATE : respond anyway, the page unrendered
+  note right of UN
+    The completeness timeout races the callback. On expiry the UN
+    responds in layman's terms, instrumented with timings at a
+    severity matching impact.
   end note
-else render_timeout_seconds expired first
-  UN -> UN : respond anyway with the page's\nlayman on_timeout explanation
-else merge conflict  (on_conflict = raise)
-  UN -> UN : raise ChatHealthyException;\ninstrument with timings (severity by impact)
-else required member died / never returned\n(on_missing_required = raise)
-  UN -> UN : render ledger raises;\ninstrument with timings
+
+else provider_detail dies or never calls back  (on_missing_required)
+  UN -> UN : render ledger RAISES — the one required member is missing;\ncatch, classify, log with timings
+  UN --> GATE : ChatHealthyException surfaced
+  note right of UN
+    Every throw ends in a UniversalNavigator; the proxy re-raises.
+    A required member that dies or never returns leaves the page
+    unreconcilable.
+  end note
 end
 
-UN --> GATE : the reconciled page (the gate writes the one stream)
-activate GATE
+[<-- GATE : the one stream the gate writes
+deactivate UN
 GATE --> P : the provider detail as the registry reports it now
 deactivate GATE
-deactivate UN
 
 @enduml

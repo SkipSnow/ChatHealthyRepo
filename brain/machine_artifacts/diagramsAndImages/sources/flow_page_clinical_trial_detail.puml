@@ -8,84 +8,75 @@ skinparam ParticipantBorderColor #0b7a75
 skinparam ParticipantBackgroundColor #fdfdfd
 skinparam NoteBackgroundColor #f3f4f6
 skinparam NoteBorderColor #9ca3af
+skinparam DatabaseBorderColor #6b7280
 
-title Clinical trial detail page: one trial, laid out in its section anchors\nA click opens it, the trial record is an external registry's, and the page reconciles on its one required member
+title Clinical trial detail — a VIEW / MEMBER of the clinicalTrial page, NOT a page\nHow one trial opens today: the React widget paints it from the search result it already cached.\nNo tool, no route, no live freshness on open — EPIC-006-F-004-S-001 is the gap.
 
-actor "Person / Client" as P
-participant "Gate\n(transport facade)" as GATE
+actor "Person" as P
+participant "clinicalTrial page\n(React client widget)" as PAGE
+database "cached search result\n(client memory)" as CACHE
+participant "Gate\n(facade, transport only)" as GATE
 participant "UniversalNavigator\n(SharedServices)" as UN
-database "sessions + render ledger\n(repo rows)" as REPO
 participant "UniversalNavigatorProxy\n(FindCare)" as PXY
-participant "clinical_trial_detail tool\n(FindCare)" as CTD
-participant "Prose tool\n(SharedServices)" as PROSE
-participant "ClinicalTrials.gov\n(external registry)" as CTG
+participant "ClinicalTrials\n(tool, the page's required member)" as CT
+participant "ClinicalTrials.gov\n(external registry, not ours)" as CTG
 
-P -> GATE : click a trial's link (gesture)\naction 'clinical_trial_detail', params {nctId}\nAccept: application/x-ndjson
-note right of GATE
-  The gate is dumb transport: it collects the session
-  token, the HTTP head and the params, streams the
-  answer back, verifies nothing and owns no route.
-end note
+== Context: the clinicalTrial page's one required member already ran (Geo resolves any location) ==
+P -> PAGE : type a condition (and, if given, a place) and search
+PAGE -> GATE : navigate(session_token, head, params) — a client_sessioned call
 GATE -> UN : pass(session_token, head, params)
-
-== Triage: which of the five call types ==
-UN -> UN : the arrival carries a session token\n-> client_sessioned route (proof: session_token)
-UN -> REPO : load session by GUID
-UN -> UN : verify token + restamp nonce\n(session-security helpers)
-note right of UN
-  Triage is by declared proof. A session token means a
-  client we served index.html -- not tool_to_tool (none),
-  not third_party_callback (api_key), not static_witness
-  (none), not internal_callback (our_signature).
+UN -> PXY : dispatch ClinicalTrials across the wire (tool_to_tool)\n(required member of the clinicalTrial page)
+PXY -> CT : relay locally (function call)
+CT -> CTG : query trials by condition / location
+CTG --> CT : the matching trials, as full records
+CT --> PXY : trial-list document
+PXY --> UN : internal_callback (proof: our_signature) — closes the ledger entry
+UN --> GATE : the reconciled clinicalTrial page (the gate writes the one stream)
+GATE --> PAGE : the trial list
+PAGE -> CACHE : cache the returned trials, each a full record
+note over CACHE
+  The search result carries the FULL trial record for every hit.
+  There is no second fetch for a single trial — which is exactly
+  why the detail below needs no server round-trip today.
 end note
 
-== Determine page + record the render ledger ==
-UN -> UN : read the map: this request builds the\nclinical_trial_detail page (subject: clinical_trial)
-UN -> REPO : ledger: record required_members = [clinical_trial_detail];\nmembers also include prose
-note left of REPO
-  Dispatch records the page's required_members as
-  expectations; each completion callback (our_signature)
-  closes one; the completeness budget races them. This
-  is a gesture, so no UtteranceManager mining runs --
-  the click already names the trial.
+== Today: opening one trial is a client-side paint — no server round-trip ==
+P -> PAGE : click a trial's link (a gesture, not an utterance)\nopenNctId names which trial is on screen
+PAGE -> CACHE : read the already-cached trial by NCT id
+CACHE --> PAGE : the trial record (from the earlier search)
+PAGE -> PAGE : lay the trial into its section anchors\n+ the right-panel section list that jumps between them\n(recursion-guarded; EPIC-006-F-004-S-001 display)
+PAGE --> P : the trial in its sections
+note right of PAGE
+  No Gate call, no UniversalNavigator, no render ledger, no tool,
+  no route. openNctId is declared and the page records which trial
+  is on screen, but NOTHING server-side serves a trial detail.
 end note
 
-== Dispatch: the required member, then prose on its facts ==
-UN -> PXY : dispatch clinical_trial_detail (tool_to_tool)
-PXY -> CTD : relay locally (function call)
-CTD -> CTG : query the trial by NCT id\n(external registry, not ours)
-CTG --> CTD : trial record, or nothing
-CTD -> CTD : lay the trial into its section anchors\n(recursion-guarded)
-CTD --> PXY : trial detail document
-PXY --> UN : internal_callback (proof: our_signature)
-UN -> REPO : ledger: close clinical_trial_detail (required);\nmerge serially -- a conflict RAISES
+note over GATE, CTG #fde68a
+  THE GAP — EPIC-006-F-004-S-001 is unbuilt.
+  Its two siblings ARE built tools that reconcile a page on open:
+    - provider_detail  -> live NPPES query by NPI, then reconcile
+    - facility_detail  -> live registry query by NPI, then reconcile
+  Trial detail has NEITHER a tool NOR a route. It never re-queries
+  ClinicalTrials.gov for the single trial, so it cannot be brought
+  to live freshness the way a provider or facility detail is; it can
+  only re-show what the search already returned.
+  mig_after proposes a new member trial_detail (tool + route) that
+  would open on the same page-construction terms as its siblings:
+    Gate -> UN -> render ledger -> UniversalNavigatorProxy ->
+    trial_detail -> ClinicalTrials.gov, reconciled against
+    required_members = { trial_detail }, with on_timeout /
+    on_conflict / on_missing_required instrumented by impact.
+end note
 
-UN -> PROSE : dispatch prose with the trial facts\n(member, not required)
-PROSE -> PROSE : compose the user-facing sentence\n(one model call, pydantic-ai)
-PROSE --> UN : answers directly (co-resident with the main)
-UN -> REPO : ledger: close prose; merge serially
-
-== Reconcile + respond ==
-alt required member closed within the completeness budget
-  UN -> UN : page reconciled\n(required_members all closed)
-  UN -> GATE : stream the page events\n(the gate owns the one stream)
-  GATE --> P : the trial in its sections, with prose
-else the required member times out, dies, or a merge conflicts
-  UN -> REPO : ledger raises: on_missing_required / on_conflict;\nor the render_timeout_seconds budget expires
-  UN -> GATE : stream the layman on_timeout explanation
-  GATE --> P : plain-English "we could not load this trial in time"
-end
-
-note over UN, REPO #f3f4f6
-  Page error management, all instrumented with timings at a severity
-  matching impact:
-  - timeout -> the navigator responds anyway with the layman on_timeout text
-  - conflict -> merging the returning documents raises (on_conflict = raise)
-  - missing required -> a dead or never-returning clinical_trial_detail raises
-    (on_missing_required = raise). prose is not required, so its absence
-    does not block the page.
-  Every throw ends here in the UniversalNavigator; the FindCare proxy
-  re-raises, never swallows.
+note over UN #eef2ff
+  OPEN ARCHITECTURAL QUESTION — do NOT resolve.
+  When a built trial_detail member needs a user-facing sentence,
+  is that prose the UtteranceManager's OWN scope, or a separate
+  "Prose" tool? The registry instance carries a Prose route name
+  (evidence, not a decision); approved requirements place authoring
+  inside the UtteranceManager. Both contend; the operator decides.
+  Drawn open on every flow that would touch it.
 end note
 
 @enduml

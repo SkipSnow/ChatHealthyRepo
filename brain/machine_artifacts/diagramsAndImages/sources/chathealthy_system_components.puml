@@ -20,15 +20,15 @@ package "The browser" #fdfdfd {
 package "SharedServices  ·  Hugging Face Space" #fdfdfd {
   [Gate\na facade — the one entrance;\nthe only node that knows transport;\nproxy for the navigator] as GATE
   [UniversalNavigator\nreads the map, drives the route,\nledger · merge · sessions · security;\nthe only node that takes outside traffic] as UN
-  [UtteranceManager\nutterance -> the set of tools to\ndispatch to; preamble + fragments,\none model call, routes out] as UM
-  [Prose tool\nturns facts into the user sentence] as PROSE
+  [UtteranceManager\nutterance -> the set of tools to\ndispatch to; preamble + fragments,\none model call; classify + prose] as UM
+  [Prose\nturns facts into the user sentence /\nasks the user a question] as PROSE
 }
 
 package "FindCare  ·  Hugging Face Space" #fdfdfd {
   [UniversalNavigatorProxy\nrelays tool-to-tool both ways] as FCPX
-  [Find an individual] as FCP
-  [Find a facility] as FCF
-  [Find a clinical trial] as FCT
+  [individualProvider — page\nProviderSearch (required) · SpecialtyFilter\n(Prescribers / Homeopathic) · Geo ·\nProviderDetail · ProviderSelection] as FCP
+  [facility — page\nFacilitySearch (required) · facility NUCC filter\n(Ambulatory / Psychiatric / Inpatient) · Geo ·\nFacilityDetail] as FCF
+  [clinicalTrial — page\nClinicalTrials (required) · Geo] as FCT
 }
 
 package "EvaluateCare  ·  Hugging Face Space" #fdfdfd {
@@ -37,7 +37,7 @@ package "EvaluateCare  ·  Hugging Face Space" #fdfdfd {
 }
 
 database "Atlas — front end" as FE {
-  [ToolRegistry\none record per build per env] as REG
+  [ToolRegistry (ChatHealthyToolRegistrySchema)\ntools · routes · pages;\ninstance{build,commit,env,live}] as REG
   [Sessions and render ledger] as SESS
   [PublicHealthData] as PHD
 }
@@ -59,7 +59,7 @@ CR -right-> W
 CR -down-> GATE : every call, one POST
 GATE -down-> UN : token, head, params
 UN -right-> UM : classify the utterance
-UN -down-> PROSE : facts -> a sentence
+UN -down-> PROSE : facts -> a sentence / a question
 
 ' --- dispatch across the wire to the satellites ---
 UN -right-> FCPX : dispatch
@@ -117,5 +117,28 @@ end note
 note bottom of KV
   Issues certificates to the gate and to both
   proxies; holds every secret by vault name.
+end note
+
+note bottom of PROSE
+  OPEN ARCHITECTURAL QUESTION — not resolved here.
+  Is asking the user a question the UtteranceManager's
+  own scope, or a separate "Prose" tool? Drawn separate
+  = the target position, not a decision. Three approved
+  requirements place both inside the UM:
+  EPIC-002-F-010-S-001 (author user_message),
+  EPIC-002-F-010-S-003 (the manufacture path),
+  EPIC-006-F-008-S-003 (a parameter writer). The registry
+  carries a "Prose" route name — evidence, not a verdict.
+end note
+
+note bottom of FCP
+  Three pages only: individualProvider, facility,
+  clinicalTrial. Detail views, the specialty / NUCC
+  filter and Geo are page-scoped MEMBERS, never pages.
+  Geo runs parallel to the specialty filter on
+  individualProvider + facility, resolving free-text
+  geography (incl. misspellings). The facility NUCC
+  filter mirrors the individual Prescribers / Homeopathic
+  filter.
 end note
 @enduml

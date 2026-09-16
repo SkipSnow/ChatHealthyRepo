@@ -19,14 +19,14 @@ package "Workstation · Docker" #fdfdfd {
 
   package "ch-sharedsvc" #fbfdfd {
     [Gate\nfacade — the one entrance] as GATE
-    [UniversalNavigator\nmap · route · ledger · merge ·\nsessions · security helpers] as UN
-    [UtteranceManager\npreamble + fragments -> dispatch set] as UM
+    [UniversalNavigator\ntriage · route · render ledger · merge ·\nsessions · security helpers] as UN
+    [UtteranceManager\nclassify + prose only] as UM
     [Prose · Selection · About · ...] as SST
   }
 
   package "ch-findcare" #fbfdfd {
     [UniversalNavigatorProxy] as FCPX
-    [ProviderSearch · Detail ·\nSpecialtyFilter · Facility · Trials] as FCT
+    [ProviderSearch · ProviderDetail ·\nSpecialtyFilter · Geo ·\nFacilitySearch · FacilityDetail · ClinicalTrials] as FCT
   }
 
   package "ch-evalcare" #fbfdfd {
@@ -35,13 +35,13 @@ package "Workstation · Docker" #fdfdfd {
   }
 }
 
-database "Atlas — front end" as FE {
-  [ToolRegistry\nthe live record for env=local] as REG
-  [Sessions and render ledger] as SESS
-  [PublicHealthData] as PHD
+database "Atlas — ChatHealthyFrontEnd (one cluster)" as FE {
+  [ChatHealthyConfig\ntechnical/config —\nDBVersions · ToolConfiguration\n(live registry, env=local) · CertificateRegistry] as CFG
+  [Users\nuser/session —\nusers · sessions · render ledger ·\nUserLockOutUtterances] as USR
+  [PublicHealthData + ProprietaryData\ncore business —\nProvider table · NUCC/SpecialtyMetaData ·\nprovider/specialty flags] as PHD
 }
 
-[Key Vault\ncerts and secrets] as KV
+[Key Vault\ncerts and secrets (one vault)] as KV
 [Model + embedding APIs\n(pydantic-ai, inside tools)] as AI
 
 user --> WEB : https://localhost
@@ -54,9 +54,10 @@ UN --> ECPX : dispatch (host.docker.internal)
 FCPX --> FCT
 ECPX --> ECT
 FCT -[#9ca3af]up-> FCPX : completion callback
-UN --> REG : reads the live map at startup
-UN --> SESS : sessions, the ledger
+UN --> CFG : reads the live map at startup\n(ChatHealthyToolRegistrySchema)
+UN --> USR : sessions, the render ledger
 FCT --> PHD
+UM .down.> AI : classify (+ prose)
 KV .up.> GATE : certs
 KV .up.> FCPX : certs
 FCT .down.> AI
@@ -70,9 +71,32 @@ note bottom of UN
   app.py collapse into this one generic Gate.
 end note
 
+note right of SST
+  OPEN ARCHITECTURAL QUESTION (not resolved here):
+  whether asking the user a question is the
+  UtteranceManager's own scope, or a separate
+  "Prose" tool. Drawn here as a separate tool, but
+  three approved requirements place prose inside UM.
+  The architecture will not move a requirement;
+  which stands is the operator's to say.
+end note
+
 note bottom of FE
   Data is versioned, not environment-segregated:
-  one live registry record for env=local, no
-  dev_/qa_/prod_ prefixes.
+  one live registry record for env=local, generation
+  chosen by ChatHealthyConfig.DBVersions bindings — no
+  dev_/qa_/prod_ databases. All four environments bind
+  the SAME store, vault and data generation; the binding
+  is a record value, so environments are separated by a
+  commit, not by infrastructure.
+
+  Migration in progress: from NO data-management to
+  real-time versioning. The legacy env-prefixed FindCare
+  databases (dev_/qa_/prod_PublicHealthData, dev_/qa_System,
+  qa_repo, *_Debug) are garbage under this model and MUST
+  be pruned. The pipeline cluster (ChatHealthyDataPipelines)
+  builds and stages the core-business tables; migration
+  copies them here name-preserving — see the Data
+  Architecture chapter and sys_data_flow.
 end note
 @enduml

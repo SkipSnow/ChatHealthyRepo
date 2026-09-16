@@ -18,10 +18,12 @@ participant "Tool B\n(callee)" as B
 
 A -> P : ask for Tool B along may_call\n(identical tool code either way)
 note over P
-  TRIAGE by the route's declared proof = none (internal):
-  classify this call as tool_to_tool.
+  TRIAGE from the tool registry (ChatHealthyToolRegistrySchema),
+  the one navigation map: the route's declared proof = none (internal),
+  so classify this call as tool_to_tool
+  (1 of 5 call types; proof method none).
   Internal traffic — no session, no render ledger, no merge.
-  Read the may_call map: A -> B is declared and non-circular.
+  Read the registry's may_call graph: A -> B is declared and non-circular.
   Recursion guard: may_call depth is within bound.
 end note
 
@@ -44,13 +46,13 @@ else Satellite — Tool B across the wire
   P -> UN : relay across the wire (internal)
   note over UN
     The main accepts the internal wire traffic.
-    Re-affirm triage: proof = none, tool_to_tool;
-    confirm the may_call map and recursion guard.
+    Re-affirm triage from the registry: proof = none, tool_to_tool;
+    confirm the may_call graph and recursion guard.
   end note
   UN -> B : dispatch (B co-resident with the main)
   alt B answers
     B --> UN : result document
-    UN --> P : relay back (internal callback)
+    UN --> P : relay back (internal_callback — 1 of 5 call types)
     P --> A : result
   else B raises ChatHealthyException
     B --> UN : raise (a middle tool never swallows)

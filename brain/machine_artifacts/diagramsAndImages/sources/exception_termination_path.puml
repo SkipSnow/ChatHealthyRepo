@@ -1,5 +1,5 @@
 @startuml
-title Every throw ends in a navigator — a tool in the middle re-raises, never swallows
+title Every throw ends in the navigator — a tool in the middle re-raises, never swallows\n(the one authored raise that does not: ModelRetry, which ends in the pydantic-ai library)
 
 skinparam shadowing false
 skinparam defaultFontName Segoe UI
@@ -11,10 +11,14 @@ skinparam ParticipantBackgroundColor #fdfdfd
 skinparam NoteBackgroundColor #f3f4f6
 skinparam NoteBorderColor #9ca3af
 
-participant "UniversalNavigator\n(or Proxy)" as UN
+participant "UniversalNavigator\n(or UniversalNavigatorProxy)" as UN
+participant "render ledger\n(owned by the navigator)" as RL
 participant "Tool A" as A
 participant "Tool B" as B
 participant "Tool C" as C
+participant "pydantic-ai\n(library frame)" as PA
+
+== The re-raise chain: a throw travels up the may_call graph ==
 
 UN -> A : dispatch
 activate A
@@ -22,7 +26,7 @@ A -> B : may_call (declared, acyclic)
 activate B
 B -> C : may_call
 activate C
-C -->> B : throw (ChatHealthyException)
+C -->> B : throw (ChatHealthyException, mode discriminator)
 deactivate C
 note right of B #f9efef
   re-raises — never catches,
@@ -39,7 +43,42 @@ note over UN #eef6f5
   every server and service, so it — not a tool in
   the middle — catches, classifies the mode, logs
   (with timings, severity matched to impact), and
-  answers. A recursion guard bounds the may_call
-  depth so a cycle cannot run.
+  answers. An external exception keeps its native
+  type until a boundary converts it to a
+  ChatHealthyException carrying the original. A
+  recursion guard bounds the may_call depth so a
+  cycle cannot run.
 end note
+
+== The render ledger raises too — and it also ends in the navigator ==
+
+UN -> RL : reconcile page
+activate RL
+note right of RL #f9efef
+  A page reconciles when every
+  required_member closes OR
+  completeness.render_timeout_seconds
+  expires. A page-merge conflict or a
+  dead required member raises.
+end note
+RL -->> UN : raised (instrumented)
+deactivate RL
+
+== The one carve-out: ModelRetry does NOT reach the navigator ==
+
+note over A, PA #fdf6ec
+  A function registered as a pydantic-ai @output_validator
+  may raise ModelRetry to reject a model answer. It is the
+  library's callback protocol, not an authored ChatHealthy
+  exception: pydantic-ai catches it in its own frame to ask
+  the model again. The object never enters ChatHealthy code
+  and no navigator catch site ever sees it.
+end note
+A -> PA : run (output_validator registered)
+activate A
+activate PA
+PA -->> A : (validator raises ModelRetry — caught by PA, retried)
+deactivate PA
+A -->> UN : normal result or a ChatHealthyException (never ModelRetry)
+deactivate A
 @enduml

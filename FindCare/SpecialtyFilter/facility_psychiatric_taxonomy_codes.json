@@ -1,0 +1,23 @@
+{
+  "$schema": "https://dev.chathealthy.ai/schemas/ChatHealthyFacilityTaxonomyBucketSchema.json",
+  "_note": "TUNABLE CURATION — edit this list to tune the facility filter's Psychiatric macro-toggle. This is a membership set, not a derivation: 'psychiatric' cross-cuts NUCC Grouping (clearly-psychiatric/mental + behavioral + substance-use facilities), so it cannot be produced by a Grouping test and is curated by hand here. Intellectual/developmental-disability facilities are deliberately EXCLUDED. A taxonomy is in the Psychiatric bucket iff its NUCC code appears in codes[]. Editing this file changes the bucket with no code change. Default set authored 2026-09-15; refine before December.",
+  "bucket": "psychiatric",
+  "codes": [
+    "283Q00000X",
+    "273R00000X",
+    "261QM0801X",
+    "261QM0850X",
+    "261QM0855X",
+    "323P00000X",
+    "310500000X",
+    "320800000X",
+    "3104A0625X",
+    "385HR2055X",
+    "251S00000X",
+    "3104A0630X",
+    "261QR0405X",
+    "324500000X",
+    "3245S0500X",
+    "276400000X"
+  ]
+}

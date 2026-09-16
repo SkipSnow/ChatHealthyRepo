@@ -14,8 +14,8 @@ title flow_client_gesture — request-type triage (client-sessioned, structured 
 actor "Person/Client\n(structured gesture,\nno free text)" as Client
 participant "Gate\n(facade)" as Gate
 participant "UniversalNavigator\n(SharedServices)" as UN
-participant "tool\n(gesture's mapped target,\ne.g. provider_search)" as Tool
-participant "Prose tool" as Prose
+participant "tool\n(gesture's mapped target,\ne.g. ProviderSearch)" as Tool
+participant "prose author\n(OPEN QUESTION — see note:\nUtteranceManager's own scope\nOR a separate 'Prose' tool)" as Prose
 
 Client -> Gate : apply filter / page edge\n(session token, HTTP head, POST/GET params)
 activate Gate
@@ -30,6 +30,7 @@ note over UN : TRIAGE by declared proof\nroute = client_gate  ·  call_type = cl
 note over UN : The gesture names its route in the registry.\nNO UtteranceManager, NO model call — the whole\ncontrast with the utterance flow. UN determines\nWHICH PAGE the gesture is constructing, then runs\nthe completeness test: passed document vs the\ntarget tool's required inputs.
 
 alt a required slot is missing (manufacture path)
+  note over UN, Prose #fff3cd : OPEN ARCHITECTURAL QUESTION — do NOT resolve.\nWhether authoring this user-facing question is the\nUtteranceManager's own scope (classify + prose) or a\nseparate 'Prose' tool is UNDECIDED. The registry instance\ncarries a 'Prose' route name (evidence, not a decision).\nDrawn as a distinct lifeline only to show the hop; the\nboundary is the operator's to settle.
   UN -> Prose : author brief user_message\n(the facts — which slot is missing)
   activate Prose
   Prose --> UN : user-facing sentence

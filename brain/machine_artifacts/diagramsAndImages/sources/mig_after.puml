@@ -17,15 +17,15 @@ component "Gate\none generic module, every container.\nCollects session token, H
 
 component "UniversalNavigator  (SharedServices)\nreads the live registry and drives the route.\nrender ledger, deterministic merge, sessions,\nexternal calls. The only node that accepts\nexternal traffic. Holds no data." as NAV
 
-database "Tool registry — one document per build per env\npresence = the allowlist\nsubscriptions = the dispatch table\nmay_call = the non-circular call map\nprompt fragments = the routing table\ngenerated from source at build" as REG #eef6f5
+database "Tool registry  (ChatHealthyToolRegistrySchema)\none document per build per env — instance{build,commit,env,live}\npresence = the allowlist\nsubscriptions = the dispatch table\nmay_call = the non-circular call map\nprompt fragments = the routing table\npages carry members / required_members / completeness\ngenerated from source at build" as REG #eef6f5
 
 component "UtteranceManager  (a tool)\npreamble + every fragment in, routes out.\nReturns the dispatch set; non-blocking.\nKnows no parameters." as UM
 
 component "UniversalNavigatorProxy  (FindCare satellite)\nrelays tool-to-tool in both directions.\nNo sessions, no ledger, no merge,\nno external calls. Refuses stale metadata." as PROXY
 
-component "Individual providers\nprovider_search\nprovider_specialty  (vocabulary)\nprovider_detail\nprovider_selection" as PROVTOOLS #f5fbfa
+component "Individual providers  (page: individualProvider)\nprovider_search\nprovider_specialty  (vocabulary — Prescribers/Homeopathic)\ngeo  (new tool — free-text geography incl. misspellings,\nruns parallel to the vocabulary filter)\nprovider_detail\nprovider_selection" as PROVTOOLS #f5fbfa
 
-component "Facilities\nfacility_search      (revived, not re-written)\nfacility_vocabulary  (new)\nfacility_detail      (new)\nfacility_selection" as FACTOOLS #f5fbfa
+component "Facilities  (page: facility — newly added)\nfacility_search      (revived, not re-written)\nfacility_vocabulary  (new — NUCC filter, Ambulatory /\nPsychiatric / Inpatient macro-toggles, mirrors\nthe individual Prescribers/Homeopathic filter)\ngeo  (new tool — free-text geography, parallel to the filter)\nfacility_detail      (new)\nfacility_selection" as FACTOOLS #f5fbfa
 
 component "Clinical trials\ntrial_search\ntrial_vocabulary  (new)\ntrial_detail      (new)\ntrial_selection" as TRIALTOOLS #f5fbfa
 
@@ -70,9 +70,10 @@ end note
 note bottom of NAV
   The navigator holds no data: the map is the registry,
   parameters ride the passed document, sessions and the
-  ledger are repository rows. A branch that reaches for
-  httpx exists because the tool it should have called
-  was never written. Every throw ends here or in a proxy.
+  ledger are repository rows. The hand-rolled httpx branch
+  that mined geography (BUG-003) is retired in the target:
+  the geo tool the navigator now dispatches is the tool that
+  branch stood in for. Every throw ends here or in a proxy.
 end note
 
 note bottom of PAGEROUTES
@@ -87,6 +88,25 @@ note bottom of GONE
   it and vite.config.ts, _build_chain.py, _deploy_chain.py,
   hf_helpers.py, preflight_undefined_names.py and
   tsconfig.json all point elsewhere.
+end note
+
+note bottom of PROSE
+  OPEN ARCHITECTURAL QUESTION — not resolved here.
+  Whether asking the user a question is the UtteranceManager's
+  own scope, or a separate "Prose" tool, is undecided. Three
+  approved requirements place prose inside the UtteranceManager
+  (EPIC-002-F-010-S-001/-S-003, EPIC-006-F-008-S-003); the
+  registry instance carries a "Prose" route name. Drawn as its
+  own tool provisionally; the operator's call stands open.
+end note
+
+note bottom of PROVTOOLS
+  geo is a page-scoped member on individualProvider and
+  facility only (not clinicalTrial), running parallel to the
+  vocabulary/NUCC filter. It lives in the shared library today
+  (BUG-003 / the geo extractor); which feature directory owns
+  it in the target is unresolved — no arrow to a package is
+  drawn because the requirements have not placed it.
 end note
 
 @enduml

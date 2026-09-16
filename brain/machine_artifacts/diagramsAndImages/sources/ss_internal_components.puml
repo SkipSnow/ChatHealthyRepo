@@ -1,5 +1,5 @@
 @startuml
-title Inside SharedServices: the facade, the navigator, and dispatch by subscription
+title Inside SharedServices: the Gate facade, the navigator (via its proxy), and dispatch by subscription
 
 skinparam componentStyle rectangle
 skinparam shadowing false
@@ -13,32 +13,37 @@ skinparam NoteBorderColor #9ca3af
 
 package "SharedServices process" #fdfdfd {
 
-  [Gate\na facade — the one entrance] as GATE
+  [Gate\na facade — the one client entrance] as GATE
+
+  [UniversalNavigatorProxy\nthe navigator's stand-in;\nthe Gate holds this, not the navigator] as PROXY
 
   package "UniversalNavigator" #fbfdfd {
-    [Reads the map;\nvalidates the selection;\ndrives the dispatch] as ROUTE
+    [Triage + route\nreads the map;\nvalidates the selection;\ndrives the dispatch] as ROUTE
     [Render ledger\ndispatch owes a page;\ntimeout races the callback] as LEDGER
     [Merge — serial, deterministic\n(the library's function)] as MERGE
     [Session and\nsecurity helpers] as SEC
   }
 
-  [UtteranceManager\npreamble + fragments ->\nthe set of tools to dispatch to] as UM
+  [UtteranceManager\nclassify: preamble + fragments ->\nthe set of tools to dispatch to] as UM
 
   package "Tools · ChatHealthyTool subclasses" #fbfdfd {
     [ProviderSearch] as T1
     [ProviderDetail] as T2
     [SpecialtyFilter] as T3
+    [Geo\nresolves free-text geography] as T5
     [Selection · Facility\nTrials · ...] as T4
     [Prose\nauthors the\nuser-facing sentence] as TP
     [LockoutTool\nNOT_UTTERANCE_ROUTABLE] as TL
   }
 }
 
-database "ToolRegistry\none record per build per env:\ntools, subscriptions, may_call,\nfragments, routes and proofs" as REG #eef6f5
+database "ToolRegistry\none record per build per env:\ntools, subscriptions, may_call,\nfragments, routes and proofs;\npages carry members / required_members / completeness" as REG #eef6f5
 database "Sessions and ledger\n(front-end cluster)" as SESS
 
-GATE -down-> ROUTE : token, head,\nparameters
-ROUTE -[#9ca3af]up-> GATE : stream the\nanswer back
+GATE -down-> PROXY : token, head,\nparameters
+PROXY -down-> ROUTE : forwards to\nthe navigator
+ROUTE -[#9ca3af]up-> PROXY : merged document
+PROXY -[#9ca3af]up-> GATE : stream the\nanswer back
 ROUTE -right-> UM : classify:\nwhat to dispatch to
 
 REG <-- ROUTE : reads the live\nmap at startup
@@ -55,24 +60,52 @@ ROUTE .down.> TP : slot missing:\ndispatch prose\nwith the facts
 
 T1 -[hidden]right- T2
 T2 -[hidden]right- T3
-T3 -[hidden]right- T4
+T3 -[hidden]right- T5
+T5 -[hidden]right- T4
 T4 -[hidden]right- TP
 TP -[hidden]right- TL
 
 note left of GATE
   Knows transport exists; nothing else does.
-  Collects the request's facts and passes
-  them on; streams what comes back.
-  Verifies nothing itself — the navigator's
-  helpers own security.
+  Collects the request's facts and passes them
+  on; streams what comes back. Verifies nothing
+  itself — the navigator's helpers own security.
+  Five call types cross this entrance, each with
+  a required proof: our_signature / api_key +
+  credential / session_token / none.
+end note
+
+note bottom of PROXY
+  The Gate reaches the navigator only through
+  this proxy; the proxy is the navigator's face,
+  in-process or across the boundary alike.
+end note
+
+note top of TP
+  OPEN ARCHITECTURAL QUESTION — not resolved here.
+  Is asking the user a question the UtteranceManager's
+  own scope (classify + prose), or a separate Prose
+  tool (drawn here)? Three approved requirements place
+  prose and parameters inside UM
+  (EPIC-002-F-010-S-001, -S-003, EPIC-006-F-008-S-003);
+  the registry instance also carries a 'Prose' route.
+  The architecture will not move a requirement; which
+  stands is the operator's to say.
 end note
 
 note bottom of TL
-  A tool declares exactly one of a routing
-  fragment or NOT_UTTERANCE_ROUTABLE.
-  Silence refuses the build, so a safety
-  tool's unreachability is a decision, never
-  an omission.
+  A tool declares exactly one of a routing fragment
+  or NOT_UTTERANCE_ROUTABLE. Silence refuses the
+  build, so a safety tool's unreachability is a
+  decision, never an omission.
+
+  Lockout is DETERMINISTIC, not probabilistic: the
+  classifier runs at temperature 0, and an exact
+  repeat of a recorded lockout utterance
+  (Users.UserLockOutUtterances — UPPERCASED + count)
+  is a deterministic lockout, then human-curated by
+  ChatHealthy staff (monthly frequency-ordered
+  report). Full mechanism: C2 Security.
 end note
 
 note right of MERGE

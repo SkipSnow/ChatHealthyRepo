@@ -38,8 +38,25 @@ state "401" as Denied
 
 NoSession --> Mint : the client asks to establish a session,\noffering the GUID it holds
 
+note left of Mint #fef3c7
+  OPEN ARCHITECTURAL QUESTION — not resolved here.
+  Where does session issuance live? Establishment is the
+  one op that cannot present a session token, so it is
+  either:
+   (A) an unauthenticated op ON the Gate — keeps the single
+       entrance, but weakens "no op is exempt from
+       verification"; or
+   (B) a SEPARATE endpoint — keeps every op authenticated,
+       but weakens the single-entrance rule.
+  No basis exists to prefer one. Minting confers nothing;
+  resuming is a defect wherever it lives (R-6).
+end note
+
 MintGuid : a live, unexpired GUID is resumed
 MintGuid : anything else begins a new session
+MintGuid : (resume today is by knowledge of the GUID id;
+MintGuid : security's view is it should require proof-of-
+MintGuid : possession of the prior token — R-6, holds either way)
 MintSign : token = "CH" + nonce(35) + guid(32)
 MintSign : signature = RSA PKCS1v15 SHA256 over
 MintSign : "origin:original_stamp:guid", signed with shared.key
@@ -63,11 +80,13 @@ Held : the GUID is stable for the whole session
 Held : the nonce changes on every receive
 
 note right of Denied #f3f4f6
-  There is no op exempt from verification, so a call
-  cannot buy itself an answer by naming a harmless
-  gesture. Cookies are not used: HuggingFace's edge
-  proxy strips credentials from OPTIONS preflights,
-  so the token rides in the body the gate forwards.
+  For every live-session op, none is exempt from
+  verification, so a call cannot buy itself an answer by
+  naming a harmless gesture. (Session ESTABLISHMENT is the
+  one exception under debate — see the open question above.)
+  Cookies are not used: HuggingFace's edge proxy strips
+  credentials from OPTIONS preflights, so the token rides
+  in the body the gate forwards.
 end note
 
 note bottom of Live #f3f4f6

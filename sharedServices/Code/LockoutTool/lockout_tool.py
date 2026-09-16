@@ -75,6 +75,51 @@ def safety_collection(deps: AgentDeps):
     return deps.mongo_frontend[f"{env_prefix()}_Safety"]["emergency_incidents"]
 
 
+def lockout_utterances_collection(deps: AgentDeps):
+    """The crowd-sourced learned-lockout utterances. One record per distinct
+    UPPERCASED utterance with a count of how many lockouts it has caused.
+    Lives in the Users DB (not env-prefixed); the monthly operational report
+    reads it and ChatHealthy staff curate it."""
+    if deps.mongo_frontend is None:
+        return None
+    return deps.mongo_frontend["Users"]["UserLockOutUtterances"]
+
+
+def record_lockout_utterance(deps: AgentDeps, utterance: str) -> None:
+    """Record one lockout utterance for the crowd-sourced safety report.
+
+    The verbatim words are uppercased and held once; a later utterance of the
+    exact same words increments the count rather than adding a row. A
+    sequential record_number identifies each distinct utterance. Never fatal:
+    a failed write does not touch the lockout itself.
+    """
+    coll = lockout_utterances_collection(deps)
+    upper = (utterance or "").strip().upper()
+    if coll is None or not upper:
+        return
+    try:
+        existing = coll.find_one({"utterance": upper}, {"_id": 1})
+        if existing is not None:
+            coll.update_one({"_id": existing["_id"]}, {"$inc": {"count": 1}})
+        else:
+            last = coll.find_one(
+                sort=[("record_number", -1)], projection={"record_number": 1})
+            next_no = (last.get("record_number", 0) + 1) if last else 1
+            coll.insert_one(
+                {"record_number": next_no, "utterance": upper, "count": 1})
+    except Exception as exc:
+        # Never fatal: the lockout is already surfaced; a failed learn-write
+        # only costs one crowd-sourced increment. Operator still hears it.
+        log.exception(
+            "LockoutTool record_lockout_utterance failed: %s", exc,
+            exc=ChatHealthyException(
+                mode="lockout_utterance_record_failed",
+                message=f"LockoutTool record_lockout_utterance failed: {exc}",
+                component="LockoutTool",
+                exception=exc,
+            ), if_not_debug_log=True)
+
+
 def latest_person_utterance_text(deps: AgentDeps) -> str:
     for u in reversed(
         deps.user_object.session_conversation_history.utterances
@@ -294,6 +339,11 @@ class LockoutTool(ChatHealthyTool):
                                                                                 component="LockoutTool",
                                                                                 exception=exc,
                                                                             ), if_not_debug_log=True)
+
+        # Crowd-sourced learning: record the verbatim utterance (uppercased,
+        # counted) so a repeat of the exact words is deterministic and the
+        # monthly operational report can surface it for staff to curate.
+        record_lockout_utterance(deps, utterance)
 
         deps.user_object.is_locked_out = True
         deps.user_object.lockout = Lockout(

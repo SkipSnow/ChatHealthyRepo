@@ -1,5 +1,5 @@
 @startuml
-title Tool Registry — the one navigation map, generated from source at build
+title ChatHealthyToolRegistrySchema — the one navigation map, generated from source at build
 
 skinparam shadowing false
 skinparam defaultFontName Segoe UI
@@ -26,6 +26,21 @@ entity "TOOL" as TOOL {
   class_name / source_location
   description  <<TOOL_DESCRIPTION>>
   utterance_manager_prompt
+}
+
+entity "PAGE" as PAGE {
+  page_name : string  <<key>>
+  --
+  subject : individualProvider |
+  \tfacility | clinicalTrial
+  description
+  members : [tool_name]
+  required_members : [tool_name] (subset)
+  --
+  completeness.render_timeout_seconds
+  completeness.on_timeout   (layman prose)
+  completeness.on_conflict         = raise
+  completeness.on_missing_required = raise
 }
 
 entity "FIELD" as FIELD {
@@ -59,6 +74,8 @@ entity "TIMEOUT_FACTS" as TF {
 
 REG   ||--o{ TOOL
 REG   ||--o{ ROUTE
+REG   ||--o{ PAGE
+PAGE  }o--o{ TOOL  : members
 TOOL  ||--o{ FIELD
 TOOL  ||--o{ TOOL  : may_call
 TOOL  }o--o{ ROUTE : subscribes
@@ -66,14 +83,15 @@ ROUTE ||--|| PROOF
 ROUTE ||--o| TF
 
 note top of REG
-  One record, generated from source at build, so it
-  cannot name a tool or route the build does not carry.
-  It combines the four artifacts that carried the map:
-  the tool contracts, the _OP_HANDLERS dispatch table,
-  the ToolRouter allowlist, and the UtteranceManager prompt.
-  One document per build per environment; exactly one live
-  per env; the deploy retires the predecessor's live flag —
-  the only field ever mutated on an existing document.
+  ChatHealthyToolRegistrySchema. One record, generated
+  from source at build, so it cannot name a tool, route or
+  page the build does not carry. It combines the artifacts
+  that carried the map: the tool contracts, the _OP_HANDLERS
+  dispatch table, the ToolRouter allowlist, the UtteranceManager
+  prompt, and the page composition. One document per build per
+  environment; exactly one live per env; the deploy retires the
+  predecessor's live flag — the only field ever mutated on an
+  existing document.
 end note
 
 note right of TOOL
@@ -101,5 +119,35 @@ note bottom of ROUTE
   tool_to_tool, third_party_callback, static_witness,
   client_sessioned, internal_callback — each proof method
   fixed by its type.
+end note
+
+note right of PAGE
+  THREE pages only. A detail view, the NUCC/specialty
+  filter and Geo are page-scoped MEMBERS, never pages.
+    individualProvider — required: ProviderSearch;
+      members: SpecialtyFilter, ProviderDetail,
+      ProviderSelection, Geo
+    facility — required: FacilitySearch; members:
+      facility NUCC filter (Ambulatory / Psychiatric /
+      Inpatient, mirroring individual Prescribers/
+      Homeopathic), FacilityDetail, Geo
+    clinicalTrial — required: ClinicalTrials; members: Geo
+  Geo runs parallel to the specialty/NUCC filter on
+  individualProvider + facility (resolves free-text,
+  misspelled geography).
+
+  What a page MUST declare: members / required_members
+  (a subset) / completeness. members name declared tools;
+  required_members are the render-ledger expectation;
+  the render ledger reconciles the page when every
+  required_member closes OR render_timeout_seconds expires,
+  and a page-merge conflict or a dead required member
+  raises and is instrumented.
+
+  THE GAP: the live build's registry instance predates the
+  facility NUCC filter member, so a page's declared
+  membership is only ever as complete as the build that
+  generated it — the facility filter is current-iteration
+  but not yet emitted by the generator.
 end note
 @enduml

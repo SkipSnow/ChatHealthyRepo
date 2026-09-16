@@ -79,11 +79,12 @@ export default function WelcomeWidget() {
     }
     function resetToInitial() {
       // Home = identical to first load: welcome bubble in MainWindow,
-      // every other content frame blank.
+      // every other content frame blank. UserMessage is the conversation
+      // transcript, owned by TranscriptWidget, which resets itself on the
+      // same goto_home gesture — this widget does not reach into that frame.
       paint(cachedHtml)
       postRenderTarget('LeftPanel', '')
       postRenderTarget('RightPanel', '')
-      postRenderTarget('UserMessage', '')
     }
     function onMessage(ev: MessageEvent) {
       const msg = ev.data

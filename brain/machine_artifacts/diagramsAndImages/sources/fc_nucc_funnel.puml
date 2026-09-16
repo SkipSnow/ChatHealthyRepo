@@ -17,20 +17,23 @@ start
 
 :the request, plus the last five turns;
 
-if (which partition of the catalogue?) then (a care giver)
+if (which partition of the catalogue?) then (individualProvider page)
   :Section = Individual;
   :prompts: specialty_normalize_system_prompt\nspecialty_filter_system_prompt;
-else (a facility)
+else (facility page)
   :Section = Non-Individual;
   :prompts: facility_normalize_system_prompt\nfacility_filter_system_prompt;
 endif
 
 note right
-  The two resolutions differ in exactly two things: the
-  partition the query searches and the prompt text the two
-  model stages read. The stage sequence, the score floor,
-  the intersection and the single catch point are shared,
-  so the two cannot drift apart.
+  The two resolutions differ in exactly three things: the
+  partition the query searches, the prompt text the two model
+  stages read, and the NUCC-filter facets surfaced at the end.
+  The stage sequence, the score floor, the intersection and
+  the single catch point are shared, so the two cannot drift
+  apart. Both are page-scoped members (individualProvider and
+  facility), never pages in their own right, and each runs
+  parallel to that page's Geo tool.
 end note
 
 :normalise — one model call, two answers:\nsearch_term (what to look for)\ncomplaint (what is wrong);
@@ -72,7 +75,21 @@ if (anything kept?) then (none)
   stop
 endif
 
-:re-rank by cosine, rank 1..n\nemit code, display name,\ncan_prescribe, homeopathic;
+:re-rank by cosine, rank 1..n\nemit code and display name;
+
+if (which partition's NUCC filter?) then (individualProvider page)
+  :surface the individual NUCC filter facets\ncan_prescribe (Prescribers), homeopathic (Homeopathic);
+else (facility page)
+  :surface the facility NUCC filter macro-toggles\nAmbulatory / Psychiatric / Inpatient;
+endif
+
+note right
+  Each partition ends in its own NUCC filter, built the same
+  way from the same funnel. The facility page's filter, with
+  its Ambulatory / Psychiatric / Inpatient macro-toggles,
+  mirrors the individualProvider page's Prescribers
+  (can_prescribe) and Homeopathic (homeopathic) filter.
+end note
 
 stop
 

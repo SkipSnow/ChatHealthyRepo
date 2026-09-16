@@ -11,7 +11,7 @@ import MobileNavDrawerWidget from '@shared/displayChrome/MobileNavDrawerWidget'
 import FooterWidget from '@shared/displayChrome/FooterWidget'
 import WelcomeWidget from '@shared/displayChrome/WelcomeWidget'
 import UserPromptWidget from '@shared/UtteranceManager/UserPromptWidget'
-import SystemMessageWidget from '@shared/UtteranceManager/SystemMessageWidget'
+import TranscriptWidget from '@shared/UtteranceManager/TranscriptWidget'
 import ProviderResultsWidget from '@providers/ProviderResultsWidget'
 import FacilityResultsWidget from '@shared/FacilitySearch/FacilityResultsWidget'
 import SelectedProvidersWidget from './components/SelectedProvidersWidget'
@@ -39,7 +39,7 @@ function App() {
       <FooterWidget />
       <WelcomeWidget />
       <UserPromptWidget />
-      <SystemMessageWidget />
+      <TranscriptWidget />
       <ProviderResultsWidget />
       <FacilityResultsWidget />
       <SelectedProvidersWidget />

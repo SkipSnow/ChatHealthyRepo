@@ -23,14 +23,14 @@ skinparam maxMessageSize 200
 skinparam sequenceMessageAlign center
 skinparam responseMessageBelowArrow true
 
-title FindCare → EvaluateCare Handoff Sequence\nTarget front-application architecture\n2026-09-14
+title FindCare → EvaluateCare Handoff Sequence\nTarget front-application architecture\n2026-09-15
 
 actor "Consumer\n(Browser)" as user
 box "SharedServices (main)" #fdfdfd
 participant "Gate\n(facade)" as gate
 participant "Universal\nNavigator" as nav
 participant "Utterance\nManager" as um
-participant "Prose\nTool" as prose
+participant "Prose\nTool (?)" as prose
 end box
 box "FindCare (satellite)" #eef6f5
 participant "UN Proxy\n+ provider tools" as fc
@@ -44,6 +44,16 @@ note over gate, db
   The Gate is the only transport-aware node. The UniversalNavigator holds no data:
   the map is the live registry document, parameters ride the passed document,
   sessions and the render ledger are repository rows. Every throw ends in a navigator.
+end note
+
+note over um, prose #ffe9cc
+  OPEN ARCHITECTURAL QUESTION — NOT RESOLVED.
+  Is user-facing prose (asking the user a question and authoring the sentence)
+  the UtteranceManager's own scope, or a separate "Prose" tool?
+  Three approved requirements place prose inside the UtteranceManager
+  (EPIC-002-F-010-S-001, -S-003, EPIC-006-F-008-S-003); the registry instance
+  carries a "Prose" route name. This diagram draws Prose as a separate tool to
+  show ONE candidate shape only — the split is the operator's to decide.
 end note
 
 == Startup (once per build) ==
@@ -87,8 +97,8 @@ ec -> ec : score + rank providers
 ec -> nav : internal_callback (our_signature)\ncloses its ledger entry
 nav -> nav : serial deterministic merge
 
-== Phase 5: User-facing prose ==
-nav -> prose : dispatch prose tool\nwith the merged facts
+== Phase 5: User-facing prose (see open question above) ==
+nav -> prose : author prose from merged facts\n(as a Prose tool, OR folded into the UtteranceManager)
 prose -> nav : internal_callback\nthe user-facing sentence
 nav -> nav : merge
 

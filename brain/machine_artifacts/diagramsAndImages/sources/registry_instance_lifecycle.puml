@@ -1,5 +1,5 @@
 @startuml
-title The tool registry — one record per build per env, one live, append-only history
+title The tool registry instance — one record per build per env, one live, append-only history\n(ChatHealthyToolRegistrySchema)
 
 skinparam componentStyle rectangle
 skinparam shadowing false
@@ -11,20 +11,20 @@ skinparam DatabaseBorderColor #6b7280
 skinparam NoteBackgroundColor #f3f4f6
 skinparam NoteBorderColor #9ca3af
 
-[BUILD\ngenerates the record from source\nat one commit, and validates it] as BUILD
+[BUILD\ngenerates the record from source\nat one commit, and validates it\nagainst ChatHealthyToolRegistrySchema] as BUILD
 
-database "Mongo · registry collection\nappend-only · full history" as COLL {
-  [instance{build,commit,env,live:true}\nthe live record for this env] as LIVE
+database "Mongo · ChatHealthyConfig.ToolConfiguration\nthe one navigation map · append-only · full history\ntools + routes + pages(members/required_members/completeness)" as COLL {
+  [instance{build,commit,env,live:true}\nthe live record for this env\n(e.g. build 2292, commit 55c6060e0, env local)] as LIVE
   [older instances · live:false] as HIST
 }
 
-[DEPLOY\nthe ONLY writer.\nOne transaction, one library function:\nvalidate -> insert new live ->\nretire the predecessor's live flag\n(the sole field ever mutated)] as DEPLOY
+[DEPLOY\nthe ONLY writer.\nOne library function, intended all-or-nothing:\nvalidate -> insert new live ->\nretire the predecessor's live flag\n(the sole field ever mutated)] as DEPLOY
 
 [UniversalNavigator\nreads its env's live record at startup;\na runtime metadata change is a\nnew appended record] as UN
 
 package "Guards" #fbfdfd {
   [Unique partial index\ninstance.env where live=true\n-> the DB refuses a second live] as G1
-  [$jsonSchema on the collection] as G2
+  [$jsonSchema on the collection\n(ChatHealthyToolRegistrySchema)] as G2
   [Pre-commit scan\nno other writer] as G3
   [Audit sweep\nasserts the history invariant] as G4
 }
@@ -44,5 +44,25 @@ note right of DEPLOY
   deploying identity; every runtime
   identity reads. History is kept, so
   rollback is redeploying an older build.
+end note
+
+note bottom of DEPLOY
+  OPEN QUESTION (C3 Q5 / N34) — do not resolve here.
+  What makes this two-step write (insert new live +
+  retire old live) all-or-nothing? A requirement states
+  the property for the byte path; none states the analogue
+  for a document written into a live collection. Stage-and-
+  swap is the available shape. The "all-or-nothing" above
+  is the intended property, not a required-and-enforced one.
+end note
+
+note right of LIVE
+  SCOPE — this record is authoritative for the live
+  TOOL / ROUTE / PAGE map of an environment. It is NOT
+  the record of the served DATA generation, which is
+  governed separately by ChatHealthyConfig.DBVersions.
+  OPEN QUESTION (C4 Q7 / N20): which single control record
+  is authoritative for "what is published" — two mechanisms
+  in different stores each claim it. Flagged, not resolved.
 end note
 @enduml
