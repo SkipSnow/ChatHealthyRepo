@@ -114,6 +114,11 @@ def _escape(text: str) -> str:
         .replace('"', "&quot;")
     )
 
+
+def _norm(text: str) -> str:
+    """A name reduced to its letters and digits, for directory-to-name match."""
+    return "".join(ch for ch in text.lower() if ch.isalnum())
+
 # Audit log: every approve/reject/timeout/interrupt/error verdict is appended
 # here as one JSON line. Lives in the feature's ArchitectureDesignAndAuditDocs
 # directory alongside the design docs for EPIC-008-F-002.
@@ -212,6 +217,207 @@ class CommitAuthorizationWorker(EnforcementWorker):
             raise ChatHealthyException("worker_internal", f"could not read staged files: {exc}",
                 exception=exc)
         return [line.strip() for line in out.decode("utf-8").splitlines() if line.strip()]
+
+    # ─── the change table: shown on the approval page, stored in the audit ───
+    def _staged_name_status(self) -> list:
+        """(status_word, path, extra) per staged change; git is authoritative."""
+        try:
+            out = subprocess.check_output(
+                ["git", "diff", "--cached", "--name-status", "-M"],
+                stderr=subprocess.DEVNULL, cwd=self._commit_repo())
+        except subprocess.CalledProcessError as exc:
+            raise ChatHealthyException(
+                "worker_internal",
+                f"could not read staged name-status: {exc}", exception=exc)
+        words = {"A": "New", "D": "Deleting", "M": "Modified", "T": "Type-changed"}
+        rows = []
+        for line in out.decode("utf-8").splitlines():
+            if not line.strip():
+                continue
+            parts = line.split("\t")
+            code = parts[0]
+            if code[:1] in ("R", "C") and len(parts) >= 3:
+                rows.append(("Renamed" if code[:1] == "R" else "Copied",
+                             parts[2].strip(), parts[1].strip()))
+            elif len(parts) >= 2:
+                rows.append((words.get(code[:1], code), parts[1].strip(), None))
+        return rows
+
+    def _backlog_names(self) -> dict:
+        """{epic_id: name} and {feature_id: name}, read from the backlog once."""
+        cached = getattr(self, "_names_cache", None)
+        if cached is not None:
+            return cached
+        epic, feature = {}, {}
+        path = (Path(self._commit_repo()) / "brain" / "machine_artifacts"
+                / "content" / "agile_backlog.json")
+        try:
+            data = json.loads(path.read_text(encoding="utf-8"))
+        except Exception:  # noqa: BLE001 - a missing backlog yields Unknown
+            data = {}
+
+        def walk(node):
+            if isinstance(node, dict):
+                if node.get("epic_id") and node.get("name"):
+                    epic.setdefault(node["epic_id"], node["name"])
+                if node.get("feature_id") and node.get("name"):
+                    feature.setdefault(node["feature_id"], node["name"])
+                for value in node.values():
+                    walk(value)
+            elif isinstance(node, list):
+                for value in node:
+                    walk(value)
+        walk(data)
+        # The reverse lookups the resolver checks a directory name against.
+        # A name absent here is a name the backlog tree does not carry -- the
+        # file system is not assumed correct; it is checked against the tree.
+        norm_epic = {_norm(name): eid for eid, name in epic.items()}
+        norm_feature = {_norm(name): fid for fid, name in feature.items()}
+        self._names_cache = {"epic": epic, "feature": feature,
+                             "norm_epic": norm_epic, "norm_feature": norm_feature}
+        return self._names_cache
+
+    def _attribute(self, relpath: str) -> tuple:
+        """The (epic_id, feature_id) that owns a file, read from the tree.
+
+        Attribution is a person's decision, never an agent's inference
+        (EPIC-008-F-002-S-003-REQ-B-009): the fact lives in the file system,
+        not in the file. A directory whose name is an epic's name places the
+        file in that epic; a directory whose name is a feature's name places it
+        in that feature. Both are checked against the backlog tree, so the file
+        system is not assumed correct -- a directory naming neither, or naming
+        something the backlog does not carry, leaves the file Unknown, which is
+        a finding rather than a guess. The deepest match wins.
+        """
+        names = self._backlog_names()
+        segs = relpath.replace("\\", "/").split("/")[:-1]  # directories only
+        epic_id = feature_id = None
+        for seg in segs:
+            key = _norm(seg)
+            matched_epic = names["norm_epic"].get(key)
+            if matched_epic:
+                epic_id = matched_epic
+            matched_feature = names["norm_feature"].get(key)
+            if matched_feature:
+                feature_id = matched_feature
+                epic_id = matched_feature.split("-F-")[0]
+        return (epic_id, feature_id)
+
+    def _epic_feature_cell(self, relpath: str) -> tuple:
+        epic_id, feature_id = self._attribute(relpath)
+        names = self._backlog_names()
+        epic = (f"{epic_id} {names['epic'].get(epic_id, '')}".strip()
+                if epic_id else "Unknown Epic")
+        feature = (f"{feature_id} {names['feature'].get(feature_id, '')}".strip()
+                   if feature_id else "Unknown Feature")
+        return epic, feature
+
+    def _file_purpose(self, relpath: str) -> str:
+        """A terse account of what the file does, read from the file itself."""
+        try:
+            text = (Path(self._commit_repo()) / relpath).read_text(
+                encoding="utf-8", errors="replace")
+        except Exception:  # noqa: BLE001 - unreadable/deleted file
+            return "Unknown"
+        doc = ""
+        if relpath.endswith(".py"):
+            try:
+                import ast  # noqa: PLC0415
+                doc = ast.get_docstring(ast.parse(text)) or ""
+            except Exception:  # noqa: BLE001 - a syntax error is not our concern
+                doc = ""
+        if not doc:
+            for line in text.splitlines():
+                stripped = line.strip().lstrip("#/*-!<> ").strip()
+                if stripped:
+                    doc = stripped
+                    break
+        first = doc.strip().splitlines()[0].strip() if doc.strip() else ""
+        parts = first.split()
+        if len(parts) > 20:
+            first = " ".join(parts[:20]) + "…"
+        return first or "Unknown"
+
+    def _authored_notes(self) -> dict:
+        """Per-file deltas the operator wrote in the message CHANGES block.
+
+        One line per file under a `CHANGES:` marker: `<path> | <note>`. New and
+        Deleting come from git; a modified file's delta is read here.
+        """
+        named = (os.environ.get("CHATHEALTHY_COMMIT_MSG_FILE", "").strip()
+                 or os.environ.get("CHATHEALTHY_COMMIT_MSG_PATH", "").strip())
+        if not named:
+            named = os.path.join(self._commit_repo(), ".git", "COMMIT_EDITMSG")
+        try:
+            with open(named, encoding="utf-8") as handle:
+                message = handle.read()
+        except Exception:  # noqa: BLE001 - no message file, no notes
+            return {}
+        notes = {}
+        started = False
+        for raw in message.splitlines():
+            line = raw.strip()
+            if not started:
+                if line.upper().startswith("CHANGES:"):
+                    started = True
+                continue
+            if line.startswith("#") or " | " not in line:
+                continue
+            path, note = line.split(" | ", 1)
+            notes[path.strip().replace("\\", "/")] = note.strip()
+        return notes
+
+    def _change_rows(self) -> list:
+        """One row per staged file: full path for the audit, name for the screen."""
+        cached = getattr(self, "_rows_cache", None)
+        if cached is not None:
+            return cached
+        notes = self._authored_notes()
+        rows = []
+        for status, path, extra in self._staged_name_status():
+            epic, feature = self._epic_feature_cell(path)
+            if status == "New":
+                change = "New"
+            elif status == "Deleting":
+                change = "Deleting"
+            elif status == "Renamed":
+                change = notes.get(path) or (
+                    f"Renamed from {extra}" if extra else "Renamed")
+            else:
+                change = notes.get(path) or "Modified"
+            purpose = ("Unknown" if status == "Deleting"
+                       else self._file_purpose(path))
+            rows.append({
+                "file": path,                       # full path -> audit log
+                "name": path.rsplit("/", 1)[-1],    # basename -> screen
+                "status": status,
+                "epic": epic,
+                "feature": feature,
+                "purpose": purpose,
+                "change_note": change,
+            })
+        self._rows_cache = rows
+        return rows
+
+    def _render_change_table(self) -> str:
+        body = []
+        for row in self._change_rows():
+            body.append(
+                "<tr>"
+                f"<td class=fn>{_escape(row['name'])}</td>"
+                f"<td><div>{_escape(row['epic'])}</div>"
+                f"<div class=sub>{_escape(row['feature'])}</div></td>"
+                f"<td>{_escape(row['purpose'])}</td>"
+                f"<td>{_escape(row['change_note'])}</td>"
+                "</tr>")
+        inner = "".join(body) or "<tr><td colspan=4>no staged files</td></tr>"
+        return (
+            "<div class=tablewrap><table>"
+            "<colgroup><col class=c1><col class=c2><col class=c3><col class=c4>"
+            "</colgroup>"
+            "<thead><tr><th>File</th><th>Epic · Feature</th>"
+            "<th>What it does</th><th>Change</th></tr></thead>"
+            f"<tbody>{inner}</tbody></table></div>")
 
     # ────────────────────────────────────────────────────────────────────────
     def _deny_wrong_branch(self, action: str, branch: str) -> int:
@@ -325,6 +531,12 @@ class CommitAuthorizationWorker(EnforcementWorker):
 
     # ────────────────────────────────────────────────────────────────────────
     def _prompt_inline(self, action: str) -> int:
+        if action == "commit":
+            for row in self._change_rows():
+                sys.stderr.write(
+                    f"  [{row['status']}] {row['name']}\n"
+                    f"      {row['epic']} / {row['feature']}\n"
+                    f"      {row['purpose']} | {row['change_note']}\n")
         sys.stderr.write("Approve? ")
         sys.stderr.flush()
         try:
@@ -357,18 +569,39 @@ class CommitAuthorizationWorker(EnforcementWorker):
         verdict = {"value": None}  # "approve" | "reject" | None
         token = secrets.token_urlsafe(8)
 
+        if action == "commit":
+            _rows = self._change_rows()
+            heading = f"Authorize commit? &mdash; {len(_rows)} file(s)"
+            table_html = self._render_change_table()
+        else:
+            heading = f"Authorize {_escape(action)}?"
+            table_html = ""
+
         page_html = (
             "<!doctype html><html><head><meta charset=utf-8>"
             "<title>ChatHealthy commit authorization</title>"
-            "<style>body{font-family:system-ui,sans-serif;padding:40px;"
+            "<style>body{font-family:system-ui,sans-serif;padding:24px;"
             "background:#0b7a75;color:#fff;text-align:center}"
-            "h1{font-size:28px}"
+            "h1{font-size:22px;margin:0 0 16px}"
             "button{font-size:18px;padding:14px 32px;margin:8px;border:none;"
             "border-radius:6px;cursor:pointer;font-weight:600}"
             ".approve{background:#0b9a94;color:#fff}"
-            ".reject{background:#dc2626;color:#fff}</style></head>"
+            ".reject{background:#dc2626;color:#fff}"
+            ".tablewrap{max-height:62vh;overflow-y:auto;overflow-x:hidden;"
+            "width:880px;max-width:94vw;margin:0 auto 18px;"
+            "border:1px solid #063f3c;border-radius:6px}"
+            "table{border-collapse:collapse;width:100%;table-layout:fixed;"
+            "font-size:12px;color:#111;background:#fff}"
+            "col.c1{width:24%}col.c2{width:24%}col.c3{width:33%}col.c4{width:19%}"
+            "th,td{border:1px solid #cbd5e1;padding:6px 8px;text-align:left;"
+            "vertical-align:top;overflow-wrap:anywhere;word-break:break-word}"
+            "th{position:sticky;top:0;background:#0b9a94;color:#fff;"
+            "font-weight:600}"
+            "td.fn{font-family:ui-monospace,Consolas,monospace}"
+            ".sub{color:#4b5563;font-size:11px;margin-top:2px}</style></head>"
             "<body>"
-            f"<h1>Authorize {action}?</h1>"
+            f"<h1>{heading}</h1>"
+            f"{table_html}"
             f"<button class=approve id=btn_approve type=button>APPROVE</button>"
             f"<button class=reject id=btn_reject type=button>REJECT</button>"
             f"<input type=hidden id=human_click value=\"false\">"
@@ -638,6 +871,10 @@ class CommitAuthorizationWorker(EnforcementWorker):
         # `git rev-parse <sha>^{tree}` long afterwards.
         document["tree"] = self._staged_tree()
         document["files"] = self._staged_files()
+        # The 4-field change table the operator approved, full path and all,
+        # so the audit record carries what the screen showed and more.
+        if action == "commit":
+            document["change_table"] = self._change_rows()
         authorization_record.append(document, tolerate_failure=True)
 
 
