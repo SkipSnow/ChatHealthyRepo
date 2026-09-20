@@ -610,6 +610,15 @@ class GitStateChangeAuthorization:
         parts.append("".join(current))
         return [p.strip() for p in parts if p.strip()]
 
+    # git's pre-subcommand global options that consume the FOLLOWING word as
+    # their value. Skipping the flag alone leaves its value to be read as the
+    # subcommand: `git -C <path> status` reported the path as the subcommand,
+    # so a read-only status parsed as an unknown write and gated a read.
+    GIT_VALUE_OPTIONS = frozenset({
+        "-C", "-c", "--git-dir", "--work-tree", "--namespace",
+        "--super-prefix", "--config-env",
+    })
+
     def git_subcommand(self, segment: str) -> str:
         """The subcommand of a git invocation, or "" when it is not one."""
         words = segment.split()
@@ -624,10 +633,14 @@ class GitStateChangeAuthorization:
             return ""
         if head not in ("git", "git.exe"):
             return ""
-        for word in words[1:]:
-            if word.startswith("-"):
+        index = 1
+        while index < len(words):
+            word = words[index]
+            if word in self.GIT_VALUE_OPTIONS:
+                index += 2          # skip the option and the value it consumes
                 continue
-            if word in ("-C", "-c"):
+            if word.startswith("-"):
+                index += 1          # a valueless global flag, or --opt=value
                 continue
             return word.lower()
         return ""
