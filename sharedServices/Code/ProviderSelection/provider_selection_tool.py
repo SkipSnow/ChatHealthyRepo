@@ -20,6 +20,7 @@ from chathealthy_lib.exceptions import ChatHealthyException
 from chathealthy_lib import ChatHealthyLoggingService
 from chathealthy_lib.authentication.agent_deps import AgentDeps
 from chathealthy_lib.authentication.chathealthy_tool import ChatHealthyTool
+from chathealthy_lib.capability_contract import CapabilityContract
 
 log = ChatHealthyLoggingService()
 
@@ -105,8 +106,16 @@ class Response(BaseModel):
     error: Optional[str] = None
 
 
-class ProviderSelectionTool(ChatHealthyTool):
+class ProviderSelectionTool(ChatHealthyTool, CapabilityContract):
     TOOL_NAME = "provider_selection"
+    CAPABILITY = "provider_selection"
+
+    TOOL_DESCRIPTION = (
+        "Owns user_object.selected_providers — the NPIs the person has "
+        "curated for the EvaluateCare handoff, verbs select, deselect, list.")
+    SUBSCRIPTIONS: list[str] = ["provider_selection"]
+    MAY_CALL: list[str] = []
+    NOT_UTTERANCE_ROUTABLE = True
     Request = Request
     Response = Response
 

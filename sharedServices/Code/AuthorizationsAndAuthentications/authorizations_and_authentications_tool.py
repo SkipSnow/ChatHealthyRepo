@@ -36,6 +36,7 @@ from pydantic import BaseModel, Field
 
 from chathealthy_lib.authentication.agent_deps import AuthnDeps
 from chathealthy_lib.authentication.chathealthy_tool import ChatHealthyTool
+from chathealthy_lib.capability_contract import CapabilityContract
 from authentication.mintable_auth_token import MintableAuthToken
 from chathealthy_lib.authentication.user_object import UserObject
 from chathealthy_lib.authentication.session_token import SessionToken
@@ -210,7 +211,7 @@ def write_session_record(coll, users_coll, user_object: UserObject, fresh_mint: 
             )
 
 
-class AuthorizationsAndAuthenticationsTool(ChatHealthyTool):
+class AuthorizationsAndAuthenticationsTool(ChatHealthyTool, CapabilityContract):
     """Pure session-data work. Three operations on `user_object`:
 
       * `run(Request(intent="manufacture_session", user_object=...))`
@@ -233,8 +234,18 @@ class AuthorizationsAndAuthenticationsTool(ChatHealthyTool):
     sets the rest of the session and never a page.
     """
     TOOL_NAME = "authn"
+    CAPABILITY = "authn"
     Request = Request
     Response = Response
+
+    TOOL_DESCRIPTION = (
+        "Pure session-data work: manufactures and persists the session "
+        "object that carries a person's identity across the application.")
+    # A bootstrap tool invoked directly by the gate and the navigator, not
+    # by a gate op in the dispatch table.
+    SUBSCRIPTIONS: list[str] = []
+    MAY_CALL: list[str] = []
+    NOT_UTTERANCE_ROUTABLE = True
 
     async def run(self, deps: AuthnDeps, request: "Request") -> "Response":
         if request.intent == "manufacture_session":

@@ -24,7 +24,7 @@ package "SharedServices process" #fdfdfd {
     [Session and\nsecurity helpers] as SEC
   }
 
-  [UtteranceManager\nclassify: preamble + fragments ->\nthe set of tools to dispatch to] as UM
+  [UtteranceManager\nclassify: preamble + fragments ->\nthe set of tools to dispatch to;\ndecides sufficiency and dispatches if so\n----\nRequestUsersRefinement(): the UM's own LLM authors\nthe question — no dispatchable route or a missing slot\nRequestUsersRefinement(question): a dispatched tool\nauthored the question; the UM delivers it\n(one conversational surface — no tool talks to the user)] as UM
 
   package "Tools · ChatHealthyTool subclasses" #fbfdfd {
     [ProviderSearch] as T1
@@ -32,13 +32,15 @@ package "SharedServices process" #fdfdfd {
     [SpecialtyFilter] as T3
     [Geo\nresolves free-text geography] as T5
     [Selection · Facility\nTrials · ...] as T4
-    [Prose\nauthors the\nuser-facing sentence] as TP
     [LockoutTool\nNOT_UTTERANCE_ROUTABLE] as TL
   }
 }
 
 database "ToolRegistry\none record per build per env:\ntools, subscriptions, may_call,\nfragments, routes and proofs;\npages carry members / required_members / completeness" as REG #eef6f5
-database "Sessions and ledger\n(front-end cluster)" as SESS
+package "MongoDB (Atlas) · front-end cluster" #eef6f5 {
+  database "Sessions and ledger" as SESS
+  database "Registered Users" as USERS
+}
 
 GATE -down-> PROXY : token, head,\nparameters
 PROXY -down-> ROUTE : forwards to\nthe navigator
@@ -53,17 +55,16 @@ ROUTE -down-> LEDGER : dispatch\nby subscription
 LEDGER -right-> MERGE
 MERGE -up-> ROUTE : merged document
 SEC -down-> SESS : validate once;\nstate as rows
+SESS -[hidden]right- USERS
 
 LEDGER -down-> T1
 T1 -[#9ca3af]up-> LEDGER : completion callback\ncloses the entry
-ROUTE .down.> TP : slot missing:\ndispatch prose\nwith the facts
 
 T1 -[hidden]right- T2
 T2 -[hidden]right- T3
 T3 -[hidden]right- T5
 T5 -[hidden]right- T4
-T4 -[hidden]right- TP
-TP -[hidden]right- TL
+T4 -[hidden]right- TL
 
 note left of GATE
   Knows transport exists; nothing else does.
@@ -79,18 +80,6 @@ note bottom of PROXY
   The Gate reaches the navigator only through
   this proxy; the proxy is the navigator's face,
   in-process or across the boundary alike.
-end note
-
-note top of TP
-  OPEN ARCHITECTURAL QUESTION — not resolved here.
-  Is asking the user a question the UtteranceManager's
-  own scope (classify + prose), or a separate Prose
-  tool (drawn here)? Three approved requirements place
-  prose and parameters inside UM
-  (EPIC-002-F-010-S-001, -S-003, EPIC-006-F-008-S-003);
-  the registry instance also carries a 'Prose' route.
-  The architecture will not move a requirement; which
-  stands is the operator's to say.
 end note
 
 note bottom of TL

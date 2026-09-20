@@ -16,10 +16,9 @@ participant "Gate\n(facade, transport only)" as Gate
 participant "UniversalNavigator\n(SharedServices main)" as UN
 database "Registry\n(the one live map)" as Reg
 database "Repository\nsessions, ledger, params" as Repo
-participant "UtteranceManager\n(classify only)" as UM
+participant "UtteranceManager\n(classifies + dispatches;\nRequestUsersRefinement capability)" as UM
 participant "UniversalNavigatorProxy\n(FindCare satellite)" as PXY
 participant "ClinicalTrials\n(tool, required member)" as CT
-participant "Prose\n(OPEN: own tool, or the\nUtteranceManager's scope?)" as Prose
 participant "ClinicalTrials.gov\n(external registry, not ours)" as REG
 
 P -> Gate : POST /  { session_token, head,\nparams(utterance, history) }
@@ -83,8 +82,13 @@ note over CT, REG
   A condition alone suffices; nothing else is required of the user.
   We state what we ask and what must come back, not how it answers.
 end note
-CT --> PXY : trials document
+CT --> PXY : trials document\n{ trials, UserRefinementRequestText }
 deactivate CT
+note over CT
+  UserRefinementRequestText on the tool output: populated => the tool
+  is ASKING the user, which the UM delivers via RequestUsersRefinement(question);
+  empty => the tool is answering.
+end note
 PXY --> UN : completion callback { trials }\ninternal_callback, proof our_signature
 deactivate PXY
 
@@ -101,21 +105,19 @@ note over UN, Repo
 end note
 
 alt only a condition was given
-  UN -> Prose : author refinement sentence\n{ narrowings not yet used: age, sex, US }
-  activate Prose
-  Prose --> UN : the user-facing sentence
-  deactivate Prose
-  note right of Prose
-    OPEN ARCHITECTURAL QUESTION (not resolved here):
-    is authoring this sentence the UtteranceManager's own
-    scope, or a separate "Prose" tool? Three approved
-    requirements place prose inside the UtteranceManager
-    (EPIC-002-F-010-S-001, -S-003, EPIC-006-F-008-S-003);
-    the registry instance also carries a "Prose" route.
-    Drawn as one participant on purpose - the firm has not
-    picked a side. Either way, no tool authors its own chat
-    strings. Offering refinements not yet given is
-    EPIC-006-F-005-S-001.
+  UN -> UM : RequestUsersRefinement(): author refinement sentence\n{ narrowings not yet used: age, sex, US }
+  activate UM
+  UM --> UN : the user-facing sentence
+  deactivate UM
+  note right of UM
+    RequestUsersRefinement is a CAPABILITY of the UtteranceManager,
+    not a separate tool - the one conversational surface. Two forms:
+    RequestUsersRefinement() - the UM's own LLM authors the question
+    when classification finds no route or a missing slot (this call);
+    RequestUsersRefinement(question) - a dispatched tool authored the
+    question (carried in UserRefinementRequestText) and the UM delivers it.
+    No tool authors its own chat strings.
+    Offering refinements not yet given is EPIC-006-F-005-S-001.
   end note
 end
 

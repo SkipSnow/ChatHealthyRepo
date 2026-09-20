@@ -20,6 +20,7 @@ from chathealthy_lib.exceptions import ChatHealthyException
 
 from chathealthy_lib.authentication.agent_deps import AgentDeps
 from chathealthy_lib.authentication.chathealthy_tool import ChatHealthyTool
+from chathealthy_lib.capability_contract import CapabilityContract
 
 log = ChatHealthyLoggingService()
 
@@ -130,10 +131,18 @@ def _security_panel(deps: AgentDeps) -> SecurityPanelData:
     )
 
 
-class AboutChatHealthyTool(ChatHealthyTool):
+class AboutChatHealthyTool(ChatHealthyTool, CapabilityContract):
     TOOL_NAME = "about_chathealthy"
+    CAPABILITY = "about_chathealthy"
     Request = Request
     Response = Response
+
+    TOOL_DESCRIPTION = (
+        "Surfaces the About-popup payload (Skip Snow and ChatHealthy "
+        "context) as structured data for the React widget to render.")
+    SUBSCRIPTIONS: list[str] = ["about_chathealthy"]
+    MAY_CALL: list[str] = []
+    NOT_UTTERANCE_ROUTABLE = True
 
     async def run(self, deps: AgentDeps, request: "Request") -> "Response":
         env_prefix = getattr(deps, "server_env", None) or os.getenv("ENV_PREFIX", "")

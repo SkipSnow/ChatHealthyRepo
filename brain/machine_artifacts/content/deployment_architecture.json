@@ -1121,6 +1121,14 @@
         },
         {
           "feature_id": "EPIC-008-F-012",
+          "source_location": "ChatHealthyLib/src/chathealthy_lib/gate.py",
+          "handler_type": "python_source",
+          "disposition": "referenced",
+          "content_hash": "2c11900d8312ddb001080eb019963b69c39c1d4da689be1e8fa53cd227bf0846",
+          "package": "service_runtime"
+        },
+        {
+          "feature_id": "EPIC-008-F-012",
           "source_location": "ChatHealthyLib/src/chathealthy_lib/authentication/__init__.py",
           "handler_type": "python_source",
           "disposition": "referenced",
@@ -1251,7 +1259,7 @@
           "source_location": "evaluateCare/Code/app.py",
           "handler_type": "python_source",
           "disposition": "referenced",
-          "content_hash": "e4d932bbf0c1fd3d00fca3ee1f4bc89cb1f2d4320b749da0e5452fd754ac4cda",
+          "content_hash": "29799b07a301ac0ee7c7995d5cfe3158e0c6beb9f88c66700a7fb93f1aea8a79",
           "package": "service_runtime"
         },
         {
@@ -1565,6 +1573,22 @@
         },
         {
           "feature_id": "EPIC-008-F-012",
+          "source_location": "ChatHealthyLib/src/chathealthy_lib/gate.py",
+          "handler_type": "python_source",
+          "disposition": "referenced",
+          "content_hash": "2c11900d8312ddb001080eb019963b69c39c1d4da689be1e8fa53cd227bf0846",
+          "package": "service_runtime"
+        },
+        {
+          "feature_id": "EPIC-008-F-012",
+          "source_location": "ChatHealthyLib/src/chathealthy_lib/capability_contract.py",
+          "handler_type": "python_source",
+          "disposition": "referenced",
+          "content_hash": "432c4077d16b5d8616b7a9f28d4970138b4f72339fe7555b228e9da1a72fd7f3",
+          "package": "service_runtime"
+        },
+        {
+          "feature_id": "EPIC-008-F-012",
           "source_location": "ChatHealthyLib/src/chathealthy_lib/authentication/__init__.py",
           "handler_type": "python_source",
           "disposition": "referenced",
@@ -1592,7 +1616,7 @@
           "source_location": "ChatHealthyLib/src/chathealthy_lib/authentication/chathealthy_tool.py",
           "handler_type": "python_source",
           "disposition": "referenced",
-          "content_hash": "326c77c413f5680bea6136272752b594758f020f84f3d23c914495959b083420",
+          "content_hash": "511890980a000a1a0b53ca774f5f9509312d4186cf373c9344e402d7373f9a42",
           "package": "service_runtime"
         },
         {
@@ -1751,7 +1775,7 @@
           "source_location": "FindCare/Code/app.py",
           "handler_type": "python_source",
           "disposition": "referenced",
-          "content_hash": "95dac41c7f318697e0be7c5bb2d4f41dad049170400020cef63b717315fc3235",
+          "content_hash": "5ad336f78b4ddafbb8aeb3aa3b1aa4d99ad60d0d0b65c1ebaefe296bf4afabb8",
           "package": "service_runtime"
         },
         {
@@ -2071,7 +2095,7 @@
           "source_location": "FindCare/ClinicalTrials/clinical_trials_tool.py",
           "handler_type": "python_source",
           "disposition": "referenced",
-          "content_hash": "bdf7c5008d6d59dd968ea1dbb37c734e8544acc23434f2ef73d482c100f4823d",
+          "content_hash": "b821772a3d077cf23ee16bd2594a293d2d25dcb881412611d07bee603dda14c6",
           "package": "service_runtime"
         },
         {
@@ -2178,7 +2202,7 @@
           "source_location": "FindCare/SpecialtyFilter/specialty_filter_tool.py",
           "handler_type": "python_source",
           "disposition": "referenced",
-          "content_hash": "2cf328b9993d9a93b47d6601eb9dd1b7e6eaa061a17d13b606d98456c5737c06",
+          "content_hash": "c42d5b9797af1a98d741748cd5c06bd74e65aa25a87f4e42e04b5f1c0f8c7b1b",
           "package": "service_runtime"
         },
         {
@@ -2234,7 +2258,7 @@
           "source_location": "brain/machine_artifacts/diagramsAndImages/rendered/findcare_evalcare_handoff_sequence.png",
           "handler_type": "static_asset",
           "disposition": "referenced",
-          "content_hash": "34984a269b6755bd055f25b5d7dced08b64cb1841f897f98dd78d3a5d2561bd4",
+          "content_hash": "34190e9c0b88aa15020c764910c5b9d8e6bda6fcc77c16c750481c42fa389187",
           "package": "service_runtime"
         },
         {
@@ -2250,7 +2274,7 @@
           "source_location": "brain/machine_artifacts/diagramsAndImages/rendered/local_architecture_component.png",
           "handler_type": "static_asset",
           "disposition": "referenced",
-          "content_hash": "1285d13b9b086c151adedbcec5a2288a37db0b5a572b1cb84c544491ca501582",
+          "content_hash": "845ca70d1194861f5535d62d6b7d5f640fd8d1c4fcbe401879de9b1037b8857c",
           "package": "service_runtime"
         },
         {
@@ -2274,7 +2298,7 @@
           "source_location": "brain/machine_artifacts/diagramsAndImages/rendered/security_architecture_local.png",
           "handler_type": "static_asset",
           "disposition": "referenced",
-          "content_hash": "a12eb84e2f041fdf11c9f8c0d016e2b5a8c381659978dcb11173924dacca0849",
+          "content_hash": "13906ab709c083e0ce318d6c15d17e0224b6314a59549526fcc3f76ebfd0e7f0",
           "package": "service_runtime"
         },
         {
@@ -2290,7 +2314,7 @@
           "source_location": "brain/machine_artifacts/diagramsAndImages/sources/findcare_evalcare_handoff_sequence.puml",
           "handler_type": "static_asset",
           "disposition": "referenced",
-          "content_hash": "320758a3cc32dec4d150c4d1c5b635ed927d7b6a00c40ba98d07beb41385d844",
+          "content_hash": "a4342b18f46ee2bea1e3fc7d2d23fe81eac5c29d1cc6902a0f91e3f79761bc10",
           "package": "service_runtime"
         },
         {
@@ -2298,7 +2322,7 @@
           "source_location": "brain/machine_artifacts/diagramsAndImages/sources/findcare_evalcare_handoff_sequence_compact.puml",
           "handler_type": "static_asset",
           "disposition": "referenced",
-          "content_hash": "bb5bc2f7720426fcdc54bbe361e57595fd17ffbd8955b3310abf069e1ae30d2b",
+          "content_hash": "a5bb55a62f0b5344f4d6e2e1b8c98492e12e3f095e54c688d9d0ff3ed38b9caf",
           "package": "service_runtime"
         },
         {
@@ -2314,7 +2338,7 @@
           "source_location": "brain/machine_artifacts/diagramsAndImages/sources/local_architecture_component.puml",
           "handler_type": "static_asset",
           "disposition": "referenced",
-          "content_hash": "e7e6963f8bb12f2bc489d5ef860c832d3ccef6594c8d66b96867055128625e00",
+          "content_hash": "54ce1ac09a81960319d9e5454e9bf258b1a72addfdadf57eb04a57edd5dd65bb",
           "package": "service_runtime"
         },
         {
@@ -2330,7 +2354,7 @@
           "source_location": "brain/machine_artifacts/diagramsAndImages/sources/security_architecture_local.puml",
           "handler_type": "static_asset",
           "disposition": "referenced",
-          "content_hash": "ca08a2fbb65c3f6cbab951db99a6b259562f42504221188b0fb085d5032ffa51",
+          "content_hash": "3c76b8c35ec40a226c8c00334337fd5287dcd5f48b26301df81a23ca40a6edc7",
           "package": "service_runtime"
         },
         {
@@ -2655,6 +2679,30 @@
         },
         {
           "feature_id": "EPIC-008-F-012",
+          "source_location": "ChatHealthyLib/src/chathealthy_lib/gate.py",
+          "handler_type": "python_source",
+          "disposition": "referenced",
+          "content_hash": "2c11900d8312ddb001080eb019963b69c39c1d4da689be1e8fa53cd227bf0846",
+          "package": "service_runtime"
+        },
+        {
+          "feature_id": "EPIC-008-F-012",
+          "source_location": "ChatHealthyLib/src/chathealthy_lib/dispatch_registry.py",
+          "handler_type": "python_source",
+          "disposition": "referenced",
+          "content_hash": "12243624360cfd6b570f7ff9c725205f4bce30b413a4614371d993a7abb3d941",
+          "package": "service_runtime"
+        },
+        {
+          "feature_id": "EPIC-008-F-012",
+          "source_location": "ChatHealthyLib/src/chathealthy_lib/capability_contract.py",
+          "handler_type": "python_source",
+          "disposition": "referenced",
+          "content_hash": "432c4077d16b5d8616b7a9f28d4970138b4f72339fe7555b228e9da1a72fd7f3",
+          "package": "service_runtime"
+        },
+        {
+          "feature_id": "EPIC-008-F-012",
           "source_location": "ChatHealthyLib/src/chathealthy_lib/authentication/__init__.py",
           "handler_type": "python_source",
           "disposition": "referenced",
@@ -2682,7 +2730,7 @@
           "source_location": "ChatHealthyLib/src/chathealthy_lib/authentication/chathealthy_tool.py",
           "handler_type": "python_source",
           "disposition": "referenced",
-          "content_hash": "326c77c413f5680bea6136272752b594758f020f84f3d23c914495959b083420",
+          "content_hash": "511890980a000a1a0b53ca774f5f9509312d4186cf373c9344e402d7373f9a42",
           "package": "service_runtime"
         },
         {
@@ -2825,7 +2873,7 @@
           "source_location": "FindCare/SpecialtyFilter/specialty_filter_tool.py",
           "handler_type": "python_source",
           "disposition": "referenced",
-          "content_hash": "2cf328b9993d9a93b47d6601eb9dd1b7e6eaa061a17d13b606d98456c5737c06",
+          "content_hash": "c42d5b9797af1a98d741748cd5c06bd74e65aa25a87f4e42e04b5f1c0f8c7b1b",
           "package": "service_runtime"
         },
         {
@@ -2849,7 +2897,7 @@
           "source_location": "sharedServices/Code/AboutChatHealthy/about_chathealthy_tool.py",
           "handler_type": "python_source",
           "disposition": "referenced",
-          "content_hash": "f26d207e93cccebdbb1ad8d3a482ab09a4c154e49cbda78f4f5075960bf52b79",
+          "content_hash": "83eccc94f9e9fac488593969bb677ec2c37910952f81ef15f90d33a540ed85e1",
           "package": "service_runtime"
         },
         {
@@ -2865,7 +2913,7 @@
           "source_location": "sharedServices/Code/AuthorizationsAndAuthentications/authorizations_and_authentications_tool.py",
           "handler_type": "python_source",
           "disposition": "referenced",
-          "content_hash": "f0addb37f3ccf996a57164013f2fa9ac4637f1bd1827dd64bde73001c7782383",
+          "content_hash": "919469ff8e44744e6f24e285074198a39d525105e880825ad603eca83769ab88",
           "package": "service_runtime"
         },
         {
@@ -2873,7 +2921,7 @@
           "source_location": "sharedServices/Code/AuthorizationsAndAuthentications/clinical_trials_dispatcher.py",
           "handler_type": "python_source",
           "disposition": "referenced",
-          "content_hash": "7f3793f1e5a9d6a7a96f1627442c4f088f302c36dd8d79fef51212af25721118",
+          "content_hash": "b7d6a6f402eca91da32d741a201f4e2b8e51fb9ca399bafd82a2758f9f7b9151",
           "package": "service_runtime"
         },
         {
@@ -2881,7 +2929,7 @@
           "source_location": "sharedServices/Code/AuthorizationsAndAuthentications/evalcare_splash_tool.py",
           "handler_type": "python_source",
           "disposition": "referenced",
-          "content_hash": "6de7671094c2eb58ac2db9a017e5f5743b2fefded2460a38cf49b940508869dc",
+          "content_hash": "e1e0f4e61d9d82b92246397529968672c9997a401f084f3b0326d40a116bd33a",
           "package": "service_runtime"
         },
         {
@@ -2905,7 +2953,7 @@
           "source_location": "sharedServices/Code/AuthorizationsAndAuthentications/oauth_login_tool.py",
           "handler_type": "python_source",
           "disposition": "referenced",
-          "content_hash": "18f88b8c5780de3bbd165dd264681e792d9dcb4af6b3dcf0b267c780037a7ad9",
+          "content_hash": "8db13ac389f788dedc7ff2a4c47109f1b63b9ab8d24d3816f496e710d8048364",
           "package": "service_runtime"
         },
         {
@@ -2913,7 +2961,7 @@
           "source_location": "sharedServices/Code/AuthorizationsAndAuthentications/provider_detail_tool.py",
           "handler_type": "python_source",
           "disposition": "referenced",
-          "content_hash": "09df0810db14423eef65a4117f65f958522b98e19b560aed9d1389b0ba977691",
+          "content_hash": "8d24ae40766de4790640cd8757b9545db56183cccc5626ddeba7f2ade7c4103d",
           "package": "service_runtime"
         },
         {
@@ -2921,7 +2969,7 @@
           "source_location": "sharedServices/Code/AuthorizationsAndAuthentications/provider_search_tool.py",
           "handler_type": "python_source",
           "disposition": "referenced",
-          "content_hash": "bd8a43c226574493eb5f231b957b927d6a4c0e5ba16ea5b120fe1057b8932af8",
+          "content_hash": "4dbb85b7df9df323d0f2a22affea5bb9277b5cc2d37976aaf95f20930b612814",
           "package": "service_runtime"
         },
         {
@@ -2929,7 +2977,7 @@
           "source_location": "sharedServices/Code/AuthorizationsAndAuthentications/universal_navigation_tool.py",
           "handler_type": "python_source",
           "disposition": "referenced",
-          "content_hash": "854dda432ac40824c17c3164f26566b0897eb6648c0b7c2bd91e945c55303024",
+          "content_hash": "929f098213666b94022e6297892c225384c6edd3e7bd127468213036f450af99",
           "package": "service_runtime"
         },
         {
@@ -2945,7 +2993,7 @@
           "source_location": "sharedServices/Code/ClinicalTrialSelection/clinical_trial_selection_tool.py",
           "handler_type": "python_source",
           "disposition": "referenced",
-          "content_hash": "87f2947a9ab28a2efb76f2f3ca3ab38cc085932f051f01af6ca0bdff135fe4c6",
+          "content_hash": "a8001c4abb3f336a9e87f5735f534ee5e3fc2f5ed5a3a89df62b93a29ccb683d",
           "package": "service_runtime"
         },
         {
@@ -2961,7 +3009,7 @@
           "source_location": "sharedServices/Code/CloseConnection200Tool/close_connection_200_tool.py",
           "handler_type": "python_source",
           "disposition": "referenced",
-          "content_hash": "9aaa9409fa5cd169db0bd3e91536b02710f004ce7f8097aa73a013fc04b080ca",
+          "content_hash": "46c2872b38baf8835acef66b4317e5046f32df4bc72ddfd8f25ac589cc613baa",
           "package": "service_runtime"
         },
         {
@@ -2977,7 +3025,7 @@
           "source_location": "sharedServices/Code/FacilitySearch/facility_search_tool.py",
           "handler_type": "python_source",
           "disposition": "referenced",
-          "content_hash": "fe5e0b2f3ea25c57ab5b54e22c8e9ec844a29afb96c19b17c3808bd35d78a30a",
+          "content_hash": "956e535ebf57f170cd9fca48af0b1689b0882534e3bb6b0f354aebd9e2729252",
           "package": "service_runtime"
         },
         {
@@ -2993,7 +3041,7 @@
           "source_location": "sharedServices/Code/FacilitySelection/facility_selection_tool.py",
           "handler_type": "python_source",
           "disposition": "referenced",
-          "content_hash": "41eeeefa1d33e015217ce3b457ab4d8446b436d74b1e3c78e26bfc3fc0252057",
+          "content_hash": "278c2a8c79fd3c75789f9de54fd0dc26ac4c95a385107379fad189b68d6eb0df",
           "package": "service_runtime"
         },
         {
@@ -3009,7 +3057,7 @@
           "source_location": "sharedServices/Code/LockoutTool/lockout_tool.py",
           "handler_type": "python_source",
           "disposition": "referenced",
-          "content_hash": "152eb0fbc865f237d7840c7999ae5af60f9fb00bbeae9abf2353c6a09b4bfb8f",
+          "content_hash": "b6f115cdebd1051915e4f08c1682694a566f929cbb1ebf4ccd9d6748fdc403d3",
           "package": "service_runtime"
         },
         {
@@ -3025,7 +3073,7 @@
           "source_location": "sharedServices/Code/ProviderSelection/provider_selection_tool.py",
           "handler_type": "python_source",
           "disposition": "referenced",
-          "content_hash": "dc9a4b095c952dff0f16c7538a57dc4ea501ab116cad3a97ee3139b971d70129",
+          "content_hash": "a15075f82e4b9ed449e94bd52792f3a579448f026520099f67c5ccbdf280486c",
           "package": "service_runtime"
         },
         {
@@ -3033,7 +3081,7 @@
           "source_location": "sharedServices/Code/Geo/geo_tool.py",
           "handler_type": "python_source",
           "disposition": "referenced",
-          "content_hash": "28c46db170eb55c6ddce8c80883dd010059d9adca72d9d52e834e8712f348563",
+          "content_hash": "4ce307eacdb444f61b20c047aef2c53105b055640fa7571c26c1bda6c3e179e8",
           "package": "service_runtime"
         },
         {
@@ -3057,7 +3105,7 @@
           "source_location": "sharedServices/Code/UserParameters/user_parameters_tool.py",
           "handler_type": "python_source",
           "disposition": "referenced",
-          "content_hash": "08ae3cef19d5332b98404652611f3c6c9f39297c57dd0088330c41e7ee4d9636",
+          "content_hash": "e0df2bade5b0fe8555e0a1cdaffe7a17a1c9b760f3ae14e440d065222278e181",
           "package": "service_runtime"
         },
         {
@@ -3073,7 +3121,7 @@
           "source_location": "sharedServices/Code/UtteranceManager/utterance_manager.py",
           "handler_type": "python_source",
           "disposition": "referenced",
-          "content_hash": "f6a460b89a72b27039af94dd3a5315a404690f96865374a3a687eb6db11358e4",
+          "content_hash": "49701c94067ce1310fbdb83c826552f74ee5efac875fcf2bf4b99c2912a674f8",
           "package": "service_runtime"
         },
         {
@@ -3081,7 +3129,7 @@
           "source_location": "sharedServices/Code/app.py",
           "handler_type": "python_source",
           "disposition": "referenced",
-          "content_hash": "52a42de3a1c51e73289fe1ff03f1b8b295f49fe7cd1bac21b7406d7e54eece59",
+          "content_hash": "3cca2aa047cd0c8249b4493bbd0af59b995ea7203da554141cf96023b7269baa",
           "package": "service_runtime"
         },
         {
@@ -3260,7 +3308,7 @@
               "args": "sessionPdf  /app/sessionPdf"
             }
           ],
-          "embedded_content": "\nFROM python:3.12-slim\n\nWORKDIR /app\n\nCOPY requirements.txt /app/requirements.txt\nRUN pip install --no-cache-dir -r /app/requirements.txt\n\nCOPY ChatHealthyLib /app/ChatHealthyLib\nRUN pip install --no-cache-dir /app/ChatHealthyLib\n\nCOPY build_info.json    /app/build_info.json\nCOPY app.py             /app/app.py\nCOPY healthcheck        /app/healthcheck\nCOPY displayChrome      /app/displayChrome\nCOPY authentication     /app/authentication\nCOPY SpecialtyFilter    /app/SpecialtyFilter\nCOPY AboutChatHealthy  /app/AboutChatHealthy\nCOPY externalInterface  /app/externalInterface\nCOPY secretsManager     /app/secretsManager\nCOPY UtteranceManager  /app/UtteranceManager\nCOPY CloseConnection200Tool  /app/CloseConnection200Tool\nCOPY LockoutTool  /app/LockoutTool\nCOPY ProviderSelection  /app/ProviderSelection\nCOPY FacilitySearch  /app/FacilitySearch\nCOPY FacilitySelection  /app/FacilitySelection\nCOPY ClinicalTrialSelection  /app/ClinicalTrialSelection\nCOPY UserParameters  /app/UserParameters\nCOPY buildIdentity  /app/buildIdentity\nCOPY sessionPdf  /app/sessionPdf\n\nENV PORT=7860     CERTS_DIR=/certs     SSL_CERTFILE=/certs/shared.crt SSL_KEYFILE=/certs/shared.key\nEXPOSE 7860\nCMD [\"python\", \"app.py\"]\n",
+          "embedded_content": "\nFROM python:3.12-slim\n\nWORKDIR /app\n\nCOPY requirements.txt /app/requirements.txt\nRUN pip install --no-cache-dir -r /app/requirements.txt\n\nCOPY ChatHealthyLib /app/ChatHealthyLib\nRUN pip install --no-cache-dir /app/ChatHealthyLib\n\nCOPY build_info.json    /app/build_info.json\nCOPY app.py             /app/app.py\nCOPY tool_registry.py   /app/tool_registry.py\nCOPY healthcheck        /app/healthcheck\nCOPY displayChrome      /app/displayChrome\nCOPY authentication     /app/authentication\nCOPY SpecialtyFilter    /app/SpecialtyFilter\nCOPY AboutChatHealthy  /app/AboutChatHealthy\nCOPY externalInterface  /app/externalInterface\nCOPY secretsManager     /app/secretsManager\nCOPY UtteranceManager  /app/UtteranceManager\nCOPY CloseConnection200Tool  /app/CloseConnection200Tool\nCOPY LockoutTool  /app/LockoutTool\nCOPY ProviderSelection  /app/ProviderSelection\nCOPY FacilitySearch  /app/FacilitySearch\nCOPY FacilitySelection  /app/FacilitySelection\nCOPY ClinicalTrialSelection  /app/ClinicalTrialSelection\nCOPY UserParameters  /app/UserParameters\nCOPY buildIdentity  /app/buildIdentity\nCOPY sessionPdf  /app/sessionPdf\n\nENV PORT=7860     CERTS_DIR=/certs     SSL_CERTFILE=/certs/shared.crt SSL_KEYFILE=/certs/shared.key\nEXPOSE 7860\nCMD [\"python\", \"app.py\"]\n",
           "package": "service_runtime"
         },
         {

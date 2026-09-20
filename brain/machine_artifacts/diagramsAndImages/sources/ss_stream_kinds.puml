@@ -14,12 +14,11 @@ skinparam ranksep 16
 title Every streamed kind and the widget that claims it:\nthe main merges serially, its gate writes the one stream -- the server names an event, never a frame
 
 package "Tools (SharedServices) -- produce events, then call back" #fdfdfd {
-  [UtteranceManager\nclassify; today also authors the\nuser-facing prompt (user_message)] as UM
+  [UtteranceManager\ndecides if an utterance is sufficient to\ndispatch to >=1 tool, then dispatches.\nCapability: RequestUsersRefinement -- the one\nconversational surface that asks the user (user_message).\nRequestUsersRefinement(): UM's own LLM authors the\nquestion when no route or a slot is missing.\nRequestUsersRefinement(question): a dispatched tool\nauthored the question; UM delivers it] as UM
   [ProviderSearchTool] as PST
   [ProviderDetailTool] as PDT
   [EvalCareSplashTool] as ESP
   [AboutChatHealthyTool] as ABT
-  [Prose (proposed tool)\nOPEN QUESTION -- see note] as PROSE #fff7ed
   [Selection tools\nProviderSelectionTool /\nFacilitySelectionTool /\nClinicalTrialSelectionTool] as SEL
   [ClinicalTrialsDispatcher] as CTD
   [LockoutTool] as LOCK
@@ -29,8 +28,7 @@ package "Tools (SharedServices) -- produce events, then call back" #fdfdfd {
   PST -[hidden]down- PDT
   PDT -[hidden]down- ESP
   ESP -[hidden]down- ABT
-  ABT -[hidden]down- PROSE
-  PROSE -[hidden]down- SEL
+  ABT -[hidden]down- SEL
   SEL -[hidden]down- CTD
   CTD -[hidden]down- LOCK
   LOCK -[hidden]down- CLOSE
@@ -84,7 +82,6 @@ PST --> NAV
 PDT --> NAV
 ESP --> NAV
 ABT --> NAV
-PROSE ..> NAV : prompt (if it exists)
 SEL --> NAV
 CTD --> NAV
 LOCK --> NAV
@@ -121,22 +118,6 @@ note right of NAV #f3f4f6
   merge function, and closes its render-ledger entry.
   A merge conflict raises. Its gate (the single client
   entrance) then writes the ONE stream for the session.
-end note
-
-note bottom of PROSE #fff7ed
-  OPEN ARCHITECTURAL QUESTION -- do NOT resolve here.
-  Is authoring the user-facing prompt the
-  UtteranceManager's own scope, or a separate "Prose"
-  tool? Not decided. Evidence pulls both ways:
-  - Today UM authors user_message in code and streams
-    it as {kind:'prompt'}; no ProseTool class exists.
-  - The tool-registry instance carries a 'Prose' route
-    name.
-  - Three approved requirements place both inside UM:
-    EPIC-002-F-010-S-001, EPIC-002-F-010-S-003,
-    EPIC-006-F-008-S-003.
-  The dashed Prose box is drawn only to mark the
-  contending position, not to adopt it.
 end note
 
 note right of ROUTER #f3f4f6

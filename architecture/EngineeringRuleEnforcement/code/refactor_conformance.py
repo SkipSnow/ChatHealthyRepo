@@ -58,13 +58,55 @@ def _interesting(path: str) -> bool:
 
 
 # ── Gate 1 ───────────────────────────────────────────────────────────
+# A reference into the RETIRED tree is a path token that begins at the
+# top-level Code/ -- "Code/..." or "Code\..." standing at the start of a
+# path. A "Code/" preceded by a path separator or an alphanumeric is a
+# per-component tree (FindCare/Code/, sharedServices/Code/, pipeline/Code/),
+# not the retired tree, and is NOT counted. pipeline/Code/ in particular is
+# EPIC-010 and legitimately persists. Both slash forms are anchored: were
+# only the forward slash anchored, the backslash form would go uncounted.
+_TOKEN_STARTS = ("\"", "'", " ", "\t", "\n", "\r", "(", "=", ",")
+
+
+def _anchored_legacy_hits(body: str) -> int:
+    """Count references that resolve a path beginning at the top-level Code/.
+
+    A hit is ``Code/`` or ``Code\\`` at the start of a path token -- preceded
+    by the start of the text, a quote, whitespace, ``(``, ``=`` or ``,``. A
+    ``Code/`` preceded by ``/``, ``\\`` or an alphanumeric is a per-component
+    tree and is excluded, which is what removes ``pipeline/Code/`` and the
+    front-end component trees from the count. This is a string-boundary test,
+    not a regex, because a regex in this file would itself trip
+    Rule-065-ENF-006, and the file is not on that gate's exclusion list.
+    """
+    hits = 0
+    for token in ("Code/", "Code\\"):
+        cursor = 0
+        while True:
+            i = body.find(token, cursor)
+            if i < 0:
+                break
+            cursor = i + 1
+            if i == 0 or body[i - 1] in _TOKEN_STARTS:
+                hits += 1
+    return hits
+
+
 def gate_the_legacy_tree_is_gone() -> dict:
     """Nothing lives in Code/ and nothing reaches into it.
 
-    The effect this names: the legacy tree is not load-bearing. It is red
-    while a file is still there OR while anything still points at one, and
-    those are two different failures -- a directory can be empty of files
-    and still be named by a build script.
+    The effect this names: the retired top-level tree is not load-bearing.
+    It is red while a file is still there OR while anything still points at
+    the retired tree, and those are two different failures -- a directory
+    can be empty of files and still be named by a build script.
+
+    "Points at the retired tree" is measured by anchoring: only a path token
+    that begins at the top-level Code/ counts. Per-component Code/ dirs
+    (FindCare/Code/, sharedServices/Code/, pipeline/Code/) are not the retired
+    tree and are excluded by the anchor. This is what §2 of the remade plan
+    calls the corrected criterion; the un-anchored substring count it replaced
+    read 453 references that were overwhelmingly the record naming live
+    per-component paths.
     """
     living = tracked("Code")
     referrers: dict[str, int] = {}
@@ -75,7 +117,7 @@ def gate_the_legacy_tree_is_gone() -> dict:
             body = (REPO / path).read_text(encoding="utf-8", errors="ignore")
         except OSError:
             continue
-        hits = body.count("Code/") + body.count("Code\\\\")
+        hits = _anchored_legacy_hits(body)
         if hits:
             referrers[path] = hits
     return {

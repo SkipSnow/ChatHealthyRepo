@@ -23,6 +23,7 @@ from pydantic import BaseModel
 
 from chathealthy_lib.authentication.agent_deps import AgentDeps
 from chathealthy_lib.authentication.chathealthy_tool import ChatHealthyTool
+from chathealthy_lib.capability_contract import CapabilityContract
 
 log = ChatHealthyLoggingService()
 
@@ -46,8 +47,16 @@ def evalcare_url() -> str:
     return os.environ.get(EVALCARE_INTERNAL_URL_ENV) or EVALCARE_INTERNAL_URL_DEFAULT
 
 
-class EvalCareSplashTool(ChatHealthyTool):
+class EvalCareSplashTool(ChatHealthyTool, CapabilityContract):
     TOOL_NAME = "evalcare_splash"
+    CAPABILITY = "evalcare_splash"
+
+    TOOL_DESCRIPTION = (
+        "Hops into EvaluateCare's /splash endpoint over HTTPS on the "
+        "evalcare-splash click-path and returns the splash payload.")
+    SUBSCRIPTIONS: list[str] = ["evalcare-splash"]
+    MAY_CALL: list[str] = []
+    NOT_UTTERANCE_ROUTABLE = True
     Request = Request
     Response = Response
 

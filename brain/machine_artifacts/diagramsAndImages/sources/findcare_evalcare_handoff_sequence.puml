@@ -29,8 +29,7 @@ actor "Consumer\n(Browser)" as user
 box "SharedServices (main)" #fdfdfd
 participant "Gate\n(facade)" as gate
 participant "Universal\nNavigator" as nav
-participant "Utterance\nManager" as um
-participant "Prose\nTool (?)" as prose
+participant "Utterance\nManager\n(RequestUsersRefinement)" as um
 end box
 box "FindCare (satellite)" #eef6f5
 participant "UN Proxy\n+ provider tools" as fc
@@ -38,22 +37,24 @@ end box
 box "EvaluateCare (satellite)" #eef6f5
 participant "UN Proxy\n+ scoring tools" as ec
 end box
-database "MongoDB\nregistry · sessions\nledger · data" as db
+database "MongoDB (Atlas)\nregistry · ledger · data" as db
+database "Session\ncollection" as sessions
+database "Registered Users\ncollection" as regusers
 
-note over gate, db
+note over gate, regusers
   The Gate is the only transport-aware node. The UniversalNavigator holds no data:
   the map is the live registry document, parameters ride the passed document,
   sessions and the render ledger are repository rows. Every throw ends in a navigator.
 end note
 
-note over um, prose #ffe9cc
-  OPEN ARCHITECTURAL QUESTION — NOT RESOLVED.
-  Is user-facing prose (asking the user a question and authoring the sentence)
-  the UtteranceManager's own scope, or a separate "Prose" tool?
-  Three approved requirements place prose inside the UtteranceManager
-  (EPIC-002-F-010-S-001, -S-003, EPIC-006-F-008-S-003); the registry instance
-  carries a "Prose" route name. This diagram draws Prose as a separate tool to
-  show ONE candidate shape only — the split is the operator's to decide.
+note over um #eef6f5
+  RequestUsersRefinement is a capability OF the UtteranceManager, not a separate tool,
+  and it is the ONE conversational surface -- no tool ever talks to the user directly.
+  The UtteranceManager decides whether an utterance is sufficient to dispatch to >=1 tool
+  and dispatches if so. Two forms, both inside the UtteranceManager:
+    RequestUsersRefinement()         -- the UM's own LLM authors the question, used when
+                                        classification finds no dispatchable route or a missing slot;
+    RequestUsersRefinement(question) -- a dispatched tool authored the question and the UM delivers it.
 end note
 
 == Startup (once per build) ==
@@ -65,7 +66,7 @@ nav -> ec : hand proxy its metadata slice
 == Phase 1: Sessioned request arrives ==
 user -> gate : client_sessioned call\nsession token + params
 gate -> nav : token, HTTP head, params\n(nothing else)
-nav -> db : maintain / verify session
+nav -> sessions : maintain / verify session
 nav -> nav : parameters vs state\n(a conflict is an exception)
 
 == Phase 2: Route the utterance ==
@@ -86,6 +87,11 @@ nav -> fc : dispatch provider_search\ntool_to_tool, crosses the wire
 fc -> db : vector search\nprovider data
 db -> fc : provider results
 fc -> nav : internal_callback (our_signature)\ncloses its ledger entry
+note right of fc
+  Every tool output carries a UserRefinementRequestText field:
+  populated = the tool is ASKING the user (the UM delivers it via
+  RequestUsersRefinement(question)); empty = the tool is answering.
+end note
 nav -> nav : serial deterministic merge
 
 == Phase 4: Handoff to evaluation — EvaluateCare satellite ==
@@ -97,9 +103,9 @@ ec -> ec : score + rank providers
 ec -> nav : internal_callback (our_signature)\ncloses its ledger entry
 nav -> nav : serial deterministic merge
 
-== Phase 5: User-facing prose (see open question above) ==
-nav -> prose : author prose from merged facts\n(as a Prose tool, OR folded into the UtteranceManager)
-prose -> nav : internal_callback\nthe user-facing sentence
+== Phase 5: User-facing prose (UtteranceManager capability) ==
+nav -> um : author prose from merged facts
+um -> nav : internal_callback\nthe user-facing sentence
 nav -> nav : merge
 
 == Phase 6: One stream back ==
@@ -107,7 +113,7 @@ nav -> nav : render ledger complete\n(timeout facts race the callbacks)
 nav -> gate : sequenced answer\n(the one stream)
 gate -> user : stream ranked evaluation\n+ prose
 
-note over user, db
+note over user, regusers
   No business logic on the client and no direct FindCare→EvaluateCare call:
   cross-server traffic is tool_to_tool through each satellite's proxy, answers
   return as internal callbacks, and the main sequences, merges, and streams once.

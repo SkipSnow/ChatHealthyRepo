@@ -26,6 +26,7 @@ from pydantic import BaseModel, Field
 
 from chathealthy_lib.authentication.agent_deps import AgentDeps
 from chathealthy_lib.authentication.chathealthy_tool import ChatHealthyTool
+from chathealthy_lib.capability_contract import CapabilityContract
 
 log = ChatHealthyLoggingService()
 
@@ -53,8 +54,21 @@ class Response(BaseModel):
     error: Optional[str] = None
 
 
-class ClinicalTrialsDispatcher(ChatHealthyTool):
+class ClinicalTrialsDispatcher(ChatHealthyTool, CapabilityContract):
     TOOL_NAME = "clinical_trials_dispatcher"
+    CAPABILITY = "clinical_trials_dispatcher"
+
+    TOOL_DESCRIPTION = (
+        "Carries the person's latest utterance and prior dialogue to the "
+        "FindCare clinical-trial page over HTTP and streams the trials it "
+        "returns back onto the person's gate stream.")
+    SUBSCRIPTIONS: list[str] = []
+    MAY_CALL: list[str] = []
+    UTTERANCE_MANAGER_PROMPT = (
+        "Route here (findClinicalTrials) when the person is looking for a "
+        "clinical trial or study for a condition. The dispatcher carries the "
+        "turn to the clinical-trial page, which mines the condition, age, "
+        "sex and location and returns matching trials.")
     Request = Request
     Response = Response
 

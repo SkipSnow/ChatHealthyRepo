@@ -72,17 +72,19 @@ own tool or a stated decision that sharing one is
 correct. The classifier retires into the
 UtteranceManager — preamble plus the registry's
 fragments, one model call, the dispatch set back.
-Where user-facing prose lives is an OPEN question
-this phase must not prejudge (see note);
+User-facing prose is a capability of the
+UtteranceManager, not a separate tool: UM decides
+whether an utterance is sufficient to dispatch to one
+or more tools and dispatches if so. When classification
+finds no route or a missing slot, the UM's own LLM
+authors the question via RequestUsersRefinement(); a
+dispatched tool needing refined input calls
+RequestUsersRefinement(question) and the UM delivers it;
 note right
-  OPEN ARCHITECTURAL QUESTION — do not resolve here.
-  Is asking the user a question the UtteranceManager's
-  own scope, or a separate "Prose" tool the navigator
-  dispatches with the facts? Three approved requirements
-  place prose inside the UtteranceManager
-  (EPIC-002-F-010-S-001, -S-003, EPIC-006-F-008-S-003);
-  the registry instance carries a Prose route name.
-  Evidence points both ways; the operator decides.
+  The "prose" capability lives inside the
+  UtteranceManager. Three approved requirements place
+  it there (EPIC-002-F-010-S-001, -S-003,
+  EPIC-006-F-008-S-003).
 end note
 
 :**Phase 5 — retire the rest of Code/**

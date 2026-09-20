@@ -18,8 +18,7 @@ actor "User\n(Browser)" as user
 package "SharedServices container - the main" as ss #eef6f5 {
   component "Gate (facade)\nweb-server transport only\nthe only node that knows transport exists\nenters the registry as a pseudo_tool" as gate_ss
   component "UniversalNavigator (main)\nreads the map, drives the route\nparameters + state, render ledger,\ndeterministic merge, sessions, external calls\nthe ONLY node that accepts external traffic\nholds no data" as nav
-  component "UtteranceManager (tool)\nclassify only: utterance -> dispatch set (non-blocking)\npreamble + registry fragments, one model call\nknows no parameters" as um
-  component "user_message / Prose (tool?)\nnavigator hands it the facts,\nreturns the user-facing sentence\n** placement is an OPEN QUESTION - see note **" as prose
+  component "UtteranceManager (tool)\ndecides whether an utterance is sufficient to\ndispatch to >=1 tool, and dispatches if so (non-blocking)\npreamble + registry fragments, one model call\ncapability: RequestUsersRefinement (the single surface\nthat talks to the user - no tool talks to the user directly)\nRequestUsersRefinement() - UM's own LLM authors the question\n  (no dispatchable route or a missing slot)\nRequestUsersRefinement(question) - a dispatched tool authored\n  the question and the UM delivers it" as um
 }
 
 package "FindCare container - satellite" as fc #fdfdfd {
@@ -43,7 +42,8 @@ package "EvaluateCare container - satellite" as ec #fdfdfd {
 }
 
 database "Tool Registry\nChatHealthyConfig.ToolConfiguration\none live doc per env\ntools + routes + PAGES (members /\nrequired_members / completeness)\ninstance{build,commit,env,live}" as registry
-database "MongoDB FrontEnd\nChatHealthyFrontEnd.Users\nsessions + render ledger rows" as mongo_fe
+database "MongoDB (Atlas) FrontEnd\nChatHealthyFrontEnd.Users\nSession collection\n(sessions + render ledger rows)" as mongo_fe
+database "MongoDB (Atlas) FrontEnd\nChatHealthyFrontEnd.Users\nRegistered Users collection" as mongo_users
 database "Served data\nChatHealthyFrontEnd.PublicHealthData\nProvider + SpecialtyMetaData\nversion-bound via ChatHealthyConfig.DBVersions" as mongo_served
 database "Pipeline (build side)\nChatHealthyDataPipelines.PipelinePublicHealthData\nNOT read at runtime" as mongo_pipe
 
@@ -53,11 +53,10 @@ nav ..> gate_ss : stream the one answer back
 
 nav --> um : dispatch (utterance)
 um --> nav : dispatch set (routes)
-nav --> prose : facts
-prose ..> nav : sentence (internal callback)
 
 nav ..> registry : reads live doc at startup
 nav --> mongo_fe : sessions, ledger, merge
+nav --> mongo_users : registered users
 
 gate_ss --> gate_fc : wire: dispatch out /\ninternal callback / metadata
 gate_ss --> gate_ec : wire: dispatch out /\ninternal callback / metadata
@@ -106,18 +105,6 @@ note bottom of registry
   completeness (three pages: individualProvider,
   facility, clinicalTrial - details/filter/geo
   are page members, never pages).
-end note
-
-note top of prose
-  OPEN ARCHITECTURAL QUESTION (do not resolve here):
-  is asking the user a question the UtteranceManager's
-  own scope, or a separate "Prose" tool? Three approved
-  requirements place prose + parameters inside the UM:
-  EPIC-002-F-010-S-001 (author user_message),
-  EPIC-002-F-010-S-003 (manufacture path),
-  EPIC-006-F-008-S-003 (a parameter writer).
-  Drawn here as a separate tool = the target position,
-  NOT a decision. Operator's to settle.
 end note
 
 note bottom of fc

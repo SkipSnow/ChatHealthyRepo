@@ -1,5 +1,5 @@
 @startuml
-title ChatHealthy.ai — the components, and what each one owns
+title ChatHealthy.ai — end to end: from the operator's deploy to a user's answer
 
 skinparam componentStyle rectangle
 skinparam shadowing false
@@ -11,6 +11,15 @@ skinparam DatabaseBorderColor #6b7280
 skinparam NoteBackgroundColor #f3f4f6
 skinparam NoteBorderColor #9ca3af
 
+actor "User" as USER
+
+package "Operator's Workstation" #fdfdfd {
+  [Claude Code + engineering rules\ncommit authorization · git hooks;\nthe governed human-in-the-loop] as OGOV
+  [build_chathealthy.py\nstages one dir per target / package] as OBUILD
+  [deploy_chathealthy.py\ninstalls packages · writes the live map] as ODEPLOY
+  [promote_chathealthy.py\nlocal -> dev -> qa -> prod] as OPROMOTE
+}
+
 package "The browser" #fdfdfd {
   [Wrapper site\nCloudflare Pages · static] as WRAP
   [ClientRouter] as CR
@@ -20,8 +29,7 @@ package "The browser" #fdfdfd {
 package "SharedServices  ·  Hugging Face Space" #fdfdfd {
   [Gate\na facade — the one entrance;\nthe only node that knows transport;\nproxy for the navigator] as GATE
   [UniversalNavigator\nreads the map, drives the route,\nledger · merge · sessions · security;\nthe only node that takes outside traffic] as UN
-  [UtteranceManager\nutterance -> the set of tools to\ndispatch to; preamble + fragments,\none model call; classify + prose] as UM
-  [Prose\nturns facts into the user sentence /\nasks the user a question] as PROSE
+  [UtteranceManager\nutterance -> the set of tools to dispatch to;\npreamble + fragments, one model call;\ndecides sufficiency + dispatches to >=1 tool;\ncapability: RequestUsersRefinement — the one\nconversational surface, never a tool direct;\nRequestUsersRefinement() — UM's own LLM authors\nthe question (no route / missing slot);\nRequestUsersRefinement(question) — delivers a\ndispatched tool's question] as UM
 }
 
 package "FindCare  ·  Hugging Face Space" #fdfdfd {
@@ -36,22 +44,56 @@ package "EvaluateCare  ·  Hugging Face Space" #fdfdfd {
   [Scoring and ranking] as EC
 }
 
-database "Atlas — front end" as FE {
+database "MongoDB (Atlas) — front end" as FE {
   [ToolRegistry (ChatHealthyToolRegistrySchema)\ntools · routes · pages;\ninstance{build,commit,env,live}] as REG
-  [Sessions and render ledger] as SESS
+  [Registered Users\nOAuth identities · profiles · consent] as USERS
+  [Session\nsession token · render ledger] as SESS
   [PublicHealthData] as PHD
 }
 
-database "Atlas — pipelines" as PIPE {
+database "MongoDB (Atlas) — pipelines" as PIPE {
   [PipelinePublicHealthData] as PPHD
 }
 
 package "Azure" #fdfdfd {
-  [Automation\npipelines, reports] as AUTO
-  [Key Vault\ncertificates and secrets] as KV
+  package "Data Pipelines · Automation" as AUTO {
+    [Provider load\nNPPES full loads] as PLOAD
+    [Enrichment\ncounty · urban · specialty] as PENR
+    [Migration\nrelease-only] as PMIG
+    [Reaper\ncluster uptime] as PREAP
+    [Regression reports] as PREP
+  }
+  package "Workflow Manager · Job Manager" as WFM {
+    [Runbooks] as WRUN
+    [Schedules] as WSCH
+    [Webhooks] as WHOOK
+  }
+  package "Key Vault" as KV {
+    [CA root signing cert] as KVROOT
+    [Service certificates\ngate · proxies] as KVCERT
+    [Secrets by vault name] as KVSEC
+  }
+  package "Entra ID" as ENTRA {
+    [Service identities\nclaudeCodeAgent · frontendUser] as ENID
+    [Groups · role grants] as ENGRP
+    [Conditional access · MFA] as ENCA
+  }
 }
 
 component "ChatHealthyLib\ntool contract · exceptions · logging ·\ndatabase access · model facade ·\nthe deterministic merge" as LIB #eef6f5
+
+' --- the operator's governed deploy spine ---
+OGOV -right-> OBUILD : rules gate every commit
+OBUILD -right-> ODEPLOY : build output
+ODEPLOY -right-> OPROMOTE : promote the baseline
+OGOV ..> ENID : authenticates (claudeCodeAgent)
+ODEPLOY ..> KVSEC : reads secrets by vault name
+ODEPLOY ..> WRUN : installs runbooks and schedules
+ODEPLOY ..> REG : the deploy writes the live map
+ODEPLOY ..> GATE : deploys the Hugging Face spaces
+
+' --- the user logs in ---
+USER -down-> WRAP : logs in via OAuth\n(Google · Apple · Facebook)
 
 ' --- the request spine ---
 WRAP -right-> CR
@@ -59,7 +101,7 @@ CR -right-> W
 CR -down-> GATE : every call, one POST
 GATE -down-> UN : token, head, params
 UN -right-> UM : classify the utterance
-UN -down-> PROSE : facts -> a sentence / a question
+FCP ..> UM : RequestUsersRefinement(question)
 
 ' --- dispatch across the wire to the satellites ---
 UN -right-> FCPX : dispatch
@@ -71,15 +113,24 @@ ECPX -down-> EC
 
 ' --- what the navigator reads and writes ---
 UN -down-> REG : reads the live map at startup
-UN -down-> SESS : sessions, the render ledger
+UN -down-> SESS : session token, render ledger
+UN -down-> USERS : OAuth login — create / verify the user
 FCP -down-> PHD
 FCF -down-> PHD
 FCT -right-> [clinicaltrials.gov] : not ours
 
 ' --- pipelines and the release-only migration ---
-AUTO -up-> PPHD
-AUTO ..> PHD : migration, on release only
-AUTO ..> REG : the deploy writes the map
+PLOAD -up-> PPHD : full load
+PENR -up-> PPHD : enrich
+PMIG -up-> PPHD : reads
+PMIG ..> PHD : migration, on release only
+WSCH ..> PLOAD : scheduled trigger
+
+' --- identity binds the credential ---
+KVCERT ..> GATE : issues certificates
+KVCERT ..> FCPX : issues certificates
+KVCERT ..> ECPX : issues certificates
+ENID ..> KVCERT : the identity a certificate binds
 
 ' --- shared library, anchored once; the note carries the rest ---
 LIB .up.> UN
@@ -102,6 +153,22 @@ note bottom of UN
   client-sessioned, internal callback.
 end note
 
+note bottom of UM
+  RequestUsersRefinement is a CAPABILITY of the
+  UtteranceManager, not a separate tool, and it is
+  the single conversational surface — no tool ever
+  talks to the user directly. The UM decides whether
+  an utterance is sufficient to dispatch to one or
+  more tools, and dispatches if so. RequestUsersRefinement()
+  has the UM's own LLM author the question when there is
+  no dispatchable route or a slot is missing;
+  RequestUsersRefinement(question) delivers a question a
+  dispatched tool authored. Approved requirements place
+  both inside the UM: EPIC-002-F-010-S-001 (author
+  user_message), EPIC-002-F-010-S-003 (the manufacture
+  path), EPIC-006-F-008-S-003 (a parameter writer).
+end note
+
 note bottom of LIB
   Linked by every component — the gate, every
   tool, and both proxies. The navigator is
@@ -114,21 +181,9 @@ note bottom of PPHD
   and only when a person releases it.
 end note
 
-note bottom of KV
+note bottom of KVCERT
   Issues certificates to the gate and to both
   proxies; holds every secret by vault name.
-end note
-
-note bottom of PROSE
-  OPEN ARCHITECTURAL QUESTION — not resolved here.
-  Is asking the user a question the UtteranceManager's
-  own scope, or a separate "Prose" tool? Drawn separate
-  = the target position, not a decision. Three approved
-  requirements place both inside the UM:
-  EPIC-002-F-010-S-001 (author user_message),
-  EPIC-002-F-010-S-003 (the manufacture path),
-  EPIC-006-F-008-S-003 (a parameter writer). The registry
-  carries a "Prose" route name — evidence, not a verdict.
 end note
 
 note bottom of FCP

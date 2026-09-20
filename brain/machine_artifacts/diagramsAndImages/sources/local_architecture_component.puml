@@ -20,8 +20,8 @@ package "Workstation · Docker" #fdfdfd {
   package "ch-sharedsvc" #fbfdfd {
     [Gate\nfacade — the one entrance] as GATE
     [UniversalNavigator\ntriage · route · render ledger · merge ·\nsessions · security helpers] as UN
-    [UtteranceManager\nclassify + prose only] as UM
-    [Prose · Selection · About · ...] as SST
+    [UtteranceManager\nclassify · RequestUsersRefinement()\n(no route/slot, UM LLM authors) ·\nRequestUsersRefinement(question)\n(tool authored, UM delivers)] as UM
+    [Selection · About · ...] as SST
   }
 
   package "ch-findcare" #fbfdfd {
@@ -35,7 +35,7 @@ package "Workstation · Docker" #fdfdfd {
   }
 }
 
-database "Atlas — ChatHealthyFrontEnd (one cluster)" as FE {
+database "MongoDB Atlas — ChatHealthyFrontEnd (one cluster)" as FE {
   [ChatHealthyConfig\ntechnical/config —\nDBVersions · ToolConfiguration\n(live registry, env=local) · CertificateRegistry] as CFG
   [Users\nuser/session —\nusers · sessions · render ledger ·\nUserLockOutUtterances] as USR
   [PublicHealthData + ProprietaryData\ncore business —\nProvider table · NUCC/SpecialtyMetaData ·\nprovider/specialty flags] as PHD
@@ -57,7 +57,7 @@ FCT -[#9ca3af]up-> FCPX : completion callback
 UN --> CFG : reads the live map at startup\n(ChatHealthyToolRegistrySchema)
 UN --> USR : sessions, the render ledger
 FCT --> PHD
-UM .down.> AI : classify (+ prose)
+UM .down.> AI : classify (+ RequestUsersRefinement())
 KV .up.> GATE : certs
 KV .up.> FCPX : certs
 FCT .down.> AI
@@ -69,16 +69,6 @@ note bottom of UN
   The tool's code is identical either way. No Caddy,
   no per-service facade, no op table — the three old
   app.py collapse into this one generic Gate.
-end note
-
-note right of SST
-  OPEN ARCHITECTURAL QUESTION (not resolved here):
-  whether asking the user a question is the
-  UtteranceManager's own scope, or a separate
-  "Prose" tool. Drawn here as a separate tool, but
-  three approved requirements place prose inside UM.
-  The architecture will not move a requirement;
-  which stands is the operator's to say.
 end note
 
 note bottom of FE

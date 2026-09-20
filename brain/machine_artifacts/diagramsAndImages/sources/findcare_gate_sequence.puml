@@ -16,7 +16,6 @@ participant "UtteranceManager" as UM
 participant "Tool\n(local)" as LOC
 participant "NavigatorProxy\n(satellite)" as PXY
 participant "Tool\n(satellite)" as SAT
-participant "Prose\n(own tool? or UM scope -- open)" as PROSE
 
 Person -> GATE : session token, HTTP head,\nPOST/GET params  (each if present)
 activate GATE
@@ -27,13 +26,6 @@ note over GATE #eef6f5
 end note
 GATE -> UN : token, head, params
 activate UN
-
-note over GATE, UN #fff7ed
-  OPEN (REQ-B-001, handed to C6): the requirement text may place
-  dispatch on the Gate. This design makes the Gate transport-only
-  and the UniversalNavigator the sole dispatcher. Requirement is
-  authoritative; the reconciliation is the operator's, not settled here.
-end note
 
 UN -> UN : session maintain / timeout / security\n(helper functions)
 note right of UN #f3f4f6
@@ -64,14 +56,14 @@ par co-resident tool -- a direct function call
   UN -> LOC : dispatch (signed)
   activate LOC
   LOC -> LOC : work; may call another tool directly;\nre-raises on throw, never swallows
-  LOC --> UN : internal callback (our signature)
+  LOC --> UN : internal callback (our signature);\noutput carries UserRefinementRequestText
   deactivate LOC
 else satellite tool -- across the wire, via its proxy
   UN -> PXY : dispatch (signed) crosses the wire
   activate PXY
   PXY -> SAT : relay -- a local function call
   activate SAT
-  SAT --> PXY : answer, or re-raised throw
+  SAT --> PXY : answer (output carries\nUserRefinementRequestText), or re-raised throw
   deactivate SAT
   PXY --> UN : internal callback (our signature)
   deactivate PXY
@@ -83,19 +75,24 @@ note over UN #eef6f5
   timeout facts race the callback; a conflict raises.
 end note
 
-UN -> PROSE : the facts to say
-activate PROSE
-PROSE --> UN : the user-facing sentence
-deactivate PROSE
-note over UM, PROSE #fff7ed
-  OPEN ARCHITECTURAL QUESTION (not resolved here): is authoring the
-  user-facing prose -- and asking the user a question -- the
-  UtteranceManager's own scope, or a separate "Prose" tool?
-  Drawn here as two participants only to show both halves; that
-  layout is NOT a decision. Three approved requirements place prose
-  and the manufacture path inside UtteranceManager
-  (EPIC-002-F-010-S-001, -S-003, EPIC-006-F-008-S-003). The
-  registry instance also carries a "Prose" route. Operator's to settle.
+UN -> UM : the facts to say
+activate UM
+UM -> UM : prose (a capability of UM):\nauthor the user-facing sentence
+UM --> UN : the user-facing sentence
+deactivate UM
+note over UM #f3f4f6
+  One conversational surface: only the UtteranceManager ever
+  speaks to the user. It decides whether an utterance is
+  sufficient to dispatch to one or more tools, and dispatches
+  if so. The ask-the-user capability RequestUsersRefinement
+  lives here, in two forms:
+    RequestUsersRefinement()          -- UM's own LLM authors
+      the question when classification finds no dispatchable
+      route or a missing slot.
+    RequestUsersRefinement(question)  -- a dispatched tool
+      authored the question: it sets UserRefinementRequestText
+      on its output (populated = asking the user; empty =
+      answering) and UM delivers the question.
 end note
 
 UN --> GATE : sequenced events, one at a time

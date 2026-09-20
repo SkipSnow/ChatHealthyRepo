@@ -11,7 +11,7 @@ skinparam NoteBorderColor #9ca3af
 
 title What ChatHealthy.ai trusts at each step, and what is allowed to cross
 
-rectangle "Untrusted — the person's browser and the static pages we own" #fff1f2 {
+rectangle "The person's browser and the static pages we own" #fff1f2 {
   component "ClientRouter.js\nthe only file in Website/ that calls a service" as CR
   artifact "sessionStorage\nthe signed session token" as SS
   component "static pages we own\nwitnessed by an onload event, no session" as STATIC
@@ -23,7 +23,7 @@ cloud "Third parties\nOAuth and other callbacks" as TP
 rectangle "The entrance — SharedServices, the only host that accepts external traffic" #fef9c3 {
   component "Gate\na dumb web-server facade — the only\ncomponent that knows transport exists.\nCollects the session token, the HTTP head,\nand the GET/POST parameters, passes them\nto the UniversalNavigator, streams the one\nanswer back. Verifies nothing itself." as GATE
   component "UniversalNavigator (the main)\ntriage / route / render-ledger / merge —\nthe only node that accepts external traffic" as UN
-  component "UtteranceManager\nclassify + prose only — it authors no dispatch" as UM
+  component "UtteranceManager\ndecides whether an utterance is sufficient to dispatch to one or more tools, and dispatches if so.\ncapability: RequestUsersRefinement — the single surface that asks the user.\nRequestUsersRefinement() — the UM's own LLM authors the question when no route or a missing slot is found.\nRequestUsersRefinement(question) — a dispatched tool authored the question and the UM delivers it." as UM
   GATE --> UN
   UN --> UM
 }
@@ -38,10 +38,20 @@ rectangle "Server to server — tool-to-tool only, proven by our own signature" 
 
 rectangle "The data region — reached only with a certificate" #dcfce7 {
   component "ChatHealthyMongoUtilities\ngetConnection(identity, cluster)" as MU
-  database "Atlas ChatHealthyFrontEnd\nPublicHealthData (served, version-bound),\nProprietaryData, Users, ChatHealthyConfig\n(the live registry document), Debug" as ATF
-  database "Atlas ChatHealthyDataPipelines\nPipelinePublicHealthData, staging generations,\npipelineAdmin" as ATP
+  database "MongoDB (Atlas) ChatHealthyFrontEnd\nPublicHealthData (served, version-bound),\nProprietaryData, ChatHealthyConfig\n(the live registry document), Debug" as ATF
+  database "MongoDB (Atlas) Session\nthe Session collection" as SESS
+  database "MongoDB (Atlas) Registered Users\nthe Registered Users collection" as RU
+  database "MongoDB (Atlas) ChatHealthyDataPipelines\nPipelinePublicHealthData, staging generations,\npipelineAdmin" as ATP
   MU --> ATF
+  MU --> SESS
+  MU --> RU
   MU --> ATP
+}
+
+rectangle "Other identities that reach MongoDB — each holds its own certificate" #dcfce7 {
+  component "the operator\nsigned in via Google OAuth" as OP
+  component "the entitlements API\nthe rights the operator toggles" as ENT
+  component "the agent — claudeCodeAgent" as AGENT
 }
 
 cloud "Azure Key Vault\nkv-chpipeline-dev" as KV
@@ -57,9 +67,12 @@ TP --> GATE : a credential we keep (third_party_callback).\nProof is an api_key 
 UN --> FC : we sign the dispatch out (tool_to_tool);\nthe reply returns as an internal_callback,\nverified by our_signature
 UN --> EC : we sign the dispatch out (tool_to_tool);\nthe reply returns as an internal_callback,\nverified by our_signature
 
-UN --> MU
-FC --> MU
-EC --> MU
+UN --> MU : the app
+FC --> MU : the app
+EC --> MU : the app
+OP --> MU : operator via Google OAuth
+ENT --> MU : the entitlements API
+AGENT --> MU : the agent
 
 MU --> KV : an Azure token issued to this identity alone,\nexchanged for that identity's cert and key
 
@@ -110,24 +123,6 @@ note right of KV
   serving every identity would let the workstation
   read the front end's certificate, and the front
   end's read the pipeline's.
-end note
-
-note bottom of LLM
-  OPEN ARCHITECTURAL QUESTION (do not resolve here):
-  which classes of data may cross to which of the three
-  live vendors is undeclared. Every typed sentence reaches
-  at least one vendor, carrying the recent conversation
-  with it. Not an engineering gap — a firm position not
-  yet taken. (N23 / C5 Q6, C2 D-7'.)
-end note
-
-note left of UM
-  OPEN ARCHITECTURAL QUESTION (do not resolve here):
-  whether asking the user a question is the
-  UtteranceManager's own scope or a separate "Prose"
-  tool. Three approved requirements place prose inside
-  UM; the registry instance carries a Prose route name.
-  Recorded, not decided. (N7 / C5 Q8.)
 end note
 
 note top of ATF

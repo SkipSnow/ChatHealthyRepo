@@ -15,7 +15,7 @@ actor "Person/Client\n(structured gesture,\nno free text)" as Client
 participant "Gate\n(facade)" as Gate
 participant "UniversalNavigator\n(SharedServices)" as UN
 participant "tool\n(gesture's mapped target,\ne.g. ProviderSearch)" as Tool
-participant "prose author\n(OPEN QUESTION — see note:\nUtteranceManager's own scope\nOR a separate 'Prose' tool)" as Prose
+participant "UtteranceManager\n(SharedServices)\nRequestUsersRefinement()  ·  RequestUsersRefinement(question)" as UM
 
 Client -> Gate : apply filter / page edge\n(session token, HTTP head, POST/GET params)
 activate Gate
@@ -27,14 +27,14 @@ activate UN
 note over UN : TRIAGE by declared proof\nroute = client_gate  ·  call_type = client_sessioned\nproof.method = session_token -> verify signature + per-hop nonce\nOnly node that accepts external traffic.
 
 == Route — straight from the map (no model call) ==
-note over UN : The gesture names its route in the registry.\nNO UtteranceManager, NO model call — the whole\ncontrast with the utterance flow. UN determines\nWHICH PAGE the gesture is constructing, then runs\nthe completeness test: passed document vs the\ntarget tool's required inputs.
+note over UN : The gesture names its route in the registry.\nNO UtteranceManager routing, NO model call to classify\nthe route — the whole contrast with the utterance flow.\nUN determines WHICH PAGE the gesture is constructing,\nthen runs the completeness test: passed document vs the\ntarget tool's required inputs.
 
 alt a required slot is missing (manufacture path)
-  note over UN, Prose #fff3cd : OPEN ARCHITECTURAL QUESTION — do NOT resolve.\nWhether authoring this user-facing question is the\nUtteranceManager's own scope (classify + prose) or a\nseparate 'Prose' tool is UNDECIDED. The registry instance\ncarries a 'Prose' route name (evidence, not a decision).\nDrawn as a distinct lifeline only to show the hop; the\nboundary is the operator's to settle.
-  UN -> Prose : author brief user_message\n(the facts — which slot is missing)
-  activate Prose
-  Prose --> UN : user-facing sentence
-  deactivate Prose
+  note over UN, UM : Authoring the user-facing question is the UtteranceManager's\nRequestUsersRefinement capability — one conversational surface, not a separate tool.\nMissing slot / no dispatchable route -> RequestUsersRefinement() : UM's own LLM authors.\nTool-authored question -> RequestUsersRefinement(question) : UM delivers what the tool wrote.
+  UN -> UM : author user_message via RequestUsersRefinement()\n(the facts — which slot is missing)
+  activate UM
+  UM --> UN : user-facing sentence
+  deactivate UM
   note over UN : morph target_action -> closeConnection200.\nNo page built this turn; the next free-text reply\ncomes back through the utterance flow.
   UN --> Gate : stream the prompt
   activate Gate
@@ -48,6 +48,7 @@ else all required slots present (build & reconcile the page)
   note over Tool : re-runs with the gesture's params\n(new filter / next page)
 
   Tool --> UN : completion callback\ncall_type = internal_callback · our_signature verified
+  note over Tool, UN : Returned document carries UserRefinementRequestText.\npopulated = tool is ASKING the user — UM delivers it via RequestUsersRefinement(question).\nempty = tool is answering (a page fragment).
   deactivate Tool
   note over UN : Closes that required_member's ledger entry.\nMerge returning documents SERIALLY with the\nshared deterministic merge function.
 

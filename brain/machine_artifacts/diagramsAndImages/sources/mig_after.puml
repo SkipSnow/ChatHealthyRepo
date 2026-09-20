@@ -19,7 +19,7 @@ component "UniversalNavigator  (SharedServices)\nreads the live registry and dri
 
 database "Tool registry  (ChatHealthyToolRegistrySchema)\none document per build per env — instance{build,commit,env,live}\npresence = the allowlist\nsubscriptions = the dispatch table\nmay_call = the non-circular call map\nprompt fragments = the routing table\npages carry members / required_members / completeness\ngenerated from source at build" as REG #eef6f5
 
-component "UtteranceManager  (a tool)\npreamble + every fragment in, routes out.\nReturns the dispatch set; non-blocking.\nKnows no parameters." as UM
+component "UtteranceManager  (a tool)\npreamble + every fragment in, routes out.\nDecides whether the utterance is sufficient to\ndispatch to >=1 tool, and dispatches if so.\nReturns the dispatch set; non-blocking.\nKnows no parameters.\n----\nRequestUsersRefinement  (capability, not a sibling tool):\nthe single conversational surface — no tool talks to the\nuser directly. Authors the user-facing sentence from the\nfacts. Two forms:\nRequestUsersRefinement() — the UM's own LLM authors the\nquestion when classification finds no dispatchable route\nor a missing slot;\nRequestUsersRefinement(question) — a dispatched tool\nauthored the question and the UM delivers it." as UM
 
 component "UniversalNavigatorProxy  (FindCare satellite)\nrelays tool-to-tool in both directions.\nNo sessions, no ledger, no merge,\nno external calls. Refuses stale metadata." as PROXY
 
@@ -28,8 +28,6 @@ component "Individual providers  (page: individualProvider)\nprovider_search\npr
 component "Facilities  (page: facility — newly added)\nfacility_search      (revived, not re-written)\nfacility_vocabulary  (new — NUCC filter, Ambulatory /\nPsychiatric / Inpatient macro-toggles, mirrors\nthe individual Prescribers/Homeopathic filter)\ngeo  (new tool — free-text geography, parallel to the filter)\nfacility_detail      (new)\nfacility_selection" as FACTOOLS #f5fbfa
 
 component "Clinical trials\ntrial_search\ntrial_vocabulary  (new)\ntrial_detail      (new)\ntrial_selection" as TRIALTOOLS #f5fbfa
-
-component "user_message  (prose tool)\nthe navigator dispatches it with the facts;\nit returns the user-facing sentence." as PROSE
 
 package "FindCare/ — each tool's subscriptions and may_call live in the source the build reads" #f5fbfa {
   component "ProviderManagement\n+ service + mining + widget" as PM
@@ -48,7 +46,6 @@ GATE --> NAV
 NAV --> REG : reads the map
 NAV --> UM : classify the utterance
 UM --> NAV : dispatch set
-NAV --> PROSE : with the facts
 NAV --> PROXY : tool-to-tool;\nanswers return as\ninternal callbacks
 PROXY --> PROVTOOLS : by subscription
 PROXY --> FACTOOLS : by subscription
@@ -88,16 +85,6 @@ note bottom of GONE
   it and vite.config.ts, _build_chain.py, _deploy_chain.py,
   hf_helpers.py, preflight_undefined_names.py and
   tsconfig.json all point elsewhere.
-end note
-
-note bottom of PROSE
-  OPEN ARCHITECTURAL QUESTION — not resolved here.
-  Whether asking the user a question is the UtteranceManager's
-  own scope, or a separate "Prose" tool, is undecided. Three
-  approved requirements place prose inside the UtteranceManager
-  (EPIC-002-F-010-S-001/-S-003, EPIC-006-F-008-S-003); the
-  registry instance carries a "Prose" route name. Drawn as its
-  own tool provisionally; the operator's call stands open.
 end note
 
 note bottom of PROVTOOLS

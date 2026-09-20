@@ -14,12 +14,12 @@ title flow_client_utterance -- client-sessioned, free text\nA person types a req
 actor "Person / Client" as P
 participant "Gate\n(facade)" as GATE
 participant "UniversalNavigator\n(SharedServices)" as UN
-database "render ledger\n+ sessions (repo rows)" as REPO
+database "MongoDB (Atlas)\nrender ledger + Session collection" as REPO
+database "MongoDB (Atlas)\nRegistered Users collection" as USERS
 participant "UtteranceManager" as UM
 participant "co-resident tool\n(SharedServices)" as CT
 participant "UniversalNavigatorProxy\n(satellite)" as PXY
 participant "satellite tool" as ST
-participant "Prose tool" as PROSE
 
 P -> GATE : POST free-text utterance\nsession_token + head + params\nAccept: application/x-ndjson
 note right of GATE
@@ -61,6 +61,13 @@ ST --> PXY : result document
 PXY --> UN : internal_callback (proof: our_signature)
 UN -> REPO : ledger: close entry; merge serially
 
+note over CT, ST
+  Each tool result/callback carries **UserRefinementRequestText**.
+  Populated = the tool is ASKING the user; the navigator delivers it
+  via UtteranceManager.RequestUsersRefinement(question).
+  Empty = the tool is answering.
+end note
+
 note over UN, REPO
   Serial deterministic merge (shared lib). A parameter/state
   conflict RAISES (on_conflict). A required member that dies
@@ -75,18 +82,18 @@ else completeness budget expires first
   UN -> UN : page NOT rendered in time\n-> answer with layman **on_timeout** explanation
 end
 
-note over UM, PROSE #fff3cd
-  **OPEN ARCHITECTURAL QUESTION -- not resolved here.**
-  Is authoring the user-facing sentence the **UtteranceManager's**
-  own scope (classify + prose in one component), or a **separate
-  "Prose" tool** dispatched like any other member?
-  The registry instance carries a `Prose` route name (evidence,
-  not a decision); three approved requirements place prose inside
-  the UtteranceManager. This diagram draws the separate-tool shape
-  for legibility only -- it does NOT pick a side.
+note over UM #fff3cd
+  **RequestUsersRefinement** is the UtteranceManager's ask-the-user
+  capability, not a separate tool -- one conversational surface.
+  Two forms, both inside the UM:
+  * RequestUsersRefinement()          -> UM's own LLM authors the
+      question (classification finds no dispatchable route / missing slot).
+  * RequestUsersRefinement(question)  -> a dispatched tool authored
+      the question; the UM delivers it.
 end note
-UN -> PROSE : dispatch with the facts\n(**or** UtteranceManager authors it -- see open question)
-PROSE --> UN : the user-facing sentence
+UN -> UM : author the user-facing sentence from the facts
+UM -> UM : the UM authors\nthe user-facing sentence
+UM --> UN : the user-facing sentence
 
 UN -> REPO : persist the mutated user_object
 UN -> GATE : stream events + final\n(the gate owns the one stream)

@@ -25,6 +25,7 @@ from pydantic import BaseModel, Field
 
 from chathealthy_lib.authentication.agent_deps import AgentDeps
 from chathealthy_lib.authentication.chathealthy_tool import ChatHealthyTool
+from chathealthy_lib.capability_contract import CapabilityContract
 
 log = ChatHealthyLoggingService()
 
@@ -139,7 +140,7 @@ async def _post_retrying(url: str, body: dict) -> dict:
     raise last
 
 
-class SpecialtyFilterTool(ChatHealthyTool):
+class SpecialtyFilterTool(ChatHealthyTool, CapabilityContract):
     @staticmethod
     def _broadcast(deps, section: str, event: dict) -> None:
         """The offered-kinds panel belongs to the care-giver page.
@@ -157,8 +158,21 @@ class SpecialtyFilterTool(ChatHealthyTool):
     engine; emits a stream event so the FE renders the filter as soon as
     picks arrive."""
     TOOL_NAME = "specialty_filter"
+    CAPABILITY = "specialty_filter"
     Request = Request
     Response = Response
+
+    TOOL_DESCRIPTION = (
+        "Turns a health complaint into candidate NUCC specialty codes over "
+        "the Individual (Prescribers / Homeopathic) and Non-Individual "
+        "(facility) partitions, and offers them for the person to narrow.")
+    SUBSCRIPTIONS: list[str] = []
+    MAY_CALL: list[str] = []
+    UTTERANCE_MANAGER_PROMPT = (
+        "Route here (specialtySearch) when the person names a health "
+        "complaint or symptom but no usable geography: the specialty filter "
+        "turns the complaint into candidate provider types the person can "
+        "see and narrow before they say where they are.")
 
     async def run(self, deps: AgentDeps, request: "Request") -> "Response":
         text = (request.query or "").strip()

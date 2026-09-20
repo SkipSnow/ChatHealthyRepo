@@ -15,6 +15,7 @@ title FindCare: three pages and their members — which the tool registry and th
 
 legend top right
 |<#dcfce7>   | declared in the tool registry and dispatched by running code |
+|<#dbeafe>   | dispatched by running code but not declared in the tool registry |
 |<#fef3c7>   | the work happens, but no tool is declared/dispatched for it |
 |<#fee2e2>   | declared, and the file that would serve it is imported by nothing |
 |<#e5e7eb>   | no tool, no endpoint |
@@ -23,7 +24,7 @@ endlegend
 package "Find an individual care giver\npage: individualProvider" {
   component "ProviderSearch (required)\nsearch\n/provider/find" as PS #dcfce7
   component "SpecialtyFilter\nNUCC/specialty chooser\n/specialty/find\nmacro-toggles: Prescribers | Homeopathic" as SF #dcfce7
-  component "Geo\ngeography resolver (page-scoped)\nparallel to SpecialtyFilter" as PGeo #fef3c7
+  component "Geo\ngeography resolver (page-scoped)\nparallel to SpecialtyFilter" as PGeo #dbeafe
   component "ProviderDetail\ndetail\n/provider-detail" as PD #dcfce7
   component "ProviderSelection\nselection\nprovider_selection" as PSel #dcfce7
 }
@@ -31,7 +32,7 @@ package "Find an individual care giver\npage: individualProvider" {
 package "Find a facility\npage: facility" {
   component "FacilitySearch (required)\nsearch\n/facility/find" as FS #dcfce7
   component "facility NUCC filter\nNUCC/kinds chooser\ninside /facility/find\nmacro-toggles: Ambulatory | Psychiatric | Inpatient" as FVoc #fef3c7
-  component "Geo\ngeography resolver (page-scoped)\nparallel to the facility NUCC filter" as FGeo #fef3c7
+  component "Geo\ngeography resolver (page-scoped)\nparallel to the facility NUCC filter" as FGeo #dbeafe
   component "FacilityDetail\ndetail\n/provider-detail (entity_type '2')" as FD #dcfce7
   component "FacilitySelection\nselection\nfacility_selection" as FSel #dcfce7
 }
@@ -64,14 +65,16 @@ note bottom of PGeo
   Geo is a page-scoped member on individualProvider and
   facility (current iteration), running parallel to the
   specialty/NUCC chooser; it resolves free-text
-  geography including misspellings. No dispatched tool
-  serves it today: the declared GeoExtractorTool has
-  zero call sites, and the resolution is a live model
-  call in the shared library (geo_extractor.py). That
-  shared-library placement is BUG-003 / the C5 §2.7
-  boundary question (N27). The built registry instance
-  (build 2292) lists Geo differently across pages; the
-  current iteration scopes it to these two pages.
+  geography including misspellings. It IS served by a
+  live, dispatched tool: sharedServices/Code/Geo/geo_tool.py
+  (TOOL_NAME 'geo'), dispatched by the UtteranceManager --
+  reachable, but not declared in the ToolRegistry. The
+  separate GeoExtractorTool is dead (zero call sites), and
+  a second resolution path is a live model call in the
+  shared library (geo_extractor.py). Where geo's code
+  finally lives -- a page-scoped tool, the shared-library
+  model call, or removed -- is the open boundary question
+  (D-4 / BUG-003 / N27); its reachability is not open.
 end note
 
 note bottom of FVoc

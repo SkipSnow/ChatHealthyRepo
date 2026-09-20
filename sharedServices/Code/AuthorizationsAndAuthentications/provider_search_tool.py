@@ -24,6 +24,7 @@ from pydantic import BaseModel, Field
 
 from chathealthy_lib.authentication.agent_deps import AgentDeps
 from chathealthy_lib.authentication.chathealthy_tool import ChatHealthyTool
+from chathealthy_lib.capability_contract import CapabilityContract
 
 log = ChatHealthyLoggingService()
 
@@ -149,12 +150,27 @@ def findcare_url() -> str:
     return os.environ.get(FINDCARE_INTERNAL_URL_ENV) or FINDCARE_INTERNAL_URL_DEFAULT
 
 
-class ProviderSearchTool(ChatHealthyTool):
+class ProviderSearchTool(ChatHealthyTool, CapabilityContract):
     """Pure-DB tool (no LLM Agent inside). Given specialty codes + state
     from deps.user_object.find_care (or via Request), HTTP-calls FindCare
     /search and returns the providers list. Same ChatHealthyTool interface
     as LLM-driven tools."""
     TOOL_NAME = "provider_search"
+    CAPABILITY = "provider_search"
+
+    TOOL_DESCRIPTION = (
+        "Queries the provider database given the specialty codes and "
+        "location resolved by SpecialtyFilter and returns the provider list "
+        "the centre panel renders.")
+    # Orchestrated by the navigator's findAProvider path, not addressed by a
+    # gate op of its own.
+    SUBSCRIPTIONS: list[str] = []
+    MAY_CALL: list[str] = []
+    UTTERANCE_MANAGER_PROMPT = (
+        "Route here (findAProvider) when the person wants to find an "
+        "individual provider and has given both a complaint or specialty and "
+        "a usable geography (a state, or state and city, or state and "
+        "county). Returns the matching providers.")
     Request = Request
     Response = Response
 

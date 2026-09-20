@@ -16,8 +16,7 @@ participant "Gate\n(facade, transport only)" as GATE
 participant "UniversalNavigator\n(SharedServices main)" as UN
 database "Registry\n(the one live map)" as REG
 database "Repository\nsessions, ledger, params" as REPO
-participant "UtteranceManager\n(classify only)" as UM
-participant "author-the-question?\n(UM scope OR separate Prose tool\n— OPEN, see note)" as PROSE
+participant "UtteranceManager\n(classify + RequestUsersRefinement)" as UM
 participant "UniversalNavigatorProxy\n(FindCare satellite)" as PXY
 participant "specialty_filter\n(tool)" as SF
 participant "geo\n(tool: resolves free-text\ngeography incl. misspellings)" as GEO
@@ -57,7 +56,7 @@ note right of UM
   One model call: cached preamble plus the page members'
   registry fragments in, routes out. Knows no parameters,
   never waits on a tool. The assembled fragments ARE the
-  classifier. Classify only.
+  classifier.
 end note
 
 == Render ledger: record what the page owes ==
@@ -72,14 +71,20 @@ end note
 par
   UN -> PXY : dispatch specialty_filter { complaint }\n(satellite, our_signature signed out)
   PXY -> SF : relay locally (function call)
-  SF --> PXY : { nucc_codes }
+  SF --> PXY : { nucc_codes, UserRefinementRequestText }
   PXY --> UN : internal_callback { nucc_codes }\nproof: our_signature verified
 else
   UN -> PXY : dispatch geo { free-text geography }\n(satellite, our_signature signed out)
   PXY -> GEO : relay locally (function call)
-  GEO --> PXY : { geography resolved, or\npending_disambiguation }
+  GEO --> PXY : { geography resolved, or\npending_disambiguation, UserRefinementRequestText }
   PXY --> UN : internal_callback { geography }\nproof: our_signature verified
 end
+note over SF, PS
+  Every tool output carries UserRefinementRequestText: populated =
+  the tool is ASKING the user, delivered via the UM's
+  RequestUsersRefinement(question); empty = the tool is answering.
+  geo populates it when it returns pending_disambiguation.
+end note
 UN -> REPO : merge serially (deterministic);\na state conflict RAISES
 
 alt geography resolved by geo (required input met)
@@ -87,7 +92,7 @@ alt geography resolved by geo (required input met)
   activate PXY
   PXY -> PS : relay locally (function call)
   activate PS
-  PS --> PXY : { rows, total }
+  PS --> PXY : { rows, total, UserRefinementRequestText }
   deactivate PS
   PXY --> UN : internal_callback { rows }\nproof: our_signature verified
   deactivate PXY
@@ -98,21 +103,21 @@ alt geography resolved by geo (required input met)
     UN -> UN : ledger race lost -> layman on_timeout\nexplanation (instrumented, timings)
   end
 else geography unresolved / ambiguous - required input unmet
-  UN -> PROSE : author refinement\n{ need geography, in-force, utterance }
-  activate PROSE
-  PROSE --> UN : one user-facing sentence
-  deactivate PROSE
-  note right of PROSE
-    OPEN ARCHITECTURAL QUESTION (do not resolve): is authoring
-    the user-facing question the UtteranceManager's own scope,
-    or a separate "Prose" tool? Three approved requirements
-    place both prose and parameters inside the UM; the registry
-    instance also carries a Prose route. Drawn here as a
-    distinct lane only to keep the question visible, NOT as a
-    decision. Whichever stands, no tool authors its own chat
-    strings; provider_search does not dispatch without geo
-    having resolved geography; the page waits; the person's
-    next utterance resolves geography through the same path.
+  UN -> UM : RequestUsersRefinement(question)\n{ need geography, in-force, utterance }
+  activate UM
+  UM --> UN : one user-facing sentence (prose)
+  deactivate UM
+  note right of UM
+    RequestUsersRefinement is a capability of the UtteranceManager,
+    not a separate tool, and it has two forms on one conversational
+    surface. RequestUsersRefinement(question): a dispatched tool
+    authored the question (its UserRefinementRequestText) and the UM
+    delivers it -- the case here. RequestUsersRefinement(): the UM's
+    own LLM authors the question when classification finds no
+    dispatchable route or a missing slot. No tool talks to the user
+    directly; provider_search does not dispatch without geo having
+    resolved geography; the page waits; the person's next utterance
+    resolves geography through the same path.
   end note
 end
 

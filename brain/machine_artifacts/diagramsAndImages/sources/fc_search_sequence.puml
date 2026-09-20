@@ -12,12 +12,11 @@ skinparam NoteBorderColor #9ca3af
 skinparam ParticipantBorderColor #0b7a75
 skinparam SequenceLifeLineBorderColor #9ca3af
 
-title One FindCare search end to end, target architecture: the gate is a dumb facade,\nthe UniversalNavigator drives the map, tools call tools, Geo resolves geography in parallel\nwith the specialty filter, and who authors the user-facing prose is an open question
+title One FindCare search end to end, target architecture: the gate is a dumb facade,\nthe UniversalNavigator drives the map, tools call tools, Geo resolves geography in parallel\nwith the specialty filter, and the UtteranceManager authors the user-facing prose
 
 participant "Gate\n(facade, transport only)" as Gate
 participant "UniversalNavigator\n(SharedServices main)" as UN
-participant "UtteranceManager\n(classify only)" as UM
-participant "Prose\n(authors the sentence -\nsee OPEN QUESTION)" as Prose
+participant "UtteranceManager\n(classify + prose capability)" as UM
 database "Registry\n(the one live map)" as Reg
 database "Repository\nsessions, ledger, params" as Repo
 participant "facility_search\n(tool)" as FS
@@ -89,7 +88,7 @@ note over FS, Geo
   every throw ends in a navigator, which catches, classifies, logs with
   timings, and answers.
 end note
-FS --> UN : completion callback { mined document }\ninternal_callback, proof our_signature
+FS --> UN : completion callback { mined document, UserRefinementRequestText }\ninternal_callback, proof our_signature
 deactivate FS
 UN -> Repo : close the ledger entry, then serial deterministic\nmerge into parameter state (a conflict is an exception)
 UN -> UN : completeness test - the passed document\nagainst the registry's required inputs
@@ -99,24 +98,26 @@ alt required inputs all in force
   activate FS
   FS -> Providers : search_providers(entity_type = "2", codes, place)
   Providers --> FS : rows + total
-  FS --> UN : completion callback { rows }\ninternal_callback, proof our_signature
+  FS --> UN : completion callback { rows, UserRefinementRequestText }\ninternal_callback, proof our_signature
   deactivate FS
   UN -> Repo : close the ledger entry, serial merge the rows
 else a required input is unmet
-  UN -> Prose : author refinement { unmet, in force, utterance }
-  activate Prose
-  Prose --> UN : the user-facing sentence
-  deactivate Prose
-  note right of Prose
-    OPEN ARCHITECTURAL QUESTION - not resolved by this diagram.
-    Whether authoring a user-facing question is the UtteranceManager's
-    own scope or a separate "Prose" tool is undecided. Three approved
-    requirements place prose and parameters inside the UtteranceManager
-    (EPIC-002-F-010-S-001, EPIC-002-F-010-S-003, EPIC-006-F-008-S-003);
-    the registry instance also carries a "Prose" route name. The Prose
-    participant here draws the step only and picks no side. Settled
-    either way: no tool authors its own chat strings, and making a
-    parameter required is a registry edit and a deploy, not code.
+  UN -> UM : prose: RequestUsersRefinement()\n{ unmet, in force, utterance }
+  activate UM
+  UM --> UN : the user-facing sentence
+  deactivate UM
+  note right of UM
+    RequestUsersRefinement is a capability of the UtteranceManager, not a
+    separate tool - one conversational surface; no tool talks to the user
+    directly. It has two forms, both inside the UM:
+    RequestUsersRefinement() - when classification finds no dispatchable
+    route or a missing slot, the UM's own LLM authors the question (shown
+    above); RequestUsersRefinement(question) - a dispatched tool authored
+    the question, carried on the tool's UserRefinementRequestText field
+    (empty = the tool is answering), and the UM only delivers it.
+    Approved requirements place prose and parameters inside the UM
+    (EPIC-002-F-010-S-001, EPIC-002-F-010-S-003, EPIC-006-F-008-S-003).
+    Making a parameter required is a registry edit and a deploy, not code.
   end note
 end
 

@@ -24,6 +24,7 @@ from chathealthy_lib.exceptions import ChatHealthyException
 from chathealthy_lib import ChatHealthyLoggingService
 from chathealthy_lib.authentication.agent_deps import AgentDeps
 from chathealthy_lib.authentication.chathealthy_tool import ChatHealthyTool
+from chathealthy_lib.capability_contract import CapabilityContract
 
 log = ChatHealthyLoggingService()
 
@@ -93,8 +94,16 @@ class Response(BaseModel):
     error: Optional[str] = None
 
 
-class FacilitySelectionTool(ChatHealthyTool):
+class FacilitySelectionTool(ChatHealthyTool, CapabilityContract):
     TOOL_NAME = "facility_selection"
+    CAPABILITY = "facility_selection"
+
+    TOOL_DESCRIPTION = (
+        "Owns user_object.selected_facilities — the facilities the person has "
+        "curated, one server-side writer, verbs select, deselect, list.")
+    SUBSCRIPTIONS: list[str] = ["facility_selection"]
+    MAY_CALL: list[str] = []
+    NOT_UTTERANCE_ROUTABLE = True
     Request = Request
     Response = Response
 

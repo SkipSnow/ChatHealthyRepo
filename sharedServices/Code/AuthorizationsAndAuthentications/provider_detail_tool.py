@@ -21,6 +21,7 @@ from pydantic import BaseModel, Field, HttpUrl
 
 from chathealthy_lib.authentication.agent_deps import AgentDeps
 from chathealthy_lib.authentication.chathealthy_tool import ChatHealthyTool
+from chathealthy_lib.capability_contract import CapabilityContract
 
 log = ChatHealthyLoggingService()
 
@@ -173,8 +174,16 @@ def findcare_url() -> str:
     return os.environ.get(FINDCARE_INTERNAL_URL_ENV) or FINDCARE_INTERNAL_URL_DEFAULT
 
 
-class ProviderDetailTool(ChatHealthyTool):
+class ProviderDetailTool(ChatHealthyTool, CapabilityContract):
     TOOL_NAME = "provider_detail"
+    CAPABILITY = "provider_detail"
+
+    TOOL_DESCRIPTION = (
+        "Hops into FindCare's /provider-detail endpoint over HTTPS on the "
+        "provider-detail click-path and returns the structured detail JSON.")
+    SUBSCRIPTIONS: list[str] = ["provider-detail"]
+    MAY_CALL: list[str] = []
+    NOT_UTTERANCE_ROUTABLE = True
     Request = Request
     Response = Response
 

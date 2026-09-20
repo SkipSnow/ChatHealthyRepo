@@ -28,6 +28,11 @@ package "chathealthy_lib" {
     - __init_subclass__()
   }
 
+  class "tool Response" as ToolResponse <<BaseModel>> {
+    + ... tool-specific answer fields ...
+    + UserRefinementRequestText : str
+  }
+
   class ChatHealthyException {
     + mode : str
     + message : str
@@ -100,6 +105,9 @@ package "SharedServices" {
     UTTERANCE_MANAGER_PROMPT = preamble
     --
     + run(deps, utterance) : dispatch set
+    .. RequestUsersRefinement (capability) ..
+    + RequestUsersRefinement()
+    + RequestUsersRefinement(question : string)
   }
 }
 
@@ -116,6 +124,7 @@ ChatHealthyTool <|-- UniversalNavigator
 ChatHealthyTool <|-- UtteranceManager
 
 ChatHealthyTool ..> AgentDeps : run(deps, ...)
+ChatHealthyTool ..> ToolResponse : run returns
 ChatHealthyTool ..> ChatHealthyException : raises when a subclass\nomits a class attribute
 ChatHealthyLoggingService ..> ChatHealthyException : exc= must be one
 UniversalNavigator ..> Merge : merges every\nreturning document
@@ -135,6 +144,14 @@ note right of ChatHealthyTool #f3f4f6
 
   run_and_log records the invocation whether run
   returned or raised.
+end note
+
+note bottom of ToolResponse #f3f4f6
+  Every tool Response carries UserRefinementRequestText.
+  Populated => the tool is ASKING the user a question, which
+  the UtteranceManager delivers via
+  RequestUsersRefinement(question). Empty => the tool is
+  answering.
 end note
 
 note bottom of ChatHealthyMongoUtilities #f3f4f6
@@ -166,17 +183,19 @@ note right of UniversalNavigator #f3f4f6
 end note
 
 note bottom of UtteranceManager #f3f4f6
-  Classify only, non-blocking: sees an utterance, answers
-  with the dispatch set, knows no parameters. The old
-  classifier is gone -- preamble plus every tool's fragment
-  in, routes out, the agent dispatches.
+  Non-blocking: sees an utterance, decides whether it is
+  sufficient to dispatch to one or more tools, and dispatches
+  if so. That decision IS its job. The old classifier is gone
+  -- preamble plus every tool's fragment in, routes out, the
+  agent dispatches.
 
-  OPEN ARCHITECTURAL QUESTION (unresolved): is asking the
-  user a question this manager's own scope, or a separate
-  "Prose" tool the navigator dispatches with the facts?
-  Three approved requirements place prose inside the
-  manager; the registry instance carries a Prose route.
-  Not decided here.
+  RequestUsersRefinement is a capability of this manager, not
+  a tool the navigator dispatches, so a tool never speaks to
+  the user directly. Two forms, both here: RequestUsersRefinement()
+  where this manager's own LLM authors the question when
+  classification finds no dispatchable route or a missing slot,
+  and RequestUsersRefinement(question) where a dispatched tool
+  authored the question and this manager delivers it.
 end note
 
 note bottom of Geo #f3f4f6

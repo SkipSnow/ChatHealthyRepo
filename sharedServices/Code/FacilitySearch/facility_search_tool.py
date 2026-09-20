@@ -26,6 +26,7 @@ from pydantic import BaseModel, Field
 
 from chathealthy_lib.authentication.agent_deps import AgentDeps
 from chathealthy_lib.authentication.chathealthy_tool import ChatHealthyTool
+from chathealthy_lib.capability_contract import CapabilityContract
 
 log = ChatHealthyLoggingService()
 
@@ -95,8 +96,23 @@ def findcare_url() -> str:
     return os.environ.get(FINDCARE_INTERNAL_URL_ENV) or FINDCARE_INTERNAL_URL_DEFAULT
 
 
-class FacilitySearchTool(ChatHealthyTool):
+class FacilitySearchTool(ChatHealthyTool, CapabilityContract):
     TOOL_NAME = "facility_search"
+    CAPABILITY = "facility_search"
+
+    TOOL_DESCRIPTION = (
+        "The facility page's caller of the provider funnel over the "
+        "Non-Individual (organization) partition (EPIC-006-F-006): finds "
+        "facilities by kind and location and returns the matching set.")
+    # Its findAFacility route currently HTTP-bypasses this tool (BUG the plan
+    # flags as the facility dispatch drift, Phase 5); the tool is the intended
+    # findAFacility route, so it declares the utterance fragment.
+    SUBSCRIPTIONS: list[str] = []
+    MAY_CALL: list[str] = []
+    UTTERANCE_MANAGER_PROMPT = (
+        "Route here (findAFacility) when the person is looking for a facility "
+        "or organization — a place where care is delivered — by name or by "
+        "kind and location. Returns the matching facilities.")
     Request = Request
     Response = Response
 

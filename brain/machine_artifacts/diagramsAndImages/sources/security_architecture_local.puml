@@ -21,8 +21,7 @@ package "Skip's PC — Docker (localhost)" as host <<physical>> #eef6f5 {
   package "SharedServices container :8002" as c_ss #fdfdfd {
     component [Gate — transport facade\nTLS term • collect token + head + params\nproof: route known? verify or refuse\nthe only node knowing transport exists] as gate_ss
     component [UniversalNavigator (the main)\nthe only node accepting external traffic\nsessions • timeouts • render ledger\nserial deterministic merge\ninstruments every failure] as nav
-    component [UtteranceManager\nclassify: preamble + registry fragments\n→ dispatch set (parallel)] as um
-    component [Prose\nfacts → user sentence\n(open: own tool, or UM's scope?)] as prose
+    component [UtteranceManager\nclassify: preamble + registry fragments\n→ sufficient? dispatch set (parallel)\nRequestUsersRefinement(): no route/slot — UM LLM authors\nRequestUsersRefinement(question): tool authored, UM delivers\nsingle conversational surface — no tool talks to user] as um
     component [Shared tools\nSafety • Consent • Lead\nUnknownQ • About • URLGuardian] as shared
     component [SecretManager\nx509 → Key Vault • in-memory only] as secrets
     component [ChatHealthyMongoUtilities] as mongo_util
@@ -41,7 +40,11 @@ package "Skip's PC — Docker (localhost)" as host <<physical>> #eef6f5 {
   }
 }
 
-database "Front-end Mongo\nToolRegistry — one live doc / env\nSessions • RenderLedger rows" as mongo
+package "MongoDB (Atlas) — front-end" as mongo #fdfdfd {
+  database "Session\ncollection" as mongo_session
+  database "Registered Users\ncollection" as mongo_users
+  database "ToolRegistry — one live doc / env\nRenderLedger rows" as mongo_registry
+}
 component [Azure Key Vault\nFedRAMP High • HIPAA BAA • public access off\n----\nsession signing key\ninternal-callback signing key\nOAuth api_key secrets\nMongo conn strings\nmodel API keys • x509 certs] as kv #f3f4f6
 actor "Deploying\nidentity" as deployer
 
@@ -54,19 +57,7 @@ gate_ss --> nav : token + head + params
 
 ' ── the main reads the map and drives the route ──
 nav --> um : utterance → routes
-nav --> prose : facts
 nav --> shared : dispatch (tool_to_tool)
-
-note bottom of prose
-  **OPEN ARCHITECTURAL QUESTION — not resolved here**
-  Is asking the user a question a separate Prose tool
-  (drawn), or the UtteranceManager's own scope
-  (classify + prose)? Three approved requirements place
-  prose/manufacture/parameters inside UM. The registry
-  instance also carries a `Prose` route name. The
-  architecture will not move a requirement; the side is
-  the operator's to pick.
-end note
 
 ' ── cross the wire to a satellite: signed out, signed back ──
 nav --> gate_fc : dispatch signed out\ninternal_callback (our_signature)
@@ -80,10 +71,10 @@ proxy_ec --> ec_tools
 ec_tools ..> nav : completion (our_signature)
 
 ' ── state, secrets, and registry write governance ──
-nav --> mongo : sessions • render ledger\nreads live registry at startup
+nav --> mongo_session : sessions • render ledger\nreads live registry at startup
 mongo_util --> secrets : conn strings (in-memory)
 secrets   -[#6b7280]-> kv : x509 cert auth\nprivate key never on disk/git
-deployer  -[#6b7280]-> mongo : registry sole writer\n(runtime identities read-only)
+deployer  -[#6b7280]-> mongo_registry : registry sole writer\n(runtime identities read-only)
 
 note right of kv
   **Local security posture**

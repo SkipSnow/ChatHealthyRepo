@@ -8,36 +8,42 @@ skinparam DatabaseBorderColor #6b7280
 skinparam NoteBackgroundColor #f3f4f6
 skinparam NoteBorderColor #9ca3af
 
-title FindCare as it stands today — one app.py holds every route, and the router does three capabilities itself
+title FindCare as it stands today (audited 2026-09-18) — three per-component app.py remain, and the router still holds capability work in an if/elif over target_action
 
-component "React shell\nCode/ConversationalUX/FindCareChat/frontend\nApp.tsx imports 23 widgets: 5 still under\nsrc/components, 18 already reached from\nFindCare/ and sharedServices/Code/" as SHELL
+component "React shell\nWebsite/FindCareChat/src/App.tsx\n23 widget imports; ProviderSearchRefinementWidget\nand a few others still under src/components,\nthe rest reached from FindCare/ and sharedServices/Code/" as SHELL
 
-component "/gate\nsharedServices/Code/app.py:355-460\nparse, verify token, hand to the router" as GATE
+component "/gate\nsharedServices/Code/app.py:299 (@app.post /gate)\napp.py is 534 lines; parse, verify token, hand to the router" as GATE
 
-component "UniversalNavigationTool\nsharedServices/Code/AuthorizationsAndAuthentications/\nuniversal_navigation_tool.py\n_OP_HANDLERS: 23 ops -> method NAMES\n_dispatch_target_action: if/elif on target_action" as ROUTER
+component "UniversalNavigationTool (the router)\nsharedServices/Code/AuthorizationsAndAuthentications/\nuniversal_navigation_tool.py — 2884 lines\n_OP_HANDLERS: 25 ops -> method NAMES\n_dispatch_target_action: if/elif on target_action\ncapability tables still in code: _OP_HANDLERS, _ACTION_PAGES" as ROUTER
 
-component "Capability work the router does itself\nspecialtySearch  (2018-2046)\nfindAFacility    (2065-2125)\nfindAProvider    (2127-2179)\nhand-rolled httpx, hand-assembled stream events,\nMongo reads at 1576 and 1428" as INLINE #fdf6f6
+component "Capability work the router does itself\nspecialtySearch (2172)  -> post_to_findcare('/specialty/find')\nfindAProvider  (2307)  -> post_to_findcare('/provider/find')\nfindAFacility  (2220)  -> STILL hand-rolls httpx inline (2226-2265)\nAll three hand-assemble deps.stream events.\nExtra inline httpx at 1649, 1912; helper post_to_findcare at 528." as INLINE #fdf6f6
 
-component "Tools the router does dispatch\nprovider_search, provider_detail,\nprovider_selection, facility_selection,\nclinical_trials_dispatcher, clinical_trial_selection,\nuser_parameters, utterance_manager, lockout,\nclose_connection_200, about_chathealthy, evalcare_splash" as LIVETOOLS
+component "Tools the router does dispatch (14 via .TOOL.run/run_and_log)\nprovider_search, provider_detail, provider_selection,\nfacility_selection, clinical_trials_dispatcher,\nclinical_trial_selection, user_parameters,\nutterance_manager, lockout, close_connection_200,\nabout_chathealthy, evalcare_splash, authn" as LIVETOOLS
 
-component "Declared, shipped, never dispatched\nFacilitySearchTool     zero call sites\nGeoExtractorTool       zero call sites\nSpecialtyFilterTool    only a test-only caller\nCapabilitySearchTool   no subclass exists" as DEADTOOLS #fdf6f6
+component "Declared, shipped, never dispatched\nFacilitySearchTool  sharedServices/Code/FacilitySearch — no router dispatch\nGeoExtractorTool    sharedServices/Code/Geo — no router dispatch\nSpecialtyFilterTool dispatched only from _run_or_cache_specialty_filter\n                    (2372), a method with no caller, plus tests\nCapabilityContract  base now EXISTS (ChatHealthyLib) — 0 adopters" as DEADTOOLS #fdf6f6
 
-component "FindCare service\nCode/ConversationalUX/FindCareChat/backend/app.py\n2000 lines, 14 @app.post routes:\n/search /provider/find /provider/exclusions /provider-detail\n/facility/find /facility/page /specialty/find /nucc/classify\n/trial/find /page/what-is-needed /page/detail-open\n/page/detail-close /welcome /health" as APPPY #fdf6f6
+component "FindCare service\nFindCare/Code/app.py — 1963 lines, 14 @app.post routes:\n/search /provider/find /provider/exclusions /provider-detail\n/facility/find /facility/page /specialty/find /nucc/classify\n/trial/find /page/what-is-needed /page/detail-open\n/page/detail-close /welcome /health" as APPPY #fdf6f6
 
-component "In-app ToolRouter\napp.py:255-268 registers 7 LLM tool names.\nhandle_tool_calls has no caller and\nanthropic_tools has no reader." as DEADROUTER #fdf6f6
+component "In-app ToolRouter (dead)\nFindCare/Code/app.py: register_with_models at 282,\nanthropic_tools at 244 (no reader),\nmodule-level handle_tool_calls at 293 (no external caller)." as DEADROUTER #fdf6f6
 
-package "FindCare/ — services already live here, routes do not" #f5fbfa {
+package "FindCare/ — services live here; routes still on FindCare/Code/app.py" #f5fbfa {
   component "ProviderManagement\nprovider_search_service, utterance mining" as PM
   component "SpecialtyFilter\nfilter.py + specialty_filter_tool.py" as SF
   component "ClinicalTrials\nservice + clinical_trials_tool.py" as CT
-  component "ProviderDetail\nprovider_detail_service" as PD
+  component "ProviderDetail / ProviderList / Geo /\nParameterDeclaration" as PD
+}
+
+package "Three per-component app.py still stand (target: one gate)" #fbf5f5 {
+  component "FindCare/Code/app.py (14 routes)" as A1 #fdf6f6
+  component "evaluateCare/Code/app.py (3 routes)" as A2 #fdf6f6
+  component "sharedServices/Code/app.py (534 lines, owns /gate)" as A3 #fdf6f6
 }
 
 SHELL --> GATE
 GATE --> ROUTER
 ROUTER --> LIVETOOLS : by method name,\nlazy-imported in the branch
 ROUTER --> INLINE
-INLINE --> APPPY : httpx POST
+INLINE --> APPPY : httpx POST (helper or inline)
 LIVETOOLS --> APPPY : httpx POST
 APPPY --> PM
 APPPY --> SF
@@ -47,23 +53,28 @@ ROUTER .[#b91c1c].> DEADTOOLS
 APPPY .[#b91c1c].> DEADROUTER
 
 note bottom of INLINE
-  FacilitySearchTool already contains this exact
-  work. The router re-wrote it inline instead of
-  calling it, so the same capability now has two
-  implementations and only the unnamed one runs.
+  FacilitySearchTool already contains the facility work,
+  but the findAFacility branch re-wrote it inline instead of
+  calling it, so the capability has two implementations and
+  only the unnamed inline one runs.
 end note
 
 note bottom of APPPY
-  Of the twelve capability cells -- three capabilities
-  by four tools -- six have a live wired tool, two have
-  a class that nothing calls, one is served by another
-  capability's class, and three do not exist at all.
+  Conformance gate (refactor_conformance.py) today: gate 1 RED
+  (0 files under Code/, but 54 files / 453 refs still name the
+  "Code/" substring — 168 in deployment_architecture.json alone;
+  the bare substring also matches the LIVING per-component trees);
+  gate 2 CANNOT EVALUATE (record names 7 capabilities, code names
+  19 tools, 0 join, 0 CapabilityContract adopters); gate 3 PASS.
 end note
 
 note right of SHELL
-  ProviderSearchRefinementWidget.tsx is imported by
-  App.tsx and is declared in no manifest record, so
-  it runs without the record saying it exists.
+  Top-level Code/ is GONE (git ls-files Code -> empty,
+  test -d Code -> false). What remains: per-component Code/
+  subtrees — FindCare/Code (7 files), evaluateCare/Code (7),
+  sharedServices/Code (75), pipeline/Code (189, out of scope).
+  The old Code/ConversationalUX/FindCareChat tree is parked
+  under _port_out/, not live.
 end note
 
 @enduml

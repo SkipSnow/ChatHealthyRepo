@@ -20,13 +20,23 @@ participant "UniversalNavigatorProxy\n(FindCare)" as PXY
 participant "facility_detail\n(member of the facility page,\nrequired for this view)" as FD
 participant "Authoritative registry\n(live query by NPI)" as NPPES
 database "Facility record\ncollection" as DB
-participant "Prose\n(authors the sentence)" as Prose
+participant "UtteranceManager\n(RequestUsersRefinement: the one conversational surface)" as UM
 
-note over User, Prose #eef6f5
+note over User, UM #eef6f5
   THREE pages exist: individualProvider, facility, clinicalTrial. This flow does NOT
   construct a fourth. It constructs the facility page's DETAIL view; facility_detail
   is a MEMBER of the facility page, never a page. (Registry: facility members =
   FacilitySearch[required], FacilityDetail, Geo.)
+end note
+
+note over UM #eef6f5
+  RequestUsersRefinement is the UtteranceManager's ONE conversational surface;
+  no tool ever speaks to the user directly. It has TWO forms:
+    RequestUsersRefinement()         - the UM's own LLM authors the text
+                                       (used when classification finds no
+                                        dispatchable route or a missing slot)
+    RequestUsersRefinement(question) - a dispatched tool authored the text and
+                                       the UM delivers it
 end note
 
 User -> Gate : click a facility card's link\n{ session_token, head, params(openNpi) }
@@ -60,7 +70,7 @@ UN -> Repo : page state = facility page, detail view for this NPI
 note right of UN
   OPEN THE RENDER LEDGER. Record the page's required_members as the
   expectation and race the completeness budget against the completion callback:
-    members          = { facility_detail, prose }
+    members          = { facility_detail, RequestUsersRefinement }
     required_members = { facility_detail }
     budget           = completeness.render_timeout_seconds
 end note
@@ -87,8 +97,8 @@ alt facility_detail returns within the budget
         DB --> FD : the record as now stored
       end
     else the NPI is not an organization
-      FD -> Prose : author "facility not found"
-      Prose --> FD : the not-found sentence
+      FD -> UM : RequestUsersRefinement(question): deliver "facility not found"
+      UM --> FD : the not-found sentence
       note right of FD
         No Facility Detail is shown for an NPI the authoritative
         registry reports is not an organization; the user is told
@@ -104,26 +114,26 @@ alt facility_detail returns within the budget
     end note
   end
 
-  FD -> FD : build the panel\n- legal business name; other name and its label; NPI; NPI issue date; active\n- parent's legal business name when the facility is a subpart\n- classification label, specialization, plain-language definition\n- authorized official (last, first, middle, title, credential), so labelled\n- destinations to confirm the enumeration and the right to operate
+  FD -> FD : build the panel (facility_detail output)\n- legal business name; other name and its label; NPI; NPI issue date; active\n- parent's legal business name when the facility is a subpart\n- classification label, specialization, plain-language definition\n- authorized official (last, first, middle, title, credential), so labelled\n- destinations to confirm the enumeration and the right to operate\n- UserRefinementRequestText: populated -> FD is asking the user (the UM delivers it\n  via RequestUsersRefinement(question)); empty -> FD is answering
   FD --> PXY : facility detail panel
   deactivate FD
   PXY --> UN : internal_callback { panel }  proof our_signature\ncloses the required ledger entry
   deactivate PXY
 
   UN -> UN : RECONCILE - every required member closed;\nserial deterministic merge of returning documents\n(a parameter/state conflict RAISES -> on_conflict)
-  opt prose member
-    UN -> Prose : author the panel's summary, with the facts
-    activate Prose
-    Prose --> UN : the user-facing sentence\ncloses its (non-required) entry
-    deactivate Prose
+  opt RequestUsersRefinement member
+    UN -> UM : RequestUsersRefinement(): author the panel's summary, with the facts
+    activate UM
+    UM --> UN : the user-facing sentence\ncloses its (non-required) entry
+    deactivate UM
   end
   UN --> Gate : the reconciled facility panel
 
 else the budget expires first  (on_timeout)
-  UN -> Prose : author the layman on_timeout explanation
-  activate Prose
-  Prose --> UN : "we could not bring this facility up in time - please try again"
-  deactivate Prose
+  UN -> UM : RequestUsersRefinement(): author the layman on_timeout explanation
+  activate UM
+  UM --> UN : "we could not bring this facility up in time - please try again"
+  deactivate UM
   UN --> Gate : respond anyway, the page unrendered
   note right of UN
     The completeness timeout races the callback. On expiry the
@@ -144,14 +154,6 @@ end
 deactivate UN
 Gate --> User : the facility as the registry reports it now
 deactivate Gate
-
-note over UN, Prose #fff3cd
-  OPEN ARCHITECTURAL QUESTION (not resolved here): is authoring the user-facing
-  sentence the UtteranceManager's own scope, or a separate "Prose" tool? Three
-  approved requirements place prose inside the UtteranceManager; the registry
-  instance also carries a "Prose" route name. This diagram draws Prose as the
-  sentence author WITHOUT deciding which owns the scope. The operator resolves it.
-end note
 
 note over FD #fbe9e7
   CURRENT-STATE GAP (target draws facility_detail as its own member): today there is

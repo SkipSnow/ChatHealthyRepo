@@ -49,11 +49,6 @@ end note
 
 note as OpenQs #FFF9E6
   <b>Open architectural questions — recorded, not resolved here</b>
-  • <b>Dispatch location.</b> This diagram places dispatch at the
-    UniversalNavigator and keeps the Gate transport-only. REQ-B-001
-    is authoritative; if its text instead places dispatch on the Gate,
-    requirement and design disagree and the requirement governs.
-    (ledger N36 → resolve in C6)
   • <b>Session issuance.</b> Where a client_sessioned token is minted is
     undecided: an unauthenticated op on the Gate (one entrance, no op
     exempt weakened) vs a separate endpoint (every op authenticated, one

@@ -19,7 +19,7 @@ package "Per tool, declared in source" #fdfdfd {
   [LockoutTool\nNOT_UTTERANCE_ROUTABLE] as F3
 }
 
-[UtteranceManager\nown entry = the preamble\n(cached system prompt)\nclassify + prose only] as UM
+[UtteranceManager\nown entry = the preamble\n(cached system prompt)\nclassify + RequestUsersRefinement only] as UM
 [One model call\ntemperature 0] as CALL
 [UniversalNavigator\nvalidates routes against may_call,\nthen dispatches] as UN
 [Dispatch\n(parallel, non-blocking)] as DISP
@@ -43,12 +43,17 @@ note right of UM
   The UtteranceManager knows NO parameters.
   It sees an utterance and answers with routes.
   ---
-  OPEN ARCHITECTURAL QUESTION (unresolved):
-  is asking the user a question the UtteranceManager's
-  own scope (classify + prose here), or a separate
-  "Prose" tool? Three approved requirements place prose
-  inside it (EPIC-002-F-010-S-001 / -S-003, EPIC-006-F-008-S-003);
-  the operator's to decide. Do not pick a side.
+  RequestUsersRefinement is a capability of the
+  UtteranceManager, not a separate tool — one
+  conversational surface, so no tool ever talks to
+  the user directly. UM decides whether the
+  utterance is sufficient to dispatch to >=1 tool
+  and dispatches if so. Two forms:
+  * RequestUsersRefinement() — UM's own LLM authors
+    the question, used when classification finds NO
+    dispatchable route or a missing slot.
+  * RequestUsersRefinement(question) — a dispatched
+    tool authored the question; UM delivers it.
 end note
 
 note right of F3

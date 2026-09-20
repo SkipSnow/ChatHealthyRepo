@@ -21,17 +21,14 @@ participant "UniversalNavigatorProxy\n(FindCare satellite)" as PXY
 participant "provider_detail\n(tool, required member)" as PDT
 participant "NPPES\n(live query by NPI)" as NPPES
 database "Provider record\ncollection" as DB
-participant "Prose tool\n(authors the sentence)" as PROSE
+participant "UtteranceManager\n(RequestUsersRefinement — a capability, not a tool)" as UM
 
-note over UN, PROSE #fde68a
-  OPEN ARCHITECTURAL QUESTION (not resolved here):
-  whether authoring a user-facing sentence — the summary, the
-  not-found line, the timeout line — is the UtteranceManager's OWN
-  scope, or a SEPARATE "Prose" tool as drawn. Three approved
-  requirements place prose and the manufacture path inside the
-  UtteranceManager; the registry instance also carries a "Prose"
-  route. The architecture will not move a requirement; which stands
-  is the operator's to say. Drawn one way only to be concrete.
+note over UM
+  RequestUsersRefinement — the one conversational surface. Two forms:
+    RequestUsersRefinement()          the UM's own LLM authors the question
+                                      (classification finds no dispatchable route / a missing slot)
+    RequestUsersRefinement(question)  a dispatched tool authored the question and the UM delivers it
+  No tool ever talks to the user directly; every user-facing sentence passes through the UM.
 end note
 
 P -> GATE : click a provider card's link\n{ session_token, head, params(openNpi) }
@@ -70,7 +67,7 @@ UN -> REPO : page state = individualProvider page shows this NPI
 note right of UN
   OPEN THE RENDER LEDGER. Record the required member for this
   detail-open as the expectation and race the completeness budget:
-    members          = { provider_detail, prose }
+    members          = { provider_detail, RequestUsersRefinement }
     required_members = { provider_detail }
     budget           = completeness.render_timeout_seconds
 end note
@@ -102,8 +99,8 @@ alt provider_detail returns within the budget
         end note
       end
     else the NPI is not an individual
-      PDT -> PROSE : author "provider not found"
-      PROSE --> PDT : the not-found sentence
+      PDT -> UM : RequestUsersRefinement(question) — the tool authored "provider not found"; the UM delivers it
+      UM --> PDT : the not-found sentence
       note right of PDT
         No Provider Detail is shown for an NPI the registry reports
         is not an individual; the user is told the provider was not found.
@@ -119,26 +116,31 @@ alt provider_detail returns within the budget
   end
 
   PDT -> PDT : build the panel\n- identity, credentials; every practice and business address, labelled and ordered\n- every license; insurance identifiers; active state\n- county info + urban marker (pipeline enrichment)\n- external research links to verify the provider independently
-  PDT --> PXY : internal_callback { panel }  proof our_signature
+  PDT --> PXY : internal_callback { panel, UserRefinementRequestText }  proof our_signature
+  note right of PDT
+    UserRefinementRequestText on the tool's returned contract:
+    populated = the tool is ASKING the user (the UM delivers it via
+    RequestUsersRefinement(question)); empty = the tool is answering.
+  end note
   deactivate PDT
   PXY --> UN : internal_callback closes the required ledger entry
   deactivate PXY
 
   UN -> REPO : close the ledger entry for provider_detail
   UN -> UN : RECONCILE — every required member closed;\nserial deterministic merge of returning documents\n(a parameter/state conflict RAISES -> on_conflict)
-  opt prose member
-    UN -> PROSE : author the panel's summary, with the facts
-    activate PROSE
-    PROSE --> UN : the user-facing sentence
-    deactivate PROSE
+  opt RequestUsersRefinement member
+    UN -> UM : RequestUsersRefinement() — the UM's own LLM authors the panel's summary, with the facts
+    activate UM
+    UM --> UN : the user-facing sentence
+    deactivate UM
   end
   UN --> GATE : the reconciled provider panel
 
 else the budget expires first  (on_timeout)
-  UN -> PROSE : author the layman on_timeout explanation
-  activate PROSE
-  PROSE --> UN : "we could not bring this provider up in time — please try again"
-  deactivate PROSE
+  UN -> UM : RequestUsersRefinement() — the UM's own LLM authors the layman on_timeout explanation
+  activate UM
+  UM --> UN : "we could not bring this provider up in time — please try again"
+  deactivate UM
   UN --> GATE : respond anyway, the page unrendered
   note right of UN
     The completeness timeout races the callback. On expiry the UN

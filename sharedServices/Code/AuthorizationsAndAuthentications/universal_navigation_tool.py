@@ -54,6 +54,8 @@ from chathealthy_lib.authentication.agent_deps import (
     append_action,
 )
 from chathealthy_lib.authentication.chathealthy_tool import ChatHealthyTool
+from chathealthy_lib.capability_contract import CapabilityContract
+from chathealthy_lib import dispatch_registry
 from authentication import (
     authorizations_and_authentications_tool as authn,
     evalcare_splash_tool,
@@ -616,7 +618,7 @@ _ACTION_PAGES = {
 }
 
 
-class UniversalNavigationTool(ChatHealthyTool):
+class UniversalNavigationTool(ChatHealthyTool, CapabilityContract):
     """Receives the post-AuthN deps + a typed NavRequest (op + payload),
     dispatches to the right graph-node handler. The handler may invoke
     other tools (via their `run_and_log()`); those calls auto-log to
@@ -630,51 +632,83 @@ class UniversalNavigationTool(ChatHealthyTool):
     peer is and when a token is valid; it holds none now.
     """
     TOOL_NAME = "universal_navigation"
+    CAPABILITY = "universal_navigation"
     Request = Request
     Response = Response
 
-    # Map ops to method names. run() looks up by op and dispatches via
-    # getattr(self, name). Adding a new op = new method + new dict entry.
-    _OP_HANDLERS = {
-        "session_data":         "_handle_session_data",
-        "conversation_record":  "_handle_conversation_record",
-        "session_pdf":          "_handle_session_pdf",
-        "record_ux_event":      "_handle_record_ux_event",
-        "utterance":            "_handle_utterance",
-        "provider-detail":      "_handle_provider_detail",
-        "provider_detail_close": "_handle_provider_detail_close",
-        "apply_filter":         "_handle_apply_filter",
-        "apply_facility_filter": "_handle_apply_facility_filter",
-        "refine_search":        "_handle_refine_search",
-        "provider_page":        "_handle_provider_page",
-        "restore_findcare":     "_handle_restore_findcare",
-        "evalcare-splash":      "_handle_evalcare_splash",
-        # clinical_trials_page op removed: client-side cache pagination
-        # eliminated the per-page server round-trip; the React widget
-        # slices its cached chunks locally.
-        "about_chathealthy":    "_handle_about_chathealthy",
-        "provider_selection":   "_handle_provider_selection",
-        "facility_selection":   "_handle_facility_selection",
-        "facility_page":        "_handle_facility_page",
-        "clinical_trial_selection": "_handle_clinical_trial_selection",
-        "claim_oauth_result":   "_handle_claim_oauth_result",
-        "parameter_change":     "_handle_parameter_change",
-        "peer_urls":            "_handle_peer_urls",
-        "peer_health":          "_handle_peer_health",
-        "session":              "_handle_session",
-        "verify_token":         "_handle_verify_token",
-        "transfer_to_findcare": "_handle_transfer_to_findcare",
-    }
+    TOOL_DESCRIPTION = (
+        "The main navigator: receives a typed NavRequest (op + payload) after "
+        "AuthN and dispatches it to the graph-node handler that answers it, "
+        "invoking other tools as the op requires.")
+    # The wire, session, pagination and multi-tool-orchestration ops the
+    # navigator answers itself. The eight single-tool gesture ops
+    # (utterance, provider-detail, evalcare-splash, about_chathealthy,
+    # provider_selection, facility_selection, clinical_trial_selection,
+    # parameter_change) are declared on the leaf tool each dispatches to.
+    # run() now reads the build-generated DISPATCH_TABLE (via
+    # dispatch_registry) as the allowlist and dispatch authority in place of
+    # the retired _OP_HANDLERS dict; finishing the move of the eight gesture
+    # ops' orchestration down into their leaf tools is Phase 5.
+    SUBSCRIPTIONS: list[str] = [
+        "session_data", "conversation_record", "session_pdf",
+        "record_ux_event", "provider_detail_close", "apply_filter",
+        "apply_facility_filter", "refine_search", "provider_page",
+        "restore_findcare", "facility_page", "claim_oauth_result",
+        "peer_urls", "peer_health", "session", "verify_token",
+        "transfer_to_findcare",
+    ]
+    MAY_CALL: list[str] = [
+        "utterance_manager", "lockout_tool", "user_parameters",
+        "provider_detail", "provider_search", "specialty_filter",
+        "evalcare_splash", "about_chathealthy", "provider_selection",
+        "facility_selection", "clinical_trial_selection",
+        "clinical_trials_dispatcher", "close_connection_200", "authn",
+    ]
+    NOT_UTTERANCE_ROUTABLE = True
 
     async def run(self, deps: AgentDeps, request: "Request") -> "Response":
+        """Dispatch by subscription. The build-generated registry, not a
+        hand-kept table, is both the allowlist and the dispatch authority: an
+        op is dispatchable exactly when some tool declared it in its
+        SUBSCRIPTIONS. Presence is the allowlist -- an op no tool subscribes to
+        is not dispatchable and is answered unknown_op. (Refusing an unmapped
+        op outright, and reading the declared proof per route, is Phase 4; this
+        phase makes the registry the authority in place of _OP_HANDLERS.)
+
+        The subscriber name is what the registry joins to; the handler is the
+        navigator method the op names by convention (_handle_<op>, dashes to
+        underscores). Every op resolves to a navigator handler here -- for an
+        op a leaf tool subscribes to (utterance, provider-detail, ...), the
+        navigator's handler is still the orchestration wrapper around the leaf
+        dispatch. Moving that orchestration down into the leaf (the
+        UtteranceManager deciding sufficiency and dispatching to >=1 tool) is
+        the UM target-role work of Phase 5, not this phase.
+        """
         op = request.op
-        method_name = self._OP_HANDLERS.get(op)
-        if method_name is None:
+        subscribers = dispatch_registry.subscribers_for(op)
+        if not subscribers:
             return self.Response(
                 kind="unknown_op",
                 result={"op": op, "error": f"unknown op {op!r}"},
             )
-        return await getattr(self, method_name)(deps, request.payload or {})
+        # More than one subscriber is a conflict the caller sees and refuses --
+        # the registry does not hide it, so the navigator does not pick one.
+        if len(subscribers) > 1:
+            raise ChatHealthyException(
+                mode="dispatch_op_ambiguous",
+                component="universal_navigation_tool",
+                message=f"op {op!r} has more than one subscriber "
+                        f"{subscribers!r}; the navigator refuses an ambiguous "
+                        f"dispatch rather than choosing one.")
+        handler = getattr(self, "_handle_" + op.replace("-", "_"), None)
+        if handler is None:
+            raise ChatHealthyException(
+                mode="dispatch_handler_missing",
+                component="universal_navigation_tool",
+                message=f"op {op!r} is dispatchable (subscribed by "
+                        f"{subscribers[0]!r}) but the navigator carries no "
+                        f"handler for it.")
+        return await handler(deps, request.payload or {})
 
     # ── Op handlers ───────────────────────────────────────────────
 

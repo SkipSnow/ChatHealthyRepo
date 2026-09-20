@@ -49,6 +49,7 @@ for _ch_d in _ch_pl.Path(__file__).resolve().parents:
 
 from chathealthy_lib.authentication.agent_deps import AgentDeps  # noqa: E402
 from chathealthy_lib.authentication.chathealthy_tool import ChatHealthyTool  # noqa: E402
+from chathealthy_lib.capability_contract import CapabilityContract  # noqa: E402
 from chathealthy_lib.authentication.user_parameters import (  # noqa: E402
     Geography, PAGES, ParameterEntry, ProviderName, Specialty, UserParameters,
 )
@@ -174,8 +175,17 @@ def _coerce(value_type: str, value: Any):
                 "tool has no branch for.")
 
 
-class UserParametersTool(ChatHealthyTool):
+class UserParametersTool(ChatHealthyTool, CapabilityContract):
     TOOL_NAME = "user_parameters"
+    CAPABILITY = "user_parameters"
+
+    TOOL_DESCRIPTION = (
+        "The one implementation that writes page parameters onto the session "
+        "for every caller (a tool, the gateway, the utterance manager), so "
+        "the same request yields the same stored value whoever asked.")
+    SUBSCRIPTIONS: list[str] = ["parameter_change"]
+    MAY_CALL: list[str] = []
+    NOT_UTTERANCE_ROUTABLE = True
     Request = Request
     Response = Response
     Change = Change

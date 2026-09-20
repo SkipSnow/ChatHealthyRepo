@@ -143,4 +143,13 @@ note right of RG
   because anything is installed into them.
 end note
 
+note right of AAMIG
+  DESIGN PROPOSAL (discuss, not yet applied): too many Azure
+  targets in this one frame. Proposal — group them under two
+  resource groups: WorkManagement (all the work managers) and
+  AzureInfrastructure (everything else). Packages, not targets,
+  should distinguish logical deployments. Flagged for design
+  discussion.
+end note
+
 @enduml

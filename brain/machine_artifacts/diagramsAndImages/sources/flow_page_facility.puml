@@ -16,8 +16,7 @@ participant "Gate\n(facade, transport only)" as GATE
 participant "UniversalNavigator\n(SharedServices main)" as UN
 database "Registry\n(the one live map)" as REG
 database "Repository\nsessions, ledger, params" as REPO
-participant "UtteranceManager\n(classify only)" as UM
-participant "Prose tool\n(authors the sentence)" as PROSE
+participant "UtteranceManager\n(classify; RequestUsersRefinement)" as UM
 participant "UniversalNavigatorProxy\n(FindCare satellite)" as PXY
 participant "specialty_filter\n(facility NUCC partition:\nAmbulatory / Psychiatric / Inpatient)" as SF
 participant "Geo\n(free-text geography,\nmisspellings)" as GEO
@@ -47,7 +46,7 @@ note left of UN
 end note
 
 == Determine the page and scope mining ==
-UN -> UN : this request constructs\npage = facility (NPI Type 2)\nmembers: facility_search, specialty_filter (facility NUCC),\nGeo, facility_detail, prose ; required: facility_search
+UN -> UN : this request constructs\npage = facility (NPI Type 2)\nmembers: facility_search, specialty_filter (facility NUCC),\nGeo, facility_detail ; required: facility_search
 UN -> UM : classify(utterance, history)\nfragments scoped to facility members
 activate UM
 UM --> UN : dispatch set { specialty_filter, Geo, facility_search }
@@ -74,7 +73,7 @@ par facility NUCC filter -> kinds
   PXY -> SF : relay locally (function call)
   activate SF
   SF -> SF : Non-Individual partition; macro-toggles\nAmbulatory / Psychiatric / Inpatient\n(mirrors Prescribers / Homeopathic on the individual page)
-  SF --> PXY : { nucc_codes }
+  SF --> PXY : { nucc_codes, UserRefinementRequestText }
   deactivate SF
   PXY --> UN : internal_callback { nucc_codes }\nproof: our_signature verified
   deactivate PXY
@@ -84,11 +83,17 @@ else Geo -> resolved geography
   PXY -> GEO : relay locally (function call)
   activate GEO
   GEO -> GEO : resolve "Cleveland" (incl. misspellings)\n-> state / place (recursion-guarded)
-  GEO --> PXY : { geography }
+  GEO --> PXY : { geography, UserRefinementRequestText }
   deactivate GEO
   PXY --> UN : internal_callback { geography }\nproof: our_signature verified
   deactivate PXY
 end
+note over SF, FS
+  Every tool output carries UserRefinementRequestText:
+  populated = the tool is ASKING the user (the UtteranceManager
+  delivers it via RequestUsersRefinement(question));
+  empty = the tool is answering.
+end note
 UN -> REPO : merge serially (deterministic);\na state conflict RAISES
 
 == Dispatch the required member ==
@@ -98,7 +103,7 @@ alt geography is sufficient
   PXY -> FS : relay locally (function call)
   activate FS
   FS -> FS : match organizations only, active,\nby name / taxonomy / practice-location\ngeography / administrator (recursion-guarded)
-  FS --> PXY : { rows, total }
+  FS --> PXY : { rows, total, UserRefinementRequestText }
   deactivate FS
   PXY --> UN : internal_callback { rows }\nproof: our_signature verified
   deactivate PXY
@@ -109,22 +114,20 @@ alt geography is sufficient
     UN -> UN : ledger race lost -> layman on_timeout\nexplanation (instrumented, timings)
   end
 else geography insufficient - required input unmet
-  UN -> PROSE : author refinement\n{ need geography, in-force, utterance }
-  activate PROSE
-  PROSE --> UN : one user-facing sentence
-  deactivate PROSE
+  UN -> UM : RequestUsersRefinement()\nmissing slot: geography { in-force, utterance }
+  activate UM
+  UM -> UM : own LLM authors\none user-facing sentence
+  UM --> UN : one user-facing sentence
+  deactivate UM
+  note right of UM
+    RequestUsersRefinement lives only inside the UtteranceManager — the one
+    conversational surface; no tool ever talks to the user directly. Two forms:
+    * RequestUsersRefinement()          -> the UM's own LLM authors the question
+                                           (no dispatchable route / missing slot, as here)
+    * RequestUsersRefinement(question)  -> the UM delivers a question a dispatched tool
+                                           authored (its UserRefinementRequestText populated)
+  end note
 end
-
-note over UM, PROSE #fef9c3
-  OPEN ARCHITECTURAL QUESTION — not resolved here.
-  Is asking the user a question the UtteranceManager's own
-  scope, or a separate "Prose" tool? Drawn here as a separate
-  Prose tool, but three approved requirements place authoring
-  inside the UtteranceManager: EPIC-002-F-010-S-001 (author
-  user_message), EPIC-002-F-010-S-003 (manufacture path),
-  EPIC-006-F-008-S-003 (a parameter writer). Which stands is
-  the operator's to say; this diagram does not pick a side.
-end note
 
 note over UN, REPO
   Page error management, all instrumented with timings at a

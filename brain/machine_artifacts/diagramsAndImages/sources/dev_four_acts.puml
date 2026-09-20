@@ -29,6 +29,8 @@ note right of C
   Refuses: anything failing a rule; anything
   without an authorisation given at that moment;
   any branch but dev.
+  The commit is all-or-nothing: if ONE file
+  fails a rule, the ENTIRE commit fails.
   Does NOT touch the running target.
 end note
 
@@ -73,18 +75,6 @@ note as ABSENCE #fff4e5
   objected, because every gate asks whether what SHIPS is
   declared and none asks whether what RUNS is. That reverse
   direction is BUG-008 and is still open (N32, N38, N56).
-end note
-
-note as AUTH #eef2ff
-  OPEN (G-1, register row 2) -- not resolved here.
-  Each authorisation above is a value the governed
-  process supplies on the same workstation that issues
-  the act. What channel carries an authorisation the
-  workstation cannot originate is unsettled; one function
-  stands behind commit, promote, deploy AND the data
-  migration, so one decision fixes all four.
-  Drawn forgeable in pipe_release_gate (gate 1) and
-  sys_identity. Owned by chapter C1.
 end note
 
 @enduml

@@ -16,6 +16,7 @@ from pydantic import BaseModel, Field
 
 from chathealthy_lib.authentication.agent_deps import AgentDeps
 from chathealthy_lib.authentication.chathealthy_tool import ChatHealthyTool
+from chathealthy_lib.capability_contract import CapabilityContract
 
 
 MAX_SELECTED = 5
@@ -42,8 +43,17 @@ class Response(BaseModel):
     error: Optional[str] = None
 
 
-class ClinicalTrialSelectionTool(ChatHealthyTool):
+class ClinicalTrialSelectionTool(ChatHealthyTool, CapabilityContract):
     TOOL_NAME = "clinical_trial_selection"
+    CAPABILITY = "clinical_trial_selection"
+
+    TOOL_DESCRIPTION = (
+        "Owns user_object.selected_clinical_trials — the NCT IDs the person "
+        "has curated for the EvaluateCare handoff. Verbs: select, deselect, "
+        "list.")
+    SUBSCRIPTIONS: list[str] = ["clinical_trial_selection"]
+    MAY_CALL: list[str] = []
+    NOT_UTTERANCE_ROUTABLE = True
     Request = Request
     Response = Response
 

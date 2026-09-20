@@ -100,12 +100,30 @@ note right of TOOL
   silence refuses the build. The gateway enters as a
   pseudo_tool. On the utterance_manager's own entry the
   prompt is the preamble, not a fragment.
+
+  The UtteranceManager is the one conversational surface:
+  no tool talks to the user directly. Its
+  RequestUsersRefinement capability has two forms —
+    RequestUsersRefinement() — the UtteranceManager's own
+      LLM authors the question, when classification finds
+      no dispatchable route or a missing slot;
+    RequestUsersRefinement(question) — a dispatched tool
+      authored the question and the UtteranceManager
+      delivers it.
 end note
 
 note bottom of FIELD
   required inputs are the prerequisites: the
   UniversalNavigator's completeness test compares
   the passed document against them before dispatch.
+end note
+
+note top of FIELD
+  Every tool OUTPUT carries UserRefinementRequestText:
+  populated = the tool is ASKING the user a question,
+  which the UtteranceManager delivers via
+  RequestUsersRefinement(question); empty = the tool
+  is answering.
 end note
 
 note left of TOOL

@@ -8,85 +8,78 @@ skinparam DatabaseBorderColor #6b7280
 skinparam NoteBackgroundColor #f3f4f6
 skinparam NoteBorderColor #9ca3af
 
-title The code-tree migration in progress — the legacy Code/ tree is retired; the FindCare backend is parked, still monolithic, in the interim landing FindCare/Code/; the remaining move is to disperse it into the feature directories that already exist
+title The code-tree migration in progress — the top-level legacy Code/ tree is retired; three FastAPI monoliths (FindCare/Code/app.py, sharedServices/Code/app.py, evaluateCare/Code/app.py) still run in parallel with the router-dispatched tool architecture that is meant to replace them. "Done" is the three refactor_conformance gates going green, not "a directory is gone".
 
-package "FindCare/Code/ — interim landing (the legacy Code/ tree is gone from disk)" #fdf6f6 {
-  component "app.py\nstill one file: 14 @app.post/@app.get routes (~88 KB).\nNot yet dispersed — it already imports\nProviderManagement, SpecialtyFilter,\nClinicalTrials, ProviderDetail, ProviderList." as APP
-  component "find_care_facade.py\nprovider_lookup_models.py" as FACADE
-  component "embedding_client.py\nduplicates the ChatHealthyLib llm facade\n(BUG-003)" as EMB
-  component "prompt_system_maker.py\na prompt-authoring tool" as PSM
-  component "safety_service.py\nis_emergency has no call site (BUG-003 / BUG-011)" as SAFETY
-  component "tests/test_evalcare_handoff.py" as TESTS
+package "The parked monoliths — one per component (top-level Code/ is gone from disk and from git)" #fdf6f6 {
+  component "FindCare/Code/app.py\none file: 14 @app.post routes (~88 KB).\nImports ProviderManagement, SpecialtyFilter,\nClinicalTrials, ProviderDetail directly\n(NOT ProviderList, NOT Geo)." as APP
+  component "FindCare/Code/ interim files\nfind_care_facade.py + provider_lookup_models.py\n(imported only by app.py)\nembedding_client.py (imported by app.py AND\nProviderDetail/provider_record_sync.py; BUG-003)\nprompt_system_maker.py (imported by app.py)\nsafety_service.py (is_emergency dead, no caller)\ntests/test_evalcare_handoff.py" as FCFILES
+  component "sharedServices/Code/app.py (~24 KB)\nevaluateCare/Code/app.py (~8 KB)\nboth still monolithic FastAPI apps" as OTHERAPPS
 }
 
-package "Destinations already in use" #f5fbfa {
-  component "FindCare/<Feature>/\nClinicalTrials, Geo, ParameterDeclaration,\nProviderDetail, ProviderList,\nProviderManagement, SpecialtyFilter" as FINDCARE
-  component "sharedServices/Code/<Feature>/\nAboutChatHealthy (+ me/), displayChrome,\nProviderSelection, FacilitySearch, FacilitySelection,\nClinicalTrialSelection, Geo, LockoutTool,\nUtteranceManager, UserParameters, handoffToEvaluateCare" as SHAREDSVC
-  component "Website/FindCareChat/\nReact shell (index.html, main.tsx, App.tsx)\n+ the widgets under src/" as WEBSITE
+package "The target the code is already moving into" #f5fbfa {
+  component "The router\nsharedServices/Code/AuthorizationsAndAuthentications/\nuniversal_navigation_tool.py (~145 KB).\nAlready dispatches 19 tools via\n<module>.TOOL.run_and_log(deps, req)." as ROUTER
+  component "ChatHealthyTool subclasses in feature dirs\nFindCare/ClinicalTrials/clinical_trials_tool.py\nFindCare/SpecialtyFilter/specialty_filter_tool.py\nsharedServices/Code/Geo/geo_tool.py\nprovider_search_tool.py + provider_detail_tool.py\n(today in the router dir, not a FindCare feature dir)\n+ 14 more (about_chathealthy, utterance_manager,\nfacility_search/selection, lockout, user_parameters,\noauth_login, clinical_trial_selection, ...)" as TOOLS
+  component "Website/FindCareChat/\nReact shell (index.html, main.tsx, App.tsx)\n+ widgets under src/" as WEBSITE
   component "ChatHealthyLib\nchathealthy_lib.llm facade" as LIB
 }
 
-component "Destination not stated\nanywhere in the repository" as UNKNOWN #fff8e6
+component "refactor_conformance.py\narchitecture/EngineeringRuleEnforcement/code/\nThree gates define done. Current: 1 of 3 PASS." as GATES #eef6ff
 
-APP --> FINDCARE : the 14 routes join the\nfeature services they\nalready import
-FACADE --> FINDCARE : provider-lookup layer
-EMB --> LIB : the facade already exists;\nthe duplicate is retired to it
-FACADE ..> UNKNOWN : facade vs feature home\nnot settled
-EMB ..> UNKNOWN
-PSM ..> UNKNOWN
-SAFETY ..> UNKNOWN
+APP --> TOOLS : the 14 routes become tools the\nrouter dispatches; app.py the\nFastAPI monolith is retired, not\n\"dispersed into what it imports\"
+OTHERAPPS --> TOOLS : same shape for the other\ntwo component monoliths
+TOOLS --> ROUTER : the router is the single\ndispatch surface
+FCFILES ..> LIB : embedding_client is a duplicate\nof the lib facade (BUG-003)
 
-package "Populations that have already reached a settled home" #f5fbfa {
-  component "React shell + widgets\n-> Website/FindCareChat/" as MOVED_SHELL
-  component "about-content 'me'\n-> sharedServices/Code/AboutChatHealthy/me" as MOVED_ME
-  component "iPhone / UX walkthrough tests\n-> feature tests dirs\n(e.g. FindCare/SpecialtyFilter/tests)" as MOVED_UX
-  component "Shared/ops (Caddyfile, certs, ops scripts,\ntools) -> no longer in the authored tree;\nappears only under build staging (/deploy, gitignored)" as MOVED_OPS
+package "Populations that have reached a settled home" #f5fbfa {
+  component "React shell + widgets -> Website/FindCareChat/" as MOVED_SHELL
+  component "about-content 'me' ->\nsharedServices/Code/AboutChatHealthy/me" as MOVED_ME
+  component "Geo -> sharedServices/Code/Geo/geo_tool.py ONLY.\nFindCare/Geo/ holds no tracked source\n(only __pycache__) — the duplication the\nold diagram warned of is resolved this way." as MOVED_GEO
+  component "iPhone / UX walkthrough tests ->\nfeature tests dirs\n(e.g. FindCare/SpecialtyFilter/tests)" as MOVED_UX
+  component "Shared/ops (Caddyfile, certs, ops scripts,\ntools) -> only under build staging (/deploy, gitignored)" as MOVED_OPS
 }
 
 MOVED_SHELL -[#9ca3af]-> WEBSITE
-MOVED_ME -[#9ca3af]-> SHAREDSVC
 
-package "Build tooling — decoupled from the business tree (this leg is done)" #f7f7fb {
-  component "architecture/DevOpsBuildDeployAndEnvironmentManagement/\nvite.config.ts, hf_helpers.py,\npreflight_undefined_names.py,\n_deploy_chain.py + build chain" as BUILDTOOL
+package "Build tooling — decoupled from the business tree" #f7f7fb {
+  component "architecture/DevOpsBuildDeployAndEnvironmentManagement/\nvite.config.ts, hf_helpers.py, _build_chain.py,\n_deploy_chain.py, preflight_undefined_names.py" as BUILDTOOL
   component "build_architecture.json\nFindCareChat.source_root = Website/FindCareChat\ndist = build/react/FindCareChat" as BUILDARCH
 }
 
 BUILDTOOL --> BUILDARCH : reads source_root here\ninstead of hardcoding Code/ConversationalUX
 BUILDTOOL ..> WEBSITE : resolves the React source\nfrom the declared root
 
-note bottom of UNKNOWN
-  These files sit in the interim landing without a
-  settled feature home. Choosing one is an architecture
-  decision, and guessing it here would put an
-  unapproved answer into the plan. (Was N48: the shell
-  files, iPhone tests and Shared/ops in this note have
-  since reached homes; prompt_system_maker.py has not.)
-end note
-
-note right of FINDCARE
-  Facility work is the exception to the pattern: its
-  tools (FacilitySearch, FacilitySelection) sit under
-  sharedServices/Code, not under FindCare/, so a
-  facility route still has no feature directory in
-  FindCare/ to move into. Geo now exists under BOTH
-  FindCare/ and sharedServices/Code/ — the dispersal
-  must settle that duplication (ties to BUG-003).
-end note
-
-note bottom of BUILDTOOL
-  The build no longer depends on the business layout.
-  vite.config.ts, the build chain and hf_helpers once
-  spelled Code/ConversationalUX/FindCareChat/frontend
-  in three places; they now read FindCareChat.source_root
-  from build_architecture.json. The only ConversationalUX
-  string left in _deploy_chain.py is a past-tense comment.
+note bottom of GATES
+  Gate 1 "the legacy tree is gone": files_still_in_it = 0
+  (top-level Code/ genuinely empty and unreferenced),
+  BUT it counts the substring "Code/" and so is inflated
+  by CURRENT paths — sharedServices/Code (77 in the record),
+  pipeline/Code, evaluateCare/Code, FindCare/Code. As written
+  it cannot reach green while any component keeps a Code/ dir.
+  Gate 2 "declared equals dispatched": CANNOT EVALUATE — the
+  record declares 7 tools in PascalCase (ProviderSearch), the
+  code declares 19 in snake_case (provider_search), 0 adopt
+  the CapabilityContract; there is no join. Gate 3 "a
+  declaration states where a tool is served": PASS.
 end note
 
 note bottom of APP
-  The tree is fully retired only when app.py is broken
-  up into the feature directories it imports and nothing
-  authored remains under FindCare/Code/. Until then the
-  monolith is parked, not migrated.
+  The tree is fully retired only when every route is a
+  router-dispatched tool, the three app.py monoliths are gone,
+  and nothing authored remains under any component Code/ dir.
+  Until then the monoliths are parked, running beside the
+  router that already dispatches their successors.
+end note
+
+note right of TOOLS
+  Facility work still sits under sharedServices/Code
+  (FacilitySearch, FacilitySelection), not under FindCare/,
+  so a facility route has no FindCare feature directory to
+  land in. provider_search_tool.py and provider_detail_tool.py
+  likewise live in the router directory today, not in
+  FindCare/ProviderList or FindCare/ProviderDetail.
+  find_care_facade.py + prompt_system_maker.py have no
+  settled feature home; choosing one is an architecture
+  decision, not to be guessed here.
 end note
 
 @enduml

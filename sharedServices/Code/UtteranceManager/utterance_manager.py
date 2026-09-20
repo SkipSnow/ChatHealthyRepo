@@ -24,6 +24,7 @@ from pydantic_ai import Agent, ModelRetry
 
 from chathealthy_lib.authentication.agent_deps import AgentDeps
 from chathealthy_lib.authentication.chathealthy_tool import ChatHealthyTool
+from chathealthy_lib.capability_contract import CapabilityContract
 from chathealthy_lib import run_llm
 
 from chathealthy_lib.authentication.intent_document import (
@@ -1652,14 +1653,28 @@ def to_pending(out: Optional[PendingDisambiguationOut]) -> Optional[PendingDisam
     return PendingDisambiguation(kind=out.kind, candidate=out.candidate)
 
 
-class UtteranceManagerTool(ChatHealthyTool):
+class UtteranceManagerTool(ChatHealthyTool, CapabilityContract):
     """First-class tool the router dispatches to for op == 'utterance'.
     Classifies the latest utterance and writes the resulting IntentDocument
     onto deps.user_object.intent before returning to the router."""
 
     TOOL_NAME = "utterance_manager"
+    CAPABILITY = "utterance_manager"
     Request = Request
     Response = Response
+
+    TOOL_DESCRIPTION = (
+        "Owns the routing table: classifies the latest utterance against the "
+        "tool fragments and writes the resulting IntentDocument onto "
+        "user_object.intent for the navigator to dispatch.")
+    SUBSCRIPTIONS: list[str] = ["utterance"]
+    MAY_CALL: list[str] = ["user_parameters", "geo"]
+    # On the UtteranceManager's own entry the routing value is the preamble
+    # itself — the cached system prompt the model reads to route an utterance
+    # across every tool's fragment (front_application_application_architecture
+    # record). It carries a fragment, so it is utterance-routable by
+    # definition.
+    UTTERANCE_MANAGER_PROMPT = CLASSIFIER_SYSTEM_PROMPT
 
     async def run(self, deps: AgentDeps, request: "Request") -> "Response":
         # REQ-B-012: any exception inside UM is caught here and converted to

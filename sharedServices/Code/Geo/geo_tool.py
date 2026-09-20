@@ -26,6 +26,7 @@ from chathealthy_lib import ChatHealthyLoggingService
 from chathealthy_lib.exceptions import ChatHealthyException
 from chathealthy_lib.authentication.agent_deps import AgentDeps
 from chathealthy_lib.authentication.chathealthy_tool import ChatHealthyTool
+from chathealthy_lib.capability_contract import CapabilityContract
 
 log = ChatHealthyLoggingService()
 
@@ -58,10 +59,20 @@ class Response(BaseModel):
     zip: Optional[str] = None
 
 
-class GeoTool(ChatHealthyTool):
+class GeoTool(ChatHealthyTool, CapabilityContract):
     """Free text -> structured US location, written onto the named page's
     geography. The parallel of SpecialtyFilter for the geography axis."""
     TOOL_NAME = "geo"
+    CAPABILITY = "geo"
+
+    TOOL_DESCRIPTION = (
+        "Extracts a US location from an utterance and writes it onto the "
+        "page's own (page-scoped) geography parameter.")
+    # Dispatched by the UtteranceManager as an extraction step, not by a gate
+    # op and never by a free-text utterance of its own.
+    SUBSCRIPTIONS: list[str] = []
+    MAY_CALL: list[str] = ["user_parameters"]
+    NOT_UTTERANCE_ROUTABLE = True
     Request = Request
     Response = Response
 

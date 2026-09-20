@@ -32,8 +32,7 @@ participant "React\nclient" as react
 box "SharedServices  (main)" #eef6f5
 participant "Gate\n(facade)" as gate
 participant "Universal\nNavigator" as nav
-participant "Utterance\nManager" as um
-participant "Prose\ntool" as prose
+participant "Utterance\nManager\n(RequestUsersRefinement)" as um
 end box
 
 box "FindCare  (satellite)" #f3f4f6
@@ -79,26 +78,23 @@ nav -> fcpx : dispatch provider_search
 fcpx -> ps : local call
 ps -> db : vector search Providers
 db -> ps : 25 providers (347 total)
-ps -> fcpx : result
+ps -> fcpx : result\n(UserRefinementRequestText empty — answering)
 fcpx -[#0b7a75]> nav : internal_callback (our_signature)\ncloses ledger entry
 
-== 4. Prose — user-facing sentence ==
+== 4. RequestUsersRefinement — user-facing sentence (UM capability) ==
 
-note over um, prose #fff3cd
-  OPEN ARCHITECTURAL QUESTION (not resolved here):
-  is authoring user-facing prose / asking the user a
-  question the UtteranceManager's own scope, or a
-  separate Prose tool? Three approved requirements
-  place prose+params inside the UtteranceManager
-  (EPIC-002-F-010-S-001, -S-003, EPIC-006-F-008-S-003).
-  This diagram draws Prose as a separate tool; it does
-  NOT settle which side stands.
+nav -> um : dispatch(facts)
+note right of um
+  RequestUsersRefinement — the one user-facing surface:
+  RequestUsersRefinement()          UM's own LLM authors the
+    question (no dispatchable route or a missing slot).
+  RequestUsersRefinement(question)  a tool authored it (its
+    output's UserRefinementRequestText was populated); UM delivers.
 end note
-
-nav -> prose : dispatch(facts)
-prose -> llm : author sentence
-llm -> prose : "Here are 25 cardiologists..."
-prose -[#0b7a75]> nav : internal_callback\ncloses ledger entry
+um -> um : RequestUsersRefinement — author sentence
+um -> llm : one model call
+llm -> um : "Here are 25 cardiologists..."
+um -[#0b7a75]> nav : internal_callback\ncloses ledger entry
 nav -> nav : serial deterministic merge
 nav -> gate : merged document
 gate -> react : one stream
@@ -129,10 +125,11 @@ ev -[#0b7a75]> nav : internal_callback (our_signature)\ncloses ledger entry
 
 == 7. Render — prose + the one stream ==
 
-nav -> prose : dispatch(ranked facts)
-prose -> llm : author summary
-llm -> prose : user-facing sentence
-prose -[#0b7a75]> nav : internal_callback
+nav -> um : dispatch(ranked facts)
+um -> um : RequestUsersRefinement — author summary
+um -> llm : author summary
+llm -> um : user-facing sentence
+um -[#0b7a75]> nav : internal_callback
 nav -> nav : serial merge
 nav -> gate : merged document
 gate -> react : one stream\n(the main's gate writes it)

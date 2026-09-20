@@ -25,6 +25,7 @@ from chathealthy_lib.exceptions import ChatHealthyException
 
 from chathealthy_lib.authentication.agent_deps import AgentDeps
 from chathealthy_lib.authentication.chathealthy_tool import ChatHealthyTool
+from chathealthy_lib.capability_contract import CapabilityContract
 from authentication.google_oauth_endpoint import (
     GOOGLE_AUTHZ_URL,
     build_state,
@@ -342,9 +343,20 @@ def _build_authz_url(server_env: str, session_guid: str, flow: str) -> str:
     return AUTHZ_URL_BUILDER(state, flow)
 
 
-class OAuthLoginTool(ChatHealthyTool):
+class OAuthLoginTool(ChatHealthyTool, CapabilityContract):
     """EPIC-002-F-003-S-004 Login & Registration via OAuth."""
     TOOL_NAME = "oauth_login"
+    CAPABILITY = "oauth_login"
+
+    TOOL_DESCRIPTION = (
+        "Owns the OAuth login flow (EPIC-002-F-003-S-004): exchanges the "
+        "provider code for an id_token and verifies its signature against "
+        "the trusted keys.")
+    # An identity-provider callback tool, not a gate-op subscriber; the
+    # navigator handles the claim_oauth_result op inline today.
+    SUBSCRIPTIONS: list[str] = []
+    MAY_CALL: list[str] = []
+    NOT_UTTERANCE_ROUTABLE = True
     Request = Request
     Response = Response
 

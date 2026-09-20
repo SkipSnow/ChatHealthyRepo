@@ -27,11 +27,54 @@ from chathealthy_lib.exceptions import ChatHealthyException
 
 log = ChatHealthyLoggingService()
 
+# Distinguishes "the subclass declared an empty list" from "the subclass
+# declared nothing at all". getattr(cls, attr, _UNSET) returns _UNSET only
+# when the attribute was never assigned, so silence is caught while a
+# legitimate empty SUBSCRIPTIONS/MAY_CALL passes.
+_UNSET = object()
+
 
 class ChatHealthyTool(ABC):
     TOOL_NAME: ClassVar[str]
     Request:   ClassVar[Type[BaseModel]]
     Response:  ClassVar[Type[BaseModel]]
+
+    # ── The registry declarations ─────────────────────────────────────
+    # Read out of source at build time by the tool-registry generator's
+    # AST walk (never imported, never executed) to compose the one registry
+    # the navigator dispatches from. A tool is the single place each of
+    # these facts is declared; the build reads them, it does not invent
+    # them. See the front_application_application_architecture record.
+    #
+    #   TOOL_DESCRIPTION  — what the tool is, in one sentence.
+    #   SUBSCRIPTIONS     — the gate ops this tool answers (the dispatch
+    #                       table). Read from the router's _OP_HANDLERS as
+    #                       it stands today: an op whose handler dispatches
+    #                       to exactly this tool is its subscription; wire,
+    #                       session and multi-tool-orchestration ops stay on
+    #                       the UniversalNavigator until Phase 2 makes the
+    #                       registry the dispatch authority. A leaf reached
+    #                       only by another tool calling it declares [].
+    #   MAY_CALL          — the tools this tool may call directly, by
+    #                       TOOL.run()/run_and_log(). The declared,
+    #                       non-circular call graph. A leaf that calls no
+    #                       tool declares [].
+    #
+    # Exactly one of the two below, never both and never neither:
+    #   UTTERANCE_MANAGER_PROMPT — a non-empty routing fragment the
+    #                       UtteranceManager utters for this tool. Present
+    #                       iff a person's free-text utterance can route to
+    #                       the tool (a UtteranceManager target_action).
+    #   NOT_UTTERANCE_ROUTABLE = True — no utterance may ever route here
+    #                       (wire tools, gesture/op tools, the navigator,
+    #                       and safety tools such as the lockout). Reversing
+    #                       it is an explicit source change, never an
+    #                       omission — silence refuses the subclass.
+    TOOL_DESCRIPTION:         ClassVar[str]
+    SUBSCRIPTIONS:            ClassVar[list[str]]
+    MAY_CALL:                 ClassVar[list[str]]
+    UTTERANCE_MANAGER_PROMPT: ClassVar[str]
+    NOT_UTTERANCE_ROUTABLE:   ClassVar[bool]
 
     @abstractmethod
     async def run(self, deps, request):
@@ -129,3 +172,49 @@ class ChatHealthyTool(ABC):
                     ),
                     component="ChatHealthyTool",
                 )
+
+        description = getattr(cls, "TOOL_DESCRIPTION", None)
+        if not isinstance(description, str) or not description.strip():
+            raise ChatHealthyException(
+                mode="chathealthy_tool_subclass_missing_description",
+                message=(
+                    f"ChatHealthyTool subclass {cls.__name__} must declare a "
+                    f"non-empty TOOL_DESCRIPTION; the registry reads it out of "
+                    f"source and cannot describe a tool that describes nothing."
+                ),
+                component="ChatHealthyTool",
+            )
+
+        for attr in ("SUBSCRIPTIONS", "MAY_CALL"):
+            value = getattr(cls, attr, _UNSET)
+            if value is _UNSET or not isinstance(value, list) \
+                    or not all(isinstance(item, str) for item in value):
+                raise ChatHealthyException(
+                    mode="chathealthy_tool_subclass_bad_registry_list",
+                    message=(
+                        f"ChatHealthyTool subclass {cls.__name__} must declare "
+                        f"{attr} as a list of tool/op names (it may be empty). "
+                        f"Silence is not an empty list: the build reads what is "
+                        f"declared, so an absent {attr} is an undeclared fact."
+                    ),
+                    component="ChatHealthyTool",
+                    context={"attribute": attr},
+                )
+
+        prompt = getattr(cls, "UTTERANCE_MANAGER_PROMPT", None)
+        has_prompt = isinstance(prompt, str) and bool(prompt.strip())
+        not_routable = getattr(cls, "NOT_UTTERANCE_ROUTABLE", None) is True
+        if has_prompt == not_routable:
+            raise ChatHealthyException(
+                mode="chathealthy_tool_subclass_routability_undeclared",
+                message=(
+                    f"ChatHealthyTool subclass {cls.__name__} must declare "
+                    f"EXACTLY ONE of UTTERANCE_MANAGER_PROMPT (a non-empty "
+                    f"routing fragment) or NOT_UTTERANCE_ROUTABLE = True. "
+                    f"Declaring neither leaves the build unable to say whether "
+                    f"an utterance may reach the tool; declaring both says two "
+                    f"contradictory things."
+                ),
+                component="ChatHealthyTool",
+                context={"has_prompt": has_prompt, "not_routable": not_routable},
+            )

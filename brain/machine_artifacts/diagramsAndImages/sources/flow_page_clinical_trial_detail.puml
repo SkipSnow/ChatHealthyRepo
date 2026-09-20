@@ -30,6 +30,13 @@ PXY -> CT : relay locally (function call)
 CT -> CTG : query trials by condition / location
 CTG --> CT : the matching trials, as full records
 CT --> PXY : trial-list document
+note over CT
+  The ClinicalTrials tool's output document carries a UserRefinementRequestText field.
+  Empty here — the tool is ANSWERING with trials, not asking the user anything.
+  Populated would mean the tool is ASKING a question, delivered to the user only
+  through the UtteranceManager's RequestUsersRefinement(question). No tool talks
+  to the user directly.
+end note
 PXY --> UN : internal_callback (proof: our_signature) — closes the ledger entry
 UN --> GATE : the reconciled clinicalTrial page (the gate writes the one stream)
 GATE --> PAGE : the trial list
@@ -67,16 +74,6 @@ note over GATE, CTG #fde68a
     trial_detail -> ClinicalTrials.gov, reconciled against
     required_members = { trial_detail }, with on_timeout /
     on_conflict / on_missing_required instrumented by impact.
-end note
-
-note over UN #eef2ff
-  OPEN ARCHITECTURAL QUESTION — do NOT resolve.
-  When a built trial_detail member needs a user-facing sentence,
-  is that prose the UtteranceManager's OWN scope, or a separate
-  "Prose" tool? The registry instance carries a Prose route name
-  (evidence, not a decision); approved requirements place authoring
-  inside the UtteranceManager. Both contend; the operator decides.
-  Drawn open on every flow that would touch it.
 end note
 
 @enduml

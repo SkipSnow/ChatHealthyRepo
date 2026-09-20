@@ -48,6 +48,7 @@ from pydantic import BaseModel
 
 from chathealthy_lib.authentication.agent_deps import AgentDeps, append_system_utterance
 from chathealthy_lib.authentication.chathealthy_tool import ChatHealthyTool
+from chathealthy_lib.capability_contract import CapabilityContract
 from chathealthy_lib.authentication.user_object import Lockout
 
 from chathealthy_lib.authentication.intent_document import (
@@ -198,8 +199,19 @@ class Response(BaseModel):
     locked: bool = False
 
 
-class LockoutTool(ChatHealthyTool):
+class LockoutTool(ChatHealthyTool, CapabilityContract):
     TOOL_NAME = "lockout_tool"
+    CAPABILITY = "lockout_tool"
+
+    TOOL_DESCRIPTION = (
+        "Three-task safety-lockout dispatch: locks the IP on an "
+        "immediate-medical-attention signal and records the safety event.")
+    SUBSCRIPTIONS: list[str] = []
+    MAY_CALL: list[str] = []
+    # A safety mechanism: no utterance may ever route to it. The navigator
+    # dispatches it from the hydrated lockout flag; reversing this is an
+    # explicit source change, never an omission (security architecture record).
+    NOT_UTTERANCE_ROUTABLE = True
     Request = Request
     Response = Response
 

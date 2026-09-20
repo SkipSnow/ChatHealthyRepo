@@ -18,20 +18,8 @@ package "Browser" #fdfdfd {
 package "SharedServices — the main server" #eef6f5 {
   [Gate\na web-server facade.\nCollects the session token, head,\nGET/POST params; streams the answer.\nThe only part that knows transport.] as GATE
   [UniversalNavigator\nreads the map and drives the route.\nCompleteness · render ledger · merge ·\nexternal calls · session security.\nThe ONLY node that takes external traffic.\nHolds no data.] as UN
-  [UtteranceManager\nclassify: preamble + every\ntool fragment in, dispatch set out.\nOne model call. Knows no parameters.] as UM
-  [Prose tool\nUN hands it the facts,\nit returns the sentence] as PROSE
+  [UtteranceManager\nclassify: preamble + every\ntool fragment in, dispatch set out.\nOne model call. Knows no parameters.\nThe one conversational surface —\nno tool ever speaks to the user directly.\n\nRequestUsersRefinement(): UM's own LLM\nauthors the question, used when classification\nfinds no dispatchable route or a missing slot.\nRequestUsersRefinement(question): a dispatched\ntool authored the question; UM delivers it.] as UM
 }
-
-note bottom of PROSE
-  OPEN ARCHITECTURAL QUESTION — do not resolve.
-  Is asking the user a question the UtteranceManager's own
-  scope (classify + prose in one node), or this separate
-  Prose tool? Three approved requirements place prose inside
-  the UtteranceManager (EPIC-002-F-010-S-001/-S-003,
-  EPIC-006-F-008-S-003); the registry instance carries a
-  "Prose" route. Drawn here as a separate tool pending the
-  operator's decision; neither side is settled.
-end note
 
 package "FindCare — a satellite server" #fdfdfd {
   [UniversalNavigatorProxy\nrelays tool-to-tool both ways.\nHolds the metadata slice the main gave it.\nNo sessions, no ledger, no merge.\nRefuses work on stale metadata.] as PROXY
@@ -41,6 +29,7 @@ package "FindCare — a satellite server" #fdfdfd {
 database "ChatHealthyFrontEnd (Mongo)" as MONGO {
   [Registry\none document per build per env;\ninstance {build, commit, env, live}.\nThe map: presence = allowlist,\nsubscriptions = dispatch, may_call = DAG] as REG
   [Sessions] as SESS
+  [Registered Users] as USERS
   [Render ledger\ndispatch records the expectation,\nthe callback closes it] as LEDGER
 }
 
@@ -50,8 +39,7 @@ UN -down-> UM : the utterance
 UM -up-> UN : the dispatch set (routes)
 UN -down-> PROXY : (1) tool_to_tool\ncrosses the wire to the satellite
 PROXY -down-> TOOLS : a local function call
-UN -right-> PROSE : the facts
-TOOLS -up-> UN : (5) internal_callback\nour_signature, back to the main
+TOOLS -up-> UN : (5) internal_callback\nour_signature, back to the main\noutput carries UserRefinementRequestText
 UN -up-> GATE : the one stream\nthe gate writes it
 
 UN ..> REG : reads the live doc at startup
@@ -59,21 +47,19 @@ UN ..> SESS : session maintenance
 UN ..> LEDGER : opens and closes entries
 UN ..> PROXY : metadata at startup,\nruntime changes propagated
 
+note right of TOOLS
+  A tool never speaks to the user. Its output field
+  UserRefinementRequestText: populated = the tool is ASKING
+  the user a question, which UtteranceManager delivers via
+  RequestUsersRefinement(question); empty = the tool is answering.
+end note
+
 note right of UN
   Five incoming call types, all mapped as routes:
   (1) tool_to_tool  (2) third_party_callback (api_key)
   (3) static_witness (none)  (4) client_sessioned (session)
   (5) internal_callback (our_signature). A tool throws;
   the navigator that called catches, logs, and answers.
-end note
-
-note bottom of GATE
-  OPEN QUESTION — REQ-B-001 dispatch location (do not resolve).
-  This design makes the Gate transport-only and the
-  UniversalNavigator the dispatcher. If REQ-B-001's text
-  places the dispatch on the Gate, the requirement and the
-  design disagree; the requirement is authoritative. The
-  reconciliation is the operator's (see the Refactor Plan).
 end note
 
 note bottom of SESS

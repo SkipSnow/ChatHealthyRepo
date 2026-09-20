@@ -36,7 +36,13 @@ preamble plus every tool's registry fragment in, the
 dispatch SET out. Non-blocking, and it knows no parameters;
 note right #f3f4f6
   The classifier is gone; this IS the classifier.
-  It answers with routes, it never commands.
+  It answers with routes, it never commands. It also
+  holds the **RequestUsersRefinement** capability, the one
+  surface that ever speaks to the user, in two forms:
+  RequestUsersRefinement() -- its own LLM authors the
+  question when classification finds no dispatchable route
+  or a missing slot; RequestUsersRefinement(question) -- a
+  dispatched tool authored the question and it delivers it.
 end note
 
 :**UniversalNavigator** validates the selection
@@ -66,21 +72,19 @@ note left #f3f4f6
 end note
 
 if (any required field unmet?) then (yes)
-  :**UniversalNavigator** dispatches the author of the
-  user-facing question with the facts: the names of the
-  missing fields;
-  note right #fff7ed
-    **OPEN ARCHITECTURAL QUESTION — not resolved here.**
-    Is authoring the user-facing question the
-    **UtteranceManager's** own scope, or a separate
-    **Prose** tool? Both positions are live and the
-    diagram picks neither. Three approved requirements
-    place prose inside the UtteranceManager
-    (EPIC-002-F-010-S-001 author user_message,
-    EPIC-002-F-010-S-003 manufacture path,
-    EPIC-006-F-008-S-003 parameter writer); the tool
-    registry instance carries a 'Prose' route name.
-    The operator resolves which stands.
+  :the search route needs refined input, so it calls
+  **UtteranceManager.RequestUsersRefinement(question)** with
+  the facts: the names of the missing fields. The
+  **RequestUsersRefinement** capability inside the
+  UtteranceManager authors the user-facing question;
+  note right #f3f4f6
+    RequestUsersRefinement is a capability of the
+    UtteranceManager, not a separate tool the
+    UniversalNavigator dispatches. The UtteranceManager
+    decides whether an utterance is sufficient to dispatch
+    to >=1 tool and dispatches if so; a route needing more
+    input reaches back through RequestUsersRefinement to
+    ask the user.
   end note
   :the question is authored and returned
   as an internal callback;

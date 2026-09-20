@@ -360,6 +360,12 @@ class GitStateChangeAuthorization:
         """
         if depth > self.WALK_DEPTH_LIMIT:
             return [segment]
+        # An exempt program carries its own authorization, so its internals
+        # are out of scope: leave it a single leaf and do not read the script.
+        # Walking it anyway is both slow (its whole import graph) and wrong (a
+        # git write inside a sanctioned build would gate the build it governs).
+        if self.invoked_program(segment) in self.exempt:
+            return [segment]
         scripted = self.script_commands(segment, depth)
         if scripted is None:
             return [segment]

@@ -21,6 +21,7 @@ from chathealthy_lib.exceptions import ChatHealthyException
 
 from chathealthy_lib.authentication.agent_deps import AgentDeps
 from chathealthy_lib.authentication.chathealthy_tool import ChatHealthyTool
+from chathealthy_lib.capability_contract import CapabilityContract
 
 try:
     from ClinicalTrials.clinical_trials_models import (
@@ -445,11 +446,25 @@ async def _fetch_ct_gov(
     return [_parse_trial(s) for s in studies], next_token, total_count
 
 
-class ClinicalTrialsTool(ChatHealthyTool):
+class ClinicalTrialsTool(ChatHealthyTool, CapabilityContract):
     """EPIC-006-F-005 — Find Clinical Trials."""
     TOOL_NAME = "clinical_trials"
+    CAPABILITY = "clinical_trials"
     Request = Request
     Response = Response
+
+    TOOL_DESCRIPTION = (
+        "Fetches recruiting clinical trials from ClinicalTrials.gov by "
+        "condition and the person's stated criteria (EPIC-006-F-005) and "
+        "streams the matching trials to the clinical-trial page.")
+    # Reached over HTTP by the SharedServices clinical_trials_dispatcher, not
+    # by a gate op on this side; it answers no op directly.
+    SUBSCRIPTIONS: list[str] = []
+    MAY_CALL: list[str] = []
+    # The utterance route for clinical trials is the SharedServices-side
+    # clinical_trials_dispatcher (findClinicalTrials); this FindCare worker is
+    # reached by that dispatcher across the wire, never by the UtteranceManager.
+    NOT_UTTERANCE_ROUTABLE = True
 
     async def run(self, deps: AgentDeps, request: "Request") -> "Response":
         try:

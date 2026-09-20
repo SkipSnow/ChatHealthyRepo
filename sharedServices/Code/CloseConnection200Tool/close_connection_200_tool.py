@@ -17,6 +17,7 @@ from pydantic import BaseModel
 
 from chathealthy_lib.authentication.agent_deps import AgentDeps
 from chathealthy_lib.authentication.chathealthy_tool import ChatHealthyTool
+from chathealthy_lib.capability_contract import CapabilityContract
 
 log = ChatHealthyLoggingService()
 
@@ -30,8 +31,19 @@ class Response(BaseModel):
     closed: bool
 
 
-class CloseConnection200Tool(ChatHealthyTool):
+class CloseConnection200Tool(ChatHealthyTool, CapabilityContract):
     TOOL_NAME = "close_connection_200"
+    CAPABILITY = "close_connection_200"
+
+    TOOL_DESCRIPTION = (
+        "Closes the streaming response with HTTP 200 OK when the turn is "
+        "answered by prose alone; it knows nothing of what was said.")
+    SUBSCRIPTIONS: list[str] = []
+    MAY_CALL: list[str] = []
+    UTTERANCE_MANAGER_PROMPT = (
+        "Route here (closeConnection200) when the turn needs no tool work — "
+        "the person is answered by prose alone (a clarification, a follow-up, "
+        "or a conversational reply) and the connection then closes.")
     Request = Request
     Response = Response
 
