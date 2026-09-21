@@ -110,7 +110,7 @@ from prompt_system_maker import PromptSystemMaker
 # ---------------------------------------------------------------------------
 # Configuration
 # ---------------------------------------------------------------------------
-ENV_PREFIX    = os.getenv("ENV_PREFIX", "dev")
+from db_config import ENV_PREFIX, get_db  # drained from app.py
 DEBUG         = os.getenv("DEBUG", "false").lower() == "true"
 HUMAN_TESTING_RAW = os.getenv("HUMAN_TESTING", "false")
 HUMAN_TESTING = HUMAN_TESTING_RAW.lower() not in ("false", "0", "")
@@ -124,26 +124,7 @@ EMERGENCY_RESPONSE = (
 # ---------------------------------------------------------------------------
 # MongoDB
 # ---------------------------------------------------------------------------
-db_manager = None
-
-def get_db():
-    global db_manager
-    try:
-        if db_manager is None:
-            db_manager = ChatHealthyMongoUtilities()
-        return db_manager.getConnection("frontendUser", "ChatHealthyFrontEnd")
-    except Exception as e:
-        # Mode 1 (REQ-B-008): recoverable — caller's next call will retry
-        # via the same lazy-init path. log.info + default if_not_debug_log
-        # so this only emits in debug mode.
-        log.info("MongoDB unavailable (will retry next call): %s", e, exc=ChatHealthyException(
-                                                                          mode="mongo_unavailable",
-                                                                          message=f"MongoDB unavailable (will retry next call): {e}",
-                                                                          component="FindCareBackend",
-                                                                          exception=e,
-                                                                      ))
-        db_manager = None
-        return None
+# get_db and ENV_PREFIX are drained to db_config.py (imported above).
 
 # ---------------------------------------------------------------------------
 # Utilities — push notification + DB write
@@ -259,13 +240,8 @@ def system_prompt(follow_up_check: bool = False) -> str:
 # ---------------------------------------------------------------------------
 # Service initialization — ARCH-001
 # ---------------------------------------------------------------------------
-embedding_client = EmbeddingClient()
-
-specialty_service = SpecialtyFilter(
-    get_db_fn=get_db, env_prefix=ENV_PREFIX,
-    get_vector_fn=embedding_client.get_specialty_vector)
-find_care = FindCareService(
-    get_db_fn=get_db, env_prefix=ENV_PREFIX, specialty_service=specialty_service)
+# embedding_client, specialty_service and find_care are drained to services.py.
+from services import embedding_client, specialty_service, find_care  # noqa: E402
 
 clinical_trials_service = ClinicalTrialsService()
 provider_detail_service = ProviderDetailService()
@@ -1229,67 +1205,12 @@ def _write_page_parameters(page: str, entries: dict) -> None:
         )
 
 
-def _resolve_specialties(complaint: str) -> dict:
-    """The kinds of care giver that treat a complaint.
-
-    Extracted so the resolution raises without also logging (Rule-005
-    statement 3). find_specialties is its own single catch point and
-    answers with an error string rather than an exception; an unresolved
-    complaint is not a search across every specialty.
-
-    The rows leave in the shape the panel holds them in, the same one
-    /nucc/classify hands back. The complaint comes back too, because the
-    pipeline reads the words clinically -- 'shrink' returns as
-    'psychological problem' -- and that reading is what the page records.
-    """
-    resolved = specialty_service.find_specialties(
-        complaint, None, SECTION_INDIVIDUAL)
-    if "error" in resolved:
-        raise ChatHealthyException(
-            mode="complaint_unresolved",
-            component="FindCareBackend",
-            message=f"complaint {complaint!r} did not resolve: "
-                    f"{resolved['error']}",
-        )
-    return {
-        "specialties": [{"code": row["Code"], "name": row["Display Name"],
-                         "can_prescribe": row.get("can_prescribe", False),
-                         "homeopathic": row.get("homeopathic", False),
-                         "rank": row.get("rank", 0)}
-                        for row in resolved.get("specialties", [])],
-        "complaint": str(resolved.get("complaint") or "").strip() or complaint,
-    }
-
-
-def _ticked(offered: list[dict]) -> list[str]:
-    """Which offered rows the panel paints ticked, and therefore which the
-    search must run under: the prescribers. The panel paints prescribers
-    checked and everything else clear, so a search over the whole offered
-    set would show one thing and do another."""
-    return [row["code"] for row in offered if row.get("can_prescribe")]
-
-
-def _specialty_groups(offered: list[dict]) -> dict:
-    """The sets the panel offers as one gesture, named by this service.
-
-    Which kinds of care giver may prescribe, and which are homeopathic, are
-    clinical facts about the records this service holds. The panel offers a
-    control that ticks each set at once, and it can do that knowing only
-    which codes are in the set -- so it is given the sets rather than the
-    classification, and never has to read a clinical field to group by it.
-
-    The default is here for the same reason: what a fresh panel arrives
-    ticked with is a rule about the search that follows it, and it is
-    already stated once by _ticked.
-    """
-    return {
-        "all_codes": [row["code"] for row in offered if row.get("code")],
-        "prescriber_codes": [row["code"] for row in offered
-                             if row.get("can_prescribe")],
-        "homeopathic_codes": [row["code"] for row in offered
-                              if row.get("homeopathic")],
-        "default_selected_codes": _ticked(offered),
-    }
+# _resolve_specialties, _ticked, _specialty_groups are drained to services.py.
+from services import (  # noqa: E402
+    resolve_specialties as _resolve_specialties,
+    ticked as _ticked,
+    specialty_groups as _specialty_groups,
+)
 
 
 def _searched_codes(offered: list[dict], ticked: list[str]) -> list[str]:

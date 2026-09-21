@@ -257,7 +257,14 @@ def install_gate_route(app: FastAPI, *, navigator, gate_request_cls, origin: str
     want_ndjson, client_ip``); the Gate fills it from the HTTP call and
     knows nothing of what the navigator does with it. ``origin`` is the
     component name the session-token signature is verified against.
+
+    The Gate reaches the navigator only through its proxy (per
+    ss_internal_components): the navigator handed in here is co-resident, so
+    the proxy delegates in-process, but the Gate holds the face, not the
+    navigator.
     """
+    from .universal_navigator_proxy import UniversalNavigatorProxy  # noqa: PLC0415
+    proxy = UniversalNavigatorProxy(navigator)
 
     async def gate(request: Request):
         """Single entrance for every client call.
@@ -327,7 +334,7 @@ def install_gate_route(app: FastAPI, *, navigator, gate_request_cls, origin: str
                 want_ndjson=want_ndjson,
                 client_ip=client_ip,
             )
-            gate_resp = await navigator.handle_gate(gate_req)
+            gate_resp = await proxy.handle_gate(gate_req)
 
             if gate_resp.body_kind == "ndjson_stream":
                 resp: Any = StreamingResponse(

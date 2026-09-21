@@ -1124,7 +1124,15 @@
           "source_location": "ChatHealthyLib/src/chathealthy_lib/gate.py",
           "handler_type": "python_source",
           "disposition": "referenced",
-          "content_hash": "2c11900d8312ddb001080eb019963b69c39c1d4da689be1e8fa53cd227bf0846",
+          "content_hash": "3cdb1096a906d7a5df06feb9315b77e1ff39a6b724924076de64f96978f60966",
+          "package": "service_runtime"
+        },
+        {
+          "feature_id": "EPIC-008-F-012",
+          "source_location": "ChatHealthyLib/src/chathealthy_lib/universal_navigator_proxy.py",
+          "handler_type": "python_source",
+          "disposition": "referenced",
+          "content_hash": "f4724a2c2f78ce4866c79e9467feb2caf92917e706db8c4dd1b5e269342fb86b",
           "package": "service_runtime"
         },
         {
@@ -1576,7 +1584,15 @@
           "source_location": "ChatHealthyLib/src/chathealthy_lib/gate.py",
           "handler_type": "python_source",
           "disposition": "referenced",
-          "content_hash": "2c11900d8312ddb001080eb019963b69c39c1d4da689be1e8fa53cd227bf0846",
+          "content_hash": "3cdb1096a906d7a5df06feb9315b77e1ff39a6b724924076de64f96978f60966",
+          "package": "service_runtime"
+        },
+        {
+          "feature_id": "EPIC-008-F-012",
+          "source_location": "ChatHealthyLib/src/chathealthy_lib/universal_navigator_proxy.py",
+          "handler_type": "python_source",
+          "disposition": "referenced",
+          "content_hash": "f4724a2c2f78ce4866c79e9467feb2caf92917e706db8c4dd1b5e269342fb86b",
           "package": "service_runtime"
         },
         {
@@ -1775,7 +1791,23 @@
           "source_location": "FindCare/Code/app.py",
           "handler_type": "python_source",
           "disposition": "referenced",
-          "content_hash": "5ad336f78b4ddafbb8aeb3aa3b1aa4d99ad60d0d0b65c1ebaefe296bf4afabb8",
+          "content_hash": "c7515fd285dd0ef483338f23fe8a086532f4d5b3804d68ec89d9c0024a2870eb",
+          "package": "service_runtime"
+        },
+        {
+          "feature_id": "EPIC-008-F-012",
+          "source_location": "FindCare/Code/db_config.py",
+          "handler_type": "python_source",
+          "disposition": "referenced",
+          "content_hash": "a6a9feb23bb399f770cd30cb1313fdef29055844e575c95b7570e943ebcee49b",
+          "package": "service_runtime"
+        },
+        {
+          "feature_id": "EPIC-008-F-012",
+          "source_location": "FindCare/Code/services.py",
+          "handler_type": "python_source",
+          "disposition": "referenced",
+          "content_hash": "65b0ecc9b3eaee01293608a6e81d555a8292c172988da5ceb025e6aad224ab59",
           "package": "service_runtime"
         },
         {
@@ -2682,7 +2714,15 @@
           "source_location": "ChatHealthyLib/src/chathealthy_lib/gate.py",
           "handler_type": "python_source",
           "disposition": "referenced",
-          "content_hash": "2c11900d8312ddb001080eb019963b69c39c1d4da689be1e8fa53cd227bf0846",
+          "content_hash": "3cdb1096a906d7a5df06feb9315b77e1ff39a6b724924076de64f96978f60966",
+          "package": "service_runtime"
+        },
+        {
+          "feature_id": "EPIC-008-F-012",
+          "source_location": "ChatHealthyLib/src/chathealthy_lib/universal_navigator_proxy.py",
+          "handler_type": "python_source",
+          "disposition": "referenced",
+          "content_hash": "f4724a2c2f78ce4866c79e9467feb2caf92917e706db8c4dd1b5e269342fb86b",
           "package": "service_runtime"
         },
         {
