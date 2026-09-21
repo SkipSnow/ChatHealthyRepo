@@ -1791,7 +1791,7 @@
           "source_location": "FindCare/Code/app.py",
           "handler_type": "python_source",
           "disposition": "referenced",
-          "content_hash": "c7515fd285dd0ef483338f23fe8a086532f4d5b3804d68ec89d9c0024a2870eb",
+          "content_hash": "80f872ae1c4f8e687b6c3c1ef2da2f68fee5836be009a24a18424da66be6c7b4",
           "package": "service_runtime"
         },
         {
@@ -1799,7 +1799,7 @@
           "source_location": "FindCare/Code/db_config.py",
           "handler_type": "python_source",
           "disposition": "referenced",
-          "content_hash": "a6a9feb23bb399f770cd30cb1313fdef29055844e575c95b7570e943ebcee49b",
+          "content_hash": "8f6a4c7cf13212c5302e774e0b4caf9e0696bd787a22dce238e694688c452b7f",
           "package": "service_runtime"
         },
         {
@@ -1807,7 +1807,63 @@
           "source_location": "FindCare/Code/services.py",
           "handler_type": "python_source",
           "disposition": "referenced",
-          "content_hash": "65b0ecc9b3eaee01293608a6e81d555a8292c172988da5ceb025e6aad224ab59",
+          "content_hash": "e0eeaf3af5308e584f6ffa2ff324a71b1eb8d67e7d404b20c01dc3e5d20088e0",
+          "package": "service_runtime"
+        },
+        {
+          "feature_id": "EPIC-008-F-012",
+          "source_location": "FindCare/Code/page_parameters.py",
+          "handler_type": "python_source",
+          "disposition": "referenced",
+          "content_hash": "d55ebab912867dcc408b52792301f9e943ccbd542bfb65068307fc8d3b0f2e54",
+          "package": "service_runtime"
+        },
+        {
+          "feature_id": "EPIC-008-F-012",
+          "source_location": "FindCare/Code/route_support.py",
+          "handler_type": "python_source",
+          "disposition": "referenced",
+          "content_hash": "2ce4f40e969e3bb3f1dd9d454dc2d50606f35ddf840ce510d2193ba0fd26591c",
+          "package": "service_runtime"
+        },
+        {
+          "feature_id": "EPIC-008-F-012",
+          "source_location": "FindCare/ProviderManagement/individual_provider_page.py",
+          "handler_type": "python_source",
+          "disposition": "referenced",
+          "content_hash": "04816da0f5f562379495b168026e3bcae6636f44b9a1a18c9ac5ecc0ff10b6f0",
+          "package": "service_runtime"
+        },
+        {
+          "feature_id": "EPIC-008-F-012",
+          "source_location": "FindCare/ProviderManagement/facility_page.py",
+          "handler_type": "python_source",
+          "disposition": "referenced",
+          "content_hash": "67dbdb32a130f8fa6b495abc5be36989206f9bf3b1e7d003f715d3cfd435e479",
+          "package": "service_runtime"
+        },
+        {
+          "feature_id": "EPIC-008-F-012",
+          "source_location": "FindCare/Code/page_operations.py",
+          "handler_type": "python_source",
+          "disposition": "referenced",
+          "content_hash": "8e471a6dd13cd52ae63d4d730d53251b74d9c6497d4f4f39f13d38454094426f",
+          "package": "service_runtime"
+        },
+        {
+          "feature_id": "EPIC-008-F-012",
+          "source_location": "FindCare/ProviderManagement/clinical_trial_page.py",
+          "handler_type": "python_source",
+          "disposition": "referenced",
+          "content_hash": "241253aa592324f25bfaf2c4979626c070ff18242dcb597eccb49dbd9a4fb301",
+          "package": "service_runtime"
+        },
+        {
+          "feature_id": "EPIC-008-F-012",
+          "source_location": "FindCare/ProviderDetail/provider_detail_page.py",
+          "handler_type": "python_source",
+          "disposition": "referenced",
+          "content_hash": "e40dd83a496158e45d85e78978964896dec8ae5f7c44ee3816e205fb6b72f21d",
           "package": "service_runtime"
         },
         {
@@ -2039,7 +2095,7 @@
           "source_location": "sharedServices/Code/UtteranceManager/UserPromptWidget.tsx",
           "handler_type": "static_asset",
           "disposition": "referenced",
-          "content_hash": "b91751046a6eaf9a91f382830bc482f7d5a071da652e49f0ea0bba81828ba8ab",
+          "content_hash": "7060821905733b707132dd4f5de6793bb8157153c09331ede84c5fb742e94a8d",
           "package": "service_runtime"
         },
         {
@@ -2218,7 +2274,7 @@
           "source_location": "FindCare/SpecialtyFilter/filter.py",
           "handler_type": "python_source",
           "disposition": "referenced",
-          "content_hash": "ddd9d48d6e1bae4ae22c87727375977dc2c565fdc80cc9021e65c30bcd896959",
+          "content_hash": "37241e613d16af6e42d18d9dd55de967e4d03395d01c3b1d7628534e0a731b7f",
           "package": "service_runtime"
         },
         {
@@ -2234,7 +2290,7 @@
           "source_location": "FindCare/SpecialtyFilter/specialty_filter_tool.py",
           "handler_type": "python_source",
           "disposition": "referenced",
-          "content_hash": "c42d5b9797af1a98d741748cd5c06bd74e65aa25a87f4e42e04b5f1c0f8c7b1b",
+          "content_hash": "4c92d95c65b424ddb1e6cd5f4a31038536af26dc01ec9515e0754ffb3130b2d2",
           "package": "service_runtime"
         },
         {
@@ -2905,7 +2961,7 @@
           "source_location": "FindCare/SpecialtyFilter/filter.py",
           "handler_type": "python_source",
           "disposition": "referenced",
-          "content_hash": "ddd9d48d6e1bae4ae22c87727375977dc2c565fdc80cc9021e65c30bcd896959",
+          "content_hash": "37241e613d16af6e42d18d9dd55de967e4d03395d01c3b1d7628534e0a731b7f",
           "package": "service_runtime"
         },
         {
@@ -2913,7 +2969,7 @@
           "source_location": "FindCare/SpecialtyFilter/specialty_filter_tool.py",
           "handler_type": "python_source",
           "disposition": "referenced",
-          "content_hash": "c42d5b9797af1a98d741748cd5c06bd74e65aa25a87f4e42e04b5f1c0f8c7b1b",
+          "content_hash": "4c92d95c65b424ddb1e6cd5f4a31038536af26dc01ec9515e0754ffb3130b2d2",
           "package": "service_runtime"
         },
         {
@@ -2965,6 +3021,14 @@
           "package": "service_runtime"
         },
         {
+          "feature_id": "EPIC-002-F-004",
+          "source_location": "sharedServices/Code/AuthorizationsAndAuthentications/findcare_search_dispatchers.py",
+          "handler_type": "python_source",
+          "disposition": "referenced",
+          "content_hash": "4e69fecb63fe52d769d47a715c2ae0c6fc89e31e8d9a30d905f35479841399a2",
+          "package": "service_runtime"
+        },
+        {
           "feature_id": "EPIC-008-F-012",
           "source_location": "sharedServices/Code/AuthorizationsAndAuthentications/evalcare_splash_tool.py",
           "handler_type": "python_source",
@@ -2986,6 +3050,14 @@
           "handler_type": "python_source",
           "disposition": "referenced",
           "content_hash": "e2e21ffd8e1ac55c1e197aa78a30a53d51b1538eaf5de676fdceb70cfbc58164",
+          "package": "service_runtime"
+        },
+        {
+          "feature_id": "EPIC-008-F-012",
+          "source_location": "sharedServices/Code/AuthorizationsAndAuthentications/auth_issue_endpoint.py",
+          "handler_type": "python_source",
+          "disposition": "referenced",
+          "content_hash": "9bded11976aeaf5711146f65ea946763a219063af55c747d5e1a42404dd61a91",
           "package": "service_runtime"
         },
         {
@@ -3017,7 +3089,7 @@
           "source_location": "sharedServices/Code/AuthorizationsAndAuthentications/universal_navigation_tool.py",
           "handler_type": "python_source",
           "disposition": "referenced",
-          "content_hash": "929f098213666b94022e6297892c225384c6edd3e7bd127468213036f450af99",
+          "content_hash": "94064ddc0c4b058f6b11fe1484ab2565a257840a075dfe1acfe3cd9424f7c2a7",
           "package": "service_runtime"
         },
         {
@@ -3161,7 +3233,7 @@
           "source_location": "sharedServices/Code/UtteranceManager/utterance_manager.py",
           "handler_type": "python_source",
           "disposition": "referenced",
-          "content_hash": "49701c94067ce1310fbdb83c826552f74ee5efac875fcf2bf4b99c2912a674f8",
+          "content_hash": "657d895ab6a1c591b498a93e434262ba6c792fffe95b9613581cc175fb524405",
           "package": "service_runtime"
         },
         {
@@ -3169,7 +3241,7 @@
           "source_location": "sharedServices/Code/app.py",
           "handler_type": "python_source",
           "disposition": "referenced",
-          "content_hash": "3cca2aa047cd0c8249b4493bbd0af59b995ea7203da554141cf96023b7269baa",
+          "content_hash": "7e525db5a985e198b5e6d67c5fbd305f59b9116906ff526ac7eebe2d1a04192e",
           "package": "service_runtime"
         },
         {
@@ -6536,7 +6608,8 @@
                       "page": "facility",
                       "tools": [
                         "FacilitySearch",
-                        "FacilityDetail"
+                        "FacilityDetail",
+                        "SpecialtyFilter"
                       ]
                     },
                     {
@@ -7796,7 +7869,8 @@
                       "page": "facility",
                       "tools": [
                         "FacilitySearch",
-                        "FacilityDetail"
+                        "FacilityDetail",
+                        "SpecialtyFilter"
                       ]
                     },
                     {
@@ -9011,7 +9085,8 @@
                       "page": "facility",
                       "tools": [
                         "FacilitySearch",
-                        "FacilityDetail"
+                        "FacilityDetail",
+                        "SpecialtyFilter"
                       ]
                     },
                     {
@@ -10226,7 +10301,8 @@
                       "page": "facility",
                       "tools": [
                         "FacilitySearch",
-                        "FacilityDetail"
+                        "FacilityDetail",
+                        "SpecialtyFilter"
                       ]
                     },
                     {

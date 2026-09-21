@@ -7,6 +7,16 @@
 // router:final, re-enables the form.
 
 import { useEffect, useRef } from 'react'
+import { openPopup } from '../displayChrome/popupFrame'
+
+// The notice shown when Send is pressed with nothing typed. A blank message
+// is not sent to the server -- there is nothing to send -- and the person is
+// told so rather than left wondering why nothing happened.
+function emptyMessageNotice(): string {
+  return `<div class="ch-empty-notice" role="alert"
+    style="padding:1.25em 1.5em;font-size:1em;line-height:1.4;color:#0b2540;">
+    There is nothing to send &mdash; type a message first.</div>`
+}
 
 function renderPromptForm(disabled: boolean): string {
   const dis = disabled ? 'disabled' : ''
@@ -46,7 +56,11 @@ export default function UserPromptWidget() {
       if (msg.type === 'router:action' && msg.action === 'user:submit') {
         if (inflightRef.current) return
         const text = String((msg.data && msg.data.text) || '').trim()
-        if (!text) return
+        if (!text) {
+          // Nothing to send: tell the person, and make NO server request.
+          openPopup('NarrowPopUp', emptyMessageNotice())
+          return
+        }
         inflightRef.current = true
         paint(true)
         window.parent.postMessage({

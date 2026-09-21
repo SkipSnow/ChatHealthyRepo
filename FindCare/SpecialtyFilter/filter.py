@@ -12,6 +12,7 @@
 # prompts.json (records `specialty_normalize_system_prompt` and
 # `specialty_filter_system_prompt`) per S-002-T-001 / T-005.
 
+import asyncio
 import json
 from chathealthy_lib import ChatHealthyLoggingService
 from chathealthy_lib.exceptions import ChatHealthyException
@@ -21,7 +22,7 @@ from typing import Optional
 
 from pydantic import BaseModel, Field
 
-from chathealthy_lib.llm import run_llm_sync
+from chathealthy_lib.llm import run_llm
 from chathealthy_lib.runtime_data_collections import specialty_meta_coll
 
 # Resolve project root from this file's location:
@@ -135,6 +136,22 @@ class NormalizedRequest(BaseModel):
         description="The same request restated as the kind of problem the "
                     "person has, in two to four words of plain clinical "
                     "language.")
+    # The material-change decision. This is the ONE place cache-vs-LLM is
+    # decided: the model, not code comparing prose, judges whether this
+    # request is materially the same as the prior complaint it was given.
+    use_cache: bool = Field(
+        default=False,
+        description="TRUE only when a prior complaint was supplied AND this "
+                    "request is NOT materially different from it -- the same "
+                    "kind of problem, so the specialties already resolved "
+                    "still apply. FALSE when no prior complaint was given, or "
+                    "when the kind of problem materially changed.")
+    why: str = Field(
+        default="",
+        description="When use_cache is FALSE and a prior complaint WAS given, "
+                    "one short user-facing clause saying how the request "
+                    "changed (e.g. 'you switched from a heart problem to a "
+                    "skin problem'). Empty otherwise.")
 
 
 class KeptCodes(BaseModel):
@@ -226,14 +243,22 @@ class SpecialtyFilter:
                                       load_prompt_text(filter_id))
         return self._prompts[section]
 
-    def _ensure_normalize_agent(self, section: str):
-        if section not in self._normalize_agents:
+    def _ensure_normalize_agent(self, section: str,
+                                with_cache_decision: bool = False):
+        # Two agents per section: one carries the cache-decision instruction,
+        # one does not. The route asks the model to judge material change only
+        # when there is BOTH a prior complaint and a cache to reuse.
+        key = (section, with_cache_decision)
+        if key not in self._normalize_agents:
             from pydantic_ai import Agent, ModelRetry
             normalize_prompt, _ = self._prompt_pair(section)
+            system = normalize_prompt + self._DUAL_INSTRUCTION
+            if with_cache_decision:
+                system += self._CACHE_DECISION_INSTRUCTION
             agent = Agent(
                 f"openai:{self._normalize_model}",
                 output_type=NormalizedRequest,
-                system_prompt=normalize_prompt + self._DUAL_INSTRUCTION,
+                system_prompt=system,
             )
 
             @agent.output_validator
@@ -244,8 +269,8 @@ class SpecialtyFilter:
                         "to search the catalogue with.")
                 return result
 
-            self._normalize_agents[section] = agent
-        return self._normalize_agents[section]
+            self._normalize_agents[key] = agent
+        return self._normalize_agents[key]
 
     def _ensure_filter_agent(self, section: str):
         if section not in self._filter_agents:
@@ -275,8 +300,8 @@ class SpecialtyFilter:
     # in the complaint field.
     _DUAL_INSTRUCTION = """
 
-Return STRICT JSON with exactly two keys and nothing else:
-  {"search_term": "...", "complaint": "..."}
+Return STRICT JSON with these keys and nothing else:
+  {"search_term": "...", "complaint": "...", "use_cache": false, "why": ""}
 
 search_term: the NUCC-aligned text to search specialties with, exactly as
 instructed above. This is what gets embedded.
@@ -291,19 +316,57 @@ name, never the words they used, never a place.
                                          complaint "tooth problem"
   "find me a bone doc in Seattle WA"  -> search_term "orthopedic surgeon",
                                          complaint "bone problem"
+
+Set "use_cache": false and "why": "" -- they are only decided otherwise
+when a step above the request tells you to.
 """
 
-    def normalize_query(self, raw_query: str,
-                        section: str = SECTION_INDIVIDUAL) -> tuple[str, str]:
-        """Stage 1: (search_term, complaint) from the vernacular request.
+    # Added to the system prompt ONLY when a prior complaint exists, so we do
+    # not spend the call asking the model to judge a change it cannot see.
+    # It is the FIRST thing the model does.
+    _CACHE_DECISION_INSTRUCTION = """
 
-        Raises on any failure (no fallback per REQ-T-001).
+DO THIS FIRST, before search_term or complaint:
+A line "PRIOR COMPLAINT: <text>" precedes the request -- the kind of
+problem already resolved on an earlier turn. Decide whether the current
+request is MATERIALLY the same kind of problem:
+  - SAME kind (reworded, or only the place/name/filters changed):
+    "use_cache": true, "why": "". The specialties already resolved apply;
+    nothing is re-resolved.
+  - MATERIALLY CHANGED (a heart problem became a skin problem):
+    "use_cache": false, "why": one short user-facing clause naming the
+    change.
+
+  PRIOR COMPLAINT: tooth problem / "actually make it Seattle" -> same
+    problem: use_cache true, why "".
+  PRIOR COMPLAINT: heart problem / "no, I need a dermatologist" -> changed:
+    use_cache false, why "you switched from a heart problem to a skin
+    problem".
+"""
+
+    async def normalize_query(self, raw_query: str,
+                        section: str = SECTION_INDIVIDUAL,
+                        prior_complaint: str = "",
+                        ask_cache: bool = False) -> "NormalizedRequest":
+        """Stage 1: search_term + complaint, and -- only when ask_cache --
+        the material-change decision.
+
+        ask_cache is true only when the caller has BOTH a prior complaint and
+        a cache to reuse; the prompt then carries the cache-decision step and
+        the model, not code comparing prose, decides use_cache. Raises on any
+        failure (no fallback per REQ-T-001).
         """
-        result = run_llm_sync(
-            self._ensure_normalize_agent(section), raw_query,
+        message = raw_query
+        if ask_cache and prior_complaint.strip():
+            message = f"PRIOR COMPLAINT: {prior_complaint.strip()}\n\n{raw_query}"
+        result = await run_llm(
+            self._ensure_normalize_agent(section, ask_cache), message,
             call_site="SpecialtyFilter.normalize_query",
             provider="openai", server="find_care", component="SpecialtyFilter")
-        return result.output.search_term.strip(), result.output.complaint.strip()
+        out = result.output
+        out.search_term = out.search_term.strip()
+        out.complaint = out.complaint.strip()
+        return out
 
     def embed_query(self, text: str) -> list[float]:
         """Stage 2: embed the normalized text with the canonical model
@@ -344,7 +407,7 @@ name, never the words they used, never a place.
                 and not self._is_inactive(r)
                 and r.get("score", 0) >= CAND_FLOOR]
 
-    def filter_candidates(self, candidates: list[dict],
+    async def filter_candidates(self, candidates: list[dict],
                           raw_query: str, normalized: str,
                           section: str = SECTION_INDIVIDUAL) -> list[str]:
         """Stage 4: LLM filter. Returns the final list of NUCC codes."""
@@ -371,7 +434,7 @@ name, never the words they used, never a place.
             f"Normalized request (from upstream LLM): {normalized!r}\n\n"
             f"Candidate NUCC entries (highest cosine first):\n{cand_block}\n"
         )
-        result = run_llm_sync(
+        result = await run_llm(
             self._ensure_filter_agent(section), user_msg,
             call_site="SpecialtyFilter.filter_candidates",
             provider="openai", server="find_care", component="SpecialtyFilter")
@@ -383,9 +446,11 @@ name, never the words they used, never a place.
         return [c for c in result.output.codes if c in valid]
 
     # ── public-to-driver orchestration ──────────────────────────────────────
-    def find_specialties(self, raw_query: str,
+    async def find_specialties(self, raw_query: str,
                          chat_history: Optional[list[str]] = None,
-                         section: str = SECTION_INDIVIDUAL) -> dict:
+                         section: str = SECTION_INDIVIDUAL,
+                         prior_complaint: str = "",
+                         cached: Optional[list[dict]] = None) -> dict:
         """End-to-end: normalize → embed → vector search → AI filter.
         Returns the structured payload the driver returns to the frontend.
         The driver decides what HTTP route exposes this — this class never
@@ -404,8 +469,13 @@ name, never the words they used, never a place.
         parts.append(raw_query)
         query_text = " ".join(parts)
 
+        # Ask the model to judge material change only when there is BOTH a
+        # prior complaint and a cache to reuse -- otherwise there is nothing
+        # to decide, and the prompt does not carry the step at all.
+        ask_cache = bool(prior_complaint.strip() and cached)
         try:
-            normalized, complaint = self.normalize_query(query_text, section)
+            norm = await self.normalize_query(query_text, section,
+                                              prior_complaint, ask_cache)
         except Exception as exc:
             # Mode 2 (REQ-B-008): Stage-1 LLM normalize failed; user gets
             # graceful error dict that the tool surfaces back to the user.
@@ -418,21 +488,31 @@ name, never the words they used, never a place.
                                                                      ), if_not_debug_log=True)
             return {"error": f"normalize: {type(exc).__name__}: {exc}"}
 
+        search_term = norm.search_term
+        complaint = norm.complaint
+        # THE decision, made once, by the model: the prior complaint stands
+        # unless it materially changed. use_cache -> reuse the specialties
+        # already resolved; no embed, no vector search, no LLM filter.
+        if ask_cache and norm.use_cache:
+            return {"specialties": list(cached or []),
+                    "complaint": prior_complaint.strip(),
+                    "reused": True, "why": ""}
+
         try:
-            qvec = self.embed_query(normalized)
+            qvec = await asyncio.to_thread(self.embed_query, search_term)
         except Exception as exc:
             # Mode 2 (REQ-B-008): Stage-2 embed failed; user gets graceful
             # error dict. Embedding infrastructure issue — operator MUST know.
-            log.error("Stage 2 embed failed for normalized=%r", normalized, exc=ChatHealthyException(
+            log.error("Stage 2 embed failed for search_term=%r", search_term, exc=ChatHealthyException(
                                                                                  mode="specialty_filter_stage2_embed_failed",
-                                                                                 message=f"Stage 2 embed failed for normalized={normalized!r}: {exc}",
+                                                                                 message=f"Stage 2 embed failed for search_term={search_term!r}: {exc}",
                                                                                  component="SpecialtyFilter",
                                                                                  exception=exc,
                                                                              ), if_not_debug_log=True)
             return {"error": f"embed: {type(exc).__name__}: {exc}"}
 
         try:
-            candidates = self.vector_search(qvec, section)
+            candidates = await asyncio.to_thread(self.vector_search, qvec, section)
         except Exception as exc:
             # Mode 2 (REQ-B-008): Stage-3 vector search failed; user gets
             # graceful error dict. Atlas $vectorSearch infra issue —
@@ -449,8 +529,8 @@ name, never the words they used, never a place.
                     "message": f"No matching specialty found for {raw_query!r}."}
 
         try:
-            kept_codes = self.filter_candidates(candidates, raw_query,
-                                                normalized, section)
+            kept_codes = await self.filter_candidates(candidates, raw_query,
+                                                search_term, section)
         except Exception as exc:
             # Mode 2 (REQ-B-008): Stage-4 LLM filter failed; user gets
             # graceful error dict. LLM provider issue — operator MUST know.
@@ -485,4 +565,5 @@ name, never the words they used, never a place.
             })
         log.info("filter: query=%r -> %d kept (from %d candidates)",
                   raw_query, len(specialties), len(candidates))
-        return {"specialties": specialties, "complaint": complaint}
+        return {"specialties": specialties, "complaint": complaint,
+                "reused": False, "why": norm.why}

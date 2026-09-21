@@ -149,84 +149,11 @@ ch_gate.install_gate_route(
 # ─────────────────────────────────────────────────────────────────────
 
 @app.post("/auth/issue", operation_id="AuthIssue", response_model=SessionToken,
-          openapi_extra=impl("MintableAuthToken", "authentication/mintable_auth_token.py"))
+          openapi_extra=impl("AuthIssueEndpoint",
+                             "authentication/auth_issue_endpoint.py"))
 async def auth_issue(request: Request):
-    """Establish a session and hand back its token.
-
-    This is the one unauthenticated door in the system, and the whole of
-    session establishment: the session exists when this returns. It used
-    to mint a token and nothing else, leaving the session to be created
-    by a `boot` call that followed it on every page load -- two round
-    trips where the second existed only because the first had made a GUID
-    with nothing behind it.
-
-    The page passes back the GUID it holds. A GUID naming a session that
-    is in Mongo and has not expired is resumed; anything else is ignored
-    and a new session begins, so a GUID a caller invents buys nothing.
-
-    The form factor is told to the session here because here is where the
-    session is made, and it does not change while the session lives.
-    """
-    try:
-        body = await request.json()
-    except Exception:  # noqa: BLE001 - an unparsable body is simply no guid
-        body = {}
-    offered = str((body or {}).get("session_guid") or "").strip()
-    resumed = _live_session_guid(offered) if offered else ""
-    if resumed:
-        # A session we already have is not authorised again: it is
-        # stamped. The GUID is per session and the nonce is per hop, so
-        # the token is minted fresh against the session that exists --
-        # handing back the stored one would replay a nonce, and building
-        # a second session would orphan the first, which is the waste
-        # this endpoint was meant to end.
-        return MintableAuthToken.manufacture(
-            server_env=ENV, guid=resumed).to_wire()
-
-    reported = str((body or {}).get("form_factor") or "").strip().lower()
-    deps = AuthnDeps(session_guid="", server_env=ENV,
-                           mongo_frontend=authn.get_mongo_frontend())
-    user_object = UserObject(
-        current_session_token="NULL",
-        expires_at=dt.datetime.now(dt.timezone.utc)
-        + dt.timedelta(seconds=authn.SESSION_TTL_SECONDS),
-    )
-    if reported in ("phone", "desktop"):
-        user_object.form_factor = reported
-    resp = await authn.TOOL.run(
-        deps, authn.Request(intent="manufacture_session", user_object=user_object))
-    await authn.TOOL.persist(deps, resp.user_object, resp.fresh_mint)
-    return resp.user_object.current_session_token.model_dump(mode="json")
-
-
-def _live_session_guid(guid: str) -> str:
-    """The guid, if it names a session that exists and has not expired.
-
-    Returns "" otherwise, and the caller mints. A session this cannot read
-    is not resumed: continuing on a GUID whose session is unknown would hand
-    the caller a token for state nobody can produce.
-    """
-    from datetime import datetime, timezone as _tz
-    try:
-        coll = authn.get_mongo_frontend()[authn.SESSION_DB][authn.SESSION_COLLECTION]
-        doc = coll.find_one({"_id": guid}, {"expires_at": 1})
-    except Exception as exc:  # noqa: BLE001 - unreadable session, mint instead
-        log.info("auth/issue could not read session %s: %s", guid[:8], exc)
-        return ""
-    if not doc:
-        return ""
-    expires = doc.get("expires_at")
-    if isinstance(expires, str):
-        try:
-            expires = datetime.fromisoformat(expires.replace("Z", "+00:00"))
-        except ValueError:
-            return ""
-    if isinstance(expires, datetime):
-        if expires.tzinfo is None:
-            expires = expires.replace(tzinfo=_tz.utc)
-        if expires <= datetime.now(_tz.utc):
-            return ""
-    return guid
+    from authentication.auth_issue_endpoint import AuthIssueEndpoint
+    return await AuthIssueEndpoint()(request)
 
 
 @app.get("/secrets/{key}", operation_id="SecretsEndpoint",

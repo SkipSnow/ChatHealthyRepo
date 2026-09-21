@@ -28,10 +28,10 @@ class MinedNuccParameters(BaseModel):
     complaint: str = ""
 
 
-def mine_nucc_parameters(
+async def mine_nucc_parameters(
         utterance: str,
         history: Optional[list] = None) -> MinedNuccParameters:
-    return mine(
+    return await mine(
         MINING_RECORD_ID, MinedNuccParameters, utterance, history,
         component=COMPONENT,
         call_site="NuccUtterance.mine_nucc_parameters")

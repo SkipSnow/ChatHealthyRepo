@@ -31,10 +31,10 @@ class MinedClinicalTrialParameters(BaseModel):
     united_states_only: Optional[bool] = None
 
 
-def mine_clinical_trial_parameters(
+async def mine_clinical_trial_parameters(
         utterance: str,
         history: Optional[list] = None) -> MinedClinicalTrialParameters:
-    return mine(
+    return await mine(
         MINING_RECORD_ID, MinedClinicalTrialParameters, utterance, history,
         component=COMPONENT,
         call_site="ClinicalTrialUtterance.mine_clinical_trial_parameters")

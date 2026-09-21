@@ -1,0 +1,82 @@
+@startuml live_enforcement_hierarchy
+top to bottom direction
+skinparam shadowing false
+skinparam backgroundColor #FFFFFF
+skinparam defaultFontName Segoe UI
+title Live engineering-rule hierarchy
+
+rectangle "**HOOK** SessionStart" as H_SessionStart #0B6E4F
+rectangle "**DISPATCH**\n.claude/settings.json (SessionStart) → chathealthy_enforcement_manager.py" as D_SessionStart #1B4F72
+H_SessionStart --> D_SessionStart
+rectangle "**Rule-002**\nBoot execution on SessionStart and PostCompact" as R_SessionStart_Rule_002 #6C3483
+D_SessionStart --> R_SessionStart_Rule_002
+rectangle "**Rule-002-ENF-001**\nBoot the session on SessionStart\nchathealthy_devops_boot.py" as E_Rule_002_ENF_001 #B7950B
+R_SessionStart_Rule_002 --> E_Rule_002_ENF_001
+
+rectangle "**HOOK** PostCompact" as H_PostCompact #0B6E4F
+rectangle "**DISPATCH**\n.claude/settings.json (PostCompact) → chathealthy_enforcement_manager.py" as D_PostCompact #1B4F72
+H_PostCompact --> D_PostCompact
+rectangle "**Rule-002**\nBoot execution on SessionStart and PostCompact" as R_PostCompact_Rule_002 #6C3483
+D_PostCompact --> R_PostCompact_Rule_002
+rectangle "**Rule-002-ENF-002**\nBoot the session again after a context compaction\nchathealthy_devops_boot.py" as E_Rule_002_ENF_002 #B7950B
+R_PostCompact_Rule_002 --> E_Rule_002_ENF_002
+
+rectangle "**HOOK** UserPromptSubmit" as H_UserPromptSubmit #0B6E4F
+rectangle "**DISPATCH**\n.claude/settings.json (UserPromptSubmit) → chathealthy_enforcement_manager.py" as D_UserPromptSubmit #1B4F72
+H_UserPromptSubmit --> D_UserPromptSubmit
+rectangle "**Rule-001**\nPersist Claude conversation events to the local spool" as R_UserPromptSubmit_Rule_001 #6C3483
+D_UserPromptSubmit --> R_UserPromptSubmit_Rule_001
+rectangle "**Rule-001-ENF-001**\nPersist every operator utterance to the local spool\nconversation_log_writer.py" as E_Rule_001_ENF_001 #B7950B
+R_UserPromptSubmit_Rule_001 --> E_Rule_001_ENF_001
+
+rectangle "**HOOK** Stop" as H_Stop #0B6E4F
+rectangle "**DISPATCH**\n.claude/settings.json (Stop) → chathealthy_enforcement_manager.py" as D_Stop #1B4F72
+H_Stop --> D_Stop
+rectangle "**Rule-001**\nPersist Claude conversation events to the local spool" as R_Stop_Rule_001 #6C3483
+D_Stop --> R_Stop_Rule_001
+rectangle "**Rule-001-ENF-002**\nPersist every Claude response to the local spool\nconversation_log_writer.py" as E_Rule_001_ENF_002 #B7950B
+R_Stop_Rule_001 --> E_Rule_001_ENF_002
+
+rectangle "**HOOK** PreToolUse" as H_PreToolUse #0B6E4F
+rectangle "**DISPATCH**\n.claude/settings.json (PreToolUse) → chathealthy_enforcement_manager.py" as D_PreToolUse #1B4F72
+H_PreToolUse --> D_PreToolUse
+rectangle "**Rule-006**\nConstrain Claude Code's use of tools via the Anthropic preTool hook" as R_PreToolUse_Rule_006 #6C3483
+D_PreToolUse --> R_PreToolUse_Rule_006
+rectangle "**Rule-006-ENF-001**\nA human approves every Claude-issued git state change\ngit_state_change_authorization_worker.py" as E_Rule_006_ENF_001 #B7950B
+R_PreToolUse_Rule_006 --> E_Rule_006_ENF_001
+
+rectangle "**HOOK** commit-msg" as H_commit_msg #0B6E4F
+rectangle "**DISPATCH**\ngit hook commit-msg → chathealthy_enforcement_manager.py" as D_commit_msg #1B4F72
+H_commit_msg --> D_commit_msg
+rectangle "**Rule-065**\nNo commit without explicit human authorization" as R_commit_msg_Rule_065 #6C3483
+D_commit_msg --> R_commit_msg_Rule_065
+rectangle "**Rule-065-ENF-001**\nNo commit without explicit human authorization\ncommit_authorization_worker.py" as E_Rule_065_ENF_001 #B7950B
+R_commit_msg_Rule_065 --> E_Rule_065_ENF_001
+rectangle "**Rule-065-ENF-005**\nIdentity and role-grant changes require operator approval\nidentity_approval_worker.py" as E_Rule_065_ENF_005 #B7950B
+R_commit_msg_Rule_065 --> E_Rule_065_ENF_005
+
+rectangle "**HOOK** pre-commit" as H_pre_commit #0B6E4F
+rectangle "**DISPATCH**\ngit hook pre-commit → Docker image → commit_governance_driver" as D_pre_commit #1B4F72
+H_pre_commit --> D_pre_commit
+rectangle "**Rule-065**\nNo commit without explicit human authorization" as R_pre_commit_Rule_065 #6C3483
+D_pre_commit --> R_pre_commit_Rule_065
+rectangle "**Rule-065-ENF-002**\nException management uses ChatHealthyException\nscan_deliberate_raises_enforcement_worker.py" as E_Rule_065_ENF_002 #B7950B
+R_pre_commit_Rule_065 --> E_Rule_065_ENF_002
+rectangle "**Rule-065-ENF-003**\nA MongoDB handle is acquired only through the canonical utility\nscan_mongo_client_direct_access_worker.py" as E_Rule_065_ENF_003 #B7950B
+R_pre_commit_Rule_065 --> E_Rule_065_ENF_003
+rectangle "**Rule-065-ENF-004**\nLogging goes through ChatHealthyLoggingService\nscan_uniform_logging_worker.py" as E_Rule_065_ENF_004 #B7950B
+R_pre_commit_Rule_065 --> E_Rule_065_ENF_004
+rectangle "**Rule-065-ENF-006**\nEvery committed file is architecturally compliant\nscan_files_enforcement_worker.py" as E_Rule_065_ENF_006 #B7950B
+R_pre_commit_Rule_065 --> E_Rule_065_ENF_006
+rectangle "**Rule-065-ENF-007**\nDisplay, plumbing and logic stay separate\nscan_separation_of_concerns_worker.py" as E_Rule_065_ENF_007 #B7950B
+R_pre_commit_Rule_065 --> E_Rule_065_ENF_007
+rectangle "**Rule-065-ENF-008**\nExactly three build, deploy and promote entry points\nscan_entrypoint_uniqueness_worker.py" as E_Rule_065_ENF_008 #B7950B
+R_pre_commit_Rule_065 --> E_Rule_065_ENF_008
+rectangle "**Rule-065-ENF-009**\nThe data migration satisfies every requirement of its story\nscan_data_migration_compliance_worker.py" as E_Rule_065_ENF_009 #B7950B
+R_pre_commit_Rule_065 --> E_Rule_065_ENF_009
+
+note bottom
+Source: brain/machine_artifacts/content/engineering_rules.json
+Only rules with a non-empty enforcements list are drawn.
+end note
+@enduml

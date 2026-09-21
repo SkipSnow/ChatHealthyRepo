@@ -19,6 +19,24 @@ log = ChatHealthyLoggingService()
 
 ENV_PREFIX = os.getenv("ENV_PREFIX", "dev")
 
+# The session store on the front-end cluster, and the page namespaces whose
+# parameters it holds. Config, so app.py, the page-parameter store, and the
+# tools all read one declaration.
+SESSION_DB = "Users"
+SESSION_COLLECTION = "sessions"
+INDIVIDUAL_PROVIDER_PAGE = "individualProvider"
+NUCC_PAGE = "NUCC"
+FACILITY_PAGE = "facility"
+CLINICAL_TRIAL_PAGE = "clinicalTrial"
+
+# The tool each page's search runs as, as the configuration names them. A page
+# is a list of tools; what a tool requires is the tool's. Config, so app.py and
+# every page handler read one declaration.
+PROVIDER_SEARCH_TOOL = "ProviderSearch"
+FACILITY_SEARCH_TOOL = "FacilitySearch"
+SPECIALTY_FILTER_TOOL = "SpecialtyFilter"
+CLINICAL_TRIALS_TOOL = "ClinicalTrials"
+
 _db_manager = None
 
 

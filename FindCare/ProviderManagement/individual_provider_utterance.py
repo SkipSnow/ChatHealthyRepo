@@ -50,11 +50,11 @@ class MinedIndividualProviderParameters(BaseModel):
     insurance: str = ""
 
 
-def mine_individual_provider_parameters(
+async def mine_individual_provider_parameters(
         utterance: str,
         history: Optional[list] = None
 ) -> MinedIndividualProviderParameters:
-    return mine(
+    return await mine(
         MINING_RECORD_ID, MinedIndividualProviderParameters,
         utterance, history, component=COMPONENT,
         call_site="IndividualProviderUtterance."

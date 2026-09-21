@@ -247,3 +247,103 @@ class SpecialtyFilterTool(ChatHealthyTool, CapabilityContract):
 
 
 TOOL = SpecialtyFilterTool()
+
+
+async def resolve_nucc_page(utterance: str, history: list) -> dict:
+    """The NUCC page's whole mining, owned by the specialty_filter tool.
+
+    Turn the person's utterance into a complaint, resolve the complaint to
+    the specialties that treat it, write those onto the NUCC page, and return
+    the panel. The mining lives here -- in the tool -- not in the route, and
+    not in a /provider/find monolith. Imports are local so the SharedServices
+    relay half of this module (which never calls this) does not need the
+    FindCare engine on its path. Async: the model calls are awaited on the
+    server's loop; the blocking Mongo reads/writes go off it via to_thread.
+    """
+    import asyncio
+    from ProviderManagement.nucc_utterance import mine_nucc_parameters
+    from services import resolve_specialties, ticked, specialty_groups
+    from page_parameters import (parameter_entry, parameters_in_force,
+                                 write_page_parameters)
+    from db_config import NUCC_PAGE
+
+    mined = await mine_nucc_parameters(utterance, history)
+    in_force = await asyncio.to_thread(parameters_in_force, NUCC_PAGE)
+    prior_complaint = str(in_force.get("complaint") or "")
+    prior_offered = list(in_force.get("offeredSpecialties") or [])
+    if mined.complaint:
+        # SpecialtyFilter owns the cache-vs-LLM decision (given the prior
+        # complaint + the specialties already resolved for it). This tool
+        # never compares complaints.
+        resolved = await resolve_specialties(
+            mined.complaint, prior_complaint=prior_complaint,
+            cached=prior_offered)
+        offered = resolved["specialties"]
+        complaint = resolved["complaint"]
+        if resolved.get("reused"):
+            ticked_codes = list(in_force.get("selectedSpecialtyCodes") or [])
+        else:
+            ticked_codes = ticked(offered)
+    else:
+        # No complaint this turn -> the standing specialties hold.
+        offered = prior_offered
+        complaint = prior_complaint
+        ticked_codes = list(in_force.get("selectedSpecialtyCodes") or [])
+    entries: dict = {}
+    if complaint:
+        entries["complaint"] = parameter_entry(complaint)
+    if offered:
+        entries["offeredSpecialties"] = parameter_entry(offered)
+    if ticked_codes:
+        entries["selectedSpecialtyCodes"] = parameter_entry(ticked_codes)
+    await asyncio.to_thread(write_page_parameters, NUCC_PAGE, entries)
+    return {
+        "specialties": offered,
+        "selected_codes": ticked_codes,
+        "complaint": complaint,
+        "mined": mined.model_dump(),
+        **specialty_groups(offered),
+    }
+
+
+def sanitized_classify_error(stage: str, ts: str, req_id: str) -> str:
+    return (f"FindCare /nucc/classify temporarily unavailable "
+            f"(stage: {stage}) at {ts}. Ref: {req_id}")
+
+
+async def classify(message: str, section: str, ip: str) -> dict:
+    """NUCC specialty matching: normalize -> embed -> vectorSearch -> LLM
+    filter. Owned by the specialty tool; the /nucc/classify route only proves
+    the caller and hands the turn here."""
+    import uuid as _uuid
+    from datetime import datetime as dt, timezone as _tz
+    from services import specialty_service
+    result = await specialty_service.find_specialties(message, None, section)
+    if "error" in result:
+        # Sanitized outward, full detail kept server-side under a request id.
+        req_id = _uuid.uuid4().hex[:8]
+        ts = dt.now(_tz.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
+        raw = result["error"]
+        stage = (raw.split(":", 1)[0].strip() if ":" in raw else "unknown")
+        log.error("classify req_id=%s ip=%s stage=%s detail=%r message=%r",
+                  req_id, ip, stage, raw, message,
+                  exc=ChatHealthyException(
+                      mode="classify_failed",
+                      message=f"classify req_id={req_id} ip={ip} "
+                              f"stage={stage} detail={raw}",
+                      component="FindCareBackend"),
+                  if_not_debug_log=True)
+        return {"specialties": [],
+                "error": sanitized_classify_error(stage, ts, req_id)}
+    specialties = [
+        {"code": s["Code"], "name": s["Display Name"],
+         "can_prescribe": s.get("can_prescribe", False),
+         "homeopathic": s.get("homeopathic", False),
+         "rank": s.get("rank", 0)}
+        for s in result.get("specialties", [])]
+    return {
+        "specialties": specialties,
+        "homeopathic_generalists": [],
+        "complaint": result.get("complaint", ""),
+        "model": "normalize + embed + vectorSearch + LLM filter",
+    }

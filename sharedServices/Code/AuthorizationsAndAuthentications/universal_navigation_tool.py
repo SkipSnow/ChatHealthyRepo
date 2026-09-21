@@ -527,43 +527,6 @@ def latest_utterance_and_prior_dialogue(user_object) -> tuple[str, list[dict]]:
     return utterance, dialogue
 
 
-async def post_to_findcare(page_route: str, deps: AgentDeps, mode: str) -> dict:
-    """Hand one turn's utterance and prior talk to the page that owns it.
-
-    One implementation because the gateway's side of every mining page is
-    the same: post the two things, raise if the page could not be reached,
-    and give back what it said. The mode names which page could not be
-    reached, so a failure says which search did not run.
-    """
-    import httpx
-    from authentication import provider_search_tool
-
-    utterance, dialogue = latest_utterance_and_prior_dialogue(deps.user_object)
-    url = provider_search_tool.findcare_url() + page_route
-    try:
-        async with httpx.AsyncClient(timeout=None, verify=False) as client:
-            r = await client.post(url, json={
-                # The token this hop already holds, forwarded so FindCare
-                # can verify the SharedServices signature.
-                "session_token": deps.session_token.model_dump(mode="json"),
-                "utterance": utterance,
-                "history": dialogue,
-            })
-            r.raise_for_status()
-            return r.json()
-    except (httpx.ConnectError, httpx.ConnectTimeout, httpx.ReadTimeout,
-            httpx.WriteTimeout, httpx.PoolTimeout, httpx.ReadError,
-            httpx.WriteError, httpx.RemoteProtocolError,
-            httpx.HTTPStatusError) as exc:
-        raise ChatHealthyException(
-            mode=mode,
-            component="universal_navigation_tool",
-            message=f"FindCare {page_route} call failed: "
-                    f"{type(exc).__name__}: {exc}",
-            exception=exc,
-        )
-
-
 def geography_of(params, page: str):
     """The geography in force on one page, as its model.
 
@@ -610,7 +573,10 @@ def codes_in_force(params) -> list[str]:
 
 # Which page each dispatched action produces an answer on. Carry-over is
 # applied on dispatch to a page and nowhere else.
-_ACTION_PAGES = {
+# The destination page each search action carries over into. The inline
+# dispatch that once also used this map is retired (C-18); carry-over
+# routing is the one thing that still needs it.
+_CARRY_OVER_DESTINATION = {
     "findAProvider": INDIVIDUAL_PROVIDER,
     "findAFacility": FACILITY,
     "specialtySearch": NUCC,
@@ -663,6 +629,8 @@ class UniversalNavigationTool(ChatHealthyTool, CapabilityContract):
         "evalcare_splash", "about_chathealthy", "provider_selection",
         "facility_selection", "clinical_trial_selection",
         "clinical_trials_dispatcher", "close_connection_200", "authn",
+        "specialty_search_dispatcher", "provider_search_dispatcher",
+        "facility_search_dispatcher",
     ]
     NOT_UTTERANCE_ROUTABLE = True
 
@@ -1034,15 +1002,8 @@ class UniversalNavigationTool(ChatHealthyTool, CapabilityContract):
         that carried them, so a list produced by the provider page and one
         produced by the search tool are checked by the same rule.
         """
-        npi = str(deps.user_object.userParameters.get(
-            INDIVIDUAL_PROVIDER, "openNpi") or "").strip()
-        if not npi:
-            return
-        presented = {str(p.get("npi") or "").strip()
-                     for p in (providers or [])}
-        if npi in presented:
-            return
-        await self._handle_provider_detail_close(deps, {})
+        from authentication import findcare_search_dispatchers
+        await findcare_search_dispatchers.reconcile_open_detail(deps, providers)
 
     async def _handle_refine_search(
             self, deps: AgentDeps, payload: dict[str, Any]) -> Response:
@@ -1119,8 +1080,8 @@ class UniversalNavigationTool(ChatHealthyTool, CapabilityContract):
         belongs to, so the panel stops describing what they are looking at.
         The gesture is the client's; what it means is decided here.
         """
-        await self._tell_page_detail_closed(deps, INDIVIDUAL_PROVIDER)
-        deps.stream({"kind": "provider_detail_close", "data": {"closed": True}})
+        from authentication import findcare_search_dispatchers
+        await findcare_search_dispatchers.handle_provider_detail_close(deps)
         return Response(kind="provider_detail_close", result={"closed": True})
 
     async def _handle_restore_findcare(self, deps: AgentDeps, payload: dict[str, Any]) -> Response:
@@ -1500,16 +1461,11 @@ class UniversalNavigationTool(ChatHealthyTool, CapabilityContract):
 
     async def _write_position(self, deps: AgentDeps, page: str,
                               first_key, last_key) -> None:
-        """Record the page in view as its first and last key."""
-        from UserParameters import user_parameters_tool
-        await user_parameters_tool.TOOL.run_and_log(
-            deps,
-            user_parameters_tool.Request(
-                verb="set", page=page, name="position",
-                value={"first": first_key or "", "last": last_key or ""},
-                route="gateway", origin="deterministic",
-            ),
-        )
+        """Record the page in view as its first and last key. One copy,
+        shared with the search dispatchers."""
+        from authentication import findcare_search_dispatchers
+        await findcare_search_dispatchers.write_position(
+            deps, page, first_key, last_key)
 
     async def _handle_facility_selection(self, deps: AgentDeps, payload: dict[str, Any]) -> Response:
         """Thin pass-through to the facility selection tool. The facility
@@ -1905,99 +1861,37 @@ class UniversalNavigationTool(ChatHealthyTool, CapabilityContract):
     })
 
     def _stream_facilities(self, deps: AgentDeps, raw: dict) -> None:
-        """Put a set of organizations on the window.
-
-        One copy, because a search and a page turn produce the same event
-        and two copies of the shaping is two things to keep in step. Every
-        field is taken from the page's answer and none is interpreted.
-        """
-        facilities = (raw or {}).get("providers") or []
-        if not facilities:
-            return
-        data = {
-            "facilities": facilities,
-            "has_more": bool(raw.get("has_more", False)),
-            "has_previous": bool(raw.get("has_previous", False)),
-            "first_npi": raw.get("first_npi"),
-            "last_npi": raw.get("last_npi"),
-            "count": int(raw.get("count", 0) or 0),
-            "total_count": int(raw.get("total_count", 0) or 0),
-            "page_start": int(raw.get("page_start", 1) or 1),
-            "page_end": int(raw.get("page_end", 0) or 0),
-            "search_params": raw.get("search_params"),
-            "state": raw.get("state"),
-            "summary_message": raw.get("summary_message"),
-        }
-        deps.stream({
-            "kind": "facilities",
-            "data": {name: value for name, value in data.items()
-                     if value is not None},
-        })
+        """Put a set of organizations on the window. One copy, shared with
+        the facility dispatcher."""
+        from authentication import findcare_search_dispatchers
+        findcare_search_dispatchers.stream_facilities(deps, raw)
 
     async def _tell_page(self, deps: AgentDeps, path: str,
                          body: dict) -> dict:
-        """Say something to the page that owns it, and take its answer.
-
-        The body carries page names and record identities and no parameter
-        name: which of its own parameters a page changes on being told this
-        is the page's business, and naming one here would be this component
-        holding a fact it has no use for.
-        """
-        import httpx
-        from authentication import provider_search_tool
-        url = provider_search_tool.findcare_url() + path
-        try:
-            async with httpx.AsyncClient(timeout=None, verify=False) as client:
-                r = await client.post(url, json={
-                    "session_token": deps.session_token.model_dump(mode="json"),
-                    **body,
-                })
-                r.raise_for_status()
-                return r.json() or {}
-        except (httpx.ConnectError, httpx.ConnectTimeout, httpx.ReadTimeout,
-                httpx.WriteTimeout, httpx.PoolTimeout, httpx.ReadError,
-                httpx.WriteError, httpx.RemoteProtocolError,
-                httpx.HTTPStatusError) as exc:
-            raise ChatHealthyException(
-                mode="page_unreachable",
-                component="universal_navigation_tool",
-                message=f"FindCare {path} call failed: "
-                        f"{type(exc).__name__}: {exc}",
-                exception=exc,
-            )
+        """Say something to the page that owns it, and take its answer. One
+        copy, shared with the search dispatchers."""
+        from authentication import findcare_search_dispatchers
+        return await findcare_search_dispatchers.tell_page(deps, path, body)
 
     async def _tell_page_detail_opened(self, deps: AgentDeps, page: str,
                                        record_id: str) -> None:
         """This page is showing this record."""
-        await self._tell_page(deps, "/page/detail-open",
-                              {"page": page, "record_id": record_id})
+        from authentication import findcare_search_dispatchers
+        await findcare_search_dispatchers.tell_page_detail_opened(
+            deps, page, record_id)
 
     async def _tell_page_detail_closed(self, deps: AgentDeps,
                                        page: str) -> None:
         """This page has stopped showing a record."""
-        await self._tell_page(deps, "/page/detail-close", {"page": page})
+        from authentication import findcare_search_dispatchers
+        await findcare_search_dispatchers.tell_page_detail_closed(deps, page)
 
     async def _ask_what_the_page_needs(self, deps: AgentDeps,
                                        raw: dict) -> None:
-        """Say what the page still needs, in the page's own words.
-
-        A page that cannot run answers with a question rather than an empty
-        window, and the question is authored where the requirement is known
-        -- the page holds the declaration saying which of its attributes it
-        cannot run without. The gateway carries it and reads none of it, so
-        an attribute made required in the declaration is asked for without
-        anything here changing.
-
-        Streamed as a prompt, which is an answering kind, so the turn has
-        answered and the manufactured question does not also fire.
-        """
-        question = (raw or {}).get("refinement_question")
-        if not question:
-            return
-        from chathealthy_lib.authentication.agent_deps import (
-            append_system_utterance)
-        deps.stream({"kind": "prompt", "data": {"text": question}})
-        append_system_utterance(deps.user_object, question)
+        """Say what the page still needs, in the page's own words. One copy,
+        shared with the search dispatchers."""
+        from authentication import findcare_search_dispatchers
+        await findcare_search_dispatchers.ask_what_the_page_needs(deps, raw)
 
     # Which page a turn with nothing to show should be asked about. A
     # gesture names its page; an utterance that produced nothing was about
@@ -2183,7 +2077,7 @@ class UniversalNavigationTool(ChatHealthyTool, CapabilityContract):
 
         # Carry-over is applied at dispatch, per destination page, and
         # nowhere else.
-        await self._apply_carry_over(deps, _ACTION_PAGES.get(target_action))
+        await self._apply_carry_over(deps, _CARRY_OVER_DESTINATION.get(target_action))
 
         if target_action == "safetyLockout":
             # UM judged the latest utterance signals immediate medical
@@ -2204,37 +2098,15 @@ class UniversalNavigationTool(ChatHealthyTool, CapabilityContract):
             )
 
         elif target_action == "specialtySearch":
-            # The NUCC page mines its own complaint from the talk and
-            # writes it, the panel it offers and the codes that panel is
-            # ticked with to its own page. The gateway carries the turn
-            # across the wire and paints what comes back; it reads no
-            # specialty parameter and writes none.
-            raw = await post_to_findcare(
-                "/specialty/find", deps, "specialty_search_unavailable")
-            specialties = raw.get("specialties") or []
-            if specialties:
-                # A panel is painted when there are rows to paint. A run
-                # that matched nothing says nothing about the panel, so
-                # what the person is looking at stays and the turn -- having
-                # shown nothing new -- ends by asking rather than by going
-                # quiet.
-                deps.stream({
-                    "kind": "specialties",
-                    "data": {
-                        "is_facility": False,
-                        "specialties": specialties,
-                        "homeopathic_generalists": [],
-                        "selected_codes": raw.get("selected_codes") or [],
-                        "complaint": raw.get("complaint") or "",
-                        "all_codes": raw.get("all_codes") or [],
-                        "prescriber_codes": raw.get("prescriber_codes") or [],
-                        "homeopathic_codes": raw.get("homeopathic_codes") or [],
-                        "default_selected_codes":
-                            raw.get("default_selected_codes") or [],
-                    },
-                })
-            # No inner "final" emission — _run_pipeline_then_finalize
-            # emits the single canonical final event with full payload.
+            # C-18: the search action dispatches the tool named for it. The
+            # dispatcher carries the turn to the NUCC page, which mines the
+            # complaint and returns the panel, and paints what comes back.
+            from authentication import findcare_search_dispatchers
+            utterance, dialogue = latest_utterance_and_prior_dialogue(
+                deps.user_object)
+            await findcare_search_dispatchers.SPECIALTY_SEARCH_TOOL.run_and_log(
+                deps, findcare_search_dispatchers.Request(
+                    utterance=utterance, history=dialogue))
 
         elif target_action == "findClinicalTrials":
             # EPIC-006-F-005 — the clinical-trial page mines its own
@@ -2252,148 +2124,28 @@ class UniversalNavigationTool(ChatHealthyTool, CapabilityContract):
             )
 
         elif target_action == "findAFacility":
-            # The facility page mines its own parameters from the talk and
-            # writes them to its own page. The gateway carries the turn
-            # across the wire and paints what comes back; it reads no
-            # facility parameter and writes none, so the domain knowledge
-            # of what a facility search is made of stays in FindCare.
-            import httpx
-            from authentication import provider_search_tool
-
-            dialogue: list[dict[str, str]] = []
-            for u in deps.user_object.session_conversation_history.utterances:
-                actor = getattr(u, "actor", None) or (u.get("actor") if isinstance(u, dict) else None)
-                text = getattr(u, "text", None) or (u.get("text") if isinstance(u, dict) else "")
-                if actor not in ("person", "system") or not text:
-                    continue
-                dialogue.append({"actor": actor, "text": str(text).strip()})
-            utterance = ""
-            for position in range(len(dialogue) - 1, -1, -1):
-                if dialogue[position]["actor"] == "person":
-                    utterance = dialogue[position]["text"]
-                    dialogue = dialogue[:position]
-                    break
-
-            url = provider_search_tool.findcare_url() + "/facility/find"
-            try:
-                async with httpx.AsyncClient(timeout=None, verify=False) as client:
-                    r = await client.post(url, json={
-                        # The token this hop already holds, forwarded so
-                        # FindCare can verify the SharedServices signature.
-                        "session_token": deps.session_token.model_dump(mode="json"),
-                        "utterance": utterance,
-                        "history": dialogue,
-                    })
-                    r.raise_for_status()
-                    raw = r.json()
-            except (httpx.ConnectError, httpx.ConnectTimeout, httpx.ReadTimeout,
-                    httpx.WriteTimeout, httpx.PoolTimeout, httpx.ReadError,
-                    httpx.WriteError, httpx.RemoteProtocolError,
-                    httpx.HTTPStatusError) as exc:
-                raise ChatHealthyException(
-                    mode="facility_search_unavailable",
-                    component="universal_navigation_tool",
-                    message=f"FindCare /facility/find call failed: "
-                            f"{type(exc).__name__}: {exc}",
-                    exception=exc,
-                )
-
-            mined = raw.get("mined") or {}
-            deps.stream({
-                "kind": "intent_classified",
-                "data": {
-                    "action": "findAFacility",
-                    "criteria": (mined.get("facility_name")
-                                 or mined.get("facility_type")
-                                 or "facilities"),
-                },
-            })
-            # The facility-type filter panel, painted the same way the
-            # care-giver specialty panel is: same widget, same broadcast
-            # kind, carrying filter_mode="facility" and the facility group
-            # code-sets so the panel renders its Ambulatory / Psychiatric /
-            # Inpatient toggles instead of Prescribers / Homeopathic. Carried
-            # here, not read: which codes are in a set is the page's answer.
-            facility_types = raw.get("offered_facility_types") or []
-            if facility_types:
-                deps.stream({
-                    "kind": "specialties",
-                    "data": {
-                        "filter_mode": "facility",
-                        "is_facility": True,
-                        "specialties": facility_types,
-                        "homeopathic_generalists": [],
-                        "selected_codes": raw.get("selected_facility_codes") or [],
-                        "complaint": raw.get("facility_type") or "",
-                        "all_codes": raw.get("all_codes") or [],
-                        "ambulatory_codes": raw.get("ambulatory_codes") or [],
-                        "inpatient_codes": raw.get("inpatient_codes") or [],
-                        "psychiatric_codes": raw.get("psychiatric_codes") or [],
-                        "default_selected_codes":
-                            raw.get("default_selected_codes") or [],
-                    },
-                })
-            self._stream_facilities(deps, raw)
-            await self._write_position(deps, FACILITY,
-                                       raw.get("first_npi"), raw.get("last_npi"))
-            await self._ask_what_the_page_needs(deps, raw)
+            # C-18: the search action dispatches the tool named for it. The
+            # dispatcher carries the turn to the facility page, which mines
+            # the kind of place and returns the panel and the organizations,
+            # and paints what comes back.
+            from authentication import findcare_search_dispatchers
+            utterance, dialogue = latest_utterance_and_prior_dialogue(
+                deps.user_object)
+            await findcare_search_dispatchers.FACILITY_SEARCH_TOOL.run_and_log(
+                deps, findcare_search_dispatchers.Request(
+                    utterance=utterance, history=dialogue))
 
         elif target_action == "findAProvider":
-            # The individual-provider page mines its own parameters from
-            # the talk and writes them to its own page. The gateway
-            # carries the turn across the wire and paints what comes back;
-            # it reads no provider parameter and writes none, so the domain
-            # knowledge of what a care-giver search is made of stays in
-            # FindCare.
-            raw = await post_to_findcare(
-                "/provider/find", deps, "provider_search_unavailable")
-            specialties = raw.get("offered_specialties") or []
-            if specialties:
-                deps.stream({
-                    "kind": "specialties",
-                    "data": {
-                        "is_facility": False,
-                        "specialties": specialties,
-                        "homeopathic_generalists": [],
-                        "selected_codes": raw.get("selected_specialty_codes") or [],
-                        "complaint": raw.get("complaint") or "",
-                        # The sets the panel ticks as one gesture, and what
-                        # a fresh panel arrives ticked with. Carried, not
-                        # read: which codes are in a set is the page's.
-                        "all_codes": raw.get("all_codes") or [],
-                        "prescriber_codes": raw.get("prescriber_codes") or [],
-                        "homeopathic_codes": raw.get("homeopathic_codes") or [],
-                        "default_selected_codes":
-                            raw.get("default_selected_codes") or [],
-                    },
-                })
-            providers = raw.get("providers") or []
-            if providers:
-                data = {
-                    "providers": providers,
-                    "has_more": bool(raw.get("has_more", False)),
-            "has_previous": bool(raw.get("has_previous", False)),
-                    "first_npi": raw.get("first_npi"),
-                    "last_npi": raw.get("last_npi"),
-                    "count": int(raw.get("count", 0) or 0),
-                    "total_count": int(raw.get("total_count", 0) or 0),
-                    "page_start": int(raw.get("page_start", 1) or 1),
-                    "page_end": int(raw.get("page_end", 0) or 0),
-                    "search_params": raw.get("search_params"),
-                    "specialization_options": raw.get("specialization_options"),
-                    "state": raw.get("state"),
-                    "refinements": raw.get("refinements"),
-                    "summary_message": raw.get("summary_message"),
-                }
-                deps.stream({
-                    "kind": "providers",
-                    "data": {name: value for name, value in data.items()
-                             if value is not None},
-                })
-            await self._reconcile_open_detail(deps, providers)
-            await self._ask_what_the_page_needs(deps, raw)
-            # No inner "final" emission — outer pipeline emits the
-            # canonical final event with full payload.
+            # C-18: the search action dispatches the tool named for it. The
+            # dispatcher carries the turn to the individual-provider page,
+            # which mines the complaint and geography and returns the panel
+            # and the care givers, and paints what comes back.
+            from authentication import findcare_search_dispatchers
+            utterance, dialogue = latest_utterance_and_prior_dialogue(
+                deps.user_object)
+            await findcare_search_dispatchers.PROVIDER_SEARCH_TOOL.run_and_log(
+                deps, findcare_search_dispatchers.Request(
+                    utterance=utterance, history=dialogue))
 
         else:
             # An action naming no tool here is a turn nobody can serve, and

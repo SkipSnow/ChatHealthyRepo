@@ -15,7 +15,7 @@ from typing import Optional
 from pydantic import BaseModel
 
 from chathealthy_lib.exceptions import ChatHealthyException
-from chathealthy_lib.llm import run_llm_sync
+from chathealthy_lib.llm import run_llm
 
 # Resolve project root from this file's location:
 #   FindCare/ProviderManagement/utterance_mining.py
@@ -94,11 +94,11 @@ def user_message(utterance: str, history: Optional[list]) -> str:
     return f"Latest utterance:\n{utterance}"
 
 
-def mine(record_id: str, output_type: type[BaseModel], utterance: str,
+async def mine(record_id: str, output_type: type[BaseModel], utterance: str,
          history: Optional[list], *, component: str, call_site: str):
     """A page's own extraction. Raises on any LLM failure — an unmined
     utterance is not a search with no parameters."""
-    result = run_llm_sync(
+    result = await run_llm(
         _mining_agent(record_id, output_type, component),
         user_message(utterance, history),
         call_site=call_site,
@@ -197,7 +197,7 @@ def _refinement_agent(component: str):
     return _AGENTS[key]
 
 
-def ask_for_missing(page: str, missing: list[str], optional: list[str],
+async def ask_for_missing(page: str, missing: list[str], optional: list[str],
                     in_force: dict, utterance: str, history: Optional[list],
                     *, component: str, call_site: str) -> str:
     """The question a page asks when what it requires is not in force.
@@ -207,7 +207,7 @@ def ask_for_missing(page: str, missing: list[str], optional: list[str],
     required in the declaration is enough to have it asked for. Nothing
     here knows what any of them mean.
     """
-    result = run_llm_sync(
+    result = await run_llm(
         _refinement_agent(component),
         f"{_state_of_the_page(page, missing, optional, in_force)}\n\n"
         f"{user_message(utterance, history)}",

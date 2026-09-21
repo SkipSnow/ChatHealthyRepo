@@ -34,14 +34,27 @@ find_care = FindCareService(
 # ── specialty resolution + panel shaping (drained from app.py) ──────────────
 # The specialty_filter tool owns turning a complaint into the kinds of care
 # giver that treat it, and the sets the panel offers as one gesture.
-def resolve_specialties(complaint: str) -> dict:
-    """The kinds of care giver that treat a complaint, in the panel's shape."""
-    resolved = specialty_service.find_specialties(complaint, None, SECTION_INDIVIDUAL)
+async def resolve_specialties(complaint: str, prior_complaint: str = "",
+                              cached: list = None) -> dict:
+    """The kinds of care giver that treat a complaint, in the panel's shape.
+
+    SpecialtyFilter owns the cache-vs-LLM decision: given the prior complaint
+    and the specialties already resolved for it, its model decides whether
+    this request materially changed. When it did not, the cached panel comes
+    straight back; when it did, it is re-resolved and `why` explains it."""
+    resolved = await specialty_service.find_specialties(
+        complaint, None, SECTION_INDIVIDUAL, prior_complaint, cached)
     if "error" in resolved:
         raise ChatHealthyException(
             mode="complaint_unresolved",
             component="FindCareBackend",
             message=f"complaint {complaint!r} did not resolve: {resolved['error']}")
+    if resolved.get("reused"):
+        # The cache is already in panel shape (that is what we handed in).
+        return {"specialties": list(cached or []),
+                "complaint": str(resolved.get("complaint") or "").strip()
+                             or prior_complaint or complaint,
+                "reused": True, "why": ""}
     return {
         "specialties": [{"code": row["Code"], "name": row["Display Name"],
                          "can_prescribe": row.get("can_prescribe", False),
@@ -49,6 +62,7 @@ def resolve_specialties(complaint: str) -> dict:
                          "rank": row.get("rank", 0)}
                         for row in resolved.get("specialties", [])],
         "complaint": str(resolved.get("complaint") or "").strip() or complaint,
+        "reused": False, "why": str(resolved.get("why") or ""),
     }
 
 

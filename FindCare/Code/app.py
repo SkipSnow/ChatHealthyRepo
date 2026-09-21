@@ -110,7 +110,24 @@ from prompt_system_maker import PromptSystemMaker
 # ---------------------------------------------------------------------------
 # Configuration
 # ---------------------------------------------------------------------------
-from db_config import ENV_PREFIX, get_db  # drained from app.py
+from db_config import (  # drained from app.py
+    ENV_PREFIX, get_db, SESSION_DB, SESSION_COLLECTION,
+    INDIVIDUAL_PROVIDER_PAGE, NUCC_PAGE, FACILITY_PAGE, CLINICAL_TRIAL_PAGE)
+from page_parameters import (  # drained from app.py
+    parameter_entry as _parameter_entry,
+    parameters_in_force as _parameters_in_force,
+    write_page_parameters as _write_page_parameters)
+from route_support import (  # drained from app.py
+    unmet_requirements as _unmet_requirements,
+    geography_known as _geography_known,
+    read_page_parameter as _read_page_parameter,
+    gesture_entry as _gesture_entry,
+    open_record_attribute as _open_record_attribute,
+    clear_page_parameter as _clear_page_parameter,
+    question_for as _question_for,
+    searched_codes as _searched_codes,
+    sex_code as _sex_code,
+    provider_page_entries as _provider_page_entries)
 DEBUG         = os.getenv("DEBUG", "false").lower() == "true"
 HUMAN_TESTING_RAW = os.getenv("HUMAN_TESTING", "false")
 HUMAN_TESTING = HUMAN_TESTING_RAW.lower() not in ("false", "0", "")
@@ -528,38 +545,14 @@ class SearchRequest(BaseModel):
 
 @app.post("/search")
 async def search(body: SearchRequest):
-    """Direct provider search — for pagination. No LLM involved.
-
-    Local catch with mode discrimination per EPIC-008-F-002-S-009-REQ-B-008.
-    Catcher classifies caught ChatHealthyException by mode and acts per the
-    three-mode taxonomy."""
+    """Collect the request, prove the gateway signature, hand the turn to the
+    page-operations pager."""
     require_gateway_signature(body.session_token,
                               posted=body.model_dump(exclude_none=True))
     params = body.model_dump(exclude_none=True)
     params.pop("session_token", None)
-    try:
-        return find_care.search_providers(**params)
-    except ChatHealthyException as exc:
-        if exc.mode == "mongo_query_timeout":
-            # Mode 2 (REQ-B-008): resource temporarily unavailable (Mongo
-            # aggregate exceeded its timeout budget). Surface a graceful
-            # user-facing 200 response carrying an error string; NOT 503;
-            # no fatal_error tag.
-            log.error("search Mode 2: mongo_query_timeout on %s.%s",
-                      exc.context.get("db"), exc.context.get("coll"),
-                      exc=exc, if_not_debug_log=True)
-            return {
-                "providers": [],
-                "total_count": 0,
-                "error": "Provider search is taking longer than usual. "
-                         "Please try the same search again in a moment.",
-                "error_mode": exc.mode,
-            }
-        # Unknown ChatHealthyException mode at this site → re-raise so the
-        # Mode 3 safety net handles it. Adding a known mode here with its
-        # Mode 1 / Mode 2 / Mode 3 classification is the way to bring it
-        # under local control.
-        raise
+    from page_operations import search as _search_op
+    return await _search_op(params)
 
 
 class FacilityFindRequest(BaseModel):
@@ -573,190 +566,21 @@ class FacilityFindRequest(BaseModel):
     history: list = []
 
 
-FACILITY_PAGE = "facility"
-SESSION_DB = "Users"
-SESSION_COLLECTION = "sessions"
+# FACILITY_PAGE, SESSION_DB, SESSION_COLLECTION drained to db_config.py.
 
 
-def _facility_kinds(facility_type: str) -> list[dict]:
-    """Extracted so the resolution raises without also logging (Rule-005
-    statement 3). find_specialties is its own single catch point and
-    answers with an error string rather than an exception; an unresolved
-    kind of place is not a search across every organization.
-
-    The rows leave in the shape the panel holds them in, the same one
-    /nucc/classify hands back, so a kind of place and a specialty are one shape
-    wherever they are read."""
-    resolved = specialty_service.find_specialties(
-        facility_type, None, SECTION_ORGANIZATION)
-    if "error" in resolved:
-        raise ChatHealthyException(
-            mode="facility_type_unresolved",
-            component="FindCareBackend",
-            message=f"facility type {facility_type!r} did not resolve: "
-                    f"{resolved['error']}",
-        )
-    return [{"code": row["Code"], "name": row["Display Name"],
-             "can_prescribe": row.get("can_prescribe", False),
-             "homeopathic": row.get("homeopathic", False),
-             # The Grouping the facility macro-toggles bucket by. Carried on
-             # the row so facility_groups reads membership off what the panel
-             # already holds, never a clinical field.
-             "grouping": row.get("Grouping", ""),
-             "rank": row.get("rank", 0)}
-            for row in resolved.get("specialties", [])]
-
-
-def _facility_page_entries(mined, offered: list[dict],
-                           codes: list[str]) -> dict:
-    """The mined values as parameter entries, keyed by attribute.
-
-    The route is the tool because this tool mined them, and the
-    determination is the model because a model inferred them.
-    """
-    from chathealthy_lib.authentication.user_parameters import ParameterEntry
-
-    def entry(value):
-        return ParameterEntry(value=value, route="tool",
-                              determination="model").model_dump(
-                                  exclude_none=True)
-
-    entries: dict = {}
-    # A place is four facts, not one. The state is the fact a search
-    # needs -- healthcare is regulated per state -- and the rest narrow
-    # it. Declared separately so the declaration can say which is
-    # required, and so a page that cannot run can name the missing one.
-    for part, value in mined.geography.model_dump().items():
-        if part in ("state", "city", "zip", "county") and value:
-            entries[part] = entry(value)
-    if mined.facility_type:
-        entries["facilityType"] = entry(mined.facility_type)
-    if mined.facility_name:
-        entries["facilityName"] = entry(mined.facility_name)
-    if codes:
-        entries["offeredFacilityTypes"] = entry(offered)
-        entries["selectedTaxonomyCodes"] = entry(codes)
-    return entries
-
-
-def _write_facility_parameters(session_token: dict, entries: dict) -> None:
-    """The page that mined a parameter writes it, and writes it on its own
-    page: no other page of the session is addressed here, ever."""
-    if not entries:
-        return
-    db = get_db()
-    if db is None:
-        raise ChatHealthyException(
-            mode="mongo_network_failure",
-            component="FindCareBackend",
-            message="facility parameters mined but the session is "
-                    "unreachable to write them to",
-        )
-    guid = SessionToken.model_validate(session_token).session_guid()
-    result = db[SESSION_DB][SESSION_COLLECTION].update_one(
-        {"_id": guid},
-        {"$set": {f"userParameters.pages.{FACILITY_PAGE}.{name}": value
-                  for name, value in entries.items()}},
-    )
-    if result.matched_count == 0:
-        raise ChatHealthyException(
-            mode="session_not_found",
-            component="FindCareBackend",
-            message=f"no session {guid!r} to write the mined facility "
-                    f"parameters to",
-        )
+# _facility_kinds, _facility_page_entries, _write_facility_parameters drained
+# to ProviderManagement/facility_page.py.
 
 
 @app.post("/facility/find")
 async def facility_find(body: FacilityFindRequest):
-    """The facility page mines its own parameters and searches on them.
-
-    Local catch with mode discrimination per EPIC-008-F-002-S-009-REQ-B-008,
-    the same shape /search carries."""
+    """Collect the request, prove the gateway signature, hand the turn to the
+    facility page handler."""
     require_gateway_signature(body.session_token,
                               posted=body.model_dump(exclude_none=True))
-    try:
-        # Both the mining and the resolution make blocking model calls;
-        # this handler is async and already inside an event loop.
-        mined = await asyncio.to_thread(
-            mine_facility_parameters, body.utterance, body.history)
-        offered: list[dict] = []
-        if mined.facility_type:
-            offered = await asyncio.to_thread(
-                _facility_kinds, mined.facility_type)
-        codes = [row["code"] for row in offered]
-        # Written before the search, so what the answer was produced under
-        # is on the session whatever the search then does.
-        await asyncio.to_thread(
-            _write_facility_parameters, body.session_token,
-            _facility_page_entries(mined, offered, codes))
-        # What the search runs on is what is in force, not what this turn
-        # happened to say. The mined values were written above, so the
-        # session is the merge of everything said so far -- reading it back
-        # is what lets an answer add to a request instead of replacing it.
-        in_force = await asyncio.to_thread(_parameters_in_force, FACILITY_PAGE)
-        if not codes:
-            codes = list(in_force.get("selectedTaxonomyCodes") or [])
-        in_force["selectedTaxonomyCodes"] = codes
-        result: dict = {"providers": [], "total_count": 0}
-        known = await asyncio.to_thread(_geography_known, in_force)
-        unmet = _unmet_requirements(FACILITY_SEARCH_TOOL, known)
-        if not unmet:
-            result = find_care.search_providers(
-                entity_type="2",
-                nucc_codes=codes,
-                state=str(in_force.get("state") or ""),
-                city=str(in_force.get("city") or ""),
-                county=str(in_force.get("county") or ""),
-                zip=str(in_force.get("zip") or ""),
-                facility_name=str(in_force.get("facilityName") or ""),
-            )
-        # What the search ran on, for a caller that has to say on screen
-        # what was searched for. Nothing downstream reads it to persist:
-        # the parameters are already written above.
-        result["mined"] = mined.model_dump()
-        # What the page still needs before it can answer. The caller asks
-        # the person about exactly these, by name, so a requirement added
-        # to the declaration is asked for without new code.
-        result["unmet_requirements"] = unmet
-        if unmet:
-            result["refinement_question"] = _question_for(
-                FACILITY_SEARCH_TOOL, unmet, known,
-                body.utterance, body.history)
-        # The facility-type filter panel, the facility mirror of the
-        # care-giver /specialty/find and /provider/find panels. A turn that
-        # named no facility type has not withdrawn the one already in force,
-        # so the panel is the offered set this turn produced or the one held
-        # on the session, and the group code-sets it ticks by gesture are
-        # computed here from Grouping membership + the curated psychiatric
-        # list (facility_groups; no regex).
-        panel_offered = offered or list(
-            in_force.get("offeredFacilityTypes") or [])
-        if panel_offered:
-            result["offered_facility_types"] = panel_offered
-            result["selected_facility_codes"] = codes
-            result["facility_type"] = (
-                mined.facility_type or str(in_force.get("facilityType") or ""))
-            result.update(facility_groups(panel_offered))
-        return result
-    except ChatHealthyException as exc:
-        if exc.mode == "mongo_query_timeout":
-            # Mode 2 (REQ-B-008): resource temporarily unavailable (Mongo
-            # aggregate exceeded its timeout budget). Graceful user-facing
-            # 200 carrying an error string; NOT 503; no fatal_error tag.
-            log.error("facility_find Mode 2: mongo_query_timeout on %s.%s",
-                      exc.context.get("db"), exc.context.get("coll"),
-                      exc=exc, if_not_debug_log=True)
-            return {
-                "providers": [],
-                "total_count": 0,
-                "error": "Facility search is taking longer than usual. "
-                         "Please try the same search again in a moment.",
-                "error_mode": exc.mode,
-            }
-        # Unknown ChatHealthyException mode at this site → re-raise so the
-        # Mode 3 safety net handles it.
-        raise
+    from ProviderManagement.facility_page import find
+    return await find(body.session_token, body.utterance, body.history)
 
 
 # Which tool each of this service's surfaces is, as the configuration
@@ -768,187 +592,11 @@ FACILITY_SEARCH_TOOL = "FacilitySearch"
 SPECIALTY_FILTER_TOOL = "SpecialtyFilter"
 CLINICAL_TRIALS_TOOL = "ClinicalTrials"
 
-INDIVIDUAL_PROVIDER_PAGE = "individualProvider"
-NUCC_PAGE = "NUCC"
-CLINICAL_TRIAL_PAGE = "clinicalTrial"
+# INDIVIDUAL_PROVIDER_PAGE, NUCC_PAGE, CLINICAL_TRIAL_PAGE drained to db_config.py.
 
-SEX_CODES = ("F", "M", "X", "U")
-
-
-def _parameter_entry(value) -> dict:
-    """A mined value as a parameter entry, ready to be stored.
-
-    The route is the tool because this tool mined it, and the
-    determination is the model because a model inferred it.
-    """
-    from chathealthy_lib.authentication.user_parameters import ParameterEntry
-
-    return ParameterEntry(value=value, route="tool",
-                          determination="model").model_dump(exclude_none=True)
-
-
-def _unmet_requirements(tool: str, in_force: dict) -> list[str]:
-    """Which of this page's declared requirements are not in force.
-
-    Empty means the page can run. Otherwise these are the attributes to
-    ask the person about, by name -- so a parameter made required in the
-    declaration is asked for without a line of code being written for it.
-
-    The declaration says which attributes a page cannot run without, and
-    this asks it rather than deciding. Making a parameter required or
-    optional is an edit to deployment_architecture.json and a deploy: no
-    page has a rule of its own, and none can enforce a requirement the
-    record does not state. A page that declares nothing required runs on
-    whatever it has.
-
-    A value that is present but empty is not in force -- an empty string
-    and a missing string are the same absence to the person who did not
-    say it.
-    """
-    missing = []
-    for name in required_parameters(tool):
-        value = in_force.get(name)
-        if value is None or value == "" or value == [] or value == {}:
-            missing.append(name)
-    return missing
-
-
-def _state_of_zip(zip_code: str) -> str:
-    """The state a ZIP is in, read from the addresses we already hold.
-
-    A ZIP names exactly one state, so a person who gave one has told us
-    which board licenses the care giver -- which is the whole reason the
-    state is required. Asking them to say it again is asking for a fact
-    they already supplied.
-
-    Derived, never queried on. The state is what makes the requirement
-    met; the ZIP is what the person asked for, and it is narrower. Adding
-    the state to the query would search a whole state on the strength of
-    an answer about one ZIP.
-    """
-    wanted = (zip_code or "").strip()
-    if not wanted:
-        return ""
-    db = get_db()
-    if db is None:
-        return ""
-    row = db["PublicHealthData"]["Provider"].find_one(
-        {"practice_addresses.zip": wanted},
-        {"practice_addresses.zip": 1, "practice_addresses.state": 1})
-    for address in ((row or {}).get("practice_addresses") or []):
-        if str(address.get("zip") or "").strip() == wanted:
-            return str(address.get("state") or "").strip().upper()
-    return ""
-
-
-def _geography_known(in_force: dict) -> dict:
-    """What is known about the place, as against what was asked for.
-
-    The requirement is that the state be KNOWN. A ZIP supplies it without
-    the person repeating themselves, so the derived state is added here --
-    and nowhere else, because the query is built from what was asked for.
-    """
-    known = dict(in_force)
-    if not str(known.get("state") or "").strip():
-        derived = _state_of_zip(str(known.get("zip") or ""))
-        if derived:
-            known["state"] = derived
-    return known
-
-
-def _parameters_in_force(page: str) -> dict:
-    """Every parameter this page holds, as plain values.
-
-    One read rather than one per attribute: what a search runs on is the
-    whole of what the person has said across the turns, and fetching it
-    field by field invites a caller to fetch only the fields it remembered.
-    """
-    db = get_db()
-    if db is None:
-        raise ChatHealthyException(
-            mode="mongo_network_failure",
-            component="FindCareBackend",
-            message=f"the session is unreachable, so {page} cannot read what "
-                    f"is in force")
-    doc = db[SESSION_DB][SESSION_COLLECTION].find_one(
-        {"_id": request_facts.facts().session_guid()},
-        {f"userParameters.pages.{page}": 1})
-    held = ((doc or {}).get("userParameters", {})
-            .get("pages", {}).get(page, {})) or {}
-    return {name: (entry.get("value") if isinstance(entry, dict) else entry)
-            for name, entry in held.items()}
-
-
-def _read_page_parameter(page: str, name: str):
-    """One of this page's own parameters, off the session.
-
-    The page reads what it owns rather than being handed it. A caller that
-    passes a page's parameter in is a caller that had to know the parameter,
-    and knowing it is what this page exists to do.
-    """
-    db = get_db()
-    if db is None:
-        raise ChatHealthyException(
-            mode="mongo_network_failure",
-            component="FindCareBackend",
-            message=f"the session is unreachable, so {page} cannot read what "
-                    f"it needs to answer")
-    address = f"userParameters.pages.{page}.{name}"
-    doc = db[SESSION_DB][SESSION_COLLECTION].find_one(
-        {"_id": request_facts.facts().session_guid()}, {address: 1})
-    held = ((doc or {}).get("userParameters", {})
-            .get("pages", {}).get(page, {}).get(name))
-    return (held or {}).get("value") if isinstance(held, dict) else held
-
-
-def _gesture_entry(value) -> dict:
-    """A value a gesture set, ready to be stored.
-
-    The route is the tool because this service made the write, and the
-    determination is a rule rather than a model: nobody inferred which
-    record the person opened -- they opened it.
-    """
-    from chathealthy_lib.authentication.user_parameters import ParameterEntry
-
-    return ParameterEntry(value=value, route="tool",
-                          determination="rule").model_dump(exclude_none=True)
-
-
-# Which attribute names the record a page is currently showing. Every page
-# that can open a detail has one, and it is not the same attribute on each:
-# a care giver and an organization are both identified by an NPI, a trial by
-# its registry id. Nothing outside this service needs to know that -- a
-# caller says which page and which record, and this decides where it lands.
-OPEN_RECORD_ATTRIBUTE = {
-    INDIVIDUAL_PROVIDER_PAGE: "openNpi",
-    FACILITY_PAGE: "openNpi",
-    CLINICAL_TRIAL_PAGE: "openNctId",
-}
-
-
-def _open_record_attribute(page: str) -> str:
-    name = OPEN_RECORD_ATTRIBUTE.get(page)
-    if not name:
-        raise ChatHealthyException(
-            mode="value_error",
-            component="FindCareBackend",
-            message=f"{page!r} shows no record, so nothing can be opened or "
-                    f"closed on it")
-    return name
-
-
-def _clear_page_parameter(page: str, name: str) -> None:
-    """Take one of this page's own parameters off the session."""
-    db = get_db()
-    if db is None:
-        raise ChatHealthyException(
-            mode="mongo_network_failure",
-            component="FindCareBackend",
-            message=f"the session is unreachable, so {page} cannot record "
-                    f"what it stopped showing")
-    db[SESSION_DB][SESSION_COLLECTION].update_one(
-        {"_id": request_facts.facts().session_guid()},
-        {"$unset": {f"userParameters.pages.{page}.{name}": ""}})
+# Shared route helpers (unmet_requirements, geography_known, state_of_zip,
+# read/clear page parameter, gesture_entry, open_record_attribute) drained to
+# route_support.py and imported above.
 
 
 class FacilityPageRequest(BaseModel):
@@ -967,57 +615,12 @@ class FacilityPageRequest(BaseModel):
 
 @app.post("/facility/page")
 async def facility_page(body: FacilityPageRequest):
-    """Page the facility list on the parameters already in force.
-
-    Keyset paging, on this page's own recorded position: back takes the
-    rows before the first key on screen, forward those after the last. The
-    position is written here because it is this page's parameter and this
-    is the page that moved.
-    """
+    """Collect the request, prove the gateway signature, hand the turn to the
+    facility page handler's pager."""
     require_gateway_signature(body.session_token,
                               posted=body.model_dump(exclude_none=True))
-    if body.direction not in ("forward", "back"):
-        raise ChatHealthyException(
-            mode="value_error",
-            component="FindCareBackend",
-            message=f"unknown direction {body.direction!r}")
-    if not (body.cursor or "").strip():
-        raise ChatHealthyException(
-            mode="value_error",
-            component="FindCareBackend",
-            message="a page of a list continues from somewhere, and no "
-                    "cursor was given")
-
-    def _in_force() -> dict:
-        geo = {part: _read_page_parameter(FACILITY_PAGE, part) or ""
-               for part in ("state", "city", "zip", "county")}
-        administrator = _read_page_parameter(
-            FACILITY_PAGE, "administratorName") or {}
-        return {
-            "state": geo.get("state") or "",
-            "city": geo.get("city") or "",
-            "county": geo.get("county") or "",
-            "zip": geo.get("zip") or "",
-            "facility_name": _read_page_parameter(
-                FACILITY_PAGE, "facilityName") or "",
-            "administrator_last_name": administrator.get("last") or "",
-            "administrator_first_name": administrator.get("first") or "",
-            "administrator_middle_name": administrator.get("middle") or "",
-            "nucc_codes": list(_read_page_parameter(
-                FACILITY_PAGE, "selectedTaxonomyCodes") or []),
-        }
-
-    in_force = await asyncio.to_thread(_in_force)
-    result = await asyncio.to_thread(
-        lambda: find_care.search_providers(
-            entity_type="2", limit=body.limit,
-            cursor=body.cursor, direction=body.direction, **in_force))
-    await asyncio.to_thread(
-        _write_page_parameters, FACILITY_PAGE,
-        {"position": _gesture_entry(
-            {"first": str(result.get("first_npi") or ""),
-             "last": str(result.get("last_npi") or "")})})
-    return result
+    from ProviderManagement.facility_page import page
+    return await page(body.cursor, body.direction, body.limit)
 
 
 class WhatIsNeededRequest(BaseModel):
@@ -1050,20 +653,9 @@ async def page_what_is_needed(body: WhatIsNeededRequest):
     """
     require_gateway_signature(body.session_token,
                               posted=body.model_dump(exclude_none=True))
-
-    def _in_force() -> dict:
-        return {name: _read_page_parameter(body.page, name)
-                for name in declared_attributes(body.page)}
-
-    in_force = await asyncio.to_thread(_in_force)
-    unmet = _unmet_requirements(body.tool, in_force)
-    if not unmet:
-        return {"unmet_requirements": [], "refinement_question": ""}
-    return {
-        "unmet_requirements": unmet,
-        "refinement_question": _question_for(
-            body.tool, unmet, in_force, body.utterance, body.history),
-    }
+    from page_operations import what_is_needed
+    return await what_is_needed(body.page, body.tool, body.utterance,
+                                body.history)
 
 
 class DetailOpenRequest(BaseModel):
@@ -1090,13 +682,8 @@ async def page_detail_open(body: DetailOpenRequest):
     """
     require_gateway_signature(body.session_token,
                               posted=body.model_dump(exclude_none=True))
-    record = (body.record_id or "").strip()
-    if not record:
-        return {"opened": False}
-    await asyncio.to_thread(
-        _write_page_parameters, body.page,
-        {_open_record_attribute(body.page): _gesture_entry(record)})
-    return {"opened": True}
+    from page_operations import detail_open
+    return await detail_open(body.page, body.record_id)
 
 
 @app.post("/page/detail-close")
@@ -1108,9 +695,8 @@ async def page_detail_close(body: DetailCloseRequest):
     """
     require_gateway_signature(body.session_token,
                               posted=body.model_dump(exclude_none=True))
-    await asyncio.to_thread(_clear_page_parameter, body.page,
-                            _open_record_attribute(body.page))
-    return {"closed": True}
+    from page_operations import detail_close
+    return await detail_close(body.page)
 
 
 class ProviderExclusionsRequest(BaseModel):
@@ -1136,73 +722,12 @@ async def provider_exclusions(body: ProviderExclusionsRequest):
     """
     require_gateway_signature(body.session_token,
                               posted=body.model_dump(exclude_none=True))
-    wanted = [npi for npi in (body.npis or []) if npi]
-    if not wanted:
-        return {"excluded": {}}
-    chosen = set(await asyncio.to_thread(
-        _read_page_parameter, INDIVIDUAL_PROVIDER_PAGE,
-        "selectedSpecialtyCodes") or [])
-    if not chosen:
-        return {"excluded": {npi: False for npi in wanted}}
-    found = await asyncio.to_thread(
-        lambda: find_care.search_providers(
-            entity_type="1", npis=wanted, limit=len(wanted)))
-    held = {npi: set() for npi in wanted}
-    for row in (found or {}).get("providers") or []:
-        npi = row.get("npi")
-        if npi in held:
-            held[npi] = {code for code in (row.get("taxonomy_codes") or [])
-                         if code}
-    return {"excluded": {npi: not (held[npi] & chosen) for npi in wanted}}
+    from page_operations import provider_exclusions as _exclusions_op
+    return await _exclusions_op(body.npis)
 
 
-def _question_for(tool: str, missing: list[str], in_force: dict,
-                  utterance: str, history) -> str:
-    """What to ask the person when this tool cannot run yet.
-
-    The tool authors it rather than the gateway, because the tool is what
-    holds the requirement. What it requires, what it merely accepts, and
-    what the person has already said all reach the model as facts from the
-    configuration -- so making a parameter Required is enough to have it
-    asked for, with nothing written for it.
-    """
-    return ask_for_missing(
-        tool, missing, optional_parameters(tool), in_force,
-        utterance, history,
-        component="FindCareApp", call_site=f"{tool}_refinement_request")
-
-
-def _write_page_parameters(page: str, entries: dict) -> None:
-    """The page that mined a parameter writes it, and writes it on its own
-    page: no other page of the session is addressed here, ever.
-
-    Which session is read from the facts this request arrived with, so no
-    caller between the route and this line has to carry a token to reach
-    it.
-    """
-    if not entries:
-        return
-    db = get_db()
-    if db is None:
-        raise ChatHealthyException(
-            mode="mongo_network_failure",
-            component="FindCareBackend",
-            message=f"{page} parameters mined but the session is unreachable "
-                    f"to write them to",
-        )
-    guid = request_facts.facts().session_guid()
-    result = db[SESSION_DB][SESSION_COLLECTION].update_one(
-        {"_id": guid},
-        {"$set": {f"userParameters.pages.{page}.{name}": value
-                  for name, value in entries.items()}},
-    )
-    if result.matched_count == 0:
-        raise ChatHealthyException(
-            mode="session_not_found",
-            component="FindCareBackend",
-            message=f"no session {guid!r} to write the mined {page} "
-                    f"parameters to",
-        )
+# _question_for drained to route_support.py (imported above).
+# _write_page_parameters drained to page_parameters.py (imported above).
 
 
 # _resolve_specialties, _ticked, _specialty_groups are drained to services.py.
@@ -1213,28 +738,7 @@ from services import (  # noqa: E402
 )
 
 
-def _searched_codes(offered: list[dict], ticked: list[str]) -> list[str]:
-    """Nothing ticked means nothing was narrowed, so the whole offered set
-    applies."""
-    return ticked or [row["code"] for row in offered]
-
-
-def _sex_code(mined_sex: str) -> str:
-    """NPPES records sex as F, M, X (neither male nor female) or U
-    (undisclosed). A model answering outside that set has not mined a sex,
-    and storing the answer would put a value on the session that no reader
-    of it can act on."""
-    code = str(mined_sex or "").strip().upper()
-    if not code:
-        return ""
-    if code not in SEX_CODES:
-        raise ChatHealthyException(
-            mode="value_error",
-            component="FindCareBackend",
-            message=f"{code!r} is not a sex code; NPPES uses "
-                    f"{', '.join(SEX_CODES)}",
-        )
-    return code
+# _searched_codes and _sex_code drained to route_support.py (imported above).
 
 
 class ProviderFindRequest(BaseModel):
@@ -1249,135 +753,17 @@ class ProviderFindRequest(BaseModel):
     history: list = []
 
 
-def _provider_page_entries(mined, complaint: str,
-                           ticked: list[str]) -> dict:
-    """The mined values as parameter entries, keyed by attribute."""
-    entries: dict = {}
-    for part, value in mined.geography.model_dump().items():
-        if part in ("state", "city", "zip", "county") and value:
-            entries[part] = _parameter_entry(value)
-    if complaint:
-        entries["complaint"] = _parameter_entry(complaint)
-    name = mined.provider_name
-    # Uppercased on the way in, because the records are uppercase and a
-    # case-insensitive match cannot use the name index.
-    parts = {"last": name.last.strip().upper(),
-             "first": name.first.strip().upper(),
-             "middle": name.middle.strip().upper()}
-    if any(parts.values()):
-        entries["providerName"] = _parameter_entry(parts)
-    sex = _sex_code(mined.provider_sex)
-    if sex:
-        entries["providerSex"] = _parameter_entry(sex)
-    if mined.sole_proprietor is not None:
-        entries["soleProprietor"] = _parameter_entry(bool(mined.sole_proprietor))
-    if mined.insurance:
-        entries["insurance"] = _parameter_entry(mined.insurance)
-    if ticked:
-        entries["selectedSpecialtyCodes"] = _parameter_entry(ticked)
-    return entries
+# _provider_page_entries drained to route_support.py (imported above).
 
 
 @app.post("/provider/find")
 async def provider_find(body: ProviderFindRequest):
-    """The individual-provider page mines its own parameters and searches
-    on them.
-
-    Local catch with mode discrimination per EPIC-008-F-002-S-009-REQ-B-008,
-    the same shape /search carries."""
+    """Collect the request, prove the gateway signature, hand the turn to the
+    individual-provider page handler."""
     require_gateway_signature(body.session_token,
                               posted=body.model_dump(exclude_none=True))
-    try:
-        # Both the mining and the resolution make blocking model calls;
-        # this handler is async and already inside an event loop.
-        mined = await asyncio.to_thread(
-            mine_individual_provider_parameters, body.utterance, body.history)
-        offered: list[dict] = []
-        complaint = mined.complaint
-        if mined.complaint:
-            resolved = await asyncio.to_thread(
-                _resolve_specialties, mined.complaint)
-            offered = resolved["specialties"]
-            complaint = resolved["complaint"]
-        ticked = _ticked(offered)
-        codes = _searched_codes(offered, ticked)
-        # Written before the search, so what the answer was produced under
-        # is on the session whatever the search then does.
-        await asyncio.to_thread(
-            _write_page_parameters, INDIVIDUAL_PROVIDER_PAGE,
-            _provider_page_entries(mined, complaint, ticked))
-        # What the search runs on is what is IN FORCE, not what this turn
-        # happened to say. A person answering "no, NY" has supplied one
-        # part of a place and left the rest standing; searching on the
-        # mined values alone threw away the city they gave a turn earlier
-        # and returned the whole of New York.
-        #
-        # The mined values were written above, so the session is already
-        # the merge of what was said before and what was said now. Reading
-        # it back is what makes an answer add to a request rather than
-        # replace it.
-        in_force = await asyncio.to_thread(_parameters_in_force,
-                                           INDIVIDUAL_PROVIDER_PAGE)
-        # The codes were resolved from the complaint this turn when there
-        # was one; otherwise the ones already in force still apply.
-        if not codes:
-            codes = list(in_force.get("selectedSpecialtyCodes") or [])
-        in_force["selectedSpecialtyCodes"] = codes
-        name = in_force.get("providerName") or {}
-        result: dict = {"providers": [], "total_count": 0}
-        # Judged on what is known -- a ZIP tells us the state. Searched on
-        # what was asked for, which is the ZIP: it is narrower, and the
-        # person did not ask for the state.
-        known = await asyncio.to_thread(_geography_known, in_force)
-        unmet = _unmet_requirements(PROVIDER_SEARCH_TOOL, known)
-        if not unmet:
-            result = find_care.search_providers(
-                entity_type="1",
-                nucc_codes=codes,
-                state=str(in_force.get("state") or ""),
-                city=str(in_force.get("city") or ""),
-                county=str(in_force.get("county") or ""),
-                zip=str(in_force.get("zip") or ""),
-                last_name=str(name.get("last") or "").strip().upper(),
-                first_name=str(name.get("first") or "").strip().upper(),
-                middle_name=str(name.get("middle") or "").strip().upper(),
-                provider_sex=_sex_code(str(in_force.get("providerSex") or "")),
-                sole_proprietor=in_force.get("soleProprietor"),
-                insurance=str(in_force.get("insurance") or ""),
-            )
-        # What the search ran on, for a caller that has to say on screen
-        # what was searched for and paint the panel it was narrowed by.
-        # Nothing downstream reads it to persist: the parameters are
-        # already written above.
-        result["mined"] = mined.model_dump()
-        result["unmet_requirements"] = unmet
-        result["complaint"] = complaint
-        result["offered_specialties"] = offered
-        result["selected_specialty_codes"] = ticked
-        result.update(_specialty_groups(offered))
-        if unmet:
-            result["refinement_question"] = _question_for(
-                PROVIDER_SEARCH_TOOL, unmet, known,
-                body.utterance, body.history)
-        return result
-    except ChatHealthyException as exc:
-        if exc.mode == "mongo_query_timeout":
-            # Mode 2 (REQ-B-008): resource temporarily unavailable (Mongo
-            # aggregate exceeded its timeout budget). Graceful user-facing
-            # 200 carrying an error string; NOT 503; no fatal_error tag.
-            log.error("provider_find Mode 2: mongo_query_timeout on %s.%s",
-                      exc.context.get("db"), exc.context.get("coll"),
-                      exc=exc, if_not_debug_log=True)
-            return {
-                "providers": [],
-                "total_count": 0,
-                "error": "Provider search is taking longer than usual. "
-                         "Please try the same search again in a moment.",
-                "error_mode": exc.mode,
-            }
-        # Unknown ChatHealthyException mode at this site → re-raise so the
-        # Mode 3 safety net handles it.
-        raise
+    from ProviderManagement.individual_provider_page import find
+    return await find(body.utterance, body.history)
 
 
 class SpecialtyFindRequest(BaseModel):
@@ -1398,40 +784,11 @@ async def specialty_find(body: SpecialtyFindRequest):
     """
     require_gateway_signature(body.session_token,
                               posted=body.model_dump(exclude_none=True))
-    # Both the mining and the resolution make blocking model calls; this
-    # handler is async and already inside an event loop.
-    mined = await asyncio.to_thread(
-        mine_nucc_parameters, body.utterance, body.history)
-    offered: list[dict] = []
-    complaint = mined.complaint
-    if mined.complaint:
-        resolved = await asyncio.to_thread(_resolve_specialties, mined.complaint)
-        offered = resolved["specialties"]
-        complaint = resolved["complaint"]
-    ticked = _ticked(offered)
-    entries: dict = {}
-    if complaint:
-        entries["complaint"] = _parameter_entry(complaint)
-    if offered:
-        entries["offeredSpecialties"] = _parameter_entry(offered)
-    if ticked:
-        entries["selectedSpecialtyCodes"] = _parameter_entry(ticked)
-    await asyncio.to_thread(_write_page_parameters, NUCC_PAGE, entries)
-    # A turn that named no complaint has not withdrawn the one already in
-    # force: the panel it painted is still what the person is choosing
-    # from, and repainting it empty would take their choices away.
-    in_force = await asyncio.to_thread(_parameters_in_force, NUCC_PAGE)
-    if not offered:
-        offered = list(in_force.get("offeredSpecialties") or [])
-        ticked = list(in_force.get("selectedSpecialtyCodes") or [])
-        complaint = complaint or str(in_force.get("complaint") or "")
-    return {
-        "specialties": offered,
-        "selected_codes": ticked,
-        "complaint": complaint,
-        "mined": mined.model_dump(),
-        **_specialty_groups(offered),
-    }
+    # The NUCC mining is owned by the specialty_filter tool; the route only
+    # proves the caller and hands the turn to it.
+    from SpecialtyFilter import specialty_filter_tool
+    return await specialty_filter_tool.resolve_nucc_page(
+        body.utterance, body.history)
 
 
 class ClassifyRequest(BaseModel):
@@ -1482,50 +839,8 @@ async def nucc_classify(body: ClassifyRequest, request: Request):
                               posted=body.model_dump(exclude_none=True))
     ip = request.headers.get("x-forwarded-for", "").split(",")[0].strip() or (
         request.client.host if request.client else "unknown")
-
-    import uuid as _uuid
-    from datetime import datetime as dt, timezone as _tz
-
-    # find_specialties is synchronous and makes blocking model calls;
-    # /classify is async and already inside an event loop.
-    result = await asyncio.to_thread(
-        specialty_service.find_specialties, body.message, None, body.section)
-
-    if "error" in result:
-        # REQ-B-002/B-003: sanitized outward, full detail kept server-side
-        # under a request id. filter.py reports "<stage>: <type>: <detail>",
-        # so the stage survives and the leak does not.
-        req_id = _uuid.uuid4().hex[:8]
-        ts = dt.now(_tz.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
-        raw = result["error"]
-        stage = (raw.split(":", 1)[0].strip() if ":" in raw else "unknown")
-        log.error("classify req_id=%s ip=%s stage=%s detail=%r message=%r",
-                  req_id, ip, stage, raw, body.message,
-                  exc=ChatHealthyException(
-                      mode="classify_failed",
-                      message=f"classify req_id={req_id} ip={ip} stage={stage} detail={raw}",
-                      component="FindCareBackend",
-                  ), if_not_debug_log=True)
-        return {"specialties": [], "error": sanitized_classify_error(stage, ts, req_id)}
-
-    specialties = [
-        {"code": s["Code"], "name": s["Display Name"],
-         "can_prescribe": s.get("can_prescribe", False),
-         "homeopathic": s.get("homeopathic", False),
-         "rank": s.get("rank", 0)}
-        for s in result.get("specialties", [])
-    ]
-    return {
-        "specialties": specialties,
-        "homeopathic_generalists": [],
-        "complaint": result.get("complaint", ""),
-        "model": "normalize + embed + vectorSearch + LLM filter",
-    }
-
-
-def sanitized_classify_error(stage: str, ts: str, req_id: str) -> str:
-    return (f"FindCare /nucc/classify temporarily unavailable "
-            f"(stage: {stage}) at {ts}. Ref: {req_id}")
+    from SpecialtyFilter.specialty_filter_tool import classify
+    return await classify(body.message, body.section, ip)
 
 
 @app.post("/welcome")
@@ -1550,135 +865,27 @@ class TrialFindRequest(BaseModel):
     history: list = []
 
 
-def _trial_page_entries(mined) -> dict:
-    """The mined values as parameter entries, keyed by attribute."""
-    entries: dict = {}
-    if mined.condition:
-        entries["condition"] = _parameter_entry(mined.condition)
-    if mined.age_years is not None:
-        entries["ageYears"] = _parameter_entry(int(mined.age_years))
-    if mined.sex:
-        entries["sex"] = _parameter_entry(mined.sex)
-    if mined.united_states_only is not None:
-        entries["unitedStatesOnly"] = _parameter_entry(
-            bool(mined.united_states_only))
-    return entries
-
-
 @app.post("/trial/find")
 async def trial_find(body: TrialFindRequest):
-    """The clinical-trial page mines its own parameters and searches on
-    them, streaming the trials as they arrive.
-
-    The criteria are announced on the same stream rather than by the
-    caller: the caller posted an utterance and has not read it, so it has
-    nothing to announce until this page says what the utterance meant.
-    """
     require_gateway_signature(body.session_token,
                               posted=body.model_dump(exclude_none=True))
-    import json as _json
-    from fastapi.responses import StreamingResponse
-    try:
-        from ClinicalTrials import clinical_trials_tool
-    except ImportError:
-        from FindCare.ClinicalTrials import clinical_trials_tool
-
-    # The mining makes a blocking model call; this handler is async and
-    # already inside an event loop.
-    mined = await asyncio.to_thread(
-        mine_clinical_trial_parameters, body.utterance, body.history)
-    await asyncio.to_thread(
-        _write_page_parameters, CLINICAL_TRIAL_PAGE, _trial_page_entries(mined))
-
-    queue: asyncio.Queue = asyncio.Queue()
-    sentinel = object()
-
-    class _StreamCollector:
-        def stream(self, event):
-            queue.put_nowait(event)
-
-    deps = _StreamCollector()
-    # What the search runs on is what is in force. The mined values were
-    # written above, so the session is the merge of everything said so
-    # far -- a person who names a condition on one turn and their age on
-    # the next has given both, and searching on the latest turn alone
-    # would throw the condition away.
-    in_force = await asyncio.to_thread(_parameters_in_force,
-                                       CLINICAL_TRIAL_PAGE)
-    age = in_force.get("ageYears")
-    scope = "us" if in_force.get("unitedStatesOnly") else "international"
-    req = clinical_trials_tool.Request(
-        condition=str(in_force.get("condition") or ""),
-        age_years=int(age) if age is not None else None,
-        sex=str(in_force.get("sex") or "") or None,
-        geographic_scope=scope,
-    )
-    # What the person asked for, said back to them in words. Composed here
-    # because it is a sentence about this page's criteria: what "us" means
-    # to a reader, and which criteria are worth repeating, are decisions
-    # about the search rather than about the panel that shows it.
-    said_back = []
-    if in_force.get("condition"):
-        said_back.append(f"condition: {in_force['condition']}")
-    if age is not None:
-        said_back.append(f"subject age: {age}")
-    if in_force.get("sex"):
-        said_back.append(f"subject sex: {in_force['sex']}")
-    said_back.append("scope: US" if in_force.get("unitedStatesOnly")
-                     else "scope: international")
-    announced = {
-        "kind": "intent_classified",
-        "data": {
-            "action": "findClinicalTrials",
-            "condition": in_force.get("condition"),
-            "age_years": age,
-            "sex": str(in_force.get("sex") or "") or None,
-            "geographic_scope": scope,
-            "criteria_summary": ", ".join(said_back),
-        },
-    }
-
-    async def runner():
-        try:
-            await clinical_trials_tool.TOOL.run(deps, req)
-        finally:
-            queue.put_nowait(sentinel)
-
-    asyncio.create_task(runner())
-
-    async def gen():
-        yield _json.dumps(announced).encode() + b"\n"
-        while True:
-            item = await queue.get()
-            if item is sentinel:
-                break
-            yield _json.dumps(item).encode() + b"\n"
-
-    return StreamingResponse(gen(), media_type="application/x-ndjson")
+    from ProviderManagement.clinical_trial_page import find
+    return await find(body.utterance, body.history)
 
 
 # Provider Detail click-path endpoint (EPIC-006-F-002). Pure deterministic
 # tool; no LLM. Input fields mirror the on-screen provider card.
-from ProviderDetail.provider_detail_models import (
-    ProviderDetailInput, ProviderDetailOutput,
-)
+from ProviderDetail.provider_detail_models import ProviderDetailInput
 
 @app.post("/provider-detail")
 def provider_detail(
     body: ProviderDetailInput,
     background_tasks: BackgroundTasks,
-) -> ProviderDetailOutput:
+):
     require_gateway_signature(body.session_token,
                               posted=body.model_dump(exclude_none=True))
-    return provider_detail_service.lookup(
-        entity_type=body.entity_type,
-        provider_name=body.name or "",
-        npi=body.npi,
-        state=body.state or "",
-        provider_coll=providers_coll(),
-        specialty_meta_coll=specialty_meta_coll,
-        schedule_background_task=background_tasks.add_task,
-    )
+    from ProviderDetail.provider_detail_page import detail
+    return detail(body, background_tasks.add_task)
 
 
 REQUIRED_INDEXES = [

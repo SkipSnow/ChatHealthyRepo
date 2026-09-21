@@ -17,7 +17,7 @@ from typing import Optional
 from pydantic import BaseModel, Field
 
 from chathealthy_lib.exceptions import ChatHealthyException
-from chathealthy_lib.llm import run_llm_sync
+from chathealthy_lib.llm import run_llm
 
 # Resolve project root from this file's location:
 #   FindCare/ProviderManagement/facility_utterance.py
@@ -113,12 +113,12 @@ def _user_message(utterance: str, history: Optional[list]) -> str:
     return f"Latest utterance:\n{utterance}"
 
 
-def mine_facility_parameters(
+async def mine_facility_parameters(
         utterance: str,
         history: Optional[list] = None) -> MinedFacilityParameters:
     """The page's own extraction. Raises on any LLM failure — an unmined
     utterance is not a search with no parameters."""
-    result = run_llm_sync(
+    result = await run_llm(
         _mining_agent(), _user_message(utterance, history),
         call_site="FacilityUtterance.mine_facility_parameters",
         provider="openai", server="find_care", component=COMPONENT)

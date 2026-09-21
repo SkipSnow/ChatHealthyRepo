@@ -11582,6 +11582,26 @@
                             ]
                           },
                           "approval": "approved"
+                        },
+                        {
+                          "req_id": "EPIC-008-F-012-S-001-REQ-B-002",
+                          "orphan": false,
+                          "name": "The commit approval surface presents a per-file change table",
+                          "requirement": "Before a commit is authorized, a human operator must approve it. As with all approvals the approval screen MUST prove a human, and not a code bot, approved it. The Commit authorization screen MUST present the operator a vertically scrollable, fixed-width table where each attribute is legible. The table must list only the files the commit changes -- added, modified, deleted, or renamed. All files must appear in unique rows in the table, which must be vertically scrollable but horizontally static. Each row carries four fields: (1) the file's name alone, never its path; (2) the epic and feature that own the file, read from where it sits in the tree, stated as 'Unknown Epic' and/or 'Unknown Feature' where the tree does not place it; (3) a terse account of what the file does, in fewer than 21 words; (4) a note describing the change, in fewer than 30 words. The authorization's audit record MUST carry every one of these values and, in addition, each file's full path -- the screen shows the name, the audit carries the path. This requirement must be human testable.",
+                          "priority": "must-have",
+                          "status": "done",
+                          "depends_on": [],
+                          "tests": {
+                            "test": [
+                              {
+                                "test_id": "EPIC-008-F-012-S-001-REQ-B-002-TEST-Unsupportable",
+                                "orphan": false,
+                                "test_type": "Unsupportable",
+                                "file": ""
+                              }
+                            ]
+                          },
+                          "approval": "approved"
                         }
                       ]
                     }

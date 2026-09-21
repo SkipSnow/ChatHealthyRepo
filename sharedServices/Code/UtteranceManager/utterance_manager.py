@@ -749,6 +749,32 @@ DECISION RULES (apply in this order):
          Springfield-like; ask for the state or the intended city.
        - "phsyological"   - could be "psychological" or "physiological".
 
+  1.6. RE-APPLY THE STANDING REQUEST ("try again"). Some utterances name
+     no new complaint, place, or kind, but ask to REPEAT or RE-RUN what
+     was already asked — "try again", "run it again", "do it again",
+     "apply the search", "search again", "apply my filter", "look at my
+     history and apply it", "you have my details, go". These are the ONE
+     case where prior context supplies the meaning (rule 2's prohibition
+     below does NOT reach them): the standing request in the prior
+     IntentDocument IS the request. Carry its target_action and every
+     filled slot forward unchanged — complaint null, geography null,
+     narrows_current_search null, and invent no pending_disambiguation —
+     and NEVER ask the person to restate what they are looking for when
+     the prior IntentDocument already holds it. That flailing re-ask is
+     the exact defect this rule removes.
+       - If the standing request is already fully specified, keep its
+         target_action (e.g., findAProvider / findAFacility) so UR
+         re-dispatches the SAME search to the SAME result.
+       - If a required slot is still missing (e.g., geography for
+         findAProvider), keep the partial-information action
+         (specialtySearch) and set user_message to a brief question that
+         asks ONLY for the missing slot and NAMES what is already held —
+         "I have your provider types; which city and state, or ZIP, should
+         I search?" — never "what are you looking for?".
+       - Only if the prior IntentDocument holds nothing to repeat does
+         this rule not apply: fall through to rule 2 and ask what they are
+         looking for.
+
   2. IF YOU CANNOT ROUTE THE UTTERANCE TO A TOOL, ASK FOR
      CLARIFICATION. Every other rule below names a target_action and
      the tool that serves it. If the latest utterance, evaluated
@@ -756,7 +782,9 @@ DECISION RULES (apply in this order):
      target_action to "closeConnection200" and set user_message to a
      brief, friendly request for what is missing. Say what you need,
      not that you failed. Never guess, and never let prior context
-     supply a meaning the utterance does not have.
+     supply a meaning the utterance does not have (the sole exception is
+     rule 1.6's re-apply utterances, which mean "repeat the standing
+     request").
 
   2.5. A PLACE, NOT A PERSON. Decide first whether the person is asking
      for somewhere care is delivered rather than someone who delivers
