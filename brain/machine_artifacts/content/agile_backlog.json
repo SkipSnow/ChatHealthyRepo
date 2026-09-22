@@ -12127,8 +12127,8 @@
                         {
                           "req_id": "EPIC-008-F-012-S-004-REQ-B-013",
                           "orphan": false,
-                          "name": "A deploy can create every target it installs to from nothing",
-                          "requirement": "A deploy MUST be able to create every target it installs to where that target does not yet exist, including hosts, vaults, secrets, databases and their indexes, and identities. An environment MUST be reproducible end to end from the repository and the deploy alone, with no manual step. Where creating a target requires a privilege the deploying identity does not hold, the deploy MUST fail naming the privilege.",
+                          "name": "Every target's resources, including its indexes, are declared with it and created by the deploy",
+                          "requirement": "A deploy MUST be able to create every target it installs to where that target does not yet exist, including hosts, vaults, secrets, databases and their indexes, and identities. What a target carries is declared with that target in the repository, and the deploy is the sole authority that creates and maintains it: a target's indexes are its own declared set, and no index is imposed on it from another target or produced by any process other than the deploy. An environment MUST be reproducible end to end from the repository and the deploy alone, with no manual step. Where creating a target requires a privilege the deploying identity does not hold, the deploy MUST fail naming the privilege.",
                           "priority": "must-have",
                           "status": "not_started",
                           "depends_on": [],

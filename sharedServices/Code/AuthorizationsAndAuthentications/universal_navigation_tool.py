@@ -1439,6 +1439,18 @@ class UniversalNavigationTool(ChatHealthyTool, CapabilityContract):
             return Response(kind="provider_page",
                             result={"ok": False, "error": "no specialties selected"})
 
+        # The next batch is fetched from the server, so the timer runs while
+        # it is on the wire. Paging is not a new query -- search_running, not
+        # intent_classified, so the panels stay and only the results repaint.
+        deps.stream({
+            "kind": "search_running",
+            "data": {
+                "action": "findAProvider",
+                "criteria": params.get(NUCC, "complaint")
+                or "your selected specialties",
+            },
+        })
+
         resp = await self._search_providers(
             deps,
             specialty_codes=codes,
@@ -1490,6 +1502,18 @@ class UniversalNavigationTool(ChatHealthyTool, CapabilityContract):
         if not cursor:
             return Response(kind="facility_page",
                             result={"ok": False, "error": "cursor required"})
+
+        # The next batch is fetched from the server, so the timer runs while
+        # it is on the wire. Paging is not a new query -- search_running, not
+        # intent_classified, so the panels stay and only the results repaint.
+        deps.stream({
+            "kind": "search_running",
+            "data": {
+                "action": "findAFacility",
+                "criteria": deps.user_object.userParameters.get(
+                    FACILITY, "facilityType") or "facilities",
+            },
+        })
 
         raw = await self._tell_page(
             deps, "/facility/page",

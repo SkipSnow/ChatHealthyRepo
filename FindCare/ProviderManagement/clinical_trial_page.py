@@ -102,7 +102,20 @@ async def find(utterance: str, history: list) -> StreamingResponse:
 
     async def runner():
         try:
-            await clinical_trials_tool.TOOL.run(deps, req)
+            resp = await clinical_trials_tool.TOOL.run(deps, req)
+            # Get the cursor back onto the page. The tool answers with the
+            # position the next registry batch continues from and the count
+            # it established; both are recorded on the page the way the
+            # other pages record their position, so a later turn can extend
+            # the list past what is shown instead of starting over, and the
+            # "of N" the person is shown has a number behind it.
+            if resp is not None:
+                await asyncio.to_thread(
+                    write_page_parameters, CLINICAL_TRIAL_PAGE, {
+                        "cursor": parameter_entry(resp.cursor or ""),
+                        "resultCount": parameter_entry(
+                            int(resp.total_count or 0)),
+                    })
         finally:
             queue.put_nowait(sentinel)
 

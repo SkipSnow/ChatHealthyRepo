@@ -3069,6 +3069,42 @@ def deploy_one(
         result = None if document_only else pad.verify_atlas(target, env)
         apply_config_documents(build_dir, target, env, coll, package_selection)
         reconcile_config_collections(target, env, coll)
+        # mongo_indexes packages: a code-driven action that ensures the
+        # declared front-end indexes on the served collection, connecting as
+        # the identity the record names the cluster's mongo_write consumer --
+        # which holds CREATE_INDEX on the serving database. Not provisioning
+        # and not the Atlas admin API: a certificate write, like the config
+        # documents beside it.
+        # A deployment is always of a named package: the index build runs
+        # only when its package is in the explicit selection, never as a
+        # default when none is named.
+        binding_pkgs = binding.packages if binding else []
+        index_pkgs = [p for p in binding_pkgs
+                      if p.get("kind") == "mongo_indexes"
+                      and p.get("package_id") in (package_selection or set())]
+        if index_pkgs:
+            import ensure_frontend_indexes as _efi
+            from cluster_host import host_for as _cluster_host
+            cl = (binding.atlas or {}).get("cluster") or {}
+            cluster = cl.get("cluster_name", "")
+            writers = [c.get("identity_target_id")
+                       for c in (cl.get("runtime_consumers") or [])
+                       if c.get("operation") == "mongo_write"]
+            if not cluster or len(writers) != 1:
+                raise ChatHealthyException(
+                    mode="runtime_error",
+                    component="_deploy_chain",
+                    message=f"{target_id} env={env!r}: an index package needs "
+                            f"one mongo_write consumer and a named cluster; "
+                            f"found {len(writers)} writer(s), "
+                            f"cluster={cluster!r}")
+            identity = _identity_name(coll, writers[0], env)
+            results = _efi.build_provider_indexes(
+                identity, cluster, host=_cluster_host(cluster))
+            for p in index_pkgs:
+                step(f"  atlas {target_id}: index package "
+                     f"{p.get('package_id')!r} -> "
+                     f"{[r.get('name') for r in results]}")
         return result
     if target_kind == "identity":
         return pad.ensure_managed_identity(target, env)
