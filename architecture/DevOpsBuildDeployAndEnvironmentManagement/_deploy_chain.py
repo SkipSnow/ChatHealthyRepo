@@ -3100,9 +3100,9 @@ def deploy_one(
                             f"cluster={cluster!r}")
             identity = _identity_name(coll, writers[0], env)
             for p in index_pkgs:
-                specs = (p.get("config") or {}).get("indexes") or []
+                config = p.get("config") or {}
                 results = _efi.build_provider_indexes(
-                    identity, cluster, specs, host=_cluster_host(cluster))
+                    identity, cluster, config, host=_cluster_host(cluster))
                 step(f"  atlas {target_id}: index package "
                      f"{p.get('package_id')!r} -> "
                      f"{[r.get('name') for r in results]}")
