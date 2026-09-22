@@ -268,12 +268,6 @@ def _website_publish_dir(repo_root: Path) -> Path:
             message=f"ERROR: {len(collisions)} file(s) claimed by more than one "
             f"website package: {sorted(collisions)[:5]}. A served path must "
             f"have exactly one owning capability.")
-    if not (out / "index.html").is_file():
-        raise ChatHealthyException(
-            mode="aborted",
-            component="_deploy_chain",
-            message=f"ERROR: merged website root {out} has no index.html. Run "
-            f"`build_chathealthy.py --env local` first.")
     step(f"merged {merged} file(s) into {out}")
     return out
 

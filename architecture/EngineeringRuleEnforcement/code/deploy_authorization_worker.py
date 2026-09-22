@@ -70,7 +70,7 @@ class DeploymentFacts:
         which one they are approving.
         """
         return "; ".join(
-            f"{t}: {', '.join(self.packages.get(t) or ['(none)'])}"
+            f"{t} -> {', '.join(self.packages.get(t) or ['(none)'])}"
             for t in self.targets)
 
     def subject(self) -> str:
@@ -135,13 +135,15 @@ class DeployAuthorizationWorker:
                        "From commit": f.commit[:12] or "(unknown)"},
             "destination": {"Environment": f.environment,
                             "Targets": ", ".join(f.targets),
-                            "Packages": f.named_packages()},
+                            "Packages": ", ".join(
+                                sorted({p for ps in f.packages.values()
+                                        for p in ps})) or "(none)"},
             "authorizer": self.operator,
         }
 
     def _detail(self) -> str:
         f = self.facts
-        rows = "; ".join(f"{t}: {', '.join(f.packages.get(t, []))}"
+        rows = "; ".join(f"{t} -> {', '.join(f.packages.get(t, []))}"
                          for t in f.targets)
         return (f"<b>APPROVE</b> installs build {f.build_number} into "
                 f"<b>{f.environment}</b>. {rows}. <b>REJECT</b> deploys "
