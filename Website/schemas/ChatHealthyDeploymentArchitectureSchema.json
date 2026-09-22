@@ -312,16 +312,8 @@
                       },
                       "kind": {
                         "type": "string",
-                        "enum": [
-                          "file_set",
-                          "runbook",
-                          "static_files",
-                          "managed_identity",
-                          "secret_from_file",
-                          "docker_image",
-                          "job"
-                        ],
-                        "description": "What this package deploys."
+                        "minLength": 1,
+                        "description": "What this package deploys. The set of valid kinds is corporate data, not schema structure: it is owned and enforced by the deploy's package dispatch, which switches on `kind` and rejects one it does not handle. The schema constrains only that a kind is present and is a non-empty string."
                       },
                       "config": {
                         "type": "object",
