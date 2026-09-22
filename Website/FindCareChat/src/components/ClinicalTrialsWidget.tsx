@@ -95,7 +95,7 @@ function buildLeftPanel(
       </li>`
   }).join('')
   const moreLink = hasMore
-    ? `<a href="#" data-router-action="trial:page" data-direction="next"
+    ? `<a href="#" data-router-action="user:submit" data-text="get me more clinical trials"
           style="color:#0b7a75;text-decoration:underline;font-weight:700;cursor:pointer;">more trials</a>`
     : ''
   const backLink = hasPrev
@@ -256,6 +256,10 @@ export default function ClinicalTrialsWidget() {
   const pageStartRef = useRef<number>(1)
   const lastQueryRef = useRef<any>(null)
   const lastPageDirectionRef = useRef<'next' | 'prev' | null>(null)
+  // The registry position the next batch continues from (streamed on each
+  // chunk). Non-empty means more trials can be fetched; '' means the list is
+  // whole. Held so the 'more trials' control can extend the cache.
+  const cursorRef = useRef<string>('')
 
   useEffect(() => {
     function postRender(target: string, content: string) {
@@ -305,7 +309,8 @@ export default function ClinicalTrialsWidget() {
       const offset = Math.max(0, start - 1)
       const slice = cacheRef.current.slice(offset, offset + pageSizeRef.current)
       const hasPrev = start > 1
-      const hasMore = offset + slice.length < cacheRef.current.length
+      const hasMore = (offset + slice.length < cacheRef.current.length)
+        || !!cursorRef.current
       const ctx = lastQueryRef.current || {}
       postRender('LeftPanel', buildLeftPanel(
         slice, 0, hasPrev, hasMore, start, totalEligibleRef.current, ctx,
@@ -324,14 +329,20 @@ export default function ClinicalTrialsWidget() {
 
     function applyChunk(data: any) {
       const incoming = Array.isArray(data.trials) ? data.trials : []
-      const chunkIndex: number = typeof data.chunk_index === 'number' ? data.chunk_index : 0
       const isFinal: boolean = !!data.is_final
+      const ctx = data.search_context || {}
 
-      if (chunkIndex === 0) {
+      // The registry position the next batch continues from. Held so the
+      // 'more trials' control can extend the list.
+      cursorRef.current = data.cursor || ''
+
+      // The server states whether this chunk begins a new set or extends the
+      // one already on screen (data.starts_new_set). The widget is told; it
+      // works nothing out.
+      if (data.starts_new_set) {
         cacheRef.current = incoming.slice()
-        const ctx = data.search_context || lastQueryRef.current || {}
         lastQueryRef.current = {
-          condition: ctx.condition || '',
+          condition: ctx.condition || (lastQueryRef.current || {}).condition || '',
           age_years: ctx.age_years ?? null,
           sex: ctx.sex || null,
           geographic_scope: ctx.geographic_scope || null,
@@ -342,23 +353,31 @@ export default function ClinicalTrialsWidget() {
         pageStartRef.current = 1
         renderSlice(1)
       } else {
-        // Subsequent chunk - append to the cache silently. No repaint
-        // unless the user has already paged past the existing cache.
-        cacheRef.current = cacheRef.current.concat(incoming)
+        // Grow the cache with the trials it does not already hold, deduped by
+        // nct_id, so 'more' never repeats a trial already shown.
+        const seen: Record<string, boolean> = {}
+        cacheRef.current.forEach(function (t: any) { if (t && t.nct_id) seen[t.nct_id] = true })
+        const fresh = incoming.filter(function (t: any) { return t && t.nct_id && !seen[t.nct_id] })
+        cacheRef.current = cacheRef.current.concat(fresh)
+        if (fresh.length) {
+          // The person asked for more: move the page onto the new trials.
+          pageStartRef.current = pageStartRef.current + (trialsRef.current.length || pageSizeRef.current)
+        }
+        renderSlice(pageStartRef.current)
       }
 
       if (isFinal) {
         const te = typeof data.total_eligible === 'number' ? data.total_eligible : cacheRef.current.length
         totalEligibleRef.current = te
         isPartialRef.current = !!data.is_partial
-        // Repaint the left panel so the "of N" / "of many" suffix
-        // appears for the first time. Center+Right panel keep their
-        // current rendering.
+        // Repaint the left panel so the "of N" / "of many" suffix appears and
+        // the 'more' control reflects the cursor. Center+Right keep theirs.
         const ps = pageStartRef.current || 1
         const offset = Math.max(0, ps - 1)
         const slice = cacheRef.current.slice(offset, offset + (pageSizeRef.current || 5))
         const hasPrev = ps > 1
-        const hasMore = offset + slice.length < cacheRef.current.length
+        const hasMore = (offset + slice.length < cacheRef.current.length)
+          || !!cursorRef.current
         postRender('LeftPanel', buildLeftPanel(
           slice, selectedIdxRef.current, hasPrev, hasMore, ps, te,
           lastQueryRef.current || {}, !!data.is_partial,
@@ -434,27 +453,23 @@ export default function ClinicalTrialsWidget() {
           }
         }
         if (msg.action === 'trial:page') {
-          // Pagination is client-side state slicing over the cache
-          // populated by streamed chunks - no server round-trip. If the
-          // user races the cache fill (clicks More before the next chunk
-          // arrives) the widget still has the current page rendered; the
-          // next render after the chunk lands will catch up.
+          // Client-side paging within the cache. 'more trials' is a real submit
+          // (it fetches the next batch AND shows the loading timer), so the only
+          // page walking left here is within what the cache already holds.
           const dir = String((msg.data || {}).direction || '')
           const ps = pageStartRef.current
           const psize = pageSizeRef.current
-          let newPageStart = ps
           if (dir === 'next') {
             const candidate = ps + (trialsRef.current.length || psize)
             if (candidate - 1 >= cacheRef.current.length) return
-            newPageStart = candidate
+            lastPageDirectionRef.current = 'next'
+            pageStartRef.current = candidate
+            renderSlice(candidate)
           } else if (dir === 'prev') {
-            newPageStart = Math.max(1, ps - psize)
-          } else {
-            return
+            lastPageDirectionRef.current = 'prev'
+            pageStartRef.current = Math.max(1, ps - psize)
+            renderSlice(pageStartRef.current)
           }
-          lastPageDirectionRef.current = dir === 'next' ? 'next' : 'prev'
-          pageStartRef.current = newPageStart
-          renderSlice(newPageStart)
         }
       }
 

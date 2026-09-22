@@ -437,3 +437,74 @@ class TestREQ_B_075_SelectedTrialHighlightAndClick:
             }}""",
             timeout=5_000,
         )
+
+
+# ── Cursor extension is VISIBLE in the LeftPanel ─────────────────────────
+# Scrolling the LeftPanel trial list (the preferred affordance) and clicking
+# 'more trials' where shown must reveal trials from BEYOND the first registry
+# batch. That is the proof the streamed cursor is used to fetch and show the
+# next batch -- not a re-slice of the one batch already streamed. One registry
+# batch is clinical_trials_tool._CT_GOV_PAGE_SIZE (100).
+
+_ONE_REGISTRY_BATCH = 100
+
+# No age, no US filter: the tool fetches ONE registry batch (100) plus a
+# cursor, rather than paging the age-bucket to exhaustion. Diabetes has
+# thousands of recruiting trials, so batch 1 is full and a cursor exists --
+# which is exactly the path where the cursor must be used to see more.
+NO_AGE_TRIAL_QUERY = "Find me clinical trials for diabetes"
+
+
+def _visible_nct_ids(page) -> set:
+    """Every NCT id currently rendered in the LeftPanel trial list."""
+    ids = page.eval_on_selector_all(
+        "#frame_LeftPanel li[data-router-action='trial:select']",
+        """els => els.map(function (e) {
+            var span = e.querySelector('span');
+            var t = (span && span.textContent || '').trim();
+            return (t.indexOf('NCT') === 0) ? t : null;
+        }).filter(Boolean)""",
+    )
+    return set(ids)
+
+
+class TestCursorExtensionVisibleInLeftPanel:
+    def test_scrolling_reveals_trials_beyond_first_batch(self, env):
+        page = env["page"]
+        _chat_input(page).fill(NO_AGE_TRIAL_QUERY)
+        _send_button(page).click()
+        _wait_for_trials(page)
+
+        left = _frame_left(page)
+        seen = _visible_nct_ids(page)
+        assert seen, "no trials rendered in LeftPanel"
+
+        # Drive 'see more' the way a person does: scroll the list to its end,
+        # and click 'more trials' when it is shown. Repeat until more than one
+        # registry batch has been seen, or the affordance stops adding trials.
+        stalls = 0
+        for _ in range(60):
+            left.evaluate("el => el.scrollTo(0, el.scrollHeight)")
+            more = page.locator("#frame_LeftPanel >> text=/more trials/i")
+            if more.count() > 0:
+                try:
+                    more.first.scroll_into_view_if_needed(timeout=2_000)
+                    more.first.click(timeout=2_000)
+                except Exception:
+                    pass
+            page.wait_for_timeout(600)
+            grown = _visible_nct_ids(page)
+            new = grown - seen
+            seen |= grown
+            if len(seen) > _ONE_REGISTRY_BATCH:
+                break
+            stalls = stalls + 1 if not new else 0
+            if stalls >= 6:
+                break
+
+        assert len(seen) > _ONE_REGISTRY_BATCH, (
+            "cursor extension not visible: the LeftPanel never showed more "
+            f"than one registry batch ({_ONE_REGISTRY_BATCH} trials); saw "
+            f"{len(seen)} distinct trials after scrolling and paging. The "
+            "streamed cursor is not being used to fetch and show the next batch."
+        )

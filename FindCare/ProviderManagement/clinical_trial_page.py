@@ -50,8 +50,23 @@ async def find(utterance: str, history: list) -> StreamingResponse:
     the caller posted an utterance and has not read it, so it has nothing to
     announce until this page says what the utterance meant.
     """
+    # Read what the page holds BEFORE this turn's mining overwrites it, so a
+    # continuation -- the same condition, or "get me more" naming none -- can
+    # carry forward the cursor the last search left, while a NEW condition
+    # starts the list fresh.
+    prior = await asyncio.to_thread(parameters_in_force, CLINICAL_TRIAL_PAGE)
     # The mining awaits a model call on this loop.
     mined = await mine_clinical_trial_parameters(utterance, history)
+    prior_condition = str(prior.get("condition") or "").strip().lower()
+    mined_condition = (mined.condition or "").strip().lower()
+    is_continuation = bool(prior_condition) and (
+        not mined_condition or mined_condition == prior_condition)
+    extend_cursor = str(prior.get("cursor") or "") if is_continuation else ""
+    # A new search must not inherit the prior list's cursor or count.
+    if not is_continuation:
+        await asyncio.to_thread(
+            write_page_parameters, CLINICAL_TRIAL_PAGE,
+            {"cursor": parameter_entry(""), "resultCount": parameter_entry(0)})
     await asyncio.to_thread(
         write_page_parameters, CLINICAL_TRIAL_PAGE, _trial_page_entries(mined))
 
@@ -76,6 +91,7 @@ async def find(utterance: str, history: list) -> StreamingResponse:
         age_years=int(age) if age is not None else None,
         sex=str(in_force.get("sex") or "") or None,
         geographic_scope=scope,
+        cursor=extend_cursor or None,
     )
     # What the person asked for, said back to them in words. Composed here
     # because it is a sentence about this page's criteria.

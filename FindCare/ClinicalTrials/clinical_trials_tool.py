@@ -586,6 +586,10 @@ class ClinicalTrialsTool(ChatHealthyTool, CapabilityContract):
             "trials": [t.model_dump() for t in trials],
             "chunk_index": 0,
             "is_final": True,
+            # A request carrying a cursor is extending a list already on the
+            # page; one without is beginning a new set. The widget is told
+            # which, so it never works the decision out itself.
+            "starts_new_set": request.cursor is None,
             "search_context": search_context.model_dump(exclude_none=True),
             "total_eligible": established_count,
             "cursor": next_cursor,

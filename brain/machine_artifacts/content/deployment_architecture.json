@@ -713,7 +713,7 @@
           "source_location": "Website/schemas/ChatHealthyDeploymentArchitectureSchema.json",
           "handler_type": "json",
           "disposition": "referenced",
-          "content_hash": "7445db37c1d6b03960c947c949c328105c12855254595ff0c8a7183325461f37",
+          "content_hash": "38dfbbdc57b6cc819107e3b8a790ba2e4b540b3e4056de5487db9448f16a9d8f",
           "package": "json_schemas"
         },
         {
@@ -1855,7 +1855,7 @@
           "source_location": "FindCare/ProviderManagement/clinical_trial_page.py",
           "handler_type": "python_source",
           "disposition": "referenced",
-          "content_hash": "c49c95cdba7c6c546e3779ece07c781444bcc59140460c8af86b027d74af3738",
+          "content_hash": "7d5458994417cb02edd50a9291adfb6f721b8ebf04362691ecdb104f2f3c315a",
           "package": "service_runtime"
         },
         {
@@ -1983,7 +1983,7 @@
           "source_location": "Website/FindCareChat/src/components/ClinicalTrialsWidget.tsx",
           "handler_type": "static_asset",
           "disposition": "referenced",
-          "content_hash": "1b44bbdd40c637f9d4b25ad0ab1ff42428bc0b9b6075d7e32d4ab7caa5cfa3ec",
+          "content_hash": "44e9e50d895b2a1d29d428f1030fd9b3833b6f2e9e8ed438ebd3f0b3ed31b565",
           "package": "service_runtime"
         },
         {
@@ -2183,7 +2183,7 @@
           "source_location": "FindCare/ClinicalTrials/clinical_trials_tool.py",
           "handler_type": "python_source",
           "disposition": "referenced",
-          "content_hash": "b821772a3d077cf23ee16bd2594a293d2d25dcb881412611d07bee603dda14c6",
+          "content_hash": "1a9f84a1a897fc140f2841581b7befd71b544f2cc08094f8007bc1c8b10d4c5c",
           "package": "service_runtime"
         },
         {
@@ -7372,25 +7372,52 @@
                   {
                     "name": "idx_practice_state_county",
                     "keys": [
-                      ["practice_addresses.state", 1],
-                      ["practice_addresses.county.name", 1]
+                      [
+                        "practice_addresses.state",
+                        1
+                      ],
+                      [
+                        "practice_addresses.county.name",
+                        1
+                      ]
                     ],
-                    "collation": { "locale": "en", "strength": 2 }
+                    "collation": {
+                      "locale": "en",
+                      "strength": 2
+                    }
                   },
                   {
                     "name": "idx_practice_state_city_ci",
                     "keys": [
-                      ["practice_addresses.state", 1],
-                      ["practice_addresses.city", 1]
+                      [
+                        "practice_addresses.state",
+                        1
+                      ],
+                      [
+                        "practice_addresses.city",
+                        1
+                      ]
                     ],
-                    "collation": { "locale": "en", "strength": 2 }
+                    "collation": {
+                      "locale": "en",
+                      "strength": 2
+                    }
                   },
                   {
                     "name": "idx_provider_name",
                     "keys": [
-                      ["provider_last_name_legal_name", 1],
-                      ["provider_first_name", 1],
-                      ["provider_middle_name", 1]
+                      [
+                        "provider_last_name_legal_name",
+                        1
+                      ],
+                      [
+                        "provider_first_name",
+                        1
+                      ],
+                      [
+                        "provider_middle_name",
+                        1
+                      ]
                     ]
                   }
                 ]
