@@ -44,13 +44,7 @@
     },
     "record_action": {
       "type": "string",
-      "description": "Lifecycle action the deploy chain applies to this record. Semantics: 'create' (default, absent == create) \u2014 provision the resource if it doesn't already exist. 'delete' \u2014 the record represents a resource we WANT gone; deploy handler destroys it, then the operator removes the record from the manifest in the next commit. 'rename' \u2014 the resource currently exists under `from_name`; deploy handler moves it to the new name (typically create-new + copy-state + delete-old). 'create_if_empty' \u2014 provision only if the parent slot is currently unoccupied; leave existing state alone otherwise. One-shot semantics: after a delete or rename completes, the record is expected to be removed (delete) or have its action reset (rename) in the next commit.",
-      "enum": [
-        "create",
-        "delete",
-        "rename",
-        "create_if_empty"
-      ]
+      "description": "Lifecycle action the deploy chain applies to this record. Semantics: 'create' (default, absent == create) \u2014 provision the resource if it doesn't already exist. 'delete' \u2014 the record represents a resource we WANT gone; deploy handler destroys it, then the operator removes the record from the manifest in the next commit. 'rename' \u2014 the resource currently exists under `from_name`; deploy handler moves it to the new name (typically create-new + copy-state + delete-old). 'create_if_empty' \u2014 provision only if the parent slot is currently unoccupied; leave existing state alone otherwise. One-shot semantics: after a delete or rename completes, the record is expected to be removed (delete) or have its action reset (rename) in the next commit."
     },
     "runtime_consumers": {
       "type": "array",
@@ -88,53 +82,8 @@
       }
     },
     "SourceQualifier": {
-      "description": "Where a deploy obtains this entry's VALUE. Never the value itself: a manifest that carries values is a manifest that leaks them.\n\nOne grammar governs both `secrets` and `variables`, because the deploy resolves them with the same function. They differ only in how the value is delivered -- a secret is masked at the destination, a variable is not. That is a property of the VALUE, not of where it came from, which is why the same grammar has to describe both. While `variables` accepted any string and `secrets` accepted only a store name, the only way to express a computed value was to declare it a variable -- and a private key went out in the clear as a Space variable for exactly that reason.",
-      "oneOf": [
-        {
-          "description": "A named store the deploy reads the value from.",
-          "type": "string",
-          "enum": [
-            "local_env",
-            "gha_secret",
-            "hf_space_secret",
-            "cloudflare_env",
-            "azure_function_app_setting",
-            "azure_automation_variable",
-            "azure_automation_webhook",
-            "azure_key_vault"
-          ]
-        },
-        {
-          "description": "The environment being deployed to (local|dev|qa|prod).",
-          "type": "string",
-          "const": "env_name"
-        },
-        {
-          "description": "A literal, for non-sensitive values with no store.",
-          "type": "string",
-          "pattern": "^literal:.+$"
-        },
-        {
-          "description": "Base64 of a repository file. Public certificates only -- private key material belongs in a store, never in the repository.",
-          "type": "string",
-          "pattern": "^local_cert_file:[A-Za-z0-9_./-]+$"
-        },
-        {
-          "description": "The resolved URL of a co-deployed peer target.",
-          "type": "string",
-          "pattern": "^peer_url:target_[A-Za-z0-9_]+$"
-        },
-        {
-          "description": "The resolved value of another entry on this target, delivered under this name. The sibling may live in either block.",
-          "type": "string",
-          "pattern": "^rename_from:[A-Za-z0-9_]+$"
-        },
-        {
-          "description": "A fact declared once in the record's firm block. The target carries the reference, not the value, so two targets cannot diverge on the fact by a value edit -- making them differ requires replacing this qualifier with a literal:, which is a change of shape and visible as such in the diff.",
-          "type": "string",
-          "pattern": "^firm:[A-Za-z0-9_]+$"
-        }
-      ]
+      "type": "string",
+      "description": "A secret's source qualifier (e.g. env_name, azure_key_vault). Which qualifiers are valid is corporate content the code owns, not the schema."
     },
     "PlatformFact": {
       "type": "object",
@@ -259,11 +208,7 @@
           },
           "provisioning": {
             "type": "string",
-            "description": "Who owns creating this target. 'deploy_provisioned' \u2014 Deploy creates and reconciles this target on every invocation. 'pre_existing' \u2014 the target is provisioned once out of band by the operator; Deploy verifies presence + declared configuration on every invocation and refuses to proceed on absence (F-012 v7 \u00a74). Default (absent) is 'deploy_provisioned'.",
-            "enum": [
-              "deploy_provisioned",
-              "pre_existing"
-            ]
+            "description": "Who owns creating this target. 'deploy_provisioned' \u2014 Deploy creates and reconciles this target on every invocation. 'pre_existing' \u2014 the target is provisioned once out of band by the operator; Deploy verifies presence + declared configuration on every invocation and refuses to proceed on absence (F-012 v7 \u00a74). Default (absent) is 'deploy_provisioned'."
           },
           "environments": {
             "type": "array",
@@ -280,14 +225,7 @@
               "properties": {
                 "env_binding": {
                   "type": "string",
-                  "description": "Closed taxonomy of runtime-environment bindings. Source-of-truth: the project's env constants in the deploy/ops codebase (VALID_ENVS / ENV_ORDER) and Code/deploy/conftest.py choices. sandbox is a developer workstation; there may be many, one per workstation.",
-                  "enum": [
-                    "sandbox",
-                    "local",
-                    "dev",
-                    "qa",
-                    "prod"
-                  ]
+                  "description": "Closed taxonomy of runtime-environment bindings. Source-of-truth: the project's env constants in the deploy/ops codebase (VALID_ENVS / ENV_ORDER) and Code/deploy/conftest.py choices. sandbox is a developer workstation; there may be many, one per workstation."
                 },
                 "node_address": {
                   "type": "string",
@@ -535,14 +473,6 @@
                       },
                       "action": {
                         "type": "string",
-                        "enum": [
-                          "skip",
-                          "block",
-                          "log",
-                          "challenge",
-                          "js_challenge",
-                          "managed_challenge"
-                        ],
                         "description": "Rule action. Use 'skip' with action_parameters.products to bypass Bot Management + WAF for pipeline-auth traffic; 'block' to deny; 'challenge' for user challenge; etc."
                       },
                       "action_parameters": {
@@ -551,8 +481,7 @@
                         "additionalProperties": true
                       },
                       "enabled": {
-                        "type": "boolean",
-                        "default": true
+                        "type": "boolean"
                       }
                     }
                   }
@@ -782,11 +711,7 @@
                       "pattern": "^snet-[a-z0-9-]{1,60}$"
                     },
                     "logs_destination": {
-                      "type": "string",
-                      "enum": [
-                        "none",
-                        "log-analytics"
-                      ]
+                      "type": "string"
                     },
                     "log_analytics_workspace": {
                       "type": "string",
@@ -843,17 +768,10 @@
                       "maxLength": 512
                     },
                     "role": {
-                      "type": "string",
-                      "enum": [
-                        "control",
-                        "worker"
-                      ]
+                      "type": "string"
                     },
                     "trigger_type": {
-                      "type": "string",
-                      "enum": [
-                        "Manual"
-                      ]
+                      "type": "string"
                     },
                     "cpu": {
                       "type": "number",
@@ -875,11 +793,7 @@
                       "maximum": 86400
                     },
                     "node_identity": {
-                      "type": "string",
-                      "enum": [
-                        "pipeline-control",
-                        "pipeline-worker"
-                      ]
+                      "type": "string"
                     },
                     "managed_identity_name": {
                       "type": "string",
@@ -951,11 +865,7 @@
                     },
                     "firewall_default_action": {
                       "type": "string",
-                      "description": "Expected KV firewall default action. Deploy verifies this matches the live configuration.",
-                      "enum": [
-                        "Deny",
-                        "Allow"
-                      ]
+                      "description": "Expected KV firewall default action. Deploy verifies this matches the live configuration."
                     }
                   }
                 },
@@ -996,12 +906,7 @@
                             "pattern": "^[a-z0-9][a-z0-9-]{2,62}$"
                           },
                           "purpose": {
-                            "enum": [
-                              "logs",
-                              "sources",
-                              "staging",
-                              "reports"
-                            ]
+                            "type": "string"
                           },
                           "retention_days": {
                             "type": "integer",
@@ -1100,10 +1005,7 @@
                                   "pattern": "^[A-Za-z][A-Za-z0-9_-]{0,63}$"
                                 },
                                 "allocation": {
-                                  "enum": [
-                                    "static",
-                                    "dynamic"
-                                  ]
+                                  "type": "string"
                                 },
                                 "ip_offset_start": {
                                   "type": "integer",
@@ -1245,10 +1147,7 @@
                         ],
                         "properties": {
                           "kind": {
-                            "enum": [
-                              "ip_allowlist",
-                              "private_endpoint"
-                            ]
+                            "type": "string"
                           },
                           "entries": {
                             "type": "array",
@@ -1285,11 +1184,7 @@
                       ],
                       "properties": {
                         "provider": {
-                          "enum": [
-                            "AZURE",
-                            "AWS",
-                            "GCP"
-                          ]
+                          "type": "string"
                         },
                         "region": {
                           "type": "string",
@@ -1333,11 +1228,7 @@
                   ],
                   "properties": {
                     "identity_class": {
-                      "enum": [
-                        "managed_identity",
-                        "user",
-                        "service_principal"
-                      ]
+                      "type": "string"
                     },
                     "name": {
                       "type": "string",
@@ -1367,51 +1258,7 @@
                       "description": "Entra object id of the principal. What a role assignment names.",
                       "pattern": "^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$"
                     }
-                  },
-                  "allOf": [
-                    {
-                      "if": {
-                        "properties": {
-                          "identity_class": {
-                            "const": "managed_identity"
-                          }
-                        }
-                      },
-                      "then": {
-                        "required": [
-                          "resource_group"
-                        ]
-                      }
-                    },
-                    {
-                      "if": {
-                        "properties": {
-                          "identity_class": {
-                            "const": "user"
-                          }
-                        }
-                      },
-                      "then": {
-                        "required": [
-                          "user_principal_name"
-                        ]
-                      }
-                    },
-                    {
-                      "if": {
-                        "properties": {
-                          "identity_class": {
-                            "const": "service_principal"
-                          }
-                        }
-                      },
-                      "then": {
-                        "required": [
-                          "object_id"
-                        ]
-                      }
-                    }
-                  ]
+                  }
                 },
                 "windows_service": {
                   "description": "Windows service registration for a host_os_process target. Present when the process is supervised by the Windows service manager rather than run by hand. The deploy creates or updates this definition and never starts it: installing a service and running one are different acts, and only the service manager does the second.",
@@ -1441,12 +1288,7 @@
                     },
                     "start_mode": {
                       "description": "How the service manager starts it. Automatic means at boot.",
-                      "type": "string",
-                      "enum": [
-                        "Automatic",
-                        "Manual",
-                        "Disabled"
-                      ]
+                      "type": "string"
                     },
                     "account": {
                       "description": "The account the service runs as. Omitted means LocalSystem.",
@@ -1528,30 +1370,11 @@
                 },
                 "handler_type": {
                   "type": "string",
-                  "description": "Closed taxonomy of software handlers that process a file. Source-of-truth for this controlled vocabulary: this schema document itself. Values classify the file's processing class only. dotnet_source and dotnet_project cover the .NET supervisor shipped with the conversation-log target; calling a .cs file a static_asset misstates what it is.",
-                  "enum": [
-                    "python_source",
-                    "python_test",
-                    "python_requirements",
-                    "dockerfile",
-                    "workflow_yaml",
-                    "shell_script",
-                    "bat_script",
-                    "markdown",
-                    "json",
-                    "static_asset",
-                    "cert_or_key",
-                    "dotnet_source",
-                    "dotnet_project"
-                  ]
+                  "description": "Closed taxonomy of software handlers that process a file. Source-of-truth for this controlled vocabulary: this schema document itself. Values classify the file's processing class only. dotnet_source and dotnet_project cover the .NET supervisor shipped with the conversation-log target; calling a .cs file a static_asset misstates what it is."
                 },
                 "disposition": {
                   "type": "string",
-                  "description": "Closed taxonomy that decides who owns the file's bytes. 'managed' \u2014 the JSON owns the bytes verbatim in embedded_content; Extractor materializes; Crosswalk requires byte-equality with the repo tree. 'referenced' \u2014 only the source_location path is declared; deploy machinery copies the bytes from origin/<branch>'s git tree at deploy time; Crosswalk requires presence only. INVARIANT: when disposition=managed, embedded_content is required. When disposition=referenced, embedded_content MUST be absent.",
-                  "enum": [
-                    "managed",
-                    "referenced"
-                  ]
+                  "description": "Closed taxonomy that decides who owns the file's bytes. 'managed' \u2014 the JSON owns the bytes verbatim in embedded_content; Extractor materializes; Crosswalk requires byte-equality with the repo tree. 'referenced' \u2014 only the source_location path is declared; deploy machinery copies the bytes from origin/<branch>'s git tree at deploy time; Crosswalk requires presence only. INVARIANT: when disposition=managed, embedded_content is required. When disposition=referenced, embedded_content MUST be absent."
                 },
                 "embedded_content": {
                   "type": "string",
@@ -1569,97 +1392,7 @@
                   "description": "sha256 hex digest of the file's bytes at the moment the Builder enumerated it. Populated for disposition='referenced' as a drift detector \u2014 Crosswalk re-hashes the disk bytes on every deploy and REJECTs on mismatch, catching unstaged edits that would otherwise ship differently between local builds (disk-driven) and remote builds (commit-driven). Forbidden when disposition='managed' (managed files are already byte-protected by embedded_content).",
                   "pattern": "^[0-9a-f]{64}$"
                 }
-              },
-              "allOf": [
-                {
-                  "if": {
-                    "properties": {
-                      "disposition": {
-                        "const": "managed"
-                      }
-                    },
-                    "required": [
-                      "disposition"
-                    ]
-                  },
-                  "then": {
-                    "required": [
-                      "embedded_content"
-                    ]
-                  }
-                },
-                {
-                  "if": {
-                    "properties": {
-                      "disposition": {
-                        "const": "referenced"
-                      }
-                    },
-                    "required": [
-                      "disposition"
-                    ]
-                  },
-                  "then": {
-                    "not": {
-                      "anyOf": [
-                        {
-                          "required": [
-                            "embedded_content"
-                          ]
-                        },
-                        {
-                          "required": [
-                            "layout"
-                          ]
-                        }
-                      ]
-                    }
-                  }
-                },
-                {
-                  "if": {
-                    "properties": {
-                      "disposition": {
-                        "const": "managed"
-                      }
-                    },
-                    "required": [
-                      "disposition"
-                    ]
-                  },
-                  "then": {
-                    "not": {
-                      "required": [
-                        "content_hash"
-                      ]
-                    }
-                  }
-                },
-                {
-                  "if": {
-                    "properties": {
-                      "disposition": {
-                        "const": "managed"
-                      },
-                      "handler_type": {
-                        "enum": [
-                          "dockerfile",
-                          "workflow_yaml"
-                        ]
-                      }
-                    },
-                    "required": [
-                      "disposition",
-                      "handler_type"
-                    ]
-                  },
-                  "then": {
-                    "required": [
-                      "layout"
-                    ]
-                  }
-                }
-              ]
+              }
             }
           },
           "secrets": {
@@ -1713,148 +1446,16 @@
             "type": "array",
             "description": "Roles, role assignments, memberships, and access grants this TARGET requires. Not secrets \u2014 values live entirely in this JSON, never in any .env or external store. The deploy procedure reads this inventory and provisions every entitlement it lists; a ground-up build produces a runtime with exactly these entitlements and no others. Per EPIC-008-F-012.",
             "items": {
-              "oneOf": [
-                {
-                  "type": "object",
-                  "required": [
-                    "kind",
-                    "principal",
-                    "role",
-                    "scope"
-                  ],
-                  "properties": {
-                    "kind": {
-                      "const": "azure_rbac_role_assignment"
-                    },
-                    "principal": {
-                      "type": "string",
-                      "description": "Managed identity, service principal, or user that receives the role."
-                    },
-                    "role": {
-                      "type": "string",
-                      "description": "Built-in role name (e.g. Contributor) or custom role id."
-                    },
-                    "scope": {
-                      "type": "string",
-                      "description": "Azure resource id or scope path the role is granted at."
-                    }
-                  },
-                  "additionalProperties": false
-                },
-                {
-                  "type": "object",
-                  "required": [
-                    "kind",
-                    "user",
-                    "role",
-                    "database"
-                  ],
-                  "properties": {
-                    "kind": {
-                      "const": "atlas_db_role_assignment"
-                    },
-                    "user": {
-                      "type": "string",
-                      "description": "Atlas database user name."
-                    },
-                    "role": {
-                      "type": "string",
-                      "description": "Atlas role (e.g. readWriteAnyDatabase)."
-                    },
-                    "database": {
-                      "type": "string",
-                      "description": "Database the role applies to. Use '*' for any database."
-                    }
-                  },
-                  "additionalProperties": false
-                },
-                {
-                  "type": "object",
-                  "required": [
-                    "kind",
-                    "space",
-                    "user",
-                    "access"
-                  ],
-                  "properties": {
-                    "kind": {
-                      "const": "hf_space_membership"
-                    },
-                    "space": {
-                      "type": "string",
-                      "description": "HuggingFace Space name or id."
-                    },
-                    "user": {
-                      "type": "string",
-                      "description": "HF user or org granted access."
-                    },
-                    "access": {
-                      "enum": [
-                        "read",
-                        "write",
-                        "admin"
-                      ]
-                    }
-                  },
-                  "additionalProperties": false
-                },
-                {
-                  "type": "object",
-                  "required": [
-                    "kind",
-                    "account",
-                    "scopes"
-                  ],
-                  "properties": {
-                    "kind": {
-                      "const": "cloudflare_api_token_scope"
-                    },
-                    "account": {
-                      "type": "string",
-                      "description": "Cloudflare account name or id the token authenticates against."
-                    },
-                    "scopes": {
-                      "type": "array",
-                      "description": "Scopes the API token grants (e.g. 'Cloudflare Pages:Edit', 'Account:Read').",
-                      "items": {
-                        "type": "string"
-                      },
-                      "minItems": 1,
-                      "uniqueItems": true
-                    }
-                  },
-                  "additionalProperties": false
-                },
-                {
-                  "type": "object",
-                  "required": [
-                    "kind",
-                    "workflow",
-                    "permissions"
-                  ],
-                  "properties": {
-                    "kind": {
-                      "const": "github_workflow_permission"
-                    },
-                    "workflow": {
-                      "type": "string",
-                      "description": "Repository-relative path of the GHA workflow file (e.g. '.github/workflows/remote-deploy.yml')."
-                    },
-                    "permissions": {
-                      "type": "object",
-                      "description": "Permission map applied to GITHUB_TOKEN for the workflow's job(s). Key = permission scope (e.g. 'contents', 'packages'); value = access level ('read' | 'write' | 'none').",
-                      "additionalProperties": {
-                        "enum": [
-                          "read",
-                          "write",
-                          "none"
-                        ]
-                      }
-                    }
-                  },
-                  "additionalProperties": false
+              "type": "object",
+              "required": [
+                "kind"
+              ],
+              "properties": {
+                "kind": {
+                  "type": "string",
+                  "description": "The platform-specific entitlement type. Which kinds exist and what each requires (e.g. principal/role/scope for an Azure RBAC assignment, user/role/database for an Atlas role) is corporate content the deploy's entitlement handler owns and validates -- not the schema."
                 }
-              ]
+              }
             }
           },
           "allowed_roles": {
@@ -1972,13 +1573,8 @@
             "description": "The name this thing actually has in the platform that holds it -- the Entra display name, the service principal name, the Atlas database user. Not a canonical id, not a prefixed alias: what is written here is what a reader can look up. A prefix invents a second name for one thing, and then the two drift."
           },
           "identity_class": {
-            "enum": [
-              "managed_identity",
-              "user",
-              "service_principal",
-              "api_token"
-            ],
-            "description": "The abstract kind of identity. Deploy handlers translate to the concrete platform realization (e.g. managed_identity -> Azure Managed Identity; user -> Entra user or Atlas DB user based on target_id_ref)."
+            "description": "The abstract kind of identity. Deploy handlers translate to the concrete platform realization (e.g. managed_identity -> Azure Managed Identity; user -> Entra user or Atlas DB user based on target_id_ref).",
+            "type": "string"
           },
           "target_id_ref": {
             "type": "string",
@@ -2000,11 +1596,8 @@
             "description": "package_id inside the referenced target that owns this identity. Required when target_id_ref/identity_target_id names a target whose identities are packages (e.g. target_entra_identities)."
           },
           "actor_type": {
-            "enum": [
-              "person",
-              "agent"
-            ],
-            "description": "Whether this user is a person or an agent. A user that holds access and states neither is not a qualified user: the entitlement report cannot say whether a person or a program holds the grant."
+            "description": "Whether this user is a person or an agent. A user that holds access and states neither is not a qualified user: the entitlement report cannot say whether a person or a program holds the grant.",
+            "type": "string"
           },
           "description": {
             "type": "string",
@@ -2021,13 +1614,8 @@
             "description": "The application this principal belongs to, named as it is in Entra. An application is the real software thing; a principal is one capability of it, entitled separately. Absent for a principal that is not part of an application, such as a person."
           },
           "entra_object_type": {
-            "enum": [
-              "user",
-              "application",
-              "servicePrincipal",
-              "managedIdentity"
-            ],
-            "description": "The concrete Entra object type, so a reader knows what to look up and where. identity_class is the abstract kind; this is the thing that exists in the directory."
+            "description": "The concrete Entra object type, so a reader knows what to look up and where. identity_class is the abstract kind; this is the thing that exists in the directory.",
+            "type": "string"
           },
           "identity_provider": {
             "type": "object",
