@@ -7365,7 +7365,36 @@
             },
             {
               "package_id": "front_end_indexes",
-              "kind": "mongo_indexes"
+              "kind": "mongo_indexes",
+              "config": {
+                "collection_ref": "PROVIDER_COLLECTION",
+                "indexes": [
+                  {
+                    "name": "idx_practice_state_county",
+                    "keys": [
+                      ["practice_addresses.state", 1],
+                      ["practice_addresses.county.name", 1]
+                    ],
+                    "collation": { "locale": "en", "strength": 2 }
+                  },
+                  {
+                    "name": "idx_practice_state_city_ci",
+                    "keys": [
+                      ["practice_addresses.state", 1],
+                      ["practice_addresses.city", 1]
+                    ],
+                    "collation": { "locale": "en", "strength": 2 }
+                  },
+                  {
+                    "name": "idx_provider_name",
+                    "keys": [
+                      ["provider_last_name_legal_name", 1],
+                      ["provider_first_name", 1],
+                      ["provider_middle_name", 1]
+                    ]
+                  }
+                ]
+              }
             }
           ],
           "config_collections": [
