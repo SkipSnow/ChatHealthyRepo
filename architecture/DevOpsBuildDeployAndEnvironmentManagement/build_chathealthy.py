@@ -665,30 +665,31 @@ def _build_body(args, repo_root: Path, canonical_repo: Path, canonical_build_dir
             mode="aborted",
             component="build_chathealthy",
             message=f"ERROR: no targets matched --target={args.target!r}")
-    # The record declares which packages a target carries. A package list
-    # supplied on the command line is a second declaration of the same fact,
-    # and two declarations of one fact drift: the build that produced a
-    # target could omit a package the target needs and nothing would object,
-    # because the thing that would have objected was the list the operator
-    # had just typed. The graph decides.
+    # The record declares which packages a target carries. --package may name
+    # a subset of them to build just those; it may not name a package the
+    # target does not declare, which would be a second, conflicting
+    # declaration of one fact. Dropping --package builds every declared one.
+    # A subset build is the operator's explicit choice, not a silent omission,
+    # so it does not drift the record the way an unstated omission would.
     known = {p for t in targets for p in _declared_packages(t)}
     if not known:
         raise ChatHealthyException(
             mode="aborted",
             component="build_chathealthy",
             message=f"ERROR: --target={args.target!r} declares no packages.")
-    packages_wanted = set(known)
 
     supplied = {p.strip() for p in (args.package or "").split(",") if p.strip()}
-    if supplied and supplied != known:
-        raise ChatHealthyException(
-            mode="illegal_state",
-            component="build_chathealthy",
-            message=f"ERROR: --package={sorted(supplied)} disagrees with what "
-            f"--target={args.target!r} declares: {sorted(known)}. The record "
-            f"states which packages a target carries; a command line that "
-            f"states it differently is a second declaration of one fact. "
-            f"Drop --package and the build reads the record.")
+    if supplied:
+        undeclared = supplied - known
+        if undeclared:
+            raise ChatHealthyException(
+                mode="illegal_state",
+                component="build_chathealthy",
+                message=f"ERROR: --package={sorted(supplied)} names package(s) "
+                f"{sorted(undeclared)} that --target={args.target!r} does not "
+                f"declare: {sorted(known)}. Name only packages the target "
+                f"carries, or drop --package to build them all.")
+    packages_wanted = supplied or set(known)
     for _t in targets:
         _step(f"  {_t.target_id}: install order {package_install_order(_t)}")
     _step(f"building every declared package {sorted(packages_wanted)} "
