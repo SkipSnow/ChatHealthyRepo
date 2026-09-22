@@ -650,6 +650,7 @@ _PACKAGE_ROUTING_KINDS = (
     "azure_container_registry",
     "azure_key_vault",
     "entra_directory",
+    "atlas",
 )
 
 
