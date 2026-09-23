@@ -9622,10 +9622,10 @@
                           "tests": {
                             "test": [
                               {
-                                "test_id": "EPIC-008-F-002-S-013-REQ-B-001-TEST-UNSUPPORTABLE",
-                                "test_type": "Unsupportable",
+                                "test_id": "EPIC-008-F-002-S-013-REQ-B-001-TEST-1",
+                                "test_type": "unit",
                                 "orphan": false,
-                                "file": "Unsupportable"
+                                "file": "architecture/EngineeringRuleEnforcement/tests/test_git_state_change_authorization_worker.py"
                               }
                             ]
                           }
