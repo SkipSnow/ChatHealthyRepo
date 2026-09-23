@@ -39,6 +39,7 @@
             "required": [
               "orphan",
               "name",
+              "sourceLocation",
               "type",
               "status",
               "description",
@@ -57,6 +58,10 @@
               },
               "name": {
                 "type": "string"
+              },
+              "sourceLocation": {
+                "type": "string",
+                "description": "Tree path from the repository root to the code that realizes this epic."
               },
               "type": {
                 "type": "string",
@@ -104,6 +109,7 @@
                       "required": [
                         "orphan",
                         "name",
+                        "sourceLocation",
                         "status",
                         "description",
                         "priority",
@@ -123,6 +129,10 @@
                         },
                         "name": {
                           "type": "string"
+                        },
+                        "sourceLocation": {
+                          "type": "string",
+                          "description": "Tree path from the repository root to the code that realizes this feature."
                         },
                         "status": {
                           "type": "string",
