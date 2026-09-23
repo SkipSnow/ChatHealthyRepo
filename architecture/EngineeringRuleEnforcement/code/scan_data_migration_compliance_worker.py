@@ -1,6 +1,6 @@
 """scan_data_migration_compliance_worker.py — Rule-065-ENF-009.
 
-EPIC-010-F-108-S-001-REQ-B-010: an engineering rule parses the migration file
+EPIC-010-F-002-S-001-REQ-B-010: an engineering rule parses the migration file
 with an LLM and guarantees that every requirement of that story is enforced by
 the code. A file that does not satisfy every requirement is not committed.
 
@@ -75,7 +75,7 @@ def _ch_exception():
 
 
 _RULE_ID = "Rule-065"
-_STORY_ID = "EPIC-010-F-108-S-001"
+_STORY_ID = "EPIC-010-F-002-S-001"
 _MIGRATION_FILE = "pipeline/Code/data_migration.py"
 _BACKLOG = "brain/machine_artifacts/content/agile_backlog.json"
 _MANIFEST = "brain/machine_artifacts/content/deployment_architecture.json"
@@ -112,16 +112,16 @@ _OVERRIDE_REASON_ENV = "CH_ENF009_OVERRIDE_REASON"
 # -- the manifest check answers it exactly, and a certain answer beats a
 # judged one.
 _NOT_THIS_FILES_QUESTION = {
-    "EPIC-010-F-108-S-001-REQ-B-010",
-    "EPIC-010-F-108-S-001-REQ-B-011",
-    "EPIC-010-F-108-S-001-REQ-B-012",
+    "EPIC-010-F-002-S-001-REQ-B-010",
+    "EPIC-010-F-002-S-001-REQ-B-011",
+    "EPIC-010-F-002-S-001-REQ-B-012",
 }
 # B-002 and B-009 are answered against the other components, whose source the
 # worker fetches from the manifest and hands over. They are the file's
 # question after all -- just not answerable from the file alone.
 _ESTATE_REQUIREMENTS = {
-    "EPIC-010-F-108-S-001-REQ-B-002",
-    "EPIC-010-F-108-S-001-REQ-B-009",
+    "EPIC-010-F-002-S-001-REQ-B-002",
+    "EPIC-010-F-002-S-001-REQ-B-009",
 }
 
 _SYSTEM_PROMPT = """You are the last gate before code enters a healthcare
