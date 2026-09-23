@@ -117,6 +117,12 @@ def _escape(text: str) -> str:
 
 _WEB_ROOT = "Website"
 
+# The engineering-rule data -- backlog, rules, bugs -- lives here and belongs to
+# Engineering Rule Enforcement (EPIC-008-F-002) by the operator's decision, the
+# way the website tree belongs to 'web'. A root rule, because no single
+# sourceLocation string can name both this tree and the feature's code tree.
+_BRAIN_CONTENT_ROOT = "brain/machine_artifacts/content"
+
 # Audit log: every approve/reject/timeout/interrupt/error verdict is appended
 # here as one JSON line. Lives in the feature's ArchitectureDesignAndAuditDocs
 # directory alongside the design docs for EPIC-008-F-002.
@@ -314,6 +320,8 @@ class CommitAuthorizationWorker(EnforcementWorker):
         if rel == _WEB_ROOT or rel.startswith(_WEB_ROOT + "/"):
             inner = rel[len(_WEB_ROOT):].lstrip("/")
             return ("web", inner.split("/")[0] if "/" in inner else "root")
+        if rel == _BRAIN_CONTENT_ROOT or rel.startswith(_BRAIN_CONTENT_ROOT + "/"):
+            return ("EPIC-008", "EPIC-008-F-002")
         names = self._backlog_names()
 
         def contains(base: str, target: str) -> bool:

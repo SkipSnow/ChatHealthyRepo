@@ -248,3 +248,37 @@ def test_interactive_commit_to_qa_is_refused_after_authorization(tmp_path):
 
     assert "Rule-065" in combined, \
         "commit failed, but not via Rule-065 — check which enforcement blocked it"
+
+
+# ─────────────────────────────────────────────────────────────────────────────
+# File attribution — EPIC-008-F-002-S-003-REQ-B-009. Each file the commit
+# carries is named to the epic and feature that owns it. Ownership is the
+# declared sourceLocation in the backlog, most specific path winning; two trees
+# are owned by a worker root rule instead — the website tree by 'web', and the
+# brain content tree (the backlog, rules and bugs this feature governs) by this
+# feature, EPIC-008-F-002. A file under no declared path is Unknown.
+# ─────────────────────────────────────────────────────────────────────────────
+
+@pytest.fixture
+def attribution_worker(monkeypatch):
+    monkeypatch.setenv("CHATHEALTHY_ENFORCEMENT_TIMEOUT_SECONDS", "60")
+    return CommitAuthorizationWorker(ENFORCEMENT_ID)
+
+
+ATTRIBUTION_CASES = [
+    # brain content -> Engineering Rule Enforcement, at the root and nested
+    ("brain/machine_artifacts/content/agile_backlog.json", ("EPIC-008", "EPIC-008-F-002")),
+    ("brain/machine_artifacts/content/bugs.json", ("EPIC-008", "EPIC-008-F-002")),
+    ("brain/machine_artifacts/content/engineering_rules.json", ("EPIC-008", "EPIC-008-F-002")),
+    ("brain/machine_artifacts/content/sub/deep/thing.json", ("EPIC-008", "EPIC-008-F-002")),
+    # website tree -> 'web', feature is the top directory (or 'root')
+    ("Website/find_care/app.js", ("web", "find_care")),
+    ("Website/index.html", ("web", "root")),
+    # a file under no declared sourceLocation is Unknown, a finding not a guess
+    ("nowhere/declared/orphan.txt", (None, None)),
+]
+
+
+@pytest.mark.parametrize("relpath, expected", ATTRIBUTION_CASES)
+def test_file_attribution(attribution_worker, relpath, expected):
+    assert attribution_worker._attribute(relpath) == expected
