@@ -7,17 +7,6 @@ Loads fetched source files (already present in `{env}-pipeline-transients/
 {run_id}/{source}/{filename}`) into the per-source staging collections on
 the pipeline cluster, in as-is shape.
 
-Realizes:
-
-  - EPIC-010-F-102-S-004-REQ-T-003  source CSV is byte-offset indexed
-                                    before any record processing
-  - EPIC-010-F-102-S-004-REQ-T-004  pre-indexing pairs every secondary-source
-                                    row with its NPI key
-  - EPIC-010-F-103-S-002-REQ-B-001, REQ-B-002  NPPES base and canonical NPI key
-  - EPIC-010-F-103-S-003          multi-address (pl_pfile)
-  - EPIC-010-F-103-S-004          Census ZCTA-to-County crosswalk
-  - EPIC-010-F-103-S-005          USDA RUCC classification workbook
-
 Target staging collections per LLD §6.4 (pipeline cluster
 `PipelinePublicHealthData`):
 
@@ -35,7 +24,7 @@ Load semantics per LLD §4.6:
   - Every staged document carries the `run_id` and `_source_row_index`
     (byte-offset-ordered row index) so downstream stages can partition
     deterministically and re-drive individual rows.
-  - Secondary-source rows (pl_pfile) get an indexed `npi` field per REQ-T-004
+  - Secondary-source rows (pl_pfile) get an indexed `npi` field
     so the join in §4.9 is index-driven.
   - Each source runs behind a drop-then-load switch keyed on `run_id`: on
     re-drive of the same run_id, the same rows are re-inserted with the

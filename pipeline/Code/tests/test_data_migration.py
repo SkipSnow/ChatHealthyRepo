@@ -1,4 +1,4 @@
-"""Tests for EPIC-010-F-108-S-001 — Data Migration.
+"""Tests for Data Migration.
 
 Two halves.
 
@@ -62,7 +62,7 @@ from chathealthy_lib.logging_service import ChatHealthyLoggingService  # noqa: E
 
 _log = ChatHealthyLoggingService()
 
-STORY = "EPIC-010-F-108-S-001"
+STORY = "EPIC-010-F-102-S-001"
 
 _MIGRATION_PATH = _REPO / "pipeline" / "Code" / "data_migration.py"
 _WORKER = (_REPO / "architecture" / "EngineeringRuleEnforcement" / "code"
@@ -88,7 +88,6 @@ _RESERVATION_MINUTES = 60
 def test_the_four_requests(seeded):
     """TRUE: the service migrates what a human released, does one job at a
     time, and refuses what it cannot migrate -- each for its own reason.
-    REQ-B-015, REQ-B-013, REQ-B-005, REQ-B-003 and REQ-B-001.
 
     One sequence, four approvals, because the cases are about each other:
     the second must arrive while the first is still running, and the third
@@ -302,18 +301,18 @@ def test_the_unmodified_migration_file_passes_every_requirement():
 @pytest.mark.parametrize("req_id", sorted(_BREAKAGES))
 def test_each_broken_requirement_is_refused(req_id, pristine_migration_file):
     """TRUE: an engineering rule guarantees the code meets this story, so code
-    that breaks any one requirement cannot enter the repository. REQ-B-010.
+    that breaks any one requirement cannot enter the repository.
 
     Code assertions, all four. Each judges source text and nothing runs.
 
     Each case takes the shipped file, breaks exactly one requirement, and
     requires the commit to be refused:
-      B-001  the collection would arrive under a different name
-      B-003  the migration would run without a recorded human release
-      B-005  the migration would proceed over a collection already there
-      B-007  the class would take a second constructor argument
-      B-013  the migration would report success with no source collection
-      B-014  the transfer would proceed without acknowledging the approval
+      the collection would arrive under a different name
+      the migration would run without a recorded human release
+      the migration would proceed over a collection already there
+      the class would take a second constructor argument
+      the migration would report success with no source collection
+      the transfer would proceed without acknowledging the approval
     """
     original = pristine_migration_file
     _log.info("[mutation] breaking %s and requiring the gate to refuse it", req_id)
@@ -329,7 +328,7 @@ def test_each_broken_requirement_is_refused(req_id, pristine_migration_file):
 def test_an_unregistered_migration_file_is_refused():
     """TRUE: the file that performs the migration is declared in
     deployment_architecture.json under exactly one target and one package, and a
-    file declared nowhere, or in more than one place, is refused. REQ-B-012.
+    file declared nowhere, or in more than one place, is refused.
 
     A code assertion on the check itself.
 
@@ -456,7 +455,7 @@ def seeded(reservation):
 
 def _approval_record(collection: str) -> dict | None:
     """The decision as Mongo holds it. The log says what happened; this says
-    what was recorded, and the record is what REQ-B-003 asks for."""
+    what was recorded, and the record is what the requirement asks for."""
     # pipelineEditor, not frontendUser: the approval lives in pipelineAdmin
     # and the front-end identity has no rights there, by design.
     return ChatHealthyMongoUtilities().getConnection(
@@ -588,8 +587,8 @@ def _the_job_ended(since, wait_seconds: int = 600) -> tuple[str, str]:
     """What became of the job the service started after `since`.
 
     Returns its terminal status and its exception text. A refusal is an
-    abend: REQ-B-005, REQ-B-013 and REQ-B-015 all require the invocation to
-    end abnormally rather than exit tidily reporting a problem, so the
+    abend: the invocation must end abnormally rather than exit tidily
+    reporting a problem, so the
     platform's own verdict on the job is the evidence, not a line the
     runbook chose to write about itself.
     """
@@ -693,8 +692,8 @@ def _declared_python_components() -> list[pathlib.Path]:
 
 
 def test_only_the_migration_names_the_serving_database():
-    """TRUE: nothing other than the migration writes to the serving database.
-    REQ-B-002, and REQ-B-009 that exactly one file performs the migration.
+    """TRUE: nothing other than the migration writes to the serving database,
+    and exactly one file performs the migration.
 
     A code assertion over every component the deployment declares."""
     # Named exactly, not as a substring: PipelinePublicHealthData contains
@@ -715,7 +714,7 @@ def test_only_the_migration_names_the_serving_database():
 
 def test_the_migration_cannot_alter_or_remove():
     """TRUE: no migration changes or removes anything that existed before it
-    ran. REQ-B-004.
+    ran.
 
     A code assertion: no call in the file can alter or remove."""
     destructive = {"update_one", "update_many", "replace_one", "delete_one",
@@ -731,7 +730,7 @@ def test_the_migration_cannot_alter_or_remove():
 
 def test_data_is_reached_only_on_behalf_of_a_named_collection():
     """TRUE: within the implementing service every access to data is made on
-    behalf of exactly one named collection. REQ-B-006.
+    behalf of exactly one named collection.
 
     A code assertion: the databases holding the data are named nowhere in the
     file outside the class that carries a collection name."""
@@ -750,7 +749,7 @@ def test_data_is_reached_only_on_behalf_of_a_named_collection():
 
 def test_only_the_collection_name_is_assigned_onto_the_class():
     """TRUE: the collection name is the only value assigned to the class from
-    outside it. REQ-B-008.
+    outside it.
 
     A code assertion on what the class assigns onto itself."""
     classes = [n for n in ast.walk(_migration_tree()) if isinstance(n, ast.ClassDef)]
@@ -770,7 +769,6 @@ def test_only_the_collection_name_is_assigned_onto_the_class():
 def test_each_actor_uses_one_identity_and_not_the_other_s():
     """TRUE: two actors take part, the workstation recording the approval and
     the service moving the data, and neither can perform the other's part.
-    REQ-B-011.
 
     A code assertion: each file reaches the database as exactly one identity,
     and the two identities are different."""
@@ -784,7 +782,7 @@ def test_each_actor_uses_one_identity_and_not_the_other_s():
 
 def test_a_second_holder_cannot_take_the_reservation():
     """TRUE: the service runs one job at a time, so a second invocation
-    arriving while one is running is refused. REQ-B-015.
+    arriving while one is running is refused.
 
     A behavioural assertion against the real collection.
 

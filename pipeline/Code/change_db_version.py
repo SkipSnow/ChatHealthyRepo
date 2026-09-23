@@ -12,7 +12,6 @@ this runbook at build time (sourced from
 deployment_architecture.json.environments[].node_address). The
 deployment-architecture file is NOT read at runtime.
 
-Per EPIC-010-F-101-S-005 (Data version management) REQ-B-004:
 ChatHealthyDataPipelinesGatewayFunctionApp is the facade; this runbook
 on ChatHealthyJobManager is what spawns from it to propagate.
 

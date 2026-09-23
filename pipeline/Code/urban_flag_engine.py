@@ -14,8 +14,8 @@ RUCC — the scale runs 1 for a metro area of a million and up to 9 for rural
 and not adjacent to one — so the rollup is a minimum, not a maximum.
 
 Absent, never false, where no RUCC resolved: false asserts rural of a
-provider the pipeline has not placed, and EPIC-006-F-002 already tells the
-Provider Detail panel how to render absent.
+provider the pipeline has not placed, and the Provider Detail panel
+already knows how to render absent.
 
 The whole state is one updateMany with an aggregation pipeline. No cursor
 walks the providers and no document crosses the wire: the marker is a

@@ -3,12 +3,6 @@
 
 """In-process request-rate throttle utility.
 
-Realizes the concurrency-bound and rate-bound obligation on:
-  - EPIC-010-F-102-S-003-REQ-T-003 (source-gather concurrency bounded by throttle)
-  - EPIC-010-F-103-S-004-REQ-B-001..REQ-B-008 (county cascade vendor calls
-    including NPPES registry at ~5 req/s per IP and Google Maps at the
-    paid-throttled tier)
-
 Two independent primitives:
 
   ConcurrencyBoundedSemaphore

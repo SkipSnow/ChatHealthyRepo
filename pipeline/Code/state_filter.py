@@ -2,15 +2,15 @@
 # Licensed under the FindCare Evaluation License (FEL-1.0).
 """Shared state-scope predicate for the provider pipeline.
 
-EPIC-010-F-006-S-001 — single source of truth for how every step interprets
+Single source of truth for how every step interprets
 the `states` parameter. Used by drain, load worker, enrichment, and embedding
-so the predicate is 100% uniform across the pipeline (REQ-T-001).
+so the predicate is 100% uniform across the pipeline.
 
 Behavior:
-  - states missing / empty / malformed -> raises ValueError       (REQ-T-002)
-  - states == ["ALL"]                  -> full-load sentinel       (REQ-B-002, T-004)
+  - states missing / empty / malformed -> raises ValueError
+  - states == ["ALL"]                  -> full-load sentinel
   - any other non-empty list           -> business_address.state predicate
-                                          (REQ-T-003). The wider
+                                          The wider
                                           any-address / licenses /
                                           other_identifiers predicate is gone:
                                           the business address is the

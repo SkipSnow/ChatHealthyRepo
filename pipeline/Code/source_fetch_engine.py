@@ -8,19 +8,6 @@ blob location, verified by content hash, with a durable per-source version
 identity that the archival step then promotes to
 `{env}-pipeline-sources/{source_name}/{version}/`.
 
-Realizes:
-
-  - EPIC-010-F-102-S-003-REQ-B-001  data-source fetching
-  - EPIC-010-F-102-S-003-REQ-B-002  per-source freshness TTL (in days)
-  - EPIC-010-F-102-S-003-REQ-T-002  gather activity inventory
-  - EPIC-010-F-102-S-003-REQ-T-003  source-gather concurrency bounded by throttle
-  - EPIC-010-F-102-S-003-REQ-T-004  AI-agent source-URL discovery (NPPES, USDA RUCC)
-  - EPIC-010-F-102-S-004-REQ-B-001  source-file storage management (version identity)
-  - EPIC-010-F-103-S-002-REQ-B-001..REQ-B-005  NPPES base sources
-  - EPIC-010-F-103-S-003  multi-address (pl_pfile) file
-  - EPIC-010-F-103-S-004  Census ZCTA-to-County crosswalk
-  - EPIC-010-F-103-S-005  USDA RUCC classification workbook
-
 Source inventory (LLD §4.4). The engine fetches every source enumerated
 here whose freshness-gate decision was "fetch". Sources whose decision
 was "reuse" are passed through with a `skipped=True` record so the
@@ -33,20 +20,20 @@ archival step and the source_versions block still see them.
   usda_rucc          — USDA RUCC classification workbook
   specialty_catalog  — F-105 classification catalog (pipeline cluster)
 
-Concurrency contract per REQ-T-003. Sources are fetched in parallel
+Concurrency contract. Sources are fetched in parallel
 using a thread pool bounded by `config["fetch_concurrency"]` (default 6).
 Each vendor call is issued through a per-source RateLimitedGate whose
 rate is drawn from `config["throttle_rates"][source_name]`. NPPES-registry
 and Google-Maps rates land here for use by both the fetch step and the
 county cascade.
 
-URL discovery per REQ-T-004. Every source whose canonical URL is not
+URL discovery. Every source whose canonical URL is not
 a stable string (NPPES monthly, USDA RUCC yearly, NUCC quarterly,
 Census decennial) is resolved through source_url_discovery.find_latest_data_url
 at fetch time. There is no fallback URL constant. On discovery failure
 the fetch aborts and the pipeline fails loudly.
 
-Content-hash + version-identity contract per S-004-REQ-B-001. Every
+Content-hash + version-identity contract. Every
 fetched file gets a SHA-256 computed on the wire. The tuple (source_name,
 sha256) is the durable version identity; the archival step (§4.5)
 promotes {run_id}/{source}/{filename} to
@@ -99,7 +86,7 @@ def _sha256_stream(fh) -> str:
 
 
 def _discover_url(source_name: str, discovery: dict) -> str:
-    """LLD §4.4 REQ-T-004: AI-agent URL discovery, no fallback constants."""
+    """LLD §4.4: AI-agent URL discovery, no fallback constants."""
     page_url = discovery.get("page_url")
     instructions = discovery.get("instructions", "")
     if not page_url:

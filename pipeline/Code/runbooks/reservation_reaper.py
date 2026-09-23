@@ -327,14 +327,14 @@ _TERMINAL_ITEM_STATUSES = {"done", "succeeded", "failed", "complete", "completed
 class CorrectionPass:
     """One sweep over pipeline job metadata, and a record of what it reached.
 
-    REQ-B-002 requires that no job is recorded in a non-terminal state while
-    it is not running, and that no lock or reservation is held on behalf of a
+    No job may be recorded in a non-terminal state while
+    it is not running, and no lock or reservation may be held on behalf of a
     job that is not running. Locks alone do not satisfy that: a job whose
     reservation was cancelled before its manifest was stamped leaves no
     lifecycle row at all, so a sweep driven by lifecycle rows never sees it.
     This is driven by pipeline.runs as well.
 
-    REQ-B-003 requires that a pass which cannot finish says so, and says what
+    A pass which cannot finish must say so, and must say what
     it did not reach. Every unit of work is enrolled before the sweep starts
     and struck off as it is examined, so whatever remains enrolled at the end
     is exactly what went unexamined.
@@ -500,7 +500,7 @@ def _main():
     log.info("Loaded %d cluster_lifecycle rows from %s.%s",
              len(reservations), "pipelineAdmin", "cluster_lifecycle")
 
-    # REQ-B-002: a run recorded as going whose Controller is not must be
+    # A run recorded as going whose Controller is not must be
     # corrected, whether or not it left a lock behind.
     global _PASS
     _PASS = CorrectionPass(client)
@@ -559,7 +559,7 @@ def _main():
 
     live = [r for r in kept if r.get("status", "active") == "active"]
 
-    # Precedence: the reservation queue is the primary signal (REQ-B-001). While a
+    # Precedence: the reservation queue is the primary signal. While a
     # live reservation exists the cluster stays up, full stop. The confirmatory signal is
     # lower-precedence confirmatory signal that only runs once the queue is empty:
     # a run or work item still going without a reservation means a job lost its

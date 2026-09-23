@@ -16,19 +16,6 @@ Cascade order (LLD §4.13):
   3. nppes_registry — CMS NPPES per-NPI registry, ~5 req/s per IP. Free.
   4. google_maps    — Google Maps Geocoding API. Paid; throttled.
 
-Realizes:
-
-  - EPIC-010-F-103-S-004-REQ-B-001  ZIP-to-county enrichment on every
-                                    practice address
-  - EPIC-010-F-103-S-004-REQ-B-002  cost-ordered cascade
-  - EPIC-010-F-103-S-004-REQ-B-003  cumulative match-rate SLA 98%
-  - EPIC-010-F-103-S-004-REQ-B-004  Census ZCTA-to-County crosswalk stage
-  - EPIC-010-F-103-S-004-REQ-B-005  Census geocoding batch stage
-  - EPIC-010-F-103-S-004-REQ-B-006  NPPES registry stage
-  - EPIC-010-F-103-S-004-REQ-B-007  Google Maps paid stage
-  - EPIC-010-F-103-S-004-REQ-B-008  stamps county.fips, county.name,
-                                    county.source per address
-
 Eligibility (LLD §4.8.3 and §4.8.4): mailing addresses are NOT eligible
 for county enrichment; only practice addresses (primary_practice,
 secondary_practice) are.
@@ -182,7 +169,7 @@ def _stamp_county(
 
     county.urban is derived from it by the urban_flag step (LLD 5.2.15),
     which runs after this one. The pipeline owns that marker --
-    EPIC-006-F-002 requires the Provider Detail panel to display it on every
+    the Provider Detail panel displays it on every
     address row -- and it is stamped in its own step so its work and its
     failure are visible on the run."""
     entry: dict = {"fips": fips, "source": source}
@@ -357,8 +344,8 @@ def _load_rucc_by_fips(mongo, registry, run_id: str) -> dict[str, int]:
     Reads from the pipeline cluster's usda_rucc staging collection per
     the registry (dataset_versions[]). The raw integer (1..9) is kept on
     the address and county.urban is derived from it, because the marker is
-    the pipeline's to own: EPIC-006-F-002 has the Provider Detail panel
-    reading county.urban directly.
+    the pipeline's to own: the Provider Detail panel
+    reads county.urban directly.
 
     RUCC integer semantics (from USDA ERS):
       1: Metro 1M+          6: Nonmetro 2.5K-20K adjacent

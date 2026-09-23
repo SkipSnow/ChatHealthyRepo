@@ -1,6 +1,6 @@
 """County enrichment SLA test.
 
-Asserts EPIC-010-F-007-S-011-REQ-B-001:
+Asserts the county-data SLA:
   "97% or more of the total Provider records MUST have county data
    associated with them."
 

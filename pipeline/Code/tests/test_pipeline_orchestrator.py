@@ -3,10 +3,10 @@
 
 """Pipeline orchestrator structural tests.
 
-EPIC-010-F-101-S-001-REQ-B-003: every pipeline orchestrator MUST delete its
+Every pipeline orchestrator MUST delete its
 reservation on success AND failure (try/finally or equivalent).
 
-EPIC-010-F-102-S-007-REQ-B-003 (V3): orchestrations are 100% independent
+Orchestrations are 100% independent
 except they share a base class. After the base-class refactor, the shared
 try/release scaffolding lives in BasePipelineOrchestrator.run() — the
 Provider and Specialty subclasses override _pipeline_steps() only.

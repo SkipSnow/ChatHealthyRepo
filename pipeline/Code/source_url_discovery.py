@@ -4,7 +4,7 @@
 """Shared source-URL discovery for every external data file the pipeline
 ingests.
 
-Realizes EPIC-010-F-102-S-003-REQ-T-006: pipelines whose source URL is
+Pipelines whose source URL is
 auto-discovered (NPPES, NUCC, ZIP-county crosswalk, USDA RUCC, ...) MUST
 identify the correct file by calling an AI agent, not by regex or HTML
 scraping in code. No fallback URL constants. On agent failure or

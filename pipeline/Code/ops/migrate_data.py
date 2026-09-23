@@ -8,7 +8,7 @@ On APPROVE it puts the code that environment runs to its engineering rule,
 records the release, and POSTs the webhook that starts ChatHealthyJobManager's
 migration runbook. On REJECT it logs the refusal and stops.
 
-The click is the sign-off EPIC-010-F-108-S-001-REQ-B-003 requires. It is
+The click is the required sign-off. It is
 recorded here before the webhook is sent, so a migration that ran is always
 preceded by the record of the human who released it, and the record names the
 collection they were looking at when they clicked.

@@ -346,9 +346,8 @@ def _compute_band(pct: float) -> str:
 def _group_drugs(raw_drugs):
     """Group raw CMS drug rows by molecule (generic name), aggregate claims.
 
-    Splits claims into brand_claims and generic_claims per molecule
-    (EPIC-006-F-010-S-004). Also computes provider-level generic_ratio_band
-    (EPIC-006-F-010-S-004).
+    Splits claims into brand_claims and generic_claims per molecule.
+    Also computes provider-level generic_ratio_band.
     """
     molecule_map = {}
     for d in raw_drugs:

@@ -1,15 +1,7 @@
 # Copyright (c) 2026 ChatHealthy.ai LLC. All rights reserved.
 # Licensed under the FindCare Evaluation License (FEL-1.0).
 
-"""Specialty embedding engine — LLD v23 §3.2 (embeddings step) + F-102-S-006.
-
-Realizes:
-
-  - EPIC-010-F-102-S-006-REQ-B-001..REQ-B-005  shared embedding worker;
-                                               text-embedding-3-large;
-                                               write vector back to record
-  - EPIC-008-F-011-S-004-REQ-B-001             one embedding model across
-                                               the application
+"""Specialty embedding engine — LLD v23 §3.2 (embeddings step).
 
 Contract:
   Embedding model:    the firm's one declaration, read by the facade from

@@ -113,7 +113,7 @@ class DataFetcherBase:
                 "checksum_sha256": str, — SHA-256 of downloaded file
             }
         """
-        # Per F-102-S-003-REQ-B-002: each source has its own TTL (in days)
+        # Each source has its own TTL (in days)
         # resolved from the source_staleness array in config. 0 = always
         # re-fetch every invocation. >0 = use cached blob if its last_modified
         # is within N days. If the cache is stale AND remote re-fetch fails,
@@ -145,8 +145,8 @@ class DataFetcherBase:
             except Exception as exc:
                 pass
 
-        # Cache is stale OR missing OR TTL=0. Try remote re-fetch. Per REQ-B-002,
-        # if re-fetch fails, delete the stale blob and abend.
+        # Cache is stale OR missing OR TTL=0. Try remote re-fetch. If
+        # re-fetch fails, delete the stale blob and abend.
         try:
             if not self.source_url or self.source_url is NotImplemented:
                 self.source_url = self._resolve_source_url()
