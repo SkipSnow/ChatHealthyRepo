@@ -8,6 +8,7 @@
       {
         "epic_id": "EPIC-001",
         "name": "Evaluate Care v0.1.4",
+        "sourceLocation": "evaluateCare",
         "status": "in_progress",
         "features": {
           "feature": [
@@ -15,6 +16,7 @@
               "feature_id": "EPIC-001-F-001",
               "orphan": false,
               "name": "EvalCareRequestManager",
+              "sourceLocation": "evaluateCare",
               "status": "not_started",
               "description": "This feature specifies how EvalCare uses the ManageRequests functions to send requests to peer services and to handle requests received from them. Its four stories cover synchronous send, synchronous receive, asynchronous send, and asynchronous receive.",
               "priority": "TBD",
@@ -278,12 +280,14 @@
       {
         "epic_id": "EPIC-002",
         "name": "Security And Shared Services",
+        "sourceLocation": "sharedServices",
         "status": "in_progress",
         "features": {
           "feature": [
             {
               "feature_id": "EPIC-002-F-001",
               "name": "Cloudflare Security Requirements",
+              "sourceLocation": "web",
               "description": "Resolve all 11 Cloudflare Security Insights findings from April 2026 scan.",
               "priority": "MEDIUM",
               "status": "not_started",
@@ -785,6 +789,7 @@
             {
               "feature_id": "EPIC-002-F-002",
               "name": "Compliance attestation surface",
+              "sourceLocation": "sharedServices",
               "status": "in_progress",
               "description": "Closes the trace from compliance-implementation work back to ChatHealthy.ai stated security commitments in governance.json/security_standards and security.json/compliance_mapping. Healthcare enterprise buyers require HITRUST + NIST/SOC2 posture; this feature is the surface that proves we maintain it continuously.",
               "stories": {
@@ -867,6 +872,7 @@
             {
               "feature_id": "EPIC-002-F-003",
               "name": "Manage ChatHealthy's 0 Trust security",
+              "sourceLocation": "sharedServices",
               "description": "End-to-end identity, certificate, and authentication rules for every entity that authenticates against ChatHealthy.ai: end users, operators, services, containers, pipeline components, external clients. The feature owns the ChatHealthy certificate authority, the session-token envelope carried between components, OAuth login for humans, the User State object, mutual authentication rules, and the identity registry that binds every authenticating actor to a canonical identity.",
               "priority": "must-have",
               "status": "in_progress",
@@ -1974,6 +1980,7 @@
               "feature_id": "EPIC-002-F-004",
               "orphan": false,
               "name": "Universal Navigation",
+              "sourceLocation": "sharedServices",
               "status": "in_progress",
               "description": "The ChatHealthy.ai application guides users to find care, evaluate their choices objectively, and meet with their loved ones, care providers, and AI robots to discuss their options, and potentially get deep research based on their context. Users might be registered, guests, customers, or site administrators. The requirements for One Universal Navigation Mechanism are specified herein. Navigation takes place between an end user typing values into a prompt or using one of ChatHealthy's tools and corresponding UX component to do work such as picking providers, specialties, clinical trials, or tuning the mixing board in EvaluateCare. These requirements when met must, along with other controls, demonstrate ChatHealthy's compliance with NIST 800-53. I.e., they must meet the strictest requirements that any HIPAA audit might uncover.",
               "priority": "must-have",
@@ -2287,6 +2294,7 @@
             {
               "feature_id": "EPIC-002-F-005",
               "name": "Backend Shared Services and Infrastructure",
+              "sourceLocation": "sharedServices",
               "description": "Backend shared services that support FindCare: push notifications, activity audit, request logging, CORS, URL validation, tool routing, lead capture, unknown question handling, consent framework, about content, safety IP locking, debug logging, embedding infrastructure, session tokens, and cross-domain provider location. Created during code audit 2026-04-10.",
               "priority": "HIGH",
               "status": "done",
@@ -2675,6 +2683,7 @@
             {
               "feature_id": "EPIC-002-F-006",
               "name": "Emergency Lockout System",
+              "sourceLocation": "sharedServices",
               "description": "Dual-trigger emergency detection (keyword + AI classifier). IP-based lockout on emergency. Admin unlock with shared secret. De-identified audit trail of all safety events.",
               "priority": "CRITICAL",
               "status": "not_started",
@@ -2822,6 +2831,7 @@
             {
               "feature_id": "EPIC-002-F-007",
               "name": "Cross Component Timers",
+              "sourceLocation": "web",
               "status": "not_started",
               "description": "Timers that indicate progress to the user across FindCare, EvaluateCare, and other components.",
               "realized_by": [
@@ -2924,6 +2934,7 @@
             {
               "feature_id": "EPIC-002-F-008",
               "name": "Mobile Phone Support \u00e2\u20ac\u201d Galaxy and iPhone 14+",
+              "sourceLocation": "web",
               "description": "Full mobile support for Samsung Galaxy and iPhone 14 forward. Hamburger navigation on all pages, responsive layouts, touch-friendly controls. ChatHealthy.ai must be fully usable on a phone \u00e2\u20ac\u201d not a degraded experience.",
               "priority": "HIGH",
               "status": "not_started",
@@ -3225,6 +3236,7 @@
             {
               "feature_id": "EPIC-002-F-009",
               "name": "Native Mobile Apps \u00e2\u20ac\u201d Apple App Store and Google Play",
+              "sourceLocation": "web",
               "description": "Publish ChatHealthy.ai as a native app on Apple App Store (iOS) and Google Play Store (Android). PWA wrapper or React Native shell around the existing web experience. Due before November 2026.",
               "priority": "HIGH",
               "status": "not_started",
@@ -3242,6 +3254,7 @@
             {
               "feature_id": "EPIC-002-F-010",
               "name": "Utterance Tool",
+              "sourceLocation": "sharedServices",
               "description": "This feature defines the requirements for the handling of every user interaction with ChatHealthy.ai's core front-end application that requires LLM-mediated routing or prose. The Utterance Manager (UM) has two responsibilities. (a) Interpret \u00e2\u20ac\u201d when the user types free-text into the prompt, UM classifies the latest utterance, builds the canonical IntentDocument, and may author a user_message prompt the user back. This is the 'interpret an utterance' path. (b) Manufacture \u00e2\u20ac\u201d when the user clicks a structured UI control (Apply Filter, future selected-for-evaluation gates, future pagination edges) that requires the system to ask the user something before it can act, the Universal Router (UR) dispatches UM with a synthetic trigger. UM reads the carried IntentDocument's slot state and authors a brief LLM-generated user_message requesting whatever slot is missing. No free-text utterance was typed; UM is manufacturing an utterance the system needs to deliver. Both paths end the same way: UM writes an IntentDocument back to user_object.intent, optionally streams user_message as kind:'prompt', and returns. UR validates and dispatches the resulting target_action. This feature is complete when every user-facing chat prose in the application is either (a) interpreted from a free-text utterance via path (a) or (b) manufactured by UM via path (b) \u00e2\u20ac\u201d and no tool authors its own chat strings.",
               "priority": "must-have",
               "status": "in_progress",
@@ -3682,6 +3695,7 @@
             {
               "feature_id": "EPIC-002-F-011",
               "name": "Parent Page Frame Layout",
+              "sourceLocation": "web",
               "description": "Percentage-based frame layout: header (6%), left panel (1% default, expandable), center (chat iframe 83% + control frame 7%), right panel (1% default, expandable), footer (4%). Design record: gui_frame_layout in design.json.",
               "priority": "HIGH",
               "status": "not_started",
@@ -3993,6 +4007,7 @@
               "feature_id": "EPIC-002-F-012",
               "orphan": false,
               "name": "SharedServicesRequestManager",
+              "sourceLocation": "sharedServices",
               "status": "not_started",
               "description": "This feature specifies how SharedServices uses the ManageRequests functions to send requests to peer services and to handle requests received from them. Its four stories cover synchronous send, synchronous receive, asynchronous send, and asynchronous receive.",
               "priority": "TBD",
@@ -4249,6 +4264,7 @@
             {
               "feature_id": "EPIC-002-F-013",
               "name": "Control Frame \u00e2\u20ac\u201d Pagination and Filter Controls",
+              "sourceLocation": "web",
               "description": "7% control frame canvas that renders pagination and filter controls on demand. 3D raised button style. Deterministic paging via /search \u00e2\u20ac\u201d no LLM round-trip after first page.",
               "priority": "HIGH",
               "status": "not_started",
@@ -4531,6 +4547,7 @@
             },
             {
               "name": "Handoff to EvaluateCare",
+              "sourceLocation": "web",
               "status": "in_progress",
               "description": "Send selected providers to EvaluateCare service with signed session token.",
               "stories": {
@@ -4676,6 +4693,7 @@
         "epic_id": "EPIC-003",
         "orphan": false,
         "name": "ChatHealthy FrontEnd libary",
+        "sourceLocation": "ChatHealthyLib",
         "type": "operational",
         "status": "in_progress",
         "description": "Shared Python library distributed as the pip package `chathealthy-lib` (repo root: `ChatHealthyLib/`). Owns the code consumed in common by ChatHealthy.ai's front-end-facing services (FindCare, EvaluateCare, SharedServices) and the wrapper. Scope is FRONT-END application code only \u00e2\u20ac\u201d devops, data pipelines, and analytics are explicitly out of scope. Operating-model intent: a separate team with its own P&L manages this library; consumers depend on it via versioned releases (`pip install chathealthy-lib==X.Y.Z`) following standard industry convention for shared libraries, including the boundary that the package mints no auth tokens \u00e2\u20ac\u201d auth-token MANUFACTURE belongs 100% to SharedServices; only auth-token MANAGEMENT (verification, parsing, nonce advancement) is shared and lives here.",
@@ -4686,6 +4704,7 @@
               "feature_id": "EPIC-003-F-001",
               "orphan": false,
               "name": "Shared front-end UX widget library",
+              "sourceLocation": "ChatHealthyLib",
               "description": "Distribution mechanism + source-of-truth for the display-only UX widgets currently inlined in Website/index.html and the FindCare React iframe. Includes the chFatalError full-screen overlay, the non-prod env banner, the non-prod security panel (right-side rightSecurity panel), and any future widget shared by more than one front-end consumer. The library carries NO business logic \u00e2\u20ac\u201d peer selection, mutual-auth pairing, service routing, ownership state, and any other biz-logic concerns are explicitly excluded and live in the backend per the no-biz-logic-on-client rule. Distribution channel TBD (npm package, CDN-hosted versioned bundle, or repo-internal copy at deploy time) \u00e2\u20ac\u201d to be decided as part of the first story under this feature. Owned by the same EPIC-003 team that owns chathealthy-lib (Python).",
               "priority": "must-have",
               "status": "not_started",
@@ -4704,6 +4723,7 @@
               "feature_id": "EPIC-003-F-002",
               "orphan": false,
               "name": "Backend orchestration that supports the shared front-end UX widgets",
+              "sourceLocation": "ChatHealthyLib",
               "description": "Backend endpoints + service-layer code that own all the business logic that today lives inline in Website/index.html and the FindCare React iframe \u00e2\u20ac\u201d peer selection (which backend's /health to call), mutual-auth pairing (the /session-then-/verify-token sequence currently driven from the wrapper), service-routing/ownership-state (gotoFindCare/gotoEvaluateCare/gotoSharedServices and the underlying ownership transition), and any other biz-logic decision the wrapper is making today. The widgets in EPIC-003-F-001 then become pure display: each widget consumes ONE clean data endpoint per render. This feature exists so that the no-biz-logic-on-client rule can actually be enforced; without it, extracting widgets only relocates the violation, not removes it. Per the auth caveat, token MANUFACTURE belongs 100% to SharedServices and any orchestration here MUST respect that boundary.",
               "priority": "must-have",
               "status": "not_started",
@@ -4722,6 +4742,7 @@
               "feature_id": "EPIC-003-F-003",
               "orphan": false,
               "name": "Manage Errors",
+              "sourceLocation": "ChatHealthyLib",
               "description": "This feature defines the requirements to manage errors that the ChatHealthy.ai's application code encounters. It defines a unified deliberate-exception model across the ChatHealthy.ai codebase. Every exception explicitly managed shares an exception class \u00e2\u20ac\u201d ChatHealthyException. This exception class has a mode discriminator and structured context dict. Catch sites discriminate on mode, not on exception type. External exceptions (httpx, pymongo, etc.) remain as their native types and are converted to ChatHealthyException at well-defined boundaries. The default behavior is and remains, when an exception occurs, fail hard and fast. But that policy is mitigated by the need to handle expected errors from users and external systems gracefully.",
               "priority": "must-have",
               "status": "in_progress",
@@ -5165,6 +5186,7 @@
               "feature_id": "EPIC-003-F-004",
               "orphan": false,
               "name": "Manage Database Connections",
+              "sourceLocation": "ChatHealthyLib",
               "description": "All database client instantiation from any ChatHealthy.ai service routes through a single shared library utility that owns connection lifecycle, service identity (appname), timeout policy, and connection-related logging.",
               "priority": "must-have",
               "realized_by": [
@@ -5181,6 +5203,7 @@
               "feature_id": "EPIC-003-F-005",
               "orphan": false,
               "name": "Manage logging",
+              "sourceLocation": "ChatHealthyLib",
               "description": "All ChatHealthy.ai code MUST log through one library.",
               "priority": "must-have",
               "realized_by": [
@@ -5197,6 +5220,7 @@
               "feature_id": "EPIC-003-F-006",
               "orphan": false,
               "name": "ManageRequests",
+              "sourceLocation": "ChatHealthyLib",
               "status": "not_started",
               "description": "This feature provides the shared functions every ChatHealthy service uses to send requests to peer services and to handle requests received from them. It covers synchronous and asynchronous calls in both directions, plus the merge function the calling thread uses to reconcile a returned User State with its current one. The gateway itself belongs to EPIC-002-F-004 Universal Navigation, not to this feature.",
               "priority": "TBD",
@@ -5505,432 +5529,16 @@
         }
       },
       {
-        "epic_id": "EPIC-005",
-        "name": "Testing",
-        "status": "in_progress",
-        "features": {
-          "feature": [
-            {
-              "feature_id": "EPIC-005-F-001",
-              "name": "User Testing",
-              "status": "in_progress",
-              "description": "User testing simulation, and test migration.",
-              "realized_by": [
-                "Python 3.11",
-                "Playwright"
-              ],
-              "stories": {
-                "story": [
-                  {
-                    "story_id": "EPIC-005-F-001-S-005",
-                    "size": "S",
-                    "status": "not_started",
-                    "requirements": {
-                      "requirement": [
-                        {
-                          "req_id": "EPIC-005-F-001-S-005-REQ-B-001",
-                          "requirement": "Display 'Application loading' message until the HF Space backend responds successfully",
-                          "priority": "must-have",
-                          "status": "not_started",
-                          "orphan": false,
-                          "tests": {
-                            "test": [
-                              {
-                                "test_type": "ORPHAN",
-                                "orphan": true,
-                                "file": "ORPHAN"
-                              }
-                            ]
-                          },
-                          "approval": "approved",
-                          "name": "Show 'Application loading' message until backend responds successfully",
-                          "depends_on": []
-                        },
-                        {
-                          "req_id": "EPIC-005-F-001-S-005-REQ-B-002",
-                          "requirement": "Retry for up to 10 minutes (60 attempts \u00c3\u2014 10s) before showing error",
-                          "priority": "must-have",
-                          "status": "not_started",
-                          "orphan": false,
-                          "tests": {
-                            "test": [
-                              {
-                                "test_type": "ORPHAN",
-                                "orphan": true,
-                                "file": "ORPHAN"
-                              }
-                            ]
-                          },
-                          "approval": "approved",
-                          "name": "Retry for up to 10 minutes (60 attempts \u00c3\u2014 10s) before error display",
-                          "depends_on": []
-                        }
-                      ]
-                    },
-                    "description": "Application loading indicator until app is ready",
-                    "orphan": false,
-                    "approval": "approved",
-                    "name": "Application loading indicator until app is ready"
-                  },
-                  {
-                    "story_id": "EPIC-005-F-001-S-007",
-                    "description": "All pagination requirement tests must run via Playwright against dev.chathealthy.ai, not FastAPI TestClient.",
-                    "size": "L",
-                    "status": "not_started",
-                    "requirements": {
-                      "requirement": []
-                    },
-                    "orphan": false,
-                    "approval": "approved",
-                    "name": "Convert test_pagination.py to Playwright full-page tests"
-                  }
-                ]
-              },
-              "orphan": false,
-              "approval": "approved",
-              "due_date": "2026-06-01",
-              "priority": "must-have"
-            },
-            {
-              "feature_id": "EPIC-005-F-002",
-              "name": "Regression Testing",
-              "status": "in_progress",
-              "description": "Ordered regression test runner, load parity, pipeline E2E, and automated bug creation.",
-              "realized_by": [
-                "Python 3.11",
-                "pytest"
-              ],
-              "stories": {
-                "story": [
-                  {
-                    "story_id": "EPIC-005-F-002-S-001",
-                    "description": "A script that reads agile_backlog.json, extracts all test_ids grouped by epic/feature/story, and runs them in hierarchy order. Supports scope arguments: --all, --epic EPIC-006, --feature EPIC-006-F-001, --story EPIC-006-F-001-S-001.",
-                    "size": "L",
-                    "status": "not_started",
-                    "requirements": {
-                      "requirement": []
-                    },
-                    "orphan": false,
-                    "approval": "approved",
-                    "name": "Backlog-ordered regression runner"
-                  },
-                  {
-                    "story_id": "EPIC-005-F-002-S-002",
-                    "requirements": {
-                      "requirement": []
-                    },
-                    "description": "Provider load parity: source CSV vs pipeline DB",
-                    "size": "S",
-                    "status": "in_progress",
-                    "orphan": false,
-                    "approval": "approved",
-                    "name": "Provider load parity: source CSV vs pipeline DB"
-                  }
-                ]
-              },
-              "orphan": false,
-              "approval": "approved",
-              "due_date": "2026-06-01",
-              "priority": "must-have"
-            },
-            {
-              "feature_id": "EPIC-005-F-003",
-              "name": "Security Testing",
-              "status": "in_progress",
-              "description": "Security testing for local and deployed environments.",
-              "realized_by": [
-                "Python 3.11",
-                "pytest"
-              ],
-              "stories": {
-                "story": [
-                  {
-                    "story_id": "EPIC-005-F-003-S-001",
-                    "description": "Verify TLS is configured between all local services.",
-                    "size": "M",
-                    "status": "not_started",
-                    "requirements": {
-                      "requirement": []
-                    },
-                    "orphan": false,
-                    "approval": "approved",
-                    "name": "TLS between all local components"
-                  },
-                  {
-                    "story_id": "EPIC-005-F-003-S-002",
-                    "description": "Architecture, roadmap, and artifact pages must be served behind TLS on :443.",
-                    "size": "M",
-                    "status": "not_started",
-                    "requirements": {
-                      "requirement": []
-                    },
-                    "orphan": false,
-                    "approval": "approved",
-                    "name": "Sensitive pages served on :443 only"
-                  }
-                ]
-              },
-              "orphan": false,
-              "approval": "approved",
-              "due_date": "2026-06-01",
-              "priority": "must-have"
-            },
-            {
-              "feature_id": "EPIC-005-F-004",
-              "name": "Data Quality",
-              "status": "in_progress",
-              "description": "Data quality regression, schema integrity, controlled vocabulary compliance.",
-              "realized_by": [
-                "Python 3.11",
-                "pytest"
-              ],
-              "stories": {
-                "story": [
-                  {
-                    "story_id": "EPIC-005-F-004-S-001",
-                    "requirements": {
-                      "requirement": []
-                    },
-                    "description": "Schema integrity tests",
-                    "size": "S",
-                    "status": "in_progress",
-                    "orphan": false,
-                    "approval": "approved",
-                    "name": "Schema integrity tests"
-                  },
-                  {
-                    "story_id": "EPIC-005-F-004-S-002",
-                    "requirements": {
-                      "requirement": []
-                    },
-                    "description": "Data quality flag tests",
-                    "size": "S",
-                    "status": "in_progress",
-                    "orphan": false,
-                    "approval": "approved",
-                    "name": "Data quality flag tests"
-                  },
-                  {
-                    "story_id": "EPIC-005-F-004-S-003",
-                    "requirements": {
-                      "requirement": [
-                        {
-                          "req_id": "EPIC-005-F-004-S-003-REQ-B-001",
-                          "requirement": "At least 95% of addressable providers must be county-enriched",
-                          "priority": "must-have",
-                          "status": "not_started",
-                          "orphan": false,
-                          "tests": {
-                            "test": [
-                              {
-                                "test_type": "ORPHAN",
-                                "orphan": true,
-                                "file": "ORPHAN"
-                              }
-                            ]
-                          },
-                          "approval": "approved",
-                          "name": "Ensure at least 95% of addressable providers are county-enriched",
-                          "depends_on": []
-                        },
-                        {
-                          "req_id": "EPIC-005-F-004-S-003-REQ-B-002",
-                          "requirement": "Geocoder failure rate must be under 5%",
-                          "priority": "must-have",
-                          "status": "not_started",
-                          "orphan": false,
-                          "tests": {
-                            "test": [
-                              {
-                                "test_type": "ORPHAN",
-                                "orphan": true,
-                                "file": "ORPHAN"
-                              }
-                            ]
-                          },
-                          "approval": "approved",
-                          "name": "Keep geocoder failure rate below 5%",
-                          "depends_on": []
-                        }
-                      ]
-                    },
-                    "description": "County enrichment tests",
-                    "size": "S",
-                    "status": "in_progress",
-                    "orphan": false,
-                    "approval": "approved",
-                    "name": "County enrichment tests"
-                  },
-                  {
-                    "story_id": "EPIC-005-F-004-S-004",
-                    "requirements": {
-                      "requirement": [
-                        {
-                          "req_id": "EPIC-005-F-004-S-004-REQ-B-001",
-                          "requirement": "90%+ of providers must have embeddings (see EPIC-008-F-011-S-004-REQ-B-001)",
-                          "priority": "must-have",
-                          "status": "not_started",
-                          "orphan": false,
-                          "tests": {
-                            "test": [
-                              {
-                                "test_type": "ORPHAN",
-                                "orphan": true,
-                                "file": "ORPHAN"
-                              }
-                            ]
-                          },
-                          "approval": "approved",
-                          "name": "Ensure 90%+ of providers have embeddings",
-                          "depends_on": []
-                        }
-                      ]
-                    },
-                    "description": "Embedding tests (see EPIC-008-F-011-S-004-REQ-B-001)",
-                    "size": "S",
-                    "status": "in_progress",
-                    "orphan": false,
-                    "approval": "approved",
-                    "name": "Embedding tests"
-                  },
-                  {
-                    "story_id": "EPIC-005-F-004-S-005",
-                    "requirements": {
-                      "requirement": [
-                        {
-                          "req_id": "EPIC-005-F-004-S-005-REQ-B-001",
-                          "requirement": "Prescriber ratio must be between 15-50% for a typical state",
-                          "priority": "must-have",
-                          "status": "not_started",
-                          "orphan": false,
-                          "tests": {
-                            "test": [
-                              {
-                                "test_type": "ORPHAN",
-                                "orphan": true,
-                                "file": "ORPHAN"
-                              }
-                            ]
-                          },
-                          "approval": "approved",
-                          "name": "Prescriber ratio between 15-50% for a typical state",
-                          "depends_on": []
-                        }
-                      ]
-                    },
-                    "description": "Prescriber classification tests",
-                    "size": "S",
-                    "status": "in_progress",
-                    "orphan": false,
-                    "approval": "approved",
-                    "name": "Prescriber classification tests"
-                  },
-                  {
-                    "story_id": "EPIC-005-F-004-S-006",
-                    "requirements": {
-                      "requirement": [
-                        {
-                          "req_id": "EPIC-005-F-004-S-006-REQ-B-001",
-                          "requirement": "90%+ of SpecialtyMetaData must have embeddings (see EPIC-008-F-011-S-004-REQ-B-001)",
-                          "priority": "must-have",
-                          "status": "not_started",
-                          "orphan": false,
-                          "tests": {
-                            "test": [
-                              {
-                                "test_type": "ORPHAN",
-                                "orphan": true,
-                                "file": "ORPHAN"
-                              }
-                            ]
-                          },
-                          "approval": "approved",
-                          "name": "Ensure 90%+ of SpecialtyMetaData records have embeddings",
-                          "depends_on": []
-                        }
-                      ]
-                    },
-                    "description": "SpecialtyMetaData integrity tests",
-                    "size": "S",
-                    "status": "in_progress",
-                    "orphan": false,
-                    "approval": "approved",
-                    "name": "SpecialtyMetaData integrity tests"
-                  },
-                  {
-                    "story_id": "EPIC-005-F-004-S-007",
-                    "requirements": {
-                      "requirement": []
-                    },
-                    "description": "Controlled vocabulary structure and code compliance",
-                    "size": "S",
-                    "status": "in_progress",
-                    "orphan": false,
-                    "approval": "approved",
-                    "name": "Controlled vocabulary structure and code compliance"
-                  },
-                  {
-                    "story_id": "EPIC-005-F-004-S-008",
-                    "description": "A report on the quality of the Pipeline backlog hierarchy \u00e2\u20ac\u201d orphan counts at every level (Epic, Feature, Story, Requirement, Pytest, Bug) so the CTO and Claude can systematically address gaps.",
-                    "size": "M",
-                    "status": "done",
-                    "orphan": false,
-                    "requirements": {
-                      "requirement": [
-                        {
-                          "req_id": "EPIC-005-F-004-S-008-REQ-B-001",
-                          "requirement": "The CTO needs a report on the quality of the Pipeline so he and Claude can chip away at the problems in the quality of the Pipeline. Other features will be added to this report over time.",
-                          "priority": "must-have",
-                          "status": "done",
-                          "orphan": false,
-                          "tests": {
-                            "test": [
-                              {
-                                "test_id": "EPIC-005-F-004-S-008-REQ-B-001-TEST-1",
-                                "test_type": "unit",
-                                "orphan": false,
-                                "file": "pipeline/Code/tests/test_dq_compliance_report.py"
-                              },
-                              {
-                                "test_id": "EPIC-005-F-004-S-008-REQ-B-001-TEST-2",
-                                "test_type": "unit",
-                                "orphan": false,
-                                "file": "pipeline/Code/tests/test_dq_compliance_report.py"
-                              }
-                            ]
-                          },
-                          "approval": "approved",
-                          "name": "Generate quality report on the Pipeline for CTO and Claude",
-                          "depends_on": []
-                        }
-                      ]
-                    },
-                    "approval": "approved",
-                    "name": "Pipeline Compliance Report"
-                  }
-                ]
-              },
-              "orphan": false,
-              "approval": "approved",
-              "due_date": "2026-06-01",
-              "priority": "must-have"
-            }
-          ]
-        },
-        "description": "Testing infrastructure \u00e2\u20ac\u201d Playwright SIT tests, regression suites, and quality assurance tooling.",
-        "orphan": false,
-        "approval": "proposed",
-        "type": "operational"
-      },
-      {
         "epic_id": "EPIC-006",
         "name": "FindCare",
+        "sourceLocation": "FindCare",
         "status": "in_progress",
         "description": "This defines the requirements for ChatHealthy.ai's FindCare epic. FindCare lets users find care across three dimensions.\n\nCare givers: a care giver is a person whose licensed status is collected by the National Provider Identity's APIs and batch interfaces.\n\nFacilities: a facility is a legal entity, almost always associated with a set of physical locations, where consumers and providers and administrators of healthcare come together to deliver care. ChatHealthy.ai tracks facilities register\n\nClinical trial: a clinical trial is a sanctioned investigation of a treatment for pathology. ChatHealthy uses the ClinicalTrials.gov application, which is represented by an Application Programmers Interface that we use.\n\nFindCare derives a great deal of its capability from the overall architecture of ChatHealthy.ai, outsourcing many of its core services to Shared Services and to its Pipeline epic, from whence it gets its data.\n\nIn order for this epic to achieve its goals it must:\n- Deliver these requirements, realized as a set of stories within a set of features, no more and most importantly no less.\n- Comply with ChatHealthy.ai's overall architecture.\n- Ensure 100% parity between all metadata, code and data in regard to all machine-readable documentation and inline comments. The scope of this mandate is git-preserved artifacts.",
         "features": {
           "feature": [
             {
               "name": "Manage Front End Provider List",
+              "sourceLocation": "FindCare",
               "status": "in_progress",
               "description": "Search for providers by specialty, condition, or location. Select individual providers from results for evaluation.",
               "stories": {
@@ -6366,6 +5974,7 @@
               "feature_id": "EPIC-006-F-002",
               "orphan": false,
               "name": "Manage Front End Provider Detail",
+              "sourceLocation": "FindCare",
               "description": "This feature specifies the detailed user view and capabilities of a provider detail.",
               "priority": "must-have",
               "status": "in_progress",
@@ -6639,6 +6248,7 @@
             },
             {
               "name": "Manage Front End Specialty Filter List",
+              "sourceLocation": "FindCare",
               "status": "in_progress",
               "description": "The user is offered the specialties their healthcare request implies, narrows that list, and applies it to the provider list. The term 'Homeopathic' here means a Homeopathic provider; it is not a new classification and not an umbrella for the broader complementary or integrative set.",
               "stories": {
@@ -6804,6 +6414,7 @@
             {
               "feature_id": "EPIC-006-F-004",
               "name": "Manage Front End Clinical Trial Detail",
+              "sourceLocation": "FindCare",
               "description": "One clinical trial, presented in full. Stories to be authored.",
               "orphan": false,
               "status": "in_progress",
@@ -6889,6 +6500,7 @@
             {
               "feature_id": "EPIC-006-F-005",
               "name": "Manage Front End Clinical Trial List",
+              "sourceLocation": "FindCare",
               "description": "Find clinical trials by condition and present them as a result list.",
               "stories": {
                 "story": [
@@ -7125,6 +6737,7 @@
             {
               "feature_id": "EPIC-006-F-006",
               "name": "Manage Front End Facility List",
+              "sourceLocation": "FindCare",
               "description": "Find organizations and present them as a result list. A facility is a legal entity, almost always associated with a set of physical locations, where consumers, providers and administrators of healthcare come together to deliver care. The architecture is the architecture of finding an individual provider: a list that carries little, and a detail that carries everything. Where a provider requirement already states that pattern this feature cites it rather than restating it.",
               "orphan": false,
               "status": "not_started",
@@ -7439,6 +7052,7 @@
             {
               "feature_id": "EPIC-006-F-007",
               "name": "Manage Front End Facility Detail",
+              "sourceLocation": "FindCare",
               "description": "One organization, presented in full. The detail displays everything the record holds. This feature states what a facility's detail does that an individual provider's does not: the organization's identity, its relationship to a parent, the kind of place it is in plain words, the person who administers it, and the destinations at which a person can verify it independently. Everything the two have in common is required once, of the Provider Detail, and inherited here.",
               "orphan": false,
               "status": "not_started",
@@ -7759,6 +7373,7 @@
             {
               "feature_id": "EPIC-006-F-008",
               "name": "Manage FindCare Parameters",
+              "sourceLocation": "FindCare",
               "description": "",
               "orphan": false,
               "status": "not_started",
@@ -8688,12 +8303,14 @@
       {
         "epic_id": "EPIC-007",
         "name": "Talk About Care",
+        "sourceLocation": "unimplemented",
         "status": "not_started",
         "description": "Multi-participant, AI-assisted healthcare collaboration environment. Users invite family, friends, and caregivers into a shared session where humans and multiple AI models interact in real time. Renamed from 'Talk About Care' in business plan.",
         "features": {
           "feature": [
             {
               "name": "ChatRoom UX",
+              "sourceLocation": "unimplemented",
               "status": "not_started",
               "description": "Real-time multi-participant chat room with AI models and human users. AI models have animated avatars. Human users can use their cameras.",
               "stories": {
@@ -8808,6 +8425,7 @@
       {
         "epic_id": "EPIC-008",
         "name": "Architecture",
+        "sourceLocation": "architecture",
         "status": "not_started",
         "description": "Architecture governance \u00e2\u20ac\u201d ensures technical architecture is documented, validated, and enforced. Architecture decisions must be traceable, architecture documents must be current, and architecture violations must be detected and resolved.",
         "features": {
@@ -8815,6 +8433,7 @@
             {
               "feature_id": "EPIC-008-F-001",
               "name": "Architecture Governance",
+              "sourceLocation": "architecture",
               "status": "not_started",
               "description": "Governance framework for technical architecture. Ensures architecture.json is authoritative, architecture decisions are recorded, architecture violations are detected, and architecture changes require review.",
               "realized_by": [
@@ -8910,6 +8529,7 @@
             {
               "feature_id": "EPIC-008-F-002",
               "name": "Engineering Rule Enforcement",
+              "sourceLocation": "architecture",
               "status": "not_started",
               "description": "This feature specifies the rules that must be enforced by the chatHealthy.ai dev ops infrastructure utilizing the Anthopic Hooks as event triggers. \nIt specifies the concrete DevOps surface that wires Claude Code's hook architecture into ChatHealthy governance. Hosts SessionStart / PostCompact / UserPromptSubmit / Stop enforcement entries declared in engineering_rules.json, the chathealthy_devops_boot program (Rule-002), and the conversation-log persistence path (Rule-001). Owns the operator-visible boot lifecycle: conversation context replay and agile_backlog taxonomy injection on both new-session begin and post-compaction restart.",
               "realized_by": [
@@ -10140,6 +9760,7 @@
             {
               "feature_id": "EPIC-008-F-003",
               "name": "Brain Consistency",
+              "sourceLocation": "architecture",
               "status": "not_started",
               "description": "Ensures all brain JSON data is internally consistent, cross-referenced, and free of orphaned records. Enforcement mechanisms run deterministically on boot and at check-in.",
               "realized_by": [
@@ -10380,6 +10001,7 @@
             {
               "feature_id": "EPIC-008-F-004",
               "name": "ChatHealthy PKI Certificate Management",
+              "sourceLocation": "architecture",
               "status": "done",
               "description": "A distributed, internet-accessible Certificate Authority that issues X.509 certificates on demand to any system. The CA possesses a root signing certificate, accepts subject Distinguished Names from requesters, issues 1-year-valid certificates, and enables retrieval and storage of issued certificates by all authorized requesting systems.",
               "realized_by": [
@@ -10602,6 +10224,7 @@
             {
               "feature_id": "EPIC-008-F-005",
               "name": "Audit \u00e2\u20ac\u201d Technical, Business, Regulatory and Corporate Governance",
+              "sourceLocation": "architecture",
               "status": "in_progress",
               "description": "This feature encompasses all the audits that must be done to maintain technical and business history, integrity and regulatory and corporate governance.",
               "realized_by": [
@@ -11004,6 +10627,7 @@
             {
               "feature_id": "EPIC-008-F-008",
               "name": "Code and Security Scanning",
+              "sourceLocation": "architecture",
               "status": "not_started",
               "description": "Pre-commit and pre-push scanning for security, code quality, and compliance.",
               "stories": {
@@ -11104,6 +10728,7 @@
             {
               "feature_id": "EPIC-008-F-009",
               "name": "Deferred work as a first-class concept",
+              "sourceLocation": "architecture",
               "status": "not_started",
               "stories": {
                 "story": [
@@ -11153,6 +10778,7 @@
             {
               "feature_id": "EPIC-008-F-010",
               "name": "Graph-orchestrated business-logic entry points",
+              "sourceLocation": "architecture",
               "status": "in_progress",
               "description": "Every business-logic entry point routes through a graph orchestrator (today LangGraph) so shared concerns - safety, auth, audit, classification - live in one place and propagate automatically to every entry point. Encoded as engineering rule v4-043. Currently violated by /classify endpoint.",
               "orphan": false,
@@ -11202,6 +10828,7 @@
             {
               "feature_id": "EPIC-008-F-011",
               "name": "Common features of ChatHealthy.AI Front End Application",
+              "sourceLocation": "architecture",
               "description": "This feature defines the stories and requirements that ChatHealthy.ai's Front End application must comply with in all cases. If there are any conflicts in the requirements that contradicted the requirements in this feature. The requirements in this feature take precedence in all cases. (In addtrion and Furthermore, it is required that agents run at every boot sequence to scrutinize the firm's requirements in agile_Backlog.json to find such contradictions and surface them. This requirement is a known known gap in the requirements of EPIC-008-F-002 \u00e2\u20ac\u201d Engineering Rules Enforcement)",
               "priority": "CRITICAL",
               "status": "in_progress",
@@ -11544,6 +11171,7 @@
             {
               "feature_id": "EPIC-008-F-012",
               "name": "Manage REPO promotions. Build and deployments",
+              "sourceLocation": "architecture",
               "status": "in_progress",
               "description": "This feature specifies how ChatHealthy.ai governs code commits, promotions, builds, and deployments.",
               "realized_by": [
@@ -12176,6 +11804,7 @@
               "feature_id": "EPIC-008-F-013",
               "orphan": false,
               "name": "Conversation Archive",
+              "sourceLocation": "architecture",
               "status": "in_progress",
               "description": "Every operator utterance and every Claude response is recorded as business data in the conversation archive. Capture never delays the interaction and never loses an utterance because something downstream is unavailable, except as an extreme defence. Credentials, secrets and offensive language are removed before anything is archived. Content that never reaches the archive is not kept indefinitely, and the archive is re-examined as knowledge of credentials grows. Every utterance is classified so the archive can be reasoned about. The document shape is governed by https://dev.chathealthy.ai/schemas/ChatHealthyDevOpsUtteranceSchema.json",
               "priority": "HIGH",
@@ -12712,6 +12341,7 @@
               "feature_id": "EPIC-008-F-014",
               "orphan": false,
               "name": "ChatHealthy PKI Certificate Management",
+              "sourceLocation": "architecture",
               "status": "not_started",
               "description": "PKI certificate authority and lifecycle management for ChatHealthy.ai. Owns X.509 certificate issuance, key generation, subject naming, validity periods, storage/retrieval from Azure Key Vault, certificate tracking, and revocation handling. Integrates with identity and authentication subsystems to provide mTLS and mutual authentication infrastructure.",
               "priority": "HIGH",
@@ -12828,6 +12458,7 @@
       {
         "epic_id": "EPIC-010",
         "name": "Pipelines",
+        "sourceLocation": "pipeline",
         "description": "This epic defines all the requirements for ChatHealthy's data pipelines, which do data ETL and data quality management, and data enrichment. All of the code lives and executes in Azure and writes to the ChatHealthyDataPipelines cluster.",
         "type": "functional",
         "status": "in_progress",
@@ -12839,6 +12470,7 @@
               "feature_id": "EPIC-010-F-001",
               "orphan": false,
               "name": "Data Pipeline Run Lifecycle",
+              "sourceLocation": "pipeline",
               "status": "done",
               "description": "On a scheduled or authenticated on-demand trigger, a pipeline admits the run, reads its configuration, provisions compute and activates data resources, coordinates work in parallel, records progress and every per-record finding, logs its operation, delivers one operational business report per run, releases every resource so nothing runs between runs, recovers a run that dies without releasing, declares a record contract for the collection it builds, and runs every component under a canonical zero-trust identity.",
               "priority": "must-have",
@@ -13068,6 +12700,7 @@
               "feature_id": "EPIC-010-F-002",
               "orphan": false,
               "name": "Pipeline Data Release",
+              "sourceLocation": "pipeline",
               "status": "done",
               "description": "Moves a completed dataset from the pipeline store into the serving store under a recorded human sign-off, adding to but never altering what already serves, as the single path by which any pipeline's built data becomes available to the application.",
               "priority": "must-have",
@@ -13396,6 +13029,7 @@
               "feature_id": "EPIC-010-F-003",
               "orphan": false,
               "name": "ProviderBase",
+              "sourceLocation": "pipeline",
               "status": "done",
               "description": "Loads the national provider sources and builds each individual and institutional provider's canonical record as the source gives it, together with the specialty and taxonomy vocabulary that classifies providers. Straight ingest-and-map only; every join, derivation, or management is Provider Enrichment.",
               "priority": "must-have",
@@ -13483,6 +13117,7 @@
               "feature_id": "EPIC-010-F-004",
               "orphan": false,
               "name": "Provider Enrichment",
+              "sourceLocation": "pipeline",
               "status": "in_progress",
               "description": "Adds ChatHealthy-derived facts to each provider record as second-pass derivations on the built base record, each kept distinct from source fields and preserved across refreshes.",
               "priority": "must-have",

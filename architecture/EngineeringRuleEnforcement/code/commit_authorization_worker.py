@@ -115,9 +115,7 @@ def _escape(text: str) -> str:
     )
 
 
-def _norm(text: str) -> str:
-    """A name reduced to its letters and digits, for directory-to-name match."""
-    return "".join(ch for ch in text.lower() if ch.isalnum())
+_WEB_ROOT = "Website"
 
 # Audit log: every approve/reject/timeout/interrupt/error verdict is appended
 # here as one JSON line. Lives in the feature's ArchitectureDesignAndAuditDocs
@@ -244,11 +242,17 @@ class CommitAuthorizationWorker(EnforcementWorker):
         return rows
 
     def _backlog_names(self) -> dict:
-        """{epic_id: name} and {feature_id: name}, read from the backlog once."""
+        """Epic/feature display names and their declared sourceLocation map,
+        read from the backlog once.
+
+        sourceLocation is the tree path from the repository root that a person
+        wrote on an epic and on a feature -- the business-architecture map.
+        Attribution reads that declared path, not a directory's spelling.
+        """
         cached = getattr(self, "_names_cache", None)
         if cached is not None:
             return cached
-        epic, feature = {}, {}
+        epic, feature, epic_src, feat_src = {}, {}, {}, {}
         path = (Path(self._commit_repo()) / "brain" / "machine_artifacts"
                 / "content" / "agile_backlog.json")
         try:
@@ -258,50 +262,89 @@ class CommitAuthorizationWorker(EnforcementWorker):
 
         def walk(node):
             if isinstance(node, dict):
-                if node.get("epic_id") and node.get("name"):
-                    epic.setdefault(node["epic_id"], node["name"])
-                if node.get("feature_id") and node.get("name"):
-                    feature.setdefault(node["feature_id"], node["name"])
+                if node.get("epic_id"):
+                    if node.get("name"):
+                        epic.setdefault(node["epic_id"], node["name"])
+                    if node.get("sourceLocation"):
+                        epic_src.setdefault(node["epic_id"], node["sourceLocation"])
+                if node.get("feature_id"):
+                    if node.get("name"):
+                        feature.setdefault(node["feature_id"], node["name"])
+                    if node.get("sourceLocation"):
+                        feat_src.setdefault(node["feature_id"],
+                                            node["sourceLocation"])
                 for value in node.values():
                     walk(value)
             elif isinstance(node, list):
                 for value in node:
                     walk(value)
         walk(data)
-        # The reverse lookups the resolver checks a directory name against.
-        # A name absent here is a name the backlog tree does not carry -- the
-        # file system is not assumed correct; it is checked against the tree.
-        norm_epic = {_norm(name): eid for eid, name in epic.items()}
-        norm_feature = {_norm(name): fid for fid, name in feature.items()}
         self._names_cache = {"epic": epic, "feature": feature,
-                             "norm_epic": norm_epic, "norm_feature": norm_feature}
+                             "epic_src": epic_src, "feat_src": feat_src}
         return self._names_cache
 
-    def _attribute(self, relpath: str) -> tuple:
-        """The (epic_id, feature_id) that owns a file, read from the tree.
+    @staticmethod
+    def _containment_path(source_location: str):
+        """The real tree path a sourceLocation denotes, or None for a sentinel.
 
-        Attribution is a person's decision, never an agent's inference
-        (EPIC-008-F-002-S-003-REQ-B-009): the fact lives in the file system,
-        not in the file. A directory whose name is an epic's name places the
-        file in that epic; a directory whose name is a feature's name places it
-        in that feature. Both are checked against the backlog tree, so the file
-        system is not assumed correct -- a directory naming neither, or naming
-        something the backlog does not carry, leaves the file Unknown, which is
-        a finding rather than a guess. The deepest match wins.
+        'web' is handled by the website rule in _attribute, not by containment;
+        'Unknown' (cannot be mapped) and 'unimplemented' (a legitimate epic
+        with no code yet) denote no code and never contain a file -- a file
+        that would attribute to 'unimplemented' is a bug, not a match.
         """
+        if source_location in ("web", "Unknown", "unimplemented"):
+            return None
+        return source_location
+
+    def _attribute(self, relpath: str) -> tuple:
+        """The (epic_id, feature_id) that owns a file.
+
+        A file on the website is owned by the 'web' epic, and its feature is the
+        top-level directory it sits in under the website tree, or 'root' at the
+        website root. Every other file is owned by whichever epic or feature
+        declares a sourceLocation path at, or above, where the file sits; the
+        most specific such path wins. Attribution is a person's decision, never
+        an agent's inference (EPIC-008-F-002-S-003-REQ-B-009): the fact is the
+        sourceLocation a person wrote, or the website a person deployed. A file
+        under no declared path is Unknown, a finding rather than a guess. When
+        several features share the one path that contains the file, the feature
+        cannot be told apart, so it is left Unknown while the epic resolves.
+        """
+        rel = relpath.replace("\\", "/")
+        if rel == _WEB_ROOT or rel.startswith(_WEB_ROOT + "/"):
+            inner = rel[len(_WEB_ROOT):].lstrip("/")
+            return ("web", inner.split("/")[0] if "/" in inner else "root")
         names = self._backlog_names()
-        segs = relpath.replace("\\", "/").split("/")[:-1]  # directories only
-        epic_id = feature_id = None
-        for seg in segs:
-            key = _norm(seg)
-            matched_epic = names["norm_epic"].get(key)
-            if matched_epic:
-                epic_id = matched_epic
-            matched_feature = names["norm_feature"].get(key)
-            if matched_feature:
-                feature_id = matched_feature
-                epic_id = matched_feature.split("-F-")[0]
-        return (epic_id, feature_id)
+
+        def contains(base: str, target: str) -> bool:
+            return bool(base) and (target == base
+                                   or target.startswith(base.rstrip("/") + "/"))
+
+        feat_matches = []  # (path, feature_id, epic_id)
+        for fid, src in names["feat_src"].items():
+            p = self._containment_path(src)
+            if p and contains(p, rel):
+                feat_matches.append((p, fid, fid.split("-F-")[0]))
+        if feat_matches:
+            longest = max(len(p) for p, _, _ in feat_matches)
+            deepest = [m for m in feat_matches if len(m[0]) == longest]
+            epics_seen = {eid for _, _, eid in feat_matches}
+            epic_id = next(iter(epics_seen)) if len(epics_seen) == 1 else None
+            feature_id = deepest[0][1] if len(deepest) == 1 else None
+            if feature_id and epic_id is None:
+                epic_id = deepest[0][2]
+            return (epic_id, feature_id)
+
+        epic_matches = []  # (path, epic_id)
+        for eid, src in names["epic_src"].items():
+            p = self._containment_path(src)
+            if p and contains(p, rel):
+                epic_matches.append((p, eid))
+        if epic_matches:
+            longest = max(len(p) for p, _ in epic_matches)
+            deepest = [eid for p, eid in epic_matches if len(p) == longest]
+            return (deepest[0] if len(deepest) == 1 else None, None)
+        return (None, None)
 
     def _epic_feature_cell(self, relpath: str) -> tuple:
         epic_id, feature_id = self._attribute(relpath)
