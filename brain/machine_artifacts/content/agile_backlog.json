@@ -6554,7 +6554,7 @@
                           "status": "in_progress",
                           "depends_on": [
                             {
-                              "story_id": "EPIC-010-F-108-S-001",
+                              "story_id": "EPIC-010-F-102-S-001",
                               "reason": "EPIC-010 must provide the query and the record behind it. FindCare states what it asks for and what must come back, and states nothing about how the answer is produced."
                             }
                           ],
@@ -6578,7 +6578,7 @@
                           "status": "done",
                           "depends_on": [
                             {
-                              "story_id": "EPIC-010-F-108-S-001",
+                              "story_id": "EPIC-010-F-102-S-001",
                               "reason": "EPIC-010 must return this content."
                             }
                           ],
@@ -12836,27 +12836,149 @@
         "features": {
           "feature": [
             {
-              "feature_id": "EPIC-010-F-101",
+              "feature_id": "EPIC-010-F-001",
               "orphan": false,
-              "name": "Data Pipeline Infrastructure Requirements",
+              "name": "Data Pipeline Run Lifecycle",
               "status": "done",
-              "description": "This feature specifies the requirements for ChatHealthy's data pipeline infrastructure. The purpose of the feature is to specify the common requirements allowing for data pipelines to be executed in the most possible cost effective manner, with robust reliability and observability.",
-              "priority": "HIGH",
+              "description": "On a scheduled or authenticated on-demand trigger, a pipeline admits the run, reads its configuration, provisions compute and activates data resources, coordinates work in parallel, records progress and every per-record finding, logs its operation, delivers one operational business report per run, releases every resource so nothing runs between runs, recovers a run that dies without releasing, declares a record contract for the collection it builds, and runs every component under a canonical zero-trust identity.",
+              "priority": "must-have",
               "realized_by": [],
+              "approval": "approved",
+              "due_date": "",
               "stories": {
                 "story": [
                   {
-                    "story_id": "EPIC-010-F-101-S-001",
+                    "story_id": "EPIC-010-F-001-S-001",
                     "orphan": false,
-                    "name": "A reaper component MUST manage the Pipeline Cluster's uptime",
-                    "description": "The pipeline cluster must not be running when nothing needs it.",
+                    "name": "Admit a run through the authenticated entrance",
+                    "description": "A run is admitted only from a known, authorized caller on a schedule or authenticated on-demand invocation; its start is recorded to a durable run record, a second concurrent run of the same pipeline is refused, and every unknown, unauthorized, or malformed attempt is rejected and audited.",
+                    "size": "M",
+                    "status": "done",
+                    "approval": "approved",
+                    "requirements": {
+                      "requirement": []
+                    }
+                  },
+                  {
+                    "story_id": "EPIC-010-F-001-S-002",
+                    "orphan": false,
+                    "name": "Read the run's configuration",
+                    "description": "A run reads its scope, the resources it works against, its tunable ceilings and limits, and its report recipients from durable configuration, so behavior is set by recorded configuration and invocation arguments rather than values in code.",
+                    "size": "M",
+                    "status": "done",
+                    "approval": "approved",
+                    "requirements": {
+                      "requirement": []
+                    }
+                  },
+                  {
+                    "story_id": "EPIC-010-F-001-S-003",
+                    "orphan": false,
+                    "name": "Provision compute and activate data resources",
+                    "description": "On admission a run creates the ephemeral compute it needs and activates the data resources it depends on under a reservation marking it legitimately alive; independent setup proceeds concurrently, and work begins only once true dependencies are ready.",
+                    "size": "M",
+                    "status": "done",
+                    "approval": "approved",
+                    "requirements": {
+                      "requirement": []
+                    }
+                  },
+                  {
+                    "story_id": "EPIC-010-F-001-S-004",
+                    "orphan": false,
+                    "name": "Coordinate work in parallel",
+                    "description": "A run divides its work into units worked in parallel, each claimed so none is worked twice at once, and a unit whose worker dies mid-run is reclaimed and re-driven without operator involvement.",
+                    "size": "M",
+                    "status": "done",
+                    "approval": "approved",
+                    "requirements": {
+                      "requirement": []
+                    }
+                  },
+                  {
+                    "story_id": "EPIC-010-F-001-S-005",
+                    "orphan": false,
+                    "name": "Record progress and every per-record finding",
+                    "description": "A run records progress at every step boundary and writes every per-record finding, under a controlled vocabulary, to durable state kept separate from the data being built, and makes a live run distinguishable from a dead one; a run that cannot record its own progress abends rather than run unobserved.",
+                    "size": "M",
+                    "status": "done",
+                    "approval": "approved",
+                    "requirements": {
+                      "requirement": []
+                    }
+                  },
+                  {
+                    "story_id": "EPIC-010-F-001-S-006",
+                    "orphan": false,
+                    "name": "Abort when findings breach the configured threshold",
+                    "description": "A run measures its accumulating per-record findings against a configured ceiling and aborts itself when the ceiling is crossed, rather than complete a run whose output is already unfit.",
+                    "size": "M",
+                    "status": "done",
+                    "approval": "approved",
+                    "requirements": {
+                      "requirement": []
+                    }
+                  },
+                  {
+                    "story_id": "EPIC-010-F-001-S-007",
+                    "orphan": false,
+                    "name": "Run logging to a designated collection",
+                    "description": "Every run writes its operational log to one designated log collection common to all pipelines, so a run's log lines land in a single known place.",
+                    "size": "M",
+                    "status": "done",
+                    "approval": "approved",
+                    "requirements": {
+                      "requirement": []
+                    }
+                  },
+                  {
+                    "story_id": "EPIC-010-F-001-S-008",
+                    "orphan": false,
+                    "name": "Deliver one operational business report per run",
+                    "description": "Every run delivers exactly one operational business report to the operators named in configuration, on success and abnormal end alike, stating what the run did and enumerating every discrepancy it recorded, or summarizing when too many of the same type exist, raising a distinct alert on abnormal end, and delivered even when the store that records the run is unreachable.",
+                    "size": "M",
+                    "status": "in_progress",
+                    "approval": "approved",
+                    "requirements": {
+                      "requirement": []
+                    }
+                  },
+                  {
+                    "story_id": "EPIC-010-F-001-S-009",
+                    "orphan": false,
+                    "name": "Release every resource at run end",
+                    "description": "By any exit path a run destroys its compute, releases its reservation, returns the data resources to their resting state, and clears its transient scratch, so nothing the run created keeps running or costing between runs.",
+                    "size": "M",
+                    "status": "done",
+                    "approval": "approved",
+                    "requirements": {
+                      "requirement": []
+                    }
+                  },
+                  {
+                    "story_id": "EPIC-010-F-001-S-010",
+                    "orphan": false,
+                    "name": "Recover a run that died without releasing",
+                    "description": "An independent, frequent supervisor detects a run that died without releasing, tells a legitimately live run from an abandoned one and never disturbs a live one, marks the abandoned run terminal with its cause, releases the orphaned compute, reservations and non-terminal records, lets an operator restart a failed run from a chosen point, and makes a no-op recovery pass distinguishable from an interrupted one.",
+                    "size": "M",
+                    "status": "done",
+                    "approval": "approved",
+                    "requirements": {
+                      "requirement": []
+                    }
+                  },
+                  {
+                    "story_id": "EPIC-010-F-001-S-011",
+                    "orphan": false,
+                    "name": "Cluster-uptime reaper",
+                    "description": "An independent component keeps the pipeline's data cluster running only while a live run reservation exists and returns it to rest otherwise, so the cluster is never up between runs.",
                     "size": "M",
                     "status": "done",
                     "approval": "approved",
                     "requirements": {
                       "requirement": [
                         {
-                          "req_id": "EPIC-010-F-101-S-001-REQ-B-001",
+                          "req_id": "EPIC-010-F-001-S-011-REQ-B-001",
                           "orphan": false,
                           "name": "A Reaper component external to any pipeline runs regularly",
                           "requirement": "A component named Reaper MUST exist, MUST be external to every pipeline, and MUST run on a regular basis and at least once per hour, to realize these requirements and so guard against a failure in a pipeline job or an expired reservation made by an agent on behalf of itself or of a human user.",
@@ -12875,7 +12997,7 @@
                           "approval": "approved"
                         },
                         {
-                          "req_id": "EPIC-010-F-101-S-001-REQ-B-002",
+                          "req_id": "EPIC-010-F-001-S-011-REQ-B-002",
                           "orphan": false,
                           "name": "The reaper corrects pipeline job metadata a failed job left wrong",
                           "requirement": "When a pipeline job fails to leave its own metadata true, the Reaper MUST correct it, so that no job is recorded in a non-terminal state while it is not running and no lock or reservation is held on behalf of a job that is not running.",
@@ -12894,7 +13016,7 @@
                           "approval": "approved"
                         },
                         {
-                          "req_id": "EPIC-010-F-101-S-001-REQ-B-003",
+                          "req_id": "EPIC-010-F-001-S-011-REQ-B-003",
                           "orphan": false,
                           "name": "An incomplete metadata correction says so",
                           "requirement": "When the Reaper cannot complete a correction pass, the pipeline job metadata MUST record that the pass was incomplete and what it did not reach, and MUST be distinguishable from a pass that completed having found nothing to correct.",
@@ -12914,34 +13036,58 @@
                         }
                       ]
                     }
+                  },
+                  {
+                    "story_id": "EPIC-010-F-001-S-012",
+                    "orphan": false,
+                    "name": "Record contract for the built collection",
+                    "description": "Every pipeline declares one normative record contract for the collection it builds, each field with its type and its required-or-optional standing, and every published record conforms to it.",
+                    "size": "M",
+                    "status": "done",
+                    "approval": "approved",
+                    "requirements": {
+                      "requirement": []
+                    }
+                  },
+                  {
+                    "story_id": "EPIC-010-F-001-S-013",
+                    "orphan": false,
+                    "name": "Zero-trust identity for every run component",
+                    "description": "Every part of a run acts under a canonical identity from the firm's single identity registry, authenticates to every data resource and peer it touches, obtains every MongoDB handle under that identity through the managed access path rather than a bare connection, and holds only the least privilege its role requires.",
+                    "size": "M",
+                    "status": "done",
+                    "approval": "approved",
+                    "requirements": {
+                      "requirement": []
+                    }
                   }
                 ]
-              },
-              "approval": "approved",
-              "due_date": ""
+              }
             },
             {
-              "feature_id": "EPIC-010-F-108",
-              "name": "Data Migration",
+              "feature_id": "EPIC-010-F-002",
+              "orphan": false,
+              "name": "Pipeline Data Release",
               "status": "done",
-              "description": "This feature specifies the requirements for ChatHealthy.ai's migration of published data from the pipeline cluster to the front-end cluster. A migration moves collections from ChatHealthyDataPipelines.PipelinePublicHealthData to ChatHealthyFrontEnd.PublicHealthData. A collection arrives under the name it left with. Nothing is transformed in transit. Migration is the only path by which data reaches the front-end cluster. It is separate from the pipeline that produced the data, and runs only when a human releases it.",
-              "realized_by": [
-                "Python 3.11"
-              ],
+              "description": "Moves a completed dataset from the pipeline store into the serving store under a recorded human sign-off, adding to but never altering what already serves, as the single path by which any pipeline's built data becomes available to the application.",
+              "priority": "must-have",
+              "realized_by": [],
+              "approval": "approved",
+              "due_date": "",
               "stories": {
                 "story": [
                   {
-                    "story_id": "EPIC-010-F-108-S-001",
-                    "name": "Data Migration",
-                    "description": "This story specifies the requirements for ChatHealthy.ai's migration of published data from the pipeline cluster to the front-end cluster. A migration moves collections from ChatHealthyDataPipelines.PipelinePublicHealthData to ChatHealthyFrontEnd.PublicHealthData. A collection arrives under the name it left with. Nothing is transformed in transit. Migration is the only path by which data reaches the front-end cluster. It is separate from the pipeline that produced the data, and runs only when a human releases it.",
+                    "story_id": "EPIC-010-F-002-S-001",
+                    "orphan": false,
+                    "name": "Data Release",
+                    "description": "Migration moves published collections from the pipeline cluster to the front-end serving cluster; each collection arrives under the name it left with, nothing is transformed in transit, and it runs only on an explicit human release.",
                     "size": "M",
                     "status": "done",
-                    "orphan": false,
                     "approval": "approved",
                     "requirements": {
                       "requirement": [
                         {
-                          "req_id": "EPIC-010-F-108-S-001-REQ-B-001",
+                          "req_id": "EPIC-010-F-002-S-001-REQ-B-001",
                           "name": "A migrated collection keeps its name",
                           "requirement": "Every collection present in ChatHealthyFrontEnd.PublicHealthData as the result of a migration carries the same name it had in ChatHealthyDataPipelines.PipelinePublicHealthData.",
                           "priority": "must-have",
@@ -12952,7 +13098,7 @@
                           "tests": {
                             "test": [
                               {
-                                "test_id": "EPIC-010-F-108-S-001-REQ-B-001-TEST-1",
+                                "test_id": "EPIC-010-F-002-S-001-REQ-B-001-TEST-1",
                                 "test_type": "ordinary",
                                 "orphan": false,
                                 "file": "pipeline/Code/tests/test_data_migration.py"
@@ -12961,7 +13107,7 @@
                           }
                         },
                         {
-                          "req_id": "EPIC-010-F-108-S-001-REQ-B-002",
+                          "req_id": "EPIC-010-F-002-S-001-REQ-B-002",
                           "name": "Migration is the only way data reaches the front-end cluster",
                           "requirement": "No process other than a migration writes to ChatHealthyFrontEnd.PublicHealthData.",
                           "priority": "must-have",
@@ -12972,7 +13118,7 @@
                           "tests": {
                             "test": [
                               {
-                                "test_id": "EPIC-010-F-108-S-001-REQ-B-002-TEST-1",
+                                "test_id": "EPIC-010-F-002-S-001-REQ-B-002-TEST-1",
                                 "test_type": "ordinary",
                                 "orphan": false,
                                 "file": "pipeline/Code/tests/test_data_migration.py"
@@ -12981,7 +13127,7 @@
                           }
                         },
                         {
-                          "req_id": "EPIC-010-F-108-S-001-REQ-B-003",
+                          "req_id": "EPIC-010-F-002-S-001-REQ-B-003",
                           "name": "A migration runs only after a human releases it",
                           "requirement": "Every migration MUST be preceded by a recorded human sign-off. The sign-off is taken at the operator's workstation. The implementing service MUST attest to this sign-off with evidence prior to execution of a migration.",
                           "priority": "must-have",
@@ -12992,7 +13138,7 @@
                           "tests": {
                             "test": [
                               {
-                                "test_id": "EPIC-010-F-108-S-001-REQ-B-003-TEST-1",
+                                "test_id": "EPIC-010-F-002-S-001-REQ-B-003-TEST-1",
                                 "test_type": "ordinary",
                                 "orphan": false,
                                 "file": "pipeline/Code/tests/test_data_migration.py"
@@ -13001,7 +13147,7 @@
                           }
                         },
                         {
-                          "req_id": "EPIC-010-F-108-S-001-REQ-B-004",
+                          "req_id": "EPIC-010-F-002-S-001-REQ-B-004",
                           "name": "A migration never alters or removes what is already there",
                           "requirement": "No migration changes or removes any document, collection or index that existed before it ran. This binds the implementing service absolutely; nothing it is asked to do permits an exception.",
                           "priority": "must-have",
@@ -13012,7 +13158,7 @@
                           "tests": {
                             "test": [
                               {
-                                "test_id": "EPIC-010-F-108-S-001-REQ-B-004-TEST-1",
+                                "test_id": "EPIC-010-F-002-S-001-REQ-B-004-TEST-1",
                                 "test_type": "ordinary",
                                 "orphan": false,
                                 "file": "pipeline/Code/tests/test_data_migration.py"
@@ -13021,7 +13167,7 @@
                           }
                         },
                         {
-                          "req_id": "EPIC-010-F-108-S-001-REQ-B-005",
+                          "req_id": "EPIC-010-F-002-S-001-REQ-B-005",
                           "name": "A collection that already exists at the destination stops the migration",
                           "requirement": "An implementing service that finds its target collection already present in ChatHealthyFrontEnd.PublicHealthData MUST abend. Prior to the abend it MUST: (a) raise an exception; (b) log a detailed narrative of the error including the collection name it found. It MUST NOT write, append to, or in any way alter the existing collection.",
                           "priority": "must-have",
@@ -13032,7 +13178,7 @@
                           "tests": {
                             "test": [
                               {
-                                "test_id": "EPIC-010-F-108-S-001-REQ-B-005-TEST-1",
+                                "test_id": "EPIC-010-F-002-S-001-REQ-B-005-TEST-1",
                                 "test_type": "ordinary",
                                 "orphan": false,
                                 "file": "pipeline/Code/tests/test_data_migration.py"
@@ -13041,7 +13187,7 @@
                           }
                         },
                         {
-                          "req_id": "EPIC-010-F-108-S-001-REQ-B-006",
+                          "req_id": "EPIC-010-F-002-S-001-REQ-B-006",
                           "name": "Every collection is reached through an instance of the one class that realizes this story",
                           "requirement": "Within the implementing service, every access to data is made on behalf of exactly one named collection, and no access is made otherwise. The operator's workstation makes no such access.",
                           "priority": "must-have",
@@ -13052,7 +13198,7 @@
                           "tests": {
                             "test": [
                               {
-                                "test_id": "EPIC-010-F-108-S-001-REQ-B-006-TEST-1",
+                                "test_id": "EPIC-010-F-002-S-001-REQ-B-006-TEST-1",
                                 "test_type": "ordinary",
                                 "orphan": false,
                                 "file": "pipeline/Code/tests/test_data_migration.py"
@@ -13061,7 +13207,7 @@
                           }
                         },
                         {
-                          "req_id": "EPIC-010-F-108-S-001-REQ-B-007",
+                          "req_id": "EPIC-010-F-002-S-001-REQ-B-007",
                           "name": "The class constructor takes the collection name and nothing else",
                           "requirement": "The constructor of the class that realizes this story accepts exactly one argument, the collection name.",
                           "priority": "must-have",
@@ -13072,7 +13218,7 @@
                           "tests": {
                             "test": [
                               {
-                                "test_id": "EPIC-010-F-108-S-001-REQ-B-007-TEST-1",
+                                "test_id": "EPIC-010-F-002-S-001-REQ-B-007-TEST-1",
                                 "test_type": "ordinary",
                                 "orphan": false,
                                 "file": "pipeline/Code/tests/test_data_migration.py"
@@ -13081,7 +13227,7 @@
                           }
                         },
                         {
-                          "req_id": "EPIC-010-F-108-S-001-REQ-B-008",
+                          "req_id": "EPIC-010-F-002-S-001-REQ-B-008",
                           "name": "The collection name is the only value assigned to the class from outside it",
                           "requirement": "No variable on the class that realizes this story is assigned externally other than the collection name.",
                           "priority": "must-have",
@@ -13092,7 +13238,7 @@
                           "tests": {
                             "test": [
                               {
-                                "test_id": "EPIC-010-F-108-S-001-REQ-B-008-TEST-1",
+                                "test_id": "EPIC-010-F-002-S-001-REQ-B-008-TEST-1",
                                 "test_type": "ordinary",
                                 "orphan": false,
                                 "file": "pipeline/Code/tests/test_data_migration.py"
@@ -13101,7 +13247,7 @@
                           }
                         },
                         {
-                          "req_id": "EPIC-010-F-108-S-001-REQ-B-009",
+                          "req_id": "EPIC-010-F-002-S-001-REQ-B-009",
                           "name": "One file performs the migration",
                           "requirement": "Exactly one file in the repository performs migration, and no other file does any part of it.",
                           "priority": "must-have",
@@ -13112,7 +13258,7 @@
                           "tests": {
                             "test": [
                               {
-                                "test_id": "EPIC-010-F-108-S-001-REQ-B-009-TEST-1",
+                                "test_id": "EPIC-010-F-002-S-001-REQ-B-009-TEST-1",
                                 "test_type": "ordinary",
                                 "orphan": false,
                                 "file": "pipeline/Code/tests/test_data_migration.py"
@@ -13121,9 +13267,9 @@
                           }
                         },
                         {
-                          "req_id": "EPIC-010-F-108-S-001-REQ-B-010",
+                          "req_id": "EPIC-010-F-002-S-001-REQ-B-010",
                           "name": "An engineering rule guarantees the code meets this story",
-                          "requirement": "An engineering rule parses the migration file with an LLM and guarantees that every requirement of this story is enforced by the code. A file that does not satisfy every requirement is not committed.",
+                          "requirement": "An engineering rule parses the migration file with an LLM and guarantees that every requirement of this story is enforced by the executable code; comments, docstrings, and any other non-executing text are disregarded and can never stand in for what the code does. A file whose executable code does not satisfy every requirement is not committed.",
                           "priority": "must-have",
                           "status": "done",
                           "orphan": false,
@@ -13132,7 +13278,7 @@
                           "tests": {
                             "test": [
                               {
-                                "test_id": "EPIC-010-F-108-S-001-REQ-B-010-TEST-1",
+                                "test_id": "EPIC-010-F-002-S-001-REQ-B-010-TEST-1",
                                 "test_type": "ordinary",
                                 "orphan": false,
                                 "file": "pipeline/Code/tests/test_data_migration.py"
@@ -13141,7 +13287,7 @@
                           }
                         },
                         {
-                          "req_id": "EPIC-010-F-108-S-001-REQ-B-011",
+                          "req_id": "EPIC-010-F-002-S-001-REQ-B-011",
                           "name": "Zero trust - the migration's identities exist and are constrained to this story alone",
                           "requirement": "Two actors take part: the operator's workstation makes the request, records an approval and verifies the software meets the requirements. The implementing service moves the data observing the rules as specified in these requirements.",
                           "priority": "must-have",
@@ -13152,7 +13298,7 @@
                           "tests": {
                             "test": [
                               {
-                                "test_id": "EPIC-010-F-108-S-001-REQ-B-011-TEST-1",
+                                "test_id": "EPIC-010-F-002-S-001-REQ-B-011-TEST-1",
                                 "test_type": "ordinary",
                                 "orphan": false,
                                 "file": "pipeline/Code/tests/test_data_migration.py"
@@ -13161,7 +13307,7 @@
                           }
                         },
                         {
-                          "req_id": "EPIC-010-F-108-S-001-REQ-B-012",
+                          "req_id": "EPIC-010-F-002-S-001-REQ-B-012",
                           "name": "The migration file is declared in the deployment manifest at its actual path",
                           "requirement": "deployment_architecture.json declares the file that performs the migration under exactly one deployment target and one package, and the source_location it declares is that file's actual repository-relative path. A commit in which the file is undeclared, is declared in more than one place, or is declared at a path that is not where the file is, is not made.",
                           "priority": "must-have",
@@ -13172,7 +13318,7 @@
                           "tests": {
                             "test": [
                               {
-                                "test_id": "EPIC-010-F-108-S-001-REQ-B-012-TEST-1",
+                                "test_id": "EPIC-010-F-002-S-001-REQ-B-012-TEST-1",
                                 "test_type": "ordinary",
                                 "orphan": false,
                                 "file": "pipeline/Code/tests/test_data_migration.py"
@@ -13181,7 +13327,7 @@
                           }
                         },
                         {
-                          "req_id": "EPIC-010-F-108-S-001-REQ-B-013",
+                          "req_id": "EPIC-010-F-002-S-001-REQ-B-013",
                           "name": "A migration of a collection that is not there is refused and reported",
                           "requirement": "An implementing service invoked against a collection that is not present in ChatHealthyDataPipelines.PipelinePublicHealthData MUST NOT report success. It MUST raise, and MUST record the refusal in the log naming the collection asked for.",
                           "priority": "must-have",
@@ -13192,7 +13338,7 @@
                           "tests": {
                             "test": [
                               {
-                                "test_id": "EPIC-010-F-108-S-001-REQ-B-013-TEST-1",
+                                "test_id": "EPIC-010-F-002-S-001-REQ-B-013-TEST-1",
                                 "test_type": "ordinary",
                                 "orphan": false,
                                 "file": "pipeline/Code/tests/test_data_migration.py"
@@ -13201,7 +13347,7 @@
                           }
                         },
                         {
-                          "req_id": "EPIC-010-F-108-S-001-REQ-B-014",
+                          "req_id": "EPIC-010-F-002-S-001-REQ-B-014",
                           "name": "DataTransferServiceToConfirmApproval",
                           "requirement": "The implementing service is given the identity of the human's approval when it is asked to work. It reads that approval and confirms it releases this work; an identity naming no approval, or an approval that does not release this work, stops the transfer. Having confirmed it, and before doing any work, the service records its own acknowledgement of that approval alongside it.",
                           "priority": "must-have",
@@ -13212,7 +13358,7 @@
                           "tests": {
                             "test": [
                               {
-                                "test_id": "EPIC-010-F-108-S-001-REQ-B-014-TEST-1",
+                                "test_id": "EPIC-010-F-002-S-001-REQ-B-014-TEST-1",
                                 "test_type": "ordinary",
                                 "orphan": false,
                                 "file": "pipeline/Code/tests/test_data_migration.py"
@@ -13221,7 +13367,7 @@
                           }
                         },
                         {
-                          "req_id": "EPIC-010-F-108-S-001-REQ-B-015",
+                          "req_id": "EPIC-010-F-002-S-001-REQ-B-015",
                           "name": "Service Must Do Only One Job at a Time",
                           "requirement": "If an invocation of the Data Migration service is made while a job is running, the second invocation MUST immediately abend and log the failure.",
                           "priority": "must-have",
@@ -13232,7 +13378,7 @@
                           "tests": {
                             "test": [
                               {
-                                "test_id": "EPIC-010-F-108-S-001-REQ-B-015-TEST-1",
+                                "test_id": "EPIC-010-F-002-S-001-REQ-B-015-TEST-1",
                                 "test_type": "ordinary",
                                 "orphan": false,
                                 "file": "pipeline/Code/tests/test_data_migration.py"
@@ -13244,11 +13390,229 @@
                     }
                   }
                 ]
-              },
+              }
+            },
+            {
+              "feature_id": "EPIC-010-F-003",
               "orphan": false,
+              "name": "ProviderBase",
+              "status": "done",
+              "description": "Loads the national provider sources and builds each individual and institutional provider's canonical record as the source gives it, together with the specialty and taxonomy vocabulary that classifies providers. Straight ingest-and-map only; every join, derivation, or management is Provider Enrichment.",
+              "priority": "must-have",
+              "realized_by": [],
               "approval": "approved",
-              "due_date": "2026-08-17",
-              "priority": "must-have"
+              "due_date": "",
+              "stories": {
+                "story": [
+                  {
+                    "story_id": "EPIC-010-F-003-S-001",
+                    "orphan": false,
+                    "name": "Load the primary provider sources",
+                    "description": "The national provider dissemination file and the national provider-taxonomy file are landed to staging, one record per source row, each keyed by that source's natural key, preserving the source's own fields.",
+                    "size": "M",
+                    "status": "done",
+                    "approval": "approved",
+                    "requirements": {
+                      "requirement": []
+                    }
+                  },
+                  {
+                    "story_id": "EPIC-010-F-003-S-002",
+                    "orphan": false,
+                    "name": "Specialty and taxonomy vocabulary",
+                    "description": "The national provider-taxonomy source is mapped one entry per code into the controlled vocabulary, each entry carrying its grouping, classification, specialization and definition with plain labels and a per-code resolution status expressed as an enumerated state, which names each provider's specialty and classifies providers for search.",
+                    "size": "M",
+                    "status": "done",
+                    "approval": "approved",
+                    "requirements": {
+                      "requirement": []
+                    }
+                  },
+                  {
+                    "story_id": "EPIC-010-F-003-S-003",
+                    "orphan": false,
+                    "name": "Canonical provider record and identity",
+                    "description": "Each provider row becomes one canonical record keyed by its national provider identifier and marked individual or institutional, carrying the enumeration and last-update dates, the raw activity events, and the sibling plain-decode label for each one-to-one coded value; an individual carries name parts, credentials, sex, other or former names and sole-proprietor standing; an institution carries legal and doing-business-as names, the authorized official, the parent-organization linkage when a subpart, and the administrative contact, every field mapped as the source row gives it.",
+                    "size": "M",
+                    "status": "done",
+                    "approval": "approved",
+                    "requirements": {
+                      "requirement": []
+                    }
+                  },
+                  {
+                    "story_id": "EPIC-010-F-003-S-004",
+                    "orphan": false,
+                    "name": "Practice and business addresses",
+                    "description": "Each record carries the practice-location address and the business (mailing) address exactly as given on the provider's own source row.",
+                    "size": "M",
+                    "status": "done",
+                    "approval": "approved",
+                    "requirements": {
+                      "requirement": []
+                    }
+                  },
+                  {
+                    "story_id": "EPIC-010-F-003-S-005",
+                    "orphan": false,
+                    "name": "Taxonomies, licenses, and identifiers",
+                    "description": "Each record carries the provider's taxonomy slots, each slot's code, associated state, associated license and primary marker, and the raw other-identifiers field, exactly as the source row gives them.",
+                    "size": "M",
+                    "status": "done",
+                    "approval": "approved",
+                    "requirements": {
+                      "requirement": []
+                    }
+                  },
+                  {
+                    "story_id": "EPIC-010-F-003-S-006",
+                    "orphan": false,
+                    "name": "Other attributes",
+                    "description": "Every remaining provider-record attribute not specified by another story is named with its type, so the canonical record's field set is complete and nothing is left undefined.",
+                    "size": "M",
+                    "status": "done",
+                    "approval": "approved",
+                    "requirements": {
+                      "requirement": []
+                    }
+                  }
+                ]
+              }
+            },
+            {
+              "feature_id": "EPIC-010-F-004",
+              "orphan": false,
+              "name": "Provider Enrichment",
+              "status": "in_progress",
+              "description": "Adds ChatHealthy-derived facts to each provider record as second-pass derivations on the built base record, each kept distinct from source fields and preserved across refreshes.",
+              "priority": "must-have",
+              "realized_by": [],
+              "approval": "approved",
+              "due_date": "",
+              "stories": {
+                "story": [
+                  {
+                    "story_id": "EPIC-010-F-004-S-001",
+                    "orphan": false,
+                    "name": "Additional Practice Locations",
+                    "description": "Every practice address a provider holds beyond the one on its base record is joined in from the practice-locations source and added as its own labeled address entries, held distinct from the base practice and mailing addresses and re-attached on every refresh.",
+                    "size": "M",
+                    "status": "done",
+                    "approval": "approved",
+                    "requirements": {
+                      "requirement": []
+                    }
+                  },
+                  {
+                    "story_id": "EPIC-010-F-004-S-002",
+                    "orphan": false,
+                    "name": "Managed Licenses Collection",
+                    "description": "Each provider carries one assembled licenses collection gathered from its license-bearing taxonomy slots and other-identifier entries, each license naming its issuing state and identifier, held distinct from the raw source slots it draws from and rebuilt on every refresh.",
+                    "size": "M",
+                    "status": "done",
+                    "approval": "approved",
+                    "requirements": {
+                      "requirement": []
+                    }
+                  },
+                  {
+                    "story_id": "EPIC-010-F-004-S-003",
+                    "orphan": false,
+                    "name": "Derived Active Standing",
+                    "description": "Each provider carries a single active-or-inactive standing computed from its deactivation and reactivation history rather than read from any source field, held distinct from the underlying event history, which is preserved, and recomputed on every refresh.",
+                    "size": "M",
+                    "status": "done",
+                    "approval": "approved",
+                    "requirements": {
+                      "requirement": []
+                    }
+                  },
+                  {
+                    "story_id": "EPIC-010-F-004-S-004",
+                    "orphan": false,
+                    "name": "Taxonomy Labels and Classification",
+                    "description": "Every coded taxonomy on a provider is stamped with its human-readable label, grouping, classification, specialization, definition and reference status drawn from the specialty vocabulary, held as derived sibling facts distinct from the source codes and re-stamped on every refresh from the current vocabulary.",
+                    "size": "M",
+                    "status": "done",
+                    "approval": "approved",
+                    "requirements": {
+                      "requirement": []
+                    }
+                  },
+                  {
+                    "story_id": "EPIC-010-F-004-S-005",
+                    "orphan": false,
+                    "name": "Institutional Facility-Type Label",
+                    "description": "Every institutional provider carries a plain-words description of the kind of place it is, derived from its taxonomy classification, held distinct from the source code and re-derived on every refresh.",
+                    "size": "M",
+                    "status": "done",
+                    "approval": "approved",
+                    "requirements": {
+                      "requirement": []
+                    }
+                  },
+                  {
+                    "story_id": "EPIC-010-F-004-S-006",
+                    "orphan": false,
+                    "name": "County Identity",
+                    "description": "Every eligible practice address is stamped with the county it falls in, its identity and its name, derived from the address and marked with which authority resolved it, held distinct from the source address, left absent rather than defaulted where it cannot be resolved, and re-resolved on every refresh.",
+                    "size": "M",
+                    "status": "done",
+                    "approval": "approved",
+                    "requirements": {
+                      "requirement": []
+                    }
+                  },
+                  {
+                    "story_id": "EPIC-010-F-004-S-007",
+                    "orphan": false,
+                    "name": "Urban and Rural Standing",
+                    "description": "Every county-resolved practice address carries its USDA rural-urban standing as the raw code, leaving the threshold to the consumer, and the provider carries a single most-urban rollup across its addresses; both derived from the address's county classification, held distinct from source, absent rather than defaulted where none resolves, and re-stamped on every refresh.",
+                    "size": "M",
+                    "status": "done",
+                    "approval": "approved",
+                    "requirements": {
+                      "requirement": []
+                    }
+                  },
+                  {
+                    "story_id": "EPIC-010-F-004-S-008",
+                    "orphan": false,
+                    "name": "Geo Coordinates",
+                    "description": "Every practice address is stamped with its geographic coordinates, latitude and longitude, derived from the address, held distinct from the source address and re-derived on every refresh.",
+                    "size": "M",
+                    "status": "in_progress",
+                    "approval": "approved",
+                    "requirements": {
+                      "requirement": []
+                    }
+                  },
+                  {
+                    "story_id": "EPIC-010-F-004-S-009",
+                    "orphan": false,
+                    "name": "Proprietary Clinical Flags",
+                    "description": "Every individual provider carries the clinical classification flags can-prescribe, homeopathic and disqualified, derived from the specialty vocabulary against its taxonomies, held as proprietary derived facts distinct from source, left absent and never defaulted to false for any taxonomy the vocabulary does not classify, and recomputed on every refresh.",
+                    "size": "M",
+                    "status": "done",
+                    "approval": "approved",
+                    "requirements": {
+                      "requirement": []
+                    }
+                  },
+                  {
+                    "story_id": "EPIC-010-F-004-S-010",
+                    "orphan": false,
+                    "name": "Curated Corrections",
+                    "description": "Provider records carry the manually curated corrections that override source-derived facts where the source is known to mislead, including the curated clinical-role list that distinguishes licensed clinical taxonomies from non-clinical ones, applied as an explicit human-maintained overlay that carries its own authority, never overwrites the source value it repairs, carries a triage standing so a draft never reaches served data, and is always preserved across a refresh.",
+                    "size": "M",
+                    "status": "done",
+                    "approval": "approved",
+                    "requirements": {
+                      "requirement": []
+                    }
+                  }
+                ]
+              }
             }
           ]
         }

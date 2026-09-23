@@ -219,8 +219,8 @@
             },
             {
               "statement_number": 9,
-              "statement_body": "The one file that migrates data to the front-end serving database satisfies every requirement of story EPIC-010-F-108-S-001. The requirements are read from the backlog and each is put to an LLM against the file's source; a requirement the code does not enforce, or that could not be established, stops the commit. No other file writes to that database.",
-              "req_id": "EPIC-010-F-108-S-001-REQ-B-010"
+              "statement_body": "The one file that migrates data to the front-end serving database satisfies every requirement of story EPIC-010-F-002-S-001. The requirements are read from the backlog and each is put to an LLM against the file's source; a requirement the executable code does not enforce — comments and docstrings are disregarded and can never satisfy a requirement — or that could not be established, stops the commit. No other file writes to that database.",
+              "req_id": "EPIC-010-F-002-S-001-REQ-B-010"
             }
           ]
         },
