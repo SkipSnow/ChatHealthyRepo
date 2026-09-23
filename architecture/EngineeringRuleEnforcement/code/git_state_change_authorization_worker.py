@@ -719,6 +719,19 @@ class GitStateChangeAuthorization:
             return True
         if subcommand in ("remote", "worktree", "submodule") and len(words) <= 2:
             return True
+        if subcommand == "config":
+            # A GET names a key and supplies no value; a set supplies a value
+            # or carries a write flag. Explicit read flags (--get, --list)
+            # returned above, so what remains is `git config <key>` (read) vs
+            # `git config <key> <value>` (write) vs a write flag.
+            write_flags = ("--add", "--unset", "--unset-all", "--replace-all",
+                           "--remove-section", "--rename-section", "--edit",
+                           "-e")
+            if any(word in write_flags for word in words):
+                return False
+            after = words[words.index("config") + 1:]
+            positionals = [word for word in after if not word.startswith("-")]
+            return len(positionals) <= 1
         return False
 
 
