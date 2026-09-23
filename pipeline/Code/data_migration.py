@@ -1,4 +1,4 @@
-"""EPIC-010-F-108-S-001 -- Data Migration.
+"""Data Migration.
 
 Moves a collection from ChatHealthyDataPipelines.PipelinePublicHealthData to
 ChatHealthyFrontEnd.PublicHealthData under the name it already has.
@@ -293,7 +293,7 @@ def _raise_unauthorized(collection: str, approval_id: str, why: str) -> None:
 
 def _acknowledge_approval(collection: str, approval_id: str) -> str:
     """Write this service's acknowledgement of the human approval it was
-    handed, before it does any work. REQ-B-014.
+    handed, before it does any work.
 
     The transfer is given the key of a human's approval and answers it in
     writing: this service, at this moment, is acting on that specific
@@ -420,7 +420,7 @@ def _released_approval(collection: str, approval_id: str) -> dict:
 def main() -> int:
     """Take the mutex, migrate, give the mutex back.
 
-    REQ-B-015: one job at a time. An invocation arriving while another is
+    One job at a time. An invocation arriving while another is
     running is refused before it reads or writes anything, and it abends --
     it does not wait and it does not queue.
     """
@@ -510,8 +510,8 @@ def _migrate(body: dict, collection: str) -> int:
                   collection, expected)
     except ChatHealthyException as exc:
         # Log the narrative, then let it go. Returning 1 here would have been
-        # an orderly exit reporting a failure, and REQ-B-005 asks for an
-        # abend: the exception leaves the process, the runbook job is marked
+        # an orderly exit reporting a failure, and an abend is required
+        # instead: the exception leaves the process, the runbook job is marked
         # failed by the platform rather than by a number this code chose, and
         # the traceback is in the job record. A refusal that tidies itself
         # away is the shape of a refusal that gets missed.
