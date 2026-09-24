@@ -5867,7 +5867,7 @@
               "files": [
                 {
                   "source_location": "pipeline/Code/data_migration.py",
-                  "feature_id": "EPIC-010-F-108",
+                  "feature_id": "EPIC-010-F-102",
                   "handler_type": "python_source",
                   "disposition": "referenced",
                   "content_hash": "682aaa0a9b7ea31d8c90dfbb35526724c198b2c2e7aea5d8e4a2b4f271db8263",
@@ -6001,47 +6001,6 @@
       "secret_descriptions": {
         "CH_LOG_DB": "Database the structured log records are written to",
         "PIPELINETOFRONTENDPUBLICDATAMIGRATOR_AZURE_CLIENT_ID": "clientId of the migrator managed identity. Not a secret."
-      }
-    },
-    {
-      "target_id": "target_github_repository_chathealthy",
-      "target_kind": "github_repository",
-      "environments": [
-        {
-          "env_binding": "dev",
-          "node_address": "SkipSnow/ChatHealthyRepo",
-          "branch": "dev",
-          "packages": [
-            {
-              "package_id": "rule_065_enforcement_workflow",
-              "kind": "static_files"
-            }
-          ],
-          "platforms": [
-            {
-              "name": "github_repository",
-              "facts": [
-                {
-                  "name": "role",
-                  "value": "host"
-                }
-              ]
-            }
-          ]
-        }
-      ],
-      "files": [
-        {
-          "feature_id": "EPIC-008-F-002",
-          "source_location": ".github/workflows/rule_065_enforcement.yml",
-          "handler_type": "static_asset",
-          "disposition": "referenced",
-          "content_hash": "fbde35d5cf3d4eaa9b0eb759830850d11eab2a1141e675dce28f905cc75a3fc7",
-          "package": "rule_065_enforcement_workflow"
-        }
-      ],
-      "secrets": {
-        "GITHUB_DEPLOY_TOKEN": "azure_key_vault"
       }
     },
     {
