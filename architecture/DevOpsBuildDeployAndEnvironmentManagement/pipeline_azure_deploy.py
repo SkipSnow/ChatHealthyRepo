@@ -785,16 +785,29 @@ def _acr_build_and_push(
     cmd.append(build_context)
     env = os.environ.copy()
     env["DOCKER_BUILDKIT"] = "1"
+    # Plain progress: the default TTY progress writer emits control bytes that
+    # arrive as unreadable garbage once captured and propagated through the
+    # deploy chain, so a failed build reported no usable cause. Plain text is
+    # diagnosable.
+    env["BUILDKIT_PROGRESS"] = "plain"
     step(f"docker build {refs[0]}")
     r = subprocess.run(cmd, env=env, creationflags=_cflags(),
                        capture_output=True, text=True,
                        encoding='utf-8', errors='replace')
     if r.returncode != 0:
+        _AZ_ERROR_DIR.mkdir(parents=True, exist_ok=True)
+        log_path = _AZ_ERROR_DIR / f"docker_build_{repo}_{tags[0]}.log"
+        log_path.write_text(
+            f"$ {' '.join(cmd)}\n\n=== stdout ===\n{r.stdout or ''}\n\n"
+            f"=== stderr ===\n{r.stderr or ''}\n",
+            encoding="utf-8", errors="replace")
         raise ChatHealthyException(
             mode="aborted",
             component="pipeline_azure_deploy",
-            message=f"ERROR: docker build failed (exit {r.returncode})\n"
-            f"  stderr: {(r.stderr or '').strip()[-2000:]}")
+            message=f"ERROR: docker build failed (exit {r.returncode}) for {refs[0]}\n"
+            f"  full build log: {log_path}\n"
+            f"  stdout tail:\n{(r.stdout or '').strip()[-1500:]}\n"
+            f"  stderr tail:\n{(r.stderr or '').strip()[-1500:]}")
     for ref in refs:
         step(f"docker push {ref}")
         r = subprocess.run(["docker", "push", ref],
