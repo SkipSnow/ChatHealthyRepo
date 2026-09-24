@@ -103,17 +103,9 @@ def _fire_farewell_vm_delete() -> None:
 
     try:
         import requests  # noqa: PLC0415
-        from azure.identity import ClientSecretCredential, DefaultAzureCredential  # noqa: PLC0415
+        from pipeline_identity import pipeline_editor_credential  # noqa: PLC0415
 
-        secret = os.environ.get("PIPELINEEDITOR_AZURE_CLIENT_SECRET", "").strip()
-        if secret:
-            credential = ClientSecretCredential(
-                tenant_id=os.environ["PIPELINEEDITOR_AZURE_TENANT_ID"],
-                client_id=os.environ["PIPELINEEDITOR_AZURE_CLIENT_ID"],
-                client_secret=secret,
-            )
-        else:
-            credential = DefaultAzureCredential()
+        credential = pipeline_editor_credential()
         token = credential.get_token("https://management.azure.com/.default").token
         url = (f"https://management.azure.com/subscriptions/{subscription}"
                f"/resourceGroups/{rg}/providers/Microsoft.Compute"

@@ -47,7 +47,6 @@ import tempfile
 from pathlib import Path
 from typing import Iterable, Optional, Tuple
 
-from azure.identity import ClientSecretCredential, ManagedIdentityCredential
 from azure.keyvault.secrets import SecretClient
 
 import blob_logger
@@ -95,42 +94,18 @@ PIPELINE_IDENTITY = "pipelineEditor"
 
 
 def _pipeline_credential():
-    """The credential this node opens the vault with.
+    """The credential this node opens the vault with: pipelineEditor, proven by
+    its client secret, with no fallback.
 
-    The mechanism follows what the identity IS. pipelineEditor is an
-    application registration and proves itself with its client secret; a
-    managed identity is proven by the machine it is attached to.
-
-    This asked the instance metadata endpoint unconditionally. The run host
-    stopped carrying a managed identity when pipelineEditor became the runtime
-    identity, so every container died on its first vault call with
-    "ManagedIdentityCredential authentication unavailable, no response from
-    the IMDS endpoint" -- before it could log, before it could write a
-    heartbeat, before it could say anything at all. Its own credentials were
-    in the environment, unread.
+    The run host was deliberately stripped of any managed identity when
+    pipelineEditor became the runtime identity. Zero trust admits no second
+    identity to reach for, so a missing credential fails here rather than
+    asking the IMDS endpoint for a managed identity that is not there or
+    letting a DefaultAzureCredential chain authenticate as something else.
     """
-    tenant = os.environ.get(f"{PIPELINE_IDENTITY.upper()}_AZURE_TENANT_ID", "").strip()
-    client_id = os.environ.get(f"{PIPELINE_IDENTITY.upper()}_AZURE_CLIENT_ID", "").strip()
-    secret = os.environ.get(f"{PIPELINE_IDENTITY.upper()}_AZURE_CLIENT_SECRET", "").strip()
-    if secret:
-        if not (tenant and client_id):
-            _emit(
-                f"FATAL: {PIPELINE_IDENTITY} has a client secret but is missing "
-                f"tenant or client id; cannot open the vault as anyone."
-            )
-            raise ChatHealthyException(
-                mode="identity_credential_incomplete",
-                component="PipelineBootstrap",
-                message=(f"{PIPELINE_IDENTITY}: client secret present, "
-                         f"tenant={bool(tenant)} client_id={bool(client_id)}"))
-        _emit(f"vault credential: {PIPELINE_IDENTITY} client secret")
-        return ClientSecretCredential(
-            tenant_id=tenant, client_id=client_id, client_secret=secret)
-    mi_client_id = os.environ.get("AZURE_CLIENT_ID", "").strip()
-    _emit(f"vault credential: managed identity"
-          f"{' (' + mi_client_id + ')' if mi_client_id else ''}")
-    return (ManagedIdentityCredential(client_id=mi_client_id) if mi_client_id
-            else ManagedIdentityCredential())
+    from pipeline_identity import pipeline_editor_credential  # noqa: PLC0415
+    _emit(f"vault credential: {PIPELINE_IDENTITY} client secret")
+    return pipeline_editor_credential()
 
 
 def _kv_name_to_env_key(kv_name: str) -> str:

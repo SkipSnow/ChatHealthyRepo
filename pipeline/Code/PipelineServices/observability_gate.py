@@ -109,10 +109,11 @@ class ObservabilityGate:
 
     def _verify_storage_reachable(self) -> None:
         """Prove we can reach the pipeline blob Storage account (where
-        all IT + business data resides). Uses the container-run managed
-        identity via DefaultAzureCredential. Probes via a data-plane
-        container list (Storage Blob Data Contributor / Reader), NOT
-        via get_account_information (which requires Storage Account
+        all IT + business data resides). Authenticates as pipelineEditor via
+        its explicit client-secret credential (no DefaultAzureCredential
+        fallback; zero trust admits no second identity). Probes via a
+        data-plane container list (Storage Blob Data Contributor / Reader),
+        NOT via get_account_information (which requires Storage Account
         Contributor / Reader and Data Access — a different role).
         Account URL comes from PIPELINE_LOG_ACCOUNT_URL; no fallback
         (deploy chain sets it from manifest)."""
@@ -133,11 +134,11 @@ class ObservabilityGate:
             self._dump_to_stderr(ch_exc)
             raise ch_exc
         try:
-            from azure.identity import DefaultAzureCredential
-            from azure.storage.blob import BlobServiceClient
+            from azure.storage.blob import BlobServiceClient  # noqa: PLC0415
+            from pipeline_identity import pipeline_editor_credential  # noqa: PLC0415
             client = BlobServiceClient(
                 account_url=account_url,
-                credential=DefaultAzureCredential(),
+                credential=pipeline_editor_credential(),
             )
             list(client.list_containers(results_per_page=1).by_page().__next__())
             info = {"probe": "list_containers ok"}
