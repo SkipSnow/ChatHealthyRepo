@@ -111,6 +111,11 @@ def _dispatch(step: str, payload: dict) -> dict:
     mongo = ChatHealthyMongoUtilities().getConnection("pipelineEditor", "ChatHealthyDataPipelines")
     blob = get_blob_service()
     ctx = _reconstruct_step_context(payload, mongo, blob)
+    # Declare the run's data version so the version resolver accepts the
+    # pre-versioned collection names every build step addresses. Idempotent
+    # per process; _state was wiped by bootstrap's exec into this worker.
+    from pipeline_version_binding import install_version_bindings  # noqa: PLC0415
+    install_version_bindings(ctx.args.data_version, mongo, ctx.args.env_prefix)
     runner = get_runner(step)
     _log.info(
         "pipeline_worker dispatch step=%s run_id=%s partition=%s",
