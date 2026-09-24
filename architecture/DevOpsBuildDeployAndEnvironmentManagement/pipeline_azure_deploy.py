@@ -777,12 +777,19 @@ def _acr_build_and_push(
     """
     _az(["acr", "login", "--name", registry])
     refs = [f"{registry}.azurecr.io/{repo}:{t}" for t in tags]
-    cmd = ["docker", "build", "--file", dockerfile]
+    # Anchor the Dockerfile and build context to the repo root ensure_acr
+    # materialized the managed files into. Left relative, docker resolves them
+    # against the deploy process cwd -- which is NOT that root -- so a
+    # just-in-time managed file (requirements-pipeline.txt) was absent from the
+    # context and the COPY failed. The az-acr-build sibling already anchors to
+    # repo_root; this path did not.
+    _repo_root = Path(__file__).resolve().parent.parent.parent
+    cmd = ["docker", "build", "--file", str((_repo_root / dockerfile).resolve())]
     for k, v in build_args.items():
         cmd += ["--build-arg", f"{k}={v}"]
     for ref in refs:
         cmd += ["--tag", ref]
-    cmd.append(build_context)
+    cmd.append(str((_repo_root / build_context).resolve()))
     env = os.environ.copy()
     env["DOCKER_BUILDKIT"] = "1"
     # Plain progress: the default TTY progress writer emits control bytes that
