@@ -34,6 +34,7 @@ from pymongo.collection import Collection
 from .exceptions import ChatHealthyException
 from .mongo_utilities import ChatHealthyMongoUtilities
 from .logging_service import set_mongo_log_collection, set_mongo_log_identity
+from .runtime_collections_state import _State, _state  # re-exported; see module docstring
 
 # The front-end services act as frontendUser, including when they write
 # their own logs. The Mongo log handler refuses to build without this, and
@@ -70,24 +71,9 @@ _SPECIALTY_META_SLOT = "SPECIALTY_META_COLLECTION"
 _TOOL_CONFIGURATION_COLL = "ToolConfiguration"
 
 
-class _State:
-    target_id: str | None = None
-    env: str | None = None
-    # slot -> composed 'Database.Collection_v_N'. What every consumer of a
-    # bound collection reads.
-    bindings: dict[str, str] = {}
-    # (database, base) -> composed name, taken from the base the RECORD
-    # states. Derived from nothing: the previous form rebuilt this by
-    # splitting the composed name back apart, which is the same parsing the
-    # record was reshaped to eliminate, moved one layer down where it was
-    # harder to see. A base is a fact the binding carries, not a fact
-    # recovered from a string.
-    bases: dict[tuple[str, str], str] = {}
-    # The parameter declaration for this env: pages[] and carry_over[].
-    tool_configuration: dict = {}
-
-
-_state = _State()
+# _State and the _state singleton now live in runtime_collections_state and are
+# imported above. The resolver (mongo_utilities._version_map) reads the same
+# _state without needing this module's FastAPI/Mongo imports.
 
 
 def _read_build_info() -> dict:

@@ -1004,6 +1004,7 @@ _ACA_STAGE_REQUIREMENTS_NAME = "requirements.txt"
 # assembly happens deterministically at build time.
 _INLINE_LIB_MODULES = (
     "exceptions",       # no in-package deps
+    "runtime_collections_state",  # no in-package deps; holds the _state read by mongo_utilities._version_map (kept apart from runtime_data_collections' FastAPI router so the resolver inlines without FastAPI)
     "logging_service",  # imports .exceptions eagerly; imports .mongo_utilities lazily inside _MongoLogHandler.emit
     "mongo_utilities",  # imports .exceptions AND .logging_service eagerly at module load; logging_service MUST be installed first
     "pipeline_boot",    # AA runbook Mongo-logging bootstrap: KV Mongo secret fetch + SRV->direct URI + CHLS env setup. Stdlib-only + optional certifi. Peer module; installed after logging_service/mongo_utilities so callers can compose.

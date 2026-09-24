@@ -342,7 +342,7 @@ def _version_map() -> dict[tuple[str, str], str]:
     # unversioned collection -- the precise failure this resolution exists to
     # prevent, arrived at by the code protecting itself. If the binding state
     # cannot be read, that is a fact the caller must see, not one to absorb.
-    from .runtime_data_collections import _state
+    from .runtime_collections_state import _state
     bases = dict(_state.bases or {})
 
     if _VERSION_MAP is not None and _VERSION_MAP_SOURCE == bases:

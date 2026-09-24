@@ -1092,6 +1092,13 @@ def _run_pipeline(invocation_mode):
     # duplicate that lost the serialization race; the live run owns every
     # shared resource and any teardown here MUST be a no-op.
     is_duplicate_abend = False
+    # Further finally-block sentinels. Default to "runbook does not own the
+    # lock" and "no VM": an abort inside the mongo step below (before the
+    # success-path assignments) then tears down correctly instead of raising
+    # UnboundLocalError in the finally.
+    runbook_owns_lock_release = False
+    vm_name_for_teardown = None
+    mongo = None
     # The AA sandbox trust store lacks Atlas's Root CA. Point pymongo TLS
     # at certifi's bundle so front-cluster TLS handshakes succeed.
     try:
@@ -1129,6 +1136,12 @@ def _run_pipeline(invocation_mode):
                     live_acquired_at=str(blocking.get("acquired_at")),
                     live_expires_at=str(blocking.get("expires_at")))
                 return 1
+            # Not a duplicate: this invocation now holds the pipeline_lock. Mark
+            # ownership before the steps below so a failure in config read or
+            # manifest write releases the lock in the finally instead of wedging
+            # future fires.
+            runbook_owns_lock_release = True
+            vm_name_for_teardown = _vm_name_for_lock
             config = _read_pipeline_config(mongo)
             log("config_read",
                 config_keys=list(config.keys()),
