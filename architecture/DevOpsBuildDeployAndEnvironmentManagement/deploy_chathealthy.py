@@ -577,6 +577,52 @@ def _run_from_branch_checkout(env: str, argv):
         list(argv if argv is not None else sys.argv[1:]))
 
 
+def _all_declared_packages(repo_root: Path, env: str) -> set[str]:
+    """Every package declared on any target for an env -- the set a package
+    must belong to in order to exist at all."""
+    from record_loader import RecordLoader  # noqa: PLC0415
+    from _build_chain import _declared_packages  # noqa: PLC0415
+    brain = (repo_root / "brain" / "machine_artifacts" / "content"
+             / "deployment_architecture.json")
+    coll = RecordLoader().load_collection(brain)
+    out: set[str] = set()
+    for t in coll.records:
+        out.update(_declared_packages(t, env))
+    return out
+
+
+def _bad_deploy_argument(repo_root: Path, args, resolved_target_ids: list[str]):
+    """A human-readable reason the deploy arguments cannot be honoured, or None.
+
+    Guards, in order: a target was named at all; the named target(s) resolve to
+    something that exists in this env; every named package exists somewhere in
+    the record; every named package is declared on the target(s) named. The
+    first failure is returned; the caller refuses and records it. Best-practice
+    argument guarding, not a new requirement.
+    """
+    named = [t.strip() for t in args.target.split(",") if t.strip()]
+    if not named:
+        return "no target was named"
+    if not resolved_target_ids:
+        return (f"--target={args.target!r} names no target that exists in "
+                f"env {args.env!r}")
+    supplied = {p.strip() for p in (args.package or "").split(",") if p.strip()}
+    if supplied:
+        everywhere = _all_declared_packages(repo_root, args.env)
+        nowhere = supplied - everywhere
+        if nowhere:
+            return (f"--package={sorted(nowhere)} names package(s) that exist "
+                    f"on no target in env {args.env!r}")
+        declared_here = _declared_package_set(repo_root, resolved_target_ids,
+                                              args.env)
+        not_here = supplied - declared_here
+        if not_here:
+            return (f"--package={sorted(not_here)} names package(s) not declared "
+                    f"on {sorted(resolved_target_ids)} in env {args.env!r}; "
+                    f"they carry {sorted(declared_here)}")
+    return None
+
+
 def _authorize_deployment(repo_root: Path, args):
     """EPIC-008-F-012-S-004-REQ-B-006. Ask a person, before anything is deployed.
 
@@ -596,7 +642,35 @@ def _authorize_deployment(repo_root: Path, args):
         0, str(repo_root / "architecture" / "EngineeringRuleEnforcement" / "code"))
     from deploy_authorization_worker import (  # noqa: PLC0415
         DeployAuthorizationWorker, DeploymentFacts)
-    targets = [t.strip() for t in args.target.split(",") if t.strip()]
+    # Resolve the target arg to the real target_ids this deploy will touch --
+    # the same resolution _deploy_to_cloud does -- so the page and the record
+    # name what is actually installed, not the group word that was typed.
+    # Authorising against an unresolved group name ('cloudflare') gave every
+    # target an empty package list and build 0: the operator approved a
+    # description of nothing while a full site shipped.
+    try:
+        targets = _collect_target_ids_for_env(repo_root, args.env, args.target)
+    except Exception:  # noqa: BLE001 - a target that will not even load (a
+        # non-existent target_id, say) resolves to nothing here; the guard
+        # below records the refusal and abends, so it is audited rather than
+        # dying as a bare traceback.
+        targets = []
+
+    # Guard the arguments before anything is authorised. A bad call -- no
+    # target, a target that does not exist, a package not declared on its
+    # target, or a package that exists nowhere -- is shown to the operator on
+    # the approval surface and recorded to the authorization collection, rather
+    # than dying as a bare terminal traceback nobody can audit.
+    reason = _bad_deploy_argument(repo_root, args, targets)
+    if reason is not None:
+        named = [t.strip() for t in args.target.split(",") if t.strip()]
+        DeployAuthorizationWorker(DeploymentFacts(
+            environment=args.env, targets=named or ["(no target)"],
+            packages={}, build_number=0, commit="")).refuse_bad_argument(reason)
+        raise ChatHealthyException(
+            mode="illegal_state", component="deploy_chathealthy",
+            message=f"ERROR: refused bad deploy arguments -- {reason}")
+
     # The page the operator approves names what the record says is being
     # installed, not what was typed. Approving a list the deploy does not
     # use is an approval of nothing.

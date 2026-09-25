@@ -192,6 +192,42 @@ class DeployAuthorizationWorker:
         return authorization_record.append(record.to_document(),
                                            tolerate_failure=False)
 
+    def refuse_bad_argument(self, reason: str):
+        """A deploy whose arguments cannot be honoured never runs.
+
+        The operator is shown why on the same surface that approves a deploy,
+        and the bad call is recorded to the authorization collection, so a
+        bad-argument deploy is auditable rather than a silent terminal error.
+        Best-practice argument guarding, not a new requirement. Returns the
+        record id.
+        """
+        f = self.facts
+        request_authorization(
+            "this deployment (it will NOT run)",
+            f"{f.environment}: bad deploy arguments -- {reason}",
+            timeout_seconds=TIMEOUT_SECONDS,
+            palette="entitlement",
+            banner=f"Deploy to {f.environment} REFUSED - bad arguments",
+            detail=(f"<b>This deploy will not run.</b> {reason}. Nothing is "
+                    f"deployed; this bad call is recorded. Close this to "
+                    f"dismiss."))
+        record = DeploymentAuthorization(
+            authorization_type=AUTHORIZATION_TYPE,
+            environment=f.environment,
+            targets=list(f.targets),
+            packages=dict(f.packages),
+            build_number=f.build_number,
+            commit=f.commit,
+            operator=self.operator,
+            decided_at=datetime.now(timezone.utc).isoformat(),
+            verdict="aborted_bad_argument",
+            seconds_waited=0,
+            proof={})
+        document = record.to_document()
+        document["outcome"] = "aborted_bad_argument"
+        document["reason"] = reason
+        return authorization_record.append(document, tolerate_failure=False)
+
     def record_outcome(self, record_id, outcome: str,
                        per_target: dict | None = None) -> None:
         """Append what happened, rather than altering what was authorized.
