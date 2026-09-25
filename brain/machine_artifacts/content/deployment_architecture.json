@@ -4904,7 +4904,7 @@
         "SOURCE_URL_NUCC": "azure_key_vault",
         "SOURCE_URL_USDA_RUCC": "azure_key_vault",
         "SPARKMAIL_API_KEY": "azure_key_vault",
-        "SPECIALTY_CLASSIFICATION_CATALOG_URL": "azure_key_vault",
+        "SPECIALTY_CLASSIFICATION_CATALOG_URL": "literal:https://dev.chathealthy.ai/Data/specialty_classification_gpt41.json",
         "mongo-attempts-ChatHealthyDataPipelines": "literal:3",
         "mongo-host-ChatHealthyDataPipelines": "literal:chathealthydatapipeline.mdwahg.mongodb.net",
         "mongo-host-ChatHealthyFrontEnd": "literal:chathealthyfrontend.mdwahg.mongodb.net",
