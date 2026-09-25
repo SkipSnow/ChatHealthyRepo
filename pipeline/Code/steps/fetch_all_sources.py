@@ -31,23 +31,14 @@ from source_fetch_engine import fetch_all_sources
 
 _log = ChatHealthyLoggingService()
 
-# Sources ChatHealthy owns and hosts itself, at one canonical apex address.
-# The URL is hardcoded here with NO regard to environment: we control the file,
-# there is a single pipeline (no per-env dev/qa/prod pipelines or per-env data
-# endpoints), and the file lives at exactly one apex location regardless of the
-# run's env. An env var / env-prefixed URL pointed at dev.chathealthy.ai -- a
-# per-env blob endpoint that does not exist -- and 404'd (BlobNotFound).
-_OWNED_SOURCE_URLS = {
-    "specialty_catalog": "https://chathealthy.ai/Data/SupplementalNUCCs.json",
-}
-
-# Direct-URL external sources: env var name -> source name. pl_pfile is derived
+# Direct-URL sources: env var name -> source name. pl_pfile is derived
 # from nppes_npi's downloaded zip (no separate URL).
 _SOURCE_URL_ENVS = {
     "nppes_npi": "SOURCE_URL_NPPES_NPI",
     "nucc": "SOURCE_URL_NUCC",
     "census_zcta_county": "SOURCE_URL_CENSUS_ZCTA_COUNTY",
     "usda_rucc": "SOURCE_URL_USDA_RUCC",
+    "specialty_catalog": "SPECIALTY_CLASSIFICATION_CATALOG_URL",
 }
 _DERIVED_SOURCES = {
     "pl_pfile": {"derived_from": "nppes_npi", "zip_entry_glob": "pl_pfile*.csv"},
@@ -57,8 +48,6 @@ _DERIVED_SOURCES = {
 def _source_spec_from_env(source_name: str) -> dict:
     if source_name in _DERIVED_SOURCES:
         return dict(_DERIVED_SOURCES[source_name])
-    if source_name in _OWNED_SOURCE_URLS:
-        return {"source_url": _OWNED_SOURCE_URLS[source_name]}
     env_key = _SOURCE_URL_ENVS.get(source_name)
     if not env_key:
         raise ChatHealthyException(
