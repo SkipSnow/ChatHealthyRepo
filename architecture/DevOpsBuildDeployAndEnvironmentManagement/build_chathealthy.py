@@ -671,7 +671,7 @@ def _build_body(args, repo_root: Path, canonical_repo: Path, canonical_build_dir
     # declaration of one fact. Dropping --package builds every declared one.
     # A subset build is the operator's explicit choice, not a silent omission,
     # so it does not drift the record the way an unstated omission would.
-    known = {p for t in targets for p in _declared_packages(t)}
+    known = {p for t in targets for p in _declared_packages(t, args.env)}
     if not known:
         raise ChatHealthyException(
             mode="aborted",
@@ -751,7 +751,7 @@ def _build_body(args, repo_root: Path, canonical_repo: Path, canonical_build_dir
         # The build has happened; record which packages this build produced.
         # A package not named keeps the build it already held, which is what
         # gives each package a lifecycle of its own on one shared sequence.
-        for pid in sorted(packages_wanted & set(_declared_packages(t))):
+        for pid in sorted(packages_wanted & set(_declared_packages(t, args.env))):
             record_package_build(t.target_id, pid, build_n, args.env, build_sha)
             _step(f"  recorded {t.target_id}/{pid} build={build_n}")
         _generate_tool_registry(repo_root, t.target_id, package_dir)

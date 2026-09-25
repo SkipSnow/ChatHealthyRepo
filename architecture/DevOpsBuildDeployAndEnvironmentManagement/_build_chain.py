@@ -133,24 +133,32 @@ def _target_build_dir(repo_root: Path, build_n: int, target_id: str, build_root_
     return repo_root / root / target_id
 
 
-def _declared_packages(target: TargetRecord) -> list[str]:
-    """Package ids this target declares, across every env binding.
+def _declared_packages(target: TargetRecord, env: str | None = None) -> list[str]:
+    """Package ids this target declares.
 
-    A package is a logical set of capabilities and is therefore a property
-    of the target, not of the environment it happens to be deployed to.
-    The schema nests packages[] under environments[]; reading the union
-    across bindings recovers the target-level truth.
+    A package belongs to an ENVIRONMENT iff that environment's binding
+    declares it in its packages[]. The files[] `package` tag attributes a
+    file to a package so the build can place it; it never, on its own,
+    makes a package a member of an environment. So with `env` given this
+    returns exactly that binding's packages[], and with no env the union
+    across every binding.
+
+    This is why a package that exists only to stand a target up locally --
+    the website's local_host server -- is a member of env 'local' and of no
+    cloud environment: only the local binding lists it. Reading the files[]
+    tag as membership was what pulled local_host into the dev/qa/prod
+    package set and approval line.
     """
     seen: list[str] = []
-    for eb in target.environments:
+    bindings = (
+        [eb for eb in target.environments if eb.env_binding == env]
+        if env is not None else list(target.environments)
+    )
+    for eb in bindings:
         for pkg in (eb.packages or []):
             pid = pkg.get("package_id")
             if pid and pid not in seen:
                 seen.append(pid)
-    for f in target.files:
-        pid = getattr(f, "package", None)
-        if pid and pid not in seen:
-            seen.append(pid)
     return seen
 
 

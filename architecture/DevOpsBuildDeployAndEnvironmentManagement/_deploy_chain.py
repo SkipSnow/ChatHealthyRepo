@@ -205,19 +205,30 @@ def package_build_facts(repo_root: Path, target_id: str,
     return json.loads(path.read_text(encoding="utf-8"))
 
 
-def _target_packages(repo_root: Path, target_id: str) -> list[str]:
-    """Package ids the built target carries, in declaration order."""
+def _target_packages(repo_root: Path, target_id: str,
+                     env: str | None = None) -> list[str]:
+    """Package ids the target carries, in declaration order.
+
+    A package belongs to an ENVIRONMENT iff that environment's binding
+    declares it. The files[] `package` tag attributes a file to a package;
+    it does not make a package a member of an environment. With `env` given
+    this returns that binding's packages[]; with no env the union across
+    every binding (identical to the historical set, since every files[]
+    package is declared in at least one binding). This is why local_host --
+    the website's local server, declared only in the local binding -- is a
+    member of env 'local' and of no cloud environment.
+    """
     data = _build_manifest_for(repo_root, target_id)
+    bindings = [
+        eb for eb in (data.get("environments", []) or [])
+        if env is None or eb.get("env_binding") == env
+    ]
     seen: list[str] = []
-    for eb in data.get("environments", []) or []:
+    for eb in bindings:
         for pkg in (eb.get("packages") or []):
             pid = pkg.get("package_id")
             if pid and pid not in seen:
                 seen.append(pid)
-    for f in data.get("files", []) or []:
-        pid = f.get("package")
-        if pid and pid not in seen:
-            seen.append(pid)
     return seen
 
 
@@ -530,11 +541,207 @@ def deploy_github_repository(build_dir: Path, env: str, resolver,
     return 0 if deployed else 1
 
 
+def _served_path(source_location: str) -> str | None:
+    """The URL path a website source file is served at, or None when it is
+    not served as a static asset.
+
+    `Website/` is the docroot, so a file at Website/<rel> is served at /<rel>.
+    Cloudflare Pages consumes `_headers` and `_redirects` and compiles
+    `functions/` into Workers; none of those appear as fetchable files, so
+    they have no served path and are not expected on the live site.
+    """
+    prefix = WEBSITE_SOURCE_ROOT + "/"
+    sl = source_location.replace("\\", "/")
+    if not sl.startswith(prefix):
+        return None
+    rel = sl[len(prefix):]
+    if rel in ("_headers", "_redirects") or rel.startswith("functions/"):
+        return None
+    return "/" + rel
+
+
+def _content_packages(repo_root: Path, env: str) -> list[str]:
+    """The website's served-content packages for one environment: every
+    package the env binding declares except the local server package, which
+    holds the local host, not the served site."""
+    return [p for p in _target_packages(repo_root, WEBSITE_TARGET_ID, env)
+            if p != WEBSITE_SERVER_PACKAGE]
+
+
+def _cf_live_deployment_files(
+    account_id: str, project: str, api_token: str,
+) -> tuple[str, dict[str, str]]:
+    """Return (deployment_url, {served_path: content_hash}) for the project's
+    current canonical deployment, or ('', {}) when it has never been deployed.
+
+    Read-only: two GETs against the Cloudflare API. The deployment record
+    carries a complete file map -- every path the live site serves, generated
+    bundles and pipeline-published data included, not only what the repository
+    declares. That map is what lets a single-package deploy carry every other
+    package forward exactly as it stands.
+    """
+    import json as _json
+    import urllib.request as _u
+
+    def api(path: str) -> dict:
+        req = _u.Request(_CF_API + path,
+                         headers={"Authorization": f"Bearer {api_token}"})
+        with _u.urlopen(req, timeout=45) as resp:
+            return _json.loads(resp.read())
+
+    proj = api(f"/accounts/{account_id}/pages/projects/{project}")
+    result = proj.get("result") or {}
+    dep = result.get("canonical_deployment") or result.get("latest_deployment")
+    if not dep or not dep.get("id"):
+        return "", {}
+    detail = api(f"/accounts/{account_id}/pages/projects/{project}"
+                 f"/deployments/{dep['id']}")
+    files = (detail.get("result") or {}).get("files") or {}
+    return dep.get("url") or "", dict(files)
+
+
+def _cf_fetch_live_bytes(dep_url: str, path: str) -> bytes:
+    """Read one file's bytes from the immutable per-deployment URL.
+
+    The *.pages.dev host for a specific deployment serves exactly that
+    deployment and does not sit behind the zone WAF, so no bypass header is
+    needed and the bytes are the deployment's own. A non-200 aborts: a site
+    must not be assembled from files it could not read.
+    """
+    import urllib.request as _u
+    req = _u.Request(dep_url.rstrip("/") + path,
+                     headers={"User-Agent": "chathealthy-deploy"})
+    try:
+        with _u.urlopen(req, timeout=45) as resp:
+            if resp.status != 200:
+                raise ChatHealthyException(
+                    mode="aborted", component="_deploy_chain",
+                    message=f"ERROR: live file {path} returned HTTP "
+                    f"{resp.status} from {dep_url}; cannot carry it forward.")
+            return resp.read()
+    except urllib.error.HTTPError as exc:
+        raise ChatHealthyException(
+            mode="aborted", component="_deploy_chain",
+            message=f"ERROR: live file {path} could not be read from "
+            f"{dep_url}: HTTP {exc.code}; cannot carry it forward.",
+            exception=exc) from exc
+
+
+def _website_autonomous_publish_dir(
+    repo_root: Path,
+    target: TargetRecord,
+    env: str,
+    package_selection: set[str] | None,
+    resolver: SecretsResolver,
+) -> Path:
+    """Assemble the complete site to publish for an autonomous per-package
+    deploy.
+
+    Cloudflare Pages replaces the whole site on every deploy, so publishing
+    only the packages this run built would erase every package it did not.
+    Autonomy -- a deploy disturbs only the packages it installs
+    (EPIC-008-F-012-S-004-REQ-B-002) -- is met by publishing the complete
+    current site with only the selected packages' files replaced: the
+    selected packages come from the build output, and every other package is
+    carried forward byte-for-byte from the deployment currently live.
+
+    The live files are enumerated from the Cloudflare deployment record, so
+    generated bundles and pipeline-published data carry forward whether or
+    not the repository declares them. If a package this run is NOT installing
+    has no live presence -- the site was wiped, or the project has never had
+    a full deploy -- the run cannot preserve it and ABORTS rather than
+    publish a site missing it. Recover by deploying every content package at
+    once, which publishes a complete site from the build with nothing to
+    carry forward.
+    """
+    all_content = _content_packages(repo_root, env)
+    selected = (set(package_selection) & set(all_content)
+                if package_selection is not None else set(all_content))
+    selected_content = [p for p in all_content if p in selected]
+    carried_content = [p for p in all_content if p not in selected]
+    if not selected_content:
+        raise ChatHealthyException(
+            mode="aborted", component="_deploy_chain",
+            message=f"ERROR: deploy of {target.target_id!r} env={env!r} selected "
+            f"no website content package; nothing to publish.")
+
+    target_dir = repo_root / BUILD_ROOT_REL / WEBSITE_TARGET_ID
+
+    # 1. Selected packages come from the build output. Every file the build
+    #    staged for a selected package is a served path this run installs.
+    built: dict[str, Path] = {}
+    for pid in selected_content:
+        root = target_dir / pid / WEBSITE_SOURCE_ROOT
+        if not root.is_dir():
+            raise ChatHealthyException(
+                mode="aborted", component="_deploy_chain",
+                message=f"ERROR: package {pid!r} was selected for deploy but its "
+                f"build output {root} is missing. Run build_chathealthy.py "
+                f"--env {env} --target {WEBSITE_TARGET_ID} --package {pid} first.")
+        for src in root.rglob("*"):
+            if src.is_file():
+                built["/" + src.relative_to(root).as_posix()] = src
+
+    # 2. What is live now, and where to read its bytes.
+    api_token = resolver.resolve("CLOUDFLARE_API_TOKEN", env)
+    account_id = resolver.resolve("CLOUDFLARE_ACCOUNT_ID", env)
+    binding = next((e for e in target.environments if e.env_binding == env), None)
+    cf = getattr(binding, "cloudflare_pages", None) or {}
+    project = (cf.get("project_name") if isinstance(cf, dict)
+               else getattr(cf, "project_name", None))
+    dep_url, live = _cf_live_deployment_files(account_id, project, api_token)
+
+    # 3. Completeness guard. Every package this run is NOT installing must be
+    #    present on the live site, so carrying it forward preserves it. A
+    #    carried package with a declared served path missing from live cannot
+    #    be preserved -- abort before publishing anything.
+    for pid in carried_content:
+        missing = [sp for f in target.files if f.package == pid
+                   for sp in [_served_path(f.source_location)]
+                   if sp is not None and sp not in live]
+        if missing:
+            raise ChatHealthyException(
+                mode="aborted", component="_deploy_chain",
+                message=f"ERROR: deploy of {sorted(selected_content)} to "
+                f"{target.target_id!r} env={env!r} publishes a whole-site "
+                f"snapshot, but package {pid!r} -- which this run is NOT "
+                f"installing -- is not fully present on the live site "
+                f"(missing {sorted(missing)[:5]}). Publishing now would erase "
+                f"it. Deploy every content package at once to restore a "
+                f"complete site, then resume single-package deploys.")
+
+    # 4. Materialise: carry forward every live file the selected build is not
+    #    replacing, then lay the selected build over the top.
+    out = target_dir / "_publish"
+    if out.exists():
+        shutil.rmtree(out, ignore_errors=True)
+    out.mkdir(parents=True)
+    carried = 0
+    for path in live:
+        if path in built:
+            continue
+        dst = out / path.lstrip("/")
+        dst.parent.mkdir(parents=True, exist_ok=True)
+        dst.write_bytes(_cf_fetch_live_bytes(dep_url, path))
+        carried += 1
+    installed = 0
+    for path, src in built.items():
+        dst = out / path.lstrip("/")
+        dst.parent.mkdir(parents=True, exist_ok=True)
+        shutil.copy2(src, dst)
+        installed += 1
+    step(f"autonomous publish env={env}: installed {installed} file(s) from "
+         f"{sorted(selected_content)}, carried {carried} file(s) forward from "
+         f"the live site ({sorted(carried_content) or 'none'} preserved)")
+    return out
+
+
 def deploy_cloudflare(
     build_dir: Path,
     env: str,
     resolver: SecretsResolver,
     target: TargetRecord,
+    package_selection: set[str] | None = None,
 ) -> str:
     env_binding = next(
         (e for e in target.environments if e.env_binding == env), None,
@@ -559,13 +766,16 @@ def deploy_cloudflare(
             f"cloudflare_pages.project_name declared in "
             f"deployment_architecture.json. Populate it before deploy.")
     branch = env_binding.branch
-    # Publish the merged site root, not the target directory. Since the build
-    # writes one directory per package, the target directory holds package
-    # folders, build.json and _publish -- handing that to wrangler would put
-    # the build's own structure on the CDN instead of the site. The merge is
-    # the same one the local stand-up serves, so both environments publish
-    # byte-identical content.
-    site_dir = _website_publish_dir(build_dir.parent.parent)
+    # Publish the complete current site with only the selected packages'
+    # files replaced. Cloudflare Pages deployments are whole-site atomic, so
+    # publishing only what this run built would erase every package it did
+    # not; the assembly carries every other package forward from the live
+    # deployment so a single-package deploy disturbs only its own package
+    # (REQ-B-002). One code path for dev, qa and prod: the environment
+    # selects the project and the live deployment to carry forward, never a
+    # branch in the logic.
+    site_dir = _website_autonomous_publish_dir(
+        build_dir.parent.parent, target, env, package_selection, resolver)
     step(f"=== cloudflare_pages env={env} project={project} branch={branch} "
          f"dir={site_dir} ===")
     api_token = resolver.resolve("CLOUDFLARE_API_TOKEN", env)
@@ -3165,7 +3375,8 @@ def deploy_one(
     manifest = load_target_manifest(repo_root, target_id)
     build_n = int(manifest["build_number"])
     if target_kind == "cloudflare_pages_project":
-        return deploy_cloudflare(build_dir, env, resolver, target)
+        return deploy_cloudflare(build_dir, env, resolver, target,
+                                 package_selection)
     if target_kind == "github_repository":
         return deploy_github_repository(build_dir, env, resolver, target)
     if target_kind == "hf_space":

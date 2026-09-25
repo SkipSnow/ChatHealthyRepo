@@ -427,8 +427,10 @@ def _refuse_bad_selection(args) -> None:
     _GROUP_TARGETS = frozenset({"pipeline", "cloudflare", "hf", "azure", "aca"})
 
 
-def _declared_package_set(repo_root: Path, target_ids: list[str]) -> set[str]:
-    """Every package the named targets declare, read from the record.
+def _declared_package_set(repo_root: Path, target_ids: list[str],
+                          env: str | None = None) -> set[str]:
+    """Every package the named targets declare for an environment, read from
+    the record.
 
     The deploy used to require the operator to type this list, which is a
     second declaration of a fact deployment_architecture.json already holds.
@@ -436,6 +438,11 @@ def _declared_package_set(repo_root: Path, target_ids: list[str]) -> set[str]:
     the one nothing validates -- a package could be declared on a target and
     simply never deployed, because the list the operator typed did not
     mention it and nothing compared the two.
+
+    A package is declared for an environment iff that environment's binding
+    lists it. Passing `env` is what keeps the local server package out of the
+    dev, qa and prod package set and approval line: it is declared only in
+    the local binding.
     """
     from record_loader import RecordLoader  # noqa: PLC0415
     from _build_chain import _declared_packages  # noqa: PLC0415
@@ -445,7 +452,7 @@ def _declared_package_set(repo_root: Path, target_ids: list[str]) -> set[str]:
     wanted: set[str] = set()
     for t in coll.records:
         if t.target_id in target_ids:
-            wanted.update(_declared_packages(t))
+            wanted.update(_declared_packages(t, env))
     return wanted
 
 
@@ -487,7 +494,7 @@ def _packages_for(args, repo_root: Path, target_ids: list[str]) -> set[str]:
     is naming a package the target does not declare: that is a second, and
     contradictory, statement of what the target carries.
     """
-    declared = _declared_package_set(repo_root, target_ids)
+    declared = _declared_package_set(repo_root, target_ids, args.env)
     supplied = {p.strip() for p in (args.package or "").split(",") if p.strip()}
     undeclared = supplied - declared if declared else set()
     if undeclared:
@@ -600,8 +607,9 @@ def _authorize_deployment(repo_root: Path, args):
     # told the operator a target was getting packages it does not carry, and
     # an approval of a description the deploy does not follow approves nothing.
     per_target = {
-        t: [p for p in _ordered_packages(repo_root, [t],
-                                         selection & _declared_package_set(repo_root, [t]))]
+        t: [p for p in _ordered_packages(
+            repo_root, [t],
+            selection & _declared_package_set(repo_root, [t], args.env))]
         for t in targets}
     worker = DeployAuthorizationWorker(DeploymentFacts(
         environment=args.env, targets=targets,
