@@ -379,51 +379,17 @@ class TimedDatabase:
         and read 883 documents with no flags on them while the specialty
         filter, going through the binding, read the 884 that had them.
 
-        Naming a version explicitly is refused rather than obeyed. A caller
-        that writes Provider_v_3 while the binding says Provider_v_4 has
-        stated something false about what this runtime reads, and serving it
-        would mean two components in one process disagreeing about which
-        generation of the data they are looking at -- silently, and
-        differently per environment. It raises, so the first exercise of that
-        path fails loudly instead of returning the wrong decade of data.
+        A name that already spells its version (Provider_v_5) is used as
+        given -- the caller has said which generation it means.
         """
         if not self._manage_versions:
             return name
 
-        versioned, base = _is_versioned(name)
-        bound = _version_map().get((self._db.name, base if versioned else name))
-
+        versioned, _base = _is_versioned(name)
         if versioned:
-            if bound is None:
-                raise ChatHealthyException(
-                    mode="config_error",
-                    component="ChatHealthyMongoUtilities",
-                    status_code=503,
-                    fatal_error=True,
-                    message=(
-                        f"{self._db.name}.{name} names a version explicitly, but "
-                        f"no version of {base!r} is bound for this runtime. Name "
-                        f"the collection {base!r} and the binding decides the "
-                        f"version, or construct "
-                        f"ChatHealthyMongoUtilities(manage_versions=False) if "
-                        f"addressing a specific generation is the job."),
-                )
-            if bound != name:
-                raise ChatHealthyException(
-                    mode="config_error",
-                    component="ChatHealthyMongoUtilities",
-                    status_code=503,
-                    fatal_error=True,
-                    message=(
-                        f"{self._db.name}.{name} asks for a version this runtime "
-                        f"does not read: the binding for {base!r} is {bound!r}. "
-                        f"Name the collection {base!r} and let the binding "
-                        f"answer, or construct "
-                        f"ChatHealthyMongoUtilities(manage_versions=False) if "
-                        f"addressing a specific generation is the job."),
-                )
-            return bound
+            return name
 
+        bound = _version_map().get((self._db.name, name))
         return bound or name
 
     def __getitem__(self, name: str) -> TimedCollection:

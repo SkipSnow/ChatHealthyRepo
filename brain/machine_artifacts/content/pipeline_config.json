@@ -68,7 +68,7 @@
         {
           "source_name": "specialty_catalog",
           "fetch": {
-            "source_url": "https://chathealthy.ai/Data/specialty_classification_gpt41.json"
+            "source_url": "https://chathealthy.ai/Data/SupplementalNUCCs.json"
           },
           "file_format": "json",
           "staging_name": "PublicStaging.StagingSpecialtyCatalog",
@@ -213,7 +213,7 @@
         {
           "source_name": "specialty_catalog",
           "fetch": {
-            "source_url": "https://chathealthy.ai/Data/specialty_classification_gpt41.json"
+            "source_url": "https://chathealthy.ai/Data/SupplementalNUCCs.json"
           },
           "file_format": "json",
           "staging_name": "PublicStaging.StagingSpecialtyCatalog",
@@ -358,7 +358,7 @@
         {
           "source_name": "specialty_catalog",
           "fetch": {
-            "source_url": "https://chathealthy.ai/Data/specialty_classification_gpt41.json"
+            "source_url": "https://chathealthy.ai/Data/SupplementalNUCCs.json"
           },
           "file_format": "json",
           "staging_name": "PublicStaging.StagingSpecialtyCatalog",
