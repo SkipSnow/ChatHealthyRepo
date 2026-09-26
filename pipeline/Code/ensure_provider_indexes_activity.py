@@ -103,9 +103,14 @@ _REQUIRED_INDEXES = [
         "sparse": True,
     },
     {
-        "keys": [("entity_type_code", 1), ("taxonomies.code", 1),
-                 ("practice_addresses.state", 1)],
-        "name": "entity_taxonomy_practice_state",
+        "keys": [("entity_type_code", 1), ("taxonomies.code", 1)],
+        "name": "entity_taxonomy",
+        "background": True,
+        "unique": False,
+    },
+    {
+        "keys": [("entity_type_code", 1), ("practice_addresses.state", 1)],
+        "name": "entity_practice_state",
         "background": True,
         "unique": False,
     },
