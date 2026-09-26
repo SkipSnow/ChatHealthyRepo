@@ -83,7 +83,7 @@ def _bail_missing_scoped_states():
 
 
 
-_LLM_MODEL_ID = "google-gla:gemini-2.5-flash"
+_LLM_MODEL_ID = "google:gemini-2.5-flash"
 _LLM_MODEL_NAME_FOR_AUDIT = "gemini-2.5-flash"
 _LLM_TIMEOUT_S = 300
 _BULK_WRITE_CHUNK = 1000

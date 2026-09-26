@@ -55,7 +55,7 @@ class LocationOutput(BaseModel):
     )
 
 
-_MODEL_ID = "google-gla:gemini-3.1-flash-lite-preview"
+_MODEL_ID = "google:gemini-3.1-flash-lite-preview"
 
 _SYSTEM_PROMPT = """
 You are a US-location extractor. Given one user utterance, extract the
