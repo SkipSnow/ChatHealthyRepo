@@ -657,6 +657,27 @@ def ensure_acr(target, env: str) -> str:
                 _out.write_bytes(_content.encode("utf-8"))
             _wrote_paths.append(_out)
         step(f"  materialized {len(_wrote_paths)} managed file(s) for ACR build")
+        # The pipeline image bakes its slice of the index catalog, derived from
+        # the record here -- the deploy host has the manifest and the container
+        # never will. Rides the same materialize/cleanup bracket. Only the
+        # pipeline cluster's entries, so a front-end index never ships to a
+        # pipeline container. deployment_architecture.json is the one source;
+        # this is its derived copy for a container that cannot read it.
+        if any(p.get("package_id") == "pipeline_vm_image"
+               or (p.get("config") or {}).get("role") == "pipeline_vm_image"
+               for p in packages):
+            import json as _json_idx
+            _content_dir = (_repo_root / "brain" / "machine_artifacts" / "content")
+            _arch = _json_idx.loads(
+                (_content_dir / "deployment_architecture.json").read_text(encoding="utf-8"))
+            _pipe_entries = [e for e in (_arch.get("MongoIndexCatalog") or [])
+                             if e.get("cluster") == "ChatHealthyDataPipelines"]
+            _idx_out = _content_dir / "pipeline_indexes.json"
+            _idx_out.write_text(_json_idx.dumps(_pipe_entries, indent=2),
+                                encoding="utf-8")
+            _wrote_paths.append(_idx_out)
+            step(f"  derived pipeline_indexes.json ({len(_pipe_entries)} "
+                 f"entry/ies) for the pipeline image")
         _acr_docker_build_loop(packages, name, rg)
     finally:
         for _out in _wrote_paths:

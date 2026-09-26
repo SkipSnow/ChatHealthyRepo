@@ -57,64 +57,44 @@ import time
 from pymongo import MongoClient
 
 
-# The provider collection's index set, per LLD v47 §7.6. This list is the one
-# statement of it: provider_normalize_engine applies these rather than
-# restating them, because the two sites previously created the same key under
-# two different names and nothing reconciled them.
-#
-# {business_address.state, taxonomies.code} is one index doing two jobs. A
-# compound index serves queries on its prefix, so the per-state drain and
-# fan-out are answered by its first field alone, and the F-105 catalog join by
-# both. It replaces {addresses.address_type, addresses.state} and
-# {taxonomies.code}: those named two array paths, so no compound could span
-# them, and the planner had to pick one and filter the other -- measured
-# 2026-08-16 examining 600,248 documents to write 263.
-_REQUIRED_INDEXES = [
-    {
-        "keys": [("npi", 1)],
-        "name": "npi_1",
-        "background": True,
-        "unique": True,
-    },
-    {
-        "keys": [("business_address.state", 1), ("taxonomies.code", 1)],
-        "name": "business_state_taxonomy",
-        "background": True,
-        "unique": False,
-    },
-    {
-        "keys": [("practice_addresses.county.source", 1)],
-        "name": "practice_addresses.county.source_1",
-        "background": True,
-        "unique": False,
-    },
-    # Every front-end provider query carries the same three clauses:
-    # entity_type_code, the absence of active[], and a practice geography.
-    # v4 is the first collection to ship providers with an inactivity
-    # history, so the absence test is new and unindexed -- 18,552 documents
-    # of 9.3M carry active[], and without this the planner tests the other
-    # 9.3M for its absence on every search. Sparse, because the index only
-    # needs to answer which documents HAVE the field.
-    {
-        "keys": [("active", 1)],
-        "name": "active_1",
-        "background": True,
-        "unique": False,
-        "sparse": True,
-    },
-    {
-        "keys": [("entity_type_code", 1), ("taxonomies.code", 1)],
-        "name": "entity_taxonomy",
-        "background": True,
-        "unique": False,
-    },
-    {
-        "keys": [("entity_type_code", 1), ("practice_addresses.state", 1)],
-        "name": "entity_practice_state",
-        "background": True,
-        "unique": False,
-    },
-]
+# The provider collection's index set is declared in the record
+# (deployment_architecture.json MongoIndexCatalog, entry pipeline_provider_staging)
+# and applied by the one shared library chathealthy_lib.mongo_indexes. It is no
+# longer restated here: a hardcoded list in pipeline code was the anti-pattern
+# that let an illegal parallel-array index ship and reach production. In the
+# pipeline container the declarations arrive as the derived pipeline_indexes.json
+# baked at image-build time (the container carries no manifest); in the repo they
+# are read from deployment_architecture.json directly. Same source either way.
+def _load_pipeline_index_catalog() -> list:
+    import json  # noqa: PLC0415
+    import pathlib  # noqa: PLC0415
+    root = (pathlib.Path(__file__).resolve().parents[2]
+            / "brain" / "machine_artifacts" / "content")
+    derived = root / "pipeline_indexes.json"
+    if derived.is_file():
+        return json.loads(derived.read_text(encoding="utf-8"))
+    manifest = root / "deployment_architecture.json"
+    if manifest.is_file():
+        catalog = json.loads(
+            manifest.read_text(encoding="utf-8")).get("MongoIndexCatalog") or []
+        return [e for e in catalog
+                if e.get("cluster") == "ChatHealthyDataPipelines"]
+    raise ChatHealthyException(
+        mode="file_missing",
+        component="ensure_provider_indexes_activity",
+        message="neither the baked pipeline_indexes.json nor "
+                "deployment_architecture.json is present to read the index catalog")
+
+
+def _pipeline_provider_index_specs() -> list:
+    """The provider staging collection's declared indexes, from the record."""
+    for entry in _load_pipeline_index_catalog():
+        if entry.get("catalog_id") == "pipeline_provider_staging":
+            return entry["indexes"]
+    raise ChatHealthyException(
+        mode="config_error",
+        component="ensure_provider_indexes_activity",
+        message="no pipeline_provider_staging entry in the index catalog")
 
 
 def _wait_for_cluster_ready(
@@ -176,46 +156,14 @@ def _providers_collection_and_client(provider_collection: str | None) -> tuple:
 
 
 def ensure_provider_indexes_fn(config: dict) -> dict:
+    """Wait out the Atlas wake, then apply the record-declared provider indexes
+    via the shared library. The index specs are the record's, not this file's;
+    the applier is the one shared with the front end."""
+    from chathealthy_lib.mongo_indexes import apply_indexes  # noqa: PLC0415
     coll, client = _providers_collection_and_client(config.get("provider_collection"))
     cluster_wait_minutes = int(config.get("cluster_wait_minutes", 20))
     _wait_for_cluster_ready(client, cluster_wait_minutes)
-
-    existing_names = set()
-    try:
-        for spec in coll.list_indexes():
-            existing_names.add(spec.get("name"))
-    except Exception as exc:
-        ChatHealthyLoggingService().warning("ensure_provider_indexes: list_indexes failed: %s", exc)
-
-    results: list[dict] = []
-    for idx in _REQUIRED_INDEXES:
-        name = idx["name"]
-        already = name in existing_names
-        t0 = time.time()
-        try:
-            created_name = coll.create_index(
-                idx["keys"],
-                name=name,
-                background=idx["background"],
-                unique=idx["unique"],
-            )
-            results.append({
-                "name": created_name,
-                "already_existed": already,
-                "duration_seconds": round(time.time() - t0, 2),
-            })
-            ChatHealthyLoggingService().info(
-                "ensure_provider_indexes: %s (already=%s) in %.1fs",
-                created_name, already, time.time() - t0,
-            )
-        except Exception as exc:
-            ChatHealthyLoggingService().error("ensure_provider_indexes: %s failed: %s", name, exc)
-            results.append({
-                "name": name,
-                "already_existed": already,
-                "error": str(exc)[:300],
-            })
-
+    results = apply_indexes(coll, _pipeline_provider_index_specs())
     return {
         "collection": coll.full_name,
         "indexes": results,

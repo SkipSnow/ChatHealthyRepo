@@ -1704,6 +1704,39 @@
           "maxLength": 128
         }
       }
+    },
+    "MongoIndexCatalog": {
+      "type": "array",
+      "description": "The one canonical place MongoDB index shapes are declared. Each entry is a fully-qualified target -- cluster, identity, db, collection base -- plus the index array to build on it. One shared library (chathealthy_lib.mongo_indexes) applies these, connecting per entry as the entry's own identity, on both the front-end serving cluster and the pipeline clusters; zero-trust inside Mongo means a misdeclared cluster or collection is denied at the door rather than polluting another.",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["catalog_id", "cluster", "identity", "db", "collection", "indexes"],
+        "properties": {
+          "catalog_id": {"type": "string", "minLength": 1},
+          "cluster": {"type": "string", "minLength": 1},
+          "identity": {"type": "string", "minLength": 1, "description": "The identity NAME the shared library connects as (e.g. DevOpsUser, pipelineEditor); its certificate authorizes the write."},
+          "db": {"type": "string", "minLength": 1},
+          "collection": {"type": "string", "minLength": 1, "description": "The base collection name. The consumer resolves the generation: the front-end deploy from the DBVersions binding named by version_ref, the pipeline from the run's data_version."},
+          "version_ref": {"type": "string", "description": "Front-end entry only: the DBVersions binding whose version resolves the served collection generation."},
+          "version_source": {"type": "string", "enum": ["run_data_version"], "description": "Pipeline entry only: the generation comes from the run's data_version."},
+          "indexes": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": ["name", "keys"],
+              "properties": {
+                "name": {"type": "string", "minLength": 1},
+                "keys": {"type": "array", "items": {"type": "array", "minItems": 2, "maxItems": 2}},
+                "unique": {"type": "boolean"},
+                "sparse": {"type": "boolean"},
+                "collation": {"type": "object"}
+              }
+            }
+          }
+        }
+      }
     }
   }
 }

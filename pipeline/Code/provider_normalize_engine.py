@@ -82,12 +82,9 @@ def per_state_normalize(ctx, state: str) -> dict[str, Any]:
     # prepare ensured npi_1 on the name in pipeline.config and the writes went
     # somewhere else, so 45,000 rows were written to a collection whose only
     # index was _id_. create_index is idempotent.
-    from ensure_provider_indexes_activity import _REQUIRED_INDEXES  # noqa: PLC0415
-    for _idx in _REQUIRED_INDEXES:
-        rt.providers_coll.create_index(
-            _idx["keys"], name=_idx["name"],
-            background=_idx["background"], unique=_idx["unique"],
-        )
+    from ensure_provider_indexes_activity import _pipeline_provider_index_specs  # noqa: PLC0415
+    from chathealthy_lib.mongo_indexes import apply_indexes  # noqa: PLC0415
+    apply_indexes(rt.providers_coll, _pipeline_provider_index_specs())
 
     # Full-mode drain: DELETE rows whose BUSINESS mailing address state
     # matches this partition. Preserves indexes (delete_many, not drop()).

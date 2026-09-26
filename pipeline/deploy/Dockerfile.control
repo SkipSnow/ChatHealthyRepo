@@ -31,6 +31,12 @@ COPY pipeline/Code /app/pipeline/Code/
 # the /app/brain/... path here must match parents[2] of pipeline/Code/.
 COPY brain/machine_artifacts/content/pipeline_config.json /app/brain/machine_artifacts/content/pipeline_config.json
 
+# The pipeline's slice of the index catalog, derived from
+# deployment_architecture.json's MongoIndexCatalog by ensure_acr just before the
+# build (the container carries no manifest). chathealthy_lib.mongo_indexes reads
+# it via the same parents[2] path pattern as pipeline_config.json.
+COPY brain/machine_artifacts/content/pipeline_indexes.json /app/brain/machine_artifacts/content/pipeline_indexes.json
+
 ENV PYTHONPATH=/app/pipeline/Code
 ENV PYTHONUNBUFFERED=1
 

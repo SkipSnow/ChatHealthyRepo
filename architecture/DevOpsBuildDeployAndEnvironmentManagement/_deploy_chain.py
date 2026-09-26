@@ -2988,6 +2988,45 @@ def _identity_name(coll: "DeploymentCollection", identity_target_id: str,
         message=f"{identity_target_id} names no identity for env={env!r}")
 
 
+def _raw_manifest() -> dict:
+    """The deployment record as a raw dict, read from disk. The MongoIndexCatalog
+    and the served-collection version bindings are declared there."""
+    import json  # noqa: PLC0415
+    import pathlib  # noqa: PLC0415
+    here = pathlib.Path(__file__).resolve()
+    for parent in here.parents:
+        if (parent / ".git").exists():
+            path = (parent / "brain" / "machine_artifacts" / "content"
+                    / "deployment_architecture.json")
+            return json.loads(path.read_text(encoding="utf-8"))
+    raise ChatHealthyException(
+        mode="manifest_incomplete", component="_deploy_chain",
+        message="no repository root above _deploy_chain, so "
+                "deployment_architecture.json cannot be located")
+
+
+def _collection_from_ref(arch: dict, collection_ref: str) -> tuple:
+    """(db, versioned_collection) for the collection the record names under
+    collection_ref, resolving the versioned generation from its DBVersions
+    binding. Front-end version authority: the served generation is a fact in
+    the record, not the run's data_version."""
+    stack = [arch]
+    while stack:
+        cur = stack.pop()
+        if isinstance(cur, dict):
+            if (cur.get("collection_environment_name") == collection_ref
+                    and cur.get("collection_base")
+                    and cur.get("version") is not None):
+                db, coll = cur["collection_base"].split(".", 1)
+                return db, f"{coll}_v_{cur['version']}"
+            stack.extend(cur.values())
+        elif isinstance(cur, list):
+            stack.extend(cur)
+    raise ChatHealthyException(
+        mode="collection_binding_absent", component="_deploy_chain",
+        message=f"no {collection_ref!r} binding in the deployment record")
+
+
 def _config_write_identity(target: TargetRecord, env: str,
                            coll: "DeploymentCollection") -> tuple:
     """The cluster and the identity this target declares for writing it.
@@ -3294,29 +3333,33 @@ def deploy_one(
                       if p.get("kind") == "mongo_indexes"
                       and p.get("package_id") in (package_selection or set())]
         if index_pkgs:
-            import ensure_frontend_indexes as _efi
+            from chathealthy_lib.mongo_indexes import apply_index_catalog
             from cluster_host import host_for as _cluster_host
-            cl = (binding.atlas or {}).get("cluster") or {}
-            cluster = cl.get("cluster_name", "")
-            writers = [c.get("identity_target_id")
-                       for c in (cl.get("runtime_consumers") or [])
-                       if c.get("operation") == "mongo_write"]
-            if not cluster or len(writers) != 1:
-                raise ChatHealthyException(
-                    mode="runtime_error",
-                    component="_deploy_chain",
-                    message=f"{target_id} env={env!r}: an index package needs "
-                            f"one mongo_write consumer and a named cluster; "
-                            f"found {len(writers)} writer(s), "
-                            f"cluster={cluster!r}")
-            identity = _identity_name(coll, writers[0], env)
+            arch = _raw_manifest()
+            catalog = {e["catalog_id"]: e
+                       for e in (arch.get("MongoIndexCatalog") or [])}
+            entries = []
             for p in index_pkgs:
-                config = p.get("config") or {}
-                results = _efi.build_provider_indexes(
-                    identity, cluster, config, host=_cluster_host(cluster))
-                step(f"  atlas {target_id}: index package "
-                     f"{p.get('package_id')!r} -> "
-                     f"{[r.get('name') for r in results]}")
+                cid = (p.get("config") or {}).get("catalog_id")
+                if cid not in catalog:
+                    raise ChatHealthyException(
+                        mode="runtime_error",
+                        component="_deploy_chain",
+                        message=f"{target_id} env={env!r}: mongo_indexes package "
+                                f"{p.get('package_id')!r} names catalog_id {cid!r}, "
+                                f"which is absent from MongoIndexCatalog")
+                entries.append(catalog[cid])
+            # Front-end version authority: the served generation resolves from
+            # the DBVersions binding named by the entry's version_ref, not from
+            # a run's data_version. The library stays version-agnostic.
+            def _resolve(entry):
+                _db, _coll = _collection_from_ref(arch, entry["version_ref"])
+                return _coll
+            results = apply_index_catalog(entries, resolve_collection=_resolve,
+                                          host_for=_cluster_host)
+            step(f"  atlas {target_id}: index catalog "
+                 f"{[e['catalog_id'] for e in entries]} -> "
+                 f"{[(r.get('collection'), len(r.get('results') or [])) for r in results]}")
         return result
     if target_kind == "identity":
         return pad.ensure_managed_identity(target, env)
