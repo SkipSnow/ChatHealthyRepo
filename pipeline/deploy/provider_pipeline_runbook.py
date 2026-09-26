@@ -72,6 +72,7 @@ from chathealthy_lib.exceptions import ChatHealthyException
 # the log handler refuses to start without it and the first log() call
 # happens a few lines below.
 for _k in ("CH_LOG_DB", "CH_LOG_LEVEL", "PIPELINE_SECRET_NAMES",
+           "CH_EMBEDDING_MODEL",
            "KEY_VAULT_URI", "AUTOMATION_ENV_PREFIX",
            "AUTOMATION_SUBSCRIPTION_ID", "AUTOMATION_RESOURCE_GROUP",
            "ATLAS_PROJECT_ID", "AZ_VM_ADMIN_SSH_PUBKEY",
@@ -143,6 +144,7 @@ VM_VNET = os.environ.get(
 # and fails on any it cannot read, so a host can be granted precisely these
 # and nothing else.
 PIPELINE_SECRET_NAMES = os.environ.get("PIPELINE_SECRET_NAMES", "")
+CH_EMBEDDING_MODEL = os.environ.get("CH_EMBEDDING_MODEL", "")
 # The log database is a deployed fact with no default: a process that cannot
 # name its log destination must not run, on the host or in the container.
 CH_LOG_DB = os.environ.get("CH_LOG_DB", "")
@@ -179,6 +181,15 @@ KEY_VAULT_URI = os.environ.get(
 INVOCATION_MODE = os.environ.get("INVOCATION_MODE", "scheduled")
 LOAD_MODE_DEFAULT = os.environ.get("LOAD_MODE", "full")
 STATE_SCOPE_DEFAULT = os.environ.get("STATE_SCOPE", "ALL")
+
+# Log verbosity is an invocation argument, not a value in code
+# (EPIC-010-F-001-S-002-REQ-B-001). Absent -> INFO, a production-sane
+# default: a stable production fire is not drowned in DEBUG. DEBUG is
+# opt-in via the webhook body. The runbook, the controller, and every
+# worker read this through ChatHealthyLoggingService's CH_LOG_LEVEL, so
+# one webhook value sets the level end to end.
+_VALID_LOG_LEVELS = ("DEBUG", "INFO", "WARNING", "ERROR", "CRITICAL")
+DEBUG_LEVEL_DEFAULT = "INFO"
 
 _HOSTNAME = socket.gethostname()
 
@@ -520,7 +531,8 @@ def _write_run_manifest(mongo, run_id: str, load_mode: str,
 def _cloud_init_user_data(run_id: str, load_mode: str, state_scope,
                           invocation_mode: str, resume_from_step: str,
                           data_version: int,
-                          google_maps_enabled: bool = False) -> str:
+                          google_maps_enabled: bool = False,
+                          debug_level: str = DEBUG_LEVEL_DEFAULT) -> str:
     """Return the base64-encoded cloud-init user_data blob for the VM.
 
     The VM boots this cloud-init:
@@ -597,7 +609,7 @@ runcmd:
       -e CHATHEALTHY_NODE_IDENTITY='pipeline-control' \\
       -e CH_SPACE_NAME='control' \\
       -e CH_LOG_DESTINATION='stderr,mongo' \\
-      -e CH_LOG_LEVEL='DEBUG' \\
+      -e CH_LOG_LEVEL='{debug_level}' \\
       -e CH_LOG_DB='{CH_LOG_DB}' \\
       -e CH_COMPONENT='provider_pipeline_control' \\
       -e PIPELINE_LOG_ACCOUNT_URL='https://stchpipelinedev.blob.core.windows.net' \\
@@ -623,6 +635,7 @@ runcmd:
       -e PIPELINEEDITOR_AZURE_CLIENT_ID='{PIPELINE_EDITOR_CLIENT_ID}' \\
       -e PIPELINEEDITOR_AZURE_CLIENT_SECRET='{PIPELINE_EDITOR_SECRET}' \\
       -e PIPELINE_SECRET_NAMES='{PIPELINE_SECRET_NAMES}' \\
+      -e CH_EMBEDDING_MODEL='{CH_EMBEDDING_MODEL}' \\
       {image_ref}
     DOCKER_EXIT=$?
     echo "chpipeline: docker run exit=$DOCKER_EXIT $(date -u +%FT%TZ)"
@@ -647,6 +660,7 @@ runcmd:
         -e CHATHEALTHY_NODE_IDENTITY='pipeline-control' \\
         -e CH_SPACE_NAME='control' \\
         -e CH_LOG_DESTINATION='stderr,mongo' \\
+        -e CH_LOG_LEVEL='{debug_level}' \\
         -e CH_LOG_DB='{CH_LOG_DB}' \\
         -e CH_COMPONENT='provider_pipeline_control' \\
         -e PIPELINE_LOG_ACCOUNT_URL='https://stchpipelinedev.blob.core.windows.net' \\
@@ -684,7 +698,8 @@ def _get_ssh_pubkey() -> str:
 def _provision_vm(run_id: str, load_mode: str, state_scope,
                   invocation_mode: str, resume_from_step: str = "",
                   data_version: int = 0,
-                  google_maps_enabled: bool = False) -> dict:
+                  google_maps_enabled: bool = False,
+                  debug_level: str = DEBUG_LEVEL_DEFAULT) -> dict:
     """v32 §5.2.2: PUT a fresh Pipeline Run VM into snet-pipeline-compute.
 
     Async by nature: ARM returns a provisioning-state URL, not a
@@ -736,7 +751,7 @@ def _provision_vm(run_id: str, load_mode: str, state_scope,
     )
     user_data_b64 = _cloud_init_user_data(
         run_id, load_mode, state_scope, invocation_mode, resume_from_step,
-        data_version, google_maps_enabled,
+        data_version, google_maps_enabled, debug_level,
     )
     vm_body = {
         "location": VM_LOCATION,
@@ -907,6 +922,7 @@ def _wake_mongo_then_provision_vm(
     invocation_mode: str, resume_from_step: str = "",
     data_version: int = 0,
     google_maps_enabled: bool = False,
+    debug_level: str = DEBUG_LEVEL_DEFAULT,
 ) -> dict:
     """The cluster is up before the host exists.
 
@@ -926,7 +942,7 @@ def _wake_mongo_then_provision_vm(
     atlas = _atlas_resume_pipeline_cluster()
     vm = _provision_vm(
         run_id, load_mode, state_scope, invocation_mode, resume_from_step,
-        data_version, google_maps_enabled,
+        data_version, google_maps_enabled, debug_level,
     )
     return {"vm": vm, "atlas": atlas}
 
@@ -1009,6 +1025,42 @@ def _parse_webhook_input() -> dict:
         return {}
 
 
+def _raise_bad_debug_level(raw) -> None:
+    """Raise-only helper: rejects a debug_level outside the standard Python
+    level names. Rule-005 keeps the raise off the caller's log call."""
+    raise ChatHealthyException(
+        mode="value_error",
+        message=(
+            "provider_pipeline_runbook: debug_level must be one of "
+            + ", ".join(_VALID_LOG_LEVELS)
+            + f" (case-insensitive). Got {raw!r}. Fire again with a valid "
+            + f"value or omit it for the {DEBUG_LEVEL_DEFAULT} default."
+        ),
+        component="provider_pipeline_runbook",
+    )
+
+
+def _resolve_debug_level(webhook_body) -> str:
+    """Resolve the run's log level from the webhook body.
+
+    Accepts both debug_level and debuglevel spellings, normalises to
+    upper-case, and validates against the standard Python level names.
+    Absent -> INFO (production-sane; DEBUG is opt-in). A present-but-bad
+    value is fatal rather than silently coerced to a default, so a typo
+    that would quietly disable debugging stops the run instead.
+    """
+    body = webhook_body or {}
+    raw = body.get("debug_level")
+    if raw is None:
+        raw = body.get("debuglevel")
+    if raw is None:
+        return DEBUG_LEVEL_DEFAULT
+    level = str(raw).strip().upper()
+    if level not in _VALID_LOG_LEVELS:
+        _raise_bad_debug_level(raw)
+    return level
+
+
 def _resolve_state_scope(raw):
     """Accept 'ALL' (str), ['ALL'], ['VT','DE'], etc. Always return a list."""
     if isinstance(raw, list):
@@ -1069,6 +1121,15 @@ def _run_pipeline(invocation_mode):
         google_maps_enabled = str(gm_raw or "").strip().lower() in ("1", "true", "yes")
     os.environ["GOOGLE_MAPS_ENABLED"] = "1" if google_maps_enabled else "0"
 
+    # Log verbosity for this run. Absent -> INFO (production-sane); DEBUG is
+    # opt-in. Set CH_LOG_LEVEL now so the runbook's own logging honours it:
+    # ChatHealthyLoggingService re-reads CH_LOG_LEVEL on every emit and
+    # rebinds when it changes. The same value is injected into both container
+    # docker runs below so the controller and every worker it spawns inherit
+    # it (workers are spawned with os.environ.copy()).
+    debug_level = _resolve_debug_level(webhook_body)
+    os.environ["CH_LOG_LEVEL"] = debug_level
+
     log("runbook_start",
         pipeline=PIPELINE_NAME,
         env=ENV_PREFIX,
@@ -1077,6 +1138,7 @@ def _run_pipeline(invocation_mode):
         state_scope=state_scope,
         data_version=data_version,
         google_maps_enabled=google_maps_enabled,
+        debug_level=debug_level,
         resume_from_step=resume_from_step or None)
 
     # Fresh run_id
@@ -1175,7 +1237,7 @@ def _run_pipeline(invocation_mode):
         try:
             result = _wake_mongo_then_provision_vm(
                 run_id, load_mode, state_scope, invocation_mode, resume_from_step,
-                data_version, google_maps_enabled,
+                data_version, google_maps_enabled, debug_level,
             )
             vm_id = ((result.get("vm") or {}).get("id")) if result.get("vm") else None
             vm_provisioned = True

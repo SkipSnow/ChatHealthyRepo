@@ -2780,8 +2780,9 @@ def deploy_azure_automation_runbook(
     step(f"  attempting to publish {len(secret_names)} Automation Variable(s)")
     pushed, skipped = 0, []
     for name in secret_names:
+        qualifier = (target.secrets or {}).get(name)
         try:
-            value = resolver.resolve(name, env)
+            value = entry_value(name, qualifier, target, env, resolver, repo_root)
         except KeyError:
             skipped.append(name)
             continue

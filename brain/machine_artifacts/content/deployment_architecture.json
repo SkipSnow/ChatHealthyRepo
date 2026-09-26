@@ -1235,7 +1235,7 @@
           "source_location": "ChatHealthyLib/src/chathealthy_lib/mongo_utilities.py",
           "handler_type": "python_source",
           "disposition": "referenced",
-          "content_hash": "600cb2ec1af5aaaa0bdefe132ee6f929c687f9d59a9836c8d4e16c0471410fe2",
+          "content_hash": "313315f1fd7fc574abfe95a9e214c6307153ed99c09c71901b89431a0a7fcaf4",
           "package": "service_runtime"
         },
         {
@@ -1735,7 +1735,7 @@
           "source_location": "ChatHealthyLib/src/chathealthy_lib/mongo_utilities.py",
           "handler_type": "python_source",
           "disposition": "referenced",
-          "content_hash": "600cb2ec1af5aaaa0bdefe132ee6f929c687f9d59a9836c8d4e16c0471410fe2",
+          "content_hash": "313315f1fd7fc574abfe95a9e214c6307153ed99c09c71901b89431a0a7fcaf4",
           "package": "service_runtime"
         },
         {
@@ -2929,7 +2929,7 @@
           "source_location": "ChatHealthyLib/src/chathealthy_lib/mongo_utilities.py",
           "handler_type": "python_source",
           "disposition": "referenced",
-          "content_hash": "600cb2ec1af5aaaa0bdefe132ee6f929c687f9d59a9836c8d4e16c0471410fe2",
+          "content_hash": "313315f1fd7fc574abfe95a9e214c6307153ed99c09c71901b89431a0a7fcaf4",
           "package": "service_runtime"
         },
         {
@@ -4407,7 +4407,7 @@
                   "source_location": "pipeline/deploy/provider_pipeline_runbook.py",
                   "handler_type": "python_source",
                   "disposition": "referenced",
-                  "content_hash": "db410cd074d12aa1b4d4d9bec6b78b9d3d76202df6e3d89f6145e929834aa93f",
+                  "content_hash": "1cbd75d56dc8fe90b81cb620695d23528e0a9f5524c0fd5fd660600101c6bcc7",
                   "package": "provider_pipeline"
                 }
               ],
@@ -4428,7 +4428,8 @@
                 "NOTIFICATION_TO_EMAIL": "local_env",
                 "ATLAS_PIPELINE_PUBLIC_KEY": "local_env",
                 "ATLAS_PIPELINE_PRIVATE_KEY": "local_env",
-                "GEMINI_API_KEY": "local_env"
+                "GEMINI_API_KEY": "local_env",
+                "CH_EMBEDDING_MODEL": "firm:embedding_model"
               },
               "config": {
                 "runbook_name": "ProviderPipelineRunbook",
