@@ -411,7 +411,7 @@ def _make_agent(output_cls):
         _LLM_MODEL_ID,
         output_type=output_cls,
         system_prompt=_SYSTEM_PROMPT,
-        output_retries=3,
+        retries=3,
         model_settings=ModelSettings(max_tokens=65000),
     )
 
