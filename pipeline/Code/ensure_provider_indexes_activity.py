@@ -65,7 +65,13 @@ from pymongo import MongoClient
 # pipeline container the declarations arrive as the derived pipeline_indexes.json
 # baked at image-build time (the container carries no manifest); in the repo they
 # are read from deployment_architecture.json directly. Same source either way.
-def _load_pipeline_index_catalog() -> list:
+def _pipeline_index_package_config() -> dict:
+    """The pipeline_indexes mongo_indexes package config -- the fully-qualified
+    entry {cluster, identity, db, collection, indexes, version_source}. In the
+    pipeline container this is the derived pipeline_indexes.json baked at
+    image-build (the container has no manifest); in the repo it is read from the
+    pipeline_indexes package on target_atlas_pipeline. deployment_architecture.json
+    is the one source; the baked file is its derived copy for the container."""
     import json  # noqa: PLC0415
     import pathlib  # noqa: PLC0415
     root = (pathlib.Path(__file__).resolve().parents[2]
@@ -75,26 +81,30 @@ def _load_pipeline_index_catalog() -> list:
         return json.loads(derived.read_text(encoding="utf-8"))
     manifest = root / "deployment_architecture.json"
     if manifest.is_file():
-        catalog = json.loads(
-            manifest.read_text(encoding="utf-8")).get("MongoIndexCatalog") or []
-        return [e for e in catalog
-                if e.get("cluster") == "ChatHealthyDataPipelines"]
+        arch = json.loads(manifest.read_text(encoding="utf-8"))
+        for rec in arch.get("DeploymentTargetRecord", []):
+            if rec.get("target_id") != "target_atlas_pipeline":
+                continue
+            for e in rec.get("environments", []):
+                for p in (e.get("packages") or []):
+                    if p.get("package_id") == "pipeline_indexes":
+                        return p.get("config") or {}
     raise ChatHealthyException(
         mode="file_missing",
         component="ensure_provider_indexes_activity",
-        message="neither the baked pipeline_indexes.json nor "
-                "deployment_architecture.json is present to read the index catalog")
+        message="neither the baked pipeline_indexes.json nor the pipeline_indexes "
+                "package on target_atlas_pipeline is present to read the index specs")
 
 
 def _pipeline_provider_index_specs() -> list:
     """The provider staging collection's declared indexes, from the record."""
-    for entry in _load_pipeline_index_catalog():
-        if entry.get("catalog_id") == "pipeline_provider_staging":
-            return entry["indexes"]
-    raise ChatHealthyException(
-        mode="config_error",
-        component="ensure_provider_indexes_activity",
-        message="no pipeline_provider_staging entry in the index catalog")
+    specs = _pipeline_index_package_config().get("indexes")
+    if not specs:
+        raise ChatHealthyException(
+            mode="config_error",
+            component="ensure_provider_indexes_activity",
+            message="the pipeline_indexes package config carries no indexes")
+    return specs
 
 
 def _wait_for_cluster_ready(

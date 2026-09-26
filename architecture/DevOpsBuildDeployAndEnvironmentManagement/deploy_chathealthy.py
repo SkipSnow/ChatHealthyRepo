@@ -650,11 +650,24 @@ def _authorize_deployment(repo_root: Path, args):
     # description of nothing while a full site shipped.
     try:
         targets = _collect_target_ids_for_env(repo_root, args.env, args.target)
-    except Exception:  # noqa: BLE001 - a target that will not even load (a
-        # non-existent target_id, say) resolves to nothing here; the guard
-        # below records the refusal and abends, so it is audited rather than
-        # dying as a bare traceback.
-        targets = []
+    except ChatHealthyException as exc:
+        # A named target that is simply not in the record is a bad ARGUMENT:
+        # resolve it to nothing so the bad-argument guard below shows the
+        # audited refusal (its capability is preserved). ANY OTHER load or
+        # validation failure -- a malformed record, or one ahead of the
+        # published schema -- is NOT a bad argument, and reporting it as "names
+        # no target" hid the real cause. Surface it with the real error instead.
+        if "not present in the DeploymentTargetRecord" in str(exc):
+            targets = []
+        else:
+            raise ChatHealthyException(
+                mode="aborted",
+                component="deploy_chathealthy",
+                message=f"ERROR: cannot resolve --target={args.target!r} in env "
+                        f"{args.env!r}: the deployment record failed to load or "
+                        f"validate. This is not a bad-argument refusal -- the "
+                        f"record itself did not load: {exc}",
+                exception=exc) from exc
 
     # Guard the arguments before anything is authorised. A bad call -- no
     # target, a target that does not exist, a package not declared on its

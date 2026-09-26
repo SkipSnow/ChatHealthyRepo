@@ -670,14 +670,21 @@ def ensure_acr(target, env: str) -> str:
             _content_dir = (_repo_root / "brain" / "machine_artifacts" / "content")
             _arch = _json_idx.loads(
                 (_content_dir / "deployment_architecture.json").read_text(encoding="utf-8"))
-            _pipe_entries = [e for e in (_arch.get("MongoIndexCatalog") or [])
-                             if e.get("cluster") == "ChatHealthyDataPipelines"]
+            _pipe_cfg = {}
+            for _rec in _arch.get("DeploymentTargetRecord", []):
+                if _rec.get("target_id") != "target_atlas_pipeline":
+                    continue
+                for _e in _rec.get("environments", []):
+                    for _p in (_e.get("packages") or []):
+                        if _p.get("package_id") == "pipeline_indexes":
+                            _pipe_cfg = _p.get("config") or {}
             _idx_out = _content_dir / "pipeline_indexes.json"
-            _idx_out.write_text(_json_idx.dumps(_pipe_entries, indent=2),
+            _idx_out.write_text(_json_idx.dumps(_pipe_cfg, indent=2),
                                 encoding="utf-8")
             _wrote_paths.append(_idx_out)
-            step(f"  derived pipeline_indexes.json ({len(_pipe_entries)} "
-                 f"entry/ies) for the pipeline image")
+            step(f"  derived pipeline_indexes.json "
+                 f"({len(_pipe_cfg.get('indexes') or [])} index(es)) "
+                 f"for the pipeline image")
         _acr_docker_build_loop(packages, name, rg)
     finally:
         for _out in _wrote_paths:

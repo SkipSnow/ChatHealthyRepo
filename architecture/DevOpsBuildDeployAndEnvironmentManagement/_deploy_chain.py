@@ -3336,30 +3336,29 @@ def deploy_one(
             from chathealthy_lib.mongo_indexes import apply_index_catalog
             from cluster_host import host_for as _cluster_host
             arch = _raw_manifest()
-            catalog = {e["catalog_id"]: e
-                       for e in (arch.get("MongoIndexCatalog") or [])}
-            entries = []
-            for p in index_pkgs:
-                cid = (p.get("config") or {}).get("catalog_id")
-                if cid not in catalog:
-                    raise ChatHealthyException(
-                        mode="runtime_error",
-                        component="_deploy_chain",
-                        message=f"{target_id} env={env!r}: mongo_indexes package "
-                                f"{p.get('package_id')!r} names catalog_id {cid!r}, "
-                                f"which is absent from MongoIndexCatalog")
-                entries.append(catalog[cid])
-            # Front-end version authority: the served generation resolves from
-            # the DBVersions binding named by the entry's version_ref, not from
-            # a run's data_version. The library stays version-agnostic.
-            def _resolve(entry):
-                _db, _coll = _collection_from_ref(arch, entry["version_ref"])
-                return _coll
-            results = apply_index_catalog(entries, resolve_collection=_resolve,
-                                          host_for=_cluster_host)
-            step(f"  atlas {target_id}: index catalog "
-                 f"{[e['catalog_id'] for e in entries]} -> "
-                 f"{[(r.get('collection'), len(r.get('results') or [])) for r in results]}")
+            # Each mongo_indexes package's config is a fully-qualified index
+            # entry: {cluster, identity, db, collection, indexes, and either a
+            # version_ref (deploy-time, front-end serving generation) or a
+            # version_source (run-time, applied in the pipeline container).
+            # Only version_ref entries are applied here; version_source entries
+            # are declarations the pipeline container applies at run time.
+            deploy_time = [(p, p.get("config") or {}) for p in index_pkgs
+                           if (p.get("config") or {}).get("version_ref")]
+            runtime = [p.get("package_id") for p in index_pkgs
+                       if not (p.get("config") or {}).get("version_ref")]
+            if runtime:
+                step(f"  atlas {target_id}: index package(s) {runtime} carry "
+                     f"version_source; the run applies them, not this deploy")
+            if deploy_time:
+                def _resolve(entry):
+                    _db, _coll = _collection_from_ref(arch, entry["version_ref"])
+                    return _coll
+                results = apply_index_catalog(
+                    [cfg for _p, cfg in deploy_time],
+                    resolve_collection=_resolve, host_for=_cluster_host)
+                step(f"  atlas {target_id}: index package(s) "
+                     f"{[p.get('package_id') for p, _c in deploy_time]} -> "
+                     f"{[(r.get('collection'), len(r.get('results') or [])) for r in results]}")
         return result
     if target_kind == "identity":
         return pad.ensure_managed_identity(target, env)

@@ -5493,6 +5493,27 @@
               ]
             }
           },
+          "packages": [
+            {
+              "package_id": "pipeline_indexes",
+              "kind": "mongo_indexes",
+              "config": {
+                "cluster": "ChatHealthyDataPipelines",
+                "identity": "pipelineEditor",
+                "db": "PublicStaging",
+                "collection": "Provider_staging",
+                "version_source": "run_data_version",
+                "indexes": [
+                  {"name": "npi_1", "keys": [["npi", 1]], "unique": true},
+                  {"name": "business_state_taxonomy", "keys": [["business_address.state", 1], ["taxonomies.code", 1]]},
+                  {"name": "practice_addresses.county.source_1", "keys": [["practice_addresses.county.source", 1]]},
+                  {"name": "active_1", "keys": [["active", 1]], "sparse": true},
+                  {"name": "entity_taxonomy", "keys": [["entity_type_code", 1], ["taxonomies.code", 1]]},
+                  {"name": "entity_practice_state", "keys": [["entity_type_code", 1], ["practice_addresses.state", 1]]}
+                ]
+              }
+            }
+          ],
           "platforms": [
             {
               "name": "atlas",
@@ -7343,58 +7364,25 @@
               "package_id": "front_end_indexes",
               "kind": "mongo_indexes",
               "config": {
-                "collection_ref": "PROVIDER_COLLECTION",
+                "cluster": "ChatHealthyFrontEnd",
+                "identity": "DevOpsUser",
+                "db": "PublicHealthData",
+                "collection": "Provider",
+                "version_ref": "PROVIDER_COLLECTION",
                 "indexes": [
                   {
                     "name": "idx_practice_state_county",
-                    "keys": [
-                      [
-                        "practice_addresses.state",
-                        1
-                      ],
-                      [
-                        "practice_addresses.county.name",
-                        1
-                      ]
-                    ],
-                    "collation": {
-                      "locale": "en",
-                      "strength": 2
-                    }
+                    "keys": [["practice_addresses.state", 1], ["practice_addresses.county.name", 1]],
+                    "collation": {"locale": "en", "strength": 2}
                   },
                   {
                     "name": "idx_practice_state_city_ci",
-                    "keys": [
-                      [
-                        "practice_addresses.state",
-                        1
-                      ],
-                      [
-                        "practice_addresses.city",
-                        1
-                      ]
-                    ],
-                    "collation": {
-                      "locale": "en",
-                      "strength": 2
-                    }
+                    "keys": [["practice_addresses.state", 1], ["practice_addresses.city", 1]],
+                    "collation": {"locale": "en", "strength": 2}
                   },
                   {
                     "name": "idx_provider_name",
-                    "keys": [
-                      [
-                        "provider_last_name_legal_name",
-                        1
-                      ],
-                      [
-                        "provider_first_name",
-                        1
-                      ],
-                      [
-                        "provider_middle_name",
-                        1
-                      ]
-                    ]
+                    "keys": [["provider_last_name_legal_name", 1], ["provider_first_name", 1], ["provider_middle_name", 1]]
                   }
                 ]
               }
