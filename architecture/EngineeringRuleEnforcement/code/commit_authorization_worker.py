@@ -361,7 +361,10 @@ class CommitAuthorizationWorker(EnforcementWorker):
         names = self._backlog_names()
         epic = (f"{epic_id} {names['epic'].get(epic_id, '')}".strip()
                 if epic_id else "Unknown Epic")
-        feature = (f"{feature_id} {names['feature'].get(feature_id, '')}".strip()
+        short = (feature_id[len(epic_id) + 1:]
+                 if epic_id and feature_id and feature_id.startswith(epic_id + "-")
+                 else feature_id)
+        feature = (f"{short} {names['feature'].get(feature_id, '')}".strip()
                    if feature_id else "Unknown Feature")
         return epic, feature
 

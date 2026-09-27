@@ -61,9 +61,10 @@ def _interesting(path: str) -> bool:
 # A reference into the RETIRED tree is a path token that begins at the
 # top-level Code/ -- "Code/..." or "Code\..." standing at the start of a
 # path. A "Code/" preceded by a path separator or an alphanumeric is a
-# per-component tree (FindCare/Code/, sharedServices/Code/, pipeline/Code/),
-# not the retired tree, and is NOT counted. pipeline/Code/ in particular is
-# EPIC-010 and legitimately persists. Both slash forms are anchored: were
+# per-component tree (FindCare/Code/, sharedServices/Code/), not the retired
+# tree, and is NOT counted. (EPIC-010 no longer has a Code directory level: it now
+# lives in per-feature dirs directly under pipeline/, e.g.
+# pipeline/run_lifecycle/, so it never reaches this anchor.) Both slash forms are anchored: were
 # only the forward slash anchored, the backslash form would go uncounted.
 _TOKEN_STARTS = ("\"", "'", " ", "\t", "\n", "\r", "(", "=", ",")
 
@@ -74,8 +75,9 @@ def _anchored_legacy_hits(body: str) -> int:
     A hit is ``Code/`` or ``Code\\`` at the start of a path token -- preceded
     by the start of the text, a quote, whitespace, ``(``, ``=`` or ``,``. A
     ``Code/`` preceded by ``/``, ``\\`` or an alphanumeric is a per-component
-    tree and is excluded, which is what removes ``pipeline/Code/`` and the
-    front-end component trees from the count. This is a string-boundary test,
+    tree and is excluded, which is what removes the front-end component trees
+    from the count. (EPIC-010 has no Code directory level; it lives in per-feature dirs
+    directly under pipeline/ and never matches.) This is a string-boundary test,
     not a regex, because a regex in this file would itself trip
     Rule-065-ENF-006, and the file is not on that gate's exclusion list.
     """
@@ -102,8 +104,9 @@ def gate_the_legacy_tree_is_gone() -> dict:
 
     "Points at the retired tree" is measured by anchoring: only a path token
     that begins at the top-level Code/ counts. Per-component Code/ dirs
-    (FindCare/Code/, sharedServices/Code/, pipeline/Code/) are not the retired
-    tree and are excluded by the anchor. This is what §2 of the remade plan
+    (FindCare/Code/, sharedServices/Code/) are not the retired tree and are
+    excluded by the anchor; EPIC-010 lives in per-feature dirs directly
+    under pipeline/ with no Code directory level at all. This is what §2 of the remade plan
     calls the corrected criterion; the un-anchored substring count it replaced
     read 453 references that were overwhelmingly the record naming live
     per-component paths.

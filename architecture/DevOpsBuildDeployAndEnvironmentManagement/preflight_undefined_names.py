@@ -28,7 +28,7 @@ _SCAN_ROOTS = (
     "FindCare",
     "evaluateCare/Code",
     "ChatHealthyLib/src/chathealthy_lib",
-    "pipeline/Code",
+    "pipeline",
 )
 
 # Paths under a scan root that never ship (throwaway helpers, caches,

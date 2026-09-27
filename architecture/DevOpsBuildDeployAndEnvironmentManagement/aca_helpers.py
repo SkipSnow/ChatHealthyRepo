@@ -164,13 +164,13 @@ def aca_render_dockerfile() -> str:
 
     Functions runtime sees function_app.py + host.json at
     /home/site/wwwroot/. Source bytes are staged under
-    app/pipeline/Code/; the COPY pulls from that subpath so the layout
+    app/pipeline/; the COPY pulls from that subpath so the layout
     on disk matches what gets baked into the image.
     """
     return (
         f"FROM {_load_aca_facts()['dockerfile_from']}\n"
         f"ENV {_DOCKERFILE_ENV}\n"
-        "COPY app/pipeline/Code/ /home/site/wwwroot/\n"
+        "COPY app/pipeline/ /home/site/wwwroot/\n"
         "RUN pip install --no-cache-dir -r /home/site/wwwroot/requirements.txt\n"
     )
 
@@ -193,13 +193,13 @@ def aca_content_hash_tree(tree_root: Path) -> str:
 
 
 def aca_read_partition_count_from_host_json(repo_root: Path) -> int:
-    """Read the Netherite partitionCount declared in pipeline/Code/host.json.
+    """Read the Netherite partitionCount declared in pipeline/host.json.
 
     host.json is the source of truth for the partition topology. Deploy
     uses this value to provision (or verify) the Event Hub that backs
     Netherite's partition queues.
     """
-    host_json = repo_root / "pipeline" / "Code" / "host.json"
+    host_json = repo_root / "pipeline" / "host.json"
     if not host_json.is_file():
         raise ChatHealthyException(
             mode="aborted",

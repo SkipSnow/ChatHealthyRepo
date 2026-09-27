@@ -574,7 +574,7 @@
                     },
                     "event_hubs_namespace": {
                       "type": "string",
-                      "description": "Azure Event Hubs namespace name (the short name, e.g. 'ChatHealthyDataPipelines', not the full FQDN). Deploy reads this and ensures the Netherite 'partitions' Event Hub exists inside it with partitionCount matching pipeline/Code/host.json. Event Hub partition count is immutable; deploy fails loud if the partition counts disagree so the operator can delete the Event Hub by hand and re-run.",
+                      "description": "Azure Event Hubs namespace name (the short name, e.g. 'ChatHealthyDataPipelines', not the full FQDN). Deploy reads this and ensures the Netherite 'partitions' Event Hub exists inside it with partitionCount matching pipeline/host.json. Event Hub partition count is immutable; deploy fails loud if the partition counts disagree so the operator can delete the Event Hub by hand and re-run.",
                       "minLength": 1,
                       "maxLength": 256
                     },

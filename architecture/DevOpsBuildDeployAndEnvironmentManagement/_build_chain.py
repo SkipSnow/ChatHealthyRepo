@@ -851,8 +851,8 @@ def _build_hf_space(repo_root: Path, target: TargetRecord, build_dir: Path,
         )
 
 
-_PIPELINE_SOURCE_PREFIX = "pipeline/Code/"
-_AZURE_REQUIREMENTS_SRC = "pipeline/Code/requirements-pipeline.txt"
+_PIPELINE_SOURCE_PREFIX = "pipeline/"
+_AZURE_REQUIREMENTS_SRC = "pipeline/requirements-pipeline.txt"
 _AZURE_REQUIREMENTS_ZIP_PATH = "requirements.txt"
 
 
@@ -899,7 +899,7 @@ def _build_azure_function_app(repo_root: Path, target: TargetRecord, build_dir: 
     """Materialize the Azure FA deploy.zip from target.files[].
 
     Two file-path conventions are supported:
-      - pipeline/Code/<file>       worker-tree files (legacy ACA mirror).
+      - pipeline/<file>       worker-tree files (legacy ACA mirror).
       - pipeline/<file>            top-level pipeline files (the gateway).
                                    Arcname strips the `pipeline/` prefix only.
 
@@ -1001,7 +1001,7 @@ def _build_azure_function_app(repo_root: Path, target: TargetRecord, build_dir: 
     _step(f"  zip built: {zip_path.name} ({size_mb:.1f} MB, {len(target.files)} entries)")
 
 
-_ACA_REQUIREMENTS_SRC = "pipeline/Code/requirements-pipeline.txt"
+_ACA_REQUIREMENTS_SRC = "pipeline/requirements-pipeline.txt"
 _ACA_STAGE_REQUIREMENTS_NAME = "requirements.txt"
 
 
@@ -1370,7 +1370,7 @@ def _emit_change_db_version_target_url_registry(repo_root: Path, build_dir: Path
     # runbook (which only carries the .py, no sibling files) can resolve
     # target URLs at runtime. Replaces a single-line placeholder in the
     # source; the placeholder string MUST match the literal in
-    # pipeline/Code/change_db_version.py exactly.
+    # pipeline/change_db_version.py exactly.
     runbook_py = build_dir / "runbook.py"
     if runbook_py.is_file():
         original = runbook_py.read_text(encoding="utf-8")
@@ -1382,7 +1382,7 @@ def _emit_change_db_version_target_url_registry(repo_root: Path, build_dir: Path
                 component="_build_chain",
                 message=f"ERROR: cannot inline registry into runbook — placeholder "
                 f"{placeholder!r} not found in {runbook_py}. The source file "
-                "pipeline/Code/change_db_version.py must keep the "
+                "pipeline/data_release/change_db_version.py must keep the "
                 "placeholder literal verbatim on a single line.")
         runbook_py.write_text(original.replace(placeholder, replacement, 1), encoding="utf-8")
         _step(f"  inlined registry into {runbook_py.name}")
@@ -1392,11 +1392,11 @@ def _build_azure_container_app(repo_root: Path, target: TargetRecord, build_dir:
     """Stage the Pipeline source tree + render the Dockerfile.
 
     layout under build_dir:
-        app/pipeline/Code/...          (every target.files[] entry)
-        app/pipeline/Code/requirements.txt   (renamed from requirements-pipeline.txt)
+        app/pipeline/...          (every target.files[] entry)
+        app/pipeline/requirements.txt   (renamed from requirements-pipeline.txt)
         Dockerfile                     (rendered by aca_helpers)
 
-    The Dockerfile's COPY pulls from app/pipeline/Code/ so the Functions
+    The Dockerfile's COPY pulls from app/pipeline/ so the Functions
     runtime sees function_app.py + host.json at /home/site/wwwroot/.
     """
     build_dir.mkdir(parents=True, exist_ok=True)
@@ -1418,7 +1418,7 @@ def _build_azure_container_app(repo_root: Path, target: TargetRecord, build_dir:
         dst_path.parent.mkdir(parents=True, exist_ok=True)
         shutil.copy2(src_path, dst_path)
     # requirements.txt is required by the Dockerfile's pip install step.
-    req_dst = app_root / "pipeline" / "Code" / _ACA_STAGE_REQUIREMENTS_NAME
+    req_dst = app_root / "pipeline" / _ACA_STAGE_REQUIREMENTS_NAME
     if not req_dst.is_file():
         raise ChatHealthyException(
             mode="aborted",

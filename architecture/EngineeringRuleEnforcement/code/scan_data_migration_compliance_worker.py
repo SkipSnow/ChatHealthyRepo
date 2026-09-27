@@ -76,7 +76,7 @@ def _ch_exception():
 
 _RULE_ID = "Rule-065"
 _STORY_ID = "EPIC-010-F-002-S-001"
-_MIGRATION_FILE = "pipeline/Code/data_migration.py"
+_MIGRATION_FILE = "pipeline/data_release/data_migration.py"
 _BACKLOG = "brain/machine_artifacts/content/agile_backlog.json"
 _MANIFEST = "brain/machine_artifacts/content/deployment_architecture.json"
 _MODEL_NAME = "gpt-5.5"
@@ -491,6 +491,19 @@ class ScanDataMigrationComplianceWorker(EnforcementWorker):
                          f"measures against the branch, not the working tree."))
         return json.loads(result.stdout)
 
+    def _tree_artifact(self, relative: str) -> dict:
+        """A brain artifact as the WORKING TREE holds it.
+
+        Used only for the migrator's declared LOCATION in the manifest -- a
+        registration fact that legitimately changes in the same commit that
+        moves the file, and that cannot be softened: declaring the migrator at
+        the path it actually occupies is exactly what this gate wants. Story
+        requirements still come from origin/dev via _brain_artifact, so a
+        requirement cannot be weakened locally to pass.
+        """
+        path = self._repo_root() / relative
+        return json.loads(path.read_text(encoding="utf-8"))
+
     def _story(self) -> tuple[dict, dict, dict]:
         """The epic, feature and story that own this requirement set, as the
         backlog holds them. Nothing here is composed: the descriptions are the
@@ -621,7 +634,7 @@ class ScanDataMigrationComplianceWorker(EnforcementWorker):
         runs, three answers. A fixed set asked the same way every time is a
         question with an answer.
         """
-        manifest = self._brain_artifact(_MANIFEST)
+        manifest = self._tree_artifact(_MANIFEST)
         wanted: list[str] = []
         for target in manifest.get("DeploymentTargetRecord", []):
             for binding in target.get("environments", []):
@@ -664,7 +677,7 @@ class ScanDataMigrationComplianceWorker(EnforcementWorker):
     def _declared_locations(self) -> list[tuple[str, str]]:
         """(target_id, package_id) for every manifest declaration whose
         source_location is the migration file."""
-        manifest = self._brain_artifact(_MANIFEST)
+        manifest = self._tree_artifact(_MANIFEST)
         found = []
         for target in manifest.get("DeploymentTargetRecord", []):
             target_id = target.get("target_id", "")

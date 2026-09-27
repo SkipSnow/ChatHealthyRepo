@@ -417,7 +417,7 @@
                     "package-lock.json",
                     ".claude/settings.json",
                     ".claude/settings.local.json",
-                    "pipeline/Code/host.json",
+                    "pipeline/host.json",
                     "architecture/ClaudeCodeConversationPersistence/appsettings.json",
                     "architecture/ClaudeCodeConversationPersistence/appsettings.Development.json",
                     "architecture/ClaudeCodeConversationPersistence/Properties/launchSettings.json",

@@ -5824,13 +5824,13 @@
                                 "test_id": "EPIC-006-F-001-S-005-REQ-B-001-TEST-1",
                                 "test_type": "unit",
                                 "orphan": false,
-                                "file": "pipeline/Code/tests/test_findcare_requirements.py"
+                                "file": "pipeline/tests/test_findcare_requirements.py"
                               },
                               {
                                 "test_id": "EPIC-006-F-001-S-005-REQ-B-001-TEST-2",
                                 "test_type": "unit",
                                 "orphan": false,
-                                "file": "pipeline/Code/tests/test_findcare_requirements.py"
+                                "file": "pipeline/tests/test_findcare_requirements.py"
                               }
                             ]
                           },
@@ -10033,7 +10033,7 @@
                                 "test_id": "EPIC-008-F-004-S-001-REQ-B-001-TEST-1",
                                 "orphan": false,
                                 "test_type": "unit",
-                                "file": "pipeline/Code/tests/test_ca_request_with_dn.py"
+                                "file": "pipeline/tests/test_ca_request_with_dn.py"
                               }
                             ]
                           },
@@ -10066,7 +10066,7 @@
                                 "test_id": "EPIC-008-F-004-S-002-REQ-B-001-TEST-1",
                                 "orphan": false,
                                 "test_type": "unit",
-                                "file": "pipeline/Code/tests/test_ca_root_certificate.py"
+                                "file": "pipeline/tests/test_ca_root_certificate.py"
                               }
                             ]
                           },
@@ -10099,7 +10099,7 @@
                                 "test_id": "EPIC-008-F-004-S-003-REQ-B-001-TEST-1",
                                 "orphan": false,
                                 "test_type": "unit",
-                                "file": "pipeline/Code/tests/test_ca_issue_signed_certs.py"
+                                "file": "pipeline/tests/test_ca_issue_signed_certs.py"
                               }
                             ]
                           },
@@ -10132,7 +10132,7 @@
                                 "test_id": "EPIC-008-F-004-S-004-REQ-B-001-TEST-1",
                                 "orphan": false,
                                 "test_type": "unit",
-                                "file": "pipeline/Code/tests/test_ca_cert_validity.py"
+                                "file": "pipeline/tests/test_ca_cert_validity.py"
                               }
                             ]
                           },
@@ -10165,7 +10165,7 @@
                                 "test_id": "EPIC-008-F-004-S-005-REQ-B-001-TEST-1",
                                 "orphan": false,
                                 "test_type": "unit",
-                                "file": "pipeline/Code/tests/test_ca_cert_retrieval.py"
+                                "file": "pipeline/tests/test_ca_cert_retrieval.py"
                               }
                             ]
                           },
@@ -10185,7 +10185,7 @@
                                 "test_id": "EPIC-008-F-004-S-005-REQ-B-002-TEST-1",
                                 "orphan": false,
                                 "test_type": "unit",
-                                "file": "pipeline/Code/tests/test_ca_vault_dn_matching.py"
+                                "file": "pipeline/tests/test_ca_vault_dn_matching.py"
                               }
                             ]
                           },
@@ -10205,7 +10205,7 @@
                                 "test_id": "EPIC-008-F-004-S-005-REQ-B-003-TEST-1",
                                 "orphan": false,
                                 "test_type": "unit",
-                                "file": "pipeline/Code/tests/test_ca_third_party_certs.py"
+                                "file": "pipeline/tests/test_ca_third_party_certs.py"
                               }
                             ]
                           },
@@ -12470,7 +12470,7 @@
               "feature_id": "EPIC-010-F-001",
               "orphan": false,
               "name": "Data Pipeline Run Lifecycle",
-              "sourceLocation": "pipeline",
+              "sourceLocation": "pipeline/run_lifecycle",
               "status": "in_progress",
               "description": "On a scheduled or authenticated on-demand trigger, a pipeline admits the run, reads its configuration, provisions compute and activates data resources, coordinates work in parallel, records progress and every per-record finding, logs its operation, delivers one operational business report per run, releases every resource so nothing runs between runs, recovers a run that dies without releasing, declares a record contract for the collection it builds, and runs every component under a canonical zero-trust identity.",
               "priority": "must-have",
@@ -13776,7 +13776,7 @@
               "feature_id": "EPIC-010-F-002",
               "orphan": false,
               "name": "Pipeline Data Release",
-              "sourceLocation": "pipeline",
+              "sourceLocation": "pipeline/data_release",
               "status": "in_progress",
               "description": "Moves a completed dataset from the pipeline store into the serving store under a recorded human sign-off, adding to but never altering what already serves, as the single path by which any pipeline's built data becomes available to the application.",
               "priority": "must-have",
@@ -13810,7 +13810,7 @@
                                 "test_id": "EPIC-010-F-002-S-001-REQ-B-001-TEST-1",
                                 "test_type": "ordinary",
                                 "orphan": false,
-                                "file": "pipeline/Code/tests/test_data_migration.py"
+                                "file": "pipeline/data_release/tests/test_data_migration.py"
                               }
                             ]
                           }
@@ -13830,7 +13830,7 @@
                                 "test_id": "EPIC-010-F-002-S-001-REQ-B-002-TEST-1",
                                 "test_type": "ordinary",
                                 "orphan": false,
-                                "file": "pipeline/Code/tests/test_data_migration.py"
+                                "file": "pipeline/data_release/tests/test_data_migration.py"
                               }
                             ]
                           }
@@ -13850,7 +13850,7 @@
                                 "test_id": "EPIC-010-F-002-S-001-REQ-B-003-TEST-1",
                                 "test_type": "ordinary",
                                 "orphan": false,
-                                "file": "pipeline/Code/tests/test_data_migration.py"
+                                "file": "pipeline/data_release/tests/test_data_migration.py"
                               }
                             ]
                           }
@@ -13870,7 +13870,7 @@
                                 "test_id": "EPIC-010-F-002-S-001-REQ-B-004-TEST-1",
                                 "test_type": "ordinary",
                                 "orphan": false,
-                                "file": "pipeline/Code/tests/test_data_migration.py"
+                                "file": "pipeline/data_release/tests/test_data_migration.py"
                               }
                             ]
                           }
@@ -13890,7 +13890,7 @@
                                 "test_id": "EPIC-010-F-002-S-001-REQ-B-005-TEST-1",
                                 "test_type": "ordinary",
                                 "orphan": false,
-                                "file": "pipeline/Code/tests/test_data_migration.py"
+                                "file": "pipeline/data_release/tests/test_data_migration.py"
                               }
                             ]
                           }
@@ -13910,7 +13910,7 @@
                                 "test_id": "EPIC-010-F-002-S-001-REQ-B-006-TEST-1",
                                 "test_type": "ordinary",
                                 "orphan": false,
-                                "file": "pipeline/Code/tests/test_data_migration.py"
+                                "file": "pipeline/data_release/tests/test_data_migration.py"
                               }
                             ]
                           }
@@ -13930,7 +13930,7 @@
                                 "test_id": "EPIC-010-F-002-S-001-REQ-B-007-TEST-1",
                                 "test_type": "ordinary",
                                 "orphan": false,
-                                "file": "pipeline/Code/tests/test_data_migration.py"
+                                "file": "pipeline/data_release/tests/test_data_migration.py"
                               }
                             ]
                           }
@@ -13950,7 +13950,7 @@
                                 "test_id": "EPIC-010-F-002-S-001-REQ-B-008-TEST-1",
                                 "test_type": "ordinary",
                                 "orphan": false,
-                                "file": "pipeline/Code/tests/test_data_migration.py"
+                                "file": "pipeline/data_release/tests/test_data_migration.py"
                               }
                             ]
                           }
@@ -13970,7 +13970,7 @@
                                 "test_id": "EPIC-010-F-002-S-001-REQ-B-009-TEST-1",
                                 "test_type": "ordinary",
                                 "orphan": false,
-                                "file": "pipeline/Code/tests/test_data_migration.py"
+                                "file": "pipeline/data_release/tests/test_data_migration.py"
                               }
                             ]
                           }
@@ -13990,7 +13990,7 @@
                                 "test_id": "EPIC-010-F-002-S-001-REQ-B-010-TEST-1",
                                 "test_type": "ordinary",
                                 "orphan": false,
-                                "file": "pipeline/Code/tests/test_data_migration.py"
+                                "file": "pipeline/data_release/tests/test_data_migration.py"
                               }
                             ]
                           }
@@ -14010,7 +14010,7 @@
                                 "test_id": "EPIC-010-F-002-S-001-REQ-B-011-TEST-1",
                                 "test_type": "ordinary",
                                 "orphan": false,
-                                "file": "pipeline/Code/tests/test_data_migration.py"
+                                "file": "pipeline/data_release/tests/test_data_migration.py"
                               }
                             ]
                           }
@@ -14030,7 +14030,7 @@
                                 "test_id": "EPIC-010-F-002-S-001-REQ-B-012-TEST-1",
                                 "test_type": "ordinary",
                                 "orphan": false,
-                                "file": "pipeline/Code/tests/test_data_migration.py"
+                                "file": "pipeline/data_release/tests/test_data_migration.py"
                               }
                             ]
                           }
@@ -14050,7 +14050,7 @@
                                 "test_id": "EPIC-010-F-002-S-001-REQ-B-013-TEST-1",
                                 "test_type": "ordinary",
                                 "orphan": false,
-                                "file": "pipeline/Code/tests/test_data_migration.py"
+                                "file": "pipeline/data_release/tests/test_data_migration.py"
                               }
                             ]
                           }
@@ -14070,7 +14070,7 @@
                                 "test_id": "EPIC-010-F-002-S-001-REQ-B-014-TEST-1",
                                 "test_type": "ordinary",
                                 "orphan": false,
-                                "file": "pipeline/Code/tests/test_data_migration.py"
+                                "file": "pipeline/data_release/tests/test_data_migration.py"
                               }
                             ]
                           }
@@ -14090,7 +14090,7 @@
                                 "test_id": "EPIC-010-F-002-S-001-REQ-B-015-TEST-1",
                                 "test_type": "ordinary",
                                 "orphan": false,
-                                "file": "pipeline/Code/tests/test_data_migration.py"
+                                "file": "pipeline/data_release/tests/test_data_migration.py"
                               }
                             ]
                           }
@@ -14105,7 +14105,7 @@
               "feature_id": "EPIC-010-F-003",
               "orphan": false,
               "name": "ProviderBase",
-              "sourceLocation": "pipeline",
+              "sourceLocation": "pipeline/provider_base",
               "status": "in_progress",
               "description": "Loads the national provider sources and builds each individual and institutional provider's canonical record as the source gives it, together with the specialty and taxonomy vocabulary that classifies providers. Straight ingest-and-map only; every join, derivation, or management is Provider Enrichment.",
               "priority": "must-have",
@@ -15092,7 +15092,7 @@
               "feature_id": "EPIC-010-F-004",
               "orphan": false,
               "name": "Provider Enrichment",
-              "sourceLocation": "pipeline",
+              "sourceLocation": "pipeline/provider_enrichment",
               "status": "in_progress",
               "description": "Adds ChatHealthy-derived facts to each provider record as second-pass derivations on the built base record, each kept distinct from source fields and preserved across refreshes.",
               "priority": "must-have",
@@ -16796,7 +16796,7 @@
               "feature_id": "EPIC-010-F-005",
               "orphan": false,
               "name": "Provider Pipeline",
-              "sourceLocation": "pipeline",
+              "sourceLocation": "pipeline/provider_pipeline",
               "status": "done",
               "description": "The provider-specific pipeline built on the generic run lifecycle (F-001): how the provider pipeline supplies its partition strategy, record key, record contract, and finding vocabulary, and how it builds and publishes the provider and specialty collections.",
               "priority": "must-have",

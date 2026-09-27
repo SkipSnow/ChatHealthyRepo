@@ -766,7 +766,7 @@ def _acr_docker_build_loop(packages, name: str, rg: str) -> None:
         # the existing image); every deploy AFTER that reuses layers
         # for anything upstream of the invalidating COPY. Typical:
         # base + pip install + ChatHealthyLib COPY stay cached
-        # (~90% of image size); only the final pipeline/Code COPY
+        # (~90% of image size); only the final pipeline COPY
         # re-runs on Python source changes. Cuts ACR build from
         # ~5min to ~30-60s when only Python source changed.
         # Built here and pushed, rather than handed to ACR Tasks to build
@@ -1108,7 +1108,7 @@ def build_and_push_job_image(
             message="ERROR: CHATHEALTHY_CA_ROOT_B64 / CHATHEALTHY_CA_INTERMEDIATE_B64 "
             "not set; bake_ca_chain_into_images must run before ACA job image "
             "builds (F-003 §7).")
-    # Dockerfiles COPY pipeline/Code + ChatHealthyLib from repo-root context.
+    # Dockerfiles COPY pipeline + ChatHealthyLib from repo-root context.
     context = repo_root
     image = f"{registry_name}.azurecr.io/{image_repository}:{tag}"
     # Idempotent: many ACA jobs share prov-control / prov-worker tags.
@@ -1208,7 +1208,9 @@ def ensure_aca_job(
     mi_id = mi["id"]
     mi_client = mi["clientId"]
 
-    command = "control_runner.py" if role == "control" else "worker_runner.py"
+    command = ("pipeline/provider_pipeline/control_runner.py"
+               if role == "control"
+               else "pipeline/run_lifecycle/worker_runner.py")
     # Entrypoint is baked in Dockerfile (bootstrap.py <runner>); override args only.
     # Container env vars are the merge of:
     #   1) computed shell facts (identity/KV URI/env prefix/worker mode)

@@ -2,7 +2,7 @@
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "https://dev.chathealthy.ai/schemas/ChatHealthyProviderInputSchema.json",
   "title": "ChatHealthy Provider Input (NPPES Dissemination Row)",
-  "description": "Provider data AS RECEIVED, before any ChatHealthy transformation. The source is the CMS National Plan and Provider Enumeration System (NPPES) Data Dissemination bundle, version 2 of the layout, as documented in the NPPES Data Dissemination Readme (Exhibit 2-1 Data File Layout, document updated May 12, 2026, held at _oneshots/nppes_NPPES_Data_Dissemination_Readme_v.2.pdf). The root object is one row of the main data file (one enumerated NPI record). $defs/practice_location_reference_row describes one row of the Practice Location Reference File (Exhibit 2-3), the second provider file from the same bundle that this pipeline ingests, which carries every non-primary practice location. This schema describes the INPUT only. It is not the runtime provider record: ChatHealthyProvidersSchema.json and ProviderRecordSchema.json describe what the pipeline produces, which is a different shape with snake_cased keys, collapsed arrays and pipeline-derived enrichment, and an input row will not validate against either. Where the row enters ChatHealthy: pipeline/Code/staging_loader.py, function _load_one_source, which streams the file through _iter_csv_rows / _iter_zipped_csv_rows (csv.DictReader, which preserves column names verbatim) and stores each row untouched under the staging document's raw subdocument via _wrap_row. Every value is a string because the file is CSV: NPPES quotes every value, so numbers, codes and dates all arrive as text and the pipeline stores the text unchanged. Where Exhibit 2-1 declares a logical NUMBER or DATE type, the field description says so. Absence versus emptiness: csv.DictReader yields every declared column as a key on every row, so a column the source has no value for arrives as the empty string rather than missing. Only NPI is listed in required, because only the record key can be established as always carrying a value; the ingest code guards every other column for emptiness, including Entity Type Code, which pipeline/Code/provider_record_builder.py line 74 tolerates being blank. additionalProperties is false because Exhibit 2-1 states it lists the column headers in the order present in the data file, so it is exhaustive for this layout version; a column outside it means CMS has changed the layout, and the catch-all in normalize_provider_rows.py lines 257-270 would silently carry it onto the provider record.",
+  "description": "Provider data AS RECEIVED, before any ChatHealthy transformation. The source is the CMS National Plan and Provider Enumeration System (NPPES) Data Dissemination bundle, version 2 of the layout, as documented in the NPPES Data Dissemination Readme (Exhibit 2-1 Data File Layout, document updated May 12, 2026, held at _oneshots/nppes_NPPES_Data_Dissemination_Readme_v.2.pdf). The root object is one row of the main data file (one enumerated NPI record). $defs/practice_location_reference_row describes one row of the Practice Location Reference File (Exhibit 2-3), the second provider file from the same bundle that this pipeline ingests, which carries every non-primary practice location. This schema describes the INPUT only. It is not the runtime provider record: ChatHealthyProvidersSchema.json and ProviderRecordSchema.json describe what the pipeline produces, which is a different shape with snake_cased keys, collapsed arrays and pipeline-derived enrichment, and an input row will not validate against either. Where the row enters ChatHealthy: pipeline/provider_base/staging_loader.py, function _load_one_source, which streams the file through _iter_csv_rows / _iter_zipped_csv_rows (csv.DictReader, which preserves column names verbatim) and stores each row untouched under the staging document's raw subdocument via _wrap_row. Every value is a string because the file is CSV: NPPES quotes every value, so numbers, codes and dates all arrive as text and the pipeline stores the text unchanged. Where Exhibit 2-1 declares a logical NUMBER or DATE type, the field description says so. Absence versus emptiness: csv.DictReader yields every declared column as a key on every row, so a column the source has no value for arrives as the empty string rather than missing. Only NPI is listed in required, because only the record key can be established as always carrying a value; the ingest code guards every other column for emptiness, including Entity Type Code, which pipeline/provider_base/provider_record_builder.py line 74 tolerates being blank. additionalProperties is false because Exhibit 2-1 states it lists the column headers in the order present in the data file, so it is exhaustive for this layout version; a column outside it means CMS has changed the layout, and the catch-all in normalize_provider_rows.py lines 257-270 would silently carry it onto the provider record.",
   "type": "object",
   "additionalProperties": false,
   "required": [
@@ -15,11 +15,11 @@
     },
     "Entity Type Code": {
       "type": "string",
-      "description": "Whether the NPI enumerates a person or an organization. NPPES uses '1' for an individual and '2' for an organization. Readme max length 1, data type NUMBER. Read by pipeline/Code/provider_record_builder.py:build_provider_record line 74, which tolerates the column being empty - deactivated records carry it blank."
+      "description": "Whether the NPI enumerates a person or an organization. NPPES uses '1' for an individual and '2' for an organization. Readme max length 1, data type NUMBER. Read by pipeline/provider_base/provider_record_builder.py:build_provider_record line 74, which tolerates the column being empty - deactivated records carry it blank."
     },
     "Replacement NPI": {
       "type": "string",
-      "description": "The NPI that replaces this one when CMS has superseded the record. Readme max length 10, data type NUMBER. Empty on every record of the sample. Carried onto the provider record by the catch-all in pipeline/Code/normalize_provider_rows.py:normalize_raw_record lines 257-270, which snake_cases the column name and drops the value when it is empty."
+      "description": "The NPI that replaces this one when CMS has superseded the record. Readme max length 10, data type NUMBER. Empty on every record of the sample. Carried onto the provider record by the catch-all in pipeline/provider_base/normalize_provider_rows.py:normalize_raw_record lines 257-270, which snake_cases the column name and drops the value when it is empty."
     },
     "Employer Identification Number (EIN)": {
       "type": "string",
@@ -27,67 +27,67 @@
     },
     "Provider Organization Name (Legal Business Name)": {
       "type": "string",
-      "description": "The organization's legal business name. Populated for Entity Type Code '2'. Readme max length 100, VARCHAR. Carried onto the provider record by the catch-all in pipeline/Code/normalize_provider_rows.py:normalize_raw_record lines 257-270, which snake_cases the column name and drops the value when it is empty."
+      "description": "The organization's legal business name. Populated for Entity Type Code '2'. Readme max length 100, VARCHAR. Carried onto the provider record by the catch-all in pipeline/provider_base/normalize_provider_rows.py:normalize_raw_record lines 257-270, which snake_cases the column name and drops the value when it is empty."
     },
     "Provider Last Name (Legal Name)": {
       "type": "string",
-      "description": "The individual's legal last name. Populated for Entity Type Code '1'. Readme max length 35, VARCHAR. Carried onto the provider record by the catch-all in pipeline/Code/normalize_provider_rows.py:normalize_raw_record lines 257-270, which snake_cases the column name and drops the value when it is empty."
+      "description": "The individual's legal last name. Populated for Entity Type Code '1'. Readme max length 35, VARCHAR. Carried onto the provider record by the catch-all in pipeline/provider_base/normalize_provider_rows.py:normalize_raw_record lines 257-270, which snake_cases the column name and drops the value when it is empty."
     },
     "Provider First Name": {
       "type": "string",
-      "description": "The individual's first name. Readme max length 35, VARCHAR. Carried onto the provider record by the catch-all in pipeline/Code/normalize_provider_rows.py:normalize_raw_record lines 257-270, which snake_cases the column name and drops the value when it is empty."
+      "description": "The individual's first name. Readme max length 35, VARCHAR. Carried onto the provider record by the catch-all in pipeline/provider_base/normalize_provider_rows.py:normalize_raw_record lines 257-270, which snake_cases the column name and drops the value when it is empty."
     },
     "Provider Middle Name": {
       "type": "string",
-      "description": "The individual's middle name. Readme max length 20, VARCHAR. Carried onto the provider record by the catch-all in pipeline/Code/normalize_provider_rows.py:normalize_raw_record lines 257-270, which snake_cases the column name and drops the value when it is empty."
+      "description": "The individual's middle name. Readme max length 20, VARCHAR. Carried onto the provider record by the catch-all in pipeline/provider_base/normalize_provider_rows.py:normalize_raw_record lines 257-270, which snake_cases the column name and drops the value when it is empty."
     },
     "Provider Name Prefix Text": {
       "type": "string",
-      "description": "Name prefix such as MR or DR. Readme max length 5, VARCHAR. Carried onto the provider record by the catch-all in pipeline/Code/normalize_provider_rows.py:normalize_raw_record lines 257-270, which snake_cases the column name and drops the value when it is empty."
+      "description": "Name prefix such as MR or DR. Readme max length 5, VARCHAR. Carried onto the provider record by the catch-all in pipeline/provider_base/normalize_provider_rows.py:normalize_raw_record lines 257-270, which snake_cases the column name and drops the value when it is empty."
     },
     "Provider Name Suffix Text": {
       "type": "string",
-      "description": "Name suffix such as JR or III. Readme max length 5, VARCHAR. Carried onto the provider record by the catch-all in pipeline/Code/normalize_provider_rows.py:normalize_raw_record lines 257-270, which snake_cases the column name and drops the value when it is empty."
+      "description": "Name suffix such as JR or III. Readme max length 5, VARCHAR. Carried onto the provider record by the catch-all in pipeline/provider_base/normalize_provider_rows.py:normalize_raw_record lines 257-270, which snake_cases the column name and drops the value when it is empty."
     },
     "Provider Credential Text": {
       "type": "string",
-      "description": "Credential text as the provider reported it, for example 'MD' or 'OTR/L'. Free text, not a controlled vocabulary. Readme max length 20, VARCHAR. Carried onto the provider record by the catch-all in pipeline/Code/normalize_provider_rows.py:normalize_raw_record lines 257-270, which snake_cases the column name and drops the value when it is empty."
+      "description": "Credential text as the provider reported it, for example 'MD' or 'OTR/L'. Free text, not a controlled vocabulary. Readme max length 20, VARCHAR. Carried onto the provider record by the catch-all in pipeline/provider_base/normalize_provider_rows.py:normalize_raw_record lines 257-270, which snake_cases the column name and drops the value when it is empty."
     },
     "Provider Other Organization Name": {
       "type": "string",
-      "description": "An additional organization name. Readme max length 100, VARCHAR. Readme section 2.2 notes that a type code of 6 means further names for that organization live in the Other Name Reference File, which this pipeline does not ingest. Carried onto the provider record by the catch-all in pipeline/Code/normalize_provider_rows.py:normalize_raw_record lines 257-270, which snake_cases the column name and drops the value when it is empty."
+      "description": "An additional organization name. Readme max length 100, VARCHAR. Readme section 2.2 notes that a type code of 6 means further names for that organization live in the Other Name Reference File, which this pipeline does not ingest. Carried onto the provider record by the catch-all in pipeline/provider_base/normalize_provider_rows.py:normalize_raw_record lines 257-270, which snake_cases the column name and drops the value when it is empty."
     },
     "Provider Other Organization Name Type Code": {
       "type": "string",
-      "description": "Type code qualifying Provider Other Organization Name. Readme max length 1, VARCHAR. Carried onto the provider record by the catch-all in pipeline/Code/normalize_provider_rows.py:normalize_raw_record lines 257-270, which snake_cases the column name and drops the value when it is empty."
+      "description": "Type code qualifying Provider Other Organization Name. Readme max length 1, VARCHAR. Carried onto the provider record by the catch-all in pipeline/provider_base/normalize_provider_rows.py:normalize_raw_record lines 257-270, which snake_cases the column name and drops the value when it is empty."
     },
     "Provider Other Last Name": {
       "type": "string",
-      "description": "An additional last name for the individual, such as a former name. Readme max length 35, VARCHAR. Carried onto the provider record by the catch-all in pipeline/Code/normalize_provider_rows.py:normalize_raw_record lines 257-270, which snake_cases the column name and drops the value when it is empty."
+      "description": "An additional last name for the individual, such as a former name. Readme max length 35, VARCHAR. Carried onto the provider record by the catch-all in pipeline/provider_base/normalize_provider_rows.py:normalize_raw_record lines 257-270, which snake_cases the column name and drops the value when it is empty."
     },
     "Provider Other First Name": {
       "type": "string",
-      "description": "An additional first name for the individual. Readme max length 35, VARCHAR. Carried onto the provider record by the catch-all in pipeline/Code/normalize_provider_rows.py:normalize_raw_record lines 257-270, which snake_cases the column name and drops the value when it is empty."
+      "description": "An additional first name for the individual. Readme max length 35, VARCHAR. Carried onto the provider record by the catch-all in pipeline/provider_base/normalize_provider_rows.py:normalize_raw_record lines 257-270, which snake_cases the column name and drops the value when it is empty."
     },
     "Provider Other Middle Name": {
       "type": "string",
-      "description": "An additional middle name for the individual. Readme max length 20, VARCHAR. Carried onto the provider record by the catch-all in pipeline/Code/normalize_provider_rows.py:normalize_raw_record lines 257-270, which snake_cases the column name and drops the value when it is empty."
+      "description": "An additional middle name for the individual. Readme max length 20, VARCHAR. Carried onto the provider record by the catch-all in pipeline/provider_base/normalize_provider_rows.py:normalize_raw_record lines 257-270, which snake_cases the column name and drops the value when it is empty."
     },
     "Provider Other Name Prefix Text": {
       "type": "string",
-      "description": "Name prefix accompanying the other name. Readme max length 5, VARCHAR. Carried onto the provider record by the catch-all in pipeline/Code/normalize_provider_rows.py:normalize_raw_record lines 257-270, which snake_cases the column name and drops the value when it is empty."
+      "description": "Name prefix accompanying the other name. Readme max length 5, VARCHAR. Carried onto the provider record by the catch-all in pipeline/provider_base/normalize_provider_rows.py:normalize_raw_record lines 257-270, which snake_cases the column name and drops the value when it is empty."
     },
     "Provider Other Name Suffix Text": {
       "type": "string",
-      "description": "Name suffix accompanying the other name. Readme max length 5, VARCHAR. Carried onto the provider record by the catch-all in pipeline/Code/normalize_provider_rows.py:normalize_raw_record lines 257-270, which snake_cases the column name and drops the value when it is empty."
+      "description": "Name suffix accompanying the other name. Readme max length 5, VARCHAR. Carried onto the provider record by the catch-all in pipeline/provider_base/normalize_provider_rows.py:normalize_raw_record lines 257-270, which snake_cases the column name and drops the value when it is empty."
     },
     "Provider Other Credential Text": {
       "type": "string",
-      "description": "Credential text accompanying the other name. Readme max length 20, VARCHAR. Carried onto the provider record by the catch-all in pipeline/Code/normalize_provider_rows.py:normalize_raw_record lines 257-270, which snake_cases the column name and drops the value when it is empty."
+      "description": "Credential text accompanying the other name. Readme max length 20, VARCHAR. Carried onto the provider record by the catch-all in pipeline/provider_base/normalize_provider_rows.py:normalize_raw_record lines 257-270, which snake_cases the column name and drops the value when it is empty."
     },
     "Provider Other Last Name Type Code": {
       "type": "string",
-      "description": "Type code qualifying Provider Other Last Name. Readme max length 1, data type NUMBER. Carried onto the provider record by the catch-all in pipeline/Code/normalize_provider_rows.py:normalize_raw_record lines 257-270, which snake_cases the column name and drops the value when it is empty."
+      "description": "Type code qualifying Provider Other Last Name. Readme max length 1, data type NUMBER. Carried onto the provider record by the catch-all in pipeline/provider_base/normalize_provider_rows.py:normalize_raw_record lines 257-270, which snake_cases the column name and drops the value when it is empty."
     },
     "Provider First Line Business Mailing Address": {
       "type": "string",
@@ -155,15 +155,15 @@
     },
     "Provider Enumeration Date": {
       "type": "string",
-      "description": "The date CMS enumerated the NPI, formatted MM/DD/YYYY. Readme max length 10, data type DATE; the CSV supplies it as text and the pipeline stores the text unchanged. Carried onto the provider record by the catch-all in pipeline/Code/normalize_provider_rows.py:normalize_raw_record lines 257-270, which snake_cases the column name and drops the value when it is empty."
+      "description": "The date CMS enumerated the NPI, formatted MM/DD/YYYY. Readme max length 10, data type DATE; the CSV supplies it as text and the pipeline stores the text unchanged. Carried onto the provider record by the catch-all in pipeline/provider_base/normalize_provider_rows.py:normalize_raw_record lines 257-270, which snake_cases the column name and drops the value when it is empty."
     },
     "Last Update Date": {
       "type": "string",
-      "description": "The date the NPI record was last updated in NPPES, formatted MM/DD/YYYY. Readme max length 10, data type DATE. Carried onto the provider record by the catch-all in pipeline/Code/normalize_provider_rows.py:normalize_raw_record lines 257-270, which snake_cases the column name and drops the value when it is empty."
+      "description": "The date the NPI record was last updated in NPPES, formatted MM/DD/YYYY. Readme max length 10, data type DATE. Carried onto the provider record by the catch-all in pipeline/provider_base/normalize_provider_rows.py:normalize_raw_record lines 257-270, which snake_cases the column name and drops the value when it is empty."
     },
     "NPI Deactivation Reason Code": {
       "type": "string",
-      "description": "Reason CMS deactivated the NPI. Readme Exhibit 2-1 states the column is present in the layout but 'This is not publicly disseminated', and it is empty on every record of the sample. Carried onto the provider record by the catch-all in pipeline/Code/normalize_provider_rows.py:normalize_raw_record lines 257-270, which snake_cases the column name and drops the value when it is empty."
+      "description": "Reason CMS deactivated the NPI. Readme Exhibit 2-1 states the column is present in the layout but 'This is not publicly disseminated', and it is empty on every record of the sample. Carried onto the provider record by the catch-all in pipeline/provider_base/normalize_provider_rows.py:normalize_raw_record lines 257-270, which snake_cases the column name and drops the value when it is empty."
     },
     "NPI Deactivation Date": {
       "type": "string",
@@ -179,23 +179,23 @@
     },
     "Authorized Official Last Name": {
       "type": "string",
-      "description": "Last name of the organization's authorized official. Organizations only. Readme max length 35, VARCHAR. Carried onto the provider record by the catch-all in pipeline/Code/normalize_provider_rows.py:normalize_raw_record lines 257-270, which snake_cases the column name and drops the value when it is empty."
+      "description": "Last name of the organization's authorized official. Organizations only. Readme max length 35, VARCHAR. Carried onto the provider record by the catch-all in pipeline/provider_base/normalize_provider_rows.py:normalize_raw_record lines 257-270, which snake_cases the column name and drops the value when it is empty."
     },
     "Authorized Official First Name": {
       "type": "string",
-      "description": "First name of the organization's authorized official. Readme max length 35, VARCHAR. Carried onto the provider record by the catch-all in pipeline/Code/normalize_provider_rows.py:normalize_raw_record lines 257-270, which snake_cases the column name and drops the value when it is empty."
+      "description": "First name of the organization's authorized official. Readme max length 35, VARCHAR. Carried onto the provider record by the catch-all in pipeline/provider_base/normalize_provider_rows.py:normalize_raw_record lines 257-270, which snake_cases the column name and drops the value when it is empty."
     },
     "Authorized Official Middle Name": {
       "type": "string",
-      "description": "Middle name of the organization's authorized official. Readme max length 20, VARCHAR. Carried onto the provider record by the catch-all in pipeline/Code/normalize_provider_rows.py:normalize_raw_record lines 257-270, which snake_cases the column name and drops the value when it is empty."
+      "description": "Middle name of the organization's authorized official. Readme max length 20, VARCHAR. Carried onto the provider record by the catch-all in pipeline/provider_base/normalize_provider_rows.py:normalize_raw_record lines 257-270, which snake_cases the column name and drops the value when it is empty."
     },
     "Authorized Official Title or Position": {
       "type": "string",
-      "description": "Title or position held by the organization's authorized official. Readme max length 35, VARCHAR. Carried onto the provider record by the catch-all in pipeline/Code/normalize_provider_rows.py:normalize_raw_record lines 257-270, which snake_cases the column name and drops the value when it is empty."
+      "description": "Title or position held by the organization's authorized official. Readme max length 35, VARCHAR. Carried onto the provider record by the catch-all in pipeline/provider_base/normalize_provider_rows.py:normalize_raw_record lines 257-270, which snake_cases the column name and drops the value when it is empty."
     },
     "Authorized Official Telephone Number": {
       "type": "string",
-      "description": "Telephone number for the organization's authorized official, digits only in the sample. Readme max length 20, VARCHAR. Carried onto the provider record by the catch-all in pipeline/Code/normalize_provider_rows.py:normalize_raw_record lines 257-270, which snake_cases the column name and drops the value when it is empty."
+      "description": "Telephone number for the organization's authorized official, digits only in the sample. Readme max length 20, VARCHAR. Carried onto the provider record by the catch-all in pipeline/provider_base/normalize_provider_rows.py:normalize_raw_record lines 257-270, which snake_cases the column name and drops the value when it is empty."
     },
     "Healthcare Provider Taxonomy Code_1": {
       "type": "string",
@@ -1243,11 +1243,11 @@
     },
     "Is Organization Subpart": {
       "type": "string",
-      "description": "Whether the organization is a subpart of a larger organization. NPPES supplies 'Y', 'N' or empty. Readme max length 1, VARCHAR. Carried onto the provider record by the catch-all in pipeline/Code/normalize_provider_rows.py:normalize_raw_record lines 257-270, which snake_cases the column name and drops the value when it is empty."
+      "description": "Whether the organization is a subpart of a larger organization. NPPES supplies 'Y', 'N' or empty. Readme max length 1, VARCHAR. Carried onto the provider record by the catch-all in pipeline/provider_base/normalize_provider_rows.py:normalize_raw_record lines 257-270, which snake_cases the column name and drops the value when it is empty."
     },
     "Parent Organization LBN": {
       "type": "string",
-      "description": "Legal business name of the parent organization when Is Organization Subpart is 'Y'. Readme max length 100, VARCHAR. Carried onto the provider record by the catch-all in pipeline/Code/normalize_provider_rows.py:normalize_raw_record lines 257-270, which snake_cases the column name and drops the value when it is empty."
+      "description": "Legal business name of the parent organization when Is Organization Subpart is 'Y'. Readme max length 100, VARCHAR. Carried onto the provider record by the catch-all in pipeline/provider_base/normalize_provider_rows.py:normalize_raw_record lines 257-270, which snake_cases the column name and drops the value when it is empty."
     },
     "Parent Organization TIN": {
       "type": "string",
@@ -1255,15 +1255,15 @@
     },
     "Authorized Official Name Prefix Text": {
       "type": "string",
-      "description": "Name prefix for the organization's authorized official. Readme max length 5, VARCHAR. Carried onto the provider record by the catch-all in pipeline/Code/normalize_provider_rows.py:normalize_raw_record lines 257-270, which snake_cases the column name and drops the value when it is empty."
+      "description": "Name prefix for the organization's authorized official. Readme max length 5, VARCHAR. Carried onto the provider record by the catch-all in pipeline/provider_base/normalize_provider_rows.py:normalize_raw_record lines 257-270, which snake_cases the column name and drops the value when it is empty."
     },
     "Authorized Official Name Suffix Text": {
       "type": "string",
-      "description": "Name suffix for the organization's authorized official. Readme max length 5, VARCHAR. Carried onto the provider record by the catch-all in pipeline/Code/normalize_provider_rows.py:normalize_raw_record lines 257-270, which snake_cases the column name and drops the value when it is empty."
+      "description": "Name suffix for the organization's authorized official. Readme max length 5, VARCHAR. Carried onto the provider record by the catch-all in pipeline/provider_base/normalize_provider_rows.py:normalize_raw_record lines 257-270, which snake_cases the column name and drops the value when it is empty."
     },
     "Authorized Official Credential Text": {
       "type": "string",
-      "description": "Credential text for the organization's authorized official. Readme max length 20, VARCHAR. Carried onto the provider record by the catch-all in pipeline/Code/normalize_provider_rows.py:normalize_raw_record lines 257-270, which snake_cases the column name and drops the value when it is empty."
+      "description": "Credential text for the organization's authorized official. Readme max length 20, VARCHAR. Carried onto the provider record by the catch-all in pipeline/provider_base/normalize_provider_rows.py:normalize_raw_record lines 257-270, which snake_cases the column name and drops the value when it is empty."
     },
     "Healthcare Provider Taxonomy Group_1": {
       "type": "string",
@@ -1327,7 +1327,7 @@
     },
     "Certification Date": {
       "type": "string",
-      "description": "The date the provider last certified the accuracy of the NPPES record, formatted MM/DD/YYYY. Readme max length 10, data type DATE. Carried onto the provider record by the catch-all in pipeline/Code/normalize_provider_rows.py:normalize_raw_record lines 257-270, which snake_cases the column name and drops the value when it is empty."
+      "description": "The date the provider last certified the accuracy of the NPPES record, formatted MM/DD/YYYY. Readme max length 10, data type DATE. Carried onto the provider record by the catch-all in pipeline/provider_base/normalize_provider_rows.py:normalize_raw_record lines 257-270, which snake_cases the column name and drops the value when it is empty."
     }
   },
   "$defs": {
@@ -1337,7 +1337,7 @@
       "required": [
         "NPI"
       ],
-      "description": "One row of the NPPES Practice Location Reference File (pl_pfile), per Readme Exhibit 2-3. It holds the non-primary practice locations for an NPI; the primary practice location is on the main data-file row instead. There are many rows per NPI, so staging_loader.py:_ensure_indexes gives this source a non-unique NPI index (line 316). Read by pipeline/Code/attach_practice_addresses.py, which joins on NPI and merges each row into the provider record's practice_addresses[] array. Same string-only, empty-not-absent conventions as the main row.",
+      "description": "One row of the NPPES Practice Location Reference File (pl_pfile), per Readme Exhibit 2-3. It holds the non-primary practice locations for an NPI; the primary practice location is on the main data-file row instead. There are many rows per NPI, so staging_loader.py:_ensure_indexes gives this source a non-unique NPI index (line 316). Read by pipeline/provider_enrichment/attach_practice_addresses.py, which joins on NPI and merges each row into the provider record's practice_addresses[] array. Same string-only, empty-not-absent conventions as the main row.",
       "properties": {
         "NPI": {
           "type": "string",

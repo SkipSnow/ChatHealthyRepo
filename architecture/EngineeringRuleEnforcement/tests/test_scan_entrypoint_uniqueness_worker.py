@@ -97,6 +97,6 @@ def test_imported_only_helper_passes():
 def test_entry_point_outside_the_chain_directory_is_ignored():
     """The rule governs one directory. A main block elsewhere is not its business."""
     w = _worker()
-    rc, hits = _run(w, {"pipeline/Code/control_runner.py": WITH_MAIN})
+    rc, hits = _run(w, {"pipeline/provider_pipeline/control_runner.py": WITH_MAIN})
     assert rc == EXIT_OK
     assert hits == []

@@ -8,7 +8,7 @@
 # 3.7). Bytes live in deployment_architecture.json embedded_content;
 # Extractor materializes on demand, build deletes after use. Source
 # tree MUST NOT hold these files.
-pipeline/Code/requirements-pipeline.txt
+pipeline/requirements-pipeline.txt
 
 SourcePropriataryData/
 
@@ -104,11 +104,13 @@ architecture/EngineeringRuleEnforcement/ArchitectureDesignAndAuditDocs/llm_class
 # repointed at deploy/, whether this tree gets committed becomes a
 # real question -- a fresh clone would need it to exist.
 #
-# Anchored. Unanchored, this matched every directory named deploy at
-# any depth, including pipeline/deploy, which is authored source and
-# holds the provider pipeline and Watchdog runbooks. The files already
-# tracked there were safe, but a new one would have been invisible to
-# git and would never have reached a build, which reads origin.
+# Anchored so it matches ONLY the top-level deploy/ staging tree, not a
+# directory named deploy at some other depth. (The provider pipeline and
+# Watchdog runbooks that once lived in the old per-pipeline deploy area now live in their
+# per-feature dirs under pipeline/ -- pipeline/provider_pipeline/ and
+# pipeline/run_lifecycle/ -- so there is no longer an authored-source
+# deploy dir for an unanchored rule to swallow; the anchor is retained
+# so a future one could never be silently ignored.)
 /deploy/
 
 # Claude Code tool state — moved here from .git/info/exclude so the

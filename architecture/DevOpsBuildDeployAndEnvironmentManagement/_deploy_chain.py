@@ -362,8 +362,8 @@ HF_APP_PORT: dict[str, int] = {
 # deployment_architecture.json. The deploy script is now data-driven; no
 # target-specific knowledge lives here.
 
-PIPELINE_SOURCE_PREFIX = "pipeline/Code/"
-AZURE_REQUIREMENTS_SRC = "pipeline/Code/requirements-pipeline.txt"
+PIPELINE_SOURCE_PREFIX = "pipeline/"
+AZURE_REQUIREMENTS_SRC = "pipeline/requirements-pipeline.txt"
 AZURE_REQUIREMENTS_ZIP_PATH = "requirements.txt"
 
 
