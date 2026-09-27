@@ -333,7 +333,7 @@
           ]
         },
         "coordinates": {
-          "description": "Geo coordinates for this specific address. Stamped by county-cascade stages that publish coordinates (census_batch: TIGER street-segment interpolation; google_maps: variable, per precision field). Absent when no cascade stage produced coordinates for this address \u2014 MUST NOT be defaulted to a county/zip centroid.",
+          "description": "Geo coordinates for this specific address. Always present on CountyAndGeoFunnel-built records: seeded as {latitude:-1, longitude:-1, source:'pending', precision:'pending'} \u2014 a runtime semaphore meaning coordinates are not yet resolved \u2014 then overwritten with real coordinates by a geocoding stage (census_batch: TIGER street-segment interpolation; google_maps: variable, per precision). Consumers MUST treat source=='pending' (equivalently latitude==-1) as 'no point' \u2014 never plot, measure, or default it to a county/zip centroid. Legacy records may omit this field or set it null.",
           "type": [
             "object",
             "null"
@@ -359,10 +359,11 @@
               "maximum": 180
             },
             "source": {
-              "description": "Which API produced these coordinates.",
+              "description": "Which API produced these coordinates, or 'pending' for the unresolved -1 sentinel.",
               "enum": [
                 "census_batch",
-                "google_maps"
+                "google_maps",
+                "pending"
               ]
             },
             "precision": {
@@ -371,7 +372,8 @@
                 "rooftop",
                 "range_interpolated",
                 "geometric_center",
-                "approximate"
+                "approximate",
+                "pending"
               ]
             }
           }
@@ -530,7 +532,7 @@
             ]
           },
           "coordinates": {
-            "description": "Geo coordinates for this specific address. Stamped by county-cascade stages that publish coordinates (census_batch: TIGER street-segment interpolation; google_maps: variable, per precision field). Absent when no cascade stage produced coordinates for this address \u2014 MUST NOT be defaulted to a county/zip centroid.",
+            "description": "Geo coordinates for this specific address. Always present on CountyAndGeoFunnel-built records: seeded as {latitude:-1, longitude:-1, source:'pending', precision:'pending'} \u2014 a runtime semaphore meaning coordinates are not yet resolved \u2014 then overwritten with real coordinates by a geocoding stage (census_batch: TIGER street-segment interpolation; google_maps: variable, per precision). Consumers MUST treat source=='pending' (equivalently latitude==-1) as 'no point' \u2014 never plot, measure, or default it to a county/zip centroid. Legacy records may omit this field or set it null.",
             "type": [
               "object",
               "null"
@@ -556,10 +558,11 @@
                 "maximum": 180
               },
               "source": {
-                "description": "Which API produced these coordinates.",
+                "description": "Which API produced these coordinates, or 'pending' for the unresolved -1 sentinel.",
                 "enum": [
                   "census_batch",
-                  "google_maps"
+                  "google_maps",
+                  "pending"
                 ]
               },
               "precision": {
@@ -568,7 +571,8 @@
                   "rooftop",
                   "range_interpolated",
                   "geometric_center",
-                  "approximate"
+                  "approximate",
+                  "pending"
                 ]
               }
             }
