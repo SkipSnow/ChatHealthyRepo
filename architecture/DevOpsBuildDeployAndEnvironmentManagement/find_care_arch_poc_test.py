@@ -300,7 +300,7 @@ class TestStep15bSystemMessagePromptPaints:
     user reads the system response alongside the running search context."""
 
     def test_prompt_paints_user_message(self, page):
-        page.goto("https://localhost/", wait_until="networkidle")
+        page.goto(BASE_URL, wait_until="domcontentloaded")
         page.wait_for_function(
             "() => document.querySelector('#frame_UserPromptAndControl form') != null",
             timeout=15_000,
@@ -323,7 +323,7 @@ class TestStep15cMobileNavDrawer:
 
     def test_mobile_drawer_opens(self, page):
         page.set_viewport_size({"width": 480, "height": 800})
-        page.goto("https://localhost/", wait_until="networkidle")
+        page.goto(BASE_URL, wait_until="domcontentloaded")
         page.wait_for_function(
             "() => document.querySelector('#frame_Header button.ch-header-hamburger') != null",
             timeout=15_000,
@@ -344,7 +344,7 @@ class TestStep15dSpecialtyFilterApply:
     we toggle one row first to flip the dirty state and enable the button."""
 
     def test_apply_filter_call_succeeds(self, page):
-        page.goto("https://localhost/", wait_until="networkidle")
+        page.goto(BASE_URL, wait_until="domcontentloaded")
         page.wait_for_function(
             "() => document.querySelector('#frame_UserPromptAndControl form') != null",
             timeout=15_000,
@@ -376,7 +376,7 @@ class TestStep16ClinicalTrialsThreeFrames:
     MainWindow + RightPanel."""
 
     def test_clinical_trials_paints_three_frames(self, page):
-        page.goto("https://localhost/", wait_until="networkidle")
+        page.goto(BASE_URL, wait_until="domcontentloaded")
         page.wait_for_function(
             "() => window.ClientRouter && document.querySelector('#frame_MainWindow') != null",
             timeout=15_000,

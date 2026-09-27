@@ -106,7 +106,7 @@ note right
   OPEN (N19): does served data have two writers by design? The app
   request path writes the served record on detail-open
   (EPIC-006-F-002-S-002-REQ-B-018) against migration-only
-  (EPIC-010-F-108-S-001-REQ-B-002). Both approved and done.
+  (EPIC-010-F-102-S-001-REQ-B-002). Both approved and done.
   Not resolved here.
 end note
 

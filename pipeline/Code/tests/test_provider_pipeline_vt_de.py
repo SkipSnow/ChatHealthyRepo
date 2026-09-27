@@ -56,6 +56,7 @@ def main():
     body = json.dumps({
         "state_scope": ["VT", "DE"],
         "load_mode": "full",
+        "debug_level": "DEBUG",
     }).encode("utf-8")
     _CH_LOG.info(f"POST -> {url[:80]}...")
     _CH_LOG.info(f"body -> {body.decode('utf-8')}")

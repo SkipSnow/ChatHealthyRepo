@@ -8,15 +8,19 @@ answer to "what does this commit answer for" exists once.
 
 Two ways in:
 
-    commit     the staged set, exactly as the operator built it.
-    promote    the entire tree. Promote hands down --entire-tree and this
-               driver empties the stash stack and stages everything, so the
-               working tree becomes the staged set and the same rule applies
-               without promote owning any git of its own.
+    commit     the staged set, exactly as the operator built it. This is the
+               default and is unchanged: a commit scans only its staged files.
+    promote    the entire tree. Promote (local -> dev) passes --entire-tree,
+               and on that flag the GOVERNOR enumerates the whole repository
+               itself (baseline_walk.baseline_files) rather than trusting any
+               set it is handed. The party being governed does not choose what
+               the governor sees. This is opt-in and promote-only; the commit
+               path never passes it.
 
-The driver hands the array to every subordinate at once, joins them, and
-writes one log entry naming every file that passed, every file that failed,
-and which enforcement failed it.
+Either way no subordinate chooses scope: each is handed the resulting array
+and asked only whether a file violates. The driver hands the array to every
+subordinate at once, joins them, and writes one log entry naming every file
+that passed, every file that failed, and which enforcement failed it.
 """
 
 from __future__ import annotations
@@ -111,9 +115,16 @@ DEFAULT_TIMEOUT_SECONDS = _Manager.DEFAULT_TIMEOUT_SECONDS
 
 class CommitGovernanceDriver:
     def __init__(self, handed_list: list[str] | None = None,
-                 excluded: set[str] | None = None) -> None:
+                 excluded: set[str] | None = None,
+                 entire_tree: bool = False) -> None:
         self.handed_list = handed_list
         self.excluded = excluded or set()
+        # Opt-in, promote-only. When set, the GOVERNOR enumerates the whole
+        # repository itself rather than trusting any set it is handed -- so the
+        # party being governed does not choose what the governor sees. The
+        # commit path never sets this: a commit stays scoped to the staged set
+        # exactly as before.
+        self.entire_tree = entire_tree
         self.escalated = False
         self.files: list[str] = []
         self.results: list[dict[str, Any]] = []
@@ -137,10 +148,17 @@ class CommitGovernanceDriver:
     def collect(self) -> list[str]:
         """The list this run answers for.
 
-        Handed one, that is it: promote manufactures the whole baseline,
-        stages it, and passes it here. Otherwise it is the staged set,
-        which is what a commit publishes.
+        Promote (local -> dev) sets entire_tree: the governor walks the whole
+        repository itself (baseline_walk.baseline_files) so no caller and no
+        worker chooses what is scanned. This is opt-in and promote-only.
+
+        Otherwise it is a commit. Handed a list, that is it; else the staged
+        set, which is what a commit publishes. This path is unchanged: a commit
+        scans only its staged files.
         """
+        if self.entire_tree:
+            return baseline_files(PROJECT_ROOT)
+
         if self.handed_list is not None:
             return self.handed_list
 
@@ -303,7 +321,8 @@ class CommitGovernanceDriver:
 
         entry = {
             "timestamp": datetime.now(timezone.utc).isoformat(),
-            "scope": ("handed" if self.handed_list is not None else
+            "scope": ("entire-tree" if self.entire_tree else
+             "handed" if self.handed_list is not None else
              "rules-change-escalated" if self.escalated else "staged"),
             "files_examined": len(self.files),
             "verdict": verdict,
@@ -382,16 +401,16 @@ class CommitGovernanceDriver:
             return EXIT_DRIVER_ERROR
 
         if not self.files:
-            if self.handed_list is not None:
-                # Promote hands down the whole baseline -- every file, every
+            if self.entire_tree or self.handed_list is not None:
+                # A promote governs the whole baseline -- every file, every
                 # time, so a newly added enforcement catches files that have
-                # not changed in months. An empty handed list means the walk
+                # not changed in months. An empty file set here means the walk
                 # that built it failed, and governing nothing while believing
                 # the baseline was checked is the worst outcome available.
                 _CH_LOG.error(
-                    "[driver] handed an empty list. A promote governs the "
-                    "entire baseline, so an empty list is a broken walk, not "
-                    "a clean tree."
+                    "[driver] empty file set on a full-tree run. A promote "
+                    "governs the entire baseline, so an empty set is a broken "
+                    "walk, not a clean tree."
                 )
                 return EXIT_DRIVER_ERROR
             # A staged set can legitimately be empty: an empty commit carries
@@ -452,9 +471,14 @@ def _arguments(argv: list[str] | None) -> argparse.Namespace:
              "passed, and each is echoed in the run output.")
     parser.add_argument(
         "--files-from",
-        help="Path holding the file list, or '-' for stdin. Promote builds "
-             "the baseline list, stages it, and hands it here. Without this "
+        help="Path holding the file list, or '-' for stdin. Without this "
              "the staged set is governed, which is what a commit publishes.")
+    parser.add_argument(
+        "--entire-tree", action="store_true",
+        help="Opt-in, promote-only. The governor enumerates the WHOLE "
+             "repository itself (baseline_walk.baseline_files) and scans it, "
+             "instead of trusting any handed or staged set. The commit path "
+             "never passes this; its staged-set behaviour is unchanged.")
     return parser.parse_args(sys.argv[1:] if argv is None else argv)
 
 
@@ -473,7 +497,8 @@ def main(argv: list[str] | None = None) -> int:
     try:
         return CommitGovernanceDriver(
             handed_list=_handed_list(args.files_from),
-            excluded=set(args.exclude)).run()
+            excluded=set(args.exclude),
+            entire_tree=args.entire_tree).run()
     except Exception as exc:  # noqa: BLE001 - the gate never dies silently
         _CH_LOG.error(f"[driver] unhandled: {exc}")
         return EXIT_DRIVER_ERROR

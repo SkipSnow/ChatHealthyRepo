@@ -84,18 +84,20 @@ _NOTICE_TIMEOUT_SECONDS = 30
 _NOTICE_GRACE_SECONDS = 2
 
 
-def _as_git_will_store(message: str) -> str:
+def _as_git_will_store(message: str, keep_comments: bool = False) -> str:
     """The message file as it will read back off the commit.
 
-    This hook is handed the file the operator edited, and git does not store
-    it verbatim: under the default cleanup it drops comment lines, strips
-    trailing whitespace, collapses runs of blank lines and trims the ends.
-    Digesting the raw file would never match the commit, and post-commit
-    would unmake the very commits the operator approved.
+    git does not store the edited file verbatim. Under `strip` cleanup -- an
+    editor commit -- it drops comment lines, strips trailing whitespace,
+    collapses runs of blank lines and trims the ends. Under `whitespace`
+    cleanup -- a `-m`/`-F` commit -- it does the same but KEEPS comment lines.
+    This hook cannot tell which git will apply, so the caller digests both ways
+    and post-commit accepts either; digesting only the comment-dropping way
+    unmade `-m` commits whose message carried a `#` line.
     """
     kept: list[str] = []
     for line in message.splitlines():
-        if line.startswith("#"):
+        if not keep_comments and line.startswith("#"):
             continue
         line = line.rstrip()
         if not line and (not kept or not kept[-1]):
@@ -849,10 +851,16 @@ class CommitAuthorizationWorker(EnforcementWorker):
         message = self._message_being_committed()
         if message is None:
             return
+        # git applies `strip` cleanup to an editor commit (drops comment lines)
+        # and `whitespace` to a `-m`/`-F` commit (keeps them), and this hook
+        # cannot tell which from the file. Leave one digest per cleanup;
+        # post-commit approves a commit whose stored message matches either.
+        digests = chr(10).join(
+            hashlib.sha256(_as_git_will_store(message, keep_comments=keep)
+                           .encode("utf-8")).hexdigest()
+            for keep in (False, True))
         marker = Path(self._commit_repo()) / ".git" / "rule065-approved"
-        marker.write_text(
-            hashlib.sha256(_as_git_will_store(message).encode("utf-8"))
-            .hexdigest(), encoding="utf-8")
+        marker.write_text(digests, encoding="utf-8")
 
     def _message_being_committed(self) -> str | None:
         """The message text this hook was handed.

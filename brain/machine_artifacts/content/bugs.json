@@ -117,36 +117,6 @@
       ]
     },
     {
-      "bugid": "BUG-006",
-      "title": "Incremental load never deletes records missing from a full source file",
-      "description": "STIPULATED BY THE OPERATOR 2026-09-10: the incremental capability is UNTESTED. It has never been run against a real dissemination file, so what follows is read from code rather than observed, and the gap below is one of several an untested path may hold.\n\nEPIC-010-F-007-S-004-REQ-B-002 says: when `incremental=true`, no provider record shall be deleted or altered unless (a) the source row changed (record altered to match), or (b) the source is a full file and the record is missing from it (record deleted).\n\nThe implementation only does (a). When `incremental=true`, `pipeline/Code/provider_load_manager.py:231-235` skips drain entirely, and `pipeline/Code/provider_worker.py:345-367` upserts each present row by NPI via `ReplaceOne({\"npi\": npi}, doc, upsert=True)`. There is NO post-load reconciliation pass that detects NPIs in the collection but missing from the source file and deletes them.\n\nNPPES is always a full dissemination file when the monthly file is used, so REQ branch (b) applies on every full-file incremental run, but no code path implements it. Stale and CMS-retired NPIs accumulate indefinitely in incremental mode.",
-      "environments": [
-        "dev",
-        "qa",
-        "prod"
-      ],
-      "status": "deferred",
-      "severity": "medium",
-      "req_id": "ORPHAN",
-      "story_id": "EPIC-010-F-102-S-005",
-      "test_id": "",
-      "test_success_criteria": [
-        "An `incremental=true` run against an NPPES dissemination file MUST delete every provider record whose NPI is not present in the source file.",
-        "Boolean test: pre-load count = N, source file count = N - K (K NPIs missing), post-load count = N - K, and the K specific NPIs are no longer in the collection."
-      ],
-      "discovery_date": "2026-05-08",
-      "due_date": "2026-10-30",
-      "reproduction": "1. Run a full load of state X with `incremental=false` - collection holds 1000 NPIs for X.\n2. Wait one NPPES dissemination cycle in which CMS retires/merges 50 of those NPIs.\n3. Operator runs `incremental=true`. Two source-file paths exist:\n   3.a. Weekly NPPES incremental file: contains only records that changed since last weekly/full. The 50 retired NPIs appear in the diff with their NPI Deactivation Date populated. The code upserts each present row by NPI via `ReplaceOne({\"npi\": npi}, doc, upsert=True)`. The deactivation date is stored on the document but no logic acts on it: no out_of_scope flag is set, no record is deleted, no downstream signal is emitted. (REQ-B-002 branch (b) does not apply here because the source is not a full file; this exposes an orthogonal deactivation-flag-handling gap, and the system has no enforced way to distinguish weekly vs full source.)\n   3.b. Monthly NPPES full file: contains every currently-disseminated record (active + deactivated-but-not-yet-purged); long-retired NPIs are absent entirely (CMS-purged). The code only upserts rows present in the file. There is NO post-load pass that scans the collection for NPIs absent from the source file. Long-retired (CMS-purged) NPIs remain in the collection indefinitely; recently-deactivated NPIs (still in the file with deactivation dates) remain 'active' in collection state. Direct violation of REQ-B-002 branch (b).\n4. FindCare search returns providers CMS has retired.",
-      "orphan": false,
-      "next_action": [
-        "The capability is untested. Before any incremental run, it needs a test against a real dissemination file -- not only for this gap but because an untested load path against the served collection is the risk, not this particular defect.",
-        "Deferred. No fix planned.",
-        "If a real business need to use incremental loading arises (currently every load is full), this bug must be fixed before the first incremental run.",
-        "Until then, all loads are `incremental=false` (drain -> reload), which is correct behavior under REQ-B-002 for full-loads and avoids the gap entirely.",
-        "V8 req capturing branch (b) of the legacy REQ-B-002 (full-source-file -> delete DB records absent from source) does NOT exist in EPIC-010-F-102-S-005. A new requirement under F-102-S-005 MUST be authored to capture this delete-on-absence semantic before this bug can be re-attached."
-      ]
-    },
-    {
       "bugid": "BUG-007",
       "title": "MongoFailure not properly handled by pipelines",
       "description": "The Controller has no retry policy for a lost MongoDB connection, so a transient outage ends a multi-hour run on the first failure. It then records the fatal reason to MongoDB, which is the resource that just became unavailable, so the run dies with no recorded cause. The DiscrepancyReport MUST survive a Mongo outage, which is always a fatal error.",

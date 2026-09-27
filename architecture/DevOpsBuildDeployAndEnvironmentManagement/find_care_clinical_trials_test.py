@@ -136,8 +136,9 @@ def env():
     context = browser.new_context(ignore_https_errors=True)
     page = context.new_page()
     page.set_default_timeout(CHAT_TIMEOUT)
-    page.goto(BASE_URL, wait_until="networkidle")
-    page.wait_for_load_state("networkidle", timeout=CHAT_TIMEOUT)
+    # The app holds a /gate NDJSON stream open, so "networkidle" never
+    # settles. Gate readiness on the chat input being visible instead.
+    page.goto(BASE_URL, wait_until="domcontentloaded")
     _chat_input(page).wait_for(state="visible", timeout=CHAT_TIMEOUT)
     yield {"page": page}
     context.close()
@@ -287,7 +288,7 @@ class TestREQ_B_071_ImmediateClearOnPaginationClick:
 class TestREQ_B_072_LoadingBannerContent:
     def test_loading_banner_carries_criteria_and_range(self, env):
         page = env["page"]
-        page.reload(wait_until="networkidle")
+        page.reload(wait_until="domcontentloaded")
         _chat_input(page).wait_for(state="visible", timeout=CHAT_TIMEOUT)
         # Install a MutationObserver on MainWindow BEFORE clicking send so
         # every intermediate paint is captured. The loading banner exists
@@ -331,7 +332,7 @@ class TestREQ_B_073_IntentClassifiedBannerUpdate:
         # Tap via ClientRouter.subscribe which is the canonical wrapper-side
         # event-capture API. We poll for ClientRouter to be defined before
         # subscribing because the wrapper inlines it via <script> on load.
-        page.reload(wait_until="networkidle")
+        page.reload(wait_until="domcontentloaded")
         _chat_input(page).wait_for(state="visible", timeout=CHAT_TIMEOUT)
         page.evaluate(
             """() => {
@@ -365,7 +366,7 @@ class TestREQ_B_073_IntentClassifiedBannerUpdate:
 class TestREQ_B_074_PaginationErrorVerbContext:
     def test_pagination_error_carries_verb_clause(self, env):
         page = env["page"]
-        page.reload(wait_until="networkidle")
+        page.reload(wait_until="domcontentloaded")
         _chat_input(page).wait_for(state="visible", timeout=CHAT_TIMEOUT)
         _chat_input(page).fill(TRIAL_QUERY)
         _send_button(page).click()

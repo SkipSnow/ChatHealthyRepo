@@ -91,12 +91,19 @@ def test_fire_provider_pipeline() -> None:
     # Operator can flip on via PIPELINE_TEST_GOOGLE_MAPS_ENABLED={1,true,yes}.
     gm_raw = os.environ.get("PIPELINE_TEST_GOOGLE_MAPS_ENABLED", "").strip().lower()
     google_maps_enabled = gm_raw in ("1", "true", "yes")
+    # Log verbosity for the fire. This is a smoke/soak fire, so it stays
+    # verbose by default (DEBUG) while we stabilise; an operator can dial it
+    # back via PIPELINE_TEST_DEBUG_LEVEL. Omitting it entirely would let the
+    # runbook fall to its INFO default, which is right for production but not
+    # for a soak run.
+    debug_level = os.environ.get("PIPELINE_TEST_DEBUG_LEVEL", "DEBUG")
     payload = {
         "state_scope": state_scope,
         "load_mode": load_mode,
         "invocation_mode": "tests",
         "data_version": data_version,
         "google_maps_enabled": google_maps_enabled,
+        "debug_level": debug_level,
     }
     body = json.dumps(payload).encode("utf-8")
     req = urllib.request.Request(

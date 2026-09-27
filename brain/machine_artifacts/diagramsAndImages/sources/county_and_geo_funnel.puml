@@ -1,0 +1,77 @@
+@startuml
+' CountyAndGeoFunnel — block-chart ILLUSTRATION (NOT a normative UML diagram).
+' Each pass works only the residue the prior pass could not resolve, so the
+' working set narrows top-to-bottom. Width guides (invisible block runs whose
+' colour matches each box fill) force the visual funnel taper.
+skinparam shadowing false
+skinparam defaultFontName Segoe UI
+skinparam defaultFontSize 12
+skinparam rectangleRoundCorner 10
+skinparam ArrowColor #0b7a75
+skinparam rectangleBorderColor #0b7a75
+skinparam NoteBackgroundColor #f3f4f6
+skinparam NoteBorderColor #9ca3af
+
+title CountyAndGeoFunnel — one narrowing funnel: 4 county passes, then a geo re-pass of the -1 residue
+
+' ── prerequisite / seed (widest) ────────────────────────────────────────────
+rectangle "**PREREQUISITE — collection build**\nchathealthy_lib.mongo_indexes (pipeline_indexes package) creates the provider indexes,\nincluding a single-field multikey geo index on practice_addresses.coordinates.latitude\n**ON ADMIT** every eligible address is seeded  coordinates = { latitude:-1, longitude:-1, source:\"pending\" }\na persistent, indexable semaphore (NOT absent) — real passes overwrite it\n<color:#dbeafe>████████████████████████████████████████████████████████████████████</color>" as PRE #dbeafe
+
+rectangle "**SCOPE** — practice + secondary_practice addresses · United States · ZIP present\n<color:#eef2ff>██████████████████████████████████████████████████</color>" as SCOPE #eef2ff
+
+' ── the four county passes ──────────────────────────────────────────────────
+rectangle "**PASS 1 · zip_crosswalk**   (free, no HTTP)\nCensus 2020 ZCTA file, in-Mongo lookup · stamps **county only** — coordinates stay -1\n<color:#e8f4f3>██████████████████████████████████████████████████████████</color>" as P1 #e8f4f3
+
+rectangle "**PASS 2 · census_batch**   (free)\nPOST geocoding.geo.census.gov/geocoder/geographies/addressbatch\ncounty + **real coordinates** (precision range_interpolated)\n<color:#d3ebe9>██████████████████████████████████████████████████</color>" as P2 #d3ebe9
+
+rectangle "**PASS 3 · nppes_registry**   (free, ~5 req/s)\nGET npiregistry.cms.hhs.gov/api/ per NPI — refresh address, then crosswalk-retry, then census-retry\ncounty · coordinates **only** from the census-retry sub-phase\n<color:#bfe2df>██████████████████████████████████████████</color>" as P3 #bfe2df
+
+rectangle "**PASS 4 · google_maps**   (paid — gated by google_maps_enabled + key)\nGET maps.googleapis.com/maps/api/geocode/json per address · county + real coordinates\n<color:#a9d9d5>██████████████████████████████████</color>" as P4 #a9d9d5
+
+' ── county exit ─────────────────────────────────────────────────────────────
+rectangle "**EXIT after PASS 4 — county-residue**\nreason=\"county_unresolvable\", step=\"county_enrichment\"\ndiscrepancy log **AND** the record's bad_data" as CX #fde8e8
+
+' ── geo re-pass (the -1 residue, found via the new geo index) ────────────────
+rectangle "**GEO RE-PASS** — only addresses whose coordinates.latitude is still **-1**\n(found via the new geo index). County came from a NON-geo step (PASS 1 or PASS 3 refresh).\n<color:#f5efe0>████████████████████████████████</color>" as GEO #f5efe0
+
+rectangle "**PASS 5 · census /locations**   (free, thin)\nPOST .../geocoder/locations/addressbatch — coordinates only, no county · overwrites -1\n<color:#efe4c6>████████████████████████</color>" as P5 #efe4c6
+
+rectangle "**PASS 6 · google_maps geo-only**   (paid, gated)\nsame Google endpoint, geo-only · overwrites -1\n<color:#e6d5a8>████████████</color>" as P6 #e6d5a8
+
+' ── geo exit (log only) ─────────────────────────────────────────────────────
+rectangle "**EXIT after PASS 6 — still -1**\nreason=\"coordinates_unresolvable\" → **LOG ONLY**\n(pipelineAdmin.pipeline.discrepancies)\nNothing added to the record's bad_data;\nthe persistent -1 in the record **IS** the in-data signal" as GX #fde8e8
+
+PRE -down-> SCOPE
+SCOPE -down-> P1
+P1 -down-> P2 : residue
+P2 -down-> P3 : residue
+P3 -down-> P4 : residue
+P4 -down-> GEO : county done;\ncoords still -1
+P4 -right-> CX : county\nresidue
+GEO -down-> P5
+P5 -down-> P6 : residue
+P6 -right-> GX : geo\nresidue
+
+note right of P2
+  Coordinates are already captured
+  opportunistically by passes 2 / 3 / 4
+  today. The geo re-pass exists only to
+  fill addresses that got their county
+  from a NON-geo step (PASS 1 crosswalk,
+  PASS 3 NPPES refresh).
+end note
+
+note right of P5
+  Free-before-paid: Census (PASS 5)
+  drains most of the -1 residue; Google
+  (PASS 6) pays only for the tail.
+  Both geo passes reuse APIs the funnel
+  already calls — no new vendor.
+end note
+
+legend bottom
+  Illustration, not a normative UML diagram. Delaware served data: 30,661 practice addresses,
+  100%% county, only 1,369 (4.5%%) with coordinates today → 29,292 (95.5%%) is the gap PASS 5 & 6 close.
+endlegend
+
+@enduml

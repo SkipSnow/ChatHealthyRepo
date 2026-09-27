@@ -61,7 +61,7 @@ note as ABSENCE #fff4e5
   acts govern CODE only.
 
   Data reaches a served store by ONE further governed
-  act -- a data migration (EPIC-010-F-108): human-released,
+  act -- a data migration (EPIC-010-F-102): human-released,
   server-side, moving a published generation from the
   pipeline cluster to the served cluster under its own
   name. It is governed by the Data Architecture chapter,

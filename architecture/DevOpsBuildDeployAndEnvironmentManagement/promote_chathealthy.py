@@ -455,13 +455,17 @@ def _promote_local_to_dev(repo_root: Path, label: str | None = None) -> int:
                      f"file is committed, not scanned")
     _require_everything_staged(repo_root)
 
-    files = baseline_files(repo_root)
-
+    # The governor enumerates the whole tree itself. Promote no longer
+    # manufactures the baseline list and hands it in -- handing the set was the
+    # governed party choosing what the governor saw. --entire-tree makes the
+    # driver walk the repository (baseline_walk.baseline_files) and run the
+    # seven content enforcements over it. This full scan is a promote gate; a
+    # commit is unaffected and stays scoped to its staged set.
     driver = (repo_root / "architecture" / "EngineeringRuleEnforcement"
               / "code" / "commit_governance_driver.py")
     rc = subprocess.run(
-        [sys.executable, str(driver), "--files-from", "-"],
-        input=chr(10).join(files), cwd=str(repo_root),
+        [sys.executable, str(driver), "--entire-tree"],
+        cwd=str(repo_root),
         text=True, encoding="utf-8", errors="surrogateescape",
     ).returncode
     if rc != 0:

@@ -83,7 +83,7 @@ t_fs --> mongo_served
 t_fd --> mongo_served
 t_ct --> mongo_served
 
-mongo_pipe ..> mongo_served : migration (human-released, name-preserving)\nEPIC-010-F-108 - not a runtime path
+mongo_pipe ..> mongo_served : migration (human-released, name-preserving)\nEPIC-010-F-102 - not a runtime path
 
 note right of nav
   Five incoming call types, all mapped:

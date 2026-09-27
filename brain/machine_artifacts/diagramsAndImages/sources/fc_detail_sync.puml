@@ -132,7 +132,7 @@ else the registry answered
         OPEN (N19) — not resolved here. This replaces the
         SERVED record on the request path, approved under
         EPIC-006-F-002-S-002-REQ-B-018; yet approved
-        EPIC-010-F-108-S-001-REQ-B-002 says only a migration
+        EPIC-010-F-102-S-001-REQ-B-002 says only a migration
         writes served data. Both are done. Either served data
         has two writers by design, or this per-click freshness
         write must target a non-served store. Operator's call.

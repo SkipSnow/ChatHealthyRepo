@@ -1,0 +1,20 @@
+@startuml live_enforcement_class_model
+skinparam shadowing false
+title Live engineering-rule object model\nas of 9/22/26
+class ChatHealthyEnforcementManager
+note right of ChatHealthyEnforcementManager : Parallel dispatch via ThreadPoolExecutor
+class CommitGovernanceDriver
+object "engineering_rules.json" as RulesJSON
+abstract class EnforcementWorker
+note right of EnforcementWorker : Scopes rows excuse files/patterns
+class ViolationRecord
+class RefusalReport
+EnforcementWorker <|-- ScanFilesEnforcementWorker
+ChatHealthyEnforcementManager ..> EnforcementWorker : spawns subprocess
+ChatHealthyEnforcementManager ..> RulesJSON : reads
+ChatHealthyEnforcementManager --> RefusalReport : owns
+CommitGovernanceDriver ..> EnforcementWorker : spawns (pre-commit)
+CommitGovernanceDriver ..> RulesJSON : reads
+EnforcementWorker ..> RulesJSON : loads own entry
+EnforcementWorker ..> ViolationRecord : emits
+@enduml

@@ -40,8 +40,9 @@ def env():
     context = browser.new_context(ignore_https_errors=True)
     page = context.new_page()
     page.set_default_timeout(DEFAULT_TIMEOUT)
-    page.goto(BASE_URL, wait_until="networkidle")
-    page.wait_for_load_state("networkidle", timeout=DEFAULT_TIMEOUT)
+    # The app holds a /gate NDJSON stream open, so "networkidle" never
+    # settles. Gate readiness on the header selector below instead.
+    page.goto(BASE_URL, wait_until="domcontentloaded")
     # Wait for the header to be painted by HeaderWidget so subsequent
     # selectors don't race the iframe load.
     page.wait_for_selector("[data-router-action='about_chathealthy']",
