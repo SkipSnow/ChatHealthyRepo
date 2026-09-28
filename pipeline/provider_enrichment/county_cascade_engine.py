@@ -1107,6 +1107,115 @@ def _stage_google_maps(
     return residue, hits
 
 
+# ── Geo re-pass — coordinates on the pending residue ────────────────────────
+# The county cascade resolves county; coordinates are a byproduct only for the
+# addresses that reach a geocoding stage. Most addresses resolve county for free
+# from the zip_crosswalk and so carry county but no point. The geo re-pass runs
+# after county resolution over every address still holding the -1 'pending'
+# sentinel: Census geo (free) then Google geo (paid, gated). What stays pending
+# is logged as coordinates_unresolvable and keeps its sentinel -- never dropped,
+# never recorded as bad data.
+
+def _seed_pending_coordinates(addr: dict) -> None:
+    """Give an eligible practice address the -1/-1 'pending' coordinate sentinel
+    unless it already carries a coordinates block. Persistent and indexable: it
+    marks the address coordinate-pending so the geo re-pass can find the residue,
+    and a served address never lacks the field."""
+    if not addr.get("coordinates"):
+        addr["coordinates"] = {
+            "latitude": -1.0,
+            "longitude": -1.0,
+            "source": "pending",
+            "precision": "pending",
+        }
+
+
+def _stage_geo_census(
+    pairs: list[tuple[dict, dict]],
+    *,
+    session: requests.Session,
+    gate: RateLimitedGate,
+    batch_size: int,
+) -> tuple[list[tuple[dict, dict]], int]:
+    """Geo-only Census pass over coordinate-pending addresses. Reuses the batch
+    geocoder and keeps only the point -- county is already resolved. Returns the
+    still-pending residue and the hit count."""
+    residue: list[tuple[dict, dict]] = []
+    hits = 0
+    for start in range(0, len(pairs), batch_size):
+        chunk = pairs[start:start + batch_size]
+        resolved = _census_batch_parse(
+            _census_batch_fetch(_census_batch_body(chunk), session=session, gate=gate)
+        )
+        for idx, (doc, addr) in enumerate(chunk):
+            entry = resolved.get(idx)
+            if entry and "latitude" in entry and "longitude" in entry:
+                _stamp_coordinates(
+                    addr, latitude=entry["latitude"], longitude=entry["longitude"],
+                    source=CENSUS_BATCH, precision="range_interpolated",
+                )
+                hits += 1
+            else:
+                residue.append((doc, addr))
+    _log.info("county_cascade[geo_census]: in=%d hit=%d residue=%d",
+              len(pairs), hits, len(residue))
+    return residue, hits
+
+
+def _stage_geo_google(
+    pairs: list[tuple[dict, dict]],
+    *,
+    session: requests.Session,
+    gate: RateLimitedConcurrencyGate,
+    api_key: str,
+) -> tuple[list[tuple[dict, dict]], int]:
+    """Geo-only Google pass over the Census-pending residue. Paid; one request
+    per address under the concurrency gate. Keeps only the point. Returns the
+    still-pending residue and the hit count."""
+    if not api_key:
+        _log.warning("county_cascade[geo_google]: no API key; skipping stage in=%d", len(pairs))
+        return pairs, 0
+    if not pairs:
+        return pairs, 0
+    from concurrent.futures import ThreadPoolExecutor
+    with ThreadPoolExecutor(max_workers=max(1, gate.max_in_flight)) as pool:
+        results = list(pool.map(
+            lambda pair: _google_maps_lookup(
+                pair[1], session=session, gate=gate, api_key=api_key,
+            ),
+            pairs,
+        ))
+    residue: list[tuple[dict, dict]] = []
+    hits = 0
+    for (doc, addr), entry in zip(pairs, results):
+        if entry and "latitude" in entry and "longitude" in entry:
+            _stamp_coordinates(
+                addr, latitude=entry["latitude"], longitude=entry["longitude"],
+                source=GOOGLE_MAPS, precision=entry.get("precision", "approximate"),
+            )
+            hits += 1
+        else:
+            residue.append((doc, addr))
+    _log.info("county_cascade[geo_google]: in=%d hit=%d residue=%d",
+              len(pairs), hits, len(residue))
+    return residue, hits
+
+
+def _build_geo_unresolvable_doc(run_id: str, doc: dict, addr: dict) -> dict:
+    """A coordinates_unresolvable discrepancy: logged, never a data change. The
+    address keeps its -1 pending sentinel; this only records that no stage
+    resolved a point for it."""
+    return {
+        "run_id": run_id,
+        "npi": doc.get("npi"),
+        "reason": "coordinates_unresolvable",
+        "step": "geo_enrichment",
+        "state": (addr.get("state") or "").upper() or None,
+        "entity_kind": "individual" if doc.get("entity_type_code") == "1" else "institutional",
+        "detail": {"address": {k: addr.get(k) for k in ("street_1", "city", "state", "zip")}},
+    }
+
+
 def _build_unresolvable_doc(run_id: str, doc: dict, addr: dict) -> dict:
     return {
         "run_id": run_id,
@@ -1171,6 +1280,15 @@ def run_county_cascade(
 
     db_name, coll_name = config["provider_collection"].split(".", 1)
     provider_coll = mongo[db_name][coll_name]
+    # The coordinate-pending sentinel must be queryable. The index is built in
+    # code, here, on the collection that exists -- this versioned collection,
+    # being enriched now -- never declared statically against a collection name
+    # that does not exist until the run creates it. create_index is idempotent:
+    # a matching index is a no-op.
+    provider_coll.create_index(
+        [("practice_addresses.coordinates.source", 1)],
+        name="practice_addresses.coordinates.source_1",
+    )
     # pipelineAdmin is on the FRONT END, and `mongo` here is the pipeline
     # cluster. Writing discrepancies through it put them in a database the
     # discrepancy report never reads, which is why a run could resolve
@@ -1211,9 +1329,11 @@ def run_county_cascade(
     google_gate: RateLimitedConcurrencyGate | None = None
 
     stage_hits = {ZIP_CROSSWALK: 0, CENSUS_BATCH: 0, NPPES_REGISTRY: 0, GOOGLE_MAPS: 0}
+    geo_stage_hits = {CENSUS_BATCH: 0, GOOGLE_MAPS: 0}
     total = 0
     resolved_running = 0
     unresolvable_total = 0
+    geo_unresolvable_total = 0
 
     update_ops: list[UpdateOne] = []
     unresolvable_docs: list[dict] = []
@@ -1240,6 +1360,13 @@ def run_county_cascade(
         if not chunk_total:
             continue
         total += chunk_total
+
+        # Every eligible address carries the -1 'pending' coordinate sentinel
+        # from here; county stages overwrite it when they resolve a point, and
+        # the geo re-pass below resolves whatever stays pending -- chiefly the
+        # zip_crosswalk hits, which carry county but no coordinates.
+        for _gd, _ga in pairs:
+            _seed_pending_coordinates(_ga)
 
         residue, hit1 = _stage_zip_crosswalk(pairs, crosswalk, rucc_by_fips)
         stage_hits[ZIP_CROSSWALK] += hit1
@@ -1288,6 +1415,34 @@ def run_county_cascade(
             )
             stage_hits[GOOGLE_MAPS] += hit4
 
+        # ── Geo re-pass ────────────────────────────────────────────────
+        # County is resolved; now resolve coordinates on every address still
+        # holding the pending sentinel. Census geo is free; Google is gated.
+        geo_pending = [
+            (doc, addr) for (doc, addr) in pairs
+            if (addr.get("coordinates") or {}).get("source") == "pending"
+        ]
+        if geo_pending:
+            if census_gate is None:
+                census_gate = RateLimitedGate(
+                    rate_per_second=float(throttle_rates.get(CENSUS_BATCH, 1.0)),
+                )
+            geo_pending, ghitc = _stage_geo_census(
+                geo_pending, session=session, gate=census_gate, batch_size=batch_size,
+            )
+            geo_stage_hits[CENSUS_BATCH] += ghitc
+        if geo_pending and google_enabled:
+            if google_gate is None:
+                google_gate = RateLimitedConcurrencyGate(
+                    max_in_flight=int(concurrency.get("google_max_in_flight", DEFAULT_GOOGLE_MAX_IN_FLIGHT)),
+                    rate_per_second=float(throttle_rates.get(GOOGLE_MAPS, DEFAULT_GOOGLE_RATE)),
+                )
+            geo_pending, ghitg = _stage_geo_google(
+                geo_pending, session=session, gate=google_gate, api_key=google_api_key,
+            )
+            geo_stage_hits[GOOGLE_MAPS] += ghitg
+        geo_unresolvable_total += len(geo_pending)
+
         resolved_running += (chunk_total - len(residue))
         unresolvable_total += len(residue)
 
@@ -1312,6 +1467,11 @@ def run_county_cascade(
             if len(unresolvable_docs) >= _BULK_WRITE_CHUNK:
                 _flush_unresolvables()
 
+        for doc, addr in geo_pending:
+            unresolvable_docs.append(_build_geo_unresolvable_doc(run_id, doc, addr))
+            if len(unresolvable_docs) >= _BULK_WRITE_CHUNK:
+                _flush_unresolvables()
+
     _flush_updates()
     _flush_unresolvables()
 
@@ -1327,14 +1487,18 @@ def run_county_cascade(
             "match_rate": 1.0,
             "sla_met": True,
             "unresolvable_count": 0,
+            "geo_stage_hits": geo_stage_hits,
+            "geo_unresolvable_count": 0,
         }
 
     match_rate = resolved_running / total
     _log.info(
         "county_cascade: funnel done run_id=%s state=%s total=%d "
-        "stage_hits=%s match_rate=%.4f sla_met=%s unresolvable=%d",
+        "stage_hits=%s match_rate=%.4f sla_met=%s unresolvable=%d "
+        "geo_stage_hits=%s geo_unresolvable=%d",
         run_id, partition_state or "ALL",
         total, stage_hits, match_rate, match_rate >= sla_target, unresolvable_total,
+        geo_stage_hits, geo_unresolvable_total,
     )
     return {
         "total_addresses": total,
@@ -1342,4 +1506,6 @@ def run_county_cascade(
         "match_rate": match_rate,
         "sla_met": match_rate >= sla_target,
         "unresolvable_count": unresolvable_total,
+        "geo_stage_hits": geo_stage_hits,
+        "geo_unresolvable_count": geo_unresolvable_total,
     }
