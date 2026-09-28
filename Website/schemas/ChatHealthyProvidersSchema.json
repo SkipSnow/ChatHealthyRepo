@@ -91,37 +91,50 @@
           "pattern": "^[0-9]{2}/[0-9]{2}/[0-9]{4}$"
         },
         "active": {
-          "description": "Inactivity event log for this NPI. OPTIONAL: absence = the provider is currently active AND has never had an inactivity incident in NPPES. PRESENT = the provider is currently inactive OR has been inactive at some point in the past (even if later reactivated). Each entry records one deactivation or reactivation event with the NPPES date. The current active state is computed by an evaluator function that walks the event log (latest deactivated/reactivated determines current status); the schema records the events, the function makes the call. Subsumes the former top-level npi_deactivation_date / npi_reactivation_date fields — their data lives in this event log.",
-          "type": "array",
-          "items": {
-            "type": "object",
-            "required": [
-              "event",
-              "date",
-              "is_active"
-            ],
-            "properties": {
-              "event": {
-                "description": "Event type. Controlled vocabulary.",
-                "type": "string",
-                "enum": [
-                  "deactivated",
-                  "reactivated"
-                ]
-              },
-              "date": {
-                "description": "Event date (MM/DD/YYYY) as reported by NPPES.",
-                "type": "string",
-                "pattern": "^[0-9]{2}/[0-9]{2}/[0-9]{4}$"
-              },
-              "is_active": {
-                "description": "Provider's active state AFTER this event. event='deactivated' yields false; event='reactivated' yields true. Default true if absent (a default that satisfies the conceptual 'absence means active' contract; in practice this field is required on every event so the default rarely applies).",
-                "type": "boolean",
-                "default": true
-              },
-              "source": {
-                "description": "Where this event was learned (typically 'nppes_deactivation_date' or 'nppes_reactivation_date').",
-                "type": "string"
+          "description": "Active standing for this NPI. Always present. is_active is a three-value flag: 'Default_true' (currently active, never deactivated -- no log), 'history_true' (currently active but was deactivated and later reactivated -- log present), 'false' (currently deactivated -- log present). The flag alone tells whether a history exists, so the current status is read directly rather than computed by walking the log. The log is present only when there is a history and records one deactivation or reactivation event per entry with the NPPES date. Subsumes the former top-level npi_deactivation_date / npi_reactivation_date fields.",
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "is_active"
+          ],
+          "properties": {
+            "is_active": {
+              "description": "Current active standing. Default_true = active, never deactivated. history_true = active now, was deactivated then reactivated. original_false = currently deactivated, never reactivated. history_false = deactivated, reactivated, then deactivated again.",
+              "enum": [
+                "Default_true",
+                "history_true",
+                "original_false",
+                "history_false"
+              ]
+            },
+            "log": {
+              "type": "array",
+              "items": {
+                "type": "object",
+                "required": [
+                  "event",
+                  "date",
+                  "source"
+                ],
+                "properties": {
+                  "event": {
+                    "description": "Event type. Controlled vocabulary.",
+                    "type": "string",
+                    "enum": [
+                      "deactivated",
+                      "reactivated"
+                    ]
+                  },
+                  "date": {
+                    "description": "Event date (MM/DD/YYYY) as reported by NPPES.",
+                    "type": "string",
+                    "pattern": "^[0-9]{2}/[0-9]{2}/[0-9]{4}$"
+                  },
+                  "source": {
+                    "description": "Where this event was learned (typically 'nppes_deactivation_date' or 'nppes_reactivation_date').",
+                    "type": "string"
+                  }
+                }
               }
             }
           }

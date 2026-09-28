@@ -173,6 +173,20 @@ def ensure_provider_indexes_fn(config: dict) -> dict:
     coll, client = _providers_collection_and_client(config.get("provider_collection"))
     cluster_wait_minutes = int(config.get("cluster_wait_minutes", 20))
     _wait_for_cluster_ready(client, cluster_wait_minutes)
+    # Build indexes only when we are CREATING the collection. An incremental job
+    # (states 1..n now, further states in a later run against the same version)
+    # finds the collection already present and its indexes already built when it
+    # was first created; rebuilding them on a populated collection is neither
+    # free nor needed. On a fresh (empty) collection they are instant.
+    if coll.name in coll.database.list_collection_names():
+        _log.info("ensure_provider_indexes: %s already exists (incremental run); "
+                  "indexes left as-is", coll.full_name)
+        return {"collection": coll.full_name, "indexes": [], "created": False}
+    # Fresh: create the empty collection explicitly, then build every index on it
+    # while it holds no rows (instant). This is the manage-index step for the
+    # provider pipeline -- the one place the collection and all its indexes come
+    # into being together.
+    coll.database.create_collection(coll.name)
     results = apply_indexes(coll, _pipeline_provider_index_specs())
     # The coordinate-pending sentinel index, built up front here -- before the
     # load fan-out, on the empty collection, so it is instant -- so the -1s the
@@ -182,7 +196,16 @@ def ensure_provider_indexes_fn(config: dict) -> dict:
         [("practice_addresses.coordinates.source", 1)],
         name="practice_addresses.coordinates.source_1",
     )
+    # The active-standing flag, built up front on the empty collection. Always
+    # present on every provider, so a plain (non-sparse) index. Same reasoning
+    # as coordinates: created in code when the collection is created, not
+    # declared against a collection that does not exist until the run does.
+    coll.create_index(
+        [("active.is_active", 1)],
+        name="active.is_active_1",
+    )
     return {
         "collection": coll.full_name,
         "indexes": results,
+        "created": True,
     }

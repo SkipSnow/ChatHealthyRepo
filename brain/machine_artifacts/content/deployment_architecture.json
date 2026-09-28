@@ -5425,16 +5425,6 @@
                     ]
                   },
                   {
-                    "name": "active_1",
-                    "keys": [
-                      [
-                        "active",
-                        1
-                      ]
-                    ],
-                    "sparse": true
-                  },
-                  {
                     "name": "entity_taxonomy",
                     "keys": [
                       [

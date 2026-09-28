@@ -787,25 +787,44 @@
       "type": "boolean"
     },
     "active": {
-      "type": "array",
-      "items": {
-        "type": "object",
-        "additionalProperties": false,
-        "required": [
-          "is_active",
-          "event_date",
-          "source"
-        ],
-        "properties": {
-          "is_active": {
-            "type": "boolean"
-          },
-          "event_date": {
-            "type": "string",
-            "format": "date-time"
-          },
-          "source": {
-            "type": "string"
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "is_active"
+      ],
+      "properties": {
+        "is_active": {
+          "enum": [
+            "Default_true",
+            "history_true",
+            "original_false",
+            "history_false"
+          ]
+        },
+        "log": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "event",
+              "date",
+              "source"
+            ],
+            "properties": {
+              "event": {
+                "enum": [
+                  "deactivated",
+                  "reactivated"
+                ]
+              },
+              "date": {
+                "type": "string"
+              },
+              "source": {
+                "type": "string"
+              }
+            }
           }
         }
       }

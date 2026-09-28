@@ -225,33 +225,47 @@ def normalize_raw_record(raw: dict) -> dict:
     if practice_addresses:
         doc["practice_addresses"] = practice_addresses
 
-    # active event log — derived from NPPES NPI Deactivation Date /
-    # NPI Reactivation Date. Absent when neither is set (provider currently
-    # active with no inactivity history). Present when either is set,
-    # carrying one entry per event. Subsumes the former top-level
-    # npi_deactivation_date / npi_reactivation_date scalar fields.
+    # active standing — a single always-present object derived from NPPES
+    # NPI Deactivation Date / NPI Reactivation Date. `is_active` is a four-value
+    # flag so the flag alone tells current standing AND whether a history exists:
+    #   Default_true    active, never deactivated -> no log
+    #   history_true    active now, was deactivated then reactivated -> log
+    #   original_false  currently deactivated, never reactivated -> log
+    #   history_false   deactivated, reactivated, then deactivated again -> log
+    # The log (present only when there is a history) carries one entry per event.
     DEACT_COL = "NPI Deactivation Date"
     REACT_COL = "NPI Reactivation Date"
     consumed.update([DEACT_COL, REACT_COL])
-    active: list = []
     deact_date = (raw.get(DEACT_COL) or "").strip()
     react_date = (raw.get(REACT_COL) or "").strip()
+    active_log: list = []
     if deact_date:
-        active.append({
-            "event":     "deactivated",
-            "date":      deact_date,
-            "is_active": False,
-            "source":    "nppes_deactivation_date",
+        active_log.append({
+            "event":  "deactivated",
+            "date":   deact_date,
+            "source": "nppes_deactivation_date",
         })
     if react_date:
-        active.append({
-            "event":     "reactivated",
-            "date":      react_date,
-            "is_active": True,
-            "source":    "nppes_reactivation_date",
+        active_log.append({
+            "event":  "reactivated",
+            "date":   react_date,
+            "source": "nppes_reactivation_date",
         })
-    if active:
-        doc["active"] = active
+    if not deact_date and not react_date:
+        doc["active"] = {"is_active": "Default_true"}
+    elif deact_date and not react_date:
+        doc["active"] = {"is_active": "original_false", "log": active_log}
+    elif react_date and not deact_date:
+        doc["active"] = {"is_active": "history_true", "log": active_log}
+    else:
+        # Both dates present: the later event decides current standing. NPPES
+        # dates are MM/DD/YYYY; rearranged to YYYYMMDD they compare lexically.
+        react_key = react_date[6:10] + react_date[0:2] + react_date[3:5]
+        deact_key = deact_date[6:10] + deact_date[0:2] + deact_date[3:5]
+        doc["active"] = {
+            "is_active": "history_true" if react_key >= deact_key else "history_false",
+            "log": active_log,
+        }
 
     # Remaining scalar fields — snake_case the key, skip empty values
     for h, v in raw.items():
