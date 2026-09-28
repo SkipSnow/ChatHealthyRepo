@@ -174,6 +174,14 @@ def ensure_provider_indexes_fn(config: dict) -> dict:
     cluster_wait_minutes = int(config.get("cluster_wait_minutes", 20))
     _wait_for_cluster_ready(client, cluster_wait_minutes)
     results = apply_indexes(coll, _pipeline_provider_index_specs())
+    # The coordinate-pending sentinel index, built up front here -- before the
+    # load fan-out, on the empty collection, so it is instant -- so the -1s the
+    # base load writes are queryable. Created in code, never declared against a
+    # collection that does not exist until the run creates it. Idempotent.
+    coll.create_index(
+        [("practice_addresses.coordinates.source", 1)],
+        name="practice_addresses.coordinates.source_1",
+    )
     return {
         "collection": coll.full_name,
         "indexes": results,

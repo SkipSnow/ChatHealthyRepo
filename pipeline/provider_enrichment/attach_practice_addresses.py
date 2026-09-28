@@ -37,7 +37,7 @@ from chathealthy_lib.exceptions import ChatHealthyException
 
 from pymongo import UpdateOne
 
-from pipeline.provider_base.address_dedup import dedupe_addresses
+from pipeline.provider_base.address_dedup import dedupe_addresses, seed_pending_coordinates
 from pipeline.provider_base.code_labels import state_label_of, country_label_of
 from pipeline.run_lifecycle.pipeline_runtime import PipelineRuntime
 
@@ -100,6 +100,9 @@ def _pl_row_to_address(row: dict) -> dict | None:
     clbl = country_label_of(country)
     if clbl:
         addr["country_code_label"] = clbl
+    # An additional practice address is attached after the base load, so it
+    # missed the base seed: give it the -1 'pending' sentinel here too.
+    seed_pending_coordinates(addr)
     return addr
 
 

@@ -1110,25 +1110,12 @@ def _stage_google_maps(
 # ── Geo re-pass — coordinates on the pending residue ────────────────────────
 # The county cascade resolves county; coordinates are a byproduct only for the
 # addresses that reach a geocoding stage. Most addresses resolve county for free
-# from the zip_crosswalk and so carry county but no point. The geo re-pass runs
-# after county resolution over every address still holding the -1 'pending'
-# sentinel: Census geo (free) then Google geo (paid, gated). What stays pending
-# is logged as coordinates_unresolvable and keeps its sentinel -- never dropped,
-# never recorded as bad data.
-
-def _seed_pending_coordinates(addr: dict) -> None:
-    """Give an eligible practice address the -1/-1 'pending' coordinate sentinel
-    unless it already carries a coordinates block. Persistent and indexable: it
-    marks the address coordinate-pending so the geo re-pass can find the residue,
-    and a served address never lacks the field."""
-    if not addr.get("coordinates"):
-        addr["coordinates"] = {
-            "latitude": -1.0,
-            "longitude": -1.0,
-            "source": "pending",
-            "precision": "pending",
-        }
-
+# from the zip_crosswalk and so carry county but no point. Base population seeds
+# every practice address with the -1 'pending' coordinate sentinel; the geo
+# re-pass runs after county resolution over every address still holding it:
+# Census geo (free) then Google geo (paid, gated). What stays pending is logged
+# as coordinates_unresolvable and keeps its sentinel -- never dropped, never
+# recorded as bad data.
 
 def _stage_geo_census(
     pairs: list[tuple[dict, dict]],
@@ -1280,15 +1267,6 @@ def run_county_cascade(
 
     db_name, coll_name = config["provider_collection"].split(".", 1)
     provider_coll = mongo[db_name][coll_name]
-    # The coordinate-pending sentinel must be queryable. The index is built in
-    # code, here, on the collection that exists -- this versioned collection,
-    # being enriched now -- never declared statically against a collection name
-    # that does not exist until the run creates it. create_index is idempotent:
-    # a matching index is a no-op.
-    provider_coll.create_index(
-        [("practice_addresses.coordinates.source", 1)],
-        name="practice_addresses.coordinates.source_1",
-    )
     # pipelineAdmin is on the FRONT END, and `mongo` here is the pipeline
     # cluster. Writing discrepancies through it put them in a database the
     # discrepancy report never reads, which is why a run could resolve
@@ -1360,13 +1338,6 @@ def run_county_cascade(
         if not chunk_total:
             continue
         total += chunk_total
-
-        # Every eligible address carries the -1 'pending' coordinate sentinel
-        # from here; county stages overwrite it when they resolve a point, and
-        # the geo re-pass below resolves whatever stays pending -- chiefly the
-        # zip_crosswalk hits, which carry county but no coordinates.
-        for _gd, _ga in pairs:
-            _seed_pending_coordinates(_ga)
 
         residue, hit1 = _stage_zip_crosswalk(pairs, crosswalk, rucc_by_fips)
         stage_hits[ZIP_CROSSWALK] += hit1

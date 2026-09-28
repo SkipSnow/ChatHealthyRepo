@@ -5,7 +5,7 @@
 
 from __future__ import annotations
 
-from pipeline.provider_base.address_dedup import dedupe_addresses
+from pipeline.provider_base.address_dedup import dedupe_addresses, seed_pending_coordinates
 from pipeline.provider_base.normalize_provider_rows import normalize_raw_record
 from pipeline.provider_base.record_subdoc_dedup import (
     dedupe_insurance,
@@ -55,7 +55,12 @@ def dedupe_within_record(doc: dict) -> dict:
 
     practice = doc.get("practice_addresses") or []
     if practice:
-        doc["practice_addresses"] = dedupe_addresses(practice)
+        deduped = dedupe_addresses(practice)
+        # Base data: every practice address carries the -1 'pending' coordinate
+        # sentinel from load, before any enrichment. The geo re-pass resolves it.
+        for addr in deduped:
+            seed_pending_coordinates(addr)
+        doc["practice_addresses"] = deduped
 
     return doc
 

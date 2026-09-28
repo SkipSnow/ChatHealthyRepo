@@ -6,6 +6,25 @@
 from __future__ import annotations
 
 
+PENDING_COORDINATES = {
+    "latitude": -1.0,
+    "longitude": -1.0,
+    "source": "pending",
+    "precision": "pending",
+}
+
+
+def seed_pending_coordinates(addr: dict) -> None:
+    """Give an address the -1/-1 'pending' coordinate sentinel unless it already
+    carries a coordinates block. Base load seeds every practice address, and the
+    additional-practice-address enrichment seeds every address it attaches; the
+    geo re-pass then resolves the pending ones. A served address never lacks the
+    field, and the sentinel is queryable via the coordinates.source index built
+    up front on the collection."""
+    if not addr.get("coordinates"):
+        addr["coordinates"] = dict(PENDING_COORDINATES)
+
+
 def address_location_key(addr: dict) -> str:
     """Hash key for dedup: (address_type, line1, city, state, zip5).
 
@@ -61,6 +80,14 @@ def merge_address(existing: dict, incoming: dict) -> dict:
     for field in ("county", "urban", "phone", "fax"):
         if existing.get(field) is not None and incoming.get(field) is None:
             merged[field] = existing[field]
+    # Coordinates: a resolved point must survive a -1 'pending' sentinel that
+    # arrives at the same location on a duplicate. Keep the existing coordinates
+    # when its latitude is a real value and the incoming carries the -1 sentinel.
+    existing_coordinates = existing.get("coordinates") or {}
+    incoming_coordinates = incoming.get("coordinates") or {}
+    if (existing_coordinates.get("latitude") not in (None, -1)
+            and incoming_coordinates.get("latitude") in (None, -1)):
+        merged["coordinates"] = existing_coordinates
     return merged
 
 
