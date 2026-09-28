@@ -16,10 +16,10 @@ This process:
      from the Controller's F-003 cert, fetched from KV via the VM's MI).
   2. Updates the manifest to status=running + controller_heartbeat_at.
   3. Walks the STEPS list; spawns Workers as subprocesses.
-  4. On terminal state (success/failed/aborted), quiesces:
-     - Writes final manifest state
-     - Deletes the current VM through ARM
-     - Exits — cloud-init container ends, VM is destroyed by ARM.
+  4. On terminal state (success/failed/aborted), quiesces via the generic
+     run-end release in pipeline.run_lifecycle.controller_release, then emits
+     the provider-specific discrepancy report and exits — cloud-init container
+     ends, VM is destroyed by ARM.
 
 Local runs (developer workstation) skip the VM-teardown step (they
 detect PIPELINE_LOCAL_MODE=1 in env).
@@ -53,7 +53,6 @@ set_mongo_log_identity("pipelineEditor")
 import argparse
 import datetime
 import json
-import subprocess
 import sys
 
 from chathealthy_lib.mongo_utilities import ChatHealthyMongoUtilities
@@ -63,67 +62,16 @@ from pipeline.run_lifecycle.blob_client import get_blob_service
 from pipeline.run_lifecycle.pipeline_env import load_pipeline_env
 from pipeline.provider_pipeline.provider_pipeline_orchestrator import ProviderPipelineOrchestrator
 from pipeline.run_lifecycle.step_context import PipelineArgs
+from pipeline.run_lifecycle.controller_release import (
+    empty_pipeline_staging,
+    fatal_on_worker_log_db_reports,
+    fire_farewell_vm_delete,
+    kill_active_workers,
+    pause_pipeline_cluster,
+    quiesce_mongo_state,
+)
 
 _log = ChatHealthyLoggingService()
-
-
-def _fire_farewell_vm_delete() -> None:
-    """Delete this run's VM through ARM, with the credential already in hand.
-
-    This used to shell out to `az vm delete`, and the container has no Azure
-    CLI -- Dockerfile.control installs pip packages and nothing else. Every
-    call raised FileNotFoundError, logged a warning nobody read, and left a
-    32-core host running until a human noticed. One such host consumed the
-    regional quota and refused the next run outright.
-
-    ARM is reached directly instead: requests and azure-identity are both in
-    the image, and the identity is the same pipelineEditor service principal
-    the rest of the container authenticates with. The DELETE returns 202 and
-    ARM finishes asynchronously, so this never blocks the exit.
-    """
-    if os.environ.get("PIPELINE_LOCAL_MODE", "").strip() == "1":
-        _log.info("control_runner: local mode, no host to delete")
-        return
-
-    subscription = os.environ.get("AZURE_SUBSCRIPTION_ID", "").strip()
-    rg = os.environ.get("AZURE_RESOURCE_GROUP", "").strip()
-    vm_name = os.environ.get("AZURE_VM_NAME", "").strip()
-    if not vm_name:
-        run_id = os.environ.get("RUN_ID", "").strip()
-        if run_id:
-            short = run_id.split("-")[-1][:8] if "-" in run_id else run_id[:8]
-            vm_name = f"vm-chpipeline-{short}"
-    missing = [n for n, v in (("AZURE_SUBSCRIPTION_ID", subscription),
-                              ("AZURE_RESOURCE_GROUP", rg),
-                              ("AZURE_VM_NAME/RUN_ID", vm_name)) if not v]
-    if missing:
-        _log.error("control_runner: cannot delete this host, %s absent; "
-                   "the watchdog must reap it", ", ".join(missing))
-        return
-
-    try:
-        import requests  # noqa: PLC0415
-        from pipeline.run_lifecycle.pipeline_identity import pipeline_editor_credential  # noqa: PLC0415
-
-        credential = pipeline_editor_credential()
-        token = credential.get_token("https://management.azure.com/.default").token
-        url = (f"https://management.azure.com/subscriptions/{subscription}"
-               f"/resourceGroups/{rg}/providers/Microsoft.Compute"
-               f"/virtualMachines/{vm_name}?api-version=2024-07-01"
-               f"&forceDeletion=true")
-        response = requests.delete(
-            url, headers={"Authorization": f"Bearer {token}"}, timeout=30)
-        if response.status_code in (200, 202, 204, 404):
-            _log.info("control_runner: host %s delete accepted (HTTP %d)",
-                      vm_name, response.status_code)
-        else:
-            _log.error("control_runner: host %s delete refused (HTTP %d: %s); "
-                       "the watchdog must reap it", vm_name,
-                       response.status_code, response.text[:200])
-    except Exception as exc:  # noqa: BLE001
-        _log.error("control_runner: host %s delete failed (%s: %s); "
-                   "the watchdog must reap it",
-                   vm_name, type(exc).__name__, str(exc)[:200])
 
 
 def _states_default_from_env() -> str:
@@ -347,30 +295,34 @@ def _control(ns):
             ),
         )
     finally:
-        # On any non-success terminal state, kill every child process the
-        # Controller spawned (worker subprocesses). Operator directive
-        # 2026-08-03: "if we get a fatal error the controller must kill any
-        # active workers". Prevents LLM/DB writes from continuing after the
-        # run has already abended.
         # Workers never declare a run fatal; they state what happened to their
         # own work item and stop. The Controller reads those reports and is the
-        # one that calls it. Runs before the kill so the reason is recorded
-        # while the evidence is still there.
-        _fatal_on_worker_log_db_reports(
+        # one that calls it -- run before the kill so the reason is recorded
+        # while the evidence is still there. On any non-success terminal state,
+        # kill every child process the Controller spawned so no worker keeps
+        # writing after the run has abended (operator directive 2026-08-03).
+        run_id_now = (
             (manifest.run_id if manifest and manifest.run_id else None)
             or os.environ.get("RUN_ID", "")
         )
+        fatal_on_worker_log_db_reports(run_id_now)
         if final_status != "succeeded":
-            _kill_active_workers()
-        run_id_for_quiesce = (
-            (manifest.run_id if manifest and manifest.run_id else None)
-            or os.environ.get("RUN_ID", "")
-        )
-        _quiesce_mongo_state(run_id_for_quiesce, final_status,
-                              manifest=manifest, args=args, fatal_exception=fatal_exception)
+            kill_active_workers()
+        quiesce_mongo_state(run_id_now, final_status)
+        # Provider-specific, and it reads the NPPES staging collection, so it
+        # runs here (not in the generic release) and before staging is emptied.
+        _emit_discrepancy_report(run_id_now, final_status,
+                                 manifest=manifest, args=args,
+                                 fatal_exception=fatal_exception)
+        # A successful run leaves PublicStaging empty; this also clears scratch
+        # left behind by prior failed runs. Success only -- a failed run keeps
+        # its staging for diagnosis. After the report's staging read, before
+        # the cluster pause (a paused cluster cannot be dropped against).
+        if final_status == "succeeded":
+            empty_pipeline_staging()
         if manifest:
-            _pause_pipeline_cluster()
-            _fire_farewell_vm_delete()
+            pause_pipeline_cluster()
+            fire_farewell_vm_delete()
     return exit_code
 
 
@@ -380,214 +332,15 @@ def main(argv: list[str] | None = None) -> int:
     return _control(ns)
 
 
-def _fatal_on_worker_log_db_reports(run_id: str) -> None:
-    """Find Workers that died because the logging substrate refused to start,
-    and call it fatal. The Worker states the fact; this is where it becomes a
-    verdict. Never raises -- it runs in the Controller's finally, and its own
-    failure must not displace the outcome already being recorded.
-    """
-    if not run_id:
-        return
-    try:
-        from pipeline.run_lifecycle.pipeline_fatal_recorder import record_fatal_discrepancy
-        wi = ChatHealthyMongoUtilities().getConnection("pipelineEditor", "ChatHealthyFrontEnd")
-        rows = list(wi["pipelineAdmin"]["pipeline.work_items"].find(
-            {"run_id": run_id, "reason": {"$regex": "^log_db_fatal:"}},
-            {"step": 1, "reason": 1, "detail": 1},
-        ))
-        for row in rows:
-            record_fatal_discrepancy(
-                wi,
-                run_id=run_id,
-                step=str(row.get("step") or ""),
-                exc=ChatHealthyException(
-                    mode="worker_log_db_fatal",
-                    component="ControlRunner",
-                    message=(
-                        f"Worker step={row.get('step')!r} could not start its "
-                        f"logging substrate: {row.get('reason')}. "
-                        f"{row.get('detail', '')}"
-                    ),
-                ),
-            )
-        if rows:
-            _log.error(
-                "control_runner: %d worker(s) failed on log db; run is fatal",
-                len(rows),
-            )
-    except Exception:
-        pass
-
-
-def _kill_active_workers() -> None:
-    """SIGTERM every descendant process of this Controller. Container tear-
-    down would eventually kill them anyway, but we want them stopped
-    promptly on abend so they don't complete additional LLM calls / DB
-    writes after the run is already failed."""
-    import signal  # noqa: PLC0415
-    try:
-        # pgrep -P <pid> lists direct children; iterate depth-first so we
-        # cover workers that in turn spawned helpers.
-        my_pid = os.getpid()
-        seen: set[int] = set()
-        stack = [my_pid]
-        killed: list[int] = []
-        while stack:
-            parent = stack.pop()
-            try:
-                out = subprocess.run(
-                    ["pgrep", "-P", str(parent)],
-                    capture_output=True, text=True, timeout=5,
-                )
-                for line in out.stdout.splitlines():
-                    line = line.strip()
-                    if not line.isdigit():
-                        continue
-                    child = int(line)
-                    if child in seen or child == my_pid:
-                        continue
-                    seen.add(child)
-                    stack.append(child)
-                    try:
-                        os.kill(child, signal.SIGTERM)
-                        killed.append(child)
-                    except (ProcessLookupError, PermissionError):
-                        continue
-            except (FileNotFoundError, subprocess.TimeoutExpired):
-                # pgrep unavailable (unlikely in the Ubuntu container) or
-                # timed out. Container tear-down will still clean up.
-                break
-        if killed:
-            _log.info("control_runner: SIGTERM sent to %d worker pid(s): %s",
-                       len(killed), killed)
-    except Exception as exc:  # noqa: BLE001
-        _log.warning("control_runner: _kill_active_workers failed: %s",
-                     type(exc).__name__)
-
-
-def _pause_pipeline_cluster() -> None:
-    """Pause the pipeline cluster via Atlas API. Best-effort; failure does
-    not block VM deletion. The reaper is the fallback if this fails."""
-    try:
-        import requests  # noqa: PLC0415
-        from requests.auth import HTTPDigestAuth  # noqa: PLC0415
-    except ImportError:
-        _log.warning("quiesce: requests not available; cluster pause skipped")
-        return
-
-    pub_key = os.environ.get("ATLAS_PIPELINE_PUBLIC_KEY", "").strip()
-    priv_key = os.environ.get("ATLAS_PIPELINE_PRIVATE_KEY", "").strip()
-    project_id = os.environ.get("ATLAS_PROJECT_ID", "").strip()
-    cluster_name = os.environ.get("PIPELINE_CLUSTER", "chathealthypipeline").strip()
-
-    if not (pub_key and priv_key and project_id):
-        _log.warning("quiesce: Atlas credentials not configured; cluster pause skipped")
-        return
-
-    try:
-        auth = HTTPDigestAuth(pub_key, priv_key)
-        url = f"https://cloud.mongodb.com/api/atlas/v2/groups/{project_id}/clusters/{cluster_name}"
-        resp = requests.patch(
-            url,
-            json={"paused": True},
-            auth=auth,
-            headers={"Content-Type": "application/json"},
-            timeout=30,
-        )
-        if resp.status_code in (200, 202):
-            _log.info("quiesce: pipeline cluster paused")
-        else:
-            _log.warning("quiesce: cluster pause rejected (%d): %s",
-                        resp.status_code, resp.text[:200])
-    except Exception as exc:
-        _log.warning("quiesce: cluster pause failed (reaper will retry): %s", exc)
-
-
-def _quiesce_mongo_state(run_id: str, final_status: str, *,
-                          manifest=None, args=None, fatal_exception=None) -> None:
-    """v32 §5.2.20 quiesce steps 1-2 + 2026-08-03 addition: cancel the
-    pipeline-run reservation on the front cluster, mark the run manifest
-    terminal, AND unconditionally emit the discrepancy report with any fatal
-    exception details. Best-effort per step; a failure in one MUST NOT block
-    the other, and none block the subsequent VM delete."""
-    if not run_id:
-        _log.warning("quiesce_mongo_state: no run_id available; skipping")
-        return
-    try:
-        mongo = ChatHealthyMongoUtilities().getConnection("pipelineEditor", "ChatHealthyFrontEnd")
-    except Exception as exc:
-        _log.error("quiesce: unable to open pipeline-cluster Mongo run_id=%s err=%s",
-                   run_id, str(exc)[:500])
-        return
-    try:
-        mongo["pipelineAdmin"]["cluster_lifecycle"].delete_one({"_id": run_id})
-        _log.info("quiesce: reservation cancelled run_id=%s", run_id)
-    except Exception as exc:
-        _log.error("quiesce: reservation cancel FAILED run_id=%s err=%s",
-                   run_id, str(exc)[:500])
-    # Release the per-pipeline mutual-exclusion lock. Runbook acquired
-    # it at fire-start; Controller inherits ownership when the VM boots
-    # and MUST release it here so the next fire for the same
-    # pipeline_name is not blocked. Guarded by run_id so a duplicate
-    # fire's Controller (theoretically impossible but belt-and-suspenders)
-    # can never clobber the real holder's lock.
-    pipeline_name = os.environ.get("PIPELINE_NAME", "")
-    if pipeline_name:
-        try:
-            r = mongo["pipelineAdmin"]["cluster_lifecycle"].delete_one({
-                "_id": f"pipeline_lock:{pipeline_name}",
-                "run_id": run_id,
-            })
-            _log.info(
-                "quiesce: pipeline_lock released pipeline=%s run_id=%s deleted=%d",
-                pipeline_name, run_id, r.deleted_count,
-            )
-        except Exception as exc:
-            _log.error(
-                "quiesce: pipeline_lock release FAILED pipeline=%s run_id=%s err=%s",
-                pipeline_name, run_id, str(exc)[:500],
-            )
-    try:
-        mongo["pipelineAdmin"]["pipeline.runs"].update_one(
-            {"run_id": run_id},
-            {"$set": {
-                "status": final_status,
-                "ended_at": datetime.datetime.utcnow(),
-            }},
-        )
-        _log.info("quiesce: manifest marked terminal run_id=%s status=%s",
-                  run_id, final_status)
-    except Exception as exc:
-        _log.error("quiesce: manifest update FAILED run_id=%s err=%s",
-                   run_id, str(exc)[:500])
-    # On any non-success terminal status, flip this run's in-flight
-    # work_items to failed so no zombies persist. A successful run has
-    # already flipped its own work_items via the orchestrator's normal
-    # completion path.
-    if final_status != "succeeded":
-        try:
-            res = mongo["pipelineAdmin"]["pipeline.work_items"].update_many(
-                {"run_id": run_id,
-                 "status": {"$nin": ["completed", "done", "failed"]}},
-                {"$set": {
-                    "status": "failed",
-                    "abort_reason": f"controller_quiesce_{final_status}",
-                    "failed_at": datetime.datetime.utcnow(),
-                }},
-            )
-            if res.modified_count:
-                _log.info(
-                    "quiesce: work_items flipped run_id=%s count=%d",
-                    run_id, res.modified_count,
-                )
-        except Exception as exc:
-            _log.error("quiesce: work_items flip FAILED run_id=%s err=%s",
-                       run_id, str(exc)[:500])
-
-    # Discrepancy report — ALWAYS emit, perfect run OR abend. Operator
-    # directive 2026-08-03: "we always in every case, even with a perfect
-    # job or an abend get the discrepancy report". Best-effort so a
-    # mongo/SparkPost outage doesn't block the reservation release.
+def _emit_discrepancy_report(run_id, final_status, *, manifest=None, args=None,
+                             fatal_exception=None) -> None:
+    """Emit the discrepancy report -- ALWAYS, perfect run OR abend (operator
+    directive 2026-08-03: "we always in every case, even with a perfect job or
+    an abend get the discrepancy report"). Provider-specific: source rows are
+    the NPPES staging collection and the target is the published provider
+    collection -- the next pipeline's numbers come from somewhere else entirely
+    -- so this stays with the provider Controller, not in the generic release.
+    Best-effort so a mongo/SparkPost outage doesn't block the run's exit."""
     try:
         pipeline_mongo = None
         try:
