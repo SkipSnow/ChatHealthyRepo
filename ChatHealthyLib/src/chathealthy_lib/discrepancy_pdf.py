@@ -2,21 +2,14 @@
 # Licensed under the FindCare Evaluation License (FEL-1.0).
 """Provider Pipeline discrepancy_report.pdf builder.
 
-Realizes ProviderPipeline_LowLevelDesign_v41 §8.4 (rewritten 2026-08-01)
-+ EPIC-010-F-102-S-005-REQ-T-001.
+Realizes ProviderPipeline_LowLevelDesign_v54 §7.5.
 
 Two artifacts per run:
-  1. Email whose HTML body reproduces the PDF header (framed 2-col grid)
-  2. Attached PDF: title + framed field-value header grid + body table
-     with one wrapping row per warning/error (Type / Source line / NPI /
-     Field / Explanation).
-
-Header field set (11, spec-verbatim):
-  Pipeline, Run started, Run ended,
-  Records 100% successfully collected,
-  Records with non-fatal warnings, Records with non-fatal errors,
-  Warning threshold, Error threshold,
-  Fatal error, Rows before fatal, Rows not looked at.
+  1. Email whose HTML body reproduces the PDF header grid plus the per-class
+     discrepancy summary (finding class / severity / count).
+  2. Attached PDF: title + framed header grid + summary table (one row per
+     finding class) + a trailing Appendix listing, per finding class, up to
+     report_cap_per_class sample record keys with a '+N more' note.
 
 Datetime format: M/D/YYYY H:MM AM/PM PST (operator preference).
 """
@@ -67,34 +60,21 @@ def _strip_bold(value: str) -> tuple[str, bool]:
     return (text[len(_BOLD):], True) if text.startswith(_BOLD) else (text, False)
 
 
-def _fmt_header_fields(manifest: dict, discrepancies: list[dict]) -> list[tuple[str, str]]:
-    """11 header field-value pairs, spec-verbatim labels."""
-    errors = [d for d in discrepancies if (d.get("level") or "").lower() == "error"]
-    warnings = [d for d in discrepancies if (d.get("level") or "").lower() == "warning"]
-    # The manifest is authoritative: it counts the documents actually stored
-    # for this run. Recomputing from the rendered rows undercounts whenever a
-    # discrepancy carries no npi.
-    records_with_warnings = manifest.get("records_with_non_fatal_warnings")
-    if records_with_warnings is None:
-        records_with_warnings = len(warnings)
-    records_with_errors = manifest.get("records_with_non_fatal_errors")
-    if records_with_errors is None:
-        records_with_errors = len(errors)
+def _fmt_header_fields(manifest: dict) -> list[tuple[str, str]]:
+    """Header field-value pairs, driven entirely by the manifest counts."""
+    records_with_warnings = manifest.get("records_with_non_fatal_warnings", "Unknown")
+    records_with_errors = manifest.get("records_with_non_fatal_errors", "Unknown")
     total_source_rows = manifest.get("total_source_rows")
     if total_source_rows is None:
-        # A clean run says so rather than saying it does not know: no
-        # discrepancy touched any record, which is the claim being made.
+        # A clean run says so rather than saying it does not know.
         collected = manifest.get("records_100_percent_successfully_collected")
         successful = ("all records, none flagged" if collected
                       else str(manifest.get("rows_in_target", "Unknown")))
     else:
-        touched = {d.get("npi") for d in discrepancies if d.get("npi")}
-        successful = str(int(total_source_rows) - len(touched))
+        touched = manifest.get("records_touched", 0)
+        successful = str(int(total_source_rows) - int(touched))
     fatal_reason = manifest.get("fatal_reason") or ""
     fatal_present = bool(fatal_reason)
-    # The row counts were shown only when the run had gone fatal, which is
-    # the one case they matter least: a successful run is exactly when the
-    # reader wants to know how much it moved.
     rows_in_target = manifest.get("rows_in_target", "Unknown")
     total_rows = manifest.get("total_rows", "Unknown")
     target_collection = manifest.get("target_collection") or "target collection"
@@ -106,19 +86,27 @@ def _fmt_header_fields(manifest: dict, discrepancies: list[dict]) -> list[tuple[
         ("Records 100% successfully collected", successful),
         ("Records with non-fatal warnings",     str(records_with_warnings)),
         ("Records with non-fatal errors",       str(records_with_errors)),
-        ("Warning threshold",                   str(manifest.get("warning_threshold", "Unknown"))),
-        ("Error threshold",                     str(manifest.get("error_threshold", "Unknown"))),
         ("Fatal error",                         fatal_reason if fatal_present else "None"),
         (f"Rows in {target_collection}",        str(rows_in_target)),
         ("Total rows",                          str(total_rows)),
     ]
 
 
-def render_header_as_html(manifest: dict, discrepancies: list[dict]) -> str:
-    """Pixel-perfect HTML reproduction of the PDF header table (LLD v41
-    §8.4: 'each email shall essentially be a pixel perfect reproduction
-    of the header cited below'). Same source as the PDF's header block."""
-    fields = _fmt_header_fields(manifest, discrepancies)
+def _summary_rows(summary: list[dict]) -> list[tuple[str, str, str]]:
+    """Body rows: (finding class, severity, count) per finding class."""
+    return [
+        (str(s.get("class", "?")),
+         str(s.get("severity", "")).upper(),
+         str(s.get("count", 0)))
+        for s in (summary or [])
+    ]
+
+
+def render_header_as_html(manifest: dict, summary: list[dict]) -> str:
+    """Email HTML: the header grid plus the body summary (class / severity /
+    count). The per-class key lists live only in the attached PDF's Appendix.
+    """
+    fields = _fmt_header_fields(manifest)
     per_col = (len(fields) + 1) // 2
     col_left, col_right = fields[:per_col], fields[per_col:]
     rows_html = []
@@ -140,42 +128,85 @@ def render_header_as_html(manifest: dict, discrepancies: list[dict]) -> str:
             f"<td style='border:1px solid #000;padding:6px 10px'>{rv}</td>"
             f"</tr>"
         )
+    summary_rows = _summary_rows(summary)
+    if summary_rows:
+        summary_html = [
+            "<tr>"
+            "<th style='border:1px solid #000;padding:6px 10px;background:#e0e0e0'>Finding class</th>"
+            "<th style='border:1px solid #000;padding:6px 10px;background:#e0e0e0'>Severity</th>"
+            "<th style='border:1px solid #000;padding:6px 10px;background:#e0e0e0'>Count</th>"
+            "</tr>"
+        ]
+        for cls, sev, count in summary_rows:
+            summary_html.append(
+                f"<tr>"
+                f"<td style='border:1px solid #000;padding:6px 10px'>{cls}</td>"
+                f"<td style='border:1px solid #000;padding:6px 10px'>{sev}</td>"
+                f"<td style='border:1px solid #000;padding:6px 10px'>{count}</td>"
+                f"</tr>"
+            )
+        summary_block = (
+            "<h3 style='text-align:center;margin-top:20px'>Discrepancy summary</h3>"
+            "<table style='border-collapse:collapse;border:2px solid #000;margin:0 auto;'>"
+            f"{''.join(summary_html)}"
+            "</table>"
+        )
+    else:
+        summary_block = (
+            "<p style='text-align:center;margin-top:20px;color:#555'>"
+            "No discrepancies this run.</p>"
+        )
     return (
         "<html><body style='font-family:Helvetica,Arial,sans-serif'>"
         f"<h2 style='text-align:center;margin-bottom:16px'>{REPORT_TITLE}</h2>"
         "<table style='border-collapse:collapse;border:2px solid #000;margin:0 auto;'>"
         f"{''.join(rows_html)}"
         "</table>"
+        f"{summary_block}"
         "<p style='text-align:center;margin-top:16px;color:#555;font-size:12px'>"
-        "See attached discrepancy_report.pdf for the detailed body."
+        "See attached discrepancy_report.pdf for the per-class key Appendix."
         "</p>"
         "</body></html>"
     )
 
 
-def render_header_as_text(manifest: dict, discrepancies: list[dict]) -> str:
-    """Plaintext fallback of the header (SMS / non-HTML mail clients)."""
-    fields = _fmt_header_fields(manifest, discrepancies)
+def render_header_as_text(manifest: dict, summary: list[dict]) -> str:
+    """Plaintext fallback of the header + body summary."""
+    fields = _fmt_header_fields(manifest)
     lines = [REPORT_TITLE, "=" * len(REPORT_TITLE), ""]
     for label, value in fields:
-        lines.append(f"  {label:<40} {value}")
+        text, _ = _strip_bold(value)
+        lines.append(f"  {label:<40} {text}")
+    lines.append("")
+    lines.append("Discrepancy summary (class / severity / count):")
+    rows = _summary_rows(summary)
+    if not rows:
+        lines.append("  (no discrepancies this run)")
+    for cls, sev, count in rows:
+        lines.append(f"  {cls:<40} {sev:<8} {count}")
     lines.append("")
     return "\n".join(lines)
 
 
-def build_discrepancy_pdf(manifest: dict, discrepancies: list[dict]) -> bytes:
-    """Build discrepancy_report.pdf per LLD v41 §8.4. Raises ImportError
-    if reportlab is missing (fail loud rather than ship a corrupt
-    placeholder that would silently reach the operator)."""
+def build_discrepancy_pdf(
+    manifest: dict,
+    summary: list[dict],
+    appendix: list[dict] | None = None,
+) -> bytes:
+    """Build discrepancy_report.pdf (LLD v54 §7.5). Body = the per-class
+    summary (class / severity / count). A trailing Appendix carries, per
+    finding class, up to report_cap_per_class sample keys with a '+N more'
+    note. Raises ImportError if reportlab is missing (fail loud)."""
     from reportlab.lib import colors
     from reportlab.lib.pagesizes import letter
     from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
     from reportlab.lib.units import inch
     from reportlab.platypus import (
-        SimpleDocTemplate, Paragraph, Table, TableStyle,
+        SimpleDocTemplate, Paragraph, Spacer, Table, TableStyle,
     )
 
-    fields = _fmt_header_fields(manifest, discrepancies)
+    appendix = appendix or []
+    fields = _fmt_header_fields(manifest)
 
     label_style = ParagraphStyle(
         "HeaderLabel", parent=getSampleStyleSheet()["Normal"],
@@ -217,54 +248,41 @@ def build_discrepancy_pdf(manifest: dict, discrepancies: list[dict]) -> bytes:
         ("BOTTOMPADDING", (0, 0), (-1, -1), 5),
     ]))
 
-    # Body: one wrapping row per warning/error, distinct cells (LLD v41
-    # spec 2026-08-01: 'distinct cells that can wrap').
+    # Body: the per-class summary -- finding class, severity, count.
     body_header_style = ParagraphStyle(
         "BodyHead", parent=getSampleStyleSheet()["Normal"],
-        fontName="Helvetica-Bold", fontSize=7, leading=9,
+        fontName="Helvetica-Bold", fontSize=8, leading=10,
     )
     body_cell_style = ParagraphStyle(
         "BodyCell", parent=getSampleStyleSheet()["Normal"],
-        fontName="Helvetica", fontSize=7, leading=9,
+        fontName="Helvetica", fontSize=8, leading=10,
     )
+
     def _p(text: str, style: ParagraphStyle) -> Paragraph:
         return Paragraph(str(text).replace("<", "&lt;").replace(">", "&gt;"), style)
+
+    summary_rows = _summary_rows(summary)
     body_rows = [[
-        _p("TYPE", body_header_style),
-        _p("SOURCE LINE", body_header_style),
-        _p("NPI", body_header_style),
-        _p("FIELD LIST", body_header_style),
-        _p("EXPLANATION", body_header_style),
+        _p("FINDING CLASS", body_header_style),
+        _p("SEVERITY", body_header_style),
+        _p("COUNT", body_header_style),
     ]]
-    if not discrepancies:
+    if not summary_rows:
         body_rows.append([
-            _p("", body_cell_style), _p("", body_cell_style),
-            _p("", body_cell_style),
             _p("(no discrepancies this run)", body_cell_style),
-            _p("", body_cell_style),
+            _p("-", body_cell_style),
+            _p("0", body_cell_style),
         ])
     else:
-        for d in discrepancies:
-            # A fatal is a job-level event: it has no source line, no NPI and
-            # no field list, and those cells say so rather than reading as
-            # missing data.
-            blank = "N/A" if (d.get("level") or "").lower() == "fatal" else "-"
-            field_list = d.get("field_list")
-            if isinstance(field_list, (list, tuple)):
-                fields = ", ".join(str(f) for f in field_list) or blank
-            else:
-                fields = str(field_list or d.get("field") or blank)
+        for cls, sev, count in summary_rows:
             body_rows.append([
-                _p((d.get("level") or "?").upper(), body_cell_style),
-                _p(d.get("source_line") or blank, body_cell_style),
-                _p(d.get("npi") or blank, body_cell_style),
-                _p(fields, body_cell_style),
-                _p(d.get("explanation") or d.get("details") or d.get("message")
-                   or d.get("reason") or blank, body_cell_style),
+                _p(cls, body_cell_style),
+                _p(sev, body_cell_style),
+                _p(count, body_cell_style),
             ])
     body_table = Table(
         body_rows,
-        colWidths=[0.6 * inch, 0.8 * inch, 1.0 * inch, 1.8 * inch, 3.4 * inch],
+        colWidths=[3.8 * inch, 1.2 * inch, 2.6 * inch],
         repeatRows=1,
     )
     body_table.setStyle(TableStyle([
@@ -278,10 +296,11 @@ def build_discrepancy_pdf(manifest: dict, discrepancies: list[dict]) -> bytes:
         ("BOTTOMPADDING", (0, 0), (-1, -1), 4),
         *[
             ("BACKGROUND", (0, i + 1), (-1, i + 1),
-             colors.HexColor("#ffe6e6") if (d.get("level") or "").lower() == "error"
-             else colors.HexColor("#fff5e0") if (d.get("level") or "").lower() == "warning"
+             colors.HexColor("#ffe6e6") if sev == "ERROR"
+             else colors.HexColor("#ffd6d6") if sev == "FATAL"
+             else colors.HexColor("#fff5e0") if sev == "WARNING"
              else colors.white)
-            for i, d in enumerate(discrepancies)
+            for i, (_cls, sev, _count) in enumerate(summary_rows)
         ],
     ]))
 
@@ -295,13 +314,37 @@ def build_discrepancy_pdf(manifest: dict, discrepancies: list[dict]) -> bytes:
         "BodyHeading", parent=styles["Heading2"],
         fontSize=10, spaceBefore=10, spaceAfter=4, textColor=colors.black,
     )
+    appendix_key_style = ParagraphStyle(
+        "AppendixKeys", parent=styles["Normal"],
+        fontName="Helvetica", fontSize=8, leading=11,
+    )
 
     story = [
         Paragraph(REPORT_TITLE, title_style),
         header_table,
-        Paragraph("Discrepancies (one row per non-fatal warning or error)", body_heading_style),
+        Paragraph("Discrepancy summary (one row per finding class)", body_heading_style),
         body_table,
     ]
+
+    # Appendix: the collection of business-record keys, per finding class,
+    # capped at report_cap_per_class with a '+N more' note.
+    story.append(Spacer(1, 0.25 * inch))
+    story.append(Paragraph("Appendix — record keys by finding class", body_heading_style))
+    if not appendix:
+        story.append(Paragraph("(no discrepancies this run)", appendix_key_style))
+    for entry in appendix:
+        cls = str(entry.get("class", "?"))
+        sev = str(entry.get("severity", "")).upper()
+        total = entry.get("total", 0)
+        keys = entry.get("keys") or []
+        overflow = entry.get("overflow", 0)
+        story.append(Paragraph(
+            f"{cls} ({sev}) — {total} occurrence(s)", body_heading_style))
+        listed = ", ".join(str(k) for k in keys) or "(none)"
+        if overflow:
+            listed += f"  … +{overflow} more"
+        story.append(Paragraph(listed, appendix_key_style))
+
     buf = io.BytesIO()
     doc = SimpleDocTemplate(
         buf, pagesize=letter,

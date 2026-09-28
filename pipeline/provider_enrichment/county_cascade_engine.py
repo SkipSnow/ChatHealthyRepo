@@ -48,7 +48,11 @@ import requests
 from pymongo import UpdateOne
 
 from pipeline.run_lifecycle.throttle_semaphore import RateLimitedConcurrencyGate, RateLimitedGate
-from chathealthy_lib.mongo_utilities import ChatHealthyMongoUtilities
+from pipeline.run_lifecycle.pipeline_runtime import (
+    get_frontend_mongo,
+    load_discrepancy_config,
+    write_finding,
+)
 
 # Retry policy for HTTP fetches in the cascade. Vendor endpoints (Census
 # batch geocoder, NPPES registry, Google Maps) occasionally return 429
@@ -1188,30 +1192,11 @@ def _stage_geo_google(
     return residue, hits
 
 
-def _build_geo_unresolvable_doc(run_id: str, doc: dict, addr: dict) -> dict:
-    """A coordinates_unresolvable discrepancy: logged, never a data change. The
-    address keeps its -1 pending sentinel; this only records that no stage
-    resolved a point for it."""
+def _unresolvable_detail(doc: dict, addr: dict) -> dict:
     return {
-        "run_id": run_id,
-        "npi": doc.get("npi"),
-        "reason": "coordinates_unresolvable",
-        "step": "geo_enrichment",
         "state": (addr.get("state") or "").upper() or None,
         "entity_kind": "individual" if doc.get("entity_type_code") == "1" else "institutional",
-        "detail": {"address": {k: addr.get(k) for k in ("street_1", "city", "state", "zip")}},
-    }
-
-
-def _build_unresolvable_doc(run_id: str, doc: dict, addr: dict) -> dict:
-    return {
-        "run_id": run_id,
-        "npi": doc.get("npi"),
-        "reason": "county_unresolvable",
-        "step": "county_enrichment",
-        "state": (addr.get("state") or "").upper() or None,
-        "entity_kind": "individual" if doc.get("entity_type_code") == "1" else "institutional",
-        "detail": {"address": {k: addr.get(k) for k in ("street_1", "city", "state", "zip")}},
+        "address": {k: addr.get(k) for k in ("street_1", "city", "state", "zip")},
     }
 
 
@@ -1267,11 +1252,14 @@ def run_county_cascade(
 
     db_name, coll_name = config["provider_collection"].split(".", 1)
     provider_coll = mongo[db_name][coll_name]
-    # pipelineAdmin is on the FRONT END, and `mongo` here is the pipeline
-    # cluster. Writing discrepancies through it put them in a database the
-    # discrepancy report never reads, which is why a run could resolve
-    # thousands of unresolvable addresses and still report zero discrepancies.
-    discrepancies_coll = ChatHealthyMongoUtilities().getConnection("pipelineEditor", "ChatHealthyFrontEnd")["pipelineAdmin"]["pipeline.discrepancies"]
+    # discrepancyLog lives on the FRONT END, and `mongo` here is the pipeline
+    # cluster. Findings are written there through the unified path so the
+    # report reads them; the finding_types severity map is read from the same
+    # store's PipelineConfig for this pipeline.
+    pipeline_name = config.get("pipeline_name", "provider")
+    frontend_mongo = get_frontend_mongo()
+    discrepancy_log_coll = frontend_mongo["pipelineAdmin"]["discrepancyLog"]
+    discrepancy_config = load_discrepancy_config(frontend_mongo, pipeline_name)
 
     _log.info(
         "county_cascade: funnel entering run_id=%s state=%s sla_target=%.3f google_enabled=%s "
@@ -1314,7 +1302,6 @@ def run_county_cascade(
     geo_unresolvable_total = 0
 
     update_ops: list[UpdateOne] = []
-    unresolvable_docs: list[dict] = []
 
     def _flush_updates() -> None:
         if not update_ops:
@@ -1322,11 +1309,17 @@ def run_county_cascade(
         provider_coll.bulk_write(update_ops, ordered=False)
         update_ops.clear()
 
-    def _flush_unresolvables() -> None:
-        if not unresolvable_docs:
-            return
-        discrepancies_coll.insert_many(unresolvable_docs, ordered=False)
-        unresolvable_docs.clear()
+    def _record_unresolvable(finding_class: str, stage: str, doc: dict, addr: dict) -> None:
+        write_finding(
+            discrepancy_log_coll,
+            discrepancy_config,
+            run_id=run_id,
+            artifact="provider",
+            record_key=doc.get("npi"),
+            finding_class=finding_class,
+            stage=stage,
+            detail=_unresolvable_detail(doc, addr),
+        )
 
     for chunk in _stream_provider_chunks(
         provider_coll,
@@ -1434,17 +1427,12 @@ def run_county_cascade(
                 _flush_updates()
 
         for doc, addr in residue:
-            unresolvable_docs.append(_build_unresolvable_doc(run_id, doc, addr))
-            if len(unresolvable_docs) >= _BULK_WRITE_CHUNK:
-                _flush_unresolvables()
+            _record_unresolvable("county_unresolvable", "county_enrichment", doc, addr)
 
         for doc, addr in geo_pending:
-            unresolvable_docs.append(_build_geo_unresolvable_doc(run_id, doc, addr))
-            if len(unresolvable_docs) >= _BULK_WRITE_CHUNK:
-                _flush_unresolvables()
+            _record_unresolvable("coordinates_unresolvable", "geo_enrichment", doc, addr)
 
     _flush_updates()
-    _flush_unresolvables()
 
     if total == 0:
         _log.warning(

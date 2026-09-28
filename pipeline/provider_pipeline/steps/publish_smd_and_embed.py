@@ -172,22 +172,19 @@ def execute(ctx) -> dict:
         mongo=rt.mongo,
     )
 
-    # Non-fatal: record one discrepancy per SMD row still missing an
-    # embedding vector after generate_specialty_embeddings returned.
-    # Embed batches that failed the OpenAI call surface here as un-
-    # embedded rows; we publish SMD anyway (SMD is usable for lookups
-    # without embeddings; FindCare $vectorSearch degrades gracefully)
-    # AND write per-row discrepancies so the PDF report + operator see
-    # exactly which codes need re-embedding when the API is available
-    # again. Reason prefixed 'error_' per operator directive 2026-08-02
-    # -- non-fatal but still an error class the PDF report elevates.
+    # error_specialty_embedding_failed is graded fatal (LLD v54 §16): an
+    # SMD row left without an embedding after generate_specialty_embeddings
+    # names an invariant a correct run never violates, so the first such
+    # finding aborts the run before the swap. The finding is recorded to
+    # discrepancyLog first, so the report names the code that failed.
     unembedded_count = 0
     for row in smd_staging.find(
         {"embedding": {"$exists": False}},
         {"Code": 1, "Display Name": 1, "is_supplemented": 1},
     ):
         rt.record_discrepancy(
-            npi=None,
+            artifact="specialty_metadata",
+            record_key=row.get("Code"),
             reason="error_specialty_embedding_failed",
             step="publish_smd_and_embed",
             entity_kind="specialty",

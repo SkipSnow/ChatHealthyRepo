@@ -224,6 +224,19 @@ class _FakeArgs:
 @dataclass
 class _FakeManifest:
     run_id: str = "run-abc"
+    pipeline_name: str = "provider"
+
+
+# The discrepancy_report config the runtime reads from PipelineConfig. The
+# severity map grades error_specialty_embedding_failed fatal (LLD v54 §16).
+_TEST_DR_CFG = {
+    "report_cap_per_class": 25,
+    "business_record_keys": {"provider": "npi", "specialty_metadata": "Code"},
+    "finding_types": {
+        "error_specialty_embedding_failed": {
+            "severity": "fatal", "fatal_at_count": None, "max": None},
+    },
+}
 
 
 class _FakeCtx:
@@ -279,10 +292,14 @@ def clusters(monkeypatch, scratch_mongo):
     frontend = ChatHealthyMongoUtilities().getConnection("DevOpsUser", "ChatHealthyFrontEnd")
     frontend_db = frontend[db.name]
 
-    discrepancies = frontend_db[f"{prefix}discrepancies"]
+    discrepancy_log = frontend_db[f"{prefix}discrepancyLog"]
     monkeypatch.setattr(
-        pipeline_runtime.PipelineRuntime, "discrepancies_coll",
-        property(lambda self: discrepancies),
+        pipeline_runtime.PipelineRuntime, "discrepancy_log_coll",
+        property(lambda self: discrepancy_log),
+    )
+    monkeypatch.setattr(
+        pipeline_runtime.PipelineRuntime, "discrepancy_config",
+        property(lambda self: _TEST_DR_CFG),
     )
     monkeypatch.setattr(pipeline_runtime, "get_frontend_mongo", lambda: frontend)
     monkeypatch.setattr(pipeline_runtime, "get_mongo", lambda *_: client)
@@ -296,7 +313,7 @@ def clusters(monkeypatch, scratch_mongo):
         "prefix": prefix,
         "live": f"{prefix}SpecialtyMetaData_v_3",
         "staging": f"{prefix}SpecialtyMetaData_staging_v_3",
-        "discrepancies": discrepancies.name,
+        "discrepancy_log": discrepancy_log.name,
         "live_dotted": f"{db.name}.{prefix}SpecialtyMetaData_v_3",
     }
     try:
@@ -402,22 +419,19 @@ def test_publish_smd_and_embed_end_to_end(fake_openai, clusters, monkeypatch):
 
 
 @pytest.mark.unit
-def test_publish_smd_and_embed_records_discrepancies_when_embed_fails(
+def test_publish_smd_and_embed_aborts_fatal_when_embed_fails(
     fake_openai, clusters, monkeypatch,
 ):
-    """Operator directive 2026-08-02: embed failure is a non-fatal
-    error. Publish MUST still atomic-swap so SMD is usable for lookups,
-    AND one discrepancy per un-embedded row MUST be written so the PDF
-    report surfaces exactly which codes need re-embedding when OpenAI
-    credits are topped."""
+    """error_specialty_embedding_failed is graded fatal (LLD v54 §16): the
+    first un-embedded SMD row is recorded to discrepancyLog and aborts the
+    run before the swap. The finding lands under artifact 'specialty_metadata'
+    keyed by the NUCC Code."""
     from pipeline.provider_base.staging_loader import staging_collection_name, staging_db_name
     from pipeline.provider_pipeline.steps.publish_smd_and_embed import execute
 
     # Make every OpenAI embed call fail the way the provider fails when
-    # the account is out of credit: an HTTP 429 from the OpenAI client,
-    # not a generic built-in.
+    # the account is out of credit: an HTTP 429 from the OpenAI client.
     import httpx
-    import openai
 
     import pipeline.run_lifecycle.embedding_engine as _ee
     orig_embed_batch = _ee._embed_batch
@@ -446,40 +460,40 @@ def test_publish_smd_and_embed_records_discrepancies_when_embed_fails(
          "raw": {"Code": "246ZS0400X"}},
     ])
     ctx = _FakeCtx(pipeline, frontend_db.client)
-    summary = execute(ctx)
 
-    # Atomic swap MUST have fired on PIPELINE cluster: SMD_v_3 holds
-    # the two rows.
-    live = db[names["live"]]
-    codes = sorted(r.get("Code") for r in live.find({}))
-    assert codes == ["207W00000X", "246ZS0400X"]
+    # A fatal-graded finding aborts the run on first occurrence.
+    with pytest.raises(ChatHealthyException) as excinfo:
+        execute(ctx)
+    assert excinfo.value.mode == "pipeline_fatal_finding"
 
-    # Neither row has an embedding field (OpenAI failed).
-    for row in live.find({}):
-        assert "embedding" not in row
-        assert "embedding_model" not in row
+    # Abort fired BEFORE the swap: live SMD was never created on either cluster.
+    assert names["live"] not in db.list_collection_names()
+    assert names["live"] not in frontend_db.list_collection_names()
+    assert names["staging"] not in frontend_db.list_collection_names()
 
-    # Summary carries the count.
-    assert summary["embed_updated"] == 0
-    assert summary["embed_failed"] == 2
-    assert summary["embed_unembedded_rows"] == 2
+    # Exactly one finding recorded (the run's single fatal): one record doc
+    # and one type_aggregate, keyed by the NUCC Code under specialty_metadata.
+    disc = frontend_db[names["discrepancy_log"]]
+    aggregates = list(disc.find({"kind": "type_aggregate"}))
+    assert len(aggregates) == 1
+    agg = aggregates[0]
+    assert agg["class"] == "error_specialty_embedding_failed"
+    assert agg["severity"] == "fatal"
+    assert agg["count"] == 1
+    assert agg["artifact"] == "specialty_metadata"
+    assert agg["keys"][0] in ("207W00000X", "246ZS0400X")
 
-    # FRONTEND cluster MUST remain untouched by the SMD collections.
-    on_frontend = frontend_db.list_collection_names()
-    assert names["live"] not in on_frontend
-    assert names["staging"] not in on_frontend
-
-    # ONE discrepancy per un-embedded row, reason prefixed 'error_'.
-    disc = frontend_db[names["discrepancies"]]
-    rows = list(disc.find({"reason": "error_specialty_embedding_failed"}))
-    assert len(rows) == 2
-    disc_codes = sorted(r["detail"]["code"] for r in rows)
-    assert disc_codes == ["207W00000X", "246ZS0400X"]
-    for r in rows:
-        assert r["step"] == "publish_smd_and_embed"
-        assert r["entity_kind"] == "specialty"
-        assert r["npi"] is None
-        assert "note" in r["detail"]
+    records = list(disc.find({"kind": "record"}))
+    assert len(records) == 1
+    rec = records[0]
+    assert rec["artifact"] == "specialty_metadata"
+    assert rec["record_key_kind"] == "Code"
+    assert rec["record_key"] in ("207W00000X", "246ZS0400X")
+    finding = rec["findings"][0]
+    assert finding["class"] == "error_specialty_embedding_failed"
+    assert finding["stage"] == "publish_smd_and_embed"
+    assert finding["detail"]["entity_kind"] == "specialty"
+    assert "note" in finding["detail"]
 
     # Restore for later tests in the same session
     monkeypatch.setattr(_ee, "_embed_batch", orig_embed_batch)

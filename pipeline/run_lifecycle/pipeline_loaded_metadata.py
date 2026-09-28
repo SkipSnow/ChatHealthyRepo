@@ -17,7 +17,7 @@ Operator rules 2026-08-02:
     between fires, so freshness lookups + skip decisions can happen
     before waking Atlas. Same placement pattern as every other
     pipeline-orchestration collection (pipeline.runs, pipeline.config,
-    pipeline.discrepancies, pipeline.work_items).
+    discrepancyLog, pipeline.work_items).
   * A step SKIPS the load iff ALL of these are true:
       - source hash matches metadata.source_hash
       - metadata.operationally_fit is True

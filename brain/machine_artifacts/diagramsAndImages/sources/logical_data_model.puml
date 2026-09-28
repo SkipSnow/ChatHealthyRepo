@@ -63,8 +63,7 @@ package "Atlas cluster  ChatHealthyFrontEnd  —  OBSERVED (read-only, claudeCod
     pipeline.*  ...
   }
   class "chathealthypipelines" as CHP #fef9e7 {
-    pipeline.discrepancy_reports
-    pipeline.run_counters
+    discrepancyLog
   }
   class "FrontEndLogs" as FEL #fef9e7 {
     ChatHealthyLogs_dev

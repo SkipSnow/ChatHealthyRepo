@@ -21,7 +21,7 @@ the pipeline cluster, never on the frontend cluster).
 
 from __future__ import annotations
 
-from datetime import datetime
+from datetime import datetime, timezone
 from typing import Optional
 
 from chathealthy_lib.exceptions import ChatHealthyException
@@ -30,6 +30,12 @@ from chathealthy_lib.mongo_utilities import ChatHealthyMongoUtilities
 
 _log = ChatHealthyLoggingService()
 
+# The unified discrepancy store the report reads. A job-level fatal is a
+# type_aggregate keyed by run under class fatal_<mode> (LLD v54 §7.5). The
+# discrepancy report reads the aggregates, so a fatal recorded here appears in
+# the report even when the run abends before the report step would fire.
+FATAL_DISCREPANCIES_DB = "pipelineAdmin"
+FATAL_DISCREPANCIES_COLL = "discrepancyLog"
 
 
 # A process that cannot name or reach its log database has no way to record
@@ -42,6 +48,18 @@ def is_log_db_fatal(exc: BaseException) -> bool:
     return getattr(exc, "mode", None) in LOG_DB_FATAL_MODES
 
 
+def _frontend_mongo():
+    """The front-end cluster handle the fatal marker is written through.
+
+    Derived here rather than taken from the caller: callers hand in whichever
+    client they hold, and several pass the pipeline cluster, where the
+    discrepancy store the report reads does not live. Kept as a seam so a test
+    can redirect it to a scratch cluster.
+    """
+    return ChatHealthyMongoUtilities().getConnection(
+        "pipelineEditor", "ChatHealthyFrontEnd")
+
+
 def record_fatal_discrepancy(
     pipeline_mongo,
     *,
@@ -49,53 +67,47 @@ def record_fatal_discrepancy(
     step: str,
     exc: ChatHealthyException,
 ) -> None:
-    """Best-effort insert of a fatal-shaped discrepancy row. Never raises.
+    """Best-effort record of a job-level fatal into discrepancyLog. Never raises.
 
-    Row layout matches the pipeline.discrepancies contract (run_id / npi /
-    reason / step / entity_kind / context) so the discrepancy report
-    renders fatals in the same table as data discrepancies, distinguishable
-    by entity_kind='pipeline_fatal' and reason='fatal_<mode>'.
+    Written as a type_aggregate under class fatal_<mode>, artifact 'run', so
+    the discrepancy report renders it as the run's single fatal.
     """
-    # No early return on a null pipeline_mongo. The write below derives its own
-    # front-end client and does not use this parameter at all, so returning
-    # here suppressed the one record that says why a run died -- on the exact
-    # callers most likely to hold nothing, which are the ones failing.
-    now = datetime.utcnow()
-    doc = {
-        "run_id": run_id,
-        "reason": f"fatal_{exc.mode}",
-        "step": step,
-        "entity_kind": "pipeline_fatal",
-        "npi": None,
-        "context": {
-            "mode": exc.mode,
-            "message": str(exc),
-            "fields": getattr(exc, "context", {}) or {},
-        },
-        "recorded_at": now,
-        "created_at": now,
-    }
+    # A domain-class fatal is already recorded in discrepancyLog by
+    # write_finding; recording a second job-level marker for the same event
+    # would give the run two fatals. Skip it so a run records exactly one.
+    if getattr(exc, "context", {}).get("already_recorded_fatal"):
+        return
+    # No early return on a null pipeline_mongo: the write derives its own
+    # front-end client and does not use this parameter, so returning here would
+    # suppress the one record that says why a run died on the callers most
+    # likely to hold nothing -- the ones failing.
+    cls = f"fatal_{exc.mode}"
+    now = datetime.now(timezone.utc).isoformat()
     try:
-        # pipelineAdmin is on the FRONT END, and callers hand in whichever
-        # client they happen to hold -- PipelineRuntime and the county cascade
-        # pass the pipeline one. A fatal marker written through that client
-        # landed in a manufactured pipelineAdmin nothing reads, so the one
-        # record explaining why a run died was the record that went missing.
-        # db_call carries the write verbatim. It is the same characters as the
-        # line below it, so a program can read both and fail the build when
-        # they diverge -- which a comment cannot do, and which is why the four
-        # comments asserting "coordination data lives on the pipeline cluster"
-        # sat next to code correctly reaching the front end for months.
-        _log.debug(
-            "record_fatal_discrepancy write",
-            db_call='getConnection("pipelineEditor", "ChatHealthyFrontEnd")'
-                    '["pipelineAdmin"]["pipeline.discrepancies"].insert_one(doc)',
-            cluster="ChatHealthyFrontEnd",
-            database="pipelineAdmin",
-            collection="pipeline.discrepancies",
-            operation="insert_one",
+        _frontend_mongo()[FATAL_DISCREPANCIES_DB][FATAL_DISCREPANCIES_COLL].update_one(
+            {"_id": f"{run_id}:run:type:{cls}"},
+            {
+                "$setOnInsert": {
+                    "kind": "type_aggregate",
+                    "run_id": run_id,
+                    "artifact": "run",
+                    "class": cls,
+                    "recorded_at": now,
+                },
+                "$set": {
+                    "severity": "fatal",
+                    "step": step,
+                    "explanation": str(exc),
+                    "context": {
+                        "mode": exc.mode,
+                        "message": str(exc),
+                        "fields": getattr(exc, "context", {}) or {},
+                    },
+                },
+                "$inc": {"count": 1},
+            },
+            upsert=True,
         )
-        ChatHealthyMongoUtilities().getConnection("pipelineEditor", "ChatHealthyFrontEnd")["pipelineAdmin"]["pipeline.discrepancies"].insert_one(doc)
     except Exception as sec_exc:  # noqa: BLE001 - secondary failure MUST NOT mask the primary
         _log.warning(
             "record_fatal_discrepancy: could not persist fatal marker for "

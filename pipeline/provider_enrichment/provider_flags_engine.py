@@ -30,48 +30,21 @@ from __future__ import annotations
 
 
 import time as _time
-from datetime import datetime, timezone
 from chathealthy_lib.logging_service import ChatHealthyLoggingService
 from chathealthy_lib.exceptions import ChatHealthyException
 
 from typing import Any
 
 from pymongo import UpdateOne
-from chathealthy_lib.mongo_utilities import ChatHealthyMongoUtilities
+
+from pipeline.run_lifecycle.pipeline_runtime import (
+    get_frontend_mongo,
+    load_discrepancy_config,
+    write_finding,
+)
 
 
 _log = ChatHealthyLoggingService()
-
-
-def _record_discrepancy(run_id: str, entry: dict) -> None:
-    """Record one unresolved taxonomy code encountered during a run.
-
-    This used to signal a Durable Functions entity named work_manager, which
-    no target has hosted since the Function App was retired. It was then
-    reduced to a log line, which meant every unresolved taxonomy code was
-    written down where no report reads and none of them ever reached the
-    operator. It is persisted now, to the same collection every other
-    discrepancy uses. See LLD v42 sec. 6.9 Data Quality and
-    NUCC_SpecialtyCodeDataDiscrepancyManagement.docx for governance.
-    """
-    doc = {
-        "run_id": run_id,
-        "npi": entry.get("npi"),
-        "reason": entry.get("reason", "unresolved_taxonomy_code"),
-        "step": "provider_flags_enrichment",
-        "state": entry.get("state"),
-        "entity_kind": entry.get("entity_kind"),
-        "level": "warning",
-        "detail": {"code": entry.get("code"), "message": entry.get("message")},
-        "recorded_at": datetime.now(timezone.utc).isoformat(),
-    }
-    try:
-        ChatHealthyMongoUtilities().getConnection("pipelineEditor", "ChatHealthyFrontEnd")["pipelineAdmin"]["pipeline.discrepancies"].insert_one(doc)
-    except Exception as exc:  # noqa: BLE001 - a lost discrepancy must not end the run
-        _log.warning(
-            "provider_flags discrepancy could not be persisted run_id=%s npi=%s "
-            "code=%s (%s); it is recorded here only",
-            run_id, entry.get("npi"), entry.get("code"), exc)
 
 
 DEFAULT_BATCH = 500
@@ -274,7 +247,6 @@ def _apply_flags_to_doc(
             # level / source_line / npi / field / explanation flow
             # straight into the discrepancy_report.pdf body row.
             discrepancy_sink({
-                "level": "error",
                 "reason": "unresolved_taxonomy_code",
                 "source_line": doc.get("source_line"),
                 "npi": doc.get("npi"),
@@ -325,14 +297,13 @@ def apply_provider_flags(
       - partition_state       (str | None) - restrict to this business state
       - batch_size            (int, default 500)
 
-    Returns metrics dict. Unresolved taxonomy codes (present in neither
-    current NUCC nor the F-105 supplement catalog) DO NOT abort the run:
-    the record's flag stamping is skipped and a discrepancy entry is
-    emitted via report_discrepancy() for the tail-of-run discrepancy
-    report (LLD v42 sec. 6.9 Data Quality / see
-    NUCC_SpecialtyCodeDataDiscrepancyManagement.docx). Artifact-level
-    defects (missing catalog, empty staging, misconfigured provider
-    doc) still raise ChatHealthyException."""
+    Returns metrics dict. An unresolved taxonomy code (present in neither
+    current NUCC nor the F-105 supplement catalog) is the finding class
+    unresolved_taxonomy_code, graded fatal in the pipeline's finding_types
+    map (LLD v54 §16): it names an invariant a correct run never violates,
+    so the first such finding is recorded to discrepancyLog and aborts the
+    run. Artifact-level defects (missing catalog, empty staging,
+    misconfigured provider doc) also raise ChatHealthyException."""
     run_id = config["run_id"]
     data_version = int(config["data_version"])
     provider_collection = config["provider_collection"]
@@ -353,8 +324,27 @@ def apply_provider_flags(
     _log.info("provider_flags[%s]: catalog ready in %.0fs (catalog=%s)",
               _state_label, _time.time() - _t0, f"{len(catalog):,}")
 
+    frontend_mongo = get_frontend_mongo()
+    discrepancy_log_coll = frontend_mongo["pipelineAdmin"]["discrepancyLog"]
+    discrepancy_config = load_discrepancy_config(
+        frontend_mongo, config.get("pipeline_name", "provider"))
+
     def _sink(entry: dict) -> None:
-        _record_discrepancy(run_id, entry)
+        write_finding(
+            discrepancy_log_coll,
+            discrepancy_config,
+            run_id=run_id,
+            artifact="provider",
+            record_key=entry.get("npi"),
+            finding_class=entry.get("reason", "unresolved_taxonomy_code"),
+            stage="provider_flags_enrichment",
+            detail={
+                "code": entry.get("code"),
+                "message": entry.get("message"),
+                "state": entry.get("state"),
+                "entity_kind": entry.get("entity_kind"),
+            },
+        )
 
     db_name, coll_name = provider_collection.split(".", 1)
     coll = mongo[db_name][coll_name]

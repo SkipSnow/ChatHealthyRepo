@@ -1,24 +1,19 @@
 # Copyright (c) 2026 ChatHealthy.ai LLC. All rights reserved.
 # Licensed under the FindCare Evaluation License (FEL-1.0).
 
-"""Unit tests for steps.discrepancy_report.emit_discrepancy_report.
+"""Unit tests for discrepancy_report.emit_discrepancy_report.
 
-Covers:
-  * emit counts only the discrepancies belonging to the run it was asked
-    about, reading them from the pipeline cluster.
-  * When the run recorded a fatal, the email carries that fatal's
-    explanation.
-  * With no fatal recorded, no email is sent at all.
+Covers, against the unified discrepancyLog store (LLD v54 §7.5):
+  * emit counts only the findings belonging to the run it was asked about,
+    summing the per-class type_aggregate counts.
+  * the delivered report body names each finding class present.
+  * the report is delivered on success and on abnormal end alike.
 
-These read a real collection. The discrepancy row layout, the run_id
-filter and the fatal/error/warning split are all things the server
-answers, and a stand-in answers them however it was written to. The
-destination database and collection are redirected to a scratch
-collection that is dropped afterwards, so a run never touches live
-pipeline metadata.
-
-The email transport is the one thing substituted: sending is a paid
-third-party call and what is under test is the body, not SparkPost.
+These read a real collection through the canonical utility. The destination
+database and collection are redirected to a scratch collection dropped
+afterwards, so a run never touches live pipeline metadata. The email
+transport is the one thing substituted: sending is a paid third-party call
+and what is under test is the body, not SparkPost.
 """
 
 from __future__ import annotations
@@ -28,9 +23,9 @@ import pytest
 
 @pytest.fixture
 def report_env(monkeypatch, scratch_mongo):
-    """Real cluster, scratch discrepancies collection, captured email.
+    """Real cluster, scratch discrepancyLog collection, captured email.
 
-    Yields (client, discrepancies_collection, sent) where `sent` is the
+    Yields (client, discrepancy_log_collection, sent) where `sent` is the
     list of (addr, subject, body, attachments) the code tried to send.
     """
     import chathealthy_lib.discrepancy_pdf as discrepancy_pdf
@@ -38,15 +33,20 @@ def report_env(monkeypatch, scratch_mongo):
     import chathealthy_lib.discrepancy_report as dr
 
     db, collection = scratch_mongo
-    discrepancies = collection("discrepancies")
+    discrepancy_log = collection("discrepancyLog")
 
     monkeypatch.setattr(dr, "PIPELINE_ADMIN_DB", db.name)
-    monkeypatch.setattr(dr, "DISCREPANCIES_COLLECTION", discrepancies.name)
+    monkeypatch.setattr(dr, "DISCREPANCY_LOG_COLLECTION", discrepancy_log.name)
+    # Point the config load at an empty scratch collection so config_loaded is
+    # deterministically False -- these emit tests exercise the REQ-B-006 escape
+    # (store unreachable -> env recipient). The normal KV-secret recipient path
+    # is covered by the recipient-resolution tests below.
+    monkeypatch.setattr(dr, "PIPELINE_CONFIG_COLLECTION", collection("PipelineConfig").name)
     monkeypatch.setenv("NOTIFICATION_TO_EMAIL", "ops@example.com")
 
     # The PDF builder needs reportlab; the bytes are not what is asserted.
     monkeypatch.setattr(discrepancy_pdf, "build_discrepancy_pdf",
-                        lambda _m, _d: b"PDFBYTES")
+                        lambda _m, _summary, _appendix=None: b"PDFBYTES")
 
     sent: list[tuple] = []
 
@@ -59,31 +59,33 @@ def report_env(monkeypatch, scratch_mongo):
             return True
 
     monkeypatch.setattr(notification_client, "NotificationClient", _CapturingClient)
-    return db.client, discrepancies, sent
+    return db.client, discrepancy_log, sent
 
 
-def _row(run_id: str, level: str = "warning", **extra) -> dict:
-    row = {
+def _aggregate(run_id: str, finding_class: str, severity: str = "warning",
+               count: int = 1, keys: list | None = None) -> dict:
+    keys = keys if keys is not None else []
+    return {
+        "_id": f"{run_id}:provider:type:{finding_class}",
+        "kind": "type_aggregate",
         "run_id": run_id,
-        "reason": extra.pop("reason", "x"),
-        "step": "provider",
-        "entity_kind": "provider",
-        "level": level,
-        "npi": None,
+        "artifact": "provider",
+        "class": finding_class,
+        "severity": severity,
+        "count": count,
+        "keys": keys,
     }
-    row.update(extra)
-    return row
 
 
 @pytest.mark.unit
 def test_counts_only_the_requested_runs_discrepancies(report_env):
     from chathealthy_lib.discrepancy_report import emit_discrepancy_report
 
-    client, discrepancies, _sent = report_env
-    discrepancies.insert_many([
-        _row("R1", reason="x"),
-        _row("R1", reason="y"),
-        _row("R2", reason="other-run"),
+    client, discrepancy_log, _sent = report_env
+    discrepancy_log.insert_many([
+        _aggregate("R1", "county_unresolvable", count=1, keys=["1"]),
+        _aggregate("R1", "state_missing_no_license", count=1, keys=["2"]),
+        _aggregate("R2", "county_unresolvable", count=5, keys=["9"]),
     ])
 
     summary = emit_discrepancy_report(
@@ -93,16 +95,16 @@ def test_counts_only_the_requested_runs_discrepancies(report_env):
         manifest_doc={"run_id": "R1"},
         config={},
     )
-    assert summary["total"] == 2, "the other run's discrepancy must not be counted"
+    assert summary["total"] == 2, "the other run's findings must not be counted"
 
 
 @pytest.mark.unit
-def test_fatal_explanation_reaches_the_email(report_env):
+def test_finding_class_reaches_the_email_body(report_env):
     from chathealthy_lib.discrepancy_report import emit_discrepancy_report
 
-    client, discrepancies, sent = report_env
-    discrepancies.insert_one(
-        _row("R1", level="fatal", explanation="registry_dependency_cycle")
+    client, discrepancy_log, sent = report_env
+    discrepancy_log.insert_one(
+        _aggregate("R1", "registry_dependency_cycle", severity="fatal", count=1)
     )
 
     emit_discrepancy_report(
@@ -112,22 +114,22 @@ def test_fatal_explanation_reaches_the_email(report_env):
         manifest_doc={"run_id": "R1"},
         config={},
     )
-    assert sent, "a run with a fatal must send an email"
-    # Recipient count is a config question, not this test's business; every
-    # message that goes out must carry the reason.
+    assert sent, "a run with a fatal must deliver the report"
     for _addr, _subject, body, _attachments in sent:
         assert "registry_dependency_cycle" in body, (
-            "the email must name why the run died; the fatal row's "
-            "explanation is where that comes from"
+            "the report body must name the finding class from the aggregate"
         )
 
 
 @pytest.mark.unit
-def test_no_email_when_the_run_recorded_no_fatal(report_env):
+def test_report_delivered_on_success_with_warnings(report_env):
     from chathealthy_lib.discrepancy_report import emit_discrepancy_report
 
-    client, discrepancies, sent = report_env
-    discrepancies.insert_many([_row("R1"), _row("R1", level="error")])
+    client, discrepancy_log, sent = report_env
+    discrepancy_log.insert_many([
+        _aggregate("R1", "county_unresolvable", count=1, keys=["1"]),
+        _aggregate("R1", "state_missing_no_license", severity="warning", count=1, keys=["2"]),
+    ])
 
     emit_discrepancy_report(
         pipeline_mongo=client,
@@ -136,14 +138,14 @@ def test_no_email_when_the_run_recorded_no_fatal(report_env):
         manifest_doc={"run_id": "R1"},
         config={},
     )
-    assert sent == [], "warnings and errors alone do not raise an email"
+    assert sent, "the report is delivered on success and abnormal end alike"
 
 
 @pytest.mark.unit
-def test_no_email_when_the_run_has_no_discrepancies_at_all(report_env):
+def test_report_delivered_on_success_with_no_discrepancies(report_env):
     from chathealthy_lib.discrepancy_report import emit_discrepancy_report
 
-    client, _discrepancies, sent = report_env
+    client, _discrepancy_log, sent = report_env
     summary = emit_discrepancy_report(
         pipeline_mongo=client,
         run_id="R1",
@@ -152,4 +154,76 @@ def test_no_email_when_the_run_has_no_discrepancies_at_all(report_env):
         config={},
     )
     assert summary["total"] == 0
-    assert sent == []
+    assert sent, "a clean run still delivers exactly one report"
+
+
+# ---------- recipient resolution (FIX 1: KV-named subscriber secret) ----------
+
+
+def _report():
+    """A DiscrepancyReport whose recipient inputs the test sets directly.
+
+    Construction fails open on the cluster/vault it cannot reach, which is
+    exactly the state these tests then override attribute by attribute.
+    """
+    from chathealthy_lib.discrepancy_report import DiscrepancyReport
+    return DiscrepancyReport(
+        run_id="RREC",
+        env="test",
+        pipeline_name="provider",
+        source="test",
+        total_source_rows=None,
+        rows_in_target=None,
+        total_rows=None,
+        target_collection="db.coll",
+    )
+
+
+@pytest.mark.unit
+def test_recipients_from_kv_secret_when_config_loaded():
+    report = _report()
+    report.config_loaded = True
+    report.config = {"metadata": {"subscribers_secret": "provider-report-subs"}}
+    fetched = {}
+
+    def _fake_secret(name):
+        fetched["name"] = name
+        return "a@example.com; b@example.ai, a@example.com"
+
+    report._get_secret_value = _fake_secret
+    receivers = report._resolve_recipients()
+    assert fetched["name"] == "provider-report-subs", "reads the NAMED secret"
+    assert receivers == ["a@example.com", "b@example.ai"], "parsed + de-duplicated"
+
+
+@pytest.mark.unit
+def test_raises_when_subscribers_secret_absent_and_config_loaded(monkeypatch):
+    from chathealthy_lib.exceptions import ChatHealthyException
+    monkeypatch.setenv("NOTIFICATION_TO_EMAIL", "ops@example.com")
+    report = _report()
+    report.config_loaded = True
+    report.config = {"metadata": {}}
+    with pytest.raises(ChatHealthyException) as ei:
+        report._resolve_recipients()
+    assert ei.value.mode == "discrepancy_report_subscribers_secret_missing"
+
+
+@pytest.mark.unit
+def test_raises_when_secret_yields_no_recipients_and_config_loaded():
+    from chathealthy_lib.exceptions import ChatHealthyException
+    report = _report()
+    report.config_loaded = True
+    report.config = {"metadata": {"subscribers_secret": "provider-report-subs"}}
+    report._get_secret_value = lambda name: "   "  # empty after parse
+    with pytest.raises(ChatHealthyException) as ei:
+        report._resolve_recipients()
+    assert ei.value.mode == "discrepancy_report_no_recipients"
+
+
+@pytest.mark.unit
+def test_env_fallback_only_when_config_store_unreachable(monkeypatch):
+    monkeypatch.setenv("NOTIFICATION_TO_EMAIL", "ops@example.com")
+    report = _report()
+    report.config_loaded = False  # store unreachable -> REQ-B-006 escape
+    receivers = report._resolve_recipients()
+    assert receivers == ["ops@example.com"]

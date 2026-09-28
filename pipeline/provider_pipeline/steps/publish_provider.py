@@ -86,7 +86,13 @@ def execute(ctx) -> dict:
         "dropTarget": True,
     })
 
-    loaded_row_count = rt.mongo[loaded_db][loaded_name].count_documents({})
+    loaded = rt.mongo[loaded_db][loaded_name]
+    loaded_row_count = loaded.count_documents({})
+    # Track the record mix alongside the total: individual (entity_type_code
+    # "1") vs institutional ("2") providers, so each load records how many of
+    # each it published.
+    type1_count = loaded.count_documents({"entity_type_code": "1"})
+    type2_count = loaded.count_documents({"entity_type_code": "2"})
 
     # Mark loaded on the frontend cluster. Absence of this call = the
     # swap didn't happen (fatal error), and pipeline.loaded_metadata
@@ -101,6 +107,7 @@ def execute(ctx) -> dict:
         data_version=dv,
         row_count=loaded_row_count,
         operationally_fit=True,
+        detail={"type1_count": type1_count, "type2_count": type2_count},
     )
 
     return {
@@ -108,4 +115,6 @@ def execute(ctx) -> dict:
         "staging_collection_name": staging_name,
         "staging_row_count": staging_row_count,
         "loaded_row_count": loaded_row_count,
+        "type1_count": type1_count,
+        "type2_count": type2_count,
     }

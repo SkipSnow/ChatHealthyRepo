@@ -39,7 +39,7 @@ rectangle "**PASS 5 · census /locations**   (free, thin)\nPOST .../geocoder/loc
 rectangle "**PASS 6 · google_maps geo-only**   (paid, gated)\nsame Google endpoint, geo-only · overwrites -1\n<color:#e6d5a8>████████████</color>" as P6 #e6d5a8
 
 ' ── geo exit (log only) ─────────────────────────────────────────────────────
-rectangle "**EXIT after PASS 6 — still -1**\nreason=\"coordinates_unresolvable\" → **LOG ONLY**\n(pipelineAdmin.pipeline.discrepancies)\nNothing added to the record's bad_data;\nthe persistent -1 in the record **IS** the in-data signal" as GX #fde8e8
+rectangle "**EXIT after PASS 6 — still -1**\nreason=\"coordinates_unresolvable\" → **LOG ONLY**\n(pipelineAdmin.discrepancyLog)\nNothing added to the record's bad_data;\nthe persistent -1 in the record **IS** the in-data signal" as GX #fde8e8
 
 PRE -down-> SCOPE
 SCOPE -down-> P1

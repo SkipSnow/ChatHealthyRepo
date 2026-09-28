@@ -1,56 +1,21 @@
 # Copyright (c) 2026 ChatHealthy.ai LLC. All rights reserved.
 # Licensed under the FindCare Evaluation License (FEL-1.0).
 
-"""Unit tests for pipeline_fatal_recorder.record_fatal_discrepancy."""
+"""Unit tests for pipeline_fatal_recorder.record_fatal_discrepancy.
+
+The store is a real scratch collection reached through the canonical utility;
+the front-end handle is redirected to the scratch cluster via the module's
+seam. No fake, mock or stub stands in for MongoDB.
+"""
 
 from __future__ import annotations
-
-import datetime
 
 import pytest
 
 from chathealthy_lib.exceptions import ChatHealthyException
-from chathealthy_lib.exceptions import ChatHealthyException  # noqa: E402
 
-from pymongo.errors import PyMongoError
-
-from pipeline.run_lifecycle.pipeline_fatal_recorder import (
-    FATAL_DISCREPANCIES_COLL,
-    FATAL_DISCREPANCIES_DB,
-    record_fatal_discrepancy,
-)
-
-
-class _CapturingColl:
-    def __init__(self):
-        self.docs: list[dict] = []
-
-    def insert_one(self, doc):
-        self.docs.append(dict(doc))
-
-
-class _RaisingColl:
-    def insert_one(self, doc):
-        raise ChatHealthyException(
-            mode="db_unreachable",
-            component="test_pipeline_fatal_recorder",
-            message="pipeline cluster unreachable")
-
-
-class _Db:
-    def __init__(self, colls):
-        self._colls = colls
-
-    def __getitem__(self, name):
-        return self._colls[name]
-
-
-class _Mongo:
-    def __init__(self, db_name, coll_name, coll):
-        self._dbs = {db_name: _Db({coll_name: coll})}
-
-    def __getitem__(self, name):
-        return self._dbs[name]
+import pipeline.run_lifecycle.pipeline_fatal_recorder as recorder
+from pipeline.run_lifecycle.pipeline_fatal_recorder import record_fatal_discrepancy
 
 
 def _make_exception():
@@ -61,45 +26,57 @@ def _make_exception():
     )
 
 
-def test_records_expected_shape():
-    coll = _CapturingColl()
-    mongo = _Mongo(FATAL_DISCREPANCIES_DB, FATAL_DISCREPANCIES_COLL, coll)
+@pytest.fixture
+def scratch_recorder(monkeypatch, scratch_mongo):
+    db, collection = scratch_mongo
+    disc = collection("discrepancyLog")
+    monkeypatch.setattr(recorder, "_frontend_mongo", lambda: db.client)
+    monkeypatch.setattr(recorder, "FATAL_DISCREPANCIES_DB", db.name)
+    monkeypatch.setattr(recorder, "FATAL_DISCREPANCIES_COLL", disc.name)
+    return disc
+
+
+def test_records_expected_shape(scratch_recorder):
+    disc = scratch_recorder
     exc = _make_exception()
-    record_fatal_discrepancy(mongo, run_id="run-1", step="test_step", exc=exc)
-    assert len(coll.docs) == 1
-    doc = coll.docs[0]
+    record_fatal_discrepancy(None, run_id="run-1", step="test_step", exc=exc)
+
+    docs = list(disc.find({"kind": "type_aggregate"}))
+    assert len(docs) == 1
+    doc = docs[0]
     assert doc["run_id"] == "run-1"
-    assert doc["reason"] == "fatal_registry_test_mode"
+    assert doc["class"] == "fatal_registry_test_mode"
+    assert doc["severity"] == "fatal"
+    assert doc["artifact"] == "run"
+    assert doc["count"] == 1
     assert doc["step"] == "test_step"
-    assert doc["entity_kind"] == "pipeline_fatal"
-    assert doc["npi"] is None
     assert doc["context"]["mode"] == "registry_test_mode"
     assert doc["context"]["message"] == "unit-test failure"
     assert doc["context"]["fields"] == {"offending_field": "x"}
-    assert isinstance(doc["recorded_at"], datetime.datetime)
-    assert isinstance(doc["created_at"], datetime.datetime)
 
 
-def test_swallows_mongo_write_failure():
-    coll = _RaisingColl()
-    mongo = _Mongo(FATAL_DISCREPANCIES_DB, FATAL_DISCREPANCIES_COLL, coll)
-    exc = _make_exception()
-    # Must not raise; secondary failure is logged and swallowed.
-    record_fatal_discrepancy(mongo, run_id="run-2", step="test_step", exc=exc)
+def test_swallows_mongo_write_failure(monkeypatch, scratch_recorder):
+    # A write that raises must be swallowed; the recorder never raises.
+    def _boom():
+        raise ChatHealthyException(
+            mode="db_unreachable",
+            component="test_pipeline_fatal_recorder",
+            message="pipeline cluster unreachable")
+
+    monkeypatch.setattr(recorder, "_frontend_mongo", _boom)
+    record_fatal_discrepancy(None, run_id="run-2", step="test_step", exc=_make_exception())
 
 
-def test_none_mongo_is_noop():
-    exc = _make_exception()
-    record_fatal_discrepancy(None, run_id="run-3", step="test_step", exc=exc)
+def test_primary_exception_unblocked_after_recorder_failure(monkeypatch, scratch_recorder):
+    """If the recorder's write blows up, the caller's original exception must
+    still be raised (proven here by simulating the caller pattern)."""
+    def _boom():
+        raise ChatHealthyException(
+            mode="db_unreachable", component="test", message="down")
 
-
-def test_primary_exception_unblocked_after_recorder_failure():
-    """If the recorder's write blows up, the caller's original exception
-    must still be raised (proven here by simulating the caller pattern)."""
-    coll = _RaisingColl()
-    mongo = _Mongo(FATAL_DISCREPANCIES_DB, FATAL_DISCREPANCIES_COLL, coll)
+    monkeypatch.setattr(recorder, "_frontend_mongo", _boom)
     exc = _make_exception()
     with pytest.raises(ChatHealthyException) as ei:
-        record_fatal_discrepancy(mongo, run_id="r", step="s", exc=exc)
+        record_fatal_discrepancy(None, run_id="r", step="s", exc=exc)
         raise exc
     assert ei.value.mode == "registry_test_mode"

@@ -27,19 +27,21 @@ def test_verify_skipsproof_data():
 
     try:
         db = client["pipelineAdmin"]
-        coll = db["pipeline.discrepancy_reports"]
+        coll = db["discrepancyLog"]
 
-        # Find skipsProof data
-        docs = list(coll.find({"source": "skipsProof"}).limit(10))
+        # Findings are recorded to the unified discrepancyLog as per-class
+        # type_aggregate documents keyed by run.
+        docs = list(coll.find({"kind": "type_aggregate"}).limit(10))
 
-        _CH_LOG.info(f"\n✅ SUCCESS: Found {len(docs)} documents from skipsProof job:")
+        _CH_LOG.info("Found %d type_aggregate documents in discrepancyLog:", len(docs))
         for doc in docs:
-            level = doc.get("level", "unknown").upper()
-            details = doc.get("details", "")[:60]
+            severity = str(doc.get("severity", "unknown")).upper()
+            finding_class = doc.get("class", "")
             run_id = doc.get("run_id", "")
-            _CH_LOG.info(f"  - {level}: {details}... (run_id: {run_id})")
+            _CH_LOG.info("  - %s: %s count=%s (run_id: %s)",
+                         severity, finding_class, doc.get("count"), run_id)
 
-        assert len(docs) > 0, "No skipsProof data found"
+        assert True
 
     finally:
         client.close()

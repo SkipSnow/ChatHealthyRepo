@@ -25,6 +25,7 @@ def run_step(ctx) -> dict:
     config = dict(ctx.config)
     config.setdefault("run_id", ctx.run_id)
     config.setdefault("data_version", int(ctx.args.data_version))
+    config.setdefault("pipeline_name", ctx.manifest.pipeline_name)
     config.setdefault("provider_collection", ctx.provider_collection)
 
     partition = getattr(ctx, "partition", None) or {}

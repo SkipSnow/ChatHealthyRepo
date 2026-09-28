@@ -12,6 +12,8 @@ import os
 from datetime import datetime, timezone
 from typing import Any
 
+from pymongo import UpdateOne
+
 from pipeline.run_lifecycle.pipeline_config import load_pipeline_config
 from pipeline.run_lifecycle.pipeline_dataset_registry import PipelineDatasetRegistry
 from pipeline.provider_base.staging_loader import staging_collection_name, staging_db_name
@@ -19,6 +21,182 @@ from chathealthy_lib.mongo_utilities import ChatHealthyMongoUtilities
 
 
 _log = ChatHealthyLoggingService()
+
+# One unified control-store collection holds both document kinds the
+# discrepancy-report infrastructure uses (LLD v54 §7.5): per-record `record`
+# documents and per-finding-class `type_aggregate` documents.
+PIPELINE_ADMIN_DB = "pipelineAdmin"
+DISCREPANCY_LOG_COLLECTION = "discrepancyLog"
+
+
+def get_mongo(identity: str = "pipelineEditor",
+              cluster: str = "ChatHealthyDataPipelines"):
+    return ChatHealthyMongoUtilities().getConnection(identity, cluster)
+
+
+def get_frontend_mongo(identity: str = "pipelineEditor"):
+    return ChatHealthyMongoUtilities().getConnection(identity, "ChatHealthyFrontEnd")
+
+
+def load_discrepancy_config(frontend_mongo, pipeline_name: str) -> dict:
+    """The pipeline's discrepancy_report block from the control store.
+
+    Read from pipelineAdmin.PipelineConfig (_id=<pipeline_name>), seeded by
+    seed_pipeline_config.py. Carries finding_types (the severity map),
+    business_record_keys, and report_cap_per_class.
+    """
+    doc = frontend_mongo[PIPELINE_ADMIN_DB]["PipelineConfig"].find_one(
+        {"_id": pipeline_name}) or {}
+    return doc.get("discrepancy_report") or {}
+
+
+def _severity_for(dr_cfg: dict, finding_class: str) -> str:
+    """Severity is configuration, and configuration is authoritative (§7.5).
+
+    A class the run emits that finding_types does not name is rejected at
+    write time rather than silently graded.
+    """
+    entry = ((dr_cfg or {}).get("finding_types") or {}).get(finding_class)
+    if not entry or not entry.get("severity"):
+        raise ChatHealthyException(
+            mode="pipeline_finding_class_unrecognized",
+            component="PipelineRuntime",
+            message=(
+                f"finding class {finding_class!r} is not declared in the "
+                f"pipeline's discrepancy_report.finding_types; a run may emit "
+                f"only declared classes, and adding one is an operator-approved "
+                f"configuration change"
+            ),
+            finding_class=finding_class,
+        )
+    return entry["severity"]
+
+
+def build_discrepancy_ops(
+    *,
+    run_id: str,
+    artifact: str,
+    record_key: Any,
+    record_key_kind: str | None,
+    finding_class: str,
+    severity: str,
+    stage: str,
+    detail: dict | None,
+    recorded_at: str,
+) -> list[UpdateOne]:
+    """The two atomic upserts one finding records (§7.5 write semantics).
+
+    A per-record `record` document (findings appended, grade added to
+    severities_present) and a per-class `type_aggregate` document (record key
+    added to keys, count incremented). Both are server-side
+    $push/$addToSet/$inc/$setOnInsert so ~100 concurrent Workers never lose a
+    finding to a client read-modify-write.
+    """
+    rk = str(record_key)
+    record_id = f"{run_id}:{artifact}:{rk}"
+    aggregate_id = f"{run_id}:{artifact}:type:{finding_class}"
+    finding = {
+        "class": finding_class,
+        "severity": severity,
+        "stage": stage,
+        "detail": detail or {},
+    }
+    record_op = UpdateOne(
+        {"_id": record_id},
+        {
+            "$setOnInsert": {
+                "kind": "record",
+                "run_id": run_id,
+                "artifact": artifact,
+                "record_key_kind": record_key_kind,
+                "record_key": rk,
+                "recorded_at": recorded_at,
+            },
+            "$push": {"findings": finding},
+            "$addToSet": {"severities_present": severity},
+        },
+        upsert=True,
+    )
+    aggregate_op = UpdateOne(
+        {"_id": aggregate_id},
+        {
+            "$setOnInsert": {
+                "kind": "type_aggregate",
+                "run_id": run_id,
+                "artifact": artifact,
+                "class": finding_class,
+                "recorded_at": recorded_at,
+            },
+            "$set": {"severity": severity},
+            "$addToSet": {"keys": rk},
+            "$inc": {"count": 1},
+        },
+        upsert=True,
+    )
+    return [record_op, aggregate_op]
+
+
+def write_finding(
+    log_coll,
+    dr_cfg: dict,
+    *,
+    run_id: str,
+    artifact: str,
+    record_key: Any,
+    finding_class: str,
+    stage: str,
+    detail: dict | None = None,
+) -> str:
+    """Record one finding into discrepancyLog and abort the run if it is fatal.
+
+    Returns the finding's configured severity. Raises
+    pipeline_finding_class_unrecognized for an undeclared class, and
+    pipeline_fatal_finding when the class is graded fatal or its running count
+    reaches the configured fatal_at_count — the run's single fatal (§7.5).
+    """
+    severity = _severity_for(dr_cfg, finding_class)
+    record_key_kind = (dr_cfg.get("business_record_keys") or {}).get(artifact)
+    recorded_at = datetime.now(timezone.utc).isoformat()
+    log_coll.bulk_write(
+        build_discrepancy_ops(
+            run_id=run_id, artifact=artifact, record_key=record_key,
+            record_key_kind=record_key_kind, finding_class=finding_class,
+            severity=severity, stage=stage, detail=detail,
+            recorded_at=recorded_at,
+        ),
+        ordered=False,
+    )
+    fatal_at_count = ((dr_cfg.get("finding_types") or {})
+                      .get(finding_class, {}).get("fatal_at_count"))
+    count = None
+    is_fatal = severity == "fatal"
+    if not is_fatal and fatal_at_count is not None:
+        aggregate = log_coll.find_one(
+            {"_id": f"{run_id}:{artifact}:type:{finding_class}"}, {"count": 1})
+        count = (aggregate or {}).get("count")
+        is_fatal = count is not None and count >= fatal_at_count
+    if is_fatal:
+        # already_recorded_fatal marks this event as ALREADY captured in
+        # discrepancyLog as a domain-class fatal aggregate, so the downstream
+        # fatal recorders do not add a second (job-level) fatal marker for the
+        # same event -- a run records and reports exactly one fatal (§7.5).
+        raise ChatHealthyException(
+            mode="pipeline_fatal_finding",
+            component="PipelineRuntime",
+            message=(
+                f"finding class {finding_class!r} on {artifact} record "
+                f"{record_key!r} is fatal and aborts the run"
+            ),
+            finding_class=finding_class,
+            severity=severity,
+            artifact=artifact,
+            record_key=str(record_key),
+            step=stage,
+            count=count,
+            fatal_at_count=fatal_at_count,
+            already_recorded_fatal=True,
+        )
+    return severity
 
 # Every Provider write during the pipeline targets the STAGING collection
 # on the pipeline cluster (staging_db + staging_coll_base come from
@@ -46,12 +224,13 @@ STATE_US_SET = {
 class PipelineRuntime:
     def __init__(self, ctx) -> None:
         self.ctx = ctx
-        self.mongo = ctx.mongo_client or ChatHealthyMongoUtilities().getConnection("pipelineEditor", "ChatHealthyDataPipelines")
-        self.frontend = ChatHealthyMongoUtilities().getConnection("pipelineEditor", "ChatHealthyFrontEnd")
+        self.mongo = ctx.mongo_client or get_mongo()
+        self.frontend = get_frontend_mongo()
         self.env = ctx.env_prefix
         self.run_id = ctx.run_id
         self.data_version = int(ctx.args.data_version)
         self._registry: PipelineDatasetRegistry | None = None
+        self._dr_cfg: dict | None = None
 
     @property
     def registry(self) -> PipelineDatasetRegistry:
@@ -112,11 +291,18 @@ class PipelineRuntime:
         ]
 
     @property
-    def discrepancies_coll(self):
+    def discrepancy_log_coll(self):
         if os.environ.get("PIPELINE_TEST_MODE", "").lower() in ("1", "true", "yes"):
-            from pipeline.run_lifecycle.pipeline_test_config import TEST_DISCREPANCIES_COLL
-            return self.frontend["pipelineAdmin"][TEST_DISCREPANCIES_COLL.split(".", 1)[-1]]
-        return self.frontend["pipelineAdmin"]["pipeline.discrepancies"]
+            from pipeline.run_lifecycle.pipeline_test_config import TEST_DISCREPANCY_LOG_COLL
+            return self.frontend[PIPELINE_ADMIN_DB][TEST_DISCREPANCY_LOG_COLL.split(".", 1)[-1]]
+        return self.frontend[PIPELINE_ADMIN_DB][DISCREPANCY_LOG_COLLECTION]
+
+    @property
+    def discrepancy_config(self) -> dict:
+        if self._dr_cfg is None:
+            self._dr_cfg = load_discrepancy_config(
+                self.frontend, self.ctx.manifest.pipeline_name)
+        return self._dr_cfg
 
     @property
     def runs_coll(self):
@@ -132,23 +318,37 @@ class PipelineRuntime:
     def record_discrepancy(
         self,
         *,
-        npi: str | None,
+        npi: str | None = None,
         reason: str,
         step: str,
         state: str | None = None,
         entity_kind: str | None = None,
         detail: dict | None = None,
+        artifact: str = "provider",
+        record_key: Any = None,
     ) -> None:
-        self.discrepancies_coll.insert_one({
-            "run_id": self.run_id,
-            "npi": npi,
-            "reason": reason,
-            "step": step,
-            "state": state,
-            "entity_kind": entity_kind,
-            "detail": detail or {},
-            "recorded_at": datetime.now(timezone.utc).isoformat(),
-        })
+        """Record one per-record finding into pipelineAdmin.discrepancyLog.
+
+        Provider callers rely on the artifact="provider" default and the
+        record_key defaulting to the NPI. The severity is read from the
+        pipeline's finding_types config; a fatal finding aborts the run.
+        """
+        key = record_key if record_key is not None else npi
+        full_detail = dict(detail or {})
+        if state is not None:
+            full_detail.setdefault("state", state)
+        if entity_kind is not None:
+            full_detail.setdefault("entity_kind", entity_kind)
+        write_finding(
+            self.discrepancy_log_coll,
+            self.discrepancy_config,
+            run_id=self.run_id,
+            artifact=artifact,
+            record_key=key,
+            finding_class=reason,
+            stage=step,
+            detail=full_detail,
+        )
 
     def mailing_state(self, doc: dict) -> str | None:
         addr = doc.get("business_address")
@@ -175,8 +375,8 @@ class PipelineRuntime:
         from pipeline.run_lifecycle.steps._partitions import business_state_filter  # noqa: PLC0415
         return {"run_id": self.run_id, **business_state_filter(state)}
 
-    def discrepancies_collection(self):
-        return self.discrepancies_coll
+    def discrepancy_log_collection(self):
+        return self.discrepancy_log_coll
 
     def reservations_collection(self):
         return self.frontend["pipelineAdmin"]["cluster_lifecycle"]

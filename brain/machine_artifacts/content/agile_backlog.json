@@ -13154,7 +13154,7 @@
                           "req_id": "EPIC-010-F-001-S-008-REQ-B-001",
                           "orphan": false,
                           "name": "Exactly one operational report per run, on success and abend alike",
-                          "requirement": "Exactly one operational business report is produced per run - on a successful run and on an abnormal end alike.",
+                          "requirement": "Exactly one operational business report is produced per run - on a successful run and on an abnormal end. The report is based solely on the metadata classifying error and warning types in the pipeline's durable configuration (per EPIC-010-F-001-S-002) and a detailed log of discrepancies written to a 'discrepancyLog' collection in a database cluster available 24x7.",
                           "priority": "must-have",
                           "status": "done",
                           "depends_on": [],
@@ -13210,8 +13210,8 @@
                         {
                           "req_id": "EPIC-010-F-001-S-008-REQ-B-004",
                           "orphan": false,
-                          "name": "An untakeable count is carried unknown, never defaulted to zero",
-                          "requirement": "A count the run cannot truthfully take is carried as unknown, never defaulted to zero; zero appears only as a real asserted value.",
+                          "name": "Any count that cannot be collected is reported as 'unknown'",
+                          "requirement": "When any count cannot be collected the report records that count as 'Unknown', and this fact is added to the discrepancy report as a 'discrepancy report error' prior to the publishing of the discrepancy report, and added to the discrepancy log.",
                           "priority": "must-have",
                           "status": "done",
                           "depends_on": [],
@@ -13271,6 +13271,25 @@
                           "requirement": "Every fatal is captured for the report even when it abends the run before the report step or never reaches the run's controller as an exception - the report names the step, the failure and its message rather than a generic fatal-without-cause - and a failure in the trigger tier that never reaches the run's compute still delivers the same one report in the same form.",
                           "priority": "must-have",
                           "status": "done",
+                          "depends_on": [],
+                          "tests": {
+                            "test": [
+                              {
+                                "orphan": true,
+                                "test_type": "ORPHAN",
+                                "file": ""
+                              }
+                            ]
+                          },
+                          "approval": "approved"
+                        },
+                        {
+                          "req_id": "EPIC-010-F-001-S-008-REQ-B-008",
+                          "orphan": false,
+                          "name": "Each Pipeline Run MUST create an accurate discrepancy log",
+                          "requirement": "Each Pipeline Run MUST create an accurate discrepancy log containing every warning and error that occurs. If there are any warnings or errors on any record produced for production, then the discrepancy log MUST create no more than one discrepancy record per business record. The discrepancy log MUST also contain summary aggregate data of all errors and warnings, and such metadata as is configured in the durable configuration artifact associated with the pipeline (EPIC-010-F-001-S-002).",
+                          "priority": "must-have",
+                          "status": "in_progress",
                           "depends_on": [],
                           "tests": {
                             "test": [

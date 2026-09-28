@@ -1,14 +1,18 @@
 # Copyright (c) 2026 ChatHealthy.ai LLC. All rights reserved.
 # Licensed under the FindCare Evaluation License (FEL-1.0).
-"""Integration test: DiscrepancyReport sends email with warnings/errors."""
+"""Integration test: a fatal delivers the one report from discrepancyLog.
 
-import os
-import sys
+Findings live in the unified pipelineAdmin.discrepancyLog store as per-class
+type_aggregate documents (LLD v54 §7.5). A fatal records its job-level
+aggregate and delivers the report. The store is a real scratch collection
+reached through the canonical utility; only the paid email transport is
+substituted.
+"""
+
 import uuid
 
-sys.path.insert(0, "ChatHealthyLib/src")
+import pytest
 
-from chathealthy_lib.discrepancy_report import DiscrepancyReport, fatal_error
 import sys as _sys, pathlib as _pl
 for _d in _pl.Path(__file__).resolve().parents:
     if (_d / '.git').exists():
@@ -16,21 +20,45 @@ for _d in _pl.Path(__file__).resolve().parents:
         if str(_lib) not in _sys.path:
             _sys.path.insert(0, str(_lib))
         break
-from chathealthy_lib.exceptions import ChatHealthyException
 
 
-def test_email_send_with_warnings_and_errors():
-    """Test: create warnings/errors, then send email report."""
+@pytest.fixture
+def fatal_env(monkeypatch, scratch_mongo):
+    import chathealthy_lib.discrepancy_pdf as discrepancy_pdf
+    import chathealthy_lib.notification_client as notification_client
+    import chathealthy_lib.discrepancy_report as dr
 
-    # Setup
-    os.environ["ENV_PREFIX"] = "local"
-    os.environ["PIPELINE_NAME"] = "provider"
-    run_id = f"test_email_{uuid.uuid4().hex[:8]}"
+    db, collection = scratch_mongo
+    discrepancy_log = collection("discrepancyLog")
 
-    # Create report instance - uses REAL MongoDB connection to PIPELINE cluster
-    # The three row counts are the caller's responsibility: they count data on
-    # the pipeline cluster, which the report never touches. A real workbook
-    # queries them; the test supplies representative values.
+    monkeypatch.setattr(dr, "PIPELINE_ADMIN_DB", db.name)
+    monkeypatch.setattr(dr, "DISCREPANCY_LOG_COLLECTION", discrepancy_log.name)
+    # Config store deterministically unreachable -> REQ-B-006 env escape.
+    monkeypatch.setattr(dr, "PIPELINE_CONFIG_COLLECTION", collection("PipelineConfig").name)
+    monkeypatch.setenv("NOTIFICATION_TO_EMAIL", "ops@example.com")
+    monkeypatch.setattr(discrepancy_pdf, "build_discrepancy_pdf",
+                        lambda _m, _summary, _appendix=None: b"PDFBYTES")
+
+    sent: list[tuple] = []
+
+    class _CapturingClient:
+        def send_email(self, addr, subject, body, attachments=None, **kw):
+            sent.append((addr, subject, body, attachments))
+            return True
+
+        def send_sms(self, addr, body):
+            return True
+
+    monkeypatch.setattr(notification_client, "NotificationClient", _CapturingClient)
+    return db.client, discrepancy_log, sent
+
+
+def test_fatal_records_aggregate_and_delivers_report(fatal_env):
+    from chathealthy_lib.discrepancy_report import DiscrepancyReport, fatal_error
+
+    client, discrepancy_log, sent = fatal_env
+    run_id = f"test_fatal_{uuid.uuid4().hex[:8]}"
+
     report = DiscrepancyReport(
         run_id=run_id,
         env="local",
@@ -40,76 +68,26 @@ def test_email_send_with_warnings_and_errors():
         total_source_rows=8214553,
         rows_in_target=0,
         total_rows=8214550,
-        fatal_error=True,
         data_version=3,
     )
+    # Redirect the report's reads/writes to the scratch cluster.
+    report.mongo_connection = client
+    report.mongo_down = False
 
-    # Create some warnings
-    result1 = report.createWarning(
-        job_name="provider",
-        source="ProviderPipelineOnDemand",
-        details=(
-            "Practice address ZIP 940271234 is 9 digits with no hyphen; "
-            "normalized to 94027-1234. County lookup used the 5-digit prefix."
-        ),
-        data_source="NPPES",
-        record_id="1003199654",
-        source_line="npidata_pfile_20260701.csv:184223",
-        npi="1003199654",
-        field_list=["provider_business_practice_location_address_postal_code",
-                    "practice_county"],
+    delivered = fatal_error(
+        report,
+        level="fatal",
+        explanation="Certificate CN 'chpipeline-service' does not match "
+                    "expected 'pipelineEditor'",
     )
-    assert result1 is True
 
-    # Create some errors
-    result2 = report.createNonFatalError(
-        job_name="provider",
-        source="ProviderPipelineOnDemand",
-        details=(
-            "Taxonomy code 207Q00000X is flagged primary on two rows for the "
-            "same NPI; neither row carries a license number, so the primary "
-            "specialty cannot be resolved."
-        ),
-        data_source="NUCC",
-        record_id="1003199801",
-        source_line="npidata_pfile_20260701.csv:184224",
-        npi="1003199801",
-        field_list=["healthcare_provider_taxonomy_code_1",
-                    "healthcare_provider_primary_taxonomy_switch_1",
-                    "provider_license_number_1"],
-    )
-    assert result2 is True
+    assert delivered is True, "a fatal must deliver the one report"
+    assert sent, "the fatal report must reach at least one recipient"
 
-    result3 = report.createNonFatalError(
-        job_name="provider",
-        source="ProviderPipelineOnDemand",
-        details=(
-            "Practice address state 'ZZ' is not a USPS state code, so the row "
-            "cannot be assigned a county and is excluded from geographic search."
-        ),
-        data_source="NPPES",
-        record_id="1003199655",
-        source_line="npidata_pfile_20260701.csv:184225",
-        npi="1003199655",
-        field_list=["provider_business_practice_location_address_state_name",
-                    "practice_county",
-                    "practice_fips"],
-    )
-    assert result3 is True
+    # The job-level fatal was recorded to discrepancyLog as a type_aggregate.
+    fatal_aggs = list(discrepancy_log.find(
+        {"run_id": run_id, "kind": "type_aggregate", "severity": "fatal"}))
+    assert len(fatal_aggs) == 1, "exactly one fatal aggregate per run"
 
-    # Simulate fatal error: certificate CN mismatch when webhook tries to connect to Mongo
-    # fatal_error() calls _write_email() internally
-    # Uses REAL MongoDB to store and retrieve all documents
-    try:
-        fatal_error(
-            report=report,
-            level="fatal",
-            explanation="Certificate CN 'chpipeline-service' does not match expected 'pipelineEditor'",
-        )
-
-    except Exception as e:
-        raise ChatHealthyException(
-            mode="assertion_failed",
-            component="test_fatal_errors",
-            message=f"Test failed with exception: {type(e).__name__}: {e}",
-            exception=e) from e
+    for _addr, _subject, body, _attachments in sent:
+        assert "Certificate CN" in body or fatal_aggs[0]["class"] in body

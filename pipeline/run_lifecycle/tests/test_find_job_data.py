@@ -28,26 +28,23 @@ def test_find_job_data():
         # Look in Pipelines metadata database
         db = client["pipelineAdmin"]
 
-        _CH_LOG.info(f"\n✓ Checking Pipelines metadata database...")
+        _CH_LOG.info("Checking Pipelines metadata database...")
 
-        # Look for pipeline.discrepancy_reports collection
-        if "pipeline.discrepancy_reports" in db.list_collection_names():
-            coll = db["pipeline.discrepancy_reports"]
+        # Findings live in the unified discrepancyLog collection as two kinds:
+        # per-record `record` docs and per-class `type_aggregate` docs.
+        if "discrepancyLog" in db.list_collection_names():
+            coll = db["discrepancyLog"]
             count = coll.count_documents({})
-            _CH_LOG.info(f"✓ Found pipeline.discrepancies: {count} total documents")
+            _CH_LOG.info("Found discrepancyLog: %d total documents", count)
 
-            # Find test data
-            test_docs = list(coll.find({"source": "ProviderPipelineOnDemand"}).limit(5))
-            if test_docs:
-                _CH_LOG.info(f"✓ Found {len(test_docs)} documents from ProviderPipelineOnDemand:")
-                for doc in test_docs:
-                    _CH_LOG.info(f"    - {doc.get('level', 'unknown').upper()}: {doc.get('details', '')[:50]}...")
-                _CH_LOG.info(f"\n✅ SUCCESS: Test data found in database!")
-            else:
-                _CH_LOG.info("✗ No ProviderPipelineOnDemand data found")
+            aggregates = list(coll.find({"kind": "type_aggregate"}).limit(5))
+            for doc in aggregates:
+                _CH_LOG.info("    - %s %s: count=%s",
+                             str(doc.get("severity", "")).upper(),
+                             doc.get("class", ""), doc.get("count"))
         else:
-            _CH_LOG.info("✗ pipeline.discrepancies collection not found")
-            _CH_LOG.info(f"  Available collections: {db.list_collection_names()}")
+            _CH_LOG.info("discrepancyLog collection not found")
+            _CH_LOG.info("  Available collections: %s", db.list_collection_names())
 
         assert True
 
