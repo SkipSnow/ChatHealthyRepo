@@ -173,40 +173,48 @@ def ensure_provider_indexes_fn(config: dict) -> dict:
     coll, client = _providers_collection_and_client(config.get("provider_collection"))
     cluster_wait_minutes = int(config.get("cluster_wait_minutes", 20))
     _wait_for_cluster_ready(client, cluster_wait_minutes)
-    # Build indexes only when we are CREATING the collection. An incremental job
-    # (states 1..n now, further states in a later run against the same version)
-    # finds the collection already present and its indexes already built when it
-    # was first created; rebuilding them on a populated collection is neither
-    # free nor needed. On a fresh (empty) collection they are instant.
+
+    # The full target index set for the provider collection: the record-declared
+    # indexes plus the two built here in code -- the coordinate-pending sentinel
+    # and the active-standing flag. Both are single-field (one array root each),
+    # so they are safe. apply_indexes creates whatever is missing and is
+    # idempotent; the reconciliation below drops whatever should not be there.
+    specs = list(_pipeline_provider_index_specs())
+    specs.append({"name": "practice_addresses.coordinates.source_1",
+                  "keys": [["practice_addresses.coordinates.source", 1]]})
+    specs.append({"name": "active.is_active_1",
+                  "keys": [["active.is_active", 1]]})
+    by_name = {s["name"]: s for s in specs}
+    log = ChatHealthyLoggingService()
+
     if coll.name in coll.database.list_collection_names():
-        ChatHealthyLoggingService().info(
-            "ensure_provider_indexes: %s already exists (incremental run); "
-            "indexes left as-is", coll.full_name)
-        return {"collection": coll.full_name, "indexes": [], "created": False}
-    # Fresh: create the empty collection explicitly, then build every index on it
-    # while it holds no rows (instant). This is the manage-index step for the
-    # provider pipeline -- the one place the collection and all its indexes come
-    # into being together.
-    coll.database.create_collection(coll.name)
-    results = apply_indexes(coll, _pipeline_provider_index_specs())
-    # The coordinate-pending sentinel index, built up front here -- before the
-    # load fan-out, on the empty collection, so it is instant -- so the -1s the
-    # base load writes are queryable. Created in code, never declared against a
-    # collection that does not exist until the run creates it. Idempotent.
-    coll.create_index(
-        [("practice_addresses.coordinates.source", 1)],
-        name="practice_addresses.coordinates.source_1",
-    )
-    # The active-standing flag, built up front on the empty collection. Always
-    # present on every provider, so a plain (non-sparse) index. Same reasoning
-    # as coordinates: created in code when the collection is created, not
-    # declared against a collection that does not exist until the run does.
-    coll.create_index(
-        [("active.is_active", 1)],
-        name="active.is_active_1",
-    )
-    return {
-        "collection": coll.full_name,
-        "indexes": results,
-        "created": True,
-    }
+        # Existing collection -- an incremental continuation, or one an earlier
+        # run left behind. Reconcile so it ends holding exactly the target set:
+        # drop every index that is extra (not in the target) or bad (right name,
+        # wrong keys) -- for example a stale parallel-array index -- then let
+        # apply_indexes create whatever is missing. No operator action needed.
+        dropped = []
+        for ix in coll.list_indexes():
+            name = ix.get("name")
+            if name == "_id_":
+                continue
+            spec = by_name.get(name)
+            got = [[k, int(v)] for k, v in (ix.get("key") or {}).items()]
+            want = None if spec is None else [[f, int(o)] for f, o in spec["keys"]]
+            if spec is None or got != want:
+                coll.drop_index(name)
+                dropped.append(name)
+        if dropped:
+            log.info("ensure_provider_indexes: reconciled %s -- dropped %d extra/bad "
+                     "index(es): %s", coll.full_name, len(dropped), dropped)
+        created = False
+    else:
+        # Fresh: create the empty collection explicitly, then build every index on
+        # it while it holds no rows (instant). This is the manage-index step for
+        # the provider pipeline -- the one place the collection and all its
+        # indexes come into being together.
+        coll.database.create_collection(coll.name)
+        created = True
+
+    results = apply_indexes(coll, specs)
+    return {"collection": coll.full_name, "indexes": results, "created": created}
