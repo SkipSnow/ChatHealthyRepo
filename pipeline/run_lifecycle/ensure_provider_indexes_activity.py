@@ -179,8 +179,9 @@ def ensure_provider_indexes_fn(config: dict) -> dict:
     # was first created; rebuilding them on a populated collection is neither
     # free nor needed. On a fresh (empty) collection they are instant.
     if coll.name in coll.database.list_collection_names():
-        _log.info("ensure_provider_indexes: %s already exists (incremental run); "
-                  "indexes left as-is", coll.full_name)
+        ChatHealthyLoggingService().info(
+            "ensure_provider_indexes: %s already exists (incremental run); "
+            "indexes left as-is", coll.full_name)
         return {"collection": coll.full_name, "indexes": [], "created": False}
     # Fresh: create the empty collection explicitly, then build every index on it
     # while it holds no rows (instant). This is the manage-index step for the
