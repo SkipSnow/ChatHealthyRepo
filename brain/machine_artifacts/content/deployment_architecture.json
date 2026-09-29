@@ -4784,6 +4784,7 @@
         "KEY_VAULT_URI": "local_env",
         "NOTIFICATION_FROM_EMAIL": "local_env",
         "NOTIFICATION_TO_EMAIL": "local_env",
+        "OPENAI_API_KEY": "azure_key_vault",
         "PIPELINEEDITOR_AZURE_CLIENT_ID": "local_env",
         "PIPELINEEDITOR_AZURE_CLIENT_SECRET": "azure_key_vault",
         "PIPELINEEDITOR_AZURE_TENANT_ID": "local_env",
