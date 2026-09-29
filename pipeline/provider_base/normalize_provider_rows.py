@@ -216,11 +216,16 @@ def normalize_raw_record(raw: dict) -> dict:
     consumed.update(MAILING_ADDRESS_FIELDS)
     if "zip" in business:
         business["zip"] = business["zip"][:5]
-    if business:
-        business["address_type"] = "business"
-        business["county"] = {"fips": None}
-        _apply_address_labels(business)
-        doc["business_address"] = business
+    # Every record carries a business_address.state. "00" is the sentinel for
+    # a record whose source row gives no mailing state, so the field is always
+    # present and indexable (the state fan-out's catch-all finds it by value,
+    # not by a $nin over a missing field).
+    if not business.get("state"):
+        business["state"] = "00"
+    business["address_type"] = "business"
+    business["county"] = {"fips": None}
+    _apply_address_labels(business)
+    doc["business_address"] = business
 
     if practice_addresses:
         doc["practice_addresses"] = practice_addresses

@@ -9,6 +9,7 @@ import time
 from chathealthy_lib.logging_service import ChatHealthyLoggingService
 
 
+from pipeline.run_lifecycle.atlas_cluster_manager import scale_up
 from pipeline.run_lifecycle.cluster_lifecycle_manager import ClusterLifecycleManager
 from pipeline.run_lifecycle.ensure_provider_indexes_activity import ensure_provider_indexes_fn
 from pipeline.run_lifecycle.pipeline_config import ensure_pipeline_config
@@ -126,6 +127,14 @@ def _execute(ctx) -> dict:
     _log.LogPipeline("INFO", "prepare_infrastructure: waking cluster %s", cluster)
     ops.wake(cluster, job_id=ctx.run_id)
     _log.LogPipeline("INFO", "prepare_infrastructure: cluster %s awake (%.1fs)",
+              cluster, time.time() - t)
+
+    # Scale to M50 for the run's write load (autoscale locked), then scale
+    # back to M30 at quiesce. Operator directive 2026-09-29.
+    t = time.time()
+    _log.LogPipeline("INFO", "prepare_infrastructure: scaling %s up for the job", cluster)
+    scale_up(cluster)
+    _log.LogPipeline("INFO", "prepare_infrastructure: cluster %s scaled up (%.1fs)",
               cluster, time.time() - t)
 
     t = time.time()

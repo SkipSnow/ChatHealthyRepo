@@ -4,7 +4,7 @@
 
 from __future__ import annotations
 
-REQUIRED_TOP = ("npi", "entity_type_code")
+REQUIRED_TOP = ("npi",)
 
 
 def validate_provider_record(doc: dict) -> tuple[bool, list[str]]:

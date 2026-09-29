@@ -38,10 +38,10 @@ log = ChatHealthyLoggingService()
 ATLAS_BASE    = "https://cloud.mongodb.com/api/atlas/v2"
 PROJECT_ID    = os.environ["ATLAS_PROJECT_ID"]
 
-# Tier config (per operator directive 2026-08-01)
-# On job start: if current tier < M80, scale to M80.
-# On job end (finally + reaper): if current tier == M80, scale to M30.
-JOB_TIER      = "M80"    # scale-up target before heavy jobs
+# Tier config (per operator directive 2026-09-29)
+# On job start: scale to M50 (autoscale locked for the run's write load).
+# On job end (finally + reaper): if current tier == M50, scale to M30.
+JOB_TIER      = "M50"    # scale-up target before heavy jobs
 JOB_MAX       = "M200"   # autoscale ceiling during jobs
 POST_JOB_TIER = "M30"    # scale-down target when the job ends (kept warm, not paused)
 POST_JOB_MAX  = "M40"    # autoscale ceiling at post-job idle
