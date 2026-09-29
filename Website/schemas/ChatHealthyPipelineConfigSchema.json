@@ -5,7 +5,10 @@
   "description": "Per-environment configuration for the ChatHealthy data pipeline. Replaces the chathealthyfrontend.pipeline.config Mongo document; source of truth is brain/machine_artifacts/content/pipeline_config.json.",
   "type": "object",
   "additionalProperties": false,
-  "required": ["$schema", "pipeline_config"],
+  "required": [
+    "$schema",
+    "pipeline_config"
+  ],
   "properties": {
     "$schema": {
       "type": "string",
@@ -14,7 +17,9 @@
     "pipeline_config": {
       "type": "array",
       "minItems": 1,
-      "items": { "$ref": "#/$defs/EnvConfig" }
+      "items": {
+        "$ref": "#/$defs/EnvConfig"
+      }
     }
   },
   "$defs": {
@@ -26,33 +31,59 @@
         "batch_limits",
         "dataset_versions",
         "failure_thresholds",
-        "source_freshness"
+        "source_freshness",
+        "discrepancy_report",
+        "metadata"
       ],
       "properties": {
         "env": {
           "description": "Environment this record applies to.",
-          "enum": ["local", "dev", "qa", "prod"]
+          "enum": [
+            "local",
+            "dev",
+            "qa",
+            "prod"
+          ]
         },
-        "batch_limits":       { "$ref": "#/$defs/BatchLimits" },
+        "batch_limits": {
+          "$ref": "#/$defs/BatchLimits"
+        },
         "dataset_versions": {
           "description": "Registry of every dataset the pipeline touches. Four entry shapes: Class A (independent source with its own fetch), Class B-owner (bundled source that owns the archive fetch), Class B-extractor (bundled source that reuses another entry's fetch), Class C (pipeline-derived collection with no source). Runtime appends _v_{data_version} to staging_name and public_data_name; those base names MUST NOT carry a version suffix here.",
           "type": "array",
           "minItems": 1,
-          "items": { "$ref": "#/$defs/DatasetVersionEntry" }
+          "items": {
+            "$ref": "#/$defs/DatasetVersionEntry"
+          }
         },
-        "failure_thresholds": { "$ref": "#/$defs/FailureThresholds" },
+        "failure_thresholds": {
+          "$ref": "#/$defs/FailureThresholds"
+        },
         "source_freshness": {
           "type": "array",
-          "items": { "$ref": "#/$defs/SourceFreshness" }
+          "items": {
+            "$ref": "#/$defs/SourceFreshness"
+          }
+        },
+        "discrepancy_report": {
+          "$ref": "#/$defs/DiscrepancyReport"
+        },
+        "metadata": {
+          "$ref": "#/$defs/ConfigMetadata"
         }
       }
     },
     "BatchLimits": {
       "type": "object",
       "additionalProperties": false,
-      "required": ["normalize_batch_size"],
+      "required": [
+        "normalize_batch_size"
+      ],
       "properties": {
-        "normalize_batch_size": { "type": "integer", "minimum": 1 }
+        "normalize_batch_size": {
+          "type": "integer",
+          "minimum": 1
+        }
       }
     },
     "DatasetVersionEntry": {
@@ -68,19 +99,33 @@
           "description": "Provenance of the dataset. Present when this entry owns the download. Absent for Class B-extractor entries (they reuse the archive fetched by another bundled entry) and for Class C derived entries.",
           "type": "object",
           "additionalProperties": false,
-          "required": ["source_url"],
+          "required": [
+            "source_url"
+          ],
           "properties": {
             "source_url": {
               "description": "Direct URL as a plain string, or an object with page_url + instructions when the URL is discovered by the AI-agent url-discovery worker.",
               "anyOf": [
-                { "type": "string", "format": "uri" },
+                {
+                  "type": "string",
+                  "format": "uri"
+                },
                 {
                   "type": "object",
                   "additionalProperties": false,
-                  "required": ["page_url", "instructions"],
+                  "required": [
+                    "page_url",
+                    "instructions"
+                  ],
                   "properties": {
-                    "page_url":     { "type": "string", "format": "uri" },
-                    "instructions": { "type": "string", "minLength": 1 }
+                    "page_url": {
+                      "type": "string",
+                      "format": "uri"
+                    },
+                    "instructions": {
+                      "type": "string",
+                      "minLength": 1
+                    }
                   }
                 }
               ]
@@ -99,7 +144,14 @@
         },
         "file_format": {
           "description": "Explicit declaration of the on-disk data format of the file that will be staged. Required on every non-derived entry; forbidden on Class C derived entries.",
-          "enum": ["csv", "tsv", "pipe_delimited", "xlsx", "json", "zip_containing_csv"]
+          "enum": [
+            "csv",
+            "tsv",
+            "pipe_delimited",
+            "xlsx",
+            "json",
+            "zip_containing_csv"
+          ]
         },
         "staging_name": {
           "description": "Fully qualified staging collection name in DB.coll form. Runtime appends _v_{data_version}. MUST NOT carry a version suffix here.",
@@ -125,34 +177,118 @@
       "oneOf": [
         {
           "title": "Class A - independent source",
-          "required": ["source_name", "fetch", "file_format", "staging_name", "public_data_name"],
+          "required": [
+            "source_name",
+            "fetch",
+            "file_format",
+            "staging_name",
+            "public_data_name"
+          ],
           "allOf": [
-            { "not": { "required": ["bundled_with"] } },
-            { "not": { "required": ["archive_member"] } },
-            { "not": { "required": ["depends_on"] } }
+            {
+              "not": {
+                "required": [
+                  "bundled_with"
+                ]
+              }
+            },
+            {
+              "not": {
+                "required": [
+                  "archive_member"
+                ]
+              }
+            },
+            {
+              "not": {
+                "required": [
+                  "depends_on"
+                ]
+              }
+            }
           ]
         },
         {
           "title": "Class B-owner - bundled source that owns the archive fetch",
-          "required": ["source_name", "bundled_with", "fetch", "archive_member", "file_format", "staging_name", "public_data_name"],
-          "not": { "required": ["depends_on"] }
+          "required": [
+            "source_name",
+            "bundled_with",
+            "fetch",
+            "archive_member",
+            "file_format",
+            "staging_name",
+            "public_data_name"
+          ],
+          "not": {
+            "required": [
+              "depends_on"
+            ]
+          }
         },
         {
           "title": "Class B-extractor - bundled source that reuses another entry's fetch",
-          "required": ["source_name", "bundled_with", "archive_member", "file_format", "staging_name", "public_data_name"],
+          "required": [
+            "source_name",
+            "bundled_with",
+            "archive_member",
+            "file_format",
+            "staging_name",
+            "public_data_name"
+          ],
           "allOf": [
-            { "not": { "required": ["fetch"] } },
-            { "not": { "required": ["depends_on"] } }
+            {
+              "not": {
+                "required": [
+                  "fetch"
+                ]
+              }
+            },
+            {
+              "not": {
+                "required": [
+                  "depends_on"
+                ]
+              }
+            }
           ]
         },
         {
           "title": "Class C - derived (pipeline-produced) collection",
-          "required": ["source_name", "staging_name", "public_data_name", "depends_on"],
+          "required": [
+            "source_name",
+            "staging_name",
+            "public_data_name",
+            "depends_on"
+          ],
           "allOf": [
-            { "not": { "required": ["fetch"] } },
-            { "not": { "required": ["bundled_with"] } },
-            { "not": { "required": ["archive_member"] } },
-            { "not": { "required": ["file_format"] } }
+            {
+              "not": {
+                "required": [
+                  "fetch"
+                ]
+              }
+            },
+            {
+              "not": {
+                "required": [
+                  "bundled_with"
+                ]
+              }
+            },
+            {
+              "not": {
+                "required": [
+                  "archive_member"
+                ]
+              }
+            },
+            {
+              "not": {
+                "required": [
+                  "file_format"
+                ]
+              }
+            }
           ]
         }
       ]
@@ -160,17 +296,26 @@
     "FailureThresholds": {
       "type": "object",
       "additionalProperties": false,
-      "required": ["discrepancy_abort"],
+      "required": [
+        "discrepancy_abort"
+      ],
       "properties": {
-        "discrepancy_abort": { "type": "integer", "minimum": 1 }
+        "discrepancy_abort": {
+          "type": "integer",
+          "minimum": 1
+        }
       }
     },
     "SourceFreshness": {
       "type": "object",
       "additionalProperties": false,
-      "required": ["source_name"],
+      "required": [
+        "source_name"
+      ],
       "properties": {
-        "source_name": { "type": "string" },
+        "source_name": {
+          "type": "string"
+        },
         "number_of_days": {
           "description": "TTL guidance for the source. Ignored when always_refetch is true.",
           "type": "integer",
@@ -179,6 +324,88 @@
         "always_refetch": {
           "description": "When true, the freshness gate skips the HEAD/ETag probe and always fetches. Correct for small ChatHealthy-hosted proprietary files where Cloudflare edge cache can mask fresh origin updates.",
           "type": "boolean"
+        }
+      }
+    },
+    "DiscrepancyReport": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "report_cap_per_class",
+        "business_record_keys",
+        "finding_types"
+      ],
+      "properties": {
+        "report_cap_per_class": {
+          "description": "Max instances of any one finding class the report lists before summarizing.",
+          "type": "integer",
+          "minimum": 0
+        },
+        "business_record_keys": {
+          "description": "Per production artifact, the record field that identifies one business record.",
+          "type": "object",
+          "minProperties": 1,
+          "additionalProperties": {
+            "type": "string"
+          }
+        },
+        "finding_types": {
+          "description": "Every finding class the pipeline may emit, mapped to its severity and escalation.",
+          "type": "object",
+          "minProperties": 1,
+          "additionalProperties": {
+            "$ref": "#/$defs/FindingType"
+          }
+        }
+      }
+    },
+    "FindingType": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "severity",
+        "fatal_at_count",
+        "max"
+      ],
+      "properties": {
+        "severity": {
+          "enum": [
+            "warning",
+            "error",
+            "fatal"
+          ]
+        },
+        "fatal_at_count": {
+          "description": "Occurrence count at which this class escalates to fatal; null = never on volume.",
+          "type": [
+            "integer",
+            "null"
+          ],
+          "minimum": 1
+        },
+        "max": {
+          "description": "Max allowed occurrences; null = unbounded.",
+          "type": [
+            "integer",
+            "null"
+          ],
+          "minimum": 0
+        }
+      }
+    },
+    "ConfigMetadata": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "subscribers_secret"
+      ],
+      "properties": {
+        "subscribers_secret": {
+          "description": "Name of the Key Vault secret whose value is the report recipient list. Never a value.",
+          "type": [
+            "string",
+            "null"
+          ]
         }
       }
     }

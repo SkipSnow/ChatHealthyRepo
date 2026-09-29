@@ -38,16 +38,16 @@ def get_frontend_mongo(identity: str = "pipelineEditor"):
     return ChatHealthyMongoUtilities().getConnection(identity, "ChatHealthyFrontEnd")
 
 
-def load_discrepancy_config(frontend_mongo, pipeline_name: str) -> dict:
-    """The pipeline's discrepancy_report block from the control store.
+def load_discrepancy_config(env_prefix: str) -> dict:
+    """The pipeline's discrepancy_report block from durable configuration.
 
-    Read from pipelineAdmin.PipelineConfig (_id=<pipeline_name>), seeded by
-    seed_pipeline_config.py. Carries finding_types (the severity map),
+    Durable configuration is the brain metadata file
+    brain/machine_artifacts/content/pipeline_config.json (one record per
+    environment), read from disk by load_pipeline_config -- not Mongo, not
+    code. The block carries finding_types (the severity map),
     business_record_keys, and report_cap_per_class.
     """
-    doc = frontend_mongo[PIPELINE_ADMIN_DB]["PipelineConfig"].find_one(
-        {"_id": pipeline_name}) or {}
-    return doc.get("discrepancy_report") or {}
+    return (load_pipeline_config(env_prefix=env_prefix) or {}).get("discrepancy_report") or {}
 
 
 def _severity_for(dr_cfg: dict, finding_class: str) -> str:
@@ -300,8 +300,7 @@ class PipelineRuntime:
     @property
     def discrepancy_config(self) -> dict:
         if self._dr_cfg is None:
-            self._dr_cfg = load_discrepancy_config(
-                self.frontend, self.ctx.manifest.pipeline_name)
+            self._dr_cfg = load_discrepancy_config(self.env)
         return self._dr_cfg
 
     @property

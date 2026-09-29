@@ -144,7 +144,84 @@
           "source_name": "specialty_catalog",
           "always_refetch": true
         }
-      ]
+      ],
+      "discrepancy_report": {
+        "report_cap_per_class": 25,
+        "business_record_keys": {
+          "provider": "npi",
+          "specialty_metadata": "Code"
+        },
+        "finding_types": {
+          "schema_violation": {
+            "severity": "error",
+            "fatal_at_count": null,
+            "max": null
+          },
+          "missing_npi": {
+            "severity": "error",
+            "fatal_at_count": null,
+            "max": null
+          },
+          "missing_entity_type_code": {
+            "severity": "fatal",
+            "fatal_at_count": null,
+            "max": null
+          },
+          "invalid_npi": {
+            "severity": "fatal",
+            "fatal_at_count": null,
+            "max": null
+          },
+          "invalid_entity_type_code": {
+            "severity": "fatal",
+            "fatal_at_count": null,
+            "max": null
+          },
+          "error_specialty_embedding_failed": {
+            "severity": "fatal",
+            "fatal_at_count": null,
+            "max": null
+          },
+          "unresolved_taxonomy_code": {
+            "severity": "fatal",
+            "fatal_at_count": null,
+            "max": null
+          },
+          "county_unresolvable": {
+            "severity": "warning",
+            "fatal_at_count": null,
+            "max": null
+          },
+          "authorized_official_incomplete": {
+            "severity": "warning",
+            "fatal_at_count": null,
+            "max": null
+          },
+          "parent_organization_incomplete": {
+            "severity": "warning",
+            "fatal_at_count": null,
+            "max": null
+          },
+          "state_missing_no_license": {
+            "severity": "warning",
+            "fatal_at_count": null,
+            "max": null
+          },
+          "state_missing_ambiguous_license": {
+            "severity": "warning",
+            "fatal_at_count": null,
+            "max": null
+          },
+          "coordinates_unresolvable": {
+            "severity": "warning",
+            "fatal_at_count": null,
+            "max": null
+          }
+        }
+      },
+      "metadata": {
+        "subscribers_secret": "notification-to-email"
+      }
     },
     {
       "env": "qa",
@@ -289,7 +366,84 @@
           "source_name": "specialty_catalog",
           "always_refetch": true
         }
-      ]
+      ],
+      "discrepancy_report": {
+        "report_cap_per_class": 25,
+        "business_record_keys": {
+          "provider": "npi",
+          "specialty_metadata": "Code"
+        },
+        "finding_types": {
+          "schema_violation": {
+            "severity": "error",
+            "fatal_at_count": null,
+            "max": null
+          },
+          "missing_npi": {
+            "severity": "error",
+            "fatal_at_count": null,
+            "max": null
+          },
+          "missing_entity_type_code": {
+            "severity": "fatal",
+            "fatal_at_count": null,
+            "max": null
+          },
+          "invalid_npi": {
+            "severity": "fatal",
+            "fatal_at_count": null,
+            "max": null
+          },
+          "invalid_entity_type_code": {
+            "severity": "fatal",
+            "fatal_at_count": null,
+            "max": null
+          },
+          "error_specialty_embedding_failed": {
+            "severity": "fatal",
+            "fatal_at_count": null,
+            "max": null
+          },
+          "unresolved_taxonomy_code": {
+            "severity": "fatal",
+            "fatal_at_count": null,
+            "max": null
+          },
+          "county_unresolvable": {
+            "severity": "warning",
+            "fatal_at_count": null,
+            "max": null
+          },
+          "authorized_official_incomplete": {
+            "severity": "warning",
+            "fatal_at_count": null,
+            "max": null
+          },
+          "parent_organization_incomplete": {
+            "severity": "warning",
+            "fatal_at_count": null,
+            "max": null
+          },
+          "state_missing_no_license": {
+            "severity": "warning",
+            "fatal_at_count": null,
+            "max": null
+          },
+          "state_missing_ambiguous_license": {
+            "severity": "warning",
+            "fatal_at_count": null,
+            "max": null
+          },
+          "coordinates_unresolvable": {
+            "severity": "warning",
+            "fatal_at_count": null,
+            "max": null
+          }
+        }
+      },
+      "metadata": {
+        "subscribers_secret": "notification-to-email"
+      }
     },
     {
       "env": "prod",
@@ -434,7 +588,84 @@
           "source_name": "specialty_catalog",
           "always_refetch": true
         }
-      ]
+      ],
+      "discrepancy_report": {
+        "report_cap_per_class": 25,
+        "business_record_keys": {
+          "provider": "npi",
+          "specialty_metadata": "Code"
+        },
+        "finding_types": {
+          "schema_violation": {
+            "severity": "error",
+            "fatal_at_count": null,
+            "max": null
+          },
+          "missing_npi": {
+            "severity": "error",
+            "fatal_at_count": null,
+            "max": null
+          },
+          "missing_entity_type_code": {
+            "severity": "fatal",
+            "fatal_at_count": null,
+            "max": null
+          },
+          "invalid_npi": {
+            "severity": "fatal",
+            "fatal_at_count": null,
+            "max": null
+          },
+          "invalid_entity_type_code": {
+            "severity": "fatal",
+            "fatal_at_count": null,
+            "max": null
+          },
+          "error_specialty_embedding_failed": {
+            "severity": "fatal",
+            "fatal_at_count": null,
+            "max": null
+          },
+          "unresolved_taxonomy_code": {
+            "severity": "fatal",
+            "fatal_at_count": null,
+            "max": null
+          },
+          "county_unresolvable": {
+            "severity": "warning",
+            "fatal_at_count": null,
+            "max": null
+          },
+          "authorized_official_incomplete": {
+            "severity": "warning",
+            "fatal_at_count": null,
+            "max": null
+          },
+          "parent_organization_incomplete": {
+            "severity": "warning",
+            "fatal_at_count": null,
+            "max": null
+          },
+          "state_missing_no_license": {
+            "severity": "warning",
+            "fatal_at_count": null,
+            "max": null
+          },
+          "state_missing_ambiguous_license": {
+            "severity": "warning",
+            "fatal_at_count": null,
+            "max": null
+          },
+          "coordinates_unresolvable": {
+            "severity": "warning",
+            "fatal_at_count": null,
+            "max": null
+          }
+        }
+      },
+      "metadata": {
+        "subscribers_secret": "notification-to-email"
+      }
     }
   ]
 }

@@ -184,11 +184,13 @@ class DiscrepancyReport:
         # being False -- the config store being UNREACHABLE -- never on a merely
         # empty or misconfigured recipient list.
         self.config_loaded = False
+        # The connection is opened for the discrepancyLog aggregates the report
+        # reads. Durable CONFIG is NOT read here -- it is the brain
+        # pipeline_config.json record the caller loads and passes to
+        # emit_discrepancy_report, which sets self.config and config_loaded.
         try:
             self.mongo_connection = ChatHealthyMongoUtilities().getConnection(
                 "pipelineEditor", "ChatHealthyFrontEnd")
-            self.config = self._load_pipeline_config()
-            self.config_loaded = True
         except Exception as exc:  # noqa: BLE001 -- see above
             self.mongo_down = True
             self.mongo_down_reason = f"{type(exc).__name__}: {str(exc)[:200]}"
@@ -772,10 +774,13 @@ def emit_discrepancy_report(
             report.mongo_down = False
 
         report.manifest_status = (manifest_status or "").strip().lower()
-        # Fill gaps only, so the discrepancy_report / metadata blocks the
-        # report loaded at construction survive.
-        for key, value in (config or {}).items():
-            report.config.setdefault(key, value)
+        # Durable configuration is the brain pipeline_config.json record the
+        # caller loaded and passes in -- not Mongo. The report reads its
+        # discrepancy_report and metadata blocks from it; config_loaded gates
+        # the store-unreachable recipient fallback (REQ-B-006).
+        if config:
+            report.config = dict(config)
+            report.config_loaded = True
         if isinstance(manifest_doc, dict) and manifest_doc.get("fatal_exception"):
             report.fatal_error = True
 
