@@ -126,7 +126,7 @@ def _wait_for_cluster_ready(
         attempts += 1
         try:
             client.admin.command("ping")
-            ChatHealthyLoggingService().info(
+            ChatHealthyLoggingService().LogPipeline("INFO", 
                 "cluster ready after %d attempt(s) (~%.0fs)",
                 attempts, attempts * poll_seconds,
             )
@@ -140,7 +140,7 @@ def _wait_for_cluster_ready(
                     message=f"cluster not ready after {timeout_minutes} min "
                     f"({attempts} attempts): {exc}",
             exception=exc)
-            ChatHealthyLoggingService().info(
+            ChatHealthyLoggingService().LogPipeline("INFO", 
                 "cluster not ready (attempt %d, %.0fs remaining): %s",
                 attempts, remaining, exc,
             )
@@ -205,7 +205,7 @@ def ensure_provider_indexes_fn(config: dict) -> dict:
                 coll.drop_index(name)
                 dropped.append(name)
         if dropped:
-            log.info("ensure_provider_indexes: reconciled %s -- dropped %d extra/bad "
+            log.LogPipeline("INFO", "ensure_provider_indexes: reconciled %s -- dropped %d extra/bad "
                      "index(es): %s", coll.full_name, len(dropped), dropped)
         created = False
     else:

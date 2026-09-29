@@ -132,7 +132,7 @@ def run_step(ctx) -> dict:
         mongo=ctx.mongo_client,
         blob=ctx.blob_client,
     ) or {}
-    _log.info("load_staging_parallel[%s]: done result=%s", source_name, result)
+    _log.LogPipeline("INFO", "load_staging_parallel[%s]: done result=%s", source_name, result)
     return result
 
 

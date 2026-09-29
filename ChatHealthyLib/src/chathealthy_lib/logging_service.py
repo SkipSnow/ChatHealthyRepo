@@ -132,7 +132,7 @@ _mongo_log_identity: Optional[str] = None
 # One log for one business process. The system is distributed across pipeline
 # workers, runbooks and front-end services; the business process is not. Every
 # component writes to this single collection and distinguishes itself by the
-# env, component and job_id FIELDS on each record.
+# env, component and run_id FIELDS on each record.
 LOG_COLLECTION = "Log"
 # The log database is a DEPLOYED fact, read from the environment. There is no
 # argument and no setter: a caller that could choose its own log destination
@@ -315,7 +315,7 @@ class _MongoLogHandler(logging.Handler):
                     raw_client = timed_client._client
                     # ONE log. The system is distributed but the business
                     # process is single, so every component writes here and
-                    # env/component/job_id are FIELDS, not collection names.
+                    # env/component/run_id are FIELDS, not collection names.
                     # A per-env collection duplicates the env field and makes
                     # "what happened during run X" unanswerable across
                     # components.
@@ -330,6 +330,19 @@ class _MongoLogHandler(logging.Handler):
         try:
             ctx = _log_context.get(None) or {}
             ctx_guid = ctx.get("session_guid")
+            pipeline_name = os.environ.get("PIPELINE_NAME", "").strip() or None
+            # The run this record belongs to. set_run_id() binds it on the
+            # front-end path; the pipeline path never calls that, so fall back
+            # to RUN_ID from the environment -- which the runbook sets before
+            # its first log, the Controller inherits via -e RUN_ID, and every
+            # worker inherits via os.environ.copy(). Without this fallback no
+            # pipeline record carries a run_id at all.
+            run_id = (
+                ctx.get("run_id")
+                if ctx.get("run_id") is not None
+                else (os.environ.get("RUN_ID", "").strip() or None)
+            )
+            is_pipeline = pipeline_name is not None or run_id is not None
             doc: dict = {
                 "timeStamp": datetime.now(timezone.utc),
                 "level": record.levelname,
@@ -341,11 +354,8 @@ class _MongoLogHandler(logging.Handler):
                 # a shared collection, so a stale label is a wrong answer.
                 "env": os.environ.get("ENV_PREFIX", "").strip() or self._env,
                 "component": self._target,
-                "pipeline_name": os.environ.get("PIPELINE_NAME", "").strip() or None,
-                # The run this record belongs to. Set via set_run_id(); this
-                # is what makes one shared log queryable per run rather than
-                # only by timestamp.
-                "run_id": ctx.get("run_id"),
+                "pipeline_name": pipeline_name,
+                "run_id": run_id,
                 # Declared by the caller via set_data_version(). Falls back
                 # to the DATA_VERSION env var for runbooks that set it.
                 "data_version": (
@@ -361,22 +371,39 @@ class _MongoLogHandler(logging.Handler):
                 # or level prefix. `formatted` is for reading; this is what
                 # you group, match and aggregate on.
                 "message": record.getMessage(),
-                "pathname": record.pathname,
+                # The code that asked to log, resolved past the wrapper frames
+                # by _find_true_caller(); falls back to the record's own frame.
+                "pathname": getattr(record, "ch_pathname", record.pathname),
                 # Declared by the caller via set_fatal_error(); False only
                 # because nobody has said otherwise, not because we decided
                 # it isn't fatal. A single call can still override below.
                 "fatal_error": bool(ctx.get("fatal_error", False)),
                 "user_action": bool(ctx_guid),
-                # session_guid is ALWAYS present on every doc. Null when
-                # there is no user session in flight (system / startup /
-                # background); the GUID string when there is.
-                "session_guid": ctx_guid,
             }
-            # Optional source-location fields per schema.
-            if record.lineno is not None:
-                doc["lineno"] = record.lineno
-            if record.funcName:
-                doc["funcName"] = record.funcName
+            # session_guid is a front-end/HTTP field, always null on the
+            # pipeline path. Present (possibly null) for front-end processes;
+            # omitted for pipeline processes when there is no session, so the
+            # closed schema need not require it. The user_action => session_guid
+            # invariant is untouched: user_action is only true when ctx_guid is.
+            if ctx_guid is not None:
+                doc["session_guid"] = ctx_guid
+            elif not is_pipeline:
+                doc["session_guid"] = None
+            # Optional source-location fields per schema, from the true caller.
+            true_lineno = getattr(record, "ch_lineno", record.lineno)
+            true_func = getattr(record, "ch_funcName", record.funcName)
+            if true_lineno is not None:
+                doc["lineno"] = true_lineno
+            if true_func:
+                doc["funcName"] = true_func
+            # Explicit stamps from LogPipeline win over the env-derived
+            # defaults above.
+            if getattr(record, "pipeline_name", None) is not None:
+                doc["pipeline_name"] = record.pipeline_name
+            if getattr(record, "run_id", None) is not None:
+                doc["run_id"] = record.run_id
+            if getattr(record, "data_version", None) is not None:
+                doc["data_version"] = record.data_version
             # Exception type as a structured query field. The full
             # tracebacks live inside `formatted` because the _Formatter
             # renders them.
@@ -470,6 +497,40 @@ def _compute_level() -> int:
     return mapped if isinstance(mapped, int) else logging.INFO
 
 
+# Level names LogPipeline accepts. EXCEPTION is ERROR that also captures the
+# active exception, mirroring the .exception() method.
+_LEVEL_NAMES: dict[str, int] = {
+    "DEBUG": logging.DEBUG,
+    "INFO": logging.INFO,
+    "WARNING": logging.WARNING,
+    "WARN": logging.WARNING,
+    "ERROR": logging.ERROR,
+    "CRITICAL": logging.CRITICAL,
+    "EXCEPTION": logging.ERROR,
+}
+
+
+def _find_true_caller() -> Optional[tuple[str, int, str]]:
+    """Return (pathname, lineno, funcName) of the code that asked to log,
+    skipping every logging-wrapper frame.
+
+    A record must name the function that called the logger, not the logger's
+    own plumbing. Every wrapper frame on the path -- the public log methods,
+    LogPipeline, _emit, and any caller-side helper such as the runbook's
+    log() -- binds __ch_log_wrapper__ in its locals; the first frame without
+    it is the true call site. This is filename-independent, which matters
+    because the build inlines this module into each Automation runbook, so a
+    frame's filename cannot distinguish wrapper from caller.
+    """
+    frame = sys._getframe(1)
+    while frame is not None:
+        if not frame.f_locals.get("__ch_log_wrapper__"):
+            code = frame.f_code
+            return (code.co_filename, frame.f_lineno, code.co_name)
+        frame = frame.f_back
+    return None
+
+
 def _build_handler_for(destination: str) -> logging.Handler:
     if destination == "stdout":
         h: logging.Handler = logging.StreamHandler(stream=sys.stdout)
@@ -515,7 +576,14 @@ class ChatHealthyLoggingService:
     """
 
     def __init__(self) -> None:
-        pass
+        # The run this component belongs to, and the pipeline it is part of.
+        # Sourced from the environment the Controller (-e RUN_ID) and every
+        # worker (os.environ.copy()) inherit; the runbook sets RUN_ID before
+        # the first log. LogPipeline stamps both on every record.
+        self._pipeline_name: Optional[str] = (
+            os.environ.get("PIPELINE_NAME", "").strip() or None
+        )
+        self._run_id: Optional[str] = os.environ.get("RUN_ID", "").strip() or None
 
     @staticmethod
     def _debug_mode_on() -> bool:
@@ -530,6 +598,7 @@ class ChatHealthyLoggingService:
         if_not_debug_log: bool,
         kw: dict,
     ) -> None:
+        __ch_log_wrapper__ = True  # noqa: F841  true-caller frame marker
         _ensure_configured()
         if exc is not None:
             if not isinstance(exc, ChatHealthyException):
@@ -551,7 +620,14 @@ class ChatHealthyLoggingService:
         # Demoting to DEBUG is what makes the flag mean what it says.
         if if_not_debug_log and level > logging.DEBUG:
             level = logging.DEBUG
-        kw.setdefault("stacklevel", 3)
+        # Attribute the record to the code that asked to log, not to this
+        # wrapper. stdlib stacklevel cannot span a caller-side helper of
+        # variable depth (the runbook's log()); the frame walk does.
+        caller = _find_true_caller()
+        if caller is not None:
+            extra = dict(kw.pop("extra", {}) or {})
+            extra["ch_pathname"], extra["ch_lineno"], extra["ch_funcName"] = caller
+            kw["extra"] = extra
         logging.getLogger().log(level, msg, *args, **kw)
 
     def debug(
@@ -559,6 +635,7 @@ class ChatHealthyLoggingService:
         exc: Optional[ChatHealthyException] = None,
         if_not_debug_log: bool = False, **kw,
     ) -> None:
+        __ch_log_wrapper__ = True  # noqa: F841  true-caller frame marker
         self._emit(logging.DEBUG, msg, args, exc, if_not_debug_log, kw)
 
     def info(
@@ -566,6 +643,7 @@ class ChatHealthyLoggingService:
         exc: Optional[ChatHealthyException] = None,
         if_not_debug_log: bool = False, **kw,
     ) -> None:
+        __ch_log_wrapper__ = True  # noqa: F841  true-caller frame marker
         self._emit(logging.INFO, msg, args, exc, if_not_debug_log, kw)
 
     def warning(
@@ -573,6 +651,7 @@ class ChatHealthyLoggingService:
         exc: Optional[ChatHealthyException] = None,
         if_not_debug_log: bool = False, **kw,
     ) -> None:
+        __ch_log_wrapper__ = True  # noqa: F841  true-caller frame marker
         self._emit(logging.WARNING, msg, args, exc, if_not_debug_log, kw)
 
     def error(
@@ -580,6 +659,7 @@ class ChatHealthyLoggingService:
         exc: Optional[ChatHealthyException] = None,
         if_not_debug_log: bool = False, **kw,
     ) -> None:
+        __ch_log_wrapper__ = True  # noqa: F841  true-caller frame marker
         self._emit(logging.ERROR, msg, args, exc, if_not_debug_log, kw)
 
     def critical(
@@ -587,6 +667,7 @@ class ChatHealthyLoggingService:
         exc: Optional[ChatHealthyException] = None,
         if_not_debug_log: bool = False, **kw,
     ) -> None:
+        __ch_log_wrapper__ = True  # noqa: F841  true-caller frame marker
         self._emit(logging.CRITICAL, msg, args, exc, if_not_debug_log, kw)
 
     def exception(
@@ -594,6 +675,47 @@ class ChatHealthyLoggingService:
         exc: Optional[ChatHealthyException] = None,
         if_not_debug_log: bool = False, **kw,
     ) -> None:
+        __ch_log_wrapper__ = True  # noqa: F841  true-caller frame marker
         if exc is None:
             kw.setdefault("exc_info", True)
         self._emit(logging.ERROR, msg, args, exc, if_not_debug_log, kw)
+
+    def LogPipeline(
+        self, level: str, msg: str, *args,
+        exc: Optional[ChatHealthyException] = None,
+        fatal_error: Optional[bool] = None,
+        data_version: Optional[int] = None,
+        if_not_debug_log: bool = False, **kw,
+    ) -> None:
+        """The one and only way pipeline code logs.
+
+        Stamps pipeline_name and run_id -- the two facts that make one shared
+        log queryable per run across the runbook, the Controller and every
+        worker -- on every record, sourced from the environment at
+        construction. `level` is a name from _LEVEL_NAMES.
+        """
+        __ch_log_wrapper__ = True  # noqa: F841  true-caller frame marker
+        lname = str(level).strip().upper()
+        lvl = _LEVEL_NAMES.get(lname)
+        if lvl is None:
+            raise ChatHealthyException(
+                mode="value_error",
+                message=(
+                    "LogPipeline level must be one of "
+                    f"{', '.join(sorted(_LEVEL_NAMES))}; got {level!r}."
+                ),
+                component="ChatHealthyLoggingService",
+            )
+        if lname == "EXCEPTION" and exc is None:
+            kw.setdefault("exc_info", True)
+        extra = dict(kw.pop("extra", {}) or {})
+        if self._pipeline_name is not None:
+            extra.setdefault("pipeline_name", self._pipeline_name)
+        if self._run_id is not None:
+            extra.setdefault("run_id", self._run_id)
+        if fatal_error is not None:
+            extra["fatal_error"] = bool(fatal_error)
+        if data_version is not None:
+            extra["data_version"] = int(data_version)
+        kw["extra"] = extra
+        self._emit(lvl, msg, args, exc, if_not_debug_log, kw)

@@ -145,5 +145,5 @@ def rotate_archived_versions(
         for name in names:
             cc.delete_blob(name)
             deleted.append(name)
-            _log.info("rotated archive blob %s/%s", container, name)
+            _log.LogPipeline("INFO", "rotated archive blob %s/%s", container, name)
     return deleted

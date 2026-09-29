@@ -253,7 +253,7 @@ def harvest_other_identifier_phrases(config: dict, *, mongo, blob=None) -> dict:
 
     _flush()
 
-    _log.info(
+    _log.LogPipeline("INFO", 
         "harvest_other_identifier_phrases: scanned=%d entries=%d "
         "unique_phrase_state=%d prior_deleted=%d",
         scanned, entries_seen, upserted, prior_deleted,

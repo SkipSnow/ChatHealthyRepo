@@ -27,13 +27,13 @@ def run_step(ctx) -> dict:
     config.setdefault("partition_state", partition.get("business_address_state"))
 
     state = config.get("partition_state") or "ALL"
-    _log.info("urban_flag[%s]: step begin run_id=%s", state, ctx.run_id)
+    _log.LogPipeline("INFO", "urban_flag[%s]: step begin run_id=%s", state, ctx.run_id)
     try:
         result = apply_urban_flags(config, mongo=rt.mongo, blob=ctx.blob_client) or {}
     except Exception as exc:
-        _log.error("urban_flag[%s]: step FAILED run_id=%s %s: %s",
+        _log.LogPipeline("ERROR", "urban_flag[%s]: step FAILED run_id=%s %s: %s",
                    state, ctx.run_id, type(exc).__name__, exc)
         raise
-    _log.info("urban_flag[%s]: step done run_id=%s %s", state, ctx.run_id, result)
+    _log.LogPipeline("INFO", "urban_flag[%s]: step done run_id=%s %s", state, ctx.run_id, result)
     ctx.manifest.metrics.setdefault("urban_flag", {})[state] = result
     return result

@@ -123,7 +123,7 @@ def _pause(parser):
         _raise_no_atlas_key()
 
     cluster = AtlasCluster(project, args.cluster, public, private)
-    log.info("pausing %s; asking every %ds until it is paused",
+    log.LogPipeline("INFO", "pausing %s; asking every %ds until it is paused",
              args.cluster, args.interval)
 
     attempt = 0
@@ -133,33 +133,33 @@ def _pause(parser):
         try:
             state, paused = cluster.state()
         except Exception as exc:  # noqa: BLE001
-            log.warning("attempt %d: could not read %s (%s: %s)",
+            log.LogPipeline("WARNING", "attempt %d: could not read %s (%s: %s)",
                         attempt, args.cluster, type(exc).__name__, str(exc)[:120])
             time.sleep(args.interval)
             continue
 
         if paused:
-            log.info("%s is PAUSED after %d attempt(s)", args.cluster, attempt)
+            log.LogPipeline("INFO", "%s is PAUSED after %d attempt(s)", args.cluster, attempt)
             return 0
 
         if state != "IDLE":
-            log.info("attempt %d: %s is %s; waiting", attempt, args.cluster, state)
+            log.LogPipeline("INFO", "attempt %d: %s is %s; waiting", attempt, args.cluster, state)
             time.sleep(args.interval)
             continue
 
         reason = cluster.pause()
         if not reason:
-            log.info("attempt %d: pause accepted for %s", attempt, args.cluster)
+            log.LogPipeline("INFO", "attempt %d: pause accepted for %s", attempt, args.cluster)
             time.sleep(args.interval)
             continue
 
         # Say a repeated refusal once, then only when it changes: a reason
         # that never changes is the one worth a person's attention.
         if reason != last_reason:
-            log.info("attempt %d: refused -- %s", attempt, reason)
+            log.LogPipeline("INFO", "attempt %d: refused -- %s", attempt, reason)
             last_reason = reason
         elif attempt % 10 == 0:
-            log.info("attempt %d: still refused -- %s", attempt, reason)
+            log.LogPipeline("INFO", "attempt %d: still refused -- %s", attempt, reason)
         time.sleep(args.interval)
 
 

@@ -462,21 +462,21 @@ def main() -> int:
     _mark("logging bootstrap: begin (vault fetch and mongo connect)")
     bootstrap_aa_mongo_logging(component_name="data_migration")
     _mark("logging bootstrap: done")
-    _log.info("data_migration begin collection=%s", collection or "<none>")
+    _log.LogPipeline("INFO", "data_migration begin collection=%s", collection or "<none>")
 
     if refusal is not None:
-        _log.error(
+        _log.LogPipeline("ERROR", 
             "data_migration ABEND collection=%s mode=%s: %s. The service "
             "runs one job at a time; nothing was read and nothing was "
             "written.", collection, refusal.mode, refusal)
         raise refusal
 
-    _log.info("data_migration holds the mutex collection=%s", collection)
+    _log.LogPipeline("INFO", "data_migration holds the mutex collection=%s", collection)
     try:
         return _migrate(body, collection)
     finally:
         give_back(_MIGRATOR, _FRONT_END, _MUTEX)
-        _log.info("data_migration gave the mutex back collection=%s",
+        _log.LogPipeline("INFO", "data_migration gave the mutex back collection=%s",
                   collection)
 
 
@@ -485,28 +485,28 @@ def _migrate(body: dict, collection: str) -> int:
 
     migrated = MigratedCollection(collection)
 
-    _log.info("data_migration asked collection=%s approval_id=%s",
+    _log.LogPipeline("INFO", "data_migration asked collection=%s approval_id=%s",
               collection, approval_id or "<none>")
 
     try:
         approval = _released_approval(collection, approval_id)
-        _log.info("data_migration released collection=%s approval_id=%s "
+        _log.LogPipeline("INFO", "data_migration released collection=%s approval_id=%s "
                   "human_click=%s released_at=%s",
                   collection, approval_id, approval.get("human_click"),
                   approval.get("released_at"))
-        _log.info("data_migration waking the source cluster collection=%s",
+        _log.LogPipeline("INFO", "data_migration waking the source cluster collection=%s",
                   collection)
         _wake_the_source_cluster()
-        _log.info("data_migration source cluster is up collection=%s", collection)
+        _log.LogPipeline("INFO", "data_migration source cluster is up collection=%s", collection)
         acknowledgement_id = _acknowledge_approval(collection, approval_id)
-        _log.info("data_migration acknowledged approval_id=%s "
+        _log.LogPipeline("INFO", "data_migration acknowledged approval_id=%s "
                   "acknowledgement_id=%s collection=%s",
                   approval_id, acknowledgement_id, collection)
-        _log.info("data_migration checking the collection may be migrated "
+        _log.LogPipeline("INFO", "data_migration checking the collection may be migrated "
                   "collection=%s", collection)
         migrated.refuse_unless_migratable()
         expected = migrated.source_count()
-        _log.info("data_migration source counted collection=%s documents=%d",
+        _log.LogPipeline("INFO", "data_migration source counted collection=%s documents=%d",
                   collection, expected)
     except ChatHealthyException as exc:
         # Log the narrative, then let it go. Returning 1 here would have been
@@ -515,54 +515,54 @@ def _migrate(body: dict, collection: str) -> int:
         # failed by the platform rather than by a number this code chose, and
         # the traceback is in the job record. A refusal that tidies itself
         # away is the shape of a refusal that gets missed.
-        _log.error(
+        _log.LogPipeline("ERROR", 
             "data_migration ABEND collection=%s mode=%s approval_id=%s: %s. "
             "Nothing was written: the destination collection was left exactly "
             "as it was found, unaltered and not appended to.",
             collection, exc.mode, approval_id or "<none>", exc)
         raise
 
-    _log.info("data_migration start collection=%s expected=%d", collection, expected)
+    _log.LogPipeline("INFO", "data_migration start collection=%s expected=%d", collection, expected)
 
     # Constraints first, on an empty collection, so every duplicate is
     # refused by the insert that carries it rather than discovered afterwards.
     for name in migrated.build_constraint_indexes():
-        _log.info("data_migration constraint_index collection=%s name=%s",
+        _log.LogPipeline("INFO", "data_migration constraint_index collection=%s name=%s",
                   collection, name)
 
-    _log.info("data_migration copying collection=%s expected=%d",
+    _log.LogPipeline("INFO", "data_migration copying collection=%s expected=%d",
               collection, expected)
     written = 0
     try:
         for written in migrated.copy():
-            _log.info("data_migration progress collection=%s written=%d of %d",
+            _log.LogPipeline("INFO", "data_migration progress collection=%s written=%d of %d",
                       collection, written, expected)
     except BulkWriteError as exc:
-        _log.error("data_migration REFUSED BY A CONSTRAINT collection=%s "
+        _log.LogPipeline("ERROR", "data_migration REFUSED BY A CONSTRAINT collection=%s "
                    "written=%d of %d: %s",
                    collection, written, expected, str(exc)[:400])
         return 1
 
     if written != expected:
-        _log.error("data_migration INCOMPLETE collection=%s written=%d expected=%d",
+        _log.LogPipeline("ERROR", "data_migration INCOMPLETE collection=%s written=%d expected=%d",
                    collection, written, expected)
         return 1
 
-    _log.info("data_migration copy complete collection=%s written=%d",
+    _log.LogPipeline("INFO", "data_migration copy complete collection=%s written=%d",
               collection, written)
     wanted = [index["name"] for index in migrated.performance_indexes()]
     built = []
     for name in migrated.build_performance_indexes():
         built.append(name)
-        _log.info("data_migration index collection=%s built=%s (%d of %d)",
+        _log.LogPipeline("INFO", "data_migration index collection=%s built=%s (%d of %d)",
                   collection, name, len(built), len(wanted))
 
     if sorted(built) != sorted(wanted):
-        _log.error("data_migration INDEXES INCOMPLETE collection=%s built=%s wanted=%s",
+        _log.LogPipeline("ERROR", "data_migration INDEXES INCOMPLETE collection=%s built=%s wanted=%s",
                    collection, sorted(built), sorted(wanted))
         return 1
 
-    _log.info("data_migration complete collection=%s written=%d indexes=%d "
+    _log.LogPipeline("INFO", "data_migration complete collection=%s written=%d indexes=%d "
               "approval_id=%s", collection, written, len(built), approval_id)
     return 0
 

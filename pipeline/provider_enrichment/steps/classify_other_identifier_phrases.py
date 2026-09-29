@@ -32,7 +32,7 @@ def run_step(ctx) -> dict:
     ) or {}
 
     state_key = (partition.get("business_address_state") or "UNKNOWN").upper()
-    _log.info("classify_other_identifier_phrases state=%s summary: %s",
+    _log.LogPipeline("INFO", "classify_other_identifier_phrases state=%s summary: %s",
               state_key, result)
     ctx.manifest.metrics.setdefault(
         "classify_other_identifier_phrases", {}

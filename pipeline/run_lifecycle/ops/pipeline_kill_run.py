@@ -120,29 +120,29 @@ def _kill(parser):
         "pipelineEditor", "ChatHealthyFrontEnd")["pipelineAdmin"]
     run = find_run(db, args.run_id)
     if not run:
-        log.info("nothing to stop: no non-terminal run")
+        log.LogPipeline("INFO", "nothing to stop: no non-terminal run")
         return 2
 
     run_id = run.get("run_id")
     status = str(run.get("status", "")).lower()
     if status in TERMINAL:
-        log.info("%s is already %s; nothing to stop", run_id, status)
+        log.LogPipeline("INFO", "%s is already %s; nothing to stop", run_id, status)
         return 2
 
     reservation = db["cluster_lifecycle"].find_one({"_id": run_id}) or {}
     vm = reservation.get("vm_name") or run.get("vm_name")
     pid = reservation.get("controller_pid") or run.get("controller_pid")
-    log.info("run=%s status=%s host=%s controller_pid=%s",
+    log.LogPipeline("INFO", "run=%s status=%s host=%s controller_pid=%s",
              run_id, status, vm, pid)
 
     if not vm:
-        log.info("%s names no host; nothing to signal", run_id)
+        log.LogPipeline("INFO", "%s names no host; nothing to signal", run_id)
         return 1
     if not pid:
         _raise_no_controller_pid(run_id)
 
     if args.dry_run:
-        log.info("dry run: would send SIGINT to pid %s on %s", pid, vm)
+        log.LogPipeline("INFO", "dry run: would send SIGINT to pid %s on %s", pid, vm)
         return 0
 
     # SIGINT, not SIGTERM. The Controller's finally block does the rest --
@@ -160,15 +160,15 @@ def _kill(parser):
                      "if [ -z \"$c\" ]; then echo NO_CONTAINER; "
                      "else docker kill --signal=INT \"$c\" >/dev/null 2>&1 "
                      "&& echo SIGNAL_SENT || echo SIGNAL_FAILED; fi")
-    log.info("host said: %s", out.replace("\n", " | ")[:300])
+    log.LogPipeline("INFO", "host said: %s", out.replace("\n", " | ")[:300])
     if "NO_CONTAINER" in out:
-        log.error("no container running on %s; nothing to signal", vm)
+        log.LogPipeline("ERROR", "no container running on %s; nothing to signal", vm)
         return 1
     if "SIGNAL_SENT" not in out:
-        log.error("could not signal the controller container on %s", vm)
+        log.LogPipeline("ERROR", "could not signal the controller container on %s", vm)
         return 1
 
-    log.info("SIGINT delivered to controller pid %s; waiting up to %ds for "
+    log.LogPipeline("INFO", "SIGINT delivered to controller pid %s; waiting up to %ds for "
              "quiesce (it cancels the reservation, writes the discrepancy "
              "report, pauses the cluster and deletes its own host)",
              pid, args.wait)
@@ -178,12 +178,12 @@ def _kill(parser):
         now = str(current.get("status", "")).lower()
         waited = int(time.time() - (deadline - args.wait))
         if now in TERMINAL:
-            log.info("%s reached %s after %ds", run_id, now, waited)
+            log.LogPipeline("INFO", "%s reached %s after %ds", run_id, now, waited)
             return 0
-        log.info("waiting on %s: status=%s (%ds/%ds)", run_id, now, waited,
+        log.LogPipeline("INFO", "waiting on %s: status=%s (%ds/%ds)", run_id, now, waited,
                  args.wait)
         time.sleep(15)
-    log.warning("%s had not reached a terminal state within %ds; the "
+    log.LogPipeline("WARNING", "%s had not reached a terminal state within %ds; the "
                 "Controller may still be quiescing", run_id, args.wait)
     return 1
 

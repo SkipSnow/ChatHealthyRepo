@@ -180,7 +180,7 @@ def _control(ns):
     )
     if ns.run_id:
         os.environ["RUN_ID"] = ns.run_id
-    _log.info(
+    _log.LogPipeline("INFO", 
         "control_runner: starting run env_prefix=%s states=%s load_mode=%s "
         "resume_from_step=%s expected_duration_minutes=%d run_id=%s "
         "STATE_SCOPE_env=%r LOAD_MODE_env=%r",
@@ -242,7 +242,7 @@ def _control(ns):
                     }},
                 )
             except Exception as exc:
-                _log.warning("controller heartbeat write failed run_id=%s err=%s",
+                _log.LogPipeline("WARNING", "controller heartbeat write failed run_id=%s err=%s",
                              rid, str(exc)[:200])
     threading.Thread(target=_heartbeat, daemon=True, name="controller-heartbeat").start()
 
@@ -256,7 +256,7 @@ def _control(ns):
         if manifest and manifest.run_id:
             os.environ["RUN_ID"] = manifest.run_id
         final_status = manifest.status if manifest else "failed"
-        _log.info("control_runner: run %s finished status=%s",
+        _log.LogPipeline("INFO", "control_runner: run %s finished status=%s",
                   manifest.run_id if manifest else "(none)", final_status)
         exit_code = 0 if final_status == "succeeded" else 1
     except KeyboardInterrupt:
@@ -265,7 +265,7 @@ def _control(ns):
         # "failed" with fatal_exception None, so a deliberate stop and a
         # crash were indistinguishable in the record.
         final_status = "failed"
-        _log.error("control_runner: operator stop received; quiescing",
+        _log.LogPipeline("ERROR", "control_runner: operator stop received; quiescing",
                    exc=ChatHealthyException(
                        mode="operator_stop",
                        message="Run stopped by operator signal (SIGINT); "
@@ -280,11 +280,11 @@ def _control(ns):
     except ChatHealthyException as ch_exc:
         fatal_exception = ch_exc
         final_status = "failed"
-        _log.error("control_runner: fatal exception during orchestration: %s", ch_exc, exc=ch_exc)
+        _log.LogPipeline("ERROR", "control_runner: fatal exception during orchestration: %s", ch_exc, exc=ch_exc)
     except Exception as other_exc:
         fatal_exception = other_exc
         final_status = "failed"
-        _log.error(
+        _log.LogPipeline("ERROR", 
             "control_runner: fatal exception during orchestration: %s",
             other_exc,
             exc=ChatHealthyException(
@@ -346,7 +346,7 @@ def _emit_discrepancy_report(run_id, final_status, *, manifest=None, args=None,
         try:
             pipeline_mongo = ChatHealthyMongoUtilities().getConnection("pipelineEditor", "ChatHealthyFrontEnd")
         except Exception as mongo_exc:
-            _log.error("quiesce: mongo unreachable for discrepancy report run_id=%s err=%s",
+            _log.LogPipeline("ERROR", "quiesce: mongo unreachable for discrepancy report run_id=%s err=%s",
                        run_id, str(mongo_exc)[:500])
             fatal_exception = fatal_exception or mongo_exc
 
@@ -391,7 +391,7 @@ def _emit_discrepancy_report(run_id, final_status, *, manifest=None, args=None,
                             step=failed.get("step"),
                         )
                 except Exception as lookup_exc:  # noqa: BLE001
-                    _log.warning("quiesce: could not read the failing work item "
+                    _log.LogPipeline("WARNING", "quiesce: could not read the failing work item "
                                  "run_id=%s (%s)", run_id, str(lookup_exc)[:160])
             if fatal_exception:
                 manifest_doc["fatal_exception"] = {
@@ -441,7 +441,7 @@ def _emit_discrepancy_report(run_id, final_status, *, manifest=None, args=None,
                 total_rows = target.count_documents({})
                 total_source_rows = data_mongo[s_db][s_coll].count_documents({})
             except Exception as exc:  # noqa: BLE001
-                _log.error("quiesce: the row counts could not be taken "
+                _log.LogPipeline("ERROR", "quiesce: the row counts could not be taken "
                            "run_id=%s err=%s; the report will say Unknown",
                            run_id, str(exc)[:300])
 
@@ -458,19 +458,19 @@ def _emit_discrepancy_report(run_id, final_status, *, manifest=None, args=None,
                 operator_email=getattr(args, "operator_email", None) if args else None,
                 operator_sms=getattr(args, "operator_sms", None) if args else None,
             )
-            _log.info(
+            _log.LogPipeline("INFO", 
                 "quiesce: discrepancy report emitted run_id=%s total=%d pdf_bytes=%d",
                 run_id, summary.get("total", 0), summary.get("pdf_bytes", 0),
             )
         else:
             # Mongo unreachable - emit minimal report to stderr
-            _log.error(
+            _log.LogPipeline("ERROR", 
                 "quiesce: DISCREPANCY REPORT run_id=%s status=%s fatal_exception=%s",
                 run_id, final_status,
                 f"{type(fatal_exception).__name__}: {fatal_exception}" if fatal_exception else "None"
             )
     except Exception as exc:
-        _log.error("quiesce: discrepancy report FAILED run_id=%s err=%s",
+        _log.LogPipeline("ERROR", "quiesce: discrepancy report FAILED run_id=%s err=%s",
                    run_id, str(exc)[:500])
 
 

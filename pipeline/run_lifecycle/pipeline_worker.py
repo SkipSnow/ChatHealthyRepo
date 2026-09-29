@@ -117,7 +117,7 @@ def _dispatch(step: str, payload: dict) -> dict:
     from pipeline.run_lifecycle.pipeline_version_binding import install_version_bindings  # noqa: PLC0415
     install_version_bindings(ctx.args.data_version, mongo, ctx.args.env_prefix)
     runner = get_runner(step)
-    _log.info(
+    _log.LogPipeline("INFO", 
         "pipeline_worker dispatch step=%s run_id=%s partition=%s",
         step, payload.get("run_id"), payload.get("partition"),
     )
@@ -224,7 +224,7 @@ class _HeartbeatThread(threading.Thread):
             try:
                 _write_heartbeat(self._mongo, self._item_id)
             except Exception as exc:  # noqa: BLE001
-                _log.warning("heartbeat write failed: %s", exc)
+                _log.LogPipeline("WARNING", "heartbeat write failed: %s", exc)
 
 
 # ─────────────────────────────────────────────────────────────────────────────
@@ -253,7 +253,7 @@ def _report_no_work_claimed(coord, run_id: str, step: str) -> None:
     pending = items.count_documents({"run_id": run_id})
     unclaimed = items.count_documents(
         {"run_id": run_id, "step": step, "status": "pending"})
-    _log.warning(
+    _log.LogPipeline("WARNING", 
         "pipeline_worker: NO work-item claimed. run_id=%s step=%s "
         "db=%s coll=%s items_for_this_run=%d still_pending_for_this_step=%d. "
         "The Controller is waiting on a claim that will never come.",
@@ -267,7 +267,7 @@ def main(argv: list[str] | None = None) -> int:
         os.environ.setdefault("LOG_LEVEL", ns.log_level.upper())
 
     if not ns.run_id:
-        _log.error("pipeline_worker: --run-id or RUN_ID env is required")
+        _log.LogPipeline("ERROR", "pipeline_worker: --run-id or RUN_ID env is required")
         return 2
 
     # work_items live where the Controller enqueues them, which is the
@@ -283,7 +283,7 @@ def main(argv: list[str] | None = None) -> int:
         _report_no_work_claimed(coord, ns.run_id, ns.step)
         return 0
 
-    _log.info("pipeline_worker: claimed item _id=%s run_id=%s step=%s payload=%s",
+    _log.LogPipeline("INFO", "pipeline_worker: claimed item _id=%s run_id=%s step=%s payload=%s",
               item.get("_id"), ns.run_id, ns.step, item.get("payload"))
 
     heartbeat = _HeartbeatThread(coord, item["_id"])
@@ -291,7 +291,7 @@ def main(argv: list[str] | None = None) -> int:
     try:
         output = _dispatch(ns.step, item.get("payload") or {})
         _mark_done(coord, item["_id"], output)
-        _log.info("pipeline_worker: done item _id=%s output_keys=%s",
+        _log.LogPipeline("INFO", "pipeline_worker: done item _id=%s output_keys=%s",
                   item["_id"], sorted(output.keys()))
         return 0
     except Exception as exc:  # noqa: BLE001
@@ -301,7 +301,7 @@ def main(argv: list[str] | None = None) -> int:
             "traceback": traceback.format_exc()[-2000:],
         }
         _mark_failed(coord, item["_id"], err)
-        _log.error("pipeline_worker: failed item _id=%s: %s", item["_id"], err["msg"])
+        _log.LogPipeline("ERROR", "pipeline_worker: failed item _id=%s: %s", item["_id"], err["msg"])
         return 1
     finally:
         heartbeat.stop()

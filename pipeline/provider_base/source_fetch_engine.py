@@ -134,7 +134,7 @@ def _upload_bytes_to_transient(
     import time as _t  # noqa: PLC0415
     _require_blob_client(blob)
     local_size = os.path.getsize(local_path)
-    _log.info(
+    _log.LogPipeline("INFO", 
         "source_fetch_engine.upload: START container=%s blob=%s local_size=%d bytes (%.2f MB)",
         container_name, blob_name, local_size, local_size / 1024 / 1024,
     )
@@ -142,12 +142,12 @@ def _upload_bytes_to_transient(
     t_create = _t.time()
     try:
         container.create_container()
-        _log.info(
+        _log.LogPipeline("INFO", 
             "source_fetch_engine.upload: container.create_container OK container=%s elapsed=%.2fs",
             container_name, _t.time() - t_create,
         )
     except Exception as _cc_exc:  # noqa: BLE001
-        _log.info(
+        _log.LogPipeline("INFO", 
             "source_fetch_engine.upload: container.create_container skipped container=%s reason=%s elapsed=%.2fs",
             container_name, type(_cc_exc).__name__, _t.time() - t_create,
         )
@@ -157,7 +157,7 @@ def _upload_bytes_to_transient(
         blob_client.upload_blob(fh, overwrite=True)
     elapsed = _t.time() - t_up
     mbps = (local_size / 1024 / 1024) / elapsed if elapsed > 0 else 0
-    _log.info(
+    _log.LogPipeline("INFO", 
         "source_fetch_engine.upload: DONE container=%s blob=%s size=%d bytes elapsed=%.2fs avg=%.2f MB/s",
         container_name, blob_name, local_size, elapsed, mbps,
     )
@@ -174,7 +174,7 @@ def _download_source(
     import time as _t  # noqa: PLC0415
     url = _resolve_source_url(source_name, spec)
     gate.acquire()
-    _log.info("source_fetch_engine[%s]: GET %s (http_timeout=%ds)", source_name, url, http_timeout)
+    _log.LogPipeline("INFO", "source_fetch_engine[%s]: GET %s (http_timeout=%ds)", source_name, url, http_timeout)
     t0 = _t.time()
     # ChatHealthy-Pipeline UA + optional pipeline auth header. Cloudflare
     # bot protection on chathealthy.ai/* rejects the default python-requests
@@ -188,7 +188,7 @@ def _download_source(
     resp = requests.get(url, stream=True, timeout=http_timeout, headers=headers)
     resp.raise_for_status()
     content_len = resp.headers.get("Content-Length", "?")
-    _log.info(
+    _log.LogPipeline("INFO", 
         "source_fetch_engine[%s]: connected status=%d content-length=%s",
         source_name, resp.status_code, content_len,
     )
@@ -210,7 +210,7 @@ def _download_source(
             if int(mb) >= last_report_mb + 100:
                 elapsed = _t.time() - t0
                 mbps = mb / elapsed if elapsed > 0 else 0
-                _log.info(
+                _log.LogPipeline("INFO", 
                     "source_fetch_engine[%s]: progress %.1f MB elapsed=%.1fs avg=%.2f MB/s",
                     source_name, mb, elapsed, mbps,
                 )
@@ -219,7 +219,7 @@ def _download_source(
         tmp.close()
     elapsed = _t.time() - t0
     mbps = (size / 1024 / 1024) / elapsed if elapsed > 0 else 0
-    _log.info(
+    _log.LogPipeline("INFO", 
         "source_fetch_engine[%s]: download DONE size=%d bytes (%.2f MB) sha256=%s elapsed=%.2fs avg=%.2f MB/s local=%s",
         source_name, size, size / 1024 / 1024, hasher.hexdigest()[:16], elapsed, mbps, tmp.name,
     )
@@ -268,7 +268,7 @@ def _extract_derived_source(
     zip_glob = spec.get("zip_entry_glob")
     _require_derive_inputs(source_name, parent_container, parent_blob_name, zip_glob)
     _require_blob_client_for_derive(source_name, blob)
-    _log.info(
+    _log.LogPipeline("INFO", 
         "source_fetch_engine.derive[%s]: START parent_container=%s parent_blob=%s zip_glob=%s",
         source_name, parent_container, parent_blob_name, zip_glob,
     )
@@ -284,13 +284,13 @@ def _extract_derived_source(
             for chunk in stream.chunks():
                 fh.write(chunk)
                 parent_bytes += len(chunk)
-        _log.info(
+        _log.LogPipeline("INFO", 
             "source_fetch_engine.derive[%s]: parent blob downloaded size=%.2f MB elapsed=%.2fs",
             source_name, parent_bytes / 1024 / 1024, _t.time() - t_dl,
         )
         with zipfile.ZipFile(parent_tmp) as zf:
             entry_name = _resolve_zip_entry(source_name, zip_glob, parent_blob_name, zf)
-            _log.info(
+            _log.LogPipeline("INFO", 
                 "source_fetch_engine.derive[%s]: extracting entry=%s from parent zip",
                 source_name, entry_name,
             )
@@ -311,7 +311,7 @@ def _extract_derived_source(
                         size += len(buf)
             finally:
                 out.close()
-            _log.info(
+            _log.LogPipeline("INFO", 
                 "source_fetch_engine.derive[%s]: extract DONE size=%.2f MB sha256=%s elapsed=%.2fs local=%s",
                 source_name, size / 1024 / 1024, hasher.hexdigest()[:16], _t.time() - t_ex, out.name,
             )
@@ -511,18 +511,18 @@ def _purge_prior_run_transients(blob, container_name: str, current_run_id: str) 
                     cc.delete_blob(b.name)
                     purged += 1
                 except Exception as exc:  # noqa: BLE001
-                    _log.warning(
+                    _log.LogPipeline("WARNING", 
                         "source_fetch_engine: purge failed for %s: %s",
                         b.name, exc,
                     )
         if purged:
-            _log.info(
+            _log.LogPipeline("INFO", 
                 "source_fetch_engine: purged %d prior-run blob(s) from %s (kept only run_id=%s)",
                 purged, container_name, current_run_id,
             )
         return purged
     except Exception as exc:  # noqa: BLE001
-        _log.warning(
+        _log.LogPipeline("WARNING", 
             "source_fetch_engine: prior-run purge failed on container %s: %s",
             container_name, exc,
         )
@@ -547,7 +547,7 @@ def _persist_versions_to_manifest(
             {"$set": {"source_versions": source_versions, "updated_at": _now_iso()}},
         )
     except Exception as exc:
-        _log.warning("source_fetch_engine: manifest update failed: %s", exc)
+        _log.LogPipeline("WARNING", "source_fetch_engine: manifest update failed: %s", exc)
 
 
 def fetch_all_sources(

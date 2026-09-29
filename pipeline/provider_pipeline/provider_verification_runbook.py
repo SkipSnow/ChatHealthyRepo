@@ -96,7 +96,7 @@ def _resume_cluster() -> None:
             method="PATCH", headers={"Content-Type": "application/json"})
         opener.open(req, timeout=90).read()
     except urllib.error.HTTPError as exc:
-        _log.info("resume PATCH returned %s (may already be un-pausing)", exc.code)
+        _log.LogPipeline("INFO", "resume PATCH returned %s (may already be un-pausing)", exc.code)
     # Wait until a write lands (a ping can answer while write-locked).
     deadline = time.time() + 600
     while time.time() < deadline:
@@ -106,10 +106,10 @@ def _resume_cluster() -> None:
                 {"_id": "verification-readiness"},
                 {"_id": "verification-readiness",
                  "written_at": datetime.datetime.utcnow()}, upsert=True)
-            _log.info("pipeline cluster is up and takes writes")
+            _log.LogPipeline("INFO", "pipeline cluster is up and takes writes")
             return
         except Exception as exc:  # noqa: BLE001
-            _log.info("cluster not ready yet (%s); waiting", type(exc).__name__)
+            _log.LogPipeline("INFO", "cluster not ready yet (%s); waiting", type(exc).__name__)
             time.sleep(10)
     raise ChatHealthyException(
         mode="cluster_unavailable", component="provider_verification",
@@ -137,7 +137,7 @@ def _resolve_provider_collection():
             mode="config_error", component="provider_verification",
             message=f"could not resolve provider collection: db={public_db} coll={coll_name}")
     data = ChatHealthyMongoUtilities().getConnection("pipelineEditor", _PIPELINE_CLUSTER)
-    _log.info("verifying %s.%s (data_version=%d)", public_db, coll_name, data_version)
+    _log.LogPipeline("INFO", "verifying %s.%s (data_version=%d)", public_db, coll_name, data_version)
     return data[public_db][coll_name], data_version
 
 
@@ -195,7 +195,7 @@ def _run_checks(coll) -> list:
 
 
 def main() -> int:
-    _log.info("provider verification: starting")
+    _log.LogPipeline("INFO", "provider verification: starting")
     _resume_cluster()
     coll, data_version = _resolve_provider_collection()
     total = coll.count_documents({})
@@ -212,10 +212,10 @@ def main() -> int:
     fe = ChatHealthyMongoUtilities().getConnection("pipelineEditor", "ChatHealthyFrontEnd")
     fe["pipelineAdmin"]["verification_runs"].insert_one(dict(result))
     if passed:
-        _log.info("provider verification PASSED: %d records in %s",
+        _log.LogPipeline("INFO", "provider verification PASSED: %d records in %s",
                   total, coll.full_name)
         return 0
-    _log.error("provider verification FAILED: %s",
+    _log.LogPipeline("ERROR", "provider verification FAILED: %s",
                ChatHealthyException(mode="verification_failed",
                                     component="provider_verification",
                                     message="; ".join(failures)))

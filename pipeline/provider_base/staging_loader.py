@@ -454,7 +454,7 @@ def _load_one_source(
         prior_hash = _prior_content_hash(mongo, coll_name)
         existing_row_count = coll.count_documents({})
         if prior_hash == current_hash and existing_row_count > 0:
-            _log.info(
+            _log.LogPipeline("INFO", 
                 "staging_loader[%s]: source content unchanged (sha256=%s, %d rows already loaded) -- skipping reload",
                 source_name, current_hash[:16], existing_row_count,
             )

@@ -161,7 +161,7 @@ class ClusterLifecycleManager:
         against a cluster that was still asleep.
         """
         state_name = self._atlas_wake_request(cluster_name)
-        _log.info("Wake requested: %s by job=%s (state: %s)",
+        _log.LogPipeline("INFO", "Wake requested: %s by job=%s (state: %s)",
                   cluster_name, job_id, state_name)
 
     def reserve(self, cluster_name: str, job_id: str, requester: str,
@@ -198,7 +198,7 @@ class ClusterLifecycleManager:
         coll = self._coll()
         active = list(coll.find({"cluster_name": cluster_name})) if coll is not None else []
         if job_id is not None:
-            _log.info("Status check: %s by job=%s (state: %s, active=%d)",
+            _log.LogPipeline("INFO", "Status check: %s by job=%s (state: %s, active=%d)",
                       cluster_name, job_id, cluster_state, len(active))
         return {
             "cluster_name": cluster_name,
@@ -215,9 +215,9 @@ class ClusterLifecycleManager:
             return {"released": job_id, "deleted_count": 0}
         result = coll.delete_one({"_id": job_id})
         if result.deleted_count:
-            _log.info("Released: %s", job_id)
+            _log.LogPipeline("INFO", "Released: %s", job_id)
         else:
-            _log.warning("Release called for unknown job_id: %s", job_id)
+            _log.LogPipeline("WARNING", "Release called for unknown job_id: %s", job_id)
         return {"released": job_id, "deleted_count": result.deleted_count}
 
     # ── Timer: ops only ──────────────────────────────────────
@@ -235,7 +235,7 @@ class ClusterLifecycleManager:
                 end_dt = datetime.fromisoformat(expected_end)
                 if now > end_dt:
                     minutes_over = int((now - end_dt).total_seconds() / 60)
-                    _log.warning("OVERDUE: %s by %d min", r["job_id"], minutes_over)
+                    _log.LogPipeline("WARNING", "OVERDUE: %s by %d min", r["job_id"], minutes_over)
                     if self._push:
                         self._push(
                             "Pipeline Overdue",
@@ -254,7 +254,7 @@ class ClusterLifecycleManager:
             return {"released": 0, "cluster": cluster_name}
         result = coll.delete_many({"cluster_name": cluster_name})
         self._send_pause(cluster_name)
-        _log.warning("FORCE RELEASE: %d reservations cleared, %s shutting down",
+        _log.LogPipeline("WARNING", "FORCE RELEASE: %d reservations cleared, %s shutting down",
                      result.deleted_count, cluster_name)
         return {"released": result.deleted_count, "cluster": cluster_name}
 
@@ -269,9 +269,9 @@ class ClusterLifecycleManager:
                 timeout=30,
             )
             state_name = resp.json().get("stateName", "unknown")
-            _log.info("Pause requested: %s (state: %s)", cluster_name, state_name)
+            _log.LogPipeline("INFO", "Pause requested: %s (state: %s)", cluster_name, state_name)
         except Exception as e:
-            _log.error("Pause failed: %s — %s", cluster_name, e)
+            _log.LogPipeline("ERROR", "Pause failed: %s — %s", cluster_name, e)
             if self._push:
                 self._push("Cluster Pause Failed", f"{cluster_name}: {e}")
 
@@ -286,5 +286,5 @@ class ClusterLifecycleManager:
             )
             return resp.json().get("stateName", "UNKNOWN")
         except Exception as e:
-            _log.warning("State check failed: %s — %s", cluster_name, e)
+            _log.LogPipeline("WARNING", "State check failed: %s — %s", cluster_name, e)
             return "UNKNOWN"

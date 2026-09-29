@@ -114,7 +114,7 @@ class BasePipelineOrchestrator:
     # ------------------------------------------------------------------ #
     def run(self, args: PipelineArgs) -> RunManifest:
         manifest = RunManifest.new(self.PIPELINE_NAME, args)
-        _log.info(
+        _log.LogPipeline("INFO", 
             "orchestrator run=%s pipeline=%s env=%s steps=%d",
             manifest.run_id, self.PIPELINE_NAME, args.env_prefix, len(self.STEPS),
         )
@@ -136,7 +136,7 @@ class BasePipelineOrchestrator:
         try:
             for spec in main_steps:
                 if skipping_until and spec.name != skipping_until:
-                    _log.info("skip step=%s (resume_from_step=%s)", spec.name, skipping_until)
+                    _log.LogPipeline("INFO", "skip step=%s (resume_from_step=%s)", spec.name, skipping_until)
                     manifest.completed_steps.add(spec.name)
                     continue
                 skipping_until = None
@@ -146,14 +146,14 @@ class BasePipelineOrchestrator:
         except Exception as exc:
             manifest.status = "failed"
             manifest.metrics.setdefault("failure", {})["message"] = str(exc)
-            _log.exception("orchestrator run=%s failed at main-loop step", manifest.run_id)
+            _log.LogPipeline("EXCEPTION", "orchestrator run=%s failed at main-loop step", manifest.run_id)
             raise
         finally:
             for spec in finally_steps:
                 try:
                     self._invoke_step(spec, ctx)
                 except Exception:
-                    _log.exception(
+                    _log.LogPipeline("EXCEPTION", 
                         "finally-block step %s raised; continuing", spec.name
                     )
             manifest.updated_at = _utc_now_iso()
@@ -263,7 +263,7 @@ class BasePipelineOrchestrator:
             item_ids.append(r.inserted_id)
 
         claimable = _require_claimable(wi_coll, run_id, spec.name, len(item_ids))
-        _log.info(
+        _log.LogPipeline("INFO", 
             "orchestrator dispatch step=%s partitions=%d work_items_enqueued=%d "
             "claimable=%d",
             spec.name, len(partitions), len(item_ids), claimable,
@@ -317,7 +317,7 @@ class BasePipelineOrchestrator:
             len(worker_pids)
             + int(os.environ.get("CHATHEALTHY_DETACHED_CHILDREN", "0") or 0)
         )
-        _log.info(
+        _log.LogPipeline("INFO", 
             "orchestrator spawned step=%s workers=%d worker_py=%s pids=%s "
             "detached_children_total=%s cert=%s",
             spec.name, max_parallel, worker_py, worker_pids,
@@ -353,7 +353,7 @@ class BasePipelineOrchestrator:
                 self._surface_crashed_workers(wi_coll, spec, crashed)
             deadline_polls += 1
             if deadline_polls % 24 == 0:  # every ~2 min
-                _log.info(
+                _log.LogPipeline("INFO", 
                     "orchestrator waiting step=%s remaining=%d",
                     spec.name, open_count,
                 )
@@ -381,7 +381,7 @@ class BasePipelineOrchestrator:
                 "finished_at": now,
             }},
         )
-        _log.info(
+        _log.LogPipeline("INFO", 
             "orchestrator crash-detected step=%s count=%d partitions=%s",
             spec.name, len(ids),
             [str(c.get("partition")) for c in crashed[:5]],

@@ -248,7 +248,7 @@ class DiscrepancyReport:
                     run_id=self.run_id, secret_name=secret_name,
                 )
             credential = DefaultAzureCredential()
-            client = SecretClient(vault_uri=vault_uri, credential=credential)
+            client = SecretClient(vault_url=vault_uri, credential=credential)
             secret = client.get_secret(secret_name)
             return (secret.value or "").strip() if secret else None
         except ChatHealthyException:

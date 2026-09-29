@@ -121,7 +121,7 @@ _BAKED_REGISTRY: dict = {}
 
 
 def _log(msg: str) -> None:
-    ChatHealthyLoggingService().info(f"[ChangeDBVersion] {msg}")
+    ChatHealthyLoggingService().LogPipeline("INFO", f"[ChangeDBVersion] {msg}")
 
 
 def _read_registry() -> dict[str, str]:

@@ -264,11 +264,12 @@ def _get_token(resource: str, client_id: str | None = None) -> str:
 # {env}. No parallel log path; no direct collection write from this module.
 # ============================================================================
 def log(event: str, **fields):
-    """Emit one structured event via ChatHealthyLoggingService.info(). The
+    """Emit one structured event via ChatHealthyLoggingService.LogPipeline. The
     service's MongoLogHandler persists the record to Pipelines.Log_{env};
     the file/stderr handler mirrors it for job-stream visibility. On
     Mongo-write failure the service raises and this stage abends per the
     'if you can't log to Mongo you die' policy."""
+    __ch_log_wrapper__ = True  # noqa: F841  true-caller frame marker
     now = datetime.datetime.utcnow().isoformat(timespec="seconds") + "Z"
     record = {
         "ts": now,
@@ -277,7 +278,7 @@ def log(event: str, **fields):
         "event": event,
     }
     record.update(fields)
-    ChatHealthyLoggingService().info(json.dumps(record, default=str))
+    ChatHealthyLoggingService().LogPipeline("INFO", json.dumps(record, default=str))
 
 
 # ============================================================================
@@ -1082,6 +1083,13 @@ def _resolve_state_scope(raw):
 # ============================================================================
 def _run_pipeline(invocation_mode):
     """Run the pipeline and report."""
+    # Mint the run's one identifier before anything logs, so the earliest
+    # lines (runbook_start, webhook_payload_discovery) carry it. Published to
+    # the environment here; propagated to the Controller (-e RUN_ID) and to
+    # every worker (os.environ.copy()). ChatHealthyLoggingService reads RUN_ID
+    # at emit time, so every component's records are tagged with this run.
+    run_id = str(uuid.uuid4())
+    os.environ["RUN_ID"] = run_id
     webhook_body = _parse_webhook_input()
     if webhook_body:
         invocation_mode = webhook_body.get("invocation_mode", "webhook")
@@ -1141,13 +1149,6 @@ def _run_pipeline(invocation_mode):
         debug_level=debug_level,
         resume_from_step=resume_from_step or None)
 
-    # Fresh run_id
-    now = datetime.datetime.utcnow()
-    run_id = f"prov-{now.strftime('%Y-%m-%dT%H-%M-%SZ')}-{uuid.uuid4().hex[:6]}"
-    # Publish RUN_ID into env so subsequent log() calls populate job_id
-    # on the CHLS Mongo document (Log_{env}.job_id). ChatHealthyLoggingService
-    # reads os.environ.get('RUN_ID') at emit time.
-    os.environ["RUN_ID"] = run_id
     log("run_id_generated", run_id=run_id)
 
     # Sentinel for the finally block. When True this invocation is a

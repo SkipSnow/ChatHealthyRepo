@@ -85,7 +85,7 @@ def _process_batch(
     try:
         vectors = _embed_batch(texts)
     except Exception as exc:
-        _log.warning("embedding_engine: batch of %d failed: %s", len(batch), exc)
+        _log.LogPipeline("WARNING", "embedding_engine: batch of %d failed: %s", len(batch), exc)
         return 0, len(batch)
     ops: list[UpdateOne] = []
     now = _now_iso()

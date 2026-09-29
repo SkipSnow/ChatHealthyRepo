@@ -328,13 +328,13 @@ def _load_zcta_crosswalk(mongo, registry, env_prefix: str, run_id: str) -> dict[
             or ""
         ).strip()
         out.setdefault(z, (fips, name))
-    _log.info(
+    _log.LogPipeline("INFO", 
         "county_cascade: crosswalk load coll=%s.%s scanned=%d loaded=%d key_misses=%d sample_raw_keys=%s",
         db_name, coll_name, scanned, len(out), key_misses,
         list((coll.find_one({"run_id": run_id}) or {}).get("raw", {}).keys())[:10] if scanned else [],
     )
     if scanned and not out:
-        _log.warning(
+        _log.LogPipeline("WARNING", 
             "county_cascade: crosswalk load returned 0 usable rows from %d staging rows — "
             "check raw-key names (looking for GEOID_ZCTA5_20/GEOID_COUNTY_20)",
             scanned,
@@ -385,7 +385,7 @@ def _load_rucc_by_fips(mongo, registry, run_id: str) -> dict[str, int]:
         if len(fips) != 5 or fips == "00000" or rucc < 1 or rucc > 9:
             continue
         out[fips] = rucc
-    _log.info(
+    _log.LogPipeline("INFO", 
         "county_cascade: rucc load coll=%s.%s scanned=%d loaded=%d",
         db_name, coll_name, scanned, len(out),
     )
@@ -440,7 +440,7 @@ def _stage_zip_crosswalk(
 ) -> tuple[list[tuple[dict, dict]], int]:
     """Stage 1 orchestrator: apply the pre-loaded crosswalk + emit log."""
     residue, hits = _zip_crosswalk_apply(pairs, crosswalk, rucc_by_fips)
-    _log.info(
+    _log.LogPipeline("INFO", 
         "county_cascade[zip_crosswalk]: in=%d hit=%d residue=%d crosswalk_size=%d",
         len(pairs), hits, len(residue), len(crosswalk),
     )
@@ -488,14 +488,14 @@ def _census_batch_fetch(
         except Exception as exc:
             if attempt + 1 < _RETRY_MAX_ATTEMPTS and _is_retryable_http(exc):
                 backoff = _RETRY_BACKOFF_BASE_S * (2 ** attempt)
-                _log.warning(
+                _log.LogPipeline("WARNING", 
                     "county_cascade[census_batch]: attempt %d/%d failed (%s); "
                     "sleeping %.1fs before retry",
                     attempt + 1, _RETRY_MAX_ATTEMPTS, exc, backoff,
                 )
                 time.sleep(backoff)
                 continue
-            _log.warning(
+            _log.LogPipeline("WARNING", 
                 "county_cascade[census_batch]: chunk fetch failed after "
                 "%d attempt(s) (%s)", attempt + 1, exc,
             )
@@ -612,7 +612,7 @@ def _stage_census_batch(
     dicts so parallel workers do not race on shared state."""
     if not pairs:
         return [], 0
-    _log.info(
+    _log.LogPipeline("INFO", 
         "county_cascade[census_batch]: entering in=%d batch_size=%d workers=%d",
         len(pairs), batch_size, _CENSUS_STAGE_MAX_WORKERS,
     )
@@ -641,7 +641,7 @@ def _stage_census_batch(
         chunk_residue, chunk_hits = _census_batch_apply(chunk, resolved, fips_to_name, rucc_by_fips)
         residue.extend(chunk_residue)
         hits += chunk_hits
-    _log.info(
+    _log.LogPipeline("INFO", 
         "county_cascade[census_batch]: in=%d hit=%d residue=%d",
         len(pairs), hits, len(residue),
     )
@@ -690,14 +690,14 @@ def _nppes_registry_fetch(
         except Exception as exc:
             if attempt + 1 < _RETRY_MAX_ATTEMPTS and _is_retryable_http(exc):
                 backoff = _RETRY_BACKOFF_BASE_S * (2 ** attempt)
-                _log.warning(
+                _log.LogPipeline("WARNING", 
                     "county_cascade[nppes_registry]: %s attempt %d/%d "
                     "failed (%s); sleeping %.1fs",
                     npi, attempt + 1, _RETRY_MAX_ATTEMPTS, exc, backoff,
                 )
                 time.sleep(backoff)
                 continue
-            _log.warning(
+            _log.LogPipeline("WARNING", 
                 "county_cascade[nppes_registry]: %s failed after %d "
                 "attempt(s) (%s)", npi, attempt + 1, exc,
             )
@@ -806,13 +806,13 @@ def _nppes_registry_refresh_pair(
             # left half-refreshed on disk after the pipeline persists it.
             addr.clear()
             addr.update(snapshot)
-            _log.warning(
+            _log.LogPipeline("WARNING", 
                 "county_cascade[nppes_registry]: refresh mutation failed "
                 "for NPI %s, rolled back (%s)", npi, inner_exc,
             )
             return False
     except Exception as exc:
-        _log.warning(
+        _log.LogPipeline("WARNING", 
             "county_cascade[nppes_registry]: refresh raised for NPI %s "
             "(%s); leaving address unchanged", npi, exc,
         )
@@ -848,7 +848,7 @@ def _stage_nppes_registry(
     address_refresh_provenance on the address preserves the enrichment
     chain. Addresses whose canonical == ours skip both retries — same
     address that already failed stages 1 & 2 would fail them again."""
-    _log.info(
+    _log.LogPipeline("INFO", 
         "county_cascade[nppes_registry]: entering in=%d workers=%d",
         len(pairs), gate.max_in_flight,
     )
@@ -927,7 +927,7 @@ def _stage_nppes_registry(
 
     total_hits = r1_hits + r2_hits
     total_residue = unchanged + r2_residue
-    _log.info(
+    _log.LogPipeline("INFO", 
         "county_cascade[nppes_registry]: in=%d hit=%d residue=%d "
         "(refreshed=%d crosswalk_retry=%d census_retry=%d unchanged=%d)",
         len(pairs), total_hits, len(total_residue),
@@ -973,14 +973,14 @@ def _google_maps_fetch(
         except Exception as exc:
             if attempt + 1 < _RETRY_MAX_ATTEMPTS and _is_retryable_http(exc):
                 backoff = _RETRY_BACKOFF_BASE_S * (2 ** attempt)
-                _log.warning(
+                _log.LogPipeline("WARNING", 
                     "county_cascade[google_maps]: attempt %d/%d failed "
                     "(%s); sleeping %.1fs",
                     attempt + 1, _RETRY_MAX_ATTEMPTS, exc, backoff,
                 )
                 time.sleep(backoff)
                 continue
-            _log.warning(
+            _log.LogPipeline("WARNING", 
                 "county_cascade[google_maps]: query failed after %d "
                 "attempt(s) (%s)", attempt + 1, exc,
             )
@@ -1071,11 +1071,11 @@ def _stage_google_maps(
     stamp mutations touch only per-pair addr dicts so parallel workers
     don't race on shared state."""
     if not api_key:
-        _log.warning("county_cascade[google_maps]: no API key; skipping stage in=%d", len(pairs))
+        _log.LogPipeline("WARNING", "county_cascade[google_maps]: no API key; skipping stage in=%d", len(pairs))
         return pairs, 0
     if not pairs:
         return pairs, 0
-    _log.info(
+    _log.LogPipeline("INFO", 
         "county_cascade[google_maps]: entering in=%d workers=%d",
         len(pairs), gate.max_in_flight,
     )
@@ -1104,7 +1104,7 @@ def _stage_google_maps(
             hits += 1
         else:
             residue.append((doc, addr))
-    _log.info(
+    _log.LogPipeline("INFO", 
         "county_cascade[google_maps]: in=%d hit=%d residue=%d",
         len(pairs), hits, len(residue),
     )
@@ -1148,7 +1148,7 @@ def _stage_geo_census(
                 hits += 1
             else:
                 residue.append((doc, addr))
-    _log.info("county_cascade[geo_census]: in=%d hit=%d residue=%d",
+    _log.LogPipeline("INFO", "county_cascade[geo_census]: in=%d hit=%d residue=%d",
               len(pairs), hits, len(residue))
     return residue, hits
 
@@ -1164,7 +1164,7 @@ def _stage_geo_google(
     per address under the concurrency gate. Keeps only the point. Returns the
     still-pending residue and the hit count."""
     if not api_key:
-        _log.warning("county_cascade[geo_google]: no API key; skipping stage in=%d", len(pairs))
+        _log.LogPipeline("WARNING", "county_cascade[geo_google]: no API key; skipping stage in=%d", len(pairs))
         return pairs, 0
     if not pairs:
         return pairs, 0
@@ -1187,7 +1187,7 @@ def _stage_geo_google(
             hits += 1
         else:
             residue.append((doc, addr))
-    _log.info("county_cascade[geo_google]: in=%d hit=%d residue=%d",
+    _log.LogPipeline("INFO", "county_cascade[geo_google]: in=%d hit=%d residue=%d",
               len(pairs), hits, len(residue))
     return residue, hits
 
@@ -1259,9 +1259,10 @@ def run_county_cascade(
     pipeline_name = config.get("pipeline_name", "provider")
     frontend_mongo = get_frontend_mongo()
     discrepancy_log_coll = frontend_mongo["pipelineAdmin"]["discrepancyLog"]
-    discrepancy_config = load_discrepancy_config(frontend_mongo, pipeline_name)
+    discrepancy_config = load_discrepancy_config(
+        config.get("env") or os.environ.get("ENV_PREFIX", "dev"))
 
-    _log.info(
+    _log.LogPipeline("INFO", 
         "county_cascade: funnel entering run_id=%s state=%s sla_target=%.3f google_enabled=%s "
         "google_api_key_set=%s provider_collection=%s",
         run_id, partition_state or "ALL",
@@ -1435,7 +1436,7 @@ def run_county_cascade(
     _flush_updates()
 
     if total == 0:
-        _log.warning(
+        _log.LogPipeline("WARNING", 
             "county_cascade: funnel exiting with 0 eligible addresses "
             "(run_id=%s state=%s) — nothing to enrich",
             run_id, partition_state or "ALL",
@@ -1451,7 +1452,7 @@ def run_county_cascade(
         }
 
     match_rate = resolved_running / total
-    _log.info(
+    _log.LogPipeline("INFO", 
         "county_cascade: funnel done run_id=%s state=%s total=%d "
         "stage_hits=%s match_rate=%.4f sla_met=%s unresolvable=%d "
         "geo_stage_hits=%s geo_unresolvable=%d",

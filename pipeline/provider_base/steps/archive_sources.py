@@ -92,7 +92,7 @@ def execute(ctx) -> dict:
         registry_name = _SOURCE_REGISTRY_KEYS.get(source_key, source_key)
         reg_doc = registry.find_one({"source_name": registry_name}) or {}
         if duplicate_version_detected(reg_doc.get("archived_version"), version) and reg_doc.get("archive_blob"):
-            _log.info("archive skip %s version %s already archived", source_key, version)
+            _log.LogPipeline("INFO", "archive skip %s version %s already archived", source_key, version)
             archived.append({"source": source_key, "skipped": True, "version": version})
             continue
 
@@ -107,7 +107,7 @@ def execute(ctx) -> dict:
         try:
             blob_name, filename = _resolve_source_blob(source_key, fetch_result, reg_doc, source_container)
         except ValueError as exc:
-            _log.warning("archive skip %s: %s", source_key, exc)
+            _log.LogPipeline("WARNING", "archive skip %s: %s", source_key, exc)
             continue
 
         try:
@@ -121,7 +121,7 @@ def execute(ctx) -> dict:
                 filename=filename,
             )
         except FileNotFoundError as exc:
-            _log.error("archive failed %s: %s", source_key, exc)
+            _log.LogPipeline("ERROR", "archive failed %s: %s", source_key, exc)
             raise
 
         source_version_identifier = fetch_result.get("source_version_identifier")

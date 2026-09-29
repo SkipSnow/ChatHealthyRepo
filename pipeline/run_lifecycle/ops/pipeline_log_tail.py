@@ -121,7 +121,7 @@ def main() -> int:
 
     tail = PipelineLogTail(args.identity)
     after = tail.since(args.minutes)
-    log.info("tailing %s.%s from %s", "pipelineAdmin", LOG_COLLECTION,
+    log.LogPipeline("INFO", "tailing %s.%s from %s", "pipelineAdmin", LOG_COLLECTION,
              after.strftime("%H:%M:%S"))
 
     quiet_polls = 0
@@ -129,12 +129,12 @@ def main() -> int:
         rows = [r for r in tail.rows(after)
                 if tail.wanted(r, args.component, args.contains)]
         for row in rows:
-            log.info("%s", tail.render(row))
+            log.LogPipeline("INFO", "%s", tail.render(row))
         if args.once:
             return 0
         quiet_polls = 0 if rows else quiet_polls + 1
         if quiet_polls and quiet_polls % 30 == 0:
-            log.info("... quiet for %d polls", quiet_polls)
+            log.LogPipeline("INFO", "... quiet for %d polls", quiet_polls)
         time.sleep(args.interval)
 
 

@@ -245,7 +245,7 @@ def log(event: str, **fields):
         _log = ChatHealthyLoggingService()
     entry = {"event": event, "host": _HOSTNAME}
     entry.update(fields)
-    _log.info(json.dumps(entry, default=str))
+    _log.LogPipeline("INFO", json.dumps(entry, default=str))
 
 
 def _legacy_blob_log_unused(event: str, **fields):

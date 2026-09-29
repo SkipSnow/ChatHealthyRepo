@@ -46,5 +46,5 @@ def install_version_bindings(data_version: int, pipeline_mongo,
             f"{entry.public_data_db}.{entry.public_data_coll_base}_v_{data_version}")
     _state.bases = bases
     _state.pipeline_bound_version = data_version
-    _log.info("pipeline version binding installed: data_version=%d datasets=%d",
+    _log.LogPipeline("INFO", "pipeline version binding installed: data_version=%d datasets=%d",
               data_version, len(registry.entries()))

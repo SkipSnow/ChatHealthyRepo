@@ -34,7 +34,7 @@ def run_step(ctx) -> dict:
 
     # This wrapper declared a logger and never called it, so a worker that
     # entered the step and stopped looked the same as one that never started.
-    _log.info("provider_flags_enrichment[%s]: step begin run_id=%s entity=%s",
+    _log.LogPipeline("INFO", "provider_flags_enrichment[%s]: step begin run_id=%s entity=%s",
               config.get("partition_state") or "ALL", ctx.run_id,
               config.get("entity_kind_filter") or "ALL")
     try:
@@ -44,11 +44,11 @@ def run_step(ctx) -> dict:
             blob=ctx.blob_client,
         ) or {}
     except Exception as exc:
-        _log.error("provider_flags_enrichment: step FAILED run_id=%s state=%s "
+        _log.LogPipeline("ERROR", "provider_flags_enrichment: step FAILED run_id=%s state=%s "
                    "%s: %s", ctx.run_id, config.get("partition_state") or "ALL",
                    type(exc).__name__, exc)
         raise
-    _log.info("provider_flags_enrichment: step done run_id=%s state=%s %s",
+    _log.LogPipeline("INFO", "provider_flags_enrichment: step done run_id=%s state=%s %s",
               ctx.run_id, config.get("partition_state") or "ALL", result)
 
     key = f"flags:{config.get('entity_kind_filter') or 'ALL'}:{config.get('partition_state') or 'ALL'}"

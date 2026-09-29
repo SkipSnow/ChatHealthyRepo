@@ -50,6 +50,7 @@ FORBIDDEN_STDLIB_CALLS = frozenset({"basicConfig", "getLogger"})
 FORBIDDEN_BARE_NAMES = frozenset({"print"})
 LOG_METHODS = frozenset({
     "debug", "info", "warning", "error", "critical", "exception",
+    "LogPipeline",
 })
 
 

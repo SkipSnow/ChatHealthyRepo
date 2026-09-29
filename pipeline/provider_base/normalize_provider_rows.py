@@ -364,7 +364,7 @@ def normalize_provider_rows_worker_fn(config: dict) -> dict:
         "rows_per_second":   rows_per_second,
         "success":           len(failed) == 0,
     }
-    ChatHealthyLoggingService().info(
+    ChatHealthyLoggingService().LogPipeline("INFO", 
         "normalize_provider_rows_worker: worker=%d normalized=%d "
         "modified=%d failed=%d %.1fs (%.1f rows/s)",
         worker_id, normalized, written, len(failed), duration, rows_per_second,
@@ -408,5 +408,5 @@ def normalize_provider_rows_orchestrator_fn(context):
         "failed_count":   sum(r.get("failed_count",   0) for r in worker_results),
         "worker_count":   len(worker_results),
     }
-    ChatHealthyLoggingService().info("normalize_provider_rows_orchestrator: %s", totals)
+    ChatHealthyLoggingService().LogPipeline("INFO", "normalize_provider_rows_orchestrator: %s", totals)
     return {**result, "totals": totals}

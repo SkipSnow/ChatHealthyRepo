@@ -33,7 +33,7 @@ def run_step(ctx) -> dict:
         blob=ctx.blob_client,
     ) or {}
 
-    _log.info("harvest_other_identifier_phrases summary: %s", result)
+    _log.LogPipeline("INFO", "harvest_other_identifier_phrases summary: %s", result)
     ctx.manifest.metrics["harvest_other_identifier_phrases"] = result
     return result
 

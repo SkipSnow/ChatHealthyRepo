@@ -129,7 +129,7 @@ def _answers(cluster_name: str, identity: str) -> bool:
         client["admin"].command("ping")
         return True
     except Exception as exc:  # noqa: BLE001
-        log.info("ping refused (%s: %s)", type(exc).__name__, str(exc)[:120])
+        log.LogPipeline("INFO", "ping refused (%s: %s)", type(exc).__name__, str(exc)[:120])
         return False
 
 
@@ -174,7 +174,7 @@ def _wait_until_usable(cluster_name: str, identity: str) -> None:
         pings += 1
         if not _answers(cluster_name, identity):
             if due():
-                log.info("still pinging %s after %.0fs, %d ping(s)",
+                log.LogPipeline("INFO", "still pinging %s after %.0fs, %d ping(s)",
                          cluster_name, time.monotonic() - began, pings)
             time.sleep(_PING_SECONDS)
             continue
@@ -191,14 +191,14 @@ def _wait_until_usable(cluster_name: str, identity: str) -> None:
                      "written_by": identity, "attempt": writes,
                      "written_at": datetime.now(timezone.utc)},
                     upsert=True)
-                log.info("%s took a write after %.0fs, %d ping(s), %d write "
+                log.LogPipeline("INFO", "%s took a write after %.0fs, %d ping(s), %d write "
                          "attempt(s)", cluster_name, time.monotonic() - began,
                          pings, writes)
                 return
             except Exception as exc:  # noqa: BLE001
                 last = f"{type(exc).__name__}: {str(exc)[:160]}"
             if due():
-                log.info("still trying to write to %s after %.0fs, %d "
+                log.LogPipeline("INFO", "still trying to write to %s after %.0fs, %d "
                          "attempt(s); last refusal %s", cluster_name,
                          time.monotonic() - began, writes, last)
             time.sleep(_RETRY_SECONDS)
@@ -224,7 +224,7 @@ def _resume(parser):
         _raise_no_atlas_key()
 
     cluster = AtlasCluster(project, args.cluster, public, private)
-    log.info("resuming %s; asking every %ds until it serves",
+    log.LogPipeline("INFO", "resuming %s; asking every %ds until it serves",
              args.cluster, args.interval)
 
     attempt = 0
@@ -235,7 +235,7 @@ def _resume(parser):
         try:
             state, paused = cluster.state()
         except Exception as exc:  # noqa: BLE001
-            log.warning("attempt %d: could not read %s (%s: %s)",
+            log.LogPipeline("WARNING", "attempt %d: could not read %s (%s: %s)",
                         attempt, args.cluster, type(exc).__name__, str(exc)[:120])
             time.sleep(args.interval)
             continue
@@ -244,7 +244,7 @@ def _resume(parser):
         # the cluster is asked directly: first a ping, then a write, each
         # polled every second until it answers or ten minutes are spent.
         if not paused:
-            log.info("%s is un-paused after %d attempt(s); Atlas says %s. "
+            log.LogPipeline("INFO", "%s is un-paused after %d attempt(s); Atlas says %s. "
                      "Pinging every %ds.",
                      args.cluster, attempt, state, _PING_SECONDS)
             _wait_until_usable(args.cluster, args.identity)
@@ -253,16 +253,16 @@ def _resume(parser):
         reason = cluster.resume()
         if not reason:
             if not asked:
-                log.info("attempt %d: resume accepted for %s", attempt, args.cluster)
+                log.LogPipeline("INFO", "attempt %d: resume accepted for %s", attempt, args.cluster)
                 asked = True
             time.sleep(args.interval)
             continue
 
         if reason != last_reason:
-            log.info("attempt %d: refused -- %s", attempt, reason)
+            log.LogPipeline("INFO", "attempt %d: refused -- %s", attempt, reason)
             last_reason = reason
         elif attempt % 10 == 0:
-            log.info("attempt %d: still refused -- %s", attempt, reason)
+            log.LogPipeline("INFO", "attempt %d: still refused -- %s", attempt, reason)
         time.sleep(args.interval)
 
 

@@ -83,15 +83,15 @@ def execute(ctx) -> dict:
     "not started" because nothing recorded that it had begun.
     """
     started = time.time()
-    _log.info("prepare_infrastructure: STEP START run_id=%s", ctx.run_id)
+    _log.LogPipeline("INFO", "prepare_infrastructure: STEP START run_id=%s", ctx.run_id)
     try:
         result = _execute(ctx)
     except Exception as exc:
-        _log.error("prepare_infrastructure: STEP FAILED after %.1fs run_id=%s "
+        _log.LogPipeline("ERROR", "prepare_infrastructure: STEP FAILED after %.1fs run_id=%s "
                    "%s: %s", time.time() - started, ctx.run_id,
                    type(exc).__name__, exc)
         raise
-    _log.info("prepare_infrastructure: STEP DONE in %.1fs run_id=%s",
+    _log.LogPipeline("INFO", "prepare_infrastructure: STEP DONE in %.1fs run_id=%s",
               time.time() - started, ctx.run_id)
     return result
 
@@ -103,11 +103,11 @@ def _execute(ctx) -> dict:
     # only report "remaining=1". Each phase now says it started and what it
     # cost, so a stall names itself.
     # Operator directive 2026-08-03: coord on pipeline cluster only.
-    _log.info("prepare_infrastructure: begin run_id=%s states=%s",
+    _log.LogPipeline("INFO", "prepare_infrastructure: begin run_id=%s states=%s",
               ctx.run_id, list(ctx.args.resolved_states() or []))
     t0 = time.time()
     cfg = ensure_pipeline_config(ChatHealthyMongoUtilities().getConnection("pipelineEditor", "ChatHealthyDataPipelines"), ctx.env_prefix)
-    _log.info("prepare_infrastructure: config read (%.1fs) sources=%d",
+    _log.LogPipeline("INFO", "prepare_infrastructure: config read (%.1fs) sources=%d",
               time.time() - t0, len(cfg.get("dataset_versions") or []))
     ctx.config.setdefault("dataset_versions", cfg.get("dataset_versions", {}))
     ctx.config.setdefault("source_freshness", cfg.get("source_freshness", []))
@@ -123,13 +123,13 @@ def _execute(ctx) -> dict:
             "pipelineEditor", "ChatHealthyFrontEnd"))
 
     t = time.time()
-    _log.info("prepare_infrastructure: waking cluster %s", cluster)
+    _log.LogPipeline("INFO", "prepare_infrastructure: waking cluster %s", cluster)
     ops.wake(cluster, job_id=ctx.run_id)
-    _log.info("prepare_infrastructure: cluster %s awake (%.1fs)",
+    _log.LogPipeline("INFO", "prepare_infrastructure: cluster %s awake (%.1fs)",
               cluster, time.time() - t)
 
     t = time.time()
-    _log.info("prepare_infrastructure: reserving %s for %d minute(s)",
+    _log.LogPipeline("INFO", "prepare_infrastructure: reserving %s for %d minute(s)",
               cluster, duration)
     reservation = ops.reserve(
         cluster_name=cluster,
@@ -137,25 +137,25 @@ def _execute(ctx) -> dict:
         requester="provider_pipeline_lld",
         expected_duration_minutes=duration,
     )
-    _log.info("prepare_infrastructure: reserved (%.1fs)", time.time() - t)
+    _log.LogPipeline("INFO", "prepare_infrastructure: reserved (%.1fs)", time.time() - t)
 
     t = time.time()
     wait_minutes = int(ctx.config.get("cluster_wait_minutes", 20))
-    _log.info("prepare_infrastructure: ensuring indexes on %s "
+    _log.LogPipeline("INFO", "prepare_infrastructure: ensuring indexes on %s "
               "(waits up to %d minute(s) for the cluster)",
               ctx.provider_collection, wait_minutes)
     idx = ensure_provider_indexes_fn({
         "provider_collection": ctx.provider_collection,
         "cluster_wait_minutes": wait_minutes,
     })
-    _log.info("prepare_infrastructure: indexes ready (%.1fs)", time.time() - t)
+    _log.LogPipeline("INFO", "prepare_infrastructure: indexes ready (%.1fs)", time.time() - t)
 
     t = time.time()
     cleanup = _safety_cleanup(
         ctx.mongo_client or ChatHealthyMongoUtilities().getConnection("pipelineEditor", "ChatHealthyDataPipelines"),
         list(ctx.args.resolved_states() or []),
     )
-    _log.info("prepare_infrastructure: safety cleanup done (%.1fs); "
+    _log.LogPipeline("INFO", "prepare_infrastructure: safety cleanup done (%.1fs); "
               "step complete in %.1fs", time.time() - t, time.time() - t0)
     ctx.manifest.metrics["reservation"] = reservation
     ctx.manifest.metrics["safety_cleanup"] = cleanup

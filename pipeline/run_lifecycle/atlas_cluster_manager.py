@@ -148,10 +148,10 @@ def resize_cluster(cluster_name: str, instance_size: str, max_size: str, lock_ti
         auth=_auth(), headers=_headers(), json=payload, timeout=30
     )
     if r.status_code not in (200, 202):
-        log.error("Resize failed: %s %s", r.status_code, r.text)
+        log.LogPipeline("ERROR", "Resize failed: %s %s", r.status_code, r.text)
         r.raise_for_status()
     locked = " (autoscale locked)" if lock_tier else f" (max {max_size})"
-    log.info("Resize to %s requested%s. Cluster entering UPDATING.", instance_size, locked)
+    log.LogPipeline("INFO", "Resize to %s requested%s. Cluster entering UPDATING.", instance_size, locked)
 
 
 def wait_for_idle(cluster_name: str) -> None:
@@ -174,9 +174,9 @@ def pause_cluster(cluster_name: str) -> None:
         auth=_auth(), headers=_headers(), json={"paused": True}, timeout=30
     )
     if r.status_code not in (200, 202):
-        log.error("Pause failed: %s %s", r.status_code, r.text)
+        log.LogPipeline("ERROR", "Pause failed: %s %s", r.status_code, r.text)
         r.raise_for_status()
-    log.info("%s pause submitted.", cluster_name)
+    log.LogPipeline("INFO", "%s pause submitted.", cluster_name)
 
 
 def resume_cluster(cluster_name: str) -> None:
@@ -186,31 +186,31 @@ def resume_cluster(cluster_name: str) -> None:
         auth=_auth(), headers=_headers(), json={"paused": False}, timeout=30
     )
     if r.status_code not in (200, 202):
-        log.error("Resume failed: %s %s", r.status_code, r.text)
+        log.LogPipeline("ERROR", "Resume failed: %s %s", r.status_code, r.text)
         r.raise_for_status()
-    log.info("%s resume requested — waiting for IDLE...", cluster_name)
+    log.LogPipeline("INFO", "%s resume requested — waiting for IDLE...", cluster_name)
     wait_for_idle(cluster_name)
 def scale_up(cluster_name: str) -> None:
-    log.info("Scaling UP %s → %s (max %s)", cluster_name, JOB_TIER, JOB_MAX)
+    log.LogPipeline("INFO", "Scaling UP %s → %s (max %s)", cluster_name, JOB_TIER, JOB_MAX)
     info = get_cluster_info(cluster_name)
 
     if info["paused"]:
-        log.info("%s is paused — resuming first...", cluster_name)
+        log.LogPipeline("INFO", "%s is paused — resuming first...", cluster_name)
         resume_cluster(cluster_name)
         info = get_cluster_info(cluster_name)
 
     if info["state"] != "IDLE":
-        log.info("Cluster is %s — waiting for IDLE before resizing...", info["state"])
+        log.LogPipeline("INFO", "Cluster is %s — waiting for IDLE before resizing...", info["state"])
         wait_for_idle(cluster_name)
         info = get_cluster_info(cluster_name)
 
     if _tier_index(info["tier"]) >= _tier_index(JOB_TIER):
-        log.info("%s already at %s — no resize needed.", cluster_name, info["tier"])
+        log.LogPipeline("INFO", "%s already at %s — no resize needed.", cluster_name, info["tier"])
         return
 
     resize_cluster(cluster_name, JOB_TIER, JOB_MAX, lock_tier=True)
     wait_for_idle(cluster_name)
-    log.info("%s is ready at %s (autoscale locked).", cluster_name, JOB_TIER)
+    log.LogPipeline("INFO", "%s is ready at %s (autoscale locked).", cluster_name, JOB_TIER)
 
 
 def scale_to_post_job(cluster_name: str) -> None:
@@ -220,38 +220,38 @@ def scale_to_post_job(cluster_name: str) -> None:
     resize if the cluster is CURRENTLY at JOB_TIER (M80). This avoids
     downgrading a cluster that a human operator has intentionally
     resized to a different tier for other work."""
-    log.info("Post-job scale-down check on %s (target if at %s: %s)",
+    log.LogPipeline("INFO", "Post-job scale-down check on %s (target if at %s: %s)",
              cluster_name, JOB_TIER, POST_JOB_TIER)
     info = get_cluster_info(cluster_name)
     if info["paused"]:
-        log.info("%s is paused -- no resize needed.", cluster_name)
+        log.LogPipeline("INFO", "%s is paused -- no resize needed.", cluster_name)
         return
     if info["tier"] != JOB_TIER:
-        log.info("%s is at %s (not %s) -- skipping post-job resize.",
+        log.LogPipeline("INFO", "%s is at %s (not %s) -- skipping post-job resize.",
                  cluster_name, info["tier"], JOB_TIER)
         return
     if info["state"] != "IDLE":
-        log.info("Cluster is %s -- waiting for IDLE before resizing...", info["state"])
+        log.LogPipeline("INFO", "Cluster is %s -- waiting for IDLE before resizing...", info["state"])
         wait_for_idle(cluster_name)
     resize_cluster(cluster_name, POST_JOB_TIER, POST_JOB_MAX, lock_tier=True)
     wait_for_idle(cluster_name)
-    log.info("%s resized to post-job tier %s.", cluster_name, POST_JOB_TIER)
+    log.LogPipeline("INFO", "%s resized to post-job tier %s.", cluster_name, POST_JOB_TIER)
 
 
 def scale_down(cluster_name: str) -> None:
-    log.info("Pausing %s (zero compute cost, data retained)", cluster_name)
+    log.LogPipeline("INFO", "Pausing %s (zero compute cost, data retained)", cluster_name)
     info = get_cluster_info(cluster_name)
 
     if info["paused"]:
-        log.info("%s is already paused.", cluster_name)
+        log.LogPipeline("INFO", "%s is already paused.", cluster_name)
         return
 
     if info["state"] != "IDLE":
-        log.info("Cluster is %s — waiting for IDLE before pausing...", info["state"])
+        log.LogPipeline("INFO", "Cluster is %s — waiting for IDLE before pausing...", info["state"])
         wait_for_idle(cluster_name)
 
     pause_cluster(cluster_name)
-    log.info("%s paused. No compute charges until next scale-up.", cluster_name)
+    log.LogPipeline("INFO", "%s paused. No compute charges until next scale-up.", cluster_name)
 
 
 def main() -> int:
@@ -263,7 +263,7 @@ def main() -> int:
     import sys
     actions = ("scale-up", "scale-down", "pause", "resume")
     if len(sys.argv) != 3 or sys.argv[1] not in actions:
-        ChatHealthyLoggingService().info(f"Usage: python atlas_cluster_manager.py <{'|'.join(actions)}> <cluster-name>")
+        ChatHealthyLoggingService().LogPipeline("INFO", f"Usage: python atlas_cluster_manager.py <{'|'.join(actions)}> <cluster-name>")
         return 1
     action, name = sys.argv[1], sys.argv[2]
     if action == "scale-up":

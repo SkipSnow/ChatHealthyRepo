@@ -365,7 +365,7 @@ def _announce_alive(node_identity: str) -> None:
             ChatHealthyLoggingService, set_mongo_log_identity)
         set_mongo_log_identity(PIPELINE_IDENTITY)
         os.environ["CH_LOG_DESTINATION"] = "stderr,mongo"
-        ChatHealthyLoggingService().info(
+        ChatHealthyLoggingService().LogPipeline("INFO", 
             "bootstrap: container alive and able to log | %s", detail)
         _emit("bootstrap: announced to mongo")
         return
@@ -418,35 +418,35 @@ def _raise_cannot_log(detail: str, exc: Exception) -> None:
 def _dump_obs_abend(_obs_exc: ChatHealthyException,
                     pipeline_name: str) -> None:
     chls = ChatHealthyLoggingService()
-    chls.error("=" * 78)
-    chls.error("bootstrap: pipeline observability gate FAILED -- abending")
-    chls.error("  pipeline_name (component): %r", pipeline_name)
-    chls.error("  execution/server:          %r",
+    chls.LogPipeline("ERROR", "=" * 78)
+    chls.LogPipeline("ERROR", "bootstrap: pipeline observability gate FAILED -- abending")
+    chls.LogPipeline("ERROR", "  pipeline_name (component): %r", pipeline_name)
+    chls.LogPipeline("ERROR", "  execution/server:          %r",
                os.environ.get('CONTAINER_APP_JOB_EXECUTION_NAME',
                               socket.gethostname()))
-    chls.error("  env ENV_PREFIX:            %r",
+    chls.LogPipeline("ERROR", "  env ENV_PREFIX:            %r",
                os.environ.get('ENV_PREFIX', '<unset>'))
-    chls.error("  env CH_SPACE_NAME:         %r",
+    chls.LogPipeline("ERROR", "  env CH_SPACE_NAME:         %r",
                os.environ.get('CH_SPACE_NAME', '<unset>'))
-    chls.error("  mode:      %r", _obs_exc.mode)
-    chls.error("  message:   %s", _obs_exc.message)
-    chls.error("  server:    %r", _obs_exc.server)
-    chls.error("  component: %r", _obs_exc.component)
+    chls.LogPipeline("ERROR", "  mode:      %r", _obs_exc.mode)
+    chls.LogPipeline("ERROR", "  message:   %s", _obs_exc.message)
+    chls.LogPipeline("ERROR", "  server:    %r", _obs_exc.server)
+    chls.LogPipeline("ERROR", "  component: %r", _obs_exc.component)
     for _k, _v in (_obs_exc.context or {}).items():
-        chls.error("  ctx.%s: %r", _k, _v)
+        chls.LogPipeline("ERROR", "  ctx.%s: %r", _k, _v)
     if _obs_exc.exception is not None:
         _orig = _obs_exc.exception
-        chls.error("  original (chained) exception:")
-        chls.error("    type: %s", type(_orig).__name__)
-        chls.error("    args: %r", _orig.args)
-        chls.error("    repr: %r", _orig)
+        chls.LogPipeline("ERROR", "  original (chained) exception:")
+        chls.LogPipeline("ERROR", "    type: %s", type(_orig).__name__)
+        chls.LogPipeline("ERROR", "    args: %r", _orig.args)
+        chls.LogPipeline("ERROR", "    repr: %r", _orig)
         if _orig.__traceback__ is not None:
-            chls.error("    original traceback:\n%s",
+            chls.LogPipeline("ERROR", "    original traceback:\n%s",
                        "".join(traceback.format_tb(_orig.__traceback__)))
-    chls.error("  construction_stack (ChatHealthyException):")
-    chls.error("%s", _obs_exc.construction_stack)
-    chls.error("  live traceback:\n%s", traceback.format_exc())
-    chls.error("=" * 78)
+    chls.LogPipeline("ERROR", "  construction_stack (ChatHealthyException):")
+    chls.LogPipeline("ERROR", "%s", _obs_exc.construction_stack)
+    chls.LogPipeline("ERROR", "  live traceback:\n%s", traceback.format_exc())
+    chls.LogPipeline("ERROR", "=" * 78)
 
 
 def _open_the_vault(node_identity: str):

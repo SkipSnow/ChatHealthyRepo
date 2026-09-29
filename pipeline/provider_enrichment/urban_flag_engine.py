@@ -104,14 +104,14 @@ def apply_urban_flags(config: dict, *, mongo=None, blob=None) -> dict:
     query.update(business_state_filter(state))
 
     started = _time.time()
-    _log.info("urban_flag[%s]: stamping %s", state or "ALL", provider_collection)
+    _log.LogPipeline("INFO", "urban_flag[%s]: stamping %s", state or "ALL", provider_collection)
     result = coll.update_many(query, urban_pipeline())
     elapsed = _time.time() - started
 
     urban_true = coll.count_documents({**query, "urban": True})
     urban_false = coll.count_documents({**query, "urban": False})
     absent = coll.count_documents({**query, "urban": {"$exists": False}})
-    _log.info("urban_flag[%s]: matched=%s modified=%s urban=%s rural=%s "
+    _log.LogPipeline("INFO", "urban_flag[%s]: matched=%s modified=%s urban=%s rural=%s "
               "unplaced=%s (%.1fs)", state or "ALL", f"{result.matched_count:,}",
               f"{result.modified_count:,}", f"{urban_true:,}", f"{urban_false:,}",
               f"{absent:,}", elapsed)

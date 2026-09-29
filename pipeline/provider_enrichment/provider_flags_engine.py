@@ -29,6 +29,7 @@ ChatHealthyException.
 from __future__ import annotations
 
 
+import os
 import time as _time
 from chathealthy_lib.logging_service import ChatHealthyLoggingService
 from chathealthy_lib.exceptions import ChatHealthyException
@@ -120,7 +121,7 @@ def _load_catalog(mongo, data_version: int, state: str = 'ALL') -> dict[str, dic
     coll_ref = f"PipelinePublicHealthData.{coll_name}"
     out: dict[str, dict[str, bool]] = {}
     _started = _time.time()
-    _log.info("provider_flags[%s]: loading catalog from %s", state, coll_ref)
+    _log.LogPipeline("INFO", "provider_flags[%s]: loading catalog from %s", state, coll_ref)
     for row in coll.find({}):
         code = row.get("Code") or row.get("code")
         can_prescribe = row.get("can_prescribe")
@@ -315,19 +316,19 @@ def apply_provider_flags(
         _raise_mongo_client_required()
     _t0 = _time.time()
     _state_label_start = partition_state or "ALL"
-    _log.info("provider_flags[%s]: START run_id=%s entity=%s "
+    _log.LogPipeline("INFO", "provider_flags[%s]: START run_id=%s entity=%s "
               "collection=%s batch=%d",
               _state_label_start, run_id, entity_kind_filter or "ALL",
               provider_collection, batch_size)
     _state_label = partition_state or "ALL"
     catalog = _load_catalog(mongo, data_version, _state_label)
-    _log.info("provider_flags[%s]: catalog ready in %.0fs (catalog=%s)",
+    _log.LogPipeline("INFO", "provider_flags[%s]: catalog ready in %.0fs (catalog=%s)",
               _state_label, _time.time() - _t0, f"{len(catalog):,}")
 
     frontend_mongo = get_frontend_mongo()
     discrepancy_log_coll = frontend_mongo["pipelineAdmin"]["discrepancyLog"]
     discrepancy_config = load_discrepancy_config(
-        frontend_mongo, config.get("pipeline_name", "provider"))
+        config.get("env") or os.environ.get("ENV_PREFIX", "dev"))
 
     def _sink(entry: dict) -> None:
         write_finding(
@@ -374,12 +375,12 @@ def apply_provider_flags(
         "provider_credential_text": 1,
     }
     _scan_started = _time.time()
-    _log.info("provider_flags[%s]: scanning %s query=%s",
+    _log.LogPipeline("INFO", "provider_flags[%s]: scanning %s query=%s",
               _state_label, provider_collection, query)
     for doc in coll.find(query, projection):
         matched += 1
         if matched % 100_000 == 0:
-            _log.info("provider_flags[%s]: %s matched, %s modified, "
+            _log.LogPipeline("INFO", "provider_flags[%s]: %s matched, %s modified, "
                       "%s unresolved (%.0fs)", _state_label,
                       f"{matched:,}", f"{modified:,}", f"{unresolved:,}",
                       _time.time() - _scan_started)
@@ -407,7 +408,7 @@ def apply_provider_flags(
         result = coll.bulk_write(ops, ordered=False)
         modified += (result.modified_count or 0)
 
-    _log.info("provider_flags[%s]: DONE matched=%s modified=%s "
+    _log.LogPipeline("INFO", "provider_flags[%s]: DONE matched=%s modified=%s "
               "unresolved=%s in %.0fs (scan %.0fs)",
               _state_label, f"{matched:,}", f"{modified:,}",
               f"{unresolved:,}", _time.time() - _t0,

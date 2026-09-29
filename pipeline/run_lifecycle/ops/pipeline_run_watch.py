@@ -71,34 +71,34 @@ def _report(db, pipeline: str, resource_group: str) -> bool:
         {"pipeline_name": pipeline}, sort=[("started_at", -1)])
     stamp = datetime.now(timezone.utc).strftime("%H:%M:%S")
     if not run:
-        log.info("%s  no %s run recorded", stamp, pipeline)
+        log.LogPipeline("INFO", "%s  no %s run recorded", stamp, pipeline)
         return False
 
     status = str(run.get("status", "")).lower()
-    log.info("%s  run=%s status=%s vm=%s controller_pid=%s reason=%s",
+    log.LogPipeline("INFO", "%s  run=%s status=%s vm=%s controller_pid=%s reason=%s",
              stamp, run.get("run_id"), status, run.get("vm_name"),
              run.get("controller_pid"), run.get("failure_reason"))
 
     steps = list(db["pipeline.run_steps"].find({"run_id": run.get("run_id")})) \
         if "pipeline.run_steps" in db.list_collection_names() else []
-    log.info("%s  step rows recorded: %d", stamp, len(steps))
+    log.LogPipeline("INFO", "%s  step rows recorded: %d", stamp, len(steps))
 
     hosts = _hosts(resource_group)
-    log.info("%s  hosts in %s: %s", stamp, resource_group, hosts or "none")
+    log.LogPipeline("INFO", "%s  hosts in %s: %s", stamp, resource_group, hosts or "none")
 
     since = datetime.now(timezone.utc) - timedelta(minutes=20)
     recent = list(db["Log"].find({"timeStamp": {"$gte": since}})
                   .sort("timeStamp", -1).limit(6))
     if not recent:
-        log.info("%s  NO LOG LINES in the last 20 minutes -- the run is silent",
+        log.LogPipeline("INFO", "%s  NO LOG LINES in the last 20 minutes -- the run is silent",
                  stamp)
     for row in reversed(recent):
-        log.info("%s    %s %s | %s", stamp, str(row.get("timeStamp"))[11:19],
+        log.LogPipeline("INFO", "%s    %s %s | %s", stamp, str(row.get("timeStamp"))[11:19],
                  str(row.get("component"))[:18],
                  str(row.get("formatted") or row.get("message"))[:150])
 
     if status in TERMINAL:
-        log.info("%s  run reached %s -- watch ends", stamp, status)
+        log.LogPipeline("INFO", "%s  run reached %s -- watch ends", stamp, status)
         return True
     return False
 
@@ -115,7 +115,7 @@ def main() -> int:
 
     db = ChatHealthyMongoUtilities().getConnection(
         "pipelineEditor", "ChatHealthyFrontEnd")["pipelineAdmin"]
-    log.info("watching %s every %d minute(s)", args.pipeline, args.minutes)
+    log.LogPipeline("INFO", "watching %s every %d minute(s)", args.pipeline, args.minutes)
     while True:
         if _report(db, args.pipeline, args.resource_group):
             return 0

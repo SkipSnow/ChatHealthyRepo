@@ -231,25 +231,25 @@ class ObservabilityGate:
         original + tracebacks via ChatHealthyLoggingService (the canonical
         logger; per Rule-005 no print() is legitimate)."""
         chls = ChatHealthyLoggingService()
-        chls.error("*" * 78)
-        chls.error("ObservabilityGate: failure detail")
-        chls.error("  mode:      %r", exc.mode)
-        chls.error("  message:   %s", exc.message)
-        chls.error("  server:    %r", exc.server)
-        chls.error("  component: %r", exc.component)
+        chls.LogPipeline("ERROR", "*" * 78)
+        chls.LogPipeline("ERROR", "ObservabilityGate: failure detail")
+        chls.LogPipeline("ERROR", "  mode:      %r", exc.mode)
+        chls.LogPipeline("ERROR", "  message:   %s", exc.message)
+        chls.LogPipeline("ERROR", "  server:    %r", exc.server)
+        chls.LogPipeline("ERROR", "  component: %r", exc.component)
         for k, v in (exc.context or {}).items():
-            chls.error("  ctx.%s: %r", k, v)
+            chls.LogPipeline("ERROR", "  ctx.%s: %r", k, v)
         if exc.exception is not None:
             original = exc.exception
-            chls.error("  original (chained) exception:")
-            chls.error("    type: %s", type(original).__name__)
-            chls.error("    args: %r", original.args)
-            chls.error("    repr: %r", original)
+            chls.LogPipeline("ERROR", "  original (chained) exception:")
+            chls.LogPipeline("ERROR", "    type: %s", type(original).__name__)
+            chls.LogPipeline("ERROR", "    args: %r", original.args)
+            chls.LogPipeline("ERROR", "    repr: %r", original)
             if original.__traceback__ is not None:
-                chls.error("    original traceback:\n%s",
+                chls.LogPipeline("ERROR", "    original traceback:\n%s",
                            "".join(traceback.format_tb(original.__traceback__)))
-        chls.error("  construction_stack:")
-        chls.error("%s", exc.construction_stack)
-        chls.error("  live traceback (may be pre-raise):\n%s",
+        chls.LogPipeline("ERROR", "  construction_stack:")
+        chls.LogPipeline("ERROR", "%s", exc.construction_stack)
+        chls.LogPipeline("ERROR", "  live traceback (may be pre-raise):\n%s",
                    traceback.format_exc())
-        chls.error("*" * 78)
+        chls.LogPipeline("ERROR", "*" * 78)

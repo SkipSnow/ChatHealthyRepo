@@ -143,7 +143,7 @@ def _run_migration(parser):
                f"ChatHealthyDataPipelines.PipelinePublicHealthData"
                f"  →  ChatHealthyFrontEnd.PublicHealthData")
 
-    _log.info("data_migration authorization requested collection=%s env=%s",
+    _log.LogPipeline("INFO", "data_migration authorization requested collection=%s env=%s",
               args.collection, args.env)
 
     # The page asks the transfer question: what moves, and between which two
@@ -175,7 +175,7 @@ def _run_migration(parser):
             f"REJECT stops now: nothing is copied, nothing is recorded on the "
             f"cluster, and the refusal is written to the log."))
 
-    _log.info(
+    _log.LogPipeline("INFO", 
         "data_migration authorization %s collection=%s human_click=%s "
         "waited=%.1fs env=%s",
         authorization.verdict, args.collection, authorization.human_click,
@@ -184,7 +184,7 @@ def _run_migration(parser):
     # A refusal ends in the log. Nothing was released, so there is nothing
     # for the cluster to hold a record of.
     if not authorization.approved:
-        _log.error("data_migration NOT authorized collection=%s verdict=%s "
+        _log.LogPipeline("ERROR", "data_migration NOT authorized collection=%s verdict=%s "
                    "env=%s; nothing was judged, recorded or fired",
                    args.collection, authorization.verdict, args.env)
         return 1
@@ -226,7 +226,7 @@ def _run_migration(parser):
         # day is how a person remembers it.
         "day": released_at.date().isoformat(),
     })
-    _log.info("data_migration decision recorded id=%s collection=%s verdict=%s",
+    _log.LogPipeline("INFO", "data_migration decision recorded id=%s collection=%s verdict=%s",
               approval_id, args.collection, authorization.verdict)
 
     # The payload carries only the record's id. It used to carry the verdict
@@ -244,7 +244,7 @@ def _run_migration(parser):
     try:
         url = _webhook_url(vault)
     except ChatHealthyException as exc:
-        _log.error("data_migration could not fire collection=%s mode=%s: %s",
+        _log.LogPipeline("ERROR", "data_migration could not fire collection=%s mode=%s: %s",
                    args.collection, exc.mode, exc)
         return 1
 
@@ -253,7 +253,7 @@ def _run_migration(parser):
         headers={"Content-Type": "application/json"})
     with urllib.request.urlopen(request, timeout=30) as response:
         body = response.read().decode("utf-8", "replace")
-        _log.info("data_migration fired collection=%s http=%d response=%s",
+        _log.LogPipeline("INFO", "data_migration fired collection=%s http=%d response=%s",
                   args.collection, response.status, body[:300])
 
     return 0

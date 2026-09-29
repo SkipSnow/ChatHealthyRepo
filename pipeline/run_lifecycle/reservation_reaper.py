@@ -192,7 +192,7 @@ def _read_failure_state(client):
     try:
         return _state_coll(client).find_one({"_id": REAPER_STATE_ID})
     except Exception as ex:
-        log.warning("could not read reaper state: %r", ex)
+        log.LogPipeline("WARNING", "could not read reaper state: %r", ex)
         return None
 
 
@@ -203,7 +203,7 @@ def _write_failure_state(client, state):
         state["_id"] = REAPER_STATE_ID
         _state_coll(client).replace_one({"_id": REAPER_STATE_ID}, state, upsert=True)
     except Exception as ex:
-        log.warning("could not write reaper state: %r", ex)
+        log.LogPipeline("WARNING", "could not write reaper state: %r", ex)
 
 
 def _delete_failure_state(client):
@@ -212,14 +212,14 @@ def _delete_failure_state(client):
         return
     try:
         if _state_coll(client).delete_one({"_id": REAPER_STATE_ID}).deleted_count:
-            log.info("reaper state cleared (success path)")
+            log.LogPipeline("INFO", "reaper state cleared (success path)")
     except Exception as ex:
-        log.warning("could not clear reaper state: %r", ex)
+        log.LogPipeline("WARNING", "could not clear reaper state: %r", ex)
 
 
 def _send_sparkpost_email(subject, body):
     if not SPARKPOST_KEY:
-        log.warning("R3: SPARKMAIL_API_KEY absent; cannot send streak email")
+        log.LogPipeline("WARNING", "R3: SPARKMAIL_API_KEY absent; cannot send streak email")
         return False
     try:
         resp = requests.post(
@@ -237,10 +237,10 @@ def _send_sparkpost_email(subject, body):
         )
         if resp.status_code in (200, 201):
             return True
-        log.warning("R3: SparkPost returned %s %s", resp.status_code, resp.text[:200])
+        log.LogPipeline("WARNING", "R3: SparkPost returned %s %s", resp.status_code, resp.text[:200])
         return False
     except Exception as ex:
-        log.warning("R3: SparkPost send raised: %r", ex)
+        log.LogPipeline("WARNING", "R3: SparkPost send raised: %r", ex)
         return False
 
 
@@ -387,7 +387,7 @@ class CorrectionPass:
                           "corrected_by_reaper_at": now_aware}})
             self._lifecycle.delete_many({"run_id": run_id})
             self._lifecycle.delete_one({"_id": run_id})
-            log.info("Corrected orphaned run %s: %s", run_id, verdict.detail)
+            log.LogPipeline("INFO", "Corrected orphaned run %s: %s", run_id, verdict.detail)
             self.corrected.append(item)
             self.done(item)
 
@@ -425,7 +425,7 @@ def _reap_stuck_pipeline_lock(coll, runs_coll, row, now_aware, status):
 
     run = runs_coll.find_one({"run_id": run_id})
     if run and str(run.get("status", "")).lower() in _TERMINAL_RUN_STATUSES:
-        log.info("Reaping pipeline_lock for a finished run: run_id=%s status=%s",
+        log.LogPipeline("INFO", "Reaping pipeline_lock for a finished run: run_id=%s status=%s",
                  run_id, run.get("status"))
     else:
         expiry = (coll.find_one({"_id": run_id}) or {}).get("expiry_at")
@@ -440,7 +440,7 @@ def _reap_stuck_pipeline_lock(coll, runs_coll, row, now_aware, status):
         # of the renewal, not of the run, and reaping it here would stamp a
         # live run failed and free its lock for a second one to collide with.
         verdict = status.verdict(run_id)
-        log.info("Run %s verdict: %s (%s)", run_id, verdict.state, verdict.detail)
+        log.LogPipeline("INFO", "Run %s verdict: %s (%s)", run_id, verdict.state, verdict.detail)
         if verdict.is_running:
             return False
         if not verdict.has_stopped:
@@ -449,7 +449,7 @@ def _reap_stuck_pipeline_lock(coll, runs_coll, row, now_aware, status):
                     expiry = expiry.replace(tzinfo=timezone.utc)
                 if expiry > now_aware:
                     return False  # Unproven either way; the lease still stands.
-        log.info(
+        log.LogPipeline("INFO", 
             "Reaping stuck pipeline_lock: _id=%s run_id=%s age_min=%.1f "
             "status=%s reservation_expiry=%s",
             row.get("_id"), run_id, age_min,
@@ -473,7 +473,7 @@ def _reap_stuck_pipeline_lock(coll, runs_coll, row, now_aware, status):
             }},
         )
     except Exception as ex:  # noqa: BLE001
-        log.warning("Could not stamp pipeline.runs failure for %s: %r",
+        log.LogPipeline("WARNING", "Could not stamp pipeline.runs failure for %s: %r",
                     run_id, ex)
     return True
 
@@ -497,7 +497,7 @@ def _main():
     coll = client["pipelineAdmin"]["cluster_lifecycle"]
     runs_coll = client["pipelineAdmin"]["pipeline.runs"]
     reservations = list(coll.find({}))
-    log.info("Loaded %d cluster_lifecycle rows from %s.%s",
+    log.LogPipeline("INFO", "Loaded %d cluster_lifecycle rows from %s.%s",
              len(reservations), "pipelineAdmin", "cluster_lifecycle")
 
     # A run recorded as going whose Controller is not must be
@@ -546,7 +546,7 @@ def _main():
         if now_utc_naive <= expiry_dt:
             kept.append(r); continue
         reaped.append(r)
-        log.info("Reaping overdue reservation: _id=%s requester=%s expiry_at=%s",
+        log.LogPipeline("INFO", "Reaping overdue reservation: _id=%s requester=%s expiry_at=%s",
                  r.get("_id", ""), r.get("requester", ""), expiry_dt.isoformat())
 
     if reaped:
@@ -594,7 +594,7 @@ def _main():
         except (IndexError, KeyError, AttributeError):
             pass
         if current_tier == "M80" and cluster_state == "IDLE":
-            log.info("Reaper: cluster %s at M80 -- resizing to M30 before pause",
+            log.LogPipeline("INFO", "Reaper: cluster %s at M80 -- resizing to M30 before pause",
                      CLUSTER_NAME)
             resize_body = {
                 "replicationSpecs": [{
@@ -613,7 +613,7 @@ def _main():
             resize_resp = requests.patch(ATLAS_CLUSTER_URL, json=resize_body,
                                           auth=atlas_auth, headers=ATLAS_HEADERS, timeout=30)
             if resize_resp.status_code not in (200, 202):
-                log.warning(
+                log.LogPipeline("WARNING", 
                     "Reaper: M80->M30 resize rejected (%d): %s -- cluster left at M80; will retry next tick",
                     resize_resp.status_code, resize_resp.text[:300],
                 )
@@ -624,7 +624,7 @@ def _main():
             )
             if resp.status_code in (200, 202):
                 paused = True
-                log.info("Cluster %s paused (reason=%s, Atlas response: %s)",
+                log.LogPipeline("INFO", "Cluster %s paused (reason=%s, Atlas response: %s)",
                          CLUSTER_NAME, pause_reason,
                          resp.json().get("stateName", "?"))
             else:
@@ -633,7 +633,7 @@ def _main():
                     pause_failure_detail = j.get("errorCode", "") or j.get("detail", "")
                 except Exception:
                     pause_failure_detail = f"http_{resp.status_code}"
-                log.warning("Cluster %s pause REJECTED: %s %s",
+                log.LogPipeline("WARNING", "Cluster %s pause REJECTED: %s %s",
                             CLUSTER_NAME, resp.status_code, pause_failure_detail)
                 if pause_failure_detail:
                     pause_reason = f"{pause_reason}|atlas_rejected:{pause_failure_detail}"
@@ -641,8 +641,8 @@ def _main():
     msg = (f"Reaper tick: reaped={len(reaped)}, live_remaining={len(live)}, "
            f"work_pending={client_active}, cluster_state={cluster_state}, "
            f"paused={paused}, reason={pause_reason or 'none'}")
-    log.info(msg)
-    ChatHealthyLoggingService().info(msg)
+    log.LogPipeline("INFO", msg)
+    ChatHealthyLoggingService().LogPipeline("INFO", msg)
     return client
 
 
@@ -658,7 +658,7 @@ def _run_tick() -> int:
         return 0
     except Exception:
         tb = traceback.format_exc()
-        log.error("Reaper tick failed: %s", tb)
+        log.LogPipeline("ERROR", "Reaper tick failed: %s", tb)
         try:
             # The pass did not finish. Say so where job metadata is read;
             # opening a connection here is the last resort when _main died
@@ -669,7 +669,7 @@ def _run_tick() -> int:
                             unexamined=(_PASS.outstanding if _PASS else None),
                             corrected=(_PASS.corrected if _PASS else None))
         except Exception as inner:
-            log.error("recording the incomplete pass also failed: %r", inner)
+            log.LogPipeline("ERROR", "recording the incomplete pass also failed: %r", inner)
         return 1
 
 

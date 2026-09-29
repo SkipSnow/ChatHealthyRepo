@@ -109,7 +109,7 @@ def record_fatal_discrepancy(
             upsert=True,
         )
     except Exception as sec_exc:  # noqa: BLE001 - secondary failure MUST NOT mask the primary
-        _log.warning(
+        _log.LogPipeline("WARNING", 
             "record_fatal_discrepancy: could not persist fatal marker for "
             f"step={step!r} mode={exc.mode!r}: {sec_exc}"
         )

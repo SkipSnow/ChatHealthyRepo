@@ -57,7 +57,7 @@ def fatal_on_worker_log_db_reports(run_id: str) -> None:
                 ),
             )
         if rows:
-            _log.error(
+            _log.LogPipeline("ERROR", 
                 "control_runner: %d worker(s) failed on log db; run is fatal",
                 len(rows),
             )
@@ -104,10 +104,10 @@ def kill_active_workers() -> None:
                 # timed out. Container tear-down will still clean up.
                 break
         if killed:
-            _log.info("control_runner: SIGTERM sent to %d worker pid(s): %s",
+            _log.LogPipeline("INFO", "control_runner: SIGTERM sent to %d worker pid(s): %s",
                        len(killed), killed)
     except Exception as exc:  # noqa: BLE001
-        _log.warning("control_runner: _kill_active_workers failed: %s",
+        _log.LogPipeline("WARNING", "control_runner: _kill_active_workers failed: %s",
                      type(exc).__name__)
 
 
@@ -118,7 +118,7 @@ def pause_pipeline_cluster() -> None:
         import requests  # noqa: PLC0415
         from requests.auth import HTTPDigestAuth  # noqa: PLC0415
     except ImportError:
-        _log.warning("quiesce: requests not available; cluster pause skipped")
+        _log.LogPipeline("WARNING", "quiesce: requests not available; cluster pause skipped")
         return
 
     pub_key = os.environ.get("ATLAS_PIPELINE_PUBLIC_KEY", "").strip()
@@ -127,7 +127,7 @@ def pause_pipeline_cluster() -> None:
     cluster_name = os.environ.get("PIPELINE_CLUSTER", "chathealthypipeline").strip()
 
     if not (pub_key and priv_key and project_id):
-        _log.warning("quiesce: Atlas credentials not configured; cluster pause skipped")
+        _log.LogPipeline("WARNING", "quiesce: Atlas credentials not configured; cluster pause skipped")
         return
 
     try:
@@ -141,12 +141,12 @@ def pause_pipeline_cluster() -> None:
             timeout=30,
         )
         if resp.status_code in (200, 202):
-            _log.info("quiesce: pipeline cluster paused")
+            _log.LogPipeline("INFO", "quiesce: pipeline cluster paused")
         else:
-            _log.warning("quiesce: cluster pause rejected (%d): %s",
+            _log.LogPipeline("WARNING", "quiesce: cluster pause rejected (%d): %s",
                         resp.status_code, resp.text[:200])
     except Exception as exc:
-        _log.warning("quiesce: cluster pause failed (reaper will retry): %s", exc)
+        _log.LogPipeline("WARNING", "quiesce: cluster pause failed (reaper will retry): %s", exc)
 
 
 _STAGING_DB = "PublicStaging"
@@ -167,10 +167,10 @@ def empty_pipeline_staging() -> None:
         for coll in staging.list_collection_names():
             staging.drop_collection(coll)
             dropped += 1
-        _log.info("quiesce: %s emptied on success; %d collection(s) dropped",
+        _log.LogPipeline("INFO", "quiesce: %s emptied on success; %d collection(s) dropped",
                   _STAGING_DB, dropped)
     except Exception as exc:  # noqa: BLE001
-        _log.error("quiesce: staging empty FAILED err=%s", str(exc)[:500])
+        _log.LogPipeline("ERROR", "quiesce: staging empty FAILED err=%s", str(exc)[:500])
 
 
 def fire_farewell_vm_delete() -> None:
@@ -188,7 +188,7 @@ def fire_farewell_vm_delete() -> None:
     ARM finishes asynchronously, so this never blocks the exit.
     """
     if os.environ.get("PIPELINE_LOCAL_MODE", "").strip() == "1":
-        _log.info("control_runner: local mode, no host to delete")
+        _log.LogPipeline("INFO", "control_runner: local mode, no host to delete")
         return
 
     subscription = os.environ.get("AZURE_SUBSCRIPTION_ID", "").strip()
@@ -203,7 +203,7 @@ def fire_farewell_vm_delete() -> None:
                               ("AZURE_RESOURCE_GROUP", rg),
                               ("AZURE_VM_NAME/RUN_ID", vm_name)) if not v]
     if missing:
-        _log.error("control_runner: cannot delete this host, %s absent; "
+        _log.LogPipeline("ERROR", "control_runner: cannot delete this host, %s absent; "
                    "the watchdog must reap it", ", ".join(missing))
         return
 
@@ -220,14 +220,14 @@ def fire_farewell_vm_delete() -> None:
         response = requests.delete(
             url, headers={"Authorization": f"Bearer {token}"}, timeout=30)
         if response.status_code in (200, 202, 204, 404):
-            _log.info("control_runner: host %s delete accepted (HTTP %d)",
+            _log.LogPipeline("INFO", "control_runner: host %s delete accepted (HTTP %d)",
                       vm_name, response.status_code)
         else:
-            _log.error("control_runner: host %s delete refused (HTTP %d: %s); "
+            _log.LogPipeline("ERROR", "control_runner: host %s delete refused (HTTP %d: %s); "
                        "the watchdog must reap it", vm_name,
                        response.status_code, response.text[:200])
     except Exception as exc:  # noqa: BLE001
-        _log.error("control_runner: host %s delete failed (%s: %s); "
+        _log.LogPipeline("ERROR", "control_runner: host %s delete failed (%s: %s); "
                    "the watchdog must reap it",
                    vm_name, type(exc).__name__, str(exc)[:200])
 
@@ -240,19 +240,19 @@ def quiesce_mongo_state(run_id: str, final_status: str) -> None:
     The discrepancy report is emitted separately by the pipeline's own
     Controller, which alone knows what its rows mean."""
     if not run_id:
-        _log.warning("quiesce_mongo_state: no run_id available; skipping")
+        _log.LogPipeline("WARNING", "quiesce_mongo_state: no run_id available; skipping")
         return
     try:
         mongo = ChatHealthyMongoUtilities().getConnection("pipelineEditor", "ChatHealthyFrontEnd")
     except Exception as exc:
-        _log.error("quiesce: unable to open pipeline-cluster Mongo run_id=%s err=%s",
+        _log.LogPipeline("ERROR", "quiesce: unable to open pipeline-cluster Mongo run_id=%s err=%s",
                    run_id, str(exc)[:500])
         return
     try:
         mongo["pipelineAdmin"]["cluster_lifecycle"].delete_one({"_id": run_id})
-        _log.info("quiesce: reservation cancelled run_id=%s", run_id)
+        _log.LogPipeline("INFO", "quiesce: reservation cancelled run_id=%s", run_id)
     except Exception as exc:
-        _log.error("quiesce: reservation cancel FAILED run_id=%s err=%s",
+        _log.LogPipeline("ERROR", "quiesce: reservation cancel FAILED run_id=%s err=%s",
                    run_id, str(exc)[:500])
     # Release the per-pipeline mutual-exclusion lock. Runbook acquired
     # it at fire-start; Controller inherits ownership when the VM boots
@@ -267,12 +267,12 @@ def quiesce_mongo_state(run_id: str, final_status: str) -> None:
                 "_id": f"pipeline_lock:{pipeline_name}",
                 "run_id": run_id,
             })
-            _log.info(
+            _log.LogPipeline("INFO", 
                 "quiesce: pipeline_lock released pipeline=%s run_id=%s deleted=%d",
                 pipeline_name, run_id, r.deleted_count,
             )
         except Exception as exc:
-            _log.error(
+            _log.LogPipeline("ERROR", 
                 "quiesce: pipeline_lock release FAILED pipeline=%s run_id=%s err=%s",
                 pipeline_name, run_id, str(exc)[:500],
             )
@@ -284,10 +284,10 @@ def quiesce_mongo_state(run_id: str, final_status: str) -> None:
                 "ended_at": datetime.datetime.utcnow(),
             }},
         )
-        _log.info("quiesce: manifest marked terminal run_id=%s status=%s",
+        _log.LogPipeline("INFO", "quiesce: manifest marked terminal run_id=%s status=%s",
                   run_id, final_status)
     except Exception as exc:
-        _log.error("quiesce: manifest update FAILED run_id=%s err=%s",
+        _log.LogPipeline("ERROR", "quiesce: manifest update FAILED run_id=%s err=%s",
                    run_id, str(exc)[:500])
     # On any non-success terminal status, flip this run's in-flight
     # work_items to failed so no zombies persist. A successful run has
@@ -305,10 +305,10 @@ def quiesce_mongo_state(run_id: str, final_status: str) -> None:
                 }},
             )
             if res.modified_count:
-                _log.info(
+                _log.LogPipeline("INFO", 
                     "quiesce: work_items flipped run_id=%s count=%d",
                     run_id, res.modified_count,
                 )
         except Exception as exc:
-            _log.error("quiesce: work_items flip FAILED run_id=%s err=%s",
+            _log.LogPipeline("ERROR", "quiesce: work_items flip FAILED run_id=%s err=%s",
                        run_id, str(exc)[:500])

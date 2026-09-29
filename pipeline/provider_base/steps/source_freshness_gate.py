@@ -166,7 +166,7 @@ def execute(ctx) -> dict:
             decisions[derived] = {"decision": "fetch", "reason": f"parent {parent} not decided"}
 
     ctx.manifest.metrics["source_freshness"] = decisions
-    _log.info("source_freshness_gate: decisions=%s", {k: v.get("decision") for k, v in decisions.items()})
+    _log.LogPipeline("INFO", "source_freshness_gate: decisions=%s", {k: v.get("decision") for k, v in decisions.items()})
     return {"decisions": decisions}
 
 

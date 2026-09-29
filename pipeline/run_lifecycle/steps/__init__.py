@@ -99,12 +99,12 @@ def _build_registry() -> dict[str, Callable]:
         try:
             module = importlib.import_module(dotted)
         except Exception as exc:  # pragma: no cover - surfaced by control loop
-            _log.warning("steps registry: failed to import %s (%s): %s",
+            _log.LogPipeline("WARNING", "steps registry: failed to import %s (%s): %s",
                          mod_name, dotted, exc)
             continue
         runner = _resolve_runner(module)
         if runner is None:
-            _log.warning(
+            _log.LogPipeline("WARNING", 
                 "steps registry: %s exposes neither run_step nor execute", mod_name
             )
             continue

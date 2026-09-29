@@ -66,7 +66,7 @@ def provision_job(
 ) -> dict[str, Any]:
     """Create or update an ACA Job definition for a pipeline stage."""
     if _local_mode():
-        _log.info("ACA provision no-op (local mode): %s parallelism=%s", job_name, parallelism)
+        _log.LogPipeline("INFO", "ACA provision no-op (local mode): %s parallelism=%s", job_name, parallelism)
         return {"job_name": job_name, "mode": "local", "parallelism": parallelism}
 
     try:
@@ -137,7 +137,7 @@ def start_job(
 def delete_job(job_name: str) -> dict[str, Any]:
     """Delete an ephemeral ACA Job after the stage completes."""
     if _local_mode():
-        _log.info("ACA delete no-op (local mode): %s", job_name)
+        _log.LogPipeline("INFO", "ACA delete no-op (local mode): %s", job_name)
         return {"job_name": job_name, "deleted": False, "mode": "local"}
     _az([
         "containerapp", "job", "delete",

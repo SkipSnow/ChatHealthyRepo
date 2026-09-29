@@ -77,7 +77,7 @@ def main() -> int:
     detail = _detail()
     exit_code = os.environ.get("CONTROLLER_EXIT_CODE", "unknown")
     try:
-        log.error("FATAL: controller failed to come up | %s", detail)
+        log.LogPipeline("ERROR", "FATAL: controller failed to come up | %s", detail)
         _mark_run_failed(exit_code, detail)
     except Exception as exc:  # noqa: BLE001
         _mail(detail, f"{type(exc).__name__}: {exc}")
