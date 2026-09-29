@@ -1062,20 +1062,46 @@ def _resolve_debug_level(webhook_body) -> str:
     return level
 
 
+def _raise_illegal_state_scope(raw) -> None:
+    """Raise-only helper: state_scope is one of exactly two legal shapes --
+    ["ALL"] alone, or a non-empty list of state codes with no "ALL" among
+    them. "ALL" mixed with states would mint a destructive catch-all worker
+    beside literal-state workers, so it abends here at the POST parse rather
+    than reaching the fan-out. Rule-005 keeps the raise off the caller's log."""
+    raise ChatHealthyException(
+        mode="value_error",
+        message=(
+            "provider_pipeline_runbook: state_scope must be either [\"ALL\"] "
+            "alone or a non-empty list of state codes with no \"ALL\" among "
+            f"them. Got {raw!r}. Fire again with a legal scope."
+        ),
+        component="provider_pipeline_runbook",
+    )
+
+
 def _resolve_state_scope(raw):
-    """Accept 'ALL' (str), ['ALL'], ['VT','DE'], etc. Always return a list."""
+    """Parse the webhook state_scope into one of two legal shapes: ["ALL"]
+    alone, or a non-empty list of state codes with no "ALL" among them.
+    Anything else -- empty, or "ALL" mixed with states -- is an illegal
+    argument and abends here, at the POST parse, so no downstream step guards it.
+    """
     if isinstance(raw, list):
-        return raw
-    if isinstance(raw, str):
+        scope = raw
+    elif isinstance(raw, str):
+        parsed = None
         if raw.strip().startswith("["):
             try:
                 v = json.loads(raw)
-                if isinstance(v, list):
-                    return v
+                parsed = v if isinstance(v, list) else None
             except Exception:
-                pass
-        return [s.strip().upper() for s in raw.split(",") if s.strip()]
-    return ["ALL"]
+                parsed = None
+        scope = parsed if parsed is not None else raw.split(",")
+    else:
+        scope = ["ALL"]
+    scope = [str(s).strip().upper() for s in scope if str(s).strip()]
+    if not scope or ("ALL" in scope and len(scope) != 1):
+        _raise_illegal_state_scope(raw)
+    return scope
 
 
 # ============================================================================

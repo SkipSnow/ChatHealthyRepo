@@ -175,34 +175,6 @@
       "test_id": "",
       "orphan": false,
       "due_date": "",
-      "bugid": "BUG-009",
-      "title": "A state-scoped pipeline fire replaces the whole served collection",
-      "description": "publish_provider.py renames the staging collection over the loaded one with dropTarget true. Staging is absent at the start of a run, nothing copies the loaded collection into staging, and state_partitions returns only the named states for a scoped run.\n\nSo any fire whose state scope is narrower than the loaded collection installs only the states it built and destroys the rest. Silently: no error, no finding, no gate. It is unconditional on load mode -- the incremental flag is not involved.\n\nThe rule that prevents it exists ONLY as prose. The module docstring says production fires must always be state_scope ALL. That identifier appears nowhere else in the file. There is no runtime guard, no requirement and no test. A rule that exists only as a comment reads as enforced and is not.\n\nThis is the March 2026 data-loss incident's shape in a different place: a step that is correct for a full load, reached by a mode that does not satisfy its precondition. That incident was an unconditional drop of all fifty states for a Delaware-scoped run.",
-      "status": "new",
-      "severity": "high",
-      "req_id": "ORPHAN",
-      "story_id": "ORPHAN",
-      "discovery_date": "2026-09-10",
-      "test_success_criteria": [
-        "A fire whose state scope is narrower than the loaded collection MUST refuse to publish, or MUST carry every out-of-scope record forward.",
-        "Boolean test: load every state to N records, fire one state scoped to DE, then count. The count MUST NOT fall below N."
-      ],
-      "reproduction": "1. Read publish_provider.py at the rename -- renameCollection with dropTarget true, unconditional on load mode or scope.\n2. Read pipeline_runtime.py provider_collection -- it resolves to the STAGING collection, the same name publish renames.\n3. Search the repository for an aggregation out stage, a merge stage, or any copy into staging -- none exists, so staging never receives the loaded records.\n4. Read steps/_partitions.py state_partitions -- a scoped run yields only the named states.\n5. Search publish_provider.py for state_scope -- one hit, in the docstring.",
-      "next_action": [
-        "Refuse the publish where the incoming partition set does not cover the set it replaces. The guard belongs in publish, not in the caller, because publish is what destroys.",
-        "Author the requirement this needs; the pipeline stages have none."
-      ]
-    },
-    {
-      "environments": [
-        "local",
-        "dev",
-        "qa",
-        "prod"
-      ],
-      "test_id": "",
-      "orphan": false,
-      "due_date": "",
       "bugid": "BUG-010",
       "title": "The agent's self-escalation condition is void beside an unconditioned Owner grant",
       "description": "claudeCodeAgent holds the custom role chatHealthyAgent on the PipeLineServices subscription WITH its assignment condition applied and intact. The condition forbids role-assignment writes and deletes for six role-definition ids, including Owner and Contributor, so the identity cannot grant itself back a capability that was taken away. It is a well-made control.\n\nThe same identity also holds plain Owner on the same subscription with NO condition. Owner already grants role-assignment write. Azure unions a principal's assignments, so the constrained path and an unconstrained path to the same action sit side by side and the condition withholds nothing.\n\nThe control is not badly designed. It is defeated additively, by a second grant that nothing compares it against -- which is why a reading of either assignment alone reports a healthy posture. The lesson generalises: enumerate the union of a principal's grants, then check the union.",

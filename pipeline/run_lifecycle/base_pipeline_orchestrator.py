@@ -458,14 +458,24 @@ class BasePipelineOrchestrator:
                 {"source": "usda_rucc"},
                 {"source": "specialty_catalog"},
             ]
-        # partition_states, not resolved_states: the ALL sentinel has to
-        # survive to state_partitions or the ALL_OTHERS worker is never minted.
+        # partition_states, not resolved_states: ALL must reach state_partitions
+        # unexpanded -- that is the single place the fifty-two-way fan-out mints.
         states = ctx.args.partition_states()
         if key == "county_partition":
-            return county_partitions(states)
-        if key == "state_entity":
-            return state_entity_partitions(states)
-        return state_partitions(states)
+            parts = county_partitions(states)
+        elif key == "state_entity":
+            parts = state_entity_partitions(states)
+        else:
+            parts = state_partitions(states)
+        has_all_catchall = any(
+            p.get("business_address_state") == "ALL" for p in parts)
+        _log.LogPipeline(
+            "INFO",
+            "orchestrator fan-out step=%s partition_key=%s scope=%s "
+            "partitions=%d all_catchall=%s",
+            spec.name, key, states, len(parts), has_all_catchall,
+        )
+        return parts
 
     def _validate_prerequisites(self, steps: list[StepSpec]) -> None:
         names = {s.name for s in steps}

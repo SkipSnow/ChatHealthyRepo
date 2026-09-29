@@ -445,6 +445,22 @@ def _emit_discrepancy_report(run_id, final_status, *, manifest=None, args=None,
                            "run_id=%s err=%s; the report will say Unknown",
                            run_id, str(exc)[:300])
 
+            if not target_collection:
+                # Resolve straight from config so a hiccup above never loses the
+                # whole report (operator: always get the report).
+                _dver = os.environ.get("DATA_VERSION", "").strip()
+                if not _dver.isdigit() and args is not None:
+                    _dver = str(getattr(args, "data_version", "") or "")
+                for _dv in (cfg.get("dataset_versions") or []):
+                    if _dv.get("source_name") == "provider":
+                        _pdn = _dv.get("public_data_name") or ""
+                        if "." in _pdn and _dver.isdigit():
+                            target_collection = f"{_pdn}_v_{_dver}"
+                        break
+                if target_collection:
+                    _log.LogPipeline("WARNING", "quiesce: target_collection resolved from "
+                               "config fallback run_id=%s -> %s", run_id, target_collection)
+
             summary = emit_discrepancy_report(
                 pipeline_mongo=pipeline_mongo,
                 run_id=run_id,

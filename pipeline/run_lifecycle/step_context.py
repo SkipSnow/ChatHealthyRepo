@@ -58,8 +58,8 @@ class PipelineArgs:
         military codes AA/AE/AP and foreign addresses, and NPPES carries rows
         with no business state at all.
         """
-        scope = self.state_scope or self.states
-        return bool(scope) and len(scope) == 1 and scope[0].upper() == "ALL"
+        from pipeline.run_lifecycle.steps._partitions import is_full_scope
+        return is_full_scope(self.state_scope or self.states)
 
     def resolved_states(self) -> list[str]:
         scope = self.state_scope or self.states
@@ -71,14 +71,10 @@ class PipelineArgs:
         return [s.upper() for s in scope]
 
     def partition_states(self) -> list[str]:
-        """What the partition builder needs, which is not what a state filter
-        needs.
-
-        resolved_states expands ALL into the fifty-one, and the expansion is
-        what made state_partitions' ALL_OTHERS branch unreachable: by the time
-        it tested for the sentinel, the sentinel was gone. So the fan-out asks
-        this instead, and the sentinel survives long enough to mint the worker
-        that owns everything outside the fifty-one.
+        """The scope the fan-out expands: ["ALL"] kept whole, or the explicit
+        state list. state_partitions is the single place ALL becomes fifty-two
+        workers, so ALL must reach it unexpanded -- resolved_states, which
+        expands ALL into the fifty-one, is wrong for that caller.
         """
         return ["ALL"] if self.is_all_states() else self.resolved_states()
 

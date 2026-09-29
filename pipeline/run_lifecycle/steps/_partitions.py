@@ -1,7 +1,15 @@
 # Copyright (c) 2026 ChatHealthy.ai LLC. All rights reserved.
 # Licensed under the FindCare Evaluation License (FEL-1.0).
 
-"""State and county partition helpers."""
+"""State and county partition helpers.
+
+A run's scope is one of exactly two shapes: an explicit list of state codes,
+or ["ALL"]. ALL fans out to one worker per US state (the fifty plus DC) and
+one more worker, keyed "ALL", that owns every provider whose business state
+is none of those -- the territories, the military codes AA/AE/AP, foreign
+addresses and blank-state rows. Fifty-two workers, and together they cover
+every record.
+"""
 
 from __future__ import annotations
 
@@ -13,61 +21,49 @@ ALL_US_STATES = [
 ]
 
 
-ALL_OTHERS = "ALL_OTHERS"
-
-
 def business_state_filter(state: str | None) -> dict:
-    """The Mongo predicate selecting one partition's providers.
+    """The Mongo predicate selecting one partition's providers by business
+    mailing state.
 
-    ALL_OTHERS is a sentinel, not a state: it names every provider whose
-    business address is outside the fifty-one, including those carrying no
-    business state at all. Written as an equality it matched the literal
-    string and selected nothing, silently, in whichever step spelled it that
-    way. There is one spelling now.
+    No state means no filter -- an unpartitioned step reading the whole
+    collection. "ALL" is the catch-all worker: every provider whose business
+    state is none of ALL_US_STATES. Any other value is that literal state.
     """
     if not state:
         return {}
-    if state == ALL_OTHERS:
+    if state == "ALL":
         return {"business_address.state": {"$nin": list(ALL_US_STATES)}}
     return {"business_address.state": state}
 
 
 def staged_state_filter(state: str | None) -> dict:
-    """The predicate selecting one partition's rows in a staging collection
-    that carries the provider's ACTUAL state on each row.
-
-    business_state_filter reads business_address.state on a provider record.
-    This reads a flat `state` field on a harvested row. Both need the same
-    sentinel handling and neither can borrow the other's field name, so the
-    sentinel is spelled out once here rather than a third and fourth time at
-    the call sites.
+    """business_state_filter's twin for a staging row, which carries the state
+    on a flat `state` field rather than under business_address. Same three
+    cases; only the field name differs, so neither can borrow the other.
     """
     if not state:
         return {}
-    if state == ALL_OTHERS:
+    if state == "ALL":
         return {"state": {"$nin": list(ALL_US_STATES)}}
     return {"state": state}
 
 
 def is_full_scope(states: list[str] | None) -> bool:
-    """True when a states list means the whole country rather than a set."""
+    """True when a scope is the whole country -- the single token ALL."""
     return bool(states) and len(states) == 1 and str(states[0]).upper() == "ALL"
 
 
 def state_partitions(states: list[str]) -> list[dict]:
-    if states == ["ALL"] or not states:
-        return [{"business_address_state": s} for s in ALL_US_STATES] + [{"business_address_state": ALL_OTHERS}]
+    if is_full_scope(states):
+        return ([{"business_address_state": s} for s in ALL_US_STATES]
+                + [{"business_address_state": "ALL"}])
     return [{"business_address_state": s} for s in states]
 
 
 def state_entity_partitions(states: list[str]) -> list[dict]:
-    """One partition per (state, entity type) — LLD v45 §5.2.11, which puts
-    the fan-out across state AND entity type.
-
-    Type 1 and Type 2 are disjoint sets: an NPI carries exactly one Entity
-    Type Code, so the two never write the same document and neither has to
-    wait for the other. Running them as two sequential steps doubled the
-    wall-clock of the branch phases for nothing -- costly on CA, TX and NY.
+    """One partition per (state, entity type). Type 1 and Type 2 are disjoint
+    -- an NPI carries exactly one Entity Type Code -- so the two never write
+    the same document and neither waits on the other.
     """
     return [dict(part, entity_type=t)
             for part in state_partitions(states)
@@ -75,9 +71,7 @@ def state_entity_partitions(states: list[str]) -> list[dict]:
 
 
 def county_partitions(states: list[str]) -> list[dict]:
-    # One worker per state -- period. The prior split by (state, kind)
-    # sent two workers at the same provider doc for any provider with
-    # BOTH a practice and a secondary_practice address, causing full-
-    # array $set clobber (proven with NPI 1962405589). Operator rule
-    # 2026-07-31: worker scope = state, never sub-partition.
+    """One worker per state, never sub-partitioned: two workers at the same
+    provider doc $set-clobber each other's address array.
+    """
     return state_partitions(states)

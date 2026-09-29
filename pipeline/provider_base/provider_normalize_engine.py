@@ -12,7 +12,7 @@ from typing import Any
 
 import pymongo
 from chathealthy_lib.exceptions import ChatHealthyException
-from pymongo import ASCENDING, InsertOne, ReplaceOne
+from pymongo import InsertOne, ReplaceOne
 
 from pipeline.run_lifecycle.pipeline_runtime import PipelineRuntime
 from pipeline.provider_base.provider_record_builder import build_provider_record
@@ -59,9 +59,8 @@ _NPPES_STATE_COLUMN = "Provider Business Mailing Address State Name"
 def per_state_normalize(ctx, state: str) -> dict[str, Any]:
     """Per-state normalize (NPI-atomic ownership): drain this state's rows
     in the target, read only this state's staging rows, build + validate +
-    bulk_write. Replaces the prior two-step design (serial_bulk_load +
-    per_state_fanout) which serialized on one worker and then re-validated
-    what it just wrote. This runs 51-way in parallel with state_scope=ALL.
+    bulk_write. Runs 52-way in parallel under state_scope=ALL (one worker per
+    US state plus the "ALL" catch-all).
 
     Partition key: BUSINESS mailing address state (single-valued per NPI
     per NPPES contract). Practice addresses are optional and multi-valued
@@ -69,19 +68,15 @@ def per_state_normalize(ctx, state: str) -> dict[str, Any]:
     is the reliable NPI-atomic partition key.
     """
     from pipeline.run_lifecycle.steps._partitions import (  # noqa: PLC0415
-        ALL_OTHERS, ALL_US_STATES, business_state_filter)
+        ALL_US_STATES, business_state_filter)
     rt = PipelineRuntime(ctx)
     state = (state or "").upper()
     if not state:
         raise ChatHealthyException(mode="value_error", message="per_state_normalize: state is required")
     nucc = _nucc_lookup(rt)
 
-    # The collection this partition writes must carry its own indexes before
-    # a single row lands. Creating them here, not in prepare_infrastructure,
-    # because this is where the collection's name is actually resolved --
-    # prepare ensured npi_1 on the name in pipeline.config and the writes went
-    # somewhere else, so 45,000 rows were written to a collection whose only
-    # index was _id_. create_index is idempotent.
+    # Ensure this partition's target indexes before any row lands, here where
+    # the collection name is actually resolved. apply_indexes is idempotent.
     from pipeline.run_lifecycle.ensure_provider_indexes_activity import _pipeline_provider_index_specs  # noqa: PLC0415
     from chathealthy_lib.mongo_indexes import apply_indexes  # noqa: PLC0415
     apply_indexes(rt.providers_coll, _pipeline_provider_index_specs())
@@ -107,12 +102,11 @@ def per_state_normalize(ctx, state: str) -> dict[str, Any]:
     # level timeoutMS (120s) — big states take longer than 2 min to
     # iterate + build + validate + write. no_cursor_timeout=True also
     # prevents server-side cursor idle kill.
-    # The drain and this read must select the same providers. The drain took
-    # ALL_OTHERS as "not one of the fifty-one" while this took it as a literal
-    # state name, so the pairing was delete-everything, insert-nothing. It has
-    # never fired -- resolved_states() expands ["ALL"] before the sentinel is
-    # minted, so the partition is unreachable -- but the two halves disagreed.
-    if state == ALL_OTHERS:
+    # The drain (business_address.state) and this read (the raw NPPES state
+    # column) must select the same providers. "ALL" is the catch-all worker:
+    # both sides read it as "business state is none of ALL_US_STATES" -- the
+    # drain via business_state_filter, this read via the same $nin below.
+    if state == "ALL":
         staging_state: dict = {"$nin": ALL_US_STATES}
     else:
         staging_state = state
@@ -162,6 +156,12 @@ def per_state_normalize(ctx, state: str) -> dict[str, Any]:
             inserted += (result.inserted_count + result.upserted_count
                          + result.modified_count)
 
+    _log.LogPipeline(
+        "INFO",
+        "per_state_normalize state=%s drained=%d inserted=%d unique_npis=%d "
+        "skipped_dup=%d schema_violations=%d",
+        state, drained, inserted, len(seen_npis), skipped_dup, violations,
+    )
     return {
         "state": state,
         "drained": drained,
