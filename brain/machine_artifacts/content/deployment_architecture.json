@@ -4317,6 +4317,7 @@
                 "ATLAS_PIPELINE_PUBLIC_KEY": "local_env",
                 "ATLAS_PIPELINE_PRIVATE_KEY": "local_env",
                 "GEMINI_API_KEY": "local_env",
+                "OPENAI_API_KEY": "local_env",
                 "CH_EMBEDDING_MODEL": "firm:embedding_model"
               },
               "config": {
