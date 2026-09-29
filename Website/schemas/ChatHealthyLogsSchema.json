@@ -2,19 +2,18 @@
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "https://dev.chathealthy.ai/schemas/ChatHealthyLogsSchema.json",
   "title": "ChatHealthy Logs Record",
-  "description": "One log document in Pipelines.Log_{env}. Schema is closed (no extra fields). The canonical operational finds: db.find({fatal_error: true}) returns every 503; db.find({session_guid: <guid>}) returns every log of one user's session; db.find({job_id: <run_id>}) returns every log of one pipeline execution across Control + all Workers. user_action=true logs MUST carry session_guid. The full message bytes - including ChatHealthyException rendering, thrower traceback, and catcher stack - live in the `formatted` field; engineers grep there.",
+  "description": "One log document in Pipelines.Log_{env}. Schema is closed (no extra fields). The canonical operational finds: db.find({fatal_error: true}) returns every 503; db.find({session_guid: <guid>}) returns every log of one user's session; db.find({run_id: <run_id>}) returns every log of one pipeline execution across Control + all Workers. user_action=true logs MUST carry session_guid. The full message bytes - including ChatHealthyException rendering, thrower traceback, and catcher stack - live in the `formatted` field; engineers grep there.",
   "type": "object",
   "additionalProperties": false,
   "required": [
     "timeStamp",
     "level",
     "env",
-    "target",
+    "component",
     "formatted",
     "pathname",
     "fatal_error",
-    "user_action",
-    "session_guid"
+    "user_action"
   ],
   "properties": {
     "timeStamp": {
