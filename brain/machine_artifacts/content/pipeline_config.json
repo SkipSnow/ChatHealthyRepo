@@ -88,7 +88,6 @@
         },
         {
           "source_name": "provider",
-          "staging_name": "PublicStaging.Provider_staging",
           "public_data_name": "PipelinePublicHealthData.Provider",
           "depends_on": [
             "nppes_npi",
@@ -100,7 +99,6 @@
         },
         {
           "source_name": "smd",
-          "staging_name": "PublicStaging.SpecialtyMetaData_staging",
           "public_data_name": "PipelinePublicHealthData.SpecialtyMetaData",
           "depends_on": [
             "nucc",
@@ -193,12 +191,12 @@
             "max": null
           },
           "authorized_official_incomplete": {
-            "severity": "warning",
+            "severity": "info",
             "fatal_at_count": null,
             "max": null
           },
           "parent_organization_incomplete": {
-            "severity": "warning",
+            "severity": "info",
             "fatal_at_count": null,
             "max": null
           },
@@ -310,7 +308,6 @@
         },
         {
           "source_name": "provider",
-          "staging_name": "PublicStaging.Provider_staging",
           "public_data_name": "PipelinePublicHealthData.Provider",
           "depends_on": [
             "nppes_npi",
@@ -322,7 +319,6 @@
         },
         {
           "source_name": "smd",
-          "staging_name": "PublicStaging.SpecialtyMetaData_staging",
           "public_data_name": "PipelinePublicHealthData.SpecialtyMetaData",
           "depends_on": [
             "nucc",
@@ -415,12 +411,12 @@
             "max": null
           },
           "authorized_official_incomplete": {
-            "severity": "warning",
+            "severity": "info",
             "fatal_at_count": null,
             "max": null
           },
           "parent_organization_incomplete": {
-            "severity": "warning",
+            "severity": "info",
             "fatal_at_count": null,
             "max": null
           },
@@ -532,7 +528,6 @@
         },
         {
           "source_name": "provider",
-          "staging_name": "PublicStaging.Provider_staging",
           "public_data_name": "PipelinePublicHealthData.Provider",
           "depends_on": [
             "nppes_npi",
@@ -544,7 +539,6 @@
         },
         {
           "source_name": "smd",
-          "staging_name": "PublicStaging.SpecialtyMetaData_staging",
           "public_data_name": "PipelinePublicHealthData.SpecialtyMetaData",
           "depends_on": [
             "nucc",
@@ -637,12 +631,12 @@
             "max": null
           },
           "authorized_official_incomplete": {
-            "severity": "warning",
+            "severity": "info",
             "fatal_at_count": null,
             "max": null
           },
           "parent_organization_incomplete": {
-            "severity": "warning",
+            "severity": "info",
             "fatal_at_count": null,
             "max": null
           },

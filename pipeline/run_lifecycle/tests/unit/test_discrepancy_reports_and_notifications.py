@@ -227,3 +227,87 @@ def test_env_fallback_only_when_config_store_unreachable(monkeypatch):
     report.config_loaded = False  # store unreachable -> REQ-B-006 escape
     receivers = report._resolve_recipients()
     assert receivers == ["ops@example.com"]
+
+
+# ---------- INFO severity tier (a bucket below warning) ----------
+
+
+def _agg(cls: str, severity: str, count: int, keys: list | None = None) -> dict:
+    return {"class": cls, "severity": severity, "count": count,
+            "keys": keys if keys is not None else []}
+
+
+@pytest.mark.unit
+def test_info_is_tallied_apart_from_warnings_and_errors():
+    report = _report()
+    model = report._report_model([
+        _agg("county_unresolvable", "warning", 4),
+        _agg("row_unparseable", "error", 2),
+        _agg("phone_shape_uncertain", "info", 9),
+    ], cap=25)
+    assert model["warning_total"] == 4
+    assert model["error_total"] == 2
+    assert model["info_total"] == 9, "INFO has its own total"
+
+
+@pytest.mark.unit
+def test_info_does_not_make_a_run_a_failure():
+    report = _report()
+    model = report._report_model([_agg("phone_shape_uncertain", "info", 9)], cap=25)
+    # A run with only INFO findings has no warnings, errors, or fatal.
+    assert model["warning_total"] == 0
+    assert model["error_total"] == 0
+    assert model["fatal_total"] == 0
+    assert model["info_total"] == 9
+
+
+@pytest.mark.unit
+def test_info_class_still_appears_in_the_per_class_body():
+    report = _report()
+    model = report._report_model([_agg("phone_shape_uncertain", "info", 9)], cap=25)
+    classes = {(r["class"], r["severity"]) for r in model["summary"]}
+    assert ("phone_shape_uncertain", "info") in classes
+
+
+# ---------- run start/end resolve from the run manifest, not object build ----------
+
+
+@pytest.mark.unit
+def test_run_times_do_not_fabricate_a_distinct_end_without_a_manifest():
+    report = _report()
+    report.mongo_down = True  # no manifest reachable
+    started, ended = report._run_times()
+    assert started == report.start_time
+    assert ended == started, "a report with no manifest must not invent a duration"
+
+
+@pytest.mark.unit
+def test_run_times_read_started_and_ended_from_the_manifest(monkeypatch):
+    import uuid
+    from datetime import datetime, timezone
+    import chathealthy_lib.discrepancy_report as dr
+
+    report = _report()
+    if report.mongo_connection is None or report.mongo_down:
+        pytest.skip("front-end metadata cluster unavailable")
+
+    scratch = f"chathealthy_test_scratch_{uuid.uuid4().hex}_pipeline_runs"
+    monkeypatch.setattr(dr, "PIPELINE_RUNS_COLLECTION", scratch)
+    coll = report.mongo_connection[dr.PIPELINE_ADMIN_DB][scratch]
+    started_dt = datetime(2026, 1, 15, 18, 30, tzinfo=timezone.utc)
+    ended_dt = datetime(2026, 1, 15, 20, 45, tzinfo=timezone.utc)
+    try:
+        coll.insert_one({"run_id": report.run_id,
+                         "started_at": started_dt, "ended_at": ended_dt})
+        stored = coll.find_one({"run_id": report.run_id})
+        started, ended = report._run_times()
+        # Compare against _iso of the stored values so the assertion is robust
+        # to whether the driver returns tz-aware or tz-naive datetimes.
+        assert started == report._iso(stored["started_at"])
+        assert ended == report._iso(stored["ended_at"])
+        assert started != ended, "start and end are distinct instants"
+    finally:
+        try:
+            report.mongo_connection[dr.PIPELINE_ADMIN_DB].drop_collection(scratch)
+        except Exception:
+            pass

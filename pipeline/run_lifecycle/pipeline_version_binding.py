@@ -40,8 +40,11 @@ def install_version_bindings(data_version: int, pipeline_mongo,
     registry = PipelineDatasetRegistry(config, data_version, pipeline_mongo)
     bases: dict = {}
     for entry in registry.entries():
-        bases[(entry.staging_db, entry.staging_coll_base)] = (
-            f"{entry.staging_db}.{entry.staging_coll_base}_v_{data_version}")
+        # A derived entry built directly in public_data has no staging_name;
+        # only bind a staging base when the entry actually stages.
+        if entry.staging_db is not None:
+            bases[(entry.staging_db, entry.staging_coll_base)] = (
+                f"{entry.staging_db}.{entry.staging_coll_base}_v_{data_version}")
         bases[(entry.public_data_db, entry.public_data_coll_base)] = (
             f"{entry.public_data_db}.{entry.public_data_coll_base}_v_{data_version}")
     _state.bases = bases

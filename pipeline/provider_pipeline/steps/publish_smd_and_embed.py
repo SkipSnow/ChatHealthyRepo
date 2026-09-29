@@ -1,40 +1,33 @@
 # Copyright (c) 2026 ChatHealthy.ai LLC. All rights reserved.
 # Licensed under the FindCare Evaluation License (FEL-1.0).
 
-"""Publish StagingNucc -> PipelinePublicHealthData.SpecialtyMetaData_v_N + embeddings.
+"""Build PipelinePublicHealthData.SpecialtyMetaData_v_N in place + embeddings.
 
 Realizes Provider Pipeline LLD v42 §5.2.8a. Runs after normalize_nucc.
 
 **Pipeline-cluster-only.** Pipelines never migrate data from the pipeline
-back-end cluster to the front-end cluster (operator directive 2026-08-02).
-Every write in this step targets ChatHealthyDataPipelines. A separate
-migrator job (out of scope for this step) is the sole legal path from
-pipeline -> frontend.
+back-end cluster to the front-end cluster. Every write in this step targets
+ChatHealthyDataPipelines. A separate data_release step (out of scope here) is
+the sole legal path from pipeline -> frontend.
+
+SMD is a FULL rebuild each fire (not state-scoped): the served collection is
+built directly, with no staging collection and no rename swap.
 
 Sequence inside execute():
 
-  1. Copy every row from PublicStaging.StagingNucc_v_{data_version} into
-     PipelinePublicHealthData.SpecialtyMetaData_staging_v_{data_version} on the
-     same (pipeline) cluster. Strips pipeline-only fields (_id, run_id,
+  1. Clear PipelinePublicHealthData.SpecialtyMetaData_v_{data_version} and copy
+     every row from PublicStaging.StagingNucc_v_{data_version} into it on the
+     same (pipeline) cluster. Strips pipeline-only fields (_id,
      _source_row_index, raw).
-  2. Generate a text-embedding-3-large embedding for every staged row
+  2. Generate a text-embedding-3-large embedding for every row
      (embedding_engine.generate_specialty_embeddings). Stamps embedding,
      embedding_model, embedding_generated_at on each doc.
-  3. Atomic swap:
-        PipelinePublicHealthData.SpecialtyMetaData_staging_v_{n}
-         --> PipelinePublicHealthData.SpecialtyMetaData_v_{n}
-     via Collection.rename(new_name, dropTarget=True). Same-DB (renameCollection
-     requires it). This IS the "loaded" transition per operator rule
-     2026-08-02: "loaded means migrated from staging to PipelinePublicHealthData
-     in the pipeline cluster." Non-fatal errors (like embed 429s) still
-     mark the collection loaded; fatal errors block the rename so the
-     next fire reloads.
 
-Post-swap: PipelinePublicHealthData.SpecialtyMetaData_v_{n} holds 884 rows (883
-NUCC + F-105 supplements) each with an embedding vector (or discrepancy
-records for any rows the embed API dropped). The migrator, running on
-its own schedule, is responsible for shipping this to the front-end
-cluster for user-facing $vectorSearch.
+Post-build: PipelinePublicHealthData.SpecialtyMetaData_v_{n} holds 884 rows (883
+NUCC + F-105 supplements) each with an embedding vector. A fatal finding (an
+un-embedded row) aborts the run before mark_loaded, so the next fire reloads.
+The data_release step, running on its own schedule, is responsible for
+shipping this to the front-end cluster for user-facing $vectorSearch.
 
 All collection names are version-suffixed (_v_N) per operator rule
 "all files must be versioned with the right version number."
@@ -87,9 +80,7 @@ def execute(ctx) -> dict:
     rt = PipelineRuntime(ctx)
     dv = rt.data_version
     smd_entry = rt.registry.by_source_name("smd")
-    staging_db = smd_entry.staging_db
     loaded_db = smd_entry.public_data_db
-    staging_name = rt.registry.staging_collection_name("smd")
     loaded_name = rt.registry.public_data_collection_name("smd")
     src_db = staging_db_name(rt.registry, "nucc")
     src_coll_name = staging_collection_name(rt.registry, "nucc")
@@ -118,27 +109,24 @@ def execute(ctx) -> dict:
         }
 
     # Fail fast if the OpenAI key is missing — better here than after
-    # the copy step has already staged rows.
+    # the copy step has already written rows into the served collection.
     if not (os.environ.get("OPENAI_API_KEY") or "").strip():
         _bail_openai_key_missing()
 
     # Source: NUCC staging on the pipeline cluster (populated by
     # normalize_nucc). Read the run_id filter so a residual older run's
-    # rows never sneak into the publish.
+    # rows never sneak into the build.
     src = rt.mongo[src_db][src_coll_name]
 
-    # Target: pipeline cluster. Staging + loaded DB names come from the
-    # registry (dataset_versions[]). Cross-DB atomic swap happens at the
-    # end via `client.admin.command('renameCollection', ..., dropTarget=True)`
-    # (the admin command supports cross-DB; only the Collection.rename()
-    # pymongo helper is same-DB-only).
-    smd_staging = rt.mongo[staging_db][staging_name]
+    # Target: the served (public_data) collection on the pipeline cluster,
+    # built in place. loaded DB name comes from the registry
+    # (dataset_versions[]). SMD is a full rebuild each fire, so the served
+    # collection is cleared and repopulated -- there is no staging swap.
+    smd_loaded = rt.mongo[loaded_db][loaded_name]
 
-    # Wipe any residue from a previous partially-completed run before
-    # writing this run's rows. dropTarget=True on the final rename would
-    # handle live's residue; staging is our own scratch space and a stray
-    # earlier row would inflate the publish count.
-    smd_staging.delete_many({})
+    # Full rebuild: clear the served collection before writing this run's
+    # rows so a prior fire's contents do not accumulate.
+    smd_loaded.delete_many({})
 
     copied = 0
     batch: list[dict] = []
@@ -154,19 +142,19 @@ def execute(ctx) -> dict:
         pub["run_id"] = rt.run_id
         batch.append(pub)
         if len(batch) >= 500:
-            smd_staging.insert_many(batch, ordered=False)
+            smd_loaded.insert_many(batch, ordered=False)
             copied += len(batch)
             batch = []
     if batch:
-        smd_staging.insert_many(batch, ordered=False)
+        smd_loaded.insert_many(batch, ordered=False)
         copied += len(batch)
 
-    # Embed every staged row on the pipeline cluster. generate_specialty
-    # _embeddings iterates find({}) on the collection we point it at, so
-    # restricting to the SMD staging collection keeps scope tight.
+    # Embed every row on the pipeline cluster. generate_specialty_embeddings
+    # iterates find({}) on the collection we point it at, so pointing it at
+    # the served SMD collection keeps scope tight.
     embed_summary = generate_specialty_embeddings(
         {
-            "specialty_collection": f"{staging_db}.{staging_name}",
+            "specialty_collection": f"{loaded_db}.{loaded_name}",
             "openai_api_key": os.environ.get("OPENAI_API_KEY"),
         },
         mongo=rt.mongo,
@@ -175,10 +163,10 @@ def execute(ctx) -> dict:
     # error_specialty_embedding_failed is graded fatal (LLD v54 §16): an
     # SMD row left without an embedding after generate_specialty_embeddings
     # names an invariant a correct run never violates, so the first such
-    # finding aborts the run before the swap. The finding is recorded to
+    # finding aborts the run before mark_loaded. The finding is recorded to
     # discrepancyLog first, so the report names the code that failed.
     unembedded_count = 0
-    for row in smd_staging.find(
+    for row in smd_loaded.find(
         {"embedding": {"$exists": False}},
         {"Code": 1, "Display Name": 1, "is_supplemented": 1},
     ):
@@ -202,29 +190,19 @@ def execute(ctx) -> dict:
         )
         unembedded_count += 1
 
-    # Atomic swap ACROSS databases. renameCollection via admin.command
-    # supports cross-DB source/target (the pymongo Collection.rename()
-    # helper does NOT -- that one is same-DB only). dropTarget=True
-    # drops any prior loaded collection in the same server-side op, so
-    # consumers transition from prior-fire-complete to this-fire-complete
-    # atomically.
-    rt.mongo.admin.command({
-        "renameCollection": f"{staging_db}.{staging_name}",
-        "to": f"{loaded_db}.{loaded_name}",
-        "dropTarget": True,
-    })
-
     # Mark loaded per operator rule: non-fatal errors (like embed 429s
     # that produced discrepancies) still mark the collection loaded and
     # operationally_fit. A fatal error earlier in this step would have
     # raised before reaching this point, leaving no metadata doc, which
     # is the signal for the next fire to reload. Metadata lives on the
     # frontend cluster (chathealthyfrontend.pipeline.loaded_metadata).
-    loaded_row_count = rt.mongo[loaded_db][loaded_name].count_documents({})
+    # source_collection records the NUCC staging collection the build read
+    # from, since SMD is built in place with no staging collection of its own.
+    loaded_row_count = smd_loaded.count_documents({})
     mark_loaded(
         frontend_mongo=rt.frontend,
         publichealthdata_collection_name=loaded_name,
-        staging_collection_name=staging_name,
+        staging_collection_name=src_coll_name,
         source_hash=current_hash,
         run_id=rt.run_id,
         data_version=dv,

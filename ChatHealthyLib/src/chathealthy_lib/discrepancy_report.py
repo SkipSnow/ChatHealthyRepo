@@ -41,8 +41,10 @@ PIPELINE_CONFIG_COLLECTION = "PipelineConfig"
 REPORT_CAP_DEFAULT = 25
 # The reserved class a count that could not be taken is carried under (§7.5).
 DISCREPANCY_REPORT_ERROR_CLASS = "discrepancy_report_error"
-# Order the report lists severities in: the fatal first, then error, warning.
-_SEVERITY_RANK = {"fatal": 0, "error": 1, "warning": 2}
+# The run manifest carrying the run's real start and end lives here.
+PIPELINE_RUNS_COLLECTION = "pipeline.runs"
+# Order the report lists severities in: fatal first, then error, warning, info.
+_SEVERITY_RANK = {"fatal": 0, "error": 1, "warning": 2, "info": 3}
 
 _log = ChatHealthyLoggingService()
 
@@ -67,6 +69,11 @@ class DiscrepancyDetail(str, Enum):
       - Data quality flag raised but row can proceed
       - Any issue that does not prevent the row from being published
 
+    INFO (below warning):
+      - A field where we do not know whether there is a real data problem
+        ("might be true"). INFO findings are NOT counted as unsuccessfully
+        loaded and never make a run non-successful.
+
     FATAL:
       - Job-terminating failure (MongoDB unreachable, vault unreachable, etc.)
       - A finding class graded fatal in finding_types (a pipeline defect)
@@ -74,6 +81,7 @@ class DiscrepancyDetail(str, Enum):
     WARNING = "warning"
     ERROR = "error"
     FATAL = "fatal"
+    INFO = "info"
 
 
 def _reject_bad_report_inputs(
@@ -403,7 +411,7 @@ class DiscrepancyReport:
         nonfatal_summary: list[dict] = []
         nonfatal_appendix: list[dict] = []
         fatal_aggs: list[dict] = []
-        warning_total = error_total = 0
+        warning_total = error_total = info_total = 0
         touched: set[str] = set()
         for agg in (aggregates or []):
             cls = agg.get("class", "?")
@@ -419,10 +427,15 @@ class DiscrepancyReport:
                 "class": cls, "severity": severity,
                 "keys": keys[:cap], "total": count, "overflow": max(0, len(keys) - cap),
             })
+            # INFO is below warning: it never adds to the failure totals and
+            # never makes a run non-successful, but its class still shows in
+            # the per-class body and appendix.
             if severity == "warning":
                 warning_total += count if isinstance(count, int) else 0
             elif severity == "error":
                 error_total += count if isinstance(count, int) else 0
+            elif severity == "info":
+                info_total += count if isinstance(count, int) else 0
 
         # Exactly one fatal per run (§7.5). Collapse every fatal aggregate --
         # the domain-class fatal and any job-level marker for the same event --
@@ -473,6 +486,7 @@ class DiscrepancyReport:
             "appendix": appendix,
             "warning_total": warning_total,
             "error_total": error_total,
+            "info_total": info_total,
             "fatal_total": fatal_total,
             "records_touched": len(touched),
             "uncollectable": uncollectable,
@@ -489,6 +503,40 @@ class DiscrepancyReport:
         """A count the caller supplied, or "Unknown" if it did not."""
         return "Unknown" if count is None else count
 
+    @staticmethod
+    def _iso(value) -> str | None:
+        """A run-time value as an ISO string, or None if there is none."""
+        if value is None:
+            return None
+        if isinstance(value, datetime):
+            return value.isoformat()
+        text = str(value).strip()
+        return text or None
+
+    def _run_times(self) -> tuple[str, str]:
+        """The run's real start and end, read from the run manifest.
+
+        The report object is built at run-end, so its own construction time is
+        not the run's start. pipeline.runs carries started_at and ended_at;
+        those are authoritative. The construction time is a last resort used
+        only when the manifest, or a field on it, is genuinely unavailable, and
+        the fallback end is the fallback start rather than a fresh now(), so a
+        report that cannot read the manifest never shows a fabricated duration.
+        """
+        fallback = self.start_time
+        manifest = None
+        if not self.mongo_down and self.mongo_connection is not None:
+            try:
+                manifest = self.mongo_connection[PIPELINE_ADMIN_DB][
+                    PIPELINE_RUNS_COLLECTION].find_one({"run_id": self.run_id})
+            except Exception as exc:  # noqa: BLE001
+                _log.warning("discrepancy report: could not read the run manifest "
+                             "for start/end times (%s); using construction time",
+                             f"{type(exc).__name__}: {str(exc)[:200]}")
+        started = self._iso((manifest or {}).get("started_at")) or fallback
+        ended = self._iso((manifest or {}).get("ended_at")) or started
+        return started, ended
+
     def _write_email(self) -> bool:
         """Deliver the report on success and abnormal end alike.
 
@@ -501,6 +549,7 @@ class DiscrepancyReport:
         model = self._report_model(self._aggregates(), cap)
         warning_total = model["warning_total"]
         error_total = model["error_total"]
+        info_total = model["info_total"]
 
         is_fatal = bool(self.fatal_error or self.fatal_exception) or (
             self.manifest_status not in ("", "succeeded", "completed")) or (
@@ -509,18 +558,31 @@ class DiscrepancyReport:
 
         warning_display = "Unknown" if model["uncollectable"] else warning_total
         error_display = "Unknown" if model["uncollectable"] else error_total
+        info_display = "Unknown" if model["uncollectable"] else info_total
 
-        end_time = datetime.now(timezone.utc).isoformat()
+        # Successfully collected = what was collected minus the real failures
+        # (warnings and errors). INFO does not subtract. No "100%" is asserted.
+        if model["uncollectable"]:
+            records_successfully_collected = "Unknown"
+        elif self.total_source_rows is not None:
+            records_successfully_collected = (
+                self.total_source_rows - warning_total - error_total)
+        elif isinstance(self.rows_in_target, int):
+            records_successfully_collected = (
+                self.rows_in_target - warning_total - error_total)
+        else:
+            records_successfully_collected = self._reported(self.rows_in_target)
+
+        run_started_utc, run_ended_utc = self._run_times()
         manifest = {
             "run_id": self.run_id,
             "pipeline_name": self.pipeline_name,
             "run_status": self.manifest_status or ("failed" if is_fatal else "succeeded"),
-            "run_started_utc": self.start_time,
-            "run_ended_utc": end_time,
+            "run_started_utc": run_started_utc,
+            "run_ended_utc": run_ended_utc,
             "fatal_reason": explanation,
-            "records_100_percent_successfully_collected": (
-                not is_fatal and not model["uncollectable"]
-                and warning_total == 0 and error_total == 0),
+            "records_successfully_collected": records_successfully_collected,
+            "records_with_non_certain_information": info_display,
             "records_with_non_fatal_warnings": warning_display,
             "records_with_non_fatal_errors": error_display,
             "records_touched": model["records_touched"],

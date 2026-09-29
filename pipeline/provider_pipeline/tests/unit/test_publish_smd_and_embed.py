@@ -2,7 +2,11 @@
 # Licensed under the FindCare Evaluation License (FEL-1.0).
 
 """Unit tests for v42 §5.2.8a: publish_smd_and_embed + specialty embed
-composer + _nucc_lookup flip to read published SMD + orchestrator DAG.
+composer + _nucc_lookup reads published SMD + orchestrator DAG.
+
+SMD is now built DIRECTLY in its served (public_data) collection on the
+pipeline cluster: no staging collection, no renameCollection swap. The
+served collection is cleared and repopulated each fire (full rebuild).
 
 Cluster surfaces are real: the tests reach MongoDB through the canonical
 utility as DevOpsUser and work in scratch collections carrying a per-run
@@ -35,25 +39,24 @@ from chathealthy_lib.exceptions import ChatHealthyException  # noqa: E402
 def _scratch_config(db_name: str, prefix: str) -> dict:
     """A dataset_versions[] config resolving to scratch collections.
 
-    Staging and loaded share a database because renameCollection is a
-    same-database operation — the constraint the production layout is
-    built around.
+    nucc is a fetched source and carries a staging_name; smd is a derived
+    collection built directly in its public_data collection and carries no
+    staging_name -- the shape the refactor introduces.
     """
-    def entry(source_name: str, staging_base: str, public_base: str) -> dict:
-        return {
-            "source_name": source_name,
-            "fetch": {"source_url": f"https://example.com/{source_name}.csv"},
-            "file_format": "csv",
-            "staging_name": f"{db_name}.{prefix}{staging_base}",
-            "public_data_name": f"{db_name}.{prefix}{public_base}",
-        }
-
-    # Same base names production uses, so the step resolves the same
-    # entries; only the database and the uuid prefix differ.
     return {
         "dataset_versions": [
-            entry("nucc", "StagingNucc", "Nucc"),
-            entry("smd", "SpecialtyMetaData_staging", "SpecialtyMetaData"),
+            {
+                "source_name": "nucc",
+                "fetch": {"source_url": "https://example.com/nucc.csv"},
+                "file_format": "csv",
+                "staging_name": f"{db_name}.{prefix}StagingNucc",
+                "public_data_name": f"{db_name}.{prefix}Nucc",
+            },
+            {
+                "source_name": "smd",
+                "public_data_name": f"{db_name}.{prefix}SpecialtyMetaData",
+                "depends_on": ["nucc"],
+            },
         ],
     }
 
@@ -142,19 +145,19 @@ def fake_openai(monkeypatch):
 
 
 @pytest.fixture
-def specialty_staging(scratch_mongo):
-    """A real, disposable staging collection plus its dotted name."""
+def specialty_target(scratch_mongo):
+    """A real, disposable served SMD collection plus its dotted name."""
     db, collection = scratch_mongo
-    coll = collection("SpecialtyMetaData_staging_v_3")
+    coll = collection("SpecialtyMetaData_v_3")
     return coll, f"{db.name}.{coll.name}"
 
 
 @pytest.mark.unit
 def test_generate_specialty_embeddings_writes_vector_and_metadata(
-    fake_openai, specialty_staging,
+    fake_openai, specialty_target,
 ):
     from pipeline.run_lifecycle.embedding_engine import generate_specialty_embeddings, CANONICAL_DIM
-    coll, dotted = specialty_staging
+    coll, dotted = specialty_target
     coll.insert_many([
         {"Code": "207W00000X", "Display Name": "Ophthalmology"},
         {"Code": "246ZS0400X", "Display Name": "Surgical Technologist", "is_supplemented": True},
@@ -177,10 +180,10 @@ def test_generate_specialty_embeddings_writes_vector_and_metadata(
 
 @pytest.mark.unit
 def test_generate_specialty_embeddings_skips_already_embedded(
-    fake_openai, specialty_staging,
+    fake_openai, specialty_target,
 ):
     from pipeline.run_lifecycle.embedding_engine import generate_specialty_embeddings, CANONICAL_DIM
-    coll, dotted = specialty_staging
+    coll, dotted = specialty_target
     coll.insert_one({
         "Code": "207W00000X",
         "Display Name": "Ophthalmology",
@@ -199,10 +202,10 @@ def test_generate_specialty_embeddings_skips_already_embedded(
 
 @pytest.mark.unit
 def test_generate_specialty_embeddings_skips_rows_with_no_composable_text(
-    fake_openai, specialty_staging,
+    fake_openai, specialty_target,
 ):
     from pipeline.run_lifecycle.embedding_engine import generate_specialty_embeddings
-    coll, dotted = specialty_staging
+    coll, dotted = specialty_target
     coll.insert_one({"Code": "ZZZ0000000X"})  # no Display Name / etc.
     summary = generate_specialty_embeddings(
         {"specialty_collection": dotted},
@@ -267,10 +270,9 @@ class _FakeCtx:
 def clusters(monkeypatch, scratch_mongo):
     """A real cluster with every destination redirected to scratch names.
 
-    renameCollection is performed by the server, so what the swap does to
-    the collections is observed rather than simulated. The previous
-    simulation of it was written against a fake that does not implement
-    the command at all.
+    The SMD build now writes directly into the served collection on the
+    pipeline cluster — no staging collection, no rename. The build is
+    observed against the real server rather than simulated.
 
     The frontend handle is a connection to the actual frontend cluster,
     not a second handle on the pipeline one, so the assertion that
@@ -304,14 +306,16 @@ def clusters(monkeypatch, scratch_mongo):
     monkeypatch.setattr(pipeline_runtime, "get_frontend_mongo", lambda: frontend)
     monkeypatch.setattr(pipeline_runtime, "get_mongo", lambda *_: client)
     monkeypatch.setattr(pipeline_runtime, "load_pipeline_config", lambda **kw: cfg)
-    monkeypatch.setattr(pipeline_loaded_metadata, "_METADATA_DB", db.name)
+    monkeypatch.setattr(pipeline_loaded_metadata, "_METADATA_DB", db.name, raising=False)
     monkeypatch.setattr(pipeline_loaded_metadata, "_METADATA_COLL",
-                        collection("loaded_metadata").name)
+                        collection("loaded_metadata").name, raising=False)
 
     names = {
         "db": db.name,
         "prefix": prefix,
         "live": f"{prefix}SpecialtyMetaData_v_3",
+        # The refactor creates no SMD staging collection; this literal name
+        # is what a staging swap WOULD have produced, asserted absent.
         "staging": f"{prefix}SpecialtyMetaData_staging_v_3",
         "discrepancy_log": discrepancy_log.name,
         "live_dotted": f"{db.name}.{prefix}SpecialtyMetaData_v_3",
@@ -375,11 +379,11 @@ def test_publish_smd_and_embed_end_to_end(fake_openai, clusters, monkeypatch):
         {"run_id": "run-old", "Code": "STALE00000X", "Display Name": "Stale"},
     ])
 
-    # Pre-seed the LIVE SMD on the PIPELINE cluster (this is where SMD
-    # now lives — pipelines never migrate to frontend) with a completely
-    # different set of docs so we can prove the atomic swap DROPPED live
-    # and REPLACED it with the staging contents — never a merge, never
-    # a leftover.
+    # Pre-seed the SERVED SMD collection on the PIPELINE cluster (this is
+    # where SMD is built directly — no staging, no rename) with a
+    # completely different set of docs so we can prove the in-place rebuild
+    # CLEARED the collection and REPLACED it with this fire's contents —
+    # never a merge, never a leftover.
     live = db[names["live"]]
     live.insert_many([
         {"Code": "OLD1111111X", "Display Name": "Old row 1"},
@@ -395,14 +399,14 @@ def test_publish_smd_and_embed_end_to_end(fake_openai, clusters, monkeypatch):
     assert summary["embed_failed"] == 0
     assert summary["smd_collection"] == f"{names['db']}.{names['live']}"
 
-    # Post-swap: live collection holds the two staged rows, each embedded.
+    # Post-build: served collection holds the two source rows, each embedded.
     published = list(db[names["live"]].find({}))
     codes = sorted(r.get("Code") for r in published)
     assert codes == ["207W00000X", "246ZS0400X"]  # old rows gone, stale run gone
     for row in published:
         assert row["embedding_model"] == TEST_EMBEDDING_MODEL
         assert len(row["embedding"]) == CANONICAL_DIM
-    # Staging collection was renamed away — must no longer exist.
+    # No SMD staging collection is ever created — the build is in place.
     assert names["staging"] not in db.list_collection_names()
     # Pipeline-only fields stripped; run_id kept per operator rule 2026-08-02
     # so each SpecialtyMetaData row carries the run_id that loaded it, matching
@@ -424,8 +428,10 @@ def test_publish_smd_and_embed_aborts_fatal_when_embed_fails(
 ):
     """error_specialty_embedding_failed is graded fatal (LLD v54 §16): the
     first un-embedded SMD row is recorded to discrepancyLog and aborts the
-    run before the swap. The finding lands under artifact 'specialty_metadata'
-    keyed by the NUCC Code."""
+    run before mark_loaded. The finding lands under artifact
+    'specialty_metadata' keyed by the NUCC Code. Because the build is now in
+    place, the served collection exists but is left un-embedded and is NOT
+    marked loaded, so the next fire rebuilds it."""
     from pipeline.provider_base.staging_loader import staging_collection_name, staging_db_name
     from pipeline.provider_pipeline.steps.publish_smd_and_embed import execute
 
@@ -466,8 +472,9 @@ def test_publish_smd_and_embed_aborts_fatal_when_embed_fails(
         execute(ctx)
     assert excinfo.value.mode == "pipeline_fatal_finding"
 
-    # Abort fired BEFORE the swap: live SMD was never created on either cluster.
-    assert names["live"] not in db.list_collection_names()
+    # No SMD staging collection is ever created.
+    assert names["staging"] not in db.list_collection_names()
+    # The frontend cluster is untouched — pipelines never migrate.
     assert names["live"] not in frontend_db.list_collection_names()
     assert names["staging"] not in frontend_db.list_collection_names()
 

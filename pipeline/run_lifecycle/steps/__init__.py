@@ -51,7 +51,6 @@ _STEP_MODULE_PATHS: dict[str, str] = {
     "entity_second_branch": "pipeline.provider_enrichment.steps.entity_second_branch",
     # F-005 provider pipeline (build/publish)
     "publish_smd_and_embed": "pipeline.provider_pipeline.steps.publish_smd_and_embed",
-    "publish_provider": "pipeline.provider_pipeline.steps.publish_provider",
     "post_load_reconciliation": "pipeline.provider_pipeline.steps.post_load_reconciliation",
 }
 

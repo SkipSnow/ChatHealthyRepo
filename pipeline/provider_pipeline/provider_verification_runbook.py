@@ -11,8 +11,9 @@ PipelineConfig record rather than importing the pipeline registry.
 
 Steps:
   1. Resume the pipeline cluster (it is paused between runs).
-  2. Resolve the latest published Provider_v_N from pipeline.loaded_metadata and
-     its DB from PipelineConfig.dataset_versions[provider].public_data_name.
+  2. Resolve data_version from pipeline.loaded_metadata (newest loaded) and the
+     provider collection (db + Provider_v_N) from
+     PipelineConfig.dataset_versions[provider].public_data_name.
   3. Run four checks:
        - active.is_active is one of the four values, always present.
        - every eligible practice address is the -1 pending sentinel OR resolved.
@@ -125,13 +126,18 @@ def _resolve_provider_collection():
             mode="not_found", component="provider_verification",
             message="no operationally_fit provider collection in loaded_metadata")
     data_version = int(lm.get("data_version"))
-    coll_name = lm.get("publichealthdata_collection_name")
+    # publish_provider is gone, so no provider load-state doc is written; the
+    # newest loaded_metadata is another source's, but carries the same fire's
+    # data_version. Resolve the provider collection from config so verification
+    # never targets a different source's collection.
     cfg = fe["PipelineConfig"].find_one({"env": os.environ.get("ENV_PREFIX", "dev")}) or {}
     public_db = None
+    coll_base = None
     for dv in (cfg.get("dataset_versions") or []):
         if dv.get("source_name") == "provider":
-            public_db = (dv.get("public_data_name") or "").split(".", 1)[0]
+            public_db, _, coll_base = (dv.get("public_data_name") or "").partition(".")
             break
+    coll_name = f"{coll_base}_v_{data_version}" if coll_base else None
     if not (public_db and coll_name):
         raise ChatHealthyException(
             mode="config_error", component="provider_verification",

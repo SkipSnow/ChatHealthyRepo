@@ -198,19 +198,16 @@ def write_finding(
         )
     return severity
 
-# Every Provider write during the pipeline targets the STAGING collection
-# on the pipeline cluster (staging_db + staging_coll_base come from
-# dataset_versions[] in brain/machine_artifacts/content/pipeline_config.json,
-# resolved via PipelineDatasetRegistry). Operator directive 2026-08-02:
-# * Staging + loaded DB choices live in the registry, not in code.
-# * Consumers must never observe partially-enriched Provider records; the
-#   loaded collection stays at last-known-good until publish_provider does
-#   the atomic renameCollection swap from the staging collection into the
-#   public_data collection.
-# * Load-state metadata for every loaded collection lives on the frontend
-#   cluster (pipelineAdmin.pipeline.loaded_metadata).
-# The admin.command('renameCollection', ...) supports cross-DB rename, so
-# the atomic swap between the two DBs stays a single server-side op.
+# Every Provider write during the pipeline targets the served (public_data)
+# collection directly on the pipeline cluster (public_data_db +
+# public_data_coll_base come from dataset_versions[] in
+# brain/machine_artifacts/content/pipeline_config.json, resolved via
+# PipelineDatasetRegistry). There is no staging collection and no rename
+# swap: the pipeline builds PipelinePublicHealthData.Provider_v_N in place.
+# The scoped delete_many({business_address.state}) + insert in normalize is
+# the sole membership mutator, so a state-scoped fire replaces only its own
+# states and prior states accumulate. Moving data to the front-end serving
+# cluster is a separate data_release step, not part of this pipeline.
 REPORTS_CONTAINER_SUFFIX = "-pipeline-reports"
 
 STATE_US_SET = {
@@ -246,30 +243,18 @@ class PipelineRuntime:
     @property
     def provider_collection(self) -> str:
         # Registry owns the source->collection map. Provider writes go
-        # to the STAGING collection during the fire (operator directive
-        # 2026-08-02); publish_provider swaps staging into public_data
-        # via cross-DB renameCollection at the end.
+        # directly to the served (public_data) collection during the fire;
+        # there is no staging swap. normalize's scoped delete+insert is the
+        # sole membership mutator on this collection.
         entry = self.registry.by_source_name("provider")
-        coll = self.registry.staging_collection_name("provider")
-        return f"{entry.staging_db}.{coll}"
-
-    @property
-    def provider_staging_collection(self) -> str:
-        entry = self.registry.by_source_name("provider")
-        coll = self.registry.staging_collection_name("provider")
-        return f"{entry.staging_db}.{coll}"
+        coll = self.registry.public_data_collection_name("provider")
+        return f"{entry.public_data_db}.{coll}"
 
     @property
     def provider_public_data_collection(self) -> str:
         entry = self.registry.by_source_name("provider")
         coll = self.registry.public_data_collection_name("provider")
         return f"{entry.public_data_db}.{coll}"
-
-    @property
-    def smd_staging_collection(self) -> str:
-        entry = self.registry.by_source_name("smd")
-        coll = self.registry.staging_collection_name("smd")
-        return f"{entry.staging_db}.{coll}"
 
     @property
     def smd_public_data_collection(self) -> str:

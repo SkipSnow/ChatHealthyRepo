@@ -62,33 +62,27 @@ def _strip_bold(value: str) -> tuple[str, bool]:
 
 def _fmt_header_fields(manifest: dict) -> list[tuple[str, str]]:
     """Header field-value pairs, driven entirely by the manifest counts."""
+    records_non_certain = manifest.get("records_with_non_certain_information", "Unknown")
     records_with_warnings = manifest.get("records_with_non_fatal_warnings", "Unknown")
     records_with_errors = manifest.get("records_with_non_fatal_errors", "Unknown")
-    total_source_rows = manifest.get("total_source_rows")
-    if total_source_rows is None:
-        # A clean run says so rather than saying it does not know.
-        collected = manifest.get("records_100_percent_successfully_collected")
-        successful = ("all records, none flagged" if collected
-                      else str(manifest.get("rows_in_target", "Unknown")))
-    else:
-        touched = manifest.get("records_touched", 0)
-        successful = str(int(total_source_rows) - int(touched))
+    successful = manifest.get("records_successfully_collected", "Unknown")
     fatal_reason = manifest.get("fatal_reason") or ""
     fatal_present = bool(fatal_reason)
     rows_in_target = manifest.get("rows_in_target", "Unknown")
     total_rows = manifest.get("total_rows", "Unknown")
     target_collection = manifest.get("target_collection") or "target collection"
     return [
-        ("Pipeline",                            str(manifest.get("pipeline_name", "provider"))),
-        ("Run status",                          _BOLD + str(manifest.get("run_status", "Unknown")).upper()),
-        ("Run started",                         _fmt_local_time(manifest.get("run_started_utc"))),
-        ("Run ended",                           _fmt_local_time(manifest.get("run_ended_utc"))),
-        ("Records 100% successfully collected", successful),
-        ("Records with non-fatal warnings",     str(records_with_warnings)),
-        ("Records with non-fatal errors",       str(records_with_errors)),
-        ("Fatal error",                         fatal_reason if fatal_present else "None"),
-        (f"Rows in {target_collection}",        str(rows_in_target)),
-        ("Total rows",                          str(total_rows)),
+        ("Pipeline",                              str(manifest.get("pipeline_name", "provider"))),
+        ("Run status",                            _BOLD + str(manifest.get("run_status", "Unknown")).upper()),
+        ("Run started",                           _fmt_local_time(manifest.get("run_started_utc"))),
+        ("Run ended",                             _fmt_local_time(manifest.get("run_ended_utc"))),
+        ("Records successfully collected",        str(successful)),
+        ("Records with non certain Information",  str(records_non_certain)),
+        ("Records with non-fatal warnings",       str(records_with_warnings)),
+        ("Records with non-fatal errors",         str(records_with_errors)),
+        ("Fatal error",                           fatal_reason if fatal_present else "None"),
+        (f"Rows in {target_collection}",          str(rows_in_target)),
+        ("Total rows",                            str(total_rows)),
     ]
 
 

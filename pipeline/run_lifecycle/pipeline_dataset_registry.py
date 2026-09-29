@@ -37,8 +37,8 @@ _log = ChatHealthyLoggingService()
 @dataclass(frozen=True)
 class DatasetEntry:
     source_name: str
-    staging_db: str
-    staging_coll_base: str
+    staging_db: Optional[str]
+    staging_coll_base: Optional[str]
     public_data_db: str
     public_data_coll_base: str
     file_format: Optional[str] = None
@@ -99,9 +99,16 @@ def _coerce_entry(raw: dict) -> DatasetEntry:
                 f"source_name or it is not a string: {raw!r}"
             ),
         )
-    staging_db, staging_coll_base = _split_db_coll(
-        source_name, raw.get("staging_name"), "staging_name"
-    )
+    # staging_name is optional: a derived collection that is built directly
+    # in its public_data collection (no staging swap) omits it. Entries that
+    # DO stage in PublicStaging carry it and it is parsed as DB.coll.
+    staging_raw = raw.get("staging_name")
+    if staging_raw is None:
+        staging_db, staging_coll_base = None, None
+    else:
+        staging_db, staging_coll_base = _split_db_coll(
+            source_name, staging_raw, "staging_name"
+        )
     public_db, public_coll_base = _split_db_coll(
         source_name, raw.get("public_data_name"), "public_data_name"
     )
@@ -202,8 +209,12 @@ class PipelineDatasetRegistry:
             seen_names[e.source_name] = idx
 
         # Invariant 2: staging (db, coll_base) uniqueness across the array.
+        # Entries with no staging_name (built directly in public_data) are
+        # exempt -- they own no staging collection to collide on.
         seen_staging: dict[tuple[str, str], str] = {}
         for e in entries:
+            if e.staging_db is None:
+                continue
             key = (e.staging_db, e.staging_coll_base)
             if key in seen_staging:
                 self._fatal(ChatHealthyException(
@@ -370,6 +381,16 @@ class PipelineDatasetRegistry:
 
     def staging_collection_name(self, name: str) -> str:
         e = self.by_source_name(name)
+        if e.staging_coll_base is None:
+            self._fatal(ChatHealthyException(
+                mode="dataset_registry_no_staging_collection",
+                message=(
+                    f"pipeline_dataset_registry: source_name {name!r} has no "
+                    f"staging_name; it is built directly in its public_data "
+                    f"collection and has no staging collection name to resolve."
+                ),
+                source_name=name,
+            ))
         return f"{e.staging_coll_base}_v_{self._data_version}"
 
     def public_data_collection_name(self, name: str) -> str:
