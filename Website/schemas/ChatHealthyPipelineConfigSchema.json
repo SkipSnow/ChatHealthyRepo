@@ -256,7 +256,6 @@
           "title": "Class C - derived (pipeline-produced) collection",
           "required": [
             "source_name",
-            "staging_name",
             "public_data_name",
             "depends_on"
           ],
@@ -370,6 +369,7 @@
       "properties": {
         "severity": {
           "enum": [
+            "info",
             "warning",
             "error",
             "fatal"
