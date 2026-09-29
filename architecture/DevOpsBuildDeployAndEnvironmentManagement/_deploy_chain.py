@@ -3295,28 +3295,16 @@ def deploy_one(
         pad.ensure_vnet_private_endpoints(target, env, coll)
         return result
     if target_kind == "atlas":
-        # A target that only writes documents is not provisioning anything,
-        # so it is not gated on the control plane. verify_atlas reconciles
-        # projects, clusters and private endpoints through the Atlas admin
-        # API, which the pipeline cluster needs and the front-end cluster
-        # does not: its one package is a document written over a
-        # certificate-authenticated connection. Gating it there meant an
-        # admin credential that could not see the project stopped a write
-        # that never needed the admin API.
-        staged = [f for f in target.files
-                  if package_selection is None or f.package in package_selection]
-        # Writing documents is not provisioning, however the documents
-        # arrive. A target whose whole job is config_collections stages no
-        # file at all -- the manifest carries the content -- and reading
-        # that as "provisioning something" sent it to the Atlas admin API
-        # for a write that only ever needed a certificate.
+        # This target's packages -- config documents, config collections and
+        # declared indexes -- are installed over certificate-authenticated
+        # Mongo connections. The deploy does not reconcile the Atlas project,
+        # cluster, IP allowlist or private endpoints: the cluster's own access
+        # surface is IAM and network policy, a separate duty from deployment
+        # (segregation of duties), and none of this target's packages need the
+        # Atlas admin API.
+        result = None
         binding = next((e for e in target.environments
                         if e.env_binding == env), None)
-        governs_documents = bool(binding and binding.config_collections)
-        document_only = (bool(staged) and all(
-            f.handler_type == "json" for f in staged)) or (
-            not staged and governs_documents)
-        result = None if document_only else pad.verify_atlas(target, env)
         apply_config_documents(build_dir, target, env, coll, package_selection)
         reconcile_config_collections(target, env, coll)
         # mongo_indexes packages: a code-driven action that ensures the
