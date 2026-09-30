@@ -228,7 +228,11 @@ def _apply_flags_to_doc(
     Supplemented taxonomies also receive their NUCC-equivalent
     description fields from the F-105 supplement entry.
 
-    When the primary taxonomy code is absent from the F-105 catalog:
+    When the provider carries no primary taxonomy code at all, returns None
+    without recording anything: there is nothing to classify, so the clinical
+    flags are left absent (EPIC-010-F-004-S-009).
+
+    When the primary taxonomy code is present but absent from the F-105 catalog:
       - If `discrepancy_sink` was provided, invoke it with a
         {reason, code, npi, message} entry and return None. The caller
         skips flag stamping for this record and continues; upstream
@@ -240,6 +244,15 @@ def _apply_flags_to_doc(
     # (absent = normal NUCC-backed; ~99.999% of records). See
     # NUCC_SpecialtyCodeDataDiscrepancyManagement.docx.
     _stamp_taxonomy_status(doc, catalog)
+
+    if not (doc.get("primary_taxonomy_code") or "").strip():
+        # No primary taxonomy -> nothing to classify; clinical flags are left
+        # absent (EPIC-010-F-004-S-009: flags are left absent for any taxonomy
+        # the vocabulary does not classify). A deactivated/blanked NPPES row
+        # (NPI + deactivation date only) reaches here, as does any provider
+        # NPPES designated no primary taxonomy for. Not a finding, warning, or
+        # error: the caller skips flag stamping and continues.
+        return None
 
     code = _primary_taxonomy_code(doc)
     if code not in catalog:
@@ -367,6 +380,7 @@ def apply_provider_flags(
     modified = 0
     matched = 0
     unresolved = 0
+    no_primary_taxonomy = 0
 
     projection = {
         "npi": 1,
@@ -390,8 +404,14 @@ def apply_provider_flags(
             discrepancy_sink=_sink,
         )
         if flags is None:
-            # Unresolved code -- sink already recorded it; skip stamping.
-            unresolved += 1
+            if (doc.get("primary_taxonomy_code") or "").strip():
+                # Had a primary code not present in the catalog -- the sink
+                # already recorded the unresolved_taxonomy_code finding.
+                unresolved += 1
+            else:
+                # No primary taxonomy -- nothing to classify; flags left
+                # absent. Not a finding.
+                no_primary_taxonomy += 1
             continue
         # Clear any stale is_disqualified from prior engine versions --
         # no source-file field currently drives it, so we do not stamp it.
@@ -409,13 +429,14 @@ def apply_provider_flags(
         modified += (result.modified_count or 0)
 
     _log.LogPipeline("INFO", "provider_flags[%s]: DONE matched=%s modified=%s "
-              "unresolved=%s in %.0fs (scan %.0fs)",
+              "unresolved=%s no_primary_taxonomy=%s in %.0fs (scan %.0fs)",
               _state_label, f"{matched:,}", f"{modified:,}",
-              f"{unresolved:,}", _time.time() - _t0,
+              f"{unresolved:,}", f"{no_primary_taxonomy:,}", _time.time() - _t0,
               _time.time() - _scan_started)
     return {
         "matched": matched,
         "modified": modified,
         "unresolved_taxonomy_count": unresolved,
+        "no_primary_taxonomy_count": no_primary_taxonomy,
         "catalog_size": len(catalog),
     }

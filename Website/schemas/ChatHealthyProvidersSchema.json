@@ -32,8 +32,7 @@
       "type": "object",
       "required": [
         "npi",
-        "loaded_at",
-        "entity_type_code"
+        "loaded_at"
       ],
       "properties": {
         "_id": {
@@ -511,6 +510,35 @@
       },
       "allOf": [
         {
+          "description": "Active-standing conditional. A currently-active NPI (active.is_active = Default_true or history_true) MUST carry entity_type_code and primary_taxonomy_code -- the fields the application needs to place and classify a live provider. A deactivated NPI (original_false or history_false) may legitimately omit them: NPPES blanks a deactivated record to just its NPI and deactivation date, carrying no entity_type_code, taxonomy or address. When active is absent or is_active is neither active value, neither field is compelled here.",
+          "if": {
+            "properties": {
+              "active": {
+                "properties": {
+                  "is_active": {
+                    "enum": [
+                      "Default_true",
+                      "history_true"
+                    ]
+                  }
+                },
+                "required": [
+                  "is_active"
+                ]
+              }
+            },
+            "required": [
+              "active"
+            ]
+          },
+          "then": {
+            "required": [
+              "entity_type_code",
+              "primary_taxonomy_code"
+            ]
+          }
+        },
+        {
           "description": "Type 1 individual practitioners: name + sex + sole-proprietor flag required. Organization and authorized-official fields are forbidden -- they were absent from every Type 1 record sampled.",
           "if": {
             "properties": {
@@ -789,9 +817,9 @@
           "type": "string"
         },
         "state": {
-          "description": "Two-letter US state or territory abbreviation.",
+          "description": "Two-letter US state or territory abbreviation, or the sentinel '00' the pipeline stamps on any record with no mailing state.",
           "type": "string",
-          "pattern": "^[A-Z]{2}$"
+          "pattern": "^([A-Z]{2}|00)$"
         },
         "state_label": {
           "description": "Full state name for the two-letter state code (LLD v39 sec. 7.1).",
