@@ -28,7 +28,7 @@ def run_step(ctx) -> dict:
     config.setdefault("pipeline_name", ctx.manifest.pipeline_name)
     config.setdefault("provider_collection", ctx.provider_collection)
 
-    partition = getattr(ctx, "partition", None) or {}
+    partition = ctx.config.get("partition") or {}
     config.setdefault("entity_kind_filter", partition.get("entity_kind"))
     config.setdefault("partition_state", partition.get("business_address_state"))
 
