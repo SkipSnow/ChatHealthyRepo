@@ -141,7 +141,7 @@ def execute(ctx) -> dict:
         }))
     supplements_inserted = 0
     if supplement_ops:
-        res = coll.bulk_write(supplement_ops, ordered=False)
+        res = coll.bulk_write(supplement_ops, ordered=False, idempotent=False)
         supplements_inserted = int(res.inserted_count or 0)
 
     # v42 §5.2.8a: SMD publish + embedding moved to publish_smd_and_embed.

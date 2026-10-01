@@ -99,13 +99,19 @@ def test_counts_only_the_requested_runs_discrepancies(report_env):
 
 
 @pytest.mark.unit
-def test_finding_class_reaches_the_email_body(report_env):
+def test_business_finding_renders_but_fatal_renders_operationally(report_env):
     from chathealthy_lib.discrepancy_report import emit_discrepancy_report
 
     client, discrepancy_log, sent = report_env
-    discrepancy_log.insert_one(
-        _aggregate("R1", "registry_dependency_cycle", severity="fatal", count=1)
-    )
+    discrepancy_log.insert_many([
+        # A non-fatal business per-record finding: this renders in the findings
+        # summary and must name its class in the body.
+        _aggregate("R1", "county_unresolvable", severity="warning", count=1, keys=["1"]),
+        # A fatal: it is NOT a per-record finding row. It renders only in the
+        # operational abnormal-end header (Run status FAILED), never among the
+        # findings.
+        _aggregate("R1", "registry_dependency_cycle", severity="fatal", count=1),
+    ])
 
     emit_discrepancy_report(
         pipeline_mongo=client,
@@ -116,8 +122,14 @@ def test_finding_class_reaches_the_email_body(report_env):
     )
     assert sent, "a run with a fatal must deliver the report"
     for _addr, _subject, body, _attachments in sent:
-        assert "registry_dependency_cycle" in body, (
-            "the report body must name the finding class from the aggregate"
+        assert "county_unresolvable" in body, (
+            "the report body must name each business per-record finding class"
+        )
+        assert "registry_dependency_cycle" not in body, (
+            "a fatal must not appear as a finding-class row in the body"
+        )
+        assert "FAILED" in body, (
+            "the abend renders in the operational abnormal-end header"
         )
 
 

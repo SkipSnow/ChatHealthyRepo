@@ -142,11 +142,11 @@ def execute(ctx) -> dict:
         pub["run_id"] = rt.run_id
         batch.append(pub)
         if len(batch) >= 500:
-            smd_loaded.insert_many(batch, ordered=False)
+            smd_loaded.insert_many(batch, ordered=False, idempotent=False)
             copied += len(batch)
             batch = []
     if batch:
-        smd_loaded.insert_many(batch, ordered=False)
+        smd_loaded.insert_many(batch, ordered=False, idempotent=False)
         copied += len(batch)
 
     # Embed every row on the pipeline cluster. generate_specialty_embeddings

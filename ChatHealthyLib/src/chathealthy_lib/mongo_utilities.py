@@ -13,6 +13,7 @@ and enforced at pre-commit via Rule-004.
 from __future__ import annotations
 
 import os
+import random
 import tempfile
 import time
 from typing import Any
@@ -118,6 +119,90 @@ def _exc_detail(exc: BaseException) -> str:
     return " ".join(parts)
 
 
+# The server-side retryable-write set: replica-set state changes, stepdowns,
+# shutdowns and transient network/timeouts. Deterministic failures
+# (DuplicateKey 11000, DocumentValidationFailure 121, ...) are absent by
+# design -- re-issuing them only fails again.
+_RETRYABLE_WRITE_CODES = frozenset({
+    11602,  # InterruptedDueToReplStateChange (primary election)
+    10107,  # NotWritablePrimary
+    13435,  # NotPrimaryNoSecondaryOk
+    13436,  # NotPrimaryOrSecondary
+    189,    # PrimarySteppedDown
+    91,     # ShutdownInProgress
+    11600,  # InterruptedAtShutdown
+    7,      # HostNotFound
+    6,      # HostUnreachable
+    89,     # NetworkTimeout
+    9001,   # SocketException
+    262,    # ExceededTimeLimit
+    134,    # ReadConcernMajorityNotAvailableYet
+})
+_RETRYABLE_WRITE_LABEL = "RetryableWriteError"
+
+# Application-level retry policy. This sits ON TOP of the driver's own single
+# retryWrites attempt: the driver rides out a fast transient, this rides out a
+# sustained primary election. 1 initial attempt + 4 app retries.
+_WRITE_MAX_ATTEMPTS = 5
+_WRITE_BACKOFF_BASE_S = 1.0
+_WRITE_BACKOFF_CAP_S = 30.0
+_WRITE_DEADLINE_S = 120.0
+
+
+def is_retryable_write_error(exc: BaseException) -> bool:
+    """True when a write that failed with `exc` is safe to re-issue AS FAR AS
+    the FAILURE is concerned -- a transient replica-set/network condition, not
+    a deterministic rejection.
+
+    Pure predicate: no I/O, no sleep, no regex. Inspects the connection-layer
+    type, the server-supplied RetryableWriteError label, the top-level code,
+    and -- for bulk results -- the per-op writeConcernErrors / writeErrors the
+    server returns inside `details`.
+    """
+    if isinstance(exc, (ConnectionFailure, ServerSelectionTimeoutError)):
+        return True
+    has_label = getattr(exc, "has_error_label", None)
+    if callable(has_label):
+        try:
+            if has_label(_RETRYABLE_WRITE_LABEL):
+                return True
+        except Exception:
+            pass
+    if getattr(exc, "code", None) in _RETRYABLE_WRITE_CODES:
+        return True
+    details = getattr(exc, "details", None)
+    if isinstance(details, dict):
+        single_wce = details.get("writeConcernError")
+        wce_entries = details.get("writeConcernErrors") or (
+            [single_wce] if single_wce else [])
+        for entry in wce_entries:
+            if not isinstance(entry, dict):
+                continue
+            if _RETRYABLE_WRITE_LABEL in (entry.get("errorLabels") or []):
+                return True
+            if entry.get("code") in _RETRYABLE_WRITE_CODES:
+                return True
+        for entry in (details.get("writeErrors") or []):
+            if isinstance(entry, dict) and entry.get("code") in _RETRYABLE_WRITE_CODES:
+                return True
+        if _RETRYABLE_WRITE_LABEL in (details.get("errorLabels") or []):
+            return True
+    return False
+
+
+def should_retry_write(exc: BaseException, *, idempotent: bool) -> bool:
+    """A write may be re-issued only when it is both retryable and idempotent.
+
+    Application-level retry re-sends the operation with a NEW transaction id,
+    so the server does not deduplicate it the way it deduplicates the driver's
+    own retryWrites attempt. Re-sending is therefore safe only for an operation
+    whose re-application is a no-op (updates/upserts keyed by a stable key with
+    $set/$unset, replace_one with a fixed filter) -- never a bare insert or an
+    accumulating $push/$inc/$addToSet.
+    """
+    return bool(idempotent) and is_retryable_write_error(exc)
+
+
 def _classify_mongo_exception(exc: BaseException, elapsed_s: float) -> str:
     """Map a pymongo error to a ChatHealthy mode. Empty string for non-pymongo
     exceptions - caller re-raises raw.
@@ -130,6 +215,13 @@ def _classify_mongo_exception(exc: BaseException, elapsed_s: float) -> str:
         if elapsed_s >= (TIMEOUT_MS / 1000.0) - 2.0:
             return "mongo_query_timeout"
         return "mongo_network_failure"
+    if is_retryable_write_error(exc):
+        # A retryable write that reached conversion did so because it was not
+        # retried (non-idempotent op) or its retries were exhausted: name the
+        # interruption rather than fold it into mongo_server_rejected. A
+        # deterministic OperationFailure (DuplicateKey, validation) is not
+        # retryable and falls through to its established mode below.
+        return "mongo_write_interrupted"
     if isinstance(exc, DocumentTooLarge):
         return "mongo_document_too_large"
     if isinstance(exc, OperationFailure):
@@ -159,6 +251,56 @@ def _convert_mongo_exception(exc: BaseException, elapsed_s: float,
         db=db,
         coll=coll,
     ) from exc
+
+
+def _retrying(fn, *, idempotent: bool, op: str, db: str, coll: str):
+    """Run `fn` and, when it fails with a retryable write error AND the caller
+    declared the operation idempotent, re-run it with capped exponential
+    backoff + full jitter, bounded by an overall wall-clock deadline.
+
+    A non-retryable failure, or any failure on a non-idempotent op, surfaces at
+    once through the same _convert_mongo_exception path reads use (the driver's
+    own single retryWrites attempt has already happened underneath `fn`). When
+    the application retries are exhausted the failure surfaces as
+    mongo_write_interrupted carrying the attempt count and elapsed time.
+    """
+    start = time.monotonic()
+    attempt = 0
+    while True:
+        attempt += 1
+        try:
+            return fn()
+        except Exception as exc:
+            elapsed = time.monotonic() - start
+            if not should_retry_write(exc, idempotent=idempotent):
+                _convert_mongo_exception(exc, elapsed, op, db, coll)
+                raise
+            if attempt >= _WRITE_MAX_ATTEMPTS or elapsed >= _WRITE_DEADLINE_S:
+                raise ChatHealthyException(
+                    mode="mongo_write_interrupted",
+                    message=(f"mongo.{op} {db}.{coll} retryable write did not "
+                             f"complete after {attempt} attempt(s): "
+                             f"{type(exc).__name__}: {exc}"),
+                    component="ChatHealthyMongoUtilities",
+                    attempts=attempt,
+                    elapsed_s=round(elapsed, 3),
+                    op=op,
+                    db=db,
+                    coll=coll,
+                    exception=exc,
+                    mongo_detail=_exc_detail(exc),
+                ) from exc
+            backoff = min(_WRITE_BACKOFF_CAP_S,
+                          _WRITE_BACKOFF_BASE_S * (2 ** (attempt - 1)))
+            sleep_s = random.uniform(0.0, backoff)
+            log.info(
+                "mongo.%s RETRY db=%s coll=%s attempt=%d/%d code=%s "
+                "backoff_s=%.3f elapsed_s=%.3f exc=%s",
+                op, db, coll, attempt, _WRITE_MAX_ATTEMPTS,
+                getattr(exc, "code", None), sleep_s, elapsed,
+                type(exc).__name__,
+            )
+            time.sleep(sleep_s)
 
 
 class TimedCursor:
@@ -292,6 +434,63 @@ class TimedCollection:
             _convert_mongo_exception(exc, elapsed, "count_documents",
                                      self._db_name, self._coll_name)
             raise
+
+    # --- Writes. Explicit so they stop falling through __getattr__ to the raw
+    # pymongo collection: every write is classified like the reads above and,
+    # unless the caller declares it NON-idempotent, re-issued on a retryable
+    # failure (primary election, stepdown, transient network) per _retrying.
+    # The `idempotent` default is True: the pipeline's writes are overwhelmingly
+    # keyed $set/$unset/upsert, which re-apply harmlessly. A caller whose write
+    # is a bare insert or an accumulating $push/$inc/$addToSet MUST pass
+    # idempotent=False so it is never silently re-sent; delete_* are idempotent
+    # by nature.
+    def bulk_write(self, requests, *args, idempotent: bool = True, **kwargs):
+        return _retrying(
+            lambda: self._coll.bulk_write(requests, *args, **kwargs),
+            idempotent=idempotent, op="bulk_write",
+            db=self._db_name, coll=self._coll_name)
+
+    def insert_one(self, document, *args, idempotent: bool = True, **kwargs):
+        return _retrying(
+            lambda: self._coll.insert_one(document, *args, **kwargs),
+            idempotent=idempotent, op="insert_one",
+            db=self._db_name, coll=self._coll_name)
+
+    def insert_many(self, documents, *args, idempotent: bool = True, **kwargs):
+        return _retrying(
+            lambda: self._coll.insert_many(documents, *args, **kwargs),
+            idempotent=idempotent, op="insert_many",
+            db=self._db_name, coll=self._coll_name)
+
+    def update_one(self, filter, update, *args, idempotent: bool = True, **kwargs):
+        return _retrying(
+            lambda: self._coll.update_one(filter, update, *args, **kwargs),
+            idempotent=idempotent, op="update_one",
+            db=self._db_name, coll=self._coll_name)
+
+    def update_many(self, filter, update, *args, idempotent: bool = True, **kwargs):
+        return _retrying(
+            lambda: self._coll.update_many(filter, update, *args, **kwargs),
+            idempotent=idempotent, op="update_many",
+            db=self._db_name, coll=self._coll_name)
+
+    def replace_one(self, filter, replacement, *args, idempotent: bool = True, **kwargs):
+        return _retrying(
+            lambda: self._coll.replace_one(filter, replacement, *args, **kwargs),
+            idempotent=idempotent, op="replace_one",
+            db=self._db_name, coll=self._coll_name)
+
+    def delete_one(self, filter, *args, idempotent: bool = True, **kwargs):
+        return _retrying(
+            lambda: self._coll.delete_one(filter, *args, **kwargs),
+            idempotent=idempotent, op="delete_one",
+            db=self._db_name, coll=self._coll_name)
+
+    def delete_many(self, filter, *args, idempotent: bool = True, **kwargs):
+        return _retrying(
+            lambda: self._coll.delete_many(filter, *args, **kwargs),
+            idempotent=idempotent, op="delete_many",
+            db=self._db_name, coll=self._coll_name)
 
 
 # THE naming convention for a versioned collection. One form, no variants:

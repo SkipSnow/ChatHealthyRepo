@@ -198,12 +198,12 @@ class MigratedCollection:
         for document in source.find({}, batch_size=_BATCH):
             batch.append(document)
             if len(batch) >= _BATCH:
-                destination.insert_many(batch, ordered=False)
+                destination.insert_many(batch, ordered=False, idempotent=False)
                 written += len(batch)
                 batch = []
                 yield written
         if batch:
-            destination.insert_many(batch, ordered=False)
+            destination.insert_many(batch, ordered=False, idempotent=False)
             written += len(batch)
         yield written
 

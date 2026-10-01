@@ -165,6 +165,9 @@ def write_finding(
             recorded_at=recorded_at,
         ),
         ordered=False,
+        # $push/$inc/$addToSet finding writer: re-applying would double-append
+        # the finding and double-increment the aggregate count.
+        idempotent=False,
     )
     fatal_at_count = ((dr_cfg.get("finding_types") or {})
                       .get(finding_class, {}).get("fatal_at_count"))

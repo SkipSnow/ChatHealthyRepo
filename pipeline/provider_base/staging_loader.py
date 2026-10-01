@@ -510,11 +510,11 @@ def _load_one_source(
             row_index += 1
             ops.append(InsertOne(doc))
             if len(ops) >= batch_size:
-                res = coll.bulk_write(ops, ordered=False)
+                res = coll.bulk_write(ops, ordered=False, idempotent=False)
                 inserted += (res.inserted_count or 0)
                 ops = []
         if ops:
-            res = coll.bulk_write(ops, ordered=False)
+            res = coll.bulk_write(ops, ordered=False, idempotent=False)
             inserted += (res.inserted_count or 0)
     finally:
         try:

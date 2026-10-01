@@ -24,6 +24,7 @@ from __future__ import annotations
 from datetime import datetime, timezone
 from typing import Optional
 
+from chathealthy_lib.discrepancy_report import is_business_finding_mode
 from chathealthy_lib.exceptions import ChatHealthyException
 from chathealthy_lib.logging_service import ChatHealthyLoggingService
 from chathealthy_lib.mongo_utilities import ChatHealthyMongoUtilities
@@ -72,6 +73,12 @@ def record_fatal_discrepancy(
     Written as a type_aggregate under class fatal_<mode>, artifact 'run', so
     the discrepancy report renders it as the run's single fatal.
     """
+    # Only a true per-record business finding belongs in discrepancyLog. Every
+    # other mode is operational/infra -- it surfaces through the operational
+    # channel (run_status=failed + fatal_reason + the abnormal-end alert), never
+    # as a finding here.
+    if not is_business_finding_mode(exc.mode):
+        return
     # A domain-class fatal is already recorded in discrepancyLog by
     # write_finding; recording a second job-level marker for the same event
     # would give the run two fatals. Skip it so a run records exactly one.

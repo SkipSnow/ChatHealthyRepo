@@ -146,13 +146,13 @@ def per_state_normalize(ctx, state: str) -> dict[str, Any]:
             ops.append(InsertOne(doc) if not ctx.args.incremental
                        else ReplaceOne({"npi": npi}, doc, upsert=True))
             if len(ops) >= batch_size:
-                result = rt.providers_coll.bulk_write(ops, ordered=False)
+                result = rt.providers_coll.bulk_write(ops, ordered=False, idempotent=False)
                 inserted += (result.inserted_count + result.upserted_count
                              + result.modified_count)
                 ops = []
 
         if ops:
-            result = rt.providers_coll.bulk_write(ops, ordered=False)
+            result = rt.providers_coll.bulk_write(ops, ordered=False, idempotent=False)
             inserted += (result.inserted_count + result.upserted_count
                          + result.modified_count)
 

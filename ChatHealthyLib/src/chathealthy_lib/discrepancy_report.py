@@ -49,6 +49,28 @@ _SEVERITY_RANK = {"fatal": 0, "error": 1, "warning": 2, "info": 3}
 _log = ChatHealthyLoggingService()
 
 
+# The single business per-record finding mode. This is the ONE source of truth
+# for the business/infra boundary on discrepancyLog: the ONLY exception mode a
+# fatal recorder may persist to discrepancyLog, or the report may render as a
+# finding row. It is the per-record finding escalation raised by
+# pipeline_runtime.write_finding (artifact "provider", a declared finding class
+# graded fatal). Every other mode -- mongo_*, worker_log_db_fatal,
+# dataset_registry_*, job_fatal, a bare driver error, an unknown/fatal_unknown --
+# is operational/infra and is reported through the operational channel only
+# (run_status=failed + fatal_reason + the abnormal-end alert), never as a
+# discrepancyLog finding.
+BUSINESS_FINDING_MODES = frozenset({"pipeline_fatal_finding"})
+
+
+def is_business_finding_mode(mode: str) -> bool:
+    """True only for a true per-record business finding mode.
+
+    Pure and side-effect free: the single predicate both the pipeline fatal
+    recorder and this module gate their discrepancyLog writes on.
+    """
+    return mode in BUSINESS_FINDING_MODES
+
+
 class FatalErrorReason(str, Enum):
     """Fatal error classifications."""
     MONGO_UNREACHABLE = "mongo_unreachable"
@@ -349,6 +371,12 @@ class DiscrepancyReport:
         """
         if self.mongo_down or self.mongo_connection is None:
             return
+        # Only a true per-record business finding belongs in discrepancyLog. An
+        # infra/operational fatal is reported through the operational channel
+        # (run_status=failed + fatal_reason + alert), never as a finding here.
+        exc = self.fatal_exception
+        if not is_business_finding_mode(getattr(exc, "mode", "") or ""):
+            return
         # The domain fatal is already in the log; do not add a second marker.
         if self._held_fatal_already_recorded():
             return
@@ -437,42 +465,17 @@ class DiscrepancyReport:
             elif severity == "info":
                 info_total += count if isinstance(count, int) else 0
 
-        # Exactly one fatal per run (§7.5). Collapse every fatal aggregate --
-        # the domain-class fatal and any job-level marker for the same event --
-        # into a single reported fatal, preferring the domain-class one. A
-        # held fatal (DB down, nothing written) still heads the report.
-        fatal_entry = None
-        if fatal_aggs:
-            domain = [a for a in fatal_aggs
-                      if a.get("artifact") != "run"
-                      and not str(a.get("class", "")).startswith("fatal_")]
-            chosen = domain[0] if domain else fatal_aggs[0]
-            keys = list(chosen.get("keys") or [])
-            count = chosen.get("count", 0)
-            fatal_entry = {
-                "class": chosen.get("class", "?"), "severity": "fatal",
-                "count": count, "keys": keys[:cap], "total": count,
-                "overflow": max(0, len(keys) - cap),
-            }
-        elif self.fatal_error or self.fatal_exception:
-            fatal_entry = {
-                "class": self._fatal_class(), "severity": "fatal",
-                "count": 1, "keys": [], "total": 1, "overflow": 0,
-            }
-        fatal_total = 1 if fatal_entry else 0
+        # The single fatal that ends a run -- whether a business finding graded
+        # fatal or an infra/operational abend -- is NOT a per-record finding and
+        # is never listed among them. It renders only in the operational
+        # abnormal-end header (run_status=failed + fatal_reason + subject) that
+        # _write_email builds. The findings summary and appendix carry ONLY the
+        # non-fatal per-record business findings read from discrepancyLog.
+        fatal_total = 1 if (
+            fatal_aggs or self.fatal_error or self.fatal_exception) else 0
 
-        summary: list[dict] = []
-        appendix: list[dict] = []
-        if fatal_entry:
-            summary.append({"class": fatal_entry["class"], "severity": "fatal",
-                            "count": fatal_entry["count"]})
-            appendix.append({
-                "class": fatal_entry["class"], "severity": "fatal",
-                "keys": fatal_entry["keys"], "total": fatal_entry["total"],
-                "overflow": fatal_entry["overflow"],
-            })
-        summary.extend(nonfatal_summary)
-        appendix.extend(nonfatal_appendix)
+        summary: list[dict] = list(nonfatal_summary)
+        appendix: list[dict] = list(nonfatal_appendix)
 
         # A count that could not be taken is stated, never rendered as zero.
         if uncollectable:
@@ -739,50 +742,6 @@ def fatal_error(
                extra={"fatal_error": True})
     report._record_fatal_in_mongo()
     return report._write_email()
-
-
-def check_threshold_and_trigger_fatal_if_needed(
-    report: DiscrepancyReport,
-    finding_class: str,
-) -> bool:
-    """Per-type escalation check (§7.5): does this class now abort the run?
-
-    Severity is authoritative in finding_types. A class graded fatal, or one
-    whose running count in discrepancyLog has reached its fatal_at_count,
-    escalates to the run's single fatal and delivers the report.
-    """
-    log = ChatHealthyLoggingService()
-    try:
-        finding_types = (report.config or {}).get("discrepancy_report", {}).get(
-            "finding_types") or {}
-        entry = finding_types.get(finding_class)
-        if not entry:
-            return False
-        severity = (entry.get("severity") or "").lower()
-        fatal_at_count = entry.get("fatal_at_count")
-        if severity == "fatal":
-            return fatal_error(
-                report, DiscrepancyDetail.FATAL,
-                f"finding class {finding_class!r} is graded fatal")
-        if fatal_at_count is None or report.mongo_connection is None:
-            return False
-        aggregate = report.mongo_connection[PIPELINE_ADMIN_DB][
-            DISCREPANCY_LOG_COLLECTION].find_one(
-            {"run_id": report.run_id, "kind": "type_aggregate",
-             "class": finding_class}, {"count": 1})
-        count = (aggregate or {}).get("count", 0)
-        if count >= fatal_at_count:
-            return fatal_error(
-                report, DiscrepancyDetail.FATAL,
-                f"finding class {finding_class!r} reached its fatal_at_count "
-                f"({count} >= {fatal_at_count})")
-        return False
-    except ChatHealthyException as exc:
-        log.error("threshold check failed: %s", exc, exc=exc)
-        return False
-    except Exception as exc:
-        log.error("threshold check failed: %s", exc)
-        return False
 
 
 def emit_discrepancy_report(
