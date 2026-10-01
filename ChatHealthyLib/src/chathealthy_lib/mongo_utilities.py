@@ -273,7 +273,6 @@ def _retrying(fn, *, idempotent: bool, op: str, db: str, coll: str):
         except Exception as exc:
             elapsed = time.monotonic() - start
             if not should_retry_write(exc, idempotent=idempotent):
-                _convert_mongo_exception(exc, elapsed, op, db, coll)
                 raise
             if attempt >= _WRITE_MAX_ATTEMPTS or elapsed >= _WRITE_DEADLINE_S:
                 raise ChatHealthyException(
