@@ -3,10 +3,7 @@
 """Per-step status of a pipeline run.
 
 The step list comes from the orchestrator that owns it, so a step added,
-renamed or merged shows up here without anything being edited. An earlier
-copy of this tool carried its own list, and when type1/type2 merged into
-entity_first_branch it reported four steps that no longer exist as "not
-started" and never showed the two that ran.
+renamed or merged shows up here without anything being edited.
 
 Usage:
     python pipeline/ops/pipeline_run_status.py [--pipeline provider]

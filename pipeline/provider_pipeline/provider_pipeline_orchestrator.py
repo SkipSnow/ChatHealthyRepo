@@ -135,16 +135,8 @@ class ProviderPipelineOrchestrator(BasePipelineOrchestrator):
             partition_key="business_address_state",
         ),
         StepSpec(
-            # Type 2 only: the first branch has no Type 1 work.
-            name="entity_first_branch",
-            prerequisites=["apply_other_identifier_classifications"],
-            parallelism="process_pool",
-            aca_job_name="prov-entity-first-branch",
-            partition_key="business_address_state",
-        ),
-        StepSpec(
             name="license_address_repair",
-            prerequisites=["entity_first_branch"],
+            prerequisites=["apply_other_identifier_classifications"],
             parallelism="process_pool",
             aca_job_name="prov-license-address-repair",
             partition_key="business_address_state",

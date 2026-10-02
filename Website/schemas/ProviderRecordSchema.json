@@ -847,8 +847,6 @@
               "identity_incomplete",
               "sex_absent",
               "org_name_absent",
-              "authorized_official_incomplete",
-              "parent_organization_incomplete",
               "state_missing_no_license",
               "state_missing_ambiguous_license",
               "zip_state_mismatch",

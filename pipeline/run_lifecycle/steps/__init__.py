@@ -44,7 +44,6 @@ _STEP_MODULE_PATHS: dict[str, str] = {
     "harvest_other_identifier_phrases": "pipeline.provider_enrichment.steps.harvest_other_identifier_phrases",
     "classify_other_identifier_phrases": "pipeline.provider_enrichment.steps.classify_other_identifier_phrases",
     "apply_other_identifier_classifications": "pipeline.provider_enrichment.steps.apply_other_identifier_classifications",
-    "entity_first_branch": "pipeline.provider_enrichment.steps.entity_first_branch",
     "license_address_repair": "pipeline.provider_enrichment.steps.license_address_repair",
     "county_enrichment_cascade": "pipeline.provider_enrichment.steps.county_enrichment_cascade",
     "urban_flag": "pipeline.provider_enrichment.steps.urban_flag",

@@ -190,16 +190,6 @@
             "fatal_at_count": null,
             "max": null
           },
-          "authorized_official_incomplete": {
-            "severity": "info",
-            "fatal_at_count": null,
-            "max": null
-          },
-          "parent_organization_incomplete": {
-            "severity": "info",
-            "fatal_at_count": null,
-            "max": null
-          },
           "state_missing_no_license": {
             "severity": "warning",
             "fatal_at_count": null,
@@ -410,16 +400,6 @@
             "fatal_at_count": null,
             "max": null
           },
-          "authorized_official_incomplete": {
-            "severity": "info",
-            "fatal_at_count": null,
-            "max": null
-          },
-          "parent_organization_incomplete": {
-            "severity": "info",
-            "fatal_at_count": null,
-            "max": null
-          },
           "state_missing_no_license": {
             "severity": "warning",
             "fatal_at_count": null,
@@ -627,16 +607,6 @@
           },
           "county_unresolvable": {
             "severity": "warning",
-            "fatal_at_count": null,
-            "max": null
-          },
-          "authorized_official_incomplete": {
-            "severity": "info",
-            "fatal_at_count": null,
-            "max": null
-          },
-          "parent_organization_incomplete": {
-            "severity": "info",
             "fatal_at_count": null,
             "max": null
           },

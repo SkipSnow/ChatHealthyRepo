@@ -17184,25 +17184,6 @@
                           "approval": "approved"
                         },
                         {
-                          "req_id": "EPIC-010-F-005-S-003-REQ-B-004",
-                          "orphan": false,
-                          "name": "Type-2 first-branch finding (authorized_official / parent_organization incomplete)",
-                          "requirement": "The Type-2 (institutional) first-branch step records a per-record finding with reason=\"authorized_official_incomplete\" when authorized_official is None and reason=\"parent_organization_incomplete\" when parent_organization is None, step=\"type2_first_branch\".",
-                          "priority": "must-have",
-                          "status": "done",
-                          "depends_on": [],
-                          "tests": {
-                            "test": [
-                              {
-                                "orphan": true,
-                                "test_type": "ORPHAN",
-                                "file": ""
-                              }
-                            ]
-                          },
-                          "approval": "approved"
-                        },
-                        {
                           "req_id": "EPIC-010-F-005-S-003-REQ-B-005",
                           "orphan": false,
                           "name": "Provider-flags engine records each unresolved primary-taxonomy-code",

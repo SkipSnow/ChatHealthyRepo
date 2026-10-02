@@ -2,9 +2,8 @@
 # Licensed under the FindCare Evaluation License (FEL-1.0).
 """Second entity branch — one worker per (state, entity type).
 
-Same shape as entity_first_branch: LLD v45 §5.2.11 fans out across state AND
-entity type, and the two entity types are disjoint sets that need not wait
-for each other.
+Fans out across state AND entity type; the two entity types are disjoint
+sets that need not wait for each other.
 """
 
 from __future__ import annotations
