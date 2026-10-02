@@ -117,8 +117,9 @@ class ProviderPipelineOrchestrator(BasePipelineOrchestrator):
         StepSpec(
             name="harvest_other_identifier_phrases",
             prerequisites=["add_secondary_practices"],
-            parallelism="serial",
+            parallelism="process_pool",
             aca_job_name="prov-harvest-oi-phrases",
+            partition_key="business_address_state",
         ),
         StepSpec(
             name="classify_other_identifier_phrases",

@@ -4,8 +4,8 @@
 """harvest_other_identifier_phrases — Provider Pipeline step wrapper.
 
 Bridges StepContext to other_identifier_phrases_engine.harvest_*.
-Runs serial across the whole target Provider collection; upserts
-unique (type_code, issuer_text) tuples into
+Per-state fanout. Each worker scans its state's providers and upserts
+unique (type_code, issuer_text, state) tuples into
 PublicStaging.OtherIdentifierPhrases.
 """
 
@@ -21,11 +21,8 @@ def run_step(ctx) -> dict:
     config = dict(ctx.config)
     config.setdefault("run_id", ctx.run_id)
     config.setdefault("provider_collection", ctx.provider_collection)
-    # partition_states, not resolved_states: ["ALL"] survives as the whole
-    # country so harvest scans providers outside the fifty-one too. Handing it
-    # the explicit fifty-one made it skip every territory and military row,
-    # which classify and apply then could not find.
-    config.setdefault("states", list(ctx.args.partition_states() or []))
+    partition = ctx.config.get("partition") or {}
+    config["partition"] = partition
 
     result = harvest_other_identifier_phrases(
         config,
@@ -33,8 +30,12 @@ def run_step(ctx) -> dict:
         blob=ctx.blob_client,
     ) or {}
 
-    _log.LogPipeline("INFO", "harvest_other_identifier_phrases summary: %s", result)
-    ctx.manifest.metrics["harvest_other_identifier_phrases"] = result
+    state_key = (partition.get("business_address_state") or "UNKNOWN").upper()
+    _log.LogPipeline("INFO", "harvest_other_identifier_phrases state=%s summary: %s",
+              state_key, result)
+    ctx.manifest.metrics.setdefault(
+        "harvest_other_identifier_phrases", {}
+    )[state_key] = result
     return result
 
 

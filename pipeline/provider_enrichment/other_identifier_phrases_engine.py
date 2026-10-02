@@ -26,8 +26,8 @@ each staging document is (type_code, issuer_text, business_state):
 Three stages, each callable independently:
 
   harvest_other_identifier_phrases(config, mongo)
-      Serial. Deletes prior-run staging rows. Scans the target
-      Provider collection; upserts one row per unique
+      Per-state fanout. Deletes the partition state's prior staging
+      rows. Scans that state's providers; upserts one row per unique
       (type_code, issuer_text, business_state) with occurrence counts
       and sample identifiers.
 
@@ -71,14 +71,15 @@ from pymongo import UpdateMany, UpdateOne
 _log = ChatHealthyLoggingService()
 
 
-def _bail_missing_scoped_states():
+def _bail_missing_partition_state():
     raise ChatHealthyException(
         mode="other_identifier_phrases_missing_states",
         message=(
-            "other_identifier_phrases_engine: scoped_states is empty. "
-            "Silent full-wipe of the staging collection is forbidden -- "
-            "caller MUST pass explicit state codes to bound the drain."
+            "harvest_other_identifier_phrases: partition lacks "
+            "business_address_state. Silent full-wipe of the staging "
+            "collection is forbidden -- per-state fanout is required."
         ),
+        component="other_identifier_phrases_engine",
     )
 
 
@@ -121,25 +122,23 @@ def _resolve_staging_collection(mongo):
 # ── Stage 1: harvest ───────────────────────────────────────────────────────
 
 def harvest_other_identifier_phrases(config: dict, *, mongo, blob=None) -> dict:
-    """Rebuild the staging table for this run's state scope. Deletes
-    prior rows FILTERED to the current state scope (never touches
-    other states' rows), then upserts one row per (type_code,
-    issuer_text, state) for the providers in scope.
+    """Rebuild the staging rows for the partition's state. Deletes that
+    state's prior rows (never touches other states' rows), then upserts
+    one row per (type_code, issuer_text, state) for its providers.
 
     Config keys used:
       - run_id
       - provider_collection: "<db>.<coll>" on pipeline cluster
-      - states: list[str] — state scope for this run (uppercased).
-                Empty/absent = whole collection (ALL states).
+      - partition.business_address_state: one of ALL_US_STATES, or
+        "ALL" for every provider whose business state is none of them.
     """
     run_id = config["run_id"]
+    partition = config.get("partition") or {}
+    part_state = (partition.get("business_address_state") or "").upper().strip()
+    if not part_state:
+        _bail_missing_partition_state()
     provider_coll = _resolve_provider_collection(config, mongo)
     staging_coll = _resolve_staging_collection(mongo)
-    scoped_states = [
-        (s or "").upper().strip()
-        for s in (config.get("states") or [])
-        if s
-    ]
 
     # Ensure the source-side index classify + apply depend on. Idempotent
     # per pymongo semantics. Without this both classify's "pending" query
@@ -148,17 +147,14 @@ def harvest_other_identifier_phrases(config: dict, *, mongo, blob=None) -> dict:
     staging_coll.create_index([("state", 1), ("classification", 1)],
                                name="state_1_classification_1", background=True)
 
-    if not scoped_states:
-        _bail_missing_scoped_states()
-    # ["ALL"] is the whole country, not a state named ALL. It stays non-empty
-    # so the missing-scope guard above still fires on a genuinely unscoped
-    # call, and it means no state predicate at all -- which is the only way
-    # the territories, the military codes and the blank-state rows are ever
-    # harvested.
-    from pipeline.run_lifecycle.steps._partitions import is_full_scope  # noqa: PLC0415
-    full_scope = is_full_scope(scoped_states)
+    # The "ALL" partition is the catch-all for the territories, the military
+    # codes and foreign addresses, not a state named ALL; both filters below
+    # resolve it to "none of the fifty-one".
+    from pipeline.run_lifecycle.steps._partitions import (  # noqa: PLC0415
+        business_state_filter, staged_state_filter,
+    )
     prior_deleted = staging_coll.delete_many(
-        {"run_id": run_id} if full_scope else {"state": {"$in": scoped_states}}
+        staged_state_filter(part_state)
     ).deleted_count
 
     # NPI-atomic ownership: partition by BUSINESS mailing address state.
@@ -166,10 +162,9 @@ def harvest_other_identifier_phrases(config: dict, *, mongo, blob=None) -> dict:
     # gives exactly one owner per NPI. Practice addresses are optional
     # and multi-valued (secondary practices) so cannot serve as key.
     provider_query: dict[str, Any] = {
+        **business_state_filter(part_state),
         "other_identifiers": {"$exists": True, "$ne": []},
     }
-    if scoped_states and not full_scope:
-        provider_query["business_address.state"] = {"$in": scoped_states}
 
     accumulator: dict[str, dict[str, Any]] = {}
     scanned = 0
@@ -181,16 +176,11 @@ def harvest_other_identifier_phrases(config: dict, *, mongo, blob=None) -> dict:
     "practice_addresses": 1, "_id": 0},
         no_cursor_timeout=True,
     )
-    # Empty at full scope: every state a provider actually carries is in
-    # scope, including the ones that are not among the fifty-one.
-    scoped_set = set() if full_scope else set(scoped_states)
     try:
         for doc in cursor:
             scanned += 1
             state = _business_state_of(doc)
             if not state:
-                continue
-            if scoped_set and state not in scoped_set:
                 continue
             for entry in doc.get("other_identifiers") or []:
                 if not isinstance(entry, dict):
