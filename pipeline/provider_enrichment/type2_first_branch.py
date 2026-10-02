@@ -11,16 +11,17 @@ def enrich_type2_first(ctx) -> dict:
     rt = PipelineRuntime(ctx)
     part = ctx.config.get("partition") or {}
     state = part.get("business_address_state", "")
-    filt = {"entity_type_code": "2"}
+    filt = {"entity_type_code": "2", "authorized_official": None}
     if state:
-        filt = {**rt.partition_filter(state), "entity_type_code": "2"}
-    updated = flagged = 0
-    for doc in rt.providers_coll.find(filt):
-        for field in ("authorized_official", "parent_organization"):
-            if doc.get(field) is None:
-                rt.record_discrepancy(
-                    npi=doc.get("npi"), reason=f"{field}_incomplete", step="type2_first_branch",
-                    state=state or rt.mailing_state(doc), entity_kind=rt.entity_kind(doc),
-                )
-                flagged += 1
-    return {"updated": updated, "flagged": flagged, "state": state or "ALL"}
+        filt = {**rt.partition_filter(state), **filt}
+    projection = {"_id": 0, "npi": 1, "business_address.state": 1,
+                  "entity_type_code": 1}
+    flagged = 0
+    for doc in rt.providers_coll.find(filt, projection).batch_size(1000):
+        rt.record_discrepancy(
+            npi=doc.get("npi"), reason="authorized_official_incomplete",
+            step="type2_first_branch",
+            state=state or rt.mailing_state(doc), entity_kind=rt.entity_kind(doc),
+        )
+        flagged += 1
+    return {"updated": 0, "flagged": flagged, "state": state or "ALL"}

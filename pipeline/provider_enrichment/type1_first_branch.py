@@ -15,9 +15,12 @@ def enrich_type1_first(ctx) -> dict:
     rt = PipelineRuntime(ctx)
     part = ctx.config.get("partition") or {}
     state = part.get("business_address_state", "")
-    filt = {"entity_type_code": "1"}
+    filt = {"entity_type_code": "1",
+            "sex": {"$exists": False},
+            "provider_sex_code": {"$exists": True}}
     if state:
-        filt = {**rt.partition_filter(state), "entity_type_code": "1"}
+        filt = {**rt.partition_filter(state), **filt}
+    projection = {"_id": 0, "npi": 1, "sex": 1, "provider_sex_code": 1}
     updated = 0
 
     update_ops: list[UpdateOne] = []
@@ -28,7 +31,7 @@ def enrich_type1_first(ctx) -> dict:
         rt.providers_coll.bulk_write(update_ops, ordered=False)
         update_ops.clear()
 
-    for doc in rt.providers_coll.find(filt).batch_size(_BULK_WRITE_CHUNK):
+    for doc in rt.providers_coll.find(filt, projection).batch_size(_BULK_WRITE_CHUNK):
         patch = {}
         if "sex" not in doc and doc.get("provider_sex_code"):
             patch["sex"] = doc["provider_sex_code"]

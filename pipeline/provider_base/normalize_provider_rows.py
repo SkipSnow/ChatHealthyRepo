@@ -290,6 +290,7 @@ def normalize_raw_record(raw: dict) -> dict:
 
     # Top-level coded fields get sibling _label per LLD v39 sec. 7.1.
     if doc.get("provider_sex_code"):
+        doc["sex"] = doc["provider_sex_code"]
         lbl = sex_label_of(doc["provider_sex_code"])
         if lbl:
             doc["provider_sex_code_label"] = lbl
