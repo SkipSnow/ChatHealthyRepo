@@ -16,9 +16,9 @@ class EmbeddingClient:
     def get_specialty_vector(self, text: str) -> list:
         """Embed the clinical search term for specialty matching.
 
-        Same model as the provider embeddings, which is what makes the
-        cross-collection recall meaningful -- and it is the same because
-        there is one declaration, not because two sites agree.
+        Same model as the SpecialtyMetaData embeddings, which is what makes
+        the recall meaningful -- and it is the same because there is one
+        declaration, not because two sites agree.
 
         Raises on failure (no fallback per EPIC-006-F-003-S-001).
         SpecialtyFilter's find_specialties() is the single catch point and

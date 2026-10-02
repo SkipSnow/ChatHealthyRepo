@@ -1248,14 +1248,6 @@
         },
         {
           "feature_id": "EPIC-008-F-012",
-          "source_location": "ChatHealthyLib/src/chathealthy_lib/provider_embedding.py",
-          "handler_type": "python_source",
-          "disposition": "referenced",
-          "content_hash": "d120ade4a8b57b207f2c1047437e19aa26a22673eb6f4b208e99bbc99cd48053",
-          "package": "service_runtime"
-        },
-        {
-          "feature_id": "EPIC-008-F-012",
           "source_location": "ChatHealthyLib/src/chathealthy_lib/runtime_data_collections.py",
           "handler_type": "python_source",
           "disposition": "referenced",
@@ -1736,14 +1728,6 @@
           "handler_type": "python_source",
           "disposition": "referenced",
           "content_hash": "313315f1fd7fc574abfe95a9e214c6307153ed99c09c71901b89431a0a7fcaf4",
-          "package": "service_runtime"
-        },
-        {
-          "feature_id": "EPIC-008-F-012",
-          "source_location": "ChatHealthyLib/src/chathealthy_lib/provider_embedding.py",
-          "handler_type": "python_source",
-          "disposition": "referenced",
-          "content_hash": "d120ade4a8b57b207f2c1047437e19aa26a22673eb6f4b208e99bbc99cd48053",
           "package": "service_runtime"
         },
         {
@@ -2942,14 +2926,6 @@
         },
         {
           "feature_id": "EPIC-008-F-012",
-          "source_location": "ChatHealthyLib/src/chathealthy_lib/provider_embedding.py",
-          "handler_type": "python_source",
-          "disposition": "referenced",
-          "content_hash": "d120ade4a8b57b207f2c1047437e19aa26a22673eb6f4b208e99bbc99cd48053",
-          "package": "service_runtime"
-        },
-        {
-          "feature_id": "EPIC-008-F-012",
           "source_location": "ChatHealthyLib/src/chathealthy_lib/runtime_data_collections.py",
           "handler_type": "python_source",
           "disposition": "referenced",
@@ -3840,14 +3816,6 @@
           "handler_type": "python_source",
           "disposition": "referenced",
           "content_hash": "355d0ed4a2525d3950dd560a1b9e63af4bb79a5313ea9ce6b8b2b5620fd9211a",
-          "package": "service_runtime"
-        },
-        {
-          "feature_id": "EPIC-008-F-012",
-          "source_location": "pipeline/provider_enrichment/type1_first_branch.py",
-          "handler_type": "python_source",
-          "disposition": "referenced",
-          "content_hash": "c43557600409cefb641f943fb52d854397a30705eeb10a84f1a441824f038539",
           "package": "service_runtime"
         },
         {

@@ -138,7 +138,7 @@ def fake_openai(monkeypatch):
     provider now; it builds no client of its own.
     """
     fake = _FakeEmbedBatch()
-    monkeypatch.setattr("embedding_engine._embed_batch", fake)
+    monkeypatch.setattr("pipeline.run_lifecycle.embedding_engine._embed_batch", fake)
     monkeypatch.setenv("CH_EMBEDDING_MODEL", TEST_EMBEDDING_MODEL)
     monkeypatch.setenv("OPENAI_API_KEY", "sk-test-key")
     return fake
@@ -267,7 +267,7 @@ class _FakeCtx:
 
 
 @pytest.fixture
-def clusters(monkeypatch, scratch_mongo):
+def clusters(monkeypatch, scratch_mongo, loaded_metadata_redirect):
     """A real cluster with every destination redirected to scratch names.
 
     The SMD build now writes directly into the served collection on the
@@ -283,11 +283,10 @@ def clusters(monkeypatch, scratch_mongo):
     """
     from chathealthy_lib.mongo_utilities import ChatHealthyMongoUtilities
 
-    import pipeline.run_lifecycle.pipeline_loaded_metadata as pipeline_loaded_metadata
     import pipeline.run_lifecycle.pipeline_runtime as pipeline_runtime
 
     db, collection = scratch_mongo
-    client = db.client
+    client = ChatHealthyMongoUtilities().getConnection("DevOpsUser", "ChatHealthyDataPipelines")
     prefix = collection("").name  # the run's unique prefix
     cfg = _scratch_config(db.name, prefix)
 
@@ -303,12 +302,10 @@ def clusters(monkeypatch, scratch_mongo):
         pipeline_runtime.PipelineRuntime, "discrepancy_config",
         property(lambda self: _TEST_DR_CFG),
     )
-    monkeypatch.setattr(pipeline_runtime, "get_frontend_mongo", lambda: frontend)
+    redirected_frontend = loaded_metadata_redirect(frontend, collection("loaded_metadata"))
+    monkeypatch.setattr(pipeline_runtime, "get_frontend_mongo", lambda *_: redirected_frontend)
     monkeypatch.setattr(pipeline_runtime, "get_mongo", lambda *_: client)
     monkeypatch.setattr(pipeline_runtime, "load_pipeline_config", lambda **kw: cfg)
-    monkeypatch.setattr(pipeline_loaded_metadata, "_METADATA_DB", db.name, raising=False)
-    monkeypatch.setattr(pipeline_loaded_metadata, "_METADATA_COLL",
-                        collection("loaded_metadata").name, raising=False)
 
     names = {
         "db": db.name,

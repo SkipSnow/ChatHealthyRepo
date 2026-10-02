@@ -247,28 +247,24 @@ def _discover_with_retry(
                 "raw_parsed": parsed,
             }
         except ChatHealthyException as exc:
-            if exc.mode != "discovery_no_match":
-                raise
-            raise ChatHealthyException(
-                mode="source_url_discovery_no_matching_file",
-                message=f"source_url_discovery[{source_name}]: {exc}",
-                source_name=source_name,
-                page_url=page_url,
-            exception=exc) from exc
-        except ChatHealthyException as exc:
-            if exc.mode != "discovery_fatal":
-                raise
-            raise ChatHealthyException(
-                mode="source_url_discovery_fatal",
-                message=(
-                    f"source_url_discovery[{source_name}]: fatal (no retry) "
-                    f"on attempt {attempt}: {exc.message}"
-                ),
-                source_name=source_name,
-                page_url=page_url,
-                attempt=attempt,
-            exception=exc) from exc
-        except ChatHealthyException as exc:
+            if exc.mode == "discovery_no_match":
+                raise ChatHealthyException(
+                    mode="source_url_discovery_no_matching_file",
+                    message=f"source_url_discovery[{source_name}]: {exc}",
+                    source_name=source_name,
+                    page_url=page_url,
+                exception=exc) from exc
+            if exc.mode == "discovery_fatal":
+                raise ChatHealthyException(
+                    mode="source_url_discovery_fatal",
+                    message=(
+                        f"source_url_discovery[{source_name}]: fatal (no retry) "
+                        f"on attempt {attempt}: {exc.message}"
+                    ),
+                    source_name=source_name,
+                    page_url=page_url,
+                    attempt=attempt,
+                exception=exc) from exc
             if exc.mode != "discovery_retryable":
                 raise
             last_error = exc.message

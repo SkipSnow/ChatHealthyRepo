@@ -24,7 +24,7 @@ from typing import Optional
 
 from anthropic import Anthropic
 from dotenv import load_dotenv
-from fastapi import BackgroundTasks, FastAPI, Request
+from fastapi import FastAPI, Request
 from chathealthy_lib import gate as ch_gate
 from pydantic import BaseModel
 import requests as requests_lib
@@ -878,14 +878,11 @@ async def trial_find(body: TrialFindRequest):
 from ProviderDetail.provider_detail_models import ProviderDetailInput
 
 @app.post("/provider-detail")
-def provider_detail(
-    body: ProviderDetailInput,
-    background_tasks: BackgroundTasks,
-):
+def provider_detail(body: ProviderDetailInput):
     require_gateway_signature(body.session_token,
                               posted=body.model_dump(exclude_none=True))
     from ProviderDetail.provider_detail_page import detail
-    return detail(body, background_tasks.add_task)
+    return detail(body)
 
 
 REQUIRED_INDEXES = [

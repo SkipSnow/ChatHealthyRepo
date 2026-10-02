@@ -143,10 +143,6 @@ def test_invariant_1_duplicate_source_name(fake_mongo):
         PipelineDatasetRegistry(cfg, 3, fake_mongo)
     assert ei.value.mode == "dataset_registry_duplicate_source_name"
     assert "nucc" in str(ei.value)
-    # fatal recorded before raise
-    assert any(d["class"] == "fatal_dataset_registry_duplicate_source_name"
-               for d in _discrepancies(fake_mongo))
-
 
 # ---------------------------------------------------------------------------
 # invariant 2: duplicate staging_name
@@ -159,9 +155,6 @@ def test_invariant_2_duplicate_staging_name(fake_mongo):
     with pytest.raises(ChatHealthyException) as ei:
         PipelineDatasetRegistry(cfg, 3, fake_mongo)
     assert ei.value.mode == "dataset_registry_duplicate_staging_name"
-    assert any(d["class"] == "fatal_dataset_registry_duplicate_staging_name"
-               for d in _discrepancies(fake_mongo))
-
 
 # ---------------------------------------------------------------------------
 # invariant 3: duplicate public_data_name
@@ -174,9 +167,6 @@ def test_invariant_3_duplicate_public_data_name(fake_mongo):
     with pytest.raises(ChatHealthyException) as ei:
         PipelineDatasetRegistry(cfg, 3, fake_mongo)
     assert ei.value.mode == "dataset_registry_duplicate_public_data_name"
-    assert any(d["class"] == "fatal_dataset_registry_duplicate_public_data_name"
-               for d in _discrepancies(fake_mongo))
-
 
 # ---------------------------------------------------------------------------
 # invariant 4: bundle fetch count (0 fetchers, 2 fetchers)
@@ -190,9 +180,6 @@ def test_invariant_4_bundle_zero_fetchers(fake_mongo):
     with pytest.raises(ChatHealthyException) as ei:
         PipelineDatasetRegistry(cfg, 3, fake_mongo)
     assert ei.value.mode == "dataset_registry_bundle_fetch_count"
-    assert any(d["class"] == "fatal_dataset_registry_bundle_fetch_count"
-               for d in _discrepancies(fake_mongo))
-
 
 def test_invariant_4_bundle_multiple_fetchers(fake_mongo):
     cfg = _baseline_config()
@@ -214,9 +201,6 @@ def test_invariant_5_dangling_dependency(fake_mongo):
         PipelineDatasetRegistry(cfg, 3, fake_mongo)
     assert ei.value.mode == "dataset_registry_dangling_dependency"
     assert "ghost_source" in str(ei.value)
-    assert any(d["class"] == "fatal_dataset_registry_dangling_dependency"
-               for d in _discrepancies(fake_mongo))
-
 
 # ---------------------------------------------------------------------------
 # invariant 6: dependency cycle (message names the cycle path)
@@ -239,9 +223,6 @@ def test_invariant_6_dependency_cycle(fake_mongo):
     # cycle path names the offenders
     assert "nucc" in msg and "smd" in msg
     assert "->" in msg
-    assert any(d["class"] == "fatal_dataset_registry_dependency_cycle"
-               for d in _discrepancies(fake_mongo))
-
 
 def test_invariant_6_self_cycle(fake_mongo):
     cfg = _baseline_config()

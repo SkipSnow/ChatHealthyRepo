@@ -135,17 +135,12 @@ class ProviderPipelineOrchestrator(BasePipelineOrchestrator):
             partition_key="business_address_state",
         ),
         StepSpec(
-            # LLD v45 sec 5.2.11: "fan-out to state x entity-type begins
-            # here". Type 1 and Type 2 are disjoint -- an NPI carries one
-            # Entity Type Code -- so they never write the same document and
-            # neither waits for the other. As two sequential steps they
-            # doubled the wall-clock of this phase; as one step partitioned
-            # by (state, entity_type) they run together.
+            # Type 2 only: the first branch has no Type 1 work.
             name="entity_first_branch",
             prerequisites=["apply_other_identifier_classifications"],
             parallelism="process_pool",
             aca_job_name="prov-entity-first-branch",
-            partition_key="state_entity",
+            partition_key="business_address_state",
         ),
         StepSpec(
             name="license_address_repair",

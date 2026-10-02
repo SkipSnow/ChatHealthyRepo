@@ -17,8 +17,8 @@ from embedding_client import EmbeddingClient
 from SpecialtyFilter.filter import SpecialtyFilter, SECTION_INDIVIDUAL
 from ProviderManagement.provider_search_service import FindCareService
 
-# The canonical embedding model, shared by provider vector search and
-# specialty matching (EPIC-008-F-011-S-004).
+# The canonical embedding model, used by specialty matching
+# (EPIC-008-F-011-S-004).
 embedding_client = EmbeddingClient()
 
 # The NUCC specialty engine the specialty_filter tool owns.

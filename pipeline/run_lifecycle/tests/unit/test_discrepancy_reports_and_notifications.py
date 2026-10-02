@@ -20,6 +20,8 @@ from __future__ import annotations
 
 import pytest
 
+_TARGET_COLLECTION = "PipelinePublicHealthData.Provider_v_5"
+
 
 @pytest.fixture
 def report_env(monkeypatch, scratch_mongo):
@@ -94,6 +96,7 @@ def test_counts_only_the_requested_runs_discrepancies(report_env):
         manifest_status="succeeded",
         manifest_doc={"run_id": "R1"},
         config={},
+        target_collection=_TARGET_COLLECTION,
     )
     assert summary["total"] == 2, "the other run's findings must not be counted"
 
@@ -119,6 +122,7 @@ def test_business_finding_renders_but_fatal_renders_operationally(report_env):
         manifest_status="failed",
         manifest_doc={"run_id": "R1"},
         config={},
+        target_collection=_TARGET_COLLECTION,
     )
     assert sent, "a run with a fatal must deliver the report"
     for _addr, _subject, body, _attachments in sent:
@@ -149,6 +153,7 @@ def test_report_delivered_on_success_with_warnings(report_env):
         manifest_status="succeeded",
         manifest_doc={"run_id": "R1"},
         config={},
+        target_collection=_TARGET_COLLECTION,
     )
     assert sent, "the report is delivered on success and abnormal end alike"
 
@@ -164,6 +169,7 @@ def test_report_delivered_on_success_with_no_discrepancies(report_env):
         manifest_status="succeeded",
         manifest_doc={"run_id": "R1"},
         config={},
+        target_collection=_TARGET_COLLECTION,
     )
     assert summary["total"] == 0
     assert sent, "a clean run still delivers exactly one report"

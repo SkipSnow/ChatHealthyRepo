@@ -124,6 +124,48 @@ def scratch_mongo():
                 db.drop_collection(name)
 
 
+class _LoadedMetadataRedirect:
+    """A front-end handle whose pipelineAdmin["pipeline.loaded_metadata"]
+    is a scratch collection; every other name reaches the real server.
+
+    pipeline_loaded_metadata addresses that collection by literal name on
+    whatever front-end handle it is given, so the handle is the only place
+    a test can redirect it."""
+
+    class _AdminDb:
+        def __init__(self, real_db, metadata_coll):
+            self._real_db = real_db
+            self._metadata_coll = metadata_coll
+
+        def __getitem__(self, name):
+            if name == "pipeline.loaded_metadata":
+                return self._metadata_coll
+            return self._real_db[name]
+
+        def __getattr__(self, name):
+            return getattr(self._real_db, name)
+
+    def __init__(self, real_client, metadata_coll):
+        self._real_client = real_client
+        self._metadata_coll = metadata_coll
+
+    def __getitem__(self, name):
+        if name == "pipelineAdmin":
+            return self._AdminDb(self._real_client[name], self._metadata_coll)
+        return self._real_client[name]
+
+    def __getattr__(self, name):
+        return getattr(self._real_client, name)
+
+
+@pytest.fixture
+def loaded_metadata_redirect():
+    """Returns a factory: (real_client, scratch_collection) -> front-end
+    handle with pipeline.loaded_metadata redirected to the scratch
+    collection."""
+    return _LoadedMetadataRedirect
+
+
 @pytest.fixture(scope="session")
 def mongo_available():
     """Asked once per session, not once per test.

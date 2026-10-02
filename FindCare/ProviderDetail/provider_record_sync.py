@@ -3,8 +3,7 @@
 """provider_record_sync — Provider Detail data-management cycle.
 
 Realizes EPIC-006-F-002-S-002. Owns the compare + write-back +
-provenance-stamp + embed-trigger logic the Provider Detail flow uses on
-every click.
+provenance-stamp logic the Provider Detail flow uses on every click.
 
 Public surface:
     live_to_comparable(live_nppes_response) -> dict
@@ -579,8 +578,6 @@ def merge_for_writeback(live: dict, stored: dict) -> dict:
         - active[]: append on status change
         - bad_data / out_of_scope: recomputed
         - load_id / loaded_at / chunk_id / row_index_in_chunk: preserved
-        - embedding / embedding_model / embedding_version: preserved
-          (re-embed runs as a BackgroundTask after the response returns)
         - provenance: stamped real_time_sync
     """
     new = deepcopy(stored)
@@ -649,73 +646,3 @@ def write_back(coll, npi: str, new_doc: dict) -> bool:
     doc = {k: v for k, v in new_doc.items() if k != "_id"}
     result = coll.replace_one({"npi": npi}, doc, upsert=False)
     return bool(result.modified_count or result.matched_count)
-
-
-# ── Embedding background task ─────────────────────────────────────────
-
-
-def build_embedding_text(record: dict) -> str:
-    """The embedding input. Single source of truth for both the embed call and
-    the diff check that gates whether re-embedding is needed.
-
-    Delegates to chathealthy_lib.provider_embedding so the front-end
-    re-embed produces byte-identical text to what the pipeline produced when
-    the record was first embedded — same record yields same vector on both
-    sides."""
-    from chathealthy_lib.provider_embedding import project, render
-    return render(project(record))
-
-
-def embed_after_response(coll, npi: str) -> None:
-    """Called from FastAPI BackgroundTasks after the handler returns.
-
-    Reads the current record, generates a new embedding via the canonical
-    global embedding model, updates the record's embedding fields. On
-    failure, prior embedding fields are preserved and a WARNING is
-    logged (the response has already returned).
-    """
-    try:
-        from embedding_client import EmbeddingClient
-    except ImportError as _imp:
-        # Mode 1 (REQ-B-008): EmbeddingClient not importable; skip re-embed.
-        log.info(
-            "EmbeddingClient unavailable; skipping re-embed for NPI %s",
-            npi,
-            exc=ChatHealthyException(
-             mode="embedding_client_unavailable",
-             message=f"EmbeddingClient unavailable; skipping re-embed for NPI {npi}: {_imp}",
-             component="ProviderRecordSync",
-             exception=_imp,
-         ),
-        )
-        return
-    try:
-        doc = coll.find_one({"npi": npi})
-        if doc is None:
-            return
-        text = build_embedding_text(doc)
-        if not text:
-            return
-        client = EmbeddingClient()
-        vec = client.embed(text)
-        coll.update_one(
-            {"npi": npi},
-            {"$set": {
-                "embedding": vec,
-                "embedding_model": client.model_name,
-                "embedding_version": client.model_version,
-            }},
-        )
-    except Exception as exc:
-        # Mode 1 (REQ-B-008): main record write succeeded; only the
-        # embedding refresh failed — will retry on next sync.
-        log.info(
-            "Embedding call failed after write-back for NPI %s: %s",
-            npi, exc,
-            exc=ChatHealthyException(
-             mode="embedding_call_failed_after_writeback",
-             message=f"Embedding call failed after write-back for NPI {npi}: {exc}",
-             component="ProviderRecordSync",
-             exception=exc,
-         ),
-        )

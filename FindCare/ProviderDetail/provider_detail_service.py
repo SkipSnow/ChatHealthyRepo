@@ -11,8 +11,6 @@
 #   4. Project the (current) stored record into the display payload via
 #      ProviderDetailOutput.from_stored — each display type owns its
 #      conversion next to its definition.
-#   5. Embedding runs as a BackgroundTask scheduled by the FastAPI
-#      handler after the response returns.
 
 from typing import Optional
 
@@ -244,7 +242,6 @@ class ProviderDetailService:
         state: str = "",
         provider_coll=None,
         specialty_meta_coll=None,
-        schedule_background_task=None,
         entity_type: str = "1",
         **kwargs,
     ) -> dict:
@@ -298,13 +295,6 @@ class ProviderDetailService:
                 sync_summary["google_maps_calls"],
                 sync_summary["google_maps_failures"],
             )
-            if (
-                sync_summary["embedding_text_changed"]
-                and schedule_background_task is not None
-            ):
-                schedule_background_task(
-                    provider_record_sync.embed_after_response, provider_coll, npi,
-                )
 
         if stored is not None:
             codes = [
@@ -384,7 +374,6 @@ class ProviderDetailService:
 
         sync_summary = {
             "divergence": provider_record_sync.has_any_divergence(divergence),
-            "embedding_text_changed": False,
             "new_addresses_resolved": 0,
             "google_maps_calls": 0,
             "google_maps_failures": 0,
@@ -392,10 +381,6 @@ class ProviderDetailService:
 
         if sync_summary["divergence"]:
             new_doc = provider_record_sync.merge_for_writeback(live_record, stored)
-            sync_summary["embedding_text_changed"] = (
-                provider_record_sync.build_embedding_text(new_doc)
-                != provider_record_sync.build_embedding_text(stored)
-            )
             stored_addr_keys = {
                 (
                     (a.get("line1") or "").strip(),

@@ -41,7 +41,6 @@
   "can_prescribe": true,
   "is_homeopathic": false,
   "is_npi_registered": true,
-  "sex": "F",
   "business_address": {
     "line1": "3411 SILVERSIDE RD STE 100",
     "city": "WILMINGTON",

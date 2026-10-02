@@ -14742,8 +14742,8 @@
                         {
                           "req_id": "EPIC-010-F-003-S-003-REQ-B-010",
                           "orphan": false,
-                          "name": "Individual record carries sex field populated verbatim from source\u2026",
-                          "requirement": "An individual (Type-1) record carries a sex field populated verbatim from the source-row provider_sex_code, written only when the field is absent and never overwritten.",
+                          "name": "An individual (Type-1) record carries the provider's self-reported sex verbatim from the source row, under the original NPPES attribute name (Provider Sex Code, stored as provider_sex_code).",
+                          "requirement": "An individual (Type-1) record carries the provider's self-reported sex verbatim from the source row, under the original NPPES attribute name (Provider Sex Code, stored as provider_sex_code).",
                           "priority": "must-have",
                           "status": "done",
                           "depends_on": [],

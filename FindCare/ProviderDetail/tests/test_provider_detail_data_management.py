@@ -92,8 +92,6 @@ def test_provider_detail_data_management_cycle(test_coll):
       REQ-B-011 provenance sidecar stamped
       REQ-B-012 failure containment (sync_summary always returns)
       REQ-B-013 atomic single update (replace_one)
-      REQ-B-014 re-embed scheduled (not verified here; runs as
-                BackgroundTask in the FastAPI handler)
     """
     from ProviderDetail.provider_detail_service import ProviderDetailService
 
@@ -105,15 +103,11 @@ def test_provider_detail_data_management_cycle(test_coll):
     pre_addresses = pre.get("addresses") or []
 
     service = ProviderDetailService()
-    scheduled = []
     result = service.lookup(
         provider_name="Stephanie Lauren Post",
         npi=TEST_NPI,
         state="CA",
         provider_coll=test_coll,
-        schedule_background_task=(
-            lambda fn, *a, **kw: scheduled.append((fn.__name__, a))
-        ),
     )
 
     # Cycle ran; npi_details returned from stored record (which is now
@@ -143,12 +137,6 @@ def test_provider_detail_data_management_cycle(test_coll):
     assert "insurance" in post or "insurance" not in pre, (
         "insurance[] regression"
     )
-
-    # REQ-B-014: re-embed task was scheduled when a write happened.
-    if post.get("provenance"):
-        assert any(
-            name == "embed_after_response" for name, _ in scheduled
-        ), "re-embed BackgroundTask not scheduled"
 
     # REQ-B-006: county preserved on unchanged addresses. Look for any
     # post-address whose key matches a pre-address AND check its county
@@ -203,15 +191,11 @@ def test_provider_detail_identical_records_no_write(test_coll):
     )
 
     # Cycle 2: live == stored now; no divergence, no write.
-    scheduled = []
     service.lookup(
         provider_name="Stephanie Lauren Post",
         npi=TEST_NPI,
         state="CA",
         provider_coll=test_coll,
-        schedule_background_task=(
-            lambda fn, *a, **kw: scheduled.append(fn.__name__)
-        ),
     )
     after_second = test_coll.find_one({"npi": TEST_NPI})
 
@@ -224,11 +208,6 @@ def test_provider_detail_identical_records_no_write(test_coll):
         f"provenance.real_time_sync_count advanced from "
         f"{sync_count_after_first} to {sync_count_after_second} on the "
         f"identical-records cycle — write happened when it should not have"
-    )
-
-    # REQ-B-014 inversely: no re-embed scheduled when nothing changed.
-    assert "embed_after_response" not in scheduled, (
-        "re-embed scheduled on identical-records cycle (should be skipped)"
     )
 
     # REQ-B-013 (idempotency): the record bytes are stable across the

@@ -5,6 +5,9 @@ import pytest
 from pipeline.run_lifecycle.step_context import PipelineArgs, RunManifest, StepContext
 from pipeline.provider_base.steps.source_freshness_gate import run_step
 
+_GATE = "pipeline.provider_base.steps.source_freshness_gate"
+_MONGO_UTILS = f"{_GATE}.ChatHealthyMongoUtilities"
+
 
 @pytest.mark.unit
 def test_freshness_gate():
@@ -28,7 +31,8 @@ def test_freshness_gate():
     registry.find_one.return_value = {}
     fake_mongo = MagicMock()
     fake_mongo.__getitem__.return_value = registry
-    with patch("pipeline_db.get_mongo", return_value=fake_mongo):
+    with patch(_MONGO_UTILS) as utils:
+        utils.return_value.getConnection.return_value = fake_mongo
         out = run_step(ctx)
     assert len(out["decisions"]) == 5
 
@@ -57,9 +61,10 @@ def test_always_refetch_bypasses_probe(monkeypatch):
     fake_mongo.__getitem__.return_value = registry
     # If the probe were called, this would fail (no such URL). The test
     # passes iff always_refetch short-circuits BEFORE the probe.
-    with patch("pipeline_db.get_mongo", return_value=fake_mongo), \
-         patch("steps.source_freshness_gate.probe_source_version",
+    with patch(_MONGO_UTILS) as utils, \
+         patch(f"{_GATE}.probe_source_version",
                side_effect=AssertionError("probe MUST NOT be called")):
+        utils.return_value.getConnection.return_value = fake_mongo
         out = run_step(ctx)
     dec = out["decisions"]["specialty_catalog"]
     assert dec["decision"] == "fetch"

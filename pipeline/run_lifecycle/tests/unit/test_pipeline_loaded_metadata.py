@@ -22,32 +22,32 @@ import pytest
 
 
 @pytest.fixture
-def metadata_env(monkeypatch, scratch_mongo):
+def metadata_env(scratch_mongo, loaded_metadata_redirect):
     """A real cluster with the metadata destination redirected to scratch.
 
-    pipeline_loaded_metadata carries the metadata database and
-    collection as module constants. Pointing them at scratch names is
-    what keeps the test out of the live metadata collection; everything
-    else -- the reads, the counts, the identity that reached the server
-    -- is real.
+    pipeline_loaded_metadata addresses pipelineAdmin["pipeline.loaded_metadata"]
+    on the front-end handle it is given. The handle passed here maps that
+    one collection to a scratch collection, which is what keeps the test
+    out of the live metadata collection; everything else -- the reads, the
+    counts, the identity that reached the server -- is real.
 
-    Yields (client, loaded_collection_base, versioned_loaded_name,
-    public_data_name).
+    Yields (client, db_name, versioned_loaded_name, public_data_name,
+    frontend, metadata_coll).
     """
-    import pipeline.run_lifecycle.pipeline_loaded_metadata as pipeline_loaded_metadata
+    from chathealthy_lib.mongo_utilities import ChatHealthyMongoUtilities
 
     db, collection = scratch_mongo
     loaded = collection("SpecialtyMetaData")
-
-    monkeypatch.setattr(pipeline_loaded_metadata, "_METADATA_DB", db.name)
-    monkeypatch.setattr(pipeline_loaded_metadata, "_METADATA_COLL",
-                        collection("loaded_metadata").name)
+    metadata_coll = collection("loaded_metadata")
+    client = ChatHealthyMongoUtilities().getConnection("DevOpsUser", "ChatHealthyDataPipelines")
 
     return (
-        db.client,
+        client,
         db.name,
         f"{loaded.name}_v_3",
         f"{db.name}.{loaded.name}",
+        loaded_metadata_redirect(client, metadata_coll),
+        metadata_coll,
     )
 
 
@@ -67,11 +67,8 @@ def _registry(pipeline_mongo, public_data_name: str):
     return PipelineDatasetRegistry(cfg, 3, pipeline_mongo)
 
 
-def _seed_metadata(client, db_name, loaded_name, **fields):
-    import pipeline.run_lifecycle.pipeline_loaded_metadata as pipeline_loaded_metadata
-    client[db_name][pipeline_loaded_metadata._METADATA_COLL].insert_one(
-        {"_id": loaded_name, **fields}
-    )
+def _seed_metadata(metadata_coll, loaded_name, **fields):
+    metadata_coll.insert_one({"_id": loaded_name, **fields})
 
 
 @pytest.mark.unit
@@ -88,7 +85,7 @@ def test_module_no_longer_carries_loaded_db_constant():
 def test_publichealthdata_collection_exists_uses_registry_public_data_db(metadata_env):
     from pipeline.run_lifecycle.pipeline_loaded_metadata import publichealthdata_collection_exists
 
-    client, db_name, loaded_name, public_data_name = metadata_env
+    client, db_name, loaded_name, public_data_name, _, _ = metadata_env
     reg = _registry(client, public_data_name)
 
     client[db_name][loaded_name].insert_one({"_id": 1})
@@ -105,16 +102,16 @@ def test_publichealthdata_collection_exists_uses_registry_public_data_db(metadat
 def test_should_skip_reads_row_count_from_registry_public_data_db(metadata_env):
     from pipeline.run_lifecycle.pipeline_loaded_metadata import should_skip
 
-    client, db_name, loaded_name, public_data_name = metadata_env
+    client, db_name, loaded_name, public_data_name, frontend, metadata_coll = metadata_env
     reg = _registry(client, public_data_name)
 
-    _seed_metadata(client, db_name, loaded_name,
+    _seed_metadata(metadata_coll, loaded_name,
                    source_hash="abc123", operationally_fit=True, row_count=2)
     client[db_name][loaded_name].insert_many([{"_id": 1}, {"_id": 2}])
 
     skip, reason = should_skip(
         pipeline_mongo=client,
-        frontend_mongo=client,
+        frontend_mongo=frontend,
         registry=reg,
         source_name="smd",
         publichealthdata_collection_name=loaded_name,
@@ -128,17 +125,17 @@ def test_should_skip_reads_row_count_from_registry_public_data_db(metadata_env):
 def test_should_skip_forces_reload_when_registry_db_row_count_drifts(metadata_env):
     from pipeline.run_lifecycle.pipeline_loaded_metadata import should_skip
 
-    client, db_name, loaded_name, public_data_name = metadata_env
+    client, db_name, loaded_name, public_data_name, frontend, metadata_coll = metadata_env
     reg = _registry(client, public_data_name)
 
     # Metadata says 5 rows; only 2 are present -> parity mismatch.
-    _seed_metadata(client, db_name, loaded_name,
+    _seed_metadata(metadata_coll, loaded_name,
                    source_hash="abc123", operationally_fit=True, row_count=5)
     client[db_name][loaded_name].insert_many([{"_id": 1}, {"_id": 2}])
 
     skip, reason = should_skip(
         pipeline_mongo=client,
-        frontend_mongo=client,
+        frontend_mongo=frontend,
         registry=reg,
         source_name="smd",
         publichealthdata_collection_name=loaded_name,
@@ -152,15 +149,15 @@ def test_should_skip_forces_reload_when_registry_db_row_count_drifts(metadata_en
 def test_should_skip_forces_reload_when_collection_absent_on_registry_db(metadata_env):
     from pipeline.run_lifecycle.pipeline_loaded_metadata import should_skip
 
-    client, db_name, loaded_name, public_data_name = metadata_env
+    client, db_name, loaded_name, public_data_name, frontend, metadata_coll = metadata_env
     reg = _registry(client, public_data_name)
 
-    _seed_metadata(client, db_name, loaded_name,
+    _seed_metadata(metadata_coll, loaded_name,
                    source_hash="abc123", operationally_fit=True, row_count=0)
     # The loaded collection is never created.
     skip, reason = should_skip(
         pipeline_mongo=client,
-        frontend_mongo=client,
+        frontend_mongo=frontend,
         registry=reg,
         source_name="smd",
         publichealthdata_collection_name=loaded_name,

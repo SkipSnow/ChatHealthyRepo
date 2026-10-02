@@ -39,7 +39,7 @@ from pathlib import Path
 
 import pytest
 
-_FIXTURE_PATH = Path(__file__).parent.parent / "fixtures" / "provider_1962405589.jsonfixture"
+_FIXTURE_PATH = Path(__file__).parents[3] / "tests" / "fixtures" / "provider_1962405589.jsonfixture"
 
 
 @pytest.fixture
