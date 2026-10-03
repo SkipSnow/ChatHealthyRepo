@@ -178,12 +178,6 @@ class ProviderPipelineOrchestrator(BasePipelineOrchestrator):
             aca_job_name="prov-post-load-reconciliation",
         ),
         StepSpec(
-            name="discrepancy_and_notifications",
-            prerequisites=["post_load_reconciliation"],
-            parallelism="serial",
-            aca_job_name="prov-discrepancy-notify",
-        ),
-        StepSpec(
             name="quiesce_infrastructure",
             prerequisites=[],
             parallelism="serial",
