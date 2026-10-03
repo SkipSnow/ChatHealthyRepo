@@ -31,6 +31,7 @@ Workers MUST NOT install signal handlers or watchdog threads.
 from __future__ import annotations
 
 import abc
+import ast
 import json
 import re
 import sys
@@ -315,6 +316,91 @@ class EnforcementWorker(abc.ABC):
         if function_name in self.SCOPE_DEFAULTS:
             return self.SCOPE_DEFAULTS[function_name]
         return self.SCOPE_DEFAULT
+
+    # ────────────────────────────────────────────────────────────────────────
+    # Reading and parsing an in-scope resource — the conviction path
+    # ────────────────────────────────────────────────────────────────────────
+    #
+    # A worker excludes a file by exactly two mechanisms: gitignore, applied
+    # above the worker so the file never reaches it, and the rule's declared
+    # `scopes` in engineering_rules.json, applied by is_in_scope(). A file that
+    # is in scope but cannot be read or parsed is not compliant — it is unknown
+    # — and returning [] for it would be a third exclusion granted by code: the
+    # worker excusing a file by its own reading of that file. So an in-scope
+    # file that fails to decode or parse becomes a VIOLATION, never a silent
+    # clean pass. These two helpers are the one place raw bytes are read and
+    # parsed; no subclass reads or parses raw again.
+
+    def read_text(self, resource: str) -> str:
+        """Read an in-scope resource as UTF-8 text, or convict it.
+
+        The caller has already established that the file exists (is_file());
+        a genuinely-absent file is not this method's concern. A read or decode
+        failure of an existing in-scope file is raised as a ChatHealthyException
+        that the caller converts into a ViolationRecord via
+        uncertifiable_violation(). It is never swallowed: a file that cannot be
+        read cannot be certified compliant, and the only legitimate exclusions
+        are gitignore and the rule's declared scopes.
+        """
+        absolute = (PROJECT_ROOT / resource).resolve()
+        try:
+            return absolute.read_text(encoding="utf-8")
+        except (UnicodeDecodeError, OSError) as exc:
+            raise ChatHealthyException(
+                "file_uncertifiable",
+                f"{resource} could not be read as UTF-8 "
+                f"({type(exc).__name__}: {str(exc)[:120]})",
+                component="EnforcementWorker",
+                enforcement_id=self.enforcement_id,
+                exception=exc,
+            )
+
+    def parse_python(self, resource: str, source: str) -> ast.AST:
+        """Parse an in-scope .py resource to an AST, or convict it.
+
+        On SyntaxError the file takes the same conviction path as an unreadable
+        one: an in-scope Python file that will not parse is not compliant, it is
+        unknown, and it becomes a violation rather than a silent clean pass. The
+        raised ChatHealthyException is converted by the caller via
+        uncertifiable_violation().
+        """
+        try:
+            return ast.parse(source)
+        except SyntaxError as exc:
+            raise ChatHealthyException(
+                "file_uncertifiable",
+                f"{resource} is not parseable Python "
+                f"({type(exc).__name__}: {str(exc)[:120]})",
+                component="EnforcementWorker",
+                enforcement_id=self.enforcement_id,
+                exception=exc,
+            )
+
+    def uncertifiable_violation(
+        self,
+        resource: str,
+        exc: ChatHealthyException,
+        rule_id: str | None = None,
+    ) -> ViolationRecord:
+        """Turn a read_text / parse_python failure into a ViolationRecord.
+
+        A file that cannot be read or parsed cannot be certified compliant. The
+        remedy is to fix the file or add it to this rule's declared scopes
+        exclusion list in engineering_rules.json — never to let the worker pass
+        it silently.
+        """
+        return ViolationRecord(
+            enforcement_id=self.enforcement_id,
+            rule_id=rule_id or self.rule_id,
+            resource=resource,
+            message=(
+                f"file could not be scanned ({exc.message}). A file that cannot "
+                f"be read or parsed cannot be certified compliant; fix the file "
+                f"or add it to this rule's declared scopes exclusion list in "
+                f"engineering_rules.json."
+            ),
+            severity="error",
+        )
 
     # ────────────────────────────────────────────────────────────────────────
     # Subclass contract

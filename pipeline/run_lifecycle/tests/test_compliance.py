@@ -51,9 +51,3 @@ def test_no_hardcoded_urls():
             if "os.environ.get" in stripped or "CMS_PART_D_URL" in stripped:
                 continue
             pytest.fail(f"Hardcoded CMS URL used outside config: {stripped}")
-
-def test_bell_ringer_imported():
-    """pipeline imports BellRinger from
-    architecture/DevOpsBuildDeployAndEnvironmentManagement/code/bell_ringer.py"""
-    content = _read("prescriber_evaluate_care_pipeline.py")
-    assert "from bell_ringer import" in content or "import bell_ringer" in content

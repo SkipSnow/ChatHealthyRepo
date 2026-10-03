@@ -1,12 +1,13 @@
 # Copyright (c) 2026 ChatHealthy.ai LLC. All rights reserved.
 # Licensed under the FindCare Evaluation License (FEL-1.0).
-"""Integration test: a fatal delivers the one report from discrepancyLog.
+"""Integration test: an infra fatal delivers the one report operationally.
 
-Findings live in the unified pipelineAdmin.discrepancyLog store as per-class
-type_aggregate documents (LLD v54 §7.5). A fatal records its job-level
-aggregate and delivers the report. The store is a real scratch collection
-reached through the canonical utility; only the paid email transport is
-substituted.
+Business per-record findings live in the unified pipelineAdmin.discrepancyLog
+store as per-class type_aggregate documents (LLD v54 §7.5). An infra/operational
+fatal is NOT a per-record finding: it delivers the report and renders in the
+operational abnormal-end header (Run status FAILED + fatal reason), but it is
+never written to discrepancyLog. The store is a real scratch collection reached
+through the canonical utility; only the paid email transport is substituted.
 """
 
 import uuid
@@ -53,7 +54,7 @@ def fatal_env(monkeypatch, scratch_mongo):
     return db.client, discrepancy_log, sent
 
 
-def test_fatal_records_aggregate_and_delivers_report(fatal_env):
+def test_infra_fatal_delivers_report_without_writing_a_finding(fatal_env):
     from chathealthy_lib.discrepancy_report import DiscrepancyReport, fatal_error
 
     client, discrepancy_log, sent = fatal_env
@@ -84,10 +85,14 @@ def test_fatal_records_aggregate_and_delivers_report(fatal_env):
     assert delivered is True, "a fatal must deliver the one report"
     assert sent, "the fatal report must reach at least one recipient"
 
-    # The job-level fatal was recorded to discrepancyLog as a type_aggregate.
+    # fatal_error raises mode job_fatal -- an infra/operational fatal, NOT a
+    # per-record business finding. It MUST NOT be written to discrepancyLog.
     fatal_aggs = list(discrepancy_log.find(
         {"run_id": run_id, "kind": "type_aggregate", "severity": "fatal"}))
-    assert len(fatal_aggs) == 1, "exactly one fatal aggregate per run"
+    assert fatal_aggs == [], "an infra fatal must not land a finding in discrepancyLog"
 
+    # It renders only through the operational abnormal-end header: Run status
+    # FAILED and the fatal reason naming the failure.
     for _addr, _subject, body, _attachments in sent:
-        assert "Certificate CN" in body or fatal_aggs[0]["class"] in body
+        assert "Certificate CN" in body, "the fatal reason names the failure"
+        assert "FAILED" in body, "the run renders as a failed abnormal end"

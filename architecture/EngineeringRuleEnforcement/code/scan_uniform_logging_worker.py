@@ -170,13 +170,9 @@ def exc_arg_resolves_to_chathealthy(
     return True
 
 
-def check_a_violations(source: str, file_path: str) -> list[tuple[int, str]]:
+def check_a_violations(tree: ast.Module, file_path: str) -> list[tuple[int, str]]:
     """Check (a): logging.basicConfig / logging.getLogger / print calls.
     Returns list of (lineno, label)."""
-    try:
-        tree = ast.parse(source)
-    except SyntaxError:
-        return []
     bare = bare_imports_from_logging(tree)
     hits: list[tuple[int, str]] = []
     for node in ast.walk(tree):
@@ -192,12 +188,8 @@ def check_a_violations(source: str, file_path: str) -> list[tuple[int, str]]:
     return hits
 
 
-def check_b_violations(source: str) -> list[tuple[int, str]]:
+def check_b_violations(tree: ast.Module) -> list[tuple[int, str]]:
     """Check (b): exc= arg on log methods must be ChatHealthyException."""
-    try:
-        tree = ast.parse(source)
-    except SyntaxError:
-        return []
     hits: list[tuple[int, str]] = []
     for fn in ast.walk(tree):
         if not isinstance(fn, (ast.FunctionDef, ast.AsyncFunctionDef)):
@@ -216,7 +208,7 @@ def check_b_violations(source: str) -> list[tuple[int, str]]:
     return hits
 
 
-def check_c_violations(source: str) -> list[tuple[int, str]]:
+def check_c_violations(tree: ast.Module) -> list[tuple[int, str]]:
     """Check (c): a thrower does not narrate its own failure.
 
     The catcher logs, not the thrower -- but that is about the failure being
@@ -230,11 +222,6 @@ def check_c_violations(source: str) -> list[tuple[int, str]]:
     then throwing, which says it twice and leaves the message in the weaker
     of the two places. Everything else a function logs is its own business.
     """
-    try:
-        tree = ast.parse(source)
-    except SyntaxError:
-        return []
-
     hits: list[tuple[int, str]] = []
     for node in ast.walk(tree):
         for field in ("body", "orelse", "finalbody"):
@@ -258,7 +245,7 @@ def check_c_violations(source: str) -> list[tuple[int, str]]:
     return hits
 
 
-def check_d_violations(source: str) -> list[tuple[int, str]]:
+def check_d_violations(tree: ast.Module) -> list[tuple[int, str]]:
     """Check (d): no stdlib `logging` import outside the canonical surface.
 
     Forbidden import forms:
@@ -266,10 +253,6 @@ def check_d_violations(source: str) -> list[tuple[int, str]]:
       * `import logging as <alias>`
       * `from logging import <name>` / `from logging import *`
     """
-    try:
-        tree = ast.parse(source)
-    except SyntaxError:
-        return []
     hits: list[tuple[int, str]] = []
     for node in ast.walk(tree):
         if isinstance(node, ast.Import):
@@ -290,12 +273,12 @@ def check_d_violations(source: str) -> list[tuple[int, str]]:
     return hits
 
 
-def all_violations(source: str, file_path: str) -> list[tuple[int, str]]:
+def all_violations(tree: ast.Module, file_path: str) -> list[tuple[int, str]]:
     return (
-        check_a_violations(source, file_path)
-        + check_b_violations(source)
-        + check_c_violations(source)
-        + check_d_violations(source)
+        check_a_violations(tree, file_path)
+        + check_b_violations(tree)
+        + check_c_violations(tree)
+        + check_d_violations(tree)
     )
 
 
@@ -337,10 +320,11 @@ class ScanUniformLoggingEnforcementWorker(EnforcementWorker):
         if not absolute_path.is_file():
             return []
         try:
-            staged_text = absolute_path.read_text(encoding="utf-8")
-        except UnicodeDecodeError:
-            return []
-        staged_hits = all_violations(staged_text, file_path)
+            staged_text = self.read_text(file_path)
+            tree = self.parse_python(file_path, staged_text)
+        except ChatHealthyException as exc:
+            return [self.uncertifiable_violation(file_path, exc, rule_id="Rule-005")]
+        staged_hits = all_violations(tree, file_path)
         if not staged_hits:
             return []
         violations: list[ViolationRecord] = []

@@ -357,18 +357,6 @@ class _InlineScriptCollector(HTMLParser):
 
 
 
-def _ch_exception():
-    """ChatHealthyException, resolved without assuming the library is on the
-    path. Enforcement workers are spawned as bare scripts by the manager."""
-    import sys as _sys, pathlib as _pl
-    for _p in _pl.Path(__file__).resolve().parents:
-        if (_p / ".git").exists():
-            _lib = _p / "ChatHealthyLib" / "src"
-            if str(_lib) not in _sys.path:
-                _sys.path.insert(0, str(_lib))
-            break
-    from chathealthy_lib.exceptions import ChatHealthyException
-    return ChatHealthyException
 
 def _strip_js_comments(source: str) -> str:
     """Replace JS line comments (// ...) and block comments (/* ... */)
@@ -517,8 +505,16 @@ def _scan_html_with_inline_scripts(source: str, scan_fn) -> list[tuple[int, str]
     try:
         parser.feed(source)
         parser.close()
-    except Exception:
-        return []
+    except Exception as exc:
+        raise ChatHealthyException(
+            mode="file_uncertifiable",
+            message=(
+                f"inline-script extraction failed "
+                f"({type(exc).__name__}: {str(exc)[:120]})"
+            ),
+            component="ScanSeparationOfConcernsWorker",
+            exception=exc,
+        )
     out: list[tuple[int, str]] = []
     for start_line, body in parser.scripts:
         for rel_line, marker in scan_fn(body):
@@ -568,25 +564,25 @@ class ScanSeparationOfConcernsWorker(EnforcementWorker):
         absolute = (PROJECT_ROOT / file_path).resolve()
         if not absolute.is_file():
             return None
-        try:
-            return absolute.read_text(encoding="utf-8")
-        except UnicodeDecodeError:
-            return None
+        return self.read_text(file_path)
 
     def _scan_display_authoring(self, file_path: str) -> list[ViolationRecord]:
         if not self.is_in_scope(file_path, "_scan_display_authoring"):
             return []
         if _is_static_page(file_path):
             return []
-        source = self._read(file_path)
-        if source is None:
-            return []
-        if file_path.endswith(".html"):
-            hits = _scan_html_with_inline_scripts(source, _find_display_violations)
-        elif file_path.endswith(".js"):
-            hits = _find_display_violations(source)
-        else:
-            return []
+        try:
+            source = self._read(file_path)
+            if source is None:
+                return []
+            if file_path.endswith(".html"):
+                hits = _scan_html_with_inline_scripts(source, _find_display_violations)
+            elif file_path.endswith(".js"):
+                hits = _find_display_violations(source)
+            else:
+                return []
+        except ChatHealthyException as exc:
+            return [self.uncertifiable_violation(file_path, exc, rule_id="Rule-009")]
         return [self._make_violation(file_path, ln, marker,
                 "Rule-009 REQ-B-001: display content authoring outside React")
                 for ln, marker in hits]
@@ -594,7 +590,10 @@ class ScanSeparationOfConcernsWorker(EnforcementWorker):
     def _scan_react_persistence(self, file_path: str) -> list[ViolationRecord]:
         if not self.is_in_scope(file_path, "_scan_react_persistence"):
             return []
-        source = self._read(file_path)
+        try:
+            source = self._read(file_path)
+        except ChatHealthyException as exc:
+            return [self.uncertifiable_violation(file_path, exc, rule_id="Rule-009")]
         if source is None:
             return []
         if not (file_path.endswith(".ts") or file_path.endswith(".tsx")):
@@ -607,23 +606,26 @@ class ScanSeparationOfConcernsWorker(EnforcementWorker):
     def _scan_business_logic(self, file_path: str) -> list[ViolationRecord]:
         if not self.is_in_scope(file_path, "_scan_business_logic"):
             return []
-        source = self._read(file_path)
-        if source is None:
-            return []
-        if file_path.endswith(".html"):
-            hits = _scan_html_with_inline_scripts(source, _find_business_logic_violations)
-        elif file_path.endswith(".js"):
-            hits = _find_business_logic_violations(source)
-        elif file_path.endswith((".tsx", ".ts")):
-            # A .tsx is a display file -- React's alternative to .html --
-            # and carries no business logic for the same reason .html does
-            # not. What it may not do is decided differently, because a
-            # widget that paints providers necessarily says "provider":
-            # the subject is not the offence, deciding is.
-            hits = (_find_display_tier_decisions(source)
-                    + _find_control_state_decisions(source))
-        else:
-            return []
+        try:
+            source = self._read(file_path)
+            if source is None:
+                return []
+            if file_path.endswith(".html"):
+                hits = _scan_html_with_inline_scripts(source, _find_business_logic_violations)
+            elif file_path.endswith(".js"):
+                hits = _find_business_logic_violations(source)
+            elif file_path.endswith((".tsx", ".ts")):
+                # A .tsx is a display file -- React's alternative to .html --
+                # and carries no business logic for the same reason .html does
+                # not. What it may not do is decided differently, because a
+                # widget that paints providers necessarily says "provider":
+                # the subject is not the offence, deciding is.
+                hits = (_find_display_tier_decisions(source)
+                        + _find_control_state_decisions(source))
+            else:
+                return []
+        except ChatHealthyException as exc:
+            return [self.uncertifiable_violation(file_path, exc, rule_id="Rule-009")]
         return [self._make_violation(file_path, ln, marker,
                 "Rule-009 REQ-B-003: business logic outside tools")
                 for ln, marker in hits]

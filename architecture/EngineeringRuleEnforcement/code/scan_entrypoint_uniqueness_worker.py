@@ -41,10 +41,6 @@ _ALLOWED_ENTRY = {
     "build_chathealthy.py",
     "deploy_chathealthy.py",
     "promote_chathealthy.py",
-    # Non-build/deploy utilities with their own main blocks. Not part of
-    # the build/deploy/promote chain; they're operator-callable helpers
-    # that happen to live in the same directory.
-    "bell_ringer.py",
 }
 
 
@@ -119,8 +115,12 @@ class ScanEntrypointUniquenessWorker(EnforcementWorker):
                 continue
 
             try:
-                text = child.read_text(encoding="utf-8")
-            except Exception:
+                text = self.read_text(rel)
+            except ChatHealthyException as exc:
+                self._emit_violation(self.uncertifiable_violation(
+                    rel, exc, rule_id="Rule-066"))
+                self.violation_count += 1
+                any_violations = True
                 continue
             if 'if __name__ == "__main__":' in text or "if __name__ == '__main__':" in text:
                 self._emit_violation(ViolationRecord(

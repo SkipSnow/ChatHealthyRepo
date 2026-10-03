@@ -292,13 +292,9 @@ def _callback_protocol_raises(tree: ast.AST) -> set[int]:
     return allowed
 
 
-def _count_forbidden_raises(source: str) -> list[tuple[int, str]]:
+def _count_forbidden_raises(tree: ast.AST) -> list[tuple[int, str]]:
     """Return a list of (lineno, forbidden_name) for every forbidden
-    Raise in the source. Unparseable source returns []."""
-    try:
-        tree = ast.parse(source)
-    except SyntaxError:
-        return []
+    Raise in the parsed module."""
     hits: list[tuple[int, str]] = []
     allowed = _callback_protocol_raises(tree)
     for node in ast.walk(tree):
@@ -357,10 +353,11 @@ class ScanDeliberateRaisesEnforcementWorker(EnforcementWorker):
         if not absolute_path.is_file():
             return []
         try:
-            staged_text = absolute_path.read_text(encoding="utf-8")
-        except UnicodeDecodeError:
-            return []
-        staged_hits = _count_forbidden_raises(staged_text)
+            staged_text = self.read_text(file_path)
+            tree = self.parse_python(file_path, staged_text)
+        except ChatHealthyException as exc:
+            return [self.uncertifiable_violation(file_path, exc, rule_id="Rule-003")]
+        staged_hits = _count_forbidden_raises(tree)
         if not staged_hits:
             return []
         # Any violation in the staged file is rejected.

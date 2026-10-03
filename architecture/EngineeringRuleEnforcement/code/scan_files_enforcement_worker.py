@@ -268,9 +268,9 @@ class ScanFilesEnforcementWorker(EnforcementWorker):
         if not absolute_path.is_file():
             return []
         try:
-            text = absolute_path.read_text(encoding="utf-8")
-        except UnicodeDecodeError:
-            return []
+            text = self.read_text(file_path)
+        except ChatHealthyException as exc:
+            return [self.uncertifiable_violation(file_path, exc)]
 
         posix = file_path.replace("\\", "/")
         is_py = posix.endswith(".py")
@@ -320,12 +320,10 @@ class ScanFilesEnforcementWorker(EnforcementWorker):
         absolute_path = (PROJECT_ROOT / file_path).resolve()
         if not absolute_path.is_file():
             return []
-        # Binary skip: a file that fails utf-8 decode cannot semantically contain an http:// URL.
-        # Return [] silently rather than misreading bytes (V21 §4.5).
         try:
-            absolute_path.read_text(encoding="utf-8")
-        except UnicodeDecodeError:
-            return []
+            text = self.read_text(file_path)
+        except ChatHealthyException as exc:
+            return [self.uncertifiable_violation(file_path, exc)]
 
         # Pull the allowed-URL patterns for _scan_http off this entry's scopes.
         allowed_url_patterns: list[str] = []
@@ -334,9 +332,6 @@ class ScanFilesEnforcementWorker(EnforcementWorker):
                 allowed_url_patterns.extend(row[2])
 
         violations: list[ViolationRecord] = []
-        with absolute_path.open(encoding="utf-8", errors="replace") as f:
-            text = f.read()
-
         for match in _HTTP_URL_RE.finditer(text):
             url = match.group(0)
             if any(re.search(pat, url) for pat in allowed_url_patterns):

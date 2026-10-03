@@ -22,12 +22,12 @@ from pathlib import Path
 try:
     from .enforcement_worker import (
         EnforcementWorker, ViolationRecord, PROJECT_ROOT,
-        EXIT_OK, EXIT_VIOLATIONS_FOUND,
+        EXIT_OK, EXIT_VIOLATIONS_FOUND, ChatHealthyException,
     )
 except ImportError:
     from enforcement_worker import (  # noqa: E402
         EnforcementWorker, ViolationRecord, PROJECT_ROOT,
-        EXIT_OK, EXIT_VIOLATIONS_FOUND,
+        EXIT_OK, EXIT_VIOLATIONS_FOUND, ChatHealthyException,
     )
 
 
@@ -393,9 +393,9 @@ class ScanMongoClientDirectAccessEnforcementWorker(EnforcementWorker):
         if not absolute_path.is_file():
             return []
         try:
-            source = absolute_path.read_text(encoding="utf-8")
-        except UnicodeDecodeError:
-            return []
+            source = self.read_text(file_path)
+        except ChatHealthyException as exc:
+            return [self.uncertifiable_violation(file_path, exc, rule_id="Rule-004")]
         violations: list[ViolationRecord] = []
         for lineno, what in _find_mongo_connection_strings(source):
             violations.append(ViolationRecord(
