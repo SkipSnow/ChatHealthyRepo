@@ -11068,6 +11068,11 @@
         "Key Vault Secrets User",
         "role_pipeline_controller"
       ],
+      "certificate": {
+        "subject_dn": "CN=pipelineController,O=ChatHealthy,ST=California,C=US",
+        "vault_target_ref": "target_azure_key_vault_pipeline",
+        "vault_secret_name": "pipelineController"
+      },
       "identity_provider": {
         "name": "Entra",
         "facts": [
