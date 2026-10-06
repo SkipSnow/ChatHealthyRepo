@@ -1617,6 +1617,33 @@
             "description": "The concrete Entra object type, so a reader knows what to look up and where. identity_class is the abstract kind; this is the thing that exists in the directory.",
             "type": "string"
           },
+          "certificate": {
+            "type": "object",
+            "description": "The X.509 certificate that is this identity's credential. Declared so the deploy mints it into the vault when it is missing (show-then-create, the same idempotent pattern the rest of the chain uses) instead of a hand action. The certificate's Subject CN MUST equal identity_id, which is what the connection utility verifies at authentication time.",
+            "additionalProperties": false,
+            "required": [
+              "subject_dn",
+              "vault_target_ref",
+              "vault_secret_name"
+            ],
+            "properties": {
+              "subject_dn": {
+                "type": "string",
+                "minLength": 1,
+                "description": "RFC 2253 Subject Distinguished Name minted onto the certificate. Its CN MUST equal identity_id."
+              },
+              "vault_target_ref": {
+                "type": "string",
+                "pattern": "^target_[a-z0-9_]{1,64}$",
+                "description": "target_id of the key-vault DeploymentTargetRecord the certificate is minted into."
+              },
+              "vault_secret_name": {
+                "type": "string",
+                "minLength": 1,
+                "description": "The certificate's name within that vault."
+              }
+            }
+          },
           "identity_provider": {
             "type": "object",
             "description": "The directory this identity is federated with, and the facts that provider needs. The schema does not name any provider.",

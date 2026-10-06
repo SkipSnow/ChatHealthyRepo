@@ -11058,6 +11058,32 @@
       }
     },
     {
+      "identity_id": "pipelineController",
+      "identity_class": "service_principal",
+      "entra_object_type": "servicePrincipal",
+      "application": "pipelineController",
+      "actor_type": "agent",
+      "object_id": "52ce2251-9bb3-4b69-918f-838d55dc916d",
+      "roles": [
+        "Key Vault Secrets User",
+        "role_pipeline_controller"
+      ],
+      "certificate": {
+        "subject_dn": "CN=pipelineController,O=ChatHealthy,ST=California,C=US",
+        "vault_target_ref": "target_azure_key_vault_pipeline",
+        "vault_secret_name": "pipelineController"
+      },
+      "identity_provider": {
+        "name": "Entra",
+        "facts": [
+          {
+            "name": "object_type",
+            "value": "servicePrincipal"
+          }
+        ]
+      }
+    },
+    {
       "identity_id": "PipelineToFrontEndPublicDataMigrator",
       "identity_class": "managed_identity",
       "entra_object_type": "managedIdentity",
@@ -11184,6 +11210,44 @@
         }
       ],
       "description": "Atlas custom database role. Writes the record that authorizes a promotion and the record that says what became of it, across DevOpsAdmin on the front-end cluster. No update, no delete, no drop: a governance record its own writer can alter is not evidence, so an outcome is appended, never edited."
+    },
+    {
+      "role_id": "role_pipeline_controller",
+      "grants": [
+        {
+          "operation": "FIND",
+          "on": "target_atlas_frontend/pipelineAdmin"
+        },
+        {
+          "operation": "INSERT",
+          "on": "target_atlas_frontend/pipelineAdmin"
+        },
+        {
+          "operation": "UPDATE",
+          "on": "target_atlas_frontend/pipelineAdmin"
+        },
+        {
+          "operation": "REMOVE",
+          "on": "target_atlas_frontend/pipelineAdmin"
+        },
+        {
+          "operation": "CREATE_COLLECTION",
+          "on": "target_atlas_frontend/pipelineAdmin"
+        },
+        {
+          "operation": "CREATE_INDEX",
+          "on": "target_atlas_frontend/pipelineAdmin"
+        },
+        {
+          "operation": "LIST_COLLECTIONS",
+          "on": "target_atlas_frontend/pipelineAdmin"
+        },
+        {
+          "operation": "LIST_INDEXES",
+          "on": "target_atlas_frontend/pipelineAdmin"
+        }
+      ],
+      "description": "Atlas custom database role for the pipeline controller. Read/write across pipelineAdmin on the front-end cluster -- its run logs (Log_{env}), coordination (pipeline.runs, pipeline.work_items, cluster_lifecycle) and discrepancy records (discrepancyLog). It holds nothing on any data cluster: the controller coordinates and records, it does not build data."
     }
   ],
   "HostSuppliedBindings": {

@@ -3286,6 +3286,11 @@ def deploy_one(
             vault, target.secrets or {},
             [i["identity_id"] for i in (coll.identity_catalog or [])
              if i.get("identity_class") == "service_principal"])
+        # Mint each identity's declared certificate into this vault when it is
+        # missing (show-then-create, idempotent). Grants nothing: the database
+        # user and its role stay manual entitlement work.
+        from cert_placement import mint_declared_identity_certs_if_missing
+        mint_declared_identity_certs_if_missing(coll, env)
         return vault
     if target_kind == "azure_storage_account":
         return pad.ensure_storage_containers(target, env)

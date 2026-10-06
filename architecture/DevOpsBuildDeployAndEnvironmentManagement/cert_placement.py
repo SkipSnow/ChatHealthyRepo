@@ -13,9 +13,11 @@ a non-zero exit with the tail of stderr; no fallbacks.
 from __future__ import annotations
 
 import base64
+import json
 import os
 import subprocess
 import sys
+import tempfile
 import sys as _ch_sys, pathlib as _ch_pl  # noqa: E402
 for _ch_d in _ch_pl.Path(__file__).resolve().parents:
     if (_ch_d / '.git').exists():
@@ -139,5 +141,92 @@ def _kv_secret_value(vault_name: str, secret_name: str) -> str:
             message=f"ERROR: cannot read KV secret {secret_name!r} from "
             f"{vault_name}: {(r.stderr or '').strip()[:800]}")
     return r.stdout.strip()
+
+
+def mint_declared_identity_certs_if_missing(coll, env: str) -> None:
+    """Mint every IdentityCatalog certificate that is declared but absent from
+    its vault. The certificate is self-signed and its Subject DN is the
+    declaration's, so the certificate IS the identity's credential -- its CN
+    equals identity_id, which the connection utility verifies at auth time.
+
+    Show-then-create, idempotent: a certificate already present under the
+    declared name is left untouched. The deploy mints a MISSING credential; it
+    does not rotate, overwrite, or grant. The database user and its role stay
+    manual entitlement work."""
+    for ident in (coll.identity_catalog or []):
+        cert = ident.get("certificate")
+        if not cert:
+            continue
+        kv_target = coll.by_target_id(cert["vault_target_ref"])
+        if kv_target is None:
+            raise ChatHealthyException(
+                mode="aborted",
+                component="cert_placement",
+                message=f"ERROR: identity {ident.get('identity_id')!r} names "
+                f"vault_target_ref {cert['vault_target_ref']!r}, which is not a target.")
+        vault_name = _kv_name_for_env(kv_target, env)
+        name = cert["vault_secret_name"]
+        subject = cert["subject_dn"]
+        if _kv_certificate_exists(vault_name, name):
+            _step(f"certificate {name!r} present in {vault_name}; leaving it")
+            continue
+        _step(f"minting self-signed certificate {name!r} subject={subject!r} in {vault_name}")
+        _mint_self_signed_certificate(vault_name, name, subject)
+
+
+def _kv_certificate_exists(vault_name: str, name: str) -> bool:
+    r = subprocess.run(
+        [
+            "az", "keyvault", "certificate", "show",
+            "--vault-name", vault_name,
+            "--name", name,
+        ],
+        capture_output=True, text=True,
+        creationflags=_cflags(), shell=(sys.platform == "win32"),
+    )
+    return r.returncode == 0
+
+
+def _mint_self_signed_certificate(vault_name: str, name: str, subject: str) -> None:
+    policy = {
+        "issuerParameters": {"name": "Self"},
+        "keyProperties": {
+            "exportable": True,
+            "keyType": "RSA",
+            "keySize": 2048,
+            "reuseKey": False,
+        },
+        "secretProperties": {"contentType": "application/x-pkcs12"},
+        "x509CertificateProperties": {
+            "subject": subject,
+            "validityInMonths": 12,
+            "keyUsage": ["digitalSignature", "keyEncipherment"],
+        },
+    }
+    fd, path = tempfile.mkstemp(suffix=".json")
+    try:
+        with os.fdopen(fd, "w", encoding="utf-8") as fh:
+            json.dump(policy, fh)
+        r = subprocess.run(
+            [
+                "az", "keyvault", "certificate", "create",
+                "--vault-name", vault_name,
+                "--name", name,
+                "--policy", f"@{path}",
+            ],
+            capture_output=True, text=True,
+            creationflags=_cflags(), shell=(sys.platform == "win32"),
+        )
+    finally:
+        try:
+            os.unlink(path)
+        except OSError:
+            pass
+    if r.returncode != 0:
+        raise ChatHealthyException(
+            mode="aborted",
+            component="cert_placement",
+            message=f"ERROR: minting certificate {name!r} in {vault_name} failed: "
+            f"{(r.stderr or '').strip()[:800]}")
 
 
