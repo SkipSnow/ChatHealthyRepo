@@ -13,7 +13,6 @@ a non-zero exit with the tail of stderr; no fallbacks.
 from __future__ import annotations
 
 import base64
-import json
 import os
 import subprocess
 import sys
@@ -144,15 +143,15 @@ def _kv_secret_value(vault_name: str, secret_name: str) -> str:
 
 
 def mint_declared_identity_certs_if_missing(coll, env: str) -> None:
-    """Mint every IdentityCatalog certificate that is declared but absent from
-    its vault. The certificate is self-signed and its Subject DN is the
-    declaration's, so the certificate IS the identity's credential -- its CN
-    equals identity_id, which the connection utility verifies at auth time.
-
-    Show-then-create, idempotent: a certificate already present under the
-    declared name is left untouched. The deploy mints a MISSING credential; it
-    does not rotate, overwrite, or grant. The database user and its role stay
-    manual entitlement work."""
+    """Issue each IdentityCatalog certificate that is declared but absent, in
+    the vault's established form: the identity's credential is a PLAIN secret
+    named <identity> holding the cert+key PEM (the connection utility reads it
+    and its connection-fact tags), plus cert-<identity> (public PEM) and
+    key-<identity> (private PEM). The certificate is issued by the ChatHealthy
+    Root CA whose cert and key live in the same vault, so the server (Atlas)
+    trusts it exactly as it trusts every other identity -- no per-identity CA
+    registration. Idempotent: a present credential is left untouched. It grants
+    nothing; the database user and its role stay manual entitlement work."""
     for ident in (coll.identity_catalog or []):
         cert = ident.get("certificate")
         if not cert:
@@ -165,68 +164,193 @@ def mint_declared_identity_certs_if_missing(coll, env: str) -> None:
                 message=f"ERROR: identity {ident.get('identity_id')!r} names "
                 f"vault_target_ref {cert['vault_target_ref']!r}, which is not a target.")
         vault_name = _kv_name_for_env(kv_target, env)
-        name = cert["vault_secret_name"]
-        subject = cert["subject_dn"]
-        if _kv_certificate_exists(vault_name, name):
-            _step(f"certificate {name!r} present in {vault_name}; leaving it")
-            continue
-        _step(f"minting self-signed certificate {name!r} subject={subject!r} in {vault_name}")
-        _mint_self_signed_certificate(vault_name, name, subject)
+        ca_cert = _kv_secret_value(vault_name, "ca-root-cert")
+        ca_key = _kv_secret_value(vault_name, "ca-root-privatekey")
+        mgr = DeploymentCertManager(vault_name, ca_cert, ca_key)
+        outcome = mgr.ensure(cert["vault_secret_name"], cert["subject_dn"])
+        _step(f"identity certificate {cert['vault_secret_name']!r} in "
+              f"{vault_name}: {outcome}")
 
 
-def _kv_certificate_exists(vault_name: str, name: str) -> bool:
-    r = subprocess.run(
-        [
-            "az", "keyvault", "certificate", "show",
-            "--vault-name", vault_name,
-            "--name", name,
-        ],
-        capture_output=True, text=True,
-        creationflags=_cflags(), shell=(sys.platform == "win32"),
-    )
-    return r.returncode == 0
+class DeploymentCertManager:
+    """Issues and stores one identity's certificate in one Key Vault.
 
+    The credential is CA-issued from the ChatHealthy Root CA (cert + key
+    supplied at construction), matching every other identity so the server
+    trusts it with no per-identity CA registration. It is stored as the three
+    plain secrets the connection utility and the deploy expect:
+      <identity>        combined cert+key PEM (read by the connector; the deploy
+                        tags its connection facts here)
+      cert-<identity>   public certificate PEM only
+      key-<identity>    private key PEM only
 
-def _mint_self_signed_certificate(vault_name: str, name: str, subject: str) -> None:
-    policy = {
-        "issuerParameters": {"name": "Self"},
-        "keyProperties": {
-            "exportable": True,
-            "keyType": "RSA",
-            "keySize": 2048,
-            "reuseKey": False,
-        },
-        "secretProperties": {"contentType": "application/x-pkcs12"},
-        "x509CertificateProperties": {
-            "subject": subject,
-            "validityInMonths": 12,
-            "keyUsage": ["digitalSignature", "keyEncipherment"],
-        },
-    }
-    fd, path = tempfile.mkstemp(suffix=".json")
-    try:
-        with os.fdopen(fd, "w", encoding="utf-8") as fh:
-            json.dump(policy, fh)
-        r = subprocess.run(
-            [
-                "az", "keyvault", "certificate", "create",
-                "--vault-name", vault_name,
-                "--name", name,
-                "--policy", f"@{path}",
-            ],
-            capture_output=True, text=True,
-            creationflags=_cflags(), shell=(sys.platform == "win32"),
+    ensure() leaves an existing identity credential untouched; rotate()
+    replaces it. The issued leaf matches the reference identity: RSA 2048,
+    1-year validity, sha256, subject DER order C,ST,O,CN, exactly two critical
+    extensions (basicConstraints ca=False, keyUsage digital_signature +
+    key_encipherment)."""
+
+    def __init__(self, vault_name: str, ca_cert_pem: str, ca_key_pem: str) -> None:
+        from cryptography import x509  # noqa: PLC0415
+        from cryptography.hazmat.primitives import serialization  # noqa: PLC0415
+        self._vault = vault_name
+        self._ca_cert = x509.load_pem_x509_certificate(ca_cert_pem.encode("ascii"))
+        self._ca_key = serialization.load_pem_private_key(
+            ca_key_pem.encode("ascii"), password=None)
+
+    def ensure(self, identity: str, subject_dn: str) -> str:
+        """Issue the identity's cert set only if the <identity> secret is
+        absent; an existing plain secret is left exactly as it is."""
+        if self._identity_secret_present(identity):
+            return "present"
+        self._issue_and_store(identity, subject_dn)
+        return "issued"
+
+    def rotate(self, identity: str, subject_dn: str) -> str:
+        """Replace the identity's cert set with a freshly issued one."""
+        self._issue_and_store(identity, subject_dn)
+        return "rotated"
+
+    def _issue_and_store(self, identity: str, subject_dn: str) -> None:
+        cert_pem, key_pem = self._ca_issue(identity, subject_dn)
+        # A KV-managed certificate object owns the <identity> secret name and
+        # blocks a plain secret there; clear any such object first.
+        self._purge_cert_object(identity)
+        combined = cert_pem.rstrip("\n") + "\n" + key_pem.rstrip("\n") + "\n"
+        self._secret_set(identity, combined)
+        self._secret_set(f"cert-{identity}", cert_pem.rstrip("\n") + "\n")
+        self._secret_set(f"key-{identity}", key_pem.rstrip("\n") + "\n")
+
+    def _ca_issue(self, identity: str, subject_dn: str) -> tuple[str, str]:
+        import datetime  # noqa: PLC0415
+        from cryptography import x509  # noqa: PLC0415
+        from cryptography.hazmat.primitives import hashes, serialization  # noqa: PLC0415
+        from cryptography.hazmat.primitives.asymmetric import rsa  # noqa: PLC0415
+        leaf_key = rsa.generate_private_key(public_exponent=65537, key_size=2048)
+        now = datetime.datetime.now(datetime.timezone.utc)
+        cert = (
+            x509.CertificateBuilder()
+            .subject_name(self._subject_name(subject_dn, identity))
+            .issuer_name(self._ca_cert.subject)
+            .public_key(leaf_key.public_key())
+            .serial_number(x509.random_serial_number())
+            .not_valid_before(now)
+            .not_valid_after(now + datetime.timedelta(days=365))
+            .add_extension(
+                x509.BasicConstraints(ca=False, path_length=None), critical=True)
+            .add_extension(
+                x509.KeyUsage(
+                    digital_signature=True, content_commitment=False,
+                    key_encipherment=True, data_encipherment=False,
+                    key_agreement=False, key_cert_sign=False, crl_sign=False,
+                    encipher_only=False, decipher_only=False),
+                critical=True)
+            .sign(self._ca_key, hashes.SHA256())
         )
-    finally:
+        cert_pem = cert.public_bytes(serialization.Encoding.PEM).decode("ascii")
+        key_pem = leaf_key.private_bytes(
+            serialization.Encoding.PEM,
+            serialization.PrivateFormat.PKCS8,
+            serialization.NoEncryption()).decode("ascii")
+        return cert_pem, key_pem
+
+    def _subject_name(self, subject_dn: str, identity: str):
+        """Build the subject in the DER attribute order the reference identity
+        uses (C, ST, O, CN) so the server derives the same RFC-2253 DN."""
+        from cryptography import x509  # noqa: PLC0415
+        from cryptography.x509.oid import NameOID  # noqa: PLC0415
+        parts: dict = {}
+        for piece in subject_dn.split(","):
+            if "=" in piece:
+                k, v = piece.split("=", 1)
+                parts[k.strip().upper()] = v.strip()
+        ordered = [
+            (NameOID.COUNTRY_NAME, parts.get("C")),
+            (NameOID.STATE_OR_PROVINCE_NAME, parts.get("ST")),
+            (NameOID.ORGANIZATION_NAME, parts.get("O")),
+            (NameOID.COMMON_NAME, parts.get("CN") or identity),
+        ]
+        return x509.Name([x509.NameAttribute(o, v) for o, v in ordered if v])
+
+    def _identity_secret_present(self, identity: str) -> bool:
+        """True when a PLAIN secret <identity> exists (not a cert-managed one)."""
+        r = subprocess.run(
+            ["az", "keyvault", "secret", "show", "--vault-name", self._vault,
+             "--name", identity, "--query", "managed", "-o", "tsv"],
+            capture_output=True, text=True,
+            creationflags=_cflags(), shell=(sys.platform == "win32"))
+        if r.returncode != 0:
+            return False
+        return (r.stdout or "").strip().lower() != "true"
+
+    def _purge_cert_object(self, name: str) -> None:
+        import time  # noqa: PLC0415
+        if subprocess.run(
+                ["az", "keyvault", "certificate", "show", "--vault-name",
+                 self._vault, "--name", name],
+                capture_output=True, text=True, creationflags=_cflags(),
+                shell=(sys.platform == "win32")).returncode != 0:
+            return
+        subprocess.run(
+            ["az", "keyvault", "certificate", "delete", "--vault-name",
+             self._vault, "--name", name],
+            capture_output=True, text=True, creationflags=_cflags(),
+            shell=(sys.platform == "win32"))
+        for i in range(30):
+            if subprocess.run(
+                    ["az", "keyvault", "certificate", "show-deleted",
+                     "--vault-name", self._vault, "--name", name],
+                    capture_output=True, text=True, creationflags=_cflags(),
+                    shell=(sys.platform == "win32")).returncode == 0:
+                subprocess.run(
+                    ["az", "keyvault", "certificate", "purge", "--vault-name",
+                     self._vault, "--name", name],
+                    capture_output=True, text=True, creationflags=_cflags(),
+                    shell=(sys.platform == "win32"))
+                _step(f"purged stale certificate object {name!r}")
+                break
+            _step(f"waiting on {name!r} certificate soft-delete (poll {i})")
+            time.sleep(2)
+        self._wait_secret_name_free(name)
+
+    def _wait_secret_name_free(self, name: str) -> None:
+        """The cert purge is eventually consistent; the backing secret stays
+        certificate-associated for a moment, so a plain `secret set` is refused.
+        Wait until the name resolves to NotFound."""
+        import time  # noqa: PLC0415
+        for i in range(30):
+            if subprocess.run(
+                    ["az", "keyvault", "secret", "show", "--vault-name",
+                     self._vault, "--name", name],
+                    capture_output=True, text=True, creationflags=_cflags(),
+                    shell=(sys.platform == "win32")).returncode != 0:
+                if i:
+                    _step(f"secret name {name!r} free after {i} poll(s)")
+                return
+            _step(f"waiting for {name!r} secret name to free (poll {i})")
+            time.sleep(2)
+
+    def _secret_set(self, name: str, pem: str) -> None:
+        fd, path = tempfile.mkstemp(suffix=".pem")
         try:
-            os.unlink(path)
-        except OSError:
-            pass
-    if r.returncode != 0:
-        raise ChatHealthyException(
-            mode="aborted",
-            component="cert_placement",
-            message=f"ERROR: minting certificate {name!r} in {vault_name} failed: "
-            f"{(r.stderr or '').strip()[:800]}")
+            with os.fdopen(fd, "wb") as fh:
+                fh.write(pem.encode("ascii"))  # LF bytes; no CRLF translation
+            r = subprocess.run(
+                ["az", "keyvault", "secret", "set", "--vault-name", self._vault,
+                 "--name", name, "--file", path, "--encoding", "utf-8"],
+                capture_output=True, text=True, creationflags=_cflags(),
+                shell=(sys.platform == "win32"))
+            if r.returncode != 0:
+                raise ChatHealthyException(
+                    mode="aborted",
+                    component="cert_placement",
+                    message=f"ERROR: storing secret {name!r} in {self._vault} "
+                    f"failed: {(r.stderr or '').strip()[:400]}")
+            _step(f"stored secret {name!r} ({len(pem)} bytes)")
+        finally:
+            try:
+                os.unlink(path)
+            except OSError:
+                pass
 
 
