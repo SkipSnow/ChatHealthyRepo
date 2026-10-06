@@ -3274,6 +3274,14 @@ def deploy_one(
         return pad.verify_resource_group(target, env)
     if target_kind == "azure_key_vault":
         vault = pad.verify_key_vault(target, env)
+        # Mint each identity's declared certificate into this vault when it is
+        # missing (show-then-create, idempotent) BEFORE the fact-tagging below:
+        # seed_kv_facts_from_manifest tags connection facts onto every service
+        # principal's cert secret, and would fail on a declared identity whose
+        # certificate was never minted. Grants nothing: the database user and
+        # its role stay manual entitlement work.
+        from cert_placement import mint_declared_identity_certs_if_missing
+        mint_declared_identity_certs_if_missing(coll, env)
         secret_names = [
             k.replace("_", "-") if "-" not in k else k
             for k in (target.secrets or {}).keys()
@@ -3286,11 +3294,6 @@ def deploy_one(
             vault, target.secrets or {},
             [i["identity_id"] for i in (coll.identity_catalog or [])
              if i.get("identity_class") == "service_principal"])
-        # Mint each identity's declared certificate into this vault when it is
-        # missing (show-then-create, idempotent). Grants nothing: the database
-        # user and its role stay manual entitlement work.
-        from cert_placement import mint_declared_identity_certs_if_missing
-        mint_declared_identity_certs_if_missing(coll, env)
         return vault
     if target_kind == "azure_storage_account":
         return pad.ensure_storage_containers(target, env)
