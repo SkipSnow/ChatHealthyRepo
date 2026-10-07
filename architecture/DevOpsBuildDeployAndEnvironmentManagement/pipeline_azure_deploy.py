@@ -466,7 +466,7 @@ def ensure_vnet_nat_gateway(target, env: str) -> None:
     if _az(["network", "nat", "gateway", "show", "-g", rg, "-n", natgw],
            check=False).returncode != 0:
         _az(["network", "nat", "gateway", "create", "-g", rg, "-n", natgw,
-             "--location", location, "--sku", "Standard",
+             "--location", location,
              "--public-ip-addresses", pip_name])
     sub = _az_json(["network", "vnet", "subnet", "show", "-g", rg,
                     "--vnet-name", vnet, "-n", landing])
