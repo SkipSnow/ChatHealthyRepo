@@ -490,8 +490,17 @@ class BasePipelineOrchestrator:
             parts = state_entity_partitions(states)
         else:
             parts = state_partitions(states)
-        has_all_catchall = any(
-            p.get("business_address_state") == "ALL" for p in parts)
+            # Re-key the state partitions to the step's DECLARED state key, so a
+            # step that fans by provider_state receives {provider_state: <code>}
+            # rather than the enumerator's native business_address_state key.
+            # Provider declares business_address_state (byte-identical); Medicare
+            # declares provider_state, which its steps read. A non-geographic key
+            # (e.g. nucc_code) is NOT state-scoped: the base enumerator is
+            # geographic only, so it keeps the native key and a non-geographic
+            # fan-out needs its own enumerator (BUG-014).
+            if key in ("provider_state", "business_address_state"):
+                parts = [{key: next(iter(p.values()))} for p in parts]
+        has_all_catchall = any("ALL" in p.values() for p in parts)
         _log.LogPipeline(
             "INFO",
             "orchestrator fan-out step=%s partition_key=%s scope=%s "

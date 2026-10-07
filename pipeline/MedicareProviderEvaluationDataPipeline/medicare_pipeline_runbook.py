@@ -9,7 +9,8 @@ Topology" section).
 Duties, mirroring the provider runbook but creating a Controller VM rather than a
 combined run VM:
   1. Read the webhook payload (data_version is mandatory; build_indication_map
-     optional).
+     and states optional -- states defaults to ["ALL"] and is forwarded to the
+     Controller as --states, driving the per-state fan-out exactly as provider).
   2. Acquire the per-pipeline lock and write a run manifest on the always-on
      front-end cluster.
   3. ARM-PUT one small Controller VM, authenticating as pipelineEditor (which
@@ -234,12 +235,13 @@ def _release_pipeline_lock(mongo, run_id: str) -> None:
 
 
 def _write_run_manifest(mongo, run_id: str, data_version: int,
-                        build_indication_map: bool, invocation_mode: str) -> None:
+                        build_indication_map: bool, invocation_mode: str,
+                        states: list[str]) -> None:
     mongo[PIPELINE_ADMIN_DB]["pipeline.runs"].insert_one({
         "run_id": run_id, "pipeline_name": PIPELINE_NAME, "env": ENV_PREFIX,
         "status": "running", "started_at": datetime.datetime.utcnow(),
         "invocation_mode": invocation_mode, "data_version": data_version,
-        "build_indication_map": build_indication_map})
+        "build_indication_map": build_indication_map, "states": states})
 
 
 def _create_reservation(mongo, run_id: str, vm_name: str) -> None:
@@ -264,7 +266,7 @@ def _get_ssh_pubkey() -> str:
 
 def _controller_cloud_init(run_id: str, data_version: int,
                            build_indication_map: bool, vm_name: str,
-                           debug_level: str) -> str:
+                           debug_level: str, states: list[str]) -> str:
     """Base64 cloud-init for the Controller VM: pull the image, run the Medicare
     control_runner with WORKER_COMPUTE=vm so the orchestrator provisions Worker
     VMs, then self-delete. The Controller presents pipelineController for ARM
@@ -325,7 +327,7 @@ runcmd:
       --entrypoint python {image} \\
       pipeline/run_lifecycle/bootstrap.py \\
       pipeline/MedicareProviderEvaluationDataPipeline/control_runner.py \\
-      --run-id {run_id} --env-prefix {ENV_PREFIX} --data-version {data_version} {bim}
+      --run-id {run_id} --env-prefix {ENV_PREFIX} --data-version {data_version} --states {",".join(states)} {bim}
     echo "chcontrol: controller exit=$? $(date -u +%FT%TZ)"
     set -e
     az login --service-principal --username '{cc}' --password '{cs}' --tenant '{ct}' || true
@@ -354,7 +356,8 @@ def _put(url: str, body: dict, tok: str) -> dict:
 
 
 def _provision_controller_vm(run_id: str, data_version: int,
-                             build_indication_map: bool, debug_level: str) -> dict:
+                             build_indication_map: bool, debug_level: str,
+                             states: list[str]) -> dict:
     tok = _get_token("https://management.azure.com/")
     vm_name = f"vm-chcontrol-{_short(run_id)}"
     nic_name = f"{vm_name}-nic"
@@ -369,7 +372,7 @@ def _provision_controller_vm(run_id: str, data_version: int,
                        "properties": {"subnet": {"id": subnet_id},
                                       "privateIPAllocationMethod": "Dynamic"}}]}}, tok)
     user_data = _controller_cloud_init(run_id, data_version, build_indication_map,
-                                       vm_name, debug_level)
+                                       vm_name, debug_level, states)
     vm_url = (f"https://management.azure.com/subscriptions/{SUBSCRIPTION_ID}"
               f"/resourceGroups/{RESOURCE_GROUP}/providers/Microsoft.Compute/"
               f"virtualMachines/{vm_name}?api-version=2024-03-01")
@@ -436,6 +439,43 @@ def _raise_missing_data_version(body) -> None:
         component="medicare_pipeline_runbook", webhook_body_head=str(body)[:400])
 
 
+def _raise_illegal_states(raw) -> None:
+    raise ChatHealthyException(
+        mode="value_error",
+        message="medicare_pipeline_runbook: states must be either [\"ALL\"] alone "
+                "or a non-empty list of state codes with no \"ALL\" among them. "
+                f"Got {raw!r}. Fire again with a legal scope.",
+        component="medicare_pipeline_runbook")
+
+
+def _resolve_states(raw) -> list[str]:
+    """Parse the webhook states into the provider-identical scope: ["ALL"] alone
+    (the whole country -- one worker per state plus the ALL catch-all), or a
+    non-empty list of state codes with no "ALL" among them. Absent -> ["ALL"].
+    Illegal shapes (empty, or "ALL" mixed with states) abend here, at the parse,
+    so no downstream step has to guard them."""
+    if raw is None:
+        return ["ALL"]
+    if isinstance(raw, list):
+        scope = raw
+    elif isinstance(raw, str):
+        scope = None
+        if raw.strip().startswith("["):
+            try:
+                parsed = json.loads(raw)
+                scope = parsed if isinstance(parsed, list) else None
+            except Exception:  # noqa: BLE001
+                scope = None
+        if scope is None:
+            scope = raw.split(",")
+    else:
+        scope = ["ALL"]
+    scope = [str(s).strip().upper() for s in scope if str(s).strip()]
+    if not scope or ("ALL" in scope and len(scope) != 1):
+        _raise_illegal_states(raw)
+    return scope
+
+
 def _run() -> int:
     run_id = str(uuid.uuid4())
     os.environ["RUN_ID"] = run_id
@@ -455,10 +495,17 @@ def _run() -> int:
                       or DEBUG_LEVEL_DEFAULT).strip().upper()
     if debug_level not in _VALID_LOG_LEVELS:
         debug_level = DEBUG_LEVEL_DEFAULT
+    # Fan-out scope. Accept `states` (and provider's `state_scope` alias);
+    # absent -> ["ALL"] (the whole country). Provider-identical semantics.
+    states_raw = (body or {}).get("states")
+    if states_raw is None:
+        states_raw = (body or {}).get("state_scope")
+    states = _resolve_states(states_raw)
 
     log("runbook_start", pipeline=PIPELINE_NAME, env=ENV_PREFIX,
         invocation_mode=invocation_mode, data_version=data_version,
-        build_indication_map=build_indication_map, debug_level=debug_level)
+        build_indication_map=build_indication_map, debug_level=debug_level,
+        states=states)
 
     runbook_owns_lock = False
     reservation_created = False
@@ -473,10 +520,12 @@ def _run() -> int:
                 live_run_id=blocking.get("run_id"))
             return 1
         runbook_owns_lock = True
-        _write_run_manifest(mongo, run_id, data_version, build_indication_map, invocation_mode)
+        _write_run_manifest(mongo, run_id, data_version, build_indication_map,
+                            invocation_mode, states)
         log("run_manifest_written", run_id=run_id)
 
-        _provision_controller_vm(run_id, data_version, build_indication_map, debug_level)
+        _provision_controller_vm(run_id, data_version, build_indication_map,
+                                 debug_level, states)
         runbook_owns_lock = False  # Controller owns lock release from here
         log("controller_vm_provisioned", run_id=run_id, vm_name=vm_name)
         _create_reservation(mongo, run_id, vm_name)
