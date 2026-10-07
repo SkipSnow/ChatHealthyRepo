@@ -3299,9 +3299,12 @@ def deploy_one(
         return pad.ensure_storage_containers(target, env)
     if target_kind == "azure_vnet":
         result = pad.ensure_vnet_subnets(target, env)
+        # The public IP is independent of the Atlas private link; provision it
+        # before the private-endpoint step so it is not coupled to Atlas and a
+        # deferred/again-failing private route cannot block it.
+        pad.ensure_public_ip(target, env)
         pad.ensure_vnet_private_dns_zones(target, env)
         pad.ensure_vnet_private_endpoints(target, env, coll)
-        pad.ensure_public_ip(target, env)
         return result
     if target_kind == "atlas":
         # This target's packages -- config documents, config collections and
