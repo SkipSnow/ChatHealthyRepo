@@ -33,6 +33,7 @@ COPY pipeline/data_release /app/pipeline/data_release
 COPY pipeline/provider_base /app/pipeline/provider_base
 COPY pipeline/provider_enrichment /app/pipeline/provider_enrichment
 COPY pipeline/provider_pipeline /app/pipeline/provider_pipeline
+COPY pipeline/MedicareProviderEvaluationDataPipeline /app/pipeline/MedicareProviderEvaluationDataPipeline
 
 # Brain metadata (single source of truth per operator directive 2026-07-31).
 # pipeline_config.py resolves this file relative to its own location via

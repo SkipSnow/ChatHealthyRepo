@@ -4443,6 +4443,80 @@
                 "DEVOPSUSER_AZURE_TENANT_ID": "Tenant the report enumerates. Not a secret.",
                 "DEVOPSUSER_AZURE_CLIENT_ID": "Identity the report runs as. Not a secret."
               }
+            },
+            {
+              "package_id": "medicare_pipeline",
+              "kind": "runbook",
+              "files": [
+                {
+                  "feature_id": "EPIC-010-F-007",
+                  "source_location": "pipeline/MedicareProviderEvaluationDataPipeline/medicare_pipeline_runbook.py",
+                  "handler_type": "python_source",
+                  "disposition": "referenced",
+                  "content_hash": "d9da875b1d3b43a452ee037fcb1b147db0c078f487b2cd8344f280432ecff40c",
+                  "package": "medicare_pipeline"
+                }
+              ],
+              "secrets": {
+                "ATLAS_PUBLIC_KEY": "local_env",
+                "ATLAS_PRIVATE_KEY": "local_env",
+                "ATLAS_PROJECT_ID": "local_env",
+                "AZURE_STORAGE_CONNECTION_STRING": "local_env",
+                "KEY_VAULT_URI": "local_env",
+                "AZ_VM_ADMIN_SSH_PUBKEY": "local_env",
+                "PIPELINEEDITOR_AZURE_TENANT_ID": "local_env",
+                "PIPELINEEDITOR_AZURE_CLIENT_ID": "local_env",
+                "PIPELINEEDITOR_AZURE_CLIENT_SECRET": "local_env",
+                "PIPELINE_SECRET_NAMES": "local_env",
+                "CH_LOG_DB": "local_env",
+                "SPARKMAIL_API_KEY": "local_env",
+                "NOTIFICATION_FROM_EMAIL": "local_env",
+                "NOTIFICATION_TO_EMAIL": "local_env",
+                "ATLAS_PIPELINE_PUBLIC_KEY": "local_env",
+                "ATLAS_PIPELINE_PRIVATE_KEY": "local_env",
+                "GEMINI_API_KEY": "local_env",
+                "OPENAI_API_KEY": "local_env",
+                "CH_EMBEDDING_MODEL": "firm:embedding_model",
+                "PIPELINECONTROLLER_AZURE_TENANT_ID": "local_env",
+                "PIPELINECONTROLLER_AZURE_CLIENT_ID": "local_env",
+                "PIPELINECONTROLLER_AZURE_CLIENT_SECRET": "local_env",
+                "CONTROLLER_VM_SIZE": "local_env",
+                "WORKER_VM_SIZE": "local_env"
+              },
+              "config": {
+                "runbook_name": "MedicarePipelineRunbook",
+                "schedule_names": [],
+                "python_packages": [
+                  {
+                    "name": "pymongo",
+                    "content_url": "https://files.pythonhosted.org/packages/38/52/a58196a45232e9046c8b13f4fa3d89cca0e462b5c6d28969759226f781ee/pymongo-4.10.1-cp38-cp38-win_amd64.whl"
+                  },
+                  {
+                    "name": "dnspython",
+                    "content_url": "https://files.pythonhosted.org/packages/87/a1/8c5287991ddb8d3e4662f71356d9656d91ab3a36618c3dd11b280df0d255/dnspython-2.6.1-py3-none-any.whl"
+                  },
+                  {
+                    "name": "certifi",
+                    "content_url": "https://files.pythonhosted.org/packages/59/8c/57e832b7af6d7c5abe66eb3fbe3a3a32f4d11ea23a1aa7131371035be991/certifi-2026.5.20-py3-none-any.whl"
+                  },
+                  {
+                    "name": "reportlab",
+                    "content_url": "https://files.pythonhosted.org/packages/cc/da/de8af288738de0980a7e982c62853efe9994ee7d07e59ed20fdccc8a658e/reportlab-4.0.9-py3-none-any.whl"
+                  }
+                ],
+                "automation_variables": [],
+                "node_address": "https://management.azure.com/.../automationAccounts/ChatHealthyJobManager/runbooks/MedicarePipelineRunbook",
+                "webhook_to_kv": {
+                  "webhook_name": "ProviderPipelineOnDemand",
+                  "kv_vault": "kv-chpipeline-dev",
+                  "kv_secret_name": "PROVIDER-PIPELINE-WEBHOOK-URL"
+                }
+              },
+              "secret_descriptions": {
+                "AZ_VM_ADMIN_SSH_PUBKEY": "Public key permitted to reach the pipeline run host",
+                "PIPELINE_SECRET_NAMES": "Which vault secrets the pipeline run host is permitted to read",
+                "CH_LOG_DB": "Database the structured log records are written to"
+              }
             }
           ],
           "platforms": [
@@ -11088,7 +11162,9 @@
       "object_id": "52ce2251-9bb3-4b69-918f-838d55dc916d",
       "roles": [
         "Key Vault Secrets User",
-        "role_pipeline_controller"
+        "role_pipeline_controller",
+        "Virtual Machine Contributor",
+        "Network Contributor"
       ],
       "certificate": {
         "subject_dn": "CN=pipelineController,O=ChatHealthy,ST=California,C=US",

@@ -299,31 +299,54 @@ class BasePipelineOrchestrator:
         # only in both directions. The prior PIPE+subprocess.Popen design
         # deadlocked NPPES on 64KB kernel-buffer fill; that failure mode is
         # structurally impossible now because no pipe exists between them.
-        worker_pids: list[int] = []
-        for replica in range(max_parallel):
-            pid = spawn_detached_worker(
-                [sys.executable, worker_py, spec.name,
-                 "--replica", str(replica),
-                 "--run-id", run_id],
-                env=env,
+        # Worker compute shape. Default 'subprocess' (single-VM run): workers
+        # are detached subprocesses on this VM, unchanged. 'vm' (two-VM run):
+        # one ephemeral Worker VM per partition, each booting pipeline_worker.py
+        # to claim one of the work_items enqueued above. A pipeline opts in by
+        # declaring worker_compute='vm' in its config; every current pipeline
+        # leaves it unset and keeps the subprocess path below untouched. The
+        # wait/aggregate loop that follows watches work_item heartbeats, not
+        # process handles, so it is identical for both shapes.
+        worker_compute = str(
+            ctx.config.get("worker_compute")
+            or os.environ.get("WORKER_COMPUTE", "subprocess")
+        ).strip().lower()
+        if worker_compute == "vm":
+            from pipeline.run_lifecycle.worker_vm_provisioning import provision_worker_vm
+            worker_vms: list[str] = []
+            for replica in range(len(partitions)):
+                res = provision_worker_vm(run_id, spec.name, replica)
+                worker_vms.append(res.get("vm_name"))
+            _log.LogPipeline("INFO",
+                "orchestrator provisioned worker VMs step=%s workers=%d vms=%s",
+                spec.name, len(worker_vms), worker_vms,
             )
-            worker_pids.append(pid)
-        # Declared in THIS process's environment, not the child's: it is
-        # bootstrap's atexit here that would otherwise unlink the identity
-        # certificate these detached children authenticate with. They are
-        # reparented to init and outlive us; their credential must not be
-        # deleted on our way out.
-        os.environ["CHATHEALTHY_DETACHED_CHILDREN"] = str(
-            len(worker_pids)
-            + int(os.environ.get("CHATHEALTHY_DETACHED_CHILDREN", "0") or 0)
-        )
-        _log.LogPipeline("INFO", 
-            "orchestrator spawned step=%s workers=%d worker_py=%s pids=%s "
-            "detached_children_total=%s cert=%s",
-            spec.name, max_parallel, worker_py, worker_pids,
-            os.environ["CHATHEALTHY_DETACHED_CHILDREN"],
-            os.environ.get("CHATHEALTHY_CERT_PATH", "<unset>"),
-        )
+        else:
+            worker_pids: list[int] = []
+            for replica in range(max_parallel):
+                pid = spawn_detached_worker(
+                    [sys.executable, worker_py, spec.name,
+                     "--replica", str(replica),
+                     "--run-id", run_id],
+                    env=env,
+                )
+                worker_pids.append(pid)
+            # Declared in THIS process's environment, not the child's: it is
+            # bootstrap's atexit here that would otherwise unlink the identity
+            # certificate these detached children authenticate with. They are
+            # reparented to init and outlive us; their credential must not be
+            # deleted on our way out.
+            os.environ["CHATHEALTHY_DETACHED_CHILDREN"] = str(
+                len(worker_pids)
+                + int(os.environ.get("CHATHEALTHY_DETACHED_CHILDREN", "0") or 0)
+            )
+            _log.LogPipeline("INFO",
+                "orchestrator spawned step=%s workers=%d worker_py=%s pids=%s "
+                "detached_children_total=%s cert=%s",
+                spec.name, max_parallel, worker_py, worker_pids,
+                os.environ["CHATHEALTHY_DETACHED_CHILDREN"],
+                os.environ.get("CHATHEALTHY_CERT_PATH", "<unset>"),
+            )
 
         # 3. Wait for terminal state on every work_item. Poll every 5s.
         #    Crash detection is heartbeat-based (not p.poll()) so the

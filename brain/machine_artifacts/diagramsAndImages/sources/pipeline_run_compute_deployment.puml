@@ -1,0 +1,71 @@
+@startuml pipeline_run_compute_deployment
+title ChatHealthy Pipelines - Run Compute Deployment\nSingle-VM (provider, backward compatible) and Two-VM (new pipelines)
+skinparam shadowing false
+skinparam defaultFontName Segoe UI
+skinparam defaultFontSize 11
+skinparam componentStyle rectangle
+skinparam linetype ortho
+skinparam nodesep 10
+skinparam ranksep 16
+skinparam ArrowColor #0b7a75
+skinparam ComponentBorderColor #0b7a75
+skinparam DatabaseBorderColor #6b7280
+skinparam NoteBackgroundColor #f3f4f6
+skinparam NoteBorderColor #9ca3af
+
+legend top left
+  Compute a run is given. The trigger tier and the data tier are shared;
+  only the run's VM topology differs. Provider keeps the single-VM shape it
+  has today; new pipelines (e.g. Medicare) run the two-VM shape.
+end legend
+
+rectangle "Trigger tier - Azure Automation Runbook\nauthenticates as pipelineEditor (Virtual Machine + Network Contributor)\nfires on schedule/webhook, writes the run manifest, exits in seconds" as RB #eef4fb
+
+frame "A - Single-VM run   (provider - UNCHANGED, backward compatible)" as A #f3faf3 {
+  node "Pipeline Run VM   Standard_D32s_v6   (ephemeral, per run)" as AVM #eaf3ea {
+    component "Controller\ncontrol_runner" as ACTL #dbe9f7
+    component "Worker\nspawned locally as a subprocess, per partition" as AWK #dbe9f7
+  }
+}
+
+frame "B - Two-VM run   (new pipelines - e.g. Medicare)" as B #fff8ef {
+  node "Controller VM   (small, ephemeral)\nidentity: pipelineController - front-end Mongo only\nholds the DevOps trust-anchor key - status API :6969 (mTLS)" as BCTL #eaf3ea {
+    component "Controller\ncontrol_runner\nenqueues work_items; provisions Worker VMs at fan-out" as BCTLC #dbe9f7
+  }
+  node "Worker VM x N   (big compute, ephemeral, per run)" as BWK #eaf3ea {
+    component "resident worker-agent\nstarted by cloud-init at boot\nclaims work_items, spawns the worker, heartbeats" as BWKA #dbe9f7
+  }
+}
+
+rectangle "Data tier" as DAT #ffffff {
+  database "Front-end cluster (always-on)\nfrontend.pipelineAdmin - coordination + work_items" as FE #fdf3d8
+  database "Pipeline cluster (resumed for the run)\nstaging + built collections" as PC #fdf3d8
+}
+
+RB --> AVM : ARM PUT: create the run VM (provider)
+RB --> BCTL : ARM PUT: create the Controller VM (new pipelines)
+BCTLC --> BWK : ARM PUT: create Worker VM(s) at each fan-out step
+BCTLC --> FE : enqueue one work_item per partition
+BWKA --> FE : claim / heartbeat / complete
+ACTL --> FE : run manifest / work_items
+ACTL --> PC : staging + built data
+BWKA --> PC : staging + built data
+BCTLC --> PC : resume + scale
+
+note bottom of B
+  Coordination is the Mongo work_items collection ONLY - no controller->worker channel.
+  The worker VM self-deletes on clean exit; the watchdog reaps what is left behind.
+
+  Cardinality per step (PROPOSAL - confirm or correct):
+    - source fetch / freshness / archival : one worker per source
+    - NPI file / per-provider build + enrich : one worker per state - 52, or the
+      states passed as run args - the same fan-out the provider pipeline uses
+    - specialty rollup, indication-map build, conformance : single worker
+
+  pipelineController holds the Azure rights it needs to create Worker VMs and
+  creates them directly - the rights follow the work. Its Mongo access stays
+  confined to the front-end cluster's pipelineAdmin; the compute-plane grant is
+  separate.
+end note
+
+@enduml
