@@ -4492,7 +4492,9 @@
                 "AUTOMATION_VM_IMAGE_REPO": "local_env",
                 "AUTOMATION_VM_IMAGE_TAG": "local_env",
                 "CH_MONGO_HOST_CHATHEALTHYFRONTEND": "rename_from:MONGO_HOST_CHATHEALTHYFRONTEND",
-                "CH_MONGO_HOST_CHATHEALTHYDATAPIPELINES": "rename_from:MONGO_HOST_CHATHEALTHYDATAPIPELINES"
+                "CH_MONGO_HOST_CHATHEALTHYDATAPIPELINES": "rename_from:MONGO_HOST_CHATHEALTHYDATAPIPELINES",
+                "MONGO_HOST_CHATHEALTHYFRONTEND": "local_env",
+                "MONGO_HOST_CHATHEALTHYDATAPIPELINES": "local_env"
               },
               "config": {
                 "runbook_name": "MedicarePipelineRunbook",
