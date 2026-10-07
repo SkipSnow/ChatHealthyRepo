@@ -4520,9 +4520,9 @@
                 "automation_variables": [],
                 "node_address": "https://management.azure.com/.../automationAccounts/ChatHealthyJobManager/runbooks/MedicarePipelineRunbook",
                 "webhook_to_kv": {
-                  "webhook_name": "ProviderPipelineOnDemand",
+                  "webhook_name": "MedicarePipelineOnDemand",
                   "kv_vault": "kv-chpipeline-dev",
-                  "kv_secret_name": "PROVIDER-PIPELINE-WEBHOOK-URL"
+                  "kv_secret_name": "MEDICARE-PIPELINE-WEBHOOK-URL"
                 }
               },
               "secret_descriptions": {
