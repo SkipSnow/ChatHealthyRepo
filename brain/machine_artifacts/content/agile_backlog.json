@@ -11804,7 +11804,7 @@
               "feature_id": "EPIC-008-F-013",
               "orphan": false,
               "name": "Conversation Archive",
-              "sourceLocation": "architecture",
+              "sourceLocation": "architecture/ClaudeCodeConversationPersistence",
               "status": "in_progress",
               "description": "Every operator utterance and every Claude response is recorded as business data in the conversation archive. Capture never delays the interaction and never loses an utterance because something downstream is unavailable, except as an extreme defence. Credentials, secrets and offensive language are removed before anything is archived. Content that never reaches the archive is not kept indefinitely, and the archive is re-examined as knowledge of credentials grows. Every utterance is classified so the archive can be reasoned about. The document shape is governed by https://dev.chathealthy.ai/schemas/ChatHealthyDevOpsUtteranceSchema.json",
               "priority": "HIGH",
