@@ -406,8 +406,8 @@ def ensure_vnet_subnets(target, env: str) -> str:
 def ensure_public_ip(target, env: str):
     """Reserve the VNET's declared Standard static Public IP (show-then-create)
     and return its allocated address. No-op returning None when the azure_vnet
-    block declares no public_ip. The address is stable; the controller host
-    attaches to it when that host is provisioned."""
+    block declares no public_ip. The address is stable and ensure_vnet_nat_gateway maps it to the run-VM
+    subnet, so every VM that lands there egresses from it."""
     block = _env_block(target, env, "azure_vnet")
     pip = block.get("public_ip")
     if not pip:
@@ -429,7 +429,54 @@ def ensure_public_ip(target, env: str):
         ])
     addr = _az_json(["network", "public-ip", "show", "-g", rg, "-n", name]).get("ipAddress", "")
     step(f"public ip {name} address = {addr}")
+    # Reserving the IP and mapping it to the run-VM subnet are one deployment
+    # deliverable, so the NAT-gateway mapping rides the same ensure call.
+    ensure_vnet_nat_gateway(target, env)
     return addr
+
+
+def ensure_vnet_nat_gateway(target, env: str) -> None:
+    """Permanently map the run-VM landing subnet to the declared static public
+    IP through a NAT gateway, so every ephemeral controller/worker VM that lands
+    in the subnet egresses from the one stable address (DNS
+    datapipelines.chathealthy.ai) with no per-run IP wiring. This is a
+    deployment deliverable, not a runtime one: done once and left alone.
+
+    Idempotent: creates the NAT gateway only if absent, and associates the
+    landing subnet only if it is not already on it. No-op when the azure_vnet
+    block declares no public_ip."""
+    block = _env_block(target, env, "azure_vnet")
+    pip = block.get("public_ip")
+    if not pip:
+        return
+    rg = block["resource_group"]
+    vnet = block["vnet_name"]
+    pip_name = pip["name"]
+    natgw = pip.get("nat_gateway_name") or pip_name.replace("pip-", "natgw-", 1)
+    landing = next((s["name"] for s in (block.get("subnets") or [])
+                    if s.get("purpose") == "pipeline_run_vm_landing"), None)
+    if not landing:
+        raise ChatHealthyException(
+            mode="manifest_incomplete",
+            message="azure_vnet declares a public_ip but no subnet with purpose "
+                    "'pipeline_run_vm_landing' to attach the NAT gateway to.",
+            component="pipeline_azure_deploy")
+    location = _az_json(["group", "show", "--name", rg]).get("location", "eastus2")
+    step(f"ensure NAT gateway {natgw} -> public ip {pip_name}")
+    if _az(["network", "nat", "gateway", "show", "-g", rg, "-n", natgw],
+           check=False).returncode != 0:
+        _az(["network", "nat", "gateway", "create", "-g", rg, "-n", natgw,
+             "--location", location, "--sku", "Standard",
+             "--public-ip-addresses", pip_name])
+    sub = _az_json(["network", "vnet", "subnet", "show", "-g", rg,
+                    "--vnet-name", vnet, "-n", landing])
+    current = (sub.get("natGateway") or {}).get("id") or ""
+    if natgw not in current:
+        step(f"associate subnet {landing} -> NAT gateway {natgw}")
+        _az(["network", "vnet", "subnet", "update", "-g", rg,
+             "--vnet-name", vnet, "-n", landing, "--nat-gateway", natgw])
+    else:
+        step(f"subnet {landing} already on NAT gateway {natgw} -- no-op")
 
 
 def _nic_pool_names(name_prefix: str, count: int) -> list[str]:
