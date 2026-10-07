@@ -4982,6 +4982,23 @@
                   "value": "rg-chathealthy-pipeline-dev"
                 },
                 {
+                  "name": "public_ip",
+                  "facts": [
+                    {
+                      "name": "name",
+                      "value": "pip-chathealthy-pipeline-dev"
+                    },
+                    {
+                      "name": "sku",
+                      "value": "Standard"
+                    },
+                    {
+                      "name": "allocation_method",
+                      "value": "Static"
+                    }
+                  ]
+                },
+                {
                   "name": "subnet",
                   "facts": [
                     {
