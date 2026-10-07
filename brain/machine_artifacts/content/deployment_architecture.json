@@ -4958,7 +4958,12 @@
               {
                 "zone_name": "privatelink.mongodb.net"
               }
-            ]
+            ],
+            "public_ip": {
+              "name": "pip-chathealthy-pipeline-dev",
+              "sku": "Standard",
+              "allocation_method": "Static"
+            }
           },
           "platforms": [
             {
