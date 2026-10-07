@@ -590,30 +590,44 @@ def redact(content: str, oai_client=None) -> str:
 
 
 def _assistant_text(transcript_path: str) -> str:
-    """The last assistant message in a Claude Code transcript.
+    """Every assistant text block of the current turn, joined in order.
 
-    The Stop hook names a transcript file rather than carrying the reply, so
-    the reply has to be read out of it.
+    The Stop hook names a transcript file rather than carrying the reply. One
+    turn emits several assistant entries across the transcript -- a block of
+    text, a tool call, more text -- and the reply is all of that text since the
+    last operator prompt. A real prompt is a user entry carrying a text block
+    (a tool result is a user entry carrying tool_result blocks, and does not
+    open a turn); it resets the buffer so only the current turn is returned,
+    the earlier turns having each been archived by their own Stop event.
+
+    Keeping only the final entry -- the prior behaviour -- dropped every block
+    but the last whenever a turn paused to act and then said more.
     """
     if not transcript_path or not os.path.exists(transcript_path):
         return ""
-    text = ""
+    blocks: list[str] = []
     with open(transcript_path, encoding="utf-8") as handle:
         for line in handle:
             try:
                 entry = json.loads(line)
             except json.JSONDecodeError:
                 continue
-            if entry.get("type") != "assistant" or not entry.get("message"):
+            etype = entry.get("type")
+            body = (entry.get("message") or {}).get("content")
+            if etype == "user" and isinstance(body, list) and any(
+                    b.get("type") == "text" for b in body):
+                blocks = []
                 continue
-            message = entry["message"]
-            body = message.get("content")
+            if etype != "assistant":
+                continue
             if isinstance(body, list):
                 text = " ".join(b.get("text", "") for b in body
                                 if b.get("type") == "text").strip()
-            elif isinstance(body, str):
-                text = body
-    return text
+                if text:
+                    blocks.append(text)
+            elif isinstance(body, str) and body.strip():
+                blocks.append(body.strip())
+    return "\n\n".join(blocks)
 
 
 def build(payload: dict, collection=None, oai_client=None):
