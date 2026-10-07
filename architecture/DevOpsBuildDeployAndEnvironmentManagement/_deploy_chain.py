@@ -3301,6 +3301,7 @@ def deploy_one(
         result = pad.ensure_vnet_subnets(target, env)
         pad.ensure_vnet_private_dns_zones(target, env)
         pad.ensure_vnet_private_endpoints(target, env, coll)
+        pad.ensure_public_ip(target, env)
         return result
     if target_kind == "atlas":
         # This target's packages -- config documents, config collections and

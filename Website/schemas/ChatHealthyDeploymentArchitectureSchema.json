@@ -1106,6 +1106,29 @@
                           }
                         }
                       }
+                    },
+                    "public_ip": {
+                      "type": "object",
+                      "additionalProperties": false,
+                      "description": "A standalone Standard static Public IP reserved in the VNET's resource group for the pipeline controller's public mTLS surface. Deploy reserves it (show-then-create) and reads back the allocated address; the address is stable and attaches to the controller host when that host is provisioned.",
+                      "required": [
+                        "name",
+                        "sku",
+                        "allocation_method"
+                      ],
+                      "properties": {
+                        "name": {
+                          "type": "string",
+                          "minLength": 1,
+                          "maxLength": 256
+                        },
+                        "sku": {
+                          "type": "string"
+                        },
+                        "allocation_method": {
+                          "type": "string"
+                        }
+                      }
                     }
                   }
                 },

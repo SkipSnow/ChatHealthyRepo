@@ -403,6 +403,35 @@ def ensure_vnet_subnets(target, env: str) -> str:
     return vnet
 
 
+def ensure_public_ip(target, env: str):
+    """Reserve the VNET's declared Standard static Public IP (show-then-create)
+    and return its allocated address. No-op returning None when the azure_vnet
+    block declares no public_ip. The address is stable; the controller host
+    attaches to it when that host is provisioned."""
+    block = _env_block(target, env, "azure_vnet")
+    pip = block.get("public_ip")
+    if not pip:
+        return None
+    rg = block["resource_group"]
+    name = pip["name"]
+    sku = pip["sku"]
+    alloc = pip["allocation_method"]
+    location = _az_json(["group", "show", "--name", rg]).get("location", "eastus2")
+    step(f"ensure public ip {name} ({sku}/{alloc})")
+    if _az(["network", "public-ip", "show", "-g", rg, "-n", name],
+           check=False).returncode != 0:
+        _az([
+            "network", "public-ip", "create",
+            "-g", rg, "-n", name,
+            "--sku", sku,
+            "--allocation-method", alloc,
+            "--location", location,
+        ])
+    addr = _az_json(["network", "public-ip", "show", "-g", rg, "-n", name]).get("ipAddress", "")
+    step(f"public ip {name} address = {addr}")
+    return addr
+
+
 def _nic_pool_names(name_prefix: str, count: int) -> list[str]:
     """Return NIC names for a pool. Singleton (count==1) → `<name_prefix>`;
     multi-member → `<name_prefix>1`, `<name_prefix>2`, ... (1-indexed)."""
