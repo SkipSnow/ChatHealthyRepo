@@ -145,6 +145,11 @@ runcmd:
       -e CH_MONGO_HOST_CHATHEALTHYFRONTEND='{_req("CH_MONGO_HOST_CHATHEALTHYFRONTEND")}' \\
       -e CH_MONGO_HOST_CHATHEALTHYDATAPIPELINES='{_req("CH_MONGO_HOST_CHATHEALTHYDATAPIPELINES")}' \\
       -e RUN_ID='{run_id}' -e ENV_PREFIX='{_req("ENV_PREFIX")}' \\
+      -e PIPELINE_NAME='medicare' \\
+      -e PIPELINE_LOG_ACCOUNT_URL='{_req("PIPELINE_LOG_ACCOUNT_URL")}' \\
+      -e AZURE_VM_NAME='{vm_name}' \\
+      -e AZURE_SUBSCRIPTION_ID='{sub}' -e AZURE_RESOURCE_GROUP='{rg}' \\
+      -e AZURE_TENANT_ID='{pe_tenant}' -e AZURE_CLIENT_ID='{pe_client}' -e AZURE_CLIENT_SECRET='{pe_secret}' \\
       -e KEY_VAULT_URI='{_req("KEY_VAULT_URI")}' \\
       -e PIPELINEEDITOR_AZURE_TENANT_ID='{pe_tenant}' \\
       -e PIPELINEEDITOR_AZURE_CLIENT_ID='{pe_client}' \\
