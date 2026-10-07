@@ -8529,7 +8529,7 @@
             {
               "feature_id": "EPIC-008-F-002",
               "name": "Engineering Rule Enforcement",
-              "sourceLocation": "architecture",
+              "sourceLocation": "architecture/EngineeringRuleEnforcement",
               "status": "not_started",
               "description": "This feature specifies the rules that must be enforced by the chatHealthy.ai dev ops infrastructure utilizing the Anthopic Hooks as event triggers. \nIt specifies the concrete DevOps surface that wires Claude Code's hook architecture into ChatHealthy governance. Hosts SessionStart / PostCompact / UserPromptSubmit / Stop enforcement entries declared in engineering_rules.json, the chathealthy_devops_boot program (Rule-002), and the conversation-log persistence path (Rule-001). Owns the operator-visible boot lifecycle: conversation context replay and agile_backlog taxonomy injection on both new-session begin and post-compaction restart.",
               "realized_by": [
@@ -13787,12 +13787,302 @@
                         }
                       ]
                     }
+                  },
+                  {
+                    "story_id": "EPIC-010-F-001-S-014",
+                    "orphan": false,
+                    "name": "Backward compatibility of this feature's subsequent versions is required",
+                    "description": "Backward Compatibility of this feature is absolutely required as implemented.",
+                    "size": "M",
+                    "status": "not_started",
+                    "approval": "proposed",
+                    "requirements": {
+                      "requirement": [
+                        {
+                          "req_id": "EPIC-010-F-001-S-014-REQ-B-001",
+                          "orphan": false,
+                          "name": "Backward compatibility of this feature's subsequent versions is required",
+                          "requirement": "Backward compatibility of this feature is required from the dev promote at commit 3fdf21540 (promote local -> dev, 2026-10-03) forward; every subsequent version remains backward compatible with the feature as implemented at that commit.",
+                          "priority": "must-have",
+                          "status": "in_progress",
+                          "depends_on": [],
+                          "tests": {
+                            "test": [
+                              {
+                                "orphan": true,
+                                "test_type": "ORPHAN",
+                                "file": ""
+                              }
+                            ]
+                          },
+                          "approval": "approved"
+                        }
+                      ]
+                    }
+                  },
+                  {
+                    "story_id": "EPIC-010-F-001-S-015",
+                    "orphan": false,
+                    "name": "One run-status API for every pipeline",
+                    "description": "This story specifies the requirements for one low-level run-status interface, common to every pipeline, through which a client reads how far each step of a run has progressed.",
+                    "size": "M",
+                    "status": "not_started",
+                    "approval": "approved",
+                    "requirements": {
+                      "requirement": [
+                        {
+                          "req_id": "EPIC-010-F-001-S-015-REQ-B-001",
+                          "orphan": false,
+                          "name": "One run-status API used by every pipeline",
+                          "requirement": "The pipeline infrastructure MUST provide exactly one run-status API, used by every pipeline, that returns the low-level status of a run.",
+                          "priority": "must-have",
+                          "status": "not_started",
+                          "depends_on": [],
+                          "tests": {
+                            "test": [
+                              {
+                                "orphan": true,
+                                "test_type": "ORPHAN",
+                                "file": ""
+                              }
+                            ]
+                          },
+                          "approval": "approved"
+                        },
+                        {
+                          "req_id": "EPIC-010-F-001-S-015-REQ-B-002",
+                          "orphan": false,
+                          "name": "The run-status API takes one argument identifying the run",
+                          "requirement": "The run-status API MUST take a single argument that identifies the run; no other argument is required to obtain the run's status.",
+                          "priority": "must-have",
+                          "status": "not_started",
+                          "depends_on": [],
+                          "tests": {
+                            "test": [
+                              {
+                                "orphan": true,
+                                "test_type": "ORPHAN",
+                                "file": ""
+                              }
+                            ]
+                          },
+                          "approval": "approved"
+                        },
+                        {
+                          "req_id": "EPIC-010-F-001-S-015-REQ-B-003",
+                          "orphan": false,
+                          "name": "Answered by the controller once established, by the runbook before it",
+                          "requirement": "Once the run's controller is established it MUST answer the status call; before the controller is constructed the runbook MUST answer it, so a status is available for the whole life of the run.",
+                          "priority": "must-have",
+                          "status": "not_started",
+                          "depends_on": [],
+                          "tests": {
+                            "test": [
+                              {
+                                "orphan": true,
+                                "test_type": "ORPHAN",
+                                "file": ""
+                              }
+                            ]
+                          },
+                          "approval": "approved"
+                        },
+                        {
+                          "req_id": "EPIC-010-F-001-S-015-REQ-B-004",
+                          "orphan": false,
+                          "name": "Per-worker percent complete for every step in the persistent configuration",
+                          "requirement": "For every worker, the status MUST state the percentage of the work completed for each step defined in the pipeline's persistent configuration.",
+                          "priority": "must-have",
+                          "status": "not_started",
+                          "depends_on": [],
+                          "tests": {
+                            "test": [
+                              {
+                                "orphan": true,
+                                "test_type": "ORPHAN",
+                                "file": ""
+                              }
+                            ]
+                          },
+                          "approval": "approved"
+                        },
+                        {
+                          "req_id": "EPIC-010-F-001-S-015-REQ-B-005",
+                          "orphan": false,
+                          "name": "A legible status table in the Cursor IDE",
+                          "requirement": "The run-status API MUST support a client that renders the status as an easily legible table in the Cursor IDE.",
+                          "priority": "must-have",
+                          "status": "not_started",
+                          "depends_on": [],
+                          "tests": {
+                            "test": [
+                              {
+                                "orphan": true,
+                                "test_type": "ORPHAN",
+                                "file": ""
+                              }
+                            ]
+                          },
+                          "approval": "approved"
+                        },
+                        {
+                          "req_id": "EPIC-010-F-001-S-015-REQ-B-006",
+                          "orphan": false,
+                          "name": "Status renders at least once every 90 seconds",
+                          "requirement": "The Cursor-IDE status MUST be renderable at a minimum of once every 90 seconds.",
+                          "priority": "must-have",
+                          "status": "not_started",
+                          "depends_on": [],
+                          "tests": {
+                            "test": [
+                              {
+                                "orphan": true,
+                                "test_type": "ORPHAN",
+                                "file": ""
+                              }
+                            ]
+                          },
+                          "approval": "approved"
+                        }
+                      ]
+                    }
                   }
                 ]
               }
             },
             {
               "feature_id": "EPIC-010-F-002",
+              "orphan": false,
+              "name": "Trustworthiness and Auditability",
+              "sourceLocation": "pipeline/trust",
+              "status": "not_started",
+              "description": "This feature specifies the requirements for how ChatHealthy expresses and audits the trust of every derived fact its pipelines produce. Trust is defined once here and referenced by every pipeline, including the Medicare Provider Evaluation Data Pipeline, and is required by the generic run lifecycle (EPIC-010-F-001).",
+              "priority": "must-have",
+              "realized_by": [],
+              "approval": "proposed",
+              "due_date": "",
+              "stories": {
+                "story": [
+                  {
+                    "story_id": "EPIC-010-F-002-S-001",
+                    "orphan": false,
+                    "name": "Trust value",
+                    "description": "The trust value carried by every derived fact.",
+                    "size": "M",
+                    "status": "not_started",
+                    "approval": "proposed",
+                    "requirements": {
+                      "requirement": [
+                        {
+                          "req_id": "EPIC-010-F-002-S-001-REQ-B-001",
+                          "orphan": false,
+                          "name": "Trust value has a score and a rule reference",
+                          "requirement": "Every trust value carries a score between 0 and 1 and a reference to the rule that produced it.",
+                          "priority": "must-have",
+                          "status": "in_progress",
+                          "depends_on": [],
+                          "tests": {
+                            "test": [
+                              {
+                                "orphan": true,
+                                "test_type": "ORPHAN",
+                                "file": ""
+                              }
+                            ]
+                          },
+                          "approval": "approved"
+                        },
+                        {
+                          "req_id": "EPIC-010-F-002-S-001-REQ-B-002",
+                          "orphan": false,
+                          "name": "Rule reference identifies the rule and its build",
+                          "requirement": "A trust value's rule reference identifies the rule and the build version that produced the score, for example a specific LLM query at a specific build number.",
+                          "priority": "must-have",
+                          "status": "in_progress",
+                          "depends_on": [],
+                          "tests": {
+                            "test": [
+                              {
+                                "orphan": true,
+                                "test_type": "ORPHAN",
+                                "file": ""
+                              }
+                            ]
+                          },
+                          "approval": "approved"
+                        }
+                      ]
+                    }
+                  },
+                  {
+                    "story_id": "EPIC-010-F-002-S-002",
+                    "orphan": false,
+                    "name": "Trust rule registry",
+                    "description": "The registry of trust rules, registered once and reused rather than redefined per fact or pipeline.",
+                    "size": "M",
+                    "status": "not_started",
+                    "approval": "proposed",
+                    "requirements": {
+                      "requirement": [
+                        {
+                          "req_id": "EPIC-010-F-002-S-002-REQ-B-001",
+                          "orphan": false,
+                          "name": "Rules registered once and versioned",
+                          "requirement": "Each trust rule is registered once and versioned by build; many facts reference one rule, and a rule is not redefined per fact or per pipeline.",
+                          "priority": "must-have",
+                          "status": "in_progress",
+                          "depends_on": [],
+                          "tests": {
+                            "test": [
+                              {
+                                "orphan": true,
+                                "test_type": "ORPHAN",
+                                "file": ""
+                              }
+                            ]
+                          },
+                          "approval": "approved"
+                        }
+                      ]
+                    }
+                  },
+                  {
+                    "story_id": "EPIC-010-F-002-S-003",
+                    "orphan": false,
+                    "name": "Auditability",
+                    "description": "Tracing a derived fact's trust back to the rule that set it.",
+                    "size": "M",
+                    "status": "not_started",
+                    "approval": "proposed",
+                    "requirements": {
+                      "requirement": [
+                        {
+                          "req_id": "EPIC-010-F-002-S-003-REQ-B-001",
+                          "orphan": false,
+                          "name": "Trust is traceable to rule and build",
+                          "requirement": "A derived fact's trust is traceable from the fact to its trust rule and the build that produced the score.",
+                          "priority": "must-have",
+                          "status": "in_progress",
+                          "depends_on": [],
+                          "tests": {
+                            "test": [
+                              {
+                                "orphan": true,
+                                "test_type": "ORPHAN",
+                                "file": ""
+                              }
+                            ]
+                          },
+                          "approval": "approved"
+                        }
+                      ]
+                    }
+                  }
+                ]
+              }
+            },
+            {
+              "feature_id": "EPIC-010-F-003",
               "orphan": false,
               "name": "Pipeline Data Release",
               "sourceLocation": "pipeline/data_release",
@@ -13805,7 +14095,7 @@
               "stories": {
                 "story": [
                   {
-                    "story_id": "EPIC-010-F-002-S-001",
+                    "story_id": "EPIC-010-F-003-S-001",
                     "orphan": false,
                     "name": "Data Release",
                     "description": "Migration moves published collections from the pipeline cluster to the front-end serving cluster; each collection arrives under the name it left with, nothing is transformed in transit, and it runs only on an explicit human release.",
@@ -13815,7 +14105,7 @@
                     "requirements": {
                       "requirement": [
                         {
-                          "req_id": "EPIC-010-F-002-S-001-REQ-B-001",
+                          "req_id": "EPIC-010-F-003-S-001-REQ-B-001",
                           "name": "A migrated collection keeps its name",
                           "requirement": "Every collection present in ChatHealthyFrontEnd.PublicHealthData as the result of a migration carries the same name it had in ChatHealthyDataPipelines.PipelinePublicHealthData.",
                           "priority": "must-have",
@@ -13826,7 +14116,7 @@
                           "tests": {
                             "test": [
                               {
-                                "test_id": "EPIC-010-F-002-S-001-REQ-B-001-TEST-1",
+                                "test_id": "EPIC-010-F-003-S-001-REQ-B-001-TEST-1",
                                 "test_type": "ordinary",
                                 "orphan": false,
                                 "file": "pipeline/data_release/tests/test_data_migration.py"
@@ -13835,7 +14125,7 @@
                           }
                         },
                         {
-                          "req_id": "EPIC-010-F-002-S-001-REQ-B-002",
+                          "req_id": "EPIC-010-F-003-S-001-REQ-B-002",
                           "name": "Migration is the only way data reaches the front-end cluster",
                           "requirement": "No process other than a migration writes to ChatHealthyFrontEnd.PublicHealthData.",
                           "priority": "must-have",
@@ -13846,7 +14136,7 @@
                           "tests": {
                             "test": [
                               {
-                                "test_id": "EPIC-010-F-002-S-001-REQ-B-002-TEST-1",
+                                "test_id": "EPIC-010-F-003-S-001-REQ-B-002-TEST-1",
                                 "test_type": "ordinary",
                                 "orphan": false,
                                 "file": "pipeline/data_release/tests/test_data_migration.py"
@@ -13855,7 +14145,7 @@
                           }
                         },
                         {
-                          "req_id": "EPIC-010-F-002-S-001-REQ-B-003",
+                          "req_id": "EPIC-010-F-003-S-001-REQ-B-003",
                           "name": "A migration runs only after a human releases it",
                           "requirement": "Every migration MUST be preceded by a recorded human sign-off. The sign-off is taken at the operator's workstation. The implementing service MUST attest to this sign-off with evidence prior to execution of a migration.",
                           "priority": "must-have",
@@ -13866,7 +14156,7 @@
                           "tests": {
                             "test": [
                               {
-                                "test_id": "EPIC-010-F-002-S-001-REQ-B-003-TEST-1",
+                                "test_id": "EPIC-010-F-003-S-001-REQ-B-003-TEST-1",
                                 "test_type": "ordinary",
                                 "orphan": false,
                                 "file": "pipeline/data_release/tests/test_data_migration.py"
@@ -13875,7 +14165,7 @@
                           }
                         },
                         {
-                          "req_id": "EPIC-010-F-002-S-001-REQ-B-004",
+                          "req_id": "EPIC-010-F-003-S-001-REQ-B-004",
                           "name": "A migration never alters or removes what is already there",
                           "requirement": "No migration changes or removes any document, collection or index that existed before it ran. This binds the implementing service absolutely; nothing it is asked to do permits an exception.",
                           "priority": "must-have",
@@ -13886,7 +14176,7 @@
                           "tests": {
                             "test": [
                               {
-                                "test_id": "EPIC-010-F-002-S-001-REQ-B-004-TEST-1",
+                                "test_id": "EPIC-010-F-003-S-001-REQ-B-004-TEST-1",
                                 "test_type": "ordinary",
                                 "orphan": false,
                                 "file": "pipeline/data_release/tests/test_data_migration.py"
@@ -13895,7 +14185,7 @@
                           }
                         },
                         {
-                          "req_id": "EPIC-010-F-002-S-001-REQ-B-005",
+                          "req_id": "EPIC-010-F-003-S-001-REQ-B-005",
                           "name": "A collection that already exists at the destination stops the migration",
                           "requirement": "An implementing service that finds its target collection already present in ChatHealthyFrontEnd.PublicHealthData MUST abend. Prior to the abend it MUST: (a) raise an exception; (b) log a detailed narrative of the error including the collection name it found. It MUST NOT write, append to, or in any way alter the existing collection.",
                           "priority": "must-have",
@@ -13906,7 +14196,7 @@
                           "tests": {
                             "test": [
                               {
-                                "test_id": "EPIC-010-F-002-S-001-REQ-B-005-TEST-1",
+                                "test_id": "EPIC-010-F-003-S-001-REQ-B-005-TEST-1",
                                 "test_type": "ordinary",
                                 "orphan": false,
                                 "file": "pipeline/data_release/tests/test_data_migration.py"
@@ -13915,7 +14205,7 @@
                           }
                         },
                         {
-                          "req_id": "EPIC-010-F-002-S-001-REQ-B-006",
+                          "req_id": "EPIC-010-F-003-S-001-REQ-B-006",
                           "name": "Every collection is reached through an instance of the one class that\u2026",
                           "requirement": "Within the implementing service, every access to data is made on behalf of exactly one named collection, and no access is made otherwise. The operator's workstation makes no such access.",
                           "priority": "must-have",
@@ -13926,7 +14216,7 @@
                           "tests": {
                             "test": [
                               {
-                                "test_id": "EPIC-010-F-002-S-001-REQ-B-006-TEST-1",
+                                "test_id": "EPIC-010-F-003-S-001-REQ-B-006-TEST-1",
                                 "test_type": "ordinary",
                                 "orphan": false,
                                 "file": "pipeline/data_release/tests/test_data_migration.py"
@@ -13935,7 +14225,7 @@
                           }
                         },
                         {
-                          "req_id": "EPIC-010-F-002-S-001-REQ-B-007",
+                          "req_id": "EPIC-010-F-003-S-001-REQ-B-007",
                           "name": "The class constructor takes the collection name and nothing else",
                           "requirement": "The constructor of the class that realizes this story accepts exactly one argument, the collection name.",
                           "priority": "must-have",
@@ -13946,7 +14236,7 @@
                           "tests": {
                             "test": [
                               {
-                                "test_id": "EPIC-010-F-002-S-001-REQ-B-007-TEST-1",
+                                "test_id": "EPIC-010-F-003-S-001-REQ-B-007-TEST-1",
                                 "test_type": "ordinary",
                                 "orphan": false,
                                 "file": "pipeline/data_release/tests/test_data_migration.py"
@@ -13955,7 +14245,7 @@
                           }
                         },
                         {
-                          "req_id": "EPIC-010-F-002-S-001-REQ-B-008",
+                          "req_id": "EPIC-010-F-003-S-001-REQ-B-008",
                           "name": "The collection name is the only value assigned to the class from\u2026",
                           "requirement": "No variable on the class that realizes this story is assigned externally other than the collection name.",
                           "priority": "must-have",
@@ -13966,7 +14256,7 @@
                           "tests": {
                             "test": [
                               {
-                                "test_id": "EPIC-010-F-002-S-001-REQ-B-008-TEST-1",
+                                "test_id": "EPIC-010-F-003-S-001-REQ-B-008-TEST-1",
                                 "test_type": "ordinary",
                                 "orphan": false,
                                 "file": "pipeline/data_release/tests/test_data_migration.py"
@@ -13975,7 +14265,7 @@
                           }
                         },
                         {
-                          "req_id": "EPIC-010-F-002-S-001-REQ-B-009",
+                          "req_id": "EPIC-010-F-003-S-001-REQ-B-009",
                           "name": "One file performs the migration",
                           "requirement": "Exactly one file in the repository performs migration, and no other file does any part of it.",
                           "priority": "must-have",
@@ -13986,7 +14276,7 @@
                           "tests": {
                             "test": [
                               {
-                                "test_id": "EPIC-010-F-002-S-001-REQ-B-009-TEST-1",
+                                "test_id": "EPIC-010-F-003-S-001-REQ-B-009-TEST-1",
                                 "test_type": "ordinary",
                                 "orphan": false,
                                 "file": "pipeline/data_release/tests/test_data_migration.py"
@@ -13995,7 +14285,7 @@
                           }
                         },
                         {
-                          "req_id": "EPIC-010-F-002-S-001-REQ-B-010",
+                          "req_id": "EPIC-010-F-003-S-001-REQ-B-010",
                           "name": "An engineering rule guarantees the code meets this story",
                           "requirement": "An engineering rule parses the migration file with an LLM and guarantees that every requirement of this story is enforced by the executable code; comments, docstrings, and any other non-executing text are disregarded and can never stand in for what the code does. A file whose executable code does not satisfy every requirement is not committed.",
                           "priority": "must-have",
@@ -14006,7 +14296,7 @@
                           "tests": {
                             "test": [
                               {
-                                "test_id": "EPIC-010-F-002-S-001-REQ-B-010-TEST-1",
+                                "test_id": "EPIC-010-F-003-S-001-REQ-B-010-TEST-1",
                                 "test_type": "ordinary",
                                 "orphan": false,
                                 "file": "pipeline/data_release/tests/test_data_migration.py"
@@ -14015,7 +14305,7 @@
                           }
                         },
                         {
-                          "req_id": "EPIC-010-F-002-S-001-REQ-B-011",
+                          "req_id": "EPIC-010-F-003-S-001-REQ-B-011",
                           "name": "Zero trust - the migration's identities exist and are constrained to\u2026",
                           "requirement": "Two actors take part: the operator's workstation makes the request, records an approval and verifies the software meets the requirements. The implementing service moves the data observing the rules as specified in these requirements.",
                           "priority": "must-have",
@@ -14026,7 +14316,7 @@
                           "tests": {
                             "test": [
                               {
-                                "test_id": "EPIC-010-F-002-S-001-REQ-B-011-TEST-1",
+                                "test_id": "EPIC-010-F-003-S-001-REQ-B-011-TEST-1",
                                 "test_type": "ordinary",
                                 "orphan": false,
                                 "file": "pipeline/data_release/tests/test_data_migration.py"
@@ -14035,7 +14325,7 @@
                           }
                         },
                         {
-                          "req_id": "EPIC-010-F-002-S-001-REQ-B-012",
+                          "req_id": "EPIC-010-F-003-S-001-REQ-B-012",
                           "name": "The migration file is declared in the deployment manifest at its actual\u2026",
                           "requirement": "deployment_architecture.json declares the file that performs the migration under exactly one deployment target and one package, and the source_location it declares is that file's actual repository-relative path. A commit in which the file is undeclared, is declared in more than one place, or is declared at a path that is not where the file is, is not made.",
                           "priority": "must-have",
@@ -14046,7 +14336,7 @@
                           "tests": {
                             "test": [
                               {
-                                "test_id": "EPIC-010-F-002-S-001-REQ-B-012-TEST-1",
+                                "test_id": "EPIC-010-F-003-S-001-REQ-B-012-TEST-1",
                                 "test_type": "ordinary",
                                 "orphan": false,
                                 "file": "pipeline/data_release/tests/test_data_migration.py"
@@ -14055,7 +14345,7 @@
                           }
                         },
                         {
-                          "req_id": "EPIC-010-F-002-S-001-REQ-B-013",
+                          "req_id": "EPIC-010-F-003-S-001-REQ-B-013",
                           "name": "A migration of a collection that is not there is refused and reported",
                           "requirement": "An implementing service invoked against a collection that is not present in ChatHealthyDataPipelines.PipelinePublicHealthData MUST NOT report success. It MUST raise, and MUST record the refusal in the log naming the collection asked for.",
                           "priority": "must-have",
@@ -14066,7 +14356,7 @@
                           "tests": {
                             "test": [
                               {
-                                "test_id": "EPIC-010-F-002-S-001-REQ-B-013-TEST-1",
+                                "test_id": "EPIC-010-F-003-S-001-REQ-B-013-TEST-1",
                                 "test_type": "ordinary",
                                 "orphan": false,
                                 "file": "pipeline/data_release/tests/test_data_migration.py"
@@ -14075,7 +14365,7 @@
                           }
                         },
                         {
-                          "req_id": "EPIC-010-F-002-S-001-REQ-B-014",
+                          "req_id": "EPIC-010-F-003-S-001-REQ-B-014",
                           "name": "DataTransferServiceToConfirmApproval",
                           "requirement": "The implementing service is given the identity of the human's approval when it is asked to work. It reads that approval and confirms it releases this work; an identity naming no approval, or an approval that does not release this work, stops the transfer. Having confirmed it, and before doing any work, the service records its own acknowledgement of that approval alongside it.",
                           "priority": "must-have",
@@ -14086,7 +14376,7 @@
                           "tests": {
                             "test": [
                               {
-                                "test_id": "EPIC-010-F-002-S-001-REQ-B-014-TEST-1",
+                                "test_id": "EPIC-010-F-003-S-001-REQ-B-014-TEST-1",
                                 "test_type": "ordinary",
                                 "orphan": false,
                                 "file": "pipeline/data_release/tests/test_data_migration.py"
@@ -14095,7 +14385,7 @@
                           }
                         },
                         {
-                          "req_id": "EPIC-010-F-002-S-001-REQ-B-015",
+                          "req_id": "EPIC-010-F-003-S-001-REQ-B-015",
                           "name": "Service Must Do Only One Job at a Time",
                           "requirement": "If an invocation of the Data Migration service is made while a job is running, the second invocation MUST immediately abend and log the failure.",
                           "priority": "must-have",
@@ -14106,7 +14396,7 @@
                           "tests": {
                             "test": [
                               {
-                                "test_id": "EPIC-010-F-002-S-001-REQ-B-015-TEST-1",
+                                "test_id": "EPIC-010-F-003-S-001-REQ-B-015-TEST-1",
                                 "test_type": "ordinary",
                                 "orphan": false,
                                 "file": "pipeline/data_release/tests/test_data_migration.py"
@@ -14121,7 +14411,7 @@
               }
             },
             {
-              "feature_id": "EPIC-010-F-003",
+              "feature_id": "EPIC-010-F-004",
               "orphan": false,
               "name": "ProviderBase",
               "sourceLocation": "pipeline/provider_base",
@@ -14134,7 +14424,7 @@
               "stories": {
                 "story": [
                   {
-                    "story_id": "EPIC-010-F-003-S-001",
+                    "story_id": "EPIC-010-F-004-S-001",
                     "orphan": false,
                     "name": "Load the primary provider sources",
                     "description": "The national provider dissemination file and the national provider-taxonomy file are landed to staging, one record per source row, each keyed by that source's natural key, preserving the source's own fields.",
@@ -14144,7 +14434,7 @@
                     "requirements": {
                       "requirement": [
                         {
-                          "req_id": "EPIC-010-F-003-S-001-REQ-B-001",
+                          "req_id": "EPIC-010-F-004-S-001-REQ-B-001",
                           "orphan": false,
                           "name": "NPPES dissemination file landed to its own per-source staging collection",
                           "requirement": "The national provider dissemination file (source nppes_npi) is landed to its own per-source staging collection on the pipeline cluster.",
@@ -14163,7 +14453,7 @@
                           "approval": "approved"
                         },
                         {
-                          "req_id": "EPIC-010-F-003-S-001-REQ-B-002",
+                          "req_id": "EPIC-010-F-004-S-001-REQ-B-002",
                           "orphan": false,
                           "name": "NUCC provider-taxonomy file landed to its own per-source staging\u2026",
                           "requirement": "The national provider-taxonomy file (source nucc) is landed to its own per-source staging collection on the pipeline cluster.",
@@ -14182,7 +14472,7 @@
                           "approval": "approved"
                         },
                         {
-                          "req_id": "EPIC-010-F-003-S-001-REQ-B-003",
+                          "req_id": "EPIC-010-F-004-S-001-REQ-B-003",
                           "orphan": false,
                           "name": "Exactly one staging document per source row",
                           "requirement": "Each source row becomes exactly one staging document (one InsertOne per source row).",
@@ -14201,7 +14491,7 @@
                           "approval": "approved"
                         },
                         {
-                          "req_id": "EPIC-010-F-003-S-001-REQ-B-004",
+                          "req_id": "EPIC-010-F-004-S-001-REQ-B-004",
                           "orphan": false,
                           "name": "Source row fields preserved verbatim under raw key, untyped and unjoined",
                           "requirement": "Each staging document preserves the source row's own fields verbatim under the `raw` key, with the source's column names preserved as-given, untyped and unjoined (no transform in transit; the staged form is the parsed structured dict, not raw bytes or one-field-per-document).",
@@ -14220,7 +14510,7 @@
                           "approval": "approved"
                         },
                         {
-                          "req_id": "EPIC-010-F-003-S-001-REQ-B-005",
+                          "req_id": "EPIC-010-F-004-S-001-REQ-B-005",
                           "orphan": false,
                           "name": "Staging document stamped with source natural key as top-level field",
                           "requirement": "Each staging document is stamped with the source's natural key as a top-level field: nppes_npi -> `npi` (zero-padded to 10 when numeric); nucc -> `code`.",
@@ -14239,7 +14529,7 @@
                           "approval": "approved"
                         },
                         {
-                          "req_id": "EPIC-010-F-003-S-001-REQ-B-006",
+                          "req_id": "EPIC-010-F-004-S-001-REQ-B-006",
                           "orphan": false,
                           "name": "Staging document carries run_id and byte-offset-ordered\u2026",
                           "requirement": "Each staging document carries the run_id and a byte-offset-ordered `_source_row_index`.",
@@ -14258,7 +14548,7 @@
                           "approval": "approved"
                         },
                         {
-                          "req_id": "EPIC-010-F-003-S-001-REQ-B-007",
+                          "req_id": "EPIC-010-F-004-S-001-REQ-B-007",
                           "orphan": false,
                           "name": "nppes_npi staging carries unique npi index",
                           "requirement": "The nppes_npi staging collection carries a UNIQUE index on `npi` (name \"npi_unique\"); a duplicate-NPI insert fails the step (BulkWriteError raised, no retry, no swallow).",
@@ -14277,7 +14567,7 @@
                           "approval": "approved"
                         },
                         {
-                          "req_id": "EPIC-010-F-003-S-001-REQ-B-008",
+                          "req_id": "EPIC-010-F-004-S-001-REQ-B-008",
                           "orphan": false,
                           "name": "Full load drains prior staging contents before inserting fresh load",
                           "requirement": "A full load drains (fully replaces) the prior staging contents before inserting the fresh load; staging is disposable and rebuilt each run.",
@@ -14296,7 +14586,7 @@
                           "approval": "approved"
                         },
                         {
-                          "req_id": "EPIC-010-F-003-S-001-REQ-B-009",
+                          "req_id": "EPIC-010-F-004-S-001-REQ-B-009",
                           "orphan": false,
                           "name": "Reference source skipped when content hash unchanged and collection\u2026",
                           "requirement": "On a full load, a reference source (which includes nucc) whose freshly-downloaded content hash matches the prior load's recorded hash AND whose staging collection is non-empty is skipped rather than drained and reloaded; otherwise (hash changed or first load) the collection is drained wholesale before the fresh insert, and the freshly-loaded content hash and row count are recorded for the next run.",
@@ -14318,7 +14608,7 @@
                     }
                   },
                   {
-                    "story_id": "EPIC-010-F-003-S-002",
+                    "story_id": "EPIC-010-F-004-S-002",
                     "orphan": false,
                     "name": "Specialty and taxonomy vocabulary",
                     "description": "The national provider-taxonomy source is mapped one entry per code into the controlled vocabulary, each entry carrying its grouping, classification, specialization and definition with plain labels and a per-code resolution status expressed as an enumerated state, which names each provider's specialty and classifies providers for search.",
@@ -14328,7 +14618,7 @@
                     "requirements": {
                       "requirement": [
                         {
-                          "req_id": "EPIC-010-F-003-S-002-REQ-B-001",
+                          "req_id": "EPIC-010-F-004-S-002-REQ-B-001",
                           "orphan": false,
                           "name": "One vocabulary entry per NUCC code, keyed by code",
                           "requirement": "The national provider-taxonomy (NUCC) source is mapped one entry per code into the controlled specialty vocabulary, keyed by the source code; a row lacking a code is dropped.",
@@ -14347,7 +14637,7 @@
                           "approval": "approved"
                         },
                         {
-                          "req_id": "EPIC-010-F-003-S-002-REQ-B-002",
+                          "req_id": "EPIC-010-F-004-S-002-REQ-B-002",
                           "orphan": false,
                           "name": "Each entry carries grouping, classification, specialization, definition\u2026",
                           "requirement": "Each vocabulary entry carries grouping, classification, specialization and definition, plus a plain-label display name.",
@@ -14366,7 +14656,7 @@
                           "approval": "approved"
                         },
                         {
-                          "req_id": "EPIC-010-F-003-S-002-REQ-B-003",
+                          "req_id": "EPIC-010-F-004-S-002-REQ-B-003",
                           "orphan": false,
                           "name": "Per-code standing distinguishes NUCC-native from F-105-supplemented,\u2026",
                           "requirement": "The vocabulary carries a per-code standing that distinguishes a NUCC-native code from an F-105-only (supplemented) code, and for a supplemented code the F-105 catalog entry is the authority for display_name/grouping/classification/specialization/definition while for a NUCC-native code the raw NUCC CSV values are the authority.",
@@ -14385,7 +14675,7 @@
                           "approval": "approved"
                         },
                         {
-                          "req_id": "EPIC-010-F-003-S-002-REQ-B-004",
+                          "req_id": "EPIC-010-F-004-S-002-REQ-B-004",
                           "orphan": false,
                           "name": "Vocabulary published as version-suffixed SpecialtyMetaData collection\u2026",
                           "requirement": "The controlled vocabulary is published as a version-suffixed collection PipelinePublicHealthData.SpecialtyMetaData_v_{data_version} on the pipeline cluster, as a full replacement (atomic renameCollection(dropTarget=true) within the same DB), carrying only current-run rows.",
@@ -14404,7 +14694,7 @@
                           "approval": "approved"
                         },
                         {
-                          "req_id": "EPIC-010-F-003-S-002-REQ-B-005",
+                          "req_id": "EPIC-010-F-004-S-002-REQ-B-005",
                           "orphan": false,
                           "name": "Each entry carries an embedding vector plus model and timestamp\u2026",
                           "requirement": "Each published vocabulary entry carries a text-embedding vector plus embedding_model and embedding_generated_at, composed from its Display Name/Grouping/Classification/Specialization/Definition (empty fields omitted), so the vocabulary classifies providers for search via downstream $vectorSearch.",
@@ -14423,7 +14713,7 @@
                           "approval": "approved"
                         },
                         {
-                          "req_id": "EPIC-010-F-003-S-002-REQ-B-006",
+                          "req_id": "EPIC-010-F-004-S-002-REQ-B-006",
                           "orphan": false,
                           "name": "Entries already carrying the target model and canonical-dimension\u2026",
                           "requirement": "A vocabulary entry already carrying the target embedding model and a canonical-dimension (3072) vector is not re-embedded on a re-run; only entries whose model differs or whose vector is missing or wrong-length are (re-)derived.",
@@ -14442,7 +14732,7 @@
                           "approval": "approved"
                         },
                         {
-                          "req_id": "EPIC-010-F-003-S-002-REQ-B-007",
+                          "req_id": "EPIC-010-F-004-S-002-REQ-B-007",
                           "orphan": false,
                           "name": "Entry with no composable text is left without an embedding",
                           "requirement": "A vocabulary entry with no composable text (all five source fields empty) is left without an embedding rather than embedded on empty input.",
@@ -14461,7 +14751,7 @@
                           "approval": "approved"
                         },
                         {
-                          "req_id": "EPIC-010-F-003-S-002-REQ-B-008",
+                          "req_id": "EPIC-010-F-004-S-002-REQ-B-008",
                           "orphan": false,
                           "name": "Only the specialty vocabulary collection is embedded",
                           "requirement": "The specialty/taxonomy vocabulary collection is the only collection embedded; provider records carry no embedding vector.",
@@ -14480,7 +14770,7 @@
                           "approval": "approved"
                         },
                         {
-                          "req_id": "EPIC-010-F-003-S-002-REQ-B-009",
+                          "req_id": "EPIC-010-F-004-S-002-REQ-B-009",
                           "orphan": false,
                           "name": "Vocabulary fully published before the provider-enrichment step that\u2026",
                           "requirement": "The controlled vocabulary is fully published BEFORE the provider-enrichment step that reads it to name each provider's specialty (taxonomy code_label stamping / normalize Pass B), so every provider \u2014 including F-105 supplement holders \u2014 receives the correct label.",
@@ -14499,7 +14789,7 @@
                           "approval": "approved"
                         },
                         {
-                          "req_id": "EPIC-010-F-003-S-002-REQ-B-010",
+                          "req_id": "EPIC-010-F-004-S-002-REQ-B-010",
                           "orphan": false,
                           "name": "NUCC catalog fetched over HTTPS from configured URL with pipeline auth\u2026",
                           "requirement": "The NUCC classification catalog (the controlled vocabulary source) is fetched over HTTPS from the configured SPECIALTY_CLASSIFICATION_CATALOG_URL endpoint, presenting the pipeline auth header \u2014 the source is an authenticated HTTP endpoint, not a local file.",
@@ -14518,7 +14808,7 @@
                           "approval": "approved"
                         },
                         {
-                          "req_id": "EPIC-010-F-003-S-002-REQ-B-011",
+                          "req_id": "EPIC-010-F-004-S-002-REQ-B-011",
                           "orphan": false,
                           "name": "Catalog loaded as a discrete run-bound step with no fallback",
                           "requirement": "The catalog is loaded as a discrete run-bound pipeline step, and the loader has no fallback: a missing/blank SPECIALTY_CLASSIFICATION_CATALOG_URL, a response body that is not a classifications list, and a catalog yielding zero usable entries each raise ChatHealthyException rather than publishing an empty or partial vocabulary.",
@@ -14537,7 +14827,7 @@
                           "approval": "approved"
                         },
                         {
-                          "req_id": "EPIC-010-F-003-S-002-REQ-B-012",
+                          "req_id": "EPIC-010-F-004-S-002-REQ-B-012",
                           "orphan": false,
                           "name": "The batch imports the extra NUCC codes",
                           "requirement": "The pipeline batch imports the extra NUCC codes - the curated codes added beyond the raw NUCC source - as part of the run, so the specialty vocabulary carries them and a rebuild from source does not drop them.",
@@ -14559,7 +14849,7 @@
                     }
                   },
                   {
-                    "story_id": "EPIC-010-F-003-S-003",
+                    "story_id": "EPIC-010-F-004-S-003",
                     "orphan": false,
                     "name": "Canonical provider record and identity",
                     "description": "Each provider row becomes one canonical record keyed by its national provider identifier and marked individual or institutional, carrying the enumeration and last-update dates, the raw activity events, and the sibling plain-decode label for each one-to-one coded value; an individual carries name parts, credentials, sex, other or former names and sole-proprietor standing; an institution carries legal and doing-business-as names, the authorized official, the parent-organization linkage when a subpart, and the administrative contact, every field mapped as the source row gives it.",
@@ -14569,7 +14859,7 @@
                     "requirements": {
                       "requirement": [
                         {
-                          "req_id": "EPIC-010-F-003-S-003-REQ-B-001",
+                          "req_id": "EPIC-010-F-004-S-003-REQ-B-001",
                           "orphan": false,
                           "name": "One canonical record per source row keyed by NPI as 10-char zero-padded\u2026",
                           "requirement": "Each provider source row becomes exactly one canonical provider record keyed by the National Provider Identifier, stored as a 10-character zero-padded digit string.",
@@ -14588,7 +14878,7 @@
                           "approval": "approved"
                         },
                         {
-                          "req_id": "EPIC-010-F-003-S-003-REQ-B-002",
+                          "req_id": "EPIC-010-F-004-S-003-REQ-B-002",
                           "orphan": false,
                           "name": "Record non-conformant unless it carries non-empty npi (exactly 10\u2026",
                           "requirement": "A record is non-conformant unless it carries a non-empty npi and a non-empty entity_type_code; the npi MUST be exactly 10 characters and all digits.",
@@ -14607,7 +14897,7 @@
                           "approval": "approved"
                         },
                         {
-                          "req_id": "EPIC-010-F-003-S-003-REQ-B-003",
+                          "req_id": "EPIC-010-F-004-S-003-REQ-B-003",
                           "orphan": false,
                           "name": "Duplicate NPIs within a partition collapse to one record",
                           "requirement": "Within a partition's staging rows, duplicate NPIs collapse to exactly one canonical record; a repeated NPI is counted as skipped, not written a second time.",
@@ -14626,7 +14916,7 @@
                           "approval": "approved"
                         },
                         {
-                          "req_id": "EPIC-010-F-003-S-003-REQ-B-004",
+                          "req_id": "EPIC-010-F-004-S-003-REQ-B-004",
                           "orphan": false,
                           "name": "entity_type_code carries sibling label marking individual (code 1) vs\u2026",
                           "requirement": "Each record carries the source entity type code and a sibling entity_type_code_label marking it \"individual\" when the code is \"1\" and \"institutional\" otherwise; a conformant record's entity_type_code is \"1\" or \"2\".",
@@ -14645,7 +14935,7 @@
                           "approval": "approved"
                         },
                         {
-                          "req_id": "EPIC-010-F-003-S-003-REQ-B-005",
+                          "req_id": "EPIC-010-F-004-S-003-REQ-B-005",
                           "orphan": false,
                           "name": "Primary-taxonomy-switch slot lifted onto record as top-level\u2026",
                           "requirement": "The per-NPI primary taxonomy designator (the source \"Primary Taxonomy Switch\" = \"Y\" on exactly one slot) is lifted out of the taxonomy slots and stamped on the canonical record as a single top-level primary_taxonomy_code field.",
@@ -14664,7 +14954,7 @@
                           "approval": "approved"
                         },
                         {
-                          "req_id": "EPIC-010-F-003-S-003-REQ-B-006",
+                          "req_id": "EPIC-010-F-004-S-003-REQ-B-006",
                           "orphan": false,
                           "name": "Each one-to-one coded value carries a sibling human-readable decode\u2026",
                           "requirement": "Each one-to-one coded value present on the canonical record carries a sibling human-readable decode label field (provider_sex_code -> provider_sex_code_label; is_sole_proprietor -> is_sole_proprietor_label; an address state -> state_label; an address country -> country_code_label; a license state -> state_label).",
@@ -14683,7 +14973,7 @@
                           "approval": "approved"
                         },
                         {
-                          "req_id": "EPIC-010-F-003-S-003-REQ-B-007",
+                          "req_id": "EPIC-010-F-004-S-003-REQ-B-007",
                           "orphan": false,
                           "name": "State/country/sex/flag codes decode to their full human-readable values",
                           "requirement": "A two-letter US state/territory/armed-forces code decodes to its full name; a country code decodes to its full country name; a sex code decodes M->Male, F->Female, U->Unknown; a Y/N/X flag decodes Y->Yes, N->No, X->Unknown.",
@@ -14702,7 +14992,7 @@
                           "approval": "approved"
                         },
                         {
-                          "req_id": "EPIC-010-F-003-S-003-REQ-B-008",
+                          "req_id": "EPIC-010-F-004-S-003-REQ-B-008",
                           "orphan": false,
                           "name": "Unmapped code decodes to raw code",
                           "requirement": "A coded value with no map entry decodes to the raw code itself (surfaced, never dropped and never defaulted); a None or blank/whitespace-only code decodes to None; code lookup is case-insensitive and whitespace-trimmed.",
@@ -14721,7 +15011,7 @@
                           "approval": "approved"
                         },
                         {
-                          "req_id": "EPIC-010-F-003-S-003-REQ-B-009",
+                          "req_id": "EPIC-010-F-004-S-003-REQ-B-009",
                           "orphan": false,
                           "name": "Raw activity events carried as active[] event log from NPPES\u2026",
                           "requirement": "The record carries the raw activity events as an active[] event log derived from the NPPES deactivation/reactivation date columns: a \"deactivated\" entry (is_active:false) when a deactivation date is present, a \"reactivated\" entry (is_active:true) when a reactivation date is present, each carrying its date and source; the log is absent when neither date is present.",
@@ -14740,7 +15030,7 @@
                           "approval": "approved"
                         },
                         {
-                          "req_id": "EPIC-010-F-003-S-003-REQ-B-010",
+                          "req_id": "EPIC-010-F-004-S-003-REQ-B-010",
                           "orphan": false,
                           "name": "An individual (Type-1) record carries the provider's self-reported sex verbatim from the source row, under the original NPPES attribute name (Provider Sex Code, stored as provider_sex_code).",
                           "requirement": "An individual (Type-1) record carries the provider's self-reported sex verbatim from the source row, under the original NPPES attribute name (Provider Sex Code, stored as provider_sex_code).",
@@ -14759,7 +15049,7 @@
                           "approval": "approved"
                         },
                         {
-                          "req_id": "EPIC-010-F-003-S-003-REQ-B-011",
+                          "req_id": "EPIC-010-F-004-S-003-REQ-B-011",
                           "orphan": false,
                           "name": "Unconsumed source columns carried onto record under snake_cased keys,\u2026",
                           "requirement": "Every source column not consumed by structured handling (taxonomies, licenses, other-identifiers, addresses, activity dates) is carried onto the record under a snake_cased key (lowercased; spaces->_, and ( ) / . removed) with its value, and empty values are skipped.",
@@ -14781,7 +15071,7 @@
                     }
                   },
                   {
-                    "story_id": "EPIC-010-F-003-S-004",
+                    "story_id": "EPIC-010-F-004-S-004",
                     "orphan": false,
                     "name": "Practice and business addresses",
                     "description": "Each record carries the practice-location address and the business (mailing) address exactly as given on the provider's own source row.",
@@ -14791,7 +15081,7 @@
                     "requirements": {
                       "requirement": [
                         {
-                          "req_id": "EPIC-010-F-003-S-004-REQ-B-001",
+                          "req_id": "EPIC-010-F-004-S-004-REQ-B-001",
                           "orphan": false,
                           "name": "Two distinct address fields: practice_addresses[] array and single\u2026",
                           "requirement": "Each provider record carries its practice-location addresses in a practice_addresses[] array and its business (mailing) address as a single business_address object, held as two distinct fields rather than one discriminated addresses[] array.",
@@ -14810,7 +15100,7 @@
                           "approval": "approved"
                         },
                         {
-                          "req_id": "EPIC-010-F-003-S-004-REQ-B-002",
+                          "req_id": "EPIC-010-F-004-S-004-REQ-B-002",
                           "orphan": false,
                           "name": "Practice-location address assembled from NPPES practice columns, tagged\u2026",
                           "requirement": "The practice-location address is assembled from the NPPES practice-location columns (line1/line2/city/state/zip/country/phone/fax) as given on the source row, tagged address_type=\"practice\", and appended to practice_addresses[].",
@@ -14829,7 +15119,7 @@
                           "approval": "approved"
                         },
                         {
-                          "req_id": "EPIC-010-F-003-S-004-REQ-B-003",
+                          "req_id": "EPIC-010-F-004-S-004-REQ-B-003",
                           "orphan": false,
                           "name": "Business (mailing) address assembled from NPPES mailing columns, tagged\u2026",
                           "requirement": "The business (mailing) address is assembled from the NPPES mailing columns as given on the source row, tagged address_type=\"business\", and written to the business_address field.",
@@ -14848,7 +15138,7 @@
                           "approval": "approved"
                         },
                         {
-                          "req_id": "EPIC-010-F-003-S-004-REQ-B-004",
+                          "req_id": "EPIC-010-F-004-S-004-REQ-B-004",
                           "orphan": false,
                           "name": "Address with state gets state_label sibling",
                           "requirement": "Each address that carries a state gets a sibling state_label, and each address that carries a country gets a sibling country_code_label.",
@@ -14867,7 +15157,7 @@
                           "approval": "approved"
                         },
                         {
-                          "req_id": "EPIC-010-F-003-S-004-REQ-B-005",
+                          "req_id": "EPIC-010-F-004-S-004-REQ-B-005",
                           "orphan": false,
                           "name": "Assembled address zip/postal code truncated to first five characters",
                           "requirement": "An assembled address's zip/postal code is truncated to its first five characters.",
@@ -14886,7 +15176,7 @@
                           "approval": "approved"
                         },
                         {
-                          "req_id": "EPIC-010-F-003-S-004-REQ-B-006",
+                          "req_id": "EPIC-010-F-004-S-004-REQ-B-006",
                           "orphan": false,
                           "name": "Practice and business address at same location stay distinct\u2026",
                           "requirement": "A practice-typed address and a business/mailing address at the same physical location remain two distinct entries and do not collapse into one (address_type is part of the address dedup identity).",
@@ -14905,7 +15195,7 @@
                           "approval": "approved"
                         },
                         {
-                          "req_id": "EPIC-010-F-003-S-004-REQ-B-007",
+                          "req_id": "EPIC-010-F-004-S-004-REQ-B-007",
                           "orphan": false,
                           "name": "Complete ordered address set is business address first, then\u2026",
                           "requirement": "The complete ordered set of a provider's addresses is the business address first, followed by the practice-location addresses in their order.",
@@ -14927,7 +15217,7 @@
                     }
                   },
                   {
-                    "story_id": "EPIC-010-F-003-S-005",
+                    "story_id": "EPIC-010-F-004-S-005",
                     "orphan": false,
                     "name": "Taxonomies, licenses, and identifiers",
                     "description": "Each record carries the provider's taxonomy slots, each slot's code, associated state, associated license and primary marker, and the raw other-identifiers field, exactly as the source row gives them.",
@@ -14937,7 +15227,7 @@
                     "requirements": {
                       "requirement": [
                         {
-                          "req_id": "EPIC-010-F-003-S-005-REQ-B-001",
+                          "req_id": "EPIC-010-F-004-S-005-REQ-B-001",
                           "orphan": false,
                           "name": "Each non-empty taxonomy code slot becomes one taxonomies[] entry",
                           "requirement": "Each non-empty NPPES \"Healthcare Provider Taxonomy Code_N\" slot (N = 1..15) becomes exactly one taxonomies[] entry carrying that code; a slot whose code is empty is skipped.",
@@ -14956,7 +15246,7 @@
                           "approval": "approved"
                         },
                         {
-                          "req_id": "EPIC-010-F-003-S-005-REQ-B-002",
+                          "req_id": "EPIC-010-F-004-S-005-REQ-B-002",
                           "orphan": false,
                           "name": "Distinct taxonomy code appears at most once per record (first\u2026",
                           "requirement": "On a record each distinct taxonomy code appears at most once (first occurrence wins on entry contents).",
@@ -14975,7 +15265,7 @@
                           "approval": "approved"
                         },
                         {
-                          "req_id": "EPIC-010-F-003-S-005-REQ-B-003",
+                          "req_id": "EPIC-010-F-004-S-005-REQ-B-003",
                           "orphan": false,
                           "name": "Primary-taxonomy marker carried as single top-level\u2026",
                           "requirement": "The provider's primary-taxonomy marker \u2014 the NPPES \"Healthcare Provider Primary Taxonomy Switch_N\" column bearing 'Y' on exactly one slot \u2014 is carried as a single top-level primary_taxonomy_code field (the first slot whose switch is 'Y'), and is NOT carried as a per-taxonomy-entry flag.",
@@ -14994,7 +15284,7 @@
                           "approval": "approved"
                         },
                         {
-                          "req_id": "EPIC-010-F-003-S-005-REQ-B-004",
+                          "req_id": "EPIC-010-F-004-S-005-REQ-B-004",
                           "orphan": false,
                           "name": "License slot becomes one licenses[] entry with number/state and sibling\u2026",
                           "requirement": "Each NPPES \"Provider License Number_N\" / \"Provider License Number State Code_N\" slot with a number and/or a state becomes one licenses[] entry carrying number and/or state; a present state carries a sibling plain-decode state_label.",
@@ -15013,7 +15303,7 @@
                           "approval": "approved"
                         },
                         {
-                          "req_id": "EPIC-010-F-003-S-005-REQ-B-005",
+                          "req_id": "EPIC-010-F-004-S-005-REQ-B-005",
                           "orphan": false,
                           "name": "Other-identifier slot becomes one other_identifiers[] entry with\u2026",
                           "requirement": "Each non-empty NPPES \"Other Provider Identifier_N\" slot becomes one other_identifiers[] entry: identifier is required; type_code, state, and issuer are carried when present; a present type_code stamps a sibling type_description drawn from the closed two-code dictionary {\"01\":\"OTHER\",\"05\":\"MEDICAID\"}.",
@@ -15032,7 +15322,7 @@
                           "approval": "approved"
                         },
                         {
-                          "req_id": "EPIC-010-F-003-S-005-REQ-B-006",
+                          "req_id": "EPIC-010-F-004-S-005-REQ-B-006",
                           "orphan": false,
                           "name": "Each other-identifier value appears at most once per record",
                           "requirement": "On a record each other-identifier value appears at most once.",
@@ -15054,7 +15344,7 @@
                     }
                   },
                   {
-                    "story_id": "EPIC-010-F-003-S-006",
+                    "story_id": "EPIC-010-F-004-S-006",
                     "orphan": false,
                     "name": "Other attributes",
                     "description": "Every remaining provider-record attribute not specified by another story is named with its type, so the canonical record's field set is complete and nothing is left undefined.",
@@ -15064,7 +15354,7 @@
                     "requirements": {
                       "requirement": [
                         {
-                          "req_id": "EPIC-010-F-003-S-006-REQ-B-001",
+                          "req_id": "EPIC-010-F-004-S-006-REQ-B-001",
                           "orphan": false,
                           "name": "Residual source columns carried onto record under snake_cased key\u2026",
                           "requirement": "Every raw source column not consumed by a structured handler is carried onto the canonical provider record under a snake_cased key derived from the source header (lowercased; spaces -> \"_\"; \"(\" and \")\" removed; \"/\" -> \"_\"; \".\" removed), preserving the source value.",
@@ -15083,7 +15373,7 @@
                           "approval": "approved"
                         },
                         {
-                          "req_id": "EPIC-010-F-003-S-006-REQ-B-002",
+                          "req_id": "EPIC-010-F-004-S-006-REQ-B-002",
                           "orphan": false,
                           "name": "Empty or blank residual source column omitted rather than stored as\u2026",
                           "requirement": "A residual source column whose value is empty or blank (after string strip) is omitted from the record rather than stored as an empty value.",
@@ -15108,7 +15398,7 @@
               }
             },
             {
-              "feature_id": "EPIC-010-F-004",
+              "feature_id": "EPIC-010-F-005",
               "orphan": false,
               "name": "Provider Enrichment",
               "sourceLocation": "pipeline/provider_enrichment",
@@ -15121,7 +15411,7 @@
               "stories": {
                 "story": [
                   {
-                    "story_id": "EPIC-010-F-004-S-001",
+                    "story_id": "EPIC-010-F-005-S-001",
                     "orphan": false,
                     "name": "Additional Practice Locations",
                     "description": "Every practice address a provider holds beyond the one on its base record is joined in from the practice-locations source and added as its own labeled address entries, held distinct from the base practice and mailing addresses and re-attached on every refresh.",
@@ -15131,7 +15421,7 @@
                     "requirements": {
                       "requirement": [
                         {
-                          "req_id": "EPIC-010-F-004-S-001-REQ-B-001",
+                          "req_id": "EPIC-010-F-005-S-001-REQ-B-001",
                           "orphan": false,
                           "name": "Secondary practice addresses joined from pl_pfile by NPI into\u2026",
                           "requirement": "Every secondary practice address a provider holds beyond its base record is joined in from the practice-locations source (the pl_pfile staging collection), matched to the provider by NPI, and added into that provider's practice_addresses array.",
@@ -15150,7 +15440,7 @@
                           "approval": "approved"
                         },
                         {
-                          "req_id": "EPIC-010-F-004-S-001-REQ-B-002",
+                          "req_id": "EPIC-010-F-005-S-001-REQ-B-002",
                           "orphan": false,
                           "name": "Joined address marked address_type=secondary_practice, primary=False,\u2026",
                           "requirement": "Each joined address is stored as its own entry marked address_type=\"secondary_practice\", primary=False, source=\"pl_pfile\".",
@@ -15169,7 +15459,7 @@
                           "approval": "approved"
                         },
                         {
-                          "req_id": "EPIC-010-F-004-S-001-REQ-B-003",
+                          "req_id": "EPIC-010-F-005-S-001-REQ-B-003",
                           "orphan": false,
                           "name": "Joined secondary addresses merged in preserving existing, distinct from\u2026",
                           "requirement": "Joined secondary addresses are held distinct from the base practice and mailing addresses \u2014 existing practice_addresses entries are preserved and the incoming set is merged in rather than replacing them, and practice_addresses is a field separate from business_address (mailing).",
@@ -15188,7 +15478,7 @@
                           "approval": "approved"
                         },
                         {
-                          "req_id": "EPIC-010-F-004-S-001-REQ-B-004",
+                          "req_id": "EPIC-010-F-005-S-001-REQ-B-004",
                           "orphan": false,
                           "name": "Joined address carries sibling label fields state_label and\u2026",
                           "requirement": "Each joined address carries sibling human-readable label fields \u2014 state_label when the state code resolves, country_code_label when the country code resolves.",
@@ -15207,7 +15497,7 @@
                           "approval": "approved"
                         },
                         {
-                          "req_id": "EPIC-010-F-004-S-001-REQ-B-005",
+                          "req_id": "EPIC-010-F-005-S-001-REQ-B-005",
                           "orphan": false,
                           "name": "Attachment re-derived each refresh",
                           "requirement": "Attachment is re-derived on every refresh \u2014 each run rebuilds the full practice_addresses array and the merged set is de-duplicated on the location key address_type+line1+city+state+zip5, so a repeated fire does not multiply entries and a practice, secondary_practice, business, or mailing entry at the same location each remains its own entry.",
@@ -15226,7 +15516,7 @@
                           "approval": "approved"
                         },
                         {
-                          "req_id": "EPIC-010-F-004-S-001-REQ-B-006",
+                          "req_id": "EPIC-010-F-005-S-001-REQ-B-006",
                           "orphan": false,
                           "name": "pl_pfile row lacking line1, city, or state yields no attached address",
                           "requirement": "A pl_pfile row lacking any of line1, city, or state yields no attached address (it is skipped).",
@@ -15245,7 +15535,7 @@
                           "approval": "approved"
                         },
                         {
-                          "req_id": "EPIC-010-F-004-S-001-REQ-B-007",
+                          "req_id": "EPIC-010-F-005-S-001-REQ-B-007",
                           "orphan": false,
                           "name": "ZIP on joined address truncated to first 5 digits",
                           "requirement": "The ZIP on a joined address is truncated to its first 5 digits (ZIP+4 and 9-digit forms reduced to 5).",
@@ -15264,7 +15554,7 @@
                           "approval": "approved"
                         },
                         {
-                          "req_id": "EPIC-010-F-004-S-001-REQ-B-008",
+                          "req_id": "EPIC-010-F-005-S-001-REQ-B-008",
                           "orphan": false,
                           "name": "Orphan-NPI pl_pfile row yields discrepancy pl_pfile_orphan_npi and is\u2026",
                           "requirement": "A pl_pfile practice-location row whose NPI matches no provider record yields a recorded discrepancy with reason=\"pl_pfile_orphan_npi\", and that row is not attached.",
@@ -15286,7 +15576,7 @@
                     }
                   },
                   {
-                    "story_id": "EPIC-010-F-004-S-002",
+                    "story_id": "EPIC-010-F-005-S-002",
                     "orphan": false,
                     "name": "Managed Licenses Collection",
                     "description": "Each provider carries one assembled licenses collection gathered from its license-bearing taxonomy slots and other-identifier entries, each license naming its issuing state and identifier, held distinct from the raw source slots it draws from and rebuilt on every refresh.",
@@ -15296,7 +15586,7 @@
                     "requirements": {
                       "requirement": [
                         {
-                          "req_id": "EPIC-010-F-004-S-002-REQ-B-001",
+                          "req_id": "EPIC-010-F-005-S-002-REQ-B-001",
                           "orphan": false,
                           "name": "Provider record carries a single assembled licenses collection field",
                           "requirement": "Each provider record carries a single assembled `licenses` collection field.",
@@ -15315,7 +15605,7 @@
                           "approval": "approved"
                         },
                         {
-                          "req_id": "EPIC-010-F-004-S-002-REQ-B-002",
+                          "req_id": "EPIC-010-F-005-S-002-REQ-B-002",
                           "orphan": false,
                           "name": "Each license entry names its issuing state",
                           "requirement": "Each license entry names its issuing state.",
@@ -15334,7 +15624,7 @@
                           "approval": "approved"
                         },
                         {
-                          "req_id": "EPIC-010-F-004-S-002-REQ-B-003",
+                          "req_id": "EPIC-010-F-005-S-002-REQ-B-003",
                           "orphan": false,
                           "name": "Each license entry carries a sibling plain-decode issuing-state label\u2026",
                           "requirement": "Each license entry carries a sibling plain-decode issuing-state label (`state_label`, the human-readable expansion of the state code).",
@@ -15353,7 +15643,7 @@
                           "approval": "approved"
                         },
                         {
-                          "req_id": "EPIC-010-F-004-S-002-REQ-B-004",
+                          "req_id": "EPIC-010-F-005-S-002-REQ-B-004",
                           "orphan": false,
                           "name": "Each license entry names its identifier",
                           "requirement": "Each license entry names its identifier.",
@@ -15372,7 +15662,7 @@
                           "approval": "approved"
                         },
                         {
-                          "req_id": "EPIC-010-F-004-S-002-REQ-B-005",
+                          "req_id": "EPIC-010-F-005-S-002-REQ-B-005",
                           "orphan": false,
                           "name": "Licenses assembled from NPPES-native license slots, one entry per\u2026",
                           "requirement": "The licenses collection is assembled from the provider's NPPES-native license slots (the Provider-License-Number / License-State parallel-array slots), one entry per populated slot.",
@@ -15391,7 +15681,7 @@
                           "approval": "approved"
                         },
                         {
-                          "req_id": "EPIC-010-F-004-S-002-REQ-B-006",
+                          "req_id": "EPIC-010-F-005-S-002-REQ-B-006",
                           "orphan": false,
                           "name": "Licenses additionally assembled from other-identifier entries\u2026",
                           "requirement": "The licenses collection is additionally assembled from other-identifier entries the classifier deemed LICENSE, the entry's identifier carried as the license number and the issuing state taken from the entry (else the partition state).",
@@ -15410,7 +15700,7 @@
                           "approval": "approved"
                         },
                         {
-                          "req_id": "EPIC-010-F-004-S-002-REQ-B-007",
+                          "req_id": "EPIC-010-F-005-S-002-REQ-B-007",
                           "orphan": false,
                           "name": "License unique within a provider by (issuing state, identifier)",
                           "requirement": "A license is unique within one provider by the pair (issuing state, identifier); entries colliding on that pair collapse to a single license entry.",
@@ -15429,7 +15719,7 @@
                           "approval": "approved"
                         },
                         {
-                          "req_id": "EPIC-010-F-004-S-002-REQ-B-008",
+                          "req_id": "EPIC-010-F-005-S-002-REQ-B-008",
                           "orphan": false,
                           "name": "Same state, different identifiers retained as distinct entries",
                           "requirement": "Two licenses with the same issuing state but different identifiers are retained as distinct entries.",
@@ -15448,7 +15738,7 @@
                           "approval": "approved"
                         },
                         {
-                          "req_id": "EPIC-010-F-004-S-002-REQ-B-009",
+                          "req_id": "EPIC-010-F-005-S-002-REQ-B-009",
                           "orphan": false,
                           "name": "Issuing-state component of license identity is case-insensitive",
                           "requirement": "The issuing-state component of license identity is case-insensitive (\"VT\" == \"vt\").",
@@ -15467,7 +15757,7 @@
                           "approval": "approved"
                         },
                         {
-                          "req_id": "EPIC-010-F-004-S-002-REQ-B-010",
+                          "req_id": "EPIC-010-F-005-S-002-REQ-B-010",
                           "orphan": false,
                           "name": "Identifiers differing only in non-alphanumeric formatting resolve to\u2026",
                           "requirement": "License identifiers differing only in non-alphanumeric formatting (hyphens, spaces, dots) resolve to the same license identity.",
@@ -15486,7 +15776,7 @@
                           "approval": "approved"
                         },
                         {
-                          "req_id": "EPIC-010-F-004-S-002-REQ-B-011",
+                          "req_id": "EPIC-010-F-005-S-002-REQ-B-011",
                           "orphan": false,
                           "name": "Other-identifier-derived license carries source provenance tag\u2026",
                           "requirement": "Each license derived from an other-identifier entry carries a source provenance tag \"nppes_other_identifiers\", distinguishing it from NPPES-native license slots.",
@@ -15505,7 +15795,7 @@
                           "approval": "approved"
                         },
                         {
-                          "req_id": "EPIC-010-F-004-S-002-REQ-B-012",
+                          "req_id": "EPIC-010-F-005-S-002-REQ-B-012",
                           "orphan": false,
                           "name": "Assembled licenses is a derived managed field held distinct from raw\u2026",
                           "requirement": "The assembled licenses collection is a derived managed field held distinct from the raw source slots it is drawn from (the raw NPPES license number/state slots and the raw other_identifiers field), not the raw fields themselves.",
@@ -15524,7 +15814,7 @@
                           "approval": "approved"
                         },
                         {
-                          "req_id": "EPIC-010-F-004-S-002-REQ-B-013",
+                          "req_id": "EPIC-010-F-005-S-002-REQ-B-013",
                           "orphan": false,
                           "name": "On every refresh the licenses collection is rebuilt and re-deduped, not\u2026",
                           "requirement": "On every refresh the licenses collection is rebuilt \u2014 an existing collection merged with an incoming set is re-deduped to (state, identifier) uniqueness rather than blindly appended.",
@@ -15546,7 +15836,7 @@
                     }
                   },
                   {
-                    "story_id": "EPIC-010-F-004-S-003",
+                    "story_id": "EPIC-010-F-005-S-003",
                     "orphan": false,
                     "name": "Derived Active Standing",
                     "description": "Each provider carries a single active-or-inactive standing computed from its deactivation and reactivation history rather than read from any source field, held distinct from the underlying event history, which is preserved, and recomputed on every refresh.",
@@ -15556,7 +15846,7 @@
                     "requirements": {
                       "requirement": [
                         {
-                          "req_id": "EPIC-010-F-004-S-003-REQ-B-001",
+                          "req_id": "EPIC-010-F-005-S-003-REQ-B-001",
                           "orphan": false,
                           "name": "Active standing derived from deactivation/reactivation events, not a\u2026",
                           "requirement": "A provider's active-or-inactive standing is a derived fact computed from its deactivation/reactivation event history, and is not read from any source activity field.",
@@ -15575,7 +15865,7 @@
                           "approval": "approved"
                         },
                         {
-                          "req_id": "EPIC-010-F-004-S-003-REQ-B-002",
+                          "req_id": "EPIC-010-F-005-S-003-REQ-B-002",
                           "orphan": false,
                           "name": "Deactivation/reactivation history preserved as the `active` event log,\u2026",
                           "requirement": "The deactivation/reactivation event history is preserved on the record as the `active` event log \u2014 one entry per event, each carrying event, date, is_active and source \u2014 held distinct from the derived standing.",
@@ -15594,7 +15884,7 @@
                           "approval": "approved"
                         },
                         {
-                          "req_id": "EPIC-010-F-004-S-003-REQ-B-003",
+                          "req_id": "EPIC-010-F-005-S-003-REQ-B-003",
                           "orphan": false,
                           "name": "`active` event log emitted only when a deactivation or reactivation\u2026",
                           "requirement": "The `active` event log is emitted only when a deactivation or reactivation event exists on the source row, and is absent when neither NPPES \"NPI Deactivation Date\" nor \"NPI Reactivation Date\" is set.",
@@ -15613,7 +15903,7 @@
                           "approval": "approved"
                         },
                         {
-                          "req_id": "EPIC-010-F-004-S-003-REQ-B-004",
+                          "req_id": "EPIC-010-F-005-S-003-REQ-B-004",
                           "orphan": false,
                           "name": "Each event entry's is_active fixed by event type (deactivated\u2192false,\u2026",
                           "requirement": "Each event entry's is_active value is fixed by its event type \u2014 a \"deactivated\" entry carries is_active:false, a \"reactivated\" entry carries is_active:true.",
@@ -15632,7 +15922,7 @@
                           "approval": "approved"
                         },
                         {
-                          "req_id": "EPIC-010-F-004-S-003-REQ-B-005",
+                          "req_id": "EPIC-010-F-005-S-003-REQ-B-005",
                           "orphan": false,
                           "name": "Derived standing is a single scalar value per provider, not an array",
                           "requirement": "The derived standing is a single scalar value per provider (active or inactive), not an array.",
@@ -15651,7 +15941,7 @@
                           "approval": "approved"
                         },
                         {
-                          "req_id": "EPIC-010-F-004-S-003-REQ-B-006",
+                          "req_id": "EPIC-010-F-005-S-003-REQ-B-006",
                           "orphan": false,
                           "name": "Derivation rule: empty log yields active",
                           "requirement": "The derivation rule is: an absent or empty event log yields active; otherwise the standing is the last event's is_active value.",
@@ -15670,7 +15960,7 @@
                           "approval": "approved"
                         },
                         {
-                          "req_id": "EPIC-010-F-004-S-003-REQ-B-007",
+                          "req_id": "EPIC-010-F-005-S-003-REQ-B-007",
                           "orphan": false,
                           "name": "Standing and event log recomputed on every full-load refresh",
                           "requirement": "The standing and the event log it derives from are recomputed/rebuilt on every refresh (full load), not read once and retained.",
@@ -15692,7 +15982,7 @@
                     }
                   },
                   {
-                    "story_id": "EPIC-010-F-004-S-004",
+                    "story_id": "EPIC-010-F-005-S-004",
                     "orphan": false,
                     "name": "Taxonomy Labels and Classification",
                     "description": "Every coded taxonomy on a provider is stamped with its human-readable label, grouping, classification, specialization, definition and reference status drawn from the specialty vocabulary, held as derived sibling facts distinct from the source codes and re-stamped on every refresh from the current vocabulary.",
@@ -15702,7 +15992,7 @@
                     "requirements": {
                       "requirement": [
                         {
-                          "req_id": "EPIC-010-F-004-S-004-REQ-B-001",
+                          "req_id": "EPIC-010-F-005-S-004-REQ-B-001",
                           "orphan": false,
                           "name": "Resolved taxonomy carries code_label from vocabulary Display Name",
                           "requirement": "A coded taxonomy on a provider record whose code resolves in the supplied specialty vocabulary carries a human-readable label (taxonomies[i].code_label) populated from that vocabulary entry's \"Display Name\".",
@@ -15721,7 +16011,7 @@
                           "approval": "approved"
                         },
                         {
-                          "req_id": "EPIC-010-F-004-S-004-REQ-B-002",
+                          "req_id": "EPIC-010-F-005-S-004-REQ-B-002",
                           "orphan": false,
                           "name": "Resolved taxonomy carries reference_status current_reference, set only\u2026",
                           "requirement": "A coded taxonomy resolved via the specialty vocabulary carries reference_status = \"current_reference\", set only when not already present.",
@@ -15740,7 +16030,7 @@
                           "approval": "approved"
                         },
                         {
-                          "req_id": "EPIC-010-F-004-S-004-REQ-B-003",
+                          "req_id": "EPIC-010-F-005-S-004-REQ-B-003",
                           "orphan": false,
                           "name": "Taxonomy carries enumerated resolution state\u2026",
                           "requirement": "A coded taxonomy carries an enumerated resolution state: a code absent from the catalog is stamped status=\"Missing\"; a code whose catalog entry is supplemented is stamped status=\"Supplemented\"; a normal NUCC-backed code is left unstamped.",
@@ -15759,7 +16049,7 @@
                           "approval": "approved"
                         },
                         {
-                          "req_id": "EPIC-010-F-004-S-004-REQ-B-004",
+                          "req_id": "EPIC-010-F-005-S-004-REQ-B-004",
                           "orphan": false,
                           "name": "Label vocabulary read from fully-published SpecialtyMetaData keyed by\u2026",
                           "requirement": "The vocabulary used to stamp taxonomy labels is read from the fully-published SpecialtyMetaData (native NUCC codes plus F-105 supplements), keyed by code.",
@@ -15778,7 +16068,7 @@
                           "approval": "approved"
                         },
                         {
-                          "req_id": "EPIC-010-F-004-S-004-REQ-B-005",
+                          "req_id": "EPIC-010-F-005-S-004-REQ-B-005",
                           "orphan": false,
                           "name": "Stamping step runs only after published SMD exists (declared\u2026",
                           "requirement": "The provider taxonomy-label stamping step (normalize_npi_per_state_fanout) runs only after the published SpecialtyMetaData exists \u2014 it declares prerequisite publish_smd_and_embed.",
@@ -15797,7 +16087,7 @@
                           "approval": "approved"
                         },
                         {
-                          "req_id": "EPIC-010-F-004-S-004-REQ-B-006",
+                          "req_id": "EPIC-010-F-005-S-004-REQ-B-006",
                           "orphan": false,
                           "name": "Vocabulary catalog supplies grouping, classification, specialization,\u2026",
                           "requirement": "The specialty vocabulary catalog supplies grouping, classification, specialization, display_name and definition per code (the source fields from which taxonomy labels are drawn).",
@@ -15816,7 +16106,7 @@
                           "approval": "approved"
                         },
                         {
-                          "req_id": "EPIC-010-F-004-S-004-REQ-B-007",
+                          "req_id": "EPIC-010-F-005-S-004-REQ-B-007",
                           "orphan": false,
                           "name": "Derived taxonomy facts held as siblings beside preserved source code",
                           "requirement": "Derived taxonomy facts (code_label, reference_status) are held as sibling fields on the taxonomy entry, added alongside the preserved source code (taxonomies[i].code), and do not overwrite it.",
@@ -15835,7 +16125,7 @@
                           "approval": "approved"
                         },
                         {
-                          "req_id": "EPIC-010-F-004-S-004-REQ-B-008",
+                          "req_id": "EPIC-010-F-005-S-004-REQ-B-008",
                           "orphan": false,
                           "name": "Label stamping performed inside per-run normalize fanout, re-stamped\u2026",
                           "requirement": "Taxonomy-label stamping is performed inside the per-run provider normalize fanout step, so labels are re-stamped from the then-current published vocabulary on every full load.",
@@ -15857,7 +16147,7 @@
                     }
                   },
                   {
-                    "story_id": "EPIC-010-F-004-S-005",
+                    "story_id": "EPIC-010-F-005-S-005",
                     "orphan": false,
                     "name": "Institutional Facility-Type Label",
                     "description": "Every institutional provider carries a plain-words description of the kind of place it is, derived from its taxonomy classification, held distinct from the source code and re-derived on every refresh.",
@@ -15867,7 +16157,7 @@
                     "requirements": {
                       "requirement": [
                         {
-                          "req_id": "EPIC-010-F-004-S-005-REQ-B-001",
+                          "req_id": "EPIC-010-F-005-S-005-REQ-B-001",
                           "orphan": false,
                           "name": "Institutional providers carry a derived facility_type_descriptions field",
                           "requirement": "Every institutional provider (entity_type_code == \"2\") whose taxonomies resolve against the specialty classification catalog carries a derived facility_type_descriptions field.",
@@ -15886,7 +16176,7 @@
                           "approval": "approved"
                         },
                         {
-                          "req_id": "EPIC-010-F-004-S-005-REQ-B-002",
+                          "req_id": "EPIC-010-F-005-S-005-REQ-B-002",
                           "orphan": false,
                           "name": "Facility-type entries derived from taxonomy codes present in the catalog",
                           "requirement": "The facility-type entries are derived from the provider's taxonomy codes resolved against the specialty classification catalog; only taxonomy codes present in the catalog contribute an entry.",
@@ -15905,7 +16195,7 @@
                           "approval": "approved"
                         },
                         {
-                          "req_id": "EPIC-010-F-004-S-005-REQ-B-003",
+                          "req_id": "EPIC-010-F-005-S-005-REQ-B-003",
                           "orphan": false,
                           "name": "facility_type_descriptions held distinct from source taxonomy codes",
                           "requirement": "facility_type_descriptions is held as a derived sibling field distinct from the source taxonomy codes \u2014 the source taxonomy slots are read and are not mutated, a separate field is written.",
@@ -15924,7 +16214,7 @@
                           "approval": "approved"
                         },
                         {
-                          "req_id": "EPIC-010-F-004-S-005-REQ-B-004",
+                          "req_id": "EPIC-010-F-005-S-005-REQ-B-004",
                           "orphan": false,
                           "name": "Facility-type field re-derived on every run via $set",
                           "requirement": "The facility-type field is re-derived on every run \u2014 the field is overwritten via $set each pass rather than merged or appended.",
@@ -15943,7 +16233,7 @@
                           "approval": "approved"
                         },
                         {
-                          "req_id": "EPIC-010-F-004-S-005-REQ-B-005",
+                          "req_id": "EPIC-010-F-005-S-005-REQ-B-005",
                           "orphan": false,
                           "name": "No catalog match leaves facility_type_descriptions absent, not defaulted",
                           "requirement": "An institutional provider whose taxonomies resolve to no catalog entry receives no facility_type_descriptions field \u2014 left absent, not defaulted (the update is queued only when descriptions is non-empty).",
@@ -15965,7 +16255,7 @@
                     }
                   },
                   {
-                    "story_id": "EPIC-010-F-004-S-006",
+                    "story_id": "EPIC-010-F-005-S-006",
                     "orphan": false,
                     "name": "County Identity",
                     "description": "Every eligible practice address is stamped with the county it falls in, its identity and its name, derived from the address and marked with which authority resolved it, held distinct from the source address, left absent rather than defaulted where it cannot be resolved, and re-resolved on every refresh.",
@@ -15975,7 +16265,7 @@
                     "requirements": {
                       "requirement": [
                         {
-                          "req_id": "EPIC-010-F-004-S-006-REQ-B-001",
+                          "req_id": "EPIC-010-F-005-S-006-REQ-B-001",
                           "orphan": false,
                           "name": "Only practice/secondary_practice addresses are county-eligible",
                           "requirement": "Only practice and secondary_practice addresses are eligible for county enrichment; a mailing/business address is never stamped with a county.",
@@ -15994,7 +16284,7 @@
                           "approval": "approved"
                         },
                         {
-                          "req_id": "EPIC-010-F-004-S-006-REQ-B-002",
+                          "req_id": "EPIC-010-F-005-S-006-REQ-B-002",
                           "orphan": false,
                           "name": "Only US addresses are county-eligible",
                           "requirement": "Only United States addresses are eligible; a non-US address is never stamped a US county.",
@@ -16013,7 +16303,7 @@
                           "approval": "approved"
                         },
                         {
-                          "req_id": "EPIC-010-F-004-S-006-REQ-B-003",
+                          "req_id": "EPIC-010-F-005-S-006-REQ-B-003",
                           "orphan": false,
                           "name": "County object carries 5-digit county FIPS identity plus\u2026",
                           "requirement": "County identity on a resolved eligible practice address is a county object carrying a 5-digit county FIPS as its identity and a source label naming the authority that resolved it.",
@@ -16032,7 +16322,7 @@
                           "approval": "approved"
                         },
                         {
-                          "req_id": "EPIC-010-F-004-S-006-REQ-B-004",
+                          "req_id": "EPIC-010-F-005-S-006-REQ-B-004",
                           "orphan": false,
                           "name": "County name included on stamped county when resolving path supplies one",
                           "requirement": "A county name is included on the stamped county whenever the resolving path supplies one.",
@@ -16051,7 +16341,7 @@
                           "approval": "approved"
                         },
                         {
-                          "req_id": "EPIC-010-F-004-S-006-REQ-B-005",
+                          "req_id": "EPIC-010-F-005-S-006-REQ-B-005",
                           "orphan": false,
                           "name": "county.source is one of exactly four success values",
                           "requirement": "The resolving authority (county.source) is one of exactly four success values: zip_crosswalk, census_batch, nppes_registry, google_maps.",
@@ -16070,7 +16360,7 @@
                           "approval": "approved"
                         },
                         {
-                          "req_id": "EPIC-010-F-004-S-006-REQ-B-006",
+                          "req_id": "EPIC-010-F-005-S-006-REQ-B-006",
                           "orphan": false,
                           "name": "County source label normalized to schema-enum vocabulary before\u2026",
                           "requirement": "A county source label is normalized to the schema-enum vocabulary before it is persisted: each legacy per-pass success label maps to its canonical success authority, and every legacy failure label maps to county_unresolvable.",
@@ -16089,7 +16379,7 @@
                           "approval": "approved"
                         },
                         {
-                          "req_id": "EPIC-010-F-004-S-006-REQ-B-007",
+                          "req_id": "EPIC-010-F-005-S-006-REQ-B-007",
                           "orphan": false,
                           "name": "County derived from the address, not read from any source field",
                           "requirement": "County is derived from the address (ZIP \u2192 crosswalk lookup, else the address string \u2192 geocoder), not read from any source field.",
@@ -16108,7 +16398,7 @@
                           "approval": "approved"
                         },
                         {
-                          "req_id": "EPIC-010-F-004-S-006-REQ-B-008",
+                          "req_id": "EPIC-010-F-005-S-006-REQ-B-008",
                           "orphan": false,
                           "name": "Cost-ordered cascade",
                           "requirement": "County resolution proceeds through a cost-ordered cascade (zip_crosswalk \u2192 census_batch \u2192 nppes_registry \u2192 google_maps); the first stage to resolve stamps the county and later stages run only on the unresolved residue.",
@@ -16127,7 +16417,7 @@
                           "approval": "approved"
                         },
                         {
-                          "req_id": "EPIC-010-F-004-S-006-REQ-B-009",
+                          "req_id": "EPIC-010-F-005-S-006-REQ-B-009",
                           "orphan": false,
                           "name": "google_maps stage is paid final authority, gated by google_maps_enabled\u2026",
                           "requirement": "The google_maps stage is the paid final cascade authority and runs only when the run's google_maps_enabled flag is set; a run with the flag off resolves without it.",
@@ -16146,7 +16436,7 @@
                           "approval": "approved"
                         },
                         {
-                          "req_id": "EPIC-010-F-004-S-006-REQ-B-010",
+                          "req_id": "EPIC-010-F-005-S-006-REQ-B-010",
                           "orphan": false,
                           "name": "Unresolvable county left absent (never defaulted), recorded in durable\u2026",
                           "requirement": "A county that no stage can resolve is left absent \u2014 never defaulted to a placeholder FIPS \u2014 and is recorded as unresolvable (source=county_unresolvable, fips absent, name empty), written to the durable discrepancy store separate from the provider data.",
@@ -16165,7 +16455,7 @@
                           "approval": "approved"
                         },
                         {
-                          "req_id": "EPIC-010-F-004-S-006-REQ-B-011",
+                          "req_id": "EPIC-010-F-005-S-006-REQ-B-011",
                           "orphan": false,
                           "name": "County object held distinct under addr['county'], never overwriting\u2026",
                           "requirement": "The county object is held distinct from the source address fields \u2014 nested under addr[\"county\"], never overwriting line1/city/state/zip.",
@@ -16184,7 +16474,7 @@
                           "approval": "approved"
                         },
                         {
-                          "req_id": "EPIC-010-F-004-S-006-REQ-B-012",
+                          "req_id": "EPIC-010-F-005-S-006-REQ-B-012",
                           "orphan": false,
                           "name": "On true-duplicate address merge, a populated county is preserved over a\u2026",
                           "requirement": "When two addresses collapse as a true duplicate, a populated county on either input is preserved on the merged entry (a populated value is not dropped in favor of a null).",
@@ -16206,7 +16496,7 @@
                     }
                   },
                   {
-                    "story_id": "EPIC-010-F-004-S-007",
+                    "story_id": "EPIC-010-F-005-S-007",
                     "orphan": false,
                     "name": "Urban and Rural Standing",
                     "description": "Every county-resolved practice address carries its USDA rural-urban standing as the raw code, leaving the threshold to the consumer, and the provider carries a single most-urban rollup across its addresses; both derived from the address's county classification, held distinct from source, absent rather than defaulted where none resolves, and re-stamped on every refresh.",
@@ -16216,7 +16506,7 @@
                     "requirements": {
                       "requirement": [
                         {
-                          "req_id": "EPIC-010-F-004-S-007-REQ-B-001",
+                          "req_id": "EPIC-010-F-005-S-007-REQ-B-001",
                           "orphan": false,
                           "name": "Practice address carries USDA RUCC raw code (1-9) at county.rucc",
                           "requirement": "Every county-resolved practice address carries its USDA Rural-Urban Continuum Code (RUCC) as a raw integer in the range 1-9 at practice_addresses[i].county.rucc.",
@@ -16235,7 +16525,7 @@
                           "approval": "approved"
                         },
                         {
-                          "req_id": "EPIC-010-F-004-S-007-REQ-B-002",
+                          "req_id": "EPIC-010-F-005-S-007-REQ-B-002",
                           "orphan": false,
                           "name": "RUCC absent (never defaulted) on unresolved FIPS or non-numeric-FIPS\u2026",
                           "requirement": "The RUCC raw code is absent (never defaulted) on any practice address whose FIPS does not resolve in the USDA catalog, and on any county resolved by a non-numeric-FIPS authority (e.g. Google).",
@@ -16254,7 +16544,7 @@
                           "approval": "approved"
                         },
                         {
-                          "req_id": "EPIC-010-F-004-S-007-REQ-B-003",
+                          "req_id": "EPIC-010-F-005-S-007-REQ-B-003",
                           "orphan": false,
                           "name": "Per-address urban standing at county.urban derived from same address's\u2026",
                           "requirement": "Each practice address carries a per-address urban standing at practice_addresses[i].county.urban, derived from that same address's county.rucc.",
@@ -16273,7 +16563,7 @@
                           "approval": "approved"
                         },
                         {
-                          "req_id": "EPIC-010-F-004-S-007-REQ-B-004",
+                          "req_id": "EPIC-010-F-005-S-007-REQ-B-004",
                           "orphan": false,
                           "name": "Per-address urban is true when RUCC in {1,2,3}, false otherwise",
                           "requirement": "The per-address urban standing is true when the address's RUCC is in {1,2,3} and false otherwise.",
@@ -16292,7 +16582,7 @@
                           "approval": "approved"
                         },
                         {
-                          "req_id": "EPIC-010-F-004-S-007-REQ-B-005",
+                          "req_id": "EPIC-010-F-005-S-007-REQ-B-005",
                           "orphan": false,
                           "name": "Per-address urban absent (never false) where RUCC missing/unresolved",
                           "requirement": "The per-address urban standing is absent (never false) where the address's county RUCC is missing or unresolved.",
@@ -16311,7 +16601,7 @@
                           "approval": "approved"
                         },
                         {
-                          "req_id": "EPIC-010-F-004-S-007-REQ-B-006",
+                          "req_id": "EPIC-010-F-005-S-007-REQ-B-006",
                           "orphan": false,
                           "name": "Provider-level urban is most-urban (lowest RUCC) across all practice\u2026",
                           "requirement": "Each provider carries a single provider-level urban standing (top-level field `urban`) computed as the most-urban (lowest RUCC) across all the provider's practice addresses.",
@@ -16330,7 +16620,7 @@
                           "approval": "approved"
                         },
                         {
-                          "req_id": "EPIC-010-F-004-S-007-REQ-B-007",
+                          "req_id": "EPIC-010-F-005-S-007-REQ-B-007",
                           "orphan": false,
                           "name": "Provider-level urban absent (never false) where no address has a\u2026",
                           "requirement": "The provider-level urban standing is absent (never false) where no practice address has a resolved RUCC.",
@@ -16349,7 +16639,7 @@
                           "approval": "approved"
                         },
                         {
-                          "req_id": "EPIC-010-F-004-S-007-REQ-B-008",
+                          "req_id": "EPIC-010-F-005-S-007-REQ-B-008",
                           "orphan": false,
                           "name": "Both urban standings stamped in place server-side via single update_many",
                           "requirement": "Both urban standings are stamped in place server-side by a single update_many; no provider document crosses the wire to compute them.",
@@ -16368,7 +16658,7 @@
                           "approval": "approved"
                         },
                         {
-                          "req_id": "EPIC-010-F-004-S-007-REQ-B-009",
+                          "req_id": "EPIC-010-F-005-S-007-REQ-B-009",
                           "orphan": false,
                           "name": "urban_flag step declares county_enrichment as prerequisite and runs\u2026",
                           "requirement": "The urban_flag step declares county_enrichment (RUCC resolution) as a prerequisite and runs only after it.",
@@ -16387,7 +16677,7 @@
                           "approval": "approved"
                         },
                         {
-                          "req_id": "EPIC-010-F-004-S-007-REQ-B-010",
+                          "req_id": "EPIC-010-F-005-S-007-REQ-B-010",
                           "orphan": false,
                           "name": "Urban derivation applied per state partition, scoped to run_id and\u2026",
                           "requirement": "The urban derivation is applied per state partition of a run, scoped to the run's documents (run_id) intersected with the partition's business-state filter (default ALL).",
@@ -16406,7 +16696,7 @@
                           "approval": "approved"
                         },
                         {
-                          "req_id": "EPIC-010-F-004-S-007-REQ-B-011",
+                          "req_id": "EPIC-010-F-005-S-007-REQ-B-011",
                           "orphan": false,
                           "name": "Urban standings recomputed on every run via single server-side\u2026",
                           "requirement": "The urban standings are recomputed on every run \u2014 a single server-side update_many re-derives both markers over that run's documents rather than reading a prior run's stored value.",
@@ -16425,7 +16715,7 @@
                           "approval": "approved"
                         },
                         {
-                          "req_id": "EPIC-010-F-004-S-007-REQ-B-012",
+                          "req_id": "EPIC-010-F-005-S-007-REQ-B-012",
                           "orphan": false,
                           "name": "Populated urban value preserved on merged entry through true-duplicate\u2026",
                           "requirement": "When two practice addresses collapse as a true duplicate, a populated urban value on either input is preserved on the merged entry.",
@@ -16447,7 +16737,7 @@
                     }
                   },
                   {
-                    "story_id": "EPIC-010-F-004-S-008",
+                    "story_id": "EPIC-010-F-005-S-008",
                     "orphan": false,
                     "name": "Geo Coordinates",
                     "description": "Every practice address is stamped with its geographic coordinates, latitude and longitude, derived from the address, held distinct from the source address and re-derived on every refresh.",
@@ -16457,7 +16747,7 @@
                     "requirements": {
                       "requirement": [
                         {
-                          "req_id": "EPIC-010-F-004-S-008-REQ-B-001",
+                          "req_id": "EPIC-010-F-005-S-008-REQ-B-001",
                           "orphan": false,
                           "name": "Every address carries Google-Maps-usable geo coordinates",
                           "requirement": "Every address on a provider record carries geographic coordinates - a latitude and a longitude - that Google Maps can understand.",
@@ -16476,7 +16766,7 @@
                           "approval": "approved"
                         },
                         {
-                          "req_id": "EPIC-010-F-004-S-008-REQ-B-002",
+                          "req_id": "EPIC-010-F-005-S-008-REQ-B-002",
                           "orphan": false,
                           "name": "SLA: 98% of legitimate addresses have accurate geo coordinates",
                           "requirement": "At least 98% of legitimate addresses must carry accurate geographic coordinates (a measured service-level target).",
@@ -16498,7 +16788,7 @@
                     }
                   },
                   {
-                    "story_id": "EPIC-010-F-004-S-009",
+                    "story_id": "EPIC-010-F-005-S-009",
                     "orphan": false,
                     "name": "Proprietary Clinical Flags",
                     "description": "Every individual provider carries the clinical classification flags can-prescribe, homeopathic and disqualified, derived from the specialty vocabulary against its taxonomies, held as proprietary derived facts distinct from source, left absent and never defaulted to false for any taxonomy the vocabulary does not classify, and recomputed on every refresh.",
@@ -16508,7 +16798,7 @@
                     "requirements": {
                       "requirement": [
                         {
-                          "req_id": "EPIC-010-F-004-S-009-REQ-B-001",
+                          "req_id": "EPIC-010-F-005-S-009-REQ-B-001",
                           "orphan": false,
                           "name": "can_prescribe flag derived from specialty vocabulary against primary\u2026",
                           "requirement": "Every individual provider record carries a boolean can_prescribe flag, derived from the specialty vocabulary (the F-105 catalog, ProprietaryData.SpecialtyAndProviderFlags) against the provider's primary taxonomy code.",
@@ -16527,7 +16817,7 @@
                           "approval": "approved"
                         },
                         {
-                          "req_id": "EPIC-010-F-004-S-009-REQ-B-002",
+                          "req_id": "EPIC-010-F-005-S-009-REQ-B-002",
                           "orphan": false,
                           "name": "is_homeopathic flag derived from specialty vocabulary against primary\u2026",
                           "requirement": "Every individual provider record carries a boolean is_homeopathic flag, derived from the specialty vocabulary against the provider's primary taxonomy code.",
@@ -16546,7 +16836,7 @@
                           "approval": "approved"
                         },
                         {
-                          "req_id": "EPIC-010-F-004-S-009-REQ-B-003",
+                          "req_id": "EPIC-010-F-005-S-009-REQ-B-003",
                           "orphan": false,
                           "name": "Clinical flags held as derived facts via $set keyed off per-NUCC-code\u2026",
                           "requirement": "The clinical flags are held as ChatHealthy-derived facts on the provider record, distinct from source fields, stamped via a $set write keyed off the catalog which is keyed per NUCC taxonomy code.",
@@ -16565,7 +16855,7 @@
                           "approval": "approved"
                         },
                         {
-                          "req_id": "EPIC-010-F-004-S-009-REQ-B-004",
+                          "req_id": "EPIC-010-F-005-S-009-REQ-B-004",
                           "orphan": false,
                           "name": "Missing catalog code with no sink raises rather than defaulting to false",
                           "requirement": "When a provider's primary taxonomy code is absent from the catalog and no discrepancy sink is present, the flag is not defaulted to false \u2014 a ChatHealthyException(mode=\"taxonomy_code_missing_from_catalog\") is raised.",
@@ -16584,7 +16874,7 @@
                           "approval": "approved"
                         },
                         {
-                          "req_id": "EPIC-010-F-004-S-009-REQ-B-005",
+                          "req_id": "EPIC-010-F-005-S-009-REQ-B-005",
                           "orphan": false,
                           "name": "Missing catalog code with sink skips stamping and emits discrepancy",
                           "requirement": "When a provider's primary taxonomy code is absent from the catalog and a discrepancy sink is present, flag stamping is skipped (the flags are left absent, never defaulted to false) and a discrepancy entry is emitted for that record.",
@@ -16603,7 +16893,7 @@
                           "approval": "approved"
                         },
                         {
-                          "req_id": "EPIC-010-F-004-S-009-REQ-B-006",
+                          "req_id": "EPIC-010-F-005-S-009-REQ-B-006",
                           "orphan": false,
                           "name": "Catalog load raises rather than defaulting on empty/missing entries",
                           "requirement": "Loading the catalog raises rather than defaulting when the catalog collection is empty, a code entry is missing, its can_prescribe is missing, or its is_homeopathic is missing.",
@@ -16622,7 +16912,7 @@
                           "approval": "approved"
                         },
                         {
-                          "req_id": "EPIC-010-F-004-S-009-REQ-B-007",
+                          "req_id": "EPIC-010-F-005-S-009-REQ-B-007",
                           "orphan": false,
                           "name": "Flags recomputed on every run",
                           "requirement": "The flags are recomputed on every run \u2014 each invocation re-reads the catalog and re-scans and re-stamps every matched provider record for that run_id; no prior flag value is read forward from a source field.",
@@ -16641,7 +16931,7 @@
                           "approval": "approved"
                         },
                         {
-                          "req_id": "EPIC-010-F-004-S-009-REQ-B-008",
+                          "req_id": "EPIC-010-F-005-S-009-REQ-B-008",
                           "orphan": false,
                           "name": "Dedicated partition-scoped flag step runs after add_secondary_practices",
                           "requirement": "A dedicated pipeline step applies the clinical flags to every provider record in the run partition, scoped by entity_kind and business_address_state, by invoking apply_provider_flags over that partition; it runs after add_secondary_practices.",
@@ -16660,7 +16950,7 @@
                           "approval": "approved"
                         },
                         {
-                          "req_id": "EPIC-010-F-004-S-009-REQ-B-009",
+                          "req_id": "EPIC-010-F-005-S-009-REQ-B-009",
                           "orphan": false,
                           "name": "Enrichment step wrapper re-raises engine exceptions without\u2026",
                           "requirement": "The enrichment step wrapper re-raises any exception the flag engine propagates rather than swallowing it or substituting a defaulted flag value.",
@@ -16682,7 +16972,7 @@
                     }
                   },
                   {
-                    "story_id": "EPIC-010-F-004-S-010",
+                    "story_id": "EPIC-010-F-005-S-010",
                     "orphan": false,
                     "name": "Curated Corrections",
                     "description": "Provider records carry the manually curated corrections that override source-derived facts where the source is known to mislead, including the curated clinical-role list that distinguishes licensed clinical taxonomies from non-clinical ones, applied as an explicit human-maintained overlay that carries its own authority, never overwrites the source value it repairs, carries a triage standing so a draft never reaches served data, and is always preserved across a refresh.",
@@ -16692,7 +16982,7 @@
                     "requirements": {
                       "requirement": [
                         {
-                          "req_id": "EPIC-010-F-004-S-010-REQ-B-001",
+                          "req_id": "EPIC-010-F-005-S-010-REQ-B-001",
                           "orphan": false,
                           "name": "Curated clinical-role overlay in\u2026",
                           "requirement": "Provider records carry a curated clinical-role overlay \u2014 the F-105 catalog held in ProprietaryData.SpecialtyAndProviderFlags \u2014 that distinguishes licensed clinical taxonomies from non-clinical ones, keyed per NUCC taxonomy code (the is_disqualified / is_licensed_clinical_role discriminator, per BUG-005).",
@@ -16711,7 +17001,7 @@
                           "approval": "approved"
                         },
                         {
-                          "req_id": "EPIC-010-F-004-S-010-REQ-B-002",
+                          "req_id": "EPIC-010-F-005-S-010-REQ-B-002",
                           "orphan": false,
                           "name": "A curated correction is a human-maintained overlay with its own\u2026",
                           "requirement": "A curated correction is a human-maintained overlay that carries its own authority tag; it is an additional element beside the source, not a source field.",
@@ -16730,7 +17020,7 @@
                           "approval": "approved"
                         },
                         {
-                          "req_id": "EPIC-010-F-004-S-010-REQ-B-003",
+                          "req_id": "EPIC-010-F-005-S-010-REQ-B-003",
                           "orphan": false,
                           "name": "A curated correction never overwrites the source value it repairs",
                           "requirement": "A curated correction never overwrites the source value it repairs \u2014 no authority's assertion is silently converted into another's.",
@@ -16749,7 +17039,7 @@
                           "approval": "approved"
                         },
                         {
-                          "req_id": "EPIC-010-F-004-S-010-REQ-B-004",
+                          "req_id": "EPIC-010-F-005-S-010-REQ-B-004",
                           "orphan": false,
                           "name": "A curated correction carries a triage standing and a draft/untriaged\u2026",
                           "requirement": "A curated correction carries a triage standing (an untriaged value has a state), and a draft/untriaged value never reaches served (production) data.",
@@ -16768,7 +17058,7 @@
                           "approval": "approved"
                         },
                         {
-                          "req_id": "EPIC-010-F-004-S-010-REQ-B-005",
+                          "req_id": "EPIC-010-F-005-S-010-REQ-B-005",
                           "orphan": false,
                           "name": "A reconciliation cycle is triggered by each new upstream reference\u2026",
                           "requirement": "A reconciliation cycle is triggered by each new upstream reference release.",
@@ -16787,7 +17077,7 @@
                           "approval": "approved"
                         },
                         {
-                          "req_id": "EPIC-010-F-004-S-010-REQ-B-006",
+                          "req_id": "EPIC-010-F-005-S-010-REQ-B-006",
                           "orphan": false,
                           "name": "A curated correction is always preserved across a refresh\u2026",
                           "requirement": "A curated correction is always preserved across a refresh \u2014 it is carry-forward and is never recomputed or overwritten by a fire.",
@@ -16812,7 +17102,7 @@
               }
             },
             {
-              "feature_id": "EPIC-010-F-005",
+              "feature_id": "EPIC-010-F-006",
               "orphan": false,
               "name": "Provider Pipeline",
               "sourceLocation": "pipeline/provider_pipeline",
@@ -16825,7 +17115,7 @@
               "stories": {
                 "story": [
                   {
-                    "story_id": "EPIC-010-F-005-S-001",
+                    "story_id": "EPIC-010-F-006-S-001",
                     "orphan": false,
                     "name": "Partition scope (state)",
                     "description": "How the provider pipeline partitions its work by US state.",
@@ -16835,7 +17125,7 @@
                     "requirements": {
                       "requirement": [
                         {
-                          "req_id": "EPIC-010-F-005-S-001-REQ-B-001",
+                          "req_id": "EPIC-010-F-006-S-001-REQ-B-001",
                           "orphan": false,
                           "name": "The provider pipeline's partition scope is a state scope",
                           "requirement": "The provider pipeline's partition scope is a state scope, the set of US states the run covers.",
@@ -16854,7 +17144,7 @@
                           "approval": "approved"
                         },
                         {
-                          "req_id": "EPIC-010-F-005-S-001-REQ-B-002",
+                          "req_id": "EPIC-010-F-006-S-001-REQ-B-002",
                           "orphan": false,
                           "name": "The provider pipeline resolves its partition scope STATE_SCOPE then STAT",
                           "requirement": "The provider pipeline resolves its partition scope STATE_SCOPE then STATES then ALL over the US states; if STATES is all the argument must be the literal ALL, and an empty states array is a fatal error.",
@@ -16873,7 +17163,7 @@
                           "approval": "approved"
                         },
                         {
-                          "req_id": "EPIC-010-F-005-S-001-REQ-B-003",
+                          "req_id": "EPIC-010-F-006-S-001-REQ-B-003",
                           "orphan": false,
                           "name": "Provider full-scope run fans to 51 state partitions plus ALL_OTHERS",
                           "requirement": "A full-scope run (states == [\"ALL\"] or empty) fans out to one partition per enumerated US state (51 = 50 states + DC) plus one ALL_OTHERS sentinel partition covering every provider whose business state is not one of the enumerated codes (selected via $nin).",
@@ -16892,7 +17182,7 @@
                           "approval": "approved"
                         },
                         {
-                          "req_id": "EPIC-010-F-005-S-001-REQ-B-004",
+                          "req_id": "EPIC-010-F-006-S-001-REQ-B-004",
                           "orphan": false,
                           "name": "The provider record's key is npi",
                           "requirement": "The provider record's key is npi; a provider record is owned by exactly one worker keyed on its single-valued business (mailing) address state, and per-NPI writes filter on npi.",
@@ -16911,7 +17201,7 @@
                           "approval": "approved"
                         },
                         {
-                          "req_id": "EPIC-010-F-005-S-001-REQ-B-005",
+                          "req_id": "EPIC-010-F-006-S-001-REQ-B-005",
                           "orphan": false,
                           "name": "For the provider pipeline the empty-scope whole-run predicate is busines",
                           "requirement": "For the provider pipeline the empty-scope whole-run predicate is business_state_filter returning the empty predicate over all providers of the run.",
@@ -16930,7 +17220,7 @@
                           "approval": "approved"
                         },
                         {
-                          "req_id": "EPIC-010-F-005-S-001-REQ-B-006",
+                          "req_id": "EPIC-010-F-006-S-001-REQ-B-006",
                           "orphan": false,
                           "name": "Provider staging-row partition predicate over a flat state field",
                           "requirement": "The staging-collection partition predicate applies the same sentinel / named-state / empty handling against a FLAT `state` field on harvested staging rows \u2014 a field distinct from the business_address.state read on provider records.",
@@ -16949,7 +17239,7 @@
                           "approval": "approved"
                         },
                         {
-                          "req_id": "EPIC-010-F-005-S-001-REQ-B-007",
+                          "req_id": "EPIC-010-F-006-S-001-REQ-B-007",
                           "orphan": false,
                           "name": "For the provider pipeline a unit is malformed when its entity_type is ne",
                           "requirement": "For the provider pipeline a unit is malformed when its entity_type is neither 1 nor 2.",
@@ -16968,7 +17258,7 @@
                           "approval": "approved"
                         },
                         {
-                          "req_id": "EPIC-010-F-005-S-001-REQ-B-008",
+                          "req_id": "EPIC-010-F-006-S-001-REQ-B-008",
                           "orphan": false,
                           "name": "The provider pipeline's entry step is prepare_infrastructure and carries",
                           "requirement": "The provider pipeline's entry step is prepare_infrastructure and carries no prerequisites.",
@@ -16990,7 +17280,7 @@
                     }
                   },
                   {
-                    "story_id": "EPIC-010-F-005-S-002",
+                    "story_id": "EPIC-010-F-006-S-002",
                     "orphan": false,
                     "name": "Record contract and conformance",
                     "description": "The provider record contract and its write-time conformance.",
@@ -17000,7 +17290,7 @@
                     "requirements": {
                       "requirement": [
                         {
-                          "req_id": "EPIC-010-F-005-S-002-REQ-B-001",
+                          "req_id": "EPIC-010-F-006-S-002-REQ-B-001",
                           "orphan": false,
                           "name": "The provider contract is Website/schemas/ChatHealthyProvidersSchema.json",
                           "requirement": "The provider contract is Website/schemas/ChatHealthyProvidersSchema.json for the built provider collection.",
@@ -17019,7 +17309,7 @@
                           "approval": "approved"
                         },
                         {
-                          "req_id": "EPIC-010-F-005-S-002-REQ-B-002",
+                          "req_id": "EPIC-010-F-006-S-002-REQ-B-002",
                           "orphan": false,
                           "name": "Provider write-time conformance requires non-empty npi and entity_type_code",
                           "requirement": "A provider record's runtime write-time conformance gate requires a non-empty npi and a non-empty entity_type_code.",
@@ -17038,7 +17328,7 @@
                           "approval": "approved"
                         },
                         {
-                          "req_id": "EPIC-010-F-005-S-002-REQ-B-003",
+                          "req_id": "EPIC-010-F-006-S-002-REQ-B-003",
                           "orphan": false,
                           "name": "A conforming npi is exactly 10 characters, all digits",
                           "requirement": "A conforming npi is exactly 10 characters and all digits.",
@@ -17057,7 +17347,7 @@
                           "approval": "approved"
                         },
                         {
-                          "req_id": "EPIC-010-F-005-S-002-REQ-B-004",
+                          "req_id": "EPIC-010-F-006-S-002-REQ-B-004",
                           "orphan": false,
                           "name": "A conforming entity_type_code is 1 or 2",
                           "requirement": "A conforming entity_type_code is the string \"1\" or \"2\".",
@@ -17076,7 +17366,7 @@
                           "approval": "approved"
                         },
                         {
-                          "req_id": "EPIC-010-F-005-S-002-REQ-B-005",
+                          "req_id": "EPIC-010-F-006-S-002-REQ-B-005",
                           "orphan": false,
                           "name": "Provider record carries a human-readable _label sibling for every coded field",
                           "requirement": "The built provider record carries a human-readable _label sibling for every coded field (taxonomy code_label/classification_label/specialization_label, license state_label, insurance-identifier type_label, address state/country labels, activity-status event labels).",
@@ -17095,7 +17385,7 @@
                           "approval": "approved"
                         },
                         {
-                          "req_id": "EPIC-010-F-005-S-002-REQ-B-006",
+                          "req_id": "EPIC-010-F-006-S-002-REQ-B-006",
                           "orphan": false,
                           "name": "The provider reason vocabulary for contract-validation findings is missing_npi",
                           "requirement": "The provider reason vocabulary for contract-validation findings is missing_npi, missing_entity_type_code, invalid_npi, invalid_entity_type_code.",
@@ -17117,7 +17407,7 @@
                     }
                   },
                   {
-                    "story_id": "EPIC-010-F-005-S-003",
+                    "story_id": "EPIC-010-F-006-S-003",
                     "orphan": false,
                     "name": "Findings",
                     "description": "The provider pipeline's per-record findings and their dimensions.",
@@ -17127,7 +17417,7 @@
                     "requirements": {
                       "requirement": [
                         {
-                          "req_id": "EPIC-010-F-005-S-003-REQ-B-001",
+                          "req_id": "EPIC-010-F-006-S-003-REQ-B-001",
                           "orphan": false,
                           "name": "For the provider pipeline the finding record key is npi and the fields i",
                           "requirement": "For the provider pipeline the finding record key is npi and the fields include state and entity_kind.",
@@ -17146,7 +17436,7 @@
                           "approval": "approved"
                         },
                         {
-                          "req_id": "EPIC-010-F-005-S-003-REQ-B-002",
+                          "req_id": "EPIC-010-F-006-S-003-REQ-B-002",
                           "orphan": false,
                           "name": "License-address-repair finding (state_missing_no_license / _ambiguous_license)",
                           "requirement": "The license-address-repair step records a per-record finding, keyed by NPI with step=\"license_address_repair\", using reason=\"state_missing_no_license\" when an address lacks a state on a provider with zero licenses and reason=\"state_missing_ambiguous_license\" when the provider carries more than one license.",
@@ -17165,7 +17455,7 @@
                           "approval": "approved"
                         },
                         {
-                          "req_id": "EPIC-010-F-005-S-003-REQ-B-003",
+                          "req_id": "EPIC-010-F-006-S-003-REQ-B-003",
                           "orphan": false,
                           "name": "County-enrichment records an unresolvable address as county_unresolvable",
                           "requirement": "The county-enrichment step records an unresolvable address as a per-record finding with reason=\"county_unresolvable\", step=\"county_enrichment\".",
@@ -17184,7 +17474,7 @@
                           "approval": "approved"
                         },
                         {
-                          "req_id": "EPIC-010-F-005-S-003-REQ-B-005",
+                          "req_id": "EPIC-010-F-006-S-003-REQ-B-005",
                           "orphan": false,
                           "name": "Provider-flags engine records each unresolved primary-taxonomy-code",
                           "requirement": "The provider-flags engine records each unresolved primary-taxonomy-code as a per-record finding carrying run_id, npi, reason, step, state, level and code.",
@@ -17203,7 +17493,7 @@
                           "approval": "approved"
                         },
                         {
-                          "req_id": "EPIC-010-F-005-S-003-REQ-B-006",
+                          "req_id": "EPIC-010-F-006-S-003-REQ-B-006",
                           "orphan": false,
                           "name": "SMD publish/embed records specialty embedding-failed finding",
                           "requirement": "The SMD publish/embed step records exactly one per-record finding with reason=\"error_specialty_embedding_failed\", step=\"publish_smd_and_embed\", entity_kind=\"specialty\" for each row that ends the step without an embedding vector.",
@@ -17222,7 +17512,7 @@
                           "approval": "approved"
                         },
                         {
-                          "req_id": "EPIC-010-F-005-S-003-REQ-B-007",
+                          "req_id": "EPIC-010-F-006-S-003-REQ-B-007",
                           "orphan": false,
                           "name": "Embedding-provider failure is non-fatal to SMD publish/embed",
                           "requirement": "An embedding-provider failure is non-fatal to the SMD publish/embed step: the atomic swap still fires and the collection is published even when embedding rows failed, rather than the step aborting.",
@@ -17241,7 +17531,7 @@
                           "approval": "approved"
                         },
                         {
-                          "req_id": "EPIC-010-F-005-S-003-REQ-B-008",
+                          "req_id": "EPIC-010-F-006-S-003-REQ-B-008",
                           "orphan": false,
                           "name": "The provider-flags finding carries a level.",
                           "requirement": "The provider-flags finding carries a level.",
@@ -17260,7 +17550,7 @@
                           "approval": "approved"
                         },
                         {
-                          "req_id": "EPIC-010-F-005-S-003-REQ-B-009",
+                          "req_id": "EPIC-010-F-006-S-003-REQ-B-009",
                           "orphan": false,
                           "name": "The provider built data separated from findings is the provider and SMD",
                           "requirement": "The provider built data separated from findings is the provider and SMD collections.",
@@ -17279,7 +17569,7 @@
                           "approval": "approved"
                         },
                         {
-                          "req_id": "EPIC-010-F-005-S-003-REQ-B-010",
+                          "req_id": "EPIC-010-F-006-S-003-REQ-B-010",
                           "orphan": false,
                           "name": "The provider report groups findings state then entity_type then reason.",
                           "requirement": "The provider report groups findings state then entity_type then reason.",
@@ -17301,7 +17591,7 @@
                     }
                   },
                   {
-                    "story_id": "EPIC-010-F-005-S-004",
+                    "story_id": "EPIC-010-F-006-S-004",
                     "orphan": false,
                     "name": "Build and publish",
                     "description": "How the provider pipeline builds and publishes its collections.",
@@ -17311,7 +17601,7 @@
                     "requirements": {
                       "requirement": [
                         {
-                          "req_id": "EPIC-010-F-005-S-004-REQ-B-001",
+                          "req_id": "EPIC-010-F-006-S-004-REQ-B-001",
                           "orphan": false,
                           "name": "The provider pipeline's required index set is the provider-collection in",
                           "requirement": "The provider pipeline's required index set is the provider-collection index set sufficient to run the provider build.",
@@ -17330,7 +17620,7 @@
                           "approval": "approved"
                         },
                         {
-                          "req_id": "EPIC-010-F-005-S-004-REQ-B-002",
+                          "req_id": "EPIC-010-F-006-S-004-REQ-B-002",
                           "orphan": false,
                           "name": "A worker's staged output is the built provider documents",
                           "requirement": "A worker's staged output for the provider pipeline is the set of built provider documents it produced for its partition.",
@@ -17349,7 +17639,7 @@
                           "approval": "approved"
                         },
                         {
-                          "req_id": "EPIC-010-F-005-S-004-REQ-B-003",
+                          "req_id": "EPIC-010-F-006-S-004-REQ-B-003",
                           "orphan": false,
                           "name": "Absent provider staging collection raises publish_provider_staging_missing",
                           "requirement": "When the registry-resolved staging collection is absent, publish raises ChatHealthyException(mode=\"publish_provider_staging_missing\") rather than performing a silent no-op.",
@@ -17368,7 +17658,7 @@
                           "approval": "approved"
                         },
                         {
-                          "req_id": "EPIC-010-F-005-S-004-REQ-B-004",
+                          "req_id": "EPIC-010-F-006-S-004-REQ-B-004",
                           "orphan": false,
                           "name": "Published SpecialtyMetaData strips _id, _source_row_index and raw",
                           "requirement": "Every published SpecialtyMetaData record strips the pipeline-only fields _id, _source_row_index and raw.",
@@ -17387,12 +17677,931 @@
                           "approval": "approved"
                         },
                         {
-                          "req_id": "EPIC-010-F-005-S-004-REQ-B-005",
+                          "req_id": "EPIC-010-F-006-S-004-REQ-B-005",
                           "orphan": false,
                           "name": "Published SpecialtyMetaData carries the loading run_id; only current-run rows published",
                           "requirement": "Every published SpecialtyMetaData record carries run_id equal to the loading run's id (traceable to that collection's loaded_metadata doc), and only rows belonging to the current run are published (residual prior-run rows in staging are excluded).",
                           "priority": "must-have",
                           "status": "done",
+                          "depends_on": [],
+                          "tests": {
+                            "test": [
+                              {
+                                "orphan": true,
+                                "test_type": "ORPHAN",
+                                "file": ""
+                              }
+                            ]
+                          },
+                          "approval": "approved"
+                        }
+                      ]
+                    }
+                  }
+                ]
+              }
+            },
+            {
+              "feature_id": "EPIC-010-F-007",
+              "orphan": false,
+              "name": "Medicare Provider Evaluation Data Pipeline",
+              "sourceLocation": "pipeline/MedicareProviderEvaluationDataPipeline",
+              "status": "in_progress",
+              "description": "This feature specifies the requirements for the data pipeline producing Medicare data and metadata allowing ChatHealthy.ai to evaluate which providers can best help its customer. Its scope is individual providers and institutional providers. Three data entities are created by the realization of these requirements: an entity keyed by an individual NPI, an entity keyed by a NUCC code, and a proprietary normalized indication map keyed by indication onto which every drug indication and procedure diagnosis is normalized. Together, given an indication this data allows the system to recommend the most statistically likely best quality choice a user can make in consideration of that indication and the providers the user asked the system to evaluate.",
+              "priority": "must-have",
+              "realized_by": [],
+              "approval": "approved",
+              "due_date": "10/5/26",
+              "stories": {
+                "story": [
+                  {
+                    "story_id": "EPIC-010-F-007-S-001",
+                    "orphan": false,
+                    "name": "Source inputs",
+                    "description": "The named sources the pipeline draws on and the specific content taken from each.",
+                    "size": "M",
+                    "status": "in_progress",
+                    "approval": "approved",
+                    "requirements": {
+                      "requirement": [
+                        {
+                          "req_id": "EPIC-010-F-007-S-001-REQ-B-001",
+                          "orphan": false,
+                          "name": "Provider collection source",
+                          "requirement": "The pipeline's providers come from the platform's Provider collection in the ChatHealthyDataPipelines cluster (PipelinePublicHealthData); from it the pipeline takes each provider's NPI, entity type (individual or organization), and NUCC taxonomy code or codes.",
+                          "priority": "must-have",
+                          "status": "in_progress",
+                          "depends_on": [],
+                          "tests": {
+                            "test": [
+                              {
+                                "orphan": true,
+                                "test_type": "ORPHAN",
+                                "file": ""
+                              }
+                            ]
+                          },
+                          "approval": "approved"
+                        },
+                        {
+                          "req_id": "EPIC-010-F-007-S-001-REQ-B-002",
+                          "orphan": false,
+                          "name": "Medicare procedure source",
+                          "requirement": "The Medicare procedure source is the CMS dataset \u201cMedicare Physician & Other Practitioners \u2014 by Provider and Service\u201d at data.cms.gov (provider-summary-by-type-of-service; JSON at data.cms.gov/data-api/v1); from it the pipeline takes the rendering NPI, the provider entity code Rndrng_Prvdr_Ent_Cd (I or O), the HCPCS code and its description, the year, the service count, and the distinct-beneficiary count.",
+                          "priority": "must-have",
+                          "status": "in_progress",
+                          "depends_on": [],
+                          "tests": {
+                            "test": [
+                              {
+                                "orphan": true,
+                                "test_type": "ORPHAN",
+                                "file": ""
+                              }
+                            ]
+                          },
+                          "approval": "approved"
+                        },
+                        {
+                          "req_id": "EPIC-010-F-007-S-001-REQ-B-003",
+                          "orphan": false,
+                          "name": "Medicare drug source",
+                          "requirement": "The Medicare drug source is the CMS dataset \u201cMedicare Part D Prescribers \u2014 by Provider and Drug\u201d at data.cms.gov (provider-summary-by-type-of-service; JSON at data.cms.gov/data-api/v1); from it the pipeline takes the prescriber NPI, the prescriber entity code Prscrbr_Ent_Cd (I or O), the brand name, the generic name, the year, the total claims, the days supply, and the beneficiary count.",
+                          "priority": "must-have",
+                          "status": "in_progress",
+                          "depends_on": [],
+                          "tests": {
+                            "test": [
+                              {
+                                "orphan": true,
+                                "test_type": "ORPHAN",
+                                "file": ""
+                              }
+                            ]
+                          },
+                          "approval": "approved"
+                        },
+                        {
+                          "req_id": "EPIC-010-F-007-S-001-REQ-B-004",
+                          "orphan": false,
+                          "name": "Procedure coverage reference",
+                          "requirement": "The procedure coverage reference is the CMS Medicare Coverage Database Billing & Coding Articles and LCDs at cms.gov/medicare-coverage-database (API api.coverage.cms.gov; weekly bulk download); from it the pipeline takes, per article group, the CPT/HCPCS codes and the ICD-10-CM codes that support medical necessity for them.",
+                          "priority": "must-have",
+                          "status": "in_progress",
+                          "depends_on": [],
+                          "tests": {
+                            "test": [
+                              {
+                                "orphan": true,
+                                "test_type": "ORPHAN",
+                                "file": ""
+                              }
+                            ]
+                          },
+                          "approval": "approved"
+                        },
+                        {
+                          "req_id": "EPIC-010-F-007-S-001-REQ-B-005",
+                          "orphan": false,
+                          "name": "Drug labeling and normalization reference",
+                          "requirement": "The drug labeling and normalization references are FDA Structured Product Labeling via openFDA at api.fda.gov/drug/label.json and the NLM RxNorm vocabulary via rxnav.nlm.nih.gov; from openFDA the pipeline takes the indications_and_usage text and the openfda RXCUI, UNII and NDC identifiers, and from RxNorm it takes the RXCUI and the ingredient (molecule) a drug name resolves to.",
+                          "priority": "must-have",
+                          "status": "in_progress",
+                          "depends_on": [],
+                          "tests": {
+                            "test": [
+                              {
+                                "orphan": true,
+                                "test_type": "ORPHAN",
+                                "file": ""
+                              }
+                            ]
+                          },
+                          "approval": "approved"
+                        },
+                        {
+                          "req_id": "EPIC-010-F-007-S-001-REQ-B-006",
+                          "orphan": false,
+                          "name": "Facility enrollment reference",
+                          "requirement": "The facility enrollment reference is the CMS Hospital Enrollments file at data.cms.gov (provider-characteristics/hospitals-and-other-facilities/hospital-enrollments), together with its sibling SNF, Home Health, Hospice, FQHC and RHC enrollment files; from it the pipeline takes the NPI and the CCN carried together on the same row.",
+                          "priority": "must-have",
+                          "status": "in_progress",
+                          "depends_on": [],
+                          "tests": {
+                            "test": [
+                              {
+                                "orphan": true,
+                                "test_type": "ORPHAN",
+                                "file": ""
+                              }
+                            ]
+                          },
+                          "approval": "approved"
+                        },
+                        {
+                          "req_id": "EPIC-010-F-007-S-001-REQ-B-007",
+                          "orphan": false,
+                          "name": "Institution-size reference",
+                          "requirement": "The institution-size reference is the CMS Provider of Services (POS) file at data.cms.gov, keyed by CCN (PRVDR_NUM); from it the pipeline takes the certified bed count as the gross institution-size measure.",
+                          "priority": "must-have",
+                          "status": "in_progress",
+                          "depends_on": [],
+                          "tests": {
+                            "test": [
+                              {
+                                "orphan": true,
+                                "test_type": "ORPHAN",
+                                "file": ""
+                              }
+                            ]
+                          },
+                          "approval": "approved"
+                        }
+                      ]
+                    }
+                  },
+                  {
+                    "story_id": "EPIC-010-F-007-S-002",
+                    "orphan": false,
+                    "name": "Canonical ProviderMedicare record and identity",
+                    "description": "The per-provider ProviderMedicare record: its key, the provider's entity type and specialty, and the two kinds of Medicare facts it holds.",
+                    "size": "M",
+                    "status": "in_progress",
+                    "approval": "approved",
+                    "requirements": {
+                      "requirement": [
+                        {
+                          "req_id": "EPIC-010-F-007-S-002-REQ-B-001",
+                          "orphan": false,
+                          "name": "One ProviderMedicare record per provider",
+                          "requirement": "ProviderMedicare is keyed by NPI, one record per provider in the Provider collection; a provider with no Medicare facts has a record with no facts.",
+                          "priority": "must-have",
+                          "status": "in_progress",
+                          "depends_on": [],
+                          "tests": {
+                            "test": [
+                              {
+                                "orphan": true,
+                                "test_type": "ORPHAN",
+                                "file": ""
+                              }
+                            ]
+                          },
+                          "approval": "approved"
+                        },
+                        {
+                          "req_id": "EPIC-010-F-007-S-002-REQ-B-002",
+                          "orphan": false,
+                          "name": "Entity type carried",
+                          "requirement": "Each ProviderMedicare record carries the provider's entity type, individual or organization.",
+                          "priority": "must-have",
+                          "status": "in_progress",
+                          "depends_on": [],
+                          "tests": {
+                            "test": [
+                              {
+                                "orphan": true,
+                                "test_type": "ORPHAN",
+                                "file": ""
+                              }
+                            ]
+                          },
+                          "approval": "approved"
+                        },
+                        {
+                          "req_id": "EPIC-010-F-007-S-002-REQ-B-003",
+                          "orphan": false,
+                          "name": "Specialty carried from the Provider collection",
+                          "requirement": "Each ProviderMedicare record carries the provider's NUCC taxonomy code or codes as given by the Provider collection.",
+                          "priority": "must-have",
+                          "status": "in_progress",
+                          "depends_on": [],
+                          "tests": {
+                            "test": [
+                              {
+                                "orphan": true,
+                                "test_type": "ORPHAN",
+                                "file": ""
+                              }
+                            ]
+                          },
+                          "approval": "approved"
+                        },
+                        {
+                          "req_id": "EPIC-010-F-007-S-002-REQ-B-004",
+                          "orphan": false,
+                          "name": "Two distinct item collections",
+                          "requirement": "Each ProviderMedicare record carries a billed-procedures collection and a prescribed-drugs collection as two distinct arrays.",
+                          "priority": "must-have",
+                          "status": "in_progress",
+                          "depends_on": [],
+                          "tests": {
+                            "test": [
+                              {
+                                "orphan": true,
+                                "test_type": "ORPHAN",
+                                "file": ""
+                              }
+                            ]
+                          },
+                          "approval": "approved"
+                        },
+                        {
+                          "req_id": "EPIC-010-F-007-S-002-REQ-B-005",
+                          "orphan": false,
+                          "name": "Each collection states its Medicare population",
+                          "requirement": "The billed-procedures collection is marked Original Medicare fee-for-service Part B; the prescribed-drugs collection is marked the Part D population including Medicare Advantage.",
+                          "priority": "must-have",
+                          "status": "in_progress",
+                          "depends_on": [],
+                          "tests": {
+                            "test": [
+                              {
+                                "orphan": true,
+                                "test_type": "ORPHAN",
+                                "file": ""
+                              }
+                            ]
+                          },
+                          "approval": "approved"
+                        }
+                      ]
+                    }
+                  },
+                  {
+                    "story_id": "EPIC-010-F-007-S-003",
+                    "orphan": false,
+                    "name": "Billed procedures",
+                    "description": "The procedures a provider billed to Medicare.",
+                    "size": "M",
+                    "status": "in_progress",
+                    "approval": "approved",
+                    "requirements": {
+                      "requirement": [
+                        {
+                          "req_id": "EPIC-010-F-007-S-003-REQ-B-001",
+                          "orphan": false,
+                          "name": "Procedure facts carried",
+                          "requirement": "Each billed-procedure entry carries the HCPCS code, the year, the service count, and the distinct-beneficiary count, as the source gives them.",
+                          "priority": "must-have",
+                          "status": "in_progress",
+                          "depends_on": [],
+                          "tests": {
+                            "test": [
+                              {
+                                "orphan": true,
+                                "test_type": "ORPHAN",
+                                "file": ""
+                              }
+                            ]
+                          },
+                          "approval": "approved"
+                        },
+                        {
+                          "req_id": "EPIC-010-F-007-S-003-REQ-B-002",
+                          "orphan": false,
+                          "name": "Procedure code and display form",
+                          "requirement": "Each billed-procedure entry carries the HCPCS/CPT code and its descriptor, and separately carries the HCPCS Level II code and a plain-language label where the service has them.",
+                          "priority": "must-have",
+                          "status": "in_progress",
+                          "depends_on": [],
+                          "tests": {
+                            "test": [
+                              {
+                                "orphan": true,
+                                "test_type": "ORPHAN",
+                                "file": ""
+                              }
+                            ]
+                          },
+                          "approval": "approved"
+                        },
+                        {
+                          "req_id": "EPIC-010-F-007-S-003-REQ-B-003",
+                          "orphan": false,
+                          "name": "Suppressed procedure value is null",
+                          "requirement": "A suppressed procedure value is present on the billed-procedure entry as an explicit null, never zero or any other number.",
+                          "priority": "must-have",
+                          "status": "in_progress",
+                          "depends_on": [],
+                          "tests": {
+                            "test": [
+                              {
+                                "orphan": true,
+                                "test_type": "ORPHAN",
+                                "file": ""
+                              }
+                            ]
+                          },
+                          "approval": "approved"
+                        }
+                      ]
+                    }
+                  },
+                  {
+                    "story_id": "EPIC-010-F-007-S-004",
+                    "orphan": false,
+                    "name": "Prescribed drugs",
+                    "description": "The drugs a provider prescribed under Medicare Part D.",
+                    "size": "M",
+                    "status": "in_progress",
+                    "approval": "approved",
+                    "requirements": {
+                      "requirement": [
+                        {
+                          "req_id": "EPIC-010-F-007-S-004-REQ-B-001",
+                          "orphan": false,
+                          "name": "Drug facts carried",
+                          "requirement": "Each prescribed-drug entry carries the brand name, the generic name, the year, the total claims, the days supply, and the beneficiary count, as the source gives them.",
+                          "priority": "must-have",
+                          "status": "in_progress",
+                          "depends_on": [],
+                          "tests": {
+                            "test": [
+                              {
+                                "orphan": true,
+                                "test_type": "ORPHAN",
+                                "file": ""
+                              }
+                            ]
+                          },
+                          "approval": "approved"
+                        },
+                        {
+                          "req_id": "EPIC-010-F-007-S-004-REQ-B-002",
+                          "orphan": false,
+                          "name": "Drug molecule carried",
+                          "requirement": "Each prescribed-drug entry carries the RxNorm ingredient (molecule) and RXCUI the drug name resolves to, held distinct from the source brand and generic names.",
+                          "priority": "must-have",
+                          "status": "in_progress",
+                          "depends_on": [],
+                          "tests": {
+                            "test": [
+                              {
+                                "orphan": true,
+                                "test_type": "ORPHAN",
+                                "file": ""
+                              }
+                            ]
+                          },
+                          "approval": "approved"
+                        },
+                        {
+                          "req_id": "EPIC-010-F-007-S-004-REQ-B-003",
+                          "orphan": false,
+                          "name": "Suppressed drug value is null",
+                          "requirement": "A suppressed drug value is present on the prescribed-drug entry as an explicit null, never zero or any other number.",
+                          "priority": "must-have",
+                          "status": "in_progress",
+                          "depends_on": [],
+                          "tests": {
+                            "test": [
+                              {
+                                "orphan": true,
+                                "test_type": "ORPHAN",
+                                "file": ""
+                              }
+                            ]
+                          },
+                          "approval": "approved"
+                        }
+                      ]
+                    }
+                  },
+                  {
+                    "story_id": "EPIC-010-F-007-S-005",
+                    "orphan": false,
+                    "name": "Procedure coverage justification (rule-based)",
+                    "description": "The rule-based justification carried beside each billed procedure.",
+                    "size": "M",
+                    "status": "in_progress",
+                    "approval": "approved",
+                    "requirements": {
+                      "requirement": [
+                        {
+                          "req_id": "EPIC-010-F-007-S-005-REQ-B-001",
+                          "orphan": false,
+                          "name": "Allowed diagnoses carried",
+                          "requirement": "Each billed procedure carries the set of ICD-10-CM codes the CMS Medicare Coverage Database gives as supporting medical necessity for its HCPCS code.",
+                          "priority": "must-have",
+                          "status": "in_progress",
+                          "depends_on": [],
+                          "tests": {
+                            "test": [
+                              {
+                                "orphan": true,
+                                "test_type": "ORPHAN",
+                                "file": ""
+                              }
+                            ]
+                          },
+                          "approval": "approved"
+                        },
+                        {
+                          "req_id": "EPIC-010-F-007-S-005-REQ-B-002",
+                          "orphan": false,
+                          "name": "Justification marked rule-based with its source",
+                          "requirement": "Each procedure justification carries a rule-based marker and the identifier of the coverage article or policy it was drawn from.",
+                          "priority": "must-have",
+                          "status": "in_progress",
+                          "depends_on": [],
+                          "tests": {
+                            "test": [
+                              {
+                                "orphan": true,
+                                "test_type": "ORPHAN",
+                                "file": ""
+                              }
+                            ]
+                          },
+                          "approval": "approved"
+                        },
+                        {
+                          "req_id": "EPIC-010-F-007-S-005-REQ-B-003",
+                          "orphan": false,
+                          "name": "Justification trust and aggregate",
+                          "requirement": "Each procedure justification carries a trust value, and the ProviderMedicare record carries the justification both per procedure and aggregated across the provider.",
+                          "priority": "must-have",
+                          "status": "in_progress",
+                          "depends_on": [],
+                          "tests": {
+                            "test": [
+                              {
+                                "orphan": true,
+                                "test_type": "ORPHAN",
+                                "file": ""
+                              }
+                            ]
+                          },
+                          "approval": "approved"
+                        },
+                        {
+                          "req_id": "EPIC-010-F-007-S-005-REQ-B-004",
+                          "orphan": false,
+                          "name": "Unjustifiable procedure carries absent justification",
+                          "requirement": "A billed procedure with no coverage rule carries an absent justification, not a default, and a finding is recorded for it.",
+                          "priority": "must-have",
+                          "status": "in_progress",
+                          "depends_on": [],
+                          "tests": {
+                            "test": [
+                              {
+                                "orphan": true,
+                                "test_type": "ORPHAN",
+                                "file": ""
+                              }
+                            ]
+                          },
+                          "approval": "approved"
+                        }
+                      ]
+                    }
+                  },
+                  {
+                    "story_id": "EPIC-010-F-007-S-006",
+                    "orphan": false,
+                    "name": "Drug indications on the provider record",
+                    "description": "The normalized indications carried on the ProviderMedicare record for each prescribed drug, drawn from our map by the drug's molecule. These are our parent indications; one molecule carries one or many.",
+                    "size": "M",
+                    "status": "in_progress",
+                    "approval": "approved",
+                    "requirements": {
+                      "requirement": [
+                        {
+                          "req_id": "EPIC-010-F-007-S-006-REQ-B-001",
+                          "orphan": false,
+                          "name": "Our parent indications carried, never FDA text",
+                          "requirement": "Each prescribed drug on a ProviderMedicare record carries the parent indication or indications our map associates with the drug's molecule; a molecule may carry many. The FDA label text is never carried on the record.",
+                          "priority": "must-have",
+                          "status": "in_progress",
+                          "depends_on": [],
+                          "tests": {
+                            "test": [
+                              {
+                                "orphan": true,
+                                "test_type": "ORPHAN",
+                                "file": ""
+                              }
+                            ]
+                          },
+                          "approval": "approved"
+                        },
+                        {
+                          "req_id": "EPIC-010-F-007-S-006-REQ-B-002",
+                          "orphan": false,
+                          "name": "Carried indication keeps its trust",
+                          "requirement": "Each indication carried on a prescribed drug keeps the trust of the molecule-to-indication association it came from in the map.",
+                          "priority": "must-have",
+                          "status": "in_progress",
+                          "depends_on": [],
+                          "tests": {
+                            "test": [
+                              {
+                                "orphan": true,
+                                "test_type": "ORPHAN",
+                                "file": ""
+                              }
+                            ]
+                          },
+                          "approval": "approved"
+                        }
+                      ]
+                    }
+                  },
+                  {
+                    "story_id": "EPIC-010-F-007-S-007",
+                    "orphan": false,
+                    "name": "Organizational CCN and institution size",
+                    "description": "What an organizational record carries that an individual's does not: its CCN and a coarse size.",
+                    "size": "M",
+                    "status": "in_progress",
+                    "approval": "approved",
+                    "requirements": {
+                      "requirement": [
+                        {
+                          "req_id": "EPIC-010-F-007-S-007-REQ-B-001",
+                          "orphan": false,
+                          "name": "Organizational record carries its CCN",
+                          "requirement": "An organizational provider's record carries the CCN paired to its NPI in the facility enrollment reference, and carries an absent CCN where the NPI is not enrolled.",
+                          "priority": "must-have",
+                          "status": "in_progress",
+                          "depends_on": [],
+                          "tests": {
+                            "test": [
+                              {
+                                "orphan": true,
+                                "test_type": "ORPHAN",
+                                "file": ""
+                              }
+                            ]
+                          },
+                          "approval": "approved"
+                        },
+                        {
+                          "req_id": "EPIC-010-F-007-S-007-REQ-B-002",
+                          "orphan": false,
+                          "name": "Organizational record carries a size tier",
+                          "requirement": "An organizational provider's record carries a size as one of five ordered tiers derived from the certified bed count, and carries an absent tier where no CCN or bed count resolves.",
+                          "priority": "must-have",
+                          "status": "in_progress",
+                          "depends_on": [],
+                          "tests": {
+                            "test": [
+                              {
+                                "orphan": true,
+                                "test_type": "ORPHAN",
+                                "file": ""
+                              }
+                            ]
+                          },
+                          "approval": "approved"
+                        },
+                        {
+                          "req_id": "EPIC-010-F-007-S-007-REQ-B-003",
+                          "orphan": false,
+                          "name": "Individual record carries neither",
+                          "requirement": "An individual provider's record carries neither a CCN nor a size tier.",
+                          "priority": "must-have",
+                          "status": "in_progress",
+                          "depends_on": [],
+                          "tests": {
+                            "test": [
+                              {
+                                "orphan": true,
+                                "test_type": "ORPHAN",
+                                "file": ""
+                              }
+                            ]
+                          },
+                          "approval": "approved"
+                        }
+                      ]
+                    }
+                  },
+                  {
+                    "story_id": "EPIC-010-F-007-S-008",
+                    "orphan": false,
+                    "name": "Normalized indication map",
+                    "description": "The normalized indication map, ChatHealthy's proprietary collection of canonical parent indications that we manufacture, and its use across the pipeline's records. Using the map to normalize user complaints is a future enhancement and out of scope here.",
+                    "size": "M",
+                    "status": "in_progress",
+                    "approval": "approved",
+                    "requirements": {
+                      "requirement": [
+                        {
+                          "req_id": "EPIC-010-F-007-S-008-REQ-B-001",
+                          "orphan": false,
+                          "name": "Proprietary parent-indication collection",
+                          "requirement": "The normalized indication map is a proprietary collection ChatHealthy manufactures, one record per indication, each carrying a stable identifier, a plain-language name, and the member ICD-10-CM codes. Each is a parent indication: one canonical indication (for example, migraine) gathers the differing wordings the FDA uses across drugs. These parent indications are what the ProviderMedicare and SpecialtyMedicare collections carry; FDA wording is never carried.",
+                          "priority": "must-have",
+                          "status": "in_progress",
+                          "depends_on": [],
+                          "tests": {
+                            "test": [
+                              {
+                                "orphan": true,
+                                "test_type": "ORPHAN",
+                                "file": ""
+                              }
+                            ]
+                          },
+                          "approval": "approved"
+                        },
+                        {
+                          "req_id": "EPIC-010-F-007-S-008-REQ-B-002",
+                          "orphan": false,
+                          "name": "Molecule-to-indication association",
+                          "requirement": "The map associates each molecule with the parent indications it treats, manufactured by ChatHealthy from FDA labeling and ICD-10 sources; a molecule may be associated with many indications.",
+                          "priority": "must-have",
+                          "status": "in_progress",
+                          "depends_on": [],
+                          "tests": {
+                            "test": [
+                              {
+                                "orphan": true,
+                                "test_type": "ORPHAN",
+                                "file": ""
+                              }
+                            ]
+                          },
+                          "approval": "approved"
+                        },
+                        {
+                          "req_id": "EPIC-010-F-007-S-008-REQ-B-003",
+                          "orphan": false,
+                          "name": "Procedure diagnoses normalized to the map",
+                          "requirement": "Each billed procedure's supporting ICD-10-CM codes resolve to the parent indications whose member codes they are.",
+                          "priority": "must-have",
+                          "status": "in_progress",
+                          "depends_on": [],
+                          "tests": {
+                            "test": [
+                              {
+                                "orphan": true,
+                                "test_type": "ORPHAN",
+                                "file": ""
+                              }
+                            ]
+                          },
+                          "approval": "approved"
+                        },
+                        {
+                          "req_id": "EPIC-010-F-007-S-008-REQ-B-004",
+                          "orphan": false,
+                          "name": "Every prescribed molecule maps, never none",
+                          "requirement": "Every molecule prescribed in the Medicare file resolves to at least one parent indication, never none; the association is a best guess that may carry low trust and may include extra indications, each marked with its trust. No molecule prescribed under Medicare is absent from the map.",
+                          "priority": "must-have",
+                          "status": "in_progress",
+                          "depends_on": [],
+                          "tests": {
+                            "test": [
+                              {
+                                "orphan": true,
+                                "test_type": "ORPHAN",
+                                "file": ""
+                              }
+                            ]
+                          },
+                          "approval": "approved"
+                        },
+                        {
+                          "req_id": "EPIC-010-F-007-S-008-REQ-B-005",
+                          "orphan": false,
+                          "name": "Provider indications carried",
+                          "requirement": "Each ProviderMedicare record carries the set of parent indications its prescribed molecules and billed procedures resolve to.",
+                          "priority": "must-have",
+                          "status": "in_progress",
+                          "depends_on": [],
+                          "tests": {
+                            "test": [
+                              {
+                                "orphan": true,
+                                "test_type": "ORPHAN",
+                                "file": ""
+                              }
+                            ]
+                          },
+                          "approval": "approved"
+                        }
+                      ]
+                    }
+                  },
+                  {
+                    "story_id": "EPIC-010-F-007-S-009",
+                    "orphan": false,
+                    "name": "SpecialtyMedicare rollup",
+                    "description": "SpecialtyMedicare, the NUCC-code-keyed metadata entity that aggregates the per-provider records.",
+                    "size": "M",
+                    "status": "in_progress",
+                    "approval": "approved",
+                    "requirements": {
+                      "requirement": [
+                        {
+                          "req_id": "EPIC-010-F-007-S-009-REQ-B-001",
+                          "orphan": false,
+                          "name": "SpecialtyMedicare key and grain",
+                          "requirement": "SpecialtyMedicare is keyed by NUCC code, one record per NUCC code, aggregating every ProviderMedicare record carrying that code.",
+                          "priority": "must-have",
+                          "status": "in_progress",
+                          "depends_on": [],
+                          "tests": {
+                            "test": [
+                              {
+                                "orphan": true,
+                                "test_type": "ORPHAN",
+                                "file": ""
+                              }
+                            ]
+                          },
+                          "approval": "approved"
+                        },
+                        {
+                          "req_id": "EPIC-010-F-007-S-009-REQ-B-002",
+                          "orphan": false,
+                          "name": "NUCC-code procedure and drug profile",
+                          "requirement": "Each SpecialtyMedicare record carries the procedures billed and the drugs prescribed across all providers of that NUCC code, as aggregates.",
+                          "priority": "must-have",
+                          "status": "in_progress",
+                          "depends_on": [],
+                          "tests": {
+                            "test": [
+                              {
+                                "orphan": true,
+                                "test_type": "ORPHAN",
+                                "file": ""
+                              }
+                            ]
+                          },
+                          "approval": "approved"
+                        },
+                        {
+                          "req_id": "EPIC-010-F-007-S-009-REQ-B-003",
+                          "orphan": false,
+                          "name": "Rollup provenance and conformance",
+                          "requirement": "Each SpecialtyMedicare record carries the count of ProviderMedicare records it aggregates and conforms to the SpecialtyMedicare record contract.",
+                          "priority": "must-have",
+                          "status": "in_progress",
+                          "depends_on": [],
+                          "tests": {
+                            "test": [
+                              {
+                                "orphan": true,
+                                "test_type": "ORPHAN",
+                                "file": ""
+                              }
+                            ]
+                          },
+                          "approval": "approved"
+                        },
+                        {
+                          "req_id": "EPIC-010-F-007-S-009-REQ-B-004",
+                          "orphan": false,
+                          "name": "Indications served carried",
+                          "requirement": "Each SpecialtyMedicare record carries the set of parent indications addressed across all providers of that NUCC code.",
+                          "priority": "must-have",
+                          "status": "in_progress",
+                          "depends_on": [],
+                          "tests": {
+                            "test": [
+                              {
+                                "orphan": true,
+                                "test_type": "ORPHAN",
+                                "file": ""
+                              }
+                            ]
+                          },
+                          "approval": "approved"
+                        }
+                      ]
+                    }
+                  },
+                  {
+                    "story_id": "EPIC-010-F-007-S-010",
+                    "orphan": false,
+                    "name": "Record contract and conformance",
+                    "description": "The record contracts of the published collections and the conformance of every published record.",
+                    "size": "M",
+                    "status": "in_progress",
+                    "approval": "approved",
+                    "requirements": {
+                      "requirement": [
+                        {
+                          "req_id": "EPIC-010-F-007-S-010-REQ-B-001",
+                          "orphan": false,
+                          "name": "One record contract per collection",
+                          "requirement": "There is one record contract for ProviderMedicare, one for SpecialtyMedicare, and one for the normalized indication map, each naming every field with its type and whether it is required or optional.",
+                          "priority": "must-have",
+                          "status": "in_progress",
+                          "depends_on": [],
+                          "tests": {
+                            "test": [
+                              {
+                                "orphan": true,
+                                "test_type": "ORPHAN",
+                                "file": ""
+                              }
+                            ]
+                          },
+                          "approval": "approved"
+                        },
+                        {
+                          "req_id": "EPIC-010-F-007-S-010-REQ-B-002",
+                          "orphan": false,
+                          "name": "Every published record conforms",
+                          "requirement": "Every published record satisfies its contract; a record that does not is not published and a finding is recorded for it.",
+                          "priority": "must-have",
+                          "status": "in_progress",
+                          "depends_on": [],
+                          "tests": {
+                            "test": [
+                              {
+                                "orphan": true,
+                                "test_type": "ORPHAN",
+                                "file": ""
+                              }
+                            ]
+                          },
+                          "approval": "approved"
+                        },
+                        {
+                          "req_id": "EPIC-010-F-007-S-010-REQ-B-003",
+                          "orphan": false,
+                          "name": "Derived field carries provenance and trust",
+                          "requirement": "Every field not taken verbatim from a source carries its provenance and its trust value.",
+                          "priority": "must-have",
+                          "status": "in_progress",
+                          "depends_on": [],
+                          "tests": {
+                            "test": [
+                              {
+                                "orphan": true,
+                                "test_type": "ORPHAN",
+                                "file": ""
+                              }
+                            ]
+                          },
+                          "approval": "approved"
+                        }
+                      ]
+                    }
+                  },
+                  {
+                    "story_id": "EPIC-010-F-007-S-011",
+                    "orphan": false,
+                    "name": "Findings",
+                    "description": "The finding vocabulary the pipeline uses.",
+                    "size": "M",
+                    "status": "in_progress",
+                    "approval": "approved",
+                    "requirements": {
+                      "requirement": [
+                        {
+                          "req_id": "EPIC-010-F-007-S-011-REQ-B-001",
+                          "orphan": false,
+                          "name": "Controlled finding vocabulary",
+                          "requirement": "Per-record findings use a fixed set of reasons covering at least: a source row whose NPI is in no Provider-collection record; a billed procedure with no coverage rule; a drug with no RxNorm molecule; an organization with no CCN; and an organization with no size tier.",
+                          "priority": "must-have",
+                          "status": "in_progress",
                           "depends_on": [],
                           "tests": {
                             "test": [
