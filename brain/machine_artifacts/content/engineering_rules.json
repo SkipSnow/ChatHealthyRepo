@@ -219,8 +219,13 @@
             },
             {
               "statement_number": 9,
-              "statement_body": "The one file that migrates data to the front-end serving database satisfies every requirement of story EPIC-010-F-002-S-001. The requirements are read from the backlog and each is put to an LLM against the file's source; a requirement the executable code does not enforce — comments and docstrings are disregarded and can never satisfy a requirement — or that could not be established, stops the commit. No other file writes to that database.",
-              "req_id": "EPIC-010-F-002-S-001-REQ-B-010"
+              "statement_body": "The one file that migrates data to the front-end serving database satisfies every requirement of story EPIC-010-F-003-S-001. The requirements are read from the backlog and each is put to an LLM against the file's source; a requirement the executable code does not enforce — comments and docstrings are disregarded and can never satisfy a requirement — or that could not be established, stops the commit. No other file writes to that database.",
+              "req_id": "EPIC-010-F-003-S-001-REQ-B-010"
+            },
+            {
+              "statement_number": 10,
+              "statement_body": "Every getConnection(identity, cluster) and set_mongo_log_identity(identity) call MUST pass the identity and the cluster as hardcoded string literals -- never a variable, constant, attribute, or alias -- and each literal MUST name a database user and a cluster that exist in the firm's Atlas project. The scan reads every .py; there is no exemption list. A file that cannot comply is repaired when it is next committed or at the next promote, never granted a hall pass. The purpose is that every database connection is greppable: the reader sees at the call site exactly which identity opens which cluster, which matters because each identity is least-privilege-scoped in Mongo.",
+              "req_id": "Orphan"
             }
           ]
         },
@@ -620,6 +625,22 @@
               "executable_path": "architecture/EngineeringRuleEnforcement/code/scan_data_migration_compliance_worker.py",
               "requires_lock": false,
               "scopes": []
+            },
+            {
+              "enforcement_id": "Rule-065-ENF-010",
+              "title": "Every getConnection uses hardcoded, real identity and cluster literals",
+              "hook": "pre-commit",
+              "executable_path": "architecture/EngineeringRuleEnforcement/code/scan_getconnection_literals_worker.py",
+              "requires_lock": false,
+              "scopes": [
+                [
+                  "_scan_getconnection_literals",
+                  "allowed_pattern",
+                  [
+                    "\\.py$"
+                  ]
+                ]
+              ]
             }
           ]
         }
