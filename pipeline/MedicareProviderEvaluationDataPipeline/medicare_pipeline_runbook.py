@@ -119,6 +119,7 @@ WORKER_VM_SIZE = _req("WORKER_VM_SIZE")
 VM_LOCATION = _req("AUTOMATION_VM_LOCATION")
 VM_SUBNET = _req("AUTOMATION_VM_SUBNET")
 VM_VNET = _req("AUTOMATION_VM_VNET")
+CONTROLLER_NIC = _req("AUTOMATION_CONTROLLER_NIC")
 VM_ACR = _req("AUTOMATION_VM_ACR")
 VM_IMAGE_REPO = _req("AUTOMATION_VM_IMAGE_REPO")
 VM_IMAGE_TAG = _req("AUTOMATION_VM_IMAGE_TAG")
@@ -366,24 +367,19 @@ def _provision_controller_vm(run_id: str, data_version: int,
                              states: list[str]) -> dict:
     tok = _get_token("https://management.azure.com/")
     vm_name = f"vm-chcontrol-{_short(run_id)}"
-    nic_name = f"{vm_name}-nic"
     tags = {"pipeline_run_id": run_id, "pipeline_name": PIPELINE_NAME, "env": ENV_PREFIX}
-    subnet_id = (f"/subscriptions/{SUBSCRIPTION_ID}/resourceGroups/{RESOURCE_GROUP}"
-                 f"/providers/Microsoft.Network/virtualNetworks/{VM_VNET}/subnets/{VM_SUBNET}")
-    nic_url = (f"https://management.azure.com/subscriptions/{SUBSCRIPTION_ID}"
-               f"/resourceGroups/{RESOURCE_GROUP}/providers/Microsoft.Network/"
-               f"networkInterfaces/{nic_name}?api-version=2023-09-01")
-    _put(nic_url, {"location": VM_LOCATION, "tags": tags,
-                   "properties": {"ipConfigurations": [{"name": "ipconfig1",
-                       "properties": {"subnet": {"id": subnet_id},
-                                      "privateIPAllocationMethod": "Dynamic"}}]}}, tok)
     user_data = _controller_cloud_init(run_id, data_version, build_indication_map,
                                        vm_name, debug_level, states)
     vm_url = (f"https://management.azure.com/subscriptions/{SUBSCRIPTION_ID}"
               f"/resourceGroups/{RESOURCE_GROUP}/providers/Microsoft.Compute/"
               f"virtualMachines/{vm_name}?api-version=2024-03-01")
+    # The controller attaches to the permanent VNET node -- the deploy-created
+    # controller NIC that carries the static public IP (a direct route in on the
+    # status port, no NAT and no load balancer). deleteOption Detach leaves the
+    # NIC and its IP intact when the ephemeral VM is torn down, so the next run's
+    # controller reattaches the same address.
     nic_id = (f"/subscriptions/{SUBSCRIPTION_ID}/resourceGroups/{RESOURCE_GROUP}"
-              f"/providers/Microsoft.Network/networkInterfaces/{nic_name}")
+              f"/providers/Microsoft.Network/networkInterfaces/{CONTROLLER_NIC}")
     _put(vm_url, {"location": VM_LOCATION, "tags": tags, "properties": {
         "hardwareProfile": {"vmSize": CONTROLLER_VM_SIZE},
         "storageProfile": {"imageReference": {"publisher": "Canonical",
@@ -399,7 +395,7 @@ def _provision_controller_vm(run_id: str, data_version: int,
                           "provisionVMAgent": True},
                       "customData": user_data},
         "networkProfile": {"networkInterfaces": [{"id": nic_id,
-            "properties": {"primary": True, "deleteOption": "Delete"}}]},
+            "properties": {"primary": True, "deleteOption": "Detach"}}]},
         "userData": user_data}}, tok)
     return {"vm_name": vm_name}
 

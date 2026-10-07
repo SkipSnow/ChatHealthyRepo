@@ -406,8 +406,9 @@ def ensure_vnet_subnets(target, env: str) -> str:
 def ensure_public_ip(target, env: str):
     """Reserve the VNET's declared Standard static Public IP (show-then-create)
     and return its allocated address. No-op returning None when the azure_vnet
-    block declares no public_ip. The address is stable and ensure_vnet_nat_gateway maps it to the run-VM
-    subnet, so every VM that lands there egresses from it."""
+    block declares no public_ip. The address is stable and ensure_controller_nic
+    binds it to a permanent controller NIC, so the controller is reachable
+    inbound on its status port the moment it attaches to that NIC."""
     block = _env_block(target, env, "azure_vnet")
     pip = block.get("public_ip")
     if not pip:
@@ -429,22 +430,24 @@ def ensure_public_ip(target, env: str):
         ])
     addr = _az_json(["network", "public-ip", "show", "-g", rg, "-n", name]).get("ipAddress", "")
     step(f"public ip {name} address = {addr}")
-    # Reserving the IP and mapping it to the run-VM subnet are one deployment
-    # deliverable, so the NAT-gateway mapping rides the same ensure call.
-    ensure_vnet_nat_gateway(target, env)
+    # Reserving the IP and binding it to the permanent controller NIC are one
+    # deployment deliverable, so the NIC mapping rides the same ensure call.
+    ensure_controller_nic(target, env, location)
     return addr
 
 
-def ensure_vnet_nat_gateway(target, env: str) -> None:
-    """Permanently map the run-VM landing subnet to the declared static public
-    IP through a NAT gateway, so every ephemeral controller/worker VM that lands
-    in the subnet egresses from the one stable address (DNS
-    datapipelines.chathealthy.ai) with no per-run IP wiring. This is a
-    deployment deliverable, not a runtime one: done once and left alone.
+def ensure_controller_nic(target, env: str, location: str) -> None:
+    """Map the declared static public IP to a permanent controller NIC -- the
+    VNET node the controller VM attaches to -- so inbound reach on the status
+    port is a deployment deliverable, not per-run wiring. A direct route in: the
+    public IP sits on the NIC itself, no load balancer and no NAT gateway. This
+    is done once and left alone.
 
-    Idempotent: creates the NAT gateway only if absent, and associates the
-    landing subnet only if it is not already on it. No-op when the azure_vnet
-    block declares no public_ip."""
+    Idempotent: creates the NSG and NIC only if absent; re-binds the public IP
+    and NSG only when they are not already on the NIC. If a legacy egress NAT
+    gateway still holds the public IP, it is dissociated and deleted first so
+    the address is free to land on the NIC. No-op when no public_ip is declared.
+    """
     block = _env_block(target, env, "azure_vnet")
     pip = block.get("public_ip")
     if not pip:
@@ -452,31 +455,67 @@ def ensure_vnet_nat_gateway(target, env: str) -> None:
     rg = block["resource_group"]
     vnet = block["vnet_name"]
     pip_name = pip["name"]
-    natgw = pip.get("nat_gateway_name") or pip_name.replace("pip-", "natgw-", 1)
+    nic_name = pip.get("controller_nic_name") or pip_name.replace("pip-", "nic-", 1)
+    nsg_name = pip.get("status_nsg_name") or pip_name.replace("pip-", "nsg-", 1)
+    status_port = str(pip.get("status_port") or 6969)
     landing = next((s["name"] for s in (block.get("subnets") or [])
                     if s.get("purpose") == "pipeline_run_vm_landing"), None)
     if not landing:
         raise ChatHealthyException(
             mode="manifest_incomplete",
             message="azure_vnet declares a public_ip but no subnet with purpose "
-                    "'pipeline_run_vm_landing' to attach the NAT gateway to.",
+                    "'pipeline_run_vm_landing' to place the controller NIC in.",
             component="pipeline_azure_deploy")
-    location = _az_json(["group", "show", "--name", rg]).get("location", "eastus2")
-    step(f"ensure NAT gateway {natgw} -> public ip {pip_name}")
-    if _az(["network", "nat", "gateway", "show", "-g", rg, "-n", natgw],
+
+    # Free the public IP from a legacy egress NAT gateway, if one is still
+    # mapped. The direct-route-in design puts the IP on the NIC, not the gateway.
+    legacy_natgw = pip.get("nat_gateway_name") or pip_name.replace("pip-", "natgw-", 1)
+    if _az(["network", "nat", "gateway", "show", "-g", rg, "-n", legacy_natgw],
+           check=False).returncode == 0:
+        sub = _az_json(["network", "vnet", "subnet", "show", "-g", rg,
+                        "--vnet-name", vnet, "-n", landing])
+        if (sub.get("natGateway") or {}).get("id"):
+            step(f"dissociate subnet {landing} from legacy NAT gateway {legacy_natgw}")
+            _az(["network", "vnet", "subnet", "update", "-g", rg,
+                 "--vnet-name", vnet, "-n", landing, "--remove", "natGateway"])
+        step(f"delete legacy NAT gateway {legacy_natgw}")
+        _az(["network", "nat", "gateway", "delete", "-g", rg, "-n", legacy_natgw])
+
+    step(f"ensure status NSG {nsg_name} (inbound tcp {status_port})")
+    if _az(["network", "nsg", "show", "-g", rg, "-n", nsg_name],
            check=False).returncode != 0:
-        _az(["network", "nat", "gateway", "create", "-g", rg, "-n", natgw,
-             "--location", location,
-             "--public-ip-addresses", pip_name])
-    sub = _az_json(["network", "vnet", "subnet", "show", "-g", rg,
-                    "--vnet-name", vnet, "-n", landing])
-    current = (sub.get("natGateway") or {}).get("id") or ""
-    if natgw not in current:
-        step(f"associate subnet {landing} -> NAT gateway {natgw}")
-        _az(["network", "vnet", "subnet", "update", "-g", rg,
-             "--vnet-name", vnet, "-n", landing, "--nat-gateway", natgw])
+        _az(["network", "nsg", "create", "-g", rg, "-n", nsg_name,
+             "--location", location])
+    if _az(["network", "nsg", "rule", "show", "-g", rg, "--nsg-name", nsg_name,
+            "-n", "allow-status-in"], check=False).returncode != 0:
+        _az(["network", "nsg", "rule", "create", "-g", rg, "--nsg-name", nsg_name,
+             "-n", "allow-status-in", "--priority", "1000",
+             "--access", "Allow", "--protocol", "Tcp", "--direction", "Inbound",
+             "--source-address-prefixes", "Internet",
+             "--destination-port-ranges", status_port])
+
+    subnet_id = _az_json(["network", "vnet", "subnet", "show", "-g", rg,
+                          "--vnet-name", vnet, "-n", landing, "--query", "id"])
+    step(f"ensure controller NIC {nic_name} -> public ip {pip_name} (+NSG {nsg_name})")
+    if _az(["network", "nic", "show", "-g", rg, "-n", nic_name],
+           check=False).returncode != 0:
+        _az(["network", "nic", "create", "-g", rg, "-n", nic_name,
+             "--subnet", subnet_id, "--location", location,
+             "--public-ip-address", pip_name,
+             "--network-security-group", nsg_name])
     else:
-        step(f"subnet {landing} already on NAT gateway {natgw} -- no-op")
+        nic = _az_json(["network", "nic", "show", "-g", rg, "-n", nic_name])
+        have_pip = ((nic.get("ipConfigurations") or [{}])[0]
+                    .get("publicIPAddress") or {}).get("id") or ""
+        if pip_name not in have_pip:
+            step(f"bind public ip {pip_name} -> NIC {nic_name}")
+            ipcfg = ((nic.get("ipConfigurations") or [{}])[0]).get("name") or "ipconfig1"
+            _az(["network", "nic", "ip-config", "update", "-g", rg,
+                 "--nic-name", nic_name, "-n", ipcfg, "--public-ip-address", pip_name])
+        if nsg_name not in ((nic.get("networkSecurityGroup") or {}).get("id") or ""):
+            step(f"bind NSG {nsg_name} -> NIC {nic_name}")
+            _az(["network", "nic", "update", "-g", rg, "-n", nic_name,
+                 "--network-security-group", nsg_name])
 
 
 def _nic_pool_names(name_prefix: str, count: int) -> list[str]:

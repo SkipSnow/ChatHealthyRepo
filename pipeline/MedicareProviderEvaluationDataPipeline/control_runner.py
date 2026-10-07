@@ -173,6 +173,18 @@ def _control(ns) -> int:
 
     threading.Thread(target=_heartbeat, daemon=True, name="controller-heartbeat").start()
 
+    # Run-status listener (EPIC-010-F-001-S-015): once established the controller
+    # answers the status call on :6969 (mTLS) for the life of the run. A bind
+    # failure is observability lost, not the work lost, so it is logged and the
+    # run proceeds -- the client simply sees the API down.
+    try:
+        from pipeline.run_lifecycle.run_status_server import start_status_server  # noqa: PLC0415
+        start_status_server([s.name for s in orchestrator.STEPS])
+    except Exception as exc:  # noqa: BLE001
+        _log.LogPipeline("WARNING",
+                         "medicare control_runner: status listener failed to start: %s",
+                         str(exc)[:200])
+
     manifest = None
     final_status = "failed"
     exit_code = 1
