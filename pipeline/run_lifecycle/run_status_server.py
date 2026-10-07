@@ -24,11 +24,30 @@ import threading
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from urllib.parse import urlparse, parse_qs
 
+import urllib.request
+
 from chathealthy_lib.mongo_utilities import ChatHealthyMongoUtilities
 from chathealthy_lib.logging_service import ChatHealthyLoggingService
 
 _log = ChatHealthyLoggingService()
 STATUS_PORT = 6969
+
+_IMDS_URL = ("http://169.254.169.254/metadata/instance/network/interface"
+             "?api-version=2021-02-01")
+
+
+def _controller_addresses() -> dict:
+    """The addresses this box is actually at, read from Azure IMDS: the private
+    IP bound on the NIC and the public IP the VNET node maps to it. This is how
+    the log proves the controller is at the expected address rather than guessing
+    it. Returns {} if IMDS is unreachable (e.g. off-Azure), never raising."""
+    req = urllib.request.Request(_IMDS_URL, headers={"Metadata": "true"})
+    with urllib.request.urlopen(req, timeout=5) as resp:
+        data = json.loads(resp.read().decode("utf-8"))
+    ipv4 = (data[0].get("ipv4") if data else {}) or {}
+    addrs = (ipv4.get("ipAddress") or [{}])[0]
+    return {"private": addrs.get("privateIpAddress", ""),
+            "public": addrs.get("publicIpAddress", "")}
 
 _DONE = ("completed", "succeeded", "done")
 _FAILED = ("failed", "error")
@@ -167,6 +186,21 @@ def start_status_server(step_names: list[str]):
             message="run_status_server: cannot start the status listener; "
                     + ", ".join(missing) + " absent from the controller environment",
             component="run_status_server", missing=",".join(missing))
+    # The address this controller came up on, from IMDS -- logged before the
+    # bind so the run record shows exactly where the box is, not where we hope
+    # it is. A client tapping the status API must reach this public IP.
+    try:
+        addrs = _controller_addresses()
+        _log.LogPipeline(
+            "INFO",
+            "run_status_server: controller came up at private=%s public=%s; "
+            "binding status listener on 0.0.0.0:%d",
+            addrs.get("private") or "(none)", addrs.get("public") or "(none)",
+            STATUS_PORT)
+    except Exception as exc:  # noqa: BLE001
+        _log.LogPipeline("WARNING",
+                         "run_status_server: could not read controller address "
+                         "from IMDS before bind: %s", str(exc)[:200])
     ctx = ssl.SSLContext(ssl.PROTOCOL_TLS_SERVER)
     ctx.load_cert_chain(certfile=cert, keyfile=key)
     ctx.load_verify_locations(cafile=ca)
@@ -176,6 +210,15 @@ def start_status_server(step_names: list[str]):
     thread = threading.Thread(target=httpd.serve_forever, daemon=True,
                               name="run-status-server")
     thread.start()
-    _log.LogPipeline("INFO", "run_status_server: mTLS listener up on :%d (%d steps)",
-                     STATUS_PORT, len(step_names))
+    try:
+        addrs = _controller_addresses()
+        reachable = addrs.get("public") or addrs.get("private") or "(unknown)"
+        _log.LogPipeline(
+            "INFO",
+            "run_status_server: mTLS listener UP, serving at %s:%d (%d steps); "
+            "only client CN=%s is authorized",
+            reachable, STATUS_PORT, len(step_names), _AUTHORIZED_CLIENT_CN)
+    except Exception:  # noqa: BLE001
+        _log.LogPipeline("INFO", "run_status_server: mTLS listener up on :%d (%d steps)",
+                         STATUS_PORT, len(step_names))
     return httpd

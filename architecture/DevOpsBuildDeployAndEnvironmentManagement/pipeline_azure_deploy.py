@@ -493,6 +493,15 @@ def ensure_controller_nic(target, env: str, location: str) -> None:
              "--access", "Allow", "--protocol", "Tcp", "--direction", "Inbound",
              "--source-address-prefixes", "Internet",
              "--destination-port-ranges", status_port])
+    # ICMP inbound so the controller answers ping -- a coarse liveness probe
+    # the operator can run before the mTLS API is up.
+    if _az(["network", "nsg", "rule", "show", "-g", rg, "--nsg-name", nsg_name,
+            "-n", "allow-icmp-in"], check=False).returncode != 0:
+        _az(["network", "nsg", "rule", "create", "-g", rg, "--nsg-name", nsg_name,
+             "-n", "allow-icmp-in", "--priority", "1010",
+             "--access", "Allow", "--protocol", "Icmp", "--direction", "Inbound",
+             "--source-address-prefixes", "Internet",
+             "--destination-port-ranges", "*"])
 
     subnet_id = _az_json(["network", "vnet", "subnet", "show", "-g", rg,
                           "--vnet-name", vnet, "-n", landing, "--query", "id"])
