@@ -5,22 +5,24 @@ The two-VM run (see pipeline_run_compute_deployment diagram and the pipeline LLD
 and N big Worker VMs. The Controller enqueues one work_item per partition onto
 the always-on front-end cluster exactly as it does for the single-VM shape, then
 - instead of spawning local worker subprocesses - provisions one Worker VM per
-replica. Each Worker VM boots this cloud-init, which runs pipeline_worker.py:
-the worker atomically claims one already-enqueued work_item, does the step's
-work, exits, and the VM self-deletes. The Controller never holds a handle on a
-Worker VM; it watches the work_items heartbeats, the same substrate it already
-uses for subprocess workers.
+replica. Each Worker VM boots this cloud-init, which runs bootstrap.py +
+pipeline_worker.py: the worker atomically claims one already-enqueued work_item,
+does the step's work, exits, and the VM self-deletes. The Controller never holds
+a handle on a Worker VM; it watches the work_items heartbeats, the same
+substrate it already uses for subprocess workers.
 
-This path is reached only when a pipeline's config declares worker_compute='vm';
-every current pipeline (provider included) leaves it unset and keeps the
-subprocess path untouched. The Controller authenticates to Azure ARM as
-pipelineController (whose rights include creating the Worker VMs); the Worker
-VMs carry pipelineEditor credentials for their own Mongo certificate auth,
-exactly as the single-VM workers do today.
+This path is reached only when a pipeline declares worker_compute='vm'; every
+current pipeline (provider included) leaves it unset and keeps the subprocess
+path untouched. The Controller authenticates to Azure ARM as pipelineController
+(whose rights include creating the Worker VMs); the Worker VMs carry
+pipelineEditor credentials for their own Mongo certificate auth, exactly as the
+single-VM workers do today.
 
-The ARM shape mirrors the trigger runbook's run-VM provisioning. The runbook is a
-standalone Automation module that carries no pipeline package and cannot import
-this one, so the two provisioners are deliberately separate rather than shared.
+Every value this module needs is read from the Controller VM's environment and
+is REQUIRED: there are no defaults and no infra identifiers in this source. The
+Controller VM's environment is supplied by the trigger runbook's cloud-init,
+which sources every value from the deploy (Automation Variables), so the facts
+live in the deploy, never in code.
 """
 from __future__ import annotations
 
@@ -40,30 +42,27 @@ _VM_API = "2024-03-01"
 _NIC_API = "2023-09-01"
 
 
-def _env(name: str, default: str = "") -> str:
-    return os.environ.get(name, default)
+def _req(name: str) -> str:
+    """A required environment value. Absent or empty is fatal: there is no
+    default and no fallback. The fact must be supplied by the deploy."""
+    value = os.environ.get(name, "").strip()
+    if not value:
+        raise ChatHealthyException(
+            mode="config_error",
+            message=f"worker_vm_provisioning: required value {name!r} is absent "
+                    f"from the Controller environment; it must be supplied by the "
+                    f"deploy. No default is applied.",
+            component="worker_vm_provisioning", missing=name)
+    return value
 
 
 def _controller_arm_token() -> str:
     """An ARM token obtained as pipelineController, the identity the Controller
-    runs under. Mirrors the runbook's client-credentials flow, reading the
-    pipelineController service-principal credentials from the Controller VM's
-    environment. A missing credential aborts rather than falling back to any
-    ambient identity."""
-    tenant = _env("PIPELINECONTROLLER_AZURE_TENANT_ID")
-    client = _env("PIPELINECONTROLLER_AZURE_CLIENT_ID")
-    secret = _env("PIPELINECONTROLLER_AZURE_CLIENT_SECRET")
-    missing = [n for n, v in (
-        ("PIPELINECONTROLLER_AZURE_TENANT_ID", tenant),
-        ("PIPELINECONTROLLER_AZURE_CLIENT_ID", client),
-        ("PIPELINECONTROLLER_AZURE_CLIENT_SECRET", secret)) if not v]
-    if missing:
-        raise ChatHealthyException(
-            mode="identity_credential_absent",
-            message="cannot provision Worker VMs as pipelineController: "
-                    + ", ".join(missing) + " absent from the Controller environment",
-            component="worker_vm_provisioning",
-            missing=",".join(missing))
+    runs under. Reads the pipelineController service-principal credentials from
+    the Controller VM's environment; a missing credential aborts."""
+    tenant = _req("PIPELINECONTROLLER_AZURE_TENANT_ID")
+    client = _req("PIPELINECONTROLLER_AZURE_CLIENT_ID")
+    secret = _req("PIPELINECONTROLLER_AZURE_CLIENT_SECRET")
     body = (f"grant_type=client_credentials&client_id={client}"
             f"&client_secret={secret}"
             f"&scope={_ARM}/.default").encode("utf-8")
@@ -91,26 +90,28 @@ def _put(url: str, payload: dict, token: str) -> dict:
         raise ChatHealthyException(
             mode="runtime_error",
             message=f"ARM PUT {url.rsplit('?', 1)[0]} -> HTTP {exc.code}: {detail}",
-            component="worker_vm_provisioning",
-            exception=exc) from exc
+            component="worker_vm_provisioning", exception=exc) from exc
 
 
-def _worker_cloud_init(run_id: str, step: str, replica: int) -> str:
+def _short(run_id: str) -> str:
+    return run_id.split("-")[-1][:8] if "-" in run_id else run_id[:8]
+
+
+def _worker_cloud_init(run_id: str, step: str, replica: int, vm_name: str) -> str:
     """Base64 cloud-init for a Worker VM: pull the pipeline image, run
-    pipeline_worker.py once (it claims one work_item for this run+step), then
+    bootstrap.py + pipeline_worker.py once (bootstrap fetches the Mongo cert into
+    env; the worker then claims one work_item for this run+step), then
     self-delete the VM. pipelineEditor is the identity the worker presents to
-    Azure (ACR pull, farewell delete) and to Mongo (cert auth), exactly as the
-    single-VM workers do."""
-    acr = _env("AUTOMATION_VM_ACR", "chpipelinedevacr")
-    repo = _env("AUTOMATION_VM_IMAGE_REPO", "pipeline-control")
-    tag = _env("AUTOMATION_VM_IMAGE_TAG", "latest")
+    Azure (ACR pull, farewell delete) and to Mongo (cert auth)."""
+    acr = _req("AUTOMATION_VM_ACR")
+    repo = _req("AUTOMATION_VM_IMAGE_REPO")
+    tag = _req("AUTOMATION_VM_IMAGE_TAG")
     image = f"{acr}.azurecr.io/{repo}:{tag}"
-    sub = _env("AZURE_SUBSCRIPTION_ID")
-    rg = _env("AZURE_RESOURCE_GROUP")
-    vm_name = f"vm-chworker-{_short(run_id)}-{step}-{replica}"[:63]
-    pe_tenant = _env("PIPELINEEDITOR_AZURE_TENANT_ID")
-    pe_client = _env("PIPELINEEDITOR_AZURE_CLIENT_ID")
-    pe_secret = _env("PIPELINEEDITOR_AZURE_CLIENT_SECRET")
+    sub = _req("AZURE_SUBSCRIPTION_ID")
+    rg = _req("AZURE_RESOURCE_GROUP")
+    pe_tenant = _req("PIPELINEEDITOR_AZURE_TENANT_ID")
+    pe_client = _req("PIPELINEEDITOR_AZURE_CLIENT_ID")
+    pe_secret = _req("PIPELINEEDITOR_AZURE_CLIENT_SECRET")
     yaml_body = f"""#cloud-config
 apt:
   primary:
@@ -140,15 +141,15 @@ runcmd:
       -v /mnt/resource/pipeline-scratch:/scratch -e TMPDIR=/scratch \\
       -e CHATHEALTHY_NODE_IDENTITY='pipeline-worker' \\
       -e CH_SPACE_NAME='worker' -e CH_COMPONENT='worker' \\
-      -e CH_LOG_DESTINATION='stderr,mongo' -e CH_LOG_DB='{_env("CH_LOG_DB")}' \\
-      -e CH_MONGO_HOST_CHATHEALTHYFRONTEND='{_env("CH_MONGO_HOST_CHATHEALTHYFRONTEND")}' \\
-      -e CH_MONGO_HOST_CHATHEALTHYDATAPIPELINES='{_env("CH_MONGO_HOST_CHATHEALTHYDATAPIPELINES")}' \\
-      -e RUN_ID='{run_id}' -e ENV_PREFIX='{_env("ENV_PREFIX", "dev")}' \\
-      -e KEY_VAULT_URI='{_env("KEY_VAULT_URI")}' \\
+      -e CH_LOG_DESTINATION='stderr,mongo' -e CH_LOG_DB='{_req("CH_LOG_DB")}' \\
+      -e CH_MONGO_HOST_CHATHEALTHYFRONTEND='{_req("CH_MONGO_HOST_CHATHEALTHYFRONTEND")}' \\
+      -e CH_MONGO_HOST_CHATHEALTHYDATAPIPELINES='{_req("CH_MONGO_HOST_CHATHEALTHYDATAPIPELINES")}' \\
+      -e RUN_ID='{run_id}' -e ENV_PREFIX='{_req("ENV_PREFIX")}' \\
+      -e KEY_VAULT_URI='{_req("KEY_VAULT_URI")}' \\
       -e PIPELINEEDITOR_AZURE_TENANT_ID='{pe_tenant}' \\
       -e PIPELINEEDITOR_AZURE_CLIENT_ID='{pe_client}' \\
       -e PIPELINEEDITOR_AZURE_CLIENT_SECRET='{pe_secret}' \\
-      -e PIPELINE_SECRET_NAMES='{_env("PIPELINE_SECRET_NAMES")}' \\
+      -e PIPELINE_SECRET_NAMES='{_req("PIPELINE_SECRET_NAMES")}' \\
       --entrypoint python {image} \\
       pipeline/run_lifecycle/bootstrap.py pipeline/run_lifecycle/pipeline_worker.py {step} --replica {replica} --run-id {run_id}
     echo "chworker: worker exit=$? $(date -u +%FT%TZ)"
@@ -158,32 +159,25 @@ runcmd:
     return base64.b64encode(yaml_body.encode("utf-8")).decode("ascii")
 
 
-def _short(run_id: str) -> str:
-    return run_id.split("-")[-1][:8] if "-" in run_id else run_id[:8]
-
-
 def provision_worker_vm(run_id: str, step: str, replica: int) -> dict:
     """PUT one ephemeral Worker VM into the pipeline compute subnet, booting the
     worker cloud-init. Async: ARM returns a provisioning handle, not a finished
     VM. The Controller does not wait on it - it waits on the work_item the VM
-    will claim, through the heartbeat loop it already runs."""
+    will claim, through the heartbeat loop it already runs. Every deploy fact is
+    read required from the environment; nothing is defaulted in code."""
     token = _controller_arm_token()
-    sub = _env("AZURE_SUBSCRIPTION_ID")
-    rg = _env("AZURE_RESOURCE_GROUP")
-    location = _env("AUTOMATION_VM_LOCATION", "eastus2")
-    size = _env("WORKER_VM_SIZE", _env("AUTOMATION_VM_SIZE", "Standard_D32s_v6"))
-    vnet = _env("AUTOMATION_VM_VNET", "vnet-chathealthy-pipeline-dev")
-    subnet = _env("AUTOMATION_VM_SUBNET", "snet-pipeline-compute")
-    if not (sub and rg):
-        raise ChatHealthyException(
-            mode="config_error",
-            message="AZURE_SUBSCRIPTION_ID and AZURE_RESOURCE_GROUP are required "
-                    "to provision a Worker VM",
-            component="worker_vm_provisioning")
+    sub = _req("AZURE_SUBSCRIPTION_ID")
+    rg = _req("AZURE_RESOURCE_GROUP")
+    location = _req("AUTOMATION_VM_LOCATION")
+    size = _req("WORKER_VM_SIZE")
+    vnet = _req("AUTOMATION_VM_VNET")
+    subnet = _req("AUTOMATION_VM_SUBNET")
+    env_prefix = _req("ENV_PREFIX")
+    ssh_key = _req("AZ_VM_ADMIN_SSH_PUBKEY")
     vm_name = f"vm-chworker-{_short(run_id)}-{step}-{replica}"[:63]
     nic_name = f"{vm_name}-nic"
     tags = {"pipeline_run_id": run_id, "pipeline_step": step,
-            "replica": str(replica), "env": _env("ENV_PREFIX", "dev")}
+            "replica": str(replica), "env": env_prefix}
     subnet_id = (f"/subscriptions/{sub}/resourceGroups/{rg}"
                  f"/providers/Microsoft.Network/virtualNetworks/{vnet}"
                  f"/subnets/{subnet}")
@@ -197,7 +191,7 @@ def provision_worker_vm(run_id: str, step: str, replica: int) -> dict:
             "properties": {"subnet": {"id": subnet_id},
                            "privateIPAllocationMethod": "Dynamic"}}]}},
         token)
-    user_data = _worker_cloud_init(run_id, step, replica)
+    user_data = _worker_cloud_init(run_id, step, replica, vm_name)
     vm_url = (f"{_ARM}/subscriptions/{sub}/resourceGroups/{rg}"
               f"/providers/Microsoft.Compute/virtualMachines/{vm_name}"
               f"?api-version={_VM_API}")
@@ -221,7 +215,7 @@ def provision_worker_vm(run_id: str, step: str, replica: int) -> dict:
                     "disablePasswordAuthentication": True,
                     "ssh": {"publicKeys": [{
                         "path": "/home/chpipeline/.ssh/authorized_keys",
-                        "keyData": _env("AZ_VM_ADMIN_SSH_PUBKEY")}]},
+                        "keyData": ssh_key}]},
                     "provisionVMAgent": True},
                 "customData": user_data},
             "networkProfile": {"networkInterfaces": [{

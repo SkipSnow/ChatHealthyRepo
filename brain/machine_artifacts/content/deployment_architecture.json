@@ -4453,7 +4453,7 @@
                   "source_location": "pipeline/MedicareProviderEvaluationDataPipeline/medicare_pipeline_runbook.py",
                   "handler_type": "python_source",
                   "disposition": "referenced",
-                  "content_hash": "d9da875b1d3b43a452ee037fcb1b147db0c078f487b2cd8344f280432ecff40c",
+                  "content_hash": "b812767a3e50665009ac7fca52d81d691e76df611aeafdaf51e90c2f37ee4967",
                   "package": "medicare_pipeline"
                 }
               ],
@@ -4481,7 +4481,18 @@
                 "PIPELINECONTROLLER_AZURE_CLIENT_ID": "local_env",
                 "PIPELINECONTROLLER_AZURE_CLIENT_SECRET": "local_env",
                 "CONTROLLER_VM_SIZE": "local_env",
-                "WORKER_VM_SIZE": "local_env"
+                "WORKER_VM_SIZE": "local_env",
+                "AUTOMATION_SUBSCRIPTION_ID": "local_env",
+                "AUTOMATION_RESOURCE_GROUP": "local_env",
+                "AUTOMATION_ENV_PREFIX": "local_env",
+                "AUTOMATION_VM_LOCATION": "local_env",
+                "AUTOMATION_VM_SUBNET": "local_env",
+                "AUTOMATION_VM_VNET": "local_env",
+                "AUTOMATION_VM_ACR": "local_env",
+                "AUTOMATION_VM_IMAGE_REPO": "local_env",
+                "AUTOMATION_VM_IMAGE_TAG": "local_env",
+                "CH_MONGO_HOST_CHATHEALTHYFRONTEND": "rename_from:MONGO_HOST_CHATHEALTHYFRONTEND",
+                "CH_MONGO_HOST_CHATHEALTHYDATAPIPELINES": "rename_from:MONGO_HOST_CHATHEALTHYDATAPIPELINES"
               },
               "config": {
                 "runbook_name": "MedicarePipelineRunbook",
@@ -4583,7 +4594,22 @@
         "ENV_PREFIX": "local_env",
         "GEMINI_API_KEY": "azure_key_vault",
         "PIPELINE_CLUSTER": "local_env",
-        "PIPELINE_SECRET_NAMES": "local_env"
+        "PIPELINE_SECRET_NAMES": "local_env",
+        "PIPELINECONTROLLER_AZURE_TENANT_ID": "local_env",
+        "PIPELINECONTROLLER_AZURE_CLIENT_ID": "local_env",
+        "PIPELINECONTROLLER_AZURE_CLIENT_SECRET": "local_env",
+        "CONTROLLER_VM_SIZE": "local_env",
+        "WORKER_VM_SIZE": "local_env",
+        "AUTOMATION_VM_LOCATION": "local_env",
+        "AUTOMATION_VM_SUBNET": "local_env",
+        "AUTOMATION_VM_VNET": "local_env",
+        "AUTOMATION_VM_ACR": "local_env",
+        "AUTOMATION_VM_IMAGE_REPO": "local_env",
+        "AUTOMATION_VM_IMAGE_TAG": "local_env",
+        "CH_MONGO_HOST_CHATHEALTHYDATAPIPELINES": "rename_from:MONGO_HOST_CHATHEALTHYDATAPIPELINES",
+        "CH_MONGO_HOST_CHATHEALTHYFRONTEND": "rename_from:MONGO_HOST_CHATHEALTHYFRONTEND",
+        "MONGO_HOST_CHATHEALTHYFRONTEND": "local_env",
+        "MONGO_HOST_CHATHEALTHYDATAPIPELINES": "local_env"
       },
       "entitlements": [
         {

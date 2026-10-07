@@ -68,6 +68,10 @@ for _k in ("CH_LOG_DB", "CH_LOG_LEVEL", "PIPELINE_SECRET_NAMES", "CH_EMBEDDING_M
            "KEY_VAULT_URI", "AUTOMATION_ENV_PREFIX",
            "AUTOMATION_SUBSCRIPTION_ID", "AUTOMATION_RESOURCE_GROUP",
            "ATLAS_PROJECT_ID", "AZ_VM_ADMIN_SSH_PUBKEY",
+           "CONTROLLER_VM_SIZE", "WORKER_VM_SIZE",
+           "AUTOMATION_VM_LOCATION", "AUTOMATION_VM_SUBNET", "AUTOMATION_VM_VNET",
+           "AUTOMATION_VM_ACR", "AUTOMATION_VM_IMAGE_REPO", "AUTOMATION_VM_IMAGE_TAG",
+           "CH_MONGO_HOST_CHATHEALTHYFRONTEND", "CH_MONGO_HOST_CHATHEALTHYDATAPIPELINES",
            "PIPELINEEDITOR_AZURE_TENANT_ID", "PIPELINEEDITOR_AZURE_CLIENT_ID",
            "PIPELINEEDITOR_AZURE_CLIENT_SECRET",
            "PIPELINECONTROLLER_AZURE_TENANT_ID", "PIPELINECONTROLLER_AZURE_CLIENT_ID",
@@ -80,35 +84,50 @@ for _k in ("CH_LOG_DB", "CH_LOG_LEVEL", "PIPELINE_SECRET_NAMES", "CH_EMBEDDING_M
     except Exception:  # noqa: BLE001
         pass
 
+def _req(name: str) -> str:
+    """A required value from the runbook's environment (an Automation Variable
+    in AA). Absent or empty is fatal: no default, no fallback. The fact is
+    supplied by the deploy, never hardcoded here."""
+    value = os.environ.get(name, "").strip()
+    if not value:
+        raise ChatHealthyException(
+            mode="config_error",
+            message=f"medicare_pipeline_runbook: required value {name!r} is absent; "
+                    f"it must be supplied by the deploy. No default is applied.",
+            component="medicare_pipeline_runbook", missing=name)
+    return value
+
+
 set_mongo_log_identity("pipelineEditor")
 os.environ.setdefault("CH_LOG_DESTINATION", "stderr,mongo")
 os.environ.setdefault("CH_SPACE_NAME", "runbook")
-os.environ.setdefault("ENV_PREFIX", os.environ.get("AUTOMATION_ENV_PREFIX", "dev"))
+os.environ["ENV_PREFIX"] = _req("AUTOMATION_ENV_PREFIX")
 os.environ.setdefault("CH_COMPONENT", "medicare_pipeline_runbook")
 
 PIPELINE_ADMIN_DB = "pipelineAdmin"
 PIPELINE_NAME = "medicare"
 
-SUBSCRIPTION_ID = os.environ.get("AUTOMATION_SUBSCRIPTION_ID",
-                                 "7a17eec1-c477-4c7c-b1c1-d0662ce7a1ee")
-RESOURCE_GROUP = os.environ.get("AUTOMATION_RESOURCE_GROUP", "rg-chathealthy-pipeline-dev")
-ENV_PREFIX = os.environ.get("AUTOMATION_ENV_PREFIX", "dev")
-
-# The Controller VM is small -- it coordinates and serves status; the Worker VMs
-# get the big compute.
-CONTROLLER_VM_SIZE = os.environ.get("CONTROLLER_VM_SIZE", "Standard_D4s_v6")
-VM_LOCATION = os.environ.get("AUTOMATION_VM_LOCATION", "eastus2")
-VM_SUBNET = os.environ.get("AUTOMATION_VM_SUBNET", "snet-pipeline-compute")
-VM_VNET = os.environ.get("AUTOMATION_VM_VNET", "vnet-chathealthy-pipeline-dev")
-VM_ACR = os.environ.get("AUTOMATION_VM_ACR", "chpipelinedevacr")
-VM_IMAGE_REPO = os.environ.get("AUTOMATION_VM_IMAGE_REPO", "pipeline-control")
-VM_IMAGE_TAG = os.environ.get("AUTOMATION_VM_IMAGE_TAG", "latest")
-KEY_VAULT_URI = os.environ.get("KEY_VAULT_URI", "https://kv-chpipeline-dev.vault.azure.net/")
-PIPELINE_SECRET_NAMES = os.environ.get("PIPELINE_SECRET_NAMES", "")
-CH_EMBEDDING_MODEL = os.environ.get("CH_EMBEDDING_MODEL", "")
-CH_LOG_DB = os.environ.get("CH_LOG_DB", "")
+# Every deploy fact below is supplied by the deploy (an Automation Variable);
+# none defaults and none is hardcoded here -- the repository is public.
+SUBSCRIPTION_ID = _req("AUTOMATION_SUBSCRIPTION_ID")
+RESOURCE_GROUP = _req("AUTOMATION_RESOURCE_GROUP")
+ENV_PREFIX = os.environ["ENV_PREFIX"]
+CONTROLLER_VM_SIZE = _req("CONTROLLER_VM_SIZE")
+WORKER_VM_SIZE = _req("WORKER_VM_SIZE")
+VM_LOCATION = _req("AUTOMATION_VM_LOCATION")
+VM_SUBNET = _req("AUTOMATION_VM_SUBNET")
+VM_VNET = _req("AUTOMATION_VM_VNET")
+VM_ACR = _req("AUTOMATION_VM_ACR")
+VM_IMAGE_REPO = _req("AUTOMATION_VM_IMAGE_REPO")
+VM_IMAGE_TAG = _req("AUTOMATION_VM_IMAGE_TAG")
+KEY_VAULT_URI = _req("KEY_VAULT_URI")
+PIPELINE_SECRET_NAMES = _req("PIPELINE_SECRET_NAMES")
+CH_EMBEDDING_MODEL = _req("CH_EMBEDDING_MODEL")
+CH_LOG_DB = _req("CH_LOG_DB")
+MONGO_HOST_FRONTEND = _req("CH_MONGO_HOST_CHATHEALTHYFRONTEND")
+MONGO_HOST_PIPELINE = _req("CH_MONGO_HOST_CHATHEALTHYDATAPIPELINES")
 ATLAS_PIPELINE_CLUSTER = "ChatHealthyDataPipelines"
-INVOCATION_MODE = os.environ.get("INVOCATION_MODE", "scheduled")
+INVOCATION_MODE = "scheduled"
 DEBUG_LEVEL_DEFAULT = "INFO"
 _VALID_LOG_LEVELS = ("DEBUG", "INFO", "WARNING", "ERROR", "CRITICAL")
 _HOSTNAME = socket.gethostname()
@@ -240,7 +259,7 @@ def _cancel_reservation(mongo, run_id: str) -> None:
 
 
 def _get_ssh_pubkey() -> str:
-    return os.environ.get("AZ_VM_ADMIN_SSH_PUBKEY", "")
+    return _req("AZ_VM_ADMIN_SSH_PUBKEY")
 
 
 def _controller_cloud_init(run_id: str, data_version: int,
@@ -285,15 +304,15 @@ runcmd:
       -e CHATHEALTHY_NODE_IDENTITY='pipeline-control' \\
       -e CH_SPACE_NAME='control' -e CH_COMPONENT='medicare_pipeline_control' \\
       -e CH_LOG_DESTINATION='stderr,mongo' -e CH_LOG_LEVEL='{debug_level}' -e CH_LOG_DB='{CH_LOG_DB}' \\
-      -e CH_MONGO_HOST_CHATHEALTHYFRONTEND='chathealthyfrontend-pri.mdwahg.mongodb.net' \\
-      -e CH_MONGO_HOST_CHATHEALTHYDATAPIPELINES='chathealthydatapipeline-pri.mdwahg.mongodb.net' \\
+      -e CH_MONGO_HOST_CHATHEALTHYFRONTEND='{MONGO_HOST_FRONTEND}' \\
+      -e CH_MONGO_HOST_CHATHEALTHYDATAPIPELINES='{MONGO_HOST_PIPELINE}' \\
       -e RUN_ID='{run_id}' -e DATA_VERSION='{data_version}' -e ENV_PREFIX='{ENV_PREFIX}' \\
       -e WORKER_COMPUTE='vm' \\
       -e AZURE_SUBSCRIPTION_ID='{SUBSCRIPTION_ID}' -e AZURE_RESOURCE_GROUP='{RESOURCE_GROUP}' \\
       -e AUTOMATION_VM_LOCATION='{VM_LOCATION}' -e AUTOMATION_VM_VNET='{VM_VNET}' \\
       -e AUTOMATION_VM_SUBNET='{VM_SUBNET}' -e AUTOMATION_VM_ACR='{VM_ACR}' \\
       -e AUTOMATION_VM_IMAGE_REPO='{VM_IMAGE_REPO}' -e AUTOMATION_VM_IMAGE_TAG='{VM_IMAGE_TAG}' \\
-      -e WORKER_VM_SIZE='{os.environ.get("WORKER_VM_SIZE", "Standard_D32s_v6")}' \\
+      -e WORKER_VM_SIZE='{WORKER_VM_SIZE}' \\
       -e AZ_VM_ADMIN_SSH_PUBKEY='{_get_ssh_pubkey()}' \\
       -e KEY_VAULT_URI='{KEY_VAULT_URI}' -e PIPELINE_SECRET_NAMES='{PIPELINE_SECRET_NAMES}' \\
       -e CH_EMBEDDING_MODEL='{CH_EMBEDDING_MODEL}' \\
