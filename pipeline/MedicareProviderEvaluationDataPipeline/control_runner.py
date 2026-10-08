@@ -109,37 +109,27 @@ def _control(ns) -> int:
 
     os.environ["DATA_VERSION"] = str(ns.data_version)
     os.environ["BUILD_INDICATION_MAP"] = "1" if ns.build_indication_map else "0"
-
-    args = PipelineArgs(
-        states=_states_list(ns.states),
-        env_prefix=ns.env_prefix,
-        expected_duration_minutes=ns.expected_duration_minutes,
-        resume_from_step=ns.resume_from_step,
-        run_id=ns.run_id,
-        data_version=ns.data_version,
-    )
-
-    orchestrator = MedicareProviderEvaluationOrchestrator(
-        env=ns.env_prefix,
-        config=load_pipeline_config(env_prefix=ns.env_prefix),
-        mongo_client=ChatHealthyMongoUtilities().getConnection(
-            "pipelineEditor", "ChatHealthyDataPipelines"),
-        blob_client=get_blob_service(),
-    )
     if ns.run_id:
         os.environ["RUN_ID"] = ns.run_id
 
-    _log.LogPipeline(
-        "INFO",
-        "medicare control_runner: starting run env_prefix=%s states=%s "
-        "resume_from_step=%s data_version=%s build_indication_map=%s run_id=%s",
-        ns.env_prefix, args.states, ns.resume_from_step, ns.data_version,
-        ns.build_indication_map, ns.run_id or "(mint)",
-    )
+    # Run-status listener FIRST (EPIC-010-F-001-S-015): the controller answers
+    # the status call on :6969 (mTLS) within seconds of starting, reading the
+    # always-on front-end cluster -- independent of the pipeline-cluster wake
+    # and the orchestrator build below. Step names come from the class, so the
+    # listener needs no orchestrator instance. A bind failure is observability
+    # lost, not the work lost, so it is logged and the run proceeds.
+    try:
+        from pipeline.run_lifecycle.run_status_server import start_status_server  # noqa: PLC0415
+        start_status_server([s.name for s in MedicareProviderEvaluationOrchestrator.STEPS])
+    except Exception as exc:  # noqa: BLE001
+        _log.LogPipeline("WARNING",
+                         "medicare control_runner: status listener failed to start: %s",
+                         str(exc)[:200])
 
     # Controller heartbeat: writes controller_heartbeat_at every 60s so the
-    # Watchdog can tell a live run from an abandoned one. Daemon thread dies
-    # with the process.
+    # Watchdog can tell a live run from an abandoned one. Reads the always-on
+    # front-end cluster, so it runs during the pipeline-cluster wake. Daemon
+    # thread dies with the process.
     import threading  # noqa: PLC0415
     _hb_stop = threading.Event()
     _RENEWAL_HOURS = 2
@@ -173,24 +163,42 @@ def _control(ns) -> int:
 
     threading.Thread(target=_heartbeat, daemon=True, name="controller-heartbeat").start()
 
-    # Run-status listener (EPIC-010-F-001-S-015): once established the controller
-    # answers the status call on :6969 (mTLS) for the life of the run. A bind
-    # failure is observability lost, not the work lost, so it is logged and the
-    # run proceeds -- the client simply sees the API down.
-    try:
-        from pipeline.run_lifecycle.run_status_server import start_status_server  # noqa: PLC0415
-        start_status_server([s.name for s in orchestrator.STEPS])
-    except Exception as exc:  # noqa: BLE001
-        _log.LogPipeline("WARNING",
-                         "medicare control_runner: status listener failed to start: %s",
-                         str(exc)[:200])
-
     manifest = None
     final_status = "failed"
     exit_code = 1
     fatal_exception = None
 
     try:
+        # Wake the pipeline cluster and wait for IDLE before connecting to it.
+        # It is always paused between runs; the wake is a required step common
+        # to every pipeline, done through the shared run-lifecycle manager --
+        # not reimplemented here. Inside the try so a wake or build failure runs
+        # the quiesce below rather than orphaning the reservation.
+        from pipeline.run_lifecycle import atlas_cluster_manager  # noqa: PLC0415
+        atlas_cluster_manager.resume_cluster(os.environ["PIPELINE_CLUSTER"])
+
+        args = PipelineArgs(
+            states=_states_list(ns.states),
+            env_prefix=ns.env_prefix,
+            expected_duration_minutes=ns.expected_duration_minutes,
+            resume_from_step=ns.resume_from_step,
+            run_id=ns.run_id,
+            data_version=ns.data_version,
+        )
+        orchestrator = MedicareProviderEvaluationOrchestrator(
+            env=ns.env_prefix,
+            config=load_pipeline_config(env_prefix=ns.env_prefix),
+            mongo_client=ChatHealthyMongoUtilities().getConnection(
+                "pipelineEditor", "ChatHealthyDataPipelines"),
+            blob_client=get_blob_service(),
+        )
+        _log.LogPipeline(
+            "INFO",
+            "medicare control_runner: starting run env_prefix=%s states=%s "
+            "resume_from_step=%s data_version=%s build_indication_map=%s run_id=%s",
+            ns.env_prefix, args.states, ns.resume_from_step, ns.data_version,
+            ns.build_indication_map, ns.run_id or "(mint)",
+        )
         manifest = orchestrator.run(args)
         if manifest and manifest.run_id:
             os.environ["RUN_ID"] = manifest.run_id
