@@ -110,6 +110,7 @@ os.environ.setdefault("CH_COMPONENT", "medicare_pipeline_runbook")
 
 PIPELINE_ADMIN_DB = "pipelineAdmin"
 PIPELINE_NAME = "medicare"
+ATLAS_ADMIN_BASE = "https://cloud.mongodb.com/api/atlas/v2"
 
 # Every deploy fact below is supplied by the deploy (an Automation Variable);
 # none defaults and none is hardcoded here -- the repository is public.
@@ -334,10 +335,6 @@ runcmd:
       -e AZ_VM_ADMIN_SSH_PUBKEY='{_get_ssh_pubkey()}' \\
       -e KEY_VAULT_URI='{KEY_VAULT_URI}' -e PIPELINE_SECRET_NAMES='{PIPELINE_SECRET_NAMES}' \\
       -e CH_EMBEDDING_MODEL='{CH_EMBEDDING_MODEL}' \\
-      -e PIPELINE_CLUSTER='{PIPELINE_CLUSTER}' \\
-      -e ATLAS_PROJECT_ID='{ATLAS_PROJECT_ID}' \\
-      -e ATLAS_PIPELINE_PUBLIC_KEY='{ATLAS_PIPELINE_PUBLIC_KEY}' \\
-      -e ATLAS_PIPELINE_PRIVATE_KEY='{ATLAS_PIPELINE_PRIVATE_KEY}' \\
       -e PIPELINECONTROLLER_AZURE_TENANT_ID='{ct}' \\
       -e PIPELINECONTROLLER_AZURE_CLIENT_ID='{cc}' \\
       -e PIPELINECONTROLLER_AZURE_CLIENT_SECRET='{cs}' \\
@@ -348,10 +345,15 @@ runcmd:
       pipeline/run_lifecycle/bootstrap.py \\
       pipeline/MedicareProviderEvaluationDataPipeline/control_runner.py \\
       --run-id {run_id} --env-prefix {ENV_PREFIX} --data-version {data_version} --states {",".join(states)} {bim}
-    echo "chcontrol: controller exit=$? $(date -u +%FT%TZ)"
+    rc=$?
+    echo "chcontrol: controller exit=$rc $(date -u +%FT%TZ)"
     set -e
     az login --service-principal --username '{cc}' --password '{cs}' --tenant '{ct}' || true
-    az vm delete --resource-group {RESOURCE_GROUP} --name {vm_name} --yes --no-wait || true
+    if [ "$rc" -eq 0 ]; then
+      az vm delete --resource-group {RESOURCE_GROUP} --name {vm_name} --yes --no-wait || true
+    else
+      echo "chcontrol: controller FAILED rc=$rc -- VM kept so the crash log survives"
+    fi
 """
     return base64.b64encode(yaml_body.encode("utf-8")).decode("ascii")
 
@@ -491,6 +493,48 @@ def _resolve_states(raw) -> list[str]:
     return scope
 
 
+def _resume_pipeline_cluster() -> None:
+    """Common, reusable wake for the pipeline's data cluster: resume it and poll
+    until it reports IDLE, BEFORE the controller is provisioned (the controller
+    connects to ChatHealthyDataPipelines at startup, and that connection fails
+    against a paused cluster). The cluster is always paused between runs, so this
+    is a required step of every run. Written as a standalone function so future
+    pipelines can call it; provider keeps its own copy for backward-compatibility
+    until provider is next worked on. Missing credentials RAISE -- a run that
+    cannot wake its data cluster aborts visibly rather than march on.
+    """
+    missing = [n for n, v in (("ATLAS_PROJECT_ID", ATLAS_PROJECT_ID),
+                              ("ATLAS_PIPELINE_PUBLIC_KEY", ATLAS_PIPELINE_PUBLIC_KEY),
+                              ("ATLAS_PIPELINE_PRIVATE_KEY", ATLAS_PIPELINE_PRIVATE_KEY),
+                              ("PIPELINE_CLUSTER", PIPELINE_CLUSTER)) if not v]
+    if missing:
+        raise ChatHealthyException(
+            mode="atlas_resume_env_unset",
+            message="Atlas Admin credentials missing: " + ", ".join(missing)
+                    + f"; cannot wake cluster {PIPELINE_CLUSTER or '<unset>'}.",
+            component="medicare_pipeline_runbook", missing=",".join(missing))
+    import requests  # noqa: PLC0415
+    from requests.auth import HTTPDigestAuth  # noqa: PLC0415
+    base = f"{ATLAS_ADMIN_BASE}/groups/{ATLAS_PROJECT_ID}/clusters/{PIPELINE_CLUSTER}"
+    headers = {"Content-Type": "application/vnd.atlas.2024-08-05+json",
+               "Accept": "application/vnd.atlas.2024-08-05+json"}
+    auth = HTTPDigestAuth(ATLAS_PIPELINE_PUBLIC_KEY, ATLAS_PIPELINE_PRIVATE_KEY)
+    r = requests.patch(base, auth=auth, headers=headers,
+                       json={"paused": False}, timeout=30)
+    r.raise_for_status()
+    log("atlas_resume_patch_dispatched", cluster=PIPELINE_CLUSTER)
+    import time as _time  # noqa: PLC0415
+    while True:
+        g = requests.get(base, auth=auth, headers=headers, timeout=30)
+        g.raise_for_status()
+        state = (g.json() or {}).get("stateName", "")
+        if state == "IDLE":
+            log("atlas_resume_cluster_idle", cluster=PIPELINE_CLUSTER)
+            return
+        log("atlas_resume_waiting", cluster=PIPELINE_CLUSTER, state=state or "unknown")
+        _time.sleep(20)
+
+
 def _run() -> int:
     run_id = str(uuid.uuid4())
     os.environ["RUN_ID"] = run_id
@@ -538,6 +582,10 @@ def _run() -> int:
         _write_run_manifest(mongo, run_id, data_version, build_indication_map,
                             invocation_mode, states)
         log("run_manifest_written", run_id=run_id)
+
+        # Wake the pipeline cluster and wait for IDLE before provisioning the
+        # controller, which connects to it at startup. Common reusable function.
+        _resume_pipeline_cluster()
 
         _provision_controller_vm(run_id, data_version, build_indication_map,
                                  debug_level, states)
