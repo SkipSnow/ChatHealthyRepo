@@ -1,21 +1,21 @@
-"""worker_vm_provisioning.py - provision a Worker VM for the two-VM run shape.
+"""worker_vm_provisioning.py - allocate the run's single Worker VM (two-VM shape).
 
-The two-VM run (see pipeline_run_compute_deployment diagram and the pipeline LLD
-"Two-VM Run Compute Topology" section) splits a run across a small Controller VM
-and N big Worker VMs. The Controller enqueues one work_item per partition onto
-the always-on front-end cluster exactly as it does for the single-VM shape, then
-- instead of spawning local worker subprocesses - provisions one Worker VM per
-replica. Each Worker VM boots this cloud-init, which runs bootstrap.py +
-pipeline_worker.py: the worker atomically claims one already-enqueued work_item,
-does the step's work, exits, and the VM self-deletes. The Controller never holds
-a handle on a Worker VM; it watches the work_items heartbeats, the same
-substrate it already uses for subprocess workers.
+The two-VM run (LLD Part I, I.1.1.3 / I.2.3.1-3) splits a run across a small
+Controller VM and ONE big Worker VM. The Controller enqueues one work_item per
+partition onto the always-on front-end cluster exactly as it does for the
+single-VM shape, and - instead of spawning local worker subprocesses - allocates
+the run's single Worker VM through allocate_worker_vm below. That box boots
+worker_host.py, which drains every partition of every step as a bounded pool of
+pipeline_worker processes, then self-deletes. Workers are PROCESSES on the one
+box, not a VM per partition, so the hardware a run needs is this single box sized
+once. The Controller never holds a handle on the Worker VM; it watches the
+work_items, the same substrate it already uses for subprocess workers.
 
 This path is reached only when a pipeline declares worker_compute='vm'; every
 current pipeline (provider included) leaves it unset and keeps the subprocess
 path untouched. The Controller authenticates to Azure ARM as pipelineController
-(whose rights include creating the Worker VMs); the Worker VMs carry
-pipelineEditor credentials for their own Mongo certificate auth, exactly as the
+(whose rights include creating the Worker VM); the Worker VM carries
+pipelineEditor credentials for its own Mongo certificate auth, exactly as the
 single-VM workers do today.
 
 Every value this module needs is read from the Controller VM's environment and
@@ -97,12 +97,13 @@ def _short(run_id: str) -> str:
     return run_id.split("-")[-1][:8] if "-" in run_id else run_id[:8]
 
 
-def _worker_cloud_init(run_id: str, step: str, replica: int, vm_name: str) -> str:
-    """Base64 cloud-init for a Worker VM: pull the pipeline image, run
-    bootstrap.py + pipeline_worker.py once (bootstrap fetches the Mongo cert into
-    env; the worker then claims one work_item for this run+step), then
-    self-delete the VM. pipelineEditor is the identity the worker presents to
-    Azure (ACR pull, farewell delete) and to Mongo (cert auth)."""
+def _worker_host_cloud_init(run_id: str, pipeline_name: str, vm_name: str) -> str:
+    """Base64 cloud-init for the run's single Worker VM: pull the pipeline
+    image, run bootstrap.py + worker_host.py (bootstrap fetches the Mongo cert
+    into env; the host then drains the run's work_items as a bounded pool of
+    pipeline_worker processes across every step), then self-delete the VM when
+    the host returns. pipelineEditor is the identity the box presents to Azure
+    (ACR pull, farewell delete) and to Mongo (cert auth)."""
     acr = _req("AUTOMATION_VM_ACR")
     repo = _req("AUTOMATION_VM_IMAGE_REPO")
     tag = _req("AUTOMATION_VM_IMAGE_TAG")
@@ -145,7 +146,7 @@ runcmd:
       -e CH_MONGO_HOST_CHATHEALTHYFRONTEND='{_req("CH_MONGO_HOST_CHATHEALTHYFRONTEND")}' \\
       -e CH_MONGO_HOST_CHATHEALTHYDATAPIPELINES='{_req("CH_MONGO_HOST_CHATHEALTHYDATAPIPELINES")}' \\
       -e RUN_ID='{run_id}' -e ENV_PREFIX='{_req("ENV_PREFIX")}' \\
-      -e PIPELINE_NAME='medicare' \\
+      -e PIPELINE_NAME='{pipeline_name}' \\
       -e PIPELINE_LOG_ACCOUNT_URL='{_req("PIPELINE_LOG_ACCOUNT_URL")}' \\
       -e AZURE_VM_NAME='{vm_name}' \\
       -e AZURE_SUBSCRIPTION_ID='{sub}' -e AZURE_RESOURCE_GROUP='{rg}' \\
@@ -156,20 +157,24 @@ runcmd:
       -e PIPELINEEDITOR_AZURE_CLIENT_SECRET='{pe_secret}' \\
       -e PIPELINE_SECRET_NAMES='{_req("PIPELINE_SECRET_NAMES")}' \\
       --entrypoint python {image} \\
-      pipeline/run_lifecycle/bootstrap.py pipeline/run_lifecycle/pipeline_worker.py {step} --replica {replica} --run-id {run_id}
-    echo "chworker: worker exit=$? $(date -u +%FT%TZ)"
+      pipeline/run_lifecycle/bootstrap.py pipeline/run_lifecycle/worker_host.py
+    echo "chworker: host exit=$? $(date -u +%FT%TZ)"
     set -e
     az vm delete --resource-group {rg} --name {vm_name} --yes --no-wait || true
 """
     return base64.b64encode(yaml_body.encode("utf-8")).decode("ascii")
 
 
-def provision_worker_vm(run_id: str, step: str, replica: int) -> dict:
-    """PUT one ephemeral Worker VM into the pipeline compute subnet, booting the
-    worker cloud-init. Async: ARM returns a provisioning handle, not a finished
-    VM. The Controller does not wait on it - it waits on the work_item the VM
-    will claim, through the heartbeat loop it already runs. Every deploy fact is
-    read required from the environment; nothing is defaulted in code."""
+def allocate_worker_vm(run_id: str, pipeline_name: str) -> dict:
+    """The common hardware-allocation function: PUT the run's single ephemeral
+    Worker VM into the pipeline compute subnet, booting the worker-host
+    cloud-init. One box per run - the resident host drains every partition of
+    every step as a bounded pool of processes, so the hardware a run needs is
+    this one box sized once, not a VM per partition. Every pipeline calls this
+    function. Async: ARM returns a provisioning handle, not a finished VM; the
+    Controller waits on the work_items the host will drain, not on the VM. Every
+    deploy fact is read required from the environment; nothing is defaulted in
+    code."""
     token = _controller_arm_token()
     sub = _req("AZURE_SUBSCRIPTION_ID")
     rg = _req("AZURE_RESOURCE_GROUP")
@@ -179,10 +184,10 @@ def provision_worker_vm(run_id: str, step: str, replica: int) -> dict:
     subnet = _req("AUTOMATION_VM_SUBNET")
     env_prefix = _req("ENV_PREFIX")
     ssh_key = _req("AZ_VM_ADMIN_SSH_PUBKEY")
-    vm_name = f"vm-chworker-{_short(run_id)}-{step}-{replica}"[:63]
+    vm_name = f"vm-chworker-{_short(run_id)}"[:63]
     nic_name = f"{vm_name}-nic"
-    tags = {"pipeline_run_id": run_id, "pipeline_step": step,
-            "replica": str(replica), "env": env_prefix}
+    tags = {"pipeline_run_id": run_id, "pipeline_name": pipeline_name,
+            "env": env_prefix}
     subnet_id = (f"/subscriptions/{sub}/resourceGroups/{rg}"
                  f"/providers/Microsoft.Network/virtualNetworks/{vnet}"
                  f"/subnets/{subnet}")
@@ -196,7 +201,7 @@ def provision_worker_vm(run_id: str, step: str, replica: int) -> dict:
             "properties": {"subnet": {"id": subnet_id},
                            "privateIPAllocationMethod": "Dynamic"}}]}},
         token)
-    user_data = _worker_cloud_init(run_id, step, replica, vm_name)
+    user_data = _worker_host_cloud_init(run_id, pipeline_name, vm_name)
     vm_url = (f"{_ARM}/subscriptions/{sub}/resourceGroups/{rg}"
               f"/providers/Microsoft.Compute/virtualMachines/{vm_name}"
               f"?api-version={_VM_API}")
@@ -229,6 +234,6 @@ def provision_worker_vm(run_id: str, step: str, replica: int) -> dict:
             "userData": user_data}},
         token)
     _log.LogPipeline("INFO",
-        "worker_vm provisioned run_id=%s step=%s replica=%d vm=%s",
-        run_id, step, replica, vm_name)
+        "worker VM allocated run_id=%s pipeline=%s vm=%s",
+        run_id, pipeline_name, vm_name)
     return {"vm_name": vm_name, "vm": vm}

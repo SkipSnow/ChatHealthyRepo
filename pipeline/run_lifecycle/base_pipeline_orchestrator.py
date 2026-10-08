@@ -312,15 +312,18 @@ class BasePipelineOrchestrator:
             or os.environ.get("WORKER_COMPUTE", "subprocess")
         ).strip().lower()
         if worker_compute == "vm":
-            from pipeline.run_lifecycle.worker_vm_provisioning import provision_worker_vm
-            worker_vms: list[str] = []
-            for replica in range(len(partitions)):
-                res = provision_worker_vm(run_id, spec.name, replica)
-                worker_vms.append(res.get("vm_name"))
-            _log.LogPipeline("INFO",
-                "orchestrator provisioned worker VMs step=%s workers=%d vms=%s",
-                spec.name, len(worker_vms), worker_vms,
-            )
+            # Two-VM shape: the run has ONE Worker VM (the big box), allocated
+            # once through the common hardware-allocation function. Its resident
+            # worker_host drains the work_items enqueued above - and every later
+            # step's - as a bounded pool of processes. The Controller spawns
+            # nothing locally; it only waits on the work_items below.
+            from pipeline.run_lifecycle.worker_vm_provisioning import allocate_worker_vm
+            if not getattr(self, "_worker_vm_name", None):
+                res = allocate_worker_vm(run_id, ctx.manifest.pipeline_name)
+                self._worker_vm_name = res.get("vm_name")
+                _log.LogPipeline("INFO",
+                    "orchestrator allocated worker VM run_id=%s vm=%s",
+                    run_id, self._worker_vm_name)
         else:
             worker_pids: list[int] = []
             for replica in range(max_parallel):
