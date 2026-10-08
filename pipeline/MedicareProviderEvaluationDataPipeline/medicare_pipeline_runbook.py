@@ -257,18 +257,6 @@ def _write_run_manifest(mongo, run_id: str, data_version: int,
         "build_indication_map": build_indication_map, "states": states})
 
 
-def _create_reservation(mongo, run_id: str, vm_name: str) -> None:
-    now = datetime.datetime.utcnow()
-    mongo[PIPELINE_ADMIN_DB]["cluster_lifecycle"].replace_one(
-        {"_id": run_id},
-        {"_id": run_id, "run_id": run_id, "vm_name": vm_name,
-         "cluster_name": ATLAS_PIPELINE_CLUSTER, "requester": "medicare_pipeline_runbook",
-         "start_time": now, "expiry_at": now + datetime.timedelta(hours=RESERVATION_TTL_HOURS),
-         "reservation_class": "pipeline_run", "pipeline_name": PIPELINE_NAME,
-         "status": "active"},
-        upsert=True)
-
-
 def _cancel_reservation(mongo, run_id: str) -> None:
     mongo[PIPELINE_ADMIN_DB]["cluster_lifecycle"].delete_one({"_id": run_id})
 
@@ -493,16 +481,33 @@ def _resolve_states(raw) -> list[str]:
     return scope
 
 
-def _resume_pipeline_cluster() -> None:
-    """Common, reusable wake for the pipeline's data cluster: resume it and poll
-    until it reports IDLE, BEFORE the controller is provisioned (the controller
-    connects to ChatHealthyDataPipelines at startup, and that connection fails
-    against a paused cluster). The cluster is always paused between runs, so this
-    is a required step of every run. Written as a standalone function so future
-    pipelines can call it; provider keeps its own copy for backward-compatibility
-    until provider is next worked on. Missing credentials RAISE -- a run that
-    cannot wake its data cluster aborts visibly rather than march on.
+def _reserve_and_resume_cluster(mongo, run_id: str, vm_name: str,
+                                ttl_hours: int) -> None:
+    """The one and only place that manages the pipeline data cluster for a run.
+
+    1. Reserve the run FIRST -- before the (tens-of-minutes) resume -- so the run
+       holds a live lease for the whole wake and the reservation reaper does not
+       reap it as controller-never-started. ttl_hours sets the lease length and
+       must exceed the worst-case wake + controller cold start.
+    2. Resume the always-paused cluster and poll until it reports IDLE (the
+       controller connects to it at startup and fails against a paused cluster).
+
+    Common reusable function; provider keeps its own copy for backward
+    compatibility until it is next worked on. Missing Atlas credentials RAISE --
+    a run that cannot wake its data cluster aborts visibly rather than march on.
     """
+    now = datetime.datetime.utcnow()
+    mongo[PIPELINE_ADMIN_DB]["cluster_lifecycle"].replace_one(
+        {"_id": run_id},
+        {"_id": run_id, "run_id": run_id, "vm_name": vm_name,
+         "cluster_name": ATLAS_PIPELINE_CLUSTER, "requester": "medicare_pipeline_runbook",
+         "start_time": now,
+         "expiry_at": now + datetime.timedelta(hours=ttl_hours),
+         "reservation_class": "pipeline_run", "pipeline_name": PIPELINE_NAME,
+         "status": "active"},
+        upsert=True)
+    log("reservation_created", run_id=run_id, vm_name=vm_name, ttl_hours=ttl_hours)
+
     missing = [n for n, v in (("ATLAS_PROJECT_ID", ATLAS_PROJECT_ID),
                               ("ATLAS_PIPELINE_PUBLIC_KEY", ATLAS_PIPELINE_PUBLIC_KEY),
                               ("ATLAS_PIPELINE_PRIVATE_KEY", ATLAS_PIPELINE_PRIVATE_KEY),
@@ -573,6 +578,7 @@ def _run() -> int:
     try:
         mongo = ChatHealthyMongoUtilities().getConnection("pipelineEditor", "ChatHealthyFrontEnd")
         mongo.admin.command("ping")
+
         blocking = _acquire_pipeline_lock(mongo, run_id, vm_name)
         if blocking is not None:
             log("pipeline_already_running_abend", attempted_run_id=run_id,
@@ -583,17 +589,17 @@ def _run() -> int:
                             invocation_mode, states)
         log("run_manifest_written", run_id=run_id)
 
-        # Wake the pipeline cluster and wait for IDLE before provisioning the
-        # controller, which connects to it at startup. Common reusable function.
-        _resume_pipeline_cluster()
+        # Reserve the run and wake the data cluster -- one encapsulated step. The
+        # reservation is taken first, so its lease covers the whole (long) resume
+        # and the reservation reaper does not reap the run as
+        # controller-never-started during the wake.
+        _reserve_and_resume_cluster(mongo, run_id, vm_name, RESERVATION_TTL_HOURS)
+        reservation_created = True
 
         _provision_controller_vm(run_id, data_version, build_indication_map,
                                  debug_level, states)
         runbook_owns_lock = False  # Controller owns lock release from here
         log("controller_vm_provisioned", run_id=run_id, vm_name=vm_name)
-        _create_reservation(mongo, run_id, vm_name)
-        reservation_created = True
-        log("reservation_created", run_id=run_id, vm_name=vm_name)
         log("runbook_exit", run_id=run_id)
         return 0
     except Exception as exc:  # noqa: BLE001
