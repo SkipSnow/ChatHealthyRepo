@@ -90,14 +90,27 @@ class BlobStore(BaseModel):
 StoreSpec = Annotated[Union[FileStore, BlobStore], Field(discriminator="mode")]
 
 
+# --- extract spec: pull one member out of the fetched archive --------------- #
+class ZipExtract(BaseModel):
+    """Extract exactly one member from the fetched archive, as part of the
+    fetch. member_path descends nested zips: every element but the last names a
+    nested zip to open, the last names the member whose bytes are stored. Each
+    step globs its archive case-insensitively and MUST match exactly one entry.
+    Zip only -- tar is intentionally not implemented (no use case today)."""
+    mode: Literal["zip"] = "zip"
+    member_path: list[str] = Field(min_length=1)
+
+
 class FetchRequest(BaseModel):
-    """Typed INPUT. find and store each branch by mode. The caller populates
-    everything (including any secret it fetched)."""
+    """Typed INPUT. find and store each branch by mode. extract, when present,
+    pulls one member out of the fetched archive so the stored bytes are that
+    member. The caller populates everything (including any secret it fetched)."""
     source_name: str
     find: FindSpec
     store: StoreSpec
     stream: bool
     buffer_size: int | None = None
+    extract: ZipExtract | None = None
 
 
 class FetchResult(BaseModel):
@@ -233,36 +246,24 @@ _FIND_DETERMINISTIC = {
 }
 
 
-# --- acquire: response straight to the store, OR whole into memory then store. #
-#     A switch (stream). NEVER a temp disk file. Never reads the content. ----- #
-def _acquire(url: str, *, source_name: str, store: Union[FileStore, BlobStore],
-             stream: bool, buffer_size: int, headers: dict | None,
-             http_timeout: int) -> tuple[str, int, dict]:
-    hdrs = {"User-Agent": _UA}
-    if headers:
-        hdrs.update(headers)
+# --- store primitive: a chunk iterator straight to the store, hashing it. ---- #
+#     The one place bytes land in a store, shared by the plain download and the #
+#     extract paths so neither duplicates store handling.                       #
+def _store_chunks(store: Union[FileStore, BlobStore], chunks, *, source_name: str,
+                  label: str) -> tuple[str, int, dict]:
     hasher = hashlib.sha256()
-
     if isinstance(store, FileStore):
         os.makedirs(os.path.dirname(os.path.abspath(store.path)) or ".", exist_ok=True)
         size = 0
-        resp = requests.get(url, stream=stream, timeout=http_timeout, headers=hdrs)
-        resp.raise_for_status()
         with open(store.path, "wb") as dst:
-            if stream:
-                for chunk in resp.iter_content(chunk_size=buffer_size):
-                    if not chunk:
-                        continue
-                    dst.write(chunk)
-                    hasher.update(chunk)
-                    size += len(chunk)
-            else:
-                data = resp.content
-                dst.write(data)
-                hasher.update(data)
-                size = len(data)
-        _log.LogPipeline("INFO", "data_fetch_agent[%s]: file %s (%d bytes) stream=%s",
-                         source_name, store.path, size, stream)
+            for chunk in chunks:
+                if not chunk:
+                    continue
+                dst.write(chunk)
+                hasher.update(chunk)
+                size += len(chunk)
+        _log.LogPipeline("INFO", "data_fetch_agent[%s]: %s -> file %s (%d bytes)",
+                         source_name, label, store.path, size)
         return hasher.hexdigest(), size, {
             "store_mode": "file", "path": store.path, "size_bytes": size}
 
@@ -274,31 +275,108 @@ def _acquire(url: str, *, source_name: str, store: Union[FileStore, BlobStore],
     except Exception:  # noqa: BLE001 -- already exists
         pass
     bc = cc.get_blob_client(store.blob_path)
-    resp = requests.get(url, stream=stream, timeout=http_timeout, headers=hdrs)
-    resp.raise_for_status()
-    if stream:
-        counter = {"n": 0}
+    counter = {"n": 0}
 
-        def _hashing_chunks():
-            for chunk in resp.iter_content(chunk_size=buffer_size):
-                if not chunk:
-                    continue
-                hasher.update(chunk)
-                counter["n"] += len(chunk)
-                yield chunk
+    def _hashing():
+        for chunk in chunks:
+            if not chunk:
+                continue
+            hasher.update(chunk)
+            counter["n"] += len(chunk)
+            yield chunk
 
-        bc.upload_blob(_hashing_chunks(), overwrite=True, length=None)
-        size = counter["n"]
-    else:
-        data = resp.content
-        hasher.update(data)
-        size = len(data)
-        bc.upload_blob(data, overwrite=True)
-    _log.LogPipeline("INFO", "data_fetch_agent[%s]: blob %s/%s (%d bytes) stream=%s",
-                     source_name, store.container, store.blob_path, size, stream)
+    bc.upload_blob(_hashing(), overwrite=True, length=None)
+    size = counter["n"]
+    _log.LogPipeline("INFO", "data_fetch_agent[%s]: %s -> blob %s/%s (%d bytes)",
+                     source_name, label, store.container, store.blob_path, size)
     return hasher.hexdigest(), size, {
         "store_mode": "blob", "container": store.container,
         "blob_path": store.blob_path, "size_bytes": size}
+
+
+# --- acquire: response straight to the store. A switch (stream); no temp. ---- #
+def _acquire(url: str, *, source_name: str, store: Union[FileStore, BlobStore],
+             stream: bool, buffer_size: int, headers: dict | None,
+             http_timeout: int) -> tuple[str, int, dict]:
+    hdrs = {"User-Agent": _UA}
+    if headers:
+        hdrs.update(headers)
+    resp = requests.get(url, stream=stream, timeout=http_timeout, headers=hdrs)
+    resp.raise_for_status()
+    chunks = resp.iter_content(chunk_size=buffer_size) if stream else [resp.content]
+    return _store_chunks(store, chunks, source_name=source_name, label=f"stream={stream}")
+
+
+# --- extract: download the archive, descend nested zips, store one member. --- #
+#     Extraction must read the archive, so the bytes land in a temp file first  #
+#     and each intermediate nested zip is read into memory to descend. The      #
+#     stored bytes ARE the extracted member. Zip only (no tar use case today).  #
+def _acquire_extract(url: str, *, source_name: str, store: Union[FileStore, BlobStore],
+                     extract: ZipExtract, buffer_size: int, headers: dict | None,
+                     http_timeout: int) -> tuple[str, int, dict]:
+    import io as _io  # noqa: PLC0415
+    import tempfile as _tmp  # noqa: PLC0415
+    import zipfile as _zip  # noqa: PLC0415
+    from fnmatch import fnmatch as _fn  # noqa: PLC0415
+
+    hdrs = {"User-Agent": _UA}
+    if headers:
+        hdrs.update(headers)
+
+    def _one_entry(zf, glob: str) -> str:
+        g = glob.lower()
+        hits = [n for n in zf.namelist() if _fn(n.lower(), g)]
+        if len(hits) != 1:
+            raise ChatHealthyException(
+                mode="extract_no_unique_member", component="data_fetch_agent",
+                message=(f"data_fetch_agent[{source_name}]: member glob {glob!r} matched "
+                         f"{len(hits)} entries {hits[:10]!r} (need exactly one)"))
+        return hits[0]
+
+    fd, arch_tmp = _tmp.mkstemp(suffix=".archive", prefix=f"{source_name}_")
+    os.close(fd)
+    try:
+        resp = requests.get(url, stream=True, timeout=http_timeout, headers=hdrs)
+        resp.raise_for_status()
+        with open(arch_tmp, "wb") as dst:
+            for chunk in resp.iter_content(chunk_size=buffer_size):
+                if chunk:
+                    dst.write(chunk)
+
+        steps = extract.member_path
+        opened = []
+        try:
+            cur = _zip.ZipFile(arch_tmp)
+            opened.append(cur)
+            for depth, glob in enumerate(steps):
+                name = _one_entry(cur, glob)
+                if depth == len(steps) - 1:
+                    _log.LogPipeline("INFO",
+                        "data_fetch_agent[%s]: extracting member %s (depth %d of %d)",
+                        source_name, name, depth + 1, len(steps))
+                    with cur.open(name) as reader:
+                        def _member_chunks():
+                            while True:
+                                b = reader.read(buffer_size)
+                                if not b:
+                                    break
+                                yield b
+                        sha256, size, stored = _store_chunks(
+                            store, _member_chunks(), source_name=source_name,
+                            label=f"extract[{'/'.join(steps)}]")
+                    stored["extracted_member"] = name
+                    return sha256, size, stored
+                child = _zip.ZipFile(_io.BytesIO(cur.read(name)))
+                opened.append(child)
+                cur = child
+        finally:
+            for z in reversed(opened):
+                z.close()
+    finally:
+        try:
+            os.unlink(arch_tmp)
+        except OSError:
+            pass
 
 
 # --------------------------------------------------------------------------- #
@@ -353,9 +431,15 @@ def _execute_fetch(req: FetchRequest, *, discovered_url: str | None, download: b
                            filename=facts.filename, published_date=facts.published_date,
                            sha256="", size_bytes=0, stored={"store_mode": "none"})
     buffer_size = req.buffer_size or (1024 * 1024)
-    sha256, size, stored = _acquire(
-        facts.url, source_name=req.source_name, store=req.store, stream=req.stream,
-        buffer_size=buffer_size, headers=headers, http_timeout=http_timeout)
+    if req.extract is not None:
+        sha256, size, stored = _acquire_extract(
+            facts.url, source_name=req.source_name, store=req.store,
+            extract=req.extract, buffer_size=buffer_size, headers=headers,
+            http_timeout=http_timeout)
+    else:
+        sha256, size, stored = _acquire(
+            facts.url, source_name=req.source_name, store=req.store, stream=req.stream,
+            buffer_size=buffer_size, headers=headers, http_timeout=http_timeout)
     return FetchResult(source_name=req.source_name, url=facts.url,
                        version_identifier=facts.version_identifier, filename=facts.filename,
                        published_date=facts.published_date, sha256=sha256,

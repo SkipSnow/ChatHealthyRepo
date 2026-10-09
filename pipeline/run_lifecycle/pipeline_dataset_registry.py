@@ -437,6 +437,17 @@ class PipelineDatasetRegistry:
             ))
         return dict(spec)
 
+    def fetch_extract(self, name: str) -> dict | None:
+        """The optional extract parameterization for a fetched source: the
+        data-fetch agent's typed ZipExtract input (fetch.extract), read straight
+        from config and keyed by source_name. Returns None when the source
+        stores its download whole (no member extraction). A pure lookup."""
+        entry = self.by_source_name(name)
+        if entry.fetch is None:
+            return None
+        extract = entry.fetch.get("extract")
+        return dict(extract) if isinstance(extract, dict) else None
+
     def resolve_source_url(self, name: str) -> str:
         entry = self.by_source_name(name)
         if entry.fetch is None:

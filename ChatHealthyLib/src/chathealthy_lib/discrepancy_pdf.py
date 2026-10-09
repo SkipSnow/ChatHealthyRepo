@@ -22,7 +22,7 @@ from datetime import datetime, timezone, timedelta
 
 _log = ChatHealthyLoggingService()
 
-REPORT_TITLE_PREFIX = "ChatHealthy.ai Data pipeline discrepancy report:"
+REPORT_TITLE_PREFIX = "ChatHealthy.ai discrepancy report:"
 
 
 def _report_pipeline_label(manifest: dict) -> str:
@@ -94,7 +94,7 @@ def _fmt_header_fields(manifest: dict) -> list[tuple[str, str]]:
         ("Records with non certain Information",  str(records_non_certain)),
         ("Records with non-fatal warnings",       str(records_with_warnings)),
         ("Records with non-fatal errors",         str(records_with_errors)),
-        ("Fatal error",                           fatal_reason if fatal_present else "None"),
+        ("Fatal error",                           "see below for details" if fatal_present else "None"),
     ]
     # A multi-collection pipeline (e.g. Medicare) states each published
     # collection's counts; a single-target pipeline keeps the one target line
@@ -177,6 +177,20 @@ def render_header_as_html(manifest: dict, summary: list[dict]) -> str:
             "<p style='text-align:center;margin-top:20px;color:#555'>"
             "No discrepancies this run.</p>"
         )
+    # Only when a fatal error exists: a full-width section below the table
+    # carrying the complete message, spanning all 3 summary columns, so the
+    # long multi-line text no longer breaks a header cell.
+    fatal_reason = manifest.get("fatal_reason") or ""
+    if fatal_reason:
+        fatal_block = (
+            "<h3 style='text-align:center;margin-top:20px'>Fatal error</h3>"
+            "<table style='border-collapse:collapse;border:2px solid #000;margin:0 auto;width:90%'>"
+            "<tr><td colspan='3' style='border:1px solid #000;padding:6px 10px;white-space:pre-wrap'>"
+            f"{fatal_reason}</td></tr>"
+            "</table>"
+        )
+    else:
+        fatal_block = ""
     return (
         "<html><body style='font-family:Helvetica,Arial,sans-serif'>"
         f"<h2 style='text-align:center;margin-bottom:16px'>{_report_title(manifest)}</h2>"
@@ -184,6 +198,7 @@ def render_header_as_html(manifest: dict, summary: list[dict]) -> str:
         f"{''.join(rows_html)}"
         "</table>"
         f"{summary_block}"
+        f"{fatal_block}"
         "<p style='text-align:center;margin-top:16px;color:#555;font-size:12px'>"
         "See attached discrepancy_report.pdf for the per-class key Appendix."
         "</p>"
@@ -207,6 +222,11 @@ def render_header_as_text(manifest: dict, summary: list[dict]) -> str:
     for cls, sev, count in rows:
         lines.append(f"  {cls:<40} {sev:<8} {count}")
     lines.append("")
+    fatal_reason = manifest.get("fatal_reason") or ""
+    if fatal_reason:
+        lines.append("Fatal error:")
+        lines.append(f"  {fatal_reason}")
+        lines.append("")
     return "\n".join(lines)
 
 
@@ -347,6 +367,28 @@ def build_discrepancy_pdf(
         Paragraph("Discrepancy summary (one row per finding class)", body_heading_style),
         body_table,
     ]
+
+    # Only when a fatal error exists: a full-width section below the table
+    # carrying the complete message, spanning the full 4-column header width,
+    # so the long multi-line text no longer breaks a header cell.
+    fatal_reason = manifest.get("fatal_reason") or ""
+    if fatal_reason:
+        story.append(Spacer(1, 0.2 * inch))
+        story.append(Paragraph("Fatal error", body_heading_style))
+        fatal_table = Table(
+            [[_p(fatal_reason, body_cell_style)]],
+            colWidths=[7.6 * inch],
+        )
+        fatal_table.setStyle(TableStyle([
+            ("BOX", (0, 0), (-1, -1), 1.5, colors.black),
+            ("BACKGROUND", (0, 0), (-1, -1), colors.HexColor("#ffd6d6")),
+            ("VALIGN", (0, 0), (-1, -1), "TOP"),
+            ("LEFTPADDING", (0, 0), (-1, -1), 6),
+            ("RIGHTPADDING", (0, 0), (-1, -1), 6),
+            ("TOPPADDING", (0, 0), (-1, -1), 5),
+            ("BOTTOMPADDING", (0, 0), (-1, -1), 5),
+        ]))
+        story.append(fatal_table)
 
     # Appendix: the collection of business-record keys, per finding class,
     # capped at report_cap_per_class with a '+N more' note.

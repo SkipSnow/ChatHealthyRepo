@@ -249,6 +249,30 @@
                   }
                 }
               ]
+            },
+            "extract": {
+              "description": "Optional. When present the fetch does not store the downloaded archive whole; it extracts exactly one member and stores that member's bytes. member_path is an ordered descent: every element but the last names a nested archive to open, the last names the member to store. Each element globs its archive case-insensitively and MUST match exactly one entry (ambiguity is fatal). This lands a single table that lives inside a (possibly nested) zip -- e.g. the Medicare Coverage DB, whose CSVs sit inside all_article_csv.zip inside all_article.zip -- as its own blob. Mirrors the data-fetch agent's typed ZipExtract input.",
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "mode",
+                "member_path"
+              ],
+              "properties": {
+                "mode": {
+                  "description": "Archive kind. Only 'zip' is implemented (nested zips supported); tar is reserved and not implemented.",
+                  "const": "zip"
+                },
+                "member_path": {
+                  "description": "Ordered descent to the one member to store. Each string globs one entry in the current archive (case-insensitive, exactly one match); every element but the last opens a nested archive and the last is the stored member. Example: [\"all_article_csv.zip\", \"article_x_icd10_covered.csv\"].",
+                  "type": "array",
+                  "minItems": 1,
+                  "items": {
+                    "type": "string",
+                    "minLength": 1
+                  }
+                }
+              }
             }
           }
         },

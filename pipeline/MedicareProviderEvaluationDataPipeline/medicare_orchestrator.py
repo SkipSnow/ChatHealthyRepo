@@ -140,9 +140,10 @@ class MedicareProviderEvaluationOrchestrator(BasePipelineOrchestrator):
     # Coverage Database, FDA labels, the UMLS crosswalks) and the organization
     # sources (hospital enrollments, POS) join this list as they are declared
     # and the loader gains their formats.
-    # Sources that own a download (fetched). The Coverage DB ICD-10 table is a
-    # bundled extractor pulled from the HCPCS owner's zip at fetch, so it is NOT
-    # fetched on its own -- only loaded.
+    # Sources that own a download (fetched). The two Coverage DB tables (HCPCS
+    # and ICD-10) each fetch the same Coverage DB archive and extract their own
+    # member from it (fetch.extract, a cascading-zip member path), so each is an
+    # independent fetched source -- there is no cross-source bundle extraction.
     FETCH_SOURCES = [
         "medicare_partb",
         "medicare_partd",
@@ -151,9 +152,10 @@ class MedicareProviderEvaluationOrchestrator(BasePipelineOrchestrator):
         "openfda_labels",
         "medicare_pos",
         "medicare_coverage_hcpc",
+        "medicare_coverage_icd10",
     ]
-    # Every source that lands in staging (owners + the bundled extractor).
-    LOAD_SOURCES = FETCH_SOURCES + ["medicare_coverage_icd10"]
+    # Every fetched source also lands in staging; nothing is load-only now.
+    LOAD_SOURCES = FETCH_SOURCES
 
     def _partitions_for(self, spec, ctx):
         if spec.parallelism in (None, "serial", "gather"):

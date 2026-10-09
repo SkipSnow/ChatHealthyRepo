@@ -188,23 +188,39 @@
         },
         {
           "source_name": "medicare_coverage_hcpc",
-          "bundled_with": "medicare_coverage_db",
           "fetch": {
             "fetch_spec": {
               "mode": "direct_url",
               "url": "https://downloads.cms.gov/medicare-coverage-database/downloads/exports/all_article.zip"
+            },
+            "extract": {
+              "mode": "zip",
+              "member_path": [
+                "all_article_csv.zip",
+                "article_x_hcpc_code.csv"
+              ]
             }
           },
-          "archive_member": "hcpc",
-          "file_format": "pipe_delimited",
+          "file_format": "csv",
           "staging_name": "PublicStaging.StagingMedicareCoverageHcpc",
           "public_data_name": "PipelinePublicHealthData.MedicareCoverageHcpc"
         },
         {
           "source_name": "medicare_coverage_icd10",
-          "bundled_with": "medicare_coverage_db",
-          "archive_member": "*icd10*",
-          "file_format": "pipe_delimited",
+          "fetch": {
+            "fetch_spec": {
+              "mode": "direct_url",
+              "url": "https://downloads.cms.gov/medicare-coverage-database/downloads/exports/all_article.zip"
+            },
+            "extract": {
+              "mode": "zip",
+              "member_path": [
+                "all_article_csv.zip",
+                "article_x_icd10_covered.csv"
+              ]
+            }
+          },
+          "file_format": "csv",
           "staging_name": "PublicStaging.StagingMedicareCoverageIcd10",
           "public_data_name": "PipelinePublicHealthData.MedicareCoverageIcd10"
         },
@@ -519,23 +535,39 @@
         },
         {
           "source_name": "medicare_coverage_hcpc",
-          "bundled_with": "medicare_coverage_db",
           "fetch": {
             "fetch_spec": {
               "mode": "direct_url",
               "url": "https://downloads.cms.gov/medicare-coverage-database/downloads/exports/all_article.zip"
+            },
+            "extract": {
+              "mode": "zip",
+              "member_path": [
+                "all_article_csv.zip",
+                "article_x_hcpc_code.csv"
+              ]
             }
           },
-          "archive_member": "hcpc",
-          "file_format": "pipe_delimited",
+          "file_format": "csv",
           "staging_name": "PublicStaging.StagingMedicareCoverageHcpc",
           "public_data_name": "PipelinePublicHealthData.MedicareCoverageHcpc"
         },
         {
           "source_name": "medicare_coverage_icd10",
-          "bundled_with": "medicare_coverage_db",
-          "archive_member": "*icd10*",
-          "file_format": "pipe_delimited",
+          "fetch": {
+            "fetch_spec": {
+              "mode": "direct_url",
+              "url": "https://downloads.cms.gov/medicare-coverage-database/downloads/exports/all_article.zip"
+            },
+            "extract": {
+              "mode": "zip",
+              "member_path": [
+                "all_article_csv.zip",
+                "article_x_icd10_covered.csv"
+              ]
+            }
+          },
+          "file_format": "csv",
           "staging_name": "PublicStaging.StagingMedicareCoverageIcd10",
           "public_data_name": "PipelinePublicHealthData.MedicareCoverageIcd10"
         },
@@ -850,23 +882,39 @@
         },
         {
           "source_name": "medicare_coverage_hcpc",
-          "bundled_with": "medicare_coverage_db",
           "fetch": {
             "fetch_spec": {
               "mode": "direct_url",
               "url": "https://downloads.cms.gov/medicare-coverage-database/downloads/exports/all_article.zip"
+            },
+            "extract": {
+              "mode": "zip",
+              "member_path": [
+                "all_article_csv.zip",
+                "article_x_hcpc_code.csv"
+              ]
             }
           },
-          "archive_member": "hcpc",
-          "file_format": "pipe_delimited",
+          "file_format": "csv",
           "staging_name": "PublicStaging.StagingMedicareCoverageHcpc",
           "public_data_name": "PipelinePublicHealthData.MedicareCoverageHcpc"
         },
         {
           "source_name": "medicare_coverage_icd10",
-          "bundled_with": "medicare_coverage_db",
-          "archive_member": "*icd10*",
-          "file_format": "pipe_delimited",
+          "fetch": {
+            "fetch_spec": {
+              "mode": "direct_url",
+              "url": "https://downloads.cms.gov/medicare-coverage-database/downloads/exports/all_article.zip"
+            },
+            "extract": {
+              "mode": "zip",
+              "member_path": [
+                "all_article_csv.zip",
+                "article_x_icd10_covered.csv"
+              ]
+            }
+          },
+          "file_format": "csv",
           "staging_name": "PublicStaging.StagingMedicareCoverageIcd10",
           "public_data_name": "PipelinePublicHealthData.MedicareCoverageIcd10"
         },
