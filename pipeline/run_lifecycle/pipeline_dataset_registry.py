@@ -448,6 +448,20 @@ class PipelineDatasetRegistry:
         extract = entry.fetch.get("extract")
         return dict(extract) if isinstance(extract, dict) else None
 
+    def fetch_source_encoding(self, name: str) -> str | None:
+        """The optional source charset for a fetched source, read straight from
+        the fetch block (fetch.source_encoding) and keyed by source_name. When
+        set, the fetch stream-transcodes the stored TEXT to UTF-8 so charset is
+        never a downstream ETL concern. Returns None when the source stores
+        bytes as published (the default). A pure lookup, mirroring fetch_extract.
+        The schema permits it only on plain-text file_formats (csv/tsv/
+        pipe_delimited); binary artifacts (xlsx, any zip_*) never carry it."""
+        entry = self.by_source_name(name)
+        if entry.fetch is None:
+            return None
+        enc = entry.fetch.get("source_encoding")
+        return enc if isinstance(enc, str) and enc else None
+
     def resolve_source_url(self, name: str) -> str:
         entry = self.by_source_name(name)
         if entry.fetch is None:

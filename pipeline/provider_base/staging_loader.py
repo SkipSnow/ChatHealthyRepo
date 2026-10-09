@@ -200,6 +200,68 @@ def _iter_zipped_json_rows(local_zip_path: str, inner_name_hint: str | None = No
                 )
 
 
+# CMS ICD-10-CM tabular "order" file fixed-column layout (icd10cm_order_YYYY.txt
+# inside the "...-code-descriptions-tabular-order.zip"). Header-less; every line
+# is the same width-delimited shape, verified against the published 2026 file:
+#   [0:5]   order number        (e.g. "00001")
+#   [6:13]  ICD-10-CM code       (7 wide, left-justified, space-padded)
+#   [14]    header flag          ("0" = non-billable header/category, "1" = billable leaf)
+#   [16:76] short description    (60 wide)
+#   [77:]   long description
+_ICD10CM_ORDER_ORDER_NO = (0, 5)
+_ICD10CM_ORDER_CODE = (6, 13)
+_ICD10CM_ORDER_FLAG = 14
+_ICD10CM_ORDER_SHORT = (16, 76)
+_ICD10CM_ORDER_LONG = 77
+
+
+def _iter_zipped_icd10cm_order_rows(local_zip_path: str,
+                                    inner_name_hint: str | None = None) -> Iterator[dict[str, str]]:
+    """Iterate the CMS ICD-10-CM tabular order file inside its zip, one dict per
+    code line with explicit string-named columns.
+
+    The member is selected by inner_name_hint (the entry's archive_member) -- the
+    zip carries several text members (a billable-only codes file, the full order
+    file, and two tiny addenda stubs), so the member MUST be named; there is no
+    first-member fallback, which is exactly the defect this path replaces. The
+    full code set is staged -- both header/category rows (flag 0) and billable
+    leaves (flag 1) -- with the flag preserved as its own field so a consumer can
+    keep, drop, or distinguish them without re-reading the source.
+    """
+    with zipfile.ZipFile(local_zip_path) as zf:
+        candidates = [n for n in zf.namelist() if n.lower().endswith(".txt")]
+        target = None
+        if inner_name_hint:
+            for c in candidates:
+                if inner_name_hint.lower() in c.lower():
+                    target = c
+                    break
+        if target is None:
+            raise ChatHealthyException(
+                mode="runtime_error",
+                message=(
+                    f"staging_loader: no zip member matching inner_name_hint "
+                    f"{inner_name_hint!r} in {local_zip_path}; members={candidates}"
+                ),
+            )
+        with zf.open(target) as inner:
+            text = io.TextIOWrapper(inner, encoding="utf-8", newline="")
+            for raw_line in text:
+                line = raw_line.rstrip("\r\n")
+                if not line.strip():
+                    continue
+                flag = line[_ICD10CM_ORDER_FLAG:_ICD10CM_ORDER_FLAG + 1].strip()
+                record_type = "billable" if flag == "1" else "header" if flag == "0" else ""
+                yield {
+                    "order_number": line[_ICD10CM_ORDER_ORDER_NO[0]:_ICD10CM_ORDER_ORDER_NO[1]].strip(),
+                    "icd10_code": line[_ICD10CM_ORDER_CODE[0]:_ICD10CM_ORDER_CODE[1]].strip(),
+                    "header_flag": flag,
+                    "record_type": record_type,
+                    "short_description": line[_ICD10CM_ORDER_SHORT[0]:_ICD10CM_ORDER_SHORT[1]].strip(),
+                    "long_description": line[_ICD10CM_ORDER_LONG:].strip(),
+                }
+
+
 def _iter_json_rows(local_path: str) -> Iterator[dict[str, Any]]:
     """Iterate a JSON list, a JSON object wrapping a list (F-105 shape:
     {\"classifications\": [...]}), or line-delimited JSON."""
@@ -282,6 +344,8 @@ def _resolve_iter(source_name: str, spec: dict, local_path: str) -> Iterator[dic
     elif fmt == "zip_csv":
         yield from _iter_zipped_csv_rows(local_path, inner_name_hint=spec.get("inner_name_hint"),
                                          delimiter=spec.get("delimiter", ","))
+    elif fmt == "zip_icd10cm_order":
+        yield from _iter_zipped_icd10cm_order_rows(local_path, inner_name_hint=spec.get("inner_name_hint"))
     elif fmt == "json":
         yield from _iter_json_rows(local_path)
     elif fmt == "zip_json":

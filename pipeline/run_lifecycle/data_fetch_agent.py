@@ -14,6 +14,7 @@ agent fetches no secrets (the caller populates the request).
 """
 from __future__ import annotations
 
+import codecs
 import hashlib
 import json
 import os
@@ -104,13 +105,19 @@ class ZipExtract(BaseModel):
 class FetchRequest(BaseModel):
     """Typed INPUT. find and store each branch by mode. extract, when present,
     pulls one member out of the fetched archive so the stored bytes are that
-    member. The caller populates everything (including any secret it fetched)."""
+    member. source_encoding, when present, stream-transcodes the stored TEXT
+    from that charset to UTF-8 so charset is never a downstream ETL concern; it
+    is for text sources only (binary/archive artifacts never carry it) and is
+    applied to the stored bytes -- the plain download or the extracted member --
+    never to a raw archive. The caller populates everything (including any
+    secret it fetched)."""
     source_name: str
     find: FindSpec
     store: StoreSpec
     stream: bool
     buffer_size: int | None = None
     extract: ZipExtract | None = None
+    source_encoding: str | None = None
 
 
 class FetchResult(BaseModel):
@@ -246,11 +253,84 @@ _FIND_DETERMINISTIC = {
 }
 
 
+# --- transcode: normalize stored TEXT to UTF-8, with a binary-refusal guard. -- #
+#     Leading-byte signatures of common binary artifacts; a transcode asked to  #
+#     run over any of these is a misconfiguration (a text-only concern pointed   #
+#     at binary) and is refused rather than corrupting the bytes. Deterministic  #
+#     byte-prefix comparison -- no regex.                                        #
+_BINARY_SIGNATURES = (
+    (b"PK\x03\x04", "zip/xlsx/docx"),
+    (b"PK\x05\x06", "zip (empty archive)"),
+    (b"PK\x07\x08", "zip (spanned archive)"),
+    (b"%PDF-", "pdf"),
+    (b"\x1f\x8b", "gzip"),
+    (b"\xff\xfe", "utf-16/utf-32 LE BOM"),
+    (b"\xfe\xff", "utf-16 BE BOM"),
+)
+# Known-binary HTTP Content-Types used as an ADVISORY signal only (servers
+# mislabel, so this never refuses; the magic-byte check is authoritative).
+# application/octet-stream is deliberately absent -- it is ambiguous.
+_BINARY_CONTENT_TYPES = frozenset({
+    "application/zip", "application/pdf", "application/gzip", "application/x-gzip",
+    "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+    "application/vnd.ms-excel",
+})
+
+
+def _detect_binary_signature(head: bytes) -> str | None:
+    for sig, label in _BINARY_SIGNATURES:
+        if head.startswith(sig):
+            return label
+    return None
+
+
+def _transcode_chunks(chunks, *, source_encoding: str, source_name: str):
+    """Stream-transcode a byte-chunk iterator from source_encoding to UTF-8.
+
+    Incremental, so a multibyte sequence split across a chunk boundary is carried
+    to the next chunk and flushed at end (final=True). The leading bytes of the
+    first chunk are sniffed for a binary signature first: a match means the
+    artifact is binary and the transcode is refused loud rather than corrupting
+    it. The peeked first chunk is still decoded -- no bytes are lost."""
+    decoder = codecs.getincrementaldecoder(source_encoding)()
+    first = True
+    try:
+        for chunk in chunks:
+            if not chunk:
+                continue
+            if first:
+                sig = _detect_binary_signature(chunk)
+                if sig is not None:
+                    raise ChatHealthyException(
+                        mode="transcode_binary_refused", component="data_fetch_agent",
+                        message=(f"data_fetch_agent[{source_name}]: source_encoding "
+                                 f"{source_encoding!r} was set but the artifact's leading "
+                                 f"bytes are a {sig} binary signature; refusing to "
+                                 f"transcode binary data to UTF-8"))
+                first = False
+            text = decoder.decode(chunk)
+            if text:
+                yield text.encode("utf-8")
+        tail = decoder.decode(b"", final=True)
+        if tail:
+            yield tail.encode("utf-8")
+    except UnicodeDecodeError as exc:
+        raise ChatHealthyException(
+            mode="transcode_decode_failed", component="data_fetch_agent",
+            message=(f"data_fetch_agent[{source_name}]: cannot decode the artifact as "
+                     f"{source_encoding!r}: {exc}"), exception=exc) from exc
+
+
 # --- store primitive: a chunk iterator straight to the store, hashing it. ---- #
 #     The one place bytes land in a store, shared by the plain download and the #
-#     extract paths so neither duplicates store handling.                       #
+#     extract paths so neither duplicates store handling. source_encoding, when #
+#     set, transcodes the TEXT stream to UTF-8 here -- so the stored blob is     #
+#     UTF-8 and its sha256/size hash the normalized bytes.                       #
 def _store_chunks(store: Union[FileStore, BlobStore], chunks, *, source_name: str,
-                  label: str) -> tuple[str, int, dict]:
+                  label: str, source_encoding: str | None = None) -> tuple[str, int, dict]:
+    if source_encoding:
+        chunks = _transcode_chunks(chunks, source_encoding=source_encoding,
+                                   source_name=source_name)
     hasher = hashlib.sha256()
     if isinstance(store, FileStore):
         os.makedirs(os.path.dirname(os.path.abspath(store.path)) or ".", exist_ok=True)
@@ -297,14 +377,22 @@ def _store_chunks(store: Union[FileStore, BlobStore], chunks, *, source_name: st
 # --- acquire: response straight to the store. A switch (stream); no temp. ---- #
 def _acquire(url: str, *, source_name: str, store: Union[FileStore, BlobStore],
              stream: bool, buffer_size: int, headers: dict | None,
-             http_timeout: int) -> tuple[str, int, dict]:
+             http_timeout: int, source_encoding: str | None = None) -> tuple[str, int, dict]:
     hdrs = {"User-Agent": _UA}
     if headers:
         hdrs.update(headers)
     resp = requests.get(url, stream=stream, timeout=http_timeout, headers=hdrs)
     resp.raise_for_status()
+    if source_encoding:
+        ctype = (resp.headers.get("Content-Type") or "").split(";", 1)[0].strip().lower()
+        if ctype in _BINARY_CONTENT_TYPES:
+            _log.LogPipeline("INFO",
+                "data_fetch_agent[%s]: source_encoding=%s but response Content-Type=%s "
+                "looks binary (advisory only; magic-byte check is authoritative)",
+                source_name, source_encoding, ctype)
     chunks = resp.iter_content(chunk_size=buffer_size) if stream else [resp.content]
-    return _store_chunks(store, chunks, source_name=source_name, label=f"stream={stream}")
+    return _store_chunks(store, chunks, source_name=source_name, label=f"stream={stream}",
+                         source_encoding=source_encoding)
 
 
 # --- extract: download the archive, descend nested zips, store one member. --- #
@@ -313,7 +401,7 @@ def _acquire(url: str, *, source_name: str, store: Union[FileStore, BlobStore],
 #     stored bytes ARE the extracted member. Zip only (no tar use case today).  #
 def _acquire_extract(url: str, *, source_name: str, store: Union[FileStore, BlobStore],
                      extract: ZipExtract, buffer_size: int, headers: dict | None,
-                     http_timeout: int) -> tuple[str, int, dict]:
+                     http_timeout: int, source_encoding: str | None = None) -> tuple[str, int, dict]:
     import io as _io  # noqa: PLC0415
     import tempfile as _tmp  # noqa: PLC0415
     import zipfile as _zip  # noqa: PLC0415
@@ -363,7 +451,8 @@ def _acquire_extract(url: str, *, source_name: str, store: Union[FileStore, Blob
                                 yield b
                         sha256, size, stored = _store_chunks(
                             store, _member_chunks(), source_name=source_name,
-                            label=f"extract[{'/'.join(steps)}]")
+                            label=f"extract[{'/'.join(steps)}]",
+                            source_encoding=source_encoding)
                     stored["extracted_member"] = name
                     return sha256, size, stored
                 child = _zip.ZipFile(_io.BytesIO(cur.read(name)))
@@ -435,11 +524,12 @@ def _execute_fetch(req: FetchRequest, *, discovered_url: str | None, download: b
         sha256, size, stored = _acquire_extract(
             facts.url, source_name=req.source_name, store=req.store,
             extract=req.extract, buffer_size=buffer_size, headers=headers,
-            http_timeout=http_timeout)
+            http_timeout=http_timeout, source_encoding=req.source_encoding)
     else:
         sha256, size, stored = _acquire(
             facts.url, source_name=req.source_name, store=req.store, stream=req.stream,
-            buffer_size=buffer_size, headers=headers, http_timeout=http_timeout)
+            buffer_size=buffer_size, headers=headers, http_timeout=http_timeout,
+            source_encoding=req.source_encoding)
     return FetchResult(source_name=req.source_name, url=facts.url,
                        version_identifier=facts.version_identifier, filename=facts.filename,
                        published_date=facts.published_date, sha256=sha256,

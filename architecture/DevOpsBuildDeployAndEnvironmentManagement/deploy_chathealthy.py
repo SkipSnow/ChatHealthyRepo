@@ -344,8 +344,8 @@ def _arguments(argv: list[str] | None) -> argparse.Namespace:
              "--package MUST be explicitly enumerated — no shortcut for "
              "'all packages' exists on purpose. If you want to deploy "
              "every runbook under a group, name every package. "
-             "EPIC-008-F-012: 'pipeline' MUST NOT be "
-             "combined with other target values.",
+             "Several targets MAY be named in one invocation; each is deployed "
+             "(EPIC-008-F-012-S-004-REQ-B-002/REQ-B-005).",
     )
     parser.add_argument(
         "--package", default="",
@@ -396,20 +396,6 @@ def _establish_context() -> Path:
 
 def _refuse_bad_selection(args) -> None:
     """Refuse a selection the operator did not actually make."""
-    # EPIC-008-F-012: reject any attempt to combine the
-    # 'pipeline' selector with another target value. Comma-separated
-    # multi-target strings are the only shape this rule needs to block —
-    # a single specific target_id (like 'target_atlas_pipeline') is
-    # legal because it names one target, not a combination.
-    tokens = [t.strip() for t in args.target.split(",") if t.strip()]
-    if "pipeline" in tokens and len(tokens) > 1:
-        raise ChatHealthyException(
-            mode="aborted",
-            component="deploy_chathealthy",
-            message="ERROR: --target=pipeline MUST be the sole target. Pipeline "
-            "deploys are independent of front-end deploys "
-            "(EPIC-008-F-012).")
-
     # Force explicit --package enumeration when --target is a group name.
     # Design intent: the operator must think through and TYPE every
     # package being deployed. No blanket 'all packages under this group'

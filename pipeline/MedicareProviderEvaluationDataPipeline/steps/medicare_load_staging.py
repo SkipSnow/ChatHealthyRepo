@@ -31,6 +31,7 @@ _FORMAT_TOKEN = {
     "json": ("json", None),
     "zip_containing_csv": ("zip_csv", None),
     "zip_containing_json": ("zip_json", None),
+    "zip_containing_icd10cm_order": ("zip_icd10cm_order", None),
 }
 
 

@@ -95,6 +95,7 @@ def run_step(ctx) -> dict:
     # Pure lookup: KEY -> config -> params. The worker manufactures nothing.
     spec = reg.fetch_spec(source)
     extract = reg.fetch_extract(source)
+    source_encoding = reg.fetch_source_encoding(source)
 
     conn = _require_connection_string()
     container = f"{ctx.env_prefix}{_TRANSIENT_SUFFIX}"
@@ -114,6 +115,7 @@ def run_step(ctx) -> dict:
         stream=True,
         buffer_size=_FETCH_BUFFER_BYTES,
         extract=extract,
+        source_encoding=source_encoding,
     )
     res = _dfa.run(request)
 

@@ -83,7 +83,8 @@
               "link_suffix": "-code-descriptions-tabular-order.zip"
             }
           },
-          "file_format": "zip_containing_csv",
+          "file_format": "zip_containing_icd10cm_order",
+          "archive_member": "icd10cm_order_2026.txt",
           "staging_name": "PublicStaging.StagingIcd10Cm",
           "public_data_name": "PipelinePublicHealthData.Icd10Cm"
         },
@@ -180,7 +181,8 @@
               "mode": "dkan_catalog",
               "catalog_url": "https://data.cms.gov/data.json",
               "dataset_title": "Provider of Services File - Quality Improvement and Evaluation System"
-            }
+            },
+            "source_encoding": "latin-1"
           },
           "file_format": "csv",
           "staging_name": "PublicStaging.StagingMedicarePos",
@@ -430,7 +432,8 @@
               "link_suffix": "-code-descriptions-tabular-order.zip"
             }
           },
-          "file_format": "zip_containing_csv",
+          "file_format": "zip_containing_icd10cm_order",
+          "archive_member": "icd10cm_order_2026.txt",
           "staging_name": "PublicStaging.StagingIcd10Cm",
           "public_data_name": "PipelinePublicHealthData.Icd10Cm"
         },
@@ -527,7 +530,8 @@
               "mode": "dkan_catalog",
               "catalog_url": "https://data.cms.gov/data.json",
               "dataset_title": "Provider of Services File - Quality Improvement and Evaluation System"
-            }
+            },
+            "source_encoding": "latin-1"
           },
           "file_format": "csv",
           "staging_name": "PublicStaging.StagingMedicarePos",
@@ -777,7 +781,8 @@
               "link_suffix": "-code-descriptions-tabular-order.zip"
             }
           },
-          "file_format": "zip_containing_csv",
+          "file_format": "zip_containing_icd10cm_order",
+          "archive_member": "icd10cm_order_2026.txt",
           "staging_name": "PublicStaging.StagingIcd10Cm",
           "public_data_name": "PipelinePublicHealthData.Icd10Cm"
         },
@@ -874,7 +879,8 @@
               "mode": "dkan_catalog",
               "catalog_url": "https://data.cms.gov/data.json",
               "dataset_title": "Provider of Services File - Quality Improvement and Evaluation System"
-            }
+            },
+            "source_encoding": "latin-1"
           },
           "file_format": "csv",
           "staging_name": "PublicStaging.StagingMedicarePos",

@@ -273,6 +273,15 @@
                   }
                 }
               }
+            },
+            "source_encoding": {
+              "description": "Optional. When present the fetch stream-transcodes the stored TEXT from this charset to UTF-8, so the stored blob is UTF-8 and charset is never a downstream ETL concern (absent means the published bytes are stored as-is). Text sources only: permitted (by the entry-level conditional) solely when file_format is a plain-text format (csv, tsv, pipe_delimited); binary artifacts (xlsx, any zip_*) never carry it, and the fetcher refuses by magic-byte signature if ever pointed at binary. Applies to the plain download or the extracted member, never to a raw archive.",
+              "enum": [
+                "utf-8",
+                "utf-8-sig",
+                "latin-1",
+                "cp1252"
+              ]
             }
           }
         },
@@ -282,12 +291,12 @@
           "minLength": 1
         },
         "archive_member": {
-          "description": "Glob pattern matching the entry's data file inside the bundled archive. Required whenever bundled_with is present.",
+          "description": "Substring naming the entry's data file inside its archive. Required whenever bundled_with is present (Class B). Also permitted on a Class A self-fetched entry whose fetched archive carries more than one member, to name which member is staged; the loader selects the single member whose path contains this substring and fails loud if none matches.",
           "type": "string",
           "minLength": 1
         },
         "file_format": {
-          "description": "Explicit declaration of the on-disk data format of the file that will be staged. Required on every non-derived entry; forbidden on Class C derived entries.",
+          "description": "Explicit declaration of the on-disk data format of the file that will be staged. Required on every non-derived entry; forbidden on Class C derived entries. zip_containing_icd10cm_order selects a member (via archive_member) from the CMS ICD-10-CM tabular-order zip and parses its header-less fixed-width columns into order_number, icd10_code, header_flag, record_type, short_description and long_description.",
           "enum": [
             "csv",
             "tsv",
@@ -295,7 +304,8 @@
             "xlsx",
             "json",
             "zip_containing_csv",
-            "zip_containing_json"
+            "zip_containing_json",
+            "zip_containing_icd10cm_order"
           ]
         },
         "staging_name": {
@@ -334,13 +344,6 @@
               "not": {
                 "required": [
                   "bundled_with"
-                ]
-              }
-            },
-            {
-              "not": {
-                "required": [
-                  "archive_member"
                 ]
               }
             },
@@ -434,6 +437,38 @@
               }
             }
           ]
+        }
+      ],
+      "allOf": [
+        {
+          "title": "source_encoding is permitted only on a plain-text file_format",
+          "description": "Charset transcoding is a text-only concern. If the fetch block declares source_encoding, the entry's file_format MUST be a plain-text delimited format; binary artifacts (xlsx, any zip_* including zip_containing_icd10cm_order) are never transcoded at fetch and MUST NOT carry source_encoding.",
+          "if": {
+            "required": [
+              "fetch"
+            ],
+            "properties": {
+              "fetch": {
+                "required": [
+                  "source_encoding"
+                ]
+              }
+            }
+          },
+          "then": {
+            "required": [
+              "file_format"
+            ],
+            "properties": {
+              "file_format": {
+                "enum": [
+                  "csv",
+                  "tsv",
+                  "pipe_delimited"
+                ]
+              }
+            }
+          }
         }
       ]
     },
