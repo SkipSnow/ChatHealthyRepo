@@ -4,8 +4,8 @@
 """data_fetch_agent.py -- the one data-fetching agent for every pipeline source.
 
 A real pydantic-ai Agent. Input is FetchRequest, output is FetchResult, and the
-agent runs through the ChatHealthy LLM facade (chathealthy_lib.llm.run_llm_sync)
-on every fetch. It has one tool, fetch_source, which is the agent's output: the
+agent runs the pydantic-ai model directly (agent.run_sync) on every fetch -- no
+facade. It has one tool, fetch_source, which is the agent's output: the
 model produces its result by calling it. For a non-deterministic pointer the
 model reads the index page and passes the URL it found; for every other find
 mode the tool resolves the URL itself. The tool downloads and stores the bytes
@@ -431,15 +431,9 @@ def _prompt(request: FetchRequest) -> str:
 
 def _run(request: FetchRequest, *, download: bool, headers: dict | None,
          http_timeout: int) -> FetchResult:
-    from chathealthy_lib.llm import run_llm_sync  # noqa: PLC0415
     deps = _Deps(request=request, headers=headers, http_timeout=http_timeout,
                  download=download)
-    model = _model_name()
-    provider = model.split(":", 1)[0] if ":" in model else model
-    result = run_llm_sync(_agent(), _prompt(request),
-                          call_site=f"data_fetch_agent:{request.source_name}",
-                          provider=provider, server="pipeline",
-                          component="data_fetch_agent", deps=deps)
+    result = _agent().run_sync(_prompt(request), deps=deps)
     out = getattr(result, "output", None)
     if not isinstance(out, FetchResult):
         raise ChatHealthyException(

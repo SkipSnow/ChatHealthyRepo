@@ -229,7 +229,7 @@
             },
             {
               "statement_number": 11,
-              "statement_body": "Every LLM call is made within the pydantic-ai framework, through the ChatHealthy LLM facade (chathealthy_lib.llm run_llm/run_llm_sync over a pydantic_ai.Agent), and no agent exists outside that framework. Outside the facade, ChatHealthy.ai code does not reach a model vendor directly: it does not import a vendor SDK (openai, anthropic, google.generativeai, google.genai) and does not name a vendor's API host in a string literal. The only remaining way to call a model is a pydantic-ai Agent run through the facade, so every agent is a pydantic-ai agent and every model call is centralised. The facade itself is the one place a vendor SDK is legitimate.",
+              "statement_body": "Every LLM tool and agent in ChatHealthy.ai is a pydantic-ai agent, built and run per standard pydantic-ai best practices: a pydantic_ai.Agent with typed pydantic input and typed pydantic output, and its model resolved from configuration rather than pinned in source. A model call runs the pydantic-ai Agent directly; routing it through a custom wrapper or facade -- including the ChatHealthy LLM facade chathealthy_lib.llm run_llm/run_llm_sync -- violates this rule, because no such facade is sanctioned and it is not pydantic-ai best practice. No LLM tool or agent exists outside the pydantic-ai framework. The enforcement is a deterministic syntax check over every source file and exempts nothing: a tool -- a file that constructs a pydantic_ai.Agent, or reaches a model through a raw vendor SDK -- must use pydantic-ai (reach the model only through a pydantic_ai.Agent, never a raw openai/anthropic/google SDK), must declare a pydantic input (deps_type set to a pydantic BaseModel) and a pydantic output (output_type set to a pydantic BaseModel, or an output function returning one), and must use no facade. No model judges this; it is read from the syntax. There is no exemption list and no file -- including this rule's own worker -- is excluded.",
               "req_id": "Orphan"
             }
           ]
@@ -649,33 +649,16 @@
             },
             {
               "enforcement_id": "Rule-065-ENF-011",
-              "title": "Every LLM call is within the pydantic-ai framework via the facade",
+              "title": "Every LLM tool and agent is a pydantic-ai agent per best practices",
               "hook": "pre-commit",
-              "executable_path": "architecture/EngineeringRuleEnforcement/code/scan_llm_facade_worker.py",
+              "executable_path": "architecture/EngineeringRuleEnforcement/code/scan_pydantic_ai_compliance_worker.py",
               "requires_lock": false,
               "scopes": [
                 [
-                  "_scan_llm_facade",
+                  "_scan_pydantic_ai_compliance",
                   "allowed_pattern",
                   [
                     "\\.py$"
-                  ]
-                ],
-                [
-                  "_scan_llm_facade",
-                  "excluded_pattern",
-                  [
-                    "(^|/)_oneshots/",
-                    "(^|/)__pycache__/",
-                    "(^|/)node_modules/"
-                  ]
-                ],
-                [
-                  "_scan_llm_facade",
-                  "excluded_exact",
-                  [
-                    "ChatHealthyLib/src/chathealthy_lib/llm.py",
-                    "architecture/EngineeringRuleEnforcement/code/scan_llm_facade_worker.py"
                   ]
                 ]
               ]
