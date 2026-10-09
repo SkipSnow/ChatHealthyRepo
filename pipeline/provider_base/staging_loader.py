@@ -122,12 +122,19 @@ def _iter_csv_rows(local_path: str, *, delimiter: str = ",") -> Iterator[dict[st
             yield row
 
 
-def _iter_zipped_csv_rows(local_zip_path: str, inner_name_hint: str | None = None) -> Iterator[dict[str, str]]:
-    """Iterate rows of the first (or hint-matched) CSV inside a zip."""
+def _iter_zipped_csv_rows(local_zip_path: str, inner_name_hint: str | None = None,
+                          delimiter: str = ",") -> Iterator[dict[str, str]]:
+    """Iterate rows of the first (or hint-matched) delimited table inside a zip.
+
+    Prefers .csv members; falls back to .txt members when the archive carries
+    none (e.g. the pipe-delimited Medicare Coverage Database tables). delimiter
+    defaults to comma so every existing caller is unchanged."""
     with zipfile.ZipFile(local_zip_path) as zf:
-        candidates = [n for n in zf.namelist() if n.lower().endswith(".csv")]
+        names = zf.namelist()
+        candidates = [n for n in names if n.lower().endswith(".csv")] or \
+            [n for n in names if n.lower().endswith(".txt")]
         if not candidates:
-            raise ChatHealthyException(mode="runtime_error", message=f"staging_loader: no CSV inside {local_zip_path}")
+            raise ChatHealthyException(mode="runtime_error", message=f"staging_loader: no CSV/TXT inside {local_zip_path}")
         target = None
         if inner_name_hint:
             for c in candidates:
@@ -138,9 +145,59 @@ def _iter_zipped_csv_rows(local_zip_path: str, inner_name_hint: str | None = Non
             target = candidates[0]
         with zf.open(target) as inner:
             text = io.TextIOWrapper(inner, encoding="utf-8-sig", newline="")
-            reader = csv.DictReader(text)
+            reader = csv.DictReader(text, delimiter=delimiter)
             for row in reader:
                 yield row
+
+
+def _iter_zipped_json_rows(local_zip_path: str, inner_name_hint: str | None = None) -> Iterator[dict[str, Any]]:
+    """Iterate records from every (or hint-matched) JSON file inside a zip.
+
+    Additive sibling of _iter_zipped_csv_rows for JSON-bulk sources (e.g. the
+    openFDA drug-label bulk download, which ships partitioned .json files each
+    shaped {"meta": ..., "results": [ ... ]}). Each member is parsed and its
+    list is iterated: a top-level array yields its elements; an object yields
+    the first list-valued key among results/rows/items/data/records (then any
+    list value). Existing formats are unaffected.
+    """
+    with zipfile.ZipFile(local_zip_path) as zf:
+        members = [n for n in zf.namelist() if n.lower().endswith(".json")]
+        if not members:
+            raise ChatHealthyException(mode="runtime_error", message=f"staging_loader: no JSON inside {local_zip_path}")
+        if inner_name_hint:
+            hinted = [m for m in members if inner_name_hint.lower() in m.lower()]
+            if hinted:
+                members = hinted
+        for name in members:
+            with zf.open(name) as inner:
+                data = json.load(io.TextIOWrapper(inner, encoding="utf-8"))
+            if isinstance(data, list):
+                for row in data:
+                    yield row
+            elif isinstance(data, dict):
+                list_val = None
+                for k in ("results", "rows", "items", "data", "records"):
+                    v = data.get(k)
+                    if isinstance(v, list):
+                        list_val = v
+                        break
+                if list_val is None:
+                    for v in data.values():
+                        if isinstance(v, list):
+                            list_val = v
+                            break
+                if list_val is None:
+                    raise ChatHealthyException(
+                        mode="runtime_error",
+                        message=f"staging_loader: JSON object in {name} has no list-valued key to iterate",
+                    )
+                for row in list_val:
+                    yield row
+            else:
+                raise ChatHealthyException(
+                    mode="runtime_error",
+                    message=f"staging_loader: {name} is neither a JSON array nor a JSON object",
+                )
 
 
 def _iter_json_rows(local_path: str) -> Iterator[dict[str, Any]]:
@@ -223,9 +280,12 @@ def _resolve_iter(source_name: str, spec: dict, local_path: str) -> Iterator[dic
     if fmt == "csv":
         yield from _iter_csv_rows(local_path, delimiter=spec.get("delimiter", ","))
     elif fmt == "zip_csv":
-        yield from _iter_zipped_csv_rows(local_path, inner_name_hint=spec.get("inner_name_hint"))
+        yield from _iter_zipped_csv_rows(local_path, inner_name_hint=spec.get("inner_name_hint"),
+                                         delimiter=spec.get("delimiter", ","))
     elif fmt == "json":
         yield from _iter_json_rows(local_path)
+    elif fmt == "zip_json":
+        yield from _iter_zipped_json_rows(local_path, inner_name_hint=spec.get("inner_name_hint"))
     elif fmt == "xlsx":
         yield from _iter_xlsx_rows(local_path)
     else:

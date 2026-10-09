@@ -1,0 +1,78 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://dev.chathealthy.ai/schemas/ChatHealthySpecialtyMedicareSchema.json",
+  "title": "ChatHealthy SpecialtyMedicare",
+  "description": "One document per NUCC code in the SpecialtyMedicare collection (EPIC-010-F-007). A rollup of ProviderMedicare plus an embedding. provider_count is the number of providers in the provider base carrying this NUCC in ANY taxonomy slot. The day-supply mean, median and four quintile cut-points - per drug and per indication - are the specialty benchmark; the cut-points define the five tiers a provider is placed into at evaluation. These benchmark figures live only here, never on provider records.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["_id", "provider_count"],
+  "properties": {
+    "_id": { "type": "string", "description": "NUCC code" },
+    "nucc_code": { "type": "string" },
+    "provider_count": { "type": "integer", "minimum": 0, "description": "providers in base with this NUCC in any taxonomy slot" },
+    "run_id": { "type": "string" },
+    "data_version": { "type": "integer", "minimum": 1 },
+    "embedding": { "type": "array", "items": { "type": "number" }, "description": "specialty embedding vector" },
+    "embedding_model": { "type": "string" },
+    "procedures": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "hcpcs": { "type": "string" },
+          "provider_count": { "type": "integer", "minimum": 0 },
+          "service_count": { "type": ["integer", "null"] },
+          "beneficiary_count": { "type": ["integer", "null"] },
+          "allowed_amount": { "type": ["number", "null"] }
+        }
+      }
+    },
+    "drugs": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "rxcui": { "type": "string" },
+          "molecule": { "type": ["string", "null"] },
+          "provider_count": { "type": "integer", "minimum": 0 },
+          "total_claims": { "type": ["integer", "null"] },
+          "beneficiary_count": { "type": ["integer", "null"] },
+          "total_cost": { "type": ["number", "null"] },
+          "days_supply_mean": { "type": ["number", "null"] },
+          "days_supply_median": { "type": ["number", "null"] },
+          "days_supply_quintiles": {
+            "type": "array",
+            "items": { "type": "number" },
+            "minItems": 4,
+            "maxItems": 4,
+            "description": "four quintile cut-points defining five tiers"
+          }
+        }
+      }
+    },
+    "indications": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "indication_id": { "type": "string" },
+          "provider_count": { "type": "integer", "minimum": 0 },
+          "days_supply_mean": { "type": ["number", "null"] },
+          "days_supply_median": { "type": ["number", "null"] },
+          "days_supply_quintiles": {
+            "type": "array",
+            "items": { "type": "number" },
+            "minItems": 4,
+            "maxItems": 4,
+            "description": "four quintile cut-points defining five tiers"
+          }
+        },
+        "required": ["indication_id"]
+      }
+    },
+    "indications_served": { "type": "array", "items": { "type": "string" } }
+  }
+}

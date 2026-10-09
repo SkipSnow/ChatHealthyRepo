@@ -1,0 +1,74 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://dev.chathealthy.ai/schemas/ChatHealthyProviderMedicareSchema.json",
+  "title": "ChatHealthy ProviderMedicare",
+  "description": "One document per NPI in the ProviderMedicare collection (EPIC-010-F-007). Carries the provider's own Medicare figures only - never the specialty aggregates or tier cut-points, which live on SpecialtyMedicare. Per-drug day supply is the retained Part D grain; per-indication day supply is rolled up from drugs through the indication map (count-under-each).",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["_id", "entity_type", "specialty"],
+  "properties": {
+    "_id": { "type": "string", "pattern": "^[0-9]{10}$", "description": "NPI" },
+    "npi": { "type": "string", "pattern": "^[0-9]{10}$" },
+    "entity_type": { "type": "string", "enum": ["I", "O"] },
+    "specialty": { "type": "array", "items": { "type": "string" }, "description": "NUCC codes" },
+    "provider_state": { "type": "string", "description": "business-address state the base build fanned this record under" },
+    "ccn": { "type": "string", "description": "CMS Certification Number (organization only)" },
+    "size_tier": { "type": ["integer", "null"], "minimum": 1, "maximum": 5, "description": "organization only; data-driven quintile band of certified bed count (1-5), null for ambulatory / no-bed facilities" },
+    "run_id": { "type": "string" },
+    "data_version": { "type": "integer", "minimum": 1 },
+    "procedures": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "hcpcs": { "type": "string" },
+          "descriptor": { "type": "string" },
+          "hcpcs_level2": { "type": ["string", "null"] },
+          "label": { "type": ["string", "null"] },
+          "year": { "type": "integer" },
+          "service_count": { "type": ["integer", "null"] },
+          "beneficiary_count": { "type": ["integer", "null"] },
+          "submitted_amount": { "type": ["number", "null"] },
+          "allowed_amount": { "type": ["number", "null"] },
+          "paid_amount": { "type": ["number", "null"] },
+          "allowed_icd10": { "type": "array", "items": { "type": "string" } },
+          "justification_kind": { "type": "string" },
+          "justification_source": { "type": "string" }
+        }
+      }
+    },
+    "drugs": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "brand": { "type": ["string", "null"] },
+          "generic": { "type": ["string", "null"] },
+          "year": { "type": "integer" },
+          "total_claims": { "type": ["integer", "null"] },
+          "days_supply": { "type": ["number", "null"] },
+          "beneficiary_count": { "type": ["integer", "null"] },
+          "total_drug_cost": { "type": ["number", "null"] },
+          "rxcui": { "type": ["string", "null"] },
+          "molecule": { "type": ["string", "null"] },
+          "parent_indications": { "type": "array", "items": { "type": "string" } }
+        }
+      }
+    },
+    "indications": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "indication_id": { "type": "string" },
+          "source": { "type": "string", "enum": ["procedure", "drug"] },
+          "days_supply": { "type": ["number", "null"], "description": "provider's own per-indication total, count-under-each" }
+        },
+        "required": ["indication_id", "source"]
+      }
+    }
+  }
+}

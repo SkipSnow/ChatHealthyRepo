@@ -51,6 +51,18 @@ _STEP_MODULE_PATHS: dict[str, str] = {
     # F-005 provider pipeline (build/publish)
     "publish_smd_and_embed": "pipeline.provider_pipeline.steps.publish_smd_and_embed",
     "post_load_reconciliation": "pipeline.provider_pipeline.steps.post_load_reconciliation",
+    # F-007 Medicare Provider Evaluation Data Pipeline instance
+    "medicare_source_freshness_gate": "pipeline.MedicareProviderEvaluationDataPipeline.steps.medicare_source_freshness_gate",
+    "medicare_fetch_all_sources": "pipeline.MedicareProviderEvaluationDataPipeline.steps.medicare_fetch_all_sources",
+    "medicare_source_archival": "pipeline.MedicareProviderEvaluationDataPipeline.steps.medicare_source_archival",
+    "medicare_load_staging": "pipeline.MedicareProviderEvaluationDataPipeline.steps.medicare_load_staging",
+    "build_indication_map": "pipeline.MedicareProviderEvaluationDataPipeline.steps.build_indication_map",
+    "build_providermedicare_base": "pipeline.MedicareProviderEvaluationDataPipeline.steps.build_providermedicare_base",
+    "enrich_drugs": "pipeline.MedicareProviderEvaluationDataPipeline.steps.enrich_drugs",
+    "enrich_procedures": "pipeline.MedicareProviderEvaluationDataPipeline.steps.enrich_procedures",
+    "enrich_org_ccn_size": "pipeline.MedicareProviderEvaluationDataPipeline.steps.enrich_org_ccn_size",
+    "rollup_specialtymedicare": "pipeline.MedicareProviderEvaluationDataPipeline.steps.rollup_specialtymedicare",
+    "medicare_contract_conformance": "pipeline.MedicareProviderEvaluationDataPipeline.steps.medicare_contract_conformance",
 }
 
 

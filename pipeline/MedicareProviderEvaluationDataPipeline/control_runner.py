@@ -446,6 +446,19 @@ def _emit_discrepancy_report(run_id, final_status, *, manifest=None, args=None,
                                  "config fallback run_id=%s -> %s",
                                  run_id, collections[0]["collection"])
 
+        if not collections:
+            # The report is owed on EVERY run (EPIC-010-F-001-S-008), including a
+            # run that failed before any collection could be resolved. Synthesize
+            # a valid target from the known public db + this run's data_version so
+            # the report STILL delivers, with Unknown counts -- never silently
+            # dropped by the emitter's target validator (the bug that ate it).
+            _dv_s = dv if dv.isdigit() else "unknown"
+            collections = [{"collection": f"PipelinePublicHealthData.ProviderMedicare_v_{_dv_s}",
+                            "rows_in_target": None, "total_rows": None}]
+            _log.LogPipeline("WARNING", "medicare quiesce: no collection resolved; report "
+                             "sends with Unknown counts target=%s run_id=%s",
+                             collections[0]["collection"], run_id)
+
         summary = emit_discrepancy_report_for_collections(
             pipeline_mongo=pipeline_mongo,
             run_id=run_id,
@@ -457,8 +470,14 @@ def _emit_discrepancy_report(run_id, final_status, *, manifest=None, args=None,
             operator_email=getattr(args, "operator_email", None) if args else None,
             operator_sms=getattr(args, "operator_sms", None) if args else None,
         )
-        _log.LogPipeline("INFO", "medicare quiesce: discrepancy report emitted run_id=%s "
-                         "total=%d", run_id, summary.get("total", 0))
+        # Log what actually happened -- never report "emitted" when the emitter
+        # sent nothing (the misleading line that hid this bug).
+        if summary.get("email_sent"):
+            _log.LogPipeline("INFO", "medicare quiesce: discrepancy report DELIVERED "
+                             "run_id=%s total=%d", run_id, summary.get("total", 0))
+        else:
+            _log.LogPipeline("ERROR", "medicare quiesce: discrepancy report NOT DELIVERED "
+                             "run_id=%s err=%s", run_id, summary.get("error", "unknown"))
     except Exception as exc:  # noqa: BLE001
         _log.LogPipeline("ERROR", "medicare quiesce: discrepancy report FAILED run_id=%s "
                          "err=%s", run_id, str(exc)[:500])

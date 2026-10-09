@@ -1,0 +1,44 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://dev.chathealthy.ai/schemas/ChatHealthyNormalizedIndicationMapSchema.json",
+  "title": "ChatHealthy Normalized Indication Map",
+  "description": "One document per indication in the Normalized Indication Map collection (EPIC-010-F-007). The hierarchy disease_class (CCSR body-system superclass) over parent_indication (CCSR clinical category) over member ICD-10-CM leaf codes is adopted from the published ICD-10-CM and CCSR vocabularies, not manufactured. molecule -> indication and ICD-10 -> indication associations are mined from coded sources (the Medicare Coverage Database ICD-10 lists and the UMLS crosswalks); each entry records the coded source it came from in justification_source. The embedded arrays carry multikey indexes for reverse lookup.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["_id", "parent_indication"],
+  "properties": {
+    "_id": { "type": "string", "description": "indication_id" },
+    "indication_id": { "type": "string" },
+    "parent_indication": { "type": "string", "description": "CCSR clinical category, e.g. migraine" },
+    "disease_class": { "type": "string", "description": "CCSR body-system superclass" },
+    "run_id": { "type": "string" },
+    "data_version": { "type": "integer", "minimum": 1 },
+    "member_icd10": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "icd10": { "type": "string" },
+          "justification_source": { "type": "string", "description": "coded source: Coverage DB / UMLS" }
+        },
+        "required": ["icd10"]
+      }
+    },
+    "molecules": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "rxcui": { "type": "string" },
+          "ingredient": { "type": ["string", "null"] },
+          "justification_source": { "type": "string", "description": "coded source: Coverage DB / UMLS" },
+          "justification_kind": { "type": "string", "description": "mined (deterministic coded join) | residual-LLM (inference)" },
+          "trust": { "type": ["number", "null"], "description": "0..1 confidence; present only on residual-LLM facts (the inference's avg logprobs), absent/null on deterministic facts" }
+        },
+        "required": ["rxcui"]
+      }
+    }
+  }
+}

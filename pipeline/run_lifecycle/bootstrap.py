@@ -363,7 +363,7 @@ def _announce_alive(node_identity: str) -> None:
     try:
         from chathealthy_lib.logging_service import (  # noqa: PLC0415
             ChatHealthyLoggingService, set_mongo_log_identity)
-        set_mongo_log_identity(PIPELINE_IDENTITY)
+        set_mongo_log_identity("pipelineEditor")
         os.environ["CH_LOG_DESTINATION"] = "stderr,mongo"
         ChatHealthyLoggingService().LogPipeline("INFO", 
             "bootstrap: container alive and able to log | %s", detail)
