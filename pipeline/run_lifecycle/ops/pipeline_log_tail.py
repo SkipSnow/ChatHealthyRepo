@@ -59,12 +59,22 @@ def _raise_no_log(db_name: str, collection: str) -> None:
 class PipelineLogTail:
     """Reads the pipeline's Mongo log forward from a point in time."""
 
-    def __init__(self, identity: str = "pipelineEditor") -> None:
-        client = ChatHealthyMongoUtilities().getConnection(identity, "ChatHealthyFrontEnd")
+    def __init__(self, env: str = "") -> None:
+        client = ChatHealthyMongoUtilities().getConnection("pipelineEditor", "ChatHealthyFrontEnd")
         self._db = client["pipelineAdmin"]
-        if LOG_COLLECTION not in self._db.list_collection_names():
-            _raise_no_log("pipelineAdmin", LOG_COLLECTION)
-        self._collection = self._db[LOG_COLLECTION]
+        # The logging service writes to Log_{env} (logging_service.py: the
+        # collection is "Log" suffixed with the environment). Reading plain
+        # "Log" finds nothing; the collection must carry the same suffix.
+        env = (env or os.environ.get("ENV_PREFIX", "")).strip()
+        if not env:
+            raise ChatHealthyException(
+                mode="config_error", component="pipeline_log_tail",
+                message=("the pipeline log collection is Log_{env} (e.g. Log_dev); "
+                         "pass --env or set ENV_PREFIX"))
+        self.collection_name = f"{LOG_COLLECTION}_{env}"
+        if self.collection_name not in self._db.list_collection_names():
+            _raise_no_log("pipelineAdmin", self.collection_name)
+        self._collection = self._db[self.collection_name]
         self._seen = set()
 
     def since(self, minutes: int) -> datetime:
@@ -115,13 +125,14 @@ def main() -> int:
                         help="only rows whose message contains this")
     parser.add_argument("--once", action="store_true",
                         help="print what is there and exit")
-    parser.add_argument("--identity", default="pipelineEditor",
-                        help="Mongo identity to read as")
+    parser.add_argument("--env", default="",
+                        help="environment whose Log_{env} to read (e.g. dev); "
+                             "defaults to ENV_PREFIX")
     args = parser.parse_args()
 
-    tail = PipelineLogTail(args.identity)
+    tail = PipelineLogTail(args.env)
     after = tail.since(args.minutes)
-    log.LogPipeline("INFO", "tailing %s.%s from %s", "pipelineAdmin", LOG_COLLECTION,
+    log.LogPipeline("INFO", "tailing %s.%s from %s", "pipelineAdmin", tail.collection_name,
              after.strftime("%H:%M:%S"))
 
     quiet_polls = 0

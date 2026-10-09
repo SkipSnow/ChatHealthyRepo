@@ -22,7 +22,21 @@ from datetime import datetime, timezone, timedelta
 
 _log = ChatHealthyLoggingService()
 
-REPORT_TITLE = "ChatHealthy.ai Data pipeline discrepancy report: Provider pipeline"
+REPORT_TITLE_PREFIX = "ChatHealthy.ai Data pipeline discrepancy report:"
+
+
+def _report_pipeline_label(manifest: dict) -> str:
+    """The human-facing pipeline name: the display name if the caller set one,
+    else the key, else 'Provider pipeline'. The key stays the config/run-record
+    lookup identity; only the label shown to a reader derives from it."""
+    return (manifest.get("pipeline_display_name")
+            or manifest.get("pipeline_name")
+            or "Provider pipeline")
+
+
+def _report_title(manifest: dict) -> str:
+    """The report title, derived from the manifest's pipeline label."""
+    return f"{REPORT_TITLE_PREFIX} {_report_pipeline_label(manifest)}"
 
 # Operator-preferred display timezone.
 _PST_OFFSET = timedelta(hours=-8)
@@ -72,7 +86,7 @@ def _fmt_header_fields(manifest: dict) -> list[tuple[str, str]]:
     total_rows = manifest.get("total_rows", "Unknown")
     target_collection = manifest.get("target_collection") or "target collection"
     fields = [
-        ("Pipeline",                              str(manifest.get("pipeline_name", "provider"))),
+        ("Pipeline",                              _report_pipeline_label(manifest)),
         ("Run status",                            _BOLD + str(manifest.get("run_status", "Unknown")).upper()),
         ("Run started",                           _fmt_local_time(manifest.get("run_started_utc"))),
         ("Run ended",                             _fmt_local_time(manifest.get("run_ended_utc"))),
@@ -165,7 +179,7 @@ def render_header_as_html(manifest: dict, summary: list[dict]) -> str:
         )
     return (
         "<html><body style='font-family:Helvetica,Arial,sans-serif'>"
-        f"<h2 style='text-align:center;margin-bottom:16px'>{REPORT_TITLE}</h2>"
+        f"<h2 style='text-align:center;margin-bottom:16px'>{_report_title(manifest)}</h2>"
         "<table style='border-collapse:collapse;border:2px solid #000;margin:0 auto;'>"
         f"{''.join(rows_html)}"
         "</table>"
@@ -180,7 +194,8 @@ def render_header_as_html(manifest: dict, summary: list[dict]) -> str:
 def render_header_as_text(manifest: dict, summary: list[dict]) -> str:
     """Plaintext fallback of the header + body summary."""
     fields = _fmt_header_fields(manifest)
-    lines = [REPORT_TITLE, "=" * len(REPORT_TITLE), ""]
+    title = _report_title(manifest)
+    lines = [title, "=" * len(title), ""]
     for label, value in fields:
         text, _ = _strip_bold(value)
         lines.append(f"  {label:<40} {text}")
@@ -327,7 +342,7 @@ def build_discrepancy_pdf(
     )
 
     story = [
-        Paragraph(REPORT_TITLE, title_style),
+        Paragraph(_report_title(manifest), title_style),
         header_table,
         Paragraph("Discrepancy summary (one row per finding class)", body_heading_style),
         body_table,
@@ -357,7 +372,7 @@ def build_discrepancy_pdf(
         buf, pagesize=letter,
         leftMargin=0.5 * inch, rightMargin=0.5 * inch,
         topMargin=0.6 * inch, bottomMargin=0.5 * inch,
-        title="ChatHealthy Provider Pipeline — Discrepancy Report",
+        title=f"ChatHealthy {_report_pipeline_label(manifest)} — Discrepancy Report",
     )
     doc.build(story)
     return buf.getvalue()

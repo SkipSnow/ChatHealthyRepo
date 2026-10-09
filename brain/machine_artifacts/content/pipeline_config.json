@@ -77,9 +77,10 @@
         {
           "source_name": "icd10_cm",
           "fetch": {
-            "source_url": {
+            "fetch_spec": {
+              "mode": "static_page_latest",
               "page_url": "https://www.cms.gov/medicare/coding-billing/icd-10-codes",
-              "instructions": "Find the URL of the latest CMS ICD-10-CM Code Descriptions in Tabular Order zip file. Rules: (a) The filename matches the pattern `<Month>-<Day>-<Year>-code-descriptions-tabular-order.zip` and is hosted under `https://www.cms.gov/files/zip/`. (b) CMS ships an annual full file on Oct 1 and a mid-year update on Apr 1; when multiple releases are listed, return the URL of the most recent release. (c) IGNORE `addenda`, `guidelines`, `procedure`, and `ICD-10-PCS` files -- only `code-descriptions-tabular-order` is the file we want. (d) Return only the absolute URL."
+              "link_suffix": "-code-descriptions-tabular-order.zip"
             }
           },
           "file_format": "zip_containing_csv",
@@ -116,9 +117,10 @@
         {
           "source_name": "medicare_partb",
           "fetch": {
-            "source_url": {
-              "page_url": "https://data.cms.gov/provider-summary-by-type-of-service/medicare-physician-other-practitioners/medicare-physician-other-practitioners-by-provider-and-service",
-              "instructions": "Find the absolute download URL of the latest annual 'Medicare Physician & Other Practitioners - by Provider and Service' CSV dataset. Rules: (a) Return the full CSV data file for the most recent data year available. (b) IGNORE data-dictionary and methodology PDFs and the 'by Provider' and 'by Geography and Service' variants -- only 'by Provider and Service' is wanted. (c) Return only the absolute URL."
+            "fetch_spec": {
+              "mode": "dkan_catalog",
+              "catalog_url": "https://data.cms.gov/data.json",
+              "dataset_title": "Medicare Physician & Other Practitioners - by Provider and Service"
             }
           },
           "file_format": "csv",
@@ -128,9 +130,10 @@
         {
           "source_name": "medicare_partd",
           "fetch": {
-            "source_url": {
-              "page_url": "https://data.cms.gov/provider-summary-by-type-of-service/medicare-part-d-prescribers/medicare-part-d-prescribers-by-provider-and-drug",
-              "instructions": "Find the absolute download URL of the latest annual 'Medicare Part D Prescribers - by Provider and Drug' CSV dataset. Rules: (a) Return the full CSV data file for the most recent data year available. (b) IGNORE data-dictionary and methodology PDFs and the 'by Provider' and 'by Geography and Drug' variants -- only 'by Provider and Drug' is wanted. (c) Return only the absolute URL."
+            "fetch_spec": {
+              "mode": "dkan_catalog",
+              "catalog_url": "https://data.cms.gov/data.json",
+              "dataset_title": "Medicare Part D Prescribers - by Provider and Drug"
             }
           },
           "file_format": "csv",
@@ -140,9 +143,10 @@
         {
           "source_name": "ccsr",
           "fetch": {
-            "source_url": {
+            "fetch_spec": {
+              "mode": "static_page_latest",
               "page_url": "https://hcup-us.ahrq.gov/toolssoftware/ccsr/dxccsr.jsp",
-              "instructions": "Find the absolute download URL of the latest AHRQ HCUP CCSR for ICD-10-CM Diagnoses (DXCCSR) zip file. Rules: (a) The zip contains the CSV mapping of every ICD-10-CM diagnosis code to its CCSR categories and body-system superclass. (b) Return the most recent version's zip. (c) IGNORE the user-guide and reference PDFs and the PR/procedure CCSR -- only the diagnosis (DX) CCSR is wanted. (d) Return only the absolute URL."
+              "link_suffix": ".zip"
             }
           },
           "file_format": "zip_containing_csv",
@@ -152,9 +156,17 @@
         {
           "source_name": "openfda_labels",
           "fetch": {
-            "source_url": {
-              "page_url": "https://api.fda.gov/download.json",
-              "instructions": "From the openFDA download manifest JSON, return the absolute URL of the first drug label partition file. Rules: (a) Navigate to results.drug.label.partitions and return the 'file' URL of the first partition (a .json.zip archive of FDA structured product label records). (b) Return only the absolute URL."
+            "fetch_spec": {
+              "mode": "json_manifest",
+              "manifest_url": "https://api.fda.gov/download.json",
+              "json_path": [
+                "results",
+                "drug",
+                "label",
+                "partitions",
+                0,
+                "file"
+              ]
             }
           },
           "file_format": "zip_containing_json",
@@ -164,9 +176,10 @@
         {
           "source_name": "medicare_pos",
           "fetch": {
-            "source_url": {
-              "page_url": "https://data.cms.gov/provider-characteristics/hospitals-and-other-facilities/provider-of-services-file-hospital-non-hospital-facilities",
-              "instructions": "Find the absolute download URL of the latest quarterly 'Provider of Services File - Hospital & Non-Hospital Facilities' CSV. Rules: (a) Return the most recent quarter's full CSV data file. (b) It carries each facility's CMS Certification Number (CCN / provider number) and certified bed count. (c) IGNORE data-dictionary, methodology and codebook files. (d) Return only the absolute URL."
+            "fetch_spec": {
+              "mode": "dkan_catalog",
+              "catalog_url": "https://data.cms.gov/data.json",
+              "dataset_title": "Provider of Services File - Quality Improvement and Evaluation System"
             }
           },
           "file_format": "csv",
@@ -177,9 +190,9 @@
           "source_name": "medicare_coverage_hcpc",
           "bundled_with": "medicare_coverage_db",
           "fetch": {
-            "source_url": {
-              "page_url": "https://www.cms.gov/medicare-coverage-database/downloads/downloads.aspx",
-              "instructions": "Find the absolute download URL of the latest Medicare Coverage Database complete article-level code-list download (the relational zip whose tables carry the HCPCS/CPT codes and the ICD-10-CM codes linked to their billing/coding articles). Rules: (a) Return the most recent full articles code-list zip. (b) IGNORE the LCD-only, report and user-guide downloads. (c) Return only the absolute URL."
+            "fetch_spec": {
+              "mode": "direct_url",
+              "url": "https://downloads.cms.gov/medicare-coverage-database/downloads/exports/all_article.zip"
             }
           },
           "archive_member": "hcpc",
@@ -395,9 +408,10 @@
         {
           "source_name": "icd10_cm",
           "fetch": {
-            "source_url": {
+            "fetch_spec": {
+              "mode": "static_page_latest",
               "page_url": "https://www.cms.gov/medicare/coding-billing/icd-10-codes",
-              "instructions": "Find the URL of the latest CMS ICD-10-CM Code Descriptions in Tabular Order zip file. Rules: (a) The filename matches the pattern `<Month>-<Day>-<Year>-code-descriptions-tabular-order.zip` and is hosted under `https://www.cms.gov/files/zip/`. (b) CMS ships an annual full file on Oct 1 and a mid-year update on Apr 1; when multiple releases are listed, return the URL of the most recent release. (c) IGNORE `addenda`, `guidelines`, `procedure`, and `ICD-10-PCS` files -- only `code-descriptions-tabular-order` is the file we want. (d) Return only the absolute URL."
+              "link_suffix": "-code-descriptions-tabular-order.zip"
             }
           },
           "file_format": "zip_containing_csv",
@@ -434,9 +448,10 @@
         {
           "source_name": "medicare_partb",
           "fetch": {
-            "source_url": {
-              "page_url": "https://data.cms.gov/provider-summary-by-type-of-service/medicare-physician-other-practitioners/medicare-physician-other-practitioners-by-provider-and-service",
-              "instructions": "Find the absolute download URL of the latest annual 'Medicare Physician & Other Practitioners - by Provider and Service' CSV dataset. Rules: (a) Return the full CSV data file for the most recent data year available. (b) IGNORE data-dictionary and methodology PDFs and the 'by Provider' and 'by Geography and Service' variants -- only 'by Provider and Service' is wanted. (c) Return only the absolute URL."
+            "fetch_spec": {
+              "mode": "dkan_catalog",
+              "catalog_url": "https://data.cms.gov/data.json",
+              "dataset_title": "Medicare Physician & Other Practitioners - by Provider and Service"
             }
           },
           "file_format": "csv",
@@ -446,9 +461,10 @@
         {
           "source_name": "medicare_partd",
           "fetch": {
-            "source_url": {
-              "page_url": "https://data.cms.gov/provider-summary-by-type-of-service/medicare-part-d-prescribers/medicare-part-d-prescribers-by-provider-and-drug",
-              "instructions": "Find the absolute download URL of the latest annual 'Medicare Part D Prescribers - by Provider and Drug' CSV dataset. Rules: (a) Return the full CSV data file for the most recent data year available. (b) IGNORE data-dictionary and methodology PDFs and the 'by Provider' and 'by Geography and Drug' variants -- only 'by Provider and Drug' is wanted. (c) Return only the absolute URL."
+            "fetch_spec": {
+              "mode": "dkan_catalog",
+              "catalog_url": "https://data.cms.gov/data.json",
+              "dataset_title": "Medicare Part D Prescribers - by Provider and Drug"
             }
           },
           "file_format": "csv",
@@ -458,9 +474,10 @@
         {
           "source_name": "ccsr",
           "fetch": {
-            "source_url": {
+            "fetch_spec": {
+              "mode": "static_page_latest",
               "page_url": "https://hcup-us.ahrq.gov/toolssoftware/ccsr/dxccsr.jsp",
-              "instructions": "Find the absolute download URL of the latest AHRQ HCUP CCSR for ICD-10-CM Diagnoses (DXCCSR) zip file. Rules: (a) The zip contains the CSV mapping of every ICD-10-CM diagnosis code to its CCSR categories and body-system superclass. (b) Return the most recent version's zip. (c) IGNORE the user-guide and reference PDFs and the PR/procedure CCSR -- only the diagnosis (DX) CCSR is wanted. (d) Return only the absolute URL."
+              "link_suffix": ".zip"
             }
           },
           "file_format": "zip_containing_csv",
@@ -470,9 +487,17 @@
         {
           "source_name": "openfda_labels",
           "fetch": {
-            "source_url": {
-              "page_url": "https://api.fda.gov/download.json",
-              "instructions": "From the openFDA download manifest JSON, return the absolute URL of the first drug label partition file. Rules: (a) Navigate to results.drug.label.partitions and return the 'file' URL of the first partition (a .json.zip archive of FDA structured product label records). (b) Return only the absolute URL."
+            "fetch_spec": {
+              "mode": "json_manifest",
+              "manifest_url": "https://api.fda.gov/download.json",
+              "json_path": [
+                "results",
+                "drug",
+                "label",
+                "partitions",
+                0,
+                "file"
+              ]
             }
           },
           "file_format": "zip_containing_json",
@@ -482,9 +507,10 @@
         {
           "source_name": "medicare_pos",
           "fetch": {
-            "source_url": {
-              "page_url": "https://data.cms.gov/provider-characteristics/hospitals-and-other-facilities/provider-of-services-file-hospital-non-hospital-facilities",
-              "instructions": "Find the absolute download URL of the latest quarterly 'Provider of Services File - Hospital & Non-Hospital Facilities' CSV. Rules: (a) Return the most recent quarter's full CSV data file. (b) It carries each facility's CMS Certification Number (CCN / provider number) and certified bed count. (c) IGNORE data-dictionary, methodology and codebook files. (d) Return only the absolute URL."
+            "fetch_spec": {
+              "mode": "dkan_catalog",
+              "catalog_url": "https://data.cms.gov/data.json",
+              "dataset_title": "Provider of Services File - Quality Improvement and Evaluation System"
             }
           },
           "file_format": "csv",
@@ -495,9 +521,9 @@
           "source_name": "medicare_coverage_hcpc",
           "bundled_with": "medicare_coverage_db",
           "fetch": {
-            "source_url": {
-              "page_url": "https://www.cms.gov/medicare-coverage-database/downloads/downloads.aspx",
-              "instructions": "Find the absolute download URL of the latest Medicare Coverage Database complete article-level code-list download (the relational zip whose tables carry the HCPCS/CPT codes and the ICD-10-CM codes linked to their billing/coding articles). Rules: (a) Return the most recent full articles code-list zip. (b) IGNORE the LCD-only, report and user-guide downloads. (c) Return only the absolute URL."
+            "fetch_spec": {
+              "mode": "direct_url",
+              "url": "https://downloads.cms.gov/medicare-coverage-database/downloads/exports/all_article.zip"
             }
           },
           "archive_member": "hcpc",
@@ -713,9 +739,10 @@
         {
           "source_name": "icd10_cm",
           "fetch": {
-            "source_url": {
+            "fetch_spec": {
+              "mode": "static_page_latest",
               "page_url": "https://www.cms.gov/medicare/coding-billing/icd-10-codes",
-              "instructions": "Find the URL of the latest CMS ICD-10-CM Code Descriptions in Tabular Order zip file. Rules: (a) The filename matches the pattern `<Month>-<Day>-<Year>-code-descriptions-tabular-order.zip` and is hosted under `https://www.cms.gov/files/zip/`. (b) CMS ships an annual full file on Oct 1 and a mid-year update on Apr 1; when multiple releases are listed, return the URL of the most recent release. (c) IGNORE `addenda`, `guidelines`, `procedure`, and `ICD-10-PCS` files -- only `code-descriptions-tabular-order` is the file we want. (d) Return only the absolute URL."
+              "link_suffix": "-code-descriptions-tabular-order.zip"
             }
           },
           "file_format": "zip_containing_csv",
@@ -752,9 +779,10 @@
         {
           "source_name": "medicare_partb",
           "fetch": {
-            "source_url": {
-              "page_url": "https://data.cms.gov/provider-summary-by-type-of-service/medicare-physician-other-practitioners/medicare-physician-other-practitioners-by-provider-and-service",
-              "instructions": "Find the absolute download URL of the latest annual 'Medicare Physician & Other Practitioners - by Provider and Service' CSV dataset. Rules: (a) Return the full CSV data file for the most recent data year available. (b) IGNORE data-dictionary and methodology PDFs and the 'by Provider' and 'by Geography and Service' variants -- only 'by Provider and Service' is wanted. (c) Return only the absolute URL."
+            "fetch_spec": {
+              "mode": "dkan_catalog",
+              "catalog_url": "https://data.cms.gov/data.json",
+              "dataset_title": "Medicare Physician & Other Practitioners - by Provider and Service"
             }
           },
           "file_format": "csv",
@@ -764,9 +792,10 @@
         {
           "source_name": "medicare_partd",
           "fetch": {
-            "source_url": {
-              "page_url": "https://data.cms.gov/provider-summary-by-type-of-service/medicare-part-d-prescribers/medicare-part-d-prescribers-by-provider-and-drug",
-              "instructions": "Find the absolute download URL of the latest annual 'Medicare Part D Prescribers - by Provider and Drug' CSV dataset. Rules: (a) Return the full CSV data file for the most recent data year available. (b) IGNORE data-dictionary and methodology PDFs and the 'by Provider' and 'by Geography and Drug' variants -- only 'by Provider and Drug' is wanted. (c) Return only the absolute URL."
+            "fetch_spec": {
+              "mode": "dkan_catalog",
+              "catalog_url": "https://data.cms.gov/data.json",
+              "dataset_title": "Medicare Part D Prescribers - by Provider and Drug"
             }
           },
           "file_format": "csv",
@@ -776,9 +805,10 @@
         {
           "source_name": "ccsr",
           "fetch": {
-            "source_url": {
+            "fetch_spec": {
+              "mode": "static_page_latest",
               "page_url": "https://hcup-us.ahrq.gov/toolssoftware/ccsr/dxccsr.jsp",
-              "instructions": "Find the absolute download URL of the latest AHRQ HCUP CCSR for ICD-10-CM Diagnoses (DXCCSR) zip file. Rules: (a) The zip contains the CSV mapping of every ICD-10-CM diagnosis code to its CCSR categories and body-system superclass. (b) Return the most recent version's zip. (c) IGNORE the user-guide and reference PDFs and the PR/procedure CCSR -- only the diagnosis (DX) CCSR is wanted. (d) Return only the absolute URL."
+              "link_suffix": ".zip"
             }
           },
           "file_format": "zip_containing_csv",
@@ -788,9 +818,17 @@
         {
           "source_name": "openfda_labels",
           "fetch": {
-            "source_url": {
-              "page_url": "https://api.fda.gov/download.json",
-              "instructions": "From the openFDA download manifest JSON, return the absolute URL of the first drug label partition file. Rules: (a) Navigate to results.drug.label.partitions and return the 'file' URL of the first partition (a .json.zip archive of FDA structured product label records). (b) Return only the absolute URL."
+            "fetch_spec": {
+              "mode": "json_manifest",
+              "manifest_url": "https://api.fda.gov/download.json",
+              "json_path": [
+                "results",
+                "drug",
+                "label",
+                "partitions",
+                0,
+                "file"
+              ]
             }
           },
           "file_format": "zip_containing_json",
@@ -800,9 +838,10 @@
         {
           "source_name": "medicare_pos",
           "fetch": {
-            "source_url": {
-              "page_url": "https://data.cms.gov/provider-characteristics/hospitals-and-other-facilities/provider-of-services-file-hospital-non-hospital-facilities",
-              "instructions": "Find the absolute download URL of the latest quarterly 'Provider of Services File - Hospital & Non-Hospital Facilities' CSV. Rules: (a) Return the most recent quarter's full CSV data file. (b) It carries each facility's CMS Certification Number (CCN / provider number) and certified bed count. (c) IGNORE data-dictionary, methodology and codebook files. (d) Return only the absolute URL."
+            "fetch_spec": {
+              "mode": "dkan_catalog",
+              "catalog_url": "https://data.cms.gov/data.json",
+              "dataset_title": "Provider of Services File - Quality Improvement and Evaluation System"
             }
           },
           "file_format": "csv",
@@ -813,9 +852,9 @@
           "source_name": "medicare_coverage_hcpc",
           "bundled_with": "medicare_coverage_db",
           "fetch": {
-            "source_url": {
-              "page_url": "https://www.cms.gov/medicare-coverage-database/downloads/downloads.aspx",
-              "instructions": "Find the absolute download URL of the latest Medicare Coverage Database complete article-level code-list download (the relational zip whose tables carry the HCPCS/CPT codes and the ICD-10-CM codes linked to their billing/coding articles). Rules: (a) Return the most recent full articles code-list zip. (b) IGNORE the LCD-only, report and user-guide downloads. (c) Return only the absolute URL."
+            "fetch_spec": {
+              "mode": "direct_url",
+              "url": "https://downloads.cms.gov/medicare-coverage-database/downloads/exports/all_article.zip"
             }
           },
           "archive_member": "hcpc",

@@ -114,6 +114,11 @@ def _control(ns) -> int:
     # The shared discrepancy-report emitter labels the report by PIPELINE_NAME;
     # name it here so the Medicare report is not emitted under the provider name.
     os.environ["PIPELINE_NAME"] = MedicareProviderEvaluationOrchestrator.PIPELINE_NAME
+    # The human-facing report title/subject uses the display name; the key
+    # "medicare" stays the config/run-record lookup key and is unchanged.
+    os.environ["PIPELINE_DISPLAY_NAME"] = (
+        MedicareProviderEvaluationOrchestrator.PIPELINE_DISPLAY_NAME
+        or MedicareProviderEvaluationOrchestrator.PIPELINE_NAME)
     if ns.run_id:
         os.environ["RUN_ID"] = ns.run_id
 
@@ -324,6 +329,76 @@ def main(argv: list[str] | None = None) -> int:
     return _control(ns)
 
 
+def _derive_step_status_reason(pipeline_mongo, run_id):
+    """The guaranteed-minimum failure reason, derived from the run's own step
+    status. Called only when no worker wrote a per-partition error and no
+    exception reached the controller's finally: a failed run must never be
+    recorded with no reason (EPIC-010-F-001-S-008). Reads pipeline.work_items,
+    groups by step, and names the step the orchestrator stopped at plus the
+    failed/total partition tally. Returns a constructed (not raised)
+    ChatHealthyException, or None if nothing could be read. Best-effort: a read
+    failure here must never block the report's delivery, so it is logged and
+    None is returned."""
+    try:
+        items = list(pipeline_mongo["pipelineAdmin"]["pipeline.work_items"].find(
+            {"run_id": run_id}, {"step": 1, "status": 1}))
+    except Exception as read_exc:  # noqa: BLE001
+        _log.LogPipeline("WARNING", "medicare quiesce: could not read work-item step "
+                         "status for the minimum reason run_id=%s (%s)",
+                         run_id, str(read_exc)[:160])
+        return None
+
+    done_states = ("done", "completed", "succeeded")
+    failed_states = ("failed", "error")
+    by_step: dict = {}
+    for it in items:
+        tally = by_step.setdefault(it.get("step") or "unknown",
+                                   {"total": 0, "failed": 0, "done": 0})
+        tally["total"] += 1
+        status = str(it.get("status") or "").lower()
+        if status in failed_states:
+            tally["failed"] += 1
+        elif status in done_states:
+            tally["done"] += 1
+
+    if not by_step:
+        return ChatHealthyException(
+            mode="pipeline_step_failed",
+            component="MedicareControlRunner",
+            message=("run ended in status failed before any work item was "
+                     "enqueued; no step-level status to derive a reason from"))
+
+    failed_steps = {s: t for s, t in by_step.items() if t["failed"] > 0}
+    if failed_steps:
+        step = next(iter(failed_steps))
+        t = failed_steps[step]
+        return ChatHealthyException(
+            mode="pipeline_step_failed",
+            component="MedicareControlRunner",
+            message=(f"run did not proceed past step {step} "
+                     f"({t['failed']}/{t['total']} partitions failed; no "
+                     f"worker-level error captured)"),
+            step=step)
+
+    incomplete = {s: t for s, t in by_step.items() if t["done"] < t["total"]}
+    if incomplete:
+        step = next(iter(incomplete))
+        t = incomplete[step]
+        return ChatHealthyException(
+            mode="pipeline_step_failed",
+            component="MedicareControlRunner",
+            message=(f"run did not complete step {step} "
+                     f"({t['done']}/{t['total']} partitions done; no terminal "
+                     f"worker status and no worker-level error captured)"),
+            step=step)
+
+    return ChatHealthyException(
+        mode="pipeline_step_failed",
+        component="MedicareControlRunner",
+        message=("run ended in status failed though every work item reached a "
+                 "done state and no worker-level error was captured"))
+
+
 def _emit_discrepancy_report(run_id, final_status, *, manifest=None, args=None,
                              fatal_exception=None) -> None:
     """Emit the Medicare discrepancy report -- ALWAYS, on a perfect run OR an
@@ -390,6 +465,14 @@ def _emit_discrepancy_report(run_id, final_status, *, manifest=None, args=None,
             except Exception as lookup_exc:  # noqa: BLE001
                 _log.LogPipeline("WARNING", "medicare quiesce: could not read the failing "
                                  "work item run_id=%s (%s)", run_id, str(lookup_exc)[:160])
+        # (3) Guaranteed-minimum reason. When no worker wrote a per-partition
+        # error (1) and no exception reached the finally (2), the run still
+        # knows which step the orchestrator marked failed and the tally of
+        # failed partitions. Derive that from the run's own work-item step
+        # status so a failed run is NEVER recorded without a reason
+        # (EPIC-010-F-001-S-008). The step-level statement IS the true minimum.
+        if fatal_exception is None and manifest_status not in ("succeeded", "completed"):
+            fatal_exception = _derive_step_status_reason(pipeline_mongo, run_id)
         if fatal_exception:
             manifest_doc["fatal_exception"] = {
                 "type": type(fatal_exception).__name__,

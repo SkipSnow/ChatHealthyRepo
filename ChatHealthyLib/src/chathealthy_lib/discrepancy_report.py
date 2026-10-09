@@ -194,6 +194,13 @@ class DiscrepancyReport:
         self.run_id = run_id
         self.env = env
         self.pipeline_name = pipeline_name
+        # Human-facing name for the report title and subject. The key
+        # pipeline_name stays the config/run-record lookup key; the display
+        # name is a separate, read-only label. Falls back to the key when no
+        # display name is supplied, so a single-name pipeline is unchanged.
+        self.pipeline_display_name = (
+            (os.environ.get("PIPELINE_DISPLAY_NAME") or "").strip()
+            or self.pipeline_name)
         self.source = source
         self.total_source_rows = total_source_rows
         self.rows_in_target = rows_in_target
@@ -597,6 +604,7 @@ class DiscrepancyReport:
         manifest = {
             "run_id": self.run_id,
             "pipeline_name": self.pipeline_name,
+            "pipeline_display_name": self.pipeline_display_name,
             "run_status": self.manifest_status or ("failed" if is_fatal else "succeeded"),
             "run_started_utc": run_started_utc,
             "run_ended_utc": run_ended_utc,
@@ -637,7 +645,7 @@ class DiscrepancyReport:
             detail = ", no discrepancies"
         else:
             detail = f", {warning_total} warning(s) {error_total} error(s)"
-        subject = f"Provider pipeline {self.run_id} - {status}{detail}"
+        subject = f"{self.pipeline_display_name} pipeline {self.run_id} - {status}{detail}"
         log_context = (
             f"warnings={warning_display} errors={error_display} "
             f"fatal={model['fatal_total']} mongo_down={self.mongo_down} "
@@ -822,8 +830,22 @@ def emit_discrepancy_report(
         if config:
             report.config = dict(config)
             report.config_loaded = True
-        if isinstance(manifest_doc, dict) and manifest_doc.get("fatal_exception"):
+        fatal_info = (manifest_doc.get("fatal_exception")
+                      if isinstance(manifest_doc, dict) else None)
+        if fatal_info:
             report.fatal_error = True
+            # The caller assembled the real reason (failing step name + the
+            # recorded error) into manifest_doc["fatal_exception"]; rebuild it
+            # here so _fatal_explanation surfaces it into fatal_reason rather
+            # than the "reported without an exception" placeholder. Done only
+            # when nothing already holds a fatal, so a domain fatal wins.
+            if report.fatal_exception is None and isinstance(fatal_info, dict):
+                report.fatal_exception = ChatHealthyException(
+                    mode=(fatal_info.get("mode") or "pipeline_fatal"),
+                    message=(fatal_info.get("message") or ""),
+                    component="DiscrepancyReport",
+                    run_id=run_id,
+                )
 
         total = 0
         if not report.mongo_down and report.mongo_connection is not None:

@@ -25,6 +25,7 @@ from pipeline.run_lifecycle.steps._partitions import state_partitions
 
 class MedicareProviderEvaluationOrchestrator(BasePipelineOrchestrator):
     PIPELINE_NAME = "medicare"
+    PIPELINE_DISPLAY_NAME = "Medicare Prescription and Procedures Pipeline"
 
     STEPS: list[StepSpec] = [
         StepSpec(

@@ -406,6 +406,37 @@ class PipelineDatasetRegistry:
     def is_derived(self, name: str) -> bool:
         return self.by_source_name(name).is_derived
 
+    def fetch_spec(self, name: str) -> dict:
+        """The prefabricated, model-free fetch parameterization for a fetched
+        source: exactly the data-fetch agent's typed find input (its FindSpec),
+        read straight from config (fetch.fetch_spec) and keyed by source_name.
+        A pure lookup -- the worker computes, discovers and manufactures
+        nothing. Fatal when the entry owns no fetch block or carries no
+        fetch_spec, so a missing parameterization stops the run loudly rather
+        than silently reaching for a model."""
+        entry = self.by_source_name(name)
+        if entry.fetch is None:
+            self._fatal(ChatHealthyException(
+                mode="dataset_registry_fetch_spec_not_a_fetcher",
+                message=(
+                    f"pipeline_dataset_registry: fetch_spec({name!r}) is invalid; "
+                    f"entry has no fetch block. Fetchers only."
+                ),
+                source_name=name,
+            ))
+        spec = entry.fetch.get("fetch_spec")
+        if not isinstance(spec, dict) or not spec.get("mode"):
+            self._fatal(ChatHealthyException(
+                mode="dataset_registry_fetch_spec_missing",
+                message=(
+                    f"pipeline_dataset_registry[{name}]: fetch.fetch_spec is "
+                    f"missing or has no 'mode'. A deterministic source declares "
+                    f"its typed find input as fetch_spec; got {spec!r}."
+                ),
+                source_name=name,
+            ))
+        return dict(spec)
+
     def resolve_source_url(self, name: str) -> str:
         entry = self.by_source_name(name)
         if entry.fetch is None:

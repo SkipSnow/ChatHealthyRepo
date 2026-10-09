@@ -99,8 +99,17 @@
           "description": "Provenance of the dataset. Present when this entry owns the download. Absent for Class B-extractor entries (they reuse the archive fetched by another bundled entry) and for Class C derived entries.",
           "type": "object",
           "additionalProperties": false,
-          "required": [
-            "source_url"
+          "anyOf": [
+            {
+              "required": [
+                "source_url"
+              ]
+            },
+            {
+              "required": [
+                "fetch_spec"
+              ]
+            }
           ],
           "properties": {
             "source_url": {
@@ -125,6 +134,117 @@
                     "instructions": {
                       "type": "string",
                       "minLength": 1
+                    }
+                  }
+                }
+              ]
+            },
+            "fetch_spec": {
+              "description": "Prefabricated, model-free declarative fetch parameterization: exactly the data-fetch agent's typed find input, discriminated by `mode`. Replaces the AI url-discovery object so a deterministic source needs no model and the worker manufactures nothing.",
+              "type": "object",
+              "required": [
+                "mode"
+              ],
+              "properties": {
+                "mode": {
+                  "enum": [
+                    "direct_url",
+                    "dkan_catalog",
+                    "static_page_latest",
+                    "json_manifest"
+                  ]
+                }
+              },
+              "oneOf": [
+                {
+                  "title": "direct_url",
+                  "additionalProperties": false,
+                  "required": [
+                    "mode",
+                    "url"
+                  ],
+                  "properties": {
+                    "mode": {
+                      "const": "direct_url"
+                    },
+                    "url": {
+                      "type": "string",
+                      "format": "uri"
+                    }
+                  }
+                },
+                {
+                  "title": "dkan_catalog",
+                  "additionalProperties": false,
+                  "required": [
+                    "mode",
+                    "catalog_url",
+                    "dataset_title"
+                  ],
+                  "properties": {
+                    "mode": {
+                      "const": "dkan_catalog"
+                    },
+                    "catalog_url": {
+                      "type": "string",
+                      "format": "uri"
+                    },
+                    "dataset_title": {
+                      "type": "string",
+                      "minLength": 1
+                    },
+                    "media_type": {
+                      "type": "string"
+                    }
+                  }
+                },
+                {
+                  "title": "static_page_latest",
+                  "additionalProperties": false,
+                  "required": [
+                    "mode",
+                    "page_url",
+                    "link_suffix"
+                  ],
+                  "properties": {
+                    "mode": {
+                      "const": "static_page_latest"
+                    },
+                    "page_url": {
+                      "type": "string",
+                      "format": "uri"
+                    },
+                    "link_suffix": {
+                      "type": "string",
+                      "minLength": 1
+                    }
+                  }
+                },
+                {
+                  "title": "json_manifest",
+                  "additionalProperties": false,
+                  "required": [
+                    "mode",
+                    "manifest_url",
+                    "json_path"
+                  ],
+                  "properties": {
+                    "mode": {
+                      "const": "json_manifest"
+                    },
+                    "manifest_url": {
+                      "type": "string",
+                      "format": "uri"
+                    },
+                    "json_path": {
+                      "type": "array",
+                      "minItems": 1,
+                      "items": {
+                        "type": [
+                          "string",
+                          "integer"
+                        ]
+                      }
                     }
                   }
                 }

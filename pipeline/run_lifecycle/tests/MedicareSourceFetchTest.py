@@ -82,8 +82,9 @@ _MEDICARE_SOURCES = [
 ]
 
 
-@pytest.mark.skipif(not os.environ.get("CH_URL_DISCOVERY_MODEL"),
-                    reason="needs CH_URL_DISCOVERY_MODEL (the agent's provider:model)")
+@pytest.mark.skipif(not os.environ.get("RUN_MEDICARE_SOURCE_FETCH"),
+                    reason="live multi-GB fetch; opt in with RUN_MEDICARE_SOURCE_FETCH=1 "
+                           "(the find specs are deterministic -- no model needed)")
 def test_agent_fetches_all_medicare_sources(tmp_path):
     for name, find, kind in _MEDICARE_SOURCES:
         dest = str(tmp_path / name / "payload.bin")

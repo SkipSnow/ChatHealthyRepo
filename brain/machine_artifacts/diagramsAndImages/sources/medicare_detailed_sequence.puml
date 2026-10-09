@@ -15,7 +15,9 @@ CTL -> CTL : prepare_infrastructure            prereq [] | single
 CTL -> CTL : source_freshness_gate             prereq [prepare_infrastructure] | single
 
 == [BASE] acquire and land sources ==
-CTL -> W : fetch_all_sources   prereq [source_freshness_gate] | FAN-OUT partition_key = source_name
+CTL -> CTL : manufacture assignments            builds one work-item per source; each assignment carries ONLY the source_name key
+note right of CTL : The controller manufactures the assignments here, then dispenses them.\nThe source_name key -> prefabricated fetch-parameter map lives in the persistent config.\nEach fan-out worker is a pure executor: it looks its source_name key up in the config,\nreads the prefab params, and runs the data-fetch agent. It manufactures nothing and runs\nno LLM -- deterministic find specs (dkan_catalog / static_page_latest / json_manifest /\ndirect_url) resolve the URL with no model.
+CTL -> W : fetch_all_sources   prereq [source_freshness_gate] | FAN-OUT partition_key = source_name   (dispense manufactured assignments)
 note right of W : Provider spine; Part B; Part D;\nMedicare Coverage Database; FDA labels;\nICD-10-CM + CCSR;\nHospital Enrollments; POS
 W ->> HB : beat {step, partition, records_done/total, rate}
 W -> OUT : raw to staging

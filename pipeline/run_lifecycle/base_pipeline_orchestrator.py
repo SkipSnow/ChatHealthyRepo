@@ -85,6 +85,7 @@ def _utc_now_iso() -> str:
 
 class BasePipelineOrchestrator:
     PIPELINE_NAME: str = ""
+    PIPELINE_DISPLAY_NAME: str = ""
     STEPS: list[StepSpec] = []
 
     def __init__(

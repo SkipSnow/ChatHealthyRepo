@@ -117,7 +117,10 @@ def _dispatch(step: str, payload: dict) -> dict:
     from pipeline.run_lifecycle.pipeline_version_binding import install_version_bindings  # noqa: PLC0415
     install_version_bindings(ctx.args.data_version, mongo, ctx.args.env_prefix)
     runner = get_runner(step)
-    _log.LogPipeline("INFO", 
+    _log.LogPipeline("INFO",
+        "pipeline_worker: runner resolved step=%s runner=%s run_id=%s",
+        step, getattr(runner, "__module__", "?"), payload.get("run_id"))
+    _log.LogPipeline("INFO",
         "pipeline_worker dispatch step=%s run_id=%s partition=%s",
         step, payload.get("run_id"), payload.get("partition"),
     )
@@ -261,27 +264,36 @@ def _report_no_work_claimed(coord, run_id: str, step: str) -> None:
         pending, unclaimed)
 
 
-def main(argv: list[str] | None = None) -> int:
-    ns = _parse_args(argv if argv is not None else sys.argv[1:])
-    if ns.log_level:
-        os.environ.setdefault("LOG_LEVEL", ns.log_level.upper())
+def _handle_no_claim(coord, ns, worker_pid: int) -> int:
+    """A claim found nothing. Decide whether that is a gap or healthy."""
+    _report_no_work_claimed(coord, ns.run_id, ns.step)
+    total_for_step = coord["pipelineAdmin"]["pipeline.work_items"].count_documents(
+        {"run_id": ns.run_id, "step": ns.step})
+    if total_for_step == 0:
+        # Nothing legitimate to do: the step enqueued no work-item this worker
+        # could ever claim. A green exit here would mask a step that produced no
+        # claimable work, so this worker exits NON-green and names the gap.
+        _log.LogPipeline("ERROR",
+            "pipeline_worker: claim result=no-legitimate-work pid=%s step=%s "
+            "run_id=%s -- zero work-items exist for this step; exiting non-green",
+            worker_pid, ns.step, ns.run_id)
+        return 3
+    # Healthy: items for this (run_id, step) exist and were claimed by peer
+    # workers (the host may over-fill the pool). This worker has nothing to
+    # claim and that is legitimate, so it exits green.
+    _log.LogPipeline("INFO",
+        "pipeline_worker: claim result=peer-claimed pid=%s step=%s run_id=%s "
+        "items_for_step=%d; nothing to claim, exiting green",
+        worker_pid, ns.step, ns.run_id, total_for_step)
+    return 0
 
-    if not ns.run_id:
-        _log.LogPipeline("ERROR", "pipeline_worker: --run-id or RUN_ID env is required")
-        return 2
 
-    # work_items live where the Controller enqueues them, which is the
-    # front cluster. Reading them anywhere else claims nothing.
-    coord = ChatHealthyMongoUtilities().getConnection("pipelineEditor", "ChatHealthyFrontEnd")
-    worker_pid = os.getpid()
-
-    # One look, by design. The Controller does not spawn a worker until every
-    # item is readable, so a claim that finds nothing means the work is taken,
-    # not that it has yet to appear.
-    item = _claim_work_item(coord, ns.run_id, ns.step, worker_pid)
-    if item is None:
-        _report_no_work_claimed(coord, ns.run_id, ns.step)
-        return 0
+def _execute_claimed_item(coord, ns, item, worker_pid: int) -> int:
+    """Run the dispatched step for a claimed item, beating until it ends."""
+    _log.LogPipeline("INFO",
+        "pipeline_worker: claim result=claimed pid=%s step=%s run_id=%s _id=%s partition=%s",
+        worker_pid, ns.step, ns.run_id, item.get("_id"),
+        (item.get("partition") or (item.get("payload") or {}).get("partition")))
 
     _log.LogPipeline("INFO", "pipeline_worker: claimed item _id=%s run_id=%s step=%s payload=%s",
               item.get("_id"), ns.run_id, ns.step, item.get("payload"))
@@ -301,10 +313,44 @@ def main(argv: list[str] | None = None) -> int:
             "traceback": traceback.format_exc()[-2000:],
         }
         _mark_failed(coord, item["_id"], err)
-        _log.LogPipeline("ERROR", "pipeline_worker: failed item _id=%s: %s", item["_id"], err["msg"])
+        _log.LogPipeline("ERROR",
+            "pipeline_worker: failed item _id=%s step=%s run_id=%s partition=%s "
+            "error=%s: %s | traceback(tail)=%s",
+            item["_id"], ns.step, ns.run_id,
+            (item.get("partition") or (item.get("payload") or {}).get("partition")),
+            err["type"], err["msg"], err["traceback"][-600:])
         return 1
     finally:
         heartbeat.stop()
+
+
+def main(argv: list[str] | None = None) -> int:
+    ns = _parse_args(argv if argv is not None else sys.argv[1:])
+    if ns.log_level:
+        os.environ.setdefault("LOG_LEVEL", ns.log_level.upper())
+
+    if not ns.run_id:
+        _log.LogPipeline("ERROR", "pipeline_worker: --run-id or RUN_ID env is required")
+        return 2
+
+    # work_items live where the Controller enqueues them, which is the
+    # front cluster. Reading them anywhere else claims nothing.
+    coord = ChatHealthyMongoUtilities().getConnection("pipelineEditor", "ChatHealthyFrontEnd")
+    worker_pid = os.getpid()
+
+    _log.LogPipeline("INFO",
+        "pipeline_worker: process start pid=%s host=%s step=%s run_id=%s replica=%s; "
+        "attempting claim",
+        worker_pid, socket.gethostname(), ns.step, ns.run_id, ns.replica)
+
+    # One look, by design. The Controller does not spawn a worker until every
+    # item is readable, so a claim that finds nothing means the work is taken,
+    # not that it has yet to appear.
+    item = _claim_work_item(coord, ns.run_id, ns.step, worker_pid)
+    if item is None:
+        return _handle_no_claim(coord, ns, worker_pid)
+
+    return _execute_claimed_item(coord, ns, item, worker_pid)
 
 
 if __name__ == "__main__":

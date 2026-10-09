@@ -18,7 +18,6 @@ import hashlib
 import json
 import os
 import urllib.request
-from dataclasses import dataclass
 from typing import Annotated, Literal, Union
 from urllib.parse import urljoin, urlparse
 
@@ -305,12 +304,12 @@ def _acquire(url: str, *, source_name: str, store: Union[FileStore, BlobStore],
 # --------------------------------------------------------------------------- #
 # The agent: input FetchRequest, output FetchResult, one tool, model every run. #
 # --------------------------------------------------------------------------- #
-@dataclass
-class _Deps:
+class _Deps(BaseModel):
+    """Typed pydantic input the agent runs against."""
     request: FetchRequest
-    headers: dict | None
     http_timeout: int
     download: bool                        # False for a discover-only run
+    headers: dict | None = None
 
 
 def _resolve_discovered(req: FetchRequest, discovered_url: str | None) -> _FindFacts:
@@ -330,13 +329,14 @@ def _resolve_discovered(req: FetchRequest, discovered_url: str | None) -> _FindF
     return _FindFacts(url=clean, filename=_basename(clean))
 
 
-def fetch_source(ctx: RunContext[_Deps], discovered_url: str | None = None) -> FetchResult:
-    """The agent's one tool and its output. Resolve the source's download URL --
-    deterministically for every find mode except llm_discovery, where the agent
-    passes the discovered_url it read from the index page -- then download and
-    store the bytes and return the FetchResult. The bytes never reach the model.
-    """
-    req = ctx.deps.request
+def _execute_fetch(req: FetchRequest, *, discovered_url: str | None, download: bool,
+                   headers: dict | None, http_timeout: int) -> FetchResult:
+    """Resolve the source's download URL -- deterministically for every find
+    mode except llm_discovery, where discovered_url is the URL the model read
+    from the index page -- then download and store the bytes and return the
+    FetchResult. The bytes never reach the model. This is the single fetch
+    implementation shared by the deterministic (no-model) path and the agent
+    tool path, so neither duplicates the other."""
     if req.find.mode == "llm_discovery":
         facts = _resolve_discovered(req, discovered_url)
     else:
@@ -347,7 +347,7 @@ def fetch_source(ctx: RunContext[_Deps], discovered_url: str | None = None) -> F
                 message=(f"data_fetch_agent[{req.source_name}]: unknown find mode "
                          f"{req.find.mode!r}"))
         facts = finder(req.source_name, req.find)
-    if not ctx.deps.download:
+    if not download:
         return FetchResult(source_name=req.source_name, url=facts.url,
                            version_identifier=facts.version_identifier,
                            filename=facts.filename, published_date=facts.published_date,
@@ -355,11 +355,20 @@ def fetch_source(ctx: RunContext[_Deps], discovered_url: str | None = None) -> F
     buffer_size = req.buffer_size or (1024 * 1024)
     sha256, size, stored = _acquire(
         facts.url, source_name=req.source_name, store=req.store, stream=req.stream,
-        buffer_size=buffer_size, headers=ctx.deps.headers, http_timeout=ctx.deps.http_timeout)
+        buffer_size=buffer_size, headers=headers, http_timeout=http_timeout)
     return FetchResult(source_name=req.source_name, url=facts.url,
                        version_identifier=facts.version_identifier, filename=facts.filename,
                        published_date=facts.published_date, sha256=sha256,
                        size_bytes=size, stored=stored)
+
+
+def fetch_source(ctx: RunContext[_Deps], discovered_url: str | None = None) -> FetchResult:
+    """The agent's one tool and its output (the llm_discovery path). Delegates
+    to _execute_fetch so the deterministic path and the model path run the same
+    resolve/download/store logic."""
+    return _execute_fetch(ctx.deps.request, discovered_url=discovered_url,
+                          download=ctx.deps.download, headers=ctx.deps.headers,
+                          http_timeout=ctx.deps.http_timeout)
 
 
 _INSTRUCTIONS = (
@@ -431,6 +440,13 @@ def _prompt(request: FetchRequest) -> str:
 
 def _run(request: FetchRequest, *, download: bool, headers: dict | None,
          http_timeout: int) -> FetchResult:
+    # Deterministic find modes resolve + download WITHOUT a model: no
+    # pydantic-ai Agent is constructed and CH_URL_DISCOVERY_MODEL is never
+    # read. Only llm_discovery drives the model. The whole point is that a
+    # prefabricated, deterministic fetch_spec needs no model at all.
+    if request.find.mode != "llm_discovery":
+        return _execute_fetch(request, discovered_url=None, download=download,
+                              headers=headers, http_timeout=http_timeout)
     deps = _Deps(request=request, headers=headers, http_timeout=http_timeout,
                  download=download)
     result = _agent().run_sync(_prompt(request), deps=deps)

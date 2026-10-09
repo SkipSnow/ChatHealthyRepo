@@ -100,10 +100,21 @@ def _run() -> int:
         # Fill the pool from pending work_items. Steps run sequentially, so the
         # pending items are for the current fan-out step; a worker claims one
         # atomically via findOneAndUpdate (two never claim the same item).
+        # Never spawn more workers than there are pending items to claim. A
+        # serial (single-partition) step has exactly one pending item, so it
+        # needs exactly one worker; spawning the whole pool_cap for it
+        # over-spawns workers that find nothing to claim and can mask a step
+        # with no claimable work. Bound concurrency to min(cap, pending_count).
         pending = wi.find_one({"run_id": run_id, "status": "pending"}, {"step": 1})
-        if pending is not None and len(active) < cap:
+        pending_count = wi.count_documents({"run_id": run_id, "status": "pending"})
+        want = min(cap, pending_count)
+        if pending is not None and len(active) < want:
             try:
                 active.append(_spawn(worker_py, pending["step"], run_id, replica, env))
+                _log.LogPipeline("INFO",
+                    "worker_host: spawned worker step=%s run_id=%s replica=%d "
+                    "active=%d want=%d cap=%d pending=%d",
+                    pending["step"], run_id, replica, len(active), want, cap, pending_count)
                 replica += 1
             except Exception as exc:  # noqa: BLE001
                 # The item stays pending and is retried next pass; a persistent
