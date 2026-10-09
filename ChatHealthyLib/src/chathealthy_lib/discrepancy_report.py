@@ -153,6 +153,7 @@ class DiscrepancyReport:
         target_collection: str,
         fatal_error: bool = False,
         data_version: int | None = None,
+        collections: list[dict] | None = None,
     ) -> None:
         """
         Args:
@@ -177,6 +178,19 @@ class DiscrepancyReport:
             total_source_rows=total_source_rows,
             rows_in_target=rows_in_target, total_rows=total_rows,
         )
+        # A pipeline that publishes more than one collection (Medicare:
+        # ProviderMedicare, SpecialtyMedicare, IndicationMap) states each one's
+        # counts here. Each entry is objected to on the way in by the same rule
+        # as the single target, so a bad name or count is caught at the caller,
+        # not discovered in the artifact.
+        for _c in (collections or []):
+            _reject_bad_report_inputs(
+                run_id=run_id, pipeline_name=pipeline_name,
+                target_collection=_c.get("collection", ""),
+                total_source_rows=None,
+                rows_in_target=_c.get("rows_in_target"),
+                total_rows=_c.get("total_rows"),
+            )
         self.run_id = run_id
         self.env = env
         self.pipeline_name = pipeline_name
@@ -191,6 +205,9 @@ class DiscrepancyReport:
         self.manifest_status = ""
         # Named by the caller, which knows it. Nothing else reliably does.
         self.target_collection = target_collection or ""
+        # Empty for a single-target pipeline, which keeps rendering from
+        # target_collection/rows_in_target/total_rows exactly as before.
+        self.collections = list(collections or [])
         # Bound FIRST, before any work that logs.
         set_run_id(run_id)
         set_fatal_error(self.fatal_error)
@@ -595,6 +612,7 @@ class DiscrepancyReport:
             "total_source_rows": self.total_source_rows,
             "report_cap_per_class": cap,
             "data_version": self._reported(self.data_version),
+            "collections": self.collections,
         }
 
         # Rendering and PDF generation are library work on data already in
@@ -756,6 +774,7 @@ def emit_discrepancy_report(
     total_rows: int | None = None,
     operator_email: str | None = None,
     operator_sms: str | None = None,
+    collections: list[dict] | None = None,
 ) -> dict:
     """Emit the one operational report for the completed run.
 
@@ -781,6 +800,7 @@ def emit_discrepancy_report(
             total_source_rows=total_source_rows,
             rows_in_target=rows_in_target,
             total_rows=total_rows,
+            collections=collections,
         )
 
         if operator_email:
@@ -838,6 +858,46 @@ def emit_discrepancy_report(
     except Exception as exc:
         log.error("unexpected failure emitting discrepancy report: %s", exc)
         return {"total": 0, "pdf_bytes": 0, "error": str(exc)}
+
+
+def emit_discrepancy_report_for_collections(
+    pipeline_mongo,
+    run_id: str,
+    manifest_status: str,
+    manifest_doc: dict,
+    config: dict,
+    collections: list[dict],
+    *,
+    total_source_rows: int | None = None,
+    operator_email: str | None = None,
+    operator_sms: str | None = None,
+) -> dict:
+    """Emit the one report for a pipeline that publishes more than one
+    collection (Medicare: ProviderMedicare, SpecialtyMedicare, IndicationMap).
+
+    The caller hands the whole array; each entry is
+    {"collection": "<db>.<coll>", "rows_in_target": int|None, "total_rows":
+    int|None}. The first entry is the report's primary -- its counts drive the
+    header and the records-collected math, exactly as a single-target run's do
+    -- and every collection is listed in the header grid. A single-target
+    pipeline keeps calling emit_discrepancy_report directly; this function is
+    the array-first entry point built on it, so no existing caller changes.
+    """
+    primary = collections[0] if collections else {}
+    return emit_discrepancy_report(
+        pipeline_mongo=pipeline_mongo,
+        run_id=run_id,
+        manifest_status=manifest_status,
+        manifest_doc=manifest_doc,
+        config=config,
+        target_collection=primary.get("collection", ""),
+        total_source_rows=total_source_rows,
+        rows_in_target=primary.get("rows_in_target"),
+        total_rows=primary.get("total_rows"),
+        operator_email=operator_email,
+        operator_sms=operator_sms,
+        collections=collections,
+    )
 
 
 def run_step(ctx) -> dict:

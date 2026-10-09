@@ -13,8 +13,9 @@ Normalized Indication Map (default off -> consume the current published map).
 The flag is exported as BUILD_INDICATION_MAP so Worker subprocesses (which
 inherit os.environ) and the build_indication_map step see it.
 
-Slice 1 scaffold: the step runners are stubs; the Medicare discrepancy report
-is a later slice (flagged below).
+The finally emits exactly one Medicare discrepancy report per run, on success
+and abend alike (EPIC-010-F-001-S-008), counting the three published Medicare
+collections.
 """
 
 from __future__ import annotations
@@ -52,6 +53,7 @@ from pipeline.run_lifecycle.controller_release import (  # noqa: E402
     pause_pipeline_cluster,
     quiesce_mongo_state,
 )
+from pipeline.run_lifecycle import controller_phase as _phase  # noqa: E402
 
 _log = ChatHealthyLoggingService()
 
@@ -109,8 +111,15 @@ def _control(ns) -> int:
 
     os.environ["DATA_VERSION"] = str(ns.data_version)
     os.environ["BUILD_INDICATION_MAP"] = "1" if ns.build_indication_map else "0"
+    # The shared discrepancy-report emitter labels the report by PIPELINE_NAME;
+    # name it here so the Medicare report is not emitted under the provider name.
+    os.environ["PIPELINE_NAME"] = MedicareProviderEvaluationOrchestrator.PIPELINE_NAME
     if ns.run_id:
         os.environ["RUN_ID"] = ns.run_id
+
+    _phase.set_controller_phase(os.environ.get("RUN_ID", ""),
+                                _phase.CONTROLLER_STARTING,
+                                "controller process up; starting status listener")
 
     # Run-status listener FIRST (EPIC-010-F-001-S-015): the controller answers
     # the status call on :6969 (mTLS) within seconds of starting, reading the
@@ -121,6 +130,8 @@ def _control(ns) -> int:
     try:
         from pipeline.run_lifecycle.run_status_server import start_status_server  # noqa: PLC0415
         start_status_server([s.name for s in MedicareProviderEvaluationOrchestrator.STEPS])
+        _phase.set_controller_phase(os.environ.get("RUN_ID", ""), _phase.STATUS_API_UP,
+                                    "mTLS status API bound on :6969")
     except Exception as exc:  # noqa: BLE001
         _log.LogPipeline("WARNING",
                          "medicare control_runner: status listener failed to start: %s",
@@ -163,19 +174,56 @@ def _control(ns) -> int:
 
     threading.Thread(target=_heartbeat, daemon=True, name="controller-heartbeat").start()
 
+    # Worker-box verifier: once orchestration is driving the two-VM path, the
+    # Controller LOOKS at the Worker box (ARM runCommand -> docker exec pgrep) and
+    # records what it sees. The run is 'fan_out_running' only when the pool PIDs
+    # are seen there -- box up is not process up. Only runs on the VM path
+    # (WORKER_COMPUTE=vm); a local/subprocess run leaves it idle. Daemon thread.
+    _verify_stop = threading.Event()
+
+    def _verify_workers() -> None:
+        rid = ns.run_id or os.environ.get("RUN_ID", "")
+        if not rid or os.environ.get("WORKER_COMPUTE", "").lower() != "vm":
+            return
+        from pipeline.run_lifecycle.worker_pid_verifier import probe_worker_box  # noqa: PLC0415
+        interval = 45
+        while not _verify_stop.wait(interval):
+            r = probe_worker_box(rid)
+            if r.get("verified"):
+                _phase.set_worker_phase(rid, _phase.WORKER_FAN_OUT_RUNNING,
+                                        pool=r.get("pool", 0), host=r.get("host", 0),
+                                        detail=r.get("detail", ""))
+                interval = 180  # fan-out confirmed; slow the probe
+            elif not r.get("container"):
+                _phase.set_worker_phase(rid, _phase.WORKER_NO_BOX,
+                                        detail=r.get("detail", ""))
+            elif r.get("host", 0) >= 1:
+                _phase.set_worker_phase(rid, _phase.WORKER_HOST_UP_NO_FANOUT,
+                                        host=r.get("host", 0), detail=r.get("detail", ""))
+            else:
+                _phase.set_worker_phase(rid, _phase.WORKER_BOX_PROVISIONING,
+                                        detail=r.get("detail", ""))
+
+    threading.Thread(target=_verify_workers, daemon=True, name="worker-verifier").start()
+
     manifest = None
     final_status = "failed"
     exit_code = 1
     fatal_exception = None
+    # Bound before the try so the finally's discrepancy report can read it even
+    # when a wake or build failure stops the run before args is assigned below.
+    args = None
 
     try:
-        # Wake the pipeline cluster and wait for IDLE before connecting to it.
-        # It is always paused between runs; the wake is a required step common
-        # to every pipeline, done through the shared run-lifecycle manager --
-        # not reimplemented here. Inside the try so a wake or build failure runs
-        # the quiesce below rather than orphaning the reservation.
-        from pipeline.run_lifecycle import atlas_cluster_manager  # noqa: PLC0415
-        atlas_cluster_manager.resume_cluster(os.environ["PIPELINE_CLUSTER"])
+        # The trigger runbook wakes the pipeline cluster and waits for IDLE
+        # before it provisions this Controller VM, so the Controller does not
+        # re-wake it (the provider controller does not either). The former
+        # re-wake read os.environ["PIPELINE_CLUSTER"] -- a var the controller
+        # cloud-init never sets -- and crashed the run on a KeyError before any
+        # step ran (ebcffb35). The cluster is already IDLE here. Inside the try
+        # so a build failure still runs the quiesce below.
+        _phase.set_controller_phase(os.environ.get("RUN_ID", ""), _phase.CLUSTER_READY,
+                                    "pipeline cluster woken by the runbook; building orchestrator")
 
         args = PipelineArgs(
             states=_states_list(ns.states),
@@ -199,6 +247,8 @@ def _control(ns) -> int:
             ns.env_prefix, args.states, ns.resume_from_step, ns.data_version,
             ns.build_indication_map, ns.run_id or "(mint)",
         )
+        _phase.set_controller_phase(os.environ.get("RUN_ID", ""), _phase.ORCHESTRATING,
+                                    "walking the step DAG; fanning out work_items")
         manifest = orchestrator.run(args)
         if manifest and manifest.run_id:
             os.environ["RUN_ID"] = manifest.run_id
@@ -244,24 +294,174 @@ def _control(ns) -> int:
             (manifest.run_id if manifest and manifest.run_id else None)
             or os.environ.get("RUN_ID", "")
         )
+        _verify_stop.set()
+        _hb_stop.set()
+        _phase.set_controller_phase(run_id_now, _phase.QUIESCING,
+                                    f"run ending status={final_status}; releasing")
         fatal_on_worker_log_db_reports(run_id_now)
         if final_status != "succeeded":
             kill_active_workers()
         quiesce_mongo_state(run_id_now, final_status)
-        # TODO (later slice): emit the Medicare discrepancy report here --
-        # one per run on success or abend -- counting the three Medicare
-        # collections, once their dataset_versions[] entries are declared.
+        # The Medicare discrepancy report -- one per run on success AND abend
+        # (EPIC-010-F-001-S-008) -- counts the three published Medicare
+        # collections, so the Medicare Controller emits it here, before staging
+        # is emptied and the cluster is paused.
+        _emit_discrepancy_report(run_id_now, final_status,
+                                 manifest=manifest, args=args,
+                                 fatal_exception=fatal_exception)
         if final_status == "succeeded":
             empty_pipeline_staging()
         if manifest:
             pause_pipeline_cluster()
             fire_farewell_vm_delete()
+        _phase.set_controller_phase(run_id_now, _phase.RELEASED,
+                                    f"run released; final status={final_status}")
     return exit_code
 
 
 def main(argv: list[str] | None = None) -> int:
     ns = _parse_args(argv if argv is not None else sys.argv[1:])
     return _control(ns)
+
+
+def _emit_discrepancy_report(run_id, final_status, *, manifest=None, args=None,
+                             fatal_exception=None) -> None:
+    """Emit the Medicare discrepancy report -- ALWAYS, on a perfect run OR an
+    abend (EPIC-010-F-001-S-008). Medicare-specific: it counts the three
+    published collections this pipeline builds -- ProviderMedicare,
+    SpecialtyMedicare and the Normalized Indication Map -- so it stays with the
+    Medicare Controller, not the generic release. Best-effort so a Mongo or
+    SparkPost outage never blocks the run's exit, and delivered even when the
+    run-record store is unreachable (EPIC-010-F-001-S-008-REQ-B-006)."""
+    try:
+        pipeline_mongo = None
+        try:
+            pipeline_mongo = ChatHealthyMongoUtilities().getConnection(
+                "pipelineEditor", "ChatHealthyFrontEnd")
+        except Exception as mongo_exc:  # noqa: BLE001
+            _log.LogPipeline("ERROR", "medicare quiesce: mongo unreachable for discrepancy "
+                             "report run_id=%s err=%s", run_id, str(mongo_exc)[:500])
+            fatal_exception = fatal_exception or mongo_exc
+
+        if not pipeline_mongo:
+            # The store is down but the report is still owed: name the run's end
+            # on stderr so a failed run is never silent.
+            _log.LogPipeline("ERROR", "medicare quiesce: DISCREPANCY REPORT run_id=%s "
+                             "status=%s fatal_exception=%s", run_id, final_status,
+                             (f"{type(fatal_exception).__name__}: {fatal_exception}"
+                              if fatal_exception else "None"))
+            return
+
+        from chathealthy_lib.discrepancy_report import (  # noqa: PLC0415
+            emit_discrepancy_report_for_collections)
+        env_prefix = os.environ.get("ENV_PREFIX", "dev")
+        cfg = load_pipeline_config(env_prefix=env_prefix)
+        manifest_status = manifest.status if manifest else final_status
+        manifest_doc = (
+            manifest.to_document()
+            if manifest and hasattr(manifest, "to_document")
+            else {"run_id": run_id, "status": manifest_status}
+        )
+
+        # A failed run whose exception did not reach the finally still knows what
+        # went wrong: the worker wrote it to pipeline.work_items before it died.
+        # Name the step, the exception type and the message so the report states
+        # what failed, not merely that something did.
+        if fatal_exception is None and manifest_status not in ("succeeded", "completed"):
+            try:
+                failed = pipeline_mongo["pipelineAdmin"]["pipeline.work_items"].find_one(
+                    {"run_id": run_id, "status": {"$in": ["failed", "error"]}},
+                    sort=[("finished_at", 1)],
+                ) or {}
+                err = ((failed.get("output") or {}).get("error")
+                       or failed.get("error") or {})
+                if err:
+                    part = (failed.get("payload") or {}).get("partition") or {}
+                    where = failed.get("step", "unknown step")
+                    if part:
+                        where += f" {part}"
+                    fatal_exception = ChatHealthyException(
+                        mode="pipeline_step_failed",
+                        component="MedicareControlRunner",
+                        message=(f"{where} failed with "
+                                 f"{err.get('type', 'error')}: {err.get('msg', '')}"),
+                        step=failed.get("step"),
+                    )
+            except Exception as lookup_exc:  # noqa: BLE001
+                _log.LogPipeline("WARNING", "medicare quiesce: could not read the failing "
+                                 "work item run_id=%s (%s)", run_id, str(lookup_exc)[:160])
+        if fatal_exception:
+            manifest_doc["fatal_exception"] = {
+                "type": type(fatal_exception).__name__,
+                "message": str(fatal_exception),
+                "mode": getattr(fatal_exception, "mode", "unknown"),
+            }
+
+        # Count the three published Medicare collections against the DATA
+        # cluster -- pipeline_mongo above reaches the metadata cluster, where the
+        # run records live, and a data count through it returns a confident zero.
+        # The registry owns the source-to-collection map, so the names are asked
+        # for, never built from an env var. ProviderMedicare is first, so it is
+        # the report's primary (one document per NPI); every collection appears
+        # in the report. A count that cannot be taken stays None and reads
+        # Unknown.
+        dv = os.environ.get("DATA_VERSION", "").strip()
+        collections: list[dict] = []
+        try:
+            from pipeline.run_lifecycle.pipeline_dataset_registry import PipelineDatasetRegistry  # noqa: PLC0415
+            data_version = int(dv) if dv.isdigit() else int(getattr(args, "data_version", 0) or 0)
+            registry = PipelineDatasetRegistry(cfg, data_version, pipeline_mongo)
+            data_mongo = ChatHealthyMongoUtilities().getConnection(
+                "pipelineEditor", "ChatHealthyDataPipelines")
+            for source_name in ("providermedicare", "specialtymedicare", "indication_map"):
+                entry = registry.by_source_name(source_name)
+                coll_name = registry.public_data_collection_name(source_name)
+                coll = data_mongo[entry.public_data_db][coll_name]
+                collections.append({
+                    "collection": f"{entry.public_data_db}.{coll_name}",
+                    "rows_in_target": coll.count_documents({"run_id": run_id}),
+                    "total_rows": coll.count_documents({}),
+                })
+            _log.LogPipeline("INFO", "medicare quiesce: collection counts run_id=%s %s",
+                             run_id,
+                             {c["collection"].split(".")[-1]:
+                              (c["rows_in_target"], c["total_rows"]) for c in collections})
+        except Exception as exc:  # noqa: BLE001
+            _log.LogPipeline("ERROR", "medicare quiesce: the collection counts could not be "
+                             "taken run_id=%s err=%s; the report will say Unknown",
+                             run_id, str(exc)[:300])
+
+        if not collections:
+            # Resolve the primary straight from config so a hiccup above never
+            # loses the whole report -- the report is owed on every run.
+            for _dv in (cfg.get("dataset_versions") or []):
+                if _dv.get("source_name") == "providermedicare":
+                    _pdn = _dv.get("public_data_name") or ""
+                    if "." in _pdn and dv.isdigit():
+                        collections = [{"collection": f"{_pdn}_v_{dv}",
+                                        "rows_in_target": None, "total_rows": None}]
+                    break
+            if collections:
+                _log.LogPipeline("WARNING", "medicare quiesce: collections resolved from "
+                                 "config fallback run_id=%s -> %s",
+                                 run_id, collections[0]["collection"])
+
+        summary = emit_discrepancy_report_for_collections(
+            pipeline_mongo=pipeline_mongo,
+            run_id=run_id,
+            manifest_status=manifest_status,
+            manifest_doc=manifest_doc,
+            config=cfg,
+            collections=collections,
+            total_source_rows=None,
+            operator_email=getattr(args, "operator_email", None) if args else None,
+            operator_sms=getattr(args, "operator_sms", None) if args else None,
+        )
+        _log.LogPipeline("INFO", "medicare quiesce: discrepancy report emitted run_id=%s "
+                         "total=%d", run_id, summary.get("total", 0))
+    except Exception as exc:  # noqa: BLE001
+        _log.LogPipeline("ERROR", "medicare quiesce: discrepancy report FAILED run_id=%s "
+                         "err=%s", run_id, str(exc)[:500])
 
 
 if __name__ == "__main__":

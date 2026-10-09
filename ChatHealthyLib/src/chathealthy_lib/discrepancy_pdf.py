@@ -71,7 +71,7 @@ def _fmt_header_fields(manifest: dict) -> list[tuple[str, str]]:
     rows_in_target = manifest.get("rows_in_target", "Unknown")
     total_rows = manifest.get("total_rows", "Unknown")
     target_collection = manifest.get("target_collection") or "target collection"
-    return [
+    fields = [
         ("Pipeline",                              str(manifest.get("pipeline_name", "provider"))),
         ("Run status",                            _BOLD + str(manifest.get("run_status", "Unknown")).upper()),
         ("Run started",                           _fmt_local_time(manifest.get("run_started_utc"))),
@@ -81,9 +81,22 @@ def _fmt_header_fields(manifest: dict) -> list[tuple[str, str]]:
         ("Records with non-fatal warnings",       str(records_with_warnings)),
         ("Records with non-fatal errors",         str(records_with_errors)),
         ("Fatal error",                           fatal_reason if fatal_present else "None"),
-        (f"Rows in {target_collection}",          str(rows_in_target)),
-        ("Total rows",                            str(total_rows)),
     ]
+    # A multi-collection pipeline (e.g. Medicare) states each published
+    # collection's counts; a single-target pipeline keeps the one target line
+    # exactly as before.
+    collections = manifest.get("collections") or []
+    if collections:
+        for c in collections:
+            name = str(c.get("collection") or "collection").split(".")[-1]
+            run_rows = c.get("rows_in_target", "Unknown")
+            coll_total = c.get("total_rows", "Unknown")
+            fields.append((f"Rows in {name}",
+                           f"{run_rows} this run (total {coll_total})"))
+    else:
+        fields.append((f"Rows in {target_collection}", str(rows_in_target)))
+        fields.append(("Total rows", str(total_rows)))
+    return fields
 
 
 def _summary_rows(summary: list[dict]) -> list[tuple[str, str, str]]:
