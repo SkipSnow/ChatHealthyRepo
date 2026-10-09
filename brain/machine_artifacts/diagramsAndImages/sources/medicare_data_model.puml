@@ -1,0 +1,136 @@
+@startuml medicare_data_model
+skinparam shadowing false
+skinparam linetype ortho
+hide circle
+title Medicare Provider Evaluation Data Pipeline - LOGICAL data model (normalized)\nas of 10/6/26
+
+package "ProviderMedicare collection  <<public>>" #eafaf0 {
+  class ProviderMedicare {
+    npi : char(10)        {PK}
+    entity_type : I | O
+    ccn : CMS Certification Number   {org only}
+    size_tier : int 1..5             {org only; from bed count}
+  }
+  class ProviderSpecialty {
+    npi : char(10)        {FK}
+    nucc_code : string    {PK with npi}
+  }
+  class BilledProcedure {
+    procedure_id          {PK}
+    npi : char(10)        {FK}
+    hcpcs_code : string
+    hcpcs_descriptor : string
+    hcpcs_level2_code : string   {nullable}
+    plain_language_label : string {nullable}
+    year : int
+    service_count : int          {nullable - suppressed}
+    distinct_beneficiary_count : int {nullable - suppressed}
+    submitted_amount : money     {nullable - suppressed}
+    allowed_amount : money       {nullable - suppressed}
+    paid_amount : money          {nullable - suppressed}
+    justification_kind : enum {rule-based}
+    justification_source : string  {coverage article/policy id}
+  }
+  class ProcedureAllowedDiagnosis {
+    procedure_id          {FK}
+    icd10_code : string   {PK with procedure_id}
+  }
+  class PrescribedDrug {
+    drug_id               {PK}
+    npi : char(10)        {FK}
+    brand_name : string
+    generic_name : string
+    year : int
+    total_claims : int    {nullable - suppressed}
+    days_supply : int     {nullable - suppressed}
+    beneficiary_count : int {nullable - suppressed}
+    total_drug_cost : money {nullable - suppressed}
+    rxcui : string        {FK -> Molecule}
+  }
+  class ProviderIndication {
+    npi : char(10)        {FK}
+    indication_id         {FK}
+    source : enum {procedure | drug}   {PK with npi, indication_id}
+    days_supply : int     {provider's own, rolled up from drugs; count-under-each}
+  }
+}
+
+package "Normalized Indication Map  <<public>>" #e8f3f1 {
+  class Molecule {
+    rxcui : string        {PK}
+    rxnorm_ingredient : string
+  }
+  class NormalizedIndication {
+    indication_id         {PK}
+    parent_indication : string   {CCSR clinical category, e.g. migraine}
+    disease_class : string       {CCSR body-system superclass}
+  }
+  class IndicationMemberCode {
+    indication_id         {FK}
+    icd10_code : string   {PK with indication_id}
+    justification_source : string  {CCSR}
+  }
+  class ProductIndication {
+    rxcui : string        {FK}
+    brand_name : string
+    molecule : string
+    indication_id         {FK}   {PK with brand_name, rxcui, indication_id}
+    justification_kind : enum {llm_match}
+    trust : number 0..1
+  }
+}
+
+package "SpecialtyMedicare collection  <<public>>" #eef2ff {
+  class SpecialtyMedicare {
+    nucc_code : string    {PK}
+    provider_count : int  {providers in base with this NUCC in ANY taxonomy slot}
+  }
+  class SpecialtyProcedure {
+    nucc_code : string    {FK}
+    hcpcs_code : string   {PK with nucc_code}
+    provider_count : int
+    service_count : int
+    beneficiary_count : int
+    allowed_amount : money   {aggregate}
+  }
+  class SpecialtyDrug {
+    nucc_code : string    {FK}
+    rxcui : string        {FK}  {PK with nucc_code}
+    brand : string
+    provider_count : int
+    total_claims : int
+    beneficiary_count : int
+    total_cost : money   {aggregate}
+    days_supply_mean : number
+    days_supply_median : number
+    days_supply_quintiles : [c1,c2,c3,c4]   {five tiers}
+  }
+  class SpecialtyIndication {
+    nucc_code : string    {FK}
+    indication_id         {FK}  {PK with nucc_code}
+    provider_count : int
+    days_supply_mean : number
+    days_supply_median : number
+    days_supply_quintiles : [c1,c2,c3,c4]   {five tiers}
+  }
+}
+
+ProviderMedicare "1" *-- "many" ProviderSpecialty
+ProviderMedicare "1" *-- "many" BilledProcedure
+ProviderMedicare "1" *-- "many" PrescribedDrug
+ProviderMedicare "1" *-- "many" ProviderIndication
+BilledProcedure "1" *-- "many" ProcedureAllowedDiagnosis
+PrescribedDrug "many" --> "1" Molecule
+Molecule "1" -- "many" ProductIndication
+NormalizedIndication "1" -- "many" ProductIndication
+NormalizedIndication "1" *-- "many" IndicationMemberCode
+NormalizedIndication "1" -- "many" ProviderIndication
+NormalizedIndication "1" -- "many" SpecialtyIndication
+ProcedureAllowedDiagnosis "many" --> "1" IndicationMemberCode : icd10 member of
+SpecialtyMedicare "1" *-- "many" SpecialtyProcedure
+SpecialtyMedicare "1" *-- "many" SpecialtyDrug
+SpecialtyMedicare "1" *-- "many" SpecialtyIndication
+SpecialtyMedicare "1" --> "many" ProviderSpecialty : rolled up over\nproviders of this NUCC
+SpecialtyDrug "many" --> "1" Molecule
+note bottom : Day-supply benchmark (mean, median, quintile cut-points) is carried on the specialty side, per drug and per indication;\ntier placement compares a provider's own figure to these cut-points downstream at evaluation.\nHierarchy adopted from ICD-10-CM / CCSR. Product -> indication is matched per product (brand + molecule) against the canonical vocabulary, each carrying its match confidence (trust).
+@enduml

@@ -22,7 +22,6 @@ import sys
 import traceback
 from typing import Optional
 
-from anthropic import Anthropic
 from dotenv import load_dotenv
 from fastapi import FastAPI, Request
 from chathealthy_lib import gate as ch_gate

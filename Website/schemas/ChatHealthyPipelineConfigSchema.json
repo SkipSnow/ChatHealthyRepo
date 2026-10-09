@@ -150,7 +150,8 @@
             "pipe_delimited",
             "xlsx",
             "json",
-            "zip_containing_csv"
+            "zip_containing_csv",
+            "zip_containing_json"
           ]
         },
         "staging_name": {

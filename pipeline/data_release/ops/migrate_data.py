@@ -198,7 +198,7 @@ def _run_migration(parser):
     # collection of data on either cluster; moving data is the migrator's
     # work and happens in Azure.
     approvals = ChatHealthyMongoUtilities().getConnection(
-        _RECORDER, "ChatHealthyFrontEnd"
+        "pipelineEditor", "ChatHealthyFrontEnd"
     )["pipelineAdmin"]["Authorizations"]
     # Queried over time by (type, day) and by (type, collection), so those
     # are their own fields rather than packed into the id. The indexes that

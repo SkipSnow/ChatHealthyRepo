@@ -1,0 +1,51 @@
+@startuml medicare_physical_model
+skinparam shadowing false
+title Medicare Provider Evaluation Data Pipeline - PHYSICAL model (as realized in Mongo)\nthree public collections, each one document with embedded objects - no runtime joins\nas of 10/6/26
+
+package "ProviderMedicare   <<public>>   keyed by npi" #eafaf0 {
+  class "ProviderMedicare" as PM << (D,#bfe3bf) one document per NPI >> {
+    _id : npi
+    entity_type : "I" | "O"
+    specialty : [ nucc_code ]
+    ccn, size_tier    (organization only)
+    .. embedded ..
+    procedures : [ { hcpcs, descriptor, hcpcs_level2, label, year,
+        service_count, beneficiary_count,
+        submitted_amount, allowed_amount, paid_amount,
+        allowed_icd10:[icd10], justification_kind, justification_source } ]
+    drugs : [ { brand, generic, year, total_claims, days_supply,
+        beneficiary_count, total_drug_cost,
+        rxcui, molecule, parent_indications:[indication_id] } ]
+    indications : [ { indication_id, source:"procedure"|"drug", days_supply } ]   {index}
+  }
+}
+
+package "SpecialtyMedicare   <<public>>   keyed by nucc_code" #eef2ff {
+  class "SpecialtyMedicare" as SM << (D,#ccccee) one document per NUCC >> {
+    _id : nucc_code
+    provider_count    (providers in base with this NUCC in ANY taxonomy slot)
+    .. embedded ..
+    procedures : [ { hcpcs, provider_count, service_count,
+        beneficiary_count, allowed_amount } ]
+    drugs : [ { rxcui, brand, molecule, provider_count, total_claims,
+        beneficiary_count, total_cost,
+        days_supply_mean, days_supply_median, days_supply_quintiles:[c1,c2,c3,c4] } ]
+    indications : [ { indication_id, provider_count,
+        days_supply_mean, days_supply_median, days_supply_quintiles:[c1,c2,c3,c4] } ]
+    indications_served : [ indication_id ]
+  }
+}
+
+package "Indication map   <<public>>   keyed by indication_id" #e8f3f1 {
+  class "NormalizedIndication" as NI << (D,#cfe3de) one document per indication >> {
+    _id : indication_id
+    parent_indication    (CCSR clinical category, e.g. migraine)
+    disease_class        (CCSR body-system superclass)
+    .. embedded (indexed for reverse lookup) ..
+    member_icd10 : [ { icd10, justification_source } ]   {multikey index on icd10}
+    products : [ { rxcui, brand, molecule, justification_kind, trust } ]   {multikey indexes on rxcui and brand}
+  }
+}
+
+note bottom : Three collections, each a single document with embedded objects - resolved in one read, no runtime join.\nThe map's embedded arrays carry multikey indexes, so brand->indication, molecule->indication and ICD-10->indication stay fast reverse lookups.\nThe map's product associations are matched per product (brand + molecule) against the canonical ICD-10/CCSR vocabulary, each carrying its trust. NUCC asks, NPI answers.\nThe day-supply mean / median / quintile cut-points define the five tiers; this specialty benchmark lives on SpecialtyMedicare.
+@enduml

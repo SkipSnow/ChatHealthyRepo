@@ -60,7 +60,7 @@ from urllib.parse import urlparse
 
 import requests
 
-from pipeline.run_lifecycle.source_url_discovery import find_latest_data_url
+from pipeline.run_lifecycle.data_fetch_agent import find_latest_data_url
 from pipeline.run_lifecycle.throttle_semaphore import RateLimitedGate
 from chathealthy_lib.mongo_utilities import ChatHealthyMongoUtilities
 

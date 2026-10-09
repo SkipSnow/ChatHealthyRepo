@@ -3,29 +3,14 @@
 
 """data_fetch_agent.py -- the one data-fetching agent for every pipeline source.
 
-One agent, one entry (run). Its typed input branches by mode:
-
-  find   HOW to find the file's URL (the pointer):
-           direct_url          a stable constant URL.                   [det.]
-           dkan_catalog        latest downloadURL from a DKAN data.json
-                               catalog, by dataset title.               [det.]
-           static_page_latest  latest versioned link on a static page,
-                               by a declared suffix.                    [det.]
-           llm_discovery       an LLM reads the page and returns a URL
-                               when the pointer is not deterministic.   [LLM]
-
-  store  WHERE to put the bytes: file (just a path) or blob (account+auth
-         via a connection string, plus container and blob path).
-
-  stream whether to stream the bytes (affects download AND store). A switch:
-         true  -> the response streams straight to the store, chunk by chunk;
-         false -> the whole file is swallowed into memory and written once.
-         Never a temp disk file either way; true needs a buffer_size.
-
-The fetch is deterministic -- download and store never involve the LLM; only
-llm_discovery asks the model for the pointer. The agent fetches no secrets
-(the caller populates the request) and never reads the content it stores --
-ETL parses it downstream.
+A real pydantic-ai Agent. Input is FetchRequest, output is FetchResult, and the
+agent runs through the ChatHealthy LLM facade (chathealthy_lib.llm.run_llm_sync)
+on every fetch. It has one tool, fetch_source, which is the agent's output: the
+model produces its result by calling it. For a non-deterministic pointer the
+model reads the index page and passes the URL it found; for every other find
+mode the tool resolves the URL itself. The tool downloads and stores the bytes
+and returns the FetchResult -- the bytes never pass through the model, and the
+agent fetches no secrets (the caller populates the request).
 """
 from __future__ import annotations
 
@@ -33,11 +18,13 @@ import hashlib
 import json
 import os
 import urllib.request
+from dataclasses import dataclass
 from typing import Annotated, Literal, Union
 from urllib.parse import urljoin, urlparse
 
 import requests
 from pydantic import BaseModel, Field
+from pydantic_ai import Agent, RunContext
 
 from chathealthy_lib.logging_service import ChatHealthyLoggingService
 from chathealthy_lib.exceptions import ChatHealthyException
@@ -46,9 +33,11 @@ _log = ChatHealthyLoggingService()
 
 _DEFAULT_TIMEOUT = 600
 _UA = "ChatHealthy-Pipeline/1.0"
+_PAGE_HTML_CHARS = 32_000
+_URL_FORBIDDEN = frozenset(" \t\r\n'\"<>")
 
 
-# --- find spec: branches by mode; each carries only what it needs ----------- #
+# --- find spec: branches by mode -------------------------------------------- #
 class DirectUrlFind(BaseModel):
     mode: Literal["direct_url"] = "direct_url"
     url: str
@@ -70,7 +59,7 @@ class StaticPageLatestFind(BaseModel):
 class JsonManifestFind(BaseModel):
     mode: Literal["json_manifest"] = "json_manifest"
     manifest_url: str
-    json_path: list[Union[str, int]]      # keys/indices to walk to the URL string
+    json_path: list[Union[str, int]]
 
 
 class LlmDiscoveryFind(BaseModel):
@@ -86,8 +75,7 @@ FindSpec = Annotated[
 ]
 
 
-# --- store spec: branches by mode; file needs only a path, blob needs the
-#     account+auth (connection string) and container/path -------------------- #
+# --- store spec: branches by mode ------------------------------------------- #
 class FileStore(BaseModel):
     mode: Literal["file"] = "file"
     path: str
@@ -95,7 +83,7 @@ class FileStore(BaseModel):
 
 class BlobStore(BaseModel):
     mode: Literal["blob"] = "blob"
-    connection_string: str                # account + auth; the caller fetches it
+    connection_string: str
     container: str
     blob_path: str
 
@@ -104,22 +92,13 @@ StoreSpec = Annotated[Union[FileStore, BlobStore], Field(discriminator="mode")]
 
 
 class FetchRequest(BaseModel):
-    """Typed INPUT. find and store each branch by mode -- a file store carries
-    no blob fields, a blob store carries the account+auth and container/path.
-    The caller populates everything (including any secret it fetched)."""
+    """Typed INPUT. find and store each branch by mode. The caller populates
+    everything (including any secret it fetched)."""
     source_name: str
     find: FindSpec
     store: StoreSpec
-    stream: bool                          # stream the bytes (affects fetch + store)
-    buffer_size: int | None = None        # required when stream=True: chunk size in bytes
-
-
-class FindResult(BaseModel):
-    """What FIND produces -- the pointer facts. OUTPUT only."""
-    url: str
-    version_identifier: str | None = None
-    filename: str | None = None
-    published_date: str | None = None
+    stream: bool
+    buffer_size: int | None = None
 
 
 class FetchResult(BaseModel):
@@ -138,14 +117,27 @@ def _basename(url: str) -> str:
     return os.path.basename(urlparse(url).path) or ""
 
 
-# --------------------------------------------------------------------------- #
-# FIND -- answer where, by the find branch. Returns the pointer facts.         #
-# --------------------------------------------------------------------------- #
-def _find_direct_url(source_name: str, spec: DirectUrlFind) -> FindResult:
-    return FindResult(url=spec.url, filename=_basename(spec.url))
+def _is_valid_url(value: str) -> bool:
+    for scheme in ("https://", "http://"):
+        if value.startswith(scheme):
+            rest = value[len(scheme):]
+            return bool(rest) and not any(c in _URL_FORBIDDEN for c in rest)
+    return False
 
 
-def _find_dkan_catalog(source_name: str, spec: DkanCatalogFind) -> FindResult:
+# --- deterministic finders -- each answers WHERE for one mode. No model. ----- #
+class _FindFacts(BaseModel):
+    url: str
+    version_identifier: str | None = None
+    filename: str | None = None
+    published_date: str | None = None
+
+
+def _find_direct_url(source_name: str, spec: DirectUrlFind) -> _FindFacts:
+    return _FindFacts(url=spec.url, filename=_basename(spec.url))
+
+
+def _find_dkan_catalog(source_name: str, spec: DkanCatalogFind) -> _FindFacts:
     title = spec.dataset_title.strip()
     r = urllib.request.Request(spec.catalog_url, headers={"User-Agent": _UA,
                                                           "Accept": "application/json"})
@@ -180,11 +172,11 @@ def _find_dkan_catalog(source_name: str, spec: DkanCatalogFind) -> FindResult:
     edition = _edition(chosen) or None
     _log.LogPipeline("INFO", "data_fetch_agent[%s]: dkan_catalog edition=%s -> %s",
                      source_name, edition, url)
-    return FindResult(url=url, version_identifier=edition, filename=_basename(url),
+    return _FindFacts(url=url, version_identifier=edition, filename=_basename(url),
                       published_date=edition)
 
 
-def _find_static_page_latest(source_name: str, spec: StaticPageLatestFind) -> FindResult:
+def _find_static_page_latest(source_name: str, spec: StaticPageLatestFind) -> _FindFacts:
     suffix = spec.link_suffix.lower()
     resp = requests.get(spec.page_url, timeout=_DEFAULT_TIMEOUT, headers={"User-Agent": _UA})
     resp.raise_for_status()
@@ -205,15 +197,11 @@ def _find_static_page_latest(source_name: str, spec: StaticPageLatestFind) -> Fi
     url = urljoin(spec.page_url, best_href)
     _log.LogPipeline("INFO", "data_fetch_agent[%s]: static_page_latest -> %s",
                      source_name, url)
-    return FindResult(url=url, version_identifier=_token(best_href) or None,
+    return _FindFacts(url=url, version_identifier=_token(best_href) or None,
                       filename=_basename(url))
 
 
-def _find_json_manifest(source_name: str, spec: JsonManifestFind) -> FindResult:
-    """Deterministic: fetch a JSON manifest and walk a declared key/index path
-    to the download URL (e.g. openFDA download.json ->
-    results.drug.label.partitions[0].file). No LLM -- the pointer is a
-    deterministic lookup in structured JSON."""
+def _find_json_manifest(source_name: str, spec: JsonManifestFind) -> _FindFacts:
     r = urllib.request.Request(spec.manifest_url, headers={"User-Agent": _UA,
                                                            "Accept": "application/json"})
     with urllib.request.urlopen(r, timeout=_DEFAULT_TIMEOUT) as resp:
@@ -235,30 +223,19 @@ def _find_json_manifest(source_name: str, spec: JsonManifestFind) -> FindResult:
                      f"{spec.json_path} did not resolve to a URL (got {node!r})"))
     _log.LogPipeline("INFO", "data_fetch_agent[%s]: json_manifest -> %s",
                      source_name, node)
-    return FindResult(url=node, filename=_basename(node))
+    return _FindFacts(url=node, filename=_basename(node))
 
 
-def _find_llm_discovery(source_name: str, spec: LlmDiscoveryFind) -> FindResult:
-    from pipeline.run_lifecycle.source_url_discovery import find_latest_source_version  # noqa: PLC0415
-    facts = find_latest_source_version(source_name=source_name, page_url=spec.page_url,
-                                       instructions=spec.instructions or "")
-    return FindResult(url=facts["url"], version_identifier=facts.get("version_identifier"),
-                      filename=facts.get("filename"), published_date=facts.get("published_date"))
-
-
-_FIND = {
+_FIND_DETERMINISTIC = {
     "direct_url": _find_direct_url,
     "dkan_catalog": _find_dkan_catalog,
     "static_page_latest": _find_static_page_latest,
     "json_manifest": _find_json_manifest,
-    "llm_discovery": _find_llm_discovery,
 }
 
 
-# --------------------------------------------------------------------------- #
-# Acquire -- response straight to the store, OR whole into memory then store.  #
-# A switch (stream). NEVER a temp disk file. Never reads the content.          #
-# --------------------------------------------------------------------------- #
+# --- acquire: response straight to the store, OR whole into memory then store. #
+#     A switch (stream). NEVER a temp disk file. Never reads the content. ----- #
 def _acquire(url: str, *, source_name: str, store: Union[FileStore, BlobStore],
              stream: bool, buffer_size: int, headers: dict | None,
              http_timeout: int) -> tuple[str, int, dict]:
@@ -273,14 +250,14 @@ def _acquire(url: str, *, source_name: str, store: Union[FileStore, BlobStore],
         resp = requests.get(url, stream=stream, timeout=http_timeout, headers=hdrs)
         resp.raise_for_status()
         with open(store.path, "wb") as dst:
-            if stream:                           # response -> file, chunk by chunk
+            if stream:
                 for chunk in resp.iter_content(chunk_size=buffer_size):
                     if not chunk:
                         continue
                     dst.write(chunk)
                     hasher.update(chunk)
                     size += len(chunk)
-            else:                                # whole into memory, write once
+            else:
                 data = resp.content
                 dst.write(data)
                 hasher.update(data)
@@ -290,8 +267,6 @@ def _acquire(url: str, *, source_name: str, store: Union[FileStore, BlobStore],
         return hasher.hexdigest(), size, {
             "store_mode": "file", "path": store.path, "size_bytes": size}
 
-    # BlobStore -- build the client from the connection string the caller put
-    # in the request; the agent fetches no secret of its own.
     from azure.storage.blob import BlobServiceClient  # noqa: PLC0415
     svc = BlobServiceClient.from_connection_string(store.connection_string)
     cc = svc.get_container_client(store.container)
@@ -302,7 +277,7 @@ def _acquire(url: str, *, source_name: str, store: Union[FileStore, BlobStore],
     bc = cc.get_blob_client(store.blob_path)
     resp = requests.get(url, stream=stream, timeout=http_timeout, headers=hdrs)
     resp.raise_for_status()
-    if stream:                                   # response -> blob, chunk by chunk
+    if stream:
         counter = {"n": 0}
 
         def _hashing_chunks():
@@ -315,7 +290,7 @@ def _acquire(url: str, *, source_name: str, store: Union[FileStore, BlobStore],
 
         bc.upload_blob(_hashing_chunks(), overwrite=True, length=None)
         size = counter["n"]
-    else:                                        # whole into memory, upload once
+    else:
         data = resp.content
         hasher.update(data)
         size = len(data)
@@ -327,46 +302,187 @@ def _acquire(url: str, *, source_name: str, store: Union[FileStore, BlobStore],
         "blob_path": store.blob_path, "size_bytes": size}
 
 
-def find_url(source_name: str, find_spec) -> str:
-    """Resolve only the pointer (URL) for a source via its find mode. Used by
-    callers that do their own download/store but want the agent's deterministic
-    (or llm_discovery) WHERE. Never downloads."""
-    finder = _FIND.get(find_spec.mode)
-    if finder is None:
+# --------------------------------------------------------------------------- #
+# The agent: input FetchRequest, output FetchResult, one tool, model every run. #
+# --------------------------------------------------------------------------- #
+@dataclass
+class _Deps:
+    request: FetchRequest
+    headers: dict | None
+    http_timeout: int
+    download: bool                        # False for a discover-only run
+
+
+def _resolve_discovered(req: FetchRequest, discovered_url: str | None) -> _FindFacts:
+    if not discovered_url or not str(discovered_url).strip():
         raise ChatHealthyException(
-            mode="runtime_error", component="data_fetch_agent",
-            message=f"data_fetch_agent[{source_name}]: unknown find mode {find_spec.mode!r}")
-    return finder(source_name, find_spec).url
+            mode="discovery_no_matching_file", component="data_fetch_agent",
+            message=(f"data_fetch_agent[{req.source_name}]: llm_discovery produced "
+                     f"no URL for {getattr(req.find, 'page_url', '')}"))
+    clean = str(discovered_url).strip().strip("`<>\"' \t\n")
+    if not clean.startswith("http"):
+        clean = urljoin(getattr(req.find, "page_url", ""), clean)
+    if not _is_valid_url(clean):
+        raise ChatHealthyException(
+            mode="discovery_bad_url", component="data_fetch_agent",
+            message=(f"data_fetch_agent[{req.source_name}]: unusable URL from "
+                     f"discovery: {clean!r}"))
+    return _FindFacts(url=clean, filename=_basename(clean))
+
+
+def fetch_source(ctx: RunContext[_Deps], discovered_url: str | None = None) -> FetchResult:
+    """The agent's one tool and its output. Resolve the source's download URL --
+    deterministically for every find mode except llm_discovery, where the agent
+    passes the discovered_url it read from the index page -- then download and
+    store the bytes and return the FetchResult. The bytes never reach the model.
+    """
+    req = ctx.deps.request
+    if req.find.mode == "llm_discovery":
+        facts = _resolve_discovered(req, discovered_url)
+    else:
+        finder = _FIND_DETERMINISTIC.get(req.find.mode)
+        if finder is None:
+            raise ChatHealthyException(
+                mode="runtime_error", component="data_fetch_agent",
+                message=(f"data_fetch_agent[{req.source_name}]: unknown find mode "
+                         f"{req.find.mode!r}"))
+        facts = finder(req.source_name, req.find)
+    if not ctx.deps.download:
+        return FetchResult(source_name=req.source_name, url=facts.url,
+                           version_identifier=facts.version_identifier,
+                           filename=facts.filename, published_date=facts.published_date,
+                           sha256="", size_bytes=0, stored={"store_mode": "none"})
+    buffer_size = req.buffer_size or (1024 * 1024)
+    sha256, size, stored = _acquire(
+        facts.url, source_name=req.source_name, store=req.store, stream=req.stream,
+        buffer_size=buffer_size, headers=ctx.deps.headers, http_timeout=ctx.deps.http_timeout)
+    return FetchResult(source_name=req.source_name, url=facts.url,
+                       version_identifier=facts.version_identifier, filename=facts.filename,
+                       published_date=facts.published_date, sha256=sha256,
+                       size_bytes=size, stored=stored)
+
+
+_INSTRUCTIONS = (
+    "You are the ChatHealthy data-fetch agent. You fetch exactly one source per "
+    "run and you never read the file's contents. Produce your result by calling "
+    "fetch_source exactly once. If the request's find mode is llm_discovery, "
+    "first read the index page HTML given in your prompt, locate the single "
+    "correct download URL the instructions describe, and call fetch_source with "
+    "discovered_url set to exactly that URL. For every other find mode, call "
+    "fetch_source with no arguments -- it resolves the URL itself. The source "
+    "request is in your run dependencies."
+)
+
+_AGENT = None
+
+
+def _model_name() -> str:
+    model = os.getenv("CH_URL_DISCOVERY_MODEL", "").strip()
+    if not model:
+        raise ChatHealthyException(
+            mode="config_error", component="data_fetch_agent",
+            message=("data_fetch_agent: CH_URL_DISCOVERY_MODEL is not set "
+                     "(expected a 'provider:model' string); there is no fallback."))
+    return model
+
+
+def _agent():
+    """The one pydantic-ai Agent, built once per process. Model from the env; no
+    vendor pinned in source (BUG-003)."""
+    global _AGENT
+    if _AGENT is None:
+        _AGENT = Agent(_model_name(), name="data_fetch_agent", deps_type=_Deps,
+                       output_type=fetch_source, instructions=_INSTRUCTIONS,
+                       retries=3)
+    return _AGENT
+
+
+def _fetch_page_html(source_name: str, page_url: str, timeout_sec: int) -> str:
+    try:
+        resp = requests.get(page_url, timeout=timeout_sec, headers={"User-Agent": _UA})
+        resp.raise_for_status()
+    except Exception as exc:
+        raise ChatHealthyException(
+            mode="discovery_page_fetch_failed", component="data_fetch_agent",
+            message=(f"data_fetch_agent[{source_name}]: cannot fetch index page "
+                     f"{page_url}: {exc}"), exception=exc) from exc
+    html = resp.text[:_PAGE_HTML_CHARS]
+    if not html.strip():
+        raise ChatHealthyException(
+            mode="discovery_page_empty", component="data_fetch_agent",
+            message=(f"data_fetch_agent[{source_name}]: index page {page_url} "
+                     f"returned empty body"))
+    return html
+
+
+def _prompt(request: FetchRequest) -> str:
+    lines = [f"Fetch source {request.source_name!r}. find mode: {request.find.mode}."]
+    if request.find.mode == "llm_discovery":
+        html = _fetch_page_html(request.source_name, request.find.page_url, 60)
+        lines += [f"instructions: {request.find.instructions or '(none)'}",
+                  f"page_url: {request.find.page_url}",
+                  "The index page HTML is between the markers; find the one download "
+                  "URL and pass it as discovered_url.",
+                  "<<<PAGE_HTML>>>", html, "<<<END_PAGE_HTML>>>"]
+    else:
+        lines.append("Call fetch_source with no arguments.")
+    return "\n".join(lines)
+
+
+def _run(request: FetchRequest, *, download: bool, headers: dict | None,
+         http_timeout: int) -> FetchResult:
+    from chathealthy_lib.llm import run_llm_sync  # noqa: PLC0415
+    deps = _Deps(request=request, headers=headers, http_timeout=http_timeout,
+                 download=download)
+    model = _model_name()
+    provider = model.split(":", 1)[0] if ":" in model else model
+    result = run_llm_sync(_agent(), _prompt(request),
+                          call_site=f"data_fetch_agent:{request.source_name}",
+                          provider=provider, server="pipeline",
+                          component="data_fetch_agent", deps=deps)
+    out = getattr(result, "output", None)
+    if not isinstance(out, FetchResult):
+        raise ChatHealthyException(
+            mode="data_fetch_incomplete", component="data_fetch_agent",
+            message=(f"data_fetch_agent[{request.source_name}]: the agent did not "
+                     f"return a FetchResult"))
+    return out
 
 
 # --------------------------------------------------------------------------- #
-# The data-fetching agent -- one entry: find -> acquire (stream|memory).       #
+# Public entries.                                                             #
 # --------------------------------------------------------------------------- #
 def run(request: FetchRequest, *, headers: dict | None = None,
         http_timeout: int = _DEFAULT_TIMEOUT) -> FetchResult:
-    """Run the agent: FIND the url by the find branch, then acquire the bytes to
-    the store -- streamed chunk-by-chunk when request.stream, else swallowed
-    whole into memory and written once. No temp disk. The caller populates the
-    request (including any blob connection string it fetched); the agent fetches
-    no secrets. Deterministic except the llm_discovery find mode."""
+    """Run the agent end to end: find the URL, download, store. Streamed
+    chunk-by-chunk when request.stream, else swallowed whole into memory and
+    written once. No temp disk."""
     if request.stream and not request.buffer_size:
         raise ChatHealthyException(
             mode="runtime_error", component="data_fetch_agent",
             message=(f"data_fetch_agent[{request.source_name}]: stream=True requires "
                      f"a buffer_size"))
-    buffer_size = request.buffer_size or (1024 * 1024)
-    finder = _FIND.get(request.find.mode)
-    if finder is None:
-        raise ChatHealthyException(
-            mode="runtime_error", component="data_fetch_agent",
-            message=(f"data_fetch_agent[{request.source_name}]: unknown find mode "
-                     f"{request.find.mode!r}"))
-    found = finder(request.source_name, request.find)
-    sha256, size, stored = _acquire(
-        found.url, source_name=request.source_name, store=request.store,
-        stream=request.stream, buffer_size=buffer_size, headers=headers,
-        http_timeout=http_timeout)
-    return FetchResult(source_name=request.source_name, url=found.url,
-                       version_identifier=found.version_identifier,
-                       filename=found.filename, published_date=found.published_date,
-                       sha256=sha256, size_bytes=size, stored=stored)
+    return _run(request, download=True, headers=headers, http_timeout=http_timeout)
+
+
+def find_latest_source_version(*, source_name: str, page_url: str, instructions: str,
+                               timeout_sec: int = 60) -> dict:
+    """Discover-only: run the agent to locate the latest file's URL on an index
+    page, without downloading. Used by callers that do their own download."""
+    request = FetchRequest(
+        source_name=source_name,
+        find=LlmDiscoveryFind(page_url=page_url, instructions=instructions),
+        store=FileStore(path=""), stream=False)
+    out = _run(request, download=False, headers=None, http_timeout=timeout_sec)
+    _log.LogPipeline("INFO", "data_fetch_agent[%s]: discovery resolved url=%s",
+                     source_name, out.url)
+    return {"url": out.url, "version_identifier": out.version_identifier,
+            "filename": out.filename or _basename(out.url),
+            "published_date": out.published_date}
+
+
+def find_latest_data_url(*, source_name: str, page_url: str, instructions: str,
+                         timeout_sec: int = 60) -> str:
+    """URL-only shim over find_latest_source_version."""
+    return find_latest_source_version(source_name=source_name, page_url=page_url,
+                                      instructions=instructions, timeout_sec=timeout_sec)["url"]

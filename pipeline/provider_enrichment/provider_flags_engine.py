@@ -230,7 +230,7 @@ def _apply_flags_to_doc(
 
     When the provider carries no primary taxonomy code at all, returns None
     without recording anything: there is nothing to classify, so the clinical
-    flags are left absent (EPIC-010-F-004-S-009).
+    flags are left absent (EPIC-010-F-005-S-009).
 
     When the primary taxonomy code is present but absent from the F-105 catalog:
       - If `discrepancy_sink` was provided, invoke it with a
@@ -247,7 +247,7 @@ def _apply_flags_to_doc(
 
     if not (doc.get("primary_taxonomy_code") or "").strip():
         # No primary taxonomy -> nothing to classify; clinical flags are left
-        # absent (EPIC-010-F-004-S-009: flags are left absent for any taxonomy
+        # absent (EPIC-010-F-005-S-009: flags are left absent for any taxonomy
         # the vocabulary does not classify). A deactivated/blanked NPPES row
         # (NPI + deactivation date only) reaches here, as does any provider
         # NPPES designated no primary taxonomy for. Not a finding, warning, or

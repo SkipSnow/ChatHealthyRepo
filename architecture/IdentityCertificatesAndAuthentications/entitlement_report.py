@@ -113,147 +113,19 @@ BAND = colors.HexColor("#f2f2f2")
 FLAG = colors.HexColor("#a3231d")
 OK = colors.HexColor("#1f6b34")
 
-def _approved_register(source: str = "") -> tuple[dict[str, tuple], str]:
-    """The approved population, read from the register the build baked.
-
-    This used to be a dict written into this file. That made the audit grade
-    itself against its own answer key: the literal was authored to match what
-    Azure held, so the report printed zero exceptions by construction, and an
-    identity added to the estate appeared nowhere at all.
-
-    The register is derived from IdentityCatalog in deployment_architecture.json
-    at build time and shipped beside this runbook, because Azure Automation has
-    no git tree. So the approved population changes only by deploying a changed
-    manifest -- and a manifest change to IdentityCatalog needs operator approval
-    under Rule-065-ENF-005 -- while the observed population is enumerated live
-    on every run. The two are never the same source.
-
-    A missing register is fatal. Falling back to a built-in list would restore
-    exactly the defect this replaces, and a report that cannot say what was
-    approved must not print a number that reads as though it could.
-    """
-    # Inside Azure Automation the runbook is a single file: nothing staged
-    # beside it is deployed, so the build injects the register as a module
-    # global instead. This file carries no population of its own; the value is
-    # derived from IdentityCatalog at build time on every build.
-    injected = globals().get("_BAKED_IDENTITY_REGISTER")
-    if injected:
-        register = {}
-        for e in injected.get("identities", []):
-            oid = (e.get("object_id") or "").strip()
-            if not oid:
-                continue
-            register[oid] = (
-                e.get("identity_id", ""),
-                "",  # descriptions are read from the directory, not from here
-                e.get("actor_type", ""),
-                e.get("entra_object_type", "") or e.get("identity_class", ""),
-                e.get("application", ""),
-                tuple(e.get("roles", []) or ()),
-            )
-        src = injected.get("source") or {}
-        where = (f"{src.get('environment','?')} build {src.get('build','?')} "
-                 f"commit {src.get('commit','?')}")
-        return register, where
-
-    # Named explicitly, the manifest is fetched from that environment rather
-    # than read from whatever happens to be on disk. A report run against dev
-    # while reading a workstation`s edits states a register nobody deployed.
-    if source:
-        url = (f"https://{source}.chathealthy.ai/schemas/deployment_architecture.json"
-               if not source.startswith("http") else source)
-        r = requests.get(url, timeout=60)
-        if r.status_code != 200:
-            raise ChatHealthyException(
-                mode="config_error", component="entitlement_report",
-                message=f"cannot fetch the identity register from {url}: "
-                        f"HTTP {r.status_code}")
-        entries = r.json().get("IdentityCatalog", [])
-        register = {}
-        for e in entries:
-            oid = (e.get("object_id") or "").strip()
-            if oid:
-                register[oid] = (
-                    e.get("identity_id", ""), "",
-                    e.get("actor_type", ""),
-                    e.get("entra_object_type", "") or e.get("identity_class", ""),
-                    e.get("application", ""), tuple(e.get("roles", []) or ()))
-        return register, url
-
-    def _build(entries):
-        register = {}
-        for e in entries:
-            oid = (e.get("object_id") or "").strip()
-            if not oid:
-                continue
-            register[oid] = (
-                e.get("identity_id", ""),
-                "",  # descriptions are read from the directory, not from here
-                e.get("actor_type", ""),
-                e.get("entra_object_type", "") or e.get("identity_class", ""),
-                e.get("application", ""),
-                tuple(e.get("roles", []) or ()),
-            )
-        return register
-
-    here = Path(__file__).resolve().parent
-    baked = here / "entitlement_report_identity_register.json"
-    if baked.is_file():
-        data = json.loads(baked.read_text(encoding="utf-8"))
-        return (_build(data.get("identities") or data.get("IdentityCatalog") or []),
-                f"{baked.name}, deployed with this build")
-
-    # Off the branch, never off the disk. The approved population is the
-    # control this report measures against; a control a run can edit before
-    # measuring is not one. git show reads the committed bytes whatever the
-    # working tree says.
-    if _root is not None:
-        import subprocess  # noqa: PLC0415
-        rel = "brain/machine_artifacts/content/deployment_architecture.json"
-        try:
-            branch = subprocess.run(
-                ["git", "rev-parse", "--abbrev-ref", "HEAD"], cwd=str(_root),
-                capture_output=True, text=True, check=True).stdout.strip()
-            ref = f"origin/{branch}"
-            commit = subprocess.run(
-                ["git", "rev-parse", "--short", ref], cwd=str(_root),
-                capture_output=True, text=True, check=True).stdout.strip()
-            blob = subprocess.run(
-                ["git", "show", f"{ref}:{rel}"], cwd=str(_root),
-                capture_output=True, text=True, check=True).stdout
-        except Exception as exc:  # noqa: BLE001 - reported, not swallowed
-            raise ChatHealthyException(
-                mode="config_error",
-                component="entitlement_report",
-                message=(f"the approved register could not be read from "
-                         f"{rel} on the branch: {exc}. The report does not "
-                         f"fall back to the working tree, because a control "
-                         f"the run can edit is not a control."),
-                exception=exc)
-        data = json.loads(blob)
-        return (_build(data.get("IdentityCatalog") or []),
-                f"deployment_architecture.json at {ref} {commit}")
-    from chathealthy_lib.exceptions import ChatHealthyException
-    raise ChatHealthyException(
-        mode="config_error",
-        component="entitlement_report",
-        message=("no identity register found. Expected "
-                 "entitlement_report_identity_register.json beside this file "
-                 "(baked by the build) or deployment_architecture.json in the "
-                 "repository. The report will not run against a built-in list."))
-
-
-# The read is separated from the logging of it: a function that raises does
-# not also log, because the catcher logs and not the thrower.
-_REGISTER_ARG = ""
-for _i, _a in enumerate(sys.argv):
-    if _a == "--register-from" and _i + 1 < len(sys.argv):
-        _REGISTER_ARG = sys.argv[_i + 1]
-    elif _a.startswith("--register-from="):
-        _REGISTER_ARG = _a.split("=", 1)[1]
-APPROVED, _REGISTER_SOURCE = _approved_register(_REGISTER_ARG)
-_LOG.info("entitlement_report approved register read from %s (%d identities)",
-          _REGISTER_SOURCE, len(APPROVED))
+# The approved population is not a list this file carries, and not a manifest
+# the build bakes from deployment_architecture.json. It is membership of the
+# firm's agent and human group hierarchy in the LIVE directory: a principal is
+# approved exactly when Entra places it, directly or through nesting, into one
+# of these groups. Reading it from the directory on every run is the whole
+# point. A list authored to match what Azure held made the audit grade itself
+# against its own answer key -- it printed zero exceptions by construction and
+# an identity added to the estate appeared nowhere at all. And deployment
+# architecture is the file this report audits, written by the same hands, so it
+# can never also be the control the report measures against. The directory read
+# that establishes this population fails hard; it never falls back to a baked or
+# built-in list.
+APPROVED_GROUPS = ("agents", "humans", "ideAgents", "runtimeAgents")
 
 # Roles that confer administrative authority over the subscription or over
 # who may hold rights within it. Their presence is the thing an auditor looks
@@ -472,11 +344,12 @@ def _population_sentence(data: dict) -> str:
     else:
         parts[0] += "."
     parts.append(
-        f"{_n(len(approved), 'appears', 'appear')} in the approved register and "
-        f"{_n(len(outside), 'does', 'do')} not.")
+        f"{_n(len(approved), 'appears', 'appear')} in the approved population "
+        f"-- a member of the firm's agent or human groups in the directory -- "
+        f"and {_n(len(outside), 'does', 'do')} not.")
     if absent:
         parts.append(
-            f"{_n(len(absent), 'identity in the register holds', 'identities in the register hold')} "
+            f"{_n(len(absent), 'identity in the approved population holds', 'identities in the approved population hold')} "
             f"no rights here: {', '.join(absent)}.")
     return " ".join(parts)
 
@@ -1151,9 +1024,8 @@ def _vaults_and_certificates(token: str, subscription_ids: list[str]) -> tuple[l
 
     Named rather than asserted: the count and the vault names are what make the
     scope paragraph a measurement instead of a claim. A secret is treated as
-    certificate material when a role assignment in this estate points at it and
-    its name is carried by the identity register, or when it is named for a
-    certificate -- both are read, neither is typed.
+    certificate material when a role assignment points at it and its name is a
+    certificate name -- read, not typed.
     """
     vaults: list[str] = []
     certs: list[str] = []
@@ -1164,7 +1036,6 @@ def _vaults_and_certificates(token: str, subscription_ids: list[str]) -> tuple[l
             name = v.get("name", "")
             if name and name not in vaults:
                 vaults.append(name)
-    known = {v[0] for v in APPROVED.values() if v[0]}
     for sid in subscription_ids:
         for row in _get_all(f"{ARM}/subscriptions/{sid}/providers"
                             f"/Microsoft.Authorization/roleAssignments"
@@ -1175,7 +1046,7 @@ def _vaults_and_certificates(token: str, subscription_ids: list[str]) -> tuple[l
             secret = scope.split("/secrets/", 1)[1]
             if secret in certs:
                 continue
-            if secret in known or secret.startswith(("cert-", "key-", "ca-")):
+            if secret.startswith(("cert-", "key-", "ca-")):
                 certs.append(secret)
     return sorted(vaults), sorted(certs)
 
@@ -1880,6 +1751,25 @@ def collect() -> dict:
     token = credential.get_token(f"{ARM}/.default").token
     group_membership, group_descriptions, group_owners, groups_readable = _group_tree(credential)
 
+    # Approval is a fact read from the live directory: a principal is approved
+    # when Entra places it in one of the firm's agent or human groups. The
+    # groups ARE the control, so a run that cannot read them cannot state who is
+    # approved, and it stops here rather than fall back to any baked or built-in
+    # list.
+    if not groups_readable:
+        raise ChatHealthyException(
+            mode="azure_query_failed",
+            component="EntitlementReport",
+            message=("the approved population is Entra group membership and the "
+                     "directory groups could not be read on this run; the report "
+                     "does not fall back to a baked or built-in list."))
+
+    def _approved(object_id: str) -> bool:
+        """Approved iff a member -- directly or through nesting -- of one of the
+        firm's agent or human groups, as the directory resolves membership."""
+        return any(name in APPROVED_GROUPS
+                   for name in group_membership.get(object_id, ()))
+
     subscriptions = _subscriptions(token, credential)
 
     # Every subscription the reporting identity can see is walked. Aggregating
@@ -1933,6 +1823,26 @@ def collect() -> dict:
     names = _managed_identity_names(token, [s['id'] for s in subscriptions])
     graph_names = _principal_names(oids, credential)
     names.update(graph_names)
+
+    # A principal that holds a grant but did not come back from getByIds is not
+    # thereby absent from the directory: the live enumeration of service
+    # principals and users (existing) resolves objects that getByIds omits. A
+    # role assignment's principalId is the service-principal or user object id,
+    # which is exactly the id existing is keyed by, so the two reconcile on it.
+    # Only a principal in neither -- genuinely gone -- is later called "no
+    # directory record".
+    for oid in oids:
+        if oid in names:
+            continue
+        live = existing.get(oid)
+        if live:
+            names[oid] = {
+                "name": live.get("name") or oid,
+                "kind": live.get("kind", ""),
+                "description": (live.get("description") or "").strip(),
+                "record": "live",
+                "qualities": {},
+            }
 
     sub_ids = tuple(s["id"] for s in subscriptions)
     role_contains = _role_containment(all_defs)
@@ -2008,36 +1918,30 @@ def collect() -> dict:
     for r in rows:
         p = r["properties"]
         oid = p["principalId"]
-        approved = APPROVED.get(oid)
         known = names.get(oid)
         entry = holders.setdefault(oid, {
             "object_id": oid,
-            "name": approved[0] if approved else (known["name"] if known else ""),
-            # From the directory, never from the register. The register says
-            # who is approved to exist; it does not get to say what they are.
+            "name": known["name"] if known else "",
+            # Everything describing the holder is read from the directory. What
+            # it is, and what it is for, are the directory's to state, never a
+            # manifest's.
             "purpose": (known.get("description", "") if known else ""),
             # Group membership is the directory's own answer to "what kind of
-            # thing is this" -- a person put it there. actor_type from the
-            # register is the second opinion, and the two disagreeing is
-            # itself worth seeing.
+            # thing is this" -- a person put it there -- and it is the same fact
+            # the approval determination reads.
             "groups": sorted(group_membership.get(oid, [])),
-            "actor_type": approved[2] if approved else "",
-            "entra_object_type": (approved[3] if approved else
-                                  (known["kind"] if known
-                                   else p.get("principalType", ""))),
-            "application": approved[4] if approved else "",
-            "declared_roles": list(approved[5]) if approved else [],
+            "entra_object_type": (known["kind"] if known
+                                  else p.get("principalType", "")),
             "type": known["kind"] if known else p.get("principalType", "Unknown"),
-            "approved": approved is not None,
+            "approved": _approved(oid),
             "resolvable": known is not None,
             "record": (known or {}).get("record", "none"),
             "qualities": (known or {}).get("qualities", {}),
-            # A principal that does not resolve in the directory has been
-            # deleted; its assignment outlived it. That is not "outside the
-            # approved register" -- no register can contain a deleted object,
-            # and listing it as one invites someone to add it rather than
-            # remove the grant.
-            "orphaned": known is None and approved is None,
+            # A principal that does not resolve in the directory at all -- not
+            # as a live object and not as a deleted one -- no longer exists; its
+            # assignment outlived it. That is an orphaned grant, not an identity
+            # outside the approved population.
+            "orphaned": known is None,
             "grants": [],
         })
         role_name = roles.get(p["roleDefinitionId"].rsplit("/", 1)[-1],
@@ -2080,26 +1984,32 @@ def collect() -> dict:
     for oid, meta in sorted(existing.items(), key=lambda kv: kv[1]["name"].lower()):
         if oid in holders:
             continue
-        approved = APPROVED.get(oid)
-        # A principal holding nothing is an exception whether or not the
-        # register names it. Being declared does not make an orphan expected:
-        # something brought it into existence and nothing uses it, and that is
-        # the fact a reviewer must see. It is listed unapproved, with a note
-        # saying what is true of it.
+        in_population = _approved(oid)
+        # A principal holding nothing is worth seeing either way. One not in the
+        # approved population is the real exception: something brought it into
+        # existence, nobody classified it, and nothing uses it. One that IS in
+        # the population is an approved identity holding no rights, carried below
+        # as approved_absent.
         rightless.append({
             "object_id": oid,
-            "name": approved[0] if approved else meta["name"],
+            "name": meta["name"],
             "type": meta["kind"],
-            "actor_type": approved[2] if approved else "",
-            "application": approved[4] if approved else "",
             "origin": meta["origin"],
-            "approved": False,
-            "note": ("holds no rights; named in the approved register"
-                     if approved is not None
-                     else "holds no rights; not in the approved register"),
+            "approved": in_population,
+            "note": ("holds no rights; in the approved population"
+                     if in_population
+                     else "holds no rights; not in the approved population"),
         })
 
-    missing = [v[0] for k, v in APPROVED.items() if k not in holders]
+    # Approved identities -- members of the firm's agent or human groups -- that
+    # hold no rights here. The population is the directory's; the names are what
+    # the directory resolved, never a manifest's.
+    approved_oids = {oid for oid in group_membership if _approved(oid)}
+    missing = sorted(
+        (existing.get(oid, {}).get("name")
+         or (names.get(oid) or {}).get("name")
+         or oid)
+        for oid in approved_oids if oid not in holders)
 
     # Who answers for each principal and each group. Delegation is a fact about
     # authority as much as any role assignment, and it lives only here.
@@ -2214,7 +2124,8 @@ def collect() -> dict:
         "generated": _dt.datetime.now(_dt.timezone.utc),
         "holders": holders_list,
         "assignment_count": len(rows),
-        "names_resolved": bool(graph_names),
+        "names_resolved": bool(graph_names) or any(
+            m["origin"] == "directory" for m in existing.values()),
         "secret_descriptions": _secret_descriptions(),
         "rightless": rightless,
         "directory_enumerated": any(m["origin"] == "directory" for m in existing.values()),
@@ -2303,7 +2214,7 @@ def _page_furniture(canvas, doc):
     canvas.drawString(0.5 * inch, h - 0.52 * inch,
                       "ChatHealthy.ai  |  Access entitlement report  |  Confidential  |  "
                       + getattr(doc, "ch_stamp", "")
-                      + "  |  register: " + getattr(doc, "ch_register", ""))
+                      + "  |  approved via: " + getattr(doc, "ch_approved_source", ""))
     # Page n of m. The total is known only after the first pass, so the document
     # is built twice and the count carried between them; a page numbered without
     # its total cannot tell a reader whether the report is complete.
@@ -2360,7 +2271,7 @@ def render_pdf(data: dict, out_path: Path) -> Path:
     # it is this morning's.
     stamp = _produced_on_pacific(data["generated"])
     doc.ch_stamp = stamp
-    doc.ch_register = _REGISTER_SOURCE
+    doc.ch_approved_source = "Entra groups " + ", ".join(APPROVED_GROUPS)
     # A principal holding nothing belongs here too. unapproved read only from
     # holders - identities that hold rights - so an orphan could not appear in
     # it by construction, and the section that exists to surface exceptions
@@ -2373,14 +2284,13 @@ def render_pdf(data: dict, out_path: Path) -> Path:
         "purpose": r.get("note", ""),
         "purpose_source": "Observed by this run",
         "groups": [],
-        "actor_type": r.get("actor_type", ""),
         "entra_object_type": r["type"],
-        "application": r.get("application", ""),
-        "declared_roles": [],
         "type": r["type"],
         "approved": False,
         "resolvable": True,
-        "record": "none",
+        # Drawn from the live directory enumeration, so it exists: a rightless
+        # principal is never "no directory record".
+        "record": "live",
         "qualities": {},
         "orphaned": False,
         "grants": [],
@@ -2677,17 +2587,18 @@ def render_pdf(data: dict, out_path: Path) -> Path:
         ["Identities holding rights", str(len(data["holders"]))],
         ["  of those, named people", str(len(people))],
         ["  of those, components", str(len(components))],
-        ["Identities in the approved register", f"{len(approved)} of {len(APPROVED)}"],
+        ["Identities in the approved population",
+         f"{len(approved)} of {len(approved) + len(data['approved_absent'])} hold rights"],
         # Counted from the holders, not from `unapproved`: that list is
         # extended below with identities holding NO rights, so using it
         # here put two populations under a label naming one and reported 3
         # where the answer is 0.
-        ["Holding rights but not in the register",
+        ["Holding rights but not in the approved population",
          str(len([h for h in data["holders"]
                   if not h["approved"] and not h.get("orphaned")]))],
-        ["Holding no rights and not in the register",
+        ["Holding no rights and not in the approved population",
          str(len([r for r in data["rightless"] if not r["approved"]]))],
-        ["In the register but holding no rights", str(len(data["approved_absent"]))],
+        ["In the approved population but holding no rights", str(len(data["approved_absent"]))],
         ["Secrets in the vaults",
          (f"not measured -- {'; '.join(data['vault_read_failures'])[:120]}"
           if data.get("vault_read_failures")
@@ -2731,8 +2642,8 @@ def render_pdf(data: dict, out_path: Path) -> Path:
                 return i
         return None
 
-    for label in ("Holding rights but not in the register",
-                  "In the register but holding no rights",
+    for label in ("Holding rights but not in the approved population",
+                  "In the approved population but holding no rights",
                   "Orphaned assignments"):
         i = _row(label)
         if i is None:
@@ -2756,9 +2667,9 @@ def render_pdf(data: dict, out_path: Path) -> Path:
         story.append(Spacer(1, 8))
         story.append(Paragraph(
             "Directory names were unavailable when this report ran: the reporting identity "
-            "holds no Microsoft Graph directory-read permission. Approved identities are "
-            "named from the firm's pinned register; all others are identified by object id "
-            "alone. Granting Directory.Read.All to the reporting identity resolves this.",
+            "holds no Microsoft Graph directory-read permission. Principals are identified "
+            "by object id alone. Granting Directory.Read.All to the reporting identity "
+            "resolves this.",
             note))
 
     # The header travels with the first principal. A page break can be told
@@ -2829,7 +2740,7 @@ def render_pdf(data: dict, out_path: Path) -> Path:
                                "more than one principal.", body))
 
     story.append(Paragraph(
-        f"Principals outside the approved list ({len(unapproved)})", sub_sec))
+        f"Principals outside the approved population ({len(unapproved)})", sub_sec))
     if unapproved:
         for h in unapproved:
             story.append(KeepTogether(_block(h)))
@@ -2955,9 +2866,9 @@ def render_pdf(data: dict, out_path: Path) -> Path:
     # out they were the same user, which is the join this report exists
     # to make.
     #
-    # What remains here is the credentials no identity in the register
-    # answers for, which is a finding rather than a leftover: a way into
-    # the data with nobody named against it.
+    # What remains here is the credentials no identity answers for, which is a
+    # finding rather than a leftover: a way into the data with nobody named
+    # against it.
     atlas = data.get("atlas") or {}
     story.append(Spacer(1, 8))
     if not atlas.get("readable"):
@@ -2968,10 +2879,10 @@ def render_pdf(data: dict, out_path: Path) -> Path:
             "not the same as there being none.", sub_sec))
     else:
         every_user = atlas.get("users") or []
-        # Both lists, because an identity outside the register still gets
-        # its own entry -- in section 3 rather than here -- and its
-        # database credential is rendered there with it. Counting only the
-        # approved would list that credential a second time as unheld.
+        # Both lists, because an unapproved identity still gets its own entry
+        # -- in section 3 rather than here -- and its database credential is
+        # rendered there with it. Counting only the approved would list that
+        # credential a second time as unheld.
         claimed = {u.get("username")
                    for h in approved + unapproved
                    for u in database_users_of(h["name"], atlas)}
@@ -3363,11 +3274,6 @@ def main(argv: list[str] | None = None) -> int:
     ap.add_argument("--no-email", action="store_true",
                     help="render the PDF and skip the send")
     ap.add_argument("--out", default="", help="where to write the PDF")
-    ap.add_argument("--register-from", default="",
-                    help="environment whose deployment_architecture.json supplies the "
-                         "approved register (dev|qa|prod), or a full URL. Omitted, the "
-                         "register is the one baked into this runbook, or the repository "
-                         "copy when running from a working tree.")
     args = ap.parse_args(argv)
 
     data = collect()

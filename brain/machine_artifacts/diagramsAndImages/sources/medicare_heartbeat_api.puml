@@ -1,0 +1,21 @@
+@startuml medicare_heartbeat_api
+skinparam shadowing false
+title Medicare pipeline - run status: ONE heartbeat API, ONE document (EPIC-010-F-007)\nthe API collects from all active workers (or the KV log) and returns one RunStatus document\nthe client makes one call - it does not reassemble anything\nas of 10/4/26
+
+actor "Client\ndashboard / CI / operator" as CLIENT
+component "Heartbeat API\nGET /runs/{run_id}/status\none argument: run_id" as API
+rectangle "Active workers\neach writes its own KV:\nrun_id, step, partition, status,\nrecords_done/total, rate, last_seen" as W
+database "KV status log\n(one short-lived series per run)" as LOG
+
+W --> LOG : write own KV (just its numbers)
+CLIENT -> API : GET /runs/{run_id}/status   (one call)
+API --> LOG : read every worker's KV
+API --> W : (or) collect live from active workers
+API -> CLIENT : ONE RunStatus document - the whole run
+
+note right of API #FDFBE7 : the API does ALL the assembly server-side -\nrolls every worker's KV into one document.\nThe client never reassembles beats.
+
+card "RunStatus  - the one document returned\n== ==\nrun_id, state [running|done|failed], started_at, updated_at, overall_pct\nsteps : [\n  { step, phase [base|enrich|derive], status, records_done/total, pct,\n    partitions : [ { partition, status, records_done/total, rate, est_remaining, last_seen } ] }\n]" as DOC
+
+API .. DOC : returns
+@enduml

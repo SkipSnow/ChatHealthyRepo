@@ -165,6 +165,28 @@
       "next_action": [
         "Add a declared partition source per fan-out step (Mongo distinct / config list / named enumerator); orchestrator fans out over its values; backward compatible."
       ]
+    },
+    {
+      "bugid": "BUG-015",
+      "title": "Too many things deployed to environments outside the automated deployment chain",
+      "description": "There are too many things deployed to various environments external to the automated deployment chain (build/deploy/promote). Components, secrets, and certificates reach dev/qa/prod by hand rather than through the chain, so they are neither reproducible from source nor audited by the chain. The pipelineController certificate provisioning is one just-closed example; the LLD shows others.",
+      "environments": [
+        "dev",
+        "qa",
+        "prod"
+      ],
+      "status": "new",
+      "severity": "high",
+      "req_id": "ORPHAN",
+      "story_id": "EPIC-008-F-012",
+      "test_id": "",
+      "discovery_date": "2026-10-06",
+      "due_date": "",
+      "reproduction": "Read the Provider Pipeline Low-Level Design document and enumerate the components, secrets, and certificates that reach an environment outside build_chathealthy / deploy_chathealthy / promote_chathealthy.",
+      "orphan": true,
+      "next_action": [
+        "Opportunistically, when the pipeline is next worked on: enumerate each artifact that reaches an environment outside the automated chain (from the LLD) and bring it under build/deploy/promote."
+      ]
     }
   ]
 }

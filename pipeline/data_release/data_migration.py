@@ -360,7 +360,7 @@ def _wake_the_source_cluster() -> None:
     while time.monotonic() < deadline:
         try:
             ChatHealthyMongoUtilities().getConnection(
-                _MIGRATOR, _SOURCE_CLUSTER)["admin"].command("ping")
+                "PipelineToFrontEndPublicDataMigrator", "ChatHealthyDataPipelines")["admin"].command("ping")
             return
         except Exception as exc:  # noqa: BLE001
             last = f"{type(exc).__name__}: {str(exc)[:120]}"

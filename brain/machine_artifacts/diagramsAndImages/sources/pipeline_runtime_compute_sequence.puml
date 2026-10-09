@@ -1,0 +1,78 @@
+@startuml pipeline_runtime_compute_sequence
+title ChatHealthy Pipelines - Allocating hardware and PIDs at runtime (build & use)
+skinparam defaultFontName Segoe UI
+skinparam defaultFontSize 11
+skinparam shadowing false
+skinparam ArrowColor #0b7a75
+skinparam SequenceLifeLineBorderColor #0b7a75
+skinparam ParticipantBorderColor #0b7a75
+skinparam NoteBackgroundColor #f3f4f6
+skinparam NoteBorderColor #9ca3af
+
+participant "Automation\nRunbook" as RB
+participant "allocate(count, sku, image)\ncommon hardware fn" as ALLOC
+actor "Status client\n(mTLS)" as CLI
+participant "Controller\n(controller image)" as CTL
+database "work_items +\nstatus (front-end)" as WI
+participant "Pipeline cluster\n(Atlas)" as PC
+participant "Worker box x N\n(worker image)" as WK
+participant "worker_host" as HOST
+participant "Worker PID\n(bounded pool)" as PID
+participant "Operators\n(discrepancy report)" as OPS
+
+== Build the controller ==
+RB -> ALLOC : allocate(1, controller-SKU, controller-image)
+note right of ALLOC
+  does NOT check legality (quota).
+  BLOCKS until the request is honored.
+  count + sku + image are parameters.
+end note
+ALLOC -> CTL : create + boot (controller image)
+
+== Controller comes up ==
+CTL -> CTL : start status-API thread + controller-heartbeat thread
+CTL -> PC : resume pipeline cluster; wait for IDLE
+CTL -> CTL : build orchestrator (connect to pipeline cluster)
+CTL -> ALLOC : provision worker hardware (a step): allocate(N, worker-SKU, worker-image)
+ALLOC -> WK : create N boxes + boot (worker image)
+WK -> HOST : cloud-init starts the host
+
+note over CTL
+  The controller now runs TWO concurrent loops (separate threads):
+  Loop 1 serves the status API; Loop 2 manages the job.
+end note
+
+group Loop 1 - serve the status API, always answers, never hangs
+  loop while the run is active
+    CLI -> CTL : GET /status?run_id  (mTLS)
+    CTL -> WI : read task state + latest heartbeats
+    CTL -> CLI : 200  no-workers-yet | working | fatal-error
+  end
+end
+
+group Loop 2 - job management, drive the DAG and detect completion
+  loop for each fan-out step in STEPS
+    CTL -> WI : WRITE work_items, one per partition, status pending
+    HOST -> WI : sees pending tasks
+    HOST -> PID : spawn bounded pool, one process per task
+    PID -> WI : claim task via findOneAndUpdate, two never claim the same
+    PID -> PC : run the step runner against the data
+    loop worker heartbeat loop, every 120s until its task is done
+      PID -> WI : heartbeat task, scope, pass, records_done, state Initiating Working Complete
+    end
+    loop controller completion poll, every 5s until the step is done
+      CTL -> WI : count open pending or running work_items
+      CTL -> CTL : reclaim stale heartbeats; zero open means the step is done
+    end
+    PID -> WI : mark done or failed
+    HOST -> PID : reap finished; spawn next while tasks remain
+  end
+end
+
+group finally - runs on EVERY exit, success OR failure
+  HOST -> WK : all steps drained -> host exits; box self-deletes
+  CTL -> CTL : quiesce - mark run terminal
+  CTL -> OPS : emit ONE discrepancy report (on success AND on abend)
+  CTL -> PC : pause cluster; release the boxes
+end
+@enduml

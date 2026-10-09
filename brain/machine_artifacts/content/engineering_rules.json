@@ -226,6 +226,11 @@
               "statement_number": 10,
               "statement_body": "Every getConnection(identity, cluster) and set_mongo_log_identity(identity) call MUST pass the identity and the cluster as hardcoded string literals -- never a variable, constant, attribute, or alias -- and each literal MUST name a database user and a cluster that exist in the firm's Atlas project. The scan reads every .py; there is no exemption list. A file that cannot comply is repaired when it is next committed or at the next promote, never granted a hall pass. The purpose is that every database connection is greppable: the reader sees at the call site exactly which identity opens which cluster, which matters because each identity is least-privilege-scoped in Mongo.",
               "req_id": "Orphan"
+            },
+            {
+              "statement_number": 11,
+              "statement_body": "Every LLM call is made within the pydantic-ai framework, through the ChatHealthy LLM facade (chathealthy_lib.llm run_llm/run_llm_sync over a pydantic_ai.Agent), and no agent exists outside that framework. Outside the facade, ChatHealthy.ai code does not reach a model vendor directly: it does not import a vendor SDK (openai, anthropic, google.generativeai, google.genai) and does not name a vendor's API host in a string literal. The only remaining way to call a model is a pydantic-ai Agent run through the facade, so every agent is a pydantic-ai agent and every model call is centralised. The facade itself is the one place a vendor SDK is legitimate.",
+              "req_id": "Orphan"
             }
           ]
         },
@@ -638,6 +643,39 @@
                   "allowed_pattern",
                   [
                     "\\.py$"
+                  ]
+                ]
+              ]
+            },
+            {
+              "enforcement_id": "Rule-065-ENF-011",
+              "title": "Every LLM call is within the pydantic-ai framework via the facade",
+              "hook": "pre-commit",
+              "executable_path": "architecture/EngineeringRuleEnforcement/code/scan_llm_facade_worker.py",
+              "requires_lock": false,
+              "scopes": [
+                [
+                  "_scan_llm_facade",
+                  "allowed_pattern",
+                  [
+                    "\\.py$"
+                  ]
+                ],
+                [
+                  "_scan_llm_facade",
+                  "excluded_pattern",
+                  [
+                    "(^|/)_oneshots/",
+                    "(^|/)__pycache__/",
+                    "(^|/)node_modules/"
+                  ]
+                ],
+                [
+                  "_scan_llm_facade",
+                  "excluded_exact",
+                  [
+                    "ChatHealthyLib/src/chathealthy_lib/llm.py",
+                    "architecture/EngineeringRuleEnforcement/code/scan_llm_facade_worker.py"
                   ]
                 ]
               ]

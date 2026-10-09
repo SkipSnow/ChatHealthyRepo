@@ -1,0 +1,32 @@
+@startuml medicare_pipeline_flow
+skinparam shadowing false
+title Medicare Provider Evaluation Data Pipeline - source traceability (EPIC-010-F-007)\nas of 10/6/26
+
+rectangle "Provider collection\n(spine: NPI, entity type, specialty)" as SPINE
+rectangle "Part B\nPhysician & Other Practitioners" as PARTB
+rectangle "Part D\nPrescribers by Provider and Drug" as PARTD
+rectangle "Medicare Coverage Database\n(covered ICD-10 lists -> procedure justification)" as MCD
+rectangle "FDA labeling\n(openFDA / DailyMed)" as FDA
+rectangle "ICD-10-CM + AHRQ CCSR\n(code set, hierarchy, clinical categories)" as ICD
+rectangle "Hospital Enrollments\n(NPI <-> CCN) + POS size" as ENROLL
+
+rectangle "ProviderMedicare\n(per NPI)" as PM
+rectangle "SpecialtyMedicare\n(per NUCC code)" as SM
+rectangle "Normalized Indication Map\n(proprietary, per indication)" as MAP
+rectangle "Job spec (pipeline config, Mongo)\nscope, source list, step DAG + prerequisites" as SPEC #fef9e7
+
+SPINE --> PM
+PARTB --> PM
+PARTD --> PM
+ENROLL --> PM
+ICD --> MAP
+MCD --> PM : procedure coverage justification
+FDA --> MAP : per-product labels\nmatched to canonical indications
+MAP --> PM : parent indications
+PM --> SM : roll up per NUCC
+
+SPEC ..> MAP : governs (own cadence;\ngated by build_indication_map)
+SPEC ..> PM
+SPEC ..> SM
+note bottom of MAP : hierarchy adopted from ICD-10-CM / CCSR;\nper-product FDA labels matched to the canonical indications.\n"given an indication, best provider"
+@enduml

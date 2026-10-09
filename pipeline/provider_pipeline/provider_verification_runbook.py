@@ -102,7 +102,7 @@ def _resume_cluster() -> None:
     deadline = time.time() + 600
     while time.time() < deadline:
         try:
-            client = ChatHealthyMongoUtilities().getConnection("pipelineEditor", _PIPELINE_CLUSTER)
+            client = ChatHealthyMongoUtilities().getConnection("pipelineEditor", "ChatHealthyDataPipelines")
             client["pipelineAdmin"]["cluster_readiness"].replace_one(
                 {"_id": "verification-readiness"},
                 {"_id": "verification-readiness",
@@ -142,7 +142,7 @@ def _resolve_provider_collection():
         raise ChatHealthyException(
             mode="config_error", component="provider_verification",
             message=f"could not resolve provider collection: db={public_db} coll={coll_name}")
-    data = ChatHealthyMongoUtilities().getConnection("pipelineEditor", _PIPELINE_CLUSTER)
+    data = ChatHealthyMongoUtilities().getConnection("pipelineEditor", "ChatHealthyDataPipelines")
     _log.LogPipeline("INFO", "verifying %s.%s (data_version=%d)", public_db, coll_name, data_version)
     return data[public_db][coll_name], data_version
 
@@ -192,7 +192,7 @@ def _run_checks(coll) -> list:
         failures.append(f"unexpected/stale indexes: {extra}")
 
     staging = ChatHealthyMongoUtilities().getConnection(
-        "pipelineEditor", _PIPELINE_CLUSTER)["PublicStaging"]
+        "pipelineEditor", "ChatHealthyDataPipelines")["PublicStaging"]
     left = staging.list_collection_names()
     if left:
         failures.append(f"PublicStaging not empty: {left}")

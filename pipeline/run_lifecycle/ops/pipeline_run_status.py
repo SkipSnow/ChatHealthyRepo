@@ -42,7 +42,12 @@ TERMINAL_RUN = ("succeeded", "failed", "aborted", "completed")
 def _orchestrator(pipeline_name: str):
     """The orchestrator that owns this pipeline's steps."""
     from pipeline.provider_pipeline.provider_pipeline_orchestrator import ProviderPipelineOrchestrator
-    known = {ProviderPipelineOrchestrator.PIPELINE_NAME: ProviderPipelineOrchestrator}
+    from pipeline.MedicareProviderEvaluationDataPipeline.medicare_orchestrator import (
+        MedicareProviderEvaluationOrchestrator)
+    known = {
+        ProviderPipelineOrchestrator.PIPELINE_NAME: ProviderPipelineOrchestrator,
+        MedicareProviderEvaluationOrchestrator.PIPELINE_NAME: MedicareProviderEvaluationOrchestrator,
+    }
     if pipeline_name not in known:
         _raise_unknown_pipeline(pipeline_name, sorted(known))
     return known[pipeline_name]
@@ -87,7 +92,7 @@ def find_run(db, pipeline_name: str, run_id: str | None, since):
 def render(db, run, names: list[str], now) -> str:
     rid = run["run_id"]
     started = aware(run.get("started_at"))
-    scope = ",".join(run.get("state_scope") or []) or "-"
+    scope = ",".join(run.get("state_scope") or run.get("states") or []) or "-"
     # Only fields the run actually records. data_version and debug arrive on
     # the webhook and are never written to pipeline.runs, so they are not
     # shown rather than shown wrong.

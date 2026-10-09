@@ -333,8 +333,8 @@ def test_resolve_source_url_discovery_calls_out(fake_mongo, monkeypatch):
         calls["instructions"] = instructions
         return "https://example.com/latest.csv"
 
-    import pipeline.run_lifecycle.source_url_discovery as source_url_discovery
-    monkeypatch.setattr(source_url_discovery, "find_latest_data_url", _fake_find)
+    import pipeline.run_lifecycle.data_fetch_agent as data_fetch_agent
+    monkeypatch.setattr(data_fetch_agent, "find_latest_data_url", _fake_find)
 
     reg = PipelineDatasetRegistry(cfg, 3, fake_mongo)
     url = reg.resolve_source_url("nucc")

@@ -441,7 +441,7 @@ class PipelineDatasetRegistry:
                     ),
                     source_name=name,
                 ))
-            from pipeline.run_lifecycle.source_url_discovery import find_latest_data_url
+            from pipeline.run_lifecycle.data_fetch_agent import find_latest_data_url
             return find_latest_data_url(
                 source_name=name,
                 page_url=page_url,

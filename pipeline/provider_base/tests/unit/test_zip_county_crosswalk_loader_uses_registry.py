@@ -62,8 +62,8 @@ def _registry_with_discovery(monkeypatch, discovered_url: str):
         calls["instructions"] = instructions
         return discovered_url
 
-    import pipeline.run_lifecycle.source_url_discovery as source_url_discovery
-    monkeypatch.setattr(source_url_discovery, "find_latest_data_url", _fake_find)
+    import pipeline.run_lifecycle.data_fetch_agent as data_fetch_agent
+    monkeypatch.setattr(data_fetch_agent, "find_latest_data_url", _fake_find)
     return PipelineDatasetRegistry(cfg, 3, _FakeMongo()), calls
 
 

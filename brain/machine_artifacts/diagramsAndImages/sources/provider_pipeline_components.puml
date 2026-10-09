@@ -1,0 +1,75 @@
+@startuml provider_pipeline_components
+title Provider Pipeline - Component Diagram (UML) - v31\nThree lanes: Actors | ChatHealthy Runtime | External Systems. Runtime grouped by tier.\nReservationReaper added to the Trigger tier (cluster power), distinct from the Watchdog (run recovery).\nas of 10/5/26
+skinparam shadowing false
+skinparam componentStyle rectangle
+skinparam linetype ortho
+
+rectangle "Actors" as ACTORS #f5f5f5 {
+  actor "CTO" as CTO
+  actor "Claude Code" as CLAUDE
+  actor "Scheduled Trigger\n(cron)" as CRON
+}
+
+rectangle "ChatHealthy Runtime   (Azure subscription + Atlas project)" as RT #eef4fb {
+
+  rectangle "Trigger tier" as TRG #ffffff {
+    component "Automation Runbook\nchathealthy-pipeline-provider-runbook-dev\ncard: 1 per env" as RB #dbe9f7
+    component "Watchdog Runbook\nchathealthy-pipeline-watchdog-runbook-dev\nrun recovery - card: 1 per env" as WD #dbe9f7
+    component "ReservationReaper\nchathealthy-pipeline-reservation-reaper-dev\ncluster power - card: 1 per env" as RR #cfe3cf
+    component "Azure Automation Acct\nchathealthy-pipeline-runbook-account-dev\ncard: 1 per env" as AA #dbe9f7
+  }
+
+  rectangle "Compute tier   (per-run)" as CMP #ffffff {
+    node "Pipeline Run VM\nvm-chathealthy-runidshort . Standard_D32s_v5" as VM #eaf3ea {
+      component "Controller\ncontrol_runner\ncard: 1 per run\nstatus API: public port 6969 (mTLS)\nhttps://provider-pipeline.{env}.chathealthy.ai:6969" as CTL #dbe9f7
+      component "Worker\nworker (subprocess)\ncard: 1 per run" as WK #dbe9f7
+    }
+  }
+
+  rectangle "Data tier" as DAT #ffffff {
+    database "MongoDB Atlas - Front-end cluster\nchathealthyfrontend\ncard: 1 shared across all envs" as FE #fdf3d8
+    database "MongoDB Atlas - Pipeline cluster\nchathealthydatapipeline\ncard: 1 shared across all envs" as PC #fdf3d8
+    database "Azure Blob\nchathealthypipelinesources\ncard: 1 per env" as BLOB #fdf3d8
+  }
+
+  rectangle "Support tier" as SUP #ffffff {
+    component "Azure Key Vault\nchathealthy-pipe-vault-dev\ncard: 1 per env" as KV #e7f0e0
+    component "Notification Library\nchathealthyhub notifications . Python" as NL #e7f0e0
+    component "Container Registry\nchpipelineacr\ncard: 1 per env" as ACR #e7f0e0
+  }
+}
+
+rectangle "External Systems" as EXT #f0f0f0 {
+  component "GitHub" as GH <<external>> #e0e0e0
+  component "External Sources\nNPPES . NUCC . Census . RUCC . Google" as SRC <<external>> #e0e0e0
+  component "Azure ARM API\ncloud-plane control" as ARM <<external>> #e0e0e0
+  component "Twilio + SparkPost\nSMS + email vendor SaaS" as TW <<external>> #e0e0e0
+}
+
+CTO --> RB : authors instructions
+CTO --> CTL : run status\nGET :6969/runs/{run_id}/status\n(mTLS, DevOpsUser cert)
+CLAUDE --> CTL : deploys / operates
+CRON --> RB : fires cron
+
+RB --> FE : write run manifest
+WD --> FE : scan stale runs
+RB --> ARM : az vm create / delete
+WD --> ARM : az vm delete (orphans)
+
+RR --> FE : reap expired reservations\n(admin.cluster_lifecycle)
+RR --> PC : quiesce when no live reservation
+
+CTL --> SRC : HTTPS source fetch
+CTL --> KV : cert + vendor keys
+CTL --> FE : config / runs / work_items
+CTL --> PC : resume + scale; staging + providers v_N\n(1 per active run, 0 between)
+CTL --> BLOB : sources + transients
+CTL --> NL : notify @ end
+NL --> TW : SMS + email
+ACR --> VM : image pull (MI-auth) @ boot
+GH --> ACR : source of truth (deploy chain)
+
+AA ..> RB : hosts
+AA ..> WD : hosts
+AA ..> RR : hosts
+@enduml

@@ -1,0 +1,27 @@
+@startuml trust_auditability_model
+skinparam shadowing false
+title Trustworthiness and Auditability - model (EPIC-010-F-002)\nas of 10/4/26
+
+package "Trust registry (persisted)" as REG #Honeydew {
+  class "rules" as Rules {
+    rule_id
+    build_version
+    definition (e.g. the LLM query)
+  }
+  class "facts" as TrustFacts {
+    fact_ref   (which derived fact)
+    score : 0.0 .. 1.0
+    rule_id
+    build
+  }
+  TrustFacts "many" --> "1" Rules : rule_id @ build
+}
+
+package "Domain fact collections (persisted)\nProviderMedicare, SpecialtyMedicare, Indication Map, ..." as DOM #AliceBlue {
+  class DerivedFact
+}
+
+TrustFacts "1" --> "1" DerivedFact : governs (fact_ref)
+
+note bottom of REG : the registry is the whole home of trust:\nrules + one trust record per governed fact.\naudit = a read of the registry (facts x rules);\ntraceability is implicit: fact -> trust fact -> rule -> build
+@enduml

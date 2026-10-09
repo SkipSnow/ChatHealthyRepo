@@ -1,0 +1,61 @@
+@startuml medicare_detailed_sequence
+skinparam shadowing false
+title Medicare Provider Evaluation Data Pipeline - detailed run, mapped to the job spec (StepSpec list)\nEPIC-010-F-007   |   [BASE] [ENRICH] [DERIVE]   |   fan-out = partition_key   |   every step beats\nas of 10/6/26
+
+participant "Controller" as CTL
+participant "Fan-out workers\n(one ACA job per partition)" as W
+database "Mongo: job spec +\nrun state + findings" as DB
+database "Build store\n(three collections)" as OUT
+queue "Heartbeat channel\n(attach point)" as HB
+
+CTL -> DB : read job spec (ordered StepSpec list) + write run record (admit)
+
+== infrastructure ==
+CTL -> CTL : prepare_infrastructure            prereq [] | single
+CTL -> CTL : source_freshness_gate             prereq [prepare_infrastructure] | single
+
+== [BASE] acquire and land sources ==
+CTL -> W : fetch_all_sources   prereq [source_freshness_gate] | FAN-OUT partition_key = source_name
+note right of W : Provider spine; Part B; Part D;\nMedicare Coverage Database; FDA labels;\nICD-10-CM + CCSR;\nHospital Enrollments; POS
+W ->> HB : beat {step, partition, records_done/total, rate}
+W -> OUT : raw to staging
+CTL -> CTL : source_archival (provenance)      prereq [fetch_all_sources] | single
+CTL -> W : load_staging_parallel   prereq [source_archival] | FAN-OUT partition_key = source_name
+W ->> HB : beat
+W -> OUT : one staging record per source row
+
+== [ENRICH] build the indication map (once; own cadence, gated) ==
+CTL -> CTL : build_indication_map   prereq [load_staging: FDA, ICD-10-CM/CCSR, Coverage] | single
+note right of CTL : Canonical indication vocabulary mined from ICD-10-CM / CCSR;\neach FDA product label matched against it by the model, one call per product,\neach association carrying its trust. Happens ONCE here; per-provider\nsteps only look it up. Gated by build_indication_map: false = consume current\nmap; true = build candidate -> operator release (§I.6). Own cadence.
+CTL ->> HB : beat
+CTL -> OUT : NormalizedIndication (disease_class + parent + member ICD-10 + products (brand+molecule), each with trust)
+
+== [BASE] build the per-provider record ==
+CTL -> W : build_providermedicare_base   prereq [load_staging: Provider, Part B, Part D] | FAN-OUT partition_key = provider_state
+W ->> HB : beat
+W -> OUT : ProviderMedicare docs (embedded procedures[] / drugs[])
+
+== [ENRICH] per-provider, fanned out by provider_state (map lookups only) ==
+CTL -> W : enrich_drugs   prereq [providermedicare_base, indication_map] | FAN-OUT provider_state
+note right of W : attribute each drug's day supply to its\nindication(s), count-under-each -> indications[].days_supply
+W ->> HB : beat  (own reportable step)
+CTL -> W : enrich_procedures   prereq [providermedicare_base, indication_map] | FAN-OUT provider_state
+W ->> HB : beat  (own reportable step)
+CTL -> W : enrich_org_ccn_size   prereq [providermedicare_base, load_staging: Enrollments, POS] | FAN-OUT provider_state
+W ->> HB : beat  (own reportable step)
+
+== [DERIVE] roll up by specialty ==
+CTL -> W : rollup_specialtymedicare   prereq [enrich_drugs, enrich_procedures] | FAN-OUT partition_key = nucc_code
+note right of W : aggregate procedures / drugs / indications; compute day-supply\nmean, median and quintile cut-points per drug & per indication;\nread provider_count (any taxonomy, full base); embed + maintain index
+W ->> HB : beat
+W -> OUT : SpecialtyMedicare docs (embedded aggregates + benchmark)
+CTL -> DB : progress + per-record findings at every step boundary
+
+== end ==
+CTL -> CTL : contract_conformance (three contracts)   prereq [rollup_specialtymedicare] | single
+CTL -> DB : one DISCREPANCY REPORT per run (success or abend)
+CTL -> CTL : quiesce_infrastructure   release compute + data resources | single
+CTL ->> HB : run complete
+
+note over HB : each step and each fan-out worker writes its KV status {run_id, step, partition, phase,\nstatus, records_done/total, rate, est_remaining} here. ONE heartbeat API (GET /runs/{run_id}/status, one arg)\nrolls them into one RunStatus document - the client makes one call. See medicare_heartbeat_api.
+@enduml

@@ -1,0 +1,37 @@
+@startuml medicare_run_sequence
+skinparam shadowing false
+title Medicare Provider Evaluation Data Pipeline - run sequence, every monitored step\nEPIC-010-F-007 on the generic run lifecycle (EPIC-010-F-001)\nas of 10/6/26
+
+actor "Scheduler /\nauthenticated caller" as CALLER
+participant "Job Manager\nwebhook" as WH
+participant "Automation\nrunbook" as RB
+participant "Controller" as CTL
+database "Mongo\njob spec + run state" as DB
+database "KV status log\n(one series per run)" as HB
+
+CALLER -> WH : trigger (scheduled or authenticated on-demand)
+WH -> RB : start runbook
+RB -> CTL : provision compute, launch controller
+
+== admit & configure ==
+CTL -> DB : read job spec (step DAG + prerequisites) + write run record (admit)
+
+== collect sources ==
+CTL -> CTL : land each source  (Provider spine, Part B, Part D,\nMedicare Coverage Database, FDA labels, ICD-10-CM + CCSR,\nHospital Enrollments, POS)
+CTL ->> HB : write KV status per step
+
+== build  (DAG order per prerequisites; written straight to the build store) ==
+CTL -> CTL : build Normalized Indication Map\n  (own cadence; gated by build_indication_map:\n   false = consume current map; true = build candidate -> operator release)
+CTL -> CTL : build ProviderMedicare, per partition
+CTL -> CTL : attribute day supply to indication(s)  (count-under-each)
+CTL -> CTL : roll up SpecialtyMedicare per NUCC\n  (+ day-supply mean/median/quintile cut-points per drug & indication; embed + index)
+CTL ->> HB : write KV status per step - each enrichment reported in real time
+
+== end ==
+CTL -> CTL : contract conformance - three record contracts
+CTL -> DB : one discrepancy report per run  (success or abend)
+CTL -> CTL : quiesce - release compute and data resources
+CTL ->> HB : run complete
+
+note over HB : workers write KV status here; ONE heartbeat API (GET /runs/{run_id}/status, one arg: run_id)\nrolls every worker's KV into one RunStatus document. The client makes one call. see medicare_heartbeat_api.
+@enduml
