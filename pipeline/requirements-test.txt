@@ -1,0 +1,5 @@
+# Test-only dependencies for the pipeline. Kept out of the production image's
+# managed runtime requirements (deployment_architecture.json pipeline_vm_image);
+# runtime deps the tests exercise (requests, pydantic, beautifulsoup4,
+# azure-storage-blob, pydantic-ai) are already declared there.
+pytest>=8.0.0
