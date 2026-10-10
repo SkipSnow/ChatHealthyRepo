@@ -179,6 +179,12 @@ class ClusterLifecycleManager:
             "expected_min_minutes": expected_min_minutes,
             "start_time": now.isoformat(),
             "expected_end_time": (now + timedelta(minutes=expected_duration_minutes)).isoformat(),
+            # The reaper, Watchdog and Controller all reap/renew on expiry_at (a
+            # naive-UTC wall clock). Stamp it at creation so EVERY reservation --
+            # including a manual one with no Controller to renew it -- is a legal,
+            # reapable claim. A row with no expiry_at is illegal and the reaper
+            # reaps it rather than letting it hold the cluster up forever.
+            "expiry_at": datetime.utcnow() + timedelta(minutes=expected_duration_minutes),
             "status": "active",
             "reservation_class": reservation_class,
         }

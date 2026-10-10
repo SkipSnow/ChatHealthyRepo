@@ -244,6 +244,33 @@ def _send_sparkpost_email(subject, body):
         return False
 
 
+def _alert_illegal_reservations(rows):
+    """Email the operator that illegal reservation(s) were found and reaped.
+
+    An illegal reservation is a cluster_lifecycle row with no readable future
+    expiry_at. It is reaped rather than respected; this email makes a caller
+    that keeps minting illegal rows visible rather than silently billing.
+    """
+    lines = []
+    for r in rows:
+        lines.append(
+            f"  _id={r.get('_id')!r} requester={r.get('requester')!r} "
+            f"cluster={r.get('cluster_name')!r} "
+            f"reservation_class={r.get('reservation_class')!r} "
+            f"fields={sorted(r.keys())}")
+    body = (
+        f"ReservationReaper found and reaped {len(rows)} ILLEGAL cluster "
+        f"reservation(s) -- cluster_lifecycle rows with no legal expiry_at, "
+        f"which would otherwise hold the pipeline cluster up (and billing) "
+        f"indefinitely. They were NOT respected and have been deleted.\n\n"
+        + "\n".join(lines)
+        + "\n\nAn illegal reservation means some caller wrote a cluster_lifecycle "
+        "row without a wall-clock expiry_at. Find that caller and fix it."
+    )
+    subject = f"[ChatHealthy] Illegal cluster reservation(s) reaped: {len(rows)}"
+    _send_sparkpost_email(subject, body)
+
+
 def _maybe_send_streak_email(state, latest_cause):
     if not state.get("failures"):
         return
@@ -508,7 +535,7 @@ def _main():
         _PASS.enrol(f"lifecycle:{r.get('_id')}")
     _PASS.correct_orphaned_runs(now)
 
-    kept, reaped = [], []
+    kept, reaped, illegal = [], [], []
     now_utc_naive = datetime.utcnow()
     now_utc_aware = datetime.now(timezone.utc)
     for r in reservations:
@@ -533,14 +560,25 @@ def _main():
                 kept.append(r)
             continue
         # Legacy reservation shape: reap by wall-clock expiry_at.
+        # A LEGAL reservation proves a future expiry_at. A row with no readable
+        # expiry_at is ILLEGAL -- no legitimate caller makes one (reserve()
+        # stamps expiry_at at creation; Controllers renew it) -- so it is NOT
+        # respected: it is reaped like an expired row and the operator is
+        # emailed. The old behavior kept such a row forever, which let one
+        # malformed insert hold the cluster up (and bill) indefinitely.
         expiry_dt = r.get("expiry_at")
-        if expiry_dt is None:
-            kept.append(r); continue
         if isinstance(expiry_dt, str):
             try:
                 expiry_dt = datetime.fromisoformat(expiry_dt)
             except (ValueError, TypeError):
-                kept.append(r); continue
+                expiry_dt = None
+        if not isinstance(expiry_dt, datetime):
+            illegal.append(r)
+            reaped.append(r)
+            log.LogPipeline("WARNING",
+                     "Illegal reservation (no legal expiry_at) -- reaping and alerting: "
+                     "_id=%s requester=%s", r.get("_id", ""), r.get("requester", ""))
+            continue
         if getattr(expiry_dt, "tzinfo", None) is not None:
             expiry_dt = expiry_dt.astimezone(timezone.utc).replace(tzinfo=None)
         if now_utc_naive <= expiry_dt:
@@ -556,6 +594,12 @@ def _main():
         legacy_ids = [r["_id"] for r in reaped if r.get("kind") != "pipeline_lock"]
         if legacy_ids:
             coll.delete_many({"_id": {"$in": legacy_ids}})
+
+    # An illegal reservation (no legal expiry_at) was reaped rather than
+    # respected. Tell the operator so a caller minting illegal rows is visible
+    # rather than silently costing cluster time.
+    if illegal:
+        _alert_illegal_reservations(illegal)
 
     live = [r for r in kept if r.get("status", "active") == "active"]
 
