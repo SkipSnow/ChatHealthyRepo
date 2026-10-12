@@ -200,6 +200,8 @@ class ChatHealthyEnforcementManager:
             )
         self.hook_name: str = hook_name
         self.report: RefusalReport = RefusalReport()
+        # The hook payload, read once in run() and forwarded to every worker.
+        self._payload_text: str = ""
 
     # ────────────────────────────────────────────────────────────────────────
     # Public entry point
@@ -210,6 +212,13 @@ class ChatHealthyEnforcementManager:
         Returns one of EXIT_OK / EXIT_VIOLATIONS_FOUND / EXIT_MANAGER_ERROR /
         EXIT_WORKER_SPAWN_FAILURE / EXIT_WORKER_TIMEOUT / EXIT_WORKER_INTERNAL_ERROR.
         """
+        # Read the hook payload once and forward it to every worker (input=).
+        # Workers must not race to read an inherited stdin: with two PreToolUse
+        # enforcements, concurrent readers meant one got the payload and the
+        # other got nothing, intermittently blinding a gate. Guarded on isatty
+        # so a hook with no piped stdin does not block.
+        self._payload_text = (sys.stdin.read()
+                              if not sys.stdin.isatty() else "")
         rules = self._load_rules()
         enforcements = self._filter_enforcements(rules, self.hook_name)
 
@@ -384,6 +393,7 @@ class ChatHealthyEnforcementManager:
                 worker_env[TIMEOUT_ENV] = str(timeout_value)
                 completed = subprocess.run(
                     [sys.executable, str(executable_path), enforcement_id],
+                    input=self._payload_text,
                     timeout=timeout_value,
                     capture_output=True,
                     text=True,

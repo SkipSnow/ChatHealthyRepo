@@ -101,6 +101,32 @@
         }
       },
       {
+        "id": "Rule-003",
+        "name": "Any Requirement change must be authorized by a human being",
+        "description": "Requirements belong to the human operator, not to Claude. The agile backlog is the firm's requirements; it cannot be opened in write mode without a human authorization that is provably human and records the full verbatim text of the proposed change. Enforced by a PreToolUse gate, narrow to this one file -- the same per-concern shape as the Git authorization rule, deliberately not the general state-change rule that was destroyed for its false positives. This id previously carried a now-folded exception rule and is reassigned here.",
+        "rule_statements": {
+          "rule_statement": [
+            {
+              "statement_number": 1,
+              "statement_body": "The file brain/machine_artifacts/content/agile_backlog.json, or its successor, cannot be opened in write mode without a human authorization. That authorization must be provably made by a human and must present the full text of the proposed addition or change to ChatHealthy.ai's requirements in a formatted, scrollable, word-wrapped box; its audit record must carry that full text.",
+              "req_id": "EPIC-008-F-002-S-013-REQ-B-002"
+            }
+          ]
+        },
+        "enforcements": {
+          "enforcement": [
+            {
+              "enforcement_id": "Rule-003-ENF-001",
+              "title": "A human authorizes every agile-backlog requirement change",
+              "hook": "PreToolUse",
+              "executable_path": "architecture/EngineeringRuleEnforcement/code/requirement_change_authorization_worker.py",
+              "requires_lock": false,
+              "scopes": []
+            }
+          ]
+        }
+      },
+      {
         "id": "Rule-006",
         "name": "Constrain Claude Code's use of tools via the Anthropic preTool hook",
         "description": "Unimplemented, undesigned and inappropriately specified. This rule carries no enforcement and no implementing code; the worker that realized it (llm_classify_shell_invocation_worker.py) and its operator wrapper (oneoff.py) have been deleted. Rule-064, which separately constrained tool calls through the same PreToolUse hook by blocking paths under the legacy project tree, was deleted on 2026-08-10 together with its worker (block_legacy_path_worker.py); the two rules covered one concern and neither had constrained a tool call since 2026-08-04.\n\nWhat must be done is not stated here. It is specified by story EPIC-008-F-002-S-013 under feature EPIC-008-F-002, requirements EPIC-008-F-002-S-013-REQ-B-001 through EPIC-008-F-002-S-013-REQ-B-012. That story is the sole statement of requirement for this rule.\n\nThe eight rule_statements below are retained as the record of the withdrawn five-stage-funnel design. They are NOT requirements and they are not in force. BUG-002 records why the design failed.",

@@ -1,0 +1,13 @@
+{
+  "$schema": "https://dev.chathealthy.ai/schemas/ChatHealthyRelaxedSchema.json",
+  "objects": [
+    {
+      "epic_id": "EPIC-999",
+      "name": "Test",
+      "sourceLocation": "Unknown",
+      "status": "not_started",
+      "description": "this is a test epic",
+      "features": { "feature": [] }
+    }
+  ]
+}
