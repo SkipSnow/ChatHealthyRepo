@@ -3,9 +3,9 @@
 
 """enrich_drugs engine (EPIC-010-F-007).
 
-Consumes the published Normalized Indication Map to place each ProviderMedicare
-drug under its parent indication(s) and to roll the provider's own day supply up
-per indication. The molecule index is built from the map's molecules[] (rxcui
+Consumes the Normalized Indication Map candidate produced this run by the
+build_indication_map prerequisite, to place each ProviderMedicare drug under its
+parent indication(s) and to roll the provider's own day supply up per indication. The molecule index is built from the map's molecules[] (rxcui
 and ingredient); a drug joins by rxcui when present, else by its generic name
 against the ingredient. A drug indicated for several parents counts its day
 supply under each (count-under-each). Only the provider's own values are written
@@ -47,10 +47,11 @@ def _load_indication_index(map_coll, run_id: str) -> tuple[dict, dict]:
                 by_ingredient[str(ing).strip().lower()].add(iid)
     if count == 0:
         raise ChatHealthyException(
-            mode="config_error",
+            mode="runtime_error",
             component="enrich_drugs",
-            message=("enrich_drugs: the Normalized Indication Map is empty at this "
-                     "data_version; build/release it first (--build-indication-map)"),
+            message=("enrich_drugs: the Normalized Indication Map is empty for this "
+                     "run; its prerequisite build_indication_map step produced no "
+                     "indications to consume"),
         )
     return by_rxcui, by_ingredient
 

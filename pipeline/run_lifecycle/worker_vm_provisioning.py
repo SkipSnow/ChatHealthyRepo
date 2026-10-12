@@ -113,6 +113,13 @@ def _worker_host_cloud_init(run_id: str, pipeline_name: str, vm_name: str) -> st
     pe_tenant = _req("PIPELINEEDITOR_AZURE_TENANT_ID")
     pe_client = _req("PIPELINEEDITOR_AZURE_CLIENT_ID")
     pe_secret = _req("PIPELINEEDITOR_AZURE_CLIENT_SECRET")
+    # CH_INDICATION_MODEL is required only by the Medicare pipeline's
+    # build_indication_map step, which runs on this Worker VM. Bind it for the
+    # Medicare pipeline only; every other vm-worker pipeline provisions exactly
+    # as before and never newly requires the variable (backward compatible).
+    indication_model_env = (
+        f"-e CH_INDICATION_MODEL='{_req('CH_INDICATION_MODEL')}' \\\n      "
+        if pipeline_name == "medicare" else "")
     yaml_body = f"""#cloud-config
 apt:
   primary:
@@ -152,7 +159,7 @@ runcmd:
       -e AZURE_SUBSCRIPTION_ID='{sub}' -e AZURE_RESOURCE_GROUP='{rg}' \\
       -e AZURE_TENANT_ID='{pe_tenant}' -e AZURE_CLIENT_ID='{pe_client}' -e AZURE_CLIENT_SECRET='{pe_secret}' \\
       -e KEY_VAULT_URI='{_req("KEY_VAULT_URI")}' \\
-      -e PIPELINEEDITOR_AZURE_TENANT_ID='{pe_tenant}' \\
+      {indication_model_env}-e PIPELINEEDITOR_AZURE_TENANT_ID='{pe_tenant}' \\
       -e PIPELINEEDITOR_AZURE_CLIENT_ID='{pe_client}' \\
       -e PIPELINEEDITOR_AZURE_CLIENT_SECRET='{pe_secret}' \\
       -e PIPELINE_SECRET_NAMES='{_req("PIPELINE_SECRET_NAMES")}' \\

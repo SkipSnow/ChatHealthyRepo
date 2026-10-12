@@ -3,8 +3,8 @@
 
 """enrich_drugs (EPIC-010-F-007) — place drugs under indications, roll day supply.
 
-Fanned by provider_state: each worker reads the published Normalized Indication
-Map and, for every ProviderMedicare record in its state, stamps each drug's
+Fanned by provider_state: each worker reads the Normalized Indication Map
+candidate built this run and, for every ProviderMedicare record in its state, stamps each drug's
 parent indication(s) and rolls the provider's own day supply up per indication
 (count-under-each). Resolves collections through the registry; the aggregation
 is the engine's. No external calls.

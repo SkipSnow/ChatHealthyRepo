@@ -66,6 +66,7 @@ from chathealthy_lib.exceptions import ChatHealthyException  # noqa: E402
 
 # Hydrate Automation Variables into os.environ before anything reads them.
 for _k in ("CH_LOG_DB", "CH_LOG_LEVEL", "PIPELINE_SECRET_NAMES", "CH_EMBEDDING_MODEL",
+           "CH_INDICATION_MODEL",
            "KEY_VAULT_URI", "AUTOMATION_ENV_PREFIX",
            "AUTOMATION_SUBSCRIPTION_ID", "AUTOMATION_RESOURCE_GROUP",
            "ATLAS_PROJECT_ID", "ATLAS_PIPELINE_PUBLIC_KEY", "ATLAS_PIPELINE_PRIVATE_KEY",
@@ -129,6 +130,11 @@ VM_IMAGE_TAG = _req("AUTOMATION_VM_IMAGE_TAG")
 KEY_VAULT_URI = _req("KEY_VAULT_URI")
 PIPELINE_SECRET_NAMES = _req("PIPELINE_SECRET_NAMES")
 CH_EMBEDDING_MODEL = _req("CH_EMBEDDING_MODEL")
+# The indication-map build (build_indication_map) mines the molecule->indication
+# crosswalk through a pydantic-ai Agent; the Worker VM that drains that step
+# needs the model binding. Sourced from the deploy exactly as CH_EMBEDDING_MODEL
+# and handed to the Controller, which forwards it to the Worker VM.
+CH_INDICATION_MODEL = _req("CH_INDICATION_MODEL")
 CH_LOG_DB = _req("CH_LOG_DB")
 PIPELINE_LOG_ACCOUNT_URL = _req("PIPELINE_LOG_ACCOUNT_URL")
 MONGO_HOST_FRONTEND = _req("CH_MONGO_HOST_CHATHEALTHYFRONTEND")
@@ -323,6 +329,7 @@ runcmd:
       -e AZ_VM_ADMIN_SSH_PUBKEY='{_get_ssh_pubkey()}' \\
       -e KEY_VAULT_URI='{KEY_VAULT_URI}' -e PIPELINE_SECRET_NAMES='{PIPELINE_SECRET_NAMES}' \\
       -e CH_EMBEDDING_MODEL='{CH_EMBEDDING_MODEL}' \\
+      -e CH_INDICATION_MODEL='{CH_INDICATION_MODEL}' \\
       -e PIPELINECONTROLLER_AZURE_TENANT_ID='{ct}' \\
       -e PIPELINECONTROLLER_AZURE_CLIENT_ID='{cc}' \\
       -e PIPELINECONTROLLER_AZURE_CLIENT_SECRET='{cs}' \\
