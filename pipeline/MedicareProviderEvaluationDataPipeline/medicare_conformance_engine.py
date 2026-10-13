@@ -3,8 +3,8 @@
 
 """Record-contract conformance engine (EPIC-010-F-007 / F-001-S-012).
 
-Validates every published ProviderMedicare, SpecialtyMedicare and Normalized
-Indication Map record against its JSON Schema contract. A single nonconforming
+Validates every published ProviderMedicare, SpecialtyMedicare and
+fdaProductToDiagnosisResolution record against its JSON Schema contract. A single nonconforming
 record stops the run (the collection it builds is normative); the engine reports
 the first offenders per collection so the drift is actionable.
 """
@@ -24,7 +24,7 @@ _SCHEMA_DIR = Path(__file__).resolve().parents[2] / "Website" / "schemas"
 _CONTRACTS = {
     "providermedicare": "ChatHealthyProviderMedicareSchema.json",
     "specialtymedicare": "ChatHealthySpecialtyMedicareSchema.json",
-    "indication_map": "ChatHealthyNormalizedIndicationMapSchema.json",
+    "fda_drug": "ChatHealthyFdaProductToDiagnosisResolutionSchema.json",
 }
 
 

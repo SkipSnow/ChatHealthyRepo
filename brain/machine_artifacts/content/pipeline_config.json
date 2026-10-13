@@ -243,12 +243,10 @@
           ]
         },
         {
-          "source_name": "indication_map",
-          "public_data_name": "PipelinePublicHealthData.IndicationMap",
+          "source_name": "fda_drug",
+          "public_data_name": "PipelinePublicHealthData.fdaProductToDiagnosisResolution",
           "depends_on": [
             "icd10_cm",
-            "ccsr",
-            "medicare_partd",
             "openfda_labels"
           ]
         }
@@ -592,12 +590,10 @@
           ]
         },
         {
-          "source_name": "indication_map",
-          "public_data_name": "PipelinePublicHealthData.IndicationMap",
+          "source_name": "fda_drug",
+          "public_data_name": "PipelinePublicHealthData.fdaProductToDiagnosisResolution",
           "depends_on": [
             "icd10_cm",
-            "ccsr",
-            "medicare_partd",
             "openfda_labels"
           ]
         }
@@ -941,12 +937,10 @@
           ]
         },
         {
-          "source_name": "indication_map",
-          "public_data_name": "PipelinePublicHealthData.IndicationMap",
+          "source_name": "fda_drug",
+          "public_data_name": "PipelinePublicHealthData.fdaProductToDiagnosisResolution",
           "depends_on": [
             "icd10_cm",
-            "ccsr",
-            "medicare_partd",
             "openfda_labels"
           ]
         }

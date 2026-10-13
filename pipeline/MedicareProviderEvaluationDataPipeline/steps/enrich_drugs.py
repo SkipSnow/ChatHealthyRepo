@@ -3,7 +3,7 @@
 
 """enrich_drugs (EPIC-010-F-007) — place drugs under indications, roll day supply.
 
-Fanned by provider_state: each worker reads the Normalized Indication Map
+Fanned by provider_state: each worker reads the fdaProductToDiagnosisResolution collection
 candidate built this run and, for every ProviderMedicare record in its state, stamps each drug's
 parent indication(s) and rolls the provider's own day supply up per indication
 (count-under-each). Resolves collections through the registry; the aggregation
@@ -38,8 +38,8 @@ def run_step(ctx) -> dict:
 
     pm = reg.by_source_name("providermedicare")
     providermedicare_coll = mongo[pm.public_data_db][reg.public_data_collection_name("providermedicare")]
-    im = reg.by_source_name("indication_map")
-    indication_map_coll = mongo[im.public_data_db][reg.public_data_collection_name("indication_map")]
+    im = reg.by_source_name("fda_drug")
+    indication_map_coll = mongo[im.public_data_db][reg.public_data_collection_name("fda_drug")]
 
     result = enrich_drugs(
         state=state,

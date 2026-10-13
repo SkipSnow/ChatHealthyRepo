@@ -2,7 +2,7 @@
 # Licensed under the FindCare Evaluation License (FEL-1.0).
 
 """FDADrugEnrichmentTool (EPIC-010-F-007-S-008) -- the production inference that
-builds the NormalizedIndicationMap.
+builds the fdaProductToDiagnosisResolution collection (the FDA drug collection).
 
 One claims-blind pydantic-ai agent making TWO single-concern calls, never merged:
 
@@ -27,7 +27,7 @@ One claims-blind pydantic-ai agent making TWO single-concern calls, never merged
   ONLY from the catalog. The rxcui PROMPT 1 resolved is INSERTED into PROMPT 2's
   input only when that resolution's confidence > 0.75 (tier1/2 always; tier3 only
   above 0.75; floor and any tier3 at or below 0.75 never). Its output assembles
-  the NormalizedIndicationMapRecord -- the FDA SPL record enriched in place.
+  the FdaDrugRecord -- the FDA SPL record enriched in place.
 
 The agent sees only strings. RxNorm lookups use the RxNav REST API. The model is
 resolved from configuration (never pinned in source) and constructed per the per-
@@ -169,6 +169,7 @@ class RxcuiResolutionItem(BaseModel):
     id: str
     rxcui: Optional[str]
     ingredient_rxcuis: list[str] = Field(default_factory=list)
+    ingredient_names: list[str] = Field(default_factory=list)
     resolved_by: Literal["tier1", "tier2", "tier3", "floor"]
     confidence: float = Field(ge=0.0, le=1.0)
     confidence_rationale: str
@@ -228,6 +229,7 @@ class Icd10Code(BaseModel):
     icd10_code: str
     level: Literal[3, 4]
     confidence: float = Field(ge=0.0, le=1.0)
+    description: Optional[str] = None
 
 
 class CrosswalkIndication(BaseModel):
@@ -240,7 +242,7 @@ class CrosswalkIndication(BaseModel):
 class CrosswalkResult(BaseModel):
     """One record's crosswalk output -- id, usage_summary, and the indications with
     their catalog codes. The carried resolution fields and set_id/record_number are
-    added by the orchestrator when it assembles the NormalizedIndicationMapRecord."""
+    added by the orchestrator when it assembles the FdaDrugRecord."""
     model_config = ConfigDict(extra="forbid")
     id: str
     usage_summary: str
@@ -253,7 +255,7 @@ class CrosswalkBatchOutput(BaseModel):
     results: list[CrosswalkResult]
 
 
-class NormalizedIndicationMapRecord(BaseModel):
+class FdaDrugRecord(BaseModel):
     """PROMPT 2 output (Appendix B) -- one record per dispensable drug, 1:1 with the
     FDA file. The FDA SPL record enriched in place: its native fields pass through
     unchanged (additionalProperties:true) and the enrichment fields below are added.
@@ -262,6 +264,7 @@ class NormalizedIndicationMapRecord(BaseModel):
     set_id: str
     record_number: Optional[int] = None
     ingredient_rxcuis: list[str] = Field(default_factory=list)
+    ingredient_names: list[str] = Field(default_factory=list)
     resolved_by: Literal["tier1", "tier2", "tier3", "floor"]
     resolution_confidence: Optional[float] = Field(default=None, ge=0.0, le=1.0)
     resolution_confidence_rationale: Optional[str] = None
@@ -282,9 +285,10 @@ class _DrugKey(BaseModel):
 # ─────────────────────────────────────────────────────────────────────────────
 # Catalog loading (lazy; no file read at import)
 # ─────────────────────────────────────────────────────────────────────────────
-def load_catalog_from_xlsx(path: str) -> tuple[str, frozenset[str]]:
+def load_catalog_from_xlsx(path: str) -> tuple[str, frozenset[str], dict[str, str]]:
     """Read the ICD-10-CM 3/4-character catalog from an xlsx into the cached prefix
-    text ("<code><TAB><short_description>", one per line) and the membership set."""
+    text ("<code><TAB><short_description>", one per line), the membership set, and a
+    code->short_description map (used to stamp each crosswalk code's description)."""
     from openpyxl import load_workbook
 
     absolute = str(path)
@@ -315,6 +319,7 @@ def load_catalog_from_xlsx(path: str) -> tuple[str, frozenset[str]]:
             )
     lines: list[str] = []
     codes: set[str] = set()
+    descriptions: dict[str, str] = {}
     for row in rows:
         level = row[index["level"]]
         if level not in (3, 4):
@@ -325,7 +330,8 @@ def load_catalog_from_xlsx(path: str) -> tuple[str, frozenset[str]]:
         desc = str(row[index["short_description"]] or "").strip()
         lines.append(f"{code}\t{desc}")
         codes.add(code)
-    return "\n".join(lines), frozenset(codes)
+        descriptions[code] = desc
+    return "\n".join(lines), frozenset(codes), descriptions
 
 
 # ─────────────────────────────────────────────────────────────────────────────
@@ -350,8 +356,10 @@ class FDADrugEnrichmentTool:
         self._catalog_source = catalog
         self._catalog_text: Optional[str] = None
         self._catalog_codes: Optional[frozenset[str]] = None
-        if isinstance(catalog, tuple) and len(catalog) == 2:
+        self._catalog_descriptions: Optional[dict[str, str]] = None
+        if isinstance(catalog, tuple) and len(catalog) in (2, 3):
             self._catalog_text, self._catalog_codes = catalog[0], frozenset(catalog[1])
+            self._catalog_descriptions = dict(catalog[2]) if len(catalog) == 3 else {}
             self._catalog_source = None
         self._rxnav_base = (rxnav_base_url or os.environ.get(_RXNAV_ENV, "").strip()
                             or _RXNAV_DEFAULT_BASE).rstrip("/")
@@ -403,7 +411,13 @@ class FDADrugEnrichmentTool:
                 message=(f"no ICD-10-CM catalog provided and {_CATALOG_ENV} is not set; "
                          "PROMPT 2's cached prefix is the catalog and cannot be built"),
             )
-        self._catalog_text, self._catalog_codes = load_catalog_from_xlsx(str(source))
+        self._catalog_text, self._catalog_codes, self._catalog_descriptions = (
+            load_catalog_from_xlsx(str(source)))
+
+    def _code_description(self, code: str) -> Optional[str]:
+        """The ICD-10-CM short description for a catalog code, or None if unknown."""
+        self._ensure_catalog()
+        return (self._catalog_descriptions or {}).get(code)
 
     def _build_crosswalk_system_prompt(self) -> str:
         self._ensure_catalog()
@@ -586,32 +600,40 @@ class FDADrugEnrichmentTool:
         combination its full set; anything unresolved falls to tier3."""
         # tier1 -- direct relation off each of the label's rxcuis.
         exact: dict[str, str] = {}
+        exact_names: dict[str, str] = {}
         exact_source: Optional[str] = None
         for product_rxcui in key.openfda_rxcui:
             product_rxcui = str(product_rxcui).strip()
             if not product_rxcui:
                 continue
-            for ing_rxcui, _ing_name in self._ingredients_of(client, product_rxcui):
+            for ing_rxcui, ing_name in self._ingredients_of(client, product_rxcui):
                 exact[ing_rxcui] = product_rxcui
+                exact_names[ing_rxcui] = ing_name
                 exact_source = exact_source or product_rxcui
         if exact:
+            ordered = sorted(exact)
             return RxcuiResolutionItem(
-                id=key.id, rxcui=exact_source, ingredient_rxcuis=sorted(exact),
+                id=key.id, rxcui=exact_source, ingredient_rxcuis=ordered,
+                ingredient_names=[exact_names.get(r, "") for r in ordered],
                 resolved_by="tier1", confidence=1.0, confidence_rationale="Deterministic")
         # tier2 -- normalized via status/remap of each label rxcui.
         normalized: dict[str, str] = {}
+        normalized_names: dict[str, str] = {}
         normalized_source: Optional[str] = None
         for product_rxcui in key.openfda_rxcui:
             product_rxcui = str(product_rxcui).strip()
             if not product_rxcui:
                 continue
             for remapped in self._remapped_rxcuis(client, product_rxcui):
-                for ing_rxcui, _ing_name in self._ingredients_of(client, remapped):
+                for ing_rxcui, ing_name in self._ingredients_of(client, remapped):
                     normalized[ing_rxcui] = remapped
+                    normalized_names[ing_rxcui] = ing_name
                     normalized_source = normalized_source or remapped
         if normalized:
+            ordered = sorted(normalized)
             return RxcuiResolutionItem(
-                id=key.id, rxcui=normalized_source, ingredient_rxcuis=sorted(normalized),
+                id=key.id, rxcui=normalized_source, ingredient_rxcuis=ordered,
+                ingredient_names=[normalized_names.get(r, "") for r in ordered],
                 resolved_by="tier2", confidence=1.0, confidence_rationale="Deterministic")
         return None
 
@@ -657,18 +679,20 @@ class FDADrugEnrichmentTool:
                     resolved[selection.id] = RxcuiResolutionItem(
                         id=selection.id, rxcui=chosen_candidate.rxcui,
                         ingredient_rxcuis=list(chosen_candidate.ingredient_rxcuis),
+                        ingredient_names=list(chosen_candidate.ingredient_names),
                         resolved_by="tier3", confidence=selection.confidence,
                         confidence_rationale=selection.confidence_rationale)
                 else:
                     resolved[selection.id] = RxcuiResolutionItem(
                         id=selection.id, rxcui=None, ingredient_rxcuis=[],
+                        ingredient_names=[],
                         resolved_by="floor", confidence=0.0,
                         confidence_rationale=selection.confidence_rationale)
         # Any residue name the model did not return a result for is floored by reason.
         for drug in residue:
             resolved.setdefault(drug.id, RxcuiResolutionItem(
-                id=drug.id, rxcui=None, ingredient_rxcuis=[], resolved_by="floor",
-                confidence=0.0,
+                id=drug.id, rxcui=None, ingredient_rxcuis=[], ingredient_names=[],
+                resolved_by="floor", confidence=0.0,
                 confidence_rationale=_RESOLUTION_DROP_RATIONALE))
         ordered = [resolved[key.id] for key in keys]
         return RxcuiResolutionOutput(results=ordered)
@@ -774,16 +798,16 @@ class FDADrugEnrichmentTool:
         fda_records: list[dict],
         *,
         record_number_start: int = 1,
-        sink: Optional[Callable[[NormalizedIndicationMapRecord], None]] = None,
-    ) -> list[NormalizedIndicationMapRecord]:
+        sink: Optional[Callable[[FdaDrugRecord], None]] = None,
+    ) -> list[FdaDrugRecord]:
         """For each FDA SPL record: resolve its RXCUI (PROMPT 1), insert it into the
         crosswalk input only above the 0.75 threshold, crosswalk (PROMPT 2), and
-        assemble the NormalizedIndicationMapRecord (the FDA record enriched in
+        assemble the FdaDrugRecord (the FDA record enriched in
         place). Processes in batches of the production batch size. Each assembled
         record is written through the pluggable sink when one is supplied; the raw
         PROMPT 1 and PROMPT 2 outputs are returned to the caller via resolve_rxcuis()
         and crosswalk() for persist-first scratch. FIRES model and RxNav calls."""
-        records: list[NormalizedIndicationMapRecord] = []
+        records: list[FdaDrugRecord] = []
         record_number = record_number_start
         for start in range(0, len(fda_records), _CROSSWALK_BATCH_SIZE):
             chunk = fda_records[start:start + _CROSSWALK_BATCH_SIZE]
@@ -836,25 +860,32 @@ class FDADrugEnrichmentTool:
         return _DrugKey(id=record_id, set_id=set_id, molecule=molecule,
                         openfda_rxcui=openfda_rxcui, indication_text=indication_text)
 
-    @staticmethod
     def _assemble(
+        self,
         fda_record: dict,
         key: _DrugKey,
         resolution: RxcuiResolutionItem,
         crosswalk_result: Optional[CrosswalkResult],
         record_number: int,
-    ) -> NormalizedIndicationMapRecord:
+    ) -> FdaDrugRecord:
         """The FDA SPL record enriched in place: native fields pass through unchanged,
         the resolution fields are carried from PROMPT 1, and the crosswalk's
-        indications and usage_summary are added (Appendix B)."""
+        indications and usage_summary are added (Appendix B). Each crosswalk code is
+        stamped with its ICD-10-CM short description from the loaded catalog."""
         data: dict[str, Any] = dict(fda_record)
         data["set_id"] = key.set_id
         data["record_number"] = record_number
         data["ingredient_rxcuis"] = resolution.ingredient_rxcuis
+        data["ingredient_names"] = resolution.ingredient_names
         data["resolved_by"] = resolution.resolved_by
         data["resolution_confidence"] = resolution.confidence
         data["resolution_confidence_rationale"] = resolution.confidence_rationale
-        data["indications"] = ([indication.model_dump() for indication in crosswalk_result.indications]
-                               if crosswalk_result is not None else [])
+        indications: list[dict] = []
+        if crosswalk_result is not None:
+            for indication in crosswalk_result.indications:
+                for code in indication.codes:
+                    code.description = self._code_description(code.icd10_code)
+                indications.append(indication.model_dump())
+        data["indications"] = indications
         data["usage_summary"] = crosswalk_result.usage_summary if crosswalk_result is not None else None
-        return NormalizedIndicationMapRecord(**data)
+        return FdaDrugRecord(**data)

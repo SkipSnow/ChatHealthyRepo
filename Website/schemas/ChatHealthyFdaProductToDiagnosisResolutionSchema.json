@@ -1,0 +1,59 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://dev.chathealthy.ai/schemas/ChatHealthyFdaProductToDiagnosisResolutionSchema.json",
+  "title": "ChatHealthy FDA Product To Diagnosis Resolution",
+  "description": "One document per FDA drug product in the fdaProductToDiagnosisResolution collection (EPIC-010-F-007), ChatHealthy's FDA drug collection. 1:1 with the FDA file, keyed by set_id: the FDA SPL label record enriched in place (its native fields pass through, so additionalProperties is true) with its resolved RxNorm ingredient RXCUIs and, per indication, the ICD-10-CM 3- and 4-character diagnosis codes it is on-label indicated to treat. Prescription products only; OTC is excluded. Built claims-blind by FDADrugEnrichmentTool.",
+  "type": "object",
+  "additionalProperties": true,
+  "required": ["set_id", "resolved_by", "indications", "run_id", "data_version"],
+  "properties": {
+    "set_id": { "type": "string", "description": "the FDA SPL set_id; the record key" },
+    "record_number": { "type": ["integer", "null"], "description": "sequential load index used for range work" },
+    "ingredient_rxcuis": {
+      "type": "array",
+      "items": { "type": "string" },
+      "description": "resolved RxNorm ingredient RXCUIs (tty=IN); one for a single-ingredient drug, many for a combination"
+    },
+    "ingredient_names": {
+      "type": "array",
+      "items": { "type": "string" },
+      "description": "RxNorm ingredient names positionally aligned with ingredient_rxcuis; empty string where a name is unavailable for the aligned RXCUI"
+    },
+    "resolved_by": {
+      "type": "string",
+      "enum": ["tier1", "tier2", "tier3", "floor"],
+      "description": "the resolution tier that produced ingredient_rxcuis"
+    },
+    "resolution_confidence": { "type": ["number", "null"], "minimum": 0.0, "maximum": 1.0 },
+    "resolution_confidence_rationale": { "type": ["string", "null"] },
+    "indications": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["indication", "confidence_rationale", "codes"],
+        "properties": {
+          "indication": { "type": "string" },
+          "confidence_rationale": { "type": "string" },
+          "codes": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": ["icd10_code", "level", "confidence"],
+              "properties": {
+                "icd10_code": { "type": "string" },
+                "level": { "type": "integer", "enum": [3, 4] },
+                "confidence": { "type": "number", "minimum": 0.0, "maximum": 1.0 },
+                "description": { "type": ["string", "null"], "description": "the ICD-10-CM short description for icd10_code, from the catalog; null when the code is not in the loaded catalog" }
+              }
+            }
+          }
+        }
+      }
+    },
+    "usage_summary": { "type": ["string", "null"] },
+    "run_id": { "type": "string" },
+    "data_version": { "type": "integer", "minimum": 1 }
+  }
+}

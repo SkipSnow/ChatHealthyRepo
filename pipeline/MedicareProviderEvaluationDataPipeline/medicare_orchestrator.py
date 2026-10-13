@@ -6,17 +6,15 @@
 Declares PIPELINE_NAME = "medicare" and the StepSpec DAG realized from the
 approved LLD Part III (medicare_detailed_sequence). Built on the generic run
 lifecycle (EPIC-010-F-001); only the Medicare-specific steps and fan-out keys
-live here. The indication-map build is a gated step on its own cadence (the
-build_indication_map arg, carried as the BUILD_INDICATION_MAP env the step
-reads); the per-provider enrich steps are map lookups only; SpecialtyMedicare
-is a derive rollup over NUCC codes.
-
-Slice 1 scaffold: step runners are registry-resolved stubs; the deterministic
-mining joins, the rollups, and the thin LLM residual (behind the shared llm
-facade) land in later slices.
+live here. The fda_drug build (the fdaProductToDiagnosisResolution collection)
+is a gated step on its own cadence (the build_fda_drug arg, carried as the
+BUILD_FDA_DRUG env the step reads); the per-provider enrich steps are collection
+lookups only; SpecialtyMedicare is a derive rollup over NUCC codes.
 """
 
 from __future__ import annotations
+
+import os
 
 from pipeline.run_lifecycle.base_pipeline_orchestrator import BasePipelineOrchestrator
 from pipeline.run_lifecycle.step_spec import StepSpec
@@ -59,14 +57,26 @@ class MedicareProviderEvaluationOrchestrator(BasePipelineOrchestrator):
             partition_key="source_name",
         ),
         StepSpec(
-            # [ENRICH] Mine the Normalized Indication Map once. Own cadence,
-            # gated by the build_indication_map arg: a normal run consumes the
-            # current published map; a rebuild run produces a candidate released
-            # through the operator-gated crossing (LLD I.6).
-            name="build_indication_map",
+            # [ENRICH] Index this run's prescription FDA labels (non-OTC) with a
+            # sequential fda_record_number so the build can range-partition the FDA
+            # work across worker processes (LLD I.3.4a). Serial, once.
+            name="index_fda_prescription_records",
             prerequisites=["medicare_load_staging"],
             parallelism="serial",
-            aca_job_name="med-build-indication-map",
+            aca_job_name="med-index-fda-records",
+        ),
+        StepSpec(
+            # [ENRICH] Build the fdaProductToDiagnosisResolution collection (the FDA
+            # drug collection). Gated by the build_fda_drug arg: a normal run consumes
+            # the current published collection; a rebuild produces a candidate released
+            # through the operator-gated crossing (LLD I.6). Fanned out over record-
+            # number ranges -- one worker PROCESS per range; concurrency is the worker-
+            # process count, sized to the worker box.
+            name="build_fda_drug_collection",
+            prerequisites=["index_fda_prescription_records"],
+            parallelism="process_pool",
+            aca_job_name="med-build-fda-drug-collection",
+            partition_key="record_range",
         ),
         StepSpec(
             # [BASE] Per-NPI ProviderMedicare record, fanned out by provider
@@ -81,7 +91,7 @@ class MedicareProviderEvaluationOrchestrator(BasePipelineOrchestrator):
             # [ENRICH] Map lookup only: attribute each drug's day supply to the
             # drug's indication(s), count-under-each.
             name="enrich_drugs",
-            prerequisites=["build_providermedicare_base", "build_indication_map"],
+            prerequisites=["build_providermedicare_base", "build_fda_drug_collection"],
             parallelism="process_pool",
             aca_job_name="med-enrich-drugs",
             partition_key="provider_state",
@@ -90,7 +100,7 @@ class MedicareProviderEvaluationOrchestrator(BasePipelineOrchestrator):
             # [ENRICH] Map lookup only: attach each procedure's allowed ICD-10
             # to its indication(s).
             name="enrich_procedures",
-            prerequisites=["build_providermedicare_base", "build_indication_map"],
+            prerequisites=["build_providermedicare_base", "build_fda_drug_collection"],
             parallelism="process_pool",
             aca_job_name="med-enrich-procedures",
             partition_key="provider_state",
@@ -177,4 +187,27 @@ class MedicareProviderEvaluationOrchestrator(BasePipelineOrchestrator):
             # built ProviderMedicare collection (a declared partition source).
             # The skeleton runs a single partition until that query lands.
             return [{"single": True}]
+        if key == "record_range":
+            return self._fda_record_ranges(ctx)
         return super()._partitions_for(spec, ctx)
+
+    def _fda_record_ranges(self, ctx) -> list[dict]:
+        """Even record-number ranges over this run's stamped prescription FDA labels --
+        one worker PROCESS per range (LLD I.3.4a). Off-build returns a single
+        verify/consume partition. Range size is configurable per pipeline via
+        fda_drug_records_per_partition."""
+        if os.environ.get("BUILD_FDA_DRUG", "").strip().lower() not in ("1", "true", "yes"):
+            return [{"single": True}]
+        from pipeline.run_lifecycle.pipeline_runtime import PipelineRuntime
+        reg = PipelineRuntime(ctx).registry
+        ofda = reg.by_source_name("openfda_labels")
+        staging = ctx.mongo_client[ofda.staging_db][reg.staging_collection_name("openfda_labels")]
+        total = staging.count_documents(
+            {"run_id": ctx.run_id, "fda_record_number": {"$exists": True}})
+        if total <= 0:
+            return [{"single": True}]
+        worker_count = max(1, min(int((ctx.config or {}).get("fda_drug_worker_count", 100)),
+                                  total))
+        size = -(-total // worker_count)  # ceil: ~worker_count even ranges, one per process
+        return [{"record_range": {"start": s, "end": min(s + size, total + 1)}}
+                for s in range(1, total + 1, size)]

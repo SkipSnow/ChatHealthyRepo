@@ -4,7 +4,7 @@
 """medicare_contract_conformance (EPIC-010-F-007) — gate on record contracts.
 
 Serial, after the collections are built. Validates every published
-ProviderMedicare, SpecialtyMedicare and Normalized Indication Map record against
+ProviderMedicare, SpecialtyMedicare and fdaProductToDiagnosisResolution record against
 its JSON Schema; any nonconformance stops the run. Resolves collections through
 the registry. No external calls.
 """
@@ -25,7 +25,7 @@ def run_step(ctx) -> dict:
     mongo = ctx.mongo_client
 
     collections = {}
-    for source_name in ("providermedicare", "specialtymedicare", "indication_map"):
+    for source_name in ("providermedicare", "specialtymedicare", "fda_drug"):
         entry = reg.by_source_name(source_name)
         collections[source_name] = mongo[entry.public_data_db][
             reg.public_data_collection_name(source_name)]

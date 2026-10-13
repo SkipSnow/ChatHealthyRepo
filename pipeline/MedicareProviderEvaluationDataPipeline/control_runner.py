@@ -8,10 +8,11 @@ on the Pipeline Run VM, reads/updates the run manifest, walks the StepSpec DAG
 spawning Workers, and quiesces on any terminal state through the generic
 run-end release (pipeline.run_lifecycle.controller_release).
 
-Medicare-specific invocation: --build-indication-map gates the rebuild of the
-Normalized Indication Map (default off -> consume the current published map).
-The flag is exported as BUILD_INDICATION_MAP so Worker subprocesses (which
-inherit os.environ) and the build_indication_map step see it.
+Medicare-specific invocation: --build-fda-drug gates the rebuild of the
+fdaProductToDiagnosisResolution collection (default off -> consume the current
+published collection). The flag is exported as BUILD_FDA_DRUG so Worker
+subprocesses (which inherit os.environ) and the build_fda_drug_collection step
+see it.
 
 The finally emits exactly one Medicare discrepancy report per run, on success
 and abend alike (EPIC-010-F-001-S-008), counting the three published Medicare
@@ -87,15 +88,16 @@ def _parse_args(argv: list[str]) -> argparse.Namespace:
                         default=_dv_default, required=(_dv_default is None),
                         help="Output collection version number. MANDATORY. "
                              "Reads DATA_VERSION env if the flag is omitted.")
-    # Gate the rebuild of the Normalized Indication Map. Off by default: a
-    # normal run consumes the current published map. On via
-    # --build-indication-map or BUILD_INDICATION_MAP env in {1,true,yes}.
-    _bim_default = _truthy(os.environ.get("BUILD_INDICATION_MAP", ""))
-    parser.add_argument("--build-indication-map", dest="build_indication_map",
-                        action="store_true", default=_bim_default,
-                        help="Rebuild the Normalized Indication Map this run "
-                             "(produces a candidate for operator-gated release). "
-                             "Default off: consume the current published map.")
+    # Gate the rebuild of the fdaProductToDiagnosisResolution collection. Off by
+    # default: a normal run consumes the current published collection. On via
+    # --build-fda-drug or BUILD_FDA_DRUG env in {1,true,yes}.
+    _bfd_default = _truthy(os.environ.get("BUILD_FDA_DRUG", ""))
+    parser.add_argument("--build-fda-drug", dest="build_fda_drug",
+                        action="store_true", default=_bfd_default,
+                        help="Rebuild the fdaProductToDiagnosisResolution collection "
+                             "this run (produces a candidate for operator-gated "
+                             "release). Default off: consume the current published "
+                             "collection.")
     return parser.parse_args(argv)
 
 
@@ -110,7 +112,7 @@ def _control(ns) -> int:
     load_pipeline_env()
 
     os.environ["DATA_VERSION"] = str(ns.data_version)
-    os.environ["BUILD_INDICATION_MAP"] = "1" if ns.build_indication_map else "0"
+    os.environ["BUILD_FDA_DRUG"] = "1" if ns.build_fda_drug else "0"
     # The shared discrepancy-report emitter labels the report by PIPELINE_NAME;
     # name it here so the Medicare report is not emitted under the provider name.
     os.environ["PIPELINE_NAME"] = MedicareProviderEvaluationOrchestrator.PIPELINE_NAME
@@ -248,9 +250,9 @@ def _control(ns) -> int:
         _log.LogPipeline(
             "INFO",
             "medicare control_runner: starting run env_prefix=%s states=%s "
-            "resume_from_step=%s data_version=%s build_indication_map=%s run_id=%s",
+            "resume_from_step=%s data_version=%s build_fda_drug=%s run_id=%s",
             ns.env_prefix, args.states, ns.resume_from_step, ns.data_version,
-            ns.build_indication_map, ns.run_id or "(mint)",
+            ns.build_fda_drug, ns.run_id or "(mint)",
         )
         _phase.set_controller_phase(os.environ.get("RUN_ID", ""), _phase.ORCHESTRATING,
                                     "walking the step DAG; fanning out work_items")
@@ -404,8 +406,8 @@ def _emit_discrepancy_report(run_id, final_status, *, manifest=None, args=None,
     """Emit the Medicare discrepancy report -- ALWAYS, on a perfect run OR an
     abend (EPIC-010-F-001-S-008). Medicare-specific: it counts the three
     published collections this pipeline builds -- ProviderMedicare,
-    SpecialtyMedicare and the Normalized Indication Map -- so it stays with the
-    Medicare Controller, not the generic release. Best-effort so a Mongo or
+    SpecialtyMedicare and the fdaProductToDiagnosisResolution collection -- so it
+    stays with the Medicare Controller, not the generic release. Best-effort so a Mongo or
     SparkPost outage never blocks the run's exit, and delivered even when the
     run-record store is unreachable (EPIC-010-F-001-S-008-REQ-B-006)."""
     try:
@@ -496,7 +498,7 @@ def _emit_discrepancy_report(run_id, final_status, *, manifest=None, args=None,
             registry = PipelineDatasetRegistry(cfg, data_version, pipeline_mongo)
             data_mongo = ChatHealthyMongoUtilities().getConnection(
                 "pipelineEditor", "ChatHealthyDataPipelines")
-            for source_name in ("providermedicare", "specialtymedicare", "indication_map"):
+            for source_name in ("providermedicare", "specialtymedicare", "fda_drug"):
                 entry = registry.by_source_name(source_name)
                 coll_name = registry.public_data_collection_name(source_name)
                 coll = data_mongo[entry.public_data_db][coll_name]

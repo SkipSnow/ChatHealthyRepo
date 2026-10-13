@@ -8,7 +8,7 @@ Topology" section).
 
 Duties, mirroring the provider runbook but creating a Controller VM rather than a
 combined run VM:
-  1. Read the webhook payload (data_version is mandatory; build_indication_map
+  1. Read the webhook payload (data_version is mandatory; build_fda_drug
      and states optional -- states defaults to ["ALL"] and is forwarded to the
      Controller as --states, driving the per-state fan-out exactly as provider).
   2. Acquire the per-pipeline lock and write a run manifest on the always-on
@@ -66,7 +66,7 @@ from chathealthy_lib.exceptions import ChatHealthyException  # noqa: E402
 
 # Hydrate Automation Variables into os.environ before anything reads them.
 for _k in ("CH_LOG_DB", "CH_LOG_LEVEL", "PIPELINE_SECRET_NAMES", "CH_EMBEDDING_MODEL",
-           "CH_INDICATION_MODEL",
+           "CH_FDA_ENRICHMENT_MODEL",
            "KEY_VAULT_URI", "AUTOMATION_ENV_PREFIX",
            "AUTOMATION_SUBSCRIPTION_ID", "AUTOMATION_RESOURCE_GROUP",
            "ATLAS_PROJECT_ID", "ATLAS_PIPELINE_PUBLIC_KEY", "ATLAS_PIPELINE_PRIVATE_KEY",
@@ -130,11 +130,11 @@ VM_IMAGE_TAG = _req("AUTOMATION_VM_IMAGE_TAG")
 KEY_VAULT_URI = _req("KEY_VAULT_URI")
 PIPELINE_SECRET_NAMES = _req("PIPELINE_SECRET_NAMES")
 CH_EMBEDDING_MODEL = _req("CH_EMBEDDING_MODEL")
-# The indication-map build (build_indication_map) mines the molecule->indication
+# The indication-map build (build_fda_drug) mines the molecule->indication
 # crosswalk through a pydantic-ai Agent; the Worker VM that drains that step
 # needs the model binding. Sourced from the deploy exactly as CH_EMBEDDING_MODEL
 # and handed to the Controller, which forwards it to the Worker VM.
-CH_INDICATION_MODEL = _req("CH_INDICATION_MODEL")
+CH_FDA_ENRICHMENT_MODEL = _req("CH_FDA_ENRICHMENT_MODEL")
 CH_LOG_DB = _req("CH_LOG_DB")
 PIPELINE_LOG_ACCOUNT_URL = _req("PIPELINE_LOG_ACCOUNT_URL")
 MONGO_HOST_FRONTEND = _req("CH_MONGO_HOST_CHATHEALTHYFRONTEND")
@@ -254,13 +254,13 @@ def _release_pipeline_lock(mongo, run_id: str) -> None:
 
 
 def _write_run_manifest(mongo, run_id: str, data_version: int,
-                        build_indication_map: bool, invocation_mode: str,
+                        build_fda_drug: bool, invocation_mode: str,
                         states: list[str]) -> None:
     mongo[PIPELINE_ADMIN_DB]["pipeline.runs"].insert_one({
         "run_id": run_id, "pipeline_name": PIPELINE_NAME, "env": ENV_PREFIX,
         "status": "running", "started_at": datetime.datetime.utcnow(),
         "invocation_mode": invocation_mode, "data_version": data_version,
-        "build_indication_map": build_indication_map, "states": states})
+        "build_fda_drug": build_fda_drug, "states": states})
 
 
 def _cancel_reservation(mongo, run_id: str) -> None:
@@ -272,7 +272,7 @@ def _get_ssh_pubkey() -> str:
 
 
 def _controller_cloud_init(run_id: str, data_version: int,
-                           build_indication_map: bool, vm_name: str,
+                           build_fda_drug: bool, vm_name: str,
                            debug_level: str, states: list[str]) -> str:
     """Base64 cloud-init for the Controller VM: pull the image, run the Medicare
     control_runner with WORKER_COMPUTE=vm so the orchestrator provisions Worker
@@ -282,7 +282,7 @@ def _controller_cloud_init(run_id: str, data_version: int,
     import base64
     ct, cc, cs = _controller_credential()
     image = f"{VM_ACR}.azurecr.io/{VM_IMAGE_REPO}:{VM_IMAGE_TAG}"
-    bim = "--build-indication-map" if build_indication_map else ""
+    bim = "--build-fda-drug" if build_fda_drug else ""
     yaml_body = f"""#cloud-config
 apt:
   primary:
@@ -329,7 +329,7 @@ runcmd:
       -e AZ_VM_ADMIN_SSH_PUBKEY='{_get_ssh_pubkey()}' \\
       -e KEY_VAULT_URI='{KEY_VAULT_URI}' -e PIPELINE_SECRET_NAMES='{PIPELINE_SECRET_NAMES}' \\
       -e CH_EMBEDDING_MODEL='{CH_EMBEDDING_MODEL}' \\
-      -e CH_INDICATION_MODEL='{CH_INDICATION_MODEL}' \\
+      -e CH_FDA_ENRICHMENT_MODEL='{CH_FDA_ENRICHMENT_MODEL}' \\
       -e PIPELINECONTROLLER_AZURE_TENANT_ID='{ct}' \\
       -e PIPELINECONTROLLER_AZURE_CLIENT_ID='{cc}' \\
       -e PIPELINECONTROLLER_AZURE_CLIENT_SECRET='{cs}' \\
@@ -373,12 +373,12 @@ def _put(url: str, body: dict, tok: str) -> dict:
 
 
 def _provision_controller_vm(run_id: str, data_version: int,
-                             build_indication_map: bool, debug_level: str,
+                             build_fda_drug: bool, debug_level: str,
                              states: list[str]) -> dict:
     tok = _get_token("https://management.azure.com/")
     vm_name = f"vm-chcontrol-{_short(run_id)}"
     tags = {"pipeline_run_id": run_id, "pipeline_name": PIPELINE_NAME, "env": ENV_PREFIX}
-    user_data = _controller_cloud_init(run_id, data_version, build_indication_map,
+    user_data = _controller_cloud_init(run_id, data_version, build_fda_drug,
                                        vm_name, debug_level, states)
     vm_url = (f"https://management.azure.com/subscriptions/{SUBSCRIPTION_ID}"
               f"/resourceGroups/{RESOURCE_GROUP}/providers/Microsoft.Compute/"
@@ -559,8 +559,8 @@ def _run() -> int:
     if data_version < 1:
         log("runbook_reject_no_data_version", body=str(body)[:400])
         _raise_missing_data_version(body)
-    bim_raw = (body or {}).get("build_indication_map")
-    build_indication_map = (bim_raw is True
+    bim_raw = (body or {}).get("build_fda_drug")
+    build_fda_drug = (bim_raw is True
                             or str(bim_raw or "").strip().lower() in ("1", "true", "yes"))
     debug_level = str((body or {}).get("debug_level")
                       or DEBUG_LEVEL_DEFAULT).strip().upper()
@@ -575,7 +575,7 @@ def _run() -> int:
 
     log("runbook_start", pipeline=PIPELINE_NAME, env=ENV_PREFIX,
         invocation_mode=invocation_mode, data_version=data_version,
-        build_indication_map=build_indication_map, debug_level=debug_level,
+        build_fda_drug=build_fda_drug, debug_level=debug_level,
         states=states)
 
     runbook_owns_lock = False
@@ -592,7 +592,7 @@ def _run() -> int:
                 live_run_id=blocking.get("run_id"))
             return 1
         runbook_owns_lock = True
-        _write_run_manifest(mongo, run_id, data_version, build_indication_map,
+        _write_run_manifest(mongo, run_id, data_version, build_fda_drug,
                             invocation_mode, states)
         log("run_manifest_written", run_id=run_id)
 
@@ -603,7 +603,7 @@ def _run() -> int:
         _reserve_and_resume_cluster(mongo, run_id, vm_name, RESERVATION_TTL_HOURS)
         reservation_created = True
 
-        _provision_controller_vm(run_id, data_version, build_indication_map,
+        _provision_controller_vm(run_id, data_version, build_fda_drug,
                                  debug_level, states)
         runbook_owns_lock = False  # Controller owns lock release from here
         log("controller_vm_provisioned", run_id=run_id, vm_name=vm_name)

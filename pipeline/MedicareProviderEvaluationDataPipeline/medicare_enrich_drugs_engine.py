@@ -3,8 +3,8 @@
 
 """enrich_drugs engine (EPIC-010-F-007).
 
-Consumes the Normalized Indication Map candidate produced this run by the
-build_indication_map prerequisite, to place each ProviderMedicare drug under its
+Consumes the fdaProductToDiagnosisResolution collection produced this run by the
+build_fda_drug_collection prerequisite, to place each ProviderMedicare drug under its
 parent indication(s) and to roll the provider's own day supply up per indication. The molecule index is built from the map's molecules[] (rxcui
 and ingredient); a drug joins by rxcui when present, else by its generic name
 against the ingredient. A drug indicated for several parents counts its day
@@ -49,9 +49,9 @@ def _load_indication_index(map_coll, run_id: str) -> tuple[dict, dict]:
         raise ChatHealthyException(
             mode="runtime_error",
             component="enrich_drugs",
-            message=("enrich_drugs: the Normalized Indication Map is empty for this "
-                     "run; its prerequisite build_indication_map step produced no "
-                     "indications to consume"),
+            message=("enrich_drugs: the fdaProductToDiagnosisResolution collection is empty "
+                     "for this run; its prerequisite build_fda_drug_collection step "
+                     "produced no records to consume"),
         )
     return by_rxcui, by_ingredient
 

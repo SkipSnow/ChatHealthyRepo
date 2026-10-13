@@ -5,7 +5,7 @@
 
 A pipeline instance on the generic run lifecycle (EPIC-010-F-001) that builds
 three public collections — ProviderMedicare (per NPI), SpecialtyMedicare (per
-NUCC), and the Normalized Indication Map (per indication). It harvests Part D
+NUCC), and the fdaProductToDiagnosisResolution collection (per FDA drug product). It harvests Part D
 prescribed drugs and Part B billed procedures; both feed the provider-evaluation
 axis EvaluateCare reads. See LLD Part III.
 """

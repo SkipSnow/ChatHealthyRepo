@@ -4477,7 +4477,7 @@
                 "GEMINI_API_KEY": "local_env",
                 "OPENAI_API_KEY": "local_env",
                 "CH_EMBEDDING_MODEL": "firm:embedding_model",
-                "CH_INDICATION_MODEL": "local_env",
+                "CH_FDA_ENRICHMENT_MODEL": "local_env",
                 "PIPELINECONTROLLER_AZURE_TENANT_ID": "local_env",
                 "PIPELINECONTROLLER_AZURE_CLIENT_ID": "local_env",
                 "PIPELINECONTROLLER_AZURE_CLIENT_SECRET": "local_env",
