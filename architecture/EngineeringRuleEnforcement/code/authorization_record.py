@@ -1,7 +1,7 @@
 """The one place an authorization is written.
 
 Design V31 section 4.14, table 19. Every authorization -- a commit, a
-promotion, a data migration -- is one document in a single collection, told
+promotion, a data migration, or other significant action -- is one document in a single collection, told
 apart by authorization_type. There is one collection because an auditor
 asking "what did a human approve, and when" should have one place to look,
 and one writer because two writers become two shapes.
@@ -33,7 +33,6 @@ _log = ChatHealthyLoggingService()
 # name in prose; the divergence is the operator's to settle.
 AUTHORIZATION_DATABASE = "DevOpsAdmin"
 AUTHORIZATION_COLLECTION = "Authorizations"
-AUTHORIZATION_TARGET = "target_atlas_frontend"
 
 _collection = None
 
@@ -49,40 +48,6 @@ def _manifest() -> dict:
         "manifest_incomplete",
         "no repository root above this file, so deployment_architecture.json "
         "cannot be located and the authorization has no cluster to reach")
-
-
-def deployment_facts(env: str = "dev") -> tuple[str, str]:
-    """The cluster written to and the identity written as.
-
-    Read from the record that owns them. A deployment fact restated in code
-    is a fact the record can no longer be trusted to describe.
-    """
-    record = _manifest()
-    target = next((t for t in record["DeploymentTargetRecord"]
-                   if t["target_id"] == AUTHORIZATION_TARGET), None)
-    if target is None:
-        raise ChatHealthyException(
-            "manifest_incomplete",
-            f"{AUTHORIZATION_TARGET} is not declared; the authorization has "
-            f"no cluster to be written to")
-    binding = next((e for e in target["environments"]
-                    if e["env_binding"] == env), target["environments"][0])
-    cluster = binding["atlas"]["cluster"]
-    consumers = cluster.get("runtime_consumers") or []
-    if not consumers:
-        raise ChatHealthyException(
-            "manifest_incomplete",
-            f"{AUTHORIZATION_TARGET} declares no runtime consumer; the "
-            f"authorization has no identity to be written as")
-    identity_target = consumers[0]["identity_target_id"]
-    identity = next(
-        (i["identity_id"] for i in record["IdentityCatalog"]
-         if i.get("target_id_ref") == identity_target), None)
-    if identity is None:
-        raise ChatHealthyException(
-            "manifest_incomplete",
-            f"{identity_target} names no identity in the IdentityCatalog")
-    return cluster["cluster_name"], identity
 
 
 def _declared_host(cluster_name: str) -> str:
@@ -134,9 +99,9 @@ def collection():
     global _collection
     if _collection is None:
         _load_env_beside_the_repository()
-        cluster, identity = deployment_facts()
         client = ChatHealthyMongoUtilities().getConnection(
-            identity, cluster, host=_declared_host(cluster))
+            "DevOpsUser", "ChatHealthyFrontEnd",
+            host=_declared_host("ChatHealthyFrontEnd"))
         _collection = client[AUTHORIZATION_DATABASE][AUTHORIZATION_COLLECTION]
     return _collection
 

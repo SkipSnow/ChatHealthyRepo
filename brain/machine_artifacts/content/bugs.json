@@ -5,6 +5,29 @@
   "description": "All system bugs. Each bug has its own environment and status attributes. Environments constrained to local/dev/qa/prod. Source of truth for defect tracking.",
   "bug": [
     {
+      "bugid": "BUG-005",
+      "title": "Authorizations are not centralized",
+      "description": "Several different approaches to collecting and persisting authorizations have been implemented, in accordance with known requirements. Authorizations need to be centralized and contain sufficient metadata to be multidimensionally categorized. This bug is founded upon an AuthorizationsAudit doc found at pipeline/ArchitectureDesignAndAudit/audit/AuthorizationsAudit.docx and must be remediated.",
+      "environments": [
+        "local",
+        "dev",
+        "qa",
+        "prod"
+      ],
+      "status": "new",
+      "severity": "medium",
+      "req_id": "EPIC-008-F-012-S-001-REQ-B-002, EPIC-008-F-012-S-002-REQ-B-006, EPIC-008-F-012-S-004-REQ-B-006, EPIC-008-F-002-S-013-REQ-B-001, EPIC-008-F-002-S-013-REQ-B-002, EPIC-010-F-003-S-001-REQ-B-003, EPIC-010-F-003-S-001-REQ-B-014",
+      "story_id": "EPIC-008-F-012-S-001, EPIC-008-F-012-S-002, EPIC-008-F-012-S-004, EPIC-008-F-002-S-013, EPIC-010-F-003-S-001",
+      "test_id": "ORPHAN",
+      "discovery_date": "2026-10-12",
+      "due_date": "2026-12-31",
+      "reproduction": "Evidence is in the code and the data; see the AuthorizationsAudit doc named in the description.",
+      "orphan": false,
+      "next_action": [
+        "Remediate per the audit doc: centralize all authorizations into one collection carrying sufficient metadata for multidimensional categorization."
+      ]
+    },
+    {
       "bugid": "BUG-003",
       "title": "LLM call sites construct their own agent and pin their own vendor, outside the facade",
       "description": "ChatHealthy has an LLM facade at ChatHealthyLib/src/chathealthy_lib/llm.py. This bug's earlier description named eleven call sites constructing vendor SDK clients directly. That mechanism is now almost gone and the description was describing it after the fact: three of the files it named no longer exist (homeopathic_resolver.py, consent_service.py, embedding_client.py at the path given), Code/Shared/llm_client.py has no importer anywhere, and safety_service.py's is_emergency has no call site. A remediation aimed at the described mechanism would have touched four files, three of them dead, and left every live site untouched.\n\nTHE LIVE MECHANISM IS DIFFERENT. Nine call sites construct a pydantic-ai Agent themselves rather than receiving one, and each pins its vendor as a string literal:\n  sharedServices/Code/UtteranceManager/utterance_manager.py:1068, :1204\n  FindCare/ProviderManagement/utterance_mining.py:65, :186\n  FindCare/ProviderManagement/facility_utterance.py:84\n  FindCare/SpecialtyFilter/filter.py:173, :194\n  ChatHealthyLib/src/chathealthy_lib/geo_extractor.py:97\n  pipeline/provider_enrichment/other_identifier_phrases_engine.py:410\n\nAND THE FACADE CANNOT CENTRALISE VENDOR CHOICE AS BUILT. run_llm(agent, ...) receives an already-constructed agent, so retry, timeout and failure conversion are genuinely central while client construction and vendor selection cannot be. Five of the nine sites read the MODEL NAME from the prompt record and then hardcode the vendor prefix -- f\"openai:{...}\". So the model is data and the vendor is code, and the half that decides which company receives a person's words is the half that is not declared. Three vendors are live: openai, anthropic, google.",
