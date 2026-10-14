@@ -2447,14 +2447,6 @@
         },
         {
           "feature_id": "EPIC-008-F-012",
-          "source_location": "brain/machine_artifacts/tonight_context.md",
-          "handler_type": "markdown",
-          "disposition": "referenced",
-          "content_hash": "22d4a852683a5947a14b71e0c39cbe0a71e76213d1c03458f040acd20e760cbf",
-          "package": "service_runtime"
-        },
-        {
-          "feature_id": "EPIC-008-F-012",
           "source_location": "ChatHealthyLib/src/chathealthy_lib/permissions.py",
           "handler_type": "python_source",
           "disposition": "referenced",
