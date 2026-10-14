@@ -1,7 +1,7 @@
-"""Fire ProviderPipelineRunbook webhook for a smoke test.
+"""Fire PipelineRunbook webhook for a smoke test.
 
 Payload: state_scope=["VT","DE"], load_mode="full".
-Webhook URL is pulled from KV secret PROVIDER-PIPELINE-WEBHOOK-URL.
+Webhook URL is pulled from KV secret PIPELINE-RUNBOOK-WEBHOOK-URL.
 """
 import json
 import subprocess
@@ -47,12 +47,12 @@ def kv_secret(vault: str, name: str) -> str:
 
 
 def main():
-    url = kv_secret("kv-chpipeline-dev", "PROVIDER-PIPELINE-WEBHOOK-URL")
+    url = kv_secret("kv-chpipeline-dev", "PIPELINE-RUNBOOK-WEBHOOK-URL")
     if not url:
         raise ChatHealthyException(
             mode="aborted",
             component="test_provider_pipeline_vt_de",
-            message="FATAL: PROVIDER-PIPELINE-WEBHOOK-URL is empty")
+            message="FATAL: PIPELINE-RUNBOOK-WEBHOOK-URL is empty")
     body = json.dumps({
         "state_scope": ["VT", "DE"],
         "load_mode": "full",

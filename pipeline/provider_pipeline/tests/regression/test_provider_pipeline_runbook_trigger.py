@@ -1,6 +1,6 @@
 # Copyright (c) 2026 ChatHealthy.ai LLC. All rights reserved.
 # Licensed under the FindCare Evaluation License (FEL-1.0).
-"""Regression: fire ProviderPipelineRunbook webhook once with dual state
+"""Regression: fire PipelineRunbook webhook once with dual state
 scope [VT, DE] and assert the AA accepts the request.
 
 Covers the runbook trigger tier's three tactical fixes (payload delivery via
@@ -41,7 +41,7 @@ _KEY_VAULT_URI = os.environ.get(
     "PIPELINE_KEY_VAULT_URI",
     "https://kv-chpipeline-dev.vault.azure.net/",
 )
-_WEBHOOK_SECRET_NAME = "PROVIDER-PIPELINE-WEBHOOK-URL"
+_WEBHOOK_SECRET_NAME = "PIPELINE-RUNBOOK-WEBHOOK-URL"
 _STATE_SCOPE = ["VT", "DE"]
 
 

@@ -59,13 +59,6 @@ _CH_LOG = ChatHealthyLoggingService()
 ENGINEERING_RULES_PATH = (
     PROJECT_ROOT / "brain" / "machine_artifacts" / "content" / "engineering_rules.json"
 )
-AUDIT_LOG_PATH = (
-    PROJECT_ROOT
-    / "architecture"
-    / "EngineeringRuleEnforcement"
-    / "ArchitectureDesignAndAuditDocs"
-    / "commit_governance.log"
-)
 
 RULE_ID = "Rule-065"
 SUBORDINATE_HOOK = "pre-commit"
@@ -339,9 +332,14 @@ class CommitGovernanceDriver:
             ],
         }
 
-        AUDIT_LOG_PATH.parent.mkdir(parents=True, exist_ok=True)
-        with AUDIT_LOG_PATH.open("a", encoding="utf-8") as f:
-            f.write(json.dumps(entry) + "\n")
+        try:
+            import authorization_record  # noqa: PLC0415
+            _runs = authorization_record.collection().database["CommitGovernanceRuns"]
+            _runs.insert_one(dict(entry))
+        except Exception as exc:  # noqa: BLE001 - must never block the commit
+            _CH_LOG.error(
+                f"[driver] the governance run record could not be written to "
+                f"Mongo: {exc}. The verdict stands; the record of it does not.")
 
         if verdict != EXIT_OK:
             self._record_refusal(entry)

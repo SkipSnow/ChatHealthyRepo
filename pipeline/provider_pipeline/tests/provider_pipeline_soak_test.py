@@ -1,7 +1,7 @@
 # Copyright (c) 2026 ChatHealthy.ai LLC. All rights reserved.
 # Licensed under the FindCare Evaluation License (FEL-1.0).
 
-"""Fire the ProviderPipelineRunbook webhook against the SMOKE_TEST_ENV env.
+"""Fire the PipelineRunbook webhook against the SMOKE_TEST_ENV env.
 
 Runs as part of deploy_chathealthy.py --tests fire_provider_pipeline so
 firing a pipeline test is authorized through the same deploy-chain gate
@@ -40,7 +40,7 @@ _KV_BY_ENV = {
     "qa": "kv-chpipeline-qa",
     "prod": "kv-chpipeline-prod",
 }
-_WEBHOOK_SECRET_NAME = "PROVIDER-PIPELINE-WEBHOOK-URL"
+_WEBHOOK_SECRET_NAME = "PIPELINE-RUNBOOK-WEBHOOK-URL"
 
 
 def _az_secret_show(vault: str, name: str) -> str:

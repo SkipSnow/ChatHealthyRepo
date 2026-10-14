@@ -25,7 +25,7 @@ os.environ.setdefault("PIPELINEEDITOR_AZURE_TENANT_ID", "test-tenant")
 os.environ.setdefault("PIPELINEEDITOR_AZURE_CLIENT_ID", "test-client")
 os.environ.setdefault("PIPELINEEDITOR_AZURE_CLIENT_SECRET", "test-secret")
 
-import pipeline.provider_pipeline.provider_pipeline_runbook as rb  # noqa: E402
+import pipeline.run_lifecycle.pipeline_runbook as rb  # noqa: E402
 from chathealthy_lib.exceptions import ChatHealthyException  # noqa: E402
 
 
