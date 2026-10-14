@@ -4523,6 +4523,7 @@
         "AZ_VM_RESOURCE_GROUP": "local_env",
         "AZ_VM_SIZE": "local_env",
         "CH_LOG_DB": "local_env",
+        "CH_FDA_ENRICHMENT_MODEL": "local_env",
         "DEVOPSUSER_AZURE_CLIENT_ID": "local_env",
         "DEVOPSUSER_AZURE_CLIENT_SECRET": "azure_key_vault",
         "DEVOPSUSER_AZURE_TENANT_ID": "local_env",
