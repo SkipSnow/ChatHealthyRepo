@@ -36,8 +36,8 @@ def test_find_warnings_and_errors():
         for coll_name in collections:
             coll = db[coll_name]
             try:
-                # Search for ProviderPipelineOnDemand source
-                result = coll.find_one({"source": "ProviderPipelineOnDemand"})
+                # Search for PipelineRunbook source
+                result = coll.find_one({"source": "PipelineRunbook"})
                 if result:
                     found_any = True
                     _CH_LOG.info(f"\n✓ Found in {coll_name}:")

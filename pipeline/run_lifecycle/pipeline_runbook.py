@@ -2,9 +2,9 @@
 """pipeline_runbook.py -- the ONE generic pipeline trigger runbook (gateway).
 
 Runs in Azure Automation as a Python 3 runbook, fired by schedule or webhook.
-It replaces the two per-pipeline trigger runbooks (provider_pipeline_runbook.py
-and medicare_pipeline_runbook.py) with one entry point that reads the webhook's
-`pipeline_name` field and dispatches to the matching per-pipeline trigger flow:
+It is the single per-pipeline trigger runbook: one entry point that reads the
+webhook's `pipeline_name` field and dispatches to the matching per-pipeline
+trigger flow:
 
     absent / null / empty / missing  -> 'provider'   (pipeline 0, the default;
                                                        legacy callers that send
@@ -411,7 +411,6 @@ def _resolve_pipeline_name(raw) -> str:
 
 # ############################################################################
 # PROVIDER TRIGGER FLOW (pipeline 0, the default)
-# Behaviour preserved byte-for-byte from provider_pipeline_runbook.py.
 # ############################################################################
 
 # ---------- Provider deploy-time invariants (Automation Variables in prod) ---
@@ -1022,8 +1021,7 @@ def _resolve_state_scope(raw):
 
 
 def _run_provider() -> int:
-    """Provider trigger flow. Byte-for-byte the behaviour of
-    provider_pipeline_runbook._run_pipeline."""
+    """Provider trigger flow."""
     invocation_mode = INVOCATION_MODE
     run_id = str(uuid.uuid4())
     os.environ["RUN_ID"] = run_id
@@ -1197,9 +1195,8 @@ def _run_provider() -> int:
 
 # ############################################################################
 # MEDICARE TRIGGER FLOW (pipeline 1)
-# Behaviour preserved from medicare_pipeline_runbook.py. Every config fact is
-# required (no defaults) and is hydrated + resolved lazily so a provider fire
-# never depends on a medicare-only Automation Variable.
+# Every config fact is required (no defaults) and is hydrated + resolved lazily
+# so a provider fire never depends on a medicare-only Automation Variable.
 # ############################################################################
 
 _MEDICARE_HYDRATE_KEYS = (
@@ -1533,8 +1530,7 @@ def _reserve_and_resume_cluster(mongo, run_id: str, vm_name: str,
 
 
 def _run_medicare() -> int:
-    """Medicare trigger flow. Behaviour preserved from
-    medicare_pipeline_runbook._run."""
+    """Medicare trigger flow."""
     _load_medicare_config()
     run_id = str(uuid.uuid4())
     os.environ["RUN_ID"] = run_id

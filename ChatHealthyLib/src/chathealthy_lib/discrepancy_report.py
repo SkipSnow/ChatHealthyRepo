@@ -800,7 +800,7 @@ def emit_discrepancy_report(
             run_id=run_id,
             env=os.environ.get("ENV_PREFIX", "dev"),
             pipeline_name=os.environ.get("PIPELINE_NAME", "provider"),
-            source="ProviderPipelineOnDemand",
+            source="PipelineRunbook",
             data_version=(int(os.environ["DATA_VERSION"])
                           if os.environ.get("DATA_VERSION", "").strip().isdigit()
                           else None),

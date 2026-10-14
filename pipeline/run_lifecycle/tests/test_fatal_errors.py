@@ -64,7 +64,7 @@ def test_infra_fatal_delivers_report_without_writing_a_finding(fatal_env):
         run_id=run_id,
         env="local",
         pipeline_name="provider",
-        source="ProviderPipelineOnDemand",
+        source="PipelineRunbook",
         target_collection="PipelinePublicHealthData.Provider_v_3",
         total_source_rows=8214553,
         rows_in_target=0,
