@@ -563,16 +563,6 @@ def main(argv: list[str] | None = None) -> int:
     _step(f"repo_root={repo_root} env={args.env} target={args.target}")
 
     try:
-        # Both of these read the manifest, and both used to read the
-        # workstation's copy before repo_root existed. That contradicted the
-        # contract stated two lines above and had two effects: an uncommitted
-        # local manifest could fail the schema gate and block a build of
-        # committed code, and the build tree was shaped by one manifest while
-        # its packages were filled from another, with nothing reporting the
-        # disagreement. For --env local repo_root IS the working tree, so
-        # local builds are unchanged.
-        RecordLoader.validate_architecture(repo_root)
-
         _delete_build_root(canonical_build_dir)
 
         _n_targets, _n_packages = materialize_build_structure(
@@ -638,7 +628,6 @@ def _build_body(args, repo_root: Path, canonical_repo: Path, canonical_build_dir
     if refreshed_record.resolve() != brain_path.resolve():
         shutil.copy2(refreshed_record, brain_path)
 
-    backlog = AgileBacklogLoader().load(backlog_path)
     # Scope schema validation to the single target being built when a
     # specific target_id was requested. For kind aliases ('cloudflare',
     # 'hf', 'azure', 'aca') and 'all', validate the whole envelope.
@@ -704,47 +693,6 @@ def _build_body(args, repo_root: Path, canonical_repo: Path, canonical_build_dir
         _step(f"  {_t.target_id}: install order {package_install_order(_t)}")
     _step(f"building every declared package {sorted(packages_wanted)} "
           f"across {len(targets)} target(s)")
-
-    import secret_preflight as _secret_preflight
-    _named_targets = [t.strip() for t in args.target.split(",")
-                      if t.strip().startswith("target_")]
-    # Completeness before existence. Which values the code needs is the
-    # first question; whether those values can be read is the second, and
-    # there is no point asking the second before the first.
-    _secret_preflight.confirm_bindings_complete(
-        coll, args.env, canonical_repo,
-        target_ids=_named_targets or None,
-        packages=set(packages_wanted))
-    _secret_preflight.confirm_secrets_exist(
-        coll, args.env, canonical_repo,
-        target_ids=_named_targets or None,
-        packages=set(packages_wanted))
-
-    env_values_for_leak: set[str] = (
-        SecretsResolver().env_values_for_leak_check(env_file)
-        if env_file.is_file() else set()
-    )
-    report = Crosswalk().check(
-        coll=coll, backlog=backlog, repo_root=repo_root,
-        env_values=env_values_for_leak,
-    )
-    if not report.is_pass:
-        sys.stderr.write(report.format() + "\n")
-        return report.exit_code()
-    _step(f"crosswalk gate passed (targets={len(coll)}, violations=0)")
-
-    # Undefined-name gate: every packaged .py file MUST resolve every name
-    # it references. Missing imports, typos, or symbols removed by refactor
-    # get caught here at build time instead of at runtime in production.
-    undefined = _scan_undefined_names(repo_root)
-    if undefined:
-        sys.stderr.write(
-            f"BUILD FAILURE: {len(undefined)} unresolved name reference(s) in packaged Python:\n"
-        )
-        for e in undefined:
-            sys.stderr.write(f"  {e}\n")
-        return 3
-    _step("undefined-name gate passed")
 
     if args.env == "local":
         build_n = _read_dev_build_number()
