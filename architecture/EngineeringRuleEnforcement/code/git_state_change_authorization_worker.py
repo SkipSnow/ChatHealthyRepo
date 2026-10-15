@@ -715,8 +715,23 @@ class GitStateChangeAuthorization:
         for word in words:
             if word in self.READ_ONLY_FLAGS:
                 return True
-        if subcommand == "stash" and "list" in words:
-            return True
+        # The first positional after the subcommand decides read vs write for
+        # these: `git worktree list` reads, `git worktree add` writes. Checked
+        # by position rather than membership, so `git stash push -m "list"` is
+        # not mistaken for a read.
+        read_subverbs = {
+            "worktree": ("list",),
+            "remote": ("show", "get-url"),
+            "submodule": ("status", "summary"),
+            "stash": ("list", "show"),
+            "notes": ("list", "show"),
+            "reflog": ("show",),
+        }
+        if subcommand in read_subverbs and subcommand in words:
+            after = words[words.index(subcommand) + 1:]
+            verb = next((w for w in after if not w.startswith("-")), "")
+            if verb in read_subverbs[subcommand]:
+                return True
         if subcommand in ("remote", "worktree", "submodule") and len(words) <= 2:
             return True
         if subcommand == "config":
