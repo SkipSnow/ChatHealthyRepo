@@ -396,21 +396,17 @@ def _establish_context() -> Path:
 
 def _refuse_bad_selection(args) -> None:
     """Refuse a selection the operator did not actually make."""
-    # Force explicit --package enumeration when --target is a group name.
-    # Design intent: the operator must think through and TYPE every
-    # package being deployed. No blanket 'all packages under this group'
-    # shortcut exists — the friction is the feature. Prevents accidental
-    # 10-runbook shotgun deploys when a single package was intended.
-    # 'all' is gone from both build and deploy. Every deploy names the
-    # destinations and the capabilities inside them; a selector meaning
-    # "everything" is what turned every change into a whole-estate deploy.
+    # 'all' is gone from both build and deploy: a selector meaning "everything"
+    # is what turned every change into a whole-estate deploy. Enumerating the
+    # package(s) is required wherever a target carries more than one -- that
+    # guard lives in _bad_deploy_argument, which refuses an unscoped
+    # multi-package call and records it before anything is authorised.
     if args.target.strip() == "all":
         raise ChatHealthyException(
             mode="aborted",
             component="deploy_chathealthy",
             message="ERROR: --target='all' no longer exists. Name the target_id(s) "
             "(comma-separated) and the package(s) you intend to deploy.")
-    _GROUP_TARGETS = frozenset({"pipeline", "cloudflare", "hf", "azure", "aca"})
 
 
 def _declared_package_set(repo_root: Path, target_ids: list[str],
@@ -606,6 +602,19 @@ def _bad_deploy_argument(repo_root: Path, args, resolved_target_ids: list[str]):
             return (f"--package={sorted(not_here)} names package(s) not declared "
                     f"on {sorted(resolved_target_ids)} in env {args.env!r}; "
                     f"they carry {sorted(declared_here)}")
+    else:
+        # Omitting --package no longer means "all". A target that carries more
+        # than one package will not ship them together on an unscoped call:
+        # each package deploys autonomously, so touching one capability never
+        # reships the others. The operator names the package(s). One-package
+        # targets stay unambiguous and deploy with no --package.
+        declared_here = _declared_package_set(repo_root, resolved_target_ids,
+                                              args.env)
+        if len(declared_here) > 1:
+            return (f"--target={args.target!r} carries {len(declared_here)} "
+                    f"packages ({sorted(declared_here)}) but --package was not "
+                    f"given; name the package(s) to deploy. Each deploys on its "
+                    f"own -- there is no 'all packages' shortcut.")
     return None
 
 

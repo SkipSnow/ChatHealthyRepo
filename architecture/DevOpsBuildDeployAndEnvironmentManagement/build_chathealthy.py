@@ -689,6 +689,16 @@ def _build_body(args, repo_root: Path, canonical_repo: Path, canonical_build_dir
                 f"{sorted(undeclared)} that --target={args.target!r} does not "
                 f"declare: {sorted(known)}. Name only packages the target "
                 f"carries, or drop --package to build them all.")
+    if args.env != "local" and not supplied and len(known) > 1:
+        raise ChatHealthyException(
+            mode="aborted",
+            component="build_chathealthy",
+            message=(f"ERROR: --target={args.target!r} carries {len(known)} "
+                     f"packages ({sorted(known)}) but --package was not given; "
+                     f"name the package(s) to build. Each package builds on its "
+                     f"own -- there is no 'all packages' shortcut, so touching "
+                     f"one capability never rebuilds the others. Local builds "
+                     f"are exempt."))
     packages_wanted = supplied or set(known)
     for _t in targets:
         _step(f"  {_t.target_id}: install order {package_install_order(_t)}")
