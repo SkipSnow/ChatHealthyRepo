@@ -284,7 +284,8 @@
         "report_cap_per_class": 25,
         "business_record_keys": {
           "provider": "npi",
-          "specialty_metadata": "Code"
+          "specialty_metadata": "Code",
+          "fda": "set_id"
         },
         "finding_types": {
           "schema_violation": {
@@ -338,6 +339,16 @@
             "max": null
           },
           "coordinates_unresolvable": {
+            "severity": "warning",
+            "fatal_at_count": null,
+            "max": null
+          },
+          "fda_record_incomplete": {
+            "severity": "warning",
+            "fatal_at_count": null,
+            "max": null
+          },
+          "fda_molecule_from_generic_fallback": {
             "severity": "warning",
             "fatal_at_count": null,
             "max": null
@@ -631,7 +642,8 @@
         "report_cap_per_class": 25,
         "business_record_keys": {
           "provider": "npi",
-          "specialty_metadata": "Code"
+          "specialty_metadata": "Code",
+          "fda": "set_id"
         },
         "finding_types": {
           "schema_violation": {
@@ -685,6 +697,16 @@
             "max": null
           },
           "coordinates_unresolvable": {
+            "severity": "warning",
+            "fatal_at_count": null,
+            "max": null
+          },
+          "fda_record_incomplete": {
+            "severity": "warning",
+            "fatal_at_count": null,
+            "max": null
+          },
+          "fda_molecule_from_generic_fallback": {
             "severity": "warning",
             "fatal_at_count": null,
             "max": null
@@ -978,7 +1000,8 @@
         "report_cap_per_class": 25,
         "business_record_keys": {
           "provider": "npi",
-          "specialty_metadata": "Code"
+          "specialty_metadata": "Code",
+          "fda": "set_id"
         },
         "finding_types": {
           "schema_violation": {
@@ -1032,6 +1055,16 @@
             "max": null
           },
           "coordinates_unresolvable": {
+            "severity": "warning",
+            "fatal_at_count": null,
+            "max": null
+          },
+          "fda_record_incomplete": {
+            "severity": "warning",
+            "fatal_at_count": null,
+            "max": null
+          },
+          "fda_molecule_from_generic_fallback": {
             "severity": "warning",
             "fatal_at_count": null,
             "max": null

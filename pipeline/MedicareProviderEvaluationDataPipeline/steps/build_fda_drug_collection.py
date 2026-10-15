@@ -57,6 +57,50 @@ def _get_tool() -> FDADrugEnrichmentTool:
     return _TOOL
 
 
+def _shape_fda_record(raw: dict) -> dict:
+    """Shape a raw openFDA label into the record the enrichment tool requires.
+
+    The tool reads top-level ``molecule`` and ``indication_text`` off each record
+    (alongside ``set_id`` and ``openfda``, which the raw label already carries)
+    but does not derive them. Map them from the label's canonical fields:
+      molecule        <- openfda.substance_name, else openfda.generic_name when
+                         substance_name is absent. The generic_name case is a
+                         deliberate gap-response, not a silent substitution: the
+                         source is recorded in ``_molecule_source`` so run_step
+                         can surface it as a finding on the discrepancy report.
+      indication_text <- the indications_and_usage prose
+    Already-present values are left untouched, so a pre-shaped record (the
+    benchmark's own input) passes through unchanged. ``_molecule_source`` is a
+    transient shaping marker (leading underscore) read by run_step and not
+    persisted on the built record.
+    """
+    shaped = dict(raw)
+    openfda = raw.get("openfda") or {}
+    if not str(shaped.get("molecule") or "").strip():
+        subs = openfda.get("substance_name") or []
+        if isinstance(subs, str):
+            subs = [subs]
+        subs = [s for s in subs if s]
+        if subs:
+            shaped["molecule"] = ", ".join(subs)
+            shaped["_molecule_source"] = "substance_name"
+        else:
+            gen = openfda.get("generic_name") or []
+            if isinstance(gen, str):
+                gen = [gen]
+            gen = [g for g in gen if g]
+            shaped["molecule"] = ", ".join(gen)
+            shaped["_molecule_source"] = "generic_name" if gen else "absent"
+    else:
+        shaped["_molecule_source"] = "provided"
+    if not str(shaped.get("indication_text") or "").strip():
+        prose = raw.get("indications_and_usage") or []
+        if isinstance(prose, str):
+            prose = [prose]
+        shaped["indication_text"] = "\n".join(p for p in prose if p)
+    return shaped
+
+
 def run_step(ctx) -> dict:
     rt = PipelineRuntime(ctx)
     reg = rt.registry
@@ -98,12 +142,47 @@ def run_step(ctx) -> dict:
 
     ofda = reg.by_source_name("openfda_labels")
     staging_coll = mongo[ofda.staging_db][reg.staging_collection_name("openfda_labels")]
-    records = [doc.get("raw") or {} for doc in staging_coll.find(
-        {"run_id": ctx.run_id, "fda_record_number": {"$gte": start, "$lt": end}}
-    ).sort("fda_record_number", 1)]
+    records = [
+        _shape_fda_record(doc.get("raw") or {})
+        for doc in staging_coll.find(
+            {"run_id": ctx.run_id, "fda_record_number": {"$gte": start, "$lt": end}}
+        ).sort("fda_record_number", 1)
+    ]
     if not records:
         return {"step": "build_fda_drug_collection", "record_range": [start, end],
                 "records_written": 0}
+
+    # A per-record completeness problem is a WARNING, never a job-fatal: a label
+    # we cannot build from is recorded as a finding and skipped so one bad label
+    # does not fail the whole run, and the generic_name fallback is surfaced
+    # rather than silent. Both findings aggregate onto the discrepancy report.
+    buildable = []
+    skipped = 0
+    for rec in records:
+        set_id = str(rec.get("set_id") or "").strip()
+        if rec.pop("_molecule_source", None) == "generic_name":
+            rt.record_discrepancy(
+                reason="fda_molecule_from_generic_fallback",
+                step="build_fda_drug_collection", artifact="fda",
+                record_key=set_id,
+                detail={"note": "molecule taken from openfda.generic_name; "
+                                "openfda.substance_name was absent"})
+        missing = [f for f in ("molecule", "indication_text")
+                   if not str(rec.get(f) or "").strip()]
+        if missing:
+            rt.record_discrepancy(
+                reason="fda_record_incomplete",
+                step="build_fda_drug_collection", artifact="fda",
+                record_key=set_id, detail={"missing": missing})
+            skipped += 1
+            continue
+        buildable.append(rec)
+    if not buildable:
+        _log.LogPipeline(
+            "INFO", "build_fda_drug_collection: range=[%d,%d) all %d record(s) "
+            "incomplete; skipped, nothing to build", start, end, skipped)
+        return {"step": "build_fda_drug_collection", "record_range": [start, end],
+                "records_written": 0, "records_skipped": skipped}
 
     tool = _get_tool()
 
@@ -113,13 +192,14 @@ def run_step(ctx) -> dict:
         doc["data_version"] = data_version
         target_coll.replace_one({"set_id": record.set_id}, doc, upsert=True)
 
-    produced = tool.enrich(records, record_number_start=start, sink=_sink)
+    produced = tool.enrich(buildable, record_number_start=start, sink=_sink)
     coded = sum(1 for r in produced if any(ind.codes for ind in r.indications))
     _log.LogPipeline(
-        "INFO", "build_fda_drug_collection: range=[%d,%d) records=%d with_codes=%d",
-        start, end, len(produced), coded)
+        "INFO", "build_fda_drug_collection: range=[%d,%d) records=%d with_codes=%d skipped=%d",
+        start, end, len(produced), coded, skipped)
     return {"step": "build_fda_drug_collection", "record_range": [start, end],
-            "records_written": len(produced), "records_with_codes": coded}
+            "records_written": len(produced), "records_with_codes": coded,
+            "records_skipped": skipped}
 
 
 def execute(ctx):
