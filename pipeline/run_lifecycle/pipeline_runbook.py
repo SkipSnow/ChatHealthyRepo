@@ -159,6 +159,9 @@ _HOSTNAME = socket.gethostname()
 _VALID_LOG_LEVELS = ("DEBUG", "INFO", "WARNING", "ERROR", "CRITICAL")
 DEBUG_LEVEL_DEFAULT = "INFO"
 RESERVATION_TTL_HOURS = 24
+# A cluster resume must not wait forever: one that never reaches IDLE aborts
+# with a fatal report rather than hang the run indefinitely.
+RESUME_TIMEOUT_SECONDS = 1200
 _PIPELINE_LOCK_TTL_HOURS = 12
 ATLAS_ADMIN_BASE = os.environ.get(
     "AUTOMATION_ATLAS_ADMIN_BASE", "https://cloud.mongodb.com/api/atlas/v2"
@@ -1218,6 +1221,12 @@ _MEDICARE_HYDRATE_KEYS = (
     "PIPELINECONTROLLER_AZURE_CLIENT_SECRET",
 )
 
+# Every resource the runbook itself must have present to run -- the full
+# hydrate set minus CH_LOG_LEVEL, the one optional key (it has a safe default).
+# _check_resources() reports which of these are absent, all at once.
+_MEDICARE_REQUIRED_RESOURCES = tuple(
+    k for k in _MEDICARE_HYDRATE_KEYS if k != "CH_LOG_LEVEL")
+
 # Medicare config globals, populated by _load_medicare_config(). Declared here
 # so the medicare helpers resolve them as module names at call time.
 CONTROLLER_VM_SIZE = ""
@@ -1518,6 +1527,7 @@ def _reserve_and_resume_cluster(mongo, run_id: str, vm_name: str,
     r.raise_for_status()
     log("atlas_resume_patch_dispatched", cluster=PIPELINE_CLUSTER)
     import time as _time  # noqa: PLC0415
+    deadline = _time.monotonic() + RESUME_TIMEOUT_SECONDS
     while True:
         g = requests.get(base, auth=auth, headers=headers, timeout=30)
         g.raise_for_status()
@@ -1525,48 +1535,134 @@ def _reserve_and_resume_cluster(mongo, run_id: str, vm_name: str,
         if state == "IDLE":
             log("atlas_resume_cluster_idle", cluster=PIPELINE_CLUSTER)
             return
+        if _time.monotonic() >= deadline:
+            raise ChatHealthyException(
+                mode="atlas_resume_timeout",
+                message=f"cluster {PIPELINE_CLUSTER} did not reach IDLE within "
+                        f"{RESUME_TIMEOUT_SECONDS // 60} minutes (last state "
+                        f"{state or 'unknown'}); aborting rather than waiting "
+                        f"indefinitely.",
+                component="pipeline_runbook")
         log("atlas_resume_waiting", cluster=PIPELINE_CLUSTER, state=state or "unknown")
         _time.sleep(20)
 
 
+def _require_mongo_logging_or_die():
+    """Prove the Mongo the logger writes to is reachable before doing anything.
+
+    A run we cannot log is a run we cannot observe, which is worse than no run.
+    This is the first thing the flow does; on failure it writes to stderr (the
+    one channel left, which Azure Automation captures into the job's exception
+    field) and re-raises, so nothing else is attempted. Returns the live client
+    so the run reuses this one connection rather than opening a second."""
+    try:
+        client = ChatHealthyMongoUtilities().getConnection(
+            "pipelineEditor", "ChatHealthyFrontEnd")
+        client.admin.command("ping")
+        return client
+    except Exception as exc:  # noqa: BLE001
+        sys.stderr.write(
+            "FATAL pipeline_runbook: the Mongo logging target "
+            "(pipelineEditor@ChatHealthyFrontEnd) is unreachable: "
+            f"{exc}. Aborting before any work -- a run that cannot be logged "
+            "cannot be observed.\n")
+        sys.stderr.flush()
+        raise
+
+
+def _check_resources() -> list:
+    """Every resource the runbook needs, checked for presence in one pass.
+
+    Returns the list of missing resource names (empty when all present) so the
+    caller can abend with the COMPLETE list rather than failing on the first
+    absent one. Scope is the runbook's OWN resources; what the Controller needs
+    at run time is the Controller's to check, not this runbook's."""
+    _hydrate(_MEDICARE_HYDRATE_KEYS)
+    return [name for name in _MEDICARE_REQUIRED_RESOURCES
+            if not os.environ.get(name, "").strip()]
+
+
+def _emit_medicare_fatal_report(run_id: str, data_version: int,
+                                exc: Exception) -> None:
+    """Send the fatal discrepancy report for a medicare abend. Never raises:
+    a failure to report must not mask the failure being reported."""
+    try:
+        from chathealthy_lib.discrepancy_report import DiscrepancyReport  # noqa: PLC0415
+        target = ("PipelinePublicHealthData.ProviderMedicare_v_%d" % data_version
+                  if data_version else "PipelinePublicHealthData.ProviderMedicare")
+        DiscrepancyReport(
+            run_id=run_id,
+            env=os.environ.get("ENV_PREFIX", "dev"),
+            pipeline_name=PIPELINE_NAME,
+            source="PipelineRunbook",
+            target_collection=target,
+            total_source_rows=None,
+            rows_in_target=0,
+            total_rows=None,
+            data_version=data_version or None,
+        ).fatal(exc)
+        log("runbook_fatal_report_sent", run_id=run_id)
+    except Exception as report_exc:  # noqa: BLE001
+        log("runbook_fatal_report_failed", run_id=run_id,
+            error=str(report_exc)[:400])
+
+
 def _run_medicare() -> int:
-    """Medicare trigger flow."""
-    _load_medicare_config()
+    """Medicare trigger flow.
+
+    Fail fast and visibly rather than hang:
+      1. Prove Mongo logging works -- die on stderr if not.
+      2. Verify every resource the runbook needs is present -- abend with the
+         full list of what is missing if not.
+      3. Run (lock, manifest, resume the cluster, provision the Controller).
+    Any abend in steps 2-3 sends a fatal discrepancy report."""
     run_id = str(uuid.uuid4())
     os.environ["RUN_ID"] = run_id
-    body = _extract_request_body()
-    invocation_mode = body.get("invocation_mode", "webhook") if body else "scheduled"
-    try:
-        data_version = int((body or {}).get("data_version"))
-    except (TypeError, ValueError):
-        data_version = 0
-    if data_version < 1:
-        log("runbook_reject_no_data_version", body=str(body)[:400])
-        _raise_missing_data_version_med(body)
-    bim_raw = (body or {}).get("build_fda_drug")
-    build_fda_drug = (bim_raw is True
-                            or str(bim_raw or "").strip().lower() in ("1", "true", "yes"))
-    debug_level = str((body or {}).get("debug_level")
-                      or DEBUG_LEVEL_DEFAULT).strip().upper()
-    if debug_level not in _VALID_LOG_LEVELS:
-        debug_level = DEBUG_LEVEL_DEFAULT
-    states_raw = (body or {}).get("states")
-    if states_raw is None:
-        states_raw = (body or {}).get("state_scope")
-    states = _resolve_states(states_raw)
-
-    log("runbook_start", pipeline=PIPELINE_NAME, env=ENV_PREFIX,
-        invocation_mode=invocation_mode, data_version=data_version,
-        build_fda_drug=build_fda_drug, debug_level=debug_level,
-        states=states)
-
+    data_version = 0
     runbook_owns_lock = False
     reservation_created = False
     vm_name = f"vm-chcontrol-{_short(run_id)}"
-    mongo = None
+    # Step 1 -- logging first, outside the try: if we cannot log, we cannot even
+    # report a fatal, so stderr-and-die is the only honest option.
+    mongo = _require_mongo_logging_or_die()
     try:
-        mongo = ChatHealthyMongoUtilities().getConnection("pipelineEditor", "ChatHealthyFrontEnd")
-        mongo.admin.command("ping")
+        # Step 2 -- every resource the runbook needs, up front, as one list.
+        missing = _check_resources()
+        if missing:
+            raise ChatHealthyException(
+                mode="missing_resources",
+                message=("pipeline_runbook cannot start: %d required "
+                         "resource(s) absent: %s"
+                         % (len(missing), ", ".join(missing))),
+                component="pipeline_runbook", missing=",".join(missing))
+        _load_medicare_config()
+
+        # Step 3 -- run.
+        body = _extract_request_body()
+        invocation_mode = body.get("invocation_mode", "webhook") if body else "scheduled"
+        try:
+            data_version = int((body or {}).get("data_version"))
+        except (TypeError, ValueError):
+            data_version = 0
+        if data_version < 1:
+            log("runbook_reject_no_data_version", body=str(body)[:400])
+            _raise_missing_data_version_med(body)
+        bim_raw = (body or {}).get("build_fda_drug")
+        build_fda_drug = (bim_raw is True
+                          or str(bim_raw or "").strip().lower() in ("1", "true", "yes"))
+        debug_level = str((body or {}).get("debug_level")
+                          or DEBUG_LEVEL_DEFAULT).strip().upper()
+        if debug_level not in _VALID_LOG_LEVELS:
+            debug_level = DEBUG_LEVEL_DEFAULT
+        states_raw = (body or {}).get("states")
+        if states_raw is None:
+            states_raw = (body or {}).get("state_scope")
+        states = _resolve_states(states_raw)
+
+        log("runbook_start", pipeline=PIPELINE_NAME, env=ENV_PREFIX,
+            invocation_mode=invocation_mode, data_version=data_version,
+            build_fda_drug=build_fda_drug, debug_level=debug_level,
+            states=states)
 
         blocking = _acquire_pipeline_lock(mongo, PIPELINE_NAME, run_id, vm_name)
         if blocking is not None:
@@ -1590,6 +1686,7 @@ def _run_medicare() -> int:
     except Exception as exc:  # noqa: BLE001
         log("runbook_failed", run_id=run_id, error_type=type(exc).__name__,
             error=str(exc)[:1200], traceback=traceback.format_exc()[-1500:])
+        _emit_medicare_fatal_report(run_id, data_version, exc)
         if mongo is not None:
             if reservation_created:
                 try:
