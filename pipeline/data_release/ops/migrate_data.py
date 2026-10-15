@@ -135,16 +135,20 @@ def _build_number() -> int | None:
 def _run_migration(parser):
     """Ask, then migrate, and report the outcome."""
     parser.add_argument("collection")
-    parser.add_argument("--env", default="dev", choices=sorted(_VAULT_BY_ENV))
+    parser.add_argument("--vault-env", default="dev", choices=sorted(_VAULT_BY_ENV),
+                        help="Which devops Key Vault holds the migration webhook "
+                             "URL. Selects infrastructure only; the data is NOT "
+                             "environment-segregated (source/destination clusters "
+                             "are fixed).")
     args = parser.parse_args()
 
-    vault = _VAULT_BY_ENV[args.env]
+    vault = _VAULT_BY_ENV[args.vault_env]
     subject = (f"{args.collection}\n"
                f"ChatHealthyDataPipelines.PipelinePublicHealthData"
                f"  →  ChatHealthyFrontEnd.PublicHealthData")
 
     _log.LogPipeline("INFO", "data_migration authorization requested collection=%s env=%s",
-              args.collection, args.env)
+              args.collection, args.vault_env)
 
     # The page asks the transfer question: what moves, and between which two
     # ends. Who is authorizing is the page's own business and it works that
@@ -165,7 +169,7 @@ def _run_migration(parser):
         timeout_seconds=_AUTHORIZATION_TIMEOUT_SECONDS,
         palette="migration",
         transfer=transfer,
-        banner=f"Data migration — {args.env}",
+        banner=f"Data migration — {args.vault_env}",
         detail=(
             f"APPROVE copies every document in <b>{args.collection}</b> onto "
             f"the cluster that serves users, under the same name, and builds "
@@ -179,14 +183,14 @@ def _run_migration(parser):
         "data_migration authorization %s collection=%s human_click=%s "
         "waited=%.1fs env=%s",
         authorization.verdict, args.collection, authorization.human_click,
-        authorization.seconds_waited, args.env)
+        authorization.seconds_waited, args.vault_env)
 
     # A refusal ends in the log. Nothing was released, so there is nothing
     # for the cluster to hold a record of.
     if not authorization.approved:
         _log.LogPipeline("ERROR", "data_migration NOT authorized collection=%s verdict=%s "
                    "env=%s; nothing was judged, recorded or fired",
-                   args.collection, authorization.verdict, args.env)
+                   args.collection, authorization.verdict, args.vault_env)
         return 1
 
     released_at = datetime.datetime.now(datetime.timezone.utc)
@@ -211,7 +215,7 @@ def _run_migration(parser):
             approvals.database["Counters"], _AUTHORIZATION_TYPE),
         "type": _AUTHORIZATION_TYPE,
         "collection": args.collection,
-        "env": args.env,
+        "env": args.vault_env,
         "approval": authorization.approved,
         "message": authorization.verdict,
         "gitSourceAttribute": branch,
