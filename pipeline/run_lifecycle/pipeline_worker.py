@@ -75,6 +75,7 @@ def _reconstruct_step_context(payload: dict, mongo, blob) -> StepContext:
         data_version=int(args_snap.get("data_version") or 0),
         # Operator-driven flags round-trip through the payload snapshot.
         google_maps_enabled=bool(args_snap.get("google_maps_enabled", False)),
+        build_fda_drug=bool(args_snap.get("build_fda_drug", False)),
     )
     pipeline_name = payload.get("pipeline_name", "provider")
     manifest = RunManifest(

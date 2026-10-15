@@ -158,8 +158,13 @@ def probe_worker_box(run_id: str, *, timeout_s: int = 120) -> dict:
 
     fields = _parse_probe(stdout)
     if not fields:
+        # Box reachable but the probe read back no CHPROBE line. Work still
+        # proceeds (items get claimed and completed) in this state, so this is
+        # a probe-read miss, not a worker failure -- log at INFO so it does not
+        # cry wolf at WARNING on every poll. A genuine probe failure (the ARM
+        # HTTPError / exception paths above) stays at WARNING.
         detail = "no CHPROBE line in runCommand output (box reachable, probe silent)"
-        _log.LogPipeline("WARNING", "worker_pid_verifier: %s run_id=%s vm=%s",
+        _log.LogPipeline("INFO", "worker_pid_verifier: %s run_id=%s vm=%s",
                          detail, run_id, vm_name)
         return {"verified": False, "pool": 0, "host": 0,
                 "container": False, "vm_name": vm_name, "detail": detail}

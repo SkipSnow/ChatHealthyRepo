@@ -375,20 +375,18 @@ def build_discrepancy_pdf(
     if fatal_reason:
         story.append(Spacer(1, 0.2 * inch))
         story.append(Paragraph("Fatal error", body_heading_style))
-        fatal_table = Table(
-            [[_p(fatal_reason, body_cell_style)]],
-            colWidths=[7.6 * inch],
+        # A Paragraph flows and splits across pages; the old single-cell Table
+        # could not split, so a long fatal_reason overflowed the page height,
+        # reportlab raised "too large on page", and the WHOLE report failed to
+        # render -- the fatal report was never delivered. Keep the red box via
+        # the paragraph style's own background and border.
+        fatal_style = ParagraphStyle(
+            "FatalReason", parent=body_cell_style,
+            backColor=colors.HexColor("#ffd6d6"),
+            borderColor=colors.black, borderWidth=1.5, borderPadding=6,
+            spaceBefore=2, spaceAfter=2,
         )
-        fatal_table.setStyle(TableStyle([
-            ("BOX", (0, 0), (-1, -1), 1.5, colors.black),
-            ("BACKGROUND", (0, 0), (-1, -1), colors.HexColor("#ffd6d6")),
-            ("VALIGN", (0, 0), (-1, -1), "TOP"),
-            ("LEFTPADDING", (0, 0), (-1, -1), 6),
-            ("RIGHTPADDING", (0, 0), (-1, -1), 6),
-            ("TOPPADDING", (0, 0), (-1, -1), 5),
-            ("BOTTOMPADDING", (0, 0), (-1, -1), 5),
-        ]))
-        story.append(fatal_table)
+        story.append(_p(fatal_reason, fatal_style))
 
     # Appendix: the collection of business-record keys, per finding class,
     # capped at report_cap_per_class with a '+N more' note.

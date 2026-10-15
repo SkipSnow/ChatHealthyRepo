@@ -239,6 +239,7 @@ def _control(ns) -> int:
             resume_from_step=ns.resume_from_step,
             run_id=ns.run_id,
             data_version=ns.data_version,
+            build_fda_drug=ns.build_fda_drug,
         )
         orchestrator = MedicareProviderEvaluationOrchestrator(
             env=ns.env_prefix,

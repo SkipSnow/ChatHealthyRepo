@@ -234,6 +234,7 @@ class BasePipelineOrchestrator:
             # Operator-driven flags carried on the args snapshot so worker
             # subprocesses see the same value the Controller received.
             "google_maps_enabled": bool(getattr(ctx.args, "google_maps_enabled", False)),
+            "build_fda_drug": bool(getattr(ctx.args, "build_fda_drug", False)),
         }
         # Config we pass to Worker excludes non-picklable clients; each
         # Worker reconstructs its own mongo_client + blob_client.

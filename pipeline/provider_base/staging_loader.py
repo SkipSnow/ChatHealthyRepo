@@ -89,6 +89,9 @@ def staging_db_name(registry: PipelineDatasetRegistry, source_name: str) -> str:
 
 
 DEFAULT_BATCH_SIZE = 1000
+# How often a long single-source load emits a progress heartbeat, so a large
+# source (e.g. Part D, ~28M rows) is visibly advancing rather than looking hung.
+_STAGING_HEARTBEAT_SECONDS = 30
 DEFAULT_STAGING_CONCURRENCY = 4
 NPPES_NPI_COLUMN_CANDIDATES = ("NPI", "npi", "National Provider Identifier")
 
@@ -611,10 +614,12 @@ def _load_one_source(
     if source_name == "nppes_npi" and states:
         state_filter = {s.upper() for s in states if s}
 
+    import time as _time  # noqa: PLC0415
     inserted = 0
     skipped_out_of_scope = 0
     ops: list[InsertOne] = []
     row_index = 0
+    _hb_last = _time.monotonic()
 
     try:
         for row in _resolve_iter(source_name, spec, local_path):
@@ -637,6 +642,16 @@ def _load_one_source(
                 res = coll.bulk_write(ops, ordered=False, idempotent=False)
                 inserted += (res.inserted_count or 0)
                 ops = []
+                # Progress heartbeat: a big source otherwise loads millions of
+                # rows silently and looks like a hang. Time-based so it fires
+                # regardless of row size.
+                now = _time.monotonic()
+                if now - _hb_last >= _STAGING_HEARTBEAT_SECONDS:
+                    _log.LogPipeline(
+                        "INFO",
+                        "staging_loader[%s]: progress -- %d rows loaded so far "
+                        "(run_id=%s)", source_name, inserted, run_id)
+                    _hb_last = now
         if ops:
             res = coll.bulk_write(ops, ordered=False, idempotent=False)
             inserted += (res.inserted_count or 0)

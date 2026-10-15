@@ -66,7 +66,12 @@ def run_step(ctx) -> dict:
     tgt = reg.by_source_name("fda_drug")
     target_coll = mongo[tgt.public_data_db][reg.public_data_collection_name("fda_drug")]
 
-    building = _truthy(os.environ.get("BUILD_FDA_DRUG", ""))
+    # Read the build-or-consume flag from the run's args, which round-trip to
+    # worker processes through the work-item snapshot. The old os.environ read
+    # only worked on the Controller: workers run on a separate VM and never
+    # inherited BUILD_FDA_DRUG, so every partition fell into consume mode and
+    # the build never happened.
+    building = bool(ctx.args.build_fda_drug)
     if not building:
         published = target_coll.count_documents({})
         if published == 0:

@@ -27,6 +27,7 @@ class PipelineArgs:
     state_scope: list[str] | None = None
     incremental: bool = False
     google_maps_enabled: bool = False
+    build_fda_drug: bool = False
     embedding_enabled: bool = False
     batch_size: int = 1000
     pool_size: int = 51
