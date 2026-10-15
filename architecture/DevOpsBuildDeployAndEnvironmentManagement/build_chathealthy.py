@@ -413,6 +413,11 @@ def _run_from_branch_checkout(env: str, argv, script_name: str):
     """
     import chain_provenance as _cp  # noqa: PLC0415
     import sys as _sys  # noqa: PLC0415
+    # One build at a time: sweep a prior killed build's residue before this run
+    # creates its own. Parent only -- the re-exec child runs inside one of these
+    # temp worktrees and must not delete its own ground.
+    if not _cp.running_from_git():
+        _sweep_build_residue(_find_repo_root(Path(__file__)))
     return _cp.reexec_from_branch(
         env,
         f"architecture/DevOpsBuildDeployAndEnvironmentManagement/{script_name}",
@@ -518,6 +523,41 @@ def _delete_build_root(canonical_build_dir: Path) -> None:
     shutil.rmtree(canonical_build_dir, ignore_errors=False)
     _step(f"build root deleted: {removed} stale file(s) removed from "
           f"{canonical_build_dir.name}/")
+
+
+def _sweep_build_residue(canonical_repo: Path) -> None:
+    """Remove every temp worktree, temp build tree and stale lock left by a
+    prior build. There is never more than one build at a time, so all of it is
+    residue from a run killed before its own finally-cleanup ran -- garbage."""
+    import glob  # noqa: PLC0415
+    import tempfile  # noqa: PLC0415
+    tmp = Path(tempfile.gettempdir())
+    prefixes = ("chain_dev_", "chain_qa_", "chain_prod_",
+                "build_dev_", "build_qa_", "build_prod_", "build_local_")
+    # Registered temp worktrees first, so git forgets them before the dirs go.
+    listed = subprocess.run(
+        ["git", "worktree", "list", "--porcelain"], cwd=str(canonical_repo),
+        capture_output=True, text=True).stdout
+    for line in listed.splitlines():
+        if not line.startswith("worktree "):
+            continue
+        path = Path(line[len("worktree "):].strip())
+        if path.name.startswith(prefixes):
+            subprocess.run(["git", "worktree", "remove", "--force", str(path)],
+                           cwd=str(canonical_repo), capture_output=True, text=True)
+            shutil.rmtree(path, ignore_errors=True)
+    # Any unregistered temp dirs carrying our prefixes.
+    for prefix in prefixes:
+        for leftover in glob.glob(str(tmp / (prefix + "*"))):
+            shutil.rmtree(leftover, ignore_errors=True)
+    # Registrations whose dirs are already gone, and stale index locks.
+    subprocess.run(["git", "worktree", "prune"], cwd=str(canonical_repo),
+                   capture_output=True, text=True)
+    for lock in (canonical_repo / ".git").glob("next-index-*.lock"):
+        try:
+            lock.unlink()
+        except OSError:
+            pass
 
 
 def main(argv: list[str] | None = None) -> int:
