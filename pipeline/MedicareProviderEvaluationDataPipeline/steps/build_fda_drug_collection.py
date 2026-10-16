@@ -152,28 +152,30 @@ def run_step(ctx) -> dict:
         return {"step": "build_fda_drug_collection", "record_range": [start, end],
                 "records_written": 0}
 
-    # A per-record completeness problem is a WARNING, never a job-fatal: a label
-    # we cannot build from is recorded as a finding and skipped so one bad label
-    # does not fail the whole run, and the generic_name fallback is surfaced
-    # rather than silent. Both findings aggregate onto the discrepancy report.
+    # A per-record attribute problem is recorded as a finding and (when the
+    # record cannot be built) skipped, so one bad label does not fail the whole
+    # run. The molecule-from-generic fallback and the incomplete-record miss are
+    # both FDA attribute failures and share one catch-all class on the report.
     buildable = []
     skipped = 0
     for rec in records:
         set_id = str(rec.get("set_id") or "").strip()
         if rec.pop("_molecule_source", None) == "generic_name":
             rt.record_discrepancy(
-                reason="fda_molecule_from_generic_fallback",
+                reason="FDA_all_other_Attribute_failures",
                 step="build_fda_drug_collection", artifact="fda",
                 record_key=set_id,
-                detail={"note": "molecule taken from openfda.generic_name; "
+                detail={"kind": "molecule_from_generic_fallback",
+                        "note": "molecule taken from openfda.generic_name; "
                                 "openfda.substance_name was absent"})
         missing = [f for f in ("molecule", "indication_text")
                    if not str(rec.get(f) or "").strip()]
         if missing:
             rt.record_discrepancy(
-                reason="fda_record_incomplete",
+                reason="FDA_all_other_Attribute_failures",
                 step="build_fda_drug_collection", artifact="fda",
-                record_key=set_id, detail={"missing": missing})
+                record_key=set_id,
+                detail={"kind": "record_incomplete", "missing": missing})
             skipped += 1
             continue
         buildable.append(rec)

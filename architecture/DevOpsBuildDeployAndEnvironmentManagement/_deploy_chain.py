@@ -3028,26 +3028,18 @@ def _collection_from_ref(arch: dict, collection_ref: str) -> tuple:
 
 
 def _config_write_identity(target: TargetRecord, env: str,
-                           coll: "DeploymentCollection") -> tuple:
-    """The cluster and the identity this target declares for writing it.
+                           coll: "DeploymentCollection") -> str:
+    """The identity this target declares for writing its config.
 
     Read from the manifest rather than named here, so who may write is stated
     once and a deploy cannot quietly use an identity the record does not
-    declare.
+    declare. The CLUSTER is not picked here: config_collections live on the one
+    front-end config cluster, so the caller connects to that literal.
     """
-    cluster = ""
     consumers: list = []
     for eb in target.environments:
         if eb.env_binding == env:
-            block = (eb.atlas or {}).get("cluster") or {}
-            cluster = block.get("cluster_name", "")
-            consumers = block.get("runtime_consumers") or []
-    if not cluster:
-        raise ChatHealthyException(
-            mode="runtime_error",
-            component="_deploy_chain",
-            message=f"{target.target_id} governs collections but names no "
-                    f"cluster for env={env!r}")
+            consumers = ((eb.atlas or {}).get("cluster") or {}).get("runtime_consumers") or []
     writers = [con.get("identity_target_id") for con in consumers
                if con.get("operation") == "mongo_write"]
     if len(writers) != 1:
@@ -3057,7 +3049,7 @@ def _config_write_identity(target: TargetRecord, env: str,
             message=f"{target.target_id} env={env!r} declares {len(writers)} "
                     f"mongo_write runtime consumer(s); governing a collection "
                     f"needs exactly one identity to write as")
-    return cluster, _identity_name(coll, writers[0], env)
+    return _identity_name(coll, writers[0], env)
 
 
 def _record_key(record: dict, identity_key: list, address: str) -> dict:
@@ -3110,15 +3102,16 @@ def reconcile_config_collections(target: TargetRecord, env: str,
                 keys.append({field: record.get(field)
                              for field in entry.get("identity_key") or []})
 
-    cluster, identity = _config_write_identity(target, env, coll)
     # manage_versions=False: a deploy names the physical collection it writes,
     # so a literal '_v_N' address lands on that exact generation. The version-
     # managing client refuses an explicit version when no binding is held, and
     # the deploy holds none. Base (unversioned) names are returned unchanged in
     # both modes, so every flat config_collections declaration is unaffected.
+    # DevOpsUser deploys (pipelineEditor is the runtime writer); config
+    # collections live on the one front-end config cluster. Both literal.
     client = ChatHealthyMongoUtilities(manage_versions=False).getConnection(
-        identity, cluster, host=_cluster_host(cluster))
-    step(f"  governing {len(governed)} collection(s) as {identity} "
+        "DevOpsUser", "ChatHealthyFrontEnd", host=_cluster_host("ChatHealthyFrontEnd"))
+    step(f"  governing {len(governed)} collection(s) as DevOpsUser "
          f"(declared by {target.target_id})")
 
     for entry in governed:
@@ -3200,32 +3193,12 @@ def apply_config_documents(build_dir: Path, target: TargetRecord, env: str,
                 and (package_selection is None or f.package in package_selection)]
     if not declared:
         return
-    cluster = ""
-    consumers: list[dict] = []
-    for eb in target.environments:
-        if eb.env_binding == env:
-            block = (eb.atlas or {}).get("cluster") or {}
-            cluster = block.get("cluster_name", "")
-            consumers = block.get("runtime_consumers") or []
-    if not cluster:
-        raise ChatHealthyException(
-            mode="runtime_error",
-            component="_deploy_chain",
-            message=f"{target.target_id} declares config documents but names "
-                    f"no cluster for env={env!r}")
-    writers = [con.get("identity_target_id") for con in consumers
-               if con.get("operation") == "mongo_write"]
-    if len(writers) != 1:
-        raise ChatHealthyException(
-            mode="runtime_error",
-            component="_deploy_chain",
-            message=f"{target.target_id} env={env!r} declares {len(writers)} "
-                    f"mongo_write runtime consumer(s); installing a config "
-                    f"document needs exactly one identity to write as")
-    identity = _identity_name(coll, writers[0], env)
+    # This runs at deploy time, locally, as DevOpsUser (the deployer);
+    # pipelineEditor is the runtime identity and is not involved here. Config
+    # documents live on the one front-end config cluster. Both literal.
     client = ChatHealthyMongoUtilities().getConnection(
-        identity, cluster, host=_cluster_host(cluster))
-    step(f"  config documents written as {identity} (declared by "
+        "DevOpsUser", "ChatHealthyFrontEnd", host=_cluster_host("ChatHealthyFrontEnd"))
+    step(f"  config documents written as DevOpsUser (declared by "
          f"{target.target_id})")
     for entry in declared:
         staged = build_dir / entry.package / entry.source_location
@@ -3290,10 +3263,17 @@ def deploy_one(
         # underscore form for Mongo etc. — store both styles as declared).
         pad.seed_kv_secrets_from_env(vault, list((target.secrets or {}).keys()))
         # Facts the manifest states outright, rather than looks up in a .env.
+        # Every identity that authenticates to Mongo and holds a cert secret in
+        # this vault must be tagged -- not just service principals. The data
+        # migrator is a managed_identity, so a service_principal-only filter
+        # silently excluded it and left it unable to resolve its cluster host.
+        # seed_kv_facts_from_manifest skips any identity without a cert secret
+        # here (SecretNotFound) with a warning, so widening the class filter is
+        # safe for identities that have no credential in this vault.
         pad.seed_kv_facts_from_manifest(
             vault, target.secrets or {},
             [i["identity_id"] for i in (coll.identity_catalog or [])
-             if i.get("identity_class") == "service_principal"])
+             if i.get("identity_class") in ("service_principal", "managed_identity")])
         return vault
     if target_kind == "azure_storage_account":
         return pad.ensure_storage_containers(target, env)

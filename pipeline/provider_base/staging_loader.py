@@ -528,6 +528,67 @@ def _record_content_hash(mongo, coll_name: str, content_hash: str, row_count: in
     )
 
 
+def _ingest_file(
+    coll,
+    local_path: str,
+    *,
+    source_name: str,
+    spec: dict,
+    run_id: str,
+    state_filter: set[str],
+    npi_hint,
+    batch_size: int,
+    row_index_start: int = 0,
+) -> tuple[int, int, int]:
+    """Ingest ONE downloaded file's rows into the staging collection.
+
+    The single-file primitive shared by the single-blob loader and the sharded
+    loader: iterate the file's rows via the format's _resolve_iter, wrap each,
+    and bulk-insert. row_index_start lets the sharded loader continue the index
+    across shards so every record across all shards keeps a distinct
+    (run_id, _source_row_index). Returns (inserted, next_row_index, skipped)."""
+    import time as _time  # noqa: PLC0415
+    inserted = 0
+    skipped_out_of_scope = 0
+    ops: list[InsertOne] = []
+    row_index = row_index_start
+    _hb_last = _time.monotonic()
+    for row in _resolve_iter(source_name, spec, local_path):
+        if state_filter:
+            row_state = (row.get(_NPPES_STATE_COLUMN) or "").strip().upper()
+            if row_state not in state_filter:
+                row_index += 1
+                skipped_out_of_scope += 1
+                continue
+        doc = _wrap_row(
+            row,
+            source_name=source_name,
+            row_index=row_index,
+            run_id=run_id,
+            npi_hint_keys=npi_hint,
+        )
+        row_index += 1
+        ops.append(InsertOne(doc))
+        if len(ops) >= batch_size:
+            res = coll.bulk_write(ops, ordered=False, idempotent=False)
+            inserted += (res.inserted_count or 0)
+            ops = []
+            # Progress heartbeat: a big file otherwise loads millions of rows
+            # silently and looks like a hang. Time-based so it fires regardless
+            # of row size.
+            now = _time.monotonic()
+            if now - _hb_last >= _STAGING_HEARTBEAT_SECONDS:
+                _log.LogPipeline(
+                    "INFO",
+                    "staging_loader[%s]: progress -- %d rows loaded so far "
+                    "(run_id=%s)", source_name, inserted, run_id)
+                _hb_last = now
+    if ops:
+        res = coll.bulk_write(ops, ordered=False, idempotent=False)
+        inserted += (res.inserted_count or 0)
+    return inserted, row_index, skipped_out_of_scope
+
+
 def _load_one_source(
     *,
     source_name: str,
@@ -541,7 +602,7 @@ def _load_one_source(
     states: tuple[str, ...] = (),
     incremental: bool = False,
 ) -> dict[str, Any]:
-    """Load one source into its versioned staging collection.
+    """Load one single-blob source into its versioned staging collection.
 
     Target: mongo[<staging_db>][<staging_collection>] on the pipeline
     cluster, both derived from the registry so the source->collection
@@ -581,7 +642,7 @@ def _load_one_source(
         prior_hash = _prior_content_hash(mongo, coll_name)
         existing_row_count = coll.count_documents({})
         if prior_hash == current_hash and existing_row_count > 0:
-            _log.LogPipeline("INFO", 
+            _log.LogPipeline("INFO",
                 "staging_loader[%s]: source content unchanged (sha256=%s, %d rows already loaded) -- skipping reload",
                 source_name, current_hash[:16], existing_row_count,
             )
@@ -614,47 +675,10 @@ def _load_one_source(
     if source_name == "nppes_npi" and states:
         state_filter = {s.upper() for s in states if s}
 
-    import time as _time  # noqa: PLC0415
-    inserted = 0
-    skipped_out_of_scope = 0
-    ops: list[InsertOne] = []
-    row_index = 0
-    _hb_last = _time.monotonic()
-
     try:
-        for row in _resolve_iter(source_name, spec, local_path):
-            if state_filter:
-                row_state = (row.get(_NPPES_STATE_COLUMN) or "").strip().upper()
-                if row_state not in state_filter:
-                    row_index += 1
-                    skipped_out_of_scope += 1
-                    continue
-            doc = _wrap_row(
-                row,
-                source_name=source_name,
-                row_index=row_index,
-                run_id=run_id,
-                npi_hint_keys=npi_hint,
-            )
-            row_index += 1
-            ops.append(InsertOne(doc))
-            if len(ops) >= batch_size:
-                res = coll.bulk_write(ops, ordered=False, idempotent=False)
-                inserted += (res.inserted_count or 0)
-                ops = []
-                # Progress heartbeat: a big source otherwise loads millions of
-                # rows silently and looks like a hang. Time-based so it fires
-                # regardless of row size.
-                now = _time.monotonic()
-                if now - _hb_last >= _STAGING_HEARTBEAT_SECONDS:
-                    _log.LogPipeline(
-                        "INFO",
-                        "staging_loader[%s]: progress -- %d rows loaded so far "
-                        "(run_id=%s)", source_name, inserted, run_id)
-                    _hb_last = now
-        if ops:
-            res = coll.bulk_write(ops, ordered=False, idempotent=False)
-            inserted += (res.inserted_count or 0)
+        inserted, row_index, skipped_out_of_scope = _ingest_file(
+            coll, local_path, source_name=source_name, spec=spec, run_id=run_id,
+            state_filter=state_filter, npi_hint=npi_hint, batch_size=batch_size)
     finally:
         try:
             import os
@@ -671,6 +695,86 @@ def _load_one_source(
         "skipped_out_of_scope_rows": skipped_out_of_scope,
         "row_count": row_index,
     }
+
+
+def _load_sharded_source(
+    *,
+    source_name: str,
+    spec: dict,
+    run_id: str,
+    env_prefix: str,
+    mongo,
+    blob,
+    batch_size: int,
+    registry: PipelineDatasetRegistry,
+    states: tuple[str, ...] = (),
+    incremental: bool = False,
+) -> dict[str, Any]:
+    """Load one LOGICAL source whose data is SHARDED across many blobs into its
+    single staging collection. Same signature as _load_one_source so the two are
+    interchangeable at dispatch. The run-scoped drop runs ONCE; then every shard
+    is ingested through the shared single-file primitive, with the row index
+    continuing across shards so each of the ~263K records keeps a distinct
+    (run_id, _source_row_index). A sharded source is never a reference table, so
+    the content-unchanged shortcut does not apply here."""
+    coll_name = staging_collection_name(registry, source_name)
+    db_name = staging_db_name(registry, source_name)
+    _require_mongo(mongo)
+    coll = mongo[db_name][coll_name]
+
+    _ensure_indexes(coll, source_name)
+    deleted_current_run = _drop_prior_run_rows(coll, run_id)
+    deleted_state_scoped = (
+        0 if incremental else _drop_prior_state_scoped_rows(coll, source_name, states)
+    )
+
+    npi_hint = NPPES_NPI_COLUMN_CANDIDATES if source_name in ("nppes_npi", "pl_pfile") else None
+    state_filter: set[str] = set()
+    if source_name == "nppes_npi" and states:
+        state_filter = {s.upper() for s in states if s}
+
+    container_name = spec["blob_container"]
+    shard_paths = spec["blob_paths"]
+    inserted = 0
+    skipped_out_of_scope = 0
+    row_index = 0
+    for shard_path in shard_paths:
+        local_path = _download_blob_to_tempfile(blob, container_name, shard_path)
+        try:
+            shard_inserted, row_index, shard_skipped = _ingest_file(
+                coll, local_path, source_name=source_name, spec=spec, run_id=run_id,
+                state_filter=state_filter, npi_hint=npi_hint, batch_size=batch_size,
+                row_index_start=row_index)
+            inserted += shard_inserted
+            skipped_out_of_scope += shard_skipped
+        finally:
+            try:
+                import os
+                os.unlink(local_path)
+            except OSError:
+                pass
+
+    _log.LogPipeline("INFO",
+        "staging_loader[%s]: sharded load done -- %d shards, %d rows inserted (run_id=%s)",
+        source_name, len(shard_paths), inserted, run_id)
+    return {
+        "source_name": source_name,
+        "collection": coll_name,
+        "inserted": inserted,
+        "shards": len(shard_paths),
+        "deleted_prior_rows_for_run": deleted_current_run,
+        "deleted_prior_rows_for_states": deleted_state_scoped,
+        "skipped_out_of_scope_rows": skipped_out_of_scope,
+        "row_count": row_index,
+    }
+
+
+def _loader_for(spec: dict):
+    """A sharded source (one carrying blob_paths) loads through the sharded
+    loader; every other source through the single-blob loader. Both share one
+    signature, so dispatch is this one choice, not branches woven through the
+    load body."""
+    return _load_sharded_source if spec.get("blob_paths") else _load_one_source
 
 
 def load_staging(

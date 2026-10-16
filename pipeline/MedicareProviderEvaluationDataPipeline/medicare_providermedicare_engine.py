@@ -3,16 +3,21 @@
 
 """ProviderMedicare base build engine (EPIC-010-F-007).
 
-Assembles one ProviderMedicare document per NPI for a provider_state partition:
-the provider spine (entity_type, specialty NUCC codes) from the built Provider
-collection, the billed procedures from Part B staging, and the prescribed drugs
-(with day supply) from Part D staging. rxcui / molecule / parent_indications on
-drugs and allowed_icd10 / justification on procedures are left for the enrich
-steps; this step lays down the base record per the ProviderMedicare contract.
+The CMS Part B / Part D files are denormalized and joint-keyed (many rows per
+NPI), national. This build NORMALIZES and AGGREGATES those rows up to our grain
+(one ProviderMedicare document per NPI): procedures collapsed to one per
+HCPCS_Cd, drugs carried raw per Part D row (the RXCUI re-grain lives in the
+enrich pass). The normalization/aggregation itself is the pure functions in
+medicare_normalization; this engine fetches staging rows, drives those functions,
+joins to the Provider spine BY NPI, and writes the documents.
 
-CMS column names are isolated in the *_COLS maps below. They follow the CMS
-public data dictionaries; first-fetch testing corrects any drift in one place.
-Staging rows carry the verbatim source row under doc["raw"].
+The join is by NPI directly against the NPI-keyed Provider collection -- never
+gated by matching the CMS state column to the provider's business-mailing state.
+State is only the fan-out/parallelism dimension: each worker processes the
+Part B / Part D rows for one CMS state value and resolves each NPI it finds
+against the whole Provider collection. A billed/prescribing NPI absent from the
+Provider collection is returned as a not-found NPI (de-duped to the distinct
+set) for the step to record as one finding per distinct NPI.
 """
 
 from __future__ import annotations
@@ -22,50 +27,37 @@ from typing import Any
 from chathealthy_lib.logging_service import ChatHealthyLoggingService
 from pymongo import UpdateOne
 
+from pipeline.run_lifecycle.steps._partitions import ALL_US_STATES
+from pipeline.MedicareProviderEvaluationDataPipeline.medicare_normalization import (
+    PARTB_COLS,
+    PARTD_COLS,
+    aggregate_procedures,
+    collect_drugs,
+    distinct_billed_npis,
+    npis_not_found,
+)
+
 _log = ChatHealthyLoggingService()
 
-# --- CMS Part D Prescribers by Provider and Drug (data-dictionary columns) ---
-PARTD_COLS = {
-    "npi": "Prscrbr_NPI",
-    "state": "Prscrbr_State_Abrvtn",
-    "brand": "Brnd_Name",
-    "generic": "Gnrc_Name",
-    "total_claims": "Tot_Clms",
-    "days_supply": "Tot_Day_Suply",
-    "beneficiary_count": "Tot_Benes",
-    "total_drug_cost": "Tot_Drug_Cst",
-}
 
-# --- CMS Part B Physician & Other Practitioners by Provider and Service -------
-PARTB_COLS = {
-    "npi": "Rndrng_NPI",
-    "state": "Rndrng_Prvdr_State_Abrvtn",
-    "entity": "Rndrng_Prvdr_Ent_Cd",       # "I" | "O"
-    "hcpcs": "HCPCS_Cd",
-    "descriptor": "HCPCS_Desc",
-    "service_count": "Tot_Srvcs",
-    "beneficiary_count": "Tot_Benes",
-    "submitted_amount": "Avg_Sbmtd_Chrg",
-    "allowed_amount": "Avg_Mdcr_Alowd_Amt",
-    "paid_amount": "Avg_Mdcr_Pymt_Amt",
-}
+def _cms_state_filter(state: str, state_col: str) -> dict:
+    """Select one fan-out partition's staged CMS rows by their own state column.
+
+    The twin of business_state_filter, but on the CMS source state column
+    (raw.<state_col>) rather than the provider's business-mailing state. "ALL"
+    is the catch-all worker -- every row whose CMS state is none of the fifty-
+    plus-DC codes (territories, military, foreign, blank). This partitions the
+    national Part B / Part D rows across the workers; it is NOT the join key.
+    """
+    field = f"raw.{state_col}"
+    if state == "ALL":
+        return {field: {"$nin": list(ALL_US_STATES)}}
+    return {field: state}
 
 
-def _num(val: Any) -> float | int | None:
-    if val is None or val == "":
-        return None
-    try:
-        f = float(str(val).replace(",", ""))
-        return int(f) if f.is_integer() else f
-    except (TypeError, ValueError):
-        return None
-
-
-def _raw_rows(coll, run_id: str, state_col: str, state: str):
-    """Staged rows for this run whose source state column matches the state."""
-    cursor = coll.find({"run_id": run_id, f"raw.{state_col}": state})
-    for doc in cursor:
-        yield doc.get("raw") or {}
+def _raw_rows(coll, run_id: str, state: str, state_col: str) -> list[dict]:
+    return [doc.get("raw") or {}
+            for doc in coll.find({"run_id": run_id, **_cms_state_filter(state, state_col)})]
 
 
 def _entity_type(spine_doc: dict) -> str:
@@ -82,66 +74,60 @@ def _specialty_codes(spine_doc: dict) -> list[str]:
     return codes
 
 
+def _lookup_spines(provider_spine_coll, npis: set[str], chunk: int = 1000) -> dict[str, dict]:
+    """Resolve the Provider spine for a set of NPIs, by NPI directly (chunked
+    $in on the NPI-keyed Provider collection). Returns npi -> spine doc."""
+    found: dict[str, dict] = {}
+    batch: list[str] = []
+
+    def _flush() -> None:
+        if not batch:
+            return
+        for spine in provider_spine_coll.find({"npi": {"$in": batch}}):
+            key = str(spine.get("npi") or spine.get("_id") or "").strip()
+            if key:
+                found[key] = spine
+        batch.clear()
+
+    for npi in npis:
+        batch.append(npi)
+        if len(batch) >= chunk:
+            _flush()
+    _flush()
+    return found
+
+
 def build_providermedicare(
     *,
     state: str,
     run_id: str,
     data_version: int,
-    mongo,
     provider_spine_coll,
     partb_coll,
     partd_coll,
     target_coll,
-    spine_state_filter: dict,
     batch_size: int = 1000,
 ) -> dict[str, Any]:
-    """Build ProviderMedicare docs for one provider_state into target_coll."""
-    # Gather this state's Part B procedures and Part D drugs, keyed by NPI.
-    procedures_by_npi: dict[str, list[dict]] = {}
-    for raw in _raw_rows(partb_coll, run_id, PARTB_COLS["state"], state):
-        npi = str(raw.get(PARTB_COLS["npi"]) or "").strip()
-        if not npi:
-            continue
-        procedures_by_npi.setdefault(npi, []).append({
-            "hcpcs": raw.get(PARTB_COLS["hcpcs"]),
-            "descriptor": raw.get(PARTB_COLS["descriptor"]),
-            "hcpcs_level2": None,
-            "label": None,
-            "service_count": _num(raw.get(PARTB_COLS["service_count"])),
-            "beneficiary_count": _num(raw.get(PARTB_COLS["beneficiary_count"])),
-            "submitted_amount": _num(raw.get(PARTB_COLS["submitted_amount"])),
-            "allowed_amount": _num(raw.get(PARTB_COLS["allowed_amount"])),
-            "paid_amount": _num(raw.get(PARTB_COLS["paid_amount"])),
-            "allowed_icd10": [],
-            "justification_kind": "",
-            "justification_source": "",
-        })
+    """Build ProviderMedicare docs for one fan-out state into target_coll.
 
-    drugs_by_npi: dict[str, list[dict]] = {}
-    for raw in _raw_rows(partd_coll, run_id, PARTD_COLS["state"], state):
-        npi = str(raw.get(PARTD_COLS["npi"]) or "").strip()
-        if not npi:
-            continue
-        drugs_by_npi.setdefault(npi, []).append({
-            "brand": raw.get(PARTD_COLS["brand"]),
-            "generic": raw.get(PARTD_COLS["generic"]),
-            "total_claims": _num(raw.get(PARTD_COLS["total_claims"])),
-            "days_supply": _num(raw.get(PARTD_COLS["days_supply"])),
-            "beneficiary_count": _num(raw.get(PARTD_COLS["beneficiary_count"])),
-            "total_drug_cost": _num(raw.get(PARTD_COLS["total_drug_cost"])),
-            "rxcui": None,
-            "molecule": None,
-            "parent_indications": [],
-        })
+    Returns the write count and the de-duped list of billed/prescribing NPIs
+    absent from the Provider collection (not_found_npis).
+    """
+    partb_rows = _raw_rows(partb_coll, run_id, state, PARTB_COLS["state"])
+    partd_rows = _raw_rows(partd_coll, run_id, state, PARTD_COLS["state"])
 
-    # One document per NPI present in the spine for this state.
+    procedures_by_npi = aggregate_procedures(partb_rows)
+    drugs_by_npi = collect_drugs(partd_rows)
+    billed_npis = distinct_billed_npis(partb_rows, partd_rows)
+
+    # Join BY NPI against the whole Provider collection -- not within a state
+    # bucket. An NPI present in Part B/D but absent from Provider is not-found.
+    spine_by_npi = _lookup_spines(provider_spine_coll, billed_npis)
+    not_found = npis_not_found(billed_npis, spine_by_npi.keys())
+
     ops: list[UpdateOne] = []
     written = 0
-    npis_in_state = set(procedures_by_npi) | set(drugs_by_npi)
-    for spine in provider_spine_coll.find(spine_state_filter):
-        npi = str(spine.get("npi") or spine.get("_id") or "").strip()
-        if not npi:
-            continue
+    for npi, spine in spine_by_npi.items():
         doc: dict[str, Any] = {
             "_id": npi,
             "npi": npi,
@@ -157,7 +143,6 @@ def build_providermedicare(
         # ccn / size_tier are written by enrich_org_ccn_size when known; the
         # schema forbids null for them, so the base record omits them.
         ops.append(UpdateOne({"_id": npi}, {"$set": doc}, upsert=True))
-        npis_in_state.discard(npi)
         if len(ops) >= batch_size:
             target_coll.bulk_write(ops, ordered=False)
             written += len(ops)
@@ -168,11 +153,12 @@ def build_providermedicare(
 
     _log.LogPipeline(
         "INFO",
-        "build_providermedicare[%s]: wrote=%d billed_only_npis_without_spine=%d",
-        state, written, len(npis_in_state),
+        "build_providermedicare[%s]: wrote=%d billed_npis=%d not_found=%d",
+        state, written, len(billed_npis), len(not_found),
     )
     return {
         "state": state,
         "providermedicare_written": written,
-        "billed_npis_without_spine": len(npis_in_state),
+        "billed_npis": len(billed_npis),
+        "not_found_npis": not_found,
     }

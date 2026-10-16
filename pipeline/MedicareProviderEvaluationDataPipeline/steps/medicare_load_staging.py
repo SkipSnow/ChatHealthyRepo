@@ -80,12 +80,13 @@ def run_step(ctx) -> dict:
 
     fetch_results = ctx.manifest.metrics.get("fetch_results") or {}
     fr = fetch_results.get(source)
-    if not fr or not fr.get("blob_container") or not fr.get("blob_path"):
+    blob_paths = fr.get("blob_paths") if fr else None
+    if not fr or not fr.get("blob_container") or not (fr.get("blob_path") or blob_paths):
         raise ChatHealthyException(
             mode="value_error",
             message=(
                 f"medicare_load_staging[{source}]: no fetch_result with "
-                f"blob_container/blob_path on the manifest; fetch must run first"
+                f"blob_container and blob_path(s) on the manifest; fetch must run first"
             ),
             component="medicare_load_staging",
             source_name=source,
@@ -93,9 +94,15 @@ def run_step(ctx) -> dict:
 
     spec = {
         "blob_container": fr.get("blob_container"),
-        "blob_path": fr.get("blob_path"),
         "format": fmt,
     }
+    # A sharded source (openFDA drug/label) lands as many shard blobs; pass the
+    # whole list so the loader's sharded path ingests them under one drop.
+    # Every other source is a single blob.
+    if blob_paths:
+        spec["blob_paths"] = blob_paths
+    else:
+        spec["blob_path"] = fr.get("blob_path")
     if inner_hint:
         spec["inner_name_hint"] = inner_hint
     if delimiter and delimiter != ",":

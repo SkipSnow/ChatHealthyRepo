@@ -80,7 +80,15 @@ def load_pipeline_config(mongo_client=None, env_prefix: str = "dev") -> dict[str
     records = payload.get("pipeline_config") or []
     for rec in records:
         if isinstance(rec, dict) and rec.get("env") == env_prefix:
-            return dict(rec)
+            merged = dict(rec)
+            # fan_out (LLD §I.3.4 per-step partition source + parallelism cap) is
+            # env-independent, so it is declared ONCE at the top level and
+            # injected into the returned env record here. The orchestrator then
+            # reads it off ctx.config like any other key, keyed by pipeline then
+            # step. A per-env block MAY still carry its own "fan_out" to override.
+            if "fan_out" not in merged:
+                merged["fan_out"] = payload.get("fan_out") or {}
+            return merged
     envs_present = [
         r.get("env") for r in records if isinstance(r, dict) and r.get("env")
     ]

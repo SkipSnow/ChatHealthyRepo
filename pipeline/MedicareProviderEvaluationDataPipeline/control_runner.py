@@ -98,6 +98,14 @@ def _parse_args(argv: list[str]) -> argparse.Namespace:
                              "this run (produces a candidate for operator-gated "
                              "release). Default off: consume the current published "
                              "collection.")
+    parser.add_argument("--provider-collection", dest="provider_collection",
+                        default=os.environ.get("PROVIDER_COLLECTION", "").strip() or None,
+                        help="Fully-qualified provider source as "
+                             "cluster.db.collection (e.g. ChatHealthyDataPipelines."
+                             "PipelinePublicHealthData.Provider_v_5). MANDATORY: the "
+                             "Provider collection this run joins against, named "
+                             "explicitly rather than derived from data_version. Reads "
+                             "PROVIDER_COLLECTION env if the flag is omitted.")
     return parser.parse_args(argv)
 
 
@@ -240,6 +248,7 @@ def _control(ns) -> int:
             run_id=ns.run_id,
             data_version=ns.data_version,
             build_fda_drug=ns.build_fda_drug,
+            provider_collection=ns.provider_collection,
         )
         orchestrator = MedicareProviderEvaluationOrchestrator(
             env=ns.env_prefix,

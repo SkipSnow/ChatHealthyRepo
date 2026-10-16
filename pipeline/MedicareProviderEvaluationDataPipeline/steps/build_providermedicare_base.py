@@ -19,7 +19,6 @@ from chathealthy_lib.exceptions import ChatHealthyException
 from chathealthy_lib.logging_service import ChatHealthyLoggingService
 
 from pipeline.run_lifecycle.pipeline_runtime import PipelineRuntime
-from pipeline.run_lifecycle.steps._partitions import business_state_filter
 from pipeline.MedicareProviderEvaluationDataPipeline.medicare_providermedicare_engine import (
     build_providermedicare)
 
@@ -41,8 +40,13 @@ def run_step(ctx) -> dict:
     reg = rt.registry
     mongo = ctx.mongo_client
 
-    prov = reg.by_source_name("provider")
-    provider_spine_coll = mongo[prov.public_data_db][reg.public_data_collection_name("provider")]
+    # The Provider spine is named explicitly by the run's providerCollection arg
+    # (cluster.db.collection), not derived from this run's data_version -- the
+    # built collections version independently of the Provider source.
+    from pipeline.MedicareProviderEvaluationDataPipeline.provider_source import (
+        parse_provider_source)
+    _prov_db, _prov_coll = parse_provider_source(ctx.args.provider_collection)
+    provider_spine_coll = mongo[_prov_db][_prov_coll]
     partb = reg.by_source_name("medicare_partb")
     partb_coll = mongo[partb.staging_db][reg.staging_collection_name("medicare_partb")]
     partd = reg.by_source_name("medicare_partd")
@@ -54,15 +58,27 @@ def run_step(ctx) -> dict:
         state=state,
         run_id=ctx.run_id,
         data_version=int(ctx.args.data_version),
-        mongo=mongo,
         provider_spine_coll=provider_spine_coll,
         partb_coll=partb_coll,
         partd_coll=partd_coll,
         target_coll=target_coll,
-        spine_state_filter=business_state_filter(state),
     )
-    _log.LogPipeline("INFO", "build_providermedicare_base[%s]: %s", state, result)
-    return result
+    _log.LogPipeline("INFO", "build_providermedicare_base[%s]: %s",
+                     state, {k: v for k, v in result.items() if k != "not_found_npis"})
+    # A billed/prescribing NPI absent from the Provider collection is a
+    # non-fatal finding, never an abend -- recorded so the miss is visible on
+    # the discrepancy report. De-duped: the engine joins by NPI and returns the
+    # DISTINCT set of absent NPIs, so one NPI spanning many drug/procedure rows
+    # is recorded exactly once, with the NPI itself as the record key.
+    not_found = result.get("not_found_npis") or []
+    for npi in not_found:
+        rt.record_discrepancy(
+            reason="FDA_NPI_not_found_In_Providers",
+            step="build_providermedicare_base", artifact="provider",
+            record_key=npi,
+            detail={"provider_source": str(ctx.args.provider_collection)})
+    return {k: v for k, v in result.items() if k != "not_found_npis"} | {
+        "not_found_count": len(not_found)}
 
 
 def execute(ctx):

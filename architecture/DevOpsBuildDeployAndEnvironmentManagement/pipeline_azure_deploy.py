@@ -1878,11 +1878,66 @@ def seed_kv_facts_from_manifest(vault_name: str, declared: dict,
     # -- its certificate -- so a standalone mongo-host-* secret returns 403
     # to every caller that needs it, and granting it round would widen every
     # identity's reach. A tag rides on the read they already make.
+    #
+    # set-attributes --tags REPLACES all tags, so the manifest facts are
+    # UNIONed on top of the secret's existing tags (grants-rights-for,
+    # file-encoding, placed out-of-chain) rather than clobbering them. An
+    # identity with no cert secret in this vault holds no Mongo credential
+    # here and is skipped with a warning; any OTHER read failure is a real
+    # error and aborts rather than being swallowed.
+    required_host_facts = {n for n in facts if n.startswith("mongo-host-")}
+    tagged: list[str] = []
     for identity in identities or []:
-        pairs = [f"{name}={value}" for name, value in facts.items()]
-        step(f"tag {len(pairs)} connection fact(s) onto cert secret {identity}")
+        show = _az(["keyvault", "secret", "show", "--vault-name", vault_name,
+                    "--name", identity, "--query", "tags", "-o", "json"],
+                   check=False)
+        if show.returncode != 0:
+            # az reports a missing secret and a refused one the same way -- a
+            # non-zero exit -- so the message decides, matching the established
+            # test in secrets_resolver.py. Only a recognisably-absent secret is
+            # skipped; anything else (Unauthorized, vault unreachable) aborts.
+            detail = ((show.stderr or "") + (show.stdout or "")).strip()
+            if ("SecretNotFound" in detail
+                    or "was not found in this key vault" in detail):
+                step(f"skip tagging {identity}: no certificate secret in "
+                     f"{vault_name} -- identity holds no Mongo credential here")
+                continue
+            raise ChatHealthyException(
+                mode="aborted",
+                component="pipeline_azure_deploy",
+                message=f"ERROR: could not read tags of cert secret {identity!r} "
+                        f"in {vault_name}, and this is not the vault reporting it "
+                        f"absent: {detail[:600]}")
+        existing = json.loads(show.stdout) if show.stdout.strip() else {}
+        merged = {**(existing or {}), **facts}
+        pairs = [f"{name}={value}" for name, value in merged.items()]
+        step(f"tag {len(facts)} connection fact(s) onto cert secret {identity} "
+             f"(merged over {len(existing or {})} existing tag(s))")
         _az(["keyvault", "secret", "set-attributes", "--vault-name", vault_name,
              "--name", identity, "--tags", *pairs])
+        tagged.append(identity)
+    # Fail loud, never silent: re-read each tagged identity's cert secret and
+    # confirm every required mongo-host-* fact actually landed. A deploy that
+    # leaves a Mongo-connecting identity without its host facts must abend
+    # here, at deploy time -- not later at run time, where its absence raises
+    # manifest_incomplete 'no host for cluster ...' in _host_for.
+    for identity in tagged:
+        verify = _az(["keyvault", "secret", "show", "--vault-name", vault_name,
+                      "--name", identity, "--query", "tags", "-o", "json"],
+                     check=False)
+        tags = (json.loads(verify.stdout)
+                if verify.returncode == 0 and verify.stdout.strip() else {}) or {}
+        missing = sorted(n for n in required_host_facts
+                         if not (tags.get(n) or "").strip())
+        if missing:
+            raise ChatHealthyException(
+                mode="aborted",
+                component="pipeline_azure_deploy",
+                message=f"ERROR: cert secret {identity!r} in {vault_name} is "
+                        f"missing required connection fact(s) {missing} after "
+                        f"tagging; this identity would fail at run time with "
+                        f"manifest_incomplete. Deploy aborts rather than leave it "
+                        f"unable to connect to Mongo.")
 
 
 def seed_kv_secrets_from_env(vault_name: str, secret_names: list[str]) -> None:

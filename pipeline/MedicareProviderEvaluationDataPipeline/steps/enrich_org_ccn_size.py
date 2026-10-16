@@ -37,8 +37,12 @@ def run_step(ctx) -> dict:
 
     pm = reg.by_source_name("providermedicare")
     providermedicare_coll = mongo[pm.public_data_db][reg.public_data_collection_name("providermedicare")]
-    prov = reg.by_source_name("provider")
-    provider_spine_coll = mongo[prov.public_data_db][reg.public_data_collection_name("provider")]
+    # Provider spine named by the run's providerCollection arg, not derived
+    # from data_version (collections version independently of the source).
+    from pipeline.MedicareProviderEvaluationDataPipeline.provider_source import (
+        parse_provider_source)
+    _prov_db, _prov_coll = parse_provider_source(ctx.args.provider_collection)
+    provider_spine_coll = mongo[_prov_db][_prov_coll]
     pos = reg.by_source_name("medicare_pos")
     pos_coll = mongo[pos.staging_db][reg.staging_collection_name("medicare_pos")]
 

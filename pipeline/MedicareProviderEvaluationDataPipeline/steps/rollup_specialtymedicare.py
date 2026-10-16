@@ -34,8 +34,12 @@ def run_step(ctx) -> dict:
 
     pm = reg.by_source_name("providermedicare")
     providermedicare_coll = mongo[pm.public_data_db][reg.public_data_collection_name("providermedicare")]
-    prov = reg.by_source_name("provider")
-    provider_spine_coll = mongo[prov.public_data_db][reg.public_data_collection_name("provider")]
+    # Provider spine named by the run's providerCollection arg, not derived
+    # from data_version (collections version independently of the source).
+    from pipeline.MedicareProviderEvaluationDataPipeline.provider_source import (
+        parse_provider_source)
+    _prov_db, _prov_coll = parse_provider_source(ctx.args.provider_collection)
+    provider_spine_coll = mongo[_prov_db][_prov_coll]
     sm = reg.by_source_name("specialtymedicare")
     target_coll = mongo[sm.public_data_db][reg.public_data_collection_name("specialtymedicare")]
     # The specialty embedding is copied from the SMD collection the provider

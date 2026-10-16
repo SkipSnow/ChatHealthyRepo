@@ -235,6 +235,7 @@ class BasePipelineOrchestrator:
             # subprocesses see the same value the Controller received.
             "google_maps_enabled": bool(getattr(ctx.args, "google_maps_enabled", False)),
             "build_fda_drug": bool(getattr(ctx.args, "build_fda_drug", False)),
+            "provider_collection": getattr(ctx.args, "provider_collection", None),
         }
         # Config we pass to Worker excludes non-picklable clients; each
         # Worker reconstructs its own mongo_client + blob_client.
@@ -271,16 +272,20 @@ class BasePipelineOrchestrator:
             spec.name, len(partitions), len(item_ids), claimable,
         )
 
-        # 2. Spawn N Worker subprocesses. Cap concurrency at min(partitions,
-        #    WORKER_MAX_PARALLEL). Default cap = one worker per partition
-        #    (no artificial ceiling); the env override lets the operator
-        #    dial down when the VM cannot sustain that many concurrent
-        #    Python processes. Workers race on findOneAndUpdate to claim.
+        # 2. Spawn N Worker subprocesses. Concurrency ceiling (LLD §I.2.3.4) is
+        #    min(len(partitions), the step's declared parallelism_cap). The cap
+        #    lives in the persistent fan-out config
+        #    (fan_out.<pipeline>.<step>.parallelism_cap); WORKER_MAX_PARALLEL
+        #    remains an operator override for dialing a VM down. Neither set =>
+        #    one worker per partition. Workers race on findOneAndUpdate to claim.
+        cap_cfg = self._fan_out_spec(spec, ctx).get("parallelism_cap")
         max_parallel_env = os.environ.get("WORKER_MAX_PARALLEL", "").strip()
-        max_parallel_cap = (
-            int(max_parallel_env) if max_parallel_env.isdigit()
-            else len(partitions)
-        )
+        if max_parallel_env.isdigit():
+            max_parallel_cap = int(max_parallel_env)
+        elif isinstance(cap_cfg, int) and cap_cfg > 0:
+            max_parallel_cap = cap_cfg
+        else:
+            max_parallel_cap = len(partitions)
         max_parallel = min(len(partitions), max_parallel_cap)
         worker_py = str(Path(__file__).parent / "pipeline_worker.py")
         env = os.environ.copy()
@@ -453,65 +458,83 @@ class BasePipelineOrchestrator:
     # ------------------------------------------------------------------ #
     # Partition & prerequisite helpers
     # ------------------------------------------------------------------ #
+    # ---- Fan-out: fully config-driven, per LLD §I.3.4 --------------------- #
+    # A fan-out step declares NOTHING dimension-specific in code. The persistent
+    # config (pipeline_config.json → fan_out.<pipeline>.<step>) names the
+    # partition_source that yields the step's partition values at run time and
+    # the parallelism_cap that bounds its workers. The orchestrator consumes
+    # that generically, with no built-in knowledge of any dimension (state,
+    # record range, source). Named enumerators the pipeline supplies are the one
+    # code hook; everything else is data. Replaces the hard-coded dimension
+    # switch that was BUG-014.
+
+    def _fan_out_spec(self, spec: StepSpec, ctx: StepContext) -> dict:
+        """One step's persistent fan-out declaration: {partition_source,
+        parallelism_cap}. Keyed in config by pipeline, then step."""
+        fan_out = (ctx.config or {}).get("fan_out") or {}
+        return (fan_out.get(self.PIPELINE_NAME) or {}).get(spec.name) or {}
+
+    def _partition_enumerators(self):
+        """name -> enumerator(ctx, **params) -> list[partition dict]. The base
+        supplies the geographic enumerators; a pipeline extends this by
+        overriding and merging in its own (e.g. record_ranges, nucc)."""
+        return {
+            "state": self._enum_state,
+            "county": self._enum_county,
+            "state_entity": self._enum_state_entity,
+        }
+
+    def _enum_state(self, ctx: StepContext, *, key: str = "business_address_state") -> list[dict]:
+        """52-way state fan-out, emitted under the step's declared key."""
+        return [{key: next(iter(p.values()))}
+                for p in state_partitions(ctx.args.partition_states())]
+
+    def _enum_county(self, ctx: StepContext) -> list[dict]:
+        return list(county_partitions(ctx.args.partition_states()))
+
+    def _enum_state_entity(self, ctx: StepContext) -> list[dict]:
+        """104-way state x entity-type fan-out (2 per state)."""
+        return list(state_entity_partitions(ctx.args.partition_states()))
+
+    def _resolve_partition_source(self, spec: StepSpec, ctx: StepContext, src: dict) -> list[dict]:
+        t = src.get("type")
+        if t == "config_list":
+            return [dict(v) for v in (src.get("values") or [])]
+        if t == "mongo_distinct":
+            coll = ctx.mongo_client[src["database"]][src["collection"]]
+            key = src.get("partition_key") or spec.partition_key
+            vals = [v for v in coll.distinct(src["field"], src.get("filter") or {})
+                    if v is not None]
+            return [{key: v} for v in sorted(vals)]
+        if t == "named_enumerator":
+            fn = self._partition_enumerators().get(src.get("name"))
+            if fn is None:
+                raise ChatHealthyException(
+                    mode="value_error",
+                    message=(f"fan-out step {spec.name!r}: unknown partition "
+                             f"enumerator {src.get('name')!r}"))
+            return list(fn(ctx, **(src.get("params") or {})))
+        raise ChatHealthyException(
+            mode="value_error",
+            message=(f"fan-out step {spec.name!r}: unknown partition_source type "
+                     f"{t!r} (expected config_list | mongo_distinct | named_enumerator)"))
+
     def _partitions_for(self, spec: StepSpec, ctx: StepContext) -> Iterable[dict]:
-        # Non-fanout steps (parallelism in {None,"serial","gather"}) get a
-        # single implicit partition so they still route through Worker
-        # subprocess dispatch per LLD v36 §3.1.4/§3.1.5/§4.3.2 (Controller
-        # orchestrates, Workers execute — every step).
+        # Non-fanout steps still route one implicit partition through Worker
+        # dispatch (Controller orchestrates, Workers execute — every step).
         if spec.parallelism in (None, "serial", "gather"):
             return [{"single": True}]
-        key = spec.partition_key or "business_address_state"
-        if key == "source_name":
-            # One partition per pipeline source (INCLUDING pl_pfile) for
-            # downstream steps like load_staging_parallel that need one
-            # Worker per source.
-            return [
-                {"source": "nppes_npi"},
-                {"source": "nucc"},
-                {"source": "census_zcta_county"},
-                {"source": "usda_rucc"},
-                {"source": "pl_pfile"},
-                {"source": "specialty_catalog"},
-            ]
-        if key == "source_name_base":
-            # Fetch-phase partitioning. pl_pfile is EXCLUDED because it is
-            # derived from nppes_npi's ZIP inside the nppes Worker's own
-            # fetch (see steps.fetch_all_sources._DERIVED_SOURCES). Giving
-            # pl_pfile its own fetch Worker would race the parent Worker
-            # and fail with "derived_from parent unavailable".
-            return [
-                {"source": "nppes_npi"},
-                {"source": "nucc"},
-                {"source": "census_zcta_county"},
-                {"source": "usda_rucc"},
-                {"source": "specialty_catalog"},
-            ]
-        # partition_states, not resolved_states: ALL must reach state_partitions
-        # unexpanded -- that is the single place the fifty-two-way fan-out mints.
-        states = ctx.args.partition_states()
-        if key == "county_partition":
-            parts = county_partitions(states)
-        elif key == "state_entity":
-            parts = state_entity_partitions(states)
-        else:
-            parts = state_partitions(states)
-            # Re-key the state partitions to the step's DECLARED state key, so a
-            # step that fans by provider_state receives {provider_state: <code>}
-            # rather than the enumerator's native business_address_state key.
-            # Provider declares business_address_state (byte-identical); Medicare
-            # declares provider_state, which its steps read. A non-geographic key
-            # (e.g. nucc_code) is NOT state-scoped: the base enumerator is
-            # geographic only, so it keeps the native key and a non-geographic
-            # fan-out needs its own enumerator (BUG-014).
-            if key in ("provider_state", "business_address_state"):
-                parts = [{key: next(iter(p.values()))} for p in parts]
-        has_all_catchall = any("ALL" in p.values() for p in parts)
+        src = self._fan_out_spec(spec, ctx).get("partition_source")
+        if not src:
+            raise ChatHealthyException(
+                mode="value_error",
+                message=(f"fan-out step {spec.name!r} declares no partition_source in "
+                         f"config fan_out[{self.PIPELINE_NAME!r}]; §I.3.4 requires every "
+                         f"fan-out step to name its partition source"))
+        parts = self._resolve_partition_source(spec, ctx, src)
         _log.LogPipeline(
-            "INFO",
-            "orchestrator fan-out step=%s partition_key=%s scope=%s "
-            "partitions=%d all_catchall=%s",
-            spec.name, key, states, len(parts), has_all_catchall,
-        )
+            "INFO", "orchestrator fan-out step=%s source=%s partitions=%d",
+            spec.name, src.get("type"), len(parts))
         return parts
 
     def _validate_prerequisites(self, steps: list[StepSpec]) -> None:

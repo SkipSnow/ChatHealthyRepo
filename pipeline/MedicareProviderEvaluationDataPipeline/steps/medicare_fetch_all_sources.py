@@ -75,6 +75,9 @@ def _record_from_result(source: str, res, container: str, run_id: str,
         "env": env_prefix,
         "blob_container": stored.get("container") or container,
         "blob_path": stored.get("blob_path"),
+        # A sharded source (openFDA drug/label) carries many shard blobs here;
+        # the loader ingests the whole list under one run-scoped drop.
+        "blob_paths": stored.get("blob_paths"),
         "filename": res.filename,
         "sha256": res.sha256,
         "size_bytes": res.size_bytes,

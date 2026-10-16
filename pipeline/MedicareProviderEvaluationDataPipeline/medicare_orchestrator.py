@@ -18,7 +18,6 @@ import os
 
 from pipeline.run_lifecycle.base_pipeline_orchestrator import BasePipelineOrchestrator
 from pipeline.run_lifecycle.step_spec import StepSpec
-from pipeline.run_lifecycle.steps._partitions import state_partitions
 
 
 class MedicareProviderEvaluationOrchestrator(BasePipelineOrchestrator):
@@ -167,31 +166,17 @@ class MedicareProviderEvaluationOrchestrator(BasePipelineOrchestrator):
     # Every fetched source also lands in staging; nothing is load-only now.
     LOAD_SOURCES = FETCH_SOURCES
 
-    def _partitions_for(self, spec, ctx):
-        if spec.parallelism in (None, "serial", "gather"):
-            return [{"single": True}]
-        key = spec.partition_key
-        if key == "source_name_base":
-            return [{"source": s} for s in self.FETCH_SOURCES]
-        if key == "source_name":
-            return [{"source": s} for s in self.LOAD_SOURCES]
-        if key == "provider_state":
-            # Reuse the generic 52-way state fan-out logic, re-keyed to
-            # provider_state so a ProviderMedicare worker owns one state.
-            return [
-                {"provider_state": part["business_address_state"]}
-                for part in state_partitions(ctx.args.partition_states())
-            ]
-        if key == "nucc_code":
-            # Slice 2: fan out over the distinct nucc_code values present in the
-            # built ProviderMedicare collection (a declared partition source).
-            # The skeleton runs a single partition until that query lands.
-            return [{"single": True}]
-        if key == "record_range":
-            return self._fda_record_ranges(ctx)
-        return super()._partitions_for(spec, ctx)
+    def _partition_enumerators(self):
+        # The fan-out dimension and worker cap for EVERY step are declared in
+        # persistent config (fan_out.medicare.<step>) per §I.3.4 -- there is no
+        # _partitions_for override here. This method only supplies the one code
+        # hook the config names: the Medicare record-range enumerator, merged
+        # onto the base geographic enumerators (state, county, state_entity).
+        enums = dict(super()._partition_enumerators())
+        enums["record_ranges"] = self._fda_record_ranges
+        return enums
 
-    def _fda_record_ranges(self, ctx) -> list[dict]:
+    def _fda_record_ranges(self, ctx, **_) -> list[dict]:
         """Even record-number ranges over this run's stamped prescription FDA labels --
         one worker PROCESS per range (LLD I.3.4a). Off-build returns a single
         verify/consume partition. Range size is configurable per pipeline via

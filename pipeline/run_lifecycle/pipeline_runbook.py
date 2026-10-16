@@ -1323,7 +1323,8 @@ def _get_ssh_pubkey_med() -> str:
 
 def _controller_cloud_init(run_id: str, data_version: int,
                            build_fda_drug: bool, vm_name: str,
-                           debug_level: str, states: list[str]) -> str:
+                           debug_level: str, states: list[str],
+                           provider_collection: str) -> str:
     """Base64 cloud-init for the Controller VM: pull the image, run the Medicare
     control_runner with WORKER_COMPUTE=vm so the orchestrator provisions Worker
     VMs, then self-delete. The Controller presents pipelineController for ARM
@@ -1389,7 +1390,7 @@ runcmd:
       --entrypoint python {image} \\
       pipeline/run_lifecycle/bootstrap.py \\
       pipeline/MedicareProviderEvaluationDataPipeline/control_runner.py \\
-      --run-id {run_id} --env-prefix {ENV_PREFIX} --data-version {data_version} --states {",".join(states)} {bim}
+      --run-id {run_id} --env-prefix {ENV_PREFIX} --data-version {data_version} --states {",".join(states)} --provider-collection '{provider_collection}' {bim}
     rc=$?
     echo "chcontrol: controller exit=$rc $(date -u +%FT%TZ)"
     set -e
@@ -1405,12 +1406,14 @@ runcmd:
 
 def _provision_controller_vm(run_id: str, data_version: int,
                              build_fda_drug: bool, debug_level: str,
-                             states: list[str]) -> dict:
+                             states: list[str],
+                             provider_collection: str) -> dict:
     tok = _get_token("https://management.azure.com/")
     vm_name = f"vm-chcontrol-{_short(run_id)}"
     tags = {"pipeline_run_id": run_id, "pipeline_name": PIPELINE_NAME, "env": ENV_PREFIX}
     user_data = _controller_cloud_init(run_id, data_version, build_fda_drug,
-                                       vm_name, debug_level, states)
+                                       vm_name, debug_level, states,
+                                       provider_collection)
     vm_url = (f"https://management.azure.com/subscriptions/{SUBSCRIPTION_ID}"
               f"/resourceGroups/{RESOURCE_GROUP}/providers/Microsoft.Compute/"
               f"virtualMachines/{vm_name}?api-version=2024-03-01")
@@ -1658,6 +1661,14 @@ def _run_medicare() -> int:
         if states_raw is None:
             states_raw = (body or {}).get("state_scope")
         states = _resolve_states(states_raw)
+        # The provider source is named explicitly (cluster.db.collection), not
+        # derived from data_version. Format-check it at entry: an absent or
+        # mangled providerCollection abends now, before any resource is touched.
+        provider_collection = ((body or {}).get("providerCollection")
+                               or (body or {}).get("provider_collection"))
+        from pipeline.MedicareProviderEvaluationDataPipeline.provider_source import (  # noqa: E501
+            parse_provider_source, confirm_provider_source_exists)
+        parse_provider_source(provider_collection)
 
         log("runbook_start", pipeline=PIPELINE_NAME, env=ENV_PREFIX,
             invocation_mode=invocation_mode, data_version=data_version,
@@ -1677,8 +1688,16 @@ def _run_medicare() -> int:
         _reserve_and_resume_cluster(mongo, run_id, vm_name, RESERVATION_TTL_HOURS)
         reservation_created = True
 
+        # Cluster is awake: confirm the named provider source exists before any
+        # compute is spent. A missing collection abends here, at the start of
+        # the run, not after the Controller has worked for an hour.
+        confirm_provider_source_exists(
+            ChatHealthyMongoUtilities().getConnection(
+                "pipelineEditor", "ChatHealthyDataPipelines"),
+            provider_collection)
+
         _provision_controller_vm(run_id, data_version, build_fda_drug,
-                                 debug_level, states)
+                                 debug_level, states, provider_collection)
         runbook_owns_lock = False  # Controller owns lock release from here
         log("controller_vm_provisioned", run_id=run_id, vm_name=vm_name)
         log("runbook_exit", run_id=run_id)

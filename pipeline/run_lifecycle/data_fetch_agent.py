@@ -62,6 +62,20 @@ class JsonManifestFind(BaseModel):
     json_path: list[Union[str, int]]
 
 
+class ShardedManifestFind(BaseModel):
+    """A LOGICAL source whose data is SHARDED across many files. The manifest at
+    manifest_url lists the shards under list_path (a list of entries); each
+    entry's url_field holds that shard's download URL. This find type fetches
+    EVERY shard -- the whole logical source -- not one. (openFDA drug/label
+    ships 14 partition shards totalling ~263K labels; json_manifest pinned at
+    partitions[0] fetched one shard, ~20K.) The shards store as sibling blobs
+    and load together as one source."""
+    mode: Literal["sharded_manifest"] = "sharded_manifest"
+    manifest_url: str
+    list_path: list[Union[str, int]]
+    url_field: str
+
+
 class LlmDiscoveryFind(BaseModel):
     mode: Literal["llm_discovery"] = "llm_discovery"
     page_url: str
@@ -70,7 +84,7 @@ class LlmDiscoveryFind(BaseModel):
 
 FindSpec = Annotated[
     Union[DirectUrlFind, DkanCatalogFind, StaticPageLatestFind, JsonManifestFind,
-          LlmDiscoveryFind],
+          ShardedManifestFind, LlmDiscoveryFind],
     Field(discriminator="mode"),
 ]
 
@@ -243,6 +257,50 @@ def _find_json_manifest(source_name: str, spec: JsonManifestFind) -> _FindFacts:
     _log.LogPipeline("INFO", "data_fetch_agent[%s]: json_manifest -> %s",
                      source_name, node)
     return _FindFacts(url=node, filename=_basename(node))
+
+
+def resolve_manifest_list(source_name: str, *, manifest_url: str,
+                          list_path: list[Union[str, int]], url_field: str) -> list[str]:
+    """Resolve a JSON manifest to the FULL list of file URLs under list_path.
+
+    Where json_manifest picks one node, this returns EVERY entry's url_field --
+    the openFDA drug/label dataset is published as many partitions
+    (results.drug.label.partitions[]), and the whole set must be fetched, not
+    partitions[0]. Deterministic, no model. Every entry must carry a usable URL
+    or the resolve fails loud: a partially-resolved manifest would silently drop
+    partitions, which is the defect this exists to end."""
+    r = urllib.request.Request(manifest_url, headers={"User-Agent": _UA,
+                                                      "Accept": "application/json"})
+    with urllib.request.urlopen(r, timeout=_DEFAULT_TIMEOUT) as resp:
+        doc = json.loads(resp.read().decode("utf-8", "replace"))
+    node = doc
+    for key in list_path:
+        try:
+            node = node[key]
+        except (KeyError, IndexError, TypeError) as exc:
+            raise ChatHealthyException(
+                mode="discovery_no_match", component="data_fetch_agent",
+                message=(f"data_fetch_agent[{source_name}]: manifest list path "
+                         f"{list_path} failed at {key!r}: {exc}"),
+                exception=exc) from exc
+    if not isinstance(node, list) or not node:
+        raise ChatHealthyException(
+            mode="discovery_no_match", component="data_fetch_agent",
+            message=(f"data_fetch_agent[{source_name}]: manifest list path "
+                     f"{list_path} did not resolve to a non-empty list (got "
+                     f"{type(node).__name__})"))
+    urls: list[str] = []
+    for i, item in enumerate(node):
+        url = item.get(url_field) if isinstance(item, dict) else None
+        if not isinstance(url, str) or not url.startswith("http"):
+            raise ChatHealthyException(
+                mode="discovery_no_match", component="data_fetch_agent",
+                message=(f"data_fetch_agent[{source_name}]: manifest list entry "
+                         f"{i} has no usable {url_field!r} URL (got {url!r})"))
+        urls.append(url)
+    _log.LogPipeline("INFO", "data_fetch_agent[%s]: manifest_list resolved %d partitions",
+                     source_name, len(urls))
+    return urls
 
 
 _FIND_DETERMINISTIC = {
@@ -496,6 +554,61 @@ def _resolve_discovered(req: FetchRequest, discovered_url: str | None) -> _FindF
     return _FindFacts(url=clean, filename=_basename(clean))
 
 
+def _execute_sharded_fetch(req: FetchRequest, *, download: bool, headers: dict | None,
+                           http_timeout: int) -> FetchResult:
+    """Fetch a SHARDED source: resolve every shard URL from the manifest and
+    store each shard as a sibling blob ({blob_path}_shard_NNNN). One logical
+    source, many shard blobs -- the result carries them all in stored.blob_paths
+    so the staging loader ingests the whole set under one run-scoped drop. A
+    sharded source fetches to blob only (BlobStore); FileStore has no use here."""
+    spec = req.find  # ShardedManifestFind
+    urls = resolve_manifest_list(
+        req.source_name, manifest_url=spec.manifest_url,
+        list_path=spec.list_path, url_field=spec.url_field)
+    if not download:
+        return FetchResult(
+            source_name=req.source_name, url=spec.manifest_url,
+            version_identifier=f"{len(urls)}shards", filename=None,
+            published_date=None, sha256="", size_bytes=0,
+            stored={"store_mode": "none", "shard_count": len(urls)})
+    if not isinstance(req.store, BlobStore):
+        raise ChatHealthyException(
+            mode="runtime_error", component="data_fetch_agent",
+            message=(f"data_fetch_agent[{req.source_name}]: sharded_manifest requires "
+                     f"a BlobStore (every shard stores as a sibling blob)"))
+    buffer_size = req.buffer_size or (1024 * 1024)
+    combined = hashlib.sha256()
+    total = 0
+    shards: list[dict] = []
+    for i, url in enumerate(urls):
+        shard_path = f"{req.store.blob_path}_shard_{i:04d}"
+        shard_store = BlobStore(connection_string=req.store.connection_string,
+                                container=req.store.container, blob_path=shard_path)
+        if req.extract is not None:
+            sha256, size, _stored = _acquire_extract(
+                url, source_name=req.source_name, store=shard_store,
+                extract=req.extract, buffer_size=buffer_size, headers=headers,
+                http_timeout=http_timeout, source_encoding=req.source_encoding)
+        else:
+            sha256, size, _stored = _acquire(
+                url, source_name=req.source_name, store=shard_store, stream=req.stream,
+                buffer_size=buffer_size, headers=headers, http_timeout=http_timeout,
+                source_encoding=req.source_encoding)
+        combined.update(sha256.encode("utf-8"))
+        total += size
+        shards.append({"url": url, "blob_path": shard_path, "sha256": sha256,
+                       "size_bytes": size})
+    _log.LogPipeline("INFO", "data_fetch_agent[%s]: sharded fetch stored %d shards (%d bytes)",
+                     req.source_name, len(shards), total)
+    return FetchResult(
+        source_name=req.source_name, url=spec.manifest_url,
+        version_identifier=combined.hexdigest()[:16], filename=None,
+        published_date=None, sha256=combined.hexdigest(), size_bytes=total,
+        stored={"store_mode": "sharded", "container": req.store.container,
+                "blob_paths": [s["blob_path"] for s in shards], "shards": shards,
+                "shard_count": len(shards)})
+
+
 def _execute_fetch(req: FetchRequest, *, discovered_url: str | None, download: bool,
                    headers: dict | None, http_timeout: int) -> FetchResult:
     """Resolve the source's download URL -- deterministically for every find
@@ -504,6 +617,9 @@ def _execute_fetch(req: FetchRequest, *, discovered_url: str | None, download: b
     FetchResult. The bytes never reach the model. This is the single fetch
     implementation shared by the deterministic (no-model) path and the agent
     tool path, so neither duplicates the other."""
+    if req.find.mode == "sharded_manifest":
+        return _execute_sharded_fetch(req, download=download, headers=headers,
+                                      http_timeout=http_timeout)
     if req.find.mode == "llm_discovery":
         facts = _resolve_discovered(req, discovered_url)
     else:

@@ -1,5 +1,63 @@
 {
   "$schema": "https://dev.chathealthy.ai/schemas/ChatHealthyPipelineConfigSchema.json",
+  "fan_out": {
+    "medicare": {
+      "medicare_fetch_all_sources": {
+        "partition_source": {
+          "type": "config_list",
+          "values": [
+            { "source": "medicare_partb" },
+            { "source": "medicare_partd" },
+            { "source": "ccsr" },
+            { "source": "icd10_cm" },
+            { "source": "openfda_labels" },
+            { "source": "medicare_pos" },
+            { "source": "medicare_coverage_hcpc" },
+            { "source": "medicare_coverage_icd10" }
+          ]
+        }
+      },
+      "medicare_load_staging": {
+        "partition_source": {
+          "type": "config_list",
+          "values": [
+            { "source": "medicare_partb" },
+            { "source": "medicare_partd" },
+            { "source": "ccsr" },
+            { "source": "icd10_cm" },
+            { "source": "openfda_labels" },
+            { "source": "medicare_pos" },
+            { "source": "medicare_coverage_hcpc" },
+            { "source": "medicare_coverage_icd10" }
+          ]
+        }
+      },
+      "build_fda_drug_collection": {
+        "partition_source": { "type": "named_enumerator", "name": "record_ranges" },
+        "parallelism_cap": 300
+      },
+      "build_providermedicare_base": {
+        "partition_source": { "type": "named_enumerator", "name": "state", "params": { "key": "provider_state" } },
+        "parallelism_cap": 52
+      },
+      "enrich_drugs": {
+        "partition_source": { "type": "named_enumerator", "name": "state", "params": { "key": "provider_state" } },
+        "parallelism_cap": 52
+      },
+      "enrich_procedures": {
+        "partition_source": { "type": "named_enumerator", "name": "state", "params": { "key": "provider_state" } },
+        "parallelism_cap": 52
+      },
+      "enrich_org_ccn_size": {
+        "partition_source": { "type": "named_enumerator", "name": "state", "params": { "key": "provider_state" } },
+        "parallelism_cap": 52
+      },
+      "rollup_specialtymedicare": {
+        "partition_source": { "type": "config_list", "values": [ { "single": true } ] },
+        "parallelism_cap": 1
+      }
+    }
+  },
   "pipeline_config": [
     {
       "env": "dev",
@@ -158,16 +216,15 @@
           "source_name": "openfda_labels",
           "fetch": {
             "fetch_spec": {
-              "mode": "json_manifest",
+              "mode": "sharded_manifest",
               "manifest_url": "https://api.fda.gov/download.json",
-              "json_path": [
+              "list_path": [
                 "results",
                 "drug",
                 "label",
-                "partitions",
-                0,
-                "file"
-              ]
+                "partitions"
+              ],
+              "url_field": "file"
             }
           },
           "file_format": "zip_containing_json",
@@ -343,15 +400,17 @@
             "fatal_at_count": null,
             "max": null
           },
-          "fda_record_incomplete": {
-            "severity": "warning",
-            "fatal_at_count": null,
-            "max": null
+          "FDA_NPI_not_found_In_Providers": {
+            "severity": "error",
+            "fatal_at_count": 1200000,
+            "max": null,
+            "report_display_cap": 25
           },
-          "fda_molecule_from_generic_fallback": {
-            "severity": "warning",
-            "fatal_at_count": null,
-            "max": null
+          "FDA_all_other_Attribute_failures": {
+            "severity": "error",
+            "fatal_at_count": 1200000,
+            "max": null,
+            "report_display_cap": 25
           }
         }
       },
@@ -516,16 +575,15 @@
           "source_name": "openfda_labels",
           "fetch": {
             "fetch_spec": {
-              "mode": "json_manifest",
+              "mode": "sharded_manifest",
               "manifest_url": "https://api.fda.gov/download.json",
-              "json_path": [
+              "list_path": [
                 "results",
                 "drug",
                 "label",
-                "partitions",
-                0,
-                "file"
-              ]
+                "partitions"
+              ],
+              "url_field": "file"
             }
           },
           "file_format": "zip_containing_json",
@@ -701,15 +759,17 @@
             "fatal_at_count": null,
             "max": null
           },
-          "fda_record_incomplete": {
-            "severity": "warning",
-            "fatal_at_count": null,
-            "max": null
+          "FDA_NPI_not_found_In_Providers": {
+            "severity": "error",
+            "fatal_at_count": 1200000,
+            "max": null,
+            "report_display_cap": 25
           },
-          "fda_molecule_from_generic_fallback": {
-            "severity": "warning",
-            "fatal_at_count": null,
-            "max": null
+          "FDA_all_other_Attribute_failures": {
+            "severity": "error",
+            "fatal_at_count": 1200000,
+            "max": null,
+            "report_display_cap": 25
           }
         }
       },
@@ -874,16 +934,15 @@
           "source_name": "openfda_labels",
           "fetch": {
             "fetch_spec": {
-              "mode": "json_manifest",
+              "mode": "sharded_manifest",
               "manifest_url": "https://api.fda.gov/download.json",
-              "json_path": [
+              "list_path": [
                 "results",
                 "drug",
                 "label",
-                "partitions",
-                0,
-                "file"
-              ]
+                "partitions"
+              ],
+              "url_field": "file"
             }
           },
           "file_format": "zip_containing_json",
@@ -1059,15 +1118,17 @@
             "fatal_at_count": null,
             "max": null
           },
-          "fda_record_incomplete": {
-            "severity": "warning",
-            "fatal_at_count": null,
-            "max": null
+          "FDA_NPI_not_found_In_Providers": {
+            "severity": "error",
+            "fatal_at_count": 1200000,
+            "max": null,
+            "report_display_cap": 25
           },
-          "fda_molecule_from_generic_fallback": {
-            "severity": "warning",
-            "fatal_at_count": null,
-            "max": null
+          "FDA_all_other_Attribute_failures": {
+            "severity": "error",
+            "fatal_at_count": 1200000,
+            "max": null,
+            "report_display_cap": 25
           }
         }
       },
