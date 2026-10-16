@@ -850,7 +850,7 @@ def load_staging(
         with ThreadPoolExecutor(max_workers=max(1, concurrency)) as pool:
             futures = {
                 pool.submit(
-                    _load_one_source,
+                    _loader_for(spec),
                     source_name=name,
                     spec=spec,
                     run_id=run_id,
