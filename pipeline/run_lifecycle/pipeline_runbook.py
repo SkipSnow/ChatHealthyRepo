@@ -1662,13 +1662,15 @@ def _run_medicare() -> int:
             states_raw = (body or {}).get("state_scope")
         states = _resolve_states(states_raw)
         # The provider source is named explicitly (cluster.db.collection), not
-        # derived from data_version. Format-check it at entry: an absent or
-        # mangled providerCollection abends now, before any resource is touched.
+        # derived from data_version. This trigger runs in the Azure Automation
+        # sandbox, which has NO `pipeline` package, so it must not import a
+        # pipeline module -- importing provider_source is what broke every
+        # medicare fire with ModuleNotFoundError. The value is passed through to
+        # the Controller VM, which HAS the pipeline package and does the
+        # authoritative parse + existence check in build_providermedicare_base
+        # via provider_source.
         provider_collection = ((body or {}).get("providerCollection")
                                or (body or {}).get("provider_collection"))
-        from pipeline.MedicareProviderEvaluationDataPipeline.provider_source import (  # noqa: E501
-            parse_provider_source, confirm_provider_source_exists)
-        parse_provider_source(provider_collection)
 
         log("runbook_start", pipeline=PIPELINE_NAME, env=ENV_PREFIX,
             invocation_mode=invocation_mode, data_version=data_version,
@@ -1688,14 +1690,9 @@ def _run_medicare() -> int:
         _reserve_and_resume_cluster(mongo, run_id, vm_name, RESERVATION_TTL_HOURS)
         reservation_created = True
 
-        # Cluster is awake: confirm the named provider source exists before any
-        # compute is spent. A missing collection abends here, at the start of
-        # the run, not after the Controller has worked for an hour.
-        confirm_provider_source_exists(
-            ChatHealthyMongoUtilities().getConnection(
-                "pipelineEditor", "ChatHealthyDataPipelines"),
-            provider_collection)
-
+        # provider_collection's authoritative parse + existence check happens on
+        # the Controller VM (build_providermedicare_base via provider_source),
+        # where the pipeline package exists; the sandbox trigger cannot run it.
         _provision_controller_vm(run_id, data_version, build_fda_drug,
                                  debug_level, states, provider_collection)
         runbook_owns_lock = False  # Controller owns lock release from here
