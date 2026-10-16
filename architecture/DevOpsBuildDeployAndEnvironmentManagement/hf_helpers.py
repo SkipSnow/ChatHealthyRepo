@@ -169,7 +169,9 @@ def _hf_peer_url_for_build(target_id: str, env: str, build_n: int) -> str:
 
 # ── Step notice helper ─────────────────────────────────────────────────
 def _step(msg: str) -> None:
-    _CH_LOG.info(f"[hf_helpers] {msg}")
+    import chain_provenance as _cp  # noqa: PLC0415
+    delta, total = _cp.timeline().mark("hf", msg)
+    _CH_LOG.info(f"[hf_helpers +{delta:5.1f}s {total:6.1f}s] {msg}")
 
 
 # ── build_info.json baked into each HF Space ──────────────────────────
@@ -343,6 +345,8 @@ def _hf_wake_space(token: str, qualified: str, timeout_s: int = 300) -> str:
         if stage in ("RUNNING", "BUILDING", "RUNNING_BUILDING", "APP_STARTING"):
             _step(f"  {qualified} is {stage}")
             return stage
+        _step(f"  waking {qualified}: stage={stage or 'unknown'} "
+              f"({waited}s/{timeout_s}s)")
         _time.sleep(10)
         waited += 10
     raise ChatHealthyException(
@@ -520,8 +524,10 @@ def _hf_wait_for_build_convergence(qualified: str, build_n: int,
     health_url = (
         f"https://{org.lower()}-{name.replace('_', '-').lower()}.hf.space/health"
     )
-    deadline = time.monotonic() + timeout_s
+    started = time.monotonic()
+    deadline = started + timeout_s
     last_build = None
+    last_error = ""
     while time.monotonic() < deadline:
         try:
             req = urllib.request.Request(health_url, method="POST")
@@ -529,11 +535,17 @@ def _hf_wait_for_build_convergence(qualified: str, build_n: int,
             import json as _json
             data = _json.loads(raw)
             last_build = data.get("build")
+            last_error = ""
             if last_build == build_n:
-                _step(f"  hf-wait OK {qualified}: build={build_n}")
+                _step(f"  hf-wait OK {qualified}: build={build_n} after "
+                      f"{time.monotonic() - started:.0f}s")
                 return True
-        except (urllib.error.URLError, TimeoutError, OSError, ValueError, KeyError):
-            pass
+        except (urllib.error.URLError, TimeoutError, OSError, ValueError, KeyError) as exc:
+            last_error = f"{type(exc).__name__}"
+        # One line per poll: a live wait and a hang used to look the same.
+        _step(f"  hf-wait {qualified}: health reports build={last_build} "
+              f"(want {build_n}){' ' + last_error if last_error else ''} "
+              f"({time.monotonic() - started:.0f}s/{timeout_s}s)")
         time.sleep(poll_interval_s)
     _step(f"  hf-wait TIMEOUT {qualified}: last build={last_build} expected={build_n}")
     return False

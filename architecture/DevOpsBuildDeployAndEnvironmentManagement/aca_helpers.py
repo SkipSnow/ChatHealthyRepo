@@ -156,7 +156,9 @@ def _cflags() -> int:
 
 
 def _step(msg: str) -> None:
-    _CH_LOG.info(f"[aca] {msg}")
+    import chain_provenance as _cp  # noqa: PLC0415
+    delta, total = _cp.timeline().mark("aca", msg)
+    _CH_LOG.info(f"[aca +{delta:5.1f}s {total:6.1f}s] {msg}")
 
 
 def aca_render_dockerfile() -> str:

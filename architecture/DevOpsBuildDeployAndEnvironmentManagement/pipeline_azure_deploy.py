@@ -62,11 +62,78 @@ def _cflags() -> int:
     return subprocess.CREATE_NO_WINDOW if sys.platform == "win32" else 0
 
 
+import time as _time_mod
+import threading as _threading
+
+
 def step(msg: str) -> None:
-    _CH_LOG.info(f"[pipeline_azure] {msg}")
+    """Two clocks on every line -- seconds since the previous line and since
+    the operator's invocation began -- and the line recorded on the chain
+    timeline. A deploy used to go quiet for minutes with nothing saying
+    whether that was a wait or a hang, and nothing recorded where the time
+    went."""
+    import chain_provenance as _cp  # noqa: PLC0415
+    delta, total = _cp.timeline().mark("pipeline_azure", msg)
+    _CH_LOG.info(f"[pipeline_azure +{delta:5.1f}s {total:6.1f}s] {msg}")
 
 
 _AZ_ERROR_DIR = Path(tempfile.gettempdir()) / "pipeline_azure_deploy_errors"
+
+
+def run_streamed(cmd: list[str], *, label: str, log_name: str,
+                 env: dict | None = None, cwd: str | None = None,
+                 shell: bool = False, heartbeat_s: float = 30.0) -> tuple[int, str, Path]:
+    """Run a long subprocess with its output visible as it happens.
+
+    Every line the child writes is echoed through step() the moment it
+    arrives and appended to a transcript under _AZ_ERROR_DIR, so a failure
+    still has the full text for post-mortem and a success no longer shows a
+    blank screen for minutes. When the child is silent for heartbeat_s a
+    line says so, with the elapsed time, so a live wait and a hang are
+    distinguishable. Returns (returncode, combined_output, transcript_path).
+    """
+    import queue as _queue  # noqa: PLC0415
+    _AZ_ERROR_DIR.mkdir(parents=True, exist_ok=True)
+    transcript = _AZ_ERROR_DIR / f"{log_name}.log"
+    lines: list[str] = []
+    t0 = _time_mod.monotonic()
+    q: "_queue.Queue[str | None]" = _queue.Queue()
+    with open(transcript, "w", encoding="utf-8", errors="replace") as fh:
+        fh.write("$ " + " ".join(cmd) + "\n")
+        proc = subprocess.Popen(
+            cmd, env=env, cwd=cwd, stdout=subprocess.PIPE,
+            stderr=subprocess.STDOUT, text=True, encoding="utf-8",
+            errors="replace", creationflags=_cflags(), shell=shell,
+        )
+
+        def _pump() -> None:
+            assert proc.stdout is not None
+            for raw in proc.stdout:
+                q.put(raw.rstrip("\r\n"))
+            q.put(None)
+
+        _threading.Thread(target=_pump, daemon=True).start()
+        last_output = t0
+        while True:
+            try:
+                item = q.get(timeout=heartbeat_s)
+            except _queue.Empty:
+                step(f"  [{label}] still running, no output for "
+                     f"{_time_mod.monotonic() - last_output:.0f}s "
+                     f"({_time_mod.monotonic() - t0:.0f}s total)")
+                continue
+            if item is None:
+                break
+            last_output = _time_mod.monotonic()
+            fh.write(item + "\n")
+            lines.append(item)
+            if item.strip():
+                step(f"  [{label}] {item}")
+        rc = proc.wait()
+        fh.write(f"# exit {rc}\n")
+    step(f"  [{label}] exit {rc} after {_time_mod.monotonic() - t0:.0f}s "
+         f"(transcript {transcript})")
+    return rc, "\n".join(lines), transcript
 
 
 def _az(args: list[str], *, check: bool = True) -> subprocess.CompletedProcess:
@@ -235,12 +302,14 @@ def _ensure_kv_secrets_from_file_packages(target, env: str, vault_name: str) -> 
                     step(f"  deleting active {secret_name}")
                     _az(["keyvault", "secret", "delete", "--vault-name", vault_name,
                          "--name", secret_name], check=False)
-                    for _ in range(60):
+                    for _poll in range(60):
                         r = _az(["keyvault", "secret", "show-deleted",
                                  "--vault-name", vault_name, "--name", secret_name,
                                  "--query", "id", "-o", "tsv"], check=False)
                         if r.returncode == 0 and r.stdout.strip():
                             break
+                        step(f"    waiting for {secret_name} to reach soft-deleted "
+                             f"(poll {_poll + 1}/60, {2 * (_poll + 1)}s/120s)")
                         _time.sleep(2)
                 soft_deleted = _az(
                     ["keyvault", "secret", "show-deleted", "--vault-name", vault_name,
@@ -251,12 +320,14 @@ def _ensure_kv_secrets_from_file_packages(target, env: str, vault_name: str) -> 
                     step(f"  purging soft-deleted {secret_name} (single-version policy)")
                     _az(["keyvault", "secret", "purge", "--vault-name", vault_name,
                          "--name", secret_name], check=False)
-                    for _ in range(60):
+                    for _poll in range(60):
                         r = _az(["keyvault", "secret", "show-deleted",
                                  "--vault-name", vault_name, "--name", secret_name,
                                  "--query", "id", "-o", "tsv"], check=False)
                         if r.returncode != 0 or not r.stdout.strip():
                             break
+                        step(f"    waiting for {secret_name} purge to complete "
+                             f"(poll {_poll + 1}/60, {2 * (_poll + 1)}s/120s)")
                         _time.sleep(2)
                 # Bounded retry on Azure's post-purge server-side
                 # eventual-consistency window. show-deleted already
@@ -950,34 +1021,28 @@ def _acr_build_and_push(
     # diagnosable.
     env["BUILDKIT_PROGRESS"] = "plain"
     step(f"docker build {refs[0]}")
-    r = subprocess.run(cmd, env=env, creationflags=_cflags(),
-                       capture_output=True, text=True,
-                       encoding='utf-8', errors='replace')
-    if r.returncode != 0:
-        _AZ_ERROR_DIR.mkdir(parents=True, exist_ok=True)
-        log_path = _AZ_ERROR_DIR / f"docker_build_{repo}_{tags[0]}.log"
-        log_path.write_text(
-            f"$ {' '.join(cmd)}\n\n=== stdout ===\n{r.stdout or ''}\n\n"
-            f"=== stderr ===\n{r.stderr or ''}\n",
-            encoding="utf-8", errors="replace")
+    rc, out, log_path = run_streamed(
+        cmd, env=env, label="docker build",
+        log_name=f"docker_build_{repo}_{tags[0]}")
+    if rc != 0:
         raise ChatHealthyException(
             mode="aborted",
             component="pipeline_azure_deploy",
-            message=f"ERROR: docker build failed (exit {r.returncode}) for {refs[0]}\n"
+            message=f"ERROR: docker build failed (exit {rc}) for {refs[0]}\n"
             f"  full build log: {log_path}\n"
-            f"  stdout tail:\n{(r.stdout or '').strip()[-1500:]}\n"
-            f"  stderr tail:\n{(r.stderr or '').strip()[-1500:]}")
+            f"  output tail:\n{out.strip()[-3000:]}")
     for ref in refs:
         step(f"docker push {ref}")
-        r = subprocess.run(["docker", "push", ref],
-                           creationflags=_cflags(),
-                           capture_output=True, text=True)
-        if r.returncode != 0:
+        rc, out, log_path = run_streamed(
+            ["docker", "push", ref], label="docker push",
+            log_name=f"docker_push_{repo}_{ref.rsplit(':', 1)[-1]}")
+        if rc != 0:
             raise ChatHealthyException(
                 mode="aborted",
                 component="pipeline_azure_deploy",
-                message=f"ERROR: docker push {ref} failed (exit {r.returncode})\n"
-                f"  stderr: {(r.stderr or '').strip()[-2000:]}")
+                message=f"ERROR: docker push {ref} failed (exit {rc})\n"
+                f"  full log: {log_path}\n"
+                f"  output tail: {out.strip()[-2000:]}")
 
 
 def _dockerfile_context_hash(dockerfile_path: str, build_context: str) -> str:
@@ -1264,21 +1329,19 @@ def build_and_push_job_image(
         "--no-logs",
         str(context),
     ]
-    r = subprocess.run(
-        cmd,
-        capture_output=True,
-        text=True,
-        env=env,
-        creationflags=_cflags(),
-        shell=(sys.platform == "win32"),
-    )
-    if r.returncode != 0:
+    # --no-logs stays (see above); the server-side build is silent until it
+    # finishes, so run_streamed's heartbeat is what shows it is still alive.
+    rc, out, log_path = run_streamed(
+        cmd, env=env, shell=(sys.platform == "win32"), label="az acr build",
+        log_name=f"acr_build_{image_repository}_{tag}")
+    if rc != 0:
         raise ChatHealthyException(
             mode="aborted",
             component="pipeline_azure_deploy",
             message=f"ERROR: az acr build --registry {registry_name} "
-            f"--image {image_repository}:{tag}... failed ({r.returncode})\n"
-            f"  stderr: {(r.stderr or '')[:2000]}")
+            f"--image {image_repository}:{tag}... failed ({rc})\n"
+            f"  full log: {log_path}\n"
+            f"  output: {out[-2000:]}")
     verify = _az(
         [
             "acr", "repository", "show",

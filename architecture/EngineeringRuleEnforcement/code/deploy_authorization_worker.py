@@ -229,12 +229,18 @@ class DeployAuthorizationWorker:
         return authorization_record.append(document, tolerate_failure=False)
 
     def record_outcome(self, record_id, outcome: str,
-                       per_target: dict | None = None) -> None:
+                       per_target: dict | None = None,
+                       timeline: dict | None = None) -> None:
         """Append what happened, rather than altering what was authorized.
 
         The outcome is a second document naming the authorization it belongs
         to. Without it the record claims a deployment was authorized and says
         nothing about whether it happened.
+
+        `timeline` is the deploy's own account of where its time went -- every
+        logged step with its offset from the operator's invocation. It belongs
+        here because this is the deploy's record; a deploy is not a build and
+        its timing is not written onto the build's row.
         """
         document = {
             "authorization_type": OUTCOME_TYPE,
@@ -246,6 +252,8 @@ class DeployAuthorizationWorker:
             "per_target": per_target or {},
             "recorded_at": datetime.now(timezone.utc).isoformat(),
         }
+        if timeline is not None:
+            document["timeline"] = timeline
         try:
             authorization_record.append(document, tolerate_failure=True)
         except Exception as exc:  # noqa: BLE001 - reported, never raised

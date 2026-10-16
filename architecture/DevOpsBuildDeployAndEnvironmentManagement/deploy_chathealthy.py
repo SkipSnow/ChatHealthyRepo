@@ -784,6 +784,7 @@ def _execute_deploy(args, repo_root: Path, worker, approval) -> int:
     records that it ran and failed. An authorization with no outcome beside
     it says a deployment was approved and nothing about whether it happened.
     """
+    import chain_provenance as _cp  # noqa: PLC0415
     rc = 1
     try:
         if args.env == "local" and not _is_local_manifest_target(repo_root, args.target):
@@ -793,8 +794,13 @@ def _execute_deploy(args, repo_root: Path, worker, approval) -> int:
         else:
             rc = _deploy_to_cloud(args, repo_root)
     finally:
+        outcome = "succeeded" if rc == 0 else "failed"
+        # The deploy's timing is part of the deploy's own outcome record.
+        tl = _cp.timeline()
+        for line in tl.summary_lines(f"deploy env={args.env} {outcome}"):
+            _CH_LOG.info(f"[deploy] {line}")
         if worker is not None:
-            worker.record_outcome(approval, "succeeded" if rc == 0 else "failed")
+            worker.record_outcome(approval, outcome, timeline=tl.to_doc(outcome))
     if rc == 0:
         _record_what_landed(args, repo_root)
     return rc

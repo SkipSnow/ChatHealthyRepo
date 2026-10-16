@@ -86,7 +86,12 @@ def _ch_exc():
 
 
 def _step(msg: str) -> None:
-    _CH_LOG.info(f"[local_build] {msg}")
+    """Log a build step with two clocks -- seconds since the previous step and
+    seconds since the operator's invocation began -- and record it on the
+    chain timeline so the build can report and persist where its time went."""
+    import chain_provenance as _cp  # noqa: PLC0415
+    delta, total = _cp.timeline().mark("build", msg)
+    _CH_LOG.info(f"[local_build +{delta:5.1f}s {total:6.1f}s] {msg}")
 
 
 def _find_repo_root(start: Path) -> Path:

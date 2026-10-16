@@ -299,12 +299,26 @@ def confirm_secrets_match_local(coll, env: str, repo_root: Path,
     scope = declared_secrets(coll, env, target_ids, packages)
     diverged: list[str] = []
     checked: set[tuple[str, str]] = set()
+    subjects: list[str] = []
     for _target_id, _package_id, name, qualifier in scope:
         subject = _subject_of(name, qualifier)
         if subject is None or (subject, env) in checked:
             continue
         checked.add((subject, env))
-        agrees, detail = resolver.verify_matches_local(subject, env)
+        subjects.append(subject)
+    # One vault read per secret, 52 of them in a row on build 2396: 16 s. The
+    # reads are independent, so they run together; the first runs alone so the
+    # resolver's lazy .env cache exists before the pool shares it.
+    from concurrent.futures import ThreadPoolExecutor  # noqa: PLC0415
+    results: list[tuple[bool, str]] = []
+    if subjects:
+        results.append(resolver.verify_matches_local(subjects[0], env))
+        rest = subjects[1:]
+        if rest:
+            with ThreadPoolExecutor(max_workers=min(8, len(rest))) as pool:
+                results.extend(pool.map(
+                    lambda s: resolver.verify_matches_local(s, env), rest))
+    for agrees, detail in results:
         if not agrees:
             diverged.append(detail)
     if diverged:

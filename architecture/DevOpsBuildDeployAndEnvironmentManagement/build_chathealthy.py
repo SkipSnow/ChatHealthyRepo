@@ -38,7 +38,6 @@ from pathlib import Path
 # Per-target_kind handlers, helper utilities, crosswalk gate — all
 # imported from local_build.py for now. They migrate in step 5.7.
 sys.path.insert(0, str(Path(__file__).resolve().parent))
-from preflight_undefined_names import scan as _scan_undefined_names  # noqa: E402
 from devops_identity import establish_azure_identity  # noqa: E402
 from _build_chain import (
     _declared_packages,  # noqa: E402
@@ -191,6 +190,18 @@ def _get_build_source(canonical_repo: Path, env: str) -> Path:
     if env == "local":
         return _materialise_working_tree(canonical_repo)
     branch = _ENV_BRANCH[env]
+    # A cloud build is already running out of a fresh checkout of
+    # origin/<branch>: chain_provenance.reexec_from_branch fetched the branch,
+    # added a worktree at its tip and re-executed this program from it, and
+    # the CHATHEALTHY_CHAIN_SOURCE marker carries that tip's sha. That tree is
+    # the build source. Fetching and checking the same commit out a second
+    # time produced nothing the first checkout did not already hold -- it
+    # only doubled the checkout and left a second temp tree to remove.
+    chain_checkout = _chain_checkout_root()
+    if chain_checkout is not None:
+        _step(f"build source: the chain's own origin/{branch} checkout at "
+              f"{chain_checkout} (no second checkout)")
+        return chain_checkout
     _run_git(["fetch", "origin", branch], canonical_repo, "fetch")
     import tempfile
     src = Path(tempfile.mkdtemp(prefix=f"build_{env}_{branch}_"))
@@ -200,6 +211,22 @@ def _get_build_source(canonical_repo: Path, env: str) -> Path:
         canonical_repo, "worktree add",
     )
     return src
+
+
+def _chain_checkout_root() -> Path | None:
+    """The temp worktree this process was re-executed from, or None when this
+    process is the parent (or a local build) and runs out of the repository
+    itself. The checkout is identified structurally: a git worktree carries
+    .git as a file, the canonical repository as a directory."""
+    import chain_provenance as _cp  # noqa: PLC0415
+    if not _cp.running_from_git():
+        return None
+    here = Path(__file__).resolve()
+    for candidate in (here, *here.parents):
+        marker = candidate / ".git"
+        if marker.exists():
+            return candidate if marker.is_file() else None
+    return None
 
 
 def _materialise_working_tree(canonical_repo: Path) -> Path:
@@ -250,6 +277,10 @@ def _release_build_source(build_source: Path, canonical_repo: Path) -> None:
     removed as a directory.
     """
     if build_source == canonical_repo:
+        return
+    if build_source == _chain_checkout_root():
+        # The chain's checkout belongs to the parent process that re-executed
+        # us from it; it removes the tree when this child exits.
         return
     if (build_source / ".git").exists():
         subprocess.run(
@@ -602,6 +633,7 @@ def main(argv: list[str] | None = None) -> int:
     _rd.set_build_source(repo_root)
     _step(f"repo_root={repo_root} env={args.env} target={args.target}")
 
+    outcome = "failed(aborted)"
     try:
         _delete_build_root(canonical_build_dir)
 
@@ -611,15 +643,45 @@ def main(argv: list[str] | None = None) -> int:
             canonical_build_dir,
         )
         _step(f"build structure: {_n_targets} target(s), {_n_packages} package(s)")
-    except BaseException:
-        _release_build_source(repo_root, canonical_repo)
-        raise
-
-    try:
         rc = _build_body(args, repo_root, canonical_repo, canonical_build_dir)
+        outcome = "succeeded" if rc == 0 else f"failed(rc={rc})"
+        return rc
+    except BaseException as exc:
+        outcome = f"failed({type(exc).__name__})"
+        raise
     finally:
         _release_build_source(repo_root, canonical_repo)
-    return rc
+        _report_timeline(args.env, outcome)
+
+
+# The build number this process produced, once it is known. The timeline is
+# recorded against it at the end of the run.
+_BUILD_NUMBER: list[int] = []
+
+
+def _report_timeline(env: str, outcome: str) -> None:
+    """Say where the time went, then keep the record.
+
+    The table goes to the terminal on every build. The record goes onto the
+    build's own BuildVersions row for dev, qa and prod -- local bumps no
+    counter and so has no row. A failure to write the record is reported and
+    does not change the build's outcome: the build already happened.
+    """
+    import chain_provenance as _cp  # noqa: PLC0415
+    tl = _cp.timeline()
+    label = f"build {_BUILD_NUMBER[0]}" if _BUILD_NUMBER else "build (no number)"
+    for line in tl.summary_lines(f"{label} {outcome}"):
+        _CH_LOG.info(f"[local_build] {line}")
+    if env == "local" or not _BUILD_NUMBER:
+        return
+    try:
+        from version_counter import record_build_timeline  # noqa: PLC0415
+        record_build_timeline(_BUILD_NUMBER[0], tl.to_doc(outcome))
+        _CH_LOG.info(f"[local_build] timeline recorded on "
+                     f"{VERSIONS_DB}.{VERSIONS_COLLECTION} build={_BUILD_NUMBER[0]}")
+    except Exception as exc:  # noqa: BLE001 - telemetry must not change the outcome
+        _CH_LOG.warning(f"[local_build] timeline not recorded: "
+                        f"{type(exc).__name__}: {exc}")
 
 
 def _build_body(args, repo_root: Path, canonical_repo: Path, canonical_build_dir: Path) -> int:
@@ -679,14 +741,9 @@ def _build_body(args, repo_root: Path, canonical_repo: Path, canonical_build_dir
     coll: DeploymentCollection = RecordLoader().load_collection(
         brain_path, target_id_filter=load_filter,
     )
-    # A build is only worth producing if it can be deployed, and it cannot be
-    # deployed if a secret its targets declare exists nowhere. That used to be
-    # discovered by the deploy, after docker build, after docker push, and
-    # after the target had already been part-mutated. Presence is asked here,
-    # where nothing has happened yet.
-    #
-    # Presence only. The value is never read into this process and never
-    # reaches canonical_build_dir; a build directory is not a place a
+    # No secret is read, checked or resolved by the build. Resolution is the
+    # deploy's, per name, from the store the declaration binds
+    # (EPIC-008-F-012-S-004-REQ-B-009); a build directory is not a place a
     # credential belongs.
     targets = _select_targets(coll, args.target)
     if not targets:
@@ -739,6 +796,8 @@ def _build_body(args, repo_root: Path, canonical_repo: Path, canonical_build_dir
         _step(f"build_number={build_n} (read from pipelineAdmin.Versions; --env local does not bump)")
     else:
         build_n = _bump_build_counter(args.env)
+        _step(f"build_number={build_n} (counter bumped)")
+    _BUILD_NUMBER.append(build_n)
 
     from version_counter import record_package_build
 

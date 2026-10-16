@@ -367,8 +367,39 @@ AZURE_REQUIREMENTS_SRC = "pipeline/requirements-pipeline.txt"
 AZURE_REQUIREMENTS_ZIP_PATH = "requirements.txt"
 
 
+# Two clocks on every line -- seconds since the previous line and seconds since
+# the operator's invocation began -- and every line recorded on the chain
+# timeline. The deploy went quiet for 81 s pushing variables and 57 s
+# verifying grants with nothing on screen saying where the time went, and
+# nothing persisted afterwards to say so either.
+import threading as _threading
+
+
 def step(msg: str) -> None:
-    _CH_LOG.info(f"[local_deploy] {msg}")
+    import chain_provenance as _cp  # noqa: PLC0415
+    delta, total = _cp.timeline().mark("deploy", msg)
+    _CH_LOG.info(f"[local_deploy +{delta:5.1f}s {total:6.1f}s] {msg}")
+
+
+# Serial `az` subprocesses are the deploy's cost: ~1 s each, one after another.
+# Independent calls run on this many threads. az's token cache is a file the
+# CLI shares between processes, so concurrent invocations are how az is
+# normally used (every CI runner does it); the Azure Resource Manager accepts
+# thousands of requests per hour per subscription, and the chain's largest
+# burst is the forty variable writes below.
+AZ_PARALLELISM = 8
+
+
+def _run_parallel(fn, items, *, max_workers: int = AZ_PARALLELISM) -> list:
+    """Apply fn to every item on a thread pool; results come back in input
+    order and an exception in any item is re-raised after the pool drains,
+    so one failure neither hides the others nor leaves threads running."""
+    from concurrent.futures import ThreadPoolExecutor  # noqa: PLC0415
+    items = list(items)
+    if not items:
+        return []
+    with ThreadPoolExecutor(max_workers=max(1, min(max_workers, len(items)))) as pool:
+        return list(pool.map(fn, items))
 
 
 def creation_flags() -> int:
@@ -976,30 +1007,32 @@ def ghcr_image_ref(target_id: str, env: str, build_n: int) -> str:
 
 
 def docker_build_then_push(build_dir: Path, image_ref: str) -> None:
+    # Streamed, not captured: a docker build is minutes of layer work and
+    # a captured one showed nothing until it ended. The transcript is still
+    # kept whole for post-mortem.
+    from pipeline_azure_deploy import run_streamed  # noqa: PLC0415
+    safe = image_ref.replace("/", "_").replace(":", "_")
     step(f"  docker build -t {image_ref} {build_dir}")
-    r = subprocess.run(
+    env = dict(os.environ, DOCKER_BUILDKIT="1", BUILDKIT_PROGRESS="plain")
+    rc, out, log_path = run_streamed(
         ["docker", "build", "-t", image_ref, str(build_dir)],
-        capture_output=True, text=True, creationflags=creation_flags(),
-        encoding="utf-8", errors="replace",
-    )
-    if r.returncode != 0:
+        env=env, label="docker build", log_name=f"docker_build_{safe}")
+    if rc != 0:
         raise ChatHealthyException(
             mode="aborted",
             component="_deploy_chain",
             message=f"ERROR: docker build failed for {image_ref}\n"
-            f"{(r.stderr or r.stdout)[-2000:]}")
+            f"  full log: {log_path}\n{out[-2000:]}")
     step(f"  docker push {image_ref}")
-    r = subprocess.run(
-        ["docker", "push", image_ref],
-        capture_output=True, text=True, creationflags=creation_flags(),
-        encoding="utf-8", errors="replace",
-    )
-    if r.returncode != 0:
+    rc, out, log_path = run_streamed(
+        ["docker", "push", image_ref], label="docker push",
+        log_name=f"docker_push_{safe}")
+    if rc != 0:
         raise ChatHealthyException(
             mode="aborted",
             component="_deploy_chain",
             message=f"ERROR: docker push failed for {image_ref}\n"
-            f"{(r.stderr or r.stdout)[-2000:]}\n"
+            f"  full log: {log_path}\n{out[-2000:]}\n"
             f"Hint: docker login ghcr.io -u <gh-user> -p <PAT-with-write:packages>")
 
 
@@ -1198,19 +1231,41 @@ def deploy_hf_space(
 AUTOMATION_API = "2023-11-01"
 
 
+_SUBSCRIPTION_ID: list[str] = []
+_SUBSCRIPTION_LOCK = _threading.Lock()
+# (resource_group, automation_account, variable_name, sha256(value)) already
+# PUT by this process -- see deploy_azure_automation_runbook.
+_VARIABLES_WRITTEN: set[tuple[str, str, str, str]] = set()
+_VARIABLES_LOCK = _threading.Lock()
+# (resource_group, automation_account, package name, content url) already
+# confirmed installed by this process -- see ensure_runbook_python_packages.
+_PYTHON_PACKAGES_ENSURED: set[tuple[str, str, str, str]] = set()
+
+
 def az_subscription_id() -> str:
-    r = subprocess.run(
-        ["az", "account", "show", "--query", "id", "-o", "tsv"],
-        capture_output=True, text=True,
-        creationflags=creation_flags(), shell=(sys.platform == "win32"),
-    )
-    if r.returncode != 0:
-        raise ChatHealthyException(
-            mode="aborted",
-            component="_deploy_chain",
-            message=f"ERROR: az account show failed (exit {r.returncode}); "
-            f"are you signed in?\n  stderr: {(r.stderr or '').strip()[:500]}")
-    return r.stdout.strip()
+    """The signed-in subscription, asked of az once per process.
+
+    This was asked once per Automation Variable: forty `az account show`
+    processes alongside the forty PUTs, each about a second, for a value
+    that cannot change while a deploy runs. The identity is established
+    before any of this and the answer is fixed for the process.
+    """
+    with _SUBSCRIPTION_LOCK:
+        if _SUBSCRIPTION_ID:
+            return _SUBSCRIPTION_ID[0]
+        r = subprocess.run(
+            ["az", "account", "show", "--query", "id", "-o", "tsv"],
+            capture_output=True, text=True,
+            creationflags=creation_flags(), shell=(sys.platform == "win32"),
+        )
+        if r.returncode != 0:
+            raise ChatHealthyException(
+                mode="aborted",
+                component="_deploy_chain",
+                message=f"ERROR: az account show failed (exit {r.returncode}); "
+                f"are you signed in?\n  stderr: {(r.stderr or '').strip()[:500]}")
+        _SUBSCRIPTION_ID.append((r.stdout or "").strip())
+        return _SUBSCRIPTION_ID[0]
 
 
 def az_automation_variable_set(rg: str, aa: str, name: str, value: str) -> None:
@@ -1695,18 +1750,8 @@ def az_automation_runbook_publish(rg: str, aa: str, runbook: str) -> None:
             f"(exit {r.returncode})\n  stderr: {(r.stderr or '').strip()[:1500]}")
 
 
-def az_subscription_id() -> str:
-    args = ["az", "account", "show", "--query", "id", "-o", "tsv"]
-    r = subprocess.run(
-        args, capture_output=True, text=True,
-        creationflags=creation_flags(), shell=(sys.platform == "win32"),
-    )
-    if r.returncode != 0:
-        raise ChatHealthyException(
-            mode="aborted",
-            component="_deploy_chain",
-            message=f"ERROR: az account show failed: {(r.stderr or '').strip()[:500]}")
-    return (r.stdout or "").strip()
+# (az_subscription_id was defined a second time here, shadowing the one above
+# with an uncached copy; the single cached definition above is the one used.)
 
 
 # Substrings that, when found in an AA job's `properties.exception` text,
@@ -1773,7 +1818,8 @@ def az_automation_runbook_dry_fire(rg: str, aa: str, runbook: str) -> dict:
         f"/providers/Microsoft.Automation/automationAccounts/{aa}"
         f"/jobs/{aa_job_id}?api-version=2023-11-01"
     )
-    deadline = time.time() + 600
+    started = time.time()
+    deadline = started + 600
     last_status = "?"
     while time.time() < deadline:
         r = subprocess.run(
@@ -1782,6 +1828,8 @@ def az_automation_runbook_dry_fire(rg: str, aa: str, runbook: str) -> dict:
             creationflags=creation_flags(), shell=(sys.platform == "win32"),
         )
         if r.returncode != 0:
+            step(f"    job {aa_job_id[:8]} poll failed (rc={r.returncode}); "
+                 f"retrying ({time.time() - started:.0f}s/600s)")
             time.sleep(5)
             continue
         try:
@@ -1798,6 +1846,8 @@ def az_automation_runbook_dry_fire(rg: str, aa: str, runbook: str) -> dict:
                 "exception": props.get("exception") or "",
                 "job_id": aa_job_id,
             }
+        step(f"    job {aa_job_id[:8]} status={status} "
+             f"({time.time() - started:.0f}s/600s)")
         time.sleep(5)
     return {
         "status": f"Timeout(last={last_status})",
@@ -1841,7 +1891,8 @@ def az_automation_poll_job_to_terminal(
         f"/providers/Microsoft.Automation/automationAccounts/{aa}"
         f"/jobs/{aa_job_id}?api-version=2023-11-01"
     )
-    deadline = time.time() + timeout_sec
+    started = time.time()
+    deadline = started + timeout_sec
     last_status = "?"
     while time.time() < deadline:
         r = subprocess.run(
@@ -1850,6 +1901,8 @@ def az_automation_poll_job_to_terminal(
             creationflags=creation_flags(), shell=(sys.platform == "win32"),
         )
         if r.returncode != 0:
+            step(f"    job {aa_job_id[:8]} poll failed (rc={r.returncode}); "
+                 f"retrying ({time.time() - started:.0f}s/{timeout_sec}s)")
             time.sleep(5)
             continue
         try:
@@ -1862,6 +1915,8 @@ def az_automation_poll_job_to_terminal(
         last_status = status
         if status in ("Completed", "Failed", "Stopped", "Suspended"):
             return {"status": status, "exception": props.get("exception") or ""}
+        step(f"    job {aa_job_id[:8]} status={status} "
+             f"({time.time() - started:.0f}s/{timeout_sec}s)")
         time.sleep(5)
     return {"status": f"Timeout(last={last_status})", "exception": ""}
 
@@ -2093,10 +2148,19 @@ def ensure_runbook_python_packages(
     declared package is already at the named URL in Succeeded state."""
     if not packages:
         return
+    # Packages belong to the account; every runbook on it declares the same
+    # four. Once this process has seen them installed, the next runbook's
+    # check is already answered.
+    pending = [p for p in packages
+               if (rg, aa, p["name"], p["content_url"]) not in _PYTHON_PACKAGES_ENSURED]
+    if not pending:
+        step(f"  python3 packages on {aa} already confirmed this deploy")
+        return
     existing = az_automation_python3_packages_list(rg, aa)
-    for pkg in packages:
+    for pkg in pending:
         name = pkg["name"]
         url = pkg["content_url"]
+        _PYTHON_PACKAGES_ENSURED.add((rg, aa, name, url))
         cur = existing.get(name)
         if cur is not None:
             cur_url = (cur.get("contentLink") or {}).get("uri")
@@ -2456,8 +2520,13 @@ def apply_identity_role_grants_from_manifest(coll: DeploymentCollection, env: st
             continue
 
         principal_id = _resolve_identity_principal_id(coll, identity)
-        for role, target, scope in azure_scoped:
-            if _role_is_held(principal_id, role, scope):
+        # Each check is one `az role assignment list`, about three seconds; the
+        # seventeen on build 2396 took 57 s in a row. They share nothing, so
+        # they run together and are reported in declaration order.
+        held = _run_parallel(
+            lambda rts: _role_is_held(principal_id, rts[0], rts[2]), azure_scoped)
+        for (role, target, scope), ok in zip(azure_scoped, held):
+            if ok:
                 step(f"  {iid}: {role} on {target.target_id} - held")
             else:
                 missing.append((iid, role, target.target_id, scope))
@@ -2507,6 +2576,7 @@ def apply_explicit_permissions_from_manifest(coll: DeploymentCollection, env: st
     """
     step("verifying explicit per-target permissions against the manifest")
     missing: list = []
+    checks: list[tuple[str, str, TargetRecord, str]] = []
     for target in coll:
         perms = target.permissions or []
         if not perms:
@@ -2519,11 +2589,14 @@ def apply_explicit_permissions_from_manifest(coll: DeploymentCollection, env: st
             role = entry.get("role", "").strip()
             if not object_id or not role:
                 continue
-            if _role_is_held(object_id, role, scope):
-                step(f"  {object_id[:8]}...: {role} on {target.target_id} - held")
-            else:
-                missing.append((object_id[:8] + "...", role, target.target_id, scope))
-                step(f"  {object_id[:8]}...: {role} on {target.target_id} - MISSING")
+            checks.append((object_id, role, target, scope))
+    held = _run_parallel(lambda c: _role_is_held(c[0], c[1], c[3]), checks)
+    for (object_id, role, target, scope), ok in zip(checks, held):
+        if ok:
+            step(f"  {object_id[:8]}...: {role} on {target.target_id} - held")
+        else:
+            missing.append((object_id[:8] + "...", role, target.target_id, scope))
+            step(f"  {object_id[:8]}...: {role} on {target.target_id} - MISSING")
     if missing:
         _raise_entitlements_missing(missing)
 
@@ -2777,20 +2850,44 @@ def deploy_azure_automation_runbook(
     # (.env for local). Values never land on disk; only the az process
     # sees them in argv.
     secret_names = sorted(target.secrets or {})
-    step(f"  attempting to publish {len(secret_names)} Automation Variable(s)")
-    pushed, skipped = 0, []
-    for name in secret_names:
+    step(f"  attempting to publish {len(secret_names)} Automation Variable(s) "
+         f"on {AZ_PARALLELISM} threads")
+    # Forty variables, each a vault read plus a PUT, ran one after another:
+    # 81 s on build 2396, 41% of the deploy. The variables are independent of
+    # one another, so they are resolved and written concurrently. The first
+    # is resolved alone so the resolver's lazy .env cache is built before the
+    # pool shares it. az_subscription_id() is primed once for the same reason.
+    az_subscription_id()
+    if secret_names:
+        entry_value(secret_names[0], (target.secrets or {}).get(secret_names[0]),
+                    target, env, resolver, repo_root)
+
+    def _publish_one(name: str) -> bool:
         qualifier = (target.secrets or {}).get(name)
         try:
             value = entry_value(name, qualifier, target, env, resolver, repo_root)
         except KeyError:
-            skipped.append(name)
-            continue
+            return False
         if value is None or value == "":
-            skipped.append(name)
-            continue
+            return False
+        # An Automation Variable belongs to the account, not the runbook.
+        # Five runbooks on one account each declare largely the same
+        # secrets, so one deploy wrote the same variable five times. A
+        # (account, name, value) already written by this process is done.
+        import hashlib  # noqa: PLC0415
+        key = (rg, aa, name, hashlib.sha256(value.encode("utf-8")).hexdigest())
+        with _VARIABLES_LOCK:
+            if key in _VARIABLES_WRITTEN:
+                return True
         az_automation_variable_set(rg, aa, name, value)
-        pushed += 1
+        with _VARIABLES_LOCK:
+            _VARIABLES_WRITTEN.add(key)
+        step(f"    variable {name} written")
+        return True
+
+    results = _run_parallel(_publish_one, secret_names)
+    pushed = sum(1 for ok in results if ok)
+    skipped = [n for n, ok in zip(secret_names, results) if not ok]
     if skipped:
         step(
             f"  skipped {len(skipped)} variable(s) not in operator's "
@@ -3780,6 +3877,8 @@ def _verify_hf_space_live(coll: DeploymentCollection, env: str, target_id: str, 
             last_detail = f"{url}/health HTTP {exc.code}"
         except Exception as exc:
             last_detail = f"{url}/health {type(exc).__name__}: {exc}"
+        step(f"    verify {target_id}: {last_detail}; next probe in {wait}s "
+             f"({_time.time() - t0:.0f}s/{timeout_s}s)")
         _time.sleep(wait)
         wait = min(wait * 2, 40)
     return (False, f"timeout after {timeout_s}s; last: {last_detail}"
@@ -4837,6 +4936,9 @@ class LocalDeploy:
                 if not missing:
                     self._step_notice(f"all components ready: {ready}")
                     return
+                step(f"    waiting for {missing} "
+                     f"({timeout_s - (deadline - time.time()):.0f}s/{timeout_s}s): "
+                     + ", ".join(f"{m}={last_state[m]}" for m in missing))
                 time.sleep(3)
         raise ChatHealthyException(
             mode="aborted",

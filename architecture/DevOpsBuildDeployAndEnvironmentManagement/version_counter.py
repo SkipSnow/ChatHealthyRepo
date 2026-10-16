@@ -152,6 +152,18 @@ def record_package_deploy(target_id: str, package_id: str, build: int,
     _record(EVENT_DEPLOYED, target_id, package_id, build, env)
 
 
+def record_build_timeline(build: int, timeline_doc: dict) -> None:
+    """Attach the build's own timeline to the build's own row.
+
+    Only the build's. A deploy is a separate run with a separate record (its
+    outcome document in the approvals repository), and its timeline lives
+    there. The row is the BuildVersions row the bump created, which is why a
+    local build -- which bumps nothing -- has no row and is not recorded here.
+    """
+    versions_collection().update_one(
+        {"build": int(build)}, {"$set": {"timeline": timeline_doc}})
+
+
 def read_package_build(target_id: str, package_id: str) -> int | None:
     """The build that last produced this package, or None if never built."""
     row = package_builds_collection().find_one(

@@ -51,6 +51,27 @@ def _git(repo_root: Path, *argv: str) -> tuple[int, str]:
 
 ENV_MARKER = "CHATHEALTHY_CHAIN_SOURCE"
 ENV_CANONICAL = "CHATHEALTHY_CANONICAL_REPO"
+# Unix time at which the operator's invocation began, set by the parent before
+# it fetches and checks out. The re-executed child starts its clocks from this
+# rather than from its own import, so the fetch and checkout -- the first thing
+# the operator waits for -- are inside the measurement and not before it.
+ENV_STARTED = "CHATHEALTHY_CHAIN_STARTED"
+
+
+def chain_started_at() -> float:
+    """When this invocation began, as Unix time. The parent's start when this
+    is a re-executed child; this process's start otherwise."""
+    import os  # noqa: PLC0415
+    import time  # noqa: PLC0415
+    raw = os.environ.get(ENV_STARTED, "").strip()
+    if raw:
+        try:
+            return float(raw)
+        except ValueError:
+            pass
+    started = time.time()
+    os.environ[ENV_STARTED] = repr(started)
+    return started
 _ENV_BRANCH = {"dev": "dev", "qa": "qa", "prod": "main"}
 
 
@@ -97,6 +118,80 @@ def repository_root(start: Path | None = None) -> Path:
         message=f"no .git found walking up from {current}")
 
 
+class ChainTimeline:
+    """Every logged step of a build or deploy, with when it happened.
+
+    The chain used to log free text with a wall-clock timestamp and persist
+    nothing about its own duration; a question such as "where did the fifteen
+    minutes go" could only be answered by reading a saved terminal with a
+    stopwatch, and the terminals were not saved. Each step is recorded here
+    with its offset from the invocation's start and the gap since the previous
+    step; the end of a run prints the table and hands the record to whoever
+    persists it.
+    """
+
+    def __init__(self, started_at: float) -> None:
+        import threading  # noqa: PLC0415
+        self.started_at = started_at
+        self.steps: list[dict] = []
+        self._lock = threading.Lock()
+        self._last = started_at
+
+    def mark(self, source: str, message: str) -> tuple[float, float]:
+        import time  # noqa: PLC0415
+        now = time.time()
+        with self._lock:
+            delta = now - self._last
+            self._last = now
+            self.steps.append({
+                "t": round(now - self.started_at, 3),
+                "delta": round(delta, 3),
+                "source": source,
+                "message": message,
+            })
+        return delta, now - self.started_at
+
+    def elapsed(self) -> float:
+        import time  # noqa: PLC0415
+        return time.time() - self.started_at
+
+    def slowest(self, n: int = 10) -> list[dict]:
+        """The n steps whose gap from the previous step was largest -- the gap
+        is the cost of the work that ended at that step."""
+        return sorted(self.steps, key=lambda s: s["delta"], reverse=True)[:n]
+
+    def summary_lines(self, title: str) -> list[str]:
+        total = self.elapsed()
+        lines = [f"{title}: {total:.1f}s over {len(self.steps)} step(s); "
+                 f"slowest steps (gap = time spent reaching that line):"]
+        for s in self.slowest():
+            if s["delta"] < 0.5:
+                continue
+            pct = 100.0 * s["delta"] / total if total else 0.0
+            lines.append(f"  {s['delta']:6.1f}s {pct:4.0f}%  [{s['source']}] {s['message'][:110]}")
+        return lines
+
+    def to_doc(self, outcome: str) -> dict:
+        from datetime import datetime, timezone  # noqa: PLC0415
+        return {
+            "started_at": datetime.fromtimestamp(self.started_at, tz=timezone.utc),
+            "finished_at": datetime.now(timezone.utc),
+            "duration_s": round(self.elapsed(), 1),
+            "outcome": outcome,
+            "steps": list(self.steps),
+        }
+
+
+_TIMELINE: list[ChainTimeline] = []
+
+
+def timeline() -> ChainTimeline:
+    """The one timeline for this process, started at the invocation's start."""
+    if not _TIMELINE:
+        _TIMELINE.append(ChainTimeline(chain_started_at()))
+    return _TIMELINE[0]
+
+
 def running_from_git() -> str:
     import os  # noqa: PLC0415
 
@@ -138,6 +233,8 @@ def reexec_from_branch(env: str, entry_relative_path: str,
     while canonical != canonical.parent and not (canonical / ".git").exists():
         canonical = canonical.parent
 
+    started = chain_started_at()
+    _log.info(f"[chain] fetching origin/{branch}")
     code, out = _git(canonical, "fetch", "origin", branch)
     if code != 0:
         raise ChatHealthyException(
@@ -174,7 +271,10 @@ def reexec_from_branch(env: str, entry_relative_path: str,
     child_env = dict(os.environ)
     child_env[ENV_MARKER] = head
     child_env[ENV_CANONICAL] = str(canonical)
-    _log.info(f"[chain] running from origin/{branch} at {head} ({checkout})")
+    child_env[ENV_STARTED] = repr(started)
+    import time as _time  # noqa: PLC0415
+    _log.info(f"[chain] running from origin/{branch} at {head} ({checkout}); "
+              f"fetch+checkout took {_time.time() - started:.1f}s")
     try:
         completed = subprocess.run(
             [sys.executable, str(entry), *argv],
