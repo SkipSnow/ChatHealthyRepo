@@ -149,7 +149,16 @@ def _wait_for_cluster_ready(
 
 def _providers_collection_and_client(provider_collection: str | None) -> tuple:
     fqn = provider_collection or "PipelinePublicHealthData.providers"
-    db_name, coll_name = fqn.split(".", 1)
+    # Accept the operator's canonical cluster.db.collection (3-part) and the
+    # provider pipeline's bare db.collection (2-part). The cluster is hardcoded
+    # below, so a leading cluster segment is dropped -- take the trailing pair.
+    parts = [p.strip() for p in fqn.split(".") if p.strip()]
+    if len(parts) not in (2, 3):
+        raise ChatHealthyException(
+            mode="value_error", component="ensure_provider_indexes",
+            message=(f"provider_collection must be db.collection or "
+                     f"cluster.db.collection; got {fqn!r}."))
+    db_name, coll_name = parts[-2], parts[-1]
     # serverSelectionTimeoutMS is short so each ping fails fast and the
     # _wait_for_cluster_ready poll loop drives the cadence.
     # The PIPELINE cluster. Provider data -- PublicStaging and
