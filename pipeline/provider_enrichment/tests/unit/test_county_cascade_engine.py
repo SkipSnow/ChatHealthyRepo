@@ -159,6 +159,90 @@ def test_nppes_registry_phase1_parallel(monkeypatch):
     assert len(residue) == 6
 
 
+# ---------- Census request body quoting ----------
+
+@pytest.mark.unit
+def test_census_batch_body_quotes_fields_with_commas():
+    """A comma inside line1 must stay inside its column. The unquoted
+    f-string body shifted city/state/ZIP right by one and Census No_Matched
+    the row (live, 2026-10-16: '1333 W 5TH ST, STE 206' -> state=SHERIDAN)."""
+    import csv, io
+    chunk = [
+        ({}, {"line1": "1333 W 5TH ST, STE 206", "city": "SHERIDAN", "state": "WY", "zip": "82801"}),
+        ({}, {"line1": "2710 HARNEY ST", "city": "LARAMIE", "state": "WY", "zip": "82072"}),
+    ]
+    body = cce._census_batch_body(chunk)
+    rows = list(csv.reader(io.StringIO(body)))
+    assert rows[0] == ["0", "1333 W 5TH ST, STE 206", "SHERIDAN", "WY", "82801"]
+    assert rows[1] == ["1", "2710 HARNEY ST", "LARAMIE", "WY", "82072"]
+    # The row id stays a bare leading field so a naive split still finds it.
+    assert body.splitlines()[0].split(",", 1)[0] == "0"
+
+
+# ---------- Census locations (geo re-pass) parse ----------
+
+@pytest.mark.unit
+def test_census_locations_parse_keeps_coordinates_without_fips():
+    """The locations endpoint returns 8 columns and no FIPS. The geographies
+    parser dropped such rows; the geo re-pass must keep the point."""
+    text = (
+        '"0","2710 HARNEY ST, LARAMIE, WY, 82072","Match","Non_Exact",'
+        '"2710 E HARNEY ST, LARAMIE, WY, 82072","-105.562285291818,41.32065389702","168741561","L"\n'
+        '"1","1333 W 5TH ST, STE 206, SHERIDAN, WY","No_Match"\n'
+        '"2","x","Match","Exact","y","","1","R"\n'
+    )
+    got = cce._census_locations_parse(text)
+    assert got == {0: {"longitude": -105.562285291818, "latitude": 41.32065389702}}
+    # and the geographies parser does NOT accept that row (documents why the
+    # geo re-pass needs its own parser).
+    assert cce._census_batch_parse(text) == {}
+
+
+@pytest.mark.unit
+def test_stage_geo_census_posts_to_locations_endpoint(monkeypatch):
+    seen = {}
+
+    def fake_fetch(body, *, session, gate, url=cce.CENSUS_BATCH_URL, with_geography=True):
+        seen["url"] = url
+        seen["with_geography"] = with_geography
+        return '"0","in","Match","Exact","m","-77.79,40.84","1","L"'
+
+    monkeypatch.setattr(cce, "_census_batch_fetch", fake_fetch)
+    addr = {"line1": "250 PERSIA RD", "city": "BELLEFONTE", "state": "PA", "zip": "16823",
+            "coordinates": {"latitude": -1.0, "longitude": -1.0, "source": "pending", "precision": "pending"}}
+    residue, hits = cce._stage_geo_census(
+        [({"npi": "1"}, addr)], session=None, gate=_NoopRateLimitedGate(), batch_size=500,
+    )
+    assert seen == {"url": cce.CENSUS_LOCATIONS_URL, "with_geography": False}
+    assert hits == 1 and residue == []
+    assert addr["coordinates"] == {
+        "latitude": 40.84, "longitude": -77.79,
+        "source": cce.CENSUS_BATCH, "precision": "range_interpolated",
+    }
+
+
+# ---------- Google parse rejects a result in another state ----------
+
+def _google_payload(state_short: str, lat: float, lng: float) -> dict:
+    return {"results": [{
+        "address_components": [
+            {"long_name": "Some County", "types": ["administrative_area_level_2", "political"]},
+            {"short_name": state_short, "types": ["administrative_area_level_1", "political"]},
+        ],
+        "geometry": {"location": {"lat": lat, "lng": lng}, "location_type": "ROOFTOP"},
+    }]}
+
+
+@pytest.mark.unit
+def test_google_parse_rejects_result_in_other_state():
+    payload = _google_payload("CA", 33.77, -118.19)
+    assert cce._google_maps_parse(payload, expected_state="WY") is None
+    hit = cce._google_maps_parse(payload, expected_state="CA")
+    assert hit["latitude"] == 33.77 and hit["fips_key"] == "CA::Some County"
+    # No expected state (legacy callers) keeps the old behaviour.
+    assert cce._google_maps_parse(payload) is not None
+
+
 # ---------- run_county_cascade advances residue with no SLA gate ----------
 
 @pytest.mark.unit

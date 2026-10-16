@@ -105,6 +105,9 @@ DEFAULT_GOOGLE_RATE = 10.0
 DEFAULT_GOOGLE_MAX_IN_FLIGHT = 4
 
 CENSUS_BATCH_URL = "https://geocoding.geo.census.gov/geocoder/geographies/addressbatch"
+# Coordinates-only batch endpoint for the geo re-pass (CountyAndGeoFunnel
+# PASS 5). Its rows carry no FIPS columns, so they need their own parser.
+CENSUS_LOCATIONS_URL = "https://geocoding.geo.census.gov/geocoder/locations/addressbatch"
 NPPES_REGISTRY_URL = "https://npiregistry.cms.hhs.gov/api/"
 GOOGLE_MAPS_GEOCODE_URL = "https://maps.googleapis.com/maps/api/geocode/json"
 
@@ -451,18 +454,29 @@ def _stage_zip_crosswalk(
 # Fetch = one HTTP POST per chunk. Parse = pure CSV → dict. Apply = pure
 # stamp+residue. Orchestrator loops chunks and threads fetch → parse → apply.
 
-def _census_batch_row(idx: int, addr: dict) -> str:
-    """Build one CSV input row for the Census batch geocoder request body."""
+def _census_batch_row(idx: int, addr: dict) -> list[str]:
+    """Build one CSV input row (as fields) for the Census batch geocoder."""
     street = addr.get("line1") or addr.get("street_1") or addr.get("address_1") or ""
     city = addr.get("city") or ""
     state = addr.get("state") or ""
     zip5 = _zip5(addr) or ""
-    return f"{idx},{street},{city},{state},{zip5}"
+    return [str(idx), street, city, state, zip5]
 
 
 def _census_batch_body(chunk: list[tuple[dict, dict]]) -> str:
-    """Pure: build the multipart-body CSV text for one chunk of pairs."""
-    return "\n".join(_census_batch_row(i, addr) for i, (_doc, addr) in enumerate(chunk))
+    """Pure: build the multipart-body CSV text for one chunk of pairs.
+
+    Written through csv.writer so a comma inside a field is quoted. The
+    body used to be an f-string join, and a street such as
+    "1333 W 5TH ST, STE 206" shifted city/state/ZIP one column right: Census
+    received state="SHERIDAN", zip="WY" and answered No_Match (live-confirmed
+    2026-10-16). The response parser already used csv.reader for the same
+    reason; the request side never did."""
+    buf = io.StringIO()
+    writer = csv.writer(buf, lineterminator="\n")
+    for i, (_doc, addr) in enumerate(chunk):
+        writer.writerow(_census_batch_row(i, addr))
+    return buf.getvalue().rstrip("\n")
 
 
 def _census_batch_fetch(
@@ -470,17 +484,27 @@ def _census_batch_fetch(
     *,
     session: requests.Session,
     gate: RateLimitedGate,
+    url: str = CENSUS_BATCH_URL,
+    with_geography: bool = True,
 ) -> str | None:
     """Impure I/O only: POST the pre-built CSV body to Census.
     Returns response text on success; None if the chunk failed after
-    retry-with-backoff (caller treats None as 'zero matches this chunk')."""
+    retry-with-backoff (caller treats None as 'zero matches this chunk').
+
+    `url` / `with_geography` select the endpoint: the geographies endpoint
+    (county + coordinates, takes a vintage) for the county stages, the
+    locations endpoint (coordinates only, benchmark alone) for the geo
+    re-pass."""
+    form = {"benchmark": "Public_AR_Current"}
+    if with_geography:
+        form["vintage"] = "Current_Current"
     for attempt in range(_RETRY_MAX_ATTEMPTS):
         gate.acquire()
         try:
             resp = session.post(
-                CENSUS_BATCH_URL,
+                url,
                 files={"addressFile": ("chunk.csv", body, "text/csv")},
-                data={"benchmark": "Public_AR_Current", "vintage": "Current_Current"},
+                data=form,
                 timeout=180,
             )
             resp.raise_for_status()
@@ -551,6 +575,42 @@ def _census_batch_parse(text: str | None) -> dict[int, dict]:
                 except ValueError:
                     pass
         resolved[row_id] = entry
+    return resolved
+
+
+def _census_locations_parse(text: str | None) -> dict[int, dict]:
+    """Pure: parse the Census *locations* batch response (coordinates only).
+
+    Eight columns, no geography:
+      [0]id [1]input_addr [2]match_type [3]match_indicator
+      [4]matched_addr [5]coordinates ("lng,lat") [6]tigerline_id [7]side
+
+    Returns {row_id -> {latitude, longitude}} for every 'Match' row that
+    carries a point. The geo re-pass used to send these rows through
+    _census_batch_parse, which requires twelve columns and a county FIPS and
+    therefore threw away every coordinate the locations endpoint returned."""
+    resolved: dict[int, dict] = {}
+    if not text:
+        return resolved
+    for parts in csv.reader(io.StringIO(text)):
+        if len(parts) < 6:
+            continue
+        try:
+            row_id = int(parts[0].strip())
+        except ValueError:
+            continue
+        if parts[2].strip().lower() != "match":
+            continue
+        coord_parts = parts[5].strip().split(",")
+        if len(coord_parts) != 2:
+            continue
+        try:
+            resolved[row_id] = {
+                "longitude": float(coord_parts[0].strip()),
+                "latitude": float(coord_parts[1].strip()),
+            }
+        except ValueError:
+            continue
     return resolved
 
 
@@ -996,17 +1056,23 @@ _GOOGLE_PRECISION_MAP = {
 }
 
 
-def _google_maps_parse(payload: dict | None) -> dict | None:
+def _google_maps_parse(payload: dict | None, expected_state: str | None = None) -> dict | None:
     """Pure: extract fips_key + county_name + coordinates from a Google
     Maps geocode response. Returns None on no county match. Coordinates
     keys (latitude/longitude/precision) are included when the payload
     carries geometry; omitted otherwise (rare on a successful geocode).
+
+    A result whose state differs from the address's own state is not a
+    geocode of that address and is skipped: Google falls back to a same-named
+    street elsewhere when it cannot place the input, and the first such
+    result used to be stamped unchecked.
 
     fips_key is 'STATE::County Name' since Google returns no numeric
     FIPS. Downstream consumers can key on this like any other source
     label."""
     if not payload:
         return None
+    want_state = (expected_state or "").strip().upper()
     for result in (payload.get("results") or []):
         county_name = None
         state_short = None
@@ -1017,6 +1083,8 @@ def _google_maps_parse(payload: dict | None) -> dict | None:
             if "administrative_area_level_1" in types:
                 state_short = comp.get("short_name")
         if not county_name:
+            continue
+        if want_state and state_short and state_short.strip().upper() != want_state:
             continue
         entry: dict = {
             "fips_key": f"{state_short or ''}::{county_name}",
@@ -1049,7 +1117,7 @@ def _google_maps_lookup(
         _google_maps_addr_line(addr),
         session=session, gate=gate, api_key=api_key,
     )
-    return _google_maps_parse(payload)
+    return _google_maps_parse(payload, expected_state=addr.get("state"))
 
 
 def _stage_google_maps(
@@ -1128,15 +1196,17 @@ def _stage_geo_census(
     gate: RateLimitedGate,
     batch_size: int,
 ) -> tuple[list[tuple[dict, dict]], int]:
-    """Geo-only Census pass over coordinate-pending addresses. Reuses the batch
-    geocoder and keeps only the point -- county is already resolved. Returns the
-    still-pending residue and the hit count."""
+    """Geo-only Census pass over coordinate-pending addresses. Posts to the
+    locations endpoint (coordinates only, CountyAndGeoFunnel PASS 5) and keeps
+    the point -- county is already resolved. Returns the still-pending residue
+    and the hit count."""
     residue: list[tuple[dict, dict]] = []
     hits = 0
     for start in range(0, len(pairs), batch_size):
         chunk = pairs[start:start + batch_size]
-        resolved = _census_batch_parse(
-            _census_batch_fetch(_census_batch_body(chunk), session=session, gate=gate)
+        resolved = _census_locations_parse(
+            _census_batch_fetch(_census_batch_body(chunk), session=session, gate=gate,
+                                url=CENSUS_LOCATIONS_URL, with_geography=False)
         )
         for idx, (doc, addr) in enumerate(chunk):
             entry = resolved.get(idx)
@@ -1196,7 +1266,10 @@ def _unresolvable_detail(doc: dict, addr: dict) -> dict:
     return {
         "state": (addr.get("state") or "").upper() or None,
         "entity_kind": "individual" if doc.get("entity_type_code") == "1" else "institutional",
-        "address": {k: addr.get(k) for k in ("street_1", "city", "state", "zip")},
+        # Pipeline addresses carry the street as line1 (normalize_provider_rows);
+        # this logged street_1, which no pipeline address has, so every
+        # unresolvable finding showed a blank street.
+        "address": {k: addr.get(k) for k in ("line1", "city", "state", "zip")},
     }
 
 
