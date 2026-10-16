@@ -743,6 +743,7 @@ def _build_body(args, repo_root: Path, canonical_repo: Path, canonical_build_dir
     from version_counter import record_package_build
 
     built: list[Path] = []
+    total_stamped = 0
     for t in targets:
         package_dir = _build_one(repo_root, t, build_n, build_sha,
                                  env=args.env, packages_wanted=packages_wanted)
@@ -755,8 +756,22 @@ def _build_body(args, repo_root: Path, canonical_repo: Path, canonical_build_dir
         _generate_tool_registry(repo_root, t.target_id, package_dir)
         _generate_build_identity(t.target_id, package_dir, args.env,
                                  build_n, build_sha)
-        _stamp_env_on_manifest(package_dir, args.env, build_sha, build_n)
+        total_stamped += _stamp_env_on_manifest(package_dir, args.env, build_sha, build_n)
         built.append(package_dir)
+
+    # Whole-build guard. A single target can legitimately build nothing -- an
+    # infrastructure target (resource group, key vault, storage, vnet, identity)
+    # in a --target group declares no package and is provisioned at deploy, not
+    # built -- so the empty check belongs to the build as a whole, not to each
+    # target. The build is only wrong if it stamped NO package across every
+    # target it touched.
+    if total_stamped == 0:
+        raise ChatHealthyException(
+            mode="aborted",
+            component="build_chathealthy",
+            message=(f"ERROR: --target={args.target!r} --package="
+                     f"{sorted(packages_wanted)} produced no package to stamp "
+                     f"across any target."))
 
     # Export built packages to the canonical <repo>/build/ location so
     # deploy_chathealthy.py finds them regardless of where they were
@@ -796,8 +811,9 @@ def _build_body(args, repo_root: Path, canonical_repo: Path, canonical_build_dir
 
 
 def _stamp_env_on_manifest(target_dir: Path, env: str, git_head_sha: str,
-                           build_n: int) -> None:
-    """Stamp the deploy-gate facts onto every package's build.json.
+                           build_n: int) -> int:
+    """Stamp the deploy-gate facts onto every package's build.json and return
+    how many packages were stamped.
 
     These are build facts -- which env this was built for, from which
     commit, as which build -- and they belong to the package, because a
@@ -808,6 +824,10 @@ def _stamp_env_on_manifest(target_dir: Path, env: str, git_head_sha: str,
     manifest that no longer exists. It silently did nothing once that file
     went away, so packages carried no env and the deploy rejected them as
     'built for env None'.
+
+    A target that produced no package -- an infrastructure target that declares
+    none -- stamps nothing and returns 0; whether that is an error is the
+    caller's whole-build decision, not this per-target function's.
     """
     stamped = 0
     for stamp_path in sorted(target_dir.glob("*/build.json")):
@@ -820,12 +840,7 @@ def _stamp_env_on_manifest(target_dir: Path, env: str, git_head_sha: str,
             json.dumps(data, indent=2) + "\n", encoding="utf-8"
         )
         stamped += 1
-    if not stamped:
-        raise ChatHealthyException(
-            mode="aborted",
-            component="build_chathealthy",
-            message=f"ERROR: no package build.json under {target_dir}; the build "
-            f"produced no package to stamp.")
+    return stamped
 
 
 if __name__ == "__main__":
