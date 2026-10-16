@@ -80,6 +80,15 @@ def _source_container_or_raise(source_key: str, fetch_result: dict) -> str:
     )
 
 
+def _shard_blob_paths(fetch_result: dict) -> list:
+    """Shard blob list for a sharded source (openFDA); [] for single-blob."""
+    inner = fetch_result.get("result") or fetch_result
+    paths = inner.get("blob_paths") if isinstance(inner, dict) else None
+    if not paths:
+        paths = fetch_result.get("blob_paths")
+    return list(paths) if paths else []
+
+
 def execute(ctx) -> dict:
     registry = ChatHealthyMongoUtilities().getConnection("pipelineEditor", "ChatHealthyFrontEnd")["pipelineAdmin"]["DataSourceRegistry"]
     now = datetime.now(timezone.utc)
@@ -91,7 +100,7 @@ def execute(ctx) -> dict:
     for source_key, version in versions.items():
         registry_name = _SOURCE_REGISTRY_KEYS.get(source_key, source_key)
         reg_doc = registry.find_one({"source_name": registry_name}) or {}
-        if duplicate_version_detected(reg_doc.get("archived_version"), version) and reg_doc.get("archive_blob"):
+        if duplicate_version_detected(reg_doc.get("archived_version"), version) and (reg_doc.get("archive_blob") or reg_doc.get("archive_blobs")):
             _log.LogPipeline("INFO", "archive skip %s version %s already archived", source_key, version)
             archived.append({"source": source_key, "skipped": True, "version": version})
             continue
@@ -104,6 +113,45 @@ def execute(ctx) -> dict:
         # what the fetcher uploaded to, so archive raised FileNotFoundError
         # on the first source.
         source_container = _source_container_or_raise(source_key, fetch_result)
+
+        shard_paths = _shard_blob_paths(fetch_result)
+        if shard_paths:
+            # Sharded source (openFDA drug/label): the fetch wrote many shard
+            # blobs under blob_paths. Archive every shard under this version and
+            # record the list -- the blob_paths model load_staging already uses.
+            shard_blobs: list[str] = []
+            archive_container = ""
+            checksum = None
+            for bp in shard_paths:
+                r = archive_source_blob(
+                    blob_service, env_prefix=ctx.env_prefix,
+                    source_name=registry_name, version=version,
+                    source_container=source_container, source_blob_name=bp,
+                    filename=bp.split("/")[-1])
+                shard_blobs.append(r["archive_blob"])
+                archive_container = r["archive_container"]
+                checksum = r["checksum_sha256"]
+            registry.update_one(
+                {"source_name": registry_name},
+                {"$set": {
+                    "source_name": registry_name,
+                    "last_archived_at": now,
+                    "version": version,
+                    "archived_version": version,
+                    "source_version_identifier": fetch_result.get("source_version_identifier"),
+                    "archive_blobs": shard_blobs,
+                    "archive_container": archive_container,
+                    "checksum_sha256": checksum,
+                    "run_id": ctx.run_id,
+                }},
+                upsert=True,
+            )
+            archived.append({"source": source_key, "sharded": True,
+                             "shard_count": len(shard_blobs),
+                             "archive_container": archive_container,
+                             "archive_blobs": shard_blobs, "version": version})
+            continue
+
         try:
             blob_name, filename = _resolve_source_blob(source_key, fetch_result, reg_doc, source_container)
         except ValueError as exc:
