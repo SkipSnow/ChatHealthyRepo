@@ -151,6 +151,17 @@ def build_providermedicare(
         target_coll.bulk_write(ops, ordered=False)
         written += len(ops)
 
+    # The composed drug collection's indexes are created WITH the collection, here,
+    # so the enrich consumer and any reader find them ready. The spec's one named
+    # index on (rxCode, brand, NPI, generic) is realized as TWO, because MongoDB
+    # forbids a single compound index from traversing two separate arrays and the
+    # rxcui-set is an array nested inside the drugs array: the rxcui-set as its own
+    # multikey index, and (brand, NPI, generic) compound over the shared drugs array.
+    # create_index is idempotent, so every state worker may call it.
+    target_coll.create_index([("drugs.rxcuis", 1)], name="drug_rxcui")
+    target_coll.create_index(
+        [("drugs.brand", 1), ("_id", 1), ("drugs.generic", 1)], name="drug_brand_npi_generic")
+
     _log.LogPipeline(
         "INFO",
         "build_providermedicare[%s]: wrote=%d billed_npis=%d not_found=%d",

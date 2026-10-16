@@ -2,7 +2,7 @@
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "https://dev.chathealthy.ai/schemas/ChatHealthyProviderMedicareSchema.json",
   "title": "ChatHealthy ProviderMedicare",
-  "description": "One document per NPI in the ProviderMedicare collection (EPIC-010-F-007). Carries the provider's own Medicare figures only - never the specialty aggregates or tier cut-points, which live on SpecialtyMedicare. Per-drug day supply is the retained Part D grain; per-indication day supply is rolled up from drugs through the indication map (count-under-each).",
+  "description": "One document per NPI in the ProviderMedicare collection (EPIC-010-F-007). Carries the provider's own Medicare figures only - never the specialty aggregates or tier cut-points, which live on SpecialtyMedicare. Drugs are re-grained to one entry per normalized brand, inner-joined to the FDA drug collection by brand for molecule, rxcui-set, and indications; a Part D brand with no FDA match is discarded. Volume metrics are summed across the provider's rows for each brand.",
   "type": "object",
   "additionalProperties": false,
   "required": ["_id", "entity_type", "specialty"],
@@ -54,9 +54,46 @@
           "days_supply": { "type": ["number", "null"] },
           "beneficiary_count": { "type": ["integer", "null"] },
           "total_drug_cost": { "type": ["number", "null"] },
-          "rxcui": { "type": ["string", "null"] },
           "molecule": { "type": ["string", "null"] },
-          "parent_indications": { "type": "array", "items": { "type": "string" } }
+          "match_provenance": { "type": "string", "enum": ["brand_name", "brand_key", "generic_name"], "description": "which FDA join tier matched this brand: brand_name (exact), brand_key (salt/form-normalized), or generic_name (CMS Brnd_Name was a generic, FDA brand_name adopted)" },
+          "rxcuis": { "type": "array", "items": { "type": "string" }, "description": "the brand's shared RxNorm ingredient rxcui-set (tty=IN) from the FDA drug collection" },
+          "ingredient_names": { "type": "array", "items": { "type": "string" }, "description": "the ingredient names, positionally aligned with rxcuis" },
+          "clinical_rxcui": { "type": "array", "items": { "type": "string" }, "description": "openfda.rxcui, the full clinical-drug rxcui list unioned across the brand's FDA records; distinct from the ingredient-level rxcuis" },
+          "generic_name": { "type": "array", "items": { "type": "string" }, "description": "openfda.generic_name unioned across the brand's FDA records" },
+          "substance_name": { "type": "array", "items": { "type": "string" }, "description": "openfda.substance_name unioned across the brand's FDA records" },
+          "product_type": { "type": "array", "items": { "type": "string" }, "description": "openfda.product_type unioned across the brand's FDA records" },
+          "product_ndc": { "type": "array", "items": { "type": "string" }, "description": "openfda.product_ndc unioned across the brand's FDA records" },
+          "application_number": { "type": "array", "items": { "type": "string" }, "description": "openfda.application_number unioned across the brand's FDA records" },
+          "spl_id": { "type": "array", "items": { "type": "string" }, "description": "openfda.spl_id unioned across the brand's FDA records" },
+          "spl_set_id": { "type": "array", "items": { "type": "string" }, "description": "openfda.spl_set_id unioned across the brand's FDA records" },
+          "usage_summary": { "type": ["string", "null"], "description": "the FDA label usage summary for the brand" },
+          "indications": {
+            "type": "array",
+            "description": "the FDA label indications unioned across every record under the brand, deduped by normalized indication text, each carrying its ICD-10-CM codes",
+            "items": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": ["indication"],
+              "properties": {
+                "indication": { "type": "string" },
+                "confidence_rationale": { "type": ["string", "null"] },
+                "codes": {
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "additionalProperties": false,
+                    "required": ["icd10_code"],
+                    "properties": {
+                      "icd10_code": { "type": "string" },
+                      "level": { "type": ["integer", "null"], "enum": [3, 4, null] },
+                      "confidence": { "type": ["number", "null"] },
+                      "description": { "type": ["string", "null"] }
+                    }
+                  }
+                }
+              }
+            }
+          }
         }
       }
     },

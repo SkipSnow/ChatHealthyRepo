@@ -32,6 +32,8 @@ from chathealthy_lib.logging_service import ChatHealthyLoggingService
 from pipeline.run_lifecycle.pipeline_runtime import PipelineRuntime
 from pipeline.MedicareProviderEvaluationDataPipeline.fda_drug_enrichment_tool import (
     FDADrugEnrichmentTool)
+from pipeline.MedicareProviderEvaluationDataPipeline.medicare_normalization import (
+    normalized_brand_exact_keys, normalized_brand_keys)
 
 _log = ChatHealthyLoggingService()
 
@@ -130,6 +132,18 @@ def run_step(ctx) -> dict:
             published)
         return {"step": "build_fda_drug_collection", "rebuild": False, "consumed": published}
 
+    # The FDA collection's own join indexes are created WITH the collection, here,
+    # so the enrich consumer finds them ready. They serve the three-tier CMS->FDA
+    # lookup by EXACT indexed equality on the persisted, already-normalized keys --
+    # no collation, because the keys are normalized identically on both sides at
+    # write time: brand_exact_key (tier 1, normalize_brand), brand_key (tier 2,
+    # brand_join_key), generic_key (tier 3, brand_join_key of the generic). Each
+    # stands alone so every tier is index-served. create_index is idempotent, so
+    # every range worker may call it; pipelineEditor holds createIndexes.
+    target_coll.create_index([("brand_exact_key", 1)], name="fda_brand_exact_key")
+    target_coll.create_index([("brand_key", 1)], name="fda_brand_key")
+    target_coll.create_index([("generic_key", 1)], name="fda_generic_key")
+
     partition = (ctx.config or {}).get("partition") or {}
     rng = partition.get("record_range")
     if not rng:
@@ -192,6 +206,13 @@ def run_step(ctx) -> dict:
         doc = record.model_dump()
         doc["run_id"] = ctx.run_id
         doc["data_version"] = data_version
+        # Persist the three normalized join keys so the enrich consumer resolves a
+        # CMS brand by EXACT indexed equality (tier 1 exact brand, tier 2 normalized
+        # brand, tier 3 generic). Both sides normalize identically, so no collation.
+        openfda = doc.get("openfda") or {}
+        doc["brand_exact_key"] = normalized_brand_exact_keys(openfda.get("brand_name"))
+        doc["brand_key"] = normalized_brand_keys(openfda.get("brand_name"))
+        doc["generic_key"] = normalized_brand_keys(openfda.get("generic_name"))
         target_coll.replace_one({"set_id": record.set_id}, doc, upsert=True)
 
     produced = tool.enrich(buildable, record_number_start=start, sink=_sink)

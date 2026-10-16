@@ -20,7 +20,7 @@ single source of truth for the engines that import them.
 from __future__ import annotations
 
 from collections import defaultdict
-from typing import Any, Iterable
+from typing import Any, Callable, Iterable
 
 # --- CMS Part D "Prescribers by Provider and Drug" ---------------------------
 # Record grain in the source: Prscrbr_NPI + Brnd_Name + Gnrc_Name.
@@ -136,9 +136,12 @@ def aggregate_procedures(partb_rows: Iterable[dict]) -> dict[str, list[dict]]:
 def collect_drugs(partd_rows: Iterable[dict]) -> dict[str, list[dict]]:
     """Part D rows -> raw drug entries grouped by NPI, one entry per source row.
 
-    The base build keeps drug rows RAW (one per brand/generic row). The RXCUI
-    re-grain (brand+generic -> one per RXCUI) happens in the enrich pass, where
-    RXCUI resolution already lives -- see regrain_drugs_by_rxcui.
+    The base build keeps drug rows RAW (one per brand/generic row). The brand
+    re-grain (the provider's rows -> one entry per NORMALIZED brand, joined to the
+    FDA drug collection for molecule/rxcui-set/indications) happens in the enrich
+    pass -- see compose_drugs_by_brand. The raw entry already carries the empty
+    molecule/rxcuis/indications slots so the base-written document conforms to
+    ChatHealthyProviderMedicareSchema before enrichment fills them.
     """
     C = PARTD_COLS
     out: dict[str, list[dict]] = defaultdict(list)
@@ -153,9 +156,9 @@ def collect_drugs(partd_rows: Iterable[dict]) -> dict[str, list[dict]]:
             "days_supply": _num(raw.get(C["days_supply"])),
             "beneficiary_count": _num(raw.get(C["beneficiary_count"])),
             "total_drug_cost": _num(raw.get(C["total_drug_cost"])),
-            "rxcui": None,
             "molecule": None,
-            "parent_indications": [],
+            "rxcuis": [],
+            "indications": [],
         })
     return dict(out)
 
@@ -188,77 +191,343 @@ def npis_not_found(
     return sorted(set(billed_npis) - set(provider_npis))
 
 
-def _drug_grain_key(drug: dict) -> str:
-    """Grain key for the RXCUI re-grain. Prefer RXCUI; fall back to the
-    normalized generic (then brand) name when no RXCUI resolved -- a drug with
-    no RXCUI cannot be given one, so it collapses by molecule name instead."""
-    rx = str(drug.get("rxcui") or "").strip()
-    if rx:
-        return f"rxcui:{rx}"
-    gen = str(drug.get("generic") or "").strip().lower()
-    if gen:
-        return f"gnrc:{gen}"
-    brand = str(drug.get("brand") or "").strip().lower()
-    return f"brnd:{brand}" if brand else "unknown:"
+# --- v1 drug-collection composition (brand join) -----------------------------
+# A drug is identified in Part D ONLY by brand + generic name -- the CMS "by
+# Provider and Drug" rows carry no rxcui/NDC. The composition therefore joins on
+# the BRAND NAME, normalized on both the CMS and FDA sides with plain string
+# operations only (NO regular expressions -- an engineering rule forbids them in
+# pipeline code). One brand resolves to one molecule and one shared rxcui-set
+# (repackager duplicates share the rxcui; the only multi-molecule cases are
+# salt-spelling variants of one molecule), so unioning across every FDA record
+# under a brand gives complete coverage once the phrasing variants are deduped.
+
+# Salt and dose-form suffixes stripped from the brand JOIN KEY when they would
+# otherwise block a match. Applied symmetrically to both sides, so a CMS
+# "LIPITOR ER" and an FDA "LIPITOR" collapse to the same key. Conservative and
+# data-driven: a trailing token is dropped only when it is one of these.
+_BRAND_SALT_SUFFIXES = frozenset({
+    "HCL", "HYDROCHLORIDE", "SULFATE", "SODIUM", "CALCIUM", "POTASSIUM",
+    "HBR", "HYDROBROMIDE", "MESYLATE", "MALEATE", "TARTRATE", "BITARTRATE",
+    "CITRATE", "FUMARATE", "ACETATE", "PHOSPHATE", "SUCCINATE", "BESYLATE",
+    "NITRATE", "CHLORIDE",
+})
+_BRAND_FORM_SUFFIXES = frozenset({"ER", "XR", "SR", "CR", "XL", "DR", "ODT", "EC"})
 
 
-def regrain_drugs_by_rxcui(drugs: Iterable[dict]) -> list[dict]:
-    """Collapse drug entries sharing an RXCUI into exactly one per RXCUI.
+def normalize_brand(name: Any) -> str:
+    """Plain-string brand normalization (NO regex): uppercase, collapse internal
+    whitespace, and reconcile the two spellings of a combination drug -- "X AND Y"
+    and "X - Y" both become "X-Y". Salt and dose-form suffixes are NOT stripped
+    here; that is brand_join_key's job. This is the display/grouping form carried
+    on the composed record as `brand`."""
+    s = " ".join(str(name or "").upper().split())
+    if not s:
+        return ""
+    s = s.replace(" AND ", "-")
+    # Normalize spacing around hyphens so "X - Y" and "X-Y" agree.
+    s = s.replace(" - ", "-").replace("- ", "-").replace(" -", "-")
+    while "--" in s:
+        s = s.replace("--", "-")
+    return s.strip("-").strip()
 
-    SUMS Tot_Clms / Tot_Day_Suply / Tot_Benes / Tot_Drug_Cst across the
-    collapsed brand/generic rows (decision: sums, not averages). Molecule is
-    carried through; parent_indications are unioned. When several distinct brand
-    names collapse onto one RXCUI the brand becomes ambiguous and is dropped to
-    None; a single surviving brand is kept.
+
+def brand_join_key(name: Any) -> str:
+    """The canonical BRAND JOIN KEY used on BOTH the CMS and FDA sides (NO regex).
+    It is normalize_brand with trailing salt/form suffix tokens removed, so the
+    same drug written "ATORVASTATIN CALCIUM" / "ATORVASTATIN" / "LIPITOR ER" joins
+    across the two sources. At least one token is always kept."""
+    base = normalize_brand(name)
+    if not base:
+        return ""
+    tokens = base.split(" ")
+    while len(tokens) > 1 and (
+            tokens[-1] in _BRAND_SALT_SUFFIXES or tokens[-1] in _BRAND_FORM_SUFFIXES):
+        tokens.pop()
+    return " ".join(tokens)
+
+
+def _norm_indication_text(text: Any) -> str:
+    """Dedup key for an indication phrase: uppercase + whitespace-collapsed."""
+    return " ".join(str(text or "").upper().split())
+
+
+# FDA openfda sub-fields carried FLAT onto the brand entry (and thence each
+# composed drug entry) as unioned, de-duplicated, first-seen-ordered lists per
+# brand. The map is source `openfda.<field>` -> the flat key on the drug entry.
+# brand_name is the join key's own source and is deliberately not carried as a
+# payload field. openfda.rxcui is the full clinical-drug rxcui list, kept distinct
+# from the ingredient-level `rxcuis`, under the flat key `clinical_rxcui`.
+_OPENFDA_FLAT_FIELDS = {
+    "generic_name": "generic_name",
+    "substance_name": "substance_name",
+    "product_type": "product_type",
+    "rxcui": "clinical_rxcui",
+    "product_ndc": "product_ndc",
+    "application_number": "application_number",
+    "spl_id": "spl_id",
+    "spl_set_id": "spl_set_id",
+}
+
+
+def _extend_unique(dest: list, seen: set, values: Any) -> None:
+    """Append each new stringified, stripped value in `values` to `dest`, keeping
+    first-seen order and skipping blanks and duplicates. Accepts a scalar or list."""
+    if isinstance(values, str):
+        values = [values]
+    for value in values or []:
+        text = str(value).strip()
+        if text and text not in seen:
+            seen.add(text)
+            dest.append(text)
+
+
+def _merge_indication(store: dict, order: list, ind: dict) -> None:
+    """Union one FDA indication object into the per-brand indication store.
+
+    Dedups by normalized indication text; on a repeat, UNIONS codes[] by
+    icd10_code (keeping the richest set) and fills confidence_rationale if the
+    first occurrence lacked one. The full code object is preserved
+    (icd10_code, level, confidence, description)."""
+    text = str((ind or {}).get("indication") or "").strip()
+    if not text:
+        return
+    norm = _norm_indication_text(text)
+    if not norm:
+        return
+    entry = store.get(norm)
+    if entry is None:
+        entry = {
+            "indication": text,
+            "confidence_rationale": str((ind or {}).get("confidence_rationale") or "").strip() or None,
+            "codes": [],
+            "_code_keys": set(),
+        }
+        store[norm] = entry
+        order.append(norm)
+    elif not entry["confidence_rationale"]:
+        rationale = str((ind or {}).get("confidence_rationale") or "").strip()
+        if rationale:
+            entry["confidence_rationale"] = rationale
+    for code in (ind or {}).get("codes") or []:
+        icd10 = str((code or {}).get("icd10_code") or "").strip()
+        if not icd10 or icd10 in entry["_code_keys"]:
+            continue
+        entry["_code_keys"].add(icd10)
+        entry["codes"].append({
+            "icd10_code": icd10,
+            "level": (code or {}).get("level"),
+            "confidence": (code or {}).get("confidence"),
+            "description": (code or {}).get("description"),
+        })
+
+
+def _dedup_normalized(names: Any, normalizer: Callable[[Any], str]) -> list[str]:
+    """Deduped, first-seen list of `normalizer(name)` over `names` (NO regex)."""
+    if isinstance(names, str):
+        names = [names]
+    keys: list[str] = []
+    seen: set = set()
+    for name in names or []:
+        key = normalizer(name)
+        if key and key not in seen:
+            seen.add(key)
+            keys.append(key)
+    return keys
+
+
+def normalized_brand_exact_keys(names: Any) -> list[str]:
+    """The deduped list of normalize_brand values for a list of names (NO regex).
+
+    Persisted at FDA build time as brand_exact_key -- the TIER-1 join key: case /
+    whitespace / hyphen-AND normalization only, NO salt/form stripping, so a CMS
+    brand matches the FDA brand_name exactly as written."""
+    return _dedup_normalized(names, normalize_brand)
+
+
+def normalized_brand_keys(names: Any) -> list[str]:
+    """The deduped list of brand_join_key values for a list of names (NO regex).
+
+    Persisted at FDA build time as brand_key (from openfda.brand_name, TIER 2) and
+    generic_key (from openfda.generic_name, TIER 3) -- brand_join_key adds salt/form
+    suffix stripping on top of normalize_brand, so the CMS->FDA join is an exact
+    indexed equality on an already-normalized key (both sides normalized identically
+    by brand_join_key)."""
+    return _dedup_normalized(names, brand_join_key)
+
+
+def aggregate_fda_records(fda_records: Iterable[dict]) -> dict | None:
+    """Aggregate ONE brand's FDA label records (as returned by an indexed per-brand
+    query) into a single brand entry, carrying the FULL FDA payload as FLAT keys.
+
+    Input: the fdaProductToDiagnosisResolution records matched for one brand
+    (already Rx-only -- OTC excluded upstream), each carrying openfda.brand_name /
+    openfda.generic_name (lists), molecule (scalar), ingredient_rxcuis /
+    ingredient_names (aligned lists), usage_summary (scalar), the openfda sub-fields,
+    and indications (list of
+    {indication, confidence_rationale, codes:[{icd10_code, level, confidence, description}]}).
+
+    Returns one FLAT entry {brand, molecule, rxcuis, ingredient_names (aligned with
+    rxcuis, both deduped by rxcui), usage_summary, the flat openfda lists
+    (generic_name, substance_name, product_type, clinical_rxcui, product_ndc,
+    application_number, spl_id, spl_set_id), indications (FULL objects unioned across
+    the records, deduped by normalized text, codes[] unioned by icd10_code)}, or
+    None when no records were supplied. `brand` is the canonical FDA brand_name,
+    chosen deterministically as the first normalized openfda.brand_name by sort.
     """
-    acc: dict[str, dict] = {}
-    order: list[str] = []
-    for d in drugs:
-        key = _drug_grain_key(d)
-        cur = acc.get(key)
+    entry: dict[str, Any] = {
+        "brand": None,
+        "molecule": None,
+        "rxcuis": [],
+        "ingredient_names": [],
+        "usage_summary": None,
+        "indications": [],
+    }
+    for flat in _OPENFDA_FLAT_FIELDS.values():
+        entry[flat] = []
+    rx_seen: set = set()
+    of_seen = {flat: set() for flat in _OPENFDA_FLAT_FIELDS.values()}
+    ind_store: dict = {}
+    ind_order: list = []
+    brand_names: list[str] = []
+    brand_seen: set = set()
+    any_record = False
+    for doc in fda_records:
+        any_record = True
+        openfda = doc.get("openfda") or {}
+        for brand in openfda.get("brand_name") or []:
+            nb = normalize_brand(brand)
+            if nb and nb not in brand_seen:
+                brand_seen.add(nb)
+                brand_names.append(nb)
+        molecule = str(doc.get("molecule") or "").strip() or None
+        if entry["molecule"] is None and molecule:
+            entry["molecule"] = molecule
+        usage_summary = str(doc.get("usage_summary") or "").strip() or None
+        if entry["usage_summary"] is None and usage_summary:
+            entry["usage_summary"] = usage_summary
+        # rxcui-set and its names, paired and deduped by rxcui so the two lists
+        # stay aligned.
+        ing_rxcuis = doc.get("ingredient_rxcuis") or []
+        ing_names = doc.get("ingredient_names") or []
+        for position, raw_rx in enumerate(ing_rxcuis):
+            rx = str(raw_rx).strip()
+            if not rx or rx in rx_seen:
+                continue
+            rx_seen.add(rx)
+            entry["rxcuis"].append(rx)
+            name = str(ing_names[position]).strip() if position < len(ing_names) else ""
+            entry["ingredient_names"].append(name)
+        for src_field, flat in _OPENFDA_FLAT_FIELDS.items():
+            _extend_unique(entry[flat], of_seen[flat], openfda.get(src_field))
+        for ind in doc.get("indications") or []:
+            _merge_indication(ind_store, ind_order, ind)
+    if not any_record:
+        return None
+    entry["brand"] = sorted(brand_names)[0] if brand_names else None
+    entry["indications"] = [
+        {k: v for k, v in ind_store[norm].items() if k != "_code_keys"}
+        for norm in ind_order
+    ]
+    return entry
+
+
+def compose_drugs_by_brand(
+    raw_drugs: Iterable[dict], resolve: Callable[[Any], tuple]
+) -> tuple[list[dict], list[dict]]:
+    """Compose one provider's raw Part D drug rows into the v1 drug collection.
+
+    CMS-driven and memory-bounded: for each raw row, `resolve(cms_brand)` returns
+    the FDA payload (whose `brand` is the canonical brand) or None -- the caller
+    supplies a resolver that queries the indexed FDA collection (brand key first,
+    then generic key) and caches by distinct brand, so neither the FDA collection nor
+    anything sized by the ~20MM CMS rows is held in memory. Rows are then grouped by
+    the FINAL CANONICAL brand (the FDA brand_name adopted on either leg), SUMMING
+    Tot_Clms / Tot_Day_Suply / Tot_Benes / Tot_Drug_Cst across every row that
+    resolves to it -- so a branded fill and a generic fill of the same drug merge
+    into one entry (no duplicate canonical brand).
+
+    A row whose brand resolves to NEITHER leg is DISCARDED (the composed drug
+    collection holds only drugs mappable to the FDA record); discards are grouped by
+    the raw CMS brand key, summing their claims, for the caller to surface as a
+    finding.
+
+    Each kept entry carries the FULL FDA payload as FLAT keys (molecule, rxcui-set +
+    ingredient names, usage_summary, the flat openfda lists, and the full indication
+    objects with their ICD-10 codes), plus the CMS `generic`, the summed volumes, and
+    `match_provenance` (which resolution tier matched: brand_name | brand_key |
+    generic_name), carried from the resolver's payload.
+
+    Returns (kept, discarded). Each kept entry conforms to the schema's drug-entry
+    shape; each discarded entry carries {brand, brand_join_key, total_claims}.
+
+    NOTE: the inner-join discard is correct ONLY against the COMPLETE FDA
+    collection (a full-partition FDA rebuild); against a partial FDA build most
+    brands would find no match and be discarded, so this step presumes the full FDA
+    rebuild has run.
+    """
+    groups: dict[Any, dict] = {}
+    group_order: list = []
+    group_entry: dict[Any, dict] = {}
+    discards: dict[str, dict] = {}
+    discard_order: list = []
+    for d in raw_drugs:
+        fda_entry = resolve(d.get("brand"))
+        canonical = fda_entry.get("brand") if fda_entry else None
+        if fda_entry is None or not canonical:
+            rk = brand_join_key(d.get("brand"))
+            disc = discards.get(rk)
+            if disc is None:
+                disc = {
+                    "brand": normalize_brand(d.get("brand")),
+                    "brand_join_key": rk,
+                    "total_claims": None,
+                }
+                discards[rk] = disc
+                discard_order.append(rk)
+            disc["total_claims"] = _sum_opt(disc["total_claims"], d.get("total_claims"))
+            continue
+        cur = groups.get(canonical)
         if cur is None:
             cur = {
-                "brand": d.get("brand"),
+                "brand": canonical,
                 "generic": d.get("generic"),
                 "total_claims": None,
                 "days_supply": None,
                 "beneficiary_count": None,
                 "total_drug_cost": None,
-                "rxcui": d.get("rxcui"),
-                "molecule": d.get("molecule"),
-                "parent_indications": list(d.get("parent_indications") or []),
-                "_brands": set(),
             }
-            acc[key] = cur
-            order.append(key)
-        b = d.get("brand")
-        if b:
-            cur["_brands"].add(str(b))
+            groups[canonical] = cur
+            group_order.append(canonical)
+            group_entry[canonical] = fda_entry
         if not cur.get("generic") and d.get("generic"):
             cur["generic"] = d.get("generic")
-        if not cur.get("molecule") and d.get("molecule"):
-            cur["molecule"] = d.get("molecule")
-        if not cur.get("rxcui") and d.get("rxcui"):
-            cur["rxcui"] = d.get("rxcui")
         cur["total_claims"] = _sum_opt(cur["total_claims"], d.get("total_claims"))
         cur["days_supply"] = _sum_opt(cur["days_supply"], d.get("days_supply"))
         cur["beneficiary_count"] = _sum_opt(cur["beneficiary_count"], d.get("beneficiary_count"))
         cur["total_drug_cost"] = _sum_opt(cur["total_drug_cost"], d.get("total_drug_cost"))
-        for iid in d.get("parent_indications") or []:
-            if iid not in cur["parent_indications"]:
-                cur["parent_indications"].append(iid)
 
-    out: list[dict] = []
-    for key in order:
-        cur = acc[key]
-        brands = cur.pop("_brands")
-        if len(brands) > 1:
-            cur["brand"] = None
-        elif len(brands) == 1 and not cur.get("brand"):
-            cur["brand"] = next(iter(brands))
-        cur["parent_indications"] = sorted(cur["parent_indications"])
-        out.append(cur)
-    return out
+    kept: list[dict] = []
+    for canonical in group_order:
+        cur = groups[canonical]
+        fda = group_entry[canonical]
+        cur["match_provenance"] = fda.get("match_provenance")
+        cur["molecule"] = fda.get("molecule")
+        cur["rxcuis"] = list(fda.get("rxcuis") or [])
+        cur["ingredient_names"] = list(fda.get("ingredient_names") or [])
+        cur["usage_summary"] = fda.get("usage_summary")
+        for flat in _OPENFDA_FLAT_FIELDS.values():
+            cur[flat] = list(fda.get(flat) or [])
+        cur["indications"] = [
+            {
+                "indication": ind.get("indication"),
+                "confidence_rationale": ind.get("confidence_rationale"),
+                "codes": [dict(code) for code in ind.get("codes") or []],
+            }
+            for ind in fda.get("indications") or []
+        ]
+        kept.append(cur)
+    discarded = [discards[rk] for rk in discard_order]
+    return kept, discarded
 
 
 def rollup_specialty(

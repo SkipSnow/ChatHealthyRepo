@@ -385,6 +385,11 @@
             "fatal_at_count": null,
             "max": null
           },
+          "partd_brand_unmatched_to_fda": {
+            "severity": "warning",
+            "fatal_at_count": 15000000,
+            "max": null
+          },
           "state_missing_no_license": {
             "severity": "warning",
             "fatal_at_count": null,
@@ -744,6 +749,11 @@
             "fatal_at_count": null,
             "max": null
           },
+          "partd_brand_unmatched_to_fda": {
+            "severity": "warning",
+            "fatal_at_count": 15000000,
+            "max": null
+          },
           "state_missing_no_license": {
             "severity": "warning",
             "fatal_at_count": null,
@@ -1101,6 +1111,11 @@
           "county_unresolvable": {
             "severity": "warning",
             "fatal_at_count": null,
+            "max": null
+          },
+          "partd_brand_unmatched_to_fda": {
+            "severity": "warning",
+            "fatal_at_count": 15000000,
             "max": null
           },
           "state_missing_no_license": {

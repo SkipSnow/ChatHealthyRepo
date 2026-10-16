@@ -11,7 +11,7 @@ functions under test touch no database). They prove the four behaviours the
 rewrite turns on:
 
   1. place-of-service collapse  -> one procedure per (NPI, HCPCS)
-  2. brand/generic RXCUI collapse -> one drug per (NPI, RXCUI)
+  2. brand normalization + FDA brand inner-join -> one drug per (NPI, brand)
   3. distinct-NPI de-dup         -> one not-found finding per NPI across N rows
   4. the (HCPCS, NUCC) / (RXCUI, NUCC) specialty rollup grain
 """
@@ -21,11 +21,16 @@ from __future__ import annotations
 from pipeline.MedicareProviderEvaluationDataPipeline.medicare_normalization import (
     PARTB_COLS,
     PARTD_COLS,
+    aggregate_fda_records,
     aggregate_procedures,
+    brand_join_key,
     collect_drugs,
+    compose_drugs_by_brand,
     distinct_billed_npis,
+    normalize_brand,
+    normalized_brand_exact_keys,
+    normalized_brand_keys,
     npis_not_found,
-    regrain_drugs_by_rxcui,
     rollup_specialty,
 )
 
@@ -116,7 +121,7 @@ def test_distinct_hcpcs_stay_separate_and_group_per_npi():
     assert [p["hcpcs"] for p in out["1000000002"]] == ["99213"]
 
 
-# --- 2. brand/generic -> one drug per (NPI, RXCUI) ---------------------------
+# --- 2. brand normalization + FDA brand join -> one drug per (NPI, brand) -----
 
 def test_collect_drugs_is_raw_one_entry_per_row():
     rows = [
@@ -127,63 +132,233 @@ def test_collect_drugs_is_raw_one_entry_per_row():
     ]
     drugs = collect_drugs(rows)["1000000001"]
     # Base build keeps rows RAW -- no collapse happens here (that is the enrich
-    # pass). Two source rows -> two raw drug entries.
+    # pass). Two source rows -> two raw drug entries, molecule/rxcuis/indications
+    # left empty for the enrich pass to fill.
     assert len(drugs) == 2
-    assert all(d["rxcui"] is None for d in drugs)
+    assert all(d["molecule"] is None for d in drugs)
+    assert all(d["rxcuis"] == [] for d in drugs)
+    assert all(d["indications"] == [] for d in drugs)
 
 
-def test_regrain_collapses_brand_and_generic_to_one_rxcui():
-    # Two Part D rows -- a brand row and a generic row of the same molecule --
-    # both resolve (in the enrich pass) to the same ingredient RXCUI.
-    drugs = [
-        {"brand": "Lipitor", "generic": "atorvastatin", "total_claims": 10,
-         "days_supply": 300, "beneficiary_count": 8, "total_drug_cost": 500.0,
-         "rxcui": "83367", "molecule": "atorvastatin", "parent_indications": ["IND-HLD"]},
-        {"brand": "atorvastatin calcium", "generic": "atorvastatin", "total_claims": 5,
-         "days_supply": 150, "beneficiary_count": 4, "total_drug_cost": 120.0,
-         "rxcui": "83367", "molecule": "atorvastatin", "parent_indications": ["IND-CVD"]},
+def test_brand_normalization_and_join_key():
+    # Combination spelling reconciliation: "X AND Y" and "X - Y" -> "X-Y".
+    assert normalize_brand("amlodipine and benazepril") == "AMLODIPINE-BENAZEPRIL"
+    assert normalize_brand("amlodipine - benazepril") == "AMLODIPINE-BENAZEPRIL"
+    # Join key strips salt and dose-form suffix tokens.
+    assert brand_join_key("Atorvastatin Calcium") == "ATORVASTATIN"
+    assert brand_join_key("Lipitor ER") == "LIPITOR"
+    assert brand_join_key("Lipitor") == "LIPITOR"
+    # At least one token is always kept.
+    assert brand_join_key("HCL") == "HCL"
+
+
+def test_persisted_fda_join_keys():
+    # Tier 1 (brand_exact_key): normalize_brand only -- NO salt/form strip.
+    assert normalized_brand_exact_keys(["Lipitor", "LIPITOR ER"]) == ["LIPITOR", "LIPITOR ER"]
+    # Tier 2/3 (brand_key / generic_key): brand_join_key -- salt/form stripped, so
+    # both collapse to one key.
+    assert normalized_brand_keys(["Lipitor", "LIPITOR ER"]) == ["LIPITOR"]
+    assert normalized_brand_keys(["atorvastatin calcium"]) == ["ATORVASTATIN"]
+    # Both sides normalize identically, so a CMS brand's key equals the FDA key the
+    # build persisted -- the exact-equality join: CMS "metformin hcl" -> "METFORMIN"
+    # matches the generic_key the build wrote for FDA generic_name "metformin".
+    assert brand_join_key("metformin hcl") == normalized_brand_keys(["metformin"])[0]
+
+
+def test_aggregate_fda_records_full_payload_union_and_dedup():
+    fda_docs = [
+        {"openfda": {"brand_name": ["Lipitor"], "generic_name": ["atorvastatin"],
+                     "substance_name": ["ATORVASTATIN CALCIUM"], "product_type": ["HUMAN PRESCRIPTION DRUG"],
+                     "rxcui": ["617312"], "product_ndc": ["0071-0155"],
+                     "application_number": ["NDA020702"], "spl_id": ["spl-1"],
+                     "spl_set_id": ["set-1"]},
+         "molecule": "atorvastatin", "ingredient_rxcuis": ["83367"],
+         "ingredient_names": ["atorvastatin"], "usage_summary": "Lowers lipids.",
+         "indications": [
+             {"indication": "Hyperlipidemia", "confidence_rationale": "clear",
+              "codes": [{"icd10_code": "E78", "level": 3, "confidence": 0.9, "description": "Lipid disorders"}]},
+             {"indication": "Cardiovascular risk", "confidence_rationale": "clear", "codes": []}]},
+        # A repackager duplicate under the same brand: shared rxcui/ingredient, a
+        # new clinical rxcui and NDC, a phrasing variant of one indication (whose
+        # codes must MERGE) plus a new indication.
+        {"openfda": {"brand_name": ["LIPITOR"], "generic_name": ["atorvastatin"],
+                     "substance_name": ["ATORVASTATIN CALCIUM"], "product_type": ["HUMAN PRESCRIPTION DRUG"],
+                     "rxcui": ["617318"], "product_ndc": ["63304-828"],
+                     "application_number": ["NDA020702"], "spl_id": ["spl-2"],
+                     "spl_set_id": ["set-1"]},
+         "molecule": "atorvastatin", "ingredient_rxcuis": ["83367"],
+         "ingredient_names": ["atorvastatin"], "usage_summary": "ignored second summary",
+         "indications": [
+             {"indication": "hyperlipidemia", "confidence_rationale": "repeat",
+              "codes": [{"icd10_code": "E780", "level": 4, "confidence": 0.8, "description": "Pure hyperchol"}]},
+             {"indication": "Primary prevention", "confidence_rationale": "ok", "codes": []}]},
     ]
-    out = regrain_drugs_by_rxcui(drugs)
-    assert len(out) == 1
-    d = out[0]
-    assert d["rxcui"] == "83367"
-    # Measures are SUMMED across the collapsed rows (decision: sums).
+    # aggregate_fda_records takes ONE brand's matched FDA label records (as an
+    # indexed query returns them) and folds them into a single brand entry.
+    entry = aggregate_fda_records(fda_docs)
+    assert entry is not None
+    # Canonical brand is the FDA brand_name (deterministic first-by-sort).
+    assert entry["brand"] == "LIPITOR"
+    assert entry["molecule"] == "atorvastatin"
+    assert entry["rxcuis"] == ["83367"]
+    assert entry["ingredient_names"] == ["atorvastatin"]
+    assert entry["usage_summary"] == "Lowers lipids."  # first non-empty kept
+    # openfda sub-fields carried FLAT and unioned first-seen.
+    assert entry["clinical_rxcui"] == ["617312", "617318"]
+    assert entry["generic_name"] == ["atorvastatin"]
+    assert entry["substance_name"] == ["ATORVASTATIN CALCIUM"]
+    assert entry["product_type"] == ["HUMAN PRESCRIPTION DRUG"]
+    assert entry["product_ndc"] == ["0071-0155", "63304-828"]
+    assert entry["application_number"] == ["NDA020702"]
+    assert entry["spl_id"] == ["spl-1", "spl-2"]
+    assert entry["spl_set_id"] == ["set-1"]
+    # Indications: FULL objects, union across records, deduped by normalized text.
+    assert [i["indication"] for i in entry["indications"]] == [
+        "Hyperlipidemia", "Cardiovascular risk", "Primary prevention"]
+    # The two spellings of Hyperlipidemia merge; their codes UNION by icd10_code.
+    hyperlip = entry["indications"][0]
+    assert [c["icd10_code"] for c in hyperlip["codes"]] == ["E78", "E780"]
+    assert hyperlip["codes"][0] == {
+        "icd10_code": "E78", "level": 3, "confidence": 0.9, "description": "Lipid disorders"}
+    # No records -> no entry.
+    assert aggregate_fda_records([]) is None
+
+
+def test_compose_drugs_by_brand_sums_and_inner_joins():
+    raw = [
+        {"brand": "Lipitor", "generic": "atorvastatin", "total_claims": 10,
+         "days_supply": 300, "beneficiary_count": 8, "total_drug_cost": 500.0},
+        # A dose-form variant of the same brand normalizes to the same join key.
+        {"brand": "LIPITOR ER", "generic": "atorvastatin", "total_claims": 5,
+         "days_supply": 150, "beneficiary_count": 4, "total_drug_cost": 120.0},
+        # A brand with no FDA match -> discarded.
+        {"brand": "Mystery Pill", "generic": "unobtanium", "total_claims": 3,
+         "days_supply": 90, "beneficiary_count": 3, "total_drug_cost": 30.0},
+    ]
+    lipitor_entry = {
+        "brand": "LIPITOR", "match_provenance": "brand_name",
+        "molecule": "atorvastatin", "rxcuis": ["83367"],
+        "ingredient_names": ["atorvastatin"], "usage_summary": "Lowers lipids.",
+        "clinical_rxcui": ["617312"], "generic_name": ["atorvastatin"],
+        "substance_name": ["ATORVASTATIN CALCIUM"], "product_type": ["HUMAN PRESCRIPTION DRUG"],
+        "product_ndc": ["0071-0155"], "application_number": ["NDA020702"],
+        "spl_id": ["spl-1"], "spl_set_id": ["set-1"],
+        "indications": [{"indication": "Hyperlipidemia", "confidence_rationale": "clear",
+                         "codes": [{"icd10_code": "E78", "level": 3,
+                                    "confidence": 0.9, "description": "Lipid disorders"}]}],
+    }
+    # The resolver maps a normalized brand join key to the FDA payload (or None),
+    # exactly as the engine's cached indexed-query resolver does.
+    lookup = {"LIPITOR": lipitor_entry}
+
+    def resolve(cms_brand):
+        return lookup.get(brand_join_key(cms_brand))
+
+    kept, discarded = compose_drugs_by_brand(raw, resolve)
+    assert len(kept) == 1
+    d = kept[0]
+    # The two matching rows SUM their volume metrics.
     assert d["total_claims"] == 15
     assert d["days_supply"] == 450
     assert d["beneficiary_count"] == 12
     assert d["total_drug_cost"] == 620.0
-    # Distinct brands collapse to ambiguous -> None; indications union.
-    assert d["brand"] is None
-    assert d["parent_indications"] == ["IND-CVD", "IND-HLD"]
+    # Full FDA payload carried FLAT onto the composed drug entry.
+    assert d["molecule"] == "atorvastatin"
+    assert d["rxcuis"] == ["83367"]
+    assert d["ingredient_names"] == ["atorvastatin"]
+    assert d["usage_summary"] == "Lowers lipids."
+    assert d["clinical_rxcui"] == ["617312"]
+    assert d["generic_name"] == ["atorvastatin"]
+    assert d["substance_name"] == ["ATORVASTATIN CALCIUM"]
+    assert d["product_type"] == ["HUMAN PRESCRIPTION DRUG"]
+    assert d["product_ndc"] == ["0071-0155"]
+    assert d["application_number"] == ["NDA020702"]
+    assert d["spl_id"] == ["spl-1"]
+    assert d["spl_set_id"] == ["set-1"]
+    # Indications kept as FULL objects with their ICD-10 codes.
+    assert d["indications"][0]["indication"] == "Hyperlipidemia"
+    assert d["indications"][0]["codes"][0]["icd10_code"] == "E78"
+    # The matched tier is recorded on the entry.
+    assert d["match_provenance"] == "brand_name"
+    # The unmatched brand is discarded and reported, not written.
+    assert len(discarded) == 1
+    assert discarded[0]["brand"] == "MYSTERY PILL"
+    assert discarded[0]["brand_join_key"] == "MYSTERY PILL"
+    assert discarded[0]["total_claims"] == 3
 
 
-def test_regrain_without_rxcui_collapses_by_generic_name():
-    drugs = [
-        {"brand": "BrandA", "generic": "metformin", "total_claims": 2,
-         "days_supply": 60, "beneficiary_count": 2, "total_drug_cost": 20.0,
-         "rxcui": None, "molecule": None, "parent_indications": []},
-        {"brand": "BrandB", "generic": "metformin", "total_claims": 3,
-         "days_supply": 90, "beneficiary_count": 3, "total_drug_cost": 30.0,
-         "rxcui": None, "molecule": None, "parent_indications": []},
+def test_compose_generic_match_adopts_fda_brand():
+    # CMS put the GENERIC name in Brnd_Name; the resolver (generic leg) still
+    # resolves it, and the composed record adopts the FDA brand name as canonical.
+    raw = [
+        {"brand": "metformin hcl", "generic": "metformin", "total_claims": 7,
+         "days_supply": 210, "beneficiary_count": 6, "total_drug_cost": 70.0},
+        # A branded fill of the SAME drug: must MERGE under the canonical FDA brand,
+        # not create a duplicate canonical-brand entry.
+        {"brand": "Glucophage", "generic": "metformin", "total_claims": 3,
+         "days_supply": 90, "beneficiary_count": 2, "total_drug_cost": 30.0},
     ]
-    out = regrain_drugs_by_rxcui(drugs)
-    assert len(out) == 1
-    assert out[0]["days_supply"] == 150
-    assert out[0]["total_claims"] == 5
+    glucophage = {
+        "brand": "GLUCOPHAGE", "match_provenance": "generic_name",
+        "molecule": "metformin", "rxcuis": ["6809"],
+        "ingredient_names": ["metformin"], "usage_summary": None,
+        "clinical_rxcui": [], "generic_name": ["metformin"], "substance_name": [],
+        "product_type": [], "product_ndc": [], "application_number": [],
+        "spl_id": [], "spl_set_id": [],
+        "indications": [{"indication": "Type 2 diabetes", "confidence_rationale": None,
+                         "codes": [{"icd10_code": "E11", "level": 3,
+                                    "confidence": 0.95, "description": "T2DM"}]}],
+    }
+    # Both the generic key (METFORMIN) and the brand key (GLUCOPHAGE) resolve to
+    # the same FDA payload, as the engine's brand-then-generic resolver would.
+    lookup = {"METFORMIN": glucophage, "GLUCOPHAGE": glucophage}
+
+    def resolve(cms_brand):
+        return lookup.get(brand_join_key(cms_brand))
+
+    kept, discarded = compose_drugs_by_brand(raw, resolve)
+    assert discarded == []
+    # Generic fill + branded fill MERGE into ONE entry under the canonical brand.
+    assert len(kept) == 1
+    d = kept[0]
+    assert d["brand"] == "GLUCOPHAGE"
+    assert d["match_provenance"] == "generic_name"
+    assert d["total_claims"] == 10
+    assert d["days_supply"] == 300
+    assert d["molecule"] == "metformin"
+    assert d["rxcuis"] == ["6809"]
+    assert d["indications"][0]["codes"][0]["icd10_code"] == "E11"
 
 
-def test_regrain_keeps_distinct_rxcui_separate():
-    drugs = [
-        {"brand": "Lipitor", "generic": "atorvastatin", "days_supply": 300,
-         "total_claims": 1, "beneficiary_count": 1, "total_drug_cost": 1.0,
-         "rxcui": "83367", "molecule": "atorvastatin", "parent_indications": []},
-        {"brand": "Glucophage", "generic": "metformin", "days_supply": 90,
-         "total_claims": 1, "beneficiary_count": 1, "total_drug_cost": 1.0,
-         "rxcui": "6809", "molecule": "metformin", "parent_indications": []},
+def test_compose_carries_each_match_provenance():
+    # Each tier's provenance (brand_name, brand_key, generic_name), as the resolver
+    # stamps it, propagates onto the composed drug entry.
+    def _entry(brand, prov):
+        base = {"brand": brand, "match_provenance": prov, "molecule": "m",
+                "rxcuis": [], "ingredient_names": [], "usage_summary": None,
+                "indications": []}
+        for flat in ("clinical_rxcui", "generic_name", "substance_name", "product_type",
+                     "product_ndc", "application_number", "spl_id", "spl_set_id"):
+            base[flat] = []
+        return base
+
+    payloads = {
+        "AAA": _entry("AAA", "brand_name"),
+        "BBB": _entry("BBB", "brand_key"),
+        "CCC": _entry("CCC", "generic_name"),
+    }
+    raw = [
+        {"brand": "aaa", "generic": "g1", "total_claims": 1, "days_supply": 1,
+         "beneficiary_count": 1, "total_drug_cost": 1.0},
+        {"brand": "bbb", "generic": "g2", "total_claims": 1, "days_supply": 1,
+         "beneficiary_count": 1, "total_drug_cost": 1.0},
+        {"brand": "ccc", "generic": "g3", "total_claims": 1, "days_supply": 1,
+         "beneficiary_count": 1, "total_drug_cost": 1.0},
     ]
-    out = regrain_drugs_by_rxcui(drugs)
-    assert {d["rxcui"] for d in out} == {"83367", "6809"}
-    assert len(out) == 2
+    kept, discarded = compose_drugs_by_brand(raw, lambda b: payloads.get(brand_join_key(b)))
+    assert discarded == []
+    by_brand = {d["brand"]: d["match_provenance"] for d in kept}
+    assert by_brand == {"AAA": "brand_name", "BBB": "brand_key", "CCC": "generic_name"}
 
 
 # --- 3. distinct-NPI de-dup for not-found ------------------------------------

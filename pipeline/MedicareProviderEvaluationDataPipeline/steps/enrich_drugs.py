@@ -1,13 +1,15 @@
 # Copyright (c) 2026 ChatHealthy.ai LLC. All rights reserved.
 # Licensed under the FindCare Evaluation License (FEL-1.0).
 
-"""enrich_drugs (EPIC-010-F-007) — place drugs under indications, roll day supply.
+"""enrich_drugs (EPIC-010-F-007) — compose the v1 per-brand drug collection.
 
-Fanned by provider_state: each worker reads the fdaProductToDiagnosisResolution collection
-candidate built this run and, for every ProviderMedicare record in its state, stamps each drug's
-parent indication(s) and rolls the provider's own day supply up per indication
-(count-under-each). Resolves collections through the registry; the aggregation
-is the engine's. No external calls.
+Fanned by provider_state: each worker reads the fdaProductToDiagnosisResolution
+collection built this run and, for every ProviderMedicare record in its state,
+re-grains the provider's raw Part D rows to one entry per NORMALIZED brand joined
+to the FDA brand index (molecule, rxcui-set, deduped-unioned indications). The join
+is inner -- a brand with no FDA match is discarded and surfaced as a finding.
+Resolves collections through the registry; the aggregation is the engine's. No
+external calls.
 """
 
 from __future__ import annotations
@@ -38,14 +40,15 @@ def run_step(ctx) -> dict:
 
     pm = reg.by_source_name("providermedicare")
     providermedicare_coll = mongo[pm.public_data_db][reg.public_data_collection_name("providermedicare")]
-    im = reg.by_source_name("fda_drug")
-    indication_map_coll = mongo[im.public_data_db][reg.public_data_collection_name("fda_drug")]
+    fda = reg.by_source_name("fda_drug")
+    fda_drug_coll = mongo[fda.public_data_db][reg.public_data_collection_name("fda_drug")]
 
     result = enrich_drugs(
         state=state,
         run_id=ctx.run_id,
         providermedicare_coll=providermedicare_coll,
-        indication_map_coll=indication_map_coll,
+        fda_drug_coll=fda_drug_coll,
+        runtime=rt,
     )
     _log.LogPipeline("INFO", "enrich_drugs[%s]: %s", state, result)
     return result
