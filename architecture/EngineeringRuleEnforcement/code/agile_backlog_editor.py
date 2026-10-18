@@ -22,9 +22,14 @@ splice. Then, in one run:
                back the authorization, and stop. The operator tries again.
 
 ELEVATION. The backlog is OS read-only to non-administrators, so the write lands
-only when this runs elevated. Elevation is checked BEFORE asking for
-authorization -- there is no point authorizing a change that cannot be written.
-The hard guarantee is the ACL, not this program trusting itself.
+only when the writing process is elevated. Authorization comes FIRST: the
+operator approves the change and the authorization is recorded, and only THEN is
+the write attempted. This session is normally not elevated, so the direct write
+is refused by the OS; the write is then retried through a one-shot UAC-elevated
+re-launch of this same program (--apply-write), so the operator elevates AFTER
+approving, for this one write only. If the operator declines that prompt, the
+authorization is rolled back and nothing changes. The hard guarantee is the ACL,
+not this program trusting itself.
 """
 from __future__ import annotations
 
@@ -387,14 +392,114 @@ def rollback_auth(auth_id: str, reason: str) -> None:
 def is_elevated() -> bool:
     """True when this process has the Administrators token enabled (Windows).
 
-    Used only to decide whether to bother asking for authorization -- not as the
-    guard. The guard is the OS refusing the write.
+    Not the guard -- the guard is the OS refusing the write. Used to gate the
+    --apply-write leaf so it only lands a write when it is actually elevated.
     """
     try:
         import ctypes
         return bool(ctypes.windll.shell32.IsUserAnAdmin())
     except Exception:  # noqa: BLE001
         return False
+
+
+def _run_elevated_copy(which: str) -> tuple[bool, bool, str]:
+    """Land a cached file on the backlog through a one-shot UAC-elevated
+    re-launch of this same program (--apply-write). The operator sees the UAC
+    prompt only AFTER approving the change -- never before. `which` is "new"
+    (the composed, authorized content) or "old" (rollback). Returns
+    (ok, declined, reason); declined is True only when the operator refused the
+    UAC prompt, so the caller can report that distinctly."""
+    try:
+        import ctypes
+        from ctypes import wintypes
+    except Exception as exc:  # noqa: BLE001
+        return False, False, f"elevation support unavailable: {exc}"
+    if not hasattr(ctypes, "windll"):
+        return False, False, "elevation is a Windows-only path"
+
+    # ShellExecuteExW with the "runas" verb is the only way to raise a UAC
+    # prompt for a child; SEE_MASK_NOCLOSEPROCESS keeps the child handle so we
+    # can wait on it and read its exit code.
+    class _SHELLEXECUTEINFOW(ctypes.Structure):
+        _fields_ = [
+            ("cbSize", wintypes.DWORD),
+            ("fMask", ctypes.c_ulong),
+            ("hwnd", wintypes.HWND),
+            ("lpVerb", wintypes.LPCWSTR),
+            ("lpFile", wintypes.LPCWSTR),
+            ("lpParameters", wintypes.LPCWSTR),
+            ("lpDirectory", wintypes.LPCWSTR),
+            ("nShow", ctypes.c_int),
+            ("hInstApp", wintypes.HINSTANCE),
+            ("lpIDList", ctypes.c_void_p),
+            ("lpClass", wintypes.LPCWSTR),
+            ("hkeyClass", wintypes.HKEY),
+            ("dwHotKey", wintypes.DWORD),
+            ("hIcon", wintypes.HANDLE),
+            ("hProcess", wintypes.HANDLE),
+        ]
+
+    see_mask_nocloseprocess = 0x00000040
+    sw_hide = 0
+    error_cancelled = 1223
+    infinite = 0xFFFFFFFF
+
+    info = _SHELLEXECUTEINFOW()
+    info.cbSize = ctypes.sizeof(info)
+    info.fMask = see_mask_nocloseprocess
+    info.lpVerb = "runas"
+    info.lpFile = sys.executable
+    # Only "new"/"old" ever reach the elevated leaf -- it maps them to the two
+    # program-controlled cache files, so it can never be coerced into copying
+    # an arbitrary file over the backlog.
+    info.lpParameters = f'"{_HERE}" --apply-write {which}'
+    info.nShow = sw_hide
+
+    if not ctypes.windll.shell32.ShellExecuteExW(ctypes.byref(info)):
+        err = ctypes.windll.kernel32.GetLastError()
+        if err == error_cancelled:
+            return False, True, "operator declined the elevation prompt"
+        return False, False, f"could not launch the elevated writer (WinError {err})"
+    if not info.hProcess:
+        return False, False, "elevated writer did not start"
+    ctypes.windll.kernel32.WaitForSingleObject(info.hProcess, infinite)
+    code = wintypes.DWORD()
+    ctypes.windll.kernel32.GetExitCodeProcess(info.hProcess, ctypes.byref(code))
+    ctypes.windll.kernel32.CloseHandle(info.hProcess)
+    if code.value != 0:
+        return False, False, f"the elevated writer failed (exit {code.value})"
+    return True, False, ""
+
+
+def _land(which: str) -> tuple[bool, bool, str]:
+    """Land one of the program's cached files onto the admin-only backlog.
+    `which` is "new" (the composed, authorized content) or "old" (rollback).
+    The direct copy is tried first; on an OS refusal -- this session is not
+    elevated -- the write is retried via UAC. Returns (ok, declined, reason)."""
+    src = CACHE_NEW if which == "new" else CACHE_OLD
+    try:
+        shutil.copyfile(src, TARGET)
+        return True, False, ""
+    except PermissionError:
+        return _run_elevated_copy(which)
+
+
+def _apply_write(which: str) -> int:
+    """The elevated leaf: copy a cached file over the backlog. Reached only
+    through _run_elevated_copy's "runas" re-launch of this program, never as an
+    operator entry point. It refuses unless actually elevated -- a non-elevated
+    invocation would be stopped by the ACL anyway, but refusing keeps this from
+    ever being a quiet authorization bypass."""
+    if not is_elevated():
+        sys.stderr.write("--apply-write must run elevated.\n")
+        return 3
+    src = CACHE_NEW if which == "new" else CACHE_OLD
+    try:
+        shutil.copyfile(src, TARGET)
+    except Exception as exc:  # noqa: BLE001
+        sys.stderr.write(f"elevated write failed: {exc}\n")
+        return 1
+    return 0
 
 
 def _cleanup() -> None:
@@ -434,16 +539,6 @@ def run(objects_path: Path) -> int:
         sys.stderr.write("these objects change nothing; nothing to authorize.\n")
         return 0
 
-    # Elevation is checked BEFORE authorization: no point authorizing a write
-    # that cannot land. Loud, not silent.
-    if not is_elevated():
-        broke_the_rules(
-            "Claude is not elevated, so it cannot write the backlog. Restart "
-            "Claude Code as administrator and re-run. Nothing changed.",
-            title="Backlog edit needs elevation")
-        sys.stderr.write("not elevated; nothing changed.\n")
-        return 1
-
     # B: cache the old file and the composed new file.
     CACHE_DIR.mkdir(exist_ok=True)
     shutil.copyfile(TARGET, CACHE_OLD)
@@ -468,14 +563,20 @@ def run(objects_path: Path) -> int:
         sys.stderr.write("authorization could not be recorded; nothing changed.\n")
         _cleanup(); return 1
 
-    # D: replace the backlog with the composed new file.
-    try:
-        shutil.copyfile(CACHE_NEW, TARGET)
-    except PermissionError:
-        broke_the_rules("The backlog is admin-write-only and the OS refused the "
-                        "write. Nothing changed.")
-        sys.stderr.write("write refused by the OS; nothing changed.\n")
-        rollback_auth(auth_id, "write refused by the OS")
+    # D: land the composed new file on the backlog. The write is attempted only
+    # now, after authorization and the audit record. This session is normally
+    # not elevated, so the direct copy is refused and the write is retried
+    # through a UAC-elevated re-launch -- the operator elevates AFTER approving.
+    landed, declined, reason = _land("new")
+    if not landed:
+        detail = reason or "the OS refused the write"
+        broke_the_rules(
+            f"The authorized change could not be written to the backlog: "
+            f"{detail}. The authorization was rolled back; nothing changed.",
+            title=("Elevation declined -- backlog unchanged" if declined
+                   else "Backlog write failed -- unchanged"))
+        sys.stderr.write(f"write not landed: {detail}; nothing changed.\n")
+        rollback_auth(auth_id, f"write not landed: {detail}")
         _cleanup(); return 1
 
     # E: QA the actual written file.
@@ -486,21 +587,20 @@ def run(objects_path: Path) -> int:
                  len(changed), evidence.get("mouse_move_events", 0))
         return 0
 
-    # F (fail): roll back to the cached old, notify, roll back the auth, retry.
-    try:
-        shutil.copyfile(CACHE_OLD, TARGET)
-        rolled_back = True
-    except Exception as exc:  # noqa: BLE001
-        rolled_back = False
-        log.error("ROLLBACK FAILED, backlog may be inconsistent: %s", exc,
+    # F (fail): roll back to the cached old (via UAC again if the OS requires
+    # it), notify, roll back the auth, retry.
+    rolled_back, _rb_declined, rb_reason = _land("old")
+    if not rolled_back:
+        log.error("ROLLBACK FAILED, backlog may be inconsistent: %s", rb_reason,
                   exc=ChatHealthyException(mode="rollback_failed",
                       component=COMPONENT,
-                      message=f"rollback copy failed: {exc}", exception=exc),
+                      message=f"rollback write failed: {rb_reason}"),
                   if_not_debug_log=True)
     broke_the_rules(
         f"The write failed QA: {why}. "
         + ("Rolled back to the previous backlog; " if rolled_back
-           else "ROLLBACK ALSO FAILED -- the backlog may be inconsistent; ")
+           else f"ROLLBACK ALSO FAILED ({rb_reason or 'unknown'}) -- the backlog "
+                "may be inconsistent; ")
         + "the authorization was rolled back. Nothing stands; try again.",
         title="Backlog edit failed QA -- rolled back")
     rollback_auth(auth_id, f"failed QA: {why}")
@@ -512,10 +612,17 @@ def run(objects_path: Path) -> int:
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(prog="agile_backlog_editor",
         description="The one sanctioned writer of the agile backlog.")
-    parser.add_argument("--objects", required=True,
+    group = parser.add_mutually_exclusive_group(required=True)
+    group.add_argument("--objects",
         help="Path to a JSON array of the full objects to splice "
              "(a file in _oneshots).")
+    # Internal re-entry only -- the elevated leaf that lands a cached file on
+    # the admin-only backlog. Not an operator entry point (hidden from --help).
+    group.add_argument("--apply-write", choices=("new", "old"),
+        help=argparse.SUPPRESS)
     args = parser.parse_args(argv)
+    if args.apply_write:
+        return _apply_write(args.apply_write)
     return run(Path(args.objects))
 
 
