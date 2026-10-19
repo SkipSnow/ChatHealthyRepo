@@ -78,7 +78,8 @@ def enrich_procedures(
     ops: list[UpdateOne] = []
     written = 0
     procedures_justified = 0
-    for doc in providermedicare_coll.find({"run_id": run_id, "provider_state": state}):
+    for doc in providermedicare_coll.find(
+            {"provenance.source_run_id": run_id, "prescriber_state": state}):
         procs = doc.get("procedures") or []
         if not procs:
             continue

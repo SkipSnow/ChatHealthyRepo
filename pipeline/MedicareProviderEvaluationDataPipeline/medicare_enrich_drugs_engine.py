@@ -96,7 +96,8 @@ def enrich_drugs(
     ops: list[UpdateOne] = []
     written = 0
     no_fda_molecule = 0
-    for doc in providermedicare_coll.find({"run_id": run_id, "prescriber_state": state}):
+    for doc in providermedicare_coll.find(
+            {"provenance.source_run_id": run_id, "prescriber_state": state}):
         mid = doc.get("molecule_id")
         resolved = facts(mid) if mid else {"drug_class": [], "identity": {}}
         if not resolved["drug_class"]:

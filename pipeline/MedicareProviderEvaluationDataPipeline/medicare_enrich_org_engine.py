@@ -115,7 +115,7 @@ def enrich_org_ccn_size(
     orgs = 0
     sized = 0
     for pm in providermedicare_coll.find(
-            {"run_id": run_id, "provider_state": state, "entity_type": "O"}):
+            {"provenance.source_run_id": run_id, "prescriber_state": state, "entity_type": "O"}):
         orgs += 1
         npi = pm["_id"]
         spine = provider_spine_coll.find_one({"npi": npi}) or \
