@@ -33,12 +33,12 @@
         }
       },
       "build_fda_drug_collection": {
-        "partition_source": { "type": "named_enumerator", "name": "record_ranges" },
+        "partition_source": { "type": "named_enumerator", "name": "record_ranges", "params": { "count": 300 } },
         "parallelism_cap": 300
       },
       "build_providermedicare_base": {
-        "partition_source": { "type": "named_enumerator", "name": "state", "params": { "key": "provider_state" } },
-        "parallelism_cap": 52
+        "partition_source": { "type": "named_enumerator", "name": "state_entity", "params": { "key": "provider_state" } },
+        "parallelism_cap": 104
       },
       "enrich_drugs": {
         "partition_source": { "type": "named_enumerator", "name": "state", "params": { "key": "provider_state" } },

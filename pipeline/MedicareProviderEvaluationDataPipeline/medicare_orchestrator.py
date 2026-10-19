@@ -176,7 +176,7 @@ class MedicareProviderEvaluationOrchestrator(BasePipelineOrchestrator):
         enums["record_ranges"] = self._fda_record_ranges
         return enums
 
-    def _fda_record_ranges(self, ctx, **_) -> list[dict]:
+    def _fda_record_ranges(self, ctx, *, count: int = 100, **_) -> list[dict]:
         """Even record-number ranges over this run's stamped prescription FDA labels --
         one worker PROCESS per range (LLD I.3.4a). Off-build returns a single
         verify/consume partition. Range size is configurable per pipeline via
@@ -191,8 +191,7 @@ class MedicareProviderEvaluationOrchestrator(BasePipelineOrchestrator):
             {"run_id": ctx.run_id, "fda_record_number": {"$exists": True}})
         if total <= 0:
             return [{"single": True}]
-        worker_count = max(1, min(int((ctx.config or {}).get("fda_drug_worker_count", 100)),
-                                  total))
+        worker_count = max(1, min(int(count), total))
         size = -(-total // worker_count)  # ceil: ~worker_count even ranges, one per process
         return [{"record_range": {"start": s, "end": min(s + size, total + 1)}}
                 for s in range(1, total + 1, size)]

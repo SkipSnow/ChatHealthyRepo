@@ -100,6 +100,7 @@ def build_provider_molecule(
     provider_spine_coll,
     partd_coll,
     target_coll,
+    entity_type: int | None = None,
     batch_size: int = 1000,
 ) -> dict[str, Any]:
     """Build the provider x molecule documents for one fan-out state. Groups the
@@ -130,8 +131,16 @@ def build_provider_molecule(
     ops: list[UpdateOne] = []
     written = 0
     for (npi, mid), rows in groups.items():
-        block = aggregate_provider_molecule(rows)
         spine = spine_by_npi.get(npi) or {}
+        if entity_type is not None:
+            # Type 1 (individual) / Type 2 (institutional) are disjoint and
+            # exhaustive, so the (state,1) and (state,2) partitions together
+            # cover every row -- conformance is preserved. An NPI absent from
+            # the spine has no entity and falls to the individual partition.
+            npi_entity = 2 if str(spine.get("entity_type_code") or "").strip() == "2" else 1
+            if npi_entity != entity_type:
+                continue
+        block = aggregate_provider_molecule(rows)
         doc = {
             "_id": f"{npi}:{mid}",
             "npi": npi,

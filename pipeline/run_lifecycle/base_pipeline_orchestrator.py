@@ -492,9 +492,14 @@ class BasePipelineOrchestrator:
     def _enum_county(self, ctx: StepContext) -> list[dict]:
         return list(county_partitions(ctx.args.partition_states()))
 
-    def _enum_state_entity(self, ctx: StepContext) -> list[dict]:
-        """104-way state x entity-type fan-out (2 per state)."""
-        return list(state_entity_partitions(ctx.args.partition_states()))
+    def _enum_state_entity(self, ctx: StepContext, *, key: str = "business_address_state") -> list[dict]:
+        """State x entity-type fan-out: 2 partitions per state (full scope ->
+        104), scaling with the run's state scope so two states yield 4, never
+        more processes than partitions. Emitted under the step's declared key so
+        a pipeline that fans by prescriber state gets that key, not the default."""
+        return [{key: next(iter(p.values())), "entity_type": t}
+                for p in state_partitions(ctx.args.partition_states())
+                for t in (1, 2)]
 
     def _resolve_partition_source(self, spec: StepSpec, ctx: StepContext, src: dict) -> list[dict]:
         t = src.get("type")

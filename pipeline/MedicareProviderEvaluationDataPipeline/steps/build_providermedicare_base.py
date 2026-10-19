@@ -30,6 +30,7 @@ _log = ChatHealthyLoggingService()
 def run_step(ctx) -> dict:
     partition = ctx.config.get("partition") or {}
     state = partition.get("provider_state") if isinstance(partition, dict) else None
+    entity_type = partition.get("entity_type") if isinstance(partition, dict) else None
     if not state:
         raise ChatHealthyException(
             mode="value_error",
@@ -61,9 +62,10 @@ def run_step(ctx) -> dict:
         provider_spine_coll=provider_spine_coll,
         partd_coll=partd_coll,
         target_coll=target_coll,
+        entity_type=int(entity_type) if entity_type is not None else None,
     )
-    _log.LogPipeline("INFO", "build_providermedicare_base[%s]: %s",
-                     state, {k: v for k, v in result.items() if k != "not_found_npis"})
+    _log.LogPipeline("INFO", "build_providermedicare_base[%s/type=%s]: %s",
+                     state, entity_type, {k: v for k, v in result.items() if k != "not_found_npis"})
     # A billed/prescribing NPI absent from the Provider collection is a
     # non-fatal finding, never an abend -- recorded so the miss is visible on
     # the discrepancy report. De-duped: the engine joins by NPI and returns the
