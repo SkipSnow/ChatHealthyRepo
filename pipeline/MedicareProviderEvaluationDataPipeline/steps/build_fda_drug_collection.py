@@ -33,7 +33,7 @@ from pipeline.run_lifecycle.pipeline_runtime import PipelineRuntime
 from pipeline.MedicareProviderEvaluationDataPipeline.fda_drug_enrichment_tool import (
     FDADrugEnrichmentTool)
 from pipeline.MedicareProviderEvaluationDataPipeline.medicare_normalization import (
-    normalized_brand_exact_keys, normalized_brand_keys)
+    molecule_id)
 
 _log = ChatHealthyLoggingService()
 
@@ -52,11 +52,61 @@ def _truthy(raw: str) -> bool:
     return raw.strip().lower() in ("1", "true", "yes")
 
 
+def _drug_class(product_type) -> str:
+    """OTC / RX / UNDETERMINED from openfda.product_type (plain-string, no regex).
+    OTC is excluded upstream, so a built record is RX or -- absent a structural
+    signal -- UNDETERMINED; never defaulted."""
+    vals = product_type if isinstance(product_type, list) else ([product_type] if product_type else [])
+    joined = " ".join(str(v).upper() for v in vals)
+    if "PRESCRIPTION" in joined:
+        return "RX"
+    if "OTC" in joined or "OVER-THE-COUNTER" in joined:
+        return "OTC"
+    return "UNDETERMINED"
+
+
 def _get_tool() -> FDADrugEnrichmentTool:
     global _TOOL
     if _TOOL is None:
         _TOOL = FDADrugEnrichmentTool(catalog=_CATALOG_PATH)
     return _TOOL
+
+
+_ACTIVE_INGREDIENT_HEADERS = ("active ingredients", "active ingredient(s)", "active ingredient")
+
+
+def _molecule_from_active_ingredient(value) -> str:
+    """Recover the molecule from raw.active_ingredient when the harmonized openFDA
+    molecule (substance_name/generic_name) is absent (FDA field-mining study,
+    EPIC-010-F-007; covers ~63% of the no-molecule records). Deterministic, no regex
+    (Rule-065 statement 6): strip the 'Active ingredient(s)' header, drop the dose by
+    keeping the text up to the first digit, and keep the substance name(s)."""
+    items = value if isinstance(value, list) else ([value] if value else [])
+    names: list[str] = []
+    for item in items:
+        text = str(item or "").strip()
+        if not text:
+            continue
+        lowered = text.lower()
+        for header in _ACTIVE_INGREDIENT_HEADERS:
+            if lowered.startswith(header):
+                text = text[len(header):].lstrip(" :.-")
+                break
+        # one active_ingredient string may list several substances, comma/pipe-separated;
+        # split first, then drop each substance's dose (text from its first digit).
+        for piece in text.replace("|", ",").split(","):
+            piece = piece.strip()
+            if not piece:
+                continue
+            cut = len(piece)
+            for i, ch in enumerate(piece):
+                if ch.isdigit():
+                    cut = i
+                    break
+            name = piece[:cut].strip(" ,;:-")
+            if name:
+                names.append(name)
+    return ", ".join(names)
 
 
 def _shape_fda_record(raw: dict) -> dict:
@@ -91,8 +141,16 @@ def _shape_fda_record(raw: dict) -> dict:
             if isinstance(gen, str):
                 gen = [gen]
             gen = [g for g in gen if g]
-            shaped["molecule"] = ", ".join(gen)
-            shaped["_molecule_source"] = "generic_name" if gen else "absent"
+            if gen:
+                shaped["molecule"] = ", ".join(gen)
+                shaped["_molecule_source"] = "generic_name"
+            else:
+                # No harmonized molecule: recover it in-label from active_ingredient
+                # (first cut; the description path and the spl positional + RxNorm/UNII
+                # vocabulary path are the next increments per the field-mining study).
+                recovered = _molecule_from_active_ingredient(raw.get("active_ingredient"))
+                shaped["molecule"] = recovered
+                shaped["_molecule_source"] = "active_ingredient" if recovered else "absent"
     else:
         shaped["_molecule_source"] = "provided"
     if not str(shaped.get("indication_text") or "").strip():
@@ -132,17 +190,9 @@ def run_step(ctx) -> dict:
             published)
         return {"step": "build_fda_drug_collection", "rebuild": False, "consumed": published}
 
-    # The FDA collection's own join indexes are created WITH the collection, here,
-    # so the enrich consumer finds them ready. They serve the three-tier CMS->FDA
-    # lookup by EXACT indexed equality on the persisted, already-normalized keys --
-    # no collation, because the keys are normalized identically on both sides at
-    # write time: brand_exact_key (tier 1, normalize_brand), brand_key (tier 2,
-    # brand_join_key), generic_key (tier 3, brand_join_key of the generic). Each
-    # stands alone so every tier is index-served. create_index is idempotent, so
-    # every range worker may call it; pipelineEditor holds createIndexes.
-    target_coll.create_index([("brand_exact_key", 1)], name="fda_brand_exact_key")
-    target_coll.create_index([("brand_key", 1)], name="fda_brand_key")
-    target_coll.create_index([("generic_key", 1)], name="fda_generic_key")
+    # The fda_molecule_id join index is provisioned declaratively by the
+    # medicare_fda_indexes package in deployment_architecture.json (indexes live
+    # in provisioning, not in-run).
 
     partition = (ctx.config or {}).get("partition") or {}
     rng = partition.get("record_range")
@@ -204,18 +254,31 @@ def run_step(ctx) -> dict:
 
     def _sink(record) -> None:
         doc = record.model_dump()
+        doc["_id"] = record.set_id            # set_id IS the _id (one record per label)
         doc["run_id"] = ctx.run_id
         doc["data_version"] = data_version
-        # Persist the three normalized join keys so the enrich consumer resolves a
-        # CMS brand by EXACT indexed equality (tier 1 exact brand, tier 2 normalized
-        # brand, tier 3 generic). Both sides normalize identically, so no collation.
+        # molecule_id is the join key the provider x molecule build and enrich use:
+        # minted from the FDA clean molecule name by the SAME normalization the CMS
+        # Gnrc_Name side uses, so the two sides share one id.
+        doc["molecule_id"] = molecule_id(doc.get("molecule"))
         openfda = doc.get("openfda") or {}
-        doc["brand_exact_key"] = normalized_brand_exact_keys(openfda.get("brand_name"))
-        doc["brand_key"] = normalized_brand_keys(openfda.get("brand_name"))
-        doc["generic_key"] = normalized_brand_keys(openfda.get("generic_name"))
-        target_coll.replace_one({"set_id": record.set_id}, doc, upsert=True)
+        doc["drug_class"] = {"class": _drug_class(openfda.get("product_type"))}
+        target_coll.replace_one({"_id": record.set_id}, doc, upsert=True)
 
-    produced = tool.enrich(buildable, record_number_start=start, sink=_sink)
+    def _on_batch_error(keys, exc) -> None:
+        # The model crosswalk failed for this batch; its records are skipped
+        # rather than aborting the whole partition. Record one finding so the
+        # coverage loss is visible in the run report instead of silently dropped.
+        rt.record_discrepancy(
+            reason="FDA_all_other_Attribute_failures",
+            step="build_fda_drug_collection", artifact="fda",
+            record_key=str(getattr(keys[0], "set_id", "") or "") if keys else "",
+            detail={"kind": "crosswalk_batch_skipped",
+                    "skipped_count": len(keys),
+                    "error": str(exc)[:200]})
+
+    produced = tool.enrich(buildable, record_number_start=start, sink=_sink,
+                           on_batch_error=_on_batch_error)
     coded = sum(1 for r in produced if any(ind.codes for ind in r.indications))
     _log.LogPipeline(
         "INFO", "build_fda_drug_collection: range=[%d,%d) records=%d with_codes=%d skipped=%d",

@@ -5304,6 +5304,54 @@
                   "ChatHealthyLib"
                 ]
               }
+            },
+            {
+              "package_id": "medicare_control_image",
+              "kind": "docker_image",
+              "files": [
+                {
+                  "source_location": "pipeline/MedicareProviderEvaluationDataPipeline/Dockerfile.medicare-control",
+                  "feature_id": "EPIC-010-F-007",
+                  "handler_type": "dockerfile",
+                  "disposition": "referenced",
+                  "content_hash": "5115622dfed83d15b054b1988521858c5f431525d44f2ddfb174f8c4827f1cb2",
+                  "package": "medicare_control_image"
+                }
+              ],
+              "secrets": {},
+              "config": {
+                "image_repository": "medicare-control",
+                "dockerfile": "pipeline/MedicareProviderEvaluationDataPipeline/Dockerfile.medicare-control",
+                "build_context": ".",
+                "role": "medicare_control_image",
+                "container_libraries": [
+                  "ChatHealthyLib"
+                ]
+              }
+            },
+            {
+              "package_id": "medicare_worker_image",
+              "kind": "docker_image",
+              "files": [
+                {
+                  "source_location": "pipeline/MedicareProviderEvaluationDataPipeline/Dockerfile.medicare-worker",
+                  "feature_id": "EPIC-010-F-007",
+                  "handler_type": "dockerfile",
+                  "disposition": "referenced",
+                  "content_hash": "aede204f98808ca4c97bbfd4b98f90c6ed34b5d4388a2a39b5b9c9a4798d15c4",
+                  "package": "medicare_worker_image"
+                }
+              ],
+              "secrets": {},
+              "config": {
+                "image_repository": "medicare-worker",
+                "dockerfile": "pipeline/MedicareProviderEvaluationDataPipeline/Dockerfile.medicare-worker",
+                "build_context": ".",
+                "role": "medicare_worker_image",
+                "container_libraries": [
+                  "ChatHealthyLib"
+                ]
+              }
             }
           ],
           "platforms": [
@@ -5465,6 +5513,50 @@
                         "entity_type_code",
                         1
                       ]
+                    ]
+                  }
+                ]
+              }
+            },
+            {
+              "package_id": "medicare_providermedicare_indexes",
+              "kind": "mongo_indexes",
+              "config": {
+                "cluster": "ChatHealthyDataPipelines",
+                "identity": "pipelineEditor",
+                "db": "PipelinePublicHealthData",
+                "collection": "ProviderMedicare",
+                "version_source": "run_data_version",
+                "indexes": [
+                  {
+                    "name": "indication_provider_molecule_quantities",
+                    "keys": [
+                      ["indications", 1],
+                      ["npi", 1],
+                      ["molecule_id", 1],
+                      ["totals.tot_clms", 1],
+                      ["totals.tot_30day_fills", 1],
+                      ["totals.tot_day_suply", 1],
+                      ["totals.tot_drug_cst", 1]
+                    ]
+                  }
+                ]
+              }
+            },
+            {
+              "package_id": "medicare_fda_indexes",
+              "kind": "mongo_indexes",
+              "config": {
+                "cluster": "ChatHealthyDataPipelines",
+                "identity": "pipelineEditor",
+                "db": "PipelinePublicHealthData",
+                "collection": "fdaProductToDiagnosisResolution",
+                "version_source": "run_data_version",
+                "indexes": [
+                  {
+                    "name": "fda_molecule_id",
+                    "keys": [
+                      ["molecule_id", 1]
                     ]
                   }
                 ]

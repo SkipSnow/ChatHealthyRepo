@@ -799,6 +799,7 @@ class FDADrugEnrichmentTool:
         *,
         record_number_start: int = 1,
         sink: Optional[Callable[[FdaDrugRecord], None]] = None,
+        on_batch_error: Optional[Callable[[list, Exception], None]] = None,
     ) -> list[FdaDrugRecord]:
         """For each FDA SPL record: resolve its RXCUI (PROMPT 1), insert it into the
         crosswalk input only above the 0.75 threshold, crosswalk (PROMPT 2), and
@@ -809,21 +810,37 @@ class FDADrugEnrichmentTool:
         and crosswalk() for persist-first scratch. FIRES model and RxNav calls."""
         records: list[FdaDrugRecord] = []
         record_number = record_number_start
+        skipped_records = 0
         for start in range(0, len(fda_records), _CROSSWALK_BATCH_SIZE):
             chunk = fda_records[start:start + _CROSSWALK_BATCH_SIZE]
             keys = [self._extract_key(record, start + offset) for offset, record in enumerate(chunk)]
-            resolution = self.resolve_rxcuis(keys)
-            resolution_by_id = {item.id: item for item in resolution.results}
+            try:
+                resolution = self.resolve_rxcuis(keys)
+                resolution_by_id = {item.id: item for item in resolution.results}
 
-            drug_inputs: list[DrugInput] = []
-            for key in keys:
-                item = resolution_by_id[key.id]
-                insert = bool(item.ingredient_rxcuis) and item.confidence > _INSERT_THRESHOLD
-                drug_inputs.append(DrugInput(
-                    id=key.id, set_id=key.set_id, molecule=key.molecule,
-                    rxcui=list(item.ingredient_rxcuis) if insert else [],
-                    indication_text=key.indication_text))
-            crosswalk_output = self.crosswalk(CrosswalkBatchInput(drugs=drug_inputs))
+                drug_inputs: list[DrugInput] = []
+                for key in keys:
+                    item = resolution_by_id[key.id]
+                    insert = bool(item.ingredient_rxcuis) and item.confidence > _INSERT_THRESHOLD
+                    drug_inputs.append(DrugInput(
+                        id=key.id, set_id=key.set_id, molecule=key.molecule,
+                        rxcui=list(item.ingredient_rxcuis) if insert else [],
+                        indication_text=key.indication_text))
+                crosswalk_output = self.crosswalk(CrosswalkBatchInput(drugs=drug_inputs))
+            except ChatHealthyException as exc:
+                # A model call for this batch threw (crosswalk returned schema-
+                # invalid output, an incomplete tool call, or the resolver's model
+                # failed). Recover: record the error and skip this batch, so one
+                # bad model response does not fail the whole ~2000-record partition.
+                # The catcher logs; it does not re-raise.
+                _log.LogPipeline(
+                    "ERROR", "FDADrugEnrichmentTool.enrich: batch of %d record(s) "
+                    "skipped after model failure: %s", len(chunk), str(exc)[:200])
+                if on_batch_error is not None:
+                    on_batch_error(keys, exc)
+                skipped_records += len(chunk)
+                record_number += len(chunk)
+                continue
             crosswalk_by_id = {result.id: result for result in crosswalk_output.results}
 
             for key, fda_record in zip(keys, chunk):
@@ -835,8 +852,8 @@ class FDADrugEnrichmentTool:
                 records.append(record)
                 record_number += 1
         _log.LogPipeline(
-            "INFO", "FDADrugEnrichmentTool.enrich: records=%d model=%s",
-            len(records), self._model_id)
+            "INFO", "FDADrugEnrichmentTool.enrich: records=%d skipped=%d model=%s",
+            len(records), skipped_records, self._model_id)
         return records
 
     @staticmethod

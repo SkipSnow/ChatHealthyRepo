@@ -2,112 +2,55 @@
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "https://dev.chathealthy.ai/schemas/ChatHealthyProviderMedicareSchema.json",
   "title": "ChatHealthy ProviderMedicare",
-  "description": "One document per NPI in the ProviderMedicare collection (EPIC-010-F-007). Carries the provider's own Medicare figures only - never the specialty aggregates or tier cut-points, which live on SpecialtyMedicare. Drugs are re-grained to one entry per normalized brand, inner-joined to the FDA drug collection by brand for molecule, rxcui-set, and indications; a Part D brand with no FDA match is discarded. Volume metrics are summed across the provider's rows for each brand.",
+  "description": "One document per provider x molecule in the providerMedicarePartDQuantityRollUps collection (EPIC-010-F-007). The provider is the core object; each document is one Part D molecule that provider prescribed, with the provider's brand rows collapsed and usage summed. _id is \"<npi>:<molecule_id>\". indications is the normalized-indication search key (filled by enrich from the NormalizedIndicationMap); drug_class and identity are the molecule's FDA facts, joined by molecule_id. Part B procedures and organizational CCN/size are out of this collection's scope.",
   "type": "object",
   "additionalProperties": false,
-  "required": ["_id", "entity_type", "specialty"],
+  "required": ["_id", "npi", "molecule_id", "record_count", "totals", "provenance"],
   "properties": {
-    "_id": { "type": "string", "pattern": "^[0-9]{10}$", "description": "NPI" },
+    "_id": { "type": "string", "description": "<npi>:<molecule_id>" },
     "npi": { "type": "string", "pattern": "^[0-9]{10}$" },
+    "prescriber_state": { "type": "string", "description": "the provider's CMS prescriber state (one per provider)" },
+    "nucc_codes": { "type": "array", "items": { "type": "string" }, "description": "provider NUCC taxonomy codes from Provider_v_5; CMS Prscrbr_Type is not carried" },
     "entity_type": { "type": "string", "enum": ["I", "O"] },
-    "specialty": { "type": "array", "items": { "type": "string" }, "description": "NUCC codes" },
-    "provider_state": { "type": "string", "description": "the CMS state value this record was fanned under (parallelism dimension only; the Part B/D join to Provider is by NPI, never by state)" },
-    "ccn": { "type": "string", "description": "CMS Certification Number (organization only)" },
-    "size_tier": { "type": ["integer", "null"], "minimum": 1, "maximum": 5, "description": "organization only; data-driven quintile band of certified bed count (1-5), null for ambulatory / no-bed facilities" },
-    "run_id": { "type": "string" },
-    "data_version": { "type": "integer", "minimum": 1 },
-    "procedures": {
-      "type": "array",
-      "items": {
-        "type": "object",
-        "additionalProperties": false,
-        "properties": {
-          "hcpcs": { "type": "string" },
-          "descriptor": { "type": ["string", "null"] },
-          "hcpcs_level2": { "type": ["string", "null"] },
-          "label": { "type": ["string", "null"] },
-          "year": { "type": "integer" },
-          "service_count": { "type": ["integer", "null"], "description": "Tot_Srvcs summed across the facility and non-facility place-of-service rows" },
-          "beneficiary_count": { "type": ["integer", "null"], "description": "Tot_Benes summed across the facility and non-facility place-of-service rows" },
-          "facility_submitted_amount": { "type": ["number", "null"], "description": "Avg_Sbmtd_Chrg for the facility (Place_Of_Srvc F) row" },
-          "facility_allowed_amount": { "type": ["number", "null"], "description": "Avg_Mdcr_Alowd_Amt for the facility row" },
-          "facility_paid_amount": { "type": ["number", "null"], "description": "Avg_Mdcr_Pymt_Amt for the facility row" },
-          "nonfacility_submitted_amount": { "type": ["number", "null"], "description": "Avg_Sbmtd_Chrg for the non-facility (Place_Of_Srvc O) row" },
-          "nonfacility_allowed_amount": { "type": ["number", "null"], "description": "Avg_Mdcr_Alowd_Amt for the non-facility row" },
-          "nonfacility_paid_amount": { "type": ["number", "null"], "description": "Avg_Mdcr_Pymt_Amt for the non-facility row" },
-          "allowed_icd10": { "type": "array", "items": { "type": "string" } },
-          "justification_kind": { "type": "string" },
-          "justification_source": { "type": "string" }
-        }
+    "molecule_id": { "type": "string", "description": "proprietary molecule surrogate; the join key to the FDA file and the NormalizedIndicationMap" },
+    "gnrc_name": { "type": ["string", "null"] },
+    "brands": { "type": "array", "items": { "type": "string" }, "description": "distinct brand names collapsed into the pair" },
+    "record_count": { "type": "integer", "description": "CMS Part D rows behind this provider x molecule; the conformance unit" },
+    "totals": {
+      "type": "object", "additionalProperties": false,
+      "description": "all-ages usage summed across the provider's brand rows (additive)",
+      "properties": {
+        "tot_clms": { "type": "number" }, "tot_30day_fills": { "type": "number" },
+        "tot_day_suply": { "type": "number" }, "tot_drug_cst": { "type": "number" }
       }
     },
-    "drugs": {
-      "type": "array",
-      "items": {
-        "type": "object",
-        "additionalProperties": false,
-        "properties": {
-          "brand": { "type": ["string", "null"] },
-          "generic": { "type": ["string", "null"] },
-          "year": { "type": "integer" },
-          "total_claims": { "type": ["integer", "null"] },
-          "days_supply": { "type": ["number", "null"] },
-          "beneficiary_count": { "type": ["integer", "null"] },
-          "total_drug_cost": { "type": ["number", "null"] },
-          "molecule": { "type": ["string", "null"] },
-          "match_provenance": { "type": "string", "enum": ["brand_name", "brand_key", "generic_name"], "description": "which FDA join tier matched this brand: brand_name (exact), brand_key (salt/form-normalized), or generic_name (CMS Brnd_Name was a generic, FDA brand_name adopted)" },
-          "rxcuis": { "type": "array", "items": { "type": "string" }, "description": "the brand's shared RxNorm ingredient rxcui-set (tty=IN) from the FDA drug collection" },
-          "ingredient_names": { "type": "array", "items": { "type": "string" }, "description": "the ingredient names, positionally aligned with rxcuis" },
-          "clinical_rxcui": { "type": "array", "items": { "type": "string" }, "description": "openfda.rxcui, the full clinical-drug rxcui list unioned across the brand's FDA records; distinct from the ingredient-level rxcuis" },
-          "generic_name": { "type": "array", "items": { "type": "string" }, "description": "openfda.generic_name unioned across the brand's FDA records" },
-          "substance_name": { "type": "array", "items": { "type": "string" }, "description": "openfda.substance_name unioned across the brand's FDA records" },
-          "product_type": { "type": "array", "items": { "type": "string" }, "description": "openfda.product_type unioned across the brand's FDA records" },
-          "product_ndc": { "type": "array", "items": { "type": "string" }, "description": "openfda.product_ndc unioned across the brand's FDA records" },
-          "application_number": { "type": "array", "items": { "type": "string" }, "description": "openfda.application_number unioned across the brand's FDA records" },
-          "spl_id": { "type": "array", "items": { "type": "string" }, "description": "openfda.spl_id unioned across the brand's FDA records" },
-          "spl_set_id": { "type": "array", "items": { "type": "string" }, "description": "openfda.spl_set_id unioned across the brand's FDA records" },
-          "usage_summary": { "type": ["string", "null"], "description": "the FDA label usage summary for the brand" },
-          "indications": {
-            "type": "array",
-            "description": "the FDA label indications unioned across every record under the brand, deduped by normalized indication text, each carrying its ICD-10-CM codes",
-            "items": {
-              "type": "object",
-              "additionalProperties": false,
-              "required": ["indication"],
-              "properties": {
-                "indication": { "type": "string" },
-                "confidence_rationale": { "type": ["string", "null"] },
-                "codes": {
-                  "type": "array",
-                  "items": {
-                    "type": "object",
-                    "additionalProperties": false,
-                    "required": ["icd10_code"],
-                    "properties": {
-                      "icd10_code": { "type": "string" },
-                      "level": { "type": ["integer", "null"], "enum": [3, 4, null] },
-                      "confidence": { "type": ["number", "null"] },
-                      "description": { "type": ["string", "null"] }
-                    }
-                  }
-                }
-              }
-            }
-          }
-        }
+    "ge65": {
+      "type": "object", "additionalProperties": false,
+      "description": "65-and-over usage: the sum of visible rows plus a count of rows CMS suppressed (GE65 suppression is all-or-nothing)",
+      "properties": {
+        "tot_clms": { "type": "number" }, "tot_30day_fills": { "type": "number" },
+        "tot_day_suply": { "type": "number" }, "tot_drug_cst": { "type": "number" },
+        "usage_suppressed_count": { "type": "integer" }
       }
     },
-    "indications": {
-      "type": "array",
-      "items": {
-        "type": "object",
-        "additionalProperties": false,
-        "properties": {
-          "indication_id": { "type": "string" },
-          "source": { "type": "string", "enum": ["procedure", "drug"] },
-          "days_supply": { "type": ["number", "null"], "description": "provider's own per-indication total, count-under-each" }
-        },
-        "required": ["indication_id", "source"]
+    "benes": {
+      "type": "object", "additionalProperties": false,
+      "description": "non-additive; carried only when a single unsuppressed row backs the pair, else null",
+      "properties": {
+        "tot_benes": { "type": ["integer", "null"] },
+        "ge65_tot_benes": { "type": ["integer", "null"] }
+      }
+    },
+    "indications": { "type": "array", "items": { "type": "string" }, "description": "normalized indication ids from the NormalizedIndicationMap; the (indications, npi) search key" },
+    "drug_class": { "type": ["array", "null"], "items": { "type": "string", "enum": ["OTC", "RX", "UNDETERMINED"] }, "description": "SET of the molecule's FDA label classes" },
+    "identity": { "type": "object", "description": "rxcui / unii / substance_name unioned across the molecule's FDA labels" },
+    "provenance": {
+      "type": "object", "additionalProperties": false,
+      "required": ["source_run_id", "source_collection", "built_at"],
+      "properties": {
+        "source_run_id": { "type": "string" },
+        "source_collection": { "type": "string" },
+        "built_at": { "type": "string" }
       }
     }
   }

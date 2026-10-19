@@ -58,4 +58,12 @@ def run_step(ctx) -> dict:
 
 
 def execute(ctx):
-    return run_step(ctx)
+    # Organizational CCN/size is outside the Part D + FDA collection's scope and
+    # best-effort: a failure here is logged and never fails the run.
+    try:
+        return run_step(ctx)
+    except Exception as exc:  # noqa: BLE001 - best-effort step, never abend the run
+        _log.LogPipeline("WARNING", "enrich_org_ccn_size: best-effort step failed, "
+                         "continuing: %s", exc)
+        return {"step": "enrich_org_ccn_size", "best_effort": True, "skipped": True,
+                "error": str(exc)[:200]}

@@ -1,16 +1,18 @@
 # Copyright (c) 2026 ChatHealthy.ai LLC. All rights reserved.
 # Licensed under the FindCare Evaluation License (FEL-1.0).
 
-"""build_providermedicare_base (EPIC-010-F-007) — per-NPI ProviderMedicare doc.
+"""build_providermedicare_base (EPIC-010-F-007) — provider x molecule record.
 
-Process-pool fanned by provider_state: each worker builds the ProviderMedicare
-documents for its state from the Provider spine (entity_type, specialty) plus
-Part B (procedures) and Part D (drugs, with day supply) staging. Resolves every
-collection through the registry and delegates the assembly to the engine.
+Process-pool fanned by provider_state: each worker builds the flat
+providerMedicarePartDQuantityRollUps documents (one per provider x molecule) for
+its state from Part D staging, grouping each provider's rows by molecule and
+joining the Provider spine (entity_type, NUCC) by NPI. Part B is out of this
+collection's scope (best-effort, separate steps). Resolves every collection
+through the registry and delegates the assembly to the engine.
 
-NOTE: the Provider spine collection is resolved at this run's data_version; if
-the Provider pipeline was built at a different version, surface a
---provider-data-version arg (tracked). No external calls.
+NOTE: the Provider spine collection is named by the run's providerCollection arg
+(cluster.db.collection); the built collection versions independently of the
+Provider source. No external calls.
 """
 
 from __future__ import annotations
@@ -20,7 +22,7 @@ from chathealthy_lib.logging_service import ChatHealthyLoggingService
 
 from pipeline.run_lifecycle.pipeline_runtime import PipelineRuntime
 from pipeline.MedicareProviderEvaluationDataPipeline.medicare_providermedicare_engine import (
-    build_providermedicare)
+    build_provider_molecule)
 
 _log = ChatHealthyLoggingService()
 
@@ -47,19 +49,16 @@ def run_step(ctx) -> dict:
         parse_provider_source)
     _prov_db, _prov_coll = parse_provider_source(ctx.args.provider_collection)
     provider_spine_coll = mongo[_prov_db][_prov_coll]
-    partb = reg.by_source_name("medicare_partb")
-    partb_coll = mongo[partb.staging_db][reg.staging_collection_name("medicare_partb")]
     partd = reg.by_source_name("medicare_partd")
     partd_coll = mongo[partd.staging_db][reg.staging_collection_name("medicare_partd")]
     tgt = reg.by_source_name("providermedicare")
     target_coll = mongo[tgt.public_data_db][reg.public_data_collection_name("providermedicare")]
 
-    result = build_providermedicare(
+    result = build_provider_molecule(
         state=state,
         run_id=ctx.run_id,
         data_version=int(ctx.args.data_version),
         provider_spine_coll=provider_spine_coll,
-        partb_coll=partb_coll,
         partd_coll=partd_coll,
         target_coll=target_coll,
     )

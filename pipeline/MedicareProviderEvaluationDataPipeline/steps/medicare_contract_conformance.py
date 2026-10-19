@@ -30,7 +30,14 @@ def run_step(ctx) -> dict:
         collections[source_name] = mongo[entry.public_data_db][
             reg.public_data_collection_name(source_name)]
 
-    result = check_conformance(run_id=ctx.run_id, collections=collections)
+    # The conformance invariant: Sum(record_count) over the provider x molecule
+    # documents must equal the CMS Part D staging row count for the run.
+    partd = reg.by_source_name("medicare_partd")
+    staging_partd = mongo[partd.staging_db][reg.staging_collection_name("medicare_partd")]
+    cms_row_count = staging_partd.count_documents({"run_id": ctx.run_id})
+
+    result = check_conformance(run_id=ctx.run_id, collections=collections,
+                               cms_partd_row_count=cms_row_count)
     _log.LogPipeline("INFO", "medicare_contract_conformance: %s",
                      {k: v["checked"] for k, v in result["report"].items()})
     return result

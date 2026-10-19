@@ -34,10 +34,16 @@ def _validator(schema_file: str):
     return Draft202012Validator(schema)
 
 
-def check_conformance(*, run_id: str, collections: dict, sample_offenders: int = 10) -> dict[str, Any]:
-    """collections: source_name -> pymongo collection. Validate every doc."""
+def check_conformance(*, run_id: str, collections: dict, cms_partd_row_count: int | None = None,
+                      sample_offenders: int = 10) -> dict[str, Any]:
+    """collections: source_name -> pymongo collection. Validate every doc against
+    its JSON Schema, and -- when cms_partd_row_count is given -- enforce the
+    conformance invariant that the sum of record_count over every provider x
+    molecule document equals the CMS Part D row count (every CMS row represented
+    exactly once). Either failure stops the run."""
     report: dict[str, Any] = {}
     total_nonconforming = 0
+    provider_record_count_sum = 0
     for source_name, coll in collections.items():
         schema_file = _CONTRACTS.get(source_name)
         if not schema_file:
@@ -47,6 +53,8 @@ def check_conformance(*, run_id: str, collections: dict, sample_offenders: int =
         offenders: list[dict] = []
         for doc in coll.find({}):
             checked += 1
+            if source_name == "providermedicare":
+                provider_record_count_sum += int(doc.get("record_count") or 0)
             errors = sorted(validator.iter_errors(doc), key=lambda e: e.path)
             if errors:
                 nonconforming += 1
@@ -64,6 +72,23 @@ def check_conformance(*, run_id: str, collections: dict, sample_offenders: int =
             source_name, checked, nonconforming,
         )
 
+    invariant: dict[str, Any] | None = None
+    if cms_partd_row_count is not None:
+        delta = provider_record_count_sum - cms_partd_row_count
+        invariant = {"sum_record_count": provider_record_count_sum,
+                     "cms_partd_rows": cms_partd_row_count, "delta": delta}
+        _log.LogPipeline(
+            "INFO", "conformance invariant: sum_record_count=%d cms_rows=%d delta=%d",
+            provider_record_count_sum, cms_partd_row_count, delta)
+        if delta != 0:
+            raise ChatHealthyException(
+                mode="runtime_error",
+                component="medicare_contract_conformance",
+                message=(f"medicare_contract_conformance: Sum(record_count)={provider_record_count_sum} "
+                         f"!= CMS Part D rows={cms_partd_row_count} (delta {delta}); fewer is a drop, "
+                         "more is a duplicate"),
+                report=report, invariant=invariant)
+
     if total_nonconforming:
         raise ChatHealthyException(
             mode="runtime_error",
@@ -71,4 +96,4 @@ def check_conformance(*, run_id: str, collections: dict, sample_offenders: int =
             message=f"medicare_contract_conformance: {total_nonconforming} nonconforming record(s)",
             report=report,
         )
-    return {"conformant": True, "report": report}
+    return {"conformant": True, "report": report, "invariant": invariant}

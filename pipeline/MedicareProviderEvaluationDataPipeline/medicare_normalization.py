@@ -19,6 +19,7 @@ single source of truth for the engines that import them.
 
 from __future__ import annotations
 
+import hashlib
 from collections import defaultdict
 from typing import Any, Callable, Iterable
 
@@ -29,10 +30,22 @@ PARTD_COLS = {
     "state": "Prscrbr_State_Abrvtn",
     "brand": "Brnd_Name",
     "generic": "Gnrc_Name",
+    # all-ages usage (never suppressed) + all-ages beneficiaries (suppressible)
     "total_claims": "Tot_Clms",
+    "total_30day_fills": "Tot_30day_Fills",
     "days_supply": "Tot_Day_Suply",
-    "beneficiary_count": "Tot_Benes",
     "total_drug_cost": "Tot_Drug_Cst",
+    "beneficiary_count": "Tot_Benes",
+    # 65-and-over usage + beneficiaries (all-or-nothing under GE65_Sprsn_Flag)
+    "ge65_total_claims": "GE65_Tot_Clms",
+    "ge65_total_30day_fills": "GE65_Tot_30day_Fills",
+    "ge65_days_supply": "GE65_Tot_Day_Suply",
+    "ge65_total_drug_cost": "GE65_Tot_Drug_Cst",
+    "ge65_beneficiary_count": "GE65_Tot_Benes",
+    # suppression flags (present on the row only when the value is suppressed)
+    "bene_sprsn_flag": "Bene_Sprsn_Flag",
+    "ge65_sprsn_flag": "GE65_Sprsn_Flag",
+    "ge65_bene_sprsn_flag": "GE65_Bene_Sprsn_Flag",
 }
 
 # --- CMS Part B "Physician & Other Practitioners by Provider and Service" -----
@@ -163,6 +176,119 @@ def collect_drugs(partd_rows: Iterable[dict]) -> dict[str, list[dict]]:
     return dict(out)
 
 
+def _sprsn(raw: dict, col: str) -> bool:
+    """A CMS suppression flag is present (non-empty) only when the value is
+    suppressed; absent/blank means visible. (Marker string confirmed against a
+    staging sample before the run.)"""
+    return bool(str(raw.get(col) or "").strip())
+
+
+def partd_child(raw: dict) -> dict:
+    """One RAW per-CMS-record child for the molecule master (III.2.2 / III.7).
+
+    All-ages usage (tot_clms/30day/day_suply/drug_cst) is never suppressed and is
+    carried as given -- it is what the master totals sum. A suppressed quantity is
+    carried as None with its flag kept, never 0 and never reconstructed:
+    all-ages beneficiaries under Bene_Sprsn_Flag; the four GE65 usage quantities
+    all-or-nothing under GE65_Sprsn_Flag; GE65 beneficiaries under
+    GE65_Bene_Sprsn_Flag. Beneficiaries are never summed. nucc_codes is filled by
+    the engine from Provider_v_5 (by npi); CMS Prscrbr_Type is not carried."""
+    C = PARTD_COLS
+    bene_sup = _sprsn(raw, C["bene_sprsn_flag"])
+    ge65_sup = _sprsn(raw, C["ge65_sprsn_flag"])
+    ge65_bene_sup = _sprsn(raw, C["ge65_bene_sprsn_flag"])
+    return {
+        "npi": _npi(raw, C["npi"]),
+        "state": str(raw.get(C["state"]) or "").strip(),
+        "nucc_codes": [],
+        "brnd_name": raw.get(C["brand"]),
+        "gnrc_name": raw.get(C["generic"]),
+        "tot_clms": _num(raw.get(C["total_claims"])),
+        "tot_30day_fills": _num(raw.get(C["total_30day_fills"])),
+        "tot_day_suply": _num(raw.get(C["days_supply"])),
+        "tot_drug_cst": _num(raw.get(C["total_drug_cost"])),
+        "tot_benes": None if bene_sup else _num(raw.get(C["beneficiary_count"])),
+        "ge65_tot_clms": None if ge65_sup else _num(raw.get(C["ge65_total_claims"])),
+        "ge65_tot_30day_fills": None if ge65_sup else _num(raw.get(C["ge65_total_30day_fills"])),
+        "ge65_tot_day_suply": None if ge65_sup else _num(raw.get(C["ge65_days_supply"])),
+        "ge65_tot_drug_cst": None if ge65_sup else _num(raw.get(C["ge65_total_drug_cost"])),
+        "ge65_tot_benes": None if ge65_bene_sup else _num(raw.get(C["ge65_beneficiary_count"])),
+        "suppression_flags": {
+            "Bene_Sprsn_Flag": raw.get(C["bene_sprsn_flag"]),
+            "GE65_Sprsn_Flag": raw.get(C["ge65_sprsn_flag"]),
+            "GE65_Bene_Sprsn_Flag": raw.get(C["ge65_bene_sprsn_flag"]),
+        },
+    }
+
+
+def child_ge65_suppressed(child: dict) -> bool:
+    """A raw child's 65+ usage was suppressed (GE65_Sprsn_Flag present)."""
+    return bool(str((child.get("suppression_flags") or {}).get("GE65_Sprsn_Flag") or "").strip())
+
+
+_ALLAGES_USAGE = ("tot_clms", "tot_30day_fills", "tot_day_suply", "tot_drug_cst")
+_GE65_TO_PLAIN = {
+    "ge65_tot_clms": "tot_clms",
+    "ge65_tot_30day_fills": "tot_30day_fills",
+    "ge65_tot_day_suply": "tot_day_suply",
+    "ge65_tot_drug_cst": "tot_drug_cst",
+}
+
+
+def _as_int(v: Any) -> int | float:
+    return int(v) if isinstance(v, float) and v.is_integer() else v
+
+
+def aggregate_provider_molecule(rows: Iterable[dict]) -> dict:
+    """Aggregate ONE provider's CMS Part D rows for ONE molecule into the flat
+    (provider x molecule) record's quantity block (EPIC-010-F-007, provider-core
+    model). The provider is the core object; this is one molecule under it.
+
+    Usage (claims / 30-day fills / day-supply / cost) is ADDITIVE -> summed over
+    the provider's brand rows for the molecule. GE65 usage sums the VISIBLE rows
+    only; usage_suppressed_count tallies the rows CMS suppressed (GE65_Sprsn_Flag
+    is all-or-nothing). Beneficiaries are NON-ADDITIVE (summing double-counts
+    patients across brands) -> carried only when a single unsuppressed row backs
+    the pair, else null. brands is the distinct brand set; record_count is the
+    CMS rows behind the pair (the conformance unit)."""
+    children = [partd_child(r) for r in rows]
+    totals = {k: 0 for k in _ALLAGES_USAGE}
+    ge65 = {v: 0 for v in _GE65_TO_PLAIN.values()}
+    ge65_suppressed = 0
+    brands: list[str] = []
+    seen: set = set()
+    for c in children:
+        for k in _ALLAGES_USAGE:
+            if c[k] is not None:
+                totals[k] += c[k]
+        if child_ge65_suppressed(c):
+            ge65_suppressed += 1
+        else:
+            for src, dst in _GE65_TO_PLAIN.items():
+                if c[src] is not None:
+                    ge65[dst] += c[src]
+        brand = str(c["brnd_name"] or "").strip()
+        if brand and brand not in seen:
+            seen.add(brand)
+            brands.append(brand)
+    if len(children) == 1:
+        tot_benes = children[0]["tot_benes"]
+        ge65_tot_benes = children[0]["ge65_tot_benes"]
+    else:
+        tot_benes = None
+        ge65_tot_benes = None
+    return {
+        "state": next((c["state"] for c in children if c["state"]), ""),
+        "gnrc_name": children[0]["gnrc_name"] if children else None,
+        "brands": brands,
+        "record_count": len(children),
+        "totals": {k: _as_int(v) for k, v in totals.items()},
+        "ge65": {**{k: _as_int(v) for k, v in ge65.items()},
+                 "usage_suppressed_count": ge65_suppressed},
+        "benes": {"tot_benes": tot_benes, "ge65_tot_benes": ge65_tot_benes},
+    }
+
+
 def distinct_billed_npis(
     partb_rows: Iterable[dict], partd_rows: Iterable[dict]
 ) -> set[str]:
@@ -244,6 +370,27 @@ def brand_join_key(name: Any) -> str:
             tokens[-1] in _BRAND_SALT_SUFFIXES or tokens[-1] in _BRAND_FORM_SUFFIXES):
         tokens.pop()
     return " ".join(tokens)
+
+
+def molecule_canonical(name: Any) -> str:
+    """Canonical molecule name shared by the CMS Gnrc_Name and the recovered FDA
+    clean name (NO regex): brand_join_key's case/whitespace-folded, salt/form-
+    stripped form, so "ATORVASTATIN CALCIUM" (CMS) and "atorvastatin" (FDA) fold
+    to one key. '' when empty."""
+    return brand_join_key(name)
+
+
+def molecule_id(name: Any) -> str | None:
+    """The proprietary molecule surrogate: 'mol_' + a stable digest of the
+    canonical molecule name. None when the name is empty. The SAME function runs
+    on the FDA clean name and the CMS Gnrc_Name, so a molecule resolved from a
+    label and the same molecule prescribed in CMS carry one id -- that id is the
+    join key (FDA file carries it, the master is keyed on it). EPIC-010-F-007
+    III.2.4."""
+    canonical = molecule_canonical(name)
+    if not canonical:
+        return None
+    return "mol_" + hashlib.sha1(canonical.encode("utf-8")).hexdigest()[:16]
 
 
 def _norm_indication_text(text: Any) -> str:
@@ -528,6 +675,48 @@ def compose_drugs_by_brand(
         kept.append(cur)
     discarded = [discards[rk] for rk in discard_order]
     return kept, discarded
+
+
+_ROLLUP_USAGE = ("tot_clms", "tot_30day_fills", "tot_day_suply", "tot_drug_cst")
+
+
+def rollup_specialty_flat(docs: Iterable[dict]) -> dict:
+    """Roll flat provider x molecule documents up to the specialty (NUCC) grain
+    (EPIC-010-F-007-S-009). A provider is attributed to EACH of its nucc_codes,
+    so per-specialty totals overlap across specialties; molecule_real_total is
+    the de-duplicated total per molecule (each provider counted once). Returns
+    the per-(nucc, molecule) specialty aggregate, the global per-molecule real
+    total, and the set of NUCC codes seen. Pure; the engine writes the documents
+    and reads provider_count from Provider_v_5."""
+    spec: dict[tuple[str, str], dict] = {}
+    real: dict[str, dict] = {}
+    nuccs: set[str] = set()
+
+    def _bucket(store, key):
+        b = store.get(key)
+        if b is None:
+            b = {**{k: 0 for k in _ROLLUP_USAGE}, "providers": set()}
+            store[key] = b
+        return b
+
+    for d in docs:
+        mid = d.get("molecule_id")
+        npi = d.get("npi")
+        if not mid:
+            continue
+        totals = d.get("totals") or {}
+        r = _bucket(real, mid)
+        if npi not in r["providers"]:
+            r["providers"].add(npi)
+            for k in _ROLLUP_USAGE:
+                r[k] += (totals.get(k) or 0)
+        for nucc in d.get("nucc_codes") or []:
+            nuccs.add(nucc)
+            s = _bucket(spec, (nucc, mid))
+            s["providers"].add(npi)
+            for k in _ROLLUP_USAGE:
+                s[k] += (totals.get(k) or 0)
+    return {"spec": spec, "real": real, "nuccs": nuccs}
 
 
 def rollup_specialty(

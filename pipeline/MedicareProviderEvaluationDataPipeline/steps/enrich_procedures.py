@@ -55,4 +55,12 @@ def run_step(ctx) -> dict:
 
 
 def execute(ctx):
-    return run_step(ctx)
+    # Part B procedure coverage is outside the Part D + FDA collection's scope
+    # and best-effort: a failure here is logged and never fails the run.
+    try:
+        return run_step(ctx)
+    except Exception as exc:  # noqa: BLE001 - best-effort step, never abend the run
+        _log.LogPipeline("WARNING", "enrich_procedures: best-effort step failed, "
+                         "continuing: %s", exc)
+        return {"step": "enrich_procedures", "best_effort": True, "skipped": True,
+                "error": str(exc)[:200]}
