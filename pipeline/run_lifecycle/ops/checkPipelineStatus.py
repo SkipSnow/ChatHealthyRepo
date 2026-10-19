@@ -80,6 +80,21 @@ def check(run_id: str, out=sys.stdout.write) -> int:
     out(f"  status={run.get('status')} controller_phase={run.get('controller_phase')} "
         f"heartbeat={hb_age}\n")
 
+    # On a failed/aborted run, surface WHY at the top -- the fatal exception on
+    # the run record and the run's most recent ERROR log lines -- so the status
+    # names the cause (e.g. an ARM quota 409), not merely that it failed.
+    if status in ("failed", "aborted", "error"):
+        fx = run.get("fatal_exception") or {}
+        if fx:
+            out(f"  FATAL [{fx.get('mode', '')}] {str(fx.get('message') or fx.get('type') or '')[:400]}\n")
+        logcoll = "Log_" + str(run.get("env") or "dev")
+        try:
+            errs = list(db[logcoll].find({"run_id": run_id, "level": "ERROR"}).sort([("_id", -1)]).limit(5))
+            for e in reversed(errs):
+                out(f"  ERROR {str(e.get('message') or '')[:400]}\n")
+        except Exception:  # noqa: BLE001
+            pass
+
     by_step: dict[str, Counter] = {}
     for wi in db["pipeline.work_items"].find({"run_id": run_id}, {"step": 1, "status": 1}):
         by_step.setdefault(wi.get("step"), Counter())[str(wi.get("status") or "unknown")] += 1
@@ -113,8 +128,8 @@ def check(run_id: str, out=sys.stdout.write) -> int:
 
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(
-        description="Report a pipeline run's status by run_id (the run's process id).")
-    parser.add_argument("run_id", help="the run_id to report on")
+        description="Report a pipeline run's status by run_id (the run's process id). The run_id is required.")
+    parser.add_argument("run_id", help="the run_id to report on (the caller supplies it)")
     ns = parser.parse_args(argv)
     return check(ns.run_id)
 

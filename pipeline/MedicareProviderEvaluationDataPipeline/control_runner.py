@@ -250,9 +250,19 @@ def _control(ns) -> int:
             build_fda_drug=ns.build_fda_drug,
             provider_collection=ns.provider_collection,
         )
+        _cfg = load_pipeline_config(env_prefix=ns.env_prefix)
+        # Worker box size and pool size are per-environment CONFIGURATION, read
+        # from the pipeline config record (pipeline_config.json), the same place
+        # fan-out, the FDA range count and dataset versions live -- never from
+        # .env and never hardcoded. The controller exports them so
+        # worker_vm_provisioning sizes the worker VM and the pool from config.
+        if _cfg.get("worker_vm_size"):
+            os.environ["WORKER_VM_SIZE"] = str(_cfg["worker_vm_size"])
+        if _cfg.get("worker_max_parallel"):
+            os.environ["WORKER_MAX_PARALLEL"] = str(_cfg["worker_max_parallel"])
         orchestrator = MedicareProviderEvaluationOrchestrator(
             env=ns.env_prefix,
-            config=load_pipeline_config(env_prefix=ns.env_prefix),
+            config=_cfg,
             mongo_client=ChatHealthyMongoUtilities().getConnection(
                 "pipelineEditor", "ChatHealthyDataPipelines"),
             blob_client=get_blob_service(),

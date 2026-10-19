@@ -114,6 +114,15 @@
             "prod"
           ]
         },
+        "worker_vm_size": {
+          "description": "Azure VM size for the run's worker box, read by the controller to size the worker VM.",
+          "type": "string"
+        },
+        "worker_max_parallel": {
+          "description": "Worker-process pool size on the worker box; worker_host bounds it to min(this, pending partitions).",
+          "type": "integer",
+          "minimum": 1
+        },
         "batch_limits": {
           "$ref": "#/$defs/BatchLimits"
         },

@@ -120,11 +120,11 @@ def _worker_host_cloud_init(run_id: str, pipeline_name: str, vm_name: str) -> st
     indication_model_env = (
         f"-e CH_FDA_ENRICHMENT_MODEL='{_req('CH_FDA_ENRICHMENT_MODEL')}' \\\n      "
         if pipeline_name == "medicare" else "")
-    # Fan-out steps are I/O-bound (Mongo writes, source fetches), so the pool
-    # scales to the partition count, not the core count -- the box runs ~100 PIDs
-    # at low CPU. worker_host falls back to os.cpu_count() when WORKER_MAX_PARALLEL
-    # is unset, which throttled a 100-way fan-out to 32; set it here. Overridable.
-    worker_max_parallel = os.environ.get("WORKER_MAX_PARALLEL", "300")
+    # Worker-pool size comes from the pipeline config record (the controller
+    # reads worker_max_parallel from config and exports it); it is never
+    # hardcoded here. worker_host bounds the pool to min(cap, pending); absent
+    # the value it falls back to the box core count.
+    worker_max_parallel = os.environ.get("WORKER_MAX_PARALLEL", "")
     yaml_body = f"""#cloud-config
 apt:
   primary:

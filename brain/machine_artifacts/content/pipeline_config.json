@@ -61,6 +61,8 @@
   "pipeline_config": [
     {
       "env": "dev",
+      "worker_vm_size": "Standard_D32s_v6",
+      "worker_max_parallel": 300,
       "batch_limits": {
         "normalize_batch_size": 1000
       },
