@@ -35,6 +35,9 @@ COPY pipeline/run_lifecycle /app/pipeline/run_lifecycle
 COPY pipeline/provider_base /app/pipeline/provider_base
 COPY pipeline/MedicareProviderEvaluationDataPipeline /app/pipeline/MedicareProviderEvaluationDataPipeline
 
+# The conformance engine validates published records against the committed
+# JSON Schema contracts (LLD v83 III.6 H3); they must exist in the image.
+COPY Website/schemas /app/Website/schemas
 COPY brain/machine_artifacts/content/pipeline_config.json /app/brain/machine_artifacts/content/pipeline_config.json
 COPY brain/machine_artifacts/content/pipeline_indexes.json /app/brain/machine_artifacts/content/pipeline_indexes.json
 
